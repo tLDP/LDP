@@ -46,7 +46,7 @@ Pie-in-the-sky:
 
 # Modules ##################################################################
 
-from Log import Log
+from Log import log
 import commands
 
 
@@ -55,37 +55,35 @@ import commands
 
 # Globals
 
-Log = Log()
-
 
 # Converter
 
 class Converter:
 
 	def text(self, Filename, Format):
-		Log(3, 'Converting ' + Filename + ' from text')
+		log(3, 'Converting ' + Filename + ' from text')
 		return wikitext(Filename)
 
 	def wikitext(self, Filename):
-		Log(3, 'Converting ' + Filename + ' from WikiText')
+		log(3, 'Converting ' + Filename + ' from WikiText')
 		command = 'wt2db -x ' + Filename
 		result = commands.getoutput(command)
 		return result
 
 	def texinfo(self, Filename):
-		Log(3, 'Converting ' + Filename + ' from Texinfo')
+		log(3, 'Converting ' + Filename + ' from Texinfo')
 		command = 'texi2db -f ' + Filename
 		result = commands.getoutput(command)
 		return result
 
 	def ldsgml(self, Filename):
-		Log(3, 'Converting ' + Filename + ' from LinuxDoc SGML')
+		log(3, 'Converting ' + Filename + ' from LinuxDoc SGML')
 		command = ''
 		result = commands.getoutput(command)
 		return result
 
 	def dbsgml(self, Filename):
-		Log(3, 'Converting ' + Filename + ' from DocBook SGML')
+		log(3, 'Converting ' + Filename + ' from DocBook SGML')
 		command = 'xmllint --sgml ' + Filename
 		result = commands.getoutput(command)
 		return result

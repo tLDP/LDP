@@ -35,8 +35,8 @@ This module writes out a Makefile for every document in the cache.
 
 class Makefile:
 
-	from Config import Config
-	from Lintadas import Lintadas
+	from Config import config
+	from Lintadas import lintadas
 	import os.path
 	import urllib
 	import os

@@ -28,6 +28,11 @@ document_error table.
 
 # Modules ##################################################################
 
+from Config import config
+from Log import log
+from DataLayer import lampadas
+import os
+
 
 # Constants
 
@@ -39,21 +44,14 @@ document_error table.
 
 class Lintadas:
 
-	import Config
-	import DataLayer
-	import os
-
-	Config = Config.Config()
-	L = DataLayer.Lampadas()
-
 	def CheckAllDocs(self):
-		keys = self.L.Docs.keys()
+		keys = lampadas.Docs.keys()
 		for key in keys:
 			self.CheckDoc(key)
 	
 	def CheckDoc(self, DocID):
-		self.L.Log(3, 'Running Lintadas on document ' + str(DocID))
-		Doc = self.L.Docs[int(DocID)]
+		log(3, 'Running Lintadas on document ' + str(DocID))
+		Doc = lampadas.Docs[int(DocID)]
 		assert not Doc == None
 		Doc.Errs.Clear()
 
@@ -64,9 +62,9 @@ class Lintadas:
 			File = Doc.Files[key]
 
 			if File.IsLocal:
-				self.L.Log.Write(3, 'Checking filename ' + key)
+				log.write(3, 'Checking filename ' + key)
 			else:
-				self.L.Log.Write(3, 'Skipping remote file ' + key)
+				log.write(3, 'Skipping remote file ' + key)
 				continue
 
 			# Determine file format
@@ -84,21 +82,21 @@ class Lintadas:
 				FileFormat = ''
 				DocFormat = ''
 
-			formatkeys = self.L.Formats.keys()
+			formatkeys = lampadas.Formats.keys()
 			for formatkey in formatkeys:
-				if self.L.Formats[formatkey].I18n['EN'].Name == FileFormat:
+				if lampadas.Formats[formatkey].I18n['EN'].Name == FileFormat:
 					File.FormatID = formatkey
-				if self.L.Formats[formatkey].I18n['EN'].Name == DocFormat:
+				if lampadas.Formats[formatkey].I18n['EN'].Name == DocFormat:
 					Doc.FormatID = formatkey
 			
-			self.L.Log.Write(3, 'file format is ' + FileFormat)
+			log.write(3, 'file format is ' + FileFormat)
 			
 			# Determine DTD for SGML and XML files
 			if FileFormat == 'XML' or FileFormat == 'SGML':
 				DTDVersion = ''
 				try:
-					command = 'grep -i DOCTYPE ' + self.Config.CVSRoot + File.Filename + ' | head -n 1'
-					grep = self.os.popen(command, 'r')
+					command = 'grep -i DOCTYPE ' + config.cvs_root + File.Filename + ' | head -n 1'
+					grep = os.popen(command, 'r')
 					DTDVersion = grep.read()
 				except IOError:
 					pass
@@ -111,12 +109,13 @@ class Lintadas:
 				else:
 					Doc.DTD = ''
 
-			self.L.Log.Write(3, 'doc dtd is ' + Doc.DTD)
+			log.write(3, 'doc dtd is ' + Doc.DTD)
 
 			Doc.Save()
 			File.Save()
-		self.L.Log(3, 'Lintadas run on document ' + str(DocID) + ' complete')
+		log(3, 'Lintadas run on document ' + str(DocID) + ' complete')
 
+lintadas = Lintadas()
 
 # When run at the command line, check the document requested.
 # If no document was specified, all checks are performed on all documents.
@@ -126,15 +125,13 @@ def main():
 	import getopt
 	import sys
 
-	Lintadas = Lintadas()
-
 	Docs = sys.argv[1:]
 	if len(Docs) == 0:
 		print "Running on all documents..."
-		Lintadas.CheckAllDocs()
+		lintadas.CheckAllDocs()
 	else:
 		for Doc in Docs:
-			Lintadas.CheckDoc(Doc)
+			lintadas.CheckDoc(Doc)
 
 def usage():
 	print "Lintadas version " + VERSION
