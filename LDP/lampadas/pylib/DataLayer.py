@@ -114,6 +114,7 @@ class Lampadas:
 		self.Config.Load()
 		self.Docs	= Docs()
 		self.Docs.Load()
+		self.DTDs	= DTDs()
 		self.Languages	= Languages()
 		self.Strings	= Strings()
 		self.Topics	= Topics()
@@ -143,7 +144,6 @@ class Classes(LampadasCollection):
 			newClass.Load(row)
 			self.data[newClass.ID] = newClass
 
-
 class Class:
 
 	def __init__(self, ClassID=None):
@@ -161,7 +161,6 @@ class Class:
 			newClassI18n = ClassI18n()
 			newClassI18n.Load(self.row)
 			self.I18n[newClassI18n.Lang] = newClassI18n
-
 
 class ClassI18n:
 
@@ -219,7 +218,6 @@ class Docs(LampadasCollection):
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
 		del self[id]
-
 
 class Doc:
 	"""
@@ -302,7 +300,6 @@ class DocErrors(LampadasList):
 		newDocError.Error = Error
 		self.list = self.list + [newDocError]
 		DB.Commit()
-		
 
 class DocError:
 	"""
@@ -335,7 +332,6 @@ class DocFiles(LampadasCollection):
 			newDocFile = DocFile()
 			newDocFile.Load(DocID, row)
 			self.data[newDocFile.Filename] = newDocFile
-
 
 class DocFile:
 	"""
@@ -411,7 +407,6 @@ class DocRatings(LampadasCollection):
 		if not self.Parent == None:
 			self.Parent.Rating = self.Average
 
-
 class DocRating:
 	"""
 	A rating of a document, assigned by a registered user.
@@ -453,7 +448,6 @@ class DocVersions(LampadasCollection):
 			newDocVersion.Load(DocID, row)
 			self.data[newDocVersion.ID] = newDocVersion
 
-
 class DocVersion:
 	"""
 	A release of the document.
@@ -475,6 +469,34 @@ class DocVersion:
 		DB.Commit()
 
 
+# DTDs
+
+class DTDs(LampadasCollection):
+	"""
+	A collection object of all DTDs.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT dtd from dtd"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDTD = DTD()
+			newDTD.Load(row)
+			self.data[newDTD.DTD] = newDTD
+
+class DTD:
+
+	def __init__(self, DTD=None):
+		if DTD==None: return
+		self.DTD = DTD
+
+	def Load(self, row):
+		self.DTD = trim(row[0])
+
+
 # Languages
 
 class Languages(LampadasCollection):
@@ -492,7 +514,6 @@ class Languages(LampadasCollection):
 			newLanguage = Language()
 			newLanguage.Load(row)
 			self.data[newLanguage.Code] = newLanguage
-
 
 class Language:
 
@@ -525,7 +546,6 @@ class Strings(LampadasCollection):
 			newString = String()
 			newString.Load(row)
 			self.data[newString.Code] = newString
-
 
 class String:
 
@@ -572,7 +592,6 @@ class Topics(LampadasCollection):
 			newTopic.Load(row)
 			self.data[newTopic.Num] = newTopic
 
-
 class Topic:
 
 	def __init__(self, TopicNum=None):
@@ -590,7 +609,6 @@ class Topic:
 			newTopicI18n = TopicI18n()
 			newTopicI18n.Load(self.row)
 			self.I18n[newTopicI18n.Lang] = newTopicI18n
-
 
 class TopicI18n:
 
@@ -679,7 +697,6 @@ class UserDocs(LampadasList):
 		DB.Commit()
 		del self.col[DocID]
 
-
 class UserDoc:
 	"""
 	An association between a user and a document.
@@ -707,9 +724,6 @@ class UserDoc:
 		self.sql = "UPDATE document_user SET role=" + wsq(self.Role) + ", email=" + wsq(self.Email) + ", active=" + wsq(bool2tf(self.Active)) + " WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
 		DB.Exec(self.sql)
 		DB.Commit()
-
-
-
 	
 
 # Utility routines

@@ -30,7 +30,6 @@ class testConfigFIle(unittest.TestCase):
 		assert Config.DBType == "pgsql", "DBType is not valid"
 		assert Config.DBName == "lampadas", "Database name is not valid"
 
-
 class testDatabase(unittest.TestCase):
 
 	def setUp(self):
@@ -43,13 +42,11 @@ class testDatabase(unittest.TestCase):
 		self.Cursor = DB.Cursor
 		assert not self.Cursor == None
 
-
 class testClasses(unittest.TestCase):
 
 	def testClasses(self):
 		assert not L.Classes == None
 		assert L.Classes.Count() > 0
-
 
 class testConfig(unittest.TestCase):
 
@@ -172,7 +169,6 @@ class testDocRatings(unittest.TestCase):
 		assert Doc.Ratings.Count() == 0
 		assert Doc.Ratings.Average == 0
 		assert Doc.Rating == 0
-		
 
 class testDocVersions(unittest.TestCase):
 
@@ -191,7 +187,12 @@ class testDocVersions(unittest.TestCase):
 					assert Version.PubDate > ''
 					assert Version.Initials > ''
 		assert found == 1
-			
+
+class testDTDs(unittest.TestCase):
+
+	def testDTDs(self):
+		assert L.DTDs.Count() > 0
+		assert not L.DTDs['DocBook'] == None
 
 class testLanguages(unittest.TestCase):
 
@@ -242,7 +243,6 @@ class testUsers(unittest.TestCase):
 		L.Users.Del(self.NewID)
 		self.NewID = DB.Value('SELECT MAX(user_id) from username')
 		assert self.NewID == self.OldID
-
 
 class testUserDocs(unittest.TestCase):
 
