@@ -62,7 +62,7 @@ sub new {
 }
 
 sub ProcessFile {
-	($self, $txtfile, $dbfile, $verbose) = @_;
+	($self, $txtfile, $dbfile, $verbose, $article) = @_;
 
 	# Read from STDIN if no input file given
 	# 
@@ -85,6 +85,13 @@ sub ProcessFile {
 		$outfh = STDOUT;
 	}
 
+	# wrap article if requested
+	#
+	if ($article) {
+		$buf = '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
+		$buf .= '<article>' . "\n";
+	}
+
 	# read in the text file
 	#
 	while ($originalline = <$fh>) {
@@ -94,6 +101,13 @@ sub ProcessFile {
 	}
 
 	ProcessEnd();
+
+	# wrap article if requested
+	#
+	if ($article) {
+		$buf .= '</article>' . "\n";
+	}
+	
 	print $outfh "$buf";
 	$buf = '';
 	close $fh;
@@ -226,6 +240,7 @@ sub ProcessLine {
 	     ($line =~ /^<sect/) or
 	     ($line =~ /^<screen>/) or
 	     ($line =~ /^<literallayout>/) or
+	     ($line =~ /^<articleinfo>/) or
 	     ($line =~ /^<programlisting>/)) and
 	    ($noparadepth == 0)) { 
 	    	&closepara;
@@ -267,6 +282,7 @@ sub ProcessLine {
 		# recover original line -- no whitespace modifiers
 		#
 		$line = $originalline;
+		chomp($line);
 
 	# sect3
 	#
