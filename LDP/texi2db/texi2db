@@ -44,6 +44,7 @@ $insect4 = 0;
 @initem = ();
 $informalpara = 0;
 $inpara = 0;
+$inmenu = 0;
 
 # these maintain internal program state
 #
@@ -55,8 +56,12 @@ $saveline = "";
 $badbracketlines = 0;
 $badbracketstartline = 0;
 $seekend = "";
-$literalend = "";		# tag that will end the block during which there is no command expansion
-$literal = "";			# inline literal tag we're inside of
+$literaltag = '';		# inline literal tag we're inside of
+$literalendtag = '';		# tag that will end the block
+@literal = ();			# stacks for above tags
+@literalend = ();		
+$suppressconversion = 0;	# causes no conversion of @-commands
+$suppresspara = 0;		# causes no insertion of <para> tags
 
 # here, we hold onto meta-data that we will need to build
 # the article or book header structures.
@@ -163,9 +168,11 @@ $replacement = "";
 	'@end defspec'			=>'DROPLINE',
 	'@dircategory'			=>'DROPLINE',
 	'@direntry'			=>'SEEKEND',
+	'@display'			=>'LITERALBLOCK',
 	'@enumerate'			=>'ORDEREDLIST',
 	'@end enumerate'		=>'ORDEREDLISTEND',
 	'@example'			=>'LITERALBLOCK',
+	'@exdent'			=>'DROPLINE',
 	'@footnotestyle'		=>'DROPLINE',
 	'@flushleft'			=>'DROPLINE',
 	'@end flushleft'		=>'DROPLINE',
@@ -198,7 +205,7 @@ $replacement = "";
 	'@lisp'				=>'LITERALBLOCK',
 	'@macro'			=>'MACRO',
 	'@majorheading'			=>'SECT1',
-	'@menu'				=>'SEEKEND',		# TODO
+	'@menu'				=>'SEEKEND',
 	'@opindex'			=>'DROPLINE',		# TODO
 	'@need'				=>'DROP2',
 	'@node'				=>'NODE',
@@ -281,7 +288,8 @@ $replacement = "";
 #	'@\{'			=>'{',
 #	'@\}'			=>'}',
 	
-	'@-'			=>'&macr;',	# punctuation and typographic characters
+	'@ '			=>' ',		# punctuation and typographic characters
+	'@-'			=>'&macr;',
 	'@.'			=>'.',
 	'@!'			=>'!',
 	'@?'			=>'?',
@@ -402,6 +410,7 @@ $replacement = "";
 %specsubstitutions = (
 	'@anchor'		=>'ANCHOR',
 	'@ref'			=>'REF',
+	'@url'			=>'UREF',
 	'@uref'			=>'UREF',
 	'@xref'			=>'XREF',
 	'@pxref'		=>'PXREF',
@@ -420,8 +429,6 @@ $replacement = "";
 %blocks = (
 	'@quotation'		=>'<blockquote>',
 	'@end quotation'	=>'</blockquote>',
-	'@display'		=>'<literallayout>',
-	'@end display'		=>'</literallayout>',
 	'@format'		=>'<literallayout>',
 	'@end format'		=>'</literallayout>',
 );
@@ -461,6 +468,7 @@ $replacement = "";
 	'@t'			=>'programlisting',
 	'@r'			=>'',
 	'@var'			=>'literal',
+	'@verb'			=>'literal',
 	'@w'			=>'',
 );
 
@@ -649,10 +657,10 @@ LINE:	while ($line = <$fh>) {
 		&message("LINE $currentline: $line") if ($verbose > 1);
 
 		&cleanline;
+		&markspecial;			# hide @@, @{, @} to ease parsing
 		$originalline = $line;		# must be cleaned but not trimmed!
 		$trimline;
 
-		&markspecial;			# hide @@, @{, @} to ease parsing
 
 		# We have to handle some @-commands on the line when they appear,
 		# even if waiting for some wrapper command to complete:
@@ -684,6 +692,15 @@ LINE:	while ($line = <$fh>) {
 			next LINE;
 		}
 
+		if (scalar @literal) {
+			&message("checking for $literalendtag") if ($verbose > 2);
+			if ($line =~ /$literalendtag/) {
+				&message("End literal block") if ($verbose > 2);
+				&closeliteralblock;
+				next LINE;
+			}
+		}
+		
 		if ($line =~ /^\@include/) {
 			$includefile = $line;
 			$includefile =~ s/^\@include\s+//;
@@ -694,15 +711,6 @@ LINE:	while ($line = <$fh>) {
 				&processfile ("$includefile");
 			} else {
 				&raiseerror("include file $includefile not found.");
-			}
-		} elsif ($literalend) {
-			&message("End literal block") if ($verbose > 2);
-			if ($line =~ /$literalend/) {
-				$literalend = '';
-				&closeliteral;
-			} else {
-				$line = $originalline;
-				&writeline;
 			}
 		} elsif ($inmacro) {
 			($pattern, $action) = &matchpattern();
@@ -733,14 +741,28 @@ LINE:	while ($line = <$fh>) {
 					&raiseerror("runon macro");
 				}
 			}
-		} else {
-			($pattern, $action) = &matchblock();
-			if ($action) {
-				&closepara;
-				$buf .= $action;
-				next LINE;
+		} elsif ($inmenu) {
+			&message("inmenu: $line");
+			if ($line =~ /\@end menu/) {
+				&closemenu;
+			} else {
+				&menuitem;
 			}
-			($pattern, $action) = &matchpattern();
+		} else {
+			if ($suppressconversion) {
+				$line = $originalline;
+				$pattern = '';
+				$action = '';
+			} else {
+				($pattern, $action) = &matchblock();
+				if ($action) {
+					&closepara;
+					$buf .= $action;
+					next LINE;
+				}
+				($pattern, $action) = &matchpattern();
+			}
+
 			if ($action eq 'DROPLINE') {
 				next LINE;
 			} elsif ($action eq 'DROP2') {
@@ -750,8 +772,6 @@ LINE:	while ($line = <$fh>) {
 				$seekend = $pattern;
 				$seekend =~ s/\@/\@end /;
 			} elsif ($action eq 'LITERALBLOCK') {
-				$literalend = $pattern;
-				$literalend =~ s/\@/\@end /;
 				&literalblock;
 			} elsif ($action eq 'ALIAS') {
 				&alias;
@@ -761,6 +781,8 @@ LINE:	while ($line = <$fh>) {
 				&meta;
 			} elsif ($action eq 'NODE') {
 				&node;
+			} elsif ($action eq 'MENU') {
+				&menu;
 			} elsif ($action eq 'APPENDIX') {
 				$line =~ s/^\@\w+\s+//;
 				&convertinline;
@@ -828,7 +850,7 @@ LINE:	while ($line = <$fh>) {
 				if ($nest[-1] eq 'table') {		# multitables just write the line
 					&tableline;
 				}
-				if ($literal) {
+				if ($suppressconversion) {
 					&writeline;
 				} else {
 					&writeconverted;
@@ -849,7 +871,7 @@ sub cleanline {
 	$line =~ s/\xA0/&nbsp;/;
 	$line =~ s/\xD7//;
 	$line =~ s/\xF6/&ouml;/;
-	$line =~ s/\xEF/&auml;/;
+	$line =~ s/\xE4/&auml;/;
 }
 
 sub writeabstract {
@@ -1026,6 +1048,10 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		$pattern = quotemeta($key);
 		$line =~ s/$pattern/$substitutions{$key}/g;
 	}
+
+	# unusual stuff to deal with
+	#
+	$line =~ s/\@$/ /;
 	
 	# We should have found *all* @-commands by now.
 	# If any are still hanging around, we have a problem.
@@ -1033,24 +1059,89 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 	if ($line =~ /\@/) {
 		&raiseerror("Unrecognized @-command in $line");
 	}
+
+	# very special, yet strange, accomodations...
+	#
+	# Remove <> from inside <email></email> tags, since DocBook stylesheets
+	# generally add them back in when generating output.
+	#
+	$line =~ s/\<email\>&lt;(.*?)&gt;\<\/email\>/\<email\>$1\<\/email\>/g;
 }
 
 sub markspecial {
+	my $pattern1 = '';
+	my $pattern2 = '';
+	my $delimiter = '';
+	my $delimiterpattern = '';
+	my $contents = '';
+	my $contentspattern = '';
+	my $newcontents = '';
+	my $start = '';
+	my $end = '';
+
+	$line =~ s/\@\@/DCM_AT/g;
+	$line =~ s/\@\{/DCM_LB/g;
+	$line =~ s/\@\}/DCM_RB/g;
+
+	# special handling for the @verb{} command, which contains
+	# within it special characters which are NOT to be interpreted.
+	# rather than handle such a strange case, we make it simple by
+	# going the long way around and escaping everything
+	#
+	unless ($suppressconversion) {
+		while ($line =~ /\@verb\{/) {
+			$delimiter = $line;
+			$delimiter =~ s/.*?\@verb\{//;
+			$delimiter =~ s/(.).*/$1/;
+			&message("delimiter: $delimiter") if ($verbose > 2);
+			$delimiterpattern = quotemeta($delimiter);
+			&message("delimiterpattern: $delimiterpattern") if ($verbose > 2);
+			$contents = $line;
+			$pattern1 = '.*\@verb\{' . quotemeta($delimiter);
+			&message("pattern1: $pattern1") if ($verbose > 2);
+			$contents =~ s/$pattern1//;
+			$pattern2 = quotemeta($delimiter) . '\}.*';
+			&message("pattern2: $pattern2") if ($verbose > 2);
+			$contents =~ s/$pattern1//;
+			&message("contents: $contents") if ($verbose > 2);
+			$contents =~ s/$pattern2//;
+			&message("contents: $contents") if ($verbose > 2);
+			$newcontents = $contents;
+			$newcontents =~ s/\@/\@\@/g;
+			$newcontents =~ s/\{/\@\{/g;
+			$newcontents =~ s/\}/\@\}/g;
+			&message("newcontents: $newcontents") if ($verbose > 2);
+			$contentspattern = quotemeta($contents);
+			&message("contentspattern: $contentspattern") if ($verbose > 2);
+			$start = $line;
+			$start =~ s/$pattern2.*//;
+			$start =~ s/$delimiterpattern$contentspattern$//;
+			$start =~ s/\@verb/DCM_VERB/;
+			&message("start: $start") if ($verbose > 2);
+			$end = $line;
+			$end =~ s/.*$pattern1$contentspattern$delimiterpattern//;
+			&message("end: $end") if ($verbose > 2);
+			$line = $start . $newcontents . $end;
+			&message("line: $line") if ($verbose > 2);
+		}
+		$line =~ s/DCM_VERB/\@verb/g;
+		
+	}
 	$line =~ s/\@\@/DCM_AT/g;
 	$line =~ s/\@\{/DCM_LB/g;
 	$line =~ s/\@\}/DCM_RB/g;
 }
 
 sub unmarkspecial {
-	$line =~ s/DCM_AT/\@\@/gi;
-	$line =~ s/DCM_LB/\@\{/gi;
-	$line =~ s/DCM_RB/\@\}/gi;
+	$_[0] =~ s/DCM_AT/\@\@/gi;
+	$_[0] =~ s/DCM_LB/\@\{/gi;
+	$_[0] =~ s/DCM_RB/\@\}/gi;
 }
 
 sub normalizespecial {
-	$line =~ s/DCM_AT/\@/gi;
-	$line =~ s/DCM_LB/\{/gi;
-	$line =~ s/DCM_RB/\}/gi;
+	$_[0] =~ s/DCM_AT/\@/gi;
+	$_[0] =~ s/DCM_LB/\{/gi;
+	$_[0] =~ s/DCM_RB/\}/gi;
 }
 
 sub replaceinline {
@@ -1305,7 +1396,7 @@ sub deffn {
 	# @defspec foovar (@var(var))
 	#
 	if ($line =~ /\{/) {
-		&message("function category name enclosed in braces"); # if ($verbose > 2);
+		&message("function category name enclosed in braces") if ($verbose > 2);
 		($category, $line) = split(/}/, $line);
 		$category =~ s/\{//;
 		($name, $arguments) = split(/ /, $line, 2);
@@ -1363,7 +1454,7 @@ sub metaarg {
 	if ($line =~ /$pattern/) {
 		$line =~ s/$pattern//;
 		&convertinline;
-		&normalizespecial;
+		&normalizespecial($line);
 		$_[1] = $line;
 		&message("set $pattern to $line") if ($verbose > 2);
 		return 1;
@@ -1379,23 +1470,27 @@ sub metaarg {
 sub writeconverted {
 	my $temp = &trim($line);
 	
-	if ($temp eq '') {
-		&closeformalpara;
-	} else {
-		unless (($inpara) or ($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
-			if (($nodename) and ($nodeinit == 0) and !($inabstract)) {
-				&guessnodelevel;
+	unless ($suppresspara) {
+		if ($temp eq '') {
+			&closeformalpara;
+		} else {
+			unless (($inpara) or ($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
+				if (($nodename) and ($nodeinit == 0) and !($inabstract)) {
+					&guessnodelevel;
+				}
+				&para;
 			}
-			&para;
 		}
 	}
-	
-	&convertinline;
+
+	unless ($suppressconversion) {
+		&convertinline;
+	}
 	&writeline;
 }
 
 sub writeline {
-	&normalizespecial;
+	&normalizespecial($line);
 	&message("OUT: $line") if ($verbose > 1);
 	$buf .= $line . "\n";
 	if (($linenumber % 1000 == 0) and ($inabstract == 0)) {
@@ -1441,7 +1536,7 @@ sub guessnodelevel {
 sub node {
 	$line =~ s/\@node\s+?//;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($line);
 	($nodename, $nodenext, $nodeprev, $nodeup) = split(/,/, $line);
 	$nodename = &trim($nodename);
 	$nodetitle = $nodename;
@@ -1474,6 +1569,19 @@ sub initnode {
 	$nodeinit = 1;
 }
 
+sub menu {
+	$inmenu = 1;
+}
+
+sub menuitem {
+	$line =~ s/^\*\s*//;
+	&message("menu line: $line");
+}
+
+sub closemenu {
+	$inmenu = 0;
+}
+
 ####################
 # DOCBOOK SECTIONS #
 ####################
@@ -1485,7 +1593,7 @@ sub appendix {
 	&closeappendix;
 	&initnode;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($line);
 	if ($nodeid) {
 		$buf .= "\<appendix id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle<\/title\>\n";
 	} else {
@@ -1501,7 +1609,7 @@ sub sect1 {
 	&closesect1;
 	&initnode;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($nodetitle);
 	if ($nodeid) {
 		$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 	} else {
@@ -1517,7 +1625,7 @@ sub sect2 {
 	&closesect2;
 	&initnode;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($nodetitle);
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1543,7 +1651,7 @@ sub sect3 {
 	&closesect3;
 	&initnode;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($nodetitle);
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1569,7 +1677,7 @@ sub sect4 {
 	&closesect4;
 	&initnode;
 	&convertinline;
-	&normalizespecial;
+	&normalizespecial($nodetitle);
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1660,11 +1768,9 @@ sub tablecol {
 
 sub tableline {
 	&message("table: $line") if ($verbose > 2);
-#	if ($nest[-1] eq 'multi') {
-#		$line =~ s/\@tab/\<\/entry\>\<entry\>/;
-#	} else {
 	if ($nest[-1] ne 'multi') {
 		if ($infirstcol[-1]) {
+#			$buf .= '</literallayout>';
 			&closetablecol;
 			&tablecol;
 			$infirstcol[-1] = 0;
@@ -1690,10 +1796,14 @@ sub item {
 	$line =~ s/\@item\w*\s*//;
 	if ($nest[-1] eq 'table') {
 		&message("table item: $line") if ($verbose > 2);
+		if ($infirstcol[-1]) {
+			$buf .= ', ';
+		}
 		unless ($infirstcol[-1]) {
 			&tablerow;
 			&tablecol;
 			$infirstcol[-1] = 1;
+#			$buf .= '<literallayout>';
 		}
 		$line = &trim($line);
 		$line = $tableformat[-1] . "\{$line\}" unless ($tableformat[-1] eq '@asis');
@@ -1701,6 +1811,8 @@ sub item {
 		&message("multitable item: $line") if ($verbose > 2);
 		&tablerow;
 		&tablecol;
+#		$line =~ s/^(.)/\<literallayout\>$1/;
+#		$line =~ s/\@tab/\<\/literallayout\>\@tab/;
 		$line =~ s/\s*\@tab\s*/\<\/entry\>\<entry\>/g;
 	} elsif (($nest[-1] eq 'ordered') or ($nest[-1] eq 'itemized')) {
 		&listitem;
@@ -1734,31 +1846,44 @@ sub para {
 sub literalblock {
 	if ($pattern =~ /\bformat\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literal = 'programlisting';
+		$literaltag = 'programlisting';
+		$suppressconversion++;
+		$suppresspara++;
 		$buf .= '<programlisting>' . "\n";
 	} elsif ($pattern =~ /\bexample\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literal = 'programlisting';
+		$literaltag = 'programlisting';
+		$suppresspara++;
 		$buf .= '<programlisting>';
-	} elsif ($pattern =~ /\blisp\b/) {
-		&message("start programlisting") if ($verbose > 2);
-		$literal = 'programlisting';
-		$buf .= '<programlisting>';
-#	} elsif ($pattern =~ /\bdisplay\b/) {
-#		&message("start screen") if ($verbose > 2);
-#		$literal = 'screen';
-#		$buf .= '<screen>';
 	} elsif ($pattern =~ /\bsmallexample\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literal = 'programlisting';
+		$literaltag = 'programlisting';
+		$suppresspara++;
+		$buf .= '<programlisting>';
+	} elsif ($pattern =~ /\bdisplay\b/) {
+		&message("start literallayout") if ($verbose > 2);
+		$literaltag = 'literallayout';
+		$suppresspara++;
+		$buf .= '<literallayout>';
+	} elsif ($pattern =~ /\blisp\b/) {
+		&message("start programlisting") if ($verbose > 2);
+		$literaltag = 'programlisting';
+		$suppressconversion++;
+		$suppresspara++;
 		$buf .= '<programlisting>';
 	} elsif ($pattern =~ /\bverbatim\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literal = 'programlisting';
+		$literaltag = 'programlisting';
+		$suppressconversion++;
+		$suppresspara++;
 		$buf .= '<programlisting>';
 	} else {
 		&raiseerror("Unrecognized literal: $pattern");
 	}
+	$literalendtag = $pattern;
+	$literalendtag =~ s/\@/\@end /;
+	push @literal, $literaltag;
+	push @literalend, $literalendtag;
 }
 
 sub comment {
@@ -1929,10 +2054,21 @@ sub closepara {
 	}
 }
 
-sub closeliteral {
-	if ($literal) {
-		$buf .= '</' . $literal . '>' . "\n";
+sub closeliteralblock {
+	if (scalar @literal) {
+		$buf .= '</' . $literal[-1] . '>' . "\n";
 		$literal = '';
+		$literalend = '';
+		$suppressconversion--;
+		$suppressconversion = 0 if ($suppressconversion < 0);
+		$suppresspara--;
+		$suppresspara = 0 if ($suppresspara < 0);
+		pop @literal;
+		pop @literalend;
+		$literaltag = $literal[-1];
+		$literalendtag = $literalend[-1];
+		&message("literalendtag: $literalendtag") if ($verbose > 2);
+		&message("literal depth: " . scalar @literal . ", para: $suppresspara, conv: $suppressconversion") if ($verbose > 2);
 	}
 }
 
