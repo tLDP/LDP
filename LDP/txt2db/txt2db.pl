@@ -117,45 +117,7 @@ sub proc_txt {
 			next;
 		}
 
-		# handle whitespace gracefully
-		while ($line =~ /^= /) {
-			$line =~ s/^= /^=/;
-		}
-		while ($line =~ /^== /) {
-			$line =~ s/^== /^==/;
-		}
-		while ($line =~ /^=== /) {
-			$line =~ s/^=== /^===/;
-		}
-		while ($line =~ / =$/) {
-			$line =~ s/ =$/=$/;
-		}
-		while ($line =~ / ==$/) {
-			$line =~ s/ ==$/==$/;
-		}
-		while ($line =~ / ===$/) {
-			$line =~ s/ ===$/===$/;
-		}
-		
-		if ($line =~ /^=\w/) {
-			&close1;
-			&splittitle;
-			if ($id eq '') {
-				$line = "<sect1><title>$title</title>\n";
-			} else {
-				$line = "<sect1 id='$id'><title>$title</title>\n";
-			}
-			$level1 = 1;
-		} elsif ($line =~ /^==\w/) {
-			&close2;
-			&splittitle;
-			if ($id eq '') {
-				$line = "<sect2><title>$title</title>\n";
-			} else {
-				$line = "<sect2 id='$id'><title>$title</title>\n";
-			}
-			$level2 = 1;
-		} elsif ($line =~ /^===\w/) {
+		if ($line =~ /^===/) {
 			&close3;
 			&splittitle;
 			if ($id eq '') {
@@ -164,6 +126,24 @@ sub proc_txt {
 				$line = "<sect3 id='$id'><title>$title</title>\n";
 			}
 			$level3 = 1;
+		} elsif ($line =~ /^==/) {
+			&close2;
+			&splittitle;
+			if ($id eq '') {
+				$line = "<sect2><title>$title</title>\n";
+			} else {
+				$line = "<sect2 id='$id'><title>$title</title>\n";
+			}
+			$level2 = 1;
+		} elsif ($line =~ /^=/) {
+			&close1;
+			&splittitle;
+			if ($id eq '') {
+				$line = "<sect1><title>$title</title>\n";
+			} else {
+				$line = "<sect1 id='$id'><title>$title</title>\n";
+			}
+			$level1 = 1;
 		} elsif ($line =~ /^#/) {
 			if ($orderedlist == 0) {
 				$buf .= "\n<orderedlist>\n";
@@ -304,5 +284,11 @@ sub splittitle {
 		$title =~ s/\|\w+//;
 		$id = $line;
 		$id =~ s/^.+\|//;
+	}
+	while ($title =~ /^\ /) {
+		$title =~ s/^\ //;
+	}
+	while ($title =~ /\ $/) {
+		$title =~ s/\ $//;
 	}
 }
