@@ -112,7 +112,6 @@ sub proc_txt {
 		if ($line eq '') {
 			if ($noparadepth == 0) {
 				&closenonsect;
-#				&closelists;
 				next;
 			}
 		}
@@ -220,6 +219,12 @@ sub proc_txt {
 			$noparatag =~ s/^.*?<//;
 			$noparatag =~ s/>.*?$//;
 			$noparaline = $linenumber;
+			if ($line =~ /^<screen>/) {
+				unless ($para) {
+					$line = "<para>" . $line;
+					$para = 1;
+				}
+			}
 		}
 
 		# count noparadepth
@@ -299,7 +304,9 @@ sub proc_txt {
 			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
-		} elsif ($line = '/#') {
+		} elsif ($line =~ /^\/#/) {
+			$line =~ s/^\/#//;
+			&trimline;
 			&closeorderedlist;
 
 		# itemizedlist
@@ -316,12 +323,15 @@ sub proc_txt {
 			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
-		} elsif ($line = '/*') {
+		} elsif ($line =~ /\/\*/) {
+			$line =~ s/^\/\*//;
+			&trimline;
 			&closeitemizedlist;
 
 		# question
 		#
 		} elsif ($line =~ /^Q:/) {
+			&closelists;
 			&closeqandaentry;
 			$line =~ s/^Q://;
 			&trimline;
@@ -401,8 +411,8 @@ sub close3 {
 
 sub closenonsect {
 	&closepara;
-	&closeorderedlist;
-	&closeitemizedlist;
+#	&closeorderedlist;
+#	&closeitemizedlist;
 }
 
 sub closelistitem {
