@@ -31,6 +31,8 @@ AUTOCOMMIT = 1
 
 # Modules ##################################################################
 
+import os
+import pwd
 import pyPgSQL
 from Config import config
 from Log import log
@@ -119,7 +121,11 @@ class PgSQLDatabase(Database):
 
     def __init__(self, db_name, db_host):
         from pyPgSQL import PgSQL
-        self.connection = PgSQL.connect(database=db_name, host=db_host)
+	if len(db_host) == 0:
+	    db_user = pwd.getpwuid(os.geteuid())[0]
+            self.connection = PgSQL.connect(database=db_name, user=db_user)
+        else:
+            self.connection = PgSQL.connect(database=db_name, host=db_host)
         self.connection.autocommit = AUTOCOMMIT
 
 class MySQLDatabase(Database):
