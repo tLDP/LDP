@@ -3,7 +3,7 @@
 <article><!-- LyX 1.2 created this file. For more info see http://www.lyx.org/ -->
 <title>Samba Authenticated Gateway HOWTO
 </title><author>Ricardo Alexandre Mattar 
-</author><date>v1.0.1, 2002-12-24
+</author><date>v1.0.2, 2003-19-04
 </date><abstract>This documents intends to show how to build a Firewall/Gateway
  with rules set on user basis having the users authenticated by a
  Samba Primary Domain Controller
@@ -32,7 +32,18 @@
  else, you immediately think about NAT or MASQUERADE. But what happens
  to the user authentication?
 </p><p>Well, this is my solution. It gives you user authentication and
- fine grain control over their access to the network.
+ fine grain control over their access to the external networks.
+</p><sect1>Overview
+<p>We know that SAMBA can act as a Domain Controller an so it can
+ authenticate users on Windows boxes. As a PDC SAMBA can push netlogon
+ scripts to the Windows workstations. We can use this netlogon scripts
+ to force the Windows workstations mounting a given share from our
+ Linux PDC. This "forced" share shall have preexec and postexec scripts
+ which shall be triggered when the user logs in or out. There is a
+ program named smbstatus which lists the shares being used, giving
+ us also the username and ip address of the workstation. We just need
+ to grep this information from smbstatus output and update our firewall
+ rules.
 </p><sect1>Disclaimer
 <p>No liability for the contents of this document can be accepted.
  Use the concepts, examples and other content at your own risk. As
@@ -50,14 +61,13 @@
 </p><p>Related HOWTOs can be found at the Linux Documentation Project
  homepage. 
 </p><sect1>Translations
-<p>A Portuguese version is available. If you want to contribute,
- please do.
+<p>A Portuguese version is available.
+</p><p>A French translation by Guillaume Lelarge is available at<url url="http://www.traduc.org/docs/HOWTO/lecture/Samba-Authenticated-Gateway-HOWTO.html" name="http://www.traduc.org">
+</p><p>If you want to contribute with a translation, please do.
 </p><sect1>Feedback
 <p>Contributions and criticism are both welcome.
 </p><p>Corrections to my English are also very welcome!
-</p><p>If you want to mail me, my account is ricardo.mattar at the computer
- named bol.com.br. You may thank the spammers and their nice spiders
- for the format of my address.
+</p><p>If may find me at ricardo.mattar@bol.com.br
 </p><sect1>Copyright and trademarks
 <p>Copyright (c) 2002 Ricardo Alexandre Mattar
 </p><p>Permission is granted to copy, distribute and/or modify this
@@ -75,7 +85,8 @@
 </p><p>Thanks to Erik Esplund for further language corrections.
 </p><sect>Requirements
 <sect1>Knowledge
-<p>You must have a fair knowledge about (at least know what these
+<p>This document is target at the seasoned systems administrator.
+</p><p>You must have a fair knowledge about (at least know what these
  are):
 </p><p><itemize><item>TCP/IP; 
 <item>Linux netfilter; 
@@ -89,7 +100,7 @@
 <item>Iptables;
 <item>A scripting language;
 </itemize></p><sect>Linux box setup
-<p>This Howto assumes you have kernel from the 2.4 series as it
+<p>This Howto assumes you have a kernel from the 2.4 series as it
  uses iptables. Other than that there are no know issues why this
  should not work on a 2.2 kernel box with the scripts adapted to ipchains.
 </p><p>Of course, you need to install the iptables userland tools, an
@@ -201,6 +212,7 @@ guest account =
 &lsqb;samba&rsqb;
 comment = login tracking share
 path = /home/samba/samba
+browseable = No
 root preexec = /usr/local/bin/netlogon.sh &percnt;u
 root postexec = /usr/local/bin/netlogoff.sh &percnt;u
 </verb></p><p>You will have to make do with it or read the SAMBA documentation
@@ -230,6 +242,7 @@ net use z: &bsol;&bsol;linux&bsol;samba /yes
 </p><p><verb>&lsqb;samba&rsqb;
 comment = login tracking share
 path = /home/samba/samba
+browseable = No
 root preexec = /usr/local/bin/netlogon.sh &percnt;u
 root postexec = /usr/local/bin/netlogoff.sh &percnt;u
 </verb></p><p>As you can guess or know if you read the SAMBA documentation,
@@ -247,12 +260,20 @@ root postexec = /usr/local/bin/netlogoff.sh &percnt;u
 &num; usage:
 &num; netlogon.sh &lt;username&gt;
 &num;
+if &lsqb; -f /var/run/smbgate/&dollar;1 &rsqb; ; then
+    exit 0
+fi
 smbstatus | grep &dollar;1 | grep samba | gawk '// &lcub; print substr(&dollar;6,2,length(&dollar;6)-2)&rcub;' &gt; /var/run/smbgate/&dollar;1
 IPTABLES='/usr/sbin/iptables'
-EXTIF='ppp0'
+EXTIF='eth0'
 COMMAND='-A'
 ADDRESS=`cat /var/run/smbgate/&dollar;1`
-/etc/smbgate/users/&dollar;1 &dollar;COMMAND &dollar;ADDRESS &dollar;EXTIF
+if &lsqb; -f /etc/smbgate/users/&dollar;1 &rsqb; ; then
+    /etc/smbgate/users/&dollar;1 &dollar;COMMAND &dollar;ADDRESS &dollar;EXTIF
+else     
+    /etc/smbgate/users/default.sh &dollar;COMMAND &dollar;ADDRESS &dollar;EXTIF
+fi
+
 </verb></p><p>This script (netlogon.sh) is intended to run when the user logs
  in and will filter the output of smbstatus extracting the user's
  ip address which will be written to a file at /var/run/smbgate. The
@@ -277,7 +298,48 @@ rm -f /var/run/smbgate/&dollar;1
  which will be passed as an argument to the /etc/smbgate/users/user
  script which will update the firewall to the state desired when the
  user is not logged in.
-</p><p>The following is a standard /etc/smbgate/users/user script. This
+</p><p>Some versions of Windows, such as Windows 2000, mount the tracking
+ share more than once per login. This may cause problems with the
+ netlogon.sh and netlogoff.sh, triggering the scripts more the once.
+ This can make a real mess. So, you may prefer to use a logout checking
+ script at cron instead of a netlogoff.sh script trigered by SAMBA.
+ Here is an example:
+</p><p><verb>&num;!/bin/sh
+&num; checklogout.sh
+&num;
+&num; usage:
+&num; intended to run at cron
+&num;
+
+TRACKDIR=&quot;/var/run/smbgate&quot;
+DIRLENGTH=&dollar;&lcub;&num;TRACKDIR&rcub;
+TRACKSHARE=&quot;samba&quot;
+EXTIF='eth0'
+COMMAND='-D'
+if &lsqb; -d &dollar;TRACKDIR &rsqb;; then
+  for n in &dollar;TRACKDIR/*; do
+    &lsqb; -d &dollar;n &rsqb; &amp;&amp; continue;
+    if &lsqb; -f &dollar;n &rsqb; ; then 
+      IPADDRESS=`cat &dollar;n`
+      USERNAME=&dollar;&lcub;n:&dollar;DIRLENGTH+1&rcub;
+      NMS=`smbstatus -u &dollar;USERNAME | grep &dollar;TRACKSHARE | grep &dollar;IPADDRESS | grep -v grep | wc -l`
+      if &lsqb; &dollar;NMS == 0 &rsqb; ; then
+        rm -f &dollar;n
+        if &lsqb; -f /etc/smbgate/users/&dollar;1 &rsqb; ; then
+          /etc/smbgate/users/&dollar;1 &dollar;COMMAND &dollar;IPADDRESS &dollar;EXTIF
+        else
+          /etc/smbgate/users/default.sh &dollar;COMMAND &dollar;IPADDRESS &dollar;EXTIF
+        fi
+      fi
+    else
+      exit 0
+    fi
+  done
+fi 
+</verb></p><p>In that case you should remove the root postexec clause from
+ the tracking share on smb.conf:
+</p><p><verb>root postexec = /usr/local/bin/netlogoff.sh &percnt;u
+</verb></p><p>The following is a standard /etc/smbgate/users/user script. This
  is the one which will actually modify the firewall rules.
 </p><p><verb>&num;!/bin/sh
 &num;
@@ -286,6 +348,17 @@ ADDRESS=&dollar;2
 EXTIF=&dollar;3
 IPTABLES='/usr/sbin/iptables'
 &dollar;IPTABLES &dollar;COMMAND POSTROUTING -t nat -s &dollar;ADDRESS -o &dollar;EXTIF -j MASQUERADE
+</verb></p><p>We should also hase a default.sh script at /etc/smbgate/users/
+ to give the gateway a default behavior to the gateway.
+</p><p><verb>&num;!/bin/sh
+&num;
+&num; default.sh
+COMMAND=&dollar;1
+ADDRESS=&dollar;2
+EXTIF=&dollar;3
+IPTABLES='/usr/sbin/iptables'
+&num;&dollar;IPTABLES &dollar;COMMAND POSTROUTING -t nat -s &dollar;ADDRESS -o &dollar;EXTIF -j MASQUERADE
+exit 0
 </verb></p><sect>Windows workstation setup
 <sect1>Introduction
 <p>We will stick to setting up the network, user management and
@@ -307,7 +380,34 @@ IPTABLES='/usr/sbin/iptables'
 <p>Configure the Windows workstation to log in a Domain, and give
  the domain name of your Linux server. This is essential to the gateway
  work.
-</p><sect1>Policy editor
+</p><p>You must know that in order to join some versions of Windows
+ to a SAMBA domain controller you must create machine accounts in
+ your Linux PDC. Check the SAMBA documentation on how to setup your
+ PDC to the specific version version of Windows which you have.
+</p><sect2>Windows 95/98
+<p>These versions seems to need no special configuration to join
+ the Linux PDC domain.
+</p><sect2>Windows NT and 2000
+<p>These versions require machine accounts at the Linux box. Again,
+ check the SAMBA documentation.
+</p><sect2>Windows XP
+<p>This version needs a machine account at the Linux box and a tweak
+ at the registry, as follows.
+</p><p>Locate the key "HKEY_LOCAL_MACHINE&bsol;SYSTEM&bsol;CurrentControlSet&bsol;Services&bsol;Netlogon&bsol;Parameters&bsol;RequireSignOrSeal".
+ The default value is 1. Set it to 0 and it will no more complain
+ about joining the domain.
+</p><p>If you have many workstation to configure create a file named
+ anything.reg with the following content and use it to modify the
+ "faulty" registry.
+</p><p><verb>Windows Registry Editor Version 5.00
+
+&lsqb;HKEY_LOCAL_MACHINE&bsol;SYSTEM&bsol;CurrentControlSet&bsol;Services&bsol;Netlogon&bsol;Parameters&rsqb;
+&quot;requiresignorseal&quot;=dword:00000000
+</verb></p><p>This version also needs an adjust at the NETLOGON.BAT script.
+ Sometimes it insists on making the mounting persistent.
+</p><p><verb>REM NETLOGON.BAT
+net use z: &bsol;&bsol;linux&bsol;samba /yes /persistent:no
+</verb></p><sect1>Policy editor
 <p>There is a utility named policy editor bundled on the Windows
  CD. The file name is poledit.exe. This tool, as the name suggest,
  allows to create a user and system policy file.
@@ -337,8 +437,7 @@ IPTABLES='/usr/sbin/iptables'
  without using a web interface. I couldn't find and didn't know how
  to build integrated tools to solve this problem. So, I am using a
  CGI program to get it done.
-</p><p>Try the package at http://changepassword.sourceforge.net/ , it
- seems to be a good choice.
+</p><p>Try the package at <url url="http://changepassword.sourceforge.net" name="http://changepassword.sourceforge.net">, it seems to be a good choice.
 </p><sect>Bibliography
 <p><url url="http://www.netfilter.org/documentation/tutorials/blueflux/iptables-tutorial.html" name="IPTABLES TUTORIAL"> by Oskar Andreasson
 </p><p><url url="http://www.samba.org/samba/docs/Samba-HOWTO-Collection.html" name="Samba HOWTO Collection"> by the SAMBA Team
