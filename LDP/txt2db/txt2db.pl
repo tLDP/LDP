@@ -103,7 +103,7 @@ sub proc_txt {
 	#
 	open(TXT, "$f") || die "txt2db: cannot open $f ($!)\n";
 	while (<TXT>) {
-		$originalline = $_;
+		$originalline = <TXT>;
 		$line = $originalline;
 		$linenumber++;
 
@@ -311,8 +311,8 @@ sub proc_txt {
 				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O /tmp/name-to-url.txt");
 				open(URL, "/tmp/name-to-url.txt") || die "txt2db: cannot open temporary file ($!)\n";
 				$ldp_url = <URL>;
-				$line =~ s/\[\[.*?\]\]/<ulink url='$ldp_url'><citetitle>$linkname<\/citetitle><\/ulink>/;
 				close(URL);
+				$line =~ s/\[\[.*?\]\]/<ulink url='$ldp_url'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			} else {
 				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			}
