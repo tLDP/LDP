@@ -30,7 +30,7 @@ from WebLayer import lampadasweb
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
-from Stats import stats
+from Stats import stats, Stat
 import os
 import fpformat
 
@@ -507,7 +507,7 @@ class Tables(LampadasCollection):
             box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
             box = box + '<td>' + error.name[uri.lang]
             if docerror.notes > '':
-                box = box + '<br>' + docerror.notes 
+                box = box + '<br><pre>' + docerror.notes + '</pre>'
             box = box + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -1292,6 +1292,64 @@ class Tables(LampadasCollection):
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
+    def tabpub_status_stats(self, uri):
+        log(3, 'Creating pub_status_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_status_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strstatus|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_status']
+        odd_even = OddEven()
+        for key in lampadas.pub_statuses.sort_by('sort_order'):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.pub_statuses[key].name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stats['pub_status'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+    def tabdoc_error_stats(self, uri):
+        log(3, 'Creating doc_error_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strerror|</th>\n' \
+                             '<th class="collabel">|strtype|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_error']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            error = errors[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td>%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        stat.label, 
+                        error.name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stats['doc_error'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
         box = '''<form name="mailpass" action="/data/save/mailpass">
@@ -1320,6 +1378,27 @@ class Tables(LampadasCollection):
                 % (str(id), 'home', key.lower(), language.name[language.code]))
         box.write('</div>')
         return box.get_value()
+
+    def tabdocument_tabs(self, uri):
+        document = lampadas.docs[uri.id]
+        box = WOStringIO('<table class="tab"><tr>')
+        if document.errors.count()==0:
+            box.write('<th><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>')
+        else:
+            box.write('<th class="error"><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>')
+        if document.files.error_count==0:
+            box.write('<th><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>')
+        else:
+            box.write('<th class="error"><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>')
+        box.write('<th><a href="|uri.base|document_revs/|uri.id||uri.lang_ext|">|strversions|</a></th>')
+        box.write('<th><a href="|uri.base|document_topics/|uri.id||uri.lang_ext|">|strtopics|</a></th>')
+        box.write('<th><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>')
+        box.write('<th><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>')
+        box.write('<th><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></th>')
+        box.write('<th><a href="|uri.base|document/|uri.id||uri.lang_ext|">|strall|</a></th>')
+        box.write('</tr></table>')
+        return box.get_value()
+
 
 tables = Tables()
 

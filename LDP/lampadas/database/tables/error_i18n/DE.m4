@@ -35,3 +35,6 @@ insert(302,
     ["make" lieferte einen Fehlercode.],
     [Ein aufgerufenes Kommando lieferte einen Exitcode ungleich 0, ]
     [und "make" wurde abgebrochen.])
+insert(303,
+    [Make command wrote to STDERR],
+    [A command wrote output to STDERR.])

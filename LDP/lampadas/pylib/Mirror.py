@@ -67,6 +67,7 @@ class Mirror:
 
         # Do not attempt to mirror a document which has document or file errors.
         if doc.errors.count('doc') > 0 or doc.files.error_count > 0:
+            print 'Not mirroring document ' + str(doc.id) + '; it has errors.'
             return
 
         # Clear mirroring errors before adding new ones.
@@ -117,6 +118,7 @@ class Mirror:
                     continue
                 log(3, 'mirroring local file ' + filename)
                 command = 'cd ' + workdir + '; cp -pu ' + filename + ' .'
+                print command
                 os.system(command)
         
             else:

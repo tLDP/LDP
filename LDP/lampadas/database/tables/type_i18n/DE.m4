@@ -27,4 +27,4 @@ insert(spec, [Spezifikation],
 insert(tutorial, [Tutorial],
 [Ein Tutorial bietet einfache Beispiele für schnelle Ergebnisse.])
 insert(manual, [Application Manual],
-[An application' official User\'s Manual.])
+[An application's official User's Manual.])

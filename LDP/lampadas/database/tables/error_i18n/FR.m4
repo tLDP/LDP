@@ -32,3 +32,6 @@ insert(301,
 insert(302,
     [Make command returned an error],
     [A command returned a nonzero (failure) exit status, and Make was aborted.])
+insert(303,
+    [Make command wrote to STDERR],
+    [A command wrote output to STDERR.])

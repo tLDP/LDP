@@ -34,15 +34,17 @@ class Stats(LampadasCollection):
     """Calculates various statistical data about the system and documents."""
 
     def __init__(self):
-        self.load()
+        self.calc()
         
     def reset(self):
         self.data = {}
         self['general']  = StatTable(['doc_count'])
+        self['pub_status'] = StatTable()
         self['mirror_time'] = StatTable()
         self['pub_time'] = StatTable()
+        self['doc_error'] = StatTable()
         
-    def load(self):
+    def calc(self):
         self.reset()
 
         # Calculate document statistics by iterating through them.
@@ -51,12 +53,21 @@ class Stats(LampadasCollection):
 
             # Increment document counts
             self['general'].inc('doc_count')
+            self['pub_status'].inc(doc.pub_status_code)
             
-            mirror_time = date2str(doc.mirror_time)
-            self['mirror_time'].inc(mirror_time)
-            
-            pub_time = date2str(doc.pub_time)
-            self['pub_time'].inc(pub_time)
+            # Increment error counts
+            for key in doc.errors.sort_by('err_id'):
+                self['doc_error'].inc(key)
+
+            # Only track mirroring stats for publishable docs
+            if doc.pub_status_code in ('N', 'A'):
+                mirror_time = date2str(doc.mirror_time)
+                self['mirror_time'].inc(mirror_time)
+
+                # Only track publishing stats for mirrored docs
+                if doc.mirror_time > '':
+                    pub_time = date2str(doc.pub_time)
+                    self['pub_time'].inc(pub_time)
 
 class StatTable(LampadasCollection):
     """Holds a set of statistics."""

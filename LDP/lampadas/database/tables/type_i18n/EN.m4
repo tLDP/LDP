@@ -7,11 +7,11 @@ insert(template, [Template],
 insert(quickref, [Quick Reference],
 [A single page or other very short reference. ]m4_dnl
 [Often a cheat sheet of program options or similar.])
-insert(userguide, [User\'s Guide],
+insert(userguide, [User's Guide],
 [End user documentation for an application.])
-insert(programguide, [Programmer\'s Guide],
+insert(programguide, [Programmer's Guide],
 [Documentation for programmers and other software developers.])
-insert(adminguide, [Administrator\'s Guide],
+insert(adminguide, [Administrator's Guide],
 [Documentation for system administrators.])
 insert(intro, [Introduction],
 [Background or introductory information, suitable for a novice.])
@@ -27,4 +27,4 @@ insert(spec, [Specification],
 insert(tutorial, [Tutorial],
 [A tutorial or getting started document.])
 insert(manual, [Application Manual],
-[An application' official User\'s Manual.])
+[An application's official User's Manual.])

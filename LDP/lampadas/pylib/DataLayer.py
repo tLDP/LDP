@@ -531,6 +531,7 @@ class DocErrs(LampadasCollection):
         doc_err.doc_id = self.doc_id
         doc_err.err_id = err_id
         doc_err.date_entered = now_string()
+        doc_err.notes = notes
         self.data[doc_err.err_id] = doc_err
         db.commit()
 

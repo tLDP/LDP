@@ -78,7 +78,9 @@ insert([news], [|strproject| News], [|strprojectshort| News],
 
 insert([stats], [Current Statistics], [],
 [
-    |tabmirror_time_stats|
+    |tabpub_status_stats|
+    <p>|tabdoc_error_stats|
+    <p>|tabmirror_time_stats|
     <p>|tabpub_time_stats|
 ], 1)
 
@@ -301,45 +303,45 @@ insert([document], [|doc.title|], [],
 
 insert([document_main], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
 insert([document_files], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
 insert([document_users], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdocusers|
 ])
 
 insert([document_revs], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdocversions|
 ])
 
 insert([document_topics], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdoctopics|
 ])
 
 insert([document_notes], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdocnotes|
 ])
 
 insert([document_translation], [|doc.title|], [],
 [
-    |blkdocument_tabs|
+    |tabdocument_tabs|
     |tabdoctranslations|
 ])
 

@@ -309,6 +309,10 @@ class PageFactory:
                     newstring = tables.tabmirror_time_stats(uri)
                 elif token=='tabpub_time_stats':
                     newstring = tables.tabpub_time_stats(uri)
+                elif token=='tabpub_status_stats':
+                    newstring = tables.tabpub_status_stats(uri)
+                elif token=='tabdocument_tabs':
+                    newstring = tables.tabdocument_tabs(uri)
             
                 # Blocks and Strings
                 if newstring==None:

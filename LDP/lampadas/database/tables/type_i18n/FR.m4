@@ -6,14 +6,14 @@ insert(template, [Modèle],
   [Un modèle pour écrire vos documents.])
 insert(quickref, [Fiche],
   [Une fiche de référence rapide.])
-insert(userguide, [User\'s Guide],
+insert(userguide, [User's Guide],
   [End user documentation for an application.])
-insert(programguide, [Programmer\'s Guide],
+insert(programguide, [Programmer's Guide],
   [Documentation for programmers and other software developers.])
-insert(adminguide, [Administrator\'s Guide],
+insert(adminguide, [Administrator's Guide],
   [Documentation for system administrators.])
 insert(intro, [Intro],
-  [Un document d\'introduction convient particulièrement bien aux débutants.])
+  [Un document d'introduction convient particulièrement bien aux débutants.])
 insert(manpage, [Manual Page],
   [A traditional form of documentation for UNIX systems.])
 insert(article, [Article],
@@ -25,4 +25,4 @@ insert(spec, [Specification],
 insert(tutorial, [Tutorial],
   [A tutorial or getting started document.])
 insert(manual, [Application Manual],
-    [An application' official User\'s Manual.])
+  [An application's official User's Manual.])
