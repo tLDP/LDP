@@ -145,6 +145,11 @@ def deldocument_topic(req, doc_id, subtopic_code):
     doc.topics.delete(subtopic_code)
     go_back(req)
 
+def newdocument_note(req, doc_id, notes, creator):
+    doc = lampadas.docs[int(doc_id)]
+    doc.notes.add(notes, creator)
+    go_back(req)
+    
 def newuser(req, username, email, first_name, middle_name, surname):
     
     if username=='':

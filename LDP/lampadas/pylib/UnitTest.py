@@ -39,49 +39,13 @@ import commands
 # Unit Tests ###################################################################
 
 
-class testConfigFile(unittest.TestCase):
+class testTypes(unittest.TestCase):
 
-    def testConfigFIle(self):
-        log(3, 'testing Config file')
-        assert config.db_type=="pgsql"
-        assert config.db_name > ''
-        assert config.cvs_root > ''
-        log(3, 'testing config file done')
-
-
-class testDatabase(unittest.TestCase):
-
-    def setUp(self):
-        db.connect(config.db_type, config.db_name)
-
-    def testDatabase(self):
-        log(3, 'testing database')
-        assert not db.connection==None
-        log(3, 'testing database done')
-
-    def testCursor(self):
-        log(3, 'testing cursor')
-        cursor = db.cursor
-        assert not cursor==None
-        log(3, 'testing cursor done')
-
-
-class testClasses(unittest.TestCase):
-
-    def testClasses(self):
-        log(3, 'testing classes')
-        assert not lampadas.Classes==None
-        assert lampadas.Classes.count() > 0
-        log(3, 'testing classes done')
-
-
-class testConfig(unittest.TestCase):
-
-    def testConfig(self):
-        log(3, 'testing Config')
-        assert not config==None
-        assert lampadas.Config['project_short']=='LDP'
-        log(3, 'testing Config done')
+    def testTypes(self):
+        log(3, 'testing types')
+        assert not lampadas.Types==None
+        assert lampadas.types.count() > 0
+        log(3, 'testing types done')
 
 
 class testDocs(unittest.TestCase):
@@ -94,53 +58,59 @@ class testDocs(unittest.TestCase):
         db.runsql("DELETE FROM document where title='testharness'")
         db.commit()
     
-        self.Oldid = db.read_value('SELECT max(doc_id) from document')
-        self.Newid = lampadas.docs.add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
-        assert self.Newid > 0
-        assert self.Oldid + 1==self.Newid
+        old_id = db.read_value('SELECT max(doc_id) from document')
+        new_id = lampadas.docs.add('testharness',
+                                   'howto',
+                                   'xml',
+                                   'DocBook',
+                                   '4.1.2',
+                                   '1.0',
+                                   '2002-04-04',
+                                   'http://www.example.com/HOWTO.html',
+                                   'ISBN',
+                                   'N',
+                                   'N',
+                                   '2002-04-05',
+                                   '2002-04-10',
+                                   'http://www.home.com',
+                                   'N',
+                                   'gfdl',
+                                   'This is a document.',
+                                   'EN',
+                                   'fooseries')
+        assert new_id > 0
+        assert old_id + 1==Newid
+
+        doc = lampadas.docs[new_id]
+        assert not doc==None
+        assert doc.id==Newid
+        assert doc.title=='testharness'
+        assert doc.format_code=='xml'
         
-        self.Doc = lampadas.docs[self.Newid]
-        assert not self.Doc==None
-        assert self.Doc.id==self.Newid
-        assert self.Doc.title=='testharness'
-        assert self.Doc.Formatid==1
+        title = doc.title
+        doc.title = 'Foo'
+        assert doc.title=='Foo'
+        doc.save()
+        doc2 = lampadas.docs[new_id]
+        assert doc2.title=='Foo'
         
-        lampadas.docs.Del(self.Newid)
-        self.Newid = db.read_value('SELECT MAX(doc_id) from document')
-        assert self.Newid==self.Oldid
+        doc.title = title
+        assert doc.title==title
+        doc.save()
+        assert doc.title==title
+        doc2 = lampadas.docs[new_id]
+        assert doc2.title==title
+        
+        lampadas.docs.delete(new_id)
+        new_id = db.read_value('SELECT MAX(doc_id) from document')
+        assert new_id==old_id
 
         keys = lampadas.docs.keys()
         for key in keys:
-            self.Doc = lampadas.docs[key]
-            assert self.Doc.id==key
+            doc = lampadas.docs[key]
+            assert doc.id==key
+
         log(3, 'testing Docs done')
-
-    def testMapping(self):
-        log(3, 'testing Docs Mapping')
-        self.Doc = lampadas.docs[100]
-        assert not self.Doc==None
-        assert not self.Doc.title==''
-        assert self.Doc.id==100
-        self.Doc = lampadas.docs[2]
-        assert self.Doc.id==2
-        log(3, 'testing Docs Mapping done')
-
-    def test_save(self):
-        log(3, 'testing doc.save()')
-        self.Doc = lampadas.docs[100]
-        self.title = self.Doc.title
-        self.Doc.title = 'Foo'
-        assert self.Doc.title=='Foo'
-        self.Doc.save()
-        self.Doc2 = lampadas.docs[100]
-        assert self.Doc2.title=='Foo'
-        
-        self.Doc.title = self.title
-        assert self.Doc.title==self.title
-        self.Doc.save()
-        self.Doc2 = lampadas.docs[100]
-        assert self.Doc2.title==self.title
-        log(3, 'testing doc.save done')
 
 
 class testDocErrs(unittest.TestCase):
@@ -149,14 +119,14 @@ class testDocErrs(unittest.TestCase):
         log(3, 'testing DocErrs')
         keys = lampadas.docs.keys()
         for key in keys:
-            Doc = lampadas.docs[key]
-            assert not Doc==None
-            if Doc.Errs.count() > 0:
+            doc = lampadas.docs[key]
+            assert not doc==None
+            if doc.errs.count() > 0:
                 log("found a doc with errors")
-                for Err in Doc.Errs:
-                    assert not Err==None
-                    assert Err.doc_id==Doc.id
-                    assert Err.Errid > 1
+                for err in doc.errs:
+                    assert not err==None
+                    assert err.doc_id==doc.id
+                    assert err.error_id > 1
         log(3, 'testing DocErrs done')
     
 
@@ -164,15 +134,14 @@ class testDocFiles(unittest.TestCase):
 
     def testDocFiles(self):
         log(3, 'testing DocFiles')
-        Doc = lampadas.docs[100]
-        assert not Doc==None
-        assert Doc.files.count() > 0
-        keys = Doc.files.keys()
+        keys = lampadas.docs.keys()
         for key in keys:
-            File = Doc.files[key]
-            if File==None: break
-            assert File.doc_id==Doc.id
-            assert File.filename > ''
+            filekeys = doc.files.keys()
+            for filekey in filekeys:
+                file = Doc.files[filekey]
+                if file==None: break
+                assert file.doc_id==doc.id
+                assert file.filename > ''
         log(3, 'testing DocFiles done')
 
 
@@ -180,39 +149,42 @@ class testDocRatings(unittest.TestCase):
 
     def testDocRatings(self):
         log(3, 'testing DocRatings')
-        Doc = lampadas.docs[100]
-        assert not Doc==None
-        Doc.Ratings.clear()
-        assert Doc.Ratings.count()==0
-        assert Doc.Rating==0
+        dockeys = lampadas.docs.keys()
+        for dockey in dockeys:
 
-        # Add Userid: 1   Rating: 5   -- Avg: 5
+            doc = lampadas.docs[dockey]
+            assert not doc==None
+            doc.ratings.clear()
+            assert doc.ratings.count()==0
+            assert doc.rating==0
 
-        Doc.Ratings.add(1, 5)
-        assert Doc.Ratings.count()==1
-        assert Doc.Ratings.Average==5
-        assert Doc.Rating==5
+            # Add Userid: 1   Rating: 5   -- Avg: 5
 
-        # Add Userid: 2   Rating: 7   -- Avg: 6
+            doc.ratings.add(1, 5)
+            assert doc.ratings.count()==1
+            assert doc.ratings.average==5
+            assert doc.rating==5
+
+            # Add Userid: 2   Rating: 7   -- Avg: 6
+            
+            doc.ratings.add(2, 7)
+            assert doc.ratings.count()==2
+            assert doc.ratings.average==6
+            assert doc.rating==6
+
+            # Del Userid: 1
         
-        Doc.Ratings.add(2, 7)
-        assert Doc.Ratings.count()==2
-        assert Doc.Ratings.Average==6
-        assert Doc.Rating==6
+            doc.ratings.delete(1)
+            assert doc.ratings.count()==1
+            assert doc.ratings.average==7
+            assert doc.rating==7
 
-        # Del Userid: 1
-    
-        Doc.Ratings.Del(1)
-        assert Doc.Ratings.count()==1
-        assert Doc.Ratings.Average==7
-        assert Doc.Rating==7
+            # Clear again
 
-        # Clear again
-
-        Doc.Ratings.clear()
-        assert Doc.Ratings.count()==0
-        assert Doc.Ratings.Average==0
-        assert Doc.Rating==0
+            doc.ratings.clear()
+            assert doc.ratings.count()==0
+            assert doc.ratings.average==0
+            assert doc.rating==0
         log(3, 'testing DocRatings done')
 
 
@@ -223,16 +195,16 @@ class testDocVersions(unittest.TestCase):
         keys = lampadas.docs.keys()
         found = 0
         for key in keys:
-            Doc = lampadas.docs[key]
-            assert not Doc==None
-            if Doc.versions.count() > 0:
+            doc = lampadas.docs[key]
+            assert not doc==None
+            if doc.versions.count() > 0:
                 found = 1
-                vkeys = Doc.versions.keys()
+                vkeys = doc.versions.keys()
                 for vkey in vkeys:
-                    version = Doc.versions[vkey]
+                    version = doc.versions[vkey]
                     assert not version==None
-                    assert version.PubDate > ''
-                    assert version.Initials > ''
+                    assert version.pub_date > ''
+                    assert version.initials > ''
         assert found==1
         log(3, 'testing DocVersions done')
 
@@ -241,14 +213,14 @@ class testLicenses(unittest.TestCase):
 
     def testLicenses(self):
         log(3, 'testing Licenses')
-        assert lampadas.Licenses.count() > 0
-        assert not lampadas.Licenses['GPL']==None
+        assert lampadas.licenses.count() > 0
+        assert not lampadas.licenses['gpl']==None
         log(3, 'testing Licenses done')
 
 
 class test_dtds(unittest.TestCase):
 
-    def test_dtdss(self):
+    def test_dtds(self):
         log(3, 'testing DTDs')
         assert lampadas.dtds.count() > 0
         assert not lampadas.dtds['DocBook']==None
@@ -260,11 +232,9 @@ class testFormats(unittest.TestCase):
     def testFormats(self):
         log(3, 'testing Formats')
         assert lampadas.formats.count() > 0
-        assert not lampadas.formats[1]==None
-        assert not lampadas.formats[1].I18n==None
-        assert not lampadas.formats[1].I18n['EN']==None
-        assert lampadas.formats[1].I18n['EN'].Name > ''
-        assert lampadas.formats[1].I18n['EN'].Description > ''
+        assert not lampadas.formats['xml']==None
+        assert lampadas.formats['xml'].name['EN'] > ''
+        assert lampadas.formats['xml'].description['EN'] > ''
         log(3, 'testing Formats done')
 
 
@@ -274,10 +244,12 @@ class testLanguages(unittest.TestCase):
         log(3, 'testing Languages')
         assert not lampadas.languages==None
         assert not lampadas.languages['EN']==None
-        assert lampadas.languages['EN'].Supported
-        assert lampadas.languages['EN'].I18n['EN'].Name=='English'
-        assert lampadas.languages['FR'].Supported
-        assert lampadas.languages['FR'].I18n['EN'].Name=='French'
+        assert lampadas.languages['EN'].supported
+        assert lampadas.languages['EN'].name['EN']=='English'
+        assert lampadas.languages['FR'].supported
+        assert lampadas.languages['FR'].name['EN']=='French'
+        assert lampadas.languages['DE'].supported
+        assert lampadas.languages['DE'].name['EN']=='German'
         assert lampadas.languages.count()==136
         log(3, 'testing Languages done')
 
@@ -289,10 +261,8 @@ class testPubStatuses(unittest.TestCase):
         assert not lampadas.pub_statuses==None
         assert lampadas.pub_statuses.count() > 0
         assert not lampadas.pub_statuses['A']==None
-        assert not lampadas.pub_statuses['A'].I18n==None
-        assert not lampadas.pub_statuses['A'].I18n['EN']==None
-        assert lampadas.pub_statuses['A'].I18n['EN'].Name > ''
-        assert lampadas.pub_statuses['A'].I18n['EN'].Description > ''
+        assert lampadas.pub_statuses['A'].name['EN'] > ''
+        assert lampadas.pub_statuses['A'].description['EN'] > ''
         log(3, 'testing PubStatuses done')
         
 
@@ -300,13 +270,14 @@ class testTopics(unittest.TestCase):
 
     def testTopics(self):
         log(3, 'testing Topics')
-        assert not lampadas.Topics==None
-        assert lampadas.Topics.count() > 0
-        keys = lampadas.Topics.keys()
+        assert not lampadas.topics==None
+        assert lampadas.topics.count() > 0
+        keys = lampadas.topics.keys()
         for key in keys:
-            Topic = lampadas.Topics[key]
-            assert Topic.Num > 0
-            assert Topic.I18n['EN'].Name > ''
+            topic = lampadas.topics[key]
+            assert topic.num > 0
+            assert topic.name['EN'] > ''
+            assert topic.description['EN'] > ''
         log(3, 'testing Topics done')
 
 
@@ -314,8 +285,8 @@ class testUsers(unittest.TestCase):
 
     def testUsers(self):
         log(3, 'testing Users')
-        assert not lampadas.Users==None
-        assert lampadas.Users.count() > 0
+        assert not lampadas.users==None
+        assert lampadas.users.count() > 0
 
         db.runsql("DELETE FROM username where email='foo@example.com'")
         db.commit()
@@ -378,7 +349,7 @@ class testURLParse(unittest.TestCase):
     def check_uri(self, url, result) :
         uri = URI(url)
         u = (uri.protocol, uri.server, uri.port, uri.path, uri.lang, uri.force_lang,
-             uri.id, uri.format, uri.filename, uri.parameter, uri.anchor)
+             uri.id, uri.code, uri.filename, uri.parameter, uri.anchor)
         self.assertEqual( (url,u), (url,result) )
         
     def testURLParse(self):

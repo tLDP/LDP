@@ -52,6 +52,12 @@ class Lampadas:
     """
     
     def __init__(self):
+        self.load()
+
+    def user(self, username):
+        return User(username)
+
+    def load(self):
         self.types           = Types()
         self.types.load()
         self.docs            = Docs()
@@ -75,10 +81,6 @@ class Lampadas:
         self.subtopics       = Subtopics()
         self.subtopics.load()
         self.users           = Users()
-
-    def user(self, username):
-        return User(username)
-
 
 # Roles
 
@@ -187,18 +189,31 @@ class Docs(LampadasCollection):
 # rather than passing in all these parameters. --nico
 
     def add(self, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status_code, review_status_code, tickle_date, pub_date, home_url, tech_review_status_code, license_code, abstract, lang, sk_seriesid):
-        self.id = db.read_value('SELECT max(doc_id) from document') + 1
+        self.id = db.next_id('document', 'doc_id')
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "INSERT INTO document(doc_id, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(url) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(home_url) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(abstract) + ", " + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
-        doc_id = int(db.read_value('SELECT MAX(doc_id) from document'))
-        doc = Doc(doc_id)
-        self[doc_id] = doc
-        return doc_id
+        doc = Doc(self.id)
+        self[self.id] = doc
+        return self.id
     
     def delete(self, id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
+
+        doc = self[id]
+        if doc==None:
+            return
+
+        # Delete dependent data first!
+        doc.errs.clear()
+        doc.files.clear()
+        doc.users.clear()
+        doc.versions.clear()
+        doc.ratings.clear()
+        doc.topics.clear()
+        doc.notes.clear()
+
         sql = ('DELETE from document WHERE doc_id=' + str(id))
         assert db.runsql(sql)==1
         db.commit()
@@ -240,6 +255,7 @@ class Doc:
         self.ratings                 = DocRatings()
         self.ratings.parent          = self
         self.topics                  = DocTopics()
+        self.notes                   = DocNotes()
         if id==None: return
         self.load(id)
 
@@ -281,6 +297,7 @@ class Doc:
         self.ratings                 = DocRatings(self.id)
         self.ratings.parent          = self
         self.topics                  = DocTopics(self.id)
+        self.notes                   = DocNotes(self.id)
 
     def save(self):
         """
@@ -451,6 +468,13 @@ class DocUsers(LampadasCollection):
         db.commit()
         del self.data[username]
         
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM document_user WHERE doc_id=" + str(self.doc_id)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
+
 class DocUser:
     """
     An association between a document and a user.
@@ -582,10 +606,7 @@ class DocVersions(LampadasCollection):
             self.data[docversion.id] = docversion
 
     def add(self, version, pub_date, initials, notes):
-        newrev_id = db.read_value('SELECT MAX(rev_id) FROM document_rev')
-        if newrev_id==None:
-            newrev_id = 0
-        newrev_id = newrev_id + 1
+        newrev_id = db.next_id('document_rev', 'rev_id')
         sql = 'INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES (' + str(self.doc_id) + ', ' + str(newrev_id) + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes) + ')'
         db.runsql(sql)
         db.commit()
@@ -603,6 +624,13 @@ class DocVersions(LampadasCollection):
         db.runsql(sql)
         db.commit()
         del self.data[rev_id]
+
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM document_rev WHERE doc_id=" + str(self.doc_id)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
 
 class DocVersion:
     """
@@ -661,6 +689,13 @@ class DocTopics(LampadasCollection):
         db.commit()
         del self.data[subtopic_code]
 
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM document_topic WHERE doc_id=" + str(self.doc_id)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
+
 class DocTopic:
     """
     A topic for the document.
@@ -669,6 +704,69 @@ class DocTopic:
     def load_row(self, row):
         self.doc_id   = row[0]
         self.subtopic_code  = trim(row[1])
+
+
+# DocNotes
+
+class DocNotes(LampadasCollection):
+    """
+    A collection object providing access to document notes.
+    """
+
+    def __init__(self, doc_id=0):
+        self.data = {}
+        self.load(doc_id)
+
+    def load(self, doc_id=0):
+        self.data = {}
+        self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes WHERE doc_id=' + str(doc_id)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            docnote = DocNote()
+            docnote.load_row(row)
+            self.data[docnote.id] = docnote
+
+    def add(self, notes, creator):
+        note_id = db.next_id('notes', 'note_id')
+        sql = 'INSERT INTO notes(note_id, doc_id, notes, creator) VALUES (' + str(note_id) + ', ' + str(self.doc_id) + ', ' + wsq(notes) + ', ' + wsq(creator) + ')'
+        db.runsql(sql)
+        db.commit()
+        docnote = DocNote()
+        docnote.id = note_id
+        docnote.doc_id = self.doc_id
+        docnote.date_entered = now_string()
+        docnote.notes = notes
+        docnote.creator = creator
+        self.data[docnote.id] = docnote
+
+    def delete(self, note_id):
+        sql = 'DELETE FROM notes WHERE note_id=' + str(note_id) 
+        db.runsql(sql)
+        db.commit()
+        del self.data[note_id]
+
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM notes WHERE doc_id=" + str(self.doc_id)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
+
+class DocNote:
+    """
+    A note for the document.
+    """
+
+    def load_row(self, row):
+        self.id           = row[0]
+        self.doc_id       = row[1]
+        self.date_entered = time2str(row[2])
+        self.notes        = trim(row[3])
+        self.creator      = trim(row[4])
 
 
 # Licenses

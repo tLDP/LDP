@@ -24,7 +24,13 @@ The Globals module implements low level utility and convenience routines.
 
 # Modules
 
+import time
+
+
+# Globals
+
 VERSION = '0.3-cvs'
+
 
 def wsq(astring):
     """
@@ -125,6 +131,21 @@ def date2str(date):
     else:
         return ''
         
+def time2str(time):
+    """
+    Converts a date value (which contains a time of "00:00:00")
+    into an ISO representation.
+    """
+
+    if time:
+        timestr = str(time)
+        return timestr[:19]
+    else:
+        return ''
+        
+def now_string():
+    return time.strftime('%Y-%M-%d %H:%M:%S')
+
 def trim(astring):
     """
     Trims leading and trailing spaces from a string.
@@ -137,7 +158,6 @@ def trim(astring):
     else:
         temp = str(astring)
     return temp.strip()
-
 
 class WOStringIO:
     """
@@ -163,4 +183,8 @@ class WOStringIO:
 
     def get_value(self) :
         return ''.join(self.data)
-    
+   
+if __name__=='__main__':
+    print now_string()
+    print time2str('2002-02-02 04:04:04xxx')
+

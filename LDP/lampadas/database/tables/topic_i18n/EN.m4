@@ -23,4 +23,3 @@ insert(languages,            [Natural Languages],
 [Information for speakers of particular languages.])
 insert(misc,                 [Miscellaneous],
 [Miscellaneous])
-

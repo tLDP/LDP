@@ -5,6 +5,8 @@ insert(system_admin,         [System-Administration],
 insert(hardware,             [Hardware],
 [Alles was direkt mit Hardware zu tun hat. ]m4_dnl
 [Zum Beispiel Treiber, Kompatibilitätsangaben, Protokolle.])
+insert(networking,           [Networking],
+[Protocols, etc.])
 insert(installing_apps,      [Administration von Anwendungen],
 [Installation und Deinstallation von Software, ]m4_dnl
 [sowohl mit Quellcode als auch durch Paket-Manager.])
@@ -23,3 +25,4 @@ insert(languages,            [Fremdsprachen],
 [Informationen für Anwender aus anderen Sprachgebieten.])
 insert(misc,                 [Verschiedenes],
 [Verschiedenes])
+

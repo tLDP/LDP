@@ -67,6 +67,14 @@ class Database:
             value = row[0]
         return value
 
+    def next_id(self, table, field):
+        sql = 'SELECT MAX(' + field + ') FROM ' + table
+        max_id = self.read_value(sql)
+        if max_id==None:
+            max_id = 0
+        max_id = max_id + 1
+        return max_id
+
     def runsql(self, sql):
         if config.log_sql:
             log(3, sql)

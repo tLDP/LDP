@@ -508,6 +508,38 @@ class TableFactory:
         return box
 
 
+    def docnotes(self, uri, user):
+        log(3, 'Creating docnotes table')
+        doc = lampadas.docs[uri.id]
+        box = ''
+        box = box + '<table class="box">'
+        box = box + '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strdate_time|</th>\n'
+        box = box + '<th class="collabel">|strusername|</th>\n'
+        box = box + '<th class="collabel">|strcomments|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        note_ids = doc.notes.sort_by_desc('date_entered')
+        for note_id in note_ids:
+            note = doc.notes[note_id]
+            box = box + '<tr>\n'
+            box = box + '<td>' + note.date_entered + '</td>\n'
+            box = box + '<td>' + note.creator + '</td>\n'
+            box = box + '<td>' + note.notes + '</td>\n'
+            box = box + '</tr>\n'
+        box = box + '<form method=GET action="data/save/newdocument_note" name="document_note">'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<input name="creator" type=hidden value=' + user.username + '>\n'
+        box = box + '<tr><td></td><td></td>\n'
+        box = box + '<td><textarea name="notes" rows=5 cols=40></textarea></td>\n'
+        box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
+        box = box + '</tr>\n'
+        box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+
+
     def cvslog(self, uri):
         doc = lampadas.docs[uri.id]
         box = '<table class="box">\n'
@@ -661,7 +693,7 @@ class TableFactory:
     def sitemap(self, uri, user):
         log(3, 'Creating sitemap')
         box = ''
-        box = '<table class="navbox"><tr><th colspan="2">|strsitemap|</th></tr>\n'
+        box = '<table class="box"><tr><th colspan="2">|strsitemap|</th></tr>\n'
         section_codes = lampadasweb.sections.sort_by('sort_order')
         page_codes = lampadasweb.pages.sort_by('sort_order')
         for section_code in section_codes:
@@ -676,7 +708,7 @@ class TableFactory:
                 if user.sysadmin==0 or section.sysadmin_count==0:
                     continue
 
-            box = box + '<tr><th class="label">' +  section.name[uri.lang] + '</th><td>\n'
+            box = box + '<tr><td class="label">' +  section.name[uri.lang] + '</td><td>\n'
             for page_code in page_codes:
                 page = lampadasweb.pages[page_code]
                 if page.section_code==section_code:
@@ -814,7 +846,7 @@ class TableFactory:
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
-                box = box + '<a href="/' + language.code + '/' + uri.base + '">' + language.name[uri.lang] + '</a><br>\n'
+                box = box + '<a href="/' + language.code + uri.base + '">' + language.name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -967,6 +999,8 @@ class PageFactory:
                     newstring = self.tablef.docversions(uri)
                 if token=='tabdoctopics':
                     newstring = self.tablef.doctopics(uri)
+                if token=='tabdocnotes':
+                    newstring = self.tablef.docnotes(uri, build_user)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabusers':
