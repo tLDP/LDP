@@ -49,7 +49,7 @@ def install_subskin(self, out, skin_name, globals=types_globals):
         try:
             addDirectoryViews(skinstool, skin_name, homedir)
         except:
-            pass
+            log('Error adding directory views for ' + skin_name)
 
     for skinName in skinstool.getSkinSelections():
         path = skinstool.getSkinPath(skinName) 

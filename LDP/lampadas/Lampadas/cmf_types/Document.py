@@ -10,48 +10,10 @@ from Products.CMFDefault.SkinnedFolder import SkinnedFolder
 
 from Products.CMFCore import CMFCorePermissions
 
-#factory_type_information = ( { 'id'             : 'LampadasDocument'
-#                             , 'meta_type'      : 'LampadasDocument'
-#                             , 'description'    : """\
-#Lampadas documents can hold source files and generate output files."""
-#                             , 'icon'           : 'folder_icon.gif'
-#                             , 'product'        : 'Lampadas'
-#                             , 'factory'        : 'addLampadasDocument'
-#                             , 'filter_content_types' : 0
-#                             , 'immediate_view' : 'portal_form/folder_contents'
-#                             , 'actions'        :
-#                                ( { 'id'            : 'foldercontents'
-#                                  , 'name'          : 'Folder Contents'
-#                                  , 'action'        : 'folder_contents'
-#                                  , 'permissions'   :
-#                                     (Permissions.access_contents_information,)
-#                                  , 'category'      : 'object'
-#                                  }
-#                                , { 'id'            : 'view' 
-#                                  , 'name'          : 'View'
-#                                  , 'action'        : 'lampadasdocument_view'
-#                                  , 'permissions'   :
-#                                     (CMFCorePermissions.View,)
-#                                  , 'category'      : 'object'
-#                                  }
-#                                , { 'id'            : 'local_roles'
-#                                  , 'name'          : 'Local Roles'
-#                                  , 'action'        : 'folder_localrole_form'
-#                                  , 'permissions'   :
-#                                     (CMFCorePermissions.ManageProperties,)
-#                                  , 'category'      : 'object'
-#                                  }
-#                                , { 'id'            : 'edit'
-#                                  , 'name'          : 'Edit'
-#                                  , 'action'        : 'lampadasdocument_edit_form'
-#                                  , 'permissions'   :
-#                                     (CMFCorePermissions.ManageProperties,)
-#                                  , 'category'      : 'object'
-#                                  }
-#                                )
-#                             }
-#                           ,
-#                           )
+from Products.CMFCore.PortalContent import PortalContent
+
+from utils import unique_options
+
 
 def addLampadasDocument(self, id, **kwargs):
     o = LampadasDocument(id, **kwargs)
@@ -90,7 +52,7 @@ class LampadasDocument(BaseFolder):
     # These are *additional* actions, in addition to those already provided
     # by the base type.
     actions = ( { 'id'            : 'foldercontents'
-                , 'name'          : 'Folder Contents'
+                , 'name'          : 'Contents'
                 , 'action'        : 'folder_contents'
                 , 'permissions'   :
                    (Permissions.access_contents_information,)
@@ -119,7 +81,8 @@ class LampadasDocument(BaseFolder):
                                , 'filter_content_types' : 0
                                , 'immediate_view' : 'portal_form/folder_contents'}
 
-    manage_options = SkinnedFolder.manage_options
+    manage_options = unique_options(SkinnedFolder.manage_options + \
+                                    PortalContent.manage_options,)
 
 registerType(LampadasDocument)
 
