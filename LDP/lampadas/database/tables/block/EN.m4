@@ -1,11 +1,11 @@
 insert([blkheader],
 [
-    <table class="header">
+    <table class="header" width="100%">
       <tr>
         <td class="logo">
           LOGO
         </td>
-        <td>
+        <td align="center">
           <h1>|strproject|</h1>
           <h2>|title|</h2>
         </td>
@@ -15,15 +15,16 @@ insert([blkheader],
 
 insert([blkfooter],
 [
-    <table class="footer">
+    <table class="footer" width="100%">
       <tr>
-        <td>
+        <td align="center">
           <a href="copyright">|strcopyright|</a> \\|
           <a href="privacy">|strprivacy|</a> \\|
           <a href="lampadas">|strabout_lamp|</a>
         </td>
       </tr>
     </table>
+    <p>
     <center>
         <a href="http://www.python.org"><img src="images/PythonPowered.gif" alt="Python Powered!"></a>
         <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
@@ -32,7 +33,7 @@ insert([blkfooter],
 
 insert([blknopermission],
 [
-    <table class="box">
+    <table class="box" width="100%">
       <tr>
         <th>|strerror|</th>
       </tr>
@@ -44,7 +45,7 @@ insert([blknopermission],
 
 insert([blknotfound],
 [
-    <table class="box">
+    <table class="box" width="100%">
       <tr>
         <th>|strerror|</th>
       </tr>

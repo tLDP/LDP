@@ -299,7 +299,7 @@ class TableFactory:
             box = '<form method=GET action="data/save/newdocument" name="document">'
         box = box + '<input name="username" type=hidden value=' + user.username + '>\n'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
+        box = box + '<table class="box" width="100%"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
         box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" style="width:100%" value="' + doc.title + '"></td>\n'
         box = box + '</tr>\n'
@@ -360,7 +360,7 @@ class TableFactory:
         log(3, 'Creating docversions table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="6">|strdocversions|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strversion|</th>\n'
@@ -407,7 +407,7 @@ class TableFactory:
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="5">|strdocfiles|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strfilename|</th>\n'
@@ -453,7 +453,7 @@ class TableFactory:
         log(3, 'Creating docusers table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="6">|strdocusers|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strusername|</th>\n'
@@ -501,7 +501,7 @@ class TableFactory:
         log(3, 'Creating doctopics table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strtopic|</th>\n'
@@ -543,7 +543,7 @@ class TableFactory:
         log(3, 'Creating docnotes table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strdate_time|</th>\n'
@@ -580,7 +580,7 @@ class TableFactory:
         log(3, 'Creating docerrors table')
         doc = lampadas.docs[uri.id]
         box = ''
-        box = box + '<table class="box">'
+        box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="2">|strdocerrs|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strid|</th>\n'
@@ -601,7 +601,7 @@ class TableFactory:
 
     def cvslog(self, uri):
         doc = lampadas.docs[uri.id]
-        box = '<table class="box">\n'
+        box = '<table class="box" width="100%">\n'
         box = box + '<tr><th>|strcvslog|</th></tr>\n'
         box = box + '<tr><td>\n'
         cvsdir = config.cvs_root + str(doc.id)
@@ -640,7 +640,7 @@ class TableFactory:
         else:
             user = User()
             box = '<form method=GET action="data/save/newuser" name="user">\n'
-        box = box + '<table class="box">\n'
+        box = box + '<table class="box" width="100%">\n'
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
         box = box + '<tr><th class="label">|strusername|</th>'
         if user.username=='':
@@ -672,7 +672,7 @@ class TableFactory:
         
     def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
         log(3, "Creating doctable")
-        box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
+        box = '<table class="box" width="100%"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
@@ -750,6 +750,7 @@ class TableFactory:
         log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
+        first_menu = 1
         for key in keys:
             section = lampadasweb.sections[key]
             if section.only_registered or section.only_admin or section.only_sysadmin > 0:
@@ -761,13 +762,17 @@ class TableFactory:
             if section.only_sysadmin > 0:
                 if user.sysadmin==0 or section.sysadmin_count==0:
                     continue
+            if first_menu==1:
+                first_menu = 0
+            else:
+                box = box + '<p>'
             box = box + self.section_menu(uri, user, section.code)
         return box
 
     def sitemap(self, uri, user):
         log(3, 'Creating sitemap')
         box = ''
-        box = '<table class="box"><tr><th colspan="2">|strsitemap|</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th colspan="2">|strsitemap|</th></tr>\n'
         section_codes = lampadasweb.sections.sort_by('sort_order')
         page_codes = lampadasweb.pages.sort_by('sort_order')
         for section_code in section_codes:
@@ -802,7 +807,7 @@ class TableFactory:
 
     def recent_news(self, uri):
         log(3, 'Creating recent news')
-        box = '<table class="box"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
@@ -830,7 +835,7 @@ class TableFactory:
     def subtopics(self, uri):
         log(3, 'Creating subtopics menu')
         topic = lampadas.topics[uri.code]
-        box = '<table class="box"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>|topic.description|</td></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.subtopics.sort_by('num')
@@ -846,7 +851,7 @@ class TableFactory:
     def subtopic(self, uri):
         log(3, 'Creating subtopic table')
         subtopic = lampadas.subtopics[uri.code]
-        box = '<table class="box"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -898,7 +903,7 @@ class TableFactory:
                     session = sessions[key]
                     box = box + '<a href="user/' + str(session.username) + '">\n'
                     user = lampadas.users[key]
-                    box = box + user.name + '</a><br>\n'
+                    box = box + user.username + '</a> (' + user.name + ')<br>\n'
                 box = box + '</td></tr>\n'
                 box = box + '</table>\n'
                 return box
@@ -938,11 +943,6 @@ class PageFactory:
             if username > '':
                 build_user = lampadas.users[username]
                 log(3, 'build_user: ' + build_user.username)
-                session = sessions[username]
-                if session:
-                    session.refresh()
-                else:
-                    sessions.add(username)
 
         log(3, 'Serving language ' + uri.lang)
 

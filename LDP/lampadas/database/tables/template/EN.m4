@@ -9,27 +9,27 @@ insert(default,
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
 	  <body>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
             <td>
               |blkheader|
             </td>
 	      </tr>
         </table>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
-            <td class="sidebarleft">
+            <td class="sidebarleft" valign="top">
               |tabmenus|
-              |tabtopics|
-              |tabtypes|
-              |tablanguages|
+              <p>|tabtopics|
+              <p>|tabtypes|
+              <p>|tablanguages|
             </td>
-            <td class="body">
+            <td class="body" valign="top">
               |body|
             </td>
 	      </tr>
         </table>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
             <td>
               |blkfooter|
@@ -51,31 +51,31 @@ insert(index,
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
 	  <body>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
             <td>
               |blkheader|
             </td>
 	      </tr>
         </table>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
-            <td class="sidebarleft">
+            <td class="sidebarleft" valign="top">
               |tabmenus|
-              |tabtopics|
-              |tabtypes|
-              |tablanguages|
+              <p>|tabtopics|
+              <p>|tabtypes|
+              <p>|tablanguages|
             </td>
-            <td class="body">
+            <td class="body" valign="top">
               |body|
             </td>
-            <td class="sidebarright">
+            <td class="sidebarright" valign="top">
               |tablogin|
-              |tabsessions|
+              <p>|tabsessions|
             </td>
 	      </tr>
         </table>
-	    <table class="layout">
+	    <table class="layout" width="100%">
 	      <tr>
             <td>
               |blkfooter|

@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
+from DataLayer import lampadas
 from Log import log
 from HTML import page_factory
+from Sessions import sessions
 from Config import config
 from URLParse import URI
 from mod_python import apache
@@ -28,8 +30,17 @@ def handler(req):
         cookie = get_cookie(req.headers_in, 'lampadas')
         if cookie:
             session_id = str(cookie)
+            username = lampadas.users.find_session_user(session_id)
+            if username > '':
+                session = sessions[username]
+                if session:
+                    session.refresh()
+                else:
+                    sessions.add(username, req.connection.remote_addr[0])
         else:
             session_id = ''
+
+
         send_HTML(req, page_factory.page(req.uri, session_id))
     return apache.OK
 

@@ -44,11 +44,11 @@ class Sessions(LampadasCollection):
     """
 
     def __init__(self):
-        self.data = {}
         self.load()
 
     def load(self):
-        sql = 'SELECT username FROM session'
+        self.data = {}
+        sql = 'SELECT username, ip_address FROM session'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -56,8 +56,8 @@ class Sessions(LampadasCollection):
             newSession = Session(trim(row[0]))
             self.data[newSession.username] = newSession
     
-    def add(self, username):
-        sql = 'INSERT INTO session(username) VALUES (' + wsq(username) + ')'
+    def add(self, username, ip_address):
+        sql = 'INSERT INTO session(username, ip_address) VALUES (' + wsq(username) + ', ' + wsq(ip_address) + ')'
         db.runsql(sql)
         db.commit()
         newSession = Session(username)

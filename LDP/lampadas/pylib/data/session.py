@@ -34,7 +34,7 @@ def login(req, username, password):
     if user and user.username==username:
         if user.password == password:
             if sessions[username] == None:
-                sessions.add(username)
+                sessions.add(username, req.connection.remote_addr[0])
     
             # establish random 20 character session_id.
             # 

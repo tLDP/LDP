@@ -344,18 +344,18 @@ insert([topic], [View Topic], [],
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
-    |tabsubtopicdocs|
+    <p>|tabsubtopicdocs|
 ])
 
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
-    |tabdocfiles|
-    |tabdocusers|
-    |tabdocversions|
-    |tabdoctopics|
-    |tabdocnotes|
-    |tabdocerrors|
+    <p>|tabdocfiles|
+    <p>|tabdocusers|
+    <p>|tabdocversions|
+    <p>|tabdoctopics|
+    <p>|tabdocnotes|
+    <p>|tabdocerrors|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,
