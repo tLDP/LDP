@@ -6,7 +6,7 @@
 
 <title>Chroot-BIND HOWTO
 <author>Scott Wunsch, <tt>scott at wunsch.org</>
-<date>v1.2, 16 September 2000
+<date>v1.3, 24 February 2001
 <abstract>
 This document describes installing the BIND 8 nameserver to run in a chroot
 jail and as a non-root user, to provide added security and minimise the
@@ -73,10 +73,16 @@ url="http://www.losurs.org/docs/howto/Chroot-BIND.html">.
 
 BIND is available from <url url="http://www.isc.org/" name="the Internet
 Software Consortium"> at <url url="http://www.isc.org/bind.html">.  As of this
-writing, the current version of BIND8 is 8.2.2_P5.  BIND 9.0.0 has just been
-released, but I haven't even looked at it yet, so I don't know how much of this
-document will be applicable.  Unless you like living on the bleeding edge, you
-may be better off staying with BIND8 for now.
+writing, the current version of BIND8 is 8.2.3.  BIND 9.x has now been
+released, but I haven't had time to look at it in depth yet, so I don't know
+how much of this document will be applicable.  Some administrators are now
+putting BIND9 into production use, but it still requires a taste for living on
+the bleeding edge (and upgrading every couple weeks), so you may be better off
+staying with BIND8 for now.
+
+Keep in mind that there are <bf>known</> security holes in all
+versions of BIND8 less than <bf>8.2.3</>, so make very sure that you're
+running the latest version!
 
 <sect1>How?
 
@@ -216,9 +222,9 @@ command:
 Finally, you need a couple extra files in the <tt>/etc</> directory inside the
 jail.  In particular, you must copy <tt>/etc/localtime</> (this sometimes known
 as <tt>/usr/lib/zoneinfo/localtime</> on some systems) in there so that BIND
-logs things with the right time on them, and you must make a simple <tt/group/
-file with the <tt/named/ group in it.  The following two commands will take care
-of this:
+logs things with the right time on them, and you must make a simple <tt>group</>
+file with the <tt>named</> group in it.  The following two commands will take
+care of this:
 <tscreen><verb>
 # cp /etc/localtime /chroot/named/etc/
 
@@ -241,12 +247,13 @@ it any more.  Fortuantely, there are a couple options to work around this.
 
 <p>
 The ideal solution to this dilemma requires a reasonably recent version of
-<tt>syslogd</> which supports the <tt>-a</> switch introduced by OpenBSD.  Check the
-manpage for your <tt>syslogd(8)</> to see if you have such a version.
+<tt>syslogd</> which supports the <tt>-a</> switch introduced by OpenBSD.
+Check the manpage for your <tt>syslogd(8)</> to see if you have such a
+version.
 
 If you do, all you have to do is add the switch ``<tt>-a
-/chroot/named/dev/log</>'' to the command line when you launch <tt>syslogd</>.  On
-systems which use a full SysV-init (which includes most Linux distributions),
+/chroot/named/dev/log</>'' to the command line when you launch <tt>syslogd</>.
+On systems which use a full SysV-init (which includes most Linux distributions),
 this is typically done in the file <tt>/etc/rc.d/init.d/syslog</>.  For example,
 on my Red Hat Linux system, I changed the line
 <tscreen><verb>
@@ -256,15 +263,16 @@ to
 <tscreen><verb>
 daemon syslogd -m 0 -a /chroot/named/dev/log
 </verb></tscreen>
-Then simply restart <tt>syslogd</>, either by killing it and launching it again,
-or by using the SysV-init script to do it for you:
+
+On Caldera OpenLinux systems, they use a daemon launcher called <tt>ssd</>,
+which reads configuration from <tt>/etc/sysconfig/daemons/syslog</>.  You
+simply need to modify the options line to look like this:
 <tscreen><verb>
-# /etc/rc.d/init.d/syslog stop
-# /etc/rc.d/init.d/syslog start
+OPTIONS_SYSLOGD="-m 0 -a /chroot/named/dev/log"
 </verb></tscreen>
 
-I'm told that on SuSE systems, the best place to add this switch is in the
-<tt>/etc/rc.config</> file.  Changing the line
+Similarly, on SuSE systems, I'm told that the best place to add this switch
+is in the <tt>/etc/rc.config</> file.  Changing the line
 <tscreen><verb>
 SYSLOGD_PARAMS=""
 </verb></tscreen>
@@ -273,6 +281,14 @@ to read
 SYSLOGD_PARAMS="-a /chroot/named/dev/log"
 </verb></tscreen>
 should do the trick.
+
+Once you've figured out how to make this change for your system, simply
+restart <tt>syslogd</>, either by killing it and launching it again (with
+the extra parameters), or by using the SysV-init script to do it for you:
+<tscreen><verb>
+# /etc/rc.d/init.d/syslog stop
+# /etc/rc.d/init.d/syslog start
+</verb></tscreen>
 
 Once it's been restarted, you should see a ``file'' in <tt>/chroot/named/dev</>
 called <tt>log</>, that looks something like this:
@@ -292,12 +308,12 @@ Alteratively, you can simply configure BIND to log to files instead of going
 through syslog.  See the BIND documentation for more details if you choose to go
 this route.
 
-<sect>Compiling BIND
+<sect>Compiling BIND<label id="compiling">
 
 <p>
 You should be able to find the BIND source by visiting <url
-url="http://www.isc.org/bind.html">.  You need the <tt/bind-src.tar.gz/ package.
-Be sure to get the latest version!
+url="http://www.isc.org/bind.html">.  You need the <tt>bind-src.tar.gz</>
+package.  Be sure to get the latest version!
 
 <sect1>Modifying Paths
 
@@ -305,14 +321,14 @@ Be sure to get the latest version!
 Things can get a bit confusing at this point, because different parts of the
 BIND package will be referring to the same directories by different names
 (depending on whether or not they're running inside the jail).  I'll try not to
-confuse you <bf/too/ much :-).
+confuse you <bf>too</> much :-).
 
 The main directory that we have to worry about here is <tt>/var/run</>, because
-its contents are required for both the main <tt/named/ daemon (inside the jail),
-and the <tt/ndc/ utility (on the outside).  We'll start by setting everything up
-to find this directory from the outside world.  To do this, we need to modify
-<tt>src/port/linux/Makefile.set</> (substitute your port's directory if you're
-not running Linux), and change the line
+its contents are required for both the main <tt>named</> daemon (inside the
+jail), and the <tt>ndc</> utility (on the outside).  We'll start by setting
+everything up to find this directory from the outside world.  To do this, we
+need to modify <tt>src/port/linux/Makefile.set</> (substitute your port's
+directory if you're not running Linux), and change the line
 <tscreen><verb>
 DESTRUN=/var/run
 </verb></tscreen>
@@ -347,7 +363,7 @@ the <tt/INSTALL/ file.  At this stage, we only want to compile BIND, not install
 it.  Don't go too far when following the <tt/INSTALL/ file.  Essentially, it's
 just <tt/make clean/, <tt/make depend/, and <tt/make/.
 
-<sect>Installing Your Shiny New BIND
+<sect>Installing Your Shiny New BIND<label id="installing">
 
 <p>
 I should mention that if you have an existing installation of BIND, such as from
@@ -468,6 +484,14 @@ esac
 exit 0
 </code></tscreen>
 
+On Caldera OpenLinux systems, you simply need to modify the variables defined
+at the top, and it will apparently take care of the rest for you:
+<tscreen><verb>
+NAME=named
+DAEMON=/chroot/named/bin/$NAME
+OPTIONS="-t /chroot/named -u named -g named"
+</verb></tscreen>
+
 <sect1>Configuration Changes
 
 <p>
@@ -475,13 +499,21 @@ You will also have to add or change a few options in your <tt>named.conf</> to
 keep the various directories straight.  In particular, you should add (or
 change, if you already have them) the following directives in the <tt>options</>
 section:
-<tscreen><code>
+<tscreen><verb>
 directory "/etc/namedb";
 pid-file "/var/run/named.pid";
 named-xfer "/bin/named-xfer";
-</code></tscreen>
+</verb></tscreen>
 Since this file is being read by the <tt>named</> daemon, all the paths are of
 course relative to the chroot jail.
+
+Some people have also reported having to add an extra block to their
+<tt>named.conf</> to get <tt>ndc</> working properly:
+<tscreen><verb>
+controls {
+    unix "/var/run/ndc" perm 0600 owner 0 group 0;
+};
+</verb></tscreen>
 
 <sect>The End
 
@@ -507,6 +539,24 @@ running as the user and group <tt>named</>.  If not, you have a problem.
 <p>
 You can go take a nap now ;-).
 
+<sect>Appendix - Upgrading BIND Later<label id="upgrading">
+
+<p>So, you had BIND 8.2.2_P7 all nicely chrooted and tweaked to your taste...
+and then you hear this nasty rumour that there's a remotely-exploitable root
+hole in that version too, and you need to upgrade to 8.2.3 right away.  Do
+you have to go through this whole long process to install this new version?
+
+Nope.  In fact, you really just need the section on <ref id="compiling" 
+name="Compiling BIND"> and the first two parts of the section on <ref
+id="installing" name="Installing BIND"> (installing the binaries outside and
+inside the jail, respectively).
+
+The rest of the HOWTO deals with setting up the jail and other things like
+that, which shouldn't need to be altered between versions of BIND.  You can
+just dump the new binaries in over top of the old ones, and you're good to go.
+But don't forget to kill and restart BIND afterwards, or the old, vulnerable
+version will still be running!
+
 <sect>Appendix - Thanks<label id="thanks">
 
 <p>
@@ -514,13 +564,15 @@ I'd like to thank Lonny Selinger <tt>&lt;lonny at abyss.za.org&gt;</> for
 "testing" this HOWTO and making sure that I didn't miss any steps.  I'd also
 like to thank Chirik <tt>&lt;chirik at CastleFur.COM&gt;</>, Dwayne Litzenberger
 <tt>&lt;dlitz at cheerful.com&gt;</>, Phil Bambridge <tt>&lt;phil.b at
-cableinet.co.uk&gt;</>, and others for pointing out errors, omissions, and other
-useful advice to make this HOWTO even better.
+cableinet.co.uk&gt;</>, Robert Cole <tt>&lt;rcole at metrum-datatape.com&gt;</>,
+Colin MacDonald <tt>&lt;colinm at telus.net&gt;</>, and others for pointing out
+errors, omissions, and providing other useful advice to make this HOWTO even
+better.
 
 <sect>Appendix - Document Distribution Policy<label id="legal">
 
 <p>
-Copyright &copy; Scott Wunsch, 2000.  This document may be distributed only
+Copyright &copy; Scott Wunsch, 2000-2001.  This document may be distributed only
 subject to the terms set forth in the LDP licence at <url
 url="http://metalab.unc.edu/LDP/COPYRIGHT.html">.
 
