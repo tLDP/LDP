@@ -695,7 +695,7 @@ class TableFactory:
             doc = lampadas.docs[key]
             ok = 1
 
-            # If a usename is passed in, show documents for that user.
+            # If a usename is passed in, do not filter by language.
             # We're building the user's personal doctable, so language
             # doesn't matter in that table.
             if username:
@@ -705,21 +705,21 @@ class TableFactory:
                 if doc.lang <> uri.lang:
                     ok = 0
 
-            # If any other parameter was specified, limit the documents
-            # to those which match the requirement.
+            # If any other parameters were specified, limit the documents
+            # to those which match the requirements.
             if type_code and doc.type_code <> type_code:
                 ok = 0
-            elif subtopic_code:
+            if subtopic_code:
                 subtopic = lampadas.subtopics[subtopic_code]
                 if subtopic.docs[doc.id]==None:
                     ok = 0
-            elif not maintained==None:
+            if not maintained==None:
                 if doc.maintained <> maintained:
                     ok = 0
-            elif not maintainer_wanted==None:
+            if not maintainer_wanted==None:
                 if doc.maintainer_wanted <> maintainer_wanted:
                     ok = 0
-            elif not pub_status_code==None:
+            if not pub_status_code==None:
                 if doc.pub_status_code <> pub_status_code:
                     ok = 0
 
@@ -727,7 +727,7 @@ class TableFactory:
             if ok > 0:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
-                    box = box + '<a href="editdoc/' + str(doc.id) + '/">' + EDIT_ICON + '</a>'
+                    box = box + '<a href="editdoc/' + str(doc.id) + '">' + EDIT_ICON + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                 box = box + '</tr>\n'
@@ -738,7 +738,7 @@ class TableFactory:
         if user:
             box = self.doctable(uri, user, username=user.username)
         else:
-            box = ' '
+            box = '|nopermission|'
         return box
 
     def section_menu(self, uri, user, section_code):
@@ -909,22 +909,45 @@ class TableFactory:
             box = box + '</table>\n'
         return box
 
-    def sessions(self, uri, user):
+    def navsessions(self, uri, user):
         if user:
             if user.admin > 0:
-                log(3, 'Creating sessions table')
+                log(3, 'Creating navsessions table')
                 box = '<table class="navbox"><tr><th>|strsessions|</th></tr>\n'
                 box = box + '<tr><td>\n'
                 keys = sessions.sort_by('username')
                 for key in keys:
                     session = sessions[key]
                     box = box + '<a href="user/' + str(session.username) + '">\n'
-                    user = lampadas.users[key]
-                    box = box + user.username + '</a> (' + user.name + ')<br>\n'
+                    box = box + session.username + '</a><br>\n'
                 box = box + '</td></tr>\n'
                 box = box + '</table>\n'
                 return box
         return ' '
+
+    def tabsessions(self, uri, user):
+        if user:
+            if user.admin > 0:
+                log(3, 'Creating sessions table')
+                box = '<table class="box"><tr><th colspan="4">|strsessions|</th></tr>\n'
+                box = box + '<tr>\n'
+                box = box + '<th class="collabel">|strusername|</th>\n'
+                box = box + '<th class="collabel">|strip_address|</th>\n'
+                box = box + '<th class="collabel">|strurl|</th>\n'
+                box = box + '<th class="collabel">|strtimestamp|</th>\n'
+                box = box + '</tr>\n'
+                keys = sessions.sort_by_desc('timestamp')
+                for key in keys:
+                    session = sessions[key]
+                    box = box + '<tr>\n'
+                    box = box + '<td><a href="user/' + str(session.username) + '">' + session.username + '</a></td>\n'
+                    box = box + '<td>' + session.ip_address + '</td>\n'
+                    box = box + '<td>' + session.uri + '</td>\n'
+                    box = box + '<td>' + session.timestamp + '</td>\n'
+                    box = box + '</td></tr>\n'
+                box = box + '</table>\n'
+                return box
+        return '|nopermission|'
 
     def languages(self, uri):
         log(3, 'Creating languages table')
@@ -952,16 +975,11 @@ class PageFactory:
             return 1
         return
 
-    def page(self, key, session_id=''):
-        uri = URI(key)
+    def page(self, uri, session=None):
         build_user = None
-        if session_id > '':
-            username = lampadas.users.find_session_user(session_id)
-            if username > '':
-                build_user = lampadas.users[username]
-                log(3, 'build_user: ' + build_user.username)
-
-        log(3, 'Serving language ' + uri.lang)
+        if session:
+            build_user = lampadas.users[session.username]
+            log(3, 'build_user: ' + build_user.username)
 
         page = lampadasweb.pages[uri.filename]
         if page==None:
@@ -1078,10 +1096,25 @@ class PageFactory:
                     else:
                         newstring = topic.description[uri.lang]
 
+                # Navigation Boxes
+                # 
+                if token=='navlogin':
+                    newstring = self.tablef.login(uri, build_user)
+                if token=='navmenus':
+                    newstring = self.tablef.section_menus(uri, build_user)
+                if token=='navtopics':
+                    newstring = self.tablef.topics(uri)
+                if token=='navsubtopics':
+                    newstring = self.tablef.subtopics(uri)
+                if token=='navtypes':
+                    newstring = self.tablef.types(uri)
+                if token=='navsessions':
+                    newstring = self.tablef.navsessions(uri, build_user)
+                if token=='navlanguages':
+                    newstring = self.tablef.languages(uri)
+
                 # Tables
                 # 
-                if token=='tablogin':
-                    newstring = self.tablef.login(uri, build_user)
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabmaint_wanted':
@@ -1114,28 +1147,18 @@ class PageFactory:
                     newstring = self.tablef.users(uri, build_user)
                 if token=='tabuser':
                     newstring = self.tablef.user(uri, build_user)
-                if token=='tabmenus':
-                    newstring = self.tablef.section_menus(uri, build_user)
                 if token=='tabrecentnews':
                     newstring = self.tablef.recent_news(uri)
-                if token=='tabtopics':
-                    newstring = self.tablef.topics(uri)
-                if token=='tabsubtopics':
-                    newstring = self.tablef.subtopics(uri)
                 if token=='tabsubtopic':
                     newstring = self.tablef.subtopic(uri)
-                if token=='tabtypes':
-                    newstring = self.tablef.types(uri)
-                if token=='tabsessions':
-                    newstring = self.tablef.sessions(uri, build_user)
-                if token=='tablanguages':
-                    newstring = self.tablef.languages(uri)
                 if token=='tabtypedocs':
                     newstring = self.tablef.doctable(uri, build_user, type_code=uri.code)
                 if token=='tabsubtopicdocs':
                     newstring = self.tablef.doctable(uri, build_user, subtopic_code=uri.code)
                 if token=='tabsitemap':
                     newstring = self.tablef.sitemap(uri, build_user)
+                if token=='tabsessions':
+                    newstring = self.tablef.tabsessions(uri, build_user)
             
                 # Blocks and Strings
                 # 

@@ -48,20 +48,25 @@ class Sessions(LampadasCollection):
 
     def load(self):
         self.data = {}
-        sql = 'SELECT username, ip_address FROM session'
+        sql = 'SELECT username, ip_address, uri, timestamp FROM session'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newSession = Session(trim(row[0]))
-            self.data[newSession.username] = newSession
+            session = Session()
+            session.username   = trim(row[0])
+            session.ip_address = trim(row[1])
+            session.uri        = trim(row[2])
+            session.timestamp  = time2str(row[3])
+            self.data[session.username] = session
     
-    def add(self, username, ip_address):
-        sql = 'INSERT INTO session(username, ip_address) VALUES (' + wsq(username) + ', ' + wsq(ip_address) + ')'
+    def add(self, username, ip_address, uri=''):
+        sql = 'INSERT INTO session(username, ip_address, uri) VALUES (' + wsq(username) + ', ' + wsq(ip_address) + ', ' + wsq(uri) + ')'
         db.runsql(sql)
         db.commit()
-        newSession = Session(username)
-        self.data[username] = newSession
+        session = Session(username)
+        self.data[username] = session
+        return session
 
     def delete(self, username):
         sql = 'DELETE FROM session WHERE username=' + wsq(username)
@@ -75,11 +80,19 @@ class Sessions(LampadasCollection):
 
 class Session:
 
-    def __init__(self, username):
-        self.username = username
-   
-    def refresh(self, ip_address):
-        sql = 'UPDATE session SET timestamp=now(), ip_address=' + wsq(ip_address) + ' WHERE username=' + wsq(self.username)
+    def __init__(self, username=None):
+        if username:
+            sql = 'SELECT username, ip_address, uri, timestamp FROM session WHERE username=' + wsq(username)
+            cursor = db.select(sql)
+            row = cursor.fetchone()
+            if row:
+                self.username   = trim(row[0])
+                self.ip_address = trim(row[1])
+                self.uri        = trim(row[2])
+                self.timestamp  = time2str(row[3])
+                
+    def refresh(self, ip_address, uri=''):
+        sql = 'UPDATE session SET timestamp=now(), ip_address=' + wsq(ip_address) + ', uri=' + wsq(uri) + ' WHERE username=' + wsq(self.username)
         updated = db.runsql(sql)
         db.commit()
         if updated==0:

@@ -27,6 +27,7 @@ def handler(req):
         send_File(req, filename)
     else:
         log(3, 'Sending dynamic page: ' + req.uri)
+        session = None
         cookie = get_cookie(req.headers_in, 'lampadas')
         if cookie:
             session_id = str(cookie)
@@ -35,13 +36,10 @@ def handler(req):
                 sessions.load()
                 session = sessions[username]
                 if session:
-                    session.refresh(req.connection.remote_addr[0])
+                    session.refresh(req.connection.remote_addr[0], uri.uri)
                 else:
-                    sessions.add(username, req.connection.remote_addr[0])
-        else:
-            session_id = ''
-
-        send_HTML(req, page_factory.page(req.uri, session_id))
+                    session = sessions.add(username, req.connection.remote_addr[0], uri.uri)
+        send_HTML(req, page_factory.page(uri, session))
     return apache.OK
 
 

@@ -21,6 +21,7 @@
 
 from Config import config
 from DataLayer import lampadas
+from URLParse import URI
 from Sessions import sessions
 from HTML import page_factory
 from Log import log
@@ -33,8 +34,9 @@ def login(req, username, password):
     user = lampadas.users[username]
     if user and user.username==username:
         if user.password == password:
-            if sessions[username] == None:
-                sessions.add(username, req.connection.remote_addr[0])
+            session = sessions[username]
+            if sessions==None:
+                session = sessions.add(username, req.connection.remote_addr[0])
     
             # establish random 20 character session_id.
             # 
@@ -48,7 +50,7 @@ def login(req, username, password):
                     
             log(3, 'setting cookie')
             req.headers_out['Set-Cookie']='lampadas=' + session_id + '; path=/; expires=Wed, 09-Nov-2030 23:59:00 GMT'
-            return page_factory.page('logged_in')
+            return page_factory.page(URI('logged_in'), session)
         else:
             return "Wrong password"
     else:
@@ -63,4 +65,4 @@ def logout(req, username):
 
     log(3, 'clearing cookie')
     req.headers_out['Set-Cookie']='lampadas=foo; path=/; expires=Wed, 09-Nov-1980 23:59:00 GMT'
-    return page_factory.page('logged_out')
+    return page_factory.page(URI('logged_out'))

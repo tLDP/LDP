@@ -19,10 +19,10 @@ insert(default,
 	    <table class="layout" width="100%">
 	      <tr>
             <td class="sidebarleft" valign="top">
-              |tabmenus|
-              <p>|tabtopics|
-              <p>|tabtypes|
-              <p>|tablanguages|
+              |navmenus|
+              <p>|navtopics|
+              <p>|navtypes|
+              <p>|navlanguages|
             </td>
             <td class="body" valign="top">
               |body|
@@ -61,17 +61,17 @@ insert(index,
 	    <table class="layout" width="100%">
 	      <tr>
             <td class="sidebarleft" valign="top">
-              |tabmenus|
-              <p>|tabtopics|
-              <p>|tabtypes|
-              <p>|tablanguages|
+              |navmenus|
+              <p>|navtopics|
+              <p>|navtypes|
+              <p>|navlanguages|
             </td>
             <td class="body" valign="top">
               |body|
             </td>
             <td class="sidebarright" valign="top">
-              |tablogin|
-              <p>|tabsessions|
+              |navlogin|
+              <p>|navsessions|
             </td>
 	      </tr>
         </table>

@@ -3,10 +3,10 @@ insert(newdocument,         default,    user,       1,  t,  f,  f)
 insert(users,               default,    admin,      1,  f,  t,  f)
 insert(user,                default,    admin,      2,  f,  t,  f)
 
-insert(sysadmin,            default,    sysadmin,   1,  f,  f,  t)
+insert(sessions,            default,    sysadmin,   1,  f,  f,  t)
 
-insert(home,                index,      main,       1,  f,  f,  f)
-insert(my,                  default,    main,       2,  t,  f,  f)
+insert(my,                  default,    main,       1,  t,  f,  f)
+insert(home,                index,      main,       2,  f,  f,  f)
 insert(doctable,            default,    main,       3,  f,  f,  f)
 
 insert(news,                default,    news,       1,  f,  f,  f)

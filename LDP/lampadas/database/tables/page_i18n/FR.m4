@@ -9,9 +9,9 @@ insert([users], [User List], [],
     <p>|tabusers|
 ])
 
-insert([sysadmin], [Sysadmin Page], [],
+insert([sessions], [User Sessions], [],
 [
-    <p>Sysadmin tools.
+    |tabsessions|
 ])
 
 insert([my], [My Home], [],
