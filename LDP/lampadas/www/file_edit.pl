@@ -31,7 +31,7 @@ print "<table class='box' width='100%'>\n";
 print "<form method=POST action='file_save.pl' name='file'>\n";
 print "<input type='hidden' name='filename' value='$filename'>\n";
 print "<tr><th>Document Text</th></tr>\n";
-print "<tr><td><textarea name=file rows=$editrows style='width:100%' wrap>$file</textarea></td></tr>\n";
+print "<tr><td><textarea name=file rows=$editrows cols=20 style='width:100%' wrap>$file</textarea></td></tr>\n";
 print "<tr><td><input type=submit value=Save name=Save></td></tr>\n";
 print "</table>\n";
 print "</form>\n";

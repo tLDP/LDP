@@ -107,6 +107,7 @@ use Exporter;
 	BarGraphTable,
 
 	NavBox,
+	UserBox,
 	TopicsBox,
 	HeaderBox,
 	LoginBox,
@@ -217,6 +218,7 @@ sub User {
 
 sub UserDocs {
 	my ($self, $user_id) = @_;
+	$user_id = 0 unless ($user_id);
 	my %docs = ();
 	my $sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
@@ -701,6 +703,7 @@ sub StartPage {
 	LoginBox() unless ($currentuser_id);
 	AdminBox() if (Maintainer());
 	NavBox();
+	UserBox();
 	TopicsBox();
 	print "</td><td valign=top>\n";
 }
@@ -2043,11 +2046,31 @@ sub NavBar {
 
 sub NavBox {
 	print "<table class='navbox'>\n";
-	print "<tr><th>Menu</th></tr>\n";
+	print "<tr><th>Main Menu</th></tr>\n";
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
 	print "<tr><td><a href='topic_list.pl'>Topics List</a></td></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "</table>\n";
+}
+
+sub UserBox {
+	if (CurrentUserID()) {
+		print "<table class='navbox'>\n";
+		print "<tr><th>\n";
+		if ($currentuser_id) {
+			print "$currentuser{name}";
+			if (Admin()) {
+				print " (Admin)";
+			} elsif (Maintainer()) {
+				print " (Maintainer)";
+			}
+		}
+		print "</th></tr>\n";
+		print "<tr><td><a href='user_home.pl'>My Home</a></td></tr>\n";
+		print "<tr><td><a href='user_edit.pl?user_id=$currentuser{id}'>Preferences</a></td></tr>";
+		print "<tr><td><a href='logout.pl'>Log out</a></td></tr>\n";
+		print "</table>\n";
+	}
 }
 
 sub TopicsBox {
@@ -2078,17 +2101,6 @@ sub HeaderBox {
 	
 	$table .= "<table class='title'><tr>\n";
 	$table .= "<td><h1>$title</h1></td>\n";
-	$table .= "<td align=right>\n";
-	if ($currentuser_id) {
-		$table .= "<a href='user_edit.pl?user_id=$currentuser{id}'>$currentuser{name}</a> ";
-		if (Admin()) {
-			$table .= "(Administrator) ";
-		} elsif (Maintainer()) {
-			$table .= "(Maintainer) ";
-		}
-		$table .= "<br><a href='logout.pl'>Log out</a>\n";
-	}
-	$table .= "</td>";
 	$table .= "</tr></table>\n";
 	print $table;
 }
