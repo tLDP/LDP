@@ -34,8 +34,8 @@ class ConfigFileReadErrorException(Exception) :
     
 class Config:
     """
-    Basic configuration options (db_name, db_type), used to know where we can find
-    the database.
+    Basic configuration options (db_name, db_type), used to know where we
+    can find the database.
     """
 
     config_file = ''
@@ -63,14 +63,15 @@ class Config:
         import ConfigParser
         import os
 
+	msg = ''
         self.config = ConfigParser.ConfigParser()
         self.config_file = os.getenv('LAMPADAS_ETC')
         if self.config_file==None:
             self.config_file = '/etc/lampadas'
+	    msg = 'Environment variable LAMPADAS_ETC is undefined.\n'
         self.config_file = self.config_file + '/lampadas.conf'
         if not os.access(self.config_file, os.F_OK):
-            print self.config_file + " not found."
-            return
+            raise msg + self.config_file + " not found."
 
         self.config.readfp(open(self.config_file))
 
