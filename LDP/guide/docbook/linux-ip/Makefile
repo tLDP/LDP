@@ -80,10 +80,9 @@ aindex:
 	cp index.html ${OUTPUT}
 
 scripts:
-	rm -f scripts/${BASE}-scripts.tar.gz
-	@tar --create --exclude scripts/CVS --verbose --compress \
-	     --file scripts/${BASE}-scripts.tar.gz scripts/
 	cp -ra scripts/ ${HTMLOUTPUT}/
+	@tar --create --exclude scripts/CVS --verbose --compress \
+	     --file ${HTMLOUTPUT}/scripts/${BASE}-scripts.tar.gz scripts/
 
 images:
 	cp -ra images/ ${HTMLOUTPUT}/
