@@ -296,6 +296,7 @@ class DataCollection(LampadasCollection):
                 #self.refresh_children()
         else:
             self.parent_collection.load(updated)
+            self.refresh_filters()
 
     def load_table(self, where_clause=''):
         cursor = db.select(self.select + where_clause)
@@ -384,8 +385,8 @@ class DataCollection(LampadasCollection):
         filter_results.filters.append(filter)
         # If the requested filter field is also an id field,
         # assume it is no longer desired as an id field --
-        if filter.attribute in filter_results.idfields:
-            filter_results.idfields.remove(filter.attribute)
+        if filter.child_attr in filter_results.idfields:
+            filter_results.idfields.remove(filter.child_attr)
             assert len(filter_results.idfields)==1
             self.refresh_keys()
         filter_results.refresh_filters()
@@ -402,7 +403,8 @@ class DataCollection(LampadasCollection):
 
             all_match = 1
             for filter in self.filters:
-                value = getattr(object, filter.attribute)
+                filter.refresh_value()
+                value = getattr(object, filter.child_attr)
                 if filter.operator=='=':    match = (value == filter.value)
                 elif filter.operator=='<>': match = (value <> filter.value)
                 elif filter.operator=='>':  match = (value >  filter.value)
@@ -525,8 +527,12 @@ class DataObject:
 
 class Filter:
 
-    def __init__(self, attribute, operator, value):
-        self.attribute = attribute
-        self.operator  = operator
-        self.value     = value
+    def __init__(self, parent, parent_attr, operator, child_attr):
+        self.parent      = parent
+        self.parent_attr = parent_attr
+        self.operator    = operator
+        self.child_attr  = child_attr
+        self.refresh_value()
 
+    def refresh_value(self):
+        self.value = getattr(self.parent, self.parent_attr)

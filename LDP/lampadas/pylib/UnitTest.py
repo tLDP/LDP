@@ -33,6 +33,7 @@ tree is broken.
 """
 
 import unittest
+from Globals import *
 from BaseClasses import *
 from Config import config
 from Database import db
@@ -46,6 +47,7 @@ from Formats import formats
 from PubStatuses import pub_statuses
 from Topics import topics
 from DocTopics import doctopics, DocTopics, DocTopic
+from DocErrs import DocErr
 from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
@@ -183,7 +185,7 @@ class testDocTopics(unittest.TestCase):
 #            print 'Added back ' + topic_code
             count += 1
         assert doc.topics.count()==count
-        dt2 = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', doc.id))
+        dt2 = doctopics.apply_filter(DocTopics, Filter(doc, 'id', '=', 'doc_id'))
         assert dt2.count()==count, 'Counts don\'t match: %s and %s ' % (doc.topics.count(), dt2.count())
         assert doc.topics.count()==remember_count
     
@@ -203,6 +205,15 @@ class testDocErrs(unittest.TestCase):
                     assert not error==None
                     assert error.doc_id==doc.id
                     assert error.err_id > 0
+            else:
+                err = DocErr()
+                err.doc_id =doc.id
+                err.err_id = ERR_NO_SOURCE_FILE
+                err.notes  = ''
+                doc.errors.add(err)
+                assert doc.errors.count()==1
+                doc.errors.delete(ERR_NO_SOURCE_FILES)
+                assert doc.errors.count()==0
         log(3, 'testing DocErrs done')
     
 

@@ -65,7 +65,7 @@ class Topic(DataObject):
 
     def load_row(self, row):
         DataObject.load_row(self, row)
-        self.docs = doctopics.apply_filter(DocTopics, Filter('topic_code', '=', self.code))
+        self.docs = doctopics.apply_filter(DocTopics, Filter(self, 'code', '=', 'topic_code'))
 
 topics = Topics()
 topics.load()

@@ -37,6 +37,7 @@ from Config import config
 from Log import log
 from Docs import docs
 from SourceFiles import sourcefiles
+from DocErrs import DocErr
 import os
 import stat
 import string
@@ -155,7 +156,11 @@ class Lintadas:
 
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
-            doc.errors.add(doc.id, ERR_NO_SOURCE_FILE)
+            err = DocErr()
+            err.doc_id = doc.id
+            err.err_id = ERR_NO_SOURCE_FILE
+            err.notes = ''
+            doc.errors.add(err)
         else:
 
             # Count the number of top files. There muse be exactly one.
@@ -165,9 +170,17 @@ class Lintadas:
                 if doc.files[filename].top:
                     top = top + 1
             if top==0:
-                doc.errors.add(doc.id, ERR_NO_PRIMARY_FILE)
+                err = DocErr()
+                err.doc_id = doc.id
+                err.err_id = ERR_NO_PRIMARY_FILE
+                err.notes = ''
+                doc.errors.add(err)
             if top > 1:
-                doc.errors.add(doc.id, ERR_TWO_PRIMARY_FILES)
+                err = DocErr()
+                err.doc_id = doc.id
+                err.err_id = ERR_TWO_PRIMARY_FILES
+                err.notes = ''
+                doc.errors.add(err)
 
         doc.lint_time = now_string()
         doc.save()

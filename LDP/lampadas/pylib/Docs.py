@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -22,6 +23,8 @@
 from Globals import *
 from BaseClasses import *
 from DocTopics import doctopics, DocTopics
+from DocErrs import docerrs, DocErrs
+from DocFiles import docfiles, DocFiles
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
@@ -73,37 +76,20 @@ class Docs(DataCollection):
                  
     def load(self, updated=''):
         DataCollection.load(self, updated)
-        if updated=='':
-            self.languages = LampadasCollection()
-            for key in self.keys():
-                doc = self[key]
+        self.languages = LampadasCollection()
+        for key in self.keys():
+            doc = self[key]
+            if updated=='':
                 self.adjust_lang_count(doc.lang, 1)
-                doc.errors.doc_id   = doc.id
-                doc.files.doc_id    = doc.id
                 doc.users.doc_id    = doc.id
                 doc.versions.doc_id = doc.id
                 doc.ratings.doc_id  = doc.id
                 doc.notes.doc_id    = doc.id
-            self.load_errors()
-            self.load_users()
-            self.load_docfiles()
-            self.load_versions()
-            self.load_ratings()
-            self.load_topics()
-            self.load_collections()
-            self.load_notes()
-
-    def load_errors(self):
-        sql = "SELECT doc_id, err_id, created, notes FROM document_error"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[0]
-            doc = self[doc_id]
-            docerr = DocErr()
-            docerr.load_row(row)
-            doc.errors[docerr.err_id] = docerr
+        self.load_users()
+        self.load_versions()
+        self.load_ratings()
+        self.load_collections()
+        self.load_notes()
 
     def load_users(self):
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user"
@@ -116,21 +102,6 @@ class Docs(DataCollection):
             docuser = DocUser()
             docuser.load_row(row)
             doc.users[docuser.username] = docuser
-
-
-    def load_docfiles(self):
-        sql = "SELECT doc_id, filename, top FROM document_file"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[0]
-            doc = self[doc_id]
-            docfile = DocFile()
-            docfile.load_row(row)
-            doc.files[docfile.filename] = docfile
-        for doc_id in self.keys():
-            self[doc_id].files.count_errors()
 
 
     def load_versions(self):
@@ -157,11 +128,6 @@ class Docs(DataCollection):
             docrating = DocRating()
             docrating.load_row(row)
             doc.ratings[docrating.username] = docrating
-
-    def load_topics(self):
-        for key in self.keys():
-            doc = self[key]
-            doc.topics = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', doc.id))
 
     def load_collections(self):
         sql = "SELECT doc_id, collection_code FROM document_collection"
@@ -287,10 +253,6 @@ class Doc(DataObject):
         self.pub_time                = ''
         self.mirror_time             = ''
         self.first_pub_date          = ''
-        self.errors                  = DocErrs()
-        self.errors.doc_id           = self.id
-        self.files                   = DocFiles()
-        self.files.doc_id            = self.id
         self.users                   = DocUsers()
         self.users.doc_id            = self.id
         self.versions                = DocVersions()
@@ -302,18 +264,24 @@ class Doc(DataObject):
         self.collections.doc_id      = self.id
         self.notes                   = DocNotes()
         self.notes.doc_id            = self.id
+        self.topics = doctopics.apply_filter(DocTopics, Filter(self, 'id', '=', 'doc_id'))
+        self.errors = docerrs.apply_filter(DocErrs, Filter(self, 'id', '=', 'doc_id'))
+        self.files = docfiles.apply_filter(DocFiles, Filter(self, 'id', '=', 'doc_id'))
 
     def load(self):
         DataObject.load(self)
-        self.topics                  = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', self.id))
-        self.errors                  = DocErrs(self.id)
-        self.files                   = DocFiles(self.id)
         self.users                   = DocUsers(self.id)
         self.versions                = DocVersions(self.id)
         self.ratings                 = DocRatings(self.id)
         self.ratings.parent          = self
         self.collections             = DocCollections(self.id)
         self.notes                   = DocNotes(self.id)
+
+    def load_row(self, row):
+        DataObject.load_row(self, row)
+        self.topics.refresh_filters()
+        self.errors.refresh_filters()
+        self.files.refresh_filters()
 
     def remove_duplicate_metadata(self):
         # FIXME: This is temporary code to get rid of redundant
@@ -444,190 +412,6 @@ class DocMetaData:
         self.pub_date    = ''
         self.isbn        = ''
         self.encoding    = ''
-
-# DocErrs
-
-class DocErrs(LampadasCollection):
-    """
-    A collection object providing access to all document errors, as identified by the
-    Lintadas subsystem.
-    """
-
-    def __init__(self, doc_id=0):
-        self.data = {}
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, err_id, notes, created FROM document_error WHERE doc_id=" + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_err = DocErr()
-            doc_err.load_row(row)
-            self.data[doc_err.err_id] = doc_err
-
-    def count(self, err_type_code=None):
-        if err_type_code==None:
-            return len(self)
-        else:
-            i = 0
-            for key in self.keys():
-                print key
-                print self.keys()
-                docerror = self[key]
-                error = errors[docerror.err_id]
-                if errors[key].err_type_code==err_type_code:
-                    i = i + 1
-            return i
-        
-    def clear(self, err_type_code=None):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sqlbase = "DELETE FROM document_error WHERE doc_id=" + str(self.doc_id)
-        if err_type_code==None:
-            db.runsql(sqlbase)
-            self.data = {}
-        else:
-            errortype = errortypes[err_type_code]
-            for key in errors.keys():
-                error = errors[key]
-                if error.err_type_code==err_type_code:
-                    sql = sqlbase + ' AND err_id=' + str(error.id)
-                    db.runsql(sql)
-                    if self[error.id]:
-                        del self[error.id]
-        db.commit()
-
-# FIXME: Try instantiating a DocErr object, then adding it to the *document*
-# rather than passing all these parameters here. --nico
-
-    def add(self, doc_id, err_id, notes=''):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document_error(doc_id, err_id, notes) VALUES (" + str(doc_id) + ", " + str(err_id) + ', ' + wsq(notes) + ')'
-        assert db.runsql(sql)==1
-        doc_err = DocErr()
-        doc_err.doc_id = doc_id
-        doc_err.err_id = err_id
-        doc_err.created = now_string()
-        doc_err.notes = notes
-        self[doc_err.err_id] = doc_err
-        db.commit()
-
-class DocErr:
-    """
-    An error filed against a document by the Lintadas subsystem.
-    """
-
-    def load_row(self, row):
-        self.doc_id	 = safeint(row[0])
-        self.err_id  = safeint(row[1])
-        self.notes   = trim(row[2])
-        self.created = time2str(row[3])
-
-
-# DocFiles
-
-class DocFiles(LampadasCollection):
-    """
-    A collection object providing access to all document source files.
-    """
-
-    def __init__(self, doc_id=0):
-        self.data = {}
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, filename, top FROM document_file WHERE doc_id=" + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            docfile = DocFile()
-            docfile.load_row(row)
-            self.data[docfile.filename] = docfile
-        self.count_errors()
-
-    def add(self, doc_id, filename, top):
-        # First, add a sourcefile record if it doesn't exist
-        sourcefile = sourcefiles[filename]
-        if sourcefile==None:
-            sourcefiles.add(filename)
-
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'INSERT INTO document_file (doc_id, filename, top) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ')'
-        assert db.runsql(sql)==1
-        db.commit()
-        file = DocFile()
-        file.doc_id = doc_id
-        file.filename = filename
-        file.top = top
-        file.save()
-        self.data[file.filename] = file
-        return file
-        
-    def delete(self, filename):
-        file = self[filename]
-        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id) + " AND filename=" + wsq(filename)
-        db.runsql(sql)
-        db.commit()
-        del self.data[filename]
-        
-    def save(self):
-        for key in self.keys():
-            self[key].save()
-        
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
-        db.commit()
-        self.data = {}
-
-    def count_errors(self):
-        self.error_count = 0
-        for key in self.keys():
-            sourcefile = sourcefiles[key]
-            self.error_count = self.error_count + sourcefile.errors.count()
-
-class DocFile:
-    """
-    An association between a document and a file.
-    """
-
-    def __init__(self, filename=''):
-        self.filename = filename
-        if filename=='': return
-        self.load()
-
-    def load(self):
-        sql = 'SELECT doc_id, filename, top FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(self.filename)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-    
-    def load_row(self, row):
-        self.doc_id      = row[0]
-        self.filename    = trim(row[1])
-        self.top         = tf2bool(row[2]) 
-        
-    def save(self):
-        # FIXME -- trying to start replacing wsq(), etc. --nico 
-        #sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
-        #db.runsql(sql)
-        dict = {'doc_id':self.doc_id,
-                'filename':self.filename,
-                'top':bool2tf(self.top)}
-        sql = sqlgen.update('document_file',dict,['doc_id','filename'])
-        db.execute(sql,dict)
-        db.commit()
-
 
 # DocUsers
 
