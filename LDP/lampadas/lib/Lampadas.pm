@@ -133,6 +133,8 @@ use Exporter;
 	SaveUser,
 	AddMessage,
 	Mail,
+
+	CVSUpdate,
 );
 
 $CGI	= new CGI;
@@ -418,6 +420,10 @@ sub LintadasDoc {
 
 	$DB->Exec("DELETE from document_error WHERE doc_id=$doc_id");
 
+	# Do not test deleted (D) documents. We just don't care about them.
+	# 
+	return if ($doc{pub_status} eq 'D');
+
 	# Test document ref_url (canonical, home url)
 	# 
 	my $doc = Doc($foo, $doc_id);
@@ -430,79 +436,70 @@ sub LintadasDoc {
 	
 	# Load meta-data from source files
 	#
-	if ($doc{pub_status} eq 'N') {
-		$DB->Exec("UPDATE document SET format=NULL WHERE doc_id=$doc_id");
-		$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
-		$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
-		my %docfiles = DocFiles($foo, $doc_id);
-		foreach $key (keys %docfiles) {
-			$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
-			$filename = $cvsroot . $key;
-			if (-e $filename) {
-				if (-r $filename) {
-					my $format = `file -b $filename`;
-					if ($format =~ /SGML/) {
-						$format = 'SGML';
-						$readmetadata = 1;
-					} elsif ($format =~ /XML/) {
-						$format = 'XML';
-						$readmetadata = 1;
-					} elsif ($format =~ /ISO\-8859\ English\ text/is) {
-						$format = 'WIKI';
-						$readmetadata = 0;
-						$dtd = 'N/A';
-						$dtd_version = '';
-					} else {
-						$fileext = $filename;
-						$fileext =~ s/^.*\.//;
-						if ($fileext =~ /SGML/i) {
-							$format = 'SGML';
-							$readmetadata = 1;
-						} elsif ($fileext =~ /XML/i) {
-							$format = 'XML';
-							$readmetadata = 1;
-						} else {
-							AddError($doc_id, "Unrecognized file format $format ($key)");
-							next;
-						}
-					}
-
-					if ($readmetadata) {
-						$dtd_version = `grep -i DOCTYPE $filename`;
-						if ($dtd_version =~ /DocBook/i) {
-							$dtd = "DocBook";
-							$dtd_version =~ s/^.*?DocBook\s+//i;
-							$dtd_version =~ s/\/\/.*//;
-							$dtd_version =~ s/^XML\s*//;
-							$dtd_version =~ s/^V//i;
-						} elsif ($dtd_version =~ /LinuxDoc/i) {
-							$dtd = "LinuxDoc";
-							$dtd_version='';
-						} else {
-							$dtd = '';
-							$dtd_version = '';
-						}
-					}
-					$DB->Exec("UPDATE document_file SET format=" . wsq($format) . " WHERE doc_id=$doc_id AND filename=" . wsq($key));
-					$DB->Exec("UPDATE document SET format=" . wsq($format) . " WHERE doc_id=$doc_id");
-					$DB->Exec("UPDATE document SET dtd=" . wsq($dtd) . " WHERE doc_id=$doc_id");
-					$DB->Exec("UPDATE document SET dtd_version=" . wsq($dtd_version) . " WHERE doc_id=$doc_id");
-					
-					unless (-w $filename) {
-						$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
-					}
+	$DB->Exec("UPDATE document SET format=NULL WHERE doc_id=$doc_id");
+	$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
+	$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
+	my %docfiles = DocFiles($foo, $doc_id);
+	foreach $key (keys %docfiles) {
+		$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
+		$filename = $cvsroot . $key;
+		if (-e $filename) {
+			if (-r $filename) {
+				my $format = '';
+				$fileext = $filename;
+				$fileext =~ s/^.*\.//;
+				if ($fileext =~ /SGML/i) {
+					$format = 'SGML';
+					$readmetadata = 1;
+				} elsif ($fileext =~ /XML/i) {
+					$format = 'XML';
+					$readmetadata = 1;
+				} elsif ($fileext =~ /WT/i) {
+					$format = 'WIKI';
+					$readmetadata = 0;
+					$dtd = 'N/A';
+					$dtd_version = '';
 				} else {
-					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
-					$DB->Exec("UPDATE document_file SET format='' WHERE doc_id=$doc_id AND filename=" . wsq($key));
-					$DB->Exec("UPDATE document SET format='' WHERE doc_id=$doc_id");
-					$DB->Exec("UPDATE document SET dtd='' WHERE doc_id=$doc_id");
-					$DB->Exec("UPDATE document SET dtd_version='' WHERE doc_id=$doc_id");
+					AddError($doc_id, "Unrecognized file format $format ($key)");
+					next;
+				}
+
+				if ($readmetadata) {
+					$dtd_version = `grep -i DOCTYPE $filename | head -n 1`;
+					if ($dtd_version =~ /DocBook/i) {
+						$dtd = "DocBook";
+						$dtd_version =~ s/^.*?DocBook\s+//i;
+						$dtd_version =~ s/\/\/.*//;
+						$dtd_version =~ s/^XML\s*//;
+						$dtd_version =~ s/^V//i;
+					} elsif ($dtd_version =~ /LinuxDoc/i) {
+						$dtd = "LinuxDoc";
+						$dtd_version='';
+					} else {
+						$dtd = '';
+						$dtd_version = '';
+					}
+				}
+				$DB->Exec("UPDATE document_file SET format=" . wsq($format) . " WHERE doc_id=$doc_id AND filename=" . wsq($key));
+				$DB->Exec("UPDATE document SET format=" . wsq($format) . " WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd=" . wsq($dtd) . " WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd_version=" . wsq($dtd_version) . " WHERE doc_id=$doc_id");
+#				$DB->Exec("UPDATE document SET abstract=" . wsq($abstract) . " WHERE doc_id=$doc_id");
+					
+				unless (-w $filename) {
+					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
 				}
 			} else {
-				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
+				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
+				$DB->Exec("UPDATE document_file SET format='' WHERE doc_id=$doc_id AND filename=" . wsq($key));
+				$DB->Exec("UPDATE document SET format='' WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd='' WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd_version='' WHERE doc_id=$doc_id");
 			}
+		} else {
+			$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
 		}
-	} # if pub_status eq 'N'
+	}
 }
 
 sub DocFiles {
@@ -1611,7 +1608,7 @@ sub DocTable {
 	$doctable .= "<th align=right>Class</th><td>\n";
 	$doctable .= ClassCombo($foo, $doc{class_id});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>Maintained</th><td>\n";
+	$doctable .= "<th align=right>Maint</th><td>\n";
 	if ($doc{maintained}) {
 		$doctable .= 'Yes';
 	} else {
@@ -1619,10 +1616,10 @@ sub DocTable {
 	}
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Review Status</th><td>";
+	$doctable .= "<th align=right>Language</th><td>";
 	$doctable .= ReviewStatusCombo($foo, $doc{review_status});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>Tech Review</th><td>";
+	$doctable .= "<th align=right>Accuracy</th><td>";
 	$doctable .= TechReviewStatusCombo($foo, $doc{tech_review_status});
 	$doctable .= "</td>";
 	$doctable .= "<th align=right>License</th><td>";
@@ -1633,34 +1630,22 @@ sub DocTable {
 	$doctable .= "<th align=right>Updated</th><td><input type=text name=last_update size=10 value='$doc{last_update}'></td>";
 	$doctable .= "<th align=right>Version</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Format</th><td>";
-	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
-		$doctable .= $doc{format};
-	} else {
-		$doctable .= FormatCombo($foo, $doc{format});
-	}
-	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD</th><td>";
-	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
-		$doctable .= $doc{dtd};
-	} else {
-		$doctable .= DTDCombo($foo, $doc{dtd});
-	}
-	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD Version</th><td>";
-	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
-		$doctable .= $doc{dtd_version};
-	} else {
-		$doctable .= "<input type=text name=dtd_version size=10 value='$doc{dtd_version}'>";
-	}
-	$doctable .= "</td>";
-	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$doc{tickle_date}'></td>";
 	$doctable .= "<th align=right>ISBN</th><td><input type=text name=isbn size=14 value='$doc{isbn}'></td>";
 	$doctable .= "<th align=right>Rating</th>\n";
 	$doctable .= "<td>";
 	$doctable .= BarGraphTable($foo, $doc{rating});
 	$doctable .= "</td>\n";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Format</th><td>";
+	$doctable .= $doc{format};
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>DTD</th><td>";
+	$doctable .= $doc{dtd};
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>DTD Ver</th><td>";
+	$doctable .= $doc{dtd_version};
+	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Abstract</th>";
 	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=40 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
@@ -1985,7 +1970,6 @@ sub DocFilesTable {
 		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
 		$table .= "<input type=text name='filename' size=40 style='width:100%' value='$filename'></input>\n";
 		$table .= "</td>\n";
-		$table .= "<td>$docfiles{$filename}{format}</td>\n";
 		$table .= "<td valign=top><input type=checkbox name='chkDel'>Del</td>\n";
 		$table .= "<td><input type=submit value=Save></td>\n";
 		$table .= "</form></td></tr>\n";
@@ -1997,7 +1981,6 @@ sub DocFilesTable {
 	$table .= "<input type=hidden name=doc_id value=$doc_id>";
 	$table .= "<input type=text name='filename' size=40 style='width:100%'></input>\n";
 	$table .= "</td>\n";
-	$table .= "<td></td>\n";
 	$table .= "<td></td>\n";
 	$table .= "<td><input type=submit value=Add></td>\n";
 	$table .= "</tr>\n";
@@ -2041,7 +2024,7 @@ sub DocUsersTable {
 			$table .= "$docusers{$key}{name}";
 		}
 		$table .= "</td>";
-		$table .= "<td valign=top><input type=text name=email width=20 size=20 value='$docusers{$key}{email}'></input></td>\n";
+		$table .= "<td valign=top><input type=text name=email width=30 size=30 value='$docusers{$key}{email}'></input></td>\n";
 		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td valign=top><input type=submit value=Save></td>\n";
 		$table .= "</form>";
@@ -2081,7 +2064,7 @@ sub DocUsersTable {
 	$table .= "</select>\n";
 	$table .= "</td>\n";
 
-	$table .= "<td valign=top><input type=text name=email width=20 size=20></td>\n";
+	$table .= "<td valign=top><input type=text name=email width=30 size=30></td>\n";
 	$table .= "<td valign=top></td>\n";
 	$table .= "<td valign=top><input type=submit value=Add></td>\n";
 	$table .= "</form>";
@@ -2428,6 +2411,7 @@ sub AdminBox {
 	print "<tr><td><a href='error_list.pl'>View All Errors</a></td></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
+	print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
 	print "</td></tr></table>\n";
 }
 
@@ -2579,6 +2563,21 @@ sub Mail {
 		push @messages, "Error sending mail"
 	}
 }
+
+sub CVSUpdate {
+	my @cvsresponse = CVS('-q update -d -P');
+	return @cvsresponse;
+}
+
+sub CVS {
+	my $cvscommand = shift;
+	my $cvsroot = Config($foo, 'cvs_root');
+	my @cvsresponse = `cd $cvsroot; cvs $cvscommand`;
+	return @cvsresponse;
+}
+
+
+#############################3
 
 sub trim {
 	my $temp = shift;

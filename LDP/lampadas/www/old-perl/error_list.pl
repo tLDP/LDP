@@ -7,7 +7,7 @@ unless ($L->Admin()) {
 	$L->Redirect("wrongpermission.pl");
 }
 
-$L->StartPage("Error List");
+$L->StartPage("Lintadas Error List");
 print $L->ErrorsTable();
 $L->EndPage();
 
