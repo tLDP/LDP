@@ -293,7 +293,7 @@ class PageFactory:
 		
 		Log.Write(3, 'Serving language ' + lang)
 		pagecode = Keys[0]
-		Log.Write(3, 'Serving page ' + pagecode)
+		Log.Write(3, 'Building page ' + pagecode)
 		if pagecode == 'doc':
 			DocID = int(Keys[1])
 			page = self.DocPage(DocID, lang)
@@ -378,6 +378,7 @@ class PageFactory:
 			
 			page = page.replace('DCM_PIPE', '|')
 			
+		Log.Write(3, 'Page built ' + pagecode)
 		return page
 
 	def DocPage(self, DocID, lang):
