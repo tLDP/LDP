@@ -26,12 +26,13 @@ The API is documented in the Lampadas Programmer's Guide.
 import string
 from DataLayer import lampadas
 from Log import log
+import urlparse
 
 def splitterm(term, sep):
     """
     Splits the term into 2 pieces according to the seperator,
     and returns them. If the term does not contain the sep,
-    the second string the returned tuple wil be ''.
+    the second string the returned tuple will be ''.
     """
 
     temp = string.split(term, sep, 1)
@@ -60,6 +61,8 @@ class URI:
         self.anchor = ""
 
         self.uri = uri
+        #FIXME: use urlparse from the standard library!
+        #protocol, host, path, params, query, fragment = urlparse.urlparse(uri)
         self.base = uri
         if self.base[0]=='/':
             self.base = self.base[1:]
