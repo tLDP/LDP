@@ -47,7 +47,8 @@ import os
 
 # Constants
 
-EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
+EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" '\
+            'border="0" hspace="5" vspace="0" align="top">'
 
 
 # ComboFactory
@@ -56,213 +57,206 @@ class ComboFactory:
 
     def tf(self, name, value, lang):
         log(3, 'creating tf combo: ' + name + ', value is: ' + str(value))
-        combo = '<select name="' + name + '">\n'
-        if value==1:
-            combo = combo + '<option selected value="1">|stryes|</option>\n'
-            combo = combo + '<option value="0">|strno|</option>\n'
-        else:
-            combo = combo + '<option value="1">|stryes|</option>\n'
-            combo = combo + '<option selected value="0">|strno|</option>\n'
-        combo = combo + '</select>\n'
+        if value == 1 :
+            v1, v2 = 'selected', ''
+        else :
+            v1, v2 = '', 'selected'
+        combo = '<select name="%s">\n' \
+                '<option value="1" %s>|stryes|</option>\n' \
+                '<option value="0" %s>|strno|</option>\n' \
+                '</select>\n' % (name, v1, v2)
         return combo
 
     def stylesheet(self, value):
-        combo = '<select name="stylesheet">\n'
-        combo = combo + '</select>\n'
-        return combo
+        return '<select name="stylesheet">\n</select>\n'
     
     def role(self, value, lang):
-        combo = "<select name='role_code'>\n"
+        combo = WOStringIO("<select name='role_code'>\n")
         keys = lampadas.roles.sort_by_lang('name', lang)
         for key in keys:
             role = lampadas.roles[key]
             assert not role==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if role.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + role.code + "'>"
-            combo = combo + role.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='%s'>%s</option>\n"
+                        % (role.code,role.name[lang]))
+        combo.write("</select>")
+        return combo.get_value()
 
     def type(self, value, lang):
-        combo = "<select name='type_code'>\n"
-        combo = combo + '<option></option>'
+        combo = WOStringIO("<select name='type_code'>\n" \
+                           "<option></option>\n")
         keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
             assert not type==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if type.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + type.code + "'>"
-            combo = combo + type.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='%s'>%s</option>\n"
+                        % (type.code, type.name[lang]))
+        combo.write("</select>")
+        return combo.get_value()
 
     def doc(self, value, lang):
-        combo = "<select name='doc'>\n"
+        combo = WOStringIO("<select name='doc'>\n")
         keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
             if doc.lang==lang or lang==None:
-                combo = combo + "<option "
+                combo.write("<option ")
                 if doc.id==value:
-                    combo = combo + "selected "
-                combo = combo + "value='" + str(doc.id) + "'>"
-                combo = combo + doc.title
-                combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                    combo.write("selected ")
+                combo.write("value='%s'>%s</option>\n"
+                            % (str(doc.id), doc.title))
+        combo.write("</select>")
+        return combo.get_value()
 
     def sk_seriesid(self, value, lang):
-        combo = '<select name="sk_seriesid">\n'
-        combo = combo + '<option></option>'
+        combo = WOStringIO('<select name="sk_seriesid">\n')
+        combo.write('<option></option>\n')
         keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
             if doc.lang==lang or lang==None:
-                combo = combo + "<option "
+                combo.write("<option ")
                 if doc.sk_seriesid==value:
-                    combo = combo + "selected "
-                combo = combo + "value='" + str(doc.sk_seriesid) + "'>"
-                combo = combo + doc.title
-                combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                    combo.write("selected ")
+                combo.write("value='%s'>%s</option>\n"
+                            % (str(doc.sk_seriesid),doc.title))
+        combo.write("</select>\n")
+        return combo.get_value()
 
     def dtd(self, value, lang):
-        combo = '<select name="dtd_code">\n'
-        combo = combo + '<option></option>'
+        combo = WOStringIO('<select name="dtd_code">\n' \
+                           '<option></option>')
         keys = lampadas.dtds.sort_by('dtd_code')
         for key in keys:
             dtd = lampadas.dtds[key]
             assert not dtd==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if dtd.dtd_code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + dtd.dtd_code + "'>"
-            combo = combo + dtd.dtd_code
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='%s'>%s</option>\n"
+                        % (dtd.dtd_code,dtd.dtd_code))
+        combo.write("</select>\n")
+        return combo.get_value()
     
     def format(self, value, lang):
-        combo = '<select name="format_code">\n'
-        combo = combo + '<option></option>'
+        combo = WOStringIO('<select name="format_code">\n' \
+                           '<option></option>')
         keys = lampadas.formats.sort_by_lang('name', lang)
         for key in keys:
             format = lampadas.formats[key]
             assert not format==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if format.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(format.code) + "'>"
-            combo = combo + format.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + str(format.code) + "'>")
+            combo.write(format.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def language(self, value, lang):
-        combo = "<select name='lang'>\n"
+        combo = WOStringIO("<select name='lang'>\n")
         keys = lampadas.languages.sort_by_lang('name', lang)
         for key in keys:
             language = lampadas.languages[key]
             assert not language==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if language.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + language.code + "'>"
-            combo = combo + language.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + language.code + "'>")
+            combo.write(language.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def license(self, value, lang):
-        combo = "<select name='license_code'>\n"
-        combo = combo + '<option></option>'
+        combo = WOStringIO("<select name='license_code'>\n")
+        combo.write('<option></option>')
         keys = lampadas.licenses.sort_by('sort_order')
         for key in keys:
             license = lampadas.licenses[key]
             assert not license==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if license.license_code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + license.license_code + "'>"
-            combo = combo + license.short_name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + license.license_code + "'>")
+            combo.write(license.short_name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def page(self, value, lang):
-        combo = "<select name='page_code'>\n"
+        combo = WOStringIO("<select name='page_code'>\n")
         keys = lampadasweb.pages.sort_by('page_code')
         for key in keys:
             page = lampadasweb.pages[key]
             assert not page==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if Page.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(page.code) + "'>"
-            combo = combo + page.title[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + str(page.code) + "'>")
+            combo.write(page.title[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def pub_status(self, value, lang):
-        combo = "<select name='pub_status_code'>\n"
-        combo = combo + '<option></option>'
+        combo = WOStringIO("<select name='pub_status_code'>\n")
+        combo.write('<option></option>')
         keys = lampadas.pub_statuses.sort_by('sort_order')
         for key in keys:
             PubStatus = lampadas.pub_statuses[key]
             assert not PubStatus==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if PubStatus.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(PubStatus.code) + "'>"
-            combo = combo + PubStatus.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + str(PubStatus.code) + "'>")
+            combo.write(PubStatus.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
         
     def review_status(self, value, lang):
-        combo = "<select name='review_status_code'>\n"
-        combo = combo + '<option></option>'
+        combo = WOStringIO("<select name='review_status_code'>\n")
+        combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
             review_status = lampadas.review_statuses[key]
             assert not review_status==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if review_status.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(review_status.code) + "'>"
-            combo = combo + review_status.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + str(review_status.code) + "'>")
+            combo.write(review_status.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def tech_review_status(self, value, lang):
-        combo = "<select name='tech_review_status_code'>\n"
-        combo = combo + '<option></option>'
+        combo = WOStringIO("<select name='tech_review_status_code'>\n")
+        combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
             review_status = lampadas.review_statuses[key]
             assert not review_status==None
-            combo = combo + "<option "
+            combo.write("<option ")
             if review_status.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(review_status.code) + "'>"
-            combo = combo + review_status.name[lang]
-            combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                combo.write("selected ")
+            combo.write("value='" + str(review_status.code) + "'>")
+            combo.write(review_status.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def subtopic(self, value, lang):
-        combo = '<select name="subtopic_code">\n'
+        combo = WOStringIO('<select name="subtopic_code">\n')
         topic_codes = lampadas.topics.sort_by('num')
         subtopic_codes = lampadas.subtopics.sort_by('num')
         for topic_code in topic_codes:
@@ -270,15 +264,16 @@ class ComboFactory:
             for subtopic_code in subtopic_codes:
                 subtopic = lampadas.subtopics[subtopic_code]
                 if subtopic.topic_code==topic_code:
-                    combo = combo + "<option "
+                    combo.write("<option ")
                     if subtopic.code==value:
-                        combo = combo + "selected "
-                    combo = combo + "value='" + str(subtopic.code) + "'>"
-                    combo = combo + topic.name[lang] + ': ' + subtopic.name[lang]
-                    combo = combo + "</option>\n"
-        combo = combo + "</select>"
-        return combo
+                        combo.write("selected ")
+                    combo.write("value='" + str(subtopic.code) + "'>")
+                    combo.write(topic.name[lang] + ': ' + subtopic.name[lang])
+                    combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
+# FIXME -- resume here implementing the use of WOStringIO -- nico
 
 class TableFactory:
 
@@ -291,67 +286,76 @@ class TableFactory:
         elif user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
+        box = WOStringIO()
         if uri.id > 0:
             lintadas.check(uri.id)
             doc = lampadas.docs[uri.id]
-            box = '<form method=GET action="data/save/document" name="document">'
+            box.write('<form method=GET action="data/save/document" '\
+                      'name="document">')
         else:
             doc = Doc()
             doc.lang = uri.lang
-            box = '<form method=GET action="data/save/newdocument" name="document">'
-        box = box + '<input name="username" type=hidden value=' + user.username + '>\n'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<table class="box" width="100%"><tr><th colspan="6">|strdocdetails|</th></tr>'
-        box = box + '<tr>\n'
-        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" style="width:100%" value="' + doc.title + '"></td>\n'
-        box = box + '</tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="label">'
+            box.write('<form method=GET action="data/save/newdocument" '\
+                      'name="document">')
+        box.write('''<input name="username" type="hidden" value="%s">
+        <input name="doc_id" type="hidden" value="%s">
+        ''' % (user.username, doc.id))
+        box.write('''<table class="box" width="100%">
+        <tr><th colspan="6">|strdocdetails|</th></tr>
+        <tr><th class="label">|strtitle|</th>
+        <td colspan="5">
+        <input type="text" name="title" style="width:100%" value="%s"></td>
+        </tr>''' % doc.title)
+        box.write('<tr>\n<th class="label">')
         if doc.url:
-            box = box + '<a href="' + doc.url + '">|strurl|</a>'
+            box.write('<a href="%s">|strurl|</a>' % doc.url)
         else:
-            box = box + '|strurl|'
-        box = box + '</th><td colspan=5><input type=text name="url" style="width:100%" value="' + doc.url + '"></td>'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">'
+            box.write('|strurl|')
+        box.write('</th><td colspan="5"><input type="text" name="url" style="width:100%" value="%s"></td>' % doc.url)
+        box.write('</tr>\n<tr>\n<th class="label">')
         if doc.home_url:
-            box = box + '<a href="' + doc.home_url + '">|strhome_url|</a>'
+            box.write('<a href="' + doc.home_url + '">|strhome_url|</a>')
         else:
-            box = box + '|strhome_url|'
-        box = box + '</th><td colspan=5><input type=text name="ref_url" style="width:100%" value="' + doc.home_url + '"></td>'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strwriting|</th><td>' + combo_factory.review_status(doc.review_status_code, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|straccuracy|</th><td>' + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang) + '</td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n'
-        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>'
-        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" value="' + doc.isbn + '"></td>'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n'
-        box = box + '<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + '<input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
-        box = box + '<td></td>\n'
-        box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strabstract|</th>'
-        box = box + '<td colspan=5><textarea name="abstract" rows=6 cols=40 style="width:100%" wrap>' + doc.abstract + '</textarea></td>\n'
-        box = box + '</tr>\n'
-        box = box + '<tr><td></td><td><input type=submit name="save" value="|strsave|"></td></tr>\n'
-        box = box + '</table>\n'
-        box = box + '</form>\n'
-        return box
+            box.write('|strhome_url|')
+        box.write('</th><td colspan="5"><input type="text" name="ref_url" style="width:100%" value="' + doc.home_url + '"></td>')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strwriting|</th><td>' + combo_factory.review_status(doc.review_status_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|straccuracy|</th><td>' + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang) + '</td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strpub_date|</th><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
+        box.write('<th class="label">|strupdated|</th><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>')
+        box.write('<th class="label">|strisbn|</th><td><input type=text name="isbn" value="' + doc.isbn + '"></td>')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n')
+        box.write('<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + '<input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
+        box.write('''
+          <td></td>
+        </tr>
+        <tr>
+          <th class="label">|strabstract|</th>
+          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%" wrap>%s</textarea></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><input type=submit name="save" value="|strsave|"></td>
+        </tr>
+        </table>
+        </form>''' % doc.abstract)
+        return box.get_value()
 
     def docversions(self, uri, user):
         if not user:
@@ -361,16 +365,17 @@ class TableFactory:
 
         log(3, 'Creating docversions table')
         doc = lampadas.docs[uri.id]
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="6">|strdocversions|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strversion|</th>\n'
-        box = box + '<th class="collabel">|strdate|</th>\n'
-        box = box + '<th class="collabel">|strinitials|</th>\n'
-        box = box + '<th class="collabel">|strcomments|</th>\n'
-        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
-        box = box + '</tr>\n'
+        box = '''
+        <table class="box" width="100%">
+        <tr><th colspan="6">|strdocversions|</th></tr>
+        <tr>
+        <th class="collabel">|strversion|</th>
+        <th class="collabel">|strdate|</th>
+        <th class="collabel">|strinitials|</th>
+        <th class="collabel">|strcomments|</th> 
+        <th class="collabel" colspan="2">|straction|</th> 
+        </tr>
+        '''
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
@@ -388,15 +393,17 @@ class TableFactory:
             box = box + '</form>\n'
         box = box + '<form method=GET action="data/save/newdocument_version" name="document_version">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<tr>\n'
-        box = box + '<td><input type=text name=version></td>\n'
-        box = box + '<td><input type=text name=pub_date></td>\n'
-        box = box + '<td><input type=text name=initials size=3 maxlength=3></td>\n'
-        box = box + '<td style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%"></textarea></td>\n'
-        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>\n'
-        box = box + '</tr>\n'
-        box = box + '</form>\n'
-        box = box + '</table>\n'
+        box = box + '''
+        <tr>
+        <td><input type="text" name="version"></td>
+        <td><input type="text" name="pub_date"></td>
+        <td><input type="text" name="initials" size="3" maxlength="3"></td>
+        <td style="width:100%"><textarea name="notes" wrap="soft" style="width:100%; height:100%"></textarea></td>
+        <td></td><td><input type="submit" name="action" value="|stradd|"></td>
+        </tr>
+        </form>
+        </table>
+        '''
         return box
         
 
@@ -408,15 +415,16 @@ class TableFactory:
 
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="5">|strdocfiles|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strfilename|</th>\n'
-        box = box + '<th class="collabel">|strprimary|</th>\n'
-        box = box + '<th class="collabel">|strformat|</th>\n'
-        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
-        box = box + '</tr>\n'
+        box = '''
+        <table class="box" width="100%">
+        <tr><th colspan="5">|strdocfiles|</th></tr>
+        <tr>
+        <th class="collabel">|strfilename|</th>
+        <th class="collabel">|strprimary|</th>
+        <th class="collabel">|strformat|</th>
+        <th class="collabel" colspan="2">|straction|</th>
+        </tr>
+        '''
         doc = lampadas.docs[uri.id]
         keys = doc.files.sort_by('filename')
         for key in keys:
@@ -431,21 +439,26 @@ class TableFactory:
                 box = box + '<td>' + file.filename + '</td>\n'
             box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
             box = box + '<td>'  + combo_factory.format(file.format_code, uri.lang) + '</td>\n'
-            box = box + '<td><input type=checkbox name="delete">|strdelete|</td>\n'
-            box = box + '<td><input type=submit name="action" value="|strsave|">'
-            box = box + '</td>\n'
-            box = box + '</tr>\n'
-            box = box + '</form>\n'
+            box = box + '''
+            <td><input type="checkbox" name="delete">|strdelete|</td>
+            <td><input type="submit" name="action" value="|strsave|">
+            </td>
+            </tr>
+            </form>
+            '''
         box = box + '<form method=GET action="data/save/newdocument_file" name="document_file">'
-        box = box + '<input name="doc_id" type=hidden value="' + str(doc.id) + '">\n'
+        box = box + '<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n'
         box = box + '<tr>\n'
-        box = box + '<td><input type=text name="filename" size=30 style="width:100%"></td>\n'
+        box = box + '<td><input type="text" name="filename" size="30" style="width:100%"></td>\n'
         box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
         box = box + '<td>'  + combo_factory.format('', uri.lang) + '</td>\n'
-        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
-        box = box + '</tr>\n'
-        box = box + '</form>\n'
-        box = box + '</table>\n'
+        box = box + '''
+        <td></td>
+        <td><input type="submit" name="action" value="|stradd|"></td>
+        </tr>
+        </form>
+        </table>
+        '''
         return box
         
 
@@ -457,16 +470,17 @@ class TableFactory:
 
         log(3, 'Creating docusers table')
         doc = lampadas.docs[uri.id]
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="6">|strdocusers|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strusername|</th>\n'
-        box = box + '<th class="collabel">|stractive|</th>\n'
-        box = box + '<th class="collabel">|strrole|</th>\n'
-        box = box + '<th class="collabel">|stremail|</th>\n'
-        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
-        box = box + '</tr>\n'
+        box = '''
+        <table class="box" width="100%">
+        <tr><th colspan="6">|strdocusers|</th></tr>
+        <tr>
+        <th class="collabel">|strusername|</th>
+        <th class="collabel">|stractive|</th>
+        <th class="collabel">|strrole|</th>
+        <th class="collabel">|stremail|</th>
+        <th class="collabel" colspan="2">|straction|</th>
+        </tr>
+        '''
         doc = lampadas.docs[uri.id]
         keys = doc.users.sort_by('username')
         for key in keys:
@@ -897,154 +911,185 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
+# FIXME WOStringIO implemented below --nico
+
     def recent_news(self, uri):
         log(3, 'Creating recent news')
-        box = '<table class="box" width="100%"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
+        box = WOStringIO('''<table class="box" width="100%">
+        <tr><th>|strdate|</th><th>|strnews|</th></tr>\n''')
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
-                box = box + '<tr>\n'
-                box = box + '<td>' + news.pub_date + '</td>\n'
-                box = box + '<td>' + news.news[uri.lang] + '</td>\n'
-                box = box + '</tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('''<tr><td>%s</td><td>%s</td></tr>\n'
+                          % (news.pub_date, news.news[uri.lang]))
+        box.write('</table>\n')
+        return box.get_value()
 
     def topics(self, uri):
         log(3, 'Creating topics menu')
-        box = '<table class="navbox"><tr><th>|strtopics|</th></tr>\n'
-        box = box + '<tr><td><ol>\n'
+        box = WOStringIO('''<table class="navbox">
+        <tr><th>|strtopics|</th></tr>
+        <tr><td><ol>''')
         keys = lampadas.topics.sort_by('num')
         for key in keys:
             topic = lampadas.topics[key]
-            box = box + '<li><a href="topic/' + topic.code + '">\n'
-            box = box + topic.name[uri.lang] + '</a>\n'
-        box = box + '</ol></td></tr>\n'
-        box = box + '</table>\n'
-        return box
+            box.write('<li><a href="topic/%s">%s</a></li>\n'
+                      % (topic.code, topic.name[uri.lang]))
+        box.write('</ol></td></tr></table>\n')
+        return box.get_value()
 
     def subtopics(self, uri):
         log(3, 'Creating subtopics menu')
         topic = lampadas.topics[uri.code]
-        box = '<table class="box" width="100%"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
-        box = box + '<tr><td>|topic.description|</td></tr>\n'
-        box = box + '<tr><td><ol>\n'
-        keys = lampadas.subtopics.sort_by('num')
+        box = WOStringIO('''<table class="box" width="100%">
+        <tr><th>%s</th></tr>
+        <tr><td>|topic.description|</td></tr>
+        <tr><td><ol>
+        ''' % topic.name[uri.lang] )
+        keys = lampadas.subtopics.sort_by('num') 
         for key in keys:
             subtopic = lampadas.subtopics[key]
             if subtopic.topic_code==uri.code:
-                box = box + '<li><a href="subtopic/' + subtopic.code + '">\n'
-                box = box + subtopic.name[uri.lang] + '</a>\n'
-        box = box + '</ol></td></tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<li><a href="subtopic/%s">%s</a>\n'
+                          % (subtopic.code, subtopic.name[uri.lang]))
+        box.write('</ol></td></tr>\n</table>\n')
+        return box.get_value()
 
     def subtopic(self, uri):
         log(3, 'Creating subtopic table')
         subtopic = lampadas.subtopics[uri.code]
-        box = '<table class="box" width="100%"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
-        box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
-        box = box + '</table>\n'
+        box = '''<table class="box" width="100%">
+        <tr><th>%s</th></tr>
+        <tr><td>%s</td><tr>
+        </table>
+        ''' % (subtopic.name[uri.lang], subtopic.description[uri.lang])
         return box
 
     def types(self, uri):
         log(3, 'Creating types menu')
-        box = '<table class="navbox"><tr><th>|strtypes|</th></tr>\n'
-        box = box + '<tr><td>\n'
+        box = WOStringIO('''<table class="navbox">
+        <tr><th>|strtypes|</th></tr>
+        <tr><td>''')
         keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
-            box = box + '<a href="type/' + type.code + '">\n'
-            box = box + type.name[uri.lang] + '</a><br>\n'
-        box = box + '</td></tr>\n'
-        box = box + '</table>\n'
-        return box
+            box.write('<a href="type/%s">%s</a><br>\n'
+                      % (type.code, type.name[uri.lang]))
+        box.write('</td></tr>\n</table>\n')
+        return box.get_value()
 
     def login(self, uri, user):
         if user:
             log(3, 'Creating active user box')
-            box = '<table class="navbox"><tr><th>|stractive_user|</th></tr>\n'
-            box = box + '<form name="logout" action="data/session/logout">\n'
-            box = box + '<input name=username type=hidden value="' + user.username + '">\n'
-            box = box + '<tr><td align=center><a href="/user/|session_username|">|session_name|</a></td></tr>\n'
-            box = box + '<tr><td align=center><input type=submit name=logout value="|strlog_out|"></td></tr>\n'
-            box = box + '</form>\n'
-            box = box + '</table>\n'
+            box = '''<table class="navbox">
+            <tr><th>|stractive_user|</th></tr>
+            <form name="logout" action="data/session/logout">
+            <input name="username" type="hidden" value="%s">
+            <tr><td align="center">
+            <a href="/user/|session_username|">|session_name|</a>
+            </td></tr>
+            <tr><td align="center"><input type="submit" name="logout"
+            value="|strlog_out|"></td></tr>
+            </form>
+            </table>
+            ''' % user.username
         else:
             log(3, 'Creating login box')
-            box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
-            box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><td class="label">|strusername|</td><td><input type=text name=username size=12></td></tr>\n'
-            box = box + '<tr><td class="label">|strpassword|</td><td><input type=password name=password size=12></td></tr>\n'
-            box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
-            box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
-            box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
-            box = box + '</form>\n'
-            box = box + '</table>\n'
+            box = '''<table class="navbox">
+            <tr><th colspan="2">|strlogin|</th></tr>
+            <form name="login" action="data/session/login" method="GET">
+            <tr>
+              <td class="label">|strusername|</td>
+              <td><input type="text" name="username" size="12"></td>
+            </tr>
+            <tr>
+              <td class="label">|strpassword|</td>
+              <td><input type="password" name="password" size="12"></td>
+            </tr>
+            <tr>
+              <td align="center" colspan="2">
+              <input type=submit name="login" value="login"><br>
+              <a href="mailpass">|strmail_passwd|</a><br>
+              <a href="newuser">|strcreate_acct|</a></td>
+            </tr>
+            </form> 
+            </table>
+            '''
         return box
 
     def navsessions(self, uri, user):
-        if user:
-            if user.admin > 0:
-                log(3, 'Creating navsessions table')
-                box = '<table class="navbox"><tr><th>|strsessions|</th></tr>\n'
-                box = box + '<tr><td>\n'
-                keys = sessions.sort_by('username')
-                for key in keys:
-                    session = sessions[key]
-                    box = box + '<a href="user/' + str(session.username) + '">\n'
-                    box = box + session.username + '</a><br>\n'
-                box = box + '</td></tr>\n'
-                box = box + '</table>\n'
-                return box
+        if user and user.admin > 0:
+            log(3, 'Creating navsessions table')
+            box = WOStringIO('''<table class="navbox">
+            <tr><th>|strsessions|</th></tr>
+            <tr><td>
+            ''')
+            keys = sessions.sort_by('username')
+            for key in keys:
+                session = sessions[key]
+                box.write('<a href="user/%s">%s</a><br>\n'
+                          % (session.username, session.username))
+            box.write('</td></tr>\n</table>\n')
+            return box.get_value()
         return ' '
 
     def tabsessions(self, uri, user):
-        if user:
-            if user.admin > 0:
-                log(3, 'Creating sessions table')
-                box = '<table class="box"><tr><th colspan="4">|strsessions|</th></tr>\n'
-                box = box + '<tr>\n'
-                box = box + '<th class="collabel">|strusername|</th>\n'
-                box = box + '<th class="collabel">|strip_address|</th>\n'
-                box = box + '<th class="collabel">|strurl|</th>\n'
-                box = box + '<th class="collabel">|strtimestamp|</th>\n'
-                box = box + '</tr>\n'
-                keys = sessions.sort_by_desc('timestamp')
-                for key in keys:
-                    session = sessions[key]
-                    box = box + '<tr>\n'
-                    box = box + '<td><a href="user/' + str(session.username) + '">' + session.username + '</a></td>\n'
-                    box = box + '<td>' + session.ip_address + '</td>\n'
-                    box = box + '<td>' + session.uri + '</td>\n'
-                    box = box + '<td>' + session.timestamp + '</td>\n'
-                    box = box + '</td></tr>\n'
-                box = box + '</table>\n'
-                return box
+        if user and user.admin > 0:
+            log(3, 'Creating sessions table')
+            box = WOStringIO('''<table class="box">
+            <tr><th colspan="4">|strsessions|</th></tr>
+            <tr>
+            <th class="collabel">|strusername|</th>
+            <th class="collabel">|strip_address|</th>
+            <th class="collabel">|strurl|</th>
+            <th class="collabel">|strtimestamp|</th>
+            </tr>
+            ''')
+            keys = sessions.sort_by_desc('timestamp')
+            for key in keys:
+                session = sessions[key]
+                box.write('''<tr>
+                <td><a href="user/%s">%s</a></td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                </tr>
+                ''' % (session.username, session.username,
+                       session.ip_address,
+                       session.uri,
+                       session.timestamp))
+            box.write('</table>\n')
+            return box.get_value()
         return '|nopermission|'
 
     def languages(self, uri):
         log(3, 'Creating languages table')
-        box = '<table class="navbox"><tr><th>|strlanguages|</th></tr>\n'
-        box = box + '<tr><td>\n'
+        box = WOStringIO('''<table class="navbox">
+        <tr><th>|strlanguages|</th></tr>
+        <tr><td>
+        ''')
         keys = lampadas.languages.sort_by_lang('name', uri.lang)
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
-                box = box + '<a href="/' + language.code + uri.base + '">' + language.name[uri.lang] + '</a><br>\n'
-        box = box + '</td></tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<a href="/%s%s">%s</a><br>\n'
+                          % (language.code, uri.base,
+                             language.name[uri.lang]))
+        box.write('</td></tr>\n</table>\n')
+        return box.get_value()
 
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
-        box = '<form name="mailpass" action="data/save/mailpass">'
-        box += '<table class="box"><tr><th colspan="2">|strmail_passwd|</th></tr>\n'
-        box += '<tr><td><input type=text name=email></td>\n'
-        box += '<td align=center><input type=submit name=mailpass value="|strmail_passwd|"></td></tr>\n'
-        box += '</table>\n'
-        box += '</form>\n'
+        box = '''<form name="mailpass" action="data/save/mailpass">
+        <table class="box">
+        <tr><th colspan="2">|strmail_passwd|</th></tr>
+        <tr>
+        <td><input type="text" name="email"></td>
+        <td align="center"><input type="submit" name="mailpass" value="|strmail_passwd|"></td></tr>
+        </table>
+        </form>
+        '''
         return box
 
 # PageFactory
