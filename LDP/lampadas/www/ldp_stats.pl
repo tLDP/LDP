@@ -16,7 +16,7 @@ print header;
 print "<html><head><title>LDP Statistics</title><link rel=stylesheet href='/ldp.css' type='text/css'>";
 print "<body>";
 
-print "<h2>Statistics</h2>\n\n";
+print "<h1>Statistics</h1>\n\n";
 
 
 print "<p><a href='/index.html'>Index</a> ";
@@ -41,7 +41,7 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 $document_count = $row[0];
 
 
-print "<h3>Status</h3>";
+print "<h2>Status</h3>";
 print "\n\n";
 $sql = "select pub_status_name, count(*) from pub_status, document where pub_status.pub_status = document.pub_status group by pub_status_name";
 $result=$conn->exec($sql);
@@ -66,7 +66,7 @@ print "<p>Only documents marked &quot;Active&quot; are represented in the follow
 
 print "<p><hr>";
 
-print "<h3>License</h3>";
+print "<h2>License</h3>";
 print "\n\n";
 $sql = "select license, count(*) FROM document where pub_status = 'N' group by license";
 $result=$conn->exec($sql);
@@ -118,7 +118,7 @@ print "<p>*Free licenses include GFDL, GPL, OPL, and PD.\n";
 
 print "<p><hr>";
 
-print "<h3>Class</h3>";
+print "<h2>Class</h3>";
 print "\n\n";
 $sql = "select class_name, count(*) from class, document where pub_status = 'N' and class.class = document.class group by class_name";
 $result=$conn->exec($sql);
@@ -141,7 +141,7 @@ print "</table>\n";
 
 print "<p><hr>";
 
-print "<h3>Format</h3>";
+print "<h2>Format</h3>";
 print "\n\n";
 $sql = "select format, count(*) from document where pub_status = 'N' group by format";
 $result=$conn->exec($sql);
@@ -164,7 +164,7 @@ print "</table>\n";
 
 print "<p><hr>";
 
-print "<h3>DTD</h3>";
+print "<h2>DTD</h3>";
 print "\n\n";
 $sql = "select dtd, count(*) from document where pub_status = 'N' group by dtd";
 $result=$conn->exec($sql);
@@ -186,7 +186,7 @@ print "</table>\n";
 
 print "<p><hr>";
 
-print "<h3>Format and DTD</h3>";
+print "<h2>Format and DTD</h3>";
 print "\n\n";
 $sql = "select format, dtd, count(*) from document where pub_status = 'N' group by format, dtd";
 $result=$conn->exec($sql);
@@ -212,7 +212,7 @@ print "</table>\n";
 
 print "<p><hr>";
 
-print "<h3>Details</h3>";
+print "<h2>Details</h3>";
 $sql = "select class, dtd, format, count(*) from document where pub_status = 'N' group by class, dtd, format";
 
 $result=$conn->exec($sql);
@@ -240,7 +240,7 @@ print "</table>\n";
 
 print "<p><hr>\n";
 
-print "<h3>Miscellaneous Statistics</h3>\n";
+print "<h2>Miscellaneous Statistics</h3>\n";
 $sql = "select last_update from document where pub_status='N'";
 
 $result=$conn->exec($sql);
