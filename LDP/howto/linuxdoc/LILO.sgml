@@ -4,7 +4,7 @@
 
 <title>LILO mini-HOWTO
 <author>Miroslav "Misko" Skoric, <tt/m.skoric@eunet.yu/
-<date>v3.6, 26 August 2001
+<date>v3.7, 02 September 2001
 <abstract>
 <nidx>linux loader windows nt 2000 boot</nidx>
 LILO is the most used <bf/Li/nux <bf/Lo/ader for the x86 flavour of
@@ -23,12 +23,15 @@ of this document)
 <p>
 This version of Lilo mini-HOWTO is based on work of Cameron Spitzer
 (<tt>cls@truffula.sj.ca.us</tt>) and Alessandro Rubini 
-(<tt>rubini@linux.it</tt>). There is also a contribution from Tony Harris 
-(<tt>tony@nmr.mgh.harvard.edu</tt>). Well, I have used materials from
+(<tt>rubini@linux.it</tt>). There are also contributions from Tony Harris 
+(<tt>tony@nmr.mgh.harvard.edu</tt>) and Marc Tanguy 
+(<tt>tanguy@ens.uvsq.fr</tt>). Well, I have used materials from
 the authors mentioned - <bf>without changes</bf> - and added some pointers
 related to configuring LILO for using with Windows NT and Windows 2000.
 More detailed information about the activation of Windows NT/2000 from LILO
-menu, you may find in <tt>Linux+WinNT</tt> mini-HOWTO. 
+menu, you may find in wonderfull
+<url url="http://www.linuxdoc.org/HOWTO/mini/Linux+WinNT.html/"
+name="Linux+WinNT"> mini-HOWTO.
 
 
 <sect>Introduction
@@ -630,6 +633,151 @@ other = /dev/hda1
 </verb>
 
 
+<sect>How do i know the BIOS number for my SCSI disks
+
+<p>
+<em>
+The contribution from Marc Tanguy (mtanguy@ens.uvsq.fr), 21 Jul 2001
+</em>
+
+<p>
+Actually, it exists two ways to know it : 
+
+<p>
+If you have an adaptec scsi card (2940u2, 29160, 39160), you simply
+use the 'diagnose' mode. It must be activated in the scsi card BIOS.
+Then you just have to wait and see something like : 
+
+<verb>
+... ID - LUN - Vendor  - Product   - Rev  - Size - Sync - Bus - HD#
+... 0  - 0   - QUANTUM - ATLAS10K2 - DDD6 - 17GB - 160  - 16  - 80h 
+... 1  - 0   - QUANTUM - ATLAS10K2 - DDD6 - 17GB - 160  - 16  - 81h 
+... 2  - 0   - IBM     - DDRS      - DC1B - 4GB  - 80   - 16  - 82h 
+... 3  - 0   - IBM     - DNES      - SAH0 - 9GB  - 80   - 16  - 83h 
+                                                                |
+The values we want are here -------------------------------------
+</verb>
+
+<p>
+If you don't own an adaptec card (which is bad luck), you have two 
+know what is the 'booting' disk (usually ID 0, but not necessary, it 
+must be define in the scsi card BIOS) where LILO is going to be found 
+and start : this is the first disk so it has number 0x80, 
+then it's very simple, the BIOS follows the IDs.
+
+<p>
+By exemple :
+
+<verb>
+ID 0 -> boot  -> 0x80
+ID 1 -> empty 
+ID 2 -> disk  -> 0x81
+ID 3 -> disk  -> 0x82
+</verb>
+
+or 
+
+<verb>
+ID 0 -> disk  -> 0x81
+ID 1 -> empty
+ID 2 -> disk  -> 0x82
+ID 3 -> boot  -> 0x80
+ID 4 -> disk  -> 0x83
+</verb>
+
+This part doesn't care at all of what is installed on the scsi drives.
+
+<p>
+** Ok, but NT must be the first disk to boot, so i want it in 0x80, but i 
+   already have LILO and a full ext2 only drive on 0x80 and my NT drive is 
+         in 0x83. How can i 'swap' linux and NT ?
+
+This a very easy : you just have to tell BIOS that NT drive is now 0x80
+and the Linux drive is 0x83.
+
+<verb>
+other=/dev/sdd1
+      label=nt
+      map-drive = 0x83
+      to = 0x80
+      map-drive = 0x80
+      to = 0x83
+</verb>
+
+This change will produce and warning : 
+<verb>
+  Warning: BIOS drive 0x8? may not be accessible
+</verb>
+
+but if you know what you are doing it will run without problem.
+
+I used it on this configuration which has a Red Hat Linux 7.1 and a Windows 
+2000 Pro : 
+
+<verb>
+Name        Flags      Part Type  FS Type          [Label]        Size (MB)
+
+Disk Drive: /dev/sda
+sda1        Boot        Primary   Linux ext2       [/boot]            24.68
+sda2                    Primary   Linux raid autodetect              139.83
+sda3                    Primary   Linux raid autodetect             3150.29
+sda4                    Primary   Linux ext2       [/home]         15044.04
+
+Disk Drive: /dev/sdb
+sdb1                    Primary   Linux raid autodetect              139.83
+sdb2                    Primary   Linux raid autodetect             3150.29
+sdb3                    Primary   Linux ext2       [/]              1052.84
+sdb4                    Primary   Linux ext2       [/public]       14015.88
+
+Disk Drive: /dev/sdc
+sdc1        Boot        Primary   Linux ext2       [/var]           1052.84
+sdc2                    Primary   Linux ext2       [/tmp]            106.93
+sdc3                    Primary   Linux ext2       [/cache]         1052.84
+sdc4                    Primary   Linux ext2       [/chroot]        2352.44
+
+Disk Drive: /dev/sdd
+sdd1        Boot        Primary   NTFS             [A]              9162.97
+</verb>
+
+<p>
+My full /etc/lilo.conf : 
+<verb>
+boot=/dev/sda
+map=/boot/map
+install=/boot/boot.b
+prompt
+default=Linux
+read-only
+compact
+image=/boot/vmlinuz
+  label=Linux
+  root=/dev/sdb3
+other=/dev/sdd1
+  label=nt
+  map-drive = 0x83
+  to = 0x80
+  map-drive = 0x80
+  to = 0x83
+</verb>        
+
+<p>
+** I just plugged a new scsi drive, and now LILO refuse to boot, what's 
+going on ?
+
+When you plug a disk, you must be careful with the IDs. If you add a drive
+between two already plugged disks the BIOS numbers are changed : 
+
+<verb>
+         Before            ---->             After
+scsi id -       - BIOS id        scsi id -          - BIOS id
+ID 0    - disk  - 0x80           ID 0    - disk     - 0x80
+ID 1    - empty                  ID 1    - new disk - 0x81
+ID 2    - disk  - 0x81           ID 2    - disk     - 0x82 !!
+</verb>
+
+If you change the BIOS ids, you have to re-evaluate them.
+
+
 <sect>Accessing Huge Disks When the BIOS Can't 
 
 <p>
@@ -882,6 +1030,7 @@ homepage.
 Cameron Spitzer (cls@truffula.sj.ca.us)
 Alessandro Rubini (rubini@linux.it)
 Tony Harris (tony@nmr.mgh.harvard.edu)
+Marc Tanguy (mtanguy@ens.uvsq.fr)
 </verb></tscreen>
 
 Any comments or suggestions can be mailed to my
