@@ -1,3 +1,6 @@
+insert(user,        [User Menu])
+insert(admin,       [Admin Menu])
+insert(sysadmin,    [Sysadmin Menu])
 insert(main,        [Menu Principal])
 insert(news,        [Menu News])
 insert(volunteer,   [Menu Volunteer])
