@@ -143,6 +143,21 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
+    def Page(self, value, lang):
+        combo = "<select name='page_code'>\n"
+        keys = lampadasweb.Pages.keys()
+        for key in keys:
+            page = lampadasweb.Pages[key]
+            assert not page == None
+            combo = combo + "<option "
+            if Page.Code == value:
+                combo = combo + "selected "
+            combo = combo + "value='" + str(page.Code) + "'>"
+            combo = combo + page.I18n[lang].Title
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
+
     def PubStatus(self, value, lang):
         combo = "<select name='pub_status_code'>\n"
         keys = lampadas.PubStatuses.keys()
@@ -425,7 +440,6 @@ class PageFactory:
 page_factory = PageFactory()
 
 def main():
-    
     for arg in sys.argv[1:]:
         print page_factory.page(arg)
 
