@@ -1,46 +1,54 @@
+"""
+This module implements the base classes upon which all the individual
+data managers are built.
+"""
+
 from Globals import *
 from BaseClasses import LampadasCollection
 from Database import db
 import string
 
-__doc__ = """
-This module implements the base classes upon which all the individual data managers
-are built.
-"""
+# FIXME: use sqlgen ?
 
-
-# FIXME: Replace the sys.exit() statements.
+class UnknownFieldType(Exception) :
+    """
+    Exception raised when unknown type is used with TableField.
+    """
 
 class TableField:
+    """
+    FIXME: what is this?
+    """
 
     def __init__(self, table):
         self.table = table
 
     def get_default(self):
-        if self.data_type in ('sequence', 'int', 'float'):  return 0
-        if self.data_type in ('string', ''):    return ''
-        if self.data_type=='time':              return ''
-        if self.data_type=='date':              return ''
-        if self.data_type=='bool':              return 0
-        if self.data_type=='created':           return now_string()
-        if self.data_type=='updated':           return None
-        if self.data_type=='creator':           return None
-        if self.data_type=='updater':           return None
-        print 'Unrecognized type: ' + self.data_type
-        sys.exit(1)
+        if self.data_type in ('sequence', 'int', 'float'): return 0
+        elif self.data_type in ('string', ''): return ''
+        elif self.data_type=='time':           return ''
+        elif self.data_type=='date':           return ''
+        elif self.data_type=='bool':           return 0
+        elif self.data_type=='created':        return now_string()
+        elif self.data_type=='updated':        return None
+        elif self.data_type=='creator':        return None
+        elif self.data_type=='updater':        return None
+        else :
+            raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
         
     def field_to_attr(self, value):
-        if self.data_type in ('sequence', 'int', 'float'):  return safeint(value)
-        if self.data_type in ('string', ''):    return trim(value)
-        if self.data_type=='time':              return time2str(value)
-        if self.data_type=='date':              return date2str(value)
-        if self.data_type=='bool':              return tf2bool(value)
-        if self.data_type=='created':           return time2str(value)
-        if self.data_type=='updated':           return time2str(value)
-        if self.data_type=='creator':           return trim(value)
-        if self.data_type=='updater':           return trim(value)
-        print 'Unrecognized type: ' + self.data_type
-        sys.exit(1)
+        if self.data_type in ('sequence', 'int', 'float'):
+            return safeint(value)
+        elif self.data_type in ('string', ''): return trim(value)
+        elif self.data_type=='time':           return time2str(value)
+        elif self.data_type=='date':           return date2str(value)
+        elif self.data_type=='bool':           return tf2bool(value)
+        elif self.data_type=='created':        return time2str(value)
+        elif self.data_type=='updated':        return time2str(value)
+        elif self.data_type=='creator':        return trim(value)
+        elif self.data_type=='updater':        return trim(value)
+        else :
+            raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
 
     def attr_to_field(self, value):
         if self.data_type in ('sequence', 'int', 'float'):
@@ -48,20 +56,23 @@ class TableField:
                 return 'NULL'
             else:
                 return str(value)
-        if self.data_type=='string':  return wsq(str(value))
-        if self.data_type=='bool':    return wsq(bool2tf(value))
-        if self.data_type=='date':    return wsq(str(value))
-        if self.data_type=='time':    return wsq(str(value))
-        if self.data_type=='created': return wsq(str(value))
-        if self.data_type=='updated': return wsq(now_string())
-        if self.data_type=='creator': return wsq(value)
-        if self.data_type=='updater': return wsq(value)
-        print 'ERROR: Unrecognized data type definition'
-        print 'Data= ' + str(key)
-        print 'Data Type (INVALID): ' + str(data_type)
-        sys.exit(1)
+        elif self.data_type=='string':  return wsq(str(value))
+        elif self.data_type=='bool':    return wsq(bool2tf(value))
+        elif self.data_type=='date':    return wsq(str(value))
+        elif self.data_type=='time':    return wsq(str(value))
+        elif self.data_type=='created': return wsq(str(value))
+        elif self.data_type=='updated': return wsq(now_string())
+        elif self.data_type=='creator': return wsq(value)
+        elif self.data_type=='updater': return wsq(value)
+        else :
+            raise UnknownFieldType('Unrecognized data type definition '
+                                   'data= %s invalid type=%s' 
+                                   % (key,self.data_type))
 
 class DataTable(LampadasCollection):
+    """
+    FIXME: what is this?
+    """
 
     def __init__(self, table_name, field_dictionary):
         LampadasCollection.__init__(self)
@@ -116,6 +127,9 @@ class DataTable(LampadasCollection):
         object.changed = 0
 
 class DataManager(DataTable):
+    """
+    FIXME: what is this?
+    """
 
     def __init__(self, table_name, field_dictionary):
         DataTable.__init__(self, table_name, field_dictionary)
