@@ -91,16 +91,31 @@ done
 </sect3>
 <sect3 id="sect_09_02_02_02"><title>Nested while loops</title>
 <para>The example below was written to copy pictures that are made with a webcam to a web directory.  Every five minutes a picture is taken.  Every hour, a new directory is created, holding the images for that hour.  Every day, a new directory is created containing 24 subdirectories.  The script runs in the background.</para>
-<figure><title>Nested while loops - picturesort.sh</title>
-<mediaobject>
-<imageobject>
-<imagedata fileref="images/picturesort.sh.eps" format="EPS"></imagedata></imageobject><imageobject>
-<imagedata fileref="images/picturesort.sh.png" format="PNG"></imagedata>
-</imageobject>
-<textobject>
-<phrase>PICDIR=/home/carol/pics; WEBDIR=/var/www/carol/webcam; while true; do DATE=`date +%Y%m%d`; HOUR=`date +%H`; mkdir $WEBDIR/"$DATE"; while [ $HOUR -le 23 ]; do DESTDIR=$WEBDIR/"$DATE"/"$HOUR"; mkdir "$DESTDIR"; mv $PICDIR/*.jpg "$DESTDIR"/; sleep 3600; HOUR=`date +%H`; done; done</phrase></textobject>
-</mediaobject>
-</figure>
+<screen>
+#!/bin/bash
+
+# This script copies files from my homedirectory into the webserver directory.
+# (use scp and SSH keys for a remote directory)
+# A new directory is created every hour.
+
+PICSDIR=/home/carol/pics
+WEBDIR=/var/www/carol/webcam
+
+while true; do 
+	DATE=`date +%Y%m%d`
+	HOUR=`date +%H`
+	mkdir $WEBDIR/"$DATE"
+	
+	while [ $HOUR -ne "00" ]; do 
+		DESTDIR=$WEBDIR/"$DATE"/"$HOUR"
+		mkdir "$DESTDIR"
+		mv $PICDIR/*.jpg "$DESTDIR"/
+		sleep 3600
+		HOUR=`date +%H`
+	done
+done
+</screen>
+
 <para>Note the use of the <command>true</command> statement.  This means: continue execution until we are forcibly interrupted (with <command>kill</command> or <keycap>Ctrl</keycap>+<keycap>C</keycap>).</para>
 <para>This small script can be used for simulation testing; it generates files:</para>
 <screen>
@@ -113,7 +128,10 @@ touch pic-`date +%s`.jpg
 sleep 300
 done
 </screen>
-<para>Note the use of the <command>date</command> command to generate all kinds of file and directory names.</para>
+<para>Note the use of the <command>date</command> command to generate all kinds of file and directory names.  See the man page for more.</para>
+<note><title>Use the system</title>
+<para>The previous example is for the sake of demonstration.  Regular checks can easily be achieved using the system's <emphasis>cron</emphasis> facility.  Do not forget to redirect output and errors when using scripts that are executed from your crontab!</para>
+</note>
 </sect3>
 <sect3 id="sect_09_02_02_03"><title>Using keyboard input to control the while loop</title>
 <para>This script can be interrupted by the user when a <keycap>Ctrl</keycap>+<keycap>C</keycap> sequence is entered:</para>
@@ -206,17 +224,40 @@ echo "Exiting."
 <sect2 id="sect_09_03_02"><title>Example</title>
 <para>An improved <filename>picturesort.sh</filename> script (see <xref linkend="sect_09_02_02_02" />), which tests for available disk space.  If not enough disk space is available, remove pictures from the previous months:</para>
 
-<figure><title>More nested while loops - safesort.sh</title>
-<mediaobject>
-<imageobject>
-<imagedata fileref="images/safesort.sh.eps" format="EPS"></imagedata></imageobject><imageobject>
-<imagedata fileref="images/safesort.sh.png" format="PNG"></imagedata>
-</imageobject>
-<textobject>
-<phrase>while true; do DISKFUL=$(df -h $WEBDIR | grep -v File | awk '{print $5 }' | cut -d "%" -f1 -); until [ $DISKFUL -ge "90" ]; do stuff from picturesort.sh; done</phrase>
-</textobject>
-</mediaobject>
-</figure>
+<screen>
+#!/bin/bash
+
+# This script copies files from my homedirectory into the webserver directory.
+# A new directory is created every hour.
+# If the pics are taking up too much space, the oldest are removed.
+
+while true; do 
+	DISKFUL=$(df -h $WEBDIR | grep -v File | awk '{print $5 }' | cut -d "%" -f1 -)
+
+	until [ $DISKFUL -ge "90" ]; do 
+
+        	DATE=`date +%Y%m%d`
+        	HOUR=`date +%H`
+        	mkdir $WEBDIR/"$DATE"
+                                                                                
+        	while [ $HOUR -ne "00" ]; do
+                	DESTDIR=$WEBDIR/"$DATE"/"$HOUR"
+                	mkdir "$DESTDIR"
+                	mv $PICDIR/*.jpg "$DESTDIR"/
+                	sleep 3600
+                	HOUR=`date +%H`
+        	done
+
+	DISKFULL=$(df -h $WEBDIR | grep -v File | awk '{ print $5 }' | cut -d "%" -f1 -)
+	done
+
+	TOREMOVE=$(find $WEBDIR -type d -a -mtime +30)
+	for i in $TOREMOVE; do
+		rm -rf "$i";
+	done
+
+done
+</screen>
 <para>Note the initialization of the <varname>HOUR</varname> and <varname>DISKFULL</varname> variables and the use of options with <command>ls</command> and <command>date</command> in order to obtain a correct listing for <varname>TOREMOVE</varname>.</para>
 </sect2>
 
@@ -516,7 +557,6 @@ while (( "$#" )); do
 
 if [[ "$(ls $1)" == "" ]]; then 
 	echo "Empty directory, nothing to be done."
-	shift
   else 
 	find $1 -type f -a -atime +365 -exec rm -i {} \;
 fi
@@ -525,6 +565,11 @@ shift
 
 done
 </screen>
+<note><title>-exec vs. xargs</title>
+<para>The above <command>find</command> command can be replaced with the following:</para>
+<cmdsynopsis><command>find <option>options</option> | xargs [commands_to_execute_on_found_files</command></cmdsynopsis>
+<para>The <command>xargs</command> command builds and executes command lines from standard input.  This has the advantage that the command line is filled until the system limit is reached.  Only then will the command to execute be called, in the above example this would be <command>rm</command>.  If there are more arguments, a new command line will be used, until that one is full or until there are no more arguments.  The same thing using <command>find <option>-exec</option></command> calls on the command to execute on the found files every time a file is found.  Thus, using <command>xargs</command> greatly speeds up your scripts and the performance of your machine.</para>
+</note>
 <para>In the next example, we modified the script from <xref linkend="sect_08_02_04_04" /> so that it accepts multiple packages to install at once:</para>
 <screen>
 #!/bin/bash
