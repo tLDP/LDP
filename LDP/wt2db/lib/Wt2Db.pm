@@ -4,8 +4,6 @@
 #
 package Wt2Db;
 
-$VERSION = '0.3';
-
 use File::Basename;
 use HTML::Entities;
 use FileHandle;
@@ -13,12 +11,12 @@ use Exporter;
 
 @ISA = qw(Exporter);
 @EXPORT = qw(
-	new,
-	ProcessFile,
-	ProcessLine,
-	ProcessEnd,
-	Buffer,
-	Reset,
+	new
+	ProcessFile
+	ProcessLine
+	ProcessEnd
+	Buffer
+	Reset
 	);
 
 # These keep track of which constructs we're in the middle of

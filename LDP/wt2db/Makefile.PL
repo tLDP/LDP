@@ -15,7 +15,7 @@ WriteMakefile(
     AUTHOR          => 'David Merrill <david@lupercalia.net>',
     ABSTRACT        => 'Converts WikiText documents into DocBook XML.',
     NOECHO          => '',
-    VERSION_FROM    => 'lib/Wt2Db.pm',
+    VERSION_FROM    => 'wt2db',
     EXE_FILES	    => [ qw( wt2db ) ],
     PREREQ_PM       => { 
                          'File::Basename'	=> 0,
