@@ -24,5 +24,8 @@ insert([footer],
         </td>
       </tr>
     </table>
-    <p><a href="http://www.python.org"><img src="images/PythonPowered.gif" alt="Python Powered!"></a>
+    <center>
+        <a href="http://www.python.org"><img src="images/PythonPowered.gif" alt="Python Powered!"></a>
+        <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
+    </center>
 ])
