@@ -37,7 +37,7 @@
 			" name="
 			bri@cs.uchicago.edu
 		">
-<date>v3.2, 27 Jan 2002
+<date>v3.3, 28 Jan 2002
 
 <abstract>
 This is a detailed guide to kernel configuration, compilation, upgrades,
@@ -247,33 +247,34 @@ bash# nice --20 mkisofs -R /backups/var-partition | cdrecord -v fs=40m speed=2 d
 What will you do if the partition is very large? Let's say the partition size is more than 650 MB?
 If you have a DVD drive then you can write upto 5GB. But not all computers come with
 DVD read-write drives. If you just have a R-W CD drive,
-the maximum that you can store is upto 700MB, hence use the following technique:
+the maximum that you can store is upto 650MB, hence use the following technique:
+
 
 Let's assume the usr partition is greater than 650 MB.
 <code>
 bash# du -sk /backups/usr-partition
-See if the total size is greater than 650 MB, and then create the path list file.
-bash# du -sk /backups/usr-partition/* | sort -n > pathlist.txt
-bash# awk '{print $2}' pathlist.txt > grouplist.txt
 </code>
-Read pathlist.txt and edit the grouplist.txt and rearrange such that each group 
-of files do not exceed 650MB. And then split the grouplist.txt into separate files
-and name them as grouplist1.txt, grouplist2.txt and so on.
-Each of these grouplist files will be input to the <bf>mkisofs -path-list</bf> parameter.
-Load a new CD blank and do :
+If the total size is greater than 650 MB, then run the shell script (path-list.sh) 
+given in <ref id="Appendix B">.
+
+The path-list.sh script will create list files like 
+CDROM-BACKUP1.txt,
+CDROM-BACKUP2.txt,
+CDROM-BACKUP3.txt and so on.
+And each group will total upto 650MB thus filling up a CDROM blank.
+
 <code>
-bash# nice --20 mkisofs -R -path-list grouplist1.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
+Load a new CD blank and do :
+bash# nice --20 mkisofs -R -path-list CDROM-BACKUP1.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
 
 Load a new CD blank and do :
-bash# nice --20 mkisofs -R -path-list grouplist2.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
+bash# nice --20 mkisofs -R -path-list CDROM-BACKUP2.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
 
 Load a new CD blank and do :
-bash# nice --20 mkisofs -R -path-list grouplist3.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
+bash# nice --20 mkisofs -R -path-list CDROM-BACKUP3.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
 
 and so on for all the grouplist files which you create.
 </code>
-To automate creations of group files, you can write a small program to generate the
-pathlist.txt file and then automatically create grouplist*.txt files.
 <!-- 
 *******************************************
 ************ End of Section ***************
@@ -2180,7 +2181,7 @@ You can read the latex, LyX output using LyX a X-Windows front end to latex.
 
 <chapt change> Appendix A
 -->
-<sect> Appendix A <label id="Appendix A">
+<sect> Appendix A - cdrecord.sh <label id="Appendix A">
 <p>
 This is shell script to do backup on CDROM and is used in the chapter
 <ref name="Quick Steps" id="precautions"> of this document.
@@ -2188,6 +2189,8 @@ This script is taken from
 <url name="CD-Writing-HOWTO" url="http://www.linuxdoc.org/HOWTO/CD-Writing-HOWTO.html">
 <code>
 #!/bin/sh
+
+# Filename: cdrecord.sh
 
 test `whoami` = 'root' || echo "You must be root to execute the commands."
 cdrecord -scanbus > /dev/null
@@ -2219,9 +2222,120 @@ fi
 cdrecord -scanbus
 </code>
 <!-- 
-*******************************************
-************ End of Section ***************
-*******************************************
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+<chapt change> Appendix B
+-->
+<sect> Appendix B - path-list.sh <label id="Appendix B">
+<p>
+This is shell script to do backup on CDROM and is used in the chapter
+<ref name="Quick Steps" id="precautions"> of this document.
+<code>
+#!/bin/sh
+
+# Author: Al Dev  EMail: alavoor@yahoo.com
+# Copyright Al Dev, License : GNU/GPL
+# Filename: path-list.sh
+
+# Program to back a large partition > 650 MB over 
+# several cdrom blanks by splitting into chunks.
+# This program will create a list of filenames which can be input
+# to mkisofs command's -path-list option. See 'man mkisofs'.
+
+DIRNAME=""
+while :
+do
+	if [ "$DIRNAME" != "" ];  then
+		if [ ! -d $DIRNAME ]; then
+			echo "******"
+			echo "****** Wrong entry: Directory does not exist. Try again"
+			echo "******"
+		else
+			break;
+		fi
+	fi
+	echo " "
+	echo "Please enter the directory name which you want to"
+	echo "backup to multiple cdrom blanks."
+	echo "Also make sure you have write/read permissions in that directory."
+	echo "Enter with leading slash, for example, "
+	echo -n "something like /backups/usr-partition : "
+	read DIRNAME
+done
+
+OUTFILE="path-list.txt"
+
+# Serious problems is - mkisofs complains and gives errors on
+# directories and links (because of duplicate listing).
+# Hence, soft/hard links need to be removed when doing mkisofs command
+# Work around for soft links: Tar all the soft links to
+# a file called Softlinks.tgz and then backup this file
+tar zcvf $DIRNAME/Softlinks.tgz ` find $DIRNAME -type l `
+
+if [ ! -f $DIRNAME/Softlinks.tgz ]; then
+	echo " "
+	echo "****************************************************************"
+	echo "FATAL ERROR: Enable to create the file $DIRNAME/Softlinks.tgz"
+	echo "May be you do not have read/write permissions in $DIRNAME"
+	echo "****************************************************************"
+	echo " "
+	exit
+fi
+
+# Avoid directories and links
+
+find $DIRNAME -type f -printf "%s %p\n" > $OUTFILE
+find $DIRNAME -type b -printf "%s %p\n"  >> $OUTFILE
+find $DIRNAME -type c -printf "%s %p\n"  >> $OUTFILE
+find $DIRNAME -type p -printf "%s %p\n"  >> $OUTFILE
+find $DIRNAME -type s -printf "%s %p\n"  >> $OUTFILE
+
+TOTALSIZE=0
+FILECOUNTER=1
+rm -f CDROM-BACKUP*.txt
+rm -f "CDROM-BACKUP"$FILECOUNTER".txt"
+
+cat "$OUTFILE" |
+while read LINE
+do
+	SIZE=`echo $LINE | cut -d' ' -f1 `
+	#echo SIZE $SIZE
+	FILENAME=`echo $LINE | cut -d' ' -f2 `
+	TOTALSIZE=$(( $SIZE + $TOTALSIZE ))
+	#echo TOTALSIZE $TOTALSIZE
+
+	# If greater than 650 MB then switch to new group file
+	# Do upto 649 MB = 649 * 1024 * 1024 = 680525824
+	if [ $TOTALSIZE -gt 680525824 ]; then
+		FILECOUNTER=$(( $FILECOUNTER + 1 ))
+		TOTALSIZE=0
+		rm -f "CDROM-BACKUP"$FILECOUNTER".txt"
+	fi
+	echo $FILENAME >> "CDROM-BACKUP"$FILECOUNTER".txt"
+	#echo $FILENAME 
+done
+
+rm "$OUTFILE"
+
+echo " "
+echo "********************************* "
+echo " Load a new CDROM blank and do :
+nice --20 mkisofs -R -path-list CDROM-BACKUP1.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
+Load next CDROM blank
+nice --20 mkisofs -R -path-list CDROM-BACKUP2.txt | cdrecord -v fs=40m speed=2 dev=0,0 - 
+Load next CDROM blank
+nice --20 mkisofs -R -path-list CDROM-BACKUP3.txt | cdrecord -v fs=40m speed=2 dev=0,0 - "
+echo "********************************* "
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
 
 
 
