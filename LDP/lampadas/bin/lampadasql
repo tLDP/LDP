@@ -15,6 +15,13 @@ check_file()
   exit 1
 }
 
+m4call()
+{
+  local lang=$1
+  shift
+  m4 $M4DEBUG -P -DI18N_lang_code=${lang} $LAMPADAS_SQL/common.m4 "$@"
+}
+
 all_files()
 {
   for lang in "$@"; do
@@ -25,10 +32,9 @@ all_files()
     filter="$LAMPADAS_SQL/$lang.input"
     if [ -x "$filter" ]; then
       echo "Using filter $filter" 1>&2
-      $filter < "$file" \
-      | m4 -P -DI18N_lang_code=$lang $LAMPADAS_SQL/common.m4 $COMMAND -
+      $filter < "$file" | m4call ${lang} $COMMAND -
     else
-      m4 -P -DI18N_lang_code=$lang $LAMPADAS_SQL/common.m4 $COMMAND "$file"
+      m4call ${lang} $COMMAND "$file"
     fi
   done
 }
@@ -38,21 +44,31 @@ DEFAULT_LANG=$( echo "${LANG%_*}" | tr 'a-z' 'A-Z' )
 
 if [ -z "$1" ]; then
         echo "\
-USAGE: lampadasql command { language }
+USAGE: lampadasql { OPTION } COMMAND { LANGUAGE }
 
-   This will pipe the file <command> together with each <language>
+   This will pipe the file <COMMAND> together with each <LANGUAGE>
    through the m4 macro processor. The suffix '.m4' will be appended
    if not present.
 
-   If no value for <language> is given, the first two letters of variable
+   If no value for <LANGUAGE> is given, the first two letters of variable
    \$LANG are used. Right now that would be $DEFAULT_LANG.
 
    Typically the output of lampadasql is further piped into /usr/bin/psql
    to execute SQL statements:
 
    lampadasql update EN | psql lampadas
+
+   OPTIONS:
+
+      -m4debug <flags>   Pass <flags> as value of option -d to m4.
 " 1>&2
 	exit 1
+fi
+
+if [ "$1" = "-m4debug" ]; then
+  shift
+  M4DEBUG="-d$1"
+  shift
 fi
 
 COMMAND="${1%.m4}.m4"
