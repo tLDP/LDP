@@ -30,3 +30,16 @@ done | sort                                  # Otherwise file list is unsorted.
 #  Even this will only pick up the first field of each argument.
 
 exit 0
+
+
+# Jean Helou proposes the following alternative:
+
+echo "symbolic links in directory \"$directory\""
+# Backup of the current IFS. One can never be too cautious.
+OLDIFS=$IFS
+IFS=:
+
+for file in $(find $directory -type l -printf "%p$IFS")
+do     #                              ^^^^^^^^^^^^^^^^
+       echo "$file"
+       done|sort

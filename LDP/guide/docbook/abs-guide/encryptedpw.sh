@@ -28,7 +28,7 @@ Password=`cruft &lt;$pword`          # Decrypt password.
 #  Uses the author's own "cruft" file encryption package,
 #+ based on the classic "onetime pad" algorithm,
 #+ and obtainable from:
-#+ Primary-site:   ftp://metalab.unc.edu /pub/Linux/utils/file
+#+ Primary-site:   ftp://ibiblio.org/pub/Linux/utils/file
 #+                 cruft-0.2.tar.gz [16k]
 
 

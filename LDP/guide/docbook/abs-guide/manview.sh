@@ -15,9 +15,9 @@ fi
 groff -Tascii -man $1 | less
 # From the man page for groff.
 
-# If the man page includes tables and/or equations,
-# then the above code will barf.
-# The following line can handle such cases.
+#  If the man page includes tables and/or equations,
+#+ then the above code will barf.
+#  The following line can handle such cases.
 #
 #   gtbl < "$1" | geqn -Tlatin1 | groff -Tlatin1 -mtty-char -man
 #

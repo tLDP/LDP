@@ -33,7 +33,7 @@ John Doe        1555 Main St., Baltimore, MD 21228          (410) 222-3333
 Mary Moe        9899 Jones Blvd., Warren, NH 03787          (603) 898-3232
 Richard Roe     856 E. 7th St., New York, NY 10009          (212) 333-4567
 Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
-Zoe Zenobia     4481 N. Baker St., San Franciso, SF 94338   (415) 501-1631
+Zoe Zenobia     4481 N. Baker St., San Francisco, SF 94338  (415) 501-1631
 # ------------------------------------------------------------------------
 
 $bash pb.sh Roe

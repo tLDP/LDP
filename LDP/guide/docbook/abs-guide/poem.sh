@@ -1,5 +1,5 @@
 #!/bin/bash
-# poem.sh
+# poem.sh: Pretty-prints one of the author's favorite poems.
 
 # Lines of the poem (single stanza).
 Line[1]="I do not know which to prefer,"
@@ -11,6 +11,7 @@ Line[5]="Or just after."
 # Attribution.
 Attrib[1]=" Wallace Stevens"
 Attrib[2]="\"Thirteen Ways of Looking at a Blackbird\""
+# Above poem is in the Public Domain (copyright expired).
 
 for index in 1 2 3 4 5    # Five lines.
 do
