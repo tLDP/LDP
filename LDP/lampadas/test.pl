@@ -8,6 +8,7 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
+Language();
 #Topic(1);
 #UserDocs(11);
 #Doc(473);
@@ -18,7 +19,7 @@ $DB = new Lampadas::Database;
 #Roles();
 #Classes();
 #PubStatuses();
-ReviewStatuses();
+#ReviewStatuses();
 #Licenses();
 ##Topics();
 #Subtopics();
@@ -30,9 +31,9 @@ ReviewStatuses();
 #AddUser();
 #NavBar();
 #RoleCombo();
-#ClassCombo();
+ClassCombo();
 #PubStatusCombo();
-ReviewStatusCombo();
+#ReviewStatusCombo();
 #TechReviewStatusCombo();
 #LicenseCombo();
 #TopicCombo();
@@ -54,11 +55,17 @@ ReviewStatusCombo();
 #PubStatusStatsTable();
 #MiscStatsTable();
 #TopicDocsTable();
+#DocsTable();
 #Lintadas();
 #DocErrorsTable(1);
-Errors();
+#Errors();
 
 print "All tests run.\n\n";
+
+sub Language {
+	print $L->RequestedLanguage('fr, es;q=1.0, de;q=0.5') . "\n\n";
+	print $L->RequestedLanguage() . "\n\n";
+}
 
 sub Topic {
 	my $topic_num = shift;
@@ -82,7 +89,7 @@ sub Doc {
 	print "Document $doc_id:\n";
 	print "DocID: $doc{id}\n";
 	print "Title: $doc{title}\n";
-	print "Filename: $doc{filename}\n";
+	print "ClassID: $doc{class_id}\n";
 	print "URL: $doc{url}\n";
 	print "Ref: $doc{ref_url}\n";
 	print "PubStatus: $doc{pub_status}\n";
@@ -161,10 +168,10 @@ sub Roles {
 sub Classes {
 	%classes = $L->Classes();
 	print "Classes: \n";
-	foreach $class (keys %classes) {
-		print "$class\n";
+	foreach $key (keys %classes) {
+		print "$classes{$key}{id}, $classes{$key}{lang}, $classes{$key}{name}, $classes{$key}{description}\n";
 	}
-	print "Count: " . scalar $classes . "\n";
+	print "Count: " . scalar (keys %classes) . "\n";
 	print "\n";
 }
 
@@ -282,7 +289,7 @@ sub RoleCombo {
 
 sub ClassCombo {
 	print "ClassCombo:\n";
-	print $L->ClassCombo();
+	print $L->ClassCombo(1);
 	print "\n";
 }
 

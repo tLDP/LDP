@@ -1,4 +1,5 @@
-ALTER TABLE document		ADD CONSTRAINT class_fk		FOREIGN KEY (class)			REFERENCES class(class);
+ALTER TABLE class_i18n		ADD CONSTRAINT class_id_fk	FOREIGN KEY (class)			REFERENCES class(class_id);
+ALTER TABLE document		ADD CONSTRAINT class_id_fk	FOREIGN KEY (class_id)			REFERENCES class(class_id);
 ALTER TABLE document		ADD CONSTRAINT format_fk	FOREIGN KEY (format)			REFERENCES format(format);
 ALTER TABLE document		ADD CONSTRAINT dtd_fk		FOREIGN KEY (dtd)			REFERENCES dtd(dtd);
 ALTER TABLE document		ADD CONSTRAINT pub_status_fk	FOREIGN KEY (pub_status)		REFERENCES pub_status(pub_status);

@@ -9,7 +9,7 @@ $DB = new Lampadas::Database;
 # Read parameters
 $doc_id        = $L->Param('doc_id');
 $title         = $L->Param('title');
-$class         = $L->Param('class');
+$class_id      = $L->Param('class_id');
 $format        = $L->Param('format');
 $dtd           = $L->Param('dtd');
 $dtd_version   = $L->Param('dtd_version');
@@ -33,5 +33,5 @@ unless ($L->Admin()) {
 	}
 }
 
-$L->SaveDoc($doc_id, $title, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract);
+$L->SaveDoc($doc_id, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract);
 $L->Redirect("document_edit.pl?doc_id=$doc_id");

@@ -18,6 +18,7 @@ use Exporter;
 	Param,
 	Config,
 
+	RequestedLanguage,
 	CurrentUserID,
 	CurrentUser,
 	Admin,
@@ -165,6 +166,32 @@ sub Config {
 	return $value
 }
 
+sub RequestedLanguage {
+	my ($self, $languagestring) = @_;
+	$languagestring = $CGI->http('Accept-language') unless ($languagestring);
+	my @languages = split(/,/, $languagestring);
+	my $langval, $maxlangval, $lang, $maxlang;
+	$maxlang = 'EN';	# default to English
+	$maxlangval = 0;
+	foreach $language (@languages) {
+		$lang = uc(substr($language,0,2));
+		if ($DB->Value("SELECT COUNT(*) FROM class_i18n WHERE lang='$lang'")) {
+			if ($language =~ /q=/) {
+				$langval = $language;
+				$langval =~ s/^.*q=//;
+				if ($langval > $maxlangval) {
+					$maxlangval = $langval;
+					$maxlang = $lang;
+				}
+			} else {
+				$maxlang = $lang;
+				$maxlangval = 1;
+			}
+		}
+	}
+	return uc($maxlang);
+}
+
 sub CurrentUserID {
 	return $currentuser_id;
 }
@@ -227,13 +254,13 @@ sub UserDocs {
 	my ($self, $user_id) = @_;
 	$user_id = 0 unless ($user_id);
 	my %docs = ();
-	my $sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
+	my $sql = "SELECT d.doc_id, d.title, d.class_id, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$doc_id				= $row[0];
 		$docs{$doc_id}{id}		= $doc_id;
 		$docs{$doc_id}{title}		= &trim($row[1]);
-		$docs{$doc_id}{class}		= &trim($row[2]);
+		$docs{$doc_id}{class_id}	= &trim($row[2]);
 		$docs{$doc_id}{pub_status}	= &trim($row[3]);
 		$docs{$doc_id}{url}		= &trim($row[4]);
 		$docs{$doc_id}{pub_status_name}	= &trim($row[5]);
@@ -280,13 +307,13 @@ sub AddUserNote {
 sub Docs {
 	my ($self) = @_;
 	my %docs = ();
-	my $sql = "SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
+	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
 	my $result = $DB->Recordset($sql);
 	while (@row = $result->fetchrow) {
 		$doc_id	= $row[0];
 		$docs{$doc_id}{id}			= &trim($row[0]);
 		$docs{$doc_id}{title}			= &trim($row[1]);
-		$docs{$doc_id}{class}			= &trim($row[2]);
+		$docs{$doc_id}{class_id}		= &trim($row[2]);
 		$docs{$doc_id}{format}			= &trim($row[3]);
 		$docs{$doc_id}{dtd}			= &trim($row[4]);
 		$docs{$doc_id}{dtd_version}		= &trim($row[5]);
@@ -311,11 +338,11 @@ sub Docs {
 sub Doc {
 	my $self = shift;
 	my $doc_id = shift;
-	my $sql = "SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
+	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
 	my @row = $DB->Row("$sql");
 	$doc{id}			= &trim($row[0]);
 	$doc{title}			= &trim($row[1]);
-	$doc{class}			= &trim($row[2]);
+	$doc{class_id}			= &trim($row[2]);
 	$doc{format}			= &trim($row[3]);
 	$doc{dtd}			= &trim($row[4]);
 	$doc{dtd_version}		= &trim($row[5]);
@@ -337,21 +364,21 @@ sub Doc {
 }
 
 sub AddDoc {
-	my ($self, $title, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
+	my ($self, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
 	my $doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	$doc_id++;
-	my $sql = "INSERT INTO document(doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
-	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($class) . ", " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
+	my $sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
+	$sql .= " VALUES ($doc_id, " . wsq($title) . ", $class_id, " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
 	$DB->Exec($sql);
 	$doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	return $doc_id;
 }
 
 sub SaveDoc {
-	my ($self, $doc_id, $title, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract) = @_;
+	my ($self, $doc_id, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract) = @_;
 	my $sql = "UPDATE document SET";
 	$sql .= "  title=" . wsq($title);
-	$sql .= ", class=" . wsq($class);
+	$sql .= ", class_id=$class_id";
 	$sql .= ", format=" . wsq($format);
 	$sql .= ", dtd=" . wsq($dtd);
 	$sql .= ", dtd_version=" . wsq($dtd_version);
@@ -564,12 +591,18 @@ sub Roles {
 
 sub Classes {
 	my %classes = ();
-	my $sql = "SELECT class, class_name FROM class";
+	my $sql = "SELECT class_id, lang, class_name, class_description FROM class_i18n";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
-		$class			= &trim($row[0]);
-		$classname		= &trim($row[1]);
-		$classes{$class}{name}	= $classname;
+		$class_id		= &trim($row[0]);
+		$lang			= &trim($row[1]);
+		$classname		= &trim($row[2]);
+		$classdescription	= &trim($row[3]);
+		$key			= $class_id . $lang;
+		$classes{$key}{id}		= $class_id;
+		$classes{$key}{lang}		= $lang;
+		$classes{$key}{name}		= $classname;
+		$classes{$key}{description}	= $classdescription;
 	}
 	return %classes;
 }
@@ -752,11 +785,13 @@ sub StartPage {
 	print "</head>\n";
 	print "<body><a name='top'>\n";
 
+	print "Preferred Language: " . RequestedLanguage();
+
 	if ($debug) {
 		push @messages, "UserID: $currentuser_id";
 		push @messages, "UserName: " . $currentuser{username};
 	}
-	
+
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
 	HeaderBox($foo, $title);
@@ -808,13 +843,15 @@ sub RoleCombo {
 sub ClassCombo {
 	my $self = shift;
 	my $selected = shift;
+	my $language = RequestedLanguage();
 	my %classes = Classes();
-	my $classcombo = "<select name='class'>\n";
-	foreach $class (sort keys %classes) {
-		if ($selected eq $class) {
-			$classcombo .= "<option selected>$class</option>\n";
+	my $classcombo = "<select name='class_id'>\n";
+	foreach $key (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
+		next unless ($classes{$key}{lang} eq $language);
+		if ($selected eq $classes{$key}{id}) {
+			$classcombo .= "<option value='$classes{$key}{id}' selected>$classes{$key}{name}</option>\n";
 		} else {
-			$classcombo .= "<option>$class</option>\n";
+			$classcombo .= "<option value='$classes{$key}{id}'>$classes{$key}{name}</option>\n";
 		}
 	}
 	$classcombo .= "</select>\n";
@@ -1461,7 +1498,7 @@ sub DocTable {
 	$doctable .= PubStatusCombo($foo, $doc{pub_status});
 	$doctable .= "</td>";
 	$doctable .= "<th align=right>Class</th><td>\n";
-	$doctable .= ClassCombo($foo, $doc{class});
+	$doctable .= ClassCombo($foo, $doc{class_id});
 	$doctable .= "</td>";
 	$doctable .= "<th align=right>Maintained</th><td>\n";
 	if ($doc{maintained}) {
