@@ -7,6 +7,7 @@
 package Lampadas;
 
 use Lampadas::Database;
+use HTML::Entities;
 
 use CGI qw(:standard);
 use Exporter;
@@ -814,7 +815,7 @@ sub UserTable {
 	$table .= "</tr>\n";
 	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=30 value='$user{surname}'></input></td></tr>\n";
+	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=30 value='" . html($user{surname}) . "'></input></td></tr>\n";
 	$table .= "<tr><th>Email</th><td><input type=text name='email' size=30 value='$user{email}'></input></td></tr>\n";
 	if (&Admin()) {
 		$table .= "<tr><th>Admin</th><td><select name='admin'>\n";
@@ -1156,7 +1157,7 @@ sub DocsTable {
 		$classok = 1;
 		foreach $class (keys %myclasses) {
 			$classok = 0;
-			if ($docs{$doc_id}{class} eq $myclasses{$class} ) {
+			if ($docs{$doc_id}{class} eq $class) {
 				$classok = 1;
 			}
 		}
@@ -2053,5 +2054,11 @@ sub wsq {
 	} else {
 		return 'NULL';
 	}
+}
+
+sub html {
+	my $temp = shift;
+	$temp =~ s/\'/&#39\;/;
+	return $temp;
 }
 1;
