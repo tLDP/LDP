@@ -1,5 +1,5 @@
 insert(main,        [Men&uacute; Principal])
 insert(admin,       [Men&uacute; de Administraci&oacute;n])
-insert(news,        [Men&uacute; de Notocias])
+insert(news,        [Men&uacute; de Noticias])
 insert(volunteer,   [Men&uacute; de Voluntarios])
 insert(help,        [Men&uacute; de Ayuda])
