@@ -19,8 +19,8 @@
 
 ;; ------------------------------------------------------------------------
 ;; ldp.dsl - LDP Customized DSSSL Stylesheet
-;; v1.10, 2002-12-04
-;; Copyright (C) 2002-2000
+;; v1.11, 2003-02-03
+;; Copyright (C) 2000-2003
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -224,10 +224,6 @@
 
 (define (book-titlepage-recto-elements)
   ;; elements on a book's titlepage
-  ;; note: added revhistory to the default list
-  ;; note: added othercredit to the default list
-  ;; note: added releaseinfo to the default list
-  ;; note: added publisher to the default list
   (list (normalize "title")
         (normalize "subtitle")
         (normalize "graphic")
@@ -236,6 +232,7 @@
         (normalize "authorgroup")
         (normalize "author")
         (normalize "othercredit")
+        (normalize "edition")
         (normalize "releaseinfo")
         (normalize "publisher")
         (normalize "editor")
@@ -247,7 +244,6 @@
 
 (define (article-titlepage-recto-elements)
   ;; elements on an article's titlepage
-  ;; note: added othercredit to the default list
   (list (normalize "title")
         (normalize "subtitle")
         (normalize "authorgroup")
