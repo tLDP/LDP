@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2002-08-23 16:17:14 ccurley make.fdisk>
+# Time-stamp: <2002-09-10 10:18:44 root make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -49,6 +49,15 @@
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
 # Changes:
+
+# 2002 09 08: Added minimal support for ext3fs. We now detect mounted
+# ext3fs partitions & rebuild but with no options. The detection
+# depends on the command line "dumpe2fs <device> 2>/dev/null | grep -i
+# journal" producing no output for an ext2fs, and output (we don't
+# care what) for an ext3fs.
+
+# This could stand extension to support non-default ext3 options such
+# as the type of journaling. Volunteers?
 
 # 2002 07 25: Bad block checking is now a command line option (-c) at
 # the time the product script is run.
@@ -196,9 +205,9 @@ while (<MOUNT>) {
 	}
 
 
-	# We only mount if it's ext2fs and read and write.
+	# We only mount if it's ext2fs or ext3fs and read and write.
 
-	if ($_[4] eq "ext2" and $_[5] eq "(rw)" ) {
+	if ($_[4] =~ /ext[23]/ and $_[5] eq "(rw)" ) {
             $mountpoints{$_[2]} = $_[0];
 #           print "$_[2] is the mountpoint for $mountpoints{$_[2]}.\n";
 	}
@@ -239,12 +248,31 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 
+		# Now detect if this is an ext3 (journaling)
+		# partition. We do this using dumpe2fs to dump the
+		# partition and grepping on "journal". If the
+		# partition is ext2, there will be no output. If it is
+		# ext3, there will be output, and we use that fact to
+		# set a command line switch. The command line switch
+		# goes into an associative array (hash) so we don't
+		# have to remember to reset it to the null string when
+		# we're done.
+
+		$dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+		    or die "Couldn't fork: $!\n";
+		while (<DUMPE2FS>) {
+# 		    print "Dumpe2fs: $_";
+		    $ext3{$_[$dev]} = "-j ";
+		    last;
+		}
+		close (DUMPE2FS);
+
 		if ($labels{@_[$dev]}) { # do we have a label?
 		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs \$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+		    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
 		} else {
 		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs \$blockcheck @_[$dev]\n\n";
+		    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck @_[$dev]\n\n";
 		}
 
 		# extended partition
@@ -297,12 +325,31 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 
+		# Now detect if this is an ext3 (journaling)
+		# partition. We do this using dumpe2fs to dump the
+		# partition and grepping on "journal". If the
+		# partition is ext2, there will be no output. If it is
+		# ext3, there will be output, and we use that fact to
+		# set a command line switch. The command line switch
+		# goes into an associative array (hash) so we don't
+		# have to remember to reset it to the null string when
+		# we're done.
+
+		$dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+		    or die "Couldn't fork: $!\n";
+		while (<DUMPE2FS>) {
+# 		    print "Dumpe2fs: $_";
+		    $ext3{$_[$dev]} = "-j ";
+		    last;
+		}
+		close (DUMPE2FS);
+
 		if ($labels{@_[$dev]}) { # do we have a label?
 		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs \$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+		    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
 		} else {
 		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs \$blockcheck @_[$dev]\n\n";
+		    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck @_[$dev]\n\n";
 		}
 
 		# logical Linux swap partition
