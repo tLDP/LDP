@@ -1,6 +1,8 @@
 #~/bin/bash
 
 psql lampadas -qf audience.sql
+psql lampadas -qf block.sql
+psql lampadas -qf block_i18n.sql
 psql lampadas -qf class.sql
 psql lampadas -qf class_i18n.sql
 psql lampadas -qf config.sql
@@ -22,6 +24,8 @@ psql lampadas -qf language.sql
 psql lampadas -qf language_i18n.sql
 psql lampadas -qf license.sql
 psql lampadas -qf notes.sql
+psql lampadas -qf page.sql
+psql lampadas -qf page_i18n.sql
 psql lampadas -qf pub_status.sql
 psql lampadas -qf pub_status_i18n.sql
 psql lampadas -qf review_status.sql
@@ -31,6 +35,8 @@ psql lampadas -qf stats_cdf.sql
 psql lampadas -qf string.sql
 psql lampadas -qf string_i18n.sql
 psql lampadas -qf subtopic.sql
+psql lampadas -qf template.sql
+psql lampadas -qf template_i18n.sql
 psql lampadas -qf topic.sql
 psql lampadas -qf topic_i18n.sql
 psql lampadas -qf username.sql

@@ -1,4 +1,6 @@
 GRANT ALL ON audience TO "www-data";
+GRANT ALL ON block TO "www-data";
+GRANT ALL ON block_i18n TO "www-data";
 GRANT ALL ON class TO "www-data";
 GRANT ALL ON class_i18n TO "www-data";
 GRANT ALL ON config TO "www-data";
@@ -18,6 +20,8 @@ GRANT ALL ON language TO "www-data";
 GRANT ALL ON language_i18n TO "www-data";
 GRANT ALL ON license TO "www-data";
 GRANT ALL ON notes TO "www-data";
+GRANT ALL ON page TO "www-data";
+GRANT ALL ON page_i18n TO "www-data";
 GRANT ALL ON pub_status TO "www-data";
 GRANT ALL ON pub_status_i18n TO "www-data";
 GRANT ALL ON review_status TO "www-data";
@@ -27,7 +31,10 @@ GRANT ALL ON stats_CDF to "www-data";
 GRANT ALL ON string TO "www-data";
 GRANT ALL ON string_i18n TO "www-data";
 GRANT ALL ON subtopic TO "www-data";
+GRANT ALL ON template TO "www-data";
+GRANT ALL ON template_i18n TO "www-data";
 GRANT ALL ON topic TO "www-data";
+GRANT ALL ON topic_i18n TO "www-data";
 GRANT ALL ON username TO "www-data";
 GRANT ALL ON username_notes TO "www-data";
 
