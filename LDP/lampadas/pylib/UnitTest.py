@@ -172,7 +172,7 @@ class testDocFiles(unittest.TestCase):
             File = Doc.files[key]
             if File==None: break
             assert File.doc_id==Doc.id
-            assert File.Filename > ''
+            assert File.filename > ''
         log(3, 'testing DocFiles done')
 
 
@@ -182,7 +182,7 @@ class testDocRatings(unittest.TestCase):
         log(3, 'testing DocRatings')
         Doc = lampadas.docs[100]
         assert not Doc==None
-        Doc.Ratings.Clear()
+        Doc.Ratings.clear()
         assert Doc.Ratings.count()==0
         assert Doc.Rating==0
 
@@ -209,7 +209,7 @@ class testDocRatings(unittest.TestCase):
 
         # Clear again
 
-        Doc.Ratings.Clear()
+        Doc.Ratings.clear()
         assert Doc.Ratings.count()==0
         assert Doc.Ratings.Average==0
         assert Doc.Rating==0

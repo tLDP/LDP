@@ -70,6 +70,21 @@ class ComboFactory:
         combo = combo + '</select>\n'
         return combo
     
+    def role(self, value, lang):
+        combo = "<select name='role_code'>\n"
+        keys = lampadas.roles.sort_by_lang('name', lang)
+        for key in keys:
+            role = lampadas.roles[key]
+            assert not role==None
+            combo = combo + "<option "
+            if role.code==value:
+                combo = combo + "selected "
+            combo = combo + "value='" + role.code + "'>"
+            combo = combo + role.name[lang]
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
+
     def type(self, value, lang):
         combo = "<select name='type_code'>\n"
         keys = lampadas.types.sort_by('sort_order')
@@ -266,7 +281,6 @@ class TableFactory:
             doc = Doc()
             box = '<form method=GET action="data/save/newdocument" name="document">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        
         box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
         box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" style="width:100%" value="' + doc.title + '"></td>\n'
@@ -317,8 +331,94 @@ class TableFactory:
         box = box + '<tr><td></td><td><input type=submit name="save" value="|strsave|"></td></tr>\n'
         box = box + '</table>\n'
         box = box + '</form>\n'
-
         return box
+
+    def docversions(self, uri):
+        log(3, 'Creating docversions table')
+        doc = lampadas.docs[uri.id]
+        box = '<table class="box">'
+        box = box + '<tr><th colspan="6">|strdocversions|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strversion|</th>\n'
+        box = box + '<th class="collabel">|strdate|</th>\n'
+        box = box + '<th class="collabel">|strinitials|</th>\n'
+        box = box + '<th class="collabel">|strnotes|</th>\n'
+        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        keys = doc.versions.sort_by('pub_date')
+        for key in keys:
+            version = doc.versions[key]
+            box = box + '<form method=GET action="data/save/document_version" name="document_version">'
+            box = box + '<tr>\n'
+            box = box + '<input name="ref_id" type=hidden value=' + str(version.id) + '>\n'
+            box = box + '<input name="doc_id" type=hidden value=' + str(version.doc_id) + '>\n'
+            box = box + '<td><input type=text name=pub_date value="' + version.pub_date + '"></input></td>\n'
+            box = box + '<td><input type=text name=initials value="' + version.initials + '"></input></td>\n'
+            box = box + '<td rowspan=3 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + version.notes + '</textarea></td>\n'
+            box = box + '<td><input type=checkbox name=del>Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '</tr>\n'
+            box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+        
+
+    def docfiles(self, uri):
+        log(3, 'Creating docfiles table')
+        doc = lampadas.docs[uri.id]
+        box = '<table class="box">'
+        box = box + '<tr><th colspan="5">|strdocfiles|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strfilename|</th>\n'
+        box = box + '<th class="collabel">|strprimary|</th>\n'
+        box = box + '<th class="collabel">|strformat|</th>\n'
+        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        keys = doc.files.sort_by('filename')
+        for key in keys:
+            file = doc.files[key]
+            box = box + '<form method=GET action="data/save/document_file" name="document_file">'
+            box = box + '<tr>\n'
+            box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+            box = box + '<td><input type=text name=filename size=30 style="width:100%" value="' + file.filename + '"></input></td>\n'
+            box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
+            box = box + '<td><input type=checkbox name=del>Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '</tr>\n'
+            box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+        
+
+    def docusers(self, uri):
+        log(3, 'Creating docusers table')
+        doc = lampadas.docs[uri.id]
+        box = '<table class="box">'
+        box = box + '<tr><th colspan="6">|strdocusers|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|stractive|</th>\n'
+        box = box + '<th class="collabel">|strrole|</th>\n'
+        box = box + '<th class="collabel">|strusername|</th>\n'
+        box = box + '<th class="collabel">|stremail|</th>\n'
+        box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        keys = doc.users.sort_by('username')
+        for key in keys:
+            docuser = doc.users[key]
+            box = box + '<form method=GET action="data/save/document_user" name="document_user">'
+            box = box + '<tr>\n'
+            box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+            box = box + '<td>' + combo_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
+            box = box + '<td>' + combo_factory.role(docuser.role_code, uri.lang) + '</td>\n'
+            box = box + '<td><input type=text name=username value="' + docuser.username + '"></input></td>\n'
+            box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></input></td>\n'
+            box = box + '<td><input type=checkbox name="del">Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '</tr>\n'
+            box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+        
 
     def cvslog(self, uri):
         doc = lampadas.docs[uri.id]
@@ -512,8 +612,8 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><th class="label">|strusername|</td><td><input type=text name=username></input></td></tr>\n'
-            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password name=password></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strusername|</td><td><input type=text name=username size=12></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password name=password size=12></input></td></tr>\n'
             box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
             box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
             box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
@@ -696,6 +796,10 @@ class PageFactory:
                     newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri)
+                if token=='tabdocfiles':
+                    newstring = self.tablef.docfiles(uri)
+                if token=='tabdocusers':
+                    newstring = self.tablef.docusers(uri)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabuser':
@@ -747,7 +851,6 @@ class PageFactory:
         
         html = html.replace('DCM_PIPE', '|')
     
-        log(3, 'Page built ' + page.code)
         return html
 
 

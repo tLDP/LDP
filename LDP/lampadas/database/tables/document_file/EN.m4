@@ -1,2 +1,2 @@
-insert(1, [howto/foo], t, xml)
+insert(5, [howto/foo], t, xml)
 

@@ -53,7 +53,7 @@ class Lintadas:
 		log(3, 'Running Lintadas on document ' + str(doc_id))
 		Doc = lampadas.docs[int(doc_id)]
 		assert not Doc==None
-		Doc.errs.Clear()
+		Doc.errs.clear()
 
 		# Test document files
 		keys = Doc.files.keys()
@@ -68,7 +68,7 @@ class Lintadas:
 				continue
 
 			# Determine file format
-			self.filename = File.Filename.upper()
+			self.filename = File.filename.upper()
 			if self.filename[-5:]=='.SGML':
 				FileFormat = "SGML"
 				DocFormat = 'SGML'
@@ -95,7 +95,7 @@ class Lintadas:
 			if FileFormat=='XML' or FileFormat=='SGML':
 				dtd_version = ''
 				try:
-					command = 'grep -i DOCTYPE ' + config.cvs_root + File.Filename + ' | head -n 1'
+					command = 'grep -i DOCTYPE ' + config.cvs_root + File.filename + ' | head -n 1'
 					grep = os.popen(command, 'r')
 					dtd_version = grep.read()
 				except IOError:

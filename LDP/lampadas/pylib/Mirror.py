@@ -84,7 +84,7 @@ class Mirror:
                 self.os.mkdir(self.cachedir)
 
             self.File		= self.Doc.files[filekey]
-            self.filename	= self.File.Filename
+            self.filename	= self.File.filename
             self.file_only	= self.File.file_only
             self.cachename	= self.cachedir + self.file_only
             
@@ -104,7 +104,7 @@ class Mirror:
             else:
                 try:
                     log(3, 'mirroring remote file ' + self.filename)
-                    self.urllib.urlretrieve(self.File.Filename, self.cachename)
+                    self.urllib.urlretrieve(self.File.filename, self.cachename)
                 except IOError:
                     log(0, 'error retrieving remote file ' + self.filename)
                     continue

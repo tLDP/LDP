@@ -61,6 +61,13 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY
 
+def docfiles(req, doc_id, filename, top, format_code):
+    doc = lampadas.docs[doc_id]
+    file = doc.files[filename]
+    file.top = int(top)
+    file.format_code = format_code
+    file.save()
+    
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]
     if not user==None:
