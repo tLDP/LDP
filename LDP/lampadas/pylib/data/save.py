@@ -23,6 +23,7 @@ from Globals import *
 from globals import *
 from Config import config
 from Docs import docs
+from DocTopics import DocTopic
 from Users import users
 from WebLayer import lampadasweb
 from Log import log
@@ -180,8 +181,11 @@ def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, de
         go_back(req)
     
 def newdocument_topic(req, doc_id, topic_code):
+    doctopic = DocTopic()
+    doctopic.doc_id = int(doc_id)
+    doctopic.topic_code = topic_code
     doc = docs[int(doc_id)]
-    doc.topics.add(topic_code)
+    doc.topics.add(doctopic)
     go_back(req)
     
 def deldocument_topic(req, doc_id, topic_code):

@@ -29,7 +29,7 @@ class ReviewStatuses(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, ReviewStatus,
+        DataCollection.__init__(self, None, ReviewStatus,
                                  'review_status',
                                  {'review_status_code':  {'data_type': 'string', 'attribute': 'code'}},
                                  {'sort_order':          {'data_type': 'int'}},

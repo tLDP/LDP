@@ -29,7 +29,7 @@ class Formats(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Format,
+        DataCollection.__init__(self, None, Format,
                                'format',
                                {'format_code':  {'data_type': 'string', 'attribute': 'code'}},
                                [],

@@ -152,7 +152,7 @@ class DataField:
     def __call__(self):
         return self.attribute
 
-    def convert_field(self, value):
+    def field_to_attr(self, value):
         if self.data_type in ('string', ''):      return trim(value)
         elif self.data_type in ('int', 'float'):  return safeint(value)
         elif self.data_type=='time':              return time2str(value)
@@ -164,22 +164,34 @@ class DataField:
             print 'Unrecognized type: ' + type_name
             sys.exit(1)
 
-# TODO: Write add(), delete() and update() methods.
-
-# TODO: Use a database table to log changed objects, and have DataCollection
-# objects poll for updates during page loads. To fix broken caching.
+    def attr_to_field(self, value):
+        if self.data_type in ('int', 'float'):
+            if self.nullable==1 and value==0:
+                return 'NULL'
+            else:
+                return str(value)
+        elif self.data_type=='bool':    return wsq(bool2tf(value))
+        elif self.data_type=='string':  return wsq(str(value))
+        elif self.data_type=='date':    return wsq(str(value))
+        elif self.data_type=='time':    return wsq(str(value))
+        elif self.data_type=='created': return wsq(str(value))
+        elif self.data_type=='updated': return wsq(now_string())
+        else:
+            print 'ERROR: Unrecognized data type definition, see DataObject.save()'
+            print 'Table= ' + self.parent.table
+            print 'Data= ' + str(key)
+            print 'Data Type (INVALID): ' + str(data_type)
+            sys.exit(1)
 
 class DataCollection(LampadasCollection):
 
-    def __init__(self, object=None, table='', indexfields=[], fields=[], i18nfields=[], filter=None):
+    def __init__(self, parent_collection, object, table, indexfields, fields, i18nfields):
         LampadasCollection.__init__(self)
+        self.parent_collection = parent_collection
+        self.child_collections = []
         self.object      = object
         self.table       = table
-        self.origindex   = indexfields
-        self.origfields  = fields
-        self.origi18n    = i18nfields
-        self.filter      = filter
-        
+        self.filters     = []
         self.indexfields = []
         self.fields      = []
         self.i18nfields  = []
@@ -193,9 +205,9 @@ class DataCollection(LampadasCollection):
         self.i18nfields    = self.parse_fieldmap(i18nfields)
         self.allfields     = self.indexfields + self.fields
         self.alli18nfields = self.indexfields + self.i18nfields
+        self.idfields      = self.indexfields[:]
 
         self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
-        self.filters = []
 
     def parse_fieldmap(self, map):
 
@@ -254,19 +266,7 @@ class DataCollection(LampadasCollection):
             if row==None: break
             object = self.object(self)
             object.load_row(row)
-
-            # Build an identifier.
-            # If there are multiple key fields, build a string representation instead.
-            if len(self.indexfields)==1:
-                identifier = self.map[self.indexfields[0]].convert_field(row[0])
-            else:
-                identifier = ''
-                for field in self.indexfields:
-                    value = getattr(object, self.map[field].attribute)
-                    identifier = identifier + str(value) + ' '
-                identifier = trim(identifier)
-            object.identifier = identifier
-            self[identifier] = object
+            self[object.id] = object
 
     def load_i18n_table(self):
         for key in self.keys():
@@ -279,9 +279,43 @@ class DataCollection(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             data_field = self.map[string.join(self.map.primary_keys())]
-            identifier = data_field.convert_field(row[0])
-            object = self[identifier]
+            id = data_field.field_to_attr(row[0])
+            object = self[id]
             object.load_i18n_row(row)
+
+    def add(self, object):
+        if self.parent_collection==None:
+            object.parent = self
+            sql = 'INSERT INTO %s (%s) VALUES (%s)' % (self.table, object.fields(), object.values())
+            db.runsql(sql)
+            db.commit()
+            object.id = object.build_id(self.idfields)
+            self[object.id] = object
+            self.refresh_children()
+        else:
+            self.parent_collection.add(object)
+
+    def clear(self):
+        for key in self.keys():
+            self.delete(key)
+
+    def delete(self, key):
+        object = self[key]
+        if self.parent_collection==None:
+            object.delete()
+            del self[key]
+            self.refresh_children()
+        else:
+            id = object.build_id(self.parent_collection.idfields)
+            self.parent_collection.delete(id)
+        
+    def refresh_keys(self):
+        for key in self.keys():
+            object = self[key]
+            object.id = object.build_id(self.idfields)
+            if object.id <> key:
+                del self[key]
+                self[object.id] = object
 
     def apply_filter(self, superclass, filter):
         """
@@ -304,80 +338,120 @@ class DataCollection(LampadasCollection):
         # TODO: Add the ability to name and save a set of filters.
 
         filter_results = superclass()
+        filter_results.parent_collection = self
+        self.child_collections.append(filter_results)
         filter_results.filters.append(filter)
-        for key in self.keys():
-            object = self[key]
-            value = getattr(object, filter.attribute)
-            match = 0
-            if filter.operator=='=':    match = (value == filter.value)
-            elif filter.operator=='<>': match = (value <> filter.value)
-            elif filter.operator=='>':  match = (value >  filter.value)
-            elif filter.operator=='<':  match = (value <  filter.value)
-            else: log(1, 'Unrecognized filter operator')
-            if match==1:
-                identifier = object.identifier
-                filter_results[identifier] = object
+        # If the requested filter field is also an id field,
+        # assume it is no longer desired as an id field --
+        if filter.attribute in filter_results.idfields:
+            filter_results.idfields.remove(filter.attribute)
+            assert len(filter_results.idfields)==1
+            self.refresh_keys()
+        filter_results.refresh_filters()
         return filter_results
 
+    def refresh_filters(self):
+        # FIXME: Replace with the filter() function, which is much faster.
+
+        # Start with all of our parent's objects
+        self.data = {}
+        for key in self.parent_collection.keys():
+            object = self.parent_collection[key]
+
+            all_match = 1
+            for filter in self.filters:
+                value = getattr(object, filter.attribute)
+                if filter.operator=='=':    match = (value == filter.value)
+                elif filter.operator=='<>': match = (value <> filter.value)
+                elif filter.operator=='>':  match = (value >  filter.value)
+                elif filter.operator=='<':  match = (value <  filter.value)
+                else:
+                    log(1, 'Unrecognized filter operator')
+                    print 'ERROR: Unrecognized filter in refresh_filters()'
+                    sys.exit(1)
+                if match==0:
+                    all_match = 0
+                    break
+            if all_match==1:
+                object.id = object.build_id(self.idfields)
+                self[object.id] = object
+
+    def refresh_children(self):
+        for child in self.child_collections:
+            child.refresh_filters()
 
 class DataObject:
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.parent = parent
 
     def where(self):
-        where = ''
+        where_string = ''
         for field in self.parent.indexfields:
-            if where=='':
-                where = ' WHERE '
+            if where_string=='':
+                where_string = ' WHERE '
             else:
-                where += ' AND '
-            where = where + field + '='
-            value = getattr(self, self.parent.map[field].attribute)
-            type_name = str(type(value))
-            if type_name=="<type 'string'>": where += wsq(value)
-            elif type_name=="<type 'int'>": where += str(value)
-            else:
-                print 'Unrecognized type: ' + type_name
-                sys.exit(1)
-            
-        return where
+                where_string += ' AND '
+            where_string = where_string + field + '='
+            map = self.parent.map[field]
+            value = getattr(self, map.attribute)
+            where_string += map.attr_to_field(value)
+        return where_string
 
-    def load(self):
+    def fields(self):
+        field_list = []
+        for field in self.parent.allfields:
+            map = self.parent.map[field]
+            if map.data_type not in ('created', 'updated'):
+                field_list.append(field)
+        return string.join(field_list, ', ')
+
+    def values(self):
+        value_list = []
+        for field in self.parent.allfields:
+            map = self.parent.map[field]
+            if map.data_type not in ('created', 'updated'):
+                value_list.append(map.attr_to_field(getattr(self, field)))
+        return string.join(value_list, ', ')
+    
+    def build_id(self, idfields):
         # Build an identifier.
-        # If there are multiple key fields, build a string representation instead.
-        if len(self.parent.indexfields)==1:
-            map = self.parent.map[self.parent.indexfields[0]]
-            identifier = getattr(self, map.attribute)
+        # If there are multiple id fields, build a string representation instead.
+
+        # FIXME: Subtle problem, an object can have more than one id if it belongs
+        # to more than one collection with different keys! Not a propblem as long
+        # as users of the value always get it recalculated before using it.
+        if len(idfields)==1:
+            map = self.parent.map[idfields[0]]
+            id = getattr(self, map.attribute)
         else:
-            identifier = ''
-            for field in self.parent.indexfields:
-                value = getattr(self, self.parent.map[field])
-                identifier = identifier + str(value) + ' '
-            identifier = trim(identifier)
-        self.identifier = identifier
+            id = ''
+            for idfield in idfields:
+                value = getattr(self, self.parent.map[idfield].attribute)
+                id = id + str(value) + ' '
+            id = trim(id)
+        return id
+            
+    def load(self):
         self.select = self.parent.select + self.where()
         cursor = db.select(self.select)
         row = cursor.fetchone()
-        if row==None:
-            # FIXME: We have to delete ourselves
-            del self.parent[self.identifier]
-        else:
-            self.load_row(row)
+        self.load_row(row)
 
     def load_row(self, row):
         i = 0
         for field in self.parent.allfields:
             attribute = self.parent.map[field].attribute
-            value = self.parent.map[field].convert_field(row[i])
+            value = self.parent.map[field].field_to_attr(row[i])
             setattr(self, attribute, value)
             i += 1
+        self.id = self.build_id(self.parent.idfields)
 
     def load_i18n_row(self, row):
         lang = row[1]
         i = 2
         for field in self.parent.i18nfields:
-            value = self.parent.map[field].convert_field(row[i])
+            value = self.parent.map[field].field_to_attr(row[i])
             attribute = self.parent.map[field].attribute
             coll = getattr(self, attribute)
             coll[lang] = value
@@ -390,30 +464,15 @@ class DataObject:
         for key in self.parent.map.keys():
             data_field = self.parent.map[key]
             value = getattr(self, data_field.attribute)
-            data_type = data_field.data_type
-            if data_type in ('int', 'float'):
-                if data_field.nullable==1 and value==0:
-                    replacement = 'NULL'
-                else:
-                    replacement = str(value)
-            elif data_type=='bool':    replacement = wsq(bool2tf(value))
-            elif data_type=='string':  replacement = wsq(str(value))
-            elif data_type=='date':    replacement = wsq(str(value))
-            elif data_type=='time':    replacement = wsq(str(value))
-            elif data_type=='created': replacement = wsq(str(value))
-            elif data_type=='updated': replacement = wsq(now_string())
-            else:
-                print 'ERROR: Unrecognized data type definition, see DataObject.save()'
-                print 'Table= ' + self.parent.table
-                print 'Data= ' + str(key)
-                print 'Data Type (INVALID): ' + str(data_type)
-                sys.exit(1)
-            field_list.append('%s=%s' % (key, replacement))
+            value = data_field.attr_to_field(value)
+            field_list.append('%s=%s' % (key, value))
         sql.write(string.join(field_list, ', '))
         sql.write(self.where())
-        #print sql.get_value()
         db.runsql(sql.get_value())
-            
+        
+    def delete(self):
+        sql = 'DELETE FROM ' + self.parent.table + self.where()
+        db.runsql(sql)
 
 class Filter:
 

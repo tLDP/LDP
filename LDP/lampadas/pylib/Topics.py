@@ -32,7 +32,7 @@ class Topics(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Topic,
+        DataCollection.__init__(self, None, Topic,
                                'topic',
                                {'topic_code':   {'data_type': 'string', 'attribute': 'code'}},
                                [{'sort_order':  {'data_type': 'int'}},

@@ -27,9 +27,11 @@ class Encodings(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Encoding,
+        DataCollection.__init__(self, None, Encoding,
                                'encoding',
-                               {'encoding': {'data_type': 'string'}})
+                               {'encoding': {'data_type': 'string'}},
+                               [],
+                               [])
                                  
 class Encoding(DataObject):
     """

@@ -31,7 +31,7 @@ class Languages(DataCollection):
     """
 
     def __init__(self):
-        DataCollection.__init__(self, Language,
+        DataCollection.__init__(self, None, Language,
                                 'language',
                                 {'lang_code':  {'data_type': 'string', 'attribute': 'code'}},
                                 [{'encoding':  {'data_type': 'string'}},

@@ -36,7 +36,7 @@ class Docs(DataCollection):
     """
 
     def __init__(self):
-        DataCollection.__init__(self, Doc,
+        DataCollection.__init__(self, None, Doc,
                                'document',
                                {'doc_id':                   {'data_type': 'int',    'attribute': 'id'}},
                                [{'title':                   {'data_type': 'string'}},

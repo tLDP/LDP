@@ -29,7 +29,7 @@ class PubStatuses(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, PubStatus,
+        DataCollection.__init__(self, None, PubStatus,
                                  'pub_status',
                                  {'pub_status_code':        {'data_type': 'string', 'attribute': 'code'}},
                                  {'sort_order':         {'data_type': 'int'}},

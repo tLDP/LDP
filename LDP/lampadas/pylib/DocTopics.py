@@ -29,44 +29,13 @@ class DocTopics(DataCollection):
     """
 
     def __init__(self):
-        DataCollection.__init__(self, DocTopic,
+        DataCollection.__init__(self, None, DocTopic,
                                  'document_topic',
                                  [{'topic_code': {'data_type': 'string'}},
                                   {'doc_id':     {'data_type': 'int'}}],
                                  [{'created':    {'data_type': 'created'}},
-                                  {'updated':    {'data_type': 'updated'}}])
-
-    def add(self, doc_id, topic_code):
-        sql = 'INSERT INTO document_topic(doc_id, topic_code) VALUES (' + str(doc_id) + ', ' + wsq(topic_code) + ')'
-        db.runsql(sql)
-        db.commit()
-        doctopic = DocTopic(self)
-        doctopic.doc_id = doc_id
-        doctopic.topic_code = topic_code
-        doctopic.load()
-        self[doctopic.identifier] = doctopic
-        
-# FIXME: Counting on the synchronizer to kick in so other Apache instances load the
-# data for the new record.
-# 
-#        doctopic = DocTopic()
-#        doctopic.doc_id = doc_id
-#        doctopic.topic_code = topic_code
-#        self[doctopic.topic_code] = doctopic
-        
-        # FIXME: How do we know it goes into this collection?
-
-    def clear(self):
-        for key in self.keys():
-            self.delete(key)
-            
-    def delete(self, key):
-        doctopic = self[key]
-        if doctopic:
-            sql = 'DELETE FROM document_topic WHERE doc_id=' + str(doctopic.doc_id) + ' AND topic_code=' + wsq(doctopic.topic_code)
-            db.runsql(sql)
-            db.commit()
-            del self[key]
+                                  {'updated':    {'data_type': 'updated'}}],
+                                 [])
 
 class DocTopic(DataObject):
     """

@@ -29,7 +29,7 @@ class Licenses(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, License,
+        DataCollection.__init__(self, None, License,
                                  'license',
                                  {'license_code':        {'data_type': 'string', 'attribute': 'code'}},
                                  [{'free':               {'data_type': 'bool'}},

@@ -33,6 +33,7 @@ tree is broken.
 """
 
 import unittest
+from BaseClasses import *
 from Config import config
 from Database import db
 from Languages import languages
@@ -44,6 +45,7 @@ from DTDs import dtds
 from Formats import formats
 from PubStatuses import pub_statuses
 from Topics import topics
+from DocTopics import doctopics, DocTopics, DocTopic
 from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
@@ -127,6 +129,64 @@ class testDocs(unittest.TestCase):
 
         log(3, 'testing Docs done')
 
+
+class testDocTopics(unittest.TestCase):
+
+    def testDocTopics(self):
+        keys = docs.keys()
+        for key in keys:
+            doc = docs[key]
+            assert not doc==None
+#            print 'Testing topics for document %s' % doc.id
+#            print 'Doc has %s topics' % doc.topics.count()
+            if doc.topics.count() > 0:
+                dtkeys = doc.topics.keys('doc_id')
+                for dtkey in dtkeys:
+                    assert dtkey==doc.id
+                for topic_code in doc.topics.keys():
+#                    print 'Testing topic %s' % topic_code
+                    doctopic = doc.topics[topic_code]
+                    assert not doctopic==None
+                    assert doctopic.doc_id==doc.id, 'doctopic.doc_id doesn\'t match doc.id: ' + str(doctopic.doc_id) + ', ' + str(doc.id)
+                    assert doctopic.topic_code > ''
+
+        assert topics.count() > 0
+        doc = docs[1]
+        assert not doc==None
+        remember_topics = doc.topics.keys()
+        remember_count = doc.topics.count()
+#        print 'Clearing ' + str(remember_count) + ' topics...'
+        doc.topics.clear()
+        assert doc.topics.count()==0
+        doc.topics.refresh_filters()
+        assert doc.topics.count()==0
+        for topic_code in topics.keys():
+            doctopic = DocTopic()
+            doctopic.doc_id = doc.id
+            doctopic.topic_code = topic_code
+            doc.topics.add(doctopic)
+            doctopic = doc.topics[doctopic.topic_code]
+#            print doctopic.where()
+#            print doctopic.parent
+        assert doc.topics.count()==topics.count(), 'Counts don\'t match: %s and %s ' % (doc.topics.count(), topics.count())
+        for topic_code in doc.topics.keys():
+            doc.topics.delete(topic_code)
+        assert doc.topics.count()==0
+        count = 0
+#        print 'doctopics is: ' + str(doctopics)
+        for topic_code in remember_topics:
+            doctopic = DocTopic()
+            doctopic.doc_id = doc.id
+            doctopic.topic_code = topic_code
+#            print 'doc.topics is: ' + str(doc.topics) + ', parent is: ' + str(doc.topics.parent_collection)
+            doc.topics.add(doctopic)
+#            print 'Added back ' + topic_code
+            count += 1
+        assert doc.topics.count()==count
+        dt2 = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', doc.id))
+        assert dt2.count()==count, 'Counts don\'t match: %s and %s ' % (doc.topics.count(), dt2.count())
+        assert doc.topics.count()==remember_count
+    
 
 class testDocErrs(unittest.TestCase):
 

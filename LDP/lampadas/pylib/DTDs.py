@@ -26,7 +26,7 @@ class DTDs(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, DTD,
+        DataCollection.__init__(self, None, DTD,
                                'dtd',
                                {'dtd_code':  {'data_type': 'string', 'attribute': 'code'}},
                                [],

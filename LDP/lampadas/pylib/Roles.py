@@ -29,7 +29,7 @@ class Roles(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Role,
+        DataCollection.__init__(self, None, Role,
                                  'role',
                                  {'role_code':  {'data_type': 'string', 'attribute': 'code'}},
                                  [],

@@ -31,7 +31,7 @@ class Errors(DataCollection):
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
+        DataCollection.__init__(self, None, Error,
                                 'error',
                                 {'err_id':         {'data_type': 'int',    'attribute': 'id'}},
                                 [{'err_type_code': {'data_type': 'string'}},

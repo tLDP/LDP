@@ -29,7 +29,7 @@ class Types(DataCollection):
     """
 
     def __init__(self):
-        DataCollection.__init__(self, Type,
+        DataCollection.__init__(self, None, Type,
                                  'type',
                                  {'type_code':  {'data_type': 'string', 'attribute': 'code'}},
                                  {'sort_order': {'data_type': 'int'}},

@@ -23,7 +23,7 @@ class Collections(DataCollection):
     """A collection object of all document collections."""
    
     def __init__(self):
-        DataCollection.__init__(self, Collection,
+        DataCollection.__init__(self, None, Collection,
                                  'collection',
                                  {'collection_code':  {'data_type': 'string', 'attribute': 'code'}},
                                  {'sort_order':       {'data_type': 'int'}},
