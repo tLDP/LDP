@@ -1,17 +1,19 @@
 #!/bin/sh
 # self-mailer.sh: Self-mailing script
 
-ARGCOUNT=1              # Need name of addressee.
-E_WRONGARGS=65
-if [ $# -ne "$ARGCOUNT" ]
-then
-  echo "Usage: `basename $0` addressee"
-  exit $E_WRONGARGS
-fi  
+adr=${1:-`whoami`}     # Default to current user, if not specified.
+#  Typing 'self-mailer.sh wiseguy@superdupergenius.com'
+#+ sends this script to that addressee.
+#  Just 'self-mailer.sh' (no argument) sends the script
+#+ to the person invoking it, for example, bozo@localhost.localdomain.
+#
+#  For more on the ${parameter:-default} construct,
+#+ see the "Parameter Substitution" section
+#+ of the "Variables Revisited" chapter.
 
-# ========================================================================
-cat $0 | mail -s "Script \"`basename $0`\" has mailed itself to you." "$1"
-# ========================================================================
+# ============================================================================
+  cat $0 | mail -s "Script \"`basename $0`\" has mailed itself to you." "$adr"
+# ============================================================================
 
 # --------------------------------------------
 #  Greetings from the self-mailing script.
@@ -20,5 +22,7 @@ cat $0 | mail -s "Script \"`basename $0`\" has mailed itself to you." "$1"
 #  Apparently, some people have nothing better
 #+ to do with their time.
 # --------------------------------------------
+
+echo "At `date`, script \"`basename $0`\" mailed to "$adr"."
 
 exit 0

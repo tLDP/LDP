@@ -38,7 +38,7 @@ assert "$condition" $LINENO
 
 # Some commands.
 # ...
-echo "You will never see this statement echo."
+echo "This statement echoes only if the \"assert\" does not fail."
 # ...
 # Some more commands.
 

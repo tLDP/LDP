@@ -20,7 +20,7 @@ alias Reset="tput sgr0"      #  Reset text attributes to normal
 
 cecho ()                     # Color-echo.
                              # Argument $1 = message
-                             # Argument $1 = color
+                             # Argument $2 = color
 {
 local default_msg="No message passed."
                              # Doesn't really need to be a local variable.

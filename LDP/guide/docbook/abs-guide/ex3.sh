@@ -2,6 +2,14 @@
 
 # This is a simple script that removes blank lines from a file.
 # No argument checking.
+#
+# You might wish to add something like:
+# if [ -z "$1" ]
+# then
+#  echo "Usage: `basename $0` target-file"
+#  exit 65
+# fi
+
 
 # Same as
 #    sed -e '/^$/d' filename
