@@ -243,7 +243,7 @@ insert([topic], [View Topic], [View Topic],
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
-    |tabsubtopicdocs|
+    <p>|tabsubtopicdocs|
 ], 1)
 
 insert([editdoc], [Méta-données du doc], [Méta-données du doc],

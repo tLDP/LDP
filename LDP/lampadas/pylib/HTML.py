@@ -203,7 +203,7 @@ class ComboFactory:
             page = lampadasweb.pages[key]
             assert not page==None
             combo.write("<option ")
-            if Page.code==value:
+            if page.code==value:
                 combo.write("selected ")
             combo.write("value='" + str(page.code) + "'>")
             combo.write(page.title[lang])
@@ -281,6 +281,8 @@ class ComboFactory:
 
 class TableFactory:
 
+    command_line = 0
+
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
@@ -294,12 +296,17 @@ class TableFactory:
         if uri.id > 0:
             lintadas.check(uri.id)
             doc = lampadas.docs[uri.id]
-            box.write('<form method=GET action="data/save/document" '\
+            box.write('<form method=GET action="/data/save/document" '\
                       'name="document">')
         else:
+
+            # Create a new document
             doc = Doc()
             doc.lang = uri.lang
-            box.write('<form method=GET action="data/save/newdocument" '\
+            doc.pub_status_code = 'P'
+            doc.review_status_code = 'U'
+            doc.tech_review_status_code = 'U'
+            box.write('<form method=GET action="/data/save/newdocument" '\
                       'name="document">')
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
@@ -393,7 +400,7 @@ class TableFactory:
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
-            box = box + '<form method=GET action="data/save/document_version" name="document_version">'
+            box = box + '<form method=GET action="/data/save/document_version" name="document_version">'
             box = box + '<input name="rev_id" type=hidden value=' + str(version.id) + '>\n'
             box = box + '<input name="doc_id" type=hidden value=' + str(version.doc_id) + '>\n'
             box = box + '<tr>\n'
@@ -405,7 +412,7 @@ class TableFactory:
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
-        box = box + '<form method=GET action="data/save/newdocument_version" name="document_version">'
+        box = box + '<form method=GET action="/data/save/newdocument_version" name="document_version">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '''
         <tr>
@@ -443,7 +450,7 @@ class TableFactory:
         keys = doc.files.sort_by('filename')
         for key in keys:
             file = doc.files[key]
-            box = box + '<form method=GET action="data/save/document_file" name="document_file">'
+            box = box + '<form method=GET action="/data/save/document_file" name="document_file">'
             box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + file.filename + '">\n'
             box = box + '<tr>\n'
@@ -460,7 +467,7 @@ class TableFactory:
             </tr>
             </form>
             '''
-        box = box + '<form method=GET action="data/save/newdocument_file" name="document_file">'
+        box = box + '<form method=GET action="/data/save/newdocument_file" name="document_file">'
         box = box + '<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n'
         box = box + '<tr>\n'
         box = box + '<td><input type="text" name="filename" size="30" style="width:100%"></td>\n'
@@ -499,7 +506,7 @@ class TableFactory:
         keys = doc.users.sort_by('username')
         for key in keys:
             docuser = doc.users[key]
-            box = box + '<form method=GET action="data/save/document_user" name="document_user">'
+            box = box + '<form method=GET action="/data/save/document_user" name="document_user">'
             box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
             box = box + '<tr>\n'
@@ -511,7 +518,7 @@ class TableFactory:
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
-        box = box + '<form method=GET action="data/save/newdocument_user" name="document_user">'
+        box = box + '<form method=GET action="/data/save/newdocument_user" name="document_user">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + '<input type=text name="username"></td>\n'
@@ -548,7 +555,7 @@ class TableFactory:
                 if lampadas.subtopics[subtopic_code].topic_code==topic_code:
                     doctopic = doc.topics[subtopic_code]
                     if doctopic:
-                        box = box + '<form method=GET action="data/save/deldocument_topic" name="document_topic">'
+                        box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
                         box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
                         box = box + '<input type=hidden name="subtopic_code" value=' + str(doctopic.subtopic_code) + '>\n'
                         box = box + '<tr>\n'
@@ -556,7 +563,7 @@ class TableFactory:
                         box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
                         box = box + '</tr>\n'
                         box = box + '</form>\n'
-        box = box + '<form method=GET action="data/save/newdocument_topic" name="document_topic">'
+        box = box + '<form method=GET action="/data/save/newdocument_topic" name="document_topic">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + combo_factory.subtopic('', uri.lang) + '</td>\n'
@@ -592,7 +599,7 @@ class TableFactory:
             box = box + '<td>' + note.creator + '</td>\n'
             box = box + '<td>' + note.notes + '</td>\n'
             box = box + '</tr>\n'
-        box = box + '<form method=GET action="data/save/newdocument_note" name="document_note">'
+        box = box + '<form method=GET action="/data/save/newdocument_note" name="document_note">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<input name="creator" type=hidden value=' + user.username + '>\n'
         box = box + '<tr><td></td><td></td>\n'
@@ -722,7 +729,7 @@ class TableFactory:
             if letter==uri.letter:
                 box = box + '<th>' + letter + '</th>\n'
             else:
-                box = box + '<th><a href="' + uri.filename + '|uri.lang_ext|/' + letter + '">' + letter + '</a></th>\n'
+                box = box + '<th><a href="/' + uri.filename + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
         return box
         
@@ -738,7 +745,7 @@ class TableFactory:
             for username in usernames:
                 user = lampadas.users[username]
                 box = box + '<tr>\n'
-                box = box + '<td><a href="/user|uri.lang_ext|/' + username + '">' + username + '</a></td>\n'
+                box = box + '<td><a href="/user/' + username + '|uri.lang_ext|">' + username + '</a></td>\n'
                 box = box + '<td>' + user.name + '</a></td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -754,10 +761,10 @@ class TableFactory:
             user = lampadas.users[uri.username]
             if user==None:
                 return '|blknotfound|'
-            box = '<form method=GET action="data/save/user" name="user">\n'
+            box = '<form method=GET action="/data/save/user" name="user">\n'
         else:
             user = User()
-            box = '<form method=GET action="data/save/newuser" name="user">\n'
+            box = '<form method=GET action="/data/save/newuser" name="user">\n'
         box = box + '<table class="box" width="100%">\n'
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
         box = box + '<tr><th class="label">|strusername|</th>'
@@ -808,6 +815,14 @@ class TableFactory:
                 if doc.lang <> uri.lang:
                     ok = 0
 
+            # Don't display deleted or cancelled documents
+            # except for admins.
+            if doc.pub_status_code=='D' or doc.pub_status_code=='C':
+                if user==None:
+                    ok = 0
+                elif user.admin==0 and user.sysadmin==0:
+                    ok = 0
+
             # If any other parameters were specified, limit the documents
             # to those which match the requirements.
             if type_code and doc.type_code <> type_code:
@@ -830,19 +845,22 @@ class TableFactory:
             if ok > 0:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
-                    box = box + '<a href="editdoc|uri.lang_ext|/' + str(doc.id) + '">' + EDIT_ICON + '</a>'
+                    box = box + '<a href="/editdoc/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td>'
 #                if user and user.can_edit(doc_id=doc.id):
-#                    box = box + '<form name="make" action="data/control/make">\n'
+#                    box = box + '<form name="make" action="/data/control/make">\n'
 #                    box = box + '<input type=hidden name=doc_id value="' + str(doc.id) + '">\n'
 #                    box = box + '<input type=submit name="action" value="|strmake|">\n'
 #                    box = box + '</form>\n'
                 box = box + '</td>\n'
-                if doc.errors.count() > 0 or doc.files.error_count() > 0:
-                    box = box + '<td style="width:100%" class="error">' + doc.title + '</td>'
+                if doc.pub_status_code=='N' or doc.pub_status_code=='A':
+                    if doc.errors.count() > 0 or doc.files.error_count() > 0:
+                        box = box + '<td style="width:100%" class="error">' + doc.title + '</td>'
+                    else:
+                        box = box + '<td style="width:100%"><a href="/doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                 else:
-                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
+                    box = box + '<td style="width:100%">' + doc.title + '</td>'
                 box = box + '</tr>\n'
         box = box + '</table>'
         return box
@@ -872,7 +890,7 @@ class TableFactory:
                 if page.only_sysadmin > 0:
                     if user.sysadmin==0:
                         continue
-                box = box + '<a href="' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
+                box = box + '<a href="/' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr></table>\n'
         return box
 
@@ -958,7 +976,7 @@ class TableFactory:
         keys = lampadas.topics.sort_by('num')
         for key in keys:
             topic = lampadas.topics[key]
-            box.write('<li><a href="topic|uri.lang_ext|/%s">%s</a></li>\n'
+            box.write('<li><a href="/topic/%s|uri.lang_ext|">%s</a></li>\n'
                       % (topic.code, topic.name[uri.lang]))
         box.write('</ol></td></tr></table>\n')
         return box.get_value()
@@ -975,7 +993,7 @@ class TableFactory:
         for key in keys:
             subtopic = lampadas.subtopics[key]
             if subtopic.topic_code==uri.code:
-                box.write('<li><a href="subtopic|uri.lang_ext|/%s">%s</a>\n'
+                box.write('<li><a href="/subtopic/%s|uri.lang_ext|">%s</a>\n'
                           % (subtopic.code, subtopic.name[uri.lang]))
         box.write('</ol></td></tr>\n</table>\n')
         return box.get_value()
@@ -998,20 +1016,22 @@ class TableFactory:
         keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
-            box.write('<a href="type|uri.lang_ext|/%s">%s</a><br>\n'
+            box.write('<a href="/type/%s|uri.lang_ext|">%s</a><br>\n'
                       % (type.code, type.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
     def login(self, uri, user):
+        if self.command_line==1:
+            return ''
         if user:
             log(3, 'Creating active user box')
             box = '''<table class="navbox">
             <tr><th>|stractive_user|</th></tr>
-            <form name="logout" action="data/session/logout">
+            <form name="logout" action="/data/session/logout">
             <input name="username" type="hidden" value="%s">
             <tr><td align="center">
-            <a href="/user|uri.lang_ext|/|session_username|">|session_name|</a>
+            <a href="/user/|session_username||uri.lang_ext|">|session_name|</a>
             </td></tr>
             <tr><td align="center"><input type="submit" name="logout"
             value="|strlog_out|"></td></tr>
@@ -1022,7 +1042,7 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '''<table class="navbox">
             <tr><th colspan="2">|strlogin|</th></tr>
-            <form name="login" action="data/session/login" method="GET">
+            <form name="login" action="/data/session/login" method="GET">
             <tr>
               <td class="label">|strusername|</td>
               <td><input type="text" name="username" size="12"></td>
@@ -1034,8 +1054,8 @@ class TableFactory:
             <tr>
               <td align="center" colspan="2">
               <input type=submit name="login" value="login"><br>
-              <a href="mailpass|uri.lang_ext|">|strmail_passwd|</a><br>
-              <a href="newuser|uri.lang_ext|">|strcreate_acct|</a></td>
+              <a href="/mailpass">|strmail_passwd||uri.lang_ext|</a><br>
+              <a href="/newuser|uri.lang_ext|">|strcreate_acct|</a></td>
             </tr>
             </form> 
             </table>
@@ -1052,7 +1072,7 @@ class TableFactory:
             keys = sessions.sort_by('username')
             for key in keys:
                 session = sessions[key]
-                box.write('<a href="user|uri.lang_ext|/%s">%s</a><br>\n'
+                box.write('<a href="/user/%s|uri.lang_ext|">%s</a><br>\n'
                           % (session.username, session.username))
             box.write('</td></tr>\n</table>\n')
             return box.get_value()
@@ -1074,7 +1094,7 @@ class TableFactory:
             for key in keys:
                 session = sessions[key]
                 box.write('''<tr>
-                <td><a href="user|uri.lang_ext|/%s">%s</a></td>
+                <td><a href="/user/%s|uri.lang_ext|">%s</a></td>
                 <td>%s</td>
                 <td>%s</td>
                 <td>%s</td>
@@ -1101,15 +1121,17 @@ class TableFactory:
                     add_data = '/' + uri.data
                 else:
                     add_data = ''
-                box.write('<a href="/%s.%s%s">%s</a><br>\n'
-                          % (uri.filename, language.code.lower(),
-                             add_data, language.name[uri.lang]))
+                box.write('<a href="/%s%s.%s">%s</a><br>\n'
+                          % (uri.filename,
+                             add_data,
+                             language.code.lower(),
+                             language.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
-        box = '''<form name="mailpass" action="data/save/mailpass">
+        box = '''<form name="mailpass" action="/data/save/mailpass">
         <table class="box">
         <tr><th colspan="2">|strmail_passwd|</th></tr>
         <tr>
@@ -1124,6 +1146,7 @@ class TableFactory:
 
 class PageFactory:
 
+    command_line = 0
     tablef  = TableFactory()
 
     def page_exists(self, key):
@@ -1367,7 +1390,9 @@ def benchmark(url, reps):
 def main():
     import profile
     import pstats
-    
+
+    page_factory.command_line = 1
+    page_factory.tablef.command_line = 1
     if len(sys.argv[1:]):
         profile_it = 0
         reps_flag = 0

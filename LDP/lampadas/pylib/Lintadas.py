@@ -73,17 +73,27 @@ class Lintadas:
 
         log(3, 'Running Lintadas on document ' + str(doc_id))
         doc = lampadas.docs[doc_id]
-        assert not doc==None
-        doc.errors.clear()
-
+        filenames = doc.files.keys()
+        usernames = doc.users.keys()
+       
         # See if the document is maintained
         maintained = 0
-        keys = doc.users.keys()
-        for key in keys:
-            docuser = doc.users[key]
+        for username in usernames:
+            docuser = doc.users[username]
             if docuser.active==1 and docuser.role_code=='author' or docuser.role_code=='maintainer':
                 maintained = 1
         doc.maintained = maintained
+
+        # Clear any existing errors
+        doc.errors.clear()
+        for filename in filenames:
+            file = doc.files[filename]
+            file.errors.clear()
+
+        # If document is not active or archived, do not flag
+        # any errors against it.
+        if doc.pub_status_code<>'N' and doc.pub_status_code=='A':
+            return
 
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
@@ -93,64 +103,53 @@ class Lintadas:
             # Count the number of top files. There muse be exactly one.
             # This takes advantage of the fact that true=1 and false=0.
             top = 0
-            keys = doc.files.keys()
-            for key in keys:
-                top = top + doc.files[key].top
+            for filename in filenames:
+                top = top + doc.files[filename].top
             if top==0:
                 doc.errors.add(ERR_NO_PRIMARY_FILE)
             if top > 1:
                 doc.errors.add(ERR_TWO_PRIMARY_FILES)
 
-            # When we check a doc, we also check its files
-            self.check_files(doc.files)
+            for filename in filenames:
+                file = doc.files[filename]
+                file.errors.clear()
+
+                # Do not check remote files.
+                if file.local==0:
+                    log(3, 'Skipping remote file ' + filename)
+                    continue
+                
+                log(3, 'Checking filename ' + filename)
+                filename = config.cvs_root + file.filename
+                
+                # If file the is missing, flag error and stop.
+                if os.access(filename, os.F_OK)==0:
+                    file.errors.add(ERR_FILE_NOT_FOUND)
+                    continue
+
+                # If file is not readable, flag error and top.
+                if os.access(filename, os.R_OK)==0:
+                    file.errors.add(ERR_FILE_NOT_READABLE)
+                    continue
+
+                # Determine file format.
+                file_extension = string.lower(string.split(filename, '.')[-1])
+                if self.extensions.has_key(file_extension) > 0:
+                    file.format_code = self.extensions[file_extension]
+                
+                # Determine DTD for SGML and XML files
+                if file.format_code=='xml' or file.format_code=='sgml':
+                    file.dtd = self.read_file_dtd(filename)
+
+
+                # FIXME: need a way to keep track of who is managing these fields.
+                # Probably it should be managed by Lampadas, but allow the user
+                # the ability to override it with their setting.
+                
+                file.save()
 
         doc.save()
         log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
-
-    def check_files(self, files):
-        """
-        Checks for errors at the individual file level.
-        """
-
-        keys = files.keys()
-        for key in keys:
-            file = files[key]
-            file.errors.clear()
-
-            # Do not check remote files.
-            if file.local==0:
-                log(3, 'Skipping remote file ' + key)
-                continue
-            
-            log(3, 'Checking filename ' + key)
-            filename = config.cvs_root + file.filename
-            
-            # If file the is missing, flag error and stop.
-            if os.access(filename, os.F_OK)==0:
-                file.errors.add(ERR_FILE_NOT_FOUND)
-                continue
-
-            # If file is not readable, flag error and top.
-            if os.access(filename, os.R_OK)==0:
-                file.errors.add(ERR_FILE_NOT_READABLE)
-                continue
-
-            # Determine file format.
-            file_extension = string.lower(string.split(filename, '.')[-1])
-            if self.extensions.has_key(file_extension) > 0:
-                file.format_code = self.extensions[file_extension]
-            
-            # Determine DTD for SGML and XML files
-            if file.format_code=='xml' or file.format_code=='sgml':
-                file.dtd = self.read_file_dtd(filename)
-
-
-            # FIXME: need a way to keep track of who is managing these fields.
-            # Probably it should be managed by Lampadas, but allow the user
-            # the ability to override it with their setting.
-            
-            file.save()
-
 
     def read_file_dtd(self, filename):
         """

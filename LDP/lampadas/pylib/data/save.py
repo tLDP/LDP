@@ -59,7 +59,7 @@ def newdocument(req, username, doc_id,
     doc = lampadas.docs[newdoc_id]
     doc.users.add(username)
     
-    redirect(req, '/editdoc' + referer_lang_ext(req) + '/' + str(newdoc_id))
+    redirect(req, '/editdoc/' + str(newdoc_id) + referer_lang_ext(req))
 
 def document(req, username, doc_id,
              title, short_title,
@@ -217,7 +217,7 @@ def newuser(req, username, email, first_name, middle_name, surname, stylesheet, 
         return page_factory.page('email_exists')
 
     lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
-    redirect(req, '/user' + referer_lang_ext(req) + '/' + username)
+    redirect(req, '/user/' + username + referer_lang_ext(req))
 
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]

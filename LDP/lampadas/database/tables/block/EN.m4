@@ -23,12 +23,13 @@ insert([blkfooter],
           <a href="lampadas|uri.lang_ext|">|strabout_lamp|</a>
         </td>
       </tr>
+      <tr>
+        <td align="center" valign="center">
+          <a href="http://www.python.org"><img src="/images/PythonPowered.gif" alt="Python Powered!"></a>
+          <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
+        </td>
+      </tr>
     </table>
-    <p>
-    <center>
-        <a href="http://www.python.org"><img src="images/PythonPowered.gif" alt="Python Powered!"></a>
-        <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
-    </center>
 ])
 
 insert([blknopermission],

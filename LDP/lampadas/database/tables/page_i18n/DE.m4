@@ -337,7 +337,7 @@ insert([topic], [Liste der Themen], [],
 insert([subtopic], [Liste der Unterthemen], [],
 [
     |tabsubtopic|
-    |tabsubtopicdocs|
+    <p>|tabsubtopicdocs|
 ], 1)
 
 insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],

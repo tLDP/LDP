@@ -107,7 +107,7 @@ class Pages(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT page_code, section_code, sort_order, template_code, only_registered, only_admin, only_sysadmin FROM page"
+        sql = "SELECT page_code, section_code, sort_order, template_code, data, only_registered, only_admin, only_sysadmin FROM page"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -128,9 +128,10 @@ class Page:
         self.section_code	 = trim(row[1])
         self.sort_order      = safeint(row[2])
         self.template_code	 = trim(row[3])
-        self.only_registered = tf2bool(row[4])
-        self.only_admin      = tf2bool(row[5])
-        self.only_sysadmin   = tf2bool(row[6])
+        self.data            = trim(row[4])
+        self.only_registered = tf2bool(row[5])
+        self.only_admin      = tf2bool(row[6])
+        self.only_sysadmin   = tf2bool(row[7])
         sql = "SELECT lang, title, menu_name, page FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
