@@ -324,13 +324,14 @@ class String:
         
     def load_row(self, row):
         self.code = trim(row[0])
-        sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.code)
+        sql = "SELECT lang, string, version FROM string_i18n WHERE string_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            lang              = row[0]
-            self.string[lang] = trim(row[1])
+            lang               = row[0]
+            self.string[lang]  = trim(row[1])
+            self.version[lang] = trim(row[2])
 
     def add_lang(self, lang, webstring, version):
         sql = 'INSERT INTO string_i18n(string_code, lang, string, version) VALUES (' + wsq(self.code) + ', ' + wsq(lang) + ', ' + wsq(webstring) + ', ' + wsq(version) + ')'

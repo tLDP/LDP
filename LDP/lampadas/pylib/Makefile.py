@@ -35,6 +35,7 @@ from BaseClasses import *
 from Globals import *
 from DataLayer import lampadas
 from SourceFiles import sourcefiles
+from Languages import languages
 from Config import config
 from Lintadas import lintadas
 from Log import log
