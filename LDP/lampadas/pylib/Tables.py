@@ -180,73 +180,71 @@ class Tables:
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
         
-        box = '''
-        <table class="box" width="100%">
-        <tr><th colspan="6">|strdocfiles|</th></tr>
-        '''
+        box = WOStringIO('''<table class="box" width="100%%">
+        <tr><th colspan="6">%s</th></tr>
+        ''' % ('|strdocfiles|'))
         doc = lampadas.docs[uri.id]
         keys = doc.files.sort_by('filename')
         for key in keys:
+
             lintadas.check_file(key)
             docfile = doc.files[key]
             sourcefile = sourcefiles[key]
-            box = box + '<form method=GET action="/data/save/document_file" name="document_file">'
-            box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
-            box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + docfile.filename + '">\n'
-            box = box + '<tr>\n'
+            box.write('<form method=GET action="/data/save/document_file" name="document_file">')
+            box.write('<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n')
+            box.write('<input type=hidden name="filename" size=30 style="width:100%" value="' + docfile.filename + '">\n')
+            box.write('<tr>\n')
             if sourcefile.errors.count() > 0:
-                box = box + '<td class="sectionlabel error" colspan="6">' + docfile.filename + '</td>\n'
+                box.write('<td class="sectionlabel error" colspan="6">' + docfile.filename + '</td>\n')
             else:
-                box = box + '<td class="sectionlabel" colspan="6"><a href="|uri.base|sourcefile/' + docfile.filename + uri.lang_ext + '">' + docfile.filename + '</a></td>\n'
-            box = box + '</tr>\n'
-            box = box + '<tr>\n'
-            box = box + '<th class="label">|strprimary|</th>'
-            box = box + '<td>'  + widgets.tf('top', docfile.top, uri.lang) + '</td>\n'
-            box = box + '<th class="label">|strfilesize|</th>'
-            box = box + '<td>' + str(sourcefile.filesize) + '</td>\n'
-            box = box + '<th class="label">|strupdated|</th>'
+                box.write('<td class="sectionlabel" colspan="6"><a href="|uri.base|sourcefile/' + docfile.filename + uri.lang_ext + '">' + docfile.filename + '</a></td>\n')
+            box.write('</tr>\n')
+            box.write('<tr>\n')
+            box.write('<th class="label">|strprimary|</th>')
+            box.write('<td>'  + widgets.tf('top', docfile.top, uri.lang) + '</td>\n')
+            box.write('<th class="label">|strfilesize|</th>')
+            box.write('<td>' + str(sourcefile.filesize) + '</td>\n')
+            box.write('<th class="label">|strupdated|</th>')
             if sourcefile.modified > '':
-                box = box + '<td>' + sourcefile.modified + '</td>\n'
+                box.write('<td>' + sourcefile.modified + '</td>\n')
             else:
-                box = box + '<td>|strunknown|</td>\n'
-            box = box + '</tr>\n'
-            box = box + '<tr>\n'
-            box = box + '<th class="label">|strformat|</th>'
+                box.write('<td>|strunknown|</td>\n')
+            box.write('</tr>\n')
+            box.write('<tr>\n')
+            box.write('<th class="label">|strformat|</th>')
             if sourcefile.format_code > '':
-                box = box + '<td>'  + lampadas.formats[sourcefile.format_code].name[uri.lang] + '</td>\n'
+                box.write('<td>'  + lampadas.formats[sourcefile.format_code].name[uri.lang] + '</td>\n')
             else:
-                box = box + '<td>|strunknown|</td>\n'
-            box = box + '<th class="label">|strfilemode|</th>'
-            if sourcefile.filemode > '':
-                box = box + '<td>' + str(sourcefile.filemode) + '</td>\n'
-            else:
-                box = box + '<td>|strunknown|</td>\n'
-            box = box + '''
+                box.write('<td>|strunknown|</td>\n')
+            box.write('<th class="label">|strfilemode|</th>')
+            print sourcefile.filemode
+            box.write('<td>' + widgets.filemode(sourcefile.filemode) + '</td>\n')
+            box.write('''
             <td><input type="checkbox" name="delete">|strdelete|</td>
             <td><input type="submit" name="action" value="|strsave|"></td>
             </tr>
-            '''
-            box = box + '</form>'
+            ''')
+            box.write('</form>')
         
         # Add a new docfile
-        box = box + '<tr>\n'
-        box = box + '<form method=GET action="/data/save/newdocument_file" name="document_file">'
-        box = box + '<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n'
-        box = box + '<td colspan="6"><input type="text" name="filename" size="30" style="width:100%"></td>\n'
-        box = box + '</tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="label">|strprimary|</th>'
-        box = box + '<td>'  + widgets.tf('top', 0, uri.lang) + '</td>\n'
-        box = box + '<td></td>\n'
-        box = box + '<td></td>\n'
-        box = box + '<td></td>\n'
-        box = box + '''
+        box.write('<tr>\n')
+        box.write('<form method=GET action="/data/save/newdocument_file" name="document_file">')
+        box.write('<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n')
+        box.write('<td colspan="6"><input type="text" name="filename" size="30" style="width:100%"></td>\n')
+        box.write('</tr>\n')
+        box.write('<tr>\n')
+        box.write('<th class="label">|strprimary|</th>')
+        box.write('<td>'  + widgets.tf('top', 0, uri.lang) + '</td>\n')
+        box.write('<td></td>\n')
+        box.write('<td></td>\n')
+        box.write('<td></td>\n')
+        box.write('''
         <td><input type="submit" name="action" value="|stradd|"></td>
         </tr>
         </form>
-        '''
-        box = box + '</table>\n'
-        return box
+        ''')
+        box.write('</table>\n')
+        return box.get_value()
         
 
     def docusers(self, uri):

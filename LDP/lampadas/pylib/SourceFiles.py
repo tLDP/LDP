@@ -85,7 +85,7 @@ class SourceFile:
         self.dtd_code = ''
         self.dtd_version = ''
         self.filesize    = 0
-        self.filemode    = ''
+        self.filemode    = 0
         self.modified    = ''
         self.errors = FileErrs()
         self.errors.filename = filename
@@ -107,7 +107,7 @@ class SourceFile:
         self.dtd_version = trim(row[3])
         self.calc_local()
         self.filesize    = safeint(row[4])
-        self.filemode    = trim(row[5])
+        self.filemode    = safeint(row[5])
         self.modified    = time2str(row[6])
         self.file_only	 = os.path.split(self.filename)[1]
         self.basename	 = os.path.splitext(self.file_only)[0]

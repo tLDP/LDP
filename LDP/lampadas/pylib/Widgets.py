@@ -300,4 +300,10 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
+    def filemode(self, value):
+        if value > 0:
+            return WOStringIO(octal2permission(value)).get_value()
+        else:
+            return '|strunknown|'
+
 widgets = Widgets()

@@ -176,6 +176,26 @@ def trim(astring):
         temp = str(astring)
     return temp.strip()
 
+# This will be tested in the order listed
+FILEMODE_MASKS = ((0400, 'r'),
+                  (0200, 'w'),
+                  (0100, 'x'),
+                  (0040, 'r'),
+                  (0020, 'w'),
+                  (0010, 'x'),
+                  (0004, 'r'),
+                  (0002, 'w'),
+                  (0001, 'x'))
+
+def octal2permission(filemode):
+    symbolic = ''
+    for mask in FILEMODE_MASKS:
+        if filemode & mask[0]:
+            symbolic += mask[1]
+        else:
+            symbolic += '-'
+    return symbolic
+
 class WOStringIO:
     """
     Write-Only pure python extra fast buffer.

@@ -34,8 +34,8 @@ from URLParse import URI
 from DataLayer import *
 from SourceFiles import sourcefiles
 from WebLayer import lampadasweb
-from Widgets import widgets
 from Tables import tables
+from Widgets import widgets
 from Lintadas import lintadas
 from Sessions import sessions
 import commands
