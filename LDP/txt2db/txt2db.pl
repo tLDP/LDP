@@ -2,8 +2,6 @@
 #
 #Converts txt files into docbook.
 #
-#Usage: txt2db {-o <output file>} <text file>
-
 my($txtfile, $dbfile) = '';
 
 #These keep track of which constructs we're in the middle of
@@ -21,18 +19,22 @@ my($level1,
 my($line);
 my($id, $title);
 
+my($verbose);
+
 my($error);
 $error = 0;
 
 # read in cmd-line arguments
 #
 while (1) {
-	if($ARGV[0] eq "-o") {
+	if($ARGV[0] eq "-o" or $ARGV[0] eq "--output-to") {
 		shift(@ARGV);
 		$dbfile = $ARGV[0];
 		shift(@ARGV);
-	} elsif($ARGV[0] eq "-h") {
+	} elsif($ARGV[0] eq "-h" or $ARGV[0] eq "--help") {
 		&usage;
+	} elsif($ARGV[0] eq "-v" or $ARGV[0] eq "--verbose") {
+		$verbose = 1;
 	} else {
 		$txtfile = $ARGV[0];
 		shift(@ARGV);
@@ -73,15 +75,21 @@ exit(0);
 # -----------------------------------------------------------
 
 sub usage {
-	print "Usage: txt2db {-o <sgml file>} <text file>\n";
+	print "Usage: txt2db [-v] [-h|-o <sgml file>] <text file>\n";
+	print "-h, --help         show this usage message.\n";
+	print "-v, --verbose      show diagnostic output.\n";
+	print "-o, --output-to    write to the specified file.\n";
 	exit($error);
 }
 
 sub proc_txt {
 	my($f) = @_;
+	
+	my($linenumber);
+	$linenumber = 0;
+	
 	my ($noparatag,
 	    $noparadepth);
-
 	$noparadepth = 0;
 
 	# read in the text file
@@ -90,6 +98,8 @@ sub proc_txt {
 	while (<TXT>) {
 		$originalline = $_;
 		$line = $originalline;
+		$linenumber++;
+
 		&trimline;
 
 		# blank lines
@@ -249,7 +259,6 @@ sub proc_txt {
 		# para
 		#
 		} else {
-			print "line: $line, noparatag=$noparatag\n";
 			if (($para == 0) and ($noparatag eq '')) {
 				$line =~ s/^/<para>/;
 				$para = 1;
@@ -264,12 +273,12 @@ sub proc_txt {
 		# 
 		while ($line =~ /\[\[/) {
 			unless ($line =~ /\]\]/) {
-				print "txt2db: ERROR unterminated '[[' tag.\n";
+				print "txt2db: ERROR unterminated '[[' tag on line $linenumber.\n";
 				exit(1);
 			}
 			$link = $line;
-			$link =~ s/^.*?\[\[//;
-			$link =~ s/\]?\].*$//;
+			$link =~ s/.*?\[\[//;
+			$link =~ s/\]\].*?$//;
 			if ( $link =~ /\|/) {
 				$linkname = $link;
 				$link =~ s/\|.+$//;
@@ -280,7 +289,7 @@ sub proc_txt {
 			} else {
 				$linkname = $link;
 			}
-			$line =~ s/\[?\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		}
 
 		# emphasis
