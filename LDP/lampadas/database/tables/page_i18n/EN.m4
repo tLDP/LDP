@@ -33,59 +33,27 @@ insert([my], [My Home], [],
     <p>|session_user_docs|</p>
 ], 1)
 
-insert([home], [|strprojectshort| Home Page], [Home], 
+insert([home], [|strprojectshort| Home Page], [Home],
 [
     <p>Welcome to |strproject|.</p>
 
     <p>This site is based on a development version of the
-    Lampadas Document Management System from
-    <a href="http://www.tldp.org">The Linux Documentation Project</a></p>
+    <a href="|uri.base|lampadas|uri.lang_ext|">Lampadas Document Management System</a>
+    from
+    <a href="http://www.tldp.org">The Linux Documentation Project</a>.</p>
 
-    <p>This is <i><b>alpha quality</b></i> code, updated from the cvs tree
-    very frequently, whenever there are significant features or
-    bugfixes available.
-    This happens at least once a day and sometimes
-    several times a day.
-    The system is fairly stable, although some half-
-    implemented features will cause ugly error dumps.</p>
-    
-    <p>This demo site is populated with data from the LDPDB.
-    If you had an account on the LDPDB, you have one here.
-    However, because passwords on the LDPDB are stored only in
-    hashed form, I was unable to port them over, and you\'ve been
-    given a new password. To get it, click the "Mail Password"
-    link and your new password will be mailed to your address
-    of record.</p>
+    <p>There are many ways to delve into the documents that are published here.
+    Select any one of them from the navigation menus in the left margin.
 
-    <p>There are also a set of additional test users.
-    Log in as one of them to see the site through their eyes.
-    The pages change depending on your access level.
-    These users\'passwords are "password".</p>
-
-    <ul>
-        <li>sysadmin - the SUPERUSER, who manages the system.</li>
-        <li>admin - the Site Administrator, who manages the content.</li>
-        <li>french - a French-speaking user.</li>
-        <li>german - a German-speaking user.</li>
-        <li>korean - a Korean-speaking user.</li>
-    </ul>
-
-    <p>We greatly appreciate your comments, bug reports or questions.
-    You can reach David Merrill at
-    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
-    If you want to help build Lampadas, it is a really fun and exciting
-    project.
-    You can find out more about it by reading the
-    <a href="http://www.lupercalia.net/lampadas/">Lampadas Developer\'s
-    Guide</a>.</p>
+    <p>|tabrecentnews|
 ], 1)
 
-insert([doctable], [Browse Documents], [],
+insert([doctable], [Document Table], [],
 [
     |tabdocs|
 ], 1)
 
-insert([document_list], [Document List], [],
+insert([document_list], [Detailed Document Table], [],
 [
     |tabdocs_block|
 ], 1)    
@@ -95,7 +63,7 @@ insert([search], [Search], [],
     |tabsearch|
 ], 1)
 
-insert([news], [Latest News], [],
+insert([news], [Recent News], [],
 [
     |tabrecentnews|
 ], 1)
@@ -107,6 +75,7 @@ insert([stats], [Current Statistics], [],
     <p>|tabmirror_time_stats|
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|
+    <p>|tabdoc_dtd_stats|
 ], 1)
 
 insert([staff], [Staff], [],
@@ -239,18 +208,71 @@ insert([lampadas], [About Lampadas], [],
 [
     <p>This website is based on version |version| of the Lampadas
     Documentation Management System,
-    a Free Software (GPL) platform developed by
+    a Free Software (GPL) platform developed by David Merrill
+    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>
+    and others at
     <a href="http://www.tldp.org">The Linux Documentation Project</a>.
-    
+
     <p>Lampadas is a powerful, flexible platform designed to support
     large documentation projects such as the LDP.
     It provides an interactive environment for writing, managing,
     publishing and reading documentation.
+    
+    <p>The system is being adopted by the LDP and by the
+    Gnome Documentation Project.
 
-    <p>Lampadas creates a collaborative community which
-    includes authors, editors, technical experts, and readers all working
+    <p>Lampadas is intended to facilitate a more collaborative process,
+    with authors, editors, technical experts, and readers working
     together to produce documentation, and to share information with
     each other.
+    The idea is that for documentation to improve at the same rate as
+    other Free Software projects, we also need to start taking advantage
+    of the strength of Open Source, which is massive parallelism.
+    Of course, very little of this vision is available
+    in the code running on this server.
+    Version 1.0 is all about getting the core features implemented
+    in a sane and flexible way. Version 1.0 is the basic infrastructure.
+
+    <p>This is <i><b>alpha quality</b></i> code, updated from the cvs tree
+    very frequently, whenever there are significant features or
+    bugfixes available.
+    This happens at least once a day and sometimes
+    several times a day.
+    The system is fairly stable but not production grade quiet yet.
+
+    <h1>About This Demo Site</h1>
+
+    <p>This demo site is populated with data from the LDPDB.
+    If you had an account on the LDPDB, you have one here.
+    However, because passwords on the LDPDB are stored only in
+    hashed form, I was unable to port them over, and you\'ve been
+    given a new password. To get it, click the "Mail Password"
+    link and your new password will be mailed to your address
+    of record.</p>
+
+    <p>There are also a set of additional test users.
+    Log in as one of them to see the site through their eyes.
+    The pages change depending on your access level.
+    These users\' passwords are "password".
+    (You probably want to test drive being "syadmin", folks.
+    It's a very different interface.)</p>
+
+    <ul>
+        <li>sysadmin - the SUPERUSER, who manages the system.</li>
+        <li>admin - the Site Administrator, who manages the content.</li>
+        <li>french - a French-speaking user.</li>
+        <li>german - a German-speaking user.</li>
+        <li>korean - a Korean-speaking user.</li>
+    </ul>
+
+    <p>We greatly appreciate your comments, bug reports or questions.
+    You can reach David Merrill at
+    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
+    If you want to help build Lampadas, it is a really fun and exciting
+    project.
+    You can find out more about it by reading the
+    <a href="http://www.lupercalia.net/lampadas/">Lampadas Developer\'s
+    Guide</a>.</p>
 
     <h1>Why Lampadas?</h1>
 

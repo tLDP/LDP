@@ -266,9 +266,9 @@ class PageFactory:
                 elif token=='tabtopic':
                     newstring = tables.tabtopic(uri)
 #                elif token=='tabdocs':
-#                    newstring = tables.doctable(uri, lang=uri.lang)
-                elif token=='tabdocs_block':
-                    newstring = tables.doctable(uri, lang=uri.lang, layout='block')
+#                    newstring = tables.doctable(uri, lang=uri.lang, layout='compact')
+#                elif token=='tabdocs_block':
+#                    newstring = tables.doctable(uri, lang=uri.lang, layout='block')
                 elif token=='tabmaint_wanted':
                     newstring = tables.doctable(uri, maintainer_wanted=1, lang=uri.lang)
                 elif token=='tabunmaintained':
@@ -335,6 +335,8 @@ class PageFactory:
                     newstring = tables.tabdoc_error_stats(uri)
                 elif token=='tabdoc_format_stats':
                     newstring = tables.tabdoc_format_stats(uri)
+                elif token=='tabdoc_dtd_stats':
+                    newstring = tables.tabdoc_dtd_stats(uri)
                 elif token=='tabdocument_tabs':
                     newstring = tables.tabdocument_tabs(uri)
             

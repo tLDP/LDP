@@ -92,6 +92,7 @@ insert([stats], [Current Statistics], [],
     <p>|tabmirror_time_stats|
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|
+    <p>|tabdoc_dtd_stats|
 ], 1)
 
 insert([staff], [Projektteam], [],

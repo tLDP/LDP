@@ -107,6 +107,7 @@ insert(strtranslations,      [Translations]) m4_dnl FIXME
 insert(strall,               [All])
 insert(strrecentnews,        [Recent News])  m4_dnl FIXME
 insert(strreplacedby,        [Replaced By])  m4_dnl FIXME
+insert(strlint_time,         [Lintadas Time])
 insert(strpub_time,          [Pub Time])
 insert(strmirror_time,       [Mirror Time])
 insert(strnone,              [None])
@@ -118,5 +119,6 @@ insert(strpub_time_stats,    [Publication Time Statistics])
 insert(strpub_status_stats,  [Publication Status Statistics])
 insert(strdoc_error_stats,   [Document Error Statistics])
 insert(strdoc_format_stats,  [Document Format Statistics])
+insert(strdoc_dtd_stats,     [Document DTD Statistics])
 insert(strtotal,             [Total])
 insert(strcollections,       [Collections])

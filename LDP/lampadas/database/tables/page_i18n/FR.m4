@@ -58,7 +58,7 @@ insert([home], [|strproject|], [Home],
 
 insert([doctable], [Browse Documents], [],
 [
-	|tabdocs|
+	|tabdocs|z
 ], 1)
 
 insert([document_list], [Document List], [],
@@ -83,6 +83,7 @@ insert([stats], [Current Statistics], [],
     <p>|tabmirror_time_stats|
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|
+    <p>|tabdoc_dtd_stats|
 ], 1)
 
 insert([staff], [Staff], [],

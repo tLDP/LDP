@@ -9,8 +9,8 @@ insert([blklogo], [
 <table class="logo">
   <tr>
     <td valign="top">
-      <a href="|uri.base|home|uri.lang_ext|" alt=="Home">
-      <img src="|uri.base|images/ldp200x80.png" alt="LDP" height="80" width="200">
+      <a href="|uri.base|home|uri.lang_ext|">
+      <img src="|uri.base|images/logos/ldp200x80.png" alt="LDP" height="80" width="200">
       </a>
     </td>
   </tr>
@@ -37,12 +37,12 @@ insert([blkfooter], [
   </tr>
 </table>
 <center>
-  <a href="http://www.python.org"><img src="|uri.base|images/PythonPowered.gif" alt="Python Powered!"></a>
+  <a href="http://www.python.org"><img src="|uri.base|images/logos/PythonPowered.gif" alt="Python Powered!"></a>
   <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
-  <a href="http://www.gnome.org"><img src="|uri.base|images/gnome2.png" height="48" width="48" alt="Gnome"></a>
-  <a href="http://www.tldp.org"><img src="|uri.base|images/ldp200x80.png" width="200" height="80" alt="TLDP"></a>
+  <a href="http://www.gnome.org"><img src="|uri.base|images/logos/gnome2.png" height="48" width="48" alt="Gnome"></a>
+  <a href="http://www.tldp.org"><img src="|uri.base|images/logos/ldp200x80.png" width="200" height="80" alt="TLDP"></a>
   <br>|strrender_time|: |elapsed_time|
-</center> ])
+</center>])
 
 insert([blknopermission], [
 <table class="box" width="100%">
