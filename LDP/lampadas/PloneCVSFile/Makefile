@@ -3,6 +3,10 @@ mod       = $(modprefix)/PloneCVSFile
 dtml      = $(mod)/dtml
 www       = $(mod)/www
 skins     = $(mod)/skins
+content   = $(mod)/skins/lampadas_content/
+forms     = $(mod)/skins/lampadas_forms/
+templates = $(mod)/skins/lampadas_templates/
+slots     = $(mod)/skins/lampadas_templates/ui_slots
 ext       = $(mod)/Extensions
 
 INSTALLDIR = install -d
@@ -35,12 +39,26 @@ install: all
 	
 	$(INSTALLDIR) $(www)
 	$(INSTALLMOD) www/fish.gif                   $(www)
+	$(INSTALLMOD) www/logo.png                   $(www)
 	
 	$(INSTALLDIR) $(skins)
-	$(INSTALLMOD) skins/lampadas_templates/file_edit_form  $(skins)
+	
+	$(INSTALLDIR) $(content)
+	$(INSTALLMOD) skins/lampadas_content/file_edit_form.pt $(content)
+	$(INSTALLMOD) skins/lampadas_content/file_view.pt      $(content)
+	
+	$(INSTALLDIR) $(forms)
+	$(INSTALLMOD) skins/lampadas_forms/folder_listing.pt   $(forms)
+	
+	$(INSTALLDIR) $(templates)
+	$(INSTALLMOD) skins/lampadas_templates/header.pt       $(templates)
+	$(INSTALLMOD) skins/lampadas_templates/news.pt         $(templates)
+	
+	$(INSTALLDIR) $(slots)
+	$(INSTALLMOD) skins/lampadas_templates/ui_slots/news_slot.pt $(slots)
 	
 	$(INSTALLDIR) $(ext)
-	$(INSTALLMOD) ext/CMFCVSInstall.py           $(ext)
+	$(INSTALLMOD) Extensions/CMFCVSInstall.py $(ext)
 
 uninstall:
 	rm -rf $(mod)

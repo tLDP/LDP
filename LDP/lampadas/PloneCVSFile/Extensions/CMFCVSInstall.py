@@ -24,8 +24,8 @@ from Products.CMFCore.utils import getToolByName
 from Products.PloneCVSFile import factory_type_information
 from Products.CMFCore.TypesTool import ContentFactoryMetadata
 from Products.CMFCore.DirectoryView import addDirectoryViews
-from Products.PloneCVSFile import cfm_cvs_globals
-from Defaults import META_TYPE, PORTAL_TYPE
+from Products.PloneCVSFile import cmf_cvsfile_globals
+from Products.PloneCVSFile.Defaults import META_TYPE, PORTAL_TYPE
 from ZODB.PersistentMapping import PersistentMapping
 import string
 
@@ -37,6 +37,9 @@ def install(self):
     typestool = getToolByName(self, 'portal_types')
     skinstool = getToolByName(self, 'portal_skins')
     workflowtool = getToolByName(self, 'portal_workflow')
+
+    out.write('factory_type_information:\n')
+    out.write(str(factory_type_information))
     
     # Borrowed from CMFDefault.Portal.PortalGenerator.setupTypes()
     # We loop through anything defined in the factory type information
@@ -56,7 +59,7 @@ def install(self):
         # We need to add Filesystem Directory Views for any directories
         # in our skins/ directory.  These directories should already be
         # configured.
-        addDirectoryViews(skinstool, 'skins', cfm_cvs_globals)
+        addDirectoryViews(skinstool, 'skins', cmf_cvsfile_globals)
         out.write("Added 'lampadas' directory view to portal_skins\n")
 
     # Now we need to go through the skin configurations and insert

@@ -355,6 +355,7 @@ class State:
         self.session = None
         self.user = None
         self.static = 0
+        self.uri = None
 
 
 state = State()

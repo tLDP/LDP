@@ -30,6 +30,7 @@ import urlparse
 import os
 import string
 
+from Globals import WOStringIO
 from CoreDM import dms
 
 # Only load this once. No need to support adding languages during runtime!
@@ -129,8 +130,8 @@ class URI:
 
         page = dms.page.get_by_id(self.page_code)
         if page==None:
-            print "ERROR"
-            self.printdebug()
+            print "ERROR: page not found."
+            self.print_debug()
             return
         
         # If the page specifies that it includes an object,
@@ -160,29 +161,34 @@ class URI:
                 self.filename = string.join(data, '/')
                 break
 
-    def printdebug(self):
-        print "URI: [%s]"                % self.uri
-        print "Base: [%s]"               % self.base
-        print "Protocol: [%s]"           % self.protocol
-        print "Server: [%s]"             % self.server
-        print "Port: [%s]"               % self.port
-        print "Path: [%s]"               % self.path
-        print "Page Code: [%s]"          % self.page_code
-        print "Page Data: [%s]"          % self.page_data
-        print "Language: [%s]"           % self.lang
-        print "Language Extension: [%s]" % self.lang_ext
-        print "Parameter: [%s]"          % self.parameter
-        print "Anchor: [%s]"             % self.anchor
-        print "ID: [%s]"                 % self.id
-        print "Code [%s]"                % self.code
-        print "Letter: [%s]"             % self.letter
-        print "Username: [%s]"           % self.username
-        print "Filename: [%s]"           % self.filename
-        print "Data: [%s]"               % self.data
+    def print_debug(self):
+        print self.debug_info()
+
+    def debug_info(self):
+        info = WOStringIO()
+        info.write("URI: [%s]\n"                % self.uri)
+        info.write("Base: [%s]\n"               % self.base)
+        info.write("Protocol: [%s]\n"           % self.protocol)
+        info.write("Server: [%s]\n"             % self.server)
+        info.write("Port: [%s]\n"               % self.port)
+        info.write("Path: [%s]\n"               % self.path)
+        info.write("Page Code: [%s]\n"          % self.page_code)
+        info.write("Page Data: [%s]\n"          % self.page_data)
+        info.write("Language: [%s]\n"           % self.lang)
+        info.write("Language Extension: [%s]\n" % self.lang_ext)
+        info.write("Parameter: [%s]\n"          % self.parameter)
+        info.write("Anchor: [%s]\n"             % self.anchor)
+        info.write("ID: [%s]\n"                 % self.id)
+        info.write("Code [%s]\n"                % self.code)
+        info.write("Letter: [%s]\n"             % self.letter)
+        info.write("Username: [%s]\n"           % self.username)
+        info.write("Filename: [%s]\n"           % self.filename)
+        info.write("Data: [%s]\n"               % self.data)
+        return info.get_value()
 
 
 if __name__=='__main__':
     import sys
 
     foo = URI(sys.argv[1])
-    foo.printdebug()
+    foo.print_debug()

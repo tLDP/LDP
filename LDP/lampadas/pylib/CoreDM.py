@@ -5,11 +5,12 @@ This module instantiates data managers for all database tables.
 """
 
 import datamanager
+import datamanager.datamanagers
 import persistence
 import dataset
 from datamanager.cache import CACHE_UNLIMITED
 
-dms = datamanager.DataManagers()
+dms = datamanager.datamanagers.DataManagers()
 dms.set_objects(persistence)
 dms.set_datasets(dataset)
 

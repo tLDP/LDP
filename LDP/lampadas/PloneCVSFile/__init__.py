@@ -1,3 +1,5 @@
+from Products.CMFDefault import Portal
+
 import PloneCVSFile
 
 from Products.CVSFile.CVSSandboxRegistry import manage_addCVSSandboxRegistryForm, \
@@ -9,8 +11,6 @@ from Products.ExternalFile.CreationDialog import manage_add_via_gui, \
 
 from Products.CMFCore.DirectoryView import registerDirectory
 from Products.CMFCore import utils, CMFCorePermissions
-
-from Products.CMFDefault import Portal
 
 from OMF import OMF
 from Defaults import META_TYPE
@@ -50,7 +50,7 @@ this_module = sys.modules[__name__]
 
 z_bases = utils.initializeBasesPhase1(bases, this_module)
 
-cfm_cvsfile_globals = globals()
+cmf_cvsfile_globals = globals()
 registerDirectory('skins', globals())
 
 def initialize(context):
