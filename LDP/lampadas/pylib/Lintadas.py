@@ -127,7 +127,10 @@ class Lintadas:
                     continue
                 
                 log(3, 'Checking filename ' + filename)
-                filename = config.cvs_root + file.filename
+                if file.in_cvs==1:
+                    filename = file.cvsname
+                else:
+                    filename = file.localname
                 
                 # If file the is missing, flag error and stop.
                 if os.access(filename, os.F_OK)==0:

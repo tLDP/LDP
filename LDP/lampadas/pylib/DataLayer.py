@@ -551,10 +551,7 @@ class DocFiles(LampadasCollection):
         file.errors.filename = filename
         file.top = top
         file.format_code = format_code
-        if file.filename[:5]=='http:' or file.filename[:4]=='ftp:' or file.filename[:5]=='file:':
-            file.local = 0
-        else:
-            file.local = 1
+        file.calc_local()
         file.save()
         self.data[file.filename] = file
         return file
@@ -581,6 +578,7 @@ class DocFile:
 
     def __init__(self, filename=''):
         self.filename = filename
+        self.calc_local()
         self.format_code = ''
         self.dtd_code    = ''
         self.dtd_version = ''
@@ -603,6 +601,7 @@ class DocFile:
     def load_row(self, row):
         self.doc_id      = row[0]
         self.filename    = trim(row[1])
+        self.calc_local()
         self.top         = tf2bool(row[2]) 
         self.format_code = trim(row[3])
         self.dtd_code = trim(row[4])
@@ -610,10 +609,6 @@ class DocFile:
         self.filesize    = safeint(row[6])
         self.filemode    = trim(row[7])
         self.modified    = time2str(row[8])
-        if self.filename[:5]=='http:' or self.filename[:4]=='ftp:' or self.filename[:5]=='file:':
-            self.local = 0
-        else:
-            self.local = 1
         self.file_only	= os.path.split(self.filename)[1]
         self.basename	= os.path.splitext(self.file_only)[0]
         self.errors.filename = self.filename
@@ -635,6 +630,23 @@ class DocFile:
         sql = sqlgen.update('document_file',dict,['doc_id','filename'])
         db.execute(sql,dict)
         db.commit()
+
+    def calc_local(self):
+        if self.filename[:7]=='http://' or self.filename[:6]=='ftp://':
+            self.local = 0
+            self.localname = ''
+            self.in_cvs = 0
+            self.cvsname = ''
+        else:
+            self.local = 1
+            if self.filename[:7]=='file://':
+                self.localname = self.filename[7:]
+                self.in_cvs = 0
+                self.cvsname = ''
+            else:
+                self.localname = self.filename
+                self.in_cvs = 1
+                self.cvsname = config.cvs_root + self.filename
 
 
 # FileErrs

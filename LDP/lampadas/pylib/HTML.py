@@ -1192,7 +1192,9 @@ class TableFactory:
                 else:
                     add_data = ''
                 add_data = string.join(uri.data,'/')
-                box.write('<a href="/%s/%s.%s.html">%s</a><br>\n'
+                if add_data > '':
+                    add_data = '/' + add_data
+                box.write('<a href="/%s%s.%s.html">%s</a><br>\n'
                           % (uri.page_code,
                              add_data,
                              language.code.lower(),
