@@ -1,7 +1,7 @@
 CREATE TABLE class
 (
-	class_id		INT4		NOT NULL,
+	class_code		CHAR(20)	NOT NULL,
 	sort_order		INT4		NOT NULL,
 
-	PRIMARY KEY (class_id)
+	PRIMARY KEY (class_code)
 );

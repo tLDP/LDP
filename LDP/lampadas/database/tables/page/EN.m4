@@ -28,3 +28,5 @@ insert(account_created,     default,    none,       0,  f,  f,  f)
 insert(user,                default,    none,       0,  f,  f,  f)
 insert(logged_in,           default,    none,       0,  f,  f,  f)
 insert(logged_out,          default,    none,       0,  f,  f,  f)
+insert(class,               default,    none,       0,  f,  f,  f)
+

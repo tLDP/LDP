@@ -19,6 +19,8 @@ insert(default,
             <td class="sidebar">
               |tabmenus|
               |tabtopics|
+              |tabclasses|
+              |tablanguages|
             </td>
             <td class="body">
               |body|
@@ -57,6 +59,8 @@ insert(index,
             <td class="sidebar">
               |tabmenus|
               |tabtopics|
+              |tabclasses|
+              |tablanguages|
             </td>
             <td class="body">
               |body|

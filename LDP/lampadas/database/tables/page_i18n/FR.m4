@@ -167,8 +167,6 @@ insert([account_created], [Account Created], [],
 
 insert([user], [|user_name|], [],
 [
-    <p>This is the page for a user:
-
     |tabuser|
 ])
 
@@ -180,4 +178,9 @@ insert([logged_in], [Logged In], [],
 insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
+])
+
+insert([class], [|class.name|], [],
+[
+    |tabclassdocs|
 ])

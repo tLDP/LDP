@@ -1,26 +1,26 @@
-insert(1, [HOWTO],
+insert(howto, [HOWTO],
   [A description of "HOWTO" do something on Linux.])
-insert(2, [FAQ],
+insert(faq, [FAQ],
   [A list of Frequently Asked Questions.])
-insert(3, [Template],
+insert(template, [Template],
   [A template you can use to base a new document on.])
-insert(4, [Quick Reference],
+insert(quickref, [Quick Reference],
   [A single page or other very short reference. Often a cheat sheet of program options or similar.])
-insert(5, [User\'s Guide],
+insert(userguide, [User\'s Guide],
   [End user documentation for an application.])
-insert(6, [Programmer\'s Guide],
+insert(programguide, [Programmer\'s Guide],
   [Documentation for programmers and other software developers.])
-insert(7, [Guide],
+insert(guide, [Guide],
   [In depth coverage of some subject, often a full-length book.])
-insert(8, [Introduction],
+insert(intro, [Introduction],
   [Background or introductory information, suitable for a novice.])
-insert(9, [Manual Page],
+insert(manpage, [Manual Page],
   [A traditional form of documentation for UNIX systems.])
-insert(10, [Article],
+insert(article, [Article],
   [A magazine article.])
-insert(11, [Wiki Article],
+insert(wiki, [Wiki Article],
   [A page from a WikiWikiWeb.])
-insert(12, [Specification],
+insert(spec, [Specification],
   [The specification for a standard, such as those from the World Wide Web Consortium.])
-insert(13, [Tutorial],
+insert(tutorial, [Tutorial],
   [A tutorial or getting started document.])

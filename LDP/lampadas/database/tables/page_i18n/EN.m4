@@ -275,10 +275,8 @@ insert([account_created], [Account Created], [],
     Please check your email.
 ])
 
-insert([user], [|user_name|], [],
+insert([user], [|user.name|], [],
 [
-    <p>This is the page for a user:
-
     |tabuser|
 ])
 
@@ -291,3 +289,9 @@ insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
 ])
+
+insert([class], [|class.name|], [],
+[
+    |tabclassdocs|
+])
+

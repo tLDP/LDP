@@ -1,8 +1,8 @@
 CREATE TABLE language
 (
-	isocode			CHAR(2),
-	supported		BOOLEAN DEFAULT False,
+	lang_code		CHAR(2)		NOT NULL,
+	supported		BOOLEAN		NOT NULL	DEFAULT False,
 
-	PRIMARY KEY (isocode)
+	PRIMARY KEY (lang_code)
 );
 
