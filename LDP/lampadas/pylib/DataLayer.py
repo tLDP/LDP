@@ -66,7 +66,8 @@ class Lampadas:
         self.Languages      = Languages()
         self.PubStatuses    = PubStatuses()
         self.ReviewStatuses = ReviewStatuses()
-        self.Topics         = Topics()
+        self.topics         = Topics()
+        self.subtopics      = Subtopics()
         self.Users          = Users()
 
     def User(self, UserID):
@@ -106,7 +107,7 @@ class Class:
 
     def Load(self, row):
         self.ID = row[0]
-        sql = "SELECT lang, class_name, class_description FROM class_i18n WHERE class_id=" + str(self.ID)
+        sql = "SELECT lang, class_name, class_desc FROM class_i18n WHERE class_id=" + str(self.ID)
         self.cursor = db.select(sql)
         while (1):
             self.row = self.cursor.fetchone()
@@ -800,14 +801,14 @@ class Topics(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT topic_num FROM topic"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT topic_code, topic_num FROM topic"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newTopic = Topic()
             newTopic.Load(row)
-            self.data[newTopic.Num] = newTopic
+            self.data[newTopic.code] = newTopic
 
 class Topic:
     """
@@ -816,28 +817,83 @@ class Topic:
     to help them find a document on the subject in which they are interested.
     """
 
-    def __init__(self, TopicNum=None):
-        self.I18n = LampadasCollection()
-        if TopicNum==None: return
-        self.Num = TopicNum
+    def __init__(self, TopicCode=None, TopicNum=None):
+        self.i18n = LampadasCollection()
+        if TopicCode==None: return
+        self.code = TopicCode
+        self.num  = TopicNum
 
     def Load(self, row):
-        self.Num = trim(row[0])
-        self.sql = "SELECT lang, topic_name, topic_description FROM topic_i18n string_i18n WHERE topic_num=" + wsq(self.Num)
-        self.cursor = db.select(self.sql)
+        self.code = trim(row[0])
+        self.num  = safeint(row[1])
+        sql = "SELECT lang, topic_name, topic_desc FROM topic_i18n WHERE topic_code=" + wsq(self.code)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
+            row = cursor.fetchone()
+            if row == None: break
             newTopicI18n = TopicI18n()
-            newTopicI18n.Load(self.row)
-            self.I18n[newTopicI18n.Lang] = newTopicI18n
+            newTopicI18n.Load(row)
+            self.i18n[newTopicI18n.lang] = newTopicI18n
 
 class TopicI18n:
 
     def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[2])
+        self.lang        = row[0]
+        self.name        = trim(row[1])
+        self.description = trim(row[2])
+
+    
+# Subtopics
+
+class Subtopics(LampadasCollection):
+    """
+    A collection object of all subtopics.
+    """
+    
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT subtopic_code, subtopic_num, topic_code FROM subtopic"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSubtopic = Subtopic()
+            newSubtopic.Load(row)
+            self.data[newSubtopic.code] = newSubtopic
+
+class Subtopic:
+    """
+    Each document can be assigned an arbitrary number of topics.
+    The web interface allows a user to browse through document topics,
+    to help them find a document on the subject in which they are interested.
+    """
+
+    def __init__(self, SubtopicCode=None, SubtopicNum=None, TopicCode=None):
+        self.i18n = LampadasCollection()
+        if SubtopicCode==None: return
+        self.code       = SubtopicCode
+        self.num        = SubtopicNum
+        self.topic_code = SubtopicCode
+
+    def Load(self, row):
+        self.code       = trim(row[0])
+        self.num        = safeint(row[1])
+        self.topic_code = trim(row[2])
+        sql = "SELECT lang, subtopic_name, subtopic_desc FROM subtopic_i18n WHERE subtopic_code=" + wsq(self.code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSubtopicI18n = SubtopicI18n()
+            newSubtopicI18n.Load(row)
+            self.i18n[newSubtopicI18n.lang] = newSubtopicI18n
+
+class SubtopicI18n:
+
+    def Load(self, row):
+        self.lang        = row[0]
+        self.name        = trim(row[1])
+        self.description = trim(row[2])
 
     
 # Users

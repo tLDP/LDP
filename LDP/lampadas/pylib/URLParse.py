@@ -56,10 +56,10 @@ class URI:
         self.language = "EN"
         self.force_lang = 0
         self.path = ""
-#        self.service = ""
         self.format = ""
         self.filename = "home"
         self.id = 0
+        self.code = ''
         self.parameter = ""
         self.anchor = ""
 
@@ -98,17 +98,15 @@ class URI:
         if len(temp) > 0:
             
             if temp[0] == 'editdoc':
-#                self.service = ''
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-#                    temp = temp[1:]
-#                    if len(temp) > 0:
-#                        if temp[0] == 'xml' or temp[0] == 'html' or temp[0] == 'omf':
-#                            self.format = temp[0]
-#                        else:
-#                            self.filename = temp[0]
+            elif temp[0] == 'topic':
+                self.filename = temp[0]
+                temp = temp[1:]
+                if len(temp) > 0:
+                    self.code = temp[0]
             else:
                 if len(temp) == 1:
                     self.path = '/'
@@ -128,8 +126,8 @@ class URI:
         print "Path: [" + self.path + "]"
         print "Language: [" + self.language + "]"
         print "Forced Language: [" + str(self.force_lang) + "]"
-#        print "Service: [" + self.service+ "]"
         print "ID [" + str(self.id) + "]"
+        print "Code [" + str(self.code) + "]"
         print "Format [" + str(self.format) + "]"
         print "Filename: [" + self.filename + "]"
         print "Parameter: [" + self.parameter + "]"

@@ -203,6 +203,21 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
+    def Subtopic(self, value, lang):
+        combo = '<select name="subtopic_code">\n'
+        keys = lampadas.Subtopics.sort_by('sort_order')
+        for key in keys:
+            subtopic = lampadas.subtopics[key]
+            assert not subtopic == None
+            combo = combo + "<option "
+            if subtopic.code == value:
+                combo = combo + "selected "
+            combo = combo + "value='" + str(subtopic.code) + "'>"
+            combo = combo + subtopic.i18n[lang].name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
+
 
 # BoxFactory
 
@@ -212,8 +227,7 @@ class BoxFactory:
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
         assert not section == None
-        box = ''
-        box = box + '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
+        box = '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
         box = box + '<tr><td>'
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
@@ -321,7 +335,7 @@ class TableFactory:
         log(3, "Creating doctable")
         box = ''
         box = box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
-        keys = lampadas.Docs.keys()
+        keys = lampadas.Docs.sort_by("Title")
         for key in keys:
             doc = lampadas.Docs[key]
             if doc.Lang == lang:
@@ -344,8 +358,7 @@ class TableFactory:
 
     def news(self, lang):
         log(3, 'Creating news')
-        box = ''
-        box = box + '<table class="box"><tr><th>|date|</th><th>|news|</th></tr>\n'
+        box = '<table class="box"><tr><th>|date|</th><th>|news|</th></tr>\n'
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
@@ -356,6 +369,36 @@ class TableFactory:
                 box = box + '</tr>\n'
         box = box + '</table>\n'
         log(3, 'News table complete')
+        return box
+
+    def topics(self, lang):
+        log(3, 'Creating topics table')
+        box = '<table class="navbox"><tr><th colspan="2">|topics|</th></tr>\n'
+        box = box + '<tr><td><ol>\n'
+        keys = lampadas.topics.sort_by('num')
+        for key in keys:
+            topic = lampadas.topics[key]
+            box = box + '<li><a href="topic/' + topic.code + '">\n'
+            box = box + topic.i18n[lang].name + '</a>\n'
+        box = box + '</ol></td></tr>\n'
+        box = box + '</table>\n'
+        log(3, "Topics table complete")
+        return box
+
+    def subtopics(self, topic_code, lang):
+        log(3, 'Creating subtopics table')
+        topic = lampadas.topics[topic_code]
+        box = '<table class="navbox"><tr><th colspan="2">' + topic.i18n[lang].name + '</th></tr>\n'
+        box = box + '<tr><td><ol>\n'
+        keys = lampadas.subtopics.sort_by('num')
+        for key in keys:
+            subtopic = lampadas.subtopics[key]
+            if subtopic.topic_code == topic_code:
+                box = box + '<li><a href="subtopic/' + subtopic.code + '">\n'
+                box = box + subtopic.i18n[lang].name + '</a>\n'
+        box = box + '</ol></td></tr>\n'
+        box = box + '</table>\n'
+        log(3, "Topics table complete")
         return box
 
 
@@ -439,6 +482,10 @@ class PageFactory:
                     newstring = self.tablef.menus(uri.language)
                 if token=='tabnews':
                     newstring = self.tablef.news(uri.language)
+                if token=='tabtopics':
+                    newstring = self.tablef.topics(uri.language)
+                if token=='tabsubtopics':
+                    newstring = self.tablef.subtopics(uri.code, uri.language)
             
                 # Blocks and Strings
                 # 
