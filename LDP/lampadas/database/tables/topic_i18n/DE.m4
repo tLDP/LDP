@@ -7,7 +7,7 @@ insert(hardware,             [Hardware],
 [Zum Beispiel Treiber, Kompatibilitätsangaben, Protokolle.])
 insert(installing_apps,      [Administration von Anwendungen],
 [Installation und Deinstallation von Software, ]m4_dnl
-[sowohl mit Quellcode als auch durch Paket-Manager.]
+[sowohl mit Quellcode als auch durch Paket-Manager.])
 insert(user_apps,            [Benutzer-Anwendungen],
 [Anwendungen für Endbenutzer, etwa Office-Software.])
 insert(server_apps,          [Server-Anwendungen],
@@ -18,9 +18,8 @@ insert(multimedia,           [Multimedia],
 [Erzeugung, Bearbeitung und Anzeige von Audio/Video/Photo.])
 insert(programming,          [Programmieren],
 [Programmiersprachen, Editoren, Übersetzer und andere Werkzeuge ]m4_dnl
-[zum Schreiben von Software.]
+[zum Schreiben von Software.])
 insert(languages,            [Fremdsprachen],
 [Informationen für Anwender aus anderen Sprachgebieten.])
 insert(misc,                 [Verschiedenes],
 [Verschiedenes])
-
