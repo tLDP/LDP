@@ -131,8 +131,8 @@ of interest, but those seemed most relevant.
 <firstname>David</firstname> <othername role="mi">A.</othername><surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>v2.92, 8 January 2002</pubdate>
-<edition>v2.92</edition>
+<pubdate>v2.93, 9 February 2002</pubdate>
+<edition>v2.93</edition>
 <!-- FYI: The LDP claims they don't use the "edition" tag.  -->
 <copyright>
  <year>1999</year>
@@ -3198,13 +3198,14 @@ before using them from an untrusted user:
 For strings, identify the legal characters or legal patterns
 (e.g., as a regular expression) and reject anything not matching that form.
 There are special problems when strings contain control characters
-(especially linefeed or NIL) or shell metacharacters; it is often
+(especially linefeed or NIL) or metacharacters (especially shell
+metacharacters); it is often
 best to ``escape'' such metacharacters immediately when the input is received so
 that such characters are not accidentally sent.
 CERT goes further and recommends escaping all characters
 that aren't in a list of characters not needing escaping [CERT 1998, CMU 1998].
-See <xref linkend="limit-call-outs">
-for more information on limiting call-outs.
+See <xref linkend="handle-metacharacters">
+for more information on metacharacters.
 </para></listitem>
 
 <listitem><para>
@@ -3958,14 +3959,15 @@ Typical values include
 ``C'' (the C locale), ``EN'' (English''),
 and ``FR_fr'' (French using the territory of France's conventions).
 Also, so many people use nonstandard names that programs have had to develop
-``alias'' systems to cope with them
-(for GNU gettext, see /usr/share/locale/locale.aliases, and for X11, see
-/usr/lib/X11/locale/locale.aliases); they should usually be
-permitted as well.
+``alias'' systems to cope with nonstandard names
+(for GNU gettext, see /usr/share/locale/locale.alias, and for X11, see
+/usr/lib/X11/locale/locale.alias; you might need "aliases" instead of "alias");
+they should usually be permitted as well.
 Libraries like gettext() have to accept all these variants and find an
 appropriate value, where possible.
-One source of further information is FSF [1999].
-However, a filter should not permit characters that aren't needed,
+One source of further information is FSF [1999];
+another source is the li18nux.org web site.
+A filter should not permit characters that aren't needed,
 in particular ``/'' (which might permit escaping out of the trusted
 directories) and ``..'' (which might permit going up one directory).
 Other dangerous characters in NLSPATH
@@ -3990,10 +3992,14 @@ form values specifying the locale, and the environment variables
 LANGUAGE, LANG, the old LINGUAS, LC_ALL, and the other LC_* values listed
 above,
 filter the locales from untrusted users to permit null (empty) values or
-to only permit values that match in total this regular expression:
+to only permit values that match in total this regular expression
+(note that I've recently added "="):
 <programlisting width="61">
- [A-Za-z][A-Za-z0-9_,+@\-\.]*
+ [A-Za-z][A-Za-z0-9_,+@\-\.=]*
 </programlisting>
+<!-- I permit plus. Standard locale name from li18nux.org
+     permits "=", so I added it; as of Feb 2002 they don't accept "+",
+     which is needed to suport the CEN format. -->
 I haven't found any legitimate locale which doesn't match this pattern,
 but this pattern does appear to protect against locale attacks.
 Of course, there's no guarantee that there are messages available
@@ -4003,6 +4009,19 @@ messages (usually in English), which at least is not a security problem.
 <!-- I developed this pattern, after looking at the GLIBC specs in
      http://www.netppl.fi/~pp/glibc21/libc_8.html and the aliases on
      Red Hat 6.2 -->
+</para>
+
+<para>
+If you wish to be really picky, and only patterns that match li18nux's
+locale pattern, you can use this pattern instead:
+<programlisting width="61">
+ ^[A-Za-z]+(_[A-Za-z]+)?
+ (\.[A-Z]+(\-[A-Z0-9]+)*)?
+ (\@[A-Za-z0-9]+(\=[A-Za-z0-9\-]+)
+  (,[A-Za-z0-9]+(\=[A-Za-z0-9\-]+))*)?$
+</programlisting>
+In both cases, these patterns use POSIX's extended (``modern'')
+regular expression notation (see regex(3) and regex(7) on Unix-like systems).
 </para>
 
 <!-- See John Levon's Bugtraq post on July 26, 2000 re internationalization
@@ -4603,6 +4622,9 @@ rarely is this needed in publicly-posted URIs, and someone could try
 to use this functionality to convince users
 to expose information they have access to and/or
 use it to modify the information.
+Such URIs permis semantic attacks; see
+<xref linkend="semantic-attacks">
+for more information.
 Usernames without passwords are no less dangerous, since browsers typically
 cache the passwords.
 You should not usually permit specification of ports, because
@@ -4975,8 +4997,8 @@ transmits data separately.
 <para>
 The security problem of using GET to perform non-queries
 (such as changing data, transferring money, or signing up for a service)
-is that an attacker can create
-a hypertext link with a URL that includes malicious form data.
+is that an attacker can create a hypertext link
+with a URL that includes malicious form data.
 If the attacker convinces a victim to click on the link
 (in the case of a hypertext link),
 or even just view a page (in the case of transcluded information
@@ -5028,6 +5050,39 @@ This allows user agents to represent other methods,
 such as POST, PUT and DELETE, in a special way,
 so that the user is made aware of the fact that a possibly
 unsafe action is being requested.''
+</para>
+
+<para>
+In the interest of fairness, I should note that this doesn't
+completely solve the problem, because on some browsers
+(in some configurations) scripted posts can do the same thing.
+For example, imagine a web browser with ECMAscript (Javascript) enabled
+receiving the following HTML snippet - on some browsers, simply
+displaying this HTML snippet will
+automatically force the user to send a POST request to a website
+chosen by the attacker, with form data defined by the attacker:
+<programlisting>
+<![CDATA[
+  <form action=http://remote/script.cgi method=post name=b>
+    <input type=hidden name=action value="do something">
+    <input type=submit>
+  </form>
+  <script>document.b.submit()</script>
+]]>
+</programlisting>
+My thanks to David deVitry pointing this out.
+However, although this advice doesn't solve all problems, it's
+still worth doing.
+In part, this is because the remaining problem
+can be solved by smarter web browsers
+(e.g., by always confirming the data before
+allowing ECMAscript to send a web form) or
+by web browser configuration (e.g., disabling ECMAscript).
+Also, this attack doesn't work in many cross-site scripting exploits, because
+many websites don't allow users to post ``script'' commands but do
+allow arbitrary URL links.
+Thus, limiting the actions a GET command can perform to queries
+significantly improves web application security.
 </para>
 
 </sect1>
@@ -5223,6 +5278,18 @@ clearly stated in Kernighan and Ritchie second edition
 the man pages for Linux, FreeBSD, and Solaris.
 This means that just changing from strcpy to strncpy can cause a severe
 reduction in performance, for no good reason in most cases.
+</para>
+
+<para>
+Warning!!
+The function strncpy(s1, s2, n) can also be used as
+a way of copying only part of s2, where n is less than strlen(s2).
+When used this way, strncpy() basically provides no protection against
+buffer overflow by itself - you have to take
+separate actions to ensure that n is smaller than the buffer of s1.
+Also, when used this way, strncpy() does not usually add a trailing NIL
+after copying n characters.
+This makes it harder to determine if a program using strncpy() is secure.
 </para>
 
 <para>
@@ -5736,7 +5803,7 @@ such as Perl, Python, Java, and Ada95.
 After all, nearly all other programming languages used today
 (other than assembly language) protect against buffer overflows.
 Using those other languages does not eliminate all problems, of course;
-in particular see the discussion in <xref linkend="limit-call-outs">
+in particular see the discussion in <xref linkend="handle-metacharacters">
 regarding the NIL character.
 There is also the problem of ensuring that those other languages'
 infrastructure (e.g., run-time library) is available and secured.
@@ -5996,6 +6063,21 @@ automatically break the whole system's security.
 </para>
 
 <para>
+If you're using a database system (say, by calling its query interface),
+limit the rights of the database user that the application uses.
+For example, don't give that user access to all of the system stored procedures
+if that user only needs access to a handful of user-defined ones.
+Do everything you can inside stored procedures.
+That way, even if someone does manage to force arbitrary strings into the
+query, the damage that can be done is limited.
+If you must directly a regular SQL query with client supplied data,
+wrap it in something that limits its activities
+(e.g., sp_sqlexec).
+(My thanks to SPI Labs for these database system suggestions).
+<!-- http://www.spidynamics.com/papers/SQLInjectionWhitePaper.pdf -->
+</para>
+
+<para>
 If you <emphasis remap="it">must</emphasis> give a program privileges
 usually reserved for root,
 consider using POSIX capabilities as soon as your program can
@@ -6176,21 +6258,28 @@ long-term approach is to upgrade the underlying system.
 <para>
 Use setuid(2), seteuid(2), setgroups(2),
 and related functions to ensure that the program
-only has these privileges active when necessary.
+only has these privileges active when necessary,
+and then temporarily deactivate the privilege when it's not in use.
 As noted above, you might want ensure that these privileges are disabled
 while parsing user input, but more generally, only turn on privileges when
 they're actually needed.
+</para>
+
+<para>
 Note that some buffer overflow attacks, if successful, can force a program
 to run arbitrary code, and that code could re-enable privileges that were
 temporarily dropped.
-Thus, it's always better to completely drop privileges as soon as
-possible.
-Still, temporarily disabling these permissions
+Thus, there are <emphasis>many</emphasis>
+attacks that temporarily deactivating a privilege won't counter -
+it's always much better to completely drop privileges as soon as possible.
+Some people even claim that ``seteuid() [is] considered harmful'' because
+of the many attacks it doesn't counter.
+Still, temporarily deactivating these permissions
 prevents a whole class of attacks,
 such as techniques to convince a program to write into a file that
 perhaps it didn't intend to write into.
 Since this technique prevents many attacks,
-it's worth doing if completely dropping the privileges can't be done
+it's worth doing if permanently dropping the privilege can't be done
 at that point in the program.
 </para>
 
@@ -8079,6 +8168,82 @@ See <xref linkend="Validating-uris"> for more about validating URIs.
 
 </sect1>
 
+<sect1 id="semantic-attacks">
+<title>Foil Semantic Attacks</title>
+
+<para>
+A ``semantic attack'' is an attack in which the attacker uses the
+computing infrastructure/system in a way that fools the victim into
+thinking they are doing something, but are doing something different,
+yet the computing infrastructure/system is working exactly as it was
+designed to do.
+Semantic attacks often involve financial scams, where the attacker is
+trying to fool the victim into giving the attacker large sums of money
+(e.g., thinking they're investing in something).
+For example, the attacker may try to convince the user that they're
+looking at a trusted website, even if they aren't.
+</para>
+
+<para>
+Semantic attacks are difficult to counter, because they're exploiting
+the correct operation of the computer.
+The way to deal with semantic attacks is to help give the human
+additional information, so that when ``odd'' things happen the human
+will have more information or a warning will be presented
+that something may not be what it appears to be.
+</para>
+
+<para>
+One example is URIs that, while legitimate, may fool users into
+thinking they have a different meaning.
+For example, look at this URI:
+<programlisting>
+  http://www.bloomberg.com@www.badguy.com
+</programlisting>
+If a user clicked on that URI, they might think that they're going
+to Bloomberg (who provide financial commodities news), but instead
+they're going to www.badguy.com (and providing the username
+www.bloomberg.com, which www.badguy.com will conveniently ignore).
+If the badguy.com website then imitated the bloomberg.com site,
+a user might be convinced that they're seeing the real thing
+(and make investment decisions based on attacker-controlled
+information).
+This depends on URIs being used in an unusual way - clickable URIs
+can have usernames, but usually don't.
+One solution for this case is for the web browser to detect such unusual
+URIs and create a pop-up confirmation widget, saying
+``You are about to log into www.badguy.com as user www.bloomberg.com;
+do you wish to proceed?''
+If the widget allows the user to change these entries, it provides
+additional functionality to the user as well as providing protection
+against that attack.
+</para>
+
+<para>
+Another example is homographs, particularly international homographs.
+Certain letters look similar to each other, and these can be exploited
+as well.
+For example, since 0 (zero) and O (the letter O) look similar to each
+other, users may not realize that WWW.BLOOMBERG.COM and WWW.BL00MBERG.COM
+are different web addresses.
+Other similar-looking letters include 1 (one) and l (lower-case L).
+If international characters are allowed, the situation is worse.
+For example, many Cyrillic letters look essentially the same as
+Roman letters, but the computer will treat them differently.
+Currently most systems don't allow international characters in host names,
+but for various good reasons it's widely agreed that support for them
+will be necessary in the future.
+One proposed solution has been to diplay letters from different code regions
+using different colors - that way,
+users get more information visually.
+If the users look at URI, they will hopefully notice the strange coloring.
+[Gabrilovich 2002]
+However, this does show the essence of a semantic attack -
+it's difficult to defend against, precisely because the computers are
+working correctly.
+</para>
+</sect1>
+
 <sect1 id="careful-typing">
 <title>Be Careful with Data Types</title>
 
@@ -8172,22 +8337,31 @@ and expected values for every parameter.
 This is more difficult than it sounds, because many
 library calls or commands call lower-level routines in potentially
 surprising ways.
-For example, several system calls, such as popen(3) and system(3),
-are implemented by calling the command shell, meaning that they will
-be affected by shell metacharacters.
-Similarly, execlp(3) and execvp(3) may cause the shell to be called.
-Many guidelines suggest avoiding popen(3), system(3), execlp(3), and execvp(3)
-entirely and use execve(3) directly in C when trying to spawn
-a process [Galvin 1998b].
-At the least, avoid using system(3) when you can use the execve(3);
-since system(3) uses the shell to expand characters, there is more
-opportunity for mischief in system(3).
-In a similar manner the Perl and shell backtick (`) also call a command shell;
-for more information on Perl see <xref linkend="perl">.
+For example, many system calls are implemented indirectly by
+calling the shell, which means that passing characters which are shell
+metacharacters can have dangerous effects.
+So, let's discuss metacharacters.
+</para>
+</sect1>
+
+<sect1 id="handle-metacharacters">
+<title>Handle Metacharacters</title>
+
+<para>
+Many systems, such as the command line shell and SQL interpreters,
+have ``metacharacters'', that is, characters in their input
+that are not interpreted as data.
+Such characters might commands, or delimit data from commands or other data.
+If there's a language specification for that system's interface
+that you're using, then it certainly has metacharacters.
+If your program invokes those other systems and allows attackers to
+insert such metacharacters, the usual result is that an attacker can
+completely control your program.
 </para>
 
 <para>
-One of the nastiest examples of this problem are shell metacharacters.
+One of the most pervasive metacharacter problems are those involving
+shell metacharacters.
 The standard Unix-like command shell (stored in /bin/sh)
 interprets a number of characters specially.
 If these characters are sent to the shell, then their special interpretation
@@ -8272,8 +8446,46 @@ are issues have other (much worse) security problems.
 
 
 <para>
+What makes the shell metacharacters particularly pervasive is
+that several important library calls, such as popen(3) and system(3),
+are implemented by calling the command shell, meaning that they will
+be affected by shell metacharacters too.
+Similarly, execlp(3) and execvp(3) may cause the shell to be called.
+Many guidelines suggest avoiding popen(3), system(3), execlp(3), and execvp(3)
+entirely and use execve(3) directly in C when trying to spawn
+a process [Galvin 1998b].
+At the least, avoid using system(3) when you can use the execve(3);
+since system(3) uses the shell to expand characters, there is more
+opportunity for mischief in system(3).
+In a similar manner the Perl and shell backtick (`) also call a command shell;
+for more information on Perl see <xref linkend="perl">.
+</para>
+
+<para>
+Since SQL also has metacharacters, a similar issue revolves around
+calls to SQL.
+See
+<ulink url="http://www.spidynamics.com/papers/SQLInjectionWhitePaper.pdf">
+SPI Dynamic's paper ``SQL Injection: Are your Web Applications Vulnerable?''
+</ulink>
+for further discussion on this.
+As discussed in <xref linkend="input">,
+define a very limited pattern and only allow data matching that
+pattern to enter; if you limit your pattern to ^[0-9]$ or
+^[0-9A-Za-z]*$ then you won't have a problem.
+If you must handle data that may include SQL metacharacters, a good approach
+is to convert it (as early as possible) to some other encoding before
+storage, e.g.,
+HTML encoding (in which case you'll need to encode any ampersand characters
+too).
+Also, prepend and append a quote to all user input, even
+if the data is numeric; that way, insertions of white space and other
+kinds of data won't be as dangerous.
+</para>
+
+<para>
 Forgetting one of these characters can be disastrous, for example,
-many programs omit backslash as a metacharacter [rfp 1999].
+many programs omit backslash as a shell metacharacter [rfp 1999].
 As discussed in the <xref linkend="input">, a recommended approach
 by some
 is to immediately escape at least all of these characters when they are input.
@@ -8391,7 +8603,7 @@ However, it's usually unwise to invoke a program intended for human
 interaction in the same way a human would.
 The problem is that programs's human interfaces are intentionally rich
 in functionality and are often difficult to completely control.
-As discussed in <xref linkend="limit-call-outs">,
+As discussed in <xref linkend="handle-metacharacters">,
 interactive programs often have ``escape'' codes,
 which might enable an attacker to perform undesirable functions.
 Also, interactive programs often try to intuit the ``most likely'' defaults;
@@ -9043,8 +9255,27 @@ all warnings turned on.
 </para></listitem>
 
 <listitem><para>
+If you can use a ``safe mode'' (e.g., a mode that limits the activities
+of the executable), do so.
+Many interpreted languages include such a mode.
+In general, don't depend on the safe mode to provide absolute protection;
+most language's safe modes have not been sufficiently analyzed for their
+security, and when they are, people usually discover many ways to exploit it.
+However, by writing your code so that it's secure out of safe mode, and
+then adding the safe mode, you end up with defense-in-depth (since in
+many cases, an attacker has to break both
+your application code and the safe mode).
+</para></listitem>
+
+<listitem><para>
 Avoid dangerous and deprecated operations in the language.
 By ``dangerous'', I mean operations which are difficult to use correctly.
+For example, many languages include
+some mechanisms or functions that are ``magical'', that
+is, they try to infer the ``right'' thing to do using a heuristic -
+generally you should avoid them, because an attacker may be able to
+exploit the heuristic and do something dangerous instead of what was
+intended.
 </para></listitem>
 
 <listitem><para>
@@ -9080,6 +9311,16 @@ it easy to write programs that ignore critical error situations.
 </para>
 
 <para>
+Be as strict as you reasonably can when you declare types.
+Where you can, use ``enum'' to define enumerated values (and not
+just a ``char'' or ``int'' with special values).
+This is particularly useful for values in switch statements, where
+the compiler can be used to determine if all legal values have been covered.
+Where it's appropriate, use ``unsigned'' types if the value can't be
+negative.
+</para>
+
+<para>
 <!-- The example is from Sebastian (Bugtraq, 26 June 2000) -->
 One complication in C and C++ is that the character type ``char'' can be
 signed or unsigned (depending on the compiler and machine).
@@ -9093,7 +9334,8 @@ dealing with character data that may have values greater than 127 (0x7f).
 
 <para>
 C and C++ are by definition rather lax in their type-checking support, but
-there's no need to be lax in your code.
+you can at least increase their level of checking so that some mistakes
+can be detected automatically.
 Turn on as many compiler warnings as you can and change the code to cleanly
 compile with them, and strictly use ANSI prototypes in separate header
 (.h) files to ensure that all function calls use the correct types.
@@ -9136,13 +9378,6 @@ such as "noreturn" and "const".
      Bugtraq -->
 </para>
 
-<para>
-Where you can, use ``enum'' to define enumerated values (and not
-just a ``char'' or ``int'' with special values).
-This is particularly useful for values in switch statements, where
-the compiler can be used to determine if all legal values have been
-covered.
-</para>
 
 </sect1>
 
@@ -9309,22 +9544,44 @@ execution capability has undergone, so programmer beware.
 I strongly recommend against using
 standard command shell scripting languages (such as csh, sh, and bash)
 for setuid/setgid secure code.
-Some systems (such as Linux) completely disable them, so you're
-creating an unnecessary portability problem.
+Some systems (such as Linux) completely disable setuid/setgid
+shell scripts, so creating setuid/setgid shell scripts creates
+an unnecessary portability problem.
 On some old systems they are fundamentally insecure due to a race condition
 (as discussed in <xref linkend="process-creation">).
 Even for other systems, they're not really a good idea.
-Standard command shells are still notorious for being affected by
-nonobvious inputs -
+</para>
+
+<para>
+In fact, there are a vast number of circumstances where shell scripting
+languages shouldn't be used at all for secure programs.
+Standard command shells are notorious for being affected by nonobvious inputs -
 generally because command shells were designed to try to do
 things ``automatically'' for an interactive user, not to defend against
 a determined attacker.
+Shell programs are fine for programs that don't need to be secure
+(e.g., they run at the same privilege as the unprivileged
+user and don't accept ``untrusted'' data).
+They can also be useful when they're running with privilege, as long as
+all the input (e.g., files, directories, command line, environment, etc.)
+are all from trusted users - which is why they're
+often used quite successfully in startup/shutdown scripts.
+</para>
+
+<para>
+Writing secure shell programs in the presence of malicious
+input is harder than in many other languages because
+of all the things that shells are affected by.
 For example,
-``hidden'' environment variables (e.g., the ENV or BASH_ENV variable)
+``hidden'' environment variables (e.g., the ENV, BASH_ENV, and IFS values)
 can affect how they operate or even execute arbitrary user-defined
 code before the script can even execute.
 Even things like filenames of the executable or directory contents can
-affect things.
+affect execution.
+If an attacker can create filenames containing
+some control characters (e.g., newline),
+or whitespace, or shell metacharacters, or begin with a dash
+(the option flag syntax), there are often ways to exploit them.
 For example, on many Bourne shell implementations, doing the following
 will grant root access (thanks to NCSA for describing this
 exploit):
@@ -9346,7 +9603,18 @@ might be shell scripts).
 <para>
 If you still insist on using shell scripting languages, at least
 put the script in a directory where it cannot be moved or changed.
-Set PATH and IFS to known values very early in your script.
+Set PATH and IFS to known values very early in your script; indeed, the
+environment should be cleaned before the script is called.
+Also, very early on, ``cd'' to a safe directory.
+Use data only from directories that is controlled by trusted users, e.g., /etc,
+so that attackers can't insert maliciously-named files into those directories.
+Be sure to quote every filename passed on a command line, e.g., use
+"$1" not $1, because filenames with whitespace will be split.
+Call commands using "--" to disable additional options where you can,
+because attackers may create or pass filenames beginning with dash in the
+hope of tricking the program into processing it as an option.
+Examine input filenames especially carefully and be very restrictive
+on what filenames are permitted.
 </para>
 
 <para>
@@ -11719,7 +11987,16 @@ Proceedings of the 10th USENIX Security Symposium,
 Washington, D.C., August 2001.
 <ulink url="http://cookies.lcs.mit.edu/pubs/webauth.html">
 http://cookies.lcs.mit.edu/pubs/webauth.html</ulink>.
+</para>
 
+<para>
+[Gabrilovich 2002]
+Gabrilovich, Evgeniy, and Alex Gontmakher.
+February 2002.
+``Inside Risks: The Homograph Attack''.
+Communications of the ACM.
+Volume 45, Number 2.
+Page 128.
 
 </para>
 
