@@ -275,10 +275,9 @@ class SourceFile:
 	header = header.get_value()
 
         # Look for DocType declaration
-        m = re.search('<.*?DOCTYPE(.*?)>(.*)', header, flags)
+        m = re.search('DOCTYPE(.*?)>', header, flags)
         if m:
             doctype = m.group(1)
-            body = m.group(2)
 
             # Look for DocBook declaration
             m = re.search('DOCBOOK(.*)', doctype, flags)

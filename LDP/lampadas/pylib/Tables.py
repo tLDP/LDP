@@ -298,7 +298,10 @@ class Tables(LampadasCollection):
         box.write('</tr>\n')
         box.write('<tr>\n')
         box.write('<td class="label">|strprimary|</td>')
-        box.write('<td>'  + widgets.tf('top', 0) + '</td>\n')
+        if doc.files.count()==0:
+            box.write('<td>'  + widgets.tf('top', 1) + '</td>\n')
+        else:
+            box.write('<td>'  + widgets.tf('top', 0) + '</td>\n')
         box.write('<td></td>\n')
         box.write('<td></td>\n')
         box.write('<td></td>\n')
