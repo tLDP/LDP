@@ -106,8 +106,9 @@
     </para>
     <para>
       The &classless-qdiscs; can contain no classes, nor is it possible to
-      attach filter to a classless qdisc.  Because a it contains no children
-      of any kind, the utility &elements-classifying; is pointless.
+      attach filter to a classless qdisc.  Because a classless qdisc contains
+      no children of any kind, there is no utility to &elements-classifying;.
+      This means that no filter can be attached to a classless qdisc.
     </para>
     <para>
       A source of terminology confusion is the usage of the terms
@@ -130,7 +131,7 @@
       created, and only exists as an object onto which a &linux-filter; can be
       attached.  For practical purposes, the &ingress-qdisc; is merely a
       convenient object onto which to attach a &linux-policer; to limit the
-      amount of traffic accepted into a network.
+      amount of traffic accepted on a network interface.
     </para>
     <para>
       In short, you can do much more with an egress qdisc because it contains
@@ -159,9 +160,9 @@
       scenarios.
     </para>
     <para>
-      Any class can also have multiple &linux-filter;s attached to it, which
-      allows the selection of a child class or the use of a filter to
-      reclassify or drop traffic entering a particular class.
+      Any class can also have an arbitrary number of &linux-filter;s attached
+      to it, which allows the selection of a child class or the use of a
+      filter to reclassify or drop traffic entering a particular class.
     </para>
     <para>
       A leaf class is a terminal class in a qdisc.  It contains a qdisc
@@ -174,7 +175,7 @@
   <section id="c-filter">
     <title><constant>filter</constant></title>
     <para>
-      The filter is one of the most complex elements in the Linux
+      The filter is the most complex component in the Linux
       traffic control system.  The filter provides a convenient mechanism for
       gluing together several of the key elements of traffic control.  The
       simplest and most obvious role of the filter is to classify
@@ -182,12 +183,24 @@
       user to classify packets into an output queue with either several
       different filters or a single filter.
     </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          A filter must contain a &linux-classifier; phrase.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          A filter may contain a &linux-policer; phrase.
+        </para>
+      </listitem>
+    </itemizedlist>
     <para>
-      Filters can be attached either to &linux-qdisc;s or to &linux-class;es,
-      however the enqueued packet always enters the root qdisc first.
-      After the filter attached to the root qdisc has been traversed,
-      the packet may be directed to any subclasses (which can have their own
-      filters) where the packet may continue its classification process.
+      Filters can be attached either to classful &linux-qdisc;s or to
+      &linux-class;es, however the enqueued packet always enters the root
+      qdisc first.  After the filter attached to the root qdisc has been
+      traversed, the packet may be directed to any subclasses (which can have
+      their own filters) where the packet may undergo further classification.
     </para>
     <!-- FIXME; discussion not complete here -->
     <para>
@@ -204,7 +217,9 @@
     </para>
     <para>
       The classifiers are tools which can be used as part of a &linux-filter;
-      to identify characteristics of a packet or a packet's metadata.
+      to identify characteristics of a packet or a packet's metadata.  The
+      Linux classfier object is a direct analogue to the basic operation and
+      elemental mechanism of traffic control &elements-classifying;.
     </para>
   </section>
 
@@ -213,27 +228,17 @@
     <para>
       This elemental mechanism is only used in Linux traffic control as part
       of a &linux-filter;.  A policer calls one action above and another
-      action below the specified rate.  This can be used to set up a set of
-      cascading policers to simulate a three-color meter.
+      action below the specified rate.  Clever use of policers can simulate
+      a three-color meter.  See also
+      <xref linkend="diagram"/>.
     </para>
     <para>
       Although both &elements-policing; and &elements-shaping; are basic
       elements of traffic control for limiting bandwidth usage a policer will
       never delay traffic.  It can only perform an action based on specified
-      criteria.
+      criteria.  See also
+      <xref linkend="ex-s-iproute2-tc-filter"/>.
     </para>
-
-    <!--
-    <example id="ex-c-police-action">
-      <title>Example of a policer</title>
-      <programlisting>
-<prompt>[root@leander]# </prompt><userinput>tc filter add dev ppp0 parent 1:0 protocol all prio 4 \</userinput>
-<prompt>&gt; </prompt>                <userinput>u32 match u32 0x0 0x0 at 0 classid 1:7 \</userinput>
-<prompt>&gt; </prompt>                <userinput>police index 3 rate 32000bps burst 10240 mpu 0 action drop/continue</userinput>
-      </programlisting>
-    </example>
-     -->
-
     <para>
     </para>
     <para>
@@ -264,12 +269,13 @@
     <para>
       There are, however, places within the traffic control system where a
       packet may be dropped as a side effect.  For example, a packet will be
-      dropped if the scheduler employed uses this methood to control flows as
+      dropped if the scheduler employed uses this method to control flows as
       the &link-sch_gred; does.
     </para>
     <para>
-      A shaper or scheduler which runs out of its allocated buffer space may
-      have to drop a packet during a particularly bursty or overloaded period.
+      Also, a shaper or scheduler which runs out of its allocated buffer space
+      may have to drop a packet during a particularly bursty or overloaded
+      period.
     </para>
     <para>
     </para>
@@ -280,8 +286,7 @@
     <para>
       Every &linux-class; and classful &linux-qdisc; (see also
       <xref linkend="classful-qdiscs"/>) requires a unique identifier within
-      the traffic control structure.  Note that &classless-qdiscs; do not
-      require a handle.  This unique identifier is known as a
+      the traffic control structure.  This unique identifier is known as a
       handle and has two constituent members, a major number and a minor
       number.  These numbers can be assigned arbitrarily by the user in
       accordance with the following rules
@@ -293,8 +298,9 @@
       </footnote>.
     </para>
     <para>
+    </para>
     <variablelist>
-      <title>Rules for numbering handles for classes and qdiscs</title>
+      <title>The numbering of handles for classes and qdiscs</title>
       <varlistentry>
         <term><parameter>major</parameter></term>
         <listitem>
@@ -303,7 +309,7 @@
             user may use an arbitrary numbering scheme, however all objects in
             the traffic control structure with the same parent must share a
             <parameter>major</parameter> handle number.  Conventional
-            numbering schemes start at 1 for devices attached to the
+            numbering schemes start at 1 for objects attached directly to the
             &root-qdisc;.
           </para>
         </listitem>
@@ -312,7 +318,7 @@
         <term><parameter>minor</parameter></term>
         <listitem>
           <para>
-            This parameter unambigously identifies the object as a qdisc (if
+            This parameter unambiguously identifies the object as a qdisc if
             <parameter>minor</parameter> is 0.  Any other value identifies the
             object as a class.  All classes sharing a parent must have unique
             <parameter>minor</parameter> numbers.
@@ -320,9 +326,15 @@
         </listitem>
       </varlistentry>
     </variablelist>
-    </para>
     <para>
       The special handle ffff:0 is reserved for the &ingress-qdisc;.
+    </para>
+    <para>
+      The handle is used as the target in <parameter>classid</parameter> and
+      <parameter>flowid</parameter> phrases of &tc; &linux-filter; statements.
+      These handles are external identifiers for the objects, usable by
+      userland applications.  The kernel maintains internal identifiers for
+      each object.
     </para>
   </section>
 

@@ -48,24 +48,31 @@
     <para>
       In the overwhelming majority of situations, traffic control consists of
       a single queue which collects entering packets and dequeues them as
-      quickly as the hardware (or underlying device) can accept them.
+      quickly as the hardware (or underlying device) can accept them.  This
+      sort of queue is a &sch_fifo;.
+    </para>
+    <note>
+      The default qdisc under Linux is the &link-sch_pfifo_fast;, which is
+      slightly more complex than the &link-sch_fifo;.
+    </note>
+    <para>
+      There are examples of queues in all sorts of software.  The queue is a
+      way of organizing the pending tasks or data (see also
+      <xref linkend="o-queues"/>).  Because network links typically carry data
+      in a serialized fashion, a queue is required to manage the outbound
+      data packets.
     </para>
     <para>
-      Queues exist in software on any networked system.  On an outbound
-      network interface, a web server may be able to fill up the output queue
-      very quickly, meaning that the queuing mechanism will transmit as fast
-      as it can to the hardware, but that may be slower than the software can
-      supply data.  This would leave a full queue between the software and the
-      hardware.  There's nothing intrinsically wrong with this, but the
-      super-efficient web server may be hogging transmit bandwidth from a
-      slower mail server.
-    </para>
-    <para>
-      On the other hand, a network interface may be able to supply packets to
-      the operating system faster than the operating system can accept the
-      packets.  Here again, the packets will build up in a queue.  These are
-      two simplistic examples of the already existing queues in a networked
-      device.
+      In the case of a desktop machine and an efficient webserver sharing the
+      same uplink to the Internet, the following contention for bandwidth may
+      occur.  The web server may be able to fill up the output queue on the
+      router faster than the data can be transmitted across the link, at which
+      point the router starts to drop packets (its buffer is full!).  Now, the
+      desktop machine (with an interactive application user) may be faced with
+      packet loss and high latency.  Note that high latency sometimes leads to
+      screaming users!  By separating the internal queues used to service
+      these two different classes of application, there can be better sharing
+      of the network resource between the two applications.
     </para>
     <para>
       Traffic control is the set of tools which allows the user to have
@@ -233,18 +240,19 @@
   <section id="o-queues">
     <title>Queues</title>
     <para>
-      Queues form the backdrop for all of traffic control.
-      Practically speaking, a queue is a number of items waiting for an action
-      or service.  In networking, a queue is the place where packets (our
-      units) wait to be transmitted by the hardware (the service).  In the
-      simplest model, packets are transmitted in a first-come first-serve
-      basis
+      Queues form the backdrop for all of traffic control and are the integral
+      concept behind scheduling.  A queue is a location (or buffer) containing
+      a finite number of items waiting for an action or service.  In
+      networking, a queue is the place where packets (our units) wait to be
+      transmitted by the hardware (the service).  In the simplest model,
+      packets are transmitted in a first-come first-serve basis
       <footnote>
         <para>
           This queueing model has long been used in civilized countries to
           distribute scant food or provisions equitably.  William Faulkner is
-          reputed to have walked to the front of the line to fetch his share,
-          proving that the FIFO model doesn't always suit the consumer.
+          reputed to have walked to the front of the line for to fetch his
+          share of ice, proving that not everybody likes the FIFO model, and
+          providing us a model for considering priority queuing.
         </para>
       </footnote>.
       In the discipline of computer networking (and more generally
@@ -258,14 +266,24 @@
     </para>
     <para>
       A queue becomes much more interesting when coupled with other mechanisms
-      which can delay, rearrange, drop and prioritize multiple queues.
+      which can delay packets, rearrange, drop and prioritize packets in 
+      multiple queues.  A queue can also use subqueues, which allow for
+      complexity of behaviour in a scheduling operation.
     </para>
     <para>
       From the perspective of the higher layer software, a packet is simply
       enqueued for transmission, and the manner and order in which the
       enqueued packets are transmitted is immaterial to the higher layer.  So,
       to the higher layer, the entire traffic control system may appear as a
-      single queue.  It is only by examining the internals of this layer that
+      single queue
+      <footnote>
+        <para>
+          Similarly, the entire traffic control system appears as a queue or
+          scheduler to the higher layer which is enqueuing packets into this
+          layer.
+        </para>
+      </footnote>.
+      It is only by examining the internals of this layer that
       the traffic control structures become exposed and available.
     </para>
   </section>
@@ -273,11 +291,11 @@
   <section id="o-flows">
     <title>Flows</title>
     <para>
-      A flow is a distinct connection between two hosts.  Any unique set of
-      packets (perhaps representing a conversation) between two hosts can be
-      regarded as a flow.  Under TCP the concept of a connection with a source
-      IP and port and destination IP and port represents a flow.  A UDP flow
-      can be similarly defined.
+      A flow is a distinct connection or conversation between two hosts.  Any
+      unique set of packets between two hosts can be regarded as a flow.
+      Under TCP the concept of a connection with a source IP and port and
+      destination IP and port represents a flow.  A UDP flow can be similarly
+      defined.
     </para>
     <para>
       Traffic control mechanisms frequently separate traffic into classes of
@@ -314,7 +332,8 @@
       fixed rate.  In order to enjoy the ride, each person must wait for an
       available cart.  The cart is analogous to a token and the person is
       analogous to a packet.  Again, this mechanism is a rate-limiting or
-      &elements-shaping; mechanism.
+      &elements-shaping; mechanism.  Only a certain number of people can
+      experience the ride in a particular period.
     </para>
     <para>
       To extend the analogy, imagine an empty line for the amusement park
@@ -347,15 +366,20 @@
       certain number of tokens has been reached.  Now, the queue has tokens
       available for a large number of packets or bytes which need to be
       dequeued.  These intangible tokens are stored in an intangible bucket,
-      and the number of tokens that can be stored depend on the size of the
+      and the number of tokens that can be stored depends on the size of the
       bucket.
     </para>
     <para>
-      This also means that a bucket full of tokens is available at any
+      This also means that a bucket full of tokens may be available at any
       instant.  Very predictable regular traffic can be handled by small
       buckets.  Larger buckets may be required for burstier traffic, unless
       one of the desired goals is to reduce the burstiness of the
       &concepts-flows;.
+    </para>
+    <para>
+      In summary, tokens are generated at rate, and a maximum of a bucket's
+      worth of tokens may be collected.  This allows bursty traffic to be
+      handled, while smoothing and shaping the transmitted traffic.
     </para>
     <para>
       The concepts of tokens and buckets are closely interrelated and are used
@@ -372,7 +396,7 @@
     <para>
       The terms for data sent across network changes depending on the layer
       the user is examining.  This document will rather impolitely (and
-      somewhat incorrectly) gloss over the technical distinction between
+      incorrectly) gloss over the technical distinction between
       packets and frames although they are outlined here.
     </para>
     <para>
