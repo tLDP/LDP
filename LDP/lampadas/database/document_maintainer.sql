@@ -29,3 +29,4 @@ FOREIGN KEY (role)
 REFERENCES role(role);
 
 GRANT ALL ON document_maintainer TO "www-data";
+GRANT SELECT on document_maintainer to root;
