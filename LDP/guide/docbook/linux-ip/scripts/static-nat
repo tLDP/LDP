@@ -1,0 +1,154 @@
+# <!-- trick an XML parser sourcing us. Rest of file is CDATA --> <![CDATA[
+# NAT configuration file
+#
+# -- This file is used to configure NAT routes and rules
+#    via the iproute2 package.  A sysV init script (nat)
+#    uses this file to set up the routes/rules.
+#
+#
+# Copyright (c)2002 SecurePipe, Inc. - http://www.securepipe.com/
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, 
+# Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+#
+# -- file created by Matt Callaway <matt@securepipe.com>
+#    2002-03-01; Martin A. Brown <mabrown@securepipe.com>
+#      - first major revision; added comments
+#    2002-08-14; Martin A. Brown <mabrown@securepipe.com>
+#      - cleaned up the file; added copious commenting and examples
+#      - provided support for NAT only from specified networks (backwards
+#        incompatibility added here; benefit is huge flexibility gain)
+#    2003-02-10; Martin A. Brown <mabrown@securepipe.com>
+#      - example #6 added.  Thanks for identification and description of
+#        this scenario, and the example in the format of the other
+#        examples go to Shawn Balestracci <shawnb@securepipe.com>
+#
+# -- field descriptions:
+#    field 1   this field contains a network address.  Any packets from
+#              this network will be translated according to fields two and
+#              three, with the exception of any networks specified in fields
+#              6 and higher
+#    field 2   contains the NAT IP, the IP that only exists as a publicly
+#              reachable IP for an internal host
+#    field 3   contains the real IP of the machine, usually an internal IP
+#    field 4   contains the priority for the NAT rule itself in the RPDB
+#    field 5   contains the priority for the routing rule in the RPDB.  In
+#              order for the internal networks to reach the real IP of the
+#              server/host, this priority must be higher than the priority
+#              for the NAT rule.  **lower numbers == higher priority**
+#    field 6+  contains a whitespace separated list of networks which
+#              should be able to reach the real IP (field 2) directly.
+#              The entries into the rule policy database (RPDB) for these
+#              networks will prevent packets from real-IP to dest-network
+#              from being rewritten with the NAT IP as the source IP.
+#              Networks specified here should be subnets of the network
+#              specified in field 1.
+#
+# -- notes
+#
+#    - white space, lines beginning with a comment and blank lines are ignored
+#    - field 5 should always be a lower number (higher priority) than field 4
+#    - fields 5 and 6+ are optional
+#    - fields 5 and 6+ must be used together, if used at all
+#
+# -- examples
+#
+#    - each example is commented with an English description of the network
+#      address translation which will occur
+#    - followed by a pseudo shellcode description of how to understand
+#      exactly what the NAT will look like
+#
+# -- example #1; NAT a single IP from anywhere
+#
+# 0/0  10.10.0.14  172.31.254.1  1000
+#
+# for packets from any address (0/0);
+#   if destination_address is 10.10.0.14 ; then
+#      rewrite destination address from 10.10.0.14 to 172.31.254.1
+#   fi
+# done
+#
+# -- example #2; NAT an entire network (from anywhere)
+#
+# 0/0  10.13.0.0/16  172.17.0.0/16  1000
+#
+# for packets from any address (0/0); do
+#   if destination_address is in 10.13.0.0/16 ; then
+#      rewrite destination address from 10.13.x.x to 172.17.x.x
+#   fi
+# done
+#
+# -- example #3; NAT an entire network, but only from a specified nework
+#
+# 10.10.0.0/16  10.15.0.0/24  192.168.0.0/24  1000
+#
+# if packet is from 10.10.0.0/16 ; then
+#    if destination_address is in 10.15.0.0/24 ; then
+#       rewrite destination address from 10.15.0.x to 192.168.0.x
+#    fi
+# fi
+#
+# -- example #4; NAT an entire network, but only from a specified nework;
+#                make an exception for certain IP ranges
+#
+# 10.10.0.0/16  10.15.2.0/24  192.168.2.0/24  1000  990  10.10.38.0/24
+#
+# if packet is from 10.10.0.0/16 and not from 10.10.38.0/24 ; then
+#    if destination_address is in 10.15.2.0/24 ; then
+#       rewrite destination address from 10.15.2.x to 192.168.2.x
+#    fi
+# fi
+#
+# -- example #5; NAT a single IP from anywhere; don't NAT if from specified
+#                IP ranges
+#
+# 0/0  10.74.1.8  192.168.73.15  1000  990  192.168.71.0/24  192.168.70.0/24
+#
+# for packets from any address except 192.168.71.0/24 and 192.168.70.0/24; do
+#    if destination_address is 10.74.1.8 ; then
+#       rewrite destination address from 10.74.1.8 to 192.168.73.15
+#    fi
+# done
+#
+# -- example #6; NAT to the same IP differently based on the source
+#                network IP ranges
+#
+# 0/0              10.74.1.8      192.168.73.15   1000
+# 192.168.71.0/24  192.168.71.15  192.168.73.15    400
+# 192.168.70.0/24  192.168.71.15  192.168.73.15    400
+#
+# N.B., the RPDB must traverse lines two and three first, hence the higher
+#       priority.  If the source network is not 192.168.{71,70}.0/24 then
+#       the we'll meet the next entry, 1000.
+# N.B., the third entry in this example will cause an RTNETLINK: file
+#       exists error, because there is already an entry in the local
+#       routing table for 192.168.71.15 --NAT--> 192.168.73.15.  Known bug.
+#
+# for packets from 192.168.71.0/24 or 192.168.70.0/24; do
+#       if destination_address is 192.168.71.15 ; then
+#         rewrite destination address from 192.168.71.15 to 192.168.73.15
+#       fi
+# done
+#
+# for packets from any address except 192.168.71.0/24 and 192.168.70.0/24; do
+#       if destination_address is 10.74.1.8 ; then
+#         rewrite destination address from 10.74.1.8 to 192.168.73.15
+#       fi
+# done
+#
+# -- add your own configuration here
+
+# -- end /etc/sysconfig/static-nat
+# ]]>  <!-- the line above closes the XML CDATA from above -->

@@ -1,0 +1,857 @@
+<!-- $Id$ -->
+
+<chapter id="ch-nat">
+  <title>Network Address Translation (NAT)</title>
+  <para>
+    Network Address Translation (NAT) is a deceptively simple concept.  NAT is
+    the technique of rewriting addresses on a packet as it passes through a
+    routing device.  There are far reaching ramifications
+    on network design and protocol compatibility wherever NAT is used.
+  </para>
+  <para>
+    This chapter will introduce two types of NAT available under linux.  One,
+    <link linkend="nat-stateless">full NAT or stateless NAT</link>, is
+    available under kernel 2.2 and kernel 2.4 via the 
+    <command>iproute2</command> userspace interface.  Available only under
+    kernel 2.4, 
+    <link linkend="nat-dnat">destination NAT (DNAT)</link> is an important
+    derivative of full NAT.  DNAT configuration from userspace is accomplished
+    via the <command>iptables</command> utility.
+    The experienced network administrator is probably puzzling about absent
+    references to source NAT (SNAT) and masquerading.  These prominent and
+    more prevalent special cases of NAT are covered separately in
+    <xref linkend="ch-snat"/>.
+  </para>
+  <para>
+    Network address translation is known by a number of names in the
+    networking world:  full NAT, one-to-one NAT and inbound NAT.
+    As used in this chapter and throughout this documentation,
+    <wordasword>NAT</wordasword>, when unqualified, 
+    will refer to full network address translation or one-to-one NAT.
+    NAT techniques derived from full NAT, such as destination or source NAT,
+    will be described as DNAT
+    (<link linkend="nat-dnat">destination NAT</link>) and SNAT
+    (<link linkend="ch-snat">source NAT</link>).
+  </para>
+  <para>
+    Michael Hasenstein's seminal paper on network address translation
+    is available courtesy of SuSe Linux AG
+    <ulink url="http://www.suse.de/~mha/linux-ip-nat/diplom/nat.html">here</ulink>.
+  </para>
+  <section id="nat-overview">
+    <title>Rationale for NAT; Introduction to Inbound NAT</title>
+    <para>
+      Network address translation (NAT) is a technique of transparently mapping
+      an IP address or range to another IP address or range.  Any routing
+      device situated between two endpoints can perform this transformation of
+      the packet.  Network designers must however take one key element under
+      consideration when laying out a network with NAT in mind.  The router(s)
+      performing NAT must have an opportunity to rewrite the packet upon entry
+      to the network and upon exit from the network.
+    </para>
+    <para>
+      Because network address translation manipulates the addressing of a
+      packet, the NAT transformation becomes a passive but
+      critical part of the conversation
+      between hosts exchanging packets.  NAT is by necessity transparent to
+      the application layer endpoints and operates in the general case on
+      any type of IP packet.
+    </para>
+    <para>
+      Here are a few common reasons to consider NAT along with potential
+      NAT solution candidates shown in parentheses.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          Publicly accessible services need to be provided on registered
+          Internet IPs which change or might change.  NAT allows the
+          separation of internal IP addressing schemes from the public IP
+          space, easing the burden of changing internal addressing
+          or external IPs.
+          <emphasis>
+          (<link linkend="nat-stateless">NAT</link>,
+          <link linkend="nat-dnat">DNAT</link>,
+          <link linkend="nat-dnat-pat">PAT with DNAT</link>
+          <link linkend="nat-pat-userspace">PAT from userspace</link>)
+          </emphasis>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          An application requires inbound and outbound connections.
+          In this case
+          <link linkend="ch-snat">SNAT/masquerading</link> will not suffice.
+          See also
+          <xref linkend="snat-break"/>.
+          <emphasis>
+          (<link linkend="nat-stateless">NAT</link>,
+          <link linkend="state-conntrack">SNAT and application-aware
+          connection tracking</link>)
+          </emphasis>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The network numbering scheme is changing.  Clever use of NAT
+          allows reachability of services on both IP addresses or IP address
+          ranges during the network numbering migration.
+          <emphasis>
+          (<link linkend="nat-stateless">NAT</link>,
+          <link linkend="nat-dnat">DNAT</link>)
+          </emphasis>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Two networks share the same IP addressing space and need to
+          exchange packets.  Using network address translation to publish
+          NAT network spaces with different numbering schemes would
+          allow each network to retain the addressing scheme while accessing
+          the other network.
+          <emphasis>
+          (<link linkend="nat-stateless">NAT</link>,
+          <link linkend="nat-dnat">DNAT</link>,
+          <link linkend="ch-snat">SNAT</link>)
+          </emphasis>
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      These are the commonest reasons to consider and implement NAT.  Other
+      niche applications of NAT, notably as part of a load balancing solution,
+      exist although this chapter will concentrate on the use of NAT 
+      to hide networks or isolate networks from others.  It will also cover
+      inbound connections,
+      leaving the discussion of many-to-one NAT, SNAT and masquerading for
+      <xref linkend="ch-snat"/>.
+    </para>
+    <para>
+      One motivator for deploying NAT in a network is the benefit of
+      virtualizing the network.  By isolating services provided in one network
+      from changes in other networks, the effects of those changes on the
+      service network may be minimal.  The disadvantage of
+      virtualizing the network in this way is the increased reliance on the
+      NAT device.  In addition to routing packets, the router also
+      transforms and manipulates packets ensuring its self-perpetuation.
+    </para>
+    <para>
+      Providing inbound services via NAT can be accomplished in several
+      different ways.  Two common techniques are to use
+      <command>iproute2</command> NAT and netfilter DNAT.
+      Less common (and possibly less desirable) one can use port redirection
+      tools.  Depending on which tool is employed,
+      different characteristics of a packet can trigger the address
+      transformation.
+    </para>
+    <para>
+      The simplest form of NAT under linux is 
+      <link linkend="nat-stateless"><command>iproute2</command> NAT</link>.
+      This type of NAT requires two matching commands, one to cause the kernel
+      to rewrite the inbound packets (<userinput>ip route add nat $NATIP
+      via $REAL</userinput>)
+      and one to rewrite the outbound packets (<userinput>ip rule add from
+      $REAL nat $NATIP</userinput>).  The router configured in this fashion will
+      retain no state for connections.  It will simply transform any packets
+      passing through.  By contrast, netfilter is capable of retaining state
+      on connections passing through the router and selecting packets more
+      granularly than is possible with only <command>iproute2</command> tools.
+    </para>
+    <para>
+      Before the advent of the netfilter engine in the linux kernel, there
+      were several tools available to administer NAT, DNAT and PAT.
+      These tools were not included in many distributions and weren't
+      adopted broadly in the community.  Although you may find references to
+      <command>ipmasqadm</command>, <command>ipnatadm</command> and
+      <command>ipportfw</command> across the Internet in older documentation,
+      these tools have been superseded in functionality and widespread
+      deployment by netfilter.
+    </para>
+    <para>
+      The user interface to the netfilter engine provides a more flexible
+      language for selection of packets to be transformed.  Additionally, any
+      NAT services provided by the netfilter engine come with the labor saving
+      and resource consuming connection tracking mechanism.
+      <link linkend="nat-dnat">DNAT</link> translates the address on an
+      inbound packet and creates an entry in the connection tracking state
+      table.  For even modest machines, the connection tracking resource
+      consumption should not be problematic and obviates the need for
+      synchronization of two commands as required by stateless NAT.
+    </para>
+    <para>
+      Netfilter DNAT allows the user to select packets based on
+      characteristics such as destination port.  This blurs the distinction
+      between network address translation and port address translation.
+      NAT always transforms the layer 3 contents of a packet.  Port
+      redirection operates at layer 4.  From a practical perspective, there is
+      little difference between a port redirection and a netfilter DNAT which
+      has selected a single port.  The manner in which the packet and contents
+      are retransmitted, however, is tremendously different.
+    </para>
+    <para>
+      One other less common technique for furnishing inbound services is
+      the use of
+      <link linkend="nat-pat-userspace">port redirection</link>.  Although
+      there are higher layer tools which can perform transparent application
+      layer proxying (e.g.
+      <ulink url="http://www.squid-cache.org/">Squid</ulink>), these are
+      outside the scope of this documentation.
+    </para>
+    <para>
+      There are a number of IP addresses involved in any NAT transformations
+      or connection states.  The following list identifies these names and the
+      convention used to describe each IP address.  Beware that the prevalance
+      of NAT to publish services on the Internet via public IP addresses has
+      lead to the server/client lingo common in discussions of NAT.
+    </para>
+    <variablelist>
+      <varlistentry>
+        <term>server NAT IP</term>
+        <term>NAT IP</term>
+        <listitem>
+          <para>
+            The IP address to which packets are addressed.  This is the
+            address before the device performing NAT manipulates it.
+            This, is frequently also described as the public IP, although
+            any given application of NAT knows no distinction between public
+            and private address ranges.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>real IP</term>
+        <term>hidden IP</term>
+        <term>server IP</term>
+        <term>internal IP</term>
+        <listitem>
+          <para>
+            The IP address after the NAT device has performed its
+            transformation.  Frequently, this is described as the private IP,
+            although any given application of NAT knows no distinction between
+            public and private address ranges.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>client IP</term>
+        <listitem>
+          <para>
+            The source address of the initial packet.  The client IP in a NAT
+            transformation does not change; this IP is the source IP address
+            on any inbound packets both before and after the translation.  It
+            is also the destination address on the outbound packet.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      The above terms will be used below and in general in discussion of NAT
+      although other terms are not uncommon.
+    </para>
+  </section>
+  <section id="nat-stateless">
+   <title>Stateless NAT</title>
+    <para>
+      Stateless NAT, occasionally maligned as dumb NAT, is the simplest form of
+      NAT.  It involves rewriting addresses passing through a
+      routing device:  outbound packets will undergo source address rewriting
+      and inbound packets will undergo destination address rewriting.  The
+      <command>iproute2</command> suite of tools provides the two commands
+      required to configure the kernel to perform network address translation
+      on packets passing through the machine.  This section will cover only
+      stateless NAT, which can only be accomplished under linux with the
+      <command>iproute2</command> tools, although it can be
+      <link linkend="ex-nat-dnat-full">simulated with netfilter</link>.
+    </para>
+    <para>
+      Creating an <command>iproute2</command> NAT mapping has the side
+      effect of causing the kernel to answer ARP requests for the NAT IP.
+      For more detail on ARP filtering, suppression and conditional ARP, see
+      <xref linkend="ch-ether"/>.  This can be considered alternatively a
+      benefit or a misfeature of the kernel support for NAT in the local
+      routing table.  Conversely,
+      <link linkend="nat-dnat">netfilter DNAT</link> makes no ARP entry or
+      provision for neighbor advertisement.
+    </para>
+    <para>
+    </para>
+    <para>
+      Whether or not it is using a packet filter, a linux machine can perform
+      NAT using the <command>iproute2</command> suite of tools.  This chapter
+      will document the use of <command>iproute2</command> tools for NAT with
+      <link linkend="nat-stateless-simple">a simple example</link> and
+      <link linkend="nat-stateless-howto">an explanation of the required
+      commands</link>, then an example of
+      <link linkend="nat-stateless-rpdb">using NAT with the RPDB</link> and
+      <link linkend="nat-stateless-pf-interaction">using NAT with a packet
+      filter</link>.
+    </para>
+    <para>
+      NAT with iproute2 can be used in conjunction with the routing policy
+      database (cf. <link linkend="nat-stateless-rpdb">RPDB</link>) to support
+      conditional NAT, e.g. only perform NAT if the source IP falls within
+      a certain range.  See <xref linkend="nat-stateless-rpdb"/>.
+    </para>
+    <section id="nat-stateless-simple">
+      <title>Simple Example</title>
+      <para>
+        We want to provide SMTP service on an IP in our outside network
+        (205.254.211.0/24) but we know that six months from now we are
+        going to be moving to a new network (65.211.43.0/24) and we don't
+        want to have to readdress our SMTP server then.  It's NAT to the
+        rescue.
+      </para>
+      <para>
+        We'll select an IP on the internal network (192.168.100.0/24) and
+        tell our router to accept packets for 205.254.211.17 and translate
+        this traffic to 192.168.100.17.  Let's take a look at the packet
+        as we accept the packet on our router's outside interface (eth1) and
+        again as we transmit the packet out the router's inside interface
+        (eth0).
+      </para>
+      <example id="ex-nat-basic">
+        <title>
+          NAT of public IP 205.254.211.17 to private IP 192.168.100.17
+        </title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>tcpdump -q -n -n</userinput>
+<computeroutput>19:30:17.824853 eth1 &lt; 64.70.12.210.35131 &gt; 205.254.211.17.25: tcp 0 (DF)
+19:30:17.824976 eth0 &gt; 64.70.12.210.35131 &gt; 192.168.100.17.25: tcp 0 (DF)
+19:30:17.825400 eth0 &lt; 192.168.100.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)
+19:30:17.825568 eth1 &lt; 205.254.211.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Let's examine each of the above packet details above to determine
+        what we are seeing
+        <footnote>
+          <para>
+            If you are having some difficulty understanding the
+            output of <command>tcpdump</command>, please see the
+            section on <link linkend="tools-tcpdump">tcpdump</link>.
+          </para>
+        </footnote>.
+        The first packet comes in on eth1 (masq-gw's
+        outside interface).  The packet is addressed to 205.254.211.17:25
+        which is the public IP on which our service runs.  This is a snapshot
+        of the packet before it has been handled by the NAT code.
+      </para>
+      <para>
+<computeroutput>19:30:17.824853 eth1 &lt; 64.70.12.210.35131 &gt; 205.254.211.17.25: tcp 0 (DF)</computeroutput>
+      </para>
+      <para>
+        The next packet we see is the "same" packet leaving eth0 (masq-gw's
+        inside interface) bound for the internal network.  As you can see,
+        the NAT code has substituted the IP 192.168.100.17 for the
+        original destination IP.
+      </para>
+      <para>
+<computeroutput>19:30:17.824976 eth0 &gt; 64.70.12.210.35131 &gt; 192.168.100.17.25: tcp 0 (DF)</computeroutput>
+      </para>
+      <para>
+        The SMTP server then sends a packet back to us which comes in on
+        eth0.  This is before &masq-gw; has rewritten the outbound packet.
+      </para>
+      <para>
+<computeroutput>19:30:17.825400 eth0 &lt; 192.168.100.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)</computeroutput>
+      </para>
+      <para>
+        Finally, we see the return packet outbound on eth1 from the
+        public IP on which we have elected to publish the service.
+      </para>
+      <para>
+<computeroutput>19:30:17.825568 eth1 &gt; 205.254.211.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)</computeroutput>
+      </para>
+      <para>
+        Now that we have examined the general practice of NAT and looked at a
+        simple example of network address translation, we have the background
+        to begin looking at the tools available to perform NAT.
+      </para>
+      <section id="nat-stateless-howto">
+        <title>iproute2 NAT Practicum</title>
+        <para>
+          There are only a few commands which are required to enable NAT
+          on your linux routing device.
+        </para>
+        <para>
+          Refer to <xref linkend="ex-nat-basic"/> to see the result of the
+          following NAT configuration.  Our assumptions here are as follows:
+        </para>
+        <itemizedlist>
+          <listitem>
+            <para>
+              The machine &masq-gw; is connected to 205.254.211.0/24 on eth1.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The machine &masq-gw; is connected to 192.168.100.0/24 on eth0.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The machine &isolde; is listening on 192.168.100.17/24 on the
+              same media as eth0 of &masq-gw;.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The machine &isolde; uses &masq-gw; as its default gateway.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+            The machine &isolde; has a server running on port 25 (SMTP).
+              </para>
+          </listitem>
+        </itemizedlist>
+        <para>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add nat 205.254.211.17 via 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add nat 205.254.211.17 from 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush cache</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show table all | grep ^nat</userinput>
+<computeroutput>nat 205.254.211.17 via 192.168.100.17  table local  scope host</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17 
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </para>
+        <para>
+          Let's pause for a moment to examine what each of these commands
+          accomplishes.
+        </para>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add nat 205.254.211.17 via 192.168.100.17</userinput>
+        </programlisting>
+        <para>
+          This command tells the kernel to perform network address translation
+          on any packet bound for 205.254.211.17.  The parameter via tells the
+          NAT code to rewrite the packet bound for 205.254.211.17 with the new
+          destination address 192.168.100.17.  Note, that this only handles
+          inbound packets; that is, packets whose destination address contains
+          205.254.211.17.
+        </para>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add nat 205.254.211.17 from 192.168.100.17</userinput>
+        </programlisting>
+        <para>
+          This command instructs the routing policy database (kernel 2.2 and up)
+          to rewrite any packet from 192.168.100.17 with the source address
+          205.254.211.17.  this rule will be triggered by any packet passing
+          through this machine which originates from 192.168.100.17.  This
+          addresses the packets returning to the public network in our case.
+        </para>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush cache</userinput>
+        </programlisting>
+        <para>
+          The kernel maintains a routing cache to handle routing decisions more
+          quickly.  After making changes to the routes on a system, you'll
+          need to tell the cache to empty.  Once the cache is empty, the kernel
+          will again determine the best route by consulting the routing tables
+          (instead of the cache).
+        </para>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show table all | grep nat</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+        </programlisting>
+        <para>
+          These two commands allow us to inspect the routing policy database and
+          the (main) routing table to determine if the routes and rules we added
+          appear as we expect.  If your output is similar to the output above,
+          you should be able to test to see if the linux routing device is
+          performing NAT for you.
+        </para>
+      </section>
+      <section id="nat-stateless-rpdb">
+        <title><command>iproute2</command> NAT with Multiple Private
+          Networks</title>
+        <para>
+          Naturally, NAT introduces a complexity to the network in which it is
+          used because a service is reachable on a public and a private IP.
+          Usually, this is a reasonable tradeoff or else you wouldn't select
+          NAT as the appropriate tool.  In the case that the linux routing
+          device is connected to a public network and more than one private
+          network, you have some extra work to do.
+        </para>
+        <para>
+          Though you have made this service available to the public network on
+          a public IP, you may wish to have internal users connect to the service
+          on the internal IP.
+          In <xref linkend="ex-nat-basic"/>, you would not want users on the internal
+          network to reach the SMTP server on the public IP of the service, but
+          rather the private IP.
+        </para>
+        <para>
+          This is accomplished by use of the routing policy database (RPDB),
+          which allows conditional routing based on packet characteristics.
+          For a more complete explanation of the RPDB, see 
+          <xref linkend="adv-rpdb"/>.  The routing policy database can
+          be manipulated with the <link linkend="tools-ip-rule"><command>
+          ip rule</command></link> command.  In order to successfully
+          configure NAT, you need to have gained familiarity with the <command>
+          ip rule</command>, so this is a logical extension.
+        </para>
+        <para>
+          The assumptions <link linkend="nat-stateless-howto">above</link> about
+          our host &masq-gw; are still valid.  Additionally, let's assume that
+          &masq-gw; is connected to
+          the internal network 192.168.99.0/24 on eth2.  In order to allow hosts
+          in this network to address 192.168.100.17 directly we'll have to
+          create an entry in the RPDB with a higher priority than the current
+          rule which handles all packets bound from 192.168.100.17 (and rewrites
+          them with a source address of 205.254.211.17).
+        </para>
+        <para>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add to 192.168.99.0/24 from 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush cache</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32764:  from 192.168.100.17 to 192.168.99.0/24 lookup main 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17 
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </para>
+        <para>
+          Note that we now have an entry of higher priority in the RPDB
+          for any packets returning from 192.168.100.17 bound for
+          192.168.99.0/24.  The rule tells the kernel to find the route
+          for 192.168.99.0/24 (from 192.168.100.17) in the main
+          routing table.  This exception to the NAT mapping of our public
+          IP to our internal server will allow the hosts in our second
+          internal network to reach the host named &isolde; on
+          its private IP address.
+        </para>
+        <para>
+          If &tristan; were to initiate a connection to &isolde; now, the
+          packet would return from IP 192.168.100.17 instead of being
+          rewritten from 205.254.211.17.
+        </para>
+        <para>
+          Now we have had success creating a NAT mapping with the iproute2
+          tools and we have successfully made an exception for another
+          internal network which is connected to our linux router.  Now,
+          supposing we learn that we will be losing our IP space
+          next week, we are prepared to change our NAT rules without
+          readdressing our server network.
+        </para>
+        <para>
+          Naturally, you may not wish to create these rules manually every time
+          you want to use NAT on every device.  A standard
+          <link linkend="ex-sc-nat">SysV initialization script</link> and
+          <link linkend="ex-sc-static-nat">configuration file</link> can ease the
+          burden of managing a number of NAT IPs on your system.
+        </para>
+      </section>
+    </section>
+    <section id="nat-stateless-pf-interaction">
+      <title>Using a packet filter with <command>iproute2</command> NAT</title>
+      <para>
+        Because NAT rewrites the packet as it passes through your linux box,
+        packet filtering can become complex.  With attentiveness to the
+        addressing of the packet at each stage
+        in its journey through the packet filtering code, you can ease the
+        burden of writing a packet filter.  Because
+        <command>netfilter</command> has a built-in NAT engine, I'll focus on
+        the requirements to get NAT'd packets through the
+        <command>ipchains</command> packet filter.
+      </para>
+      <para>
+        All of the below requirements can be deduced from a thorough
+        understanding of NAT and the <ulink
+        url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO-4.html#ss4.1"><command>ipchains</command>
+        packet path</ulink> as illustrated in the <ulink
+        url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
+        HOWTO</ulink>.  Keep in mind when viewing the ASCII diagram that the NAT
+        will always occur in the routing stage in this diagram, so you'll need
+        to account for this when writing your packet filter rules.
+      </para>
+      <para>
+        Let's examine the IP addresses on a packet traversing each of the input,
+        forward and output chains in an <command>ipchains</command>
+        installation as it is operated upon by the <command>iproute2</command>
+        NAT code.
+      </para>
+      <table id="tb-nat-pf-ipchains">
+        <title>Filtering an <command>iproute2</command> NAT packet with
+          <command>ipchains</command></title>
+        <tgroup cols="3" align="center" colsep="1" rowsep="1">
+          <colspec colname="c1"/>
+          <colspec colname="c2"/>
+          <colspec colname="c3"/>
+          <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
+          <thead>
+            <row>
+              <entry spanname="fullspan">Inbound to the NAT IP</entry>
+            </row>
+            <row>
+              <entry>Chain</entry> 
+              <entry>Source IP</entry>
+              <entry>Destination IP</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>input</entry>
+              <entry>64.70.12.210</entry>
+              <entry>205.254.211.17</entry>
+            </row>
+            <row>
+              <entry spanname="fullspan">Routing Stage</entry>
+            </row>
+            <row>
+              <entry>forward</entry>
+              <entry>64.70.12.210</entry>
+              <entry>192.168.100.17</entry>
+            </row>
+            <row>
+              <entry>output</entry>
+              <entry>64.70.12.210</entry>
+              <entry>192.168.100.17</entry>
+            </row>
+          </tbody>
+        </tgroup>
+        <tgroup cols="3" align="center" colsep="1" rowsep="1">
+          <colspec colname="c1"/>
+          <colspec colname="c2"/>
+          <colspec colname="c3"/>
+          <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
+          <thead>
+            <row>
+              <entry spanname="fullspan">Outbound from the real IP</entry>
+            </row>
+            <row>
+              <entry>Chain</entry> 
+              <entry>Source IP</entry>
+              <entry>Destination IP</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>input</entry>
+              <entry>192.168.100.17</entry>
+              <entry>64.70.12.210</entry>
+            </row>
+            <row>
+              <entry spanname="fullspan">Routing Stage</entry>
+            </row>
+            <row>
+              <entry>forward</entry>
+              <entry>205.254.211.17</entry>
+              <entry>64.70.12.210</entry>
+            </row>
+            <row>
+              <entry>output</entry>
+              <entry>205.254.211.17</entry>
+              <entry>64.70.12.210</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <para>
+        If you have a tight policy on your firewall, with a default deny in
+        every chain, you'll need to add quite a few chains to allow the NAT
+        packets to traverse your firewall.  Let's take a look at a sensible
+        and defensible set
+        of chains to protect access to your NAT machine on a single specified
+        port.  If we wish to apply packet filtering to the NAT we have set up in
+        <xref linkend="ex-nat-basic"/>, the following set of chains will restrict
+        access to only port 25
+        <footnote>
+          <para>
+            I assume here that the user has a restrictive default policy on the
+            firewalling device.  I suggest a policy of DENY on each of the built
+            in <command>ipchains</command> chains.
+          </para>
+        </footnote>.
+      </para>
+      <example id="ex-nat-pf-ipchains">
+        <title>
+          NAT of public IP 205.254.211.17 to private IP 192.168.100.17
+        </title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I input  -i eth1 -p tcp -l -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I input  -i eth1 -p tcp  ! -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I forward        -p tcp       -s 0/0 1024:65535    -d 192.168.100.17 25 -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I output -i eth0 -p tcp       -s 0/0 1024:65535    -d 192.168.100.17 25 -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I input  -i eth0 -p tcp  ! -y -s 192.168.100.17 25 -d 0/0 1024:65535    -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I forward        -p tcp       -s 205.254.211.17 25 -d 0/0 1024:65535    -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ipchains -I output -i eth1 -p tcp       -s 205.254.211.17 25 -d 0/0 1024:65535    -j ACCEPT</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>for icmptype in \</userinput>
+<prompt>&gt; </prompt><userinput>destination-unreachable source-quench time-exceeded parameter-problem; do</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I input  -i eth1 -p icmp -s 0/0 $icmptype            -d 205.254.211.17 -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I forward        -p icmp -s 0/0 $icmptype            -d 192.168.100.17 -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I output -i eth0 -p icmp -s 0/0 $icmptype            -d 192.168.100.17 -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I input  -i eth0 -p icmp -s 192.168.100.17 $icmptype -d 0/0            -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I forward        -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>ipchains -I output -i eth1 -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</userinput>
+<prompt>&gt; </prompt><userinput>done</userinput>
+        </programlisting>
+      </example>
+      <para>
+        Please note that the formatting of the commands is simply for display
+        purposes, and to allow for easier reading of a complex set of commands.
+        The above set of rules is 31 individual chains.  This is most certainly
+        a complex set of rules.  For further details on how to use
+        <command>ipchains</command> please see the 
+        <ulink url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
+        HOWTO</ulink>.  The salient detail you should notice from the above set
+        of rules is the difference between the IPs used in the input and forward
+        chains.  Whenever a packet passes through the NAT rules, this happens in
+        the routing stage.  Since all packets are routed between the input and
+        forward chains, any transformation of the packet (by the NAT code) will
+        by visible in the forward chain.
+      </para>
+      <para>
+        The first two lines cover all inbound TCP packets, the first line as a
+        special case of the second, indicating (<option>-l</option>) that we
+        want to log the packet.  After successfully traversing the input chain,
+        the packet is routed, at which point the destination address of the
+        packet has changed.  Now, we need to forward the packet from the public
+        source address to the private (or real) internal IP address.  Finally,
+        we need to allow the packet out on the internal interface.
+      </para>
+      <para>
+        The next set of rules handles all of the TCP return packets.  On the
+        input rule, we are careful to match only non-SYN packets from our
+        internal server bound for the world.  Once again, the packet is
+        rewritten during the routing stage.  Now in the forward chain, the
+        packet's source IP is the public IP of the service.  Finally, we need to
+        let the packet out on our external interface.
+      </para>
+      <para>
+        The next series of lines are required ICMP rules to prevent network
+        traffic from breaking terribly.  These types of ICMP, particularly
+        destination unreachable (ICMP 3) and source quench (ICMP 4) help to
+        ensure that TCP sessions run with optimized characteristics.
+      </para>
+      <para>
+        These rules are the minimum set of <command>ipchains</command> rules
+        needed to support a NAT'd TCP service.  This concludes our discussion of
+        publishing a service to the world with <command>iproute2</command> based
+        NAT and protecting the service with <command>ipchains</command>.  As you
+        can see, the complexity of supporting NAT with
+        <command>iproute2</command> can be substantial, which is why we'll
+        examine the benefits of inbound NAT (DNAT) with netfilter in the next
+        section.
+      </para>
+    </section>
+  </section>
+  <section id="nat-dnat">
+    <title>Destination NAT with netfilter (DNAT)</title>
+    <para>
+      Destination NAT with netfilter is commonly used to publish a service
+      from an internal RFC 1918 network to a publicly accessible IP.
+      To enable DNAT, at least one <command>iptables</command> command is
+      required.  The 
+      connection tracking mechanism of netfilter will ensure that subsequent
+      packets exchanged in either direction (which can be identified
+      as part of the existing DNAT connection) are also transformed.
+    </para>
+    <para>
+      In a devilishly subtle difference, netfilter DNAT does not cause the
+      kernel to answer ARP requests for the NAT IP, where
+      <command>iproute2</command> NAT automatically begins answering ARP
+      requests for the NAT IP.  If the NAT IP is in a locally 
+    </para>
+    <example id="ex-nat-dnat-all">
+      <title>Using DNAT for all protocols (and ports) on one IP</title>
+      <programlisting>
+<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A PREROUTING -d 10.10.20.99 -j DNAT --to-destination 10.10.14.2</userinput>
+      </programlisting>
+    </example>
+    <para>
+      In this example, all packets arriving on the router with a destination
+      of 10.10.20.99 will depart from the router with a destination of
+      10.10.14.2.
+    </para>
+    <para>
+      If only one port needs to be translated to an internal service the
+      following technique may lead to less resource consumption in the
+      connection tracking code.
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <example id="ex-nat-dnat-port">
+      <title>Using DNAT for a single port</title>
+      <programlisting>
+<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A PREROUTING -p tcp -d 10.10.20.99 --dport 80 -j DNAT --to-destination 10.10.14.2</userinput>
+      </programlisting>
+    </example>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+      Full network address translation, as performed with
+      <command>iproute2</command> can be simulated with both netfilter
+      SNAT and DNAT, with the potential benefit (and attendent resource
+      consumption) of connection tracking.
+    </para>
+    <example id="ex-nat-dnat-full">
+      <title>Simulating full NAT with SNAT and DNAT</title>
+      <programlisting>
+<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A PREROUTING -p tcp -d 10.10.20.99 --dport 80 -j DNAT --to-destination 10.10.14.2</userinput>
+      </programlisting>
+    </example>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <section id="nat-dnat-pat">
+      <title>Port Address Translation with DNAT</title>
+      <para>
+      </para>
+      <para>
+      </para>
+    </section>
+  </section>
+  <section id="nat-pat-userspace">
+    <title>Port Address Translation (PAT) from Userspace</title>
+    <para>
+      Port address translation (hereafter PAT) provides a similar
+      functionality to NAT, but is a more specific tool.  PAT forwards
+      requests for a particular IP and port pair to another IP port pair.
+      This feature is commonly used on publicly connected hosts to make an
+      internal service available to a larger network.
+    </para>
+    <para>
+      PAT will break in strange and wonderful ways if there is an alternate
+      route between the two hosts connected by the port address translation.
+    </para>
+    <para>
+      PAT address translation has one important benefit over NAT (with the
+      <command>iproute2</command> tools).  Let's assume that you have only
+      five public IP addresses for which you have paid dearly.  Additionally,
+      let's assume that you want to run services on standard ports.  You had
+      hoped to connect four SMTP servers, two SSH servers and five HTTP servers.
+      If you had wanted to accomplish this with NAT, you'd need more IP space.
+    </para>
+  </section>
+  <section id="nat-pat-userspace-transparent">
+    <title>Transparent PAT from Userspace</title>
+    <para>
+    </para>
+  </section>
+</chapter>

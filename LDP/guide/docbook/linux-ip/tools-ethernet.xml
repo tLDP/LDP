@@ -1,0 +1,970 @@
+<!-- $Id$ -->
+
+<appendix id="tools-ethernet">
+  <title>Ethernet Layer Tools</title>
+    <para>
+      The section here will cover tools which manipulate, display
+      characteristics of or probe ethernet devices.  Because ethernet is one
+      of the most available and widely spread networking media in use today,
+      we'll concentrate on ethernet rather than other link layer protocols.
+    </para>
+    <para>
+      As with any networking stack, the lower layers must be functioning
+      properly in order for the higher layer protocols to operate.  The tools
+      covered in this section will provide the resources you need to verify
+      the proper operation of your linux machine in an ethernet environment.
+    </para>
+    <para>
+      You probably knew before reading this that you can look at the link
+      light on your ethernet switch/hub and the link light on your ethernet
+      card to verify a good connection.  Now you can use
+      <link linkend="tools-mii-tool"><command>mii-tool</command></link> to
+      ask the ethernet driver if it agrees.  Once you have verified a good media
+      connection, you may want to set other link layer characteristics on your
+      ethernet device.  For this,
+      <link linkend="tools-ip-link"><command>ip link</command></link> is
+      the perfect tool.
+    </para>
+    <para>
+      To see if anybody is using an IP address already on the ethernet to
+      which you are connecting, you can use
+      <link linkend="tools-arping"><command>arping</command></link>
+      and if you want to play with the arp tables, the
+      <link linkend="tools-arping"><command>arp</command></link> command
+      is there to help you accomplish your objective.
+    </para>
+    <section id="tools-arp">
+      <title><command>arp</command></title>
+      <para>
+        An often overlooked tool, <command>arp</command> is used to view
+        and manipulate the entries in the arp table.  See
+        <xref linkend="ether-arp-cache"/> for a fuller discussion of the
+        arp table.
+      </para>
+      <para>
+        The most common uses for <command>arp</command> are to add an
+        address for which to proxy arp, delete an address from the arp table
+        or view the arp table itself.
+      </para>
+      <para>
+        In the simplest invocation, you simply want to see the current state
+        of the arp table.  Invoking <command>arp</command> with no options
+        will provide you exactly the information you need.  Typically, you may
+        not trust DNS (or may not wish to wait for the DNS lookups), and you
+        may wish to specify the arp table on a particular interface.
+      </para>
+      <example id="tools-arp-listing">
+        <title>Displaying the arp table with <command>arp</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -n -i eth3</userinput>
+<computeroutput>Address                  HWtype  HWaddress           Flags Mask Iface
+192.168.100.1           ether   00:C0:7B:7D:00:C8   C                     eth3</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -n -i eth0</userinput>
+<computeroutput>Address                  HWtype  HWaddress           Flags Mask Iface
+192.168.100.17          ether   00:80:C8:E8:4B:8E   C                     eth0</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -a -n -i eth0</userinput>
+<computeroutput>? (192.168.100.17) at 00:80:C8:E8:4B:8E [ether] on eth0</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        The MAC address in the third column is always a six part hexadecimal
+        number.  In practice, the MAC address (also known as the hardware
+        address or the ethernet address) is not normally needed for the
+        majority of troubleshooting problems, however knowing how to retrieve
+        the MAC address can help when tracking down problems in a network
+        <footnote>
+          <para>
+            I know of one instance where some devices which used DHCP
+            to join the network were suddenly and apparently inexplicably
+            receiving addresses in an unexpected netblock.
+            After some head-scratching and judicious use of
+            <command>tcpdump</command> to record the ethernet address of the
+            DHCP server giving out the bogus IP information, the administrator
+            was able to track down a device through the switch to a port on
+            the LAN.
+            It turned out to be a tiny (4-port) hub with an embedded DHCP server
+            which was intended for home use!  The knowledge of the ethernet
+            address of the rogue DHCP server was the key to physically
+            locating the device.
+          </para>
+        </footnote>.
+      </para>
+      <para>
+        The <command>arp</command> command can also force a permament entry
+        into the arp table.  Let's look at an unusual networking need.
+        Infrequently, a need arises to split a network into two parts, each
+        part with the same network address and netmask.  The router which
+        joins the two networks is connected to both sets of media.  See
+        <xref linkend="adv-proxy-arp"/> for more detail on when and how to
+        do this.
+      </para>
+      <para>
+        The command to add arp table entries makes a static entry in the arp
+        table.  This is not recommended practice, and is probably only
+        necessary in strange, experimental, hybrid, or pseudo-bridging
+        situations.
+      </para>
+      <example id="tools-arp-add">
+        <title>Adding arp table entries with <command>arp</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -s 192.168.100.17 -i eth3 -D eth3 pub</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -n -i eth3</userinput>
+<computeroutput>Address                  HWtype  HWaddress           Flags Mask Iface
+192.168.100.1           ether   00:C0:7B:7D:00:C8   C                     eth3
+192.168.100.17          *       *                   MP                    eth3</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        After inserting an entry into the arp table on eth3, we will now
+        respond for ARP requests on eth3 for the IP 192.168.100.17.  If the
+        <systemitem class="systemname">service-router</systemitem> has a
+        packet bound for 192.168.100.17, it will generate an ARP request to
+        which we will respond with the ethernet address of our eth3 interface.
+      </para>
+      <para>
+        Moments after you have added this arp table entry, you realize that
+        you really do not wish
+        <systemitem class="systemname">service-router</systemitem> and 
+        <systemitem class="systemname">isolde</systemitem> to exchange any IP
+        packets.  There is no reason for the 
+        <systemitem class="systemname">isolde</systemitem> to initiate a
+        telnet session with 
+        <systemitem class="systemname">service-router</systemitem> and
+        correspondingly, there are no services on
+        <systemitem class="systemname">isolde</systemitem> which should be
+        accessible from the router.
+      </para>
+      <para>
+        Fortunately, it's quite easy to remove the entry.
+      </para>
+      <example id="tools-arp-delete">
+        <title>Deleting arp table entries with <command>arp</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -i eth3 -d 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>arp -n -i eth3</userinput>
+<computeroutput>Address                  HWtype  HWaddress           Flags Mask Iface
+192.168.100.1           ether   00:C0:7B:7D:00:C8   C                     eth3</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        <command>arp</command> is a small utility, but one which can prove
+        extremely handy.  One minor annoyance with the <command>arp</command>
+        utility is option handling.  Options seem to be handled differently
+        based on order.  If in doubt, try specifying the action as the first
+        option.
+      </para>
+    </section>
+    <section id="tools-arping">
+      <title><command>arping</command></title>
+      <para>
+        An almost unknown command (mostly because it is not frequently
+        necessary), the <command>arping</command> utility performs an action
+        similar to <link linkend="tools-ping"><command>ping</command></link>,
+        but at the ethernet layer.   Where <command>ping</command> tests the
+        reachability of an IP address, <command>arping</command> reports the
+        reachability and round-trip time of an IP address hosted on the local
+        network.
+      </para>
+      <para>
+        There are several modes of operation for this utility.  Under normal
+        operation, <command>arping</command> displays the ethernet and IP
+        address of the target as well as the time elapsed between the
+        arp request and the arp reply.
+      </para>
+      <example id="ex-tools-arping-listing">
+        <title>Displaying reachability of an IP on the local ethernet with <command>arping</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>arping -I eth0 -c 2 192.168.100.17</userinput>
+<computeroutput>ARPING 192.168.100.17 from 192.168.100.254 eth0
+Unicast reply from 192.168.100.17 [00:80:C8:E8:4B:8E]  8.419ms
+Unicast reply from 192.168.100.17 [00:80:C8:E8:4B:8E]  2.095ms
+Sent 2 probes (1 broadcast(s))
+Received 2 response(s)</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Other options to the arping utility include the ability to send a
+        broadcast arp using the <command>-U</command> option
+        and the ability to send a gratuitous reply using the
+        <command>-A</command> option.   A kernel with support for <link
+        linkend="adv-non-local-bind">non-local bind</link> can be used with
+        arping for the nefarious purpose of wreaking havoc on
+        an otherwise properly configured ethernet.  By performing gratuitous arp
+        and broadcasting incorrect arp information, arp tables in poorly
+        designed IP stacks can become quite confused.
+      </para>
+      <para>
+        <command>arping</command> can detect if an IP address is
+        currently in use on an ethernet.  Called duplicate address detection,
+        this use of <command>arping</command> is increasingly common in
+        networking scripts.
+      </para>
+      <para>
+        For a practical example, let's assume a laptop named
+        <systemitem class="systemname">dietrich</systemitem> is normally
+        connected to a home network with the same IP address as
+        <systemitem class="systemname">tristan</systemitem> of
+        our main office network.  In the boot scripts,
+        <systemitem class="systemname">dietrich</systemitem>
+        might make good use of
+        <command>arping</command> by testing reachability of the IP it wants
+        to use before bringing up the IP layer.
+      </para>
+      <example id="ex-tools-arping-dad">
+        <title>Duplicate Address Detection with <command>arping</command></title>
+        <programlisting>
+<prompt>[root@dietrich]# </prompt><userinput>arping -D -q -I eth0 -c 2 192.168.99.35</userinput>
+<prompt>[root@dietrich]# </prompt><userinput>echo $?</userinput>
+<computeroutput>1</computeroutput>
+<prompt>[root@dietrich]# </prompt><userinput>arping -D -q -I eth0 -c 2 192.168.99.36</userinput>
+<prompt>[root@dietrich]# </prompt><userinput>echo $?</userinput>
+<computeroutput>0</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        First, <systemitem class="systemname">dietrich</systemitem> tests
+        reachability of its preferred IP (192.168.99.35).  Because the IP
+        address is in use by
+        <systemitem class="systemname">tristan</systemitem>, 
+        <systemitem class="systemname">dietrich</systemitem> receives a
+        response.  Any response by a device on the ethernet indicating that an
+        IP address is in use will cause the <command>arping</command> command
+        to exit with a non-zero exit code (specifically, exit code 1).
+      </para>
+      <para>
+        Note, that the ethernet device must already be in an UP state (see
+        <xref linkend="tools-ip-link"/>).  If the ethernet device has not been
+        brought up, the <command>arping</command> utility will exit with a
+        non-zero exit code (specifically, exit code 2).
+      </para>
+    </section>
+    <section id="tools-ip-link">
+      <title><command>ip link</command></title>
+      <para>
+        Part of the <command>iproute2</command> suite, <command>ip
+        link</command> provides the ability to
+        <link linkend="tools-ip-link-show">display link layer
+        information</link>,
+        <link linkend="tools-ip-link-set-up">activate an interface</link>,
+        <link linkend="tools-ip-link-set-down">deactivate an interface</link>,
+        <link linkend="tools-ip-link-set">change link layer state
+        flags</link>, <link linkend="tools-ip-link-set-mtu">change MTU</link>,
+        <link linkend="tools-ip-link-set-name">the name of the interface</link>,
+        and even the <link linkend="tools-ip-link-set-address">hardware and
+        ethernet broadcast address</link>.
+      </para>
+      <para>
+        The <command>ip link</command> tool provides the following two verbs:
+        <link linkend="tools-ip-link-show"><command>ip link show</command></link> and
+        <link linkend="tools-ip-link-set"><command>ip link set</command></link>.
+      </para>
+      <section id="tools-ip-link-show">
+        <title>Displaying link layer characteristics with <command>ip link
+          show</command></title>
+        <para>
+          To display link layer information, <command>ip link show</command>
+          will fetch characteristics of the link layer devices currently
+          available.  Any networking device which has a driver loaded can be
+          classified as an available device.  It is immaterial to <command>ip
+          link</command> whether the device is in use by any higher layer
+          protocols (e.g., IP).  You can specify which device you want to
+          know more about with the <command>dev &lt;interface&gt;</command>
+          option.
+        </para>
+        <example id="ex-tools-ip-link-show">
+          <title>Using <command>ip link show</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link show</userinput>
+<computeroutput>1: lo: &lt;LOOPBACK,UP&gt; mtu 16436 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Here we see that the only devices with drivers loaded on 
+          <systemitem class="systemname">tristan</systemitem> are
+          <command>lo</command> and <command>eth0</command>.  Note, as with
+          <link linkend="tools-ip-address-show"><command>ip address
+          show</command></link>, the <command>ip</command> utility will
+          sequentially number the output.  These numbers are dynamically
+          calcualted, so should not be used to refer to the interfaces.  It is
+          far better (and more intuitive) to refer to the interfaces by name.
+        </para>
+        <para>
+          For each device, two lines will summarize the link state and
+          characteristics.  If you are familiar with <link
+          linkend="tools-ifconfig-output"><command>ifconfig</command>
+          output</link>, you should notice that these two lines are a terse
+          summary of lines 1 and 3 of each <command>ifconfig</command> device
+          entry.
+        </para>
+        <para>
+          The flags here are the same <link linkend="tb-tools-ifconfig-flags">
+          flags reported by <command>ifconfig</command></link>, although
+          by contrast to <command>ifconfig</command>, <command>ip link
+          show</command> seems to report the state of the device flags
+          accurately.
+        </para>
+        <para>
+          Let's take a brief tour of the <command>ip link show</command>
+          output.  Line one summarizes the
+          current name of the device, the flags set on the device,
+          <link linkend="routing-icmp-mtu">the maximum transmission unit
+          (MTU)</link> the active queueing mechanism (if any), and
+          the queue size if there is a queue present.  The second line will
+          always indicate the type of link layer in use on the device, and
+          link layer specific information.  For ethernet, the common case,
+          the current hardware address and ethernet broadcast address will be
+          displayed.
+        </para>
+      </section>
+      <section id="tools-ip-link-set">
+        <title>Changing link layer characteristics with
+          <command>ip link set</command></title>
+        <para>
+          Frankly, with the exception of 
+          <link linkend="tools-ip-link-set-up"><command>ip link set
+          up</command></link> and <link
+          linkend="tools-ip-link-set-down"><command>ip link set
+          down</command></link>
+          I have not found need to use the <command>ip link
+          set</command> command with any of the toggle flags  Regardless, 
+          here's an example of the proper operation of the utility.  Paranoid
+          network administrators or those who wish to map ethernet addresses
+          manually should take special note of the <command>ip link set arp
+          off</command> command.
+        </para>
+        <example id="ex-tools-ip-link-set">
+          <title>Using <command>ip link set</command> to change device flags</title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 promisc on</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,PROMISC,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 multicast off promisc off</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set arp off</userinput>
+<computeroutput>Not enough of information: "dev" argument is required.</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set arp off dev eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,NOARP,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+[root@enclitic root]# ip link set dev eth0 arp on 
+<prompt>[root@tristan root]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Any of the below flags are valid on any device.
+        </para>
+        <table id="tb-ip-link-set-flags">
+          <title><command>ip link</command> link layer device states</title>
+          <tgroup cols="2" align="center" colsep="1" rowsep="1">
+            <thead>
+              <row>
+                <entry>Flag</entry>
+                <entry>Possible States</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>arp</entry>
+                <entry>on | off</entry>
+              </row>
+              <row>
+                <entry>promisc</entry>
+                <entry>on | off</entry>
+              </row>
+              <row>
+                <entry>allmulti</entry>
+                <entry>on | off</entry>
+              </row>
+              <row>
+                <entry>multicast</entry>
+                <entry>on | off</entry>
+              </row>
+              <row>
+                <entry>dynamic</entry>
+                <entry>on | off</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
+        <para>
+          Users who would like more information about flags on link layer
+          devices and their meanings should refer to Alexey Kuznetsov's
+          excellent <command>iproute2</command> reference.  See the
+          <xref linkend="links-iproute2"/> for further links.
+        </para>
+      </section>
+      <section id="tools-ip-link-set-down">
+        <title>Deactivating a device with <command>ip link set</command></title>
+        <para>
+          In the same way that using the tool <command>ifconfig
+          &lt;interface&gt; down</command> can summarily stop networking,
+          <command>ip link set dev &lt;interface&gt; down</command> will have
+          a number of side effects for higher networking layers which are
+          bound to this device.
+        </para>
+        <para>
+          Let's look at the side effects of using <command>ip link</command>
+          to bring an interface down.
+        </para>
+        <example id="ex-tools-ip-link-set-down">
+          <title>Deactivating a link layer device with <command>ip link
+            set</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.99.0/24 dev eth0  proto kernel  scope link  src 192.168.99.35
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.99.254 dev eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 down</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show</userinput>
+<computeroutput>127.0.0.0/8 dev lo  scope link</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In our first command, we are able to determine that the
+          <command>eth0</command> is in an UP state.  Naturally, <command>ip
+          link</command> will not tell us if there is an IP bound to the
+          device (use <link linkend="tools-ip-address"><command>ip
+          address</command></link> to answer this question).   Let's assume
+          that <systemitem class="systemname">tristan</systemitem> was
+          operating normally on 192.168.199.35.  If so, the routing table will
+          appear exactly is it appears in
+          <xref linkend="ex-tools-ip-link-set-down"/>.
+        </para>
+        <para>
+          Now when we down the link layer on <command>eth0</command>, we'll
+          see that there is now no longer a flag UP in the link layer output
+          of <link linkend="tools-ip-address-show"><command>ip
+          address</command></link>.  More interesting, though, all of our
+          IP routes to destinations via <command>eth0</command> are now
+          missing.
+        </para>
+      </section>
+      <section id="tools-ip-link-set-up">
+        <title>Activating a device with <command>ip link set</command></title>
+        <para>
+          Before an interface can be bound to a device, the kernel needs to
+          support the physical networking device (beyond the scope of this
+          document) either as a module or as part of the monolithic kernel.
+          If <command>ip link show</command> lists the device, then this
+          condition has been satisfied, and <command>ip link set dev
+          &lt;interface&gt;</command> can be used to activate the interface.
+        </para>
+        <example id="ex-tools-ip-link-set-up">
+          <title>Activating a link layer device with <command>ip link
+            set</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>arping -D -I eth0 192.168.99.35</userinput>
+<computeroutput>Interface "eth0" is down</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 up</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.99.0/24 dev eth0  proto kernel  scope link  src 192.168.99.35
+127.0.0.0/8 dev lo  scope link</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Once the device itself has been activated, operations which require
+          the ability to read data from the device or write data to the device
+          will succeed.  Refer to <xref linkend="ex-tools-arping-dad"/> for
+          a clear example of a network operation which does not require a
+          functional IP layer but need access to a functioning link layer.
+        </para>
+        <para>
+          I'll suggest that the reader consider what other common networking
+          device might not want to have a functional IP layer, but would need
+          a functioning link layer.  FIXME -- Why in the world does tcpdump
+          work even though the link layer is down? -- FIXME
+        </para>
+        <para>
+          In <xref linkend="ex-tools-ip-link-set-up"/>, we are bringing up a
+          device which already has IP address information bound to the device.
+          Notice that as soon as the link layer is brought up, the network
+          route to the local network is entered into the main routing table.
+          By comparing <xref linkend="ex-tools-ip-link-set-up"/> and
+          <xref linkend="ex-tools-ip-link-set-down"/>, we notice that when the
+          link layer is brought up the default route is not returned!  This is the
+          most significant side effect of bringing down an interface through
+          which other networks are reachable.  There are several ways to 
+          repair the frightful missing default route condition: you can use
+          <link linkend="tools-ip-route-add-default"><command>ip route
+          add</command></link>, <link
+          linkend="tools-route-add-default"><command>route
+          add</command></link>, or you can run the
+          networking startup scripts again.
+        </para>
+      </section>
+      <section id="tools-ip-link-set-mtu">
+        <title>Using <command>ip link set</command> to change the MTU</title>
+        <para>
+          Changing the MTU on an interface is a classical example of an
+          operation which, prior to the arrival of <command>iproute2</command>
+          one could only accomplish with the <command>ifconfig</command>
+          command.  Since <command>iproute2</command> has separate
+          utilities for managing the link layer, addressing, routing, and
+          other IP-related objects, it becomes clear even with
+          the command-line utilities that the MTU is really a function of
+          the link layer protocol.
+        </para>
+        <example id="ex-tools-ip-link-set-mtu">
+          <title>Using <command>ip link set</command> to change device flags</title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput># ip link set dev eth0 mtu 1412</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1412 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          This simple example demonstrates exactly how to change the MTU.  For
+          a broader discussion of MTU, please consult
+          <xref linkend="routing-icmp-mtu"/>.  The remaining options to the <command>ip
+          link</command> command cannot be used while the interface is in an
+          UP state.
+        </para>
+      </section>
+      <section id="tools-ip-link-set-name">
+        <title>Changing the device name with
+          <command>ip link set</command></title>
+        <para>
+          For the occasional need to rename an interface from one name to
+          another, the command <command>ip link set</command> provides the
+          desired functionality. Though this command must be used when the
+          device is not in an UP state, the command itself is quite simple.
+          Let's name the interface <command>inside0</command>.
+        </para>
+        <example id="ex-tools-ip-link-set-name">
+          <title>Changing the device name with <command>ip link set</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 mtu 1500</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 name inside</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev inside</userinput>
+<computeroutput>2: inside: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          The convenience of being able to rename devices can be substantial
+          when you are managing many machines and want to use the same
+          name on many different machines, which may have different hardware.
+          Of course, by changing the name of the device, you may foil any
+          scripts which assume conventional device names
+          (<command>eth0</command>, <command>eth1</command>,
+          <command>ppp0</command>).
+        </para>
+      </section>
+      <section id="tools-ip-link-set-address">
+        <title>Changing hardware or ethernet broadcast address with
+          <command>ip link set</command></title>
+        <para>
+          This command changes the hardware or broadcast address of a device
+          as used on the media to which it is connected.  Supposedly there can
+          be name clashes between two different ethernet cards sharing the
+          same hardware address.  I have yet to see this problem, so I suspect
+          that changing the hardware address is more commonly used in
+          vulnerabliity testing or even more nefarious purposes.
+        </para>
+        <para>
+          Alternatively, one can set the broadcast address to a different
+          value, which as Alexey remarks as an aside in the
+          <command>iproute2</command> manual will "break networking."
+          Changing the ethernet broadcast address implies that no
+          conventionally configured host will answer broadcast ARP frames
+          transmitted onto the ethernet.  Since conventional ARP requests
+          are sent to the ethernet broadcast of
+          <constant>ff:ff:ff:ff:ff:ff</constant>, broadcast frames sent after
+          changing the link layer broadcast address will not be received by
+          other hosts on the segment.  To echo
+          Alexey's sentiments:  if you are not sure what you are doing, don't
+          change this.  You'll break networking terribly.
+        </para>
+        <example id="ex-tools-ip-link-set-address">
+          <title>Changing broadcast and hardware addresses with <command>ip link set</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev inside name eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 address 00:80:c8:f8:be:ef</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:be:ef brd ff:ff:ff:ff:ff:ff</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip link set dev eth0 broadcast ff:ff:88:ff:ff:88</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip link show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:be:ef brd ff:ff:88:ff:ff:88</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ping -c 1 -n 192.168.99.254 &gt;/dev/null 2&gt;&amp;1 &amp;</userinput>
+<prompt>[root@tristan]# </prompt><userinput>tcpdump -nnqtei eth0</userinput>
+<computeroutput>tcpdump: listening on eth0
+0:80:c8:f8:be:ef ff:ff:88:ff:ff:88 42: arp who-has 192.168.99.254 tell 192.168.99.35
+0:80:c8:f8:be:ef ff:ff:88:ff:ff:88 42: arp who-has 192.168.99.254 tell 192.168.99.35</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          This practical example demonstrates setting the hardware address and
+          the broadcast address.  Changing the hardware address, also known as
+          the media access control (MAC) address, is not usually necessary.
+          It is a simple operation without detrimental side effects, provided
+          there is no address clash with an existing device.
+        </para>
+        <para>
+          Note, however, in the tcpdump output, the effect of changing
+          the ethernet broadcast address.  As discussed in the paragraph
+          above, changing the broadcast is probably not a good idea
+          <footnote>
+            <para>
+              I refer the reader to an adage:  <emphasis>Just because it can
+              be done doesn't mean it should be done.</emphasis>
+            </para>
+          </footnote>.
+        </para>
+      </section>
+      <section id="tools-ip-link-conclusion">
+        <title></title>
+        <para>
+          As you can see, the <command>ip link</command> utility is a treasure
+          trove of information and allows a great deal of control over the
+          devices on a linux system.
+        </para>
+      </section>
+    </section>
+    <section id="tools-ip-neighbor">
+      <title><command>ip neighbor</command></title>
+
+      <!--
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        #                                                                   #
+        #                             ip neighbor                           #
+        #                                                                   #
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+        #
+        # a heated discussion over
+        #  - the long-term viability of "ip neigh"
+        #  - proxy ARP entries and display
+        #  - creation of static entries
+        #
+
+        http://www.uwsg.iu.edu/hypermail/linux/kernel/0110.2/index.html#523
+
+        -->
+
+      <para>
+        Part of the <command>iproute2</command> command suite, <command>ip
+        neighbor</command> provides a command line interface to
+        <link linkend="ex-tools-ip-neighbor-show">display the neighbor table
+        (ARP cache)</link>,
+        <link linkend="ex-tools-ip-neighbor-add">insert permanent
+        entries</link>,
+        <link linkend="ex-tools-ip-neighbor-del">remove specific
+        entries</link> and
+        <link linkend="ex-tools-ip-neighbor-flush">remove a large number of
+        entries</link>.
+        For peculiarities and commonalities of the <command>iproute2</command>
+        tools, refer to
+        <xref linkend="tools-iproute2-remarks"/>.
+      </para>
+      <para>
+        The more commonly used analog to <command>ip neighbor show</command>,
+        <link linkend="tools-arp"><command>arp -n</command></link> displays
+        the ARP cache in a possibly more recognizable format.
+      </para>
+      <example id="ex-tools-ip-neighbor-show">
+        <title>Displaying the ARP cache with <command>ip neighbor
+          show</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show</userinput>
+<computeroutput>192.168.99.254 dev eth0 lladdr 00:80:c8:f8:5c:73 nud reachable</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        On routers and other machines with large ARP caches, you may find you
+        wish to look at the ARP cache only on a particular interface.  By
+        specifying the interface on which you wish to see the neighbor table,
+        you can limit the output.
+      </para>
+      <example id="ex-tools-ip-neighbor-show-interface">
+        <title>Displaying the ARP cache on an interface with <command>ip
+          neighbor show</command></title>
+        <programlisting>
+<prompt>[root@wan-gw]# </prompt><userinput>ip neighbor show dev eth0</userinput>
+<computeroutput>205.254.211.39 lladdr 00:02:b3:a1:b8:df nud delay
+205.254.211.54 lladdr 00:d0:b7:80:ce:ce nud delay
+205.254.211.179 lladdr 00:80:c8:f8:5c:72 nud reachable</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Another way to limit the output is to specify the subnet in which you
+        are interested.  Simply append the subnet specification to the
+        command.
+      </para>
+      <example id="ex-tools-ip-neighbor-show-network">
+        <title>Displaying the ARP cache for a particular network with
+          <command>ip neighbor show</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neighbor show 192.168.100.0/24</userinput>
+<computeroutput>192.168.100.1 dev eth3 lladdr 00:c0:7b:7d:00:c8 nud stale
+192.168.100.17 dev eth0 lladdr 00:80:c8:e8:4b:8e nud reachable</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Note that in the case of &masq-gw;, there are neighbor table entries
+        for IPs on more than one interface, because &masq-gw; breaks the
+        192.168.100.0/24 network into two parts.  This is an advanced
+        technique described in fuller detail in
+        <xref linkend="adv-proxy-arp"/>.
+      </para>
+      <para>
+        In addition to displaying the neighbor table, it is possible to make
+        static mappings.  For paranoid systems administrators, who do not want
+        to enable ARP on their networks or on particular links, the
+        <command>ip neighbor add</command> command may prove useful.  Refer to
+        <xref linkend="ether-arp-filtering"/> for a discussion of the
+        ramifications of disabling ARP.
+      </para>
+      <para>
+        In <xref linkend="ex-tools-ip-neighbor-add"/>, let's assume that the
+        service router is incapable of correctly answering ARP requests.  The
+        administrator of &masq-gw; could make a permanent entry in the ARP
+        cache mapping 192.168.100.1 to the link layer address of
+        &service-router;.
+      </para>
+      <example id="ex-tools-ip-neighbor-add">
+        <title>Entering a permanent entry into the ARP cache with <command>ip
+          neighbor add</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neighbor add 192.168.100.1 lladdr 00:c0:7b:7d:00:c8 dev eth3 nud permanent</userinput>
+        </programlisting>
+      </example>
+      <para>
+        This creates an entry in the neighbor table which maps
+        192.168.100.1 to link layer address 00:c0:7b:7d:00:c8.  Subsequent IP
+        packets bound for 192.168.100.1 will be encapsulated in ethernet
+        frames with 00:c0:7b:7d:00:c8 in the destination bytes.  This
+        permanent mapping cannot be overridden by ARP.  It would need to be
+        removed with
+        <link linkend="ex-tools-ip-neighbor-del"><command>ip neighbor
+        delete</command></link>.
+      </para>
+      <para>
+        Any existing entry can be changed at any time.  This allows you to
+        make a static entry if there's already an entry in the ARP cache for
+        the specified IP.
+      </para>
+      <example id="ex-tools-ip-neighbor-change">
+        <title>Altering an entry in the ARP cache with <command>ip neighbor
+          change</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor add 192.168.99.254 lladdr 00:80:c8:27:69:2d dev eth3</userinput>
+<computeroutput>RTNETLINK answers: File exists</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.254</userinput>
+<computeroutput>192.168.99.254 dev eth0 lladdr 00:80:c8:f8:5c:73 nud reachable</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor change 192.168.99.254 lladdr 00:80:c8:27:69:2d dev eth3</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.254</userinput>
+<computeroutput>192.168.99.254 dev eth0 lladdr 00:80:c8:27:69:2d nud permanent</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        To remove the entry we added above in
+        <xref linkend="ex-tools-ip-neighbor-add"/>, we could run the following
+        command.  This invalidates the entry forcing the NUD of the entry
+        into <emphasis>failed</emphasis> state.  
+      </para>
+      <example id="ex-tools-ip-neighbor-del">
+        <title>Removing an entry from the ARP cache with <command>ip
+          neighbor del</command></title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neighbor del 192.168.100.1 dev eth3</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neighbor show dev eth3</userinput>
+<computeroutput>192.168.100.1  nud failed</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Subsequent attempts to reach the IP address 192.168.100.1 will require
+        the generation of a new ARP request, which (you hope!) returns the new
+        or currently available link layer address.
+      </para>
+      <para>
+        While I have never found a good use for the <command>ip neighbor
+        flush</command> command, it is provided, and accepts a
+        destination network address as an argument.  Without a destination
+        network address, an interface specification is required.
+      </para>
+      <example id="ex-tools-ip-neighbor-flush">
+        <title>Removing learned entries from the ARP cache with <command>ip
+          neighbor flush</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor flush dev eth3</userinput>
+        </programlisting>
+      </example>
+      <para>
+        Although it is not commonly required, the <command>ip
+        neighbor</command> tool is a convenient tool for displaying and
+        altering the ARP cache (neighbor table).
+      </para>
+    </section>
+    <section id="tools-mii-tool">
+      <title><command>mii-tool</command></title>
+      <para>
+        A key tool for determining if you are connected to the ethernet, and
+        if so, at what speed.  The <command>mii-tool</command> program
+        does not support all ethernet devices, as some ethernet devices have
+        their own vendor-supplied tools to report the same information.  The
+        <command>mii-tool</command> source code is based on a tool called
+        <command>mii-diag</command> which provides slightly more information
+        but is less user friendly.
+      </para>
+      <para>
+        The information reported by <command>mii-tool</command> is quite
+        terse.  The following table should clarify the meaning of the speeds
+        you'll encounter in output from <command>mii-tool</command>
+        <footnote>
+          <para>
+            There is a standard speed/ethernet transmission style supported by
+            <command>mii-tool</command> to which I have not referred.  That is
+            100BaseT4.  100BaseT4 provides support for 100 megabit ethernet
+            networking over Category 3 rated cable.  This is probably not a
+            concern for most recently upgraded network infrastructure.  The
+            standard networking cable pulled in new construction and
+            renovation is now Category 5 cable which supports 100Base-Tx-FD
+            and possibly gigabit ethernet.  So, let's relegate 100BaseT4 to
+            this footnote, and resume.
+          </para>
+        </footnote>.
+      </para>
+      <table id="tb-mii-tool-port-speed">
+        <title>Ethernet Port Speed Abbreviations</title>
+        <tgroup cols="2" align="center" colsep="1" rowsep="1">
+          <thead>
+            <row>
+              <entry>Port Speed</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>10baseT-HD</entry>
+              <entry>10 megabit half duplex</entry>
+            </row>
+            <row>
+              <entry>10baseT-FD</entry>
+              <entry>10 megabit full duplex</entry>
+            </row>
+            <row>
+              <entry>100baseTx-HD</entry>
+              <entry>100 megabit half duplex</entry>
+            </row>
+            <row>
+              <entry>100baseTx-FD</entry>
+              <entry>100 megabit full duplex</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <para>
+        The raw number indicates the number of bits which can be exchanged
+        between two ethernet devices over the wire.  So 10 megabit ethernet
+        can support the transmission of ten million bits per second.  The
+        suffix to each identifier indicates whether both hosts can send and
+        receive simultaneously or not.  Half duplex means that each device can
+        either send or receive in the same instant.  Full duplex means that
+        both devices can send and receive simultaneously.
+      </para>
+      <para>
+        The simplest use of <command>mii-tool</command> reports the link
+        status of all ethernet devices on a system.  Any argument
+        to <command>mii-tool</command> is interpreted as an interface name to
+        query for link status.
+      </para>
+      <example id="tools-mii-tool-list">
+        <title>Detecting link layer status with <command>mii-tool</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool</userinput>
+<computeroutput>eth0: negotiated 100baseTx-FD, link ok</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool -v</userinput>
+<computeroutput>eth0: negotiated 100baseTx-FD, link ok
+  product info: vendor 08:00:17, model 1 rev 0
+  basic mode:   autonegotiation enabled
+  basic status: autonegotiation complete, link ok
+  capabilities: 100baseTx-FD 100baseTx-HD 10baseT-FD 10baseT-HD
+  advertising:  100baseTx-FD 100baseTx-HD 10baseT-FD 10baseT-HD
+  link partner: 100baseTx-FD 100baseTx-HD 10baseT-FD 10baseT-HD flow-control</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        In the above example, we can infer that
+        <systemitem class="systemname">tristan</systemitem> has only one
+        ethernet device (or no ethernet drivers loaded for any other present
+        ethernet devices).  The first ethernet device has successfully
+        negotiated a 100 megabit full duplex connection with the device to
+        which it is connected.
+      </para>
+      <para>
+        Although a great rarity, you may have occasion to dictate to the
+        ethernet interface the speed at which it should talk to the switch or
+        hub.  <command>mii-tool</command> supports a mode of operation under
+        which you indicate supported modes for autonegotiation.  Normally, two
+        connected devices will negotiate the fastest possible commonly shared
+        speed.  You can select what speeds you want to support on an ethernet
+        interface by using <command>mii-tool</command>.
+      </para>
+      <example id="tools-mii-tool-advertise">
+        <title>Specifying ethernet port speeds with <command>mii-tool --advertise</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool mii-tool --advertise 10baseT-HD,10baseT-FD</userinput>
+<computeroutput>restarting autonegotiation...</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool</userinput>
+<computeroutput>eth0: negotiated 10baseT-FD, link ok</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        After we specified that we wished only to support 10baseT-HD and
+        10baseT-FD as acceptable speeds, mii-tool caused the ethernet driver
+        to renegotiate port speed with the attached device.  Here we selected
+        10baseT-FD.
+      </para>
+      <example id="tools-mii-tool-force">
+        <title>Forcing ethernet port speed with <command>mii-tool --force</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool --force 10baseT-FD</userinput>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool</userinput>
+<computeroutput>eth0: 10 Mbit, full duplex, link ok</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool --restart</userinput>
+<computeroutput>restarting autonegotiation...</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>mii-tool</userinput>
+<computeroutput>eth0: negotiated 100baseTx-FD, link ok</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        After manipulating the speed at which the ethernet driver would
+        communicate with the connected device on &tristan;, we chose to
+        restart the autonegotiation process without forcing a particular speed
+        or advertising a particular speed.
+      </para>
+      <para>
+        So, if you must know at what speed your linux machine is connected to
+        another device, <command>mii-tool</command> comes to your rescue.
+      </para>
+    </section>
+</appendix>

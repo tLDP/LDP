@@ -1,0 +1,1776 @@
+<!-- $Id$ -->
+
+<appendix id="tools-ip-routing">
+    <title>IP Route Management</title>
+    <para>
+      Routing and understanding routing in an IP network is one of the
+      fundamentals you will need to grasp the flexibility of IP networking,
+      and services which run on IP networks.  It is not enough to address the
+      machines and mix yourself a dirty martini.  You'll need to verify that
+      the machine has a route to any network with which it needs to exchange
+      IP packets.
+    </para>
+    <para>
+      One key element to remember when designing networks, viewing routing
+      tables, debugging networking problems, and viewing network traffic on
+      the wire is that IP routing is stateless
+      <footnote>
+        <para>
+          For those who have some doubt, netfilter provides a connection
+          tracking mechanism for packets passing through a linux router.  This
+          connection tracking, however, is independent of routing.  It is
+          important to not conflate the packet filtering connection tracking
+          statefulness with the statelessness of IP routing.  For an example
+          of a complex networking setup where netfilter's statefulness and the
+          statelessness of IP routing collide, see
+          <xref linkend="adv-multi-internet"/>.
+        </para>
+      </footnote>.
+      This means that every time a new packet hits the routing stage, the
+      router makes an independent decision about where to send this
+      packet.
+    </para>
+    <para>
+      In this section, we'll look at the tools available to manipulate and
+      view the routing table(s).  We'll start with the well known <link
+      linkend="tools-route"><command>route</command></link> command, and move
+      on to the increasingly used <link linkend="tools-ip-route"><command>ip
+      route</command></link> and <link linkend="tools-ip-rule"><command>ip
+      rule</command></link> tools which are part of the
+      <command>iproute2</command> package.
+    </para>
+    <section id="tools-route">
+      <title><command>route</command></title>
+      <para>
+        In the same way that
+        <link linkend="tools-ifconfig"><command>ifconfig</command></link> is
+        the venerable utility for IP address management,
+        <command>route</command> is a tremendously useful command for
+        manipulating and displaying IP routing tables.
+      </para>
+      <para>
+        Here we'll look at several tasks you can perform with
+        <command>route</command>.  You can <link
+        linkend="tools-route-show">display routes</link>, <link
+        linkend="tools-route-add">add routes</link> (most importantly, the
+        <link linkend="tools-route-add-default">default route</link>),
+        <link linkend="tools-route-del">remove routes</link>, and <link
+        linkend="tools-route-show-cache">examine the routing cache</link>.
+        I will switch between traditional and CIDR notation for network
+        addressing in this (and subsequent) sections, so the reader unaware of
+        these notations is encouraged to refer liberally to the links provided
+        in <xref linkend="links-general-ip"/>.
+      </para>
+      <para>
+        When using <command>route</command> and <command>ip route</command> on
+        the same machine, it is important to understand that not all routing
+        table entries can be shown with <command>route</command>.  The key
+        distinction is that <command>route</command> only displays
+        information in the main routing table.  NAT routes, and routes in
+        tables other than the main routing table must be managed and viewed
+        separately with the <link linkend="tools-ip-route"><command>ip
+        route</command></link> tool.
+      </para>
+      <section id="tools-route-show">
+        <title>Displaying the routing table with <command>route</command></title>
+        <para>
+          By far the simplest and most common task one performs with
+          <command>route</command> is 
+          viewing the routing table.  On a single-homed desktop like
+          <systemitem class="systemname">tristan</systemitem>, the routing
+          table will be very simple, probably comprised of only a few routes.
+          Compare this to a complex routing table on a host with multiple
+          interfaces and static routes to internal networks, such as
+          <systemitem class="systemname">masq-gw</systemitem>.  It is by using
+          the <command>route</command> command that you can determine where a
+          packet goes when it leaves your machine.
+        </para>
+        <example id="ex-tools-route-show-simple">
+          <title>Viewing a simple routing table with <command>route</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In the simplest routing tables, as in
+          <systemitem class="systemname">tristan</systemitem>'s case, you'll
+          see three separate routes.  The route which is customarily present
+          on all machines (and which I'll not remark on after this) is the
+          route to the loopback interface.  The loopback interface is an IP
+          interface completely local to the host itself.  Most commonly,
+          loopback is configured as a single IP address in a class A-sized
+          network.  This entire network has been set aside for use on loopback
+          devices.  The address used is usually 127.0.0.1/8, and the device
+          name under all default installations of linux I have seen is
+          <command>lo</command>.  It is not at all unheard of for people to
+          host services on loopback which are intended only for consumption on
+          that machine, e.g., SMTP on tcp/25.
+        </para>
+        <para>
+          The remaining two lines define how 
+          <systemitem class="systemname">tristan</systemitem> should reach any
+          other IP address anywhere on the Internet.  These two routing table
+          entries divide the world into two different categories: a locally
+          reachable network (192.168.99.0/24) and everything else.  If an
+          address falls within the 192.168.99.0/24 range, 
+          <systemitem class="systemname">tristan</systemitem> knows it can
+          reach the IP range directly on the wire, so any packets bound for
+          this range will be pushed out onto the local media.
+        </para>
+        <para>
+          If the packet falls in any other range
+          <systemitem class="systemname">tristan</systemitem> will consult its
+          routing table and find no single route that matches.  In this case,
+          the default route functions as a terminal choice.  If no other route
+          matches, the packet will be forwarded to this destination address,
+          which is usually a router to another set of networks and routers
+          (which eventually lead to the Internet).
+        </para>
+        <para>
+          Viewing a complex routing table is no more difficult than viewing a
+          simple routing table, although it can be a bit more diffiult to
+          read, interpret, and sometimes even find the route you wish to
+          examine.
+        </para>
+        <example id="ex-tools-route-show-complex">
+          <title>Viewing a complex routing table with <command>route</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.100.0   0.0.0.0         255.255.255.252 U     0      0        0 eth3
+205.254.211.0   0.0.0.0         255.255.255.0   U     0      0        0 eth1
+192.168.100.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth2
+192.168.98.0    192.168.99.1    255.255.255.0   UG    0      0        0 eth2
+10.38.0.0       192.168.100.1   255.255.0.0     UG    0      0        0 eth3
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         205.254.211.254 0.0.0.0         UG    0      0        0 eth1</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          The above routing table shows a more complex set of static routes
+          than one finds on a single-homed host.  By comparing the network
+          mask of the routes above, we can see that the network mask is listed
+          from the most specific to the least specific.  Refer to
+          <xref linkend="routing-selection"/> for more discussion.
+        </para>
+        <para>
+          A quick glance down this routing table also provides us with a good
+          deal of knowledge about the topology of the network.  Immediately we
+          can identify four separate ethernet interfaces, 3 locally connected
+          class C sized networks, and one tiny subnet (192.168.100.0/30).  We
+          can also determine that there are two networks reachable via static
+          routes behind internal routers.
+        </para>
+        <para>
+          Now that we have taken a quick glance at the output from the route
+          command, let's examine a bit more systematically what it's reporting
+          to us.
+        </para>
+      </section>
+      <section id="tools-route-output">
+        <title>Reading <command>route</command>'s output</title>
+        <para>
+          For this discussion refer to the network map in the appendix, and
+          also to <xref linkend="ex-tools-route-show-complex"/>.
+          <command>route</command> is a venerable command, one which can
+          manipulate routing tables for protocols other than IP.  If you wish
+          to know what other protocols are supported, try <userinput>route
+          --help</userinput> at your leisure.  Fortunately,
+          <command>route</command> defaults to inet (IPv4) routes if no other
+          address family is specified.
+        </para>
+        <para>
+          By combining the values in columns one and three you can determine
+          the destination network or host address.  The first line in 
+          <systemitem class="systemname">masq-gw</systemitem>'s routing table
+          shows 192.168.100.0/255.255.255.252, which is more conveniently
+          written in CIDR notation as 192.168.100.0/30.  This is the smallest
+          possible network according to <ulink
+          url="http://www.isi.edu/in-notes/rfc1878.txt">RFC 1878</ulink>.  The
+          only two useable addresses are 192.168.100.1 
+          (<systemitem class="systemname">service-router</systemitem>)
+          and 192.168.100.2
+          (<systemitem class="systemname">masq-gw</systemitem>).
+        </para>
+        <para>
+          The second column holds the IP address of the gateway to the
+          destination if the destination is not a locally connected network.
+          If there is a value other than 0.0.0.0 in this field, the kernel
+          will address the outbound packet for this device (a router of some
+          kind) rather than directly for the destination.  The column after
+          the netmask column (Flags) should always contain a
+          <command>G</command> for destination not locally connected to the
+          linux machine.
+        </para>
+        <para>
+          The fields Metric, Ref and Use are not generally used in simple or
+          even moderately complex routing tables, however, we will discuss the
+          Use column further in <xref linkend="tools-route-show-cache"/>.
+        </para>
+        <para>
+          The final field in the <command>route</command> output contains the
+          name of the interface through which the destination is reachable.
+          This can be any interface known to the kernel which has an IP
+          address.  In <xref linkend="ex-tools-route-show-complex"/> we can
+          learn immediately that 192.168.98.0/24 is reachable through
+          interface <constant>eth2</constant>.
+        </para>
+        <para>
+          After this brief examination of the commonest of output from
+          <command>route</command>, let's look at some of the other things we
+          can learn from <command>route</command> and also how we can change
+          the routing table.
+        </para>
+      </section>
+      <section id="tools-route-show-cache">
+        <title>Using <command>route</command> to display the routing cache</title>
+        <para>
+          The routing cache is used by the kernel as a lookup table analogous
+          to a quick reference card.  It's faster for the kernel to refer to
+          the cache (internally implemented as a hash table) for a recently
+          used route than to lookup the destination address again.  Routes
+          existing in the route cache are periodically expired.  If you need
+          to clean out the routing cache entirely, you'll want to become
+          familiar with <link linkend="tools-ip-route-flush"><command>ip
+          route flush cache</command></link>.
+        </para>
+        <para>
+          At first, it might surprise you to learn that there are no entries
+          for locally connected networks in a routing cache.  After a bit of
+          reflection, you come to realize that there is on need to cache an IP
+          route for a locally connected network because the machine is
+          connected to the same ethernet.  So, any given destination has an
+          entry in either the arp table or in the routing cache.  For a
+          clearer picture of the differences between each of the cached
+          routse, I'd suggest adding a <option>-e</option> switch.
+        </para>
+        <example id="ex-tools-route-show-cache">
+          <title>Viewing the routing cache with <command>route</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route -Cen</userinput>
+<computeroutput>Kernel IP routing cache
+Source          Destination     Gateway         Flags   MSS Window  irtt Iface
+194.52.197.133  192.168.99.35   192.168.99.35     l      40 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0         29 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0
+192.168.99.254  192.168.99.35   192.168.99.35     il     40 0          0 lo
+192.168.99.35   192.168.99.35   192.168.99.35     l   16436 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0          0 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          FIXME!  I don't really know why there are three entries in the routing
+          cache for each destination.  Here, for example, we see three entries
+          in the routing cache for 194.52.197.133 (a Swedish destination).
+        </para>
+        <para>
+          The MSS column tells us what the path MTU discovery has determined
+          for a maximum segment size for the route to this destination.  By
+          discovering the proper segment size for a route and caching this
+          information, we can make most efficient use of bandwidth to the
+          destination, without incurring the overhead of packet fragmentation
+          enroute.  See <xref linkend="routing-icmp-mtu"/> for a more complete
+          discussion of MSS and MTU.
+        </para>
+        <para>
+          FIXME!  There has to be more we can say about the routing cache
+          here.
+        </para>
+      </section>
+      <section id="tools-route-add">
+        <title>Creating a static route with <command>route add</command></title>
+        <para>
+          Static routes are explicit routes to non-local destinations through
+          routers or gateways which are not the default gateway.  The case of
+          the routing table on 
+          <systemitem class="systemname">tristan</systemitem> is a classic
+          example of the need for a static route.  There are two routers in
+          the same network, 
+          <systemitem class="systemname">masq-gw</systemitem> and
+          <systemitem class="systemname">isdn-router</systemitem>.  If 
+          <systemitem class="systemname">tristan</systemitem> has packets for
+          the 192.168.98.0/24 network, they should be routed to 192.168.99.1
+          (<systemitem class="systemname">isdn-router</systemitem>).  Refer
+          also to <xref linkend="basic-changing-static"/> for this example.
+        </para>
+        <para>
+          As with <link
+          linkend="tools-ifconfig"><command>ifconfig</command></link>,
+          <command>route</command> has a syntax unlike most standard unix
+          command line utilities, mixing options and arguments with less
+          regularity.  Note the mandatory <option>-net</option> or
+          <option>-host</option> options when adding or removing any route
+          other than the default route.
+        </para>
+        <para>
+          In order to add a static route to the routing table, you'll need to
+          gather several pieces of information about the remote network.
+        </para>
+        <para>
+          In our example network, 
+          <systemitem class="systemname">masq-gw</systemitem> can only reach
+          10.38.0.0/16 through 
+          <systemitem class="systemname">service-router</systemitem>.  Let's
+          add a static route to the masquerading firewall to ensure that
+          10.38.0.0/16 is reachable.  Our intended routing table will look
+          like the routing table in
+          <xref linkend="ex-tools-route-show-complex"/>.
+          Let's also view the output
+          if we mistype the IP address of the default gateway and specify an
+          address which is not a locally reachable address.
+        </para>
+        <example id="ex-tools-route-add-net">
+          <title>Adding a static route to a network <command>route add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>route add -net 10.38.0.0 netmask 255.255.0.0 gw 192.168.109.1</userinput>
+<computeroutput>SIOCADDRT: Network is unreachable</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>route add -net 10.38.0.0 netmask 255.255.0.0 gw 192.168.100.1</userinput>
+          </programlisting>
+        </example>
+        <para>
+          It should be clear now that the gateway address must be reachable on
+          a locally connected network for a static route to be useable (or
+          even make sense).  In the first line, where we mistyped, the route
+          could not be added to the routing table because the gateway address
+          was not a reachable address.
+        </para>
+        <para>
+          Now, instead of sending packets with a destination of 10.38.0.0/16
+          to the default gateway, 
+          <systemitem class="systemname">wan-gw</systemitem>,
+          <systemitem class="systemname">masq-gw</systemitem> will send this
+          traffic to 
+          <systemitem class="systemname">service-router</systemitem> at IP
+          address 192.168.100.1.
+        </para>
+        <para>
+          The above is a simple example of routing a network to a separate
+          gateway, a gateway other than the default gateway.  This is a common
+          need on networks central to an operation, and less common in branch
+          offices and remote networks.
+        </para>
+        <para>
+          Occasionally, however, you'll have a single machine with an IP
+          address in a different range on the same ethernet as some other
+          machines.  Or you might have a single machine which is reachable
+          via a router.  Let's look at these two scenarios to see how we can
+          create static routes to solve this routing need.
+        </para>
+        <para>
+          Occasionally, you may have a desire to restrict communication from
+          one network to another by not including routes to the network.
+          In our sample network, &tristan; may be a
+          workstation of an employee who doesn't need to reach any machines in
+          the branch office.  Perhaps this employee needs to periodically
+          access some data or service supplied on 192.168.98.101.  We'll need
+          to add a static route to allow this machine to access this single
+          host IP in the branch office network
+          <footnote>
+            <para>
+              Though &tristan; does not
+              have a direct route to the 192.168.98.0/24 network, it does have
+              a default route which knows about this destination network.
+              Therefore, for the purposes of this illustrative example, we'll
+              assume that &masq-gw; is
+              configured to drop or reject all traffic to 192.168.98.0/24 from
+              192.168.99.0/24 and vice versa.  Effectively this means that the
+              only path to reach the branch office from the main office is via 
+              &isdn-router;.
+            </para>
+          </footnote>.
+        </para>
+        <para>
+          Here's a summary of the <link linkend="basic-changing-static">required
+          data</link> for our static route.  The destination is
+          192.168.98.101/32 and the gateway is 192.168.99.1.
+        </para>
+        <example id="ex-tools-route-add-host">
+          <title>Adding a static route to a host with <command>route add</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route add -host 192.168.98.101 gw 192.168.99.1</userinput>
+<prompt>[root@tristan]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.98.101  192.168.99.1    255.255.255.255 UG    0      0        0 eth0
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Now, we have successfully altered the routing table to include a
+          host route for the single machine we want our employee to be able to
+          reach.
+        </para>
+        <para>
+          Even rarer, you may encounter a situation where a single ethernet
+          network is used to host multiple IP networks.  There are reasons
+          people might do this, although I regard this is bad form.  If
+          possible, it is cleaner, more secure, and easier to troubleshoot if
+          you do not share IP networks on the same media segment.  With that
+          said, you can still convince your linux box to be a part of each
+          network
+          <footnote>
+            <para>
+              There can potentially be routing problems with multiple IP
+              networks on the same media segment, but if you can remember that
+              IP routing is essentially stateless, you can plan around these
+              routing problems and solve these problems.  For a fuller
+              discussion of these issues, see <xref linkend="adv-multi-ips"/>
+              and <xref linkend="adv-media-share"/>.
+            </para>
+          </footnote>.
+        </para>
+        <para>
+          Let's assume for the sake of this example that NAT is not an option
+          for us, and we need to move the machine 205.254.211.184 into another
+          network.  Though it violates the concept of security partitioning,
+          we have decided to put the server into the same network as
+          <systemitem class="systemname">service-router</systemitem>.
+          Naturally, we'll need to modify the routing table on 
+          <systemitem class="systemname">masq-gw</systemitem>.
+        </para>
+        <para>
+          Be sure to refer to <xref linkend="adv-proxy-arp"/> for a
+          complete discussion of this unusual networking scenario.
+        </para>
+        <example id="ex-tools-route-add-host-dev">
+          <title>Adding a static route to a host on the same media with <command>route add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>route add -host 205.254.211.184 dev eth3</userinput>
+          </programlisting>
+        </example>
+        <para>
+          I'll leave as an exercise to the reader's imagination the question
+          of how to send all traffic to a locally connected network to an
+          interface.  In light of the host route above, it should be a logical
+          step for the reader to make.
+        </para>
+        <para>
+          The above are common examples of the usage of the
+          <command>route</command> command.
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-route-add-default">
+        <title>Creating a default route with <command>route add default</command></title>
+        <para>
+          The default route is a special case of a static route.  Any machine
+          which is connected to the Internet has a default route.  For the
+          majority of smaller networks which are not running dynamic routing
+          protocols, each machine on an internal network uses a router or
+          firewall as its default gateway, forwarding all traffic to that
+          destination.  Typically, this router or firewall forwards the
+          traffic to the next router or device via a static route until the
+          traffic reaches the ISP's service access router.  Many ISPs use
+          dynamic routing internally to determine the best path out of their
+          networks to remote destinations.
+        </para>
+        <para>
+          But we are only interested in adding a default route and
+          understanding that packets are reaching the default gateway.  Once
+          the packets have reached the default gateway, we assume that the
+          administrator of that device is monitoring its correct operation.
+        </para>
+        <para>
+          With this bit of background about the default route, it is easy to
+          see why a default route is a key part of any networking device's
+          configuration.  If the machine is to reach machines other than the
+          machines on the local network, it must know the address of the
+          default gateway.
+        </para>
+        <para>
+          Because the default gateway is so important, there is particular
+          support for adding a default route included in the
+          <command>route</command> command.  Refer to
+          <xref linkend="ex-basic-set-default"/> for a simple
+          example of adding a
+          default route.  The syntax of the command is as follows:
+        </para>
+        <example id="ex-tools-route-add-default">
+          <title>Setting the default route with <command>route</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route add default gw 192.168.99.254</userinput>
+          </programlisting>
+        </example>
+        <para>
+          This is the commonest method used for setting a default route,
+          although the route can also be specified by the following command.
+          I find the alternate method more explicit than the common method for
+          setting default gateway, because the destination address and network
+          mask are treated exactly like any other network address and netmask.
+        </para>
+        <example id="ex-tools-route-add-default-alt">
+          <title>An alternate method of setting the default route with <command>route</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route add -net 0.0.0.0 netmask 0.0.0.0 gw 192.168.99.254</userinput>
+          </programlisting>
+        </example>
+        <para>
+          The alternate method of setting a default route specifies a network
+          and netmask of 0, which is shorthand for all destinations.  I'll
+          reiterate that the kernel sees these two methods of setting the
+          default route as identical.  The resulting routing table is exactly
+          the same.  You may select whichever of these
+          <command>route</command> invocations you find more comfortable.
+        </para>
+        <para>
+          Now that we have covered adding static routes and the special static
+          route, the default route, let's try our hand at removing existing
+          routes from routing tables.
+        </para>
+      </section>
+      <section id="tools-route-del">
+        <title>Removing routes with <command>route del</command></title>
+        <para>
+          Any route can be removed from the routing table as easily as it can
+          be added.  The syntax of the command is exactly the same as the
+          syntax of the <command>route add</command> command.
+        </para>
+        <para>
+          After we went to all of the trouble above to put our machine
+          205.254.211.184 into the network with
+          <systemitem class="systemname">service-router</systemitem>, we
+          probably realize that from a security partitioning standpoint, it is
+          not only stupid, but also foolhardy!  So now, we conclude that we
+          need to return 205.254.211.184 to its former network (the DMZ
+          proper).  We'll now remove the special host route for its IP, so the
+          network route for 205.254.211.0/24 will now be used for reaching
+          this host.  (If you have questions about why, read
+          <xref linkend="routing-selection"/>.)
+        </para>
+        <example id="ex-tools-route-del-host-dev">
+          <title>Removing a static host route with <command>route del</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+205.254.211.184 0.0.0.0         255.255.255.255 U     0      0        0 eth3
+192.168.100.0   0.0.0.0         255.255.255.252 U     0      0        0 eth3
+205.254.211.0   0.0.0.0         255.255.255.0   U     0      0        0 eth1
+192.168.100.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth2
+192.168.98.0    192.168.99.1    255.255.255.0   UG    0      0        0 eth2
+10.38.0.0       192.168.100.1   255.255.0.0     UG    0      0        0 eth3
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         205.254.211.254 0.0.0.0         UG    0      0        0 eth1</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>route del -host 205.254.211.184 dev eth3</userinput>
+          </programlisting>
+        </example>
+        <para>
+          Another possible example might be the prohibition of Internet
+          traffic to a particular user.  If a machine does not have a default
+          route, but instead has a routing table populated only with routes to
+          internal networks, then that machine can only reach IP addresses in
+          networks to which it has a routing table entry.  Let's say that you
+          have a user who routinely spends work hours browsing the Internet,
+          fetching mail from a POP account outside your network, and in short
+          wastes time on the Internet.  You can easily prevent this user from
+          reaching anything except your internal networks.  Naturally, this
+          sort of a problem employee should probably face some sort of
+          administrative sanction to address the real problem, but as a
+          technical component of the strategy to prevent this user from
+          wasting time on the Internet, you could remove access to the
+          Internet from this employee's machine.
+        </para>
+        <para>
+          In the below example, we'll use the <command>route</command> command
+          a number of times for different operations, all of which you should
+          be familiar with by now.
+        </para>
+        <example id="ex-tools-route-del-default">
+          <title>Removing the default route with <command>route del</command></title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.98.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.98.254  0.0.0.0         UG    0      0        0 eth0</computeroutput>
+<prompt>[root@morgan]# </prompt><userinput>route del default gw 192.168.98.254</userinput>
+<prompt>[root@morgan]# </prompt><userinput>route add -net 192.168.99.0 netmask 255.255.255.0 gw 192.168.98.254</userinput>
+<prompt>[root@morgan]# </prompt><userinput>route add -net 192.168.100.0 netmask 255.255.255.0 gw 192.168.98.254</userinput>
+<prompt>[root@morgan]# </prompt><userinput>route add -net 205.254.211.0 netmask 255.255.255.0 gw 192.168.98.254</userinput>
+<prompt>[root@morgan]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+205.254.211.0   192.168.98.254  255.255.255.0   U     0      0        0 eth0
+192.168.100.0   192.168.98.254  255.255.255.0   U     0      0        0 eth0
+192.168.99.0    192.168.98.254  255.255.255.0   U     0      0        0 eth0
+192.168.98.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Now, the user on <systemitem class="systemname">morgan</systemitem>
+          can only reach the specified networks.  The networks we have entered
+          here are all of our corporate networks.  If the user tries to
+          generate a packet to any other destination, the kernel is not going
+          to know where to send it, so will return in error code to the
+          application trying to make the network connection.
+        </para>
+        <para>
+          While this can be a very effective way to restrict access to an
+          individual machine, it is an ineffective method of systems
+          administration, since it requires that the user log in to the
+          affected machine and make changes to the routing table on demand.  A
+          better solution would be to use <link linkend="pf-network">packet
+          filter rules</link>.
+        </para>
+      </section>
+    </section>
+    <section id="tools-ip-route">
+      <title><command>ip route</command></title>
+      <para>
+        Another part of the <command>iproute2</command> suite of tools for IP
+        management, <command>ip route</command> provides management tools for
+        manipulating any of the routing tables.  Operations
+        include
+        <link linkend="tools-ip-route-show">displaying routes</link> or the
+        <link linkend="tools-ip-route-show-cache">routing cache</link>,
+        <link linkend="tools-ip-route-add">adding routes</link>,
+        <link linkend="tools-ip-route-del">deleting routes</link>,
+        <link linkend="tools-ip-route-change">modifying existing routes</link>, and
+        <link linkend="tools-ip-route-get">fetching a route</link> and
+        <link linkend="tools-ip-route-flush">clearing an entire routing table or
+        the routing cache</link>.
+      </para>
+      <para>
+        One thing to keep in mind when using the <command>ip route</command>
+        is that you can operate on any of the 255 routing tables with this
+        command.  Where the <link
+        linkend="tools-route"><command>route</command></link>
+        command operated only on the main routing table (table 254), the
+        <command>ip route</command> command operates by default on the main
+        routing table, but can be easily coaxed into using other tables with
+        the <option>table</option> parameter.
+      </para>
+      <para>
+        Fortunately, as mentioned earlier, the <command>iproute2</command>
+        suite of tools does not rely on DNS for any operation so, the
+        ubiquitous <option>-n</option> switch in previous examples will not be
+        required in any example here.
+      </para>
+      <para>
+        All operations with the <command>ip route</command> command are
+        atomic, so each command will return either <computeroutput>RTNETLINK
+        answers: No such process</computeroutput> in the case of an error, or
+        nothing in the face of success.  The <option>-s</option> switch which
+        provides additional statistical information when reporting link layer
+        information will only provide additional information when reporting on
+        the state of the <link linkend="tools-ip-route-show-cache">routing
+        cache</link> or <link linkend="tools-ip-route-get">fetching a specific
+        route</link>..
+      </para>
+      <para>
+        The <command>ip route</command> utility when used in conjunction with
+        the <link linkend="tools-ip-rule"><command>ip rule</command></link>
+        utility can create stateless NAT tables.  It can even manipulate the
+        local routing table, a routing table used for traffic bound for
+        broadcast addresses and IP addresses hosted on the machine itself.
+      </para>
+      <para>
+        In order to understand the context in which this tool runs, you need
+        to understand some of the basics of IP routing, so if you have read
+        the above introduction to the <command>ip route</command> tool, and
+        are confused, you may want to read <xref linkend="ch-routing"/> and 
+        grasp some of the concepts of IP routing (with linux) before
+        continuing here. 
+      </para>
+      <section id="tools-ip-route-show">
+        <title>Displaying a routing table with <command>ip route
+          show</command></title>
+        <para>
+          In its simplest form, <command>ip route</command> can be used to
+          display the main routing table output.  The output of this command
+          is significantly different from the output of the <link
+          linkend="tools-route-show"><command>route</command></link>.  For
+          comparison, let's look at the output of both <command>route
+          -n</command> and <command>ip route show</command>.
+        </para>
+        <example id="ex-tools-ip-route-show-main">
+          <title>Viewing the main routing table with <command>ip route
+            show</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>route -n</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.99.0/24 dev eth0  scope link 
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.99.254 dev eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          If you are accustomed to the <command>route</command> output format,
+          the <command>ip route</command> output can seem terse.  The
+          same basic information is displayed, however.  As with our former
+          example, let's ignore the 127.0.0.0/8 loopback route for the moment.
+          This is a required route for any IPs hosted on the loopback
+          interface.  We are far more interested in the other two routes.
+        </para>
+        <para>
+          The network 192.168.99.0/24 is available on eth0 with a scope of
+          link, which means that the network is valid and reachable through
+          this device (eth0).  Refer to <xref linkend="tb-tools-ip-addr-scope"/>
+          for definitions of possible scopes.  As long as link remains good on
+          that device, we should be able to reach any IP address inside of
+          192.168.99.0/24 through the eth0 interface.
+        </para>
+        <para>
+          Finally, our all-important default route is expressed in the routing
+          table with the word default.  Note that any destination which is
+          reachable through a gateway appears in the routing table output with
+          the keyword <option>via</option>.  This final line matches
+          semantically with the final line of output from <command>route
+          -n</command> above.
+        </para>
+        <para>
+          Now, let's have a look at the local routing table, which we can't
+          see with <command>route</command>.  To be fair, it is usually
+          completely unnecessary to view and/or manipulate the local routing
+          table, which is why <command>route</command> provides no way to
+          access this information.
+        </para>
+        <example id="ex-tools-ip-route-show-local">
+          <title>Viewing the local routing table with <command>ip route show
+            table local</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route show table local</userinput>
+<computeroutput>local 192.168.99.35 dev eth0  proto kernel  scope host  src 192.168.99.35 
+broadcast 127.255.255.255 dev lo  proto kernel  scope link  src 127.0.0.1 
+broadcast 192.168.99.255 dev eth0  proto kernel  scope link  src 192.168.99.35 
+broadcast 127.0.0.0 dev lo  proto kernel  scope link  src 127.0.0.1 
+local 127.0.0.1 dev lo  proto kernel  scope host  src 127.0.0.1 
+local 127.0.0.0/8 dev lo  proto kernel  scope host  src 127.0.0.1</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          This gives us a good deal of information about the IP networks to
+          which the machine is directly connected, and an inside look into the 
+          way that the routing tables treat special addresses like broadcast
+          addresses and locally configured addresses.
+        </para>
+        <para>
+          The first field in this output tells us whether the route is for a
+          broadcast address or an IP address or range locally hosted on this
+          machine.  Subsequent fields inform us through which device the
+          destination is reachable, and notably (in this table) that the
+          kernel has added these routes as part of bringing up the IP layer
+          interfaces.
+        </para>
+        <para>
+          For each IP hosted on the machine, it makes sense that the machine
+          should restrict accessiblity to that IP or IP range to itself only.
+          This explains why, in <xref linkend="ex-tools-ip-route-show-local"/>,
+          192.168.99.35 has a host scope.  Because <systemitem
+          class="systemname">tristan</systemitem> hosts this IP, there's no
+          reason for the packet to be routed off the box.  Similarly, a
+          destination of localhost (127.0.0.1) does not need to be forwarded
+          off this machine.  In each of these cases, the scope has been set to
+          host.
+        </para>
+        <para>
+          For broadcast addresses, which are intended for any listeners who
+          happen to share the IP network, the destination only makes sense as
+          for a scope of devices connected to the same link layer
+          <footnote>
+            <para>
+              I'm going to specifically neglect a discussion of bridging and
+              broadcast addresses for now.  Let's assume a simple ethernet
+              where the entire IP network is on one hub or switch.
+            </para>
+          </footnote>.
+        </para>
+        <para>
+          The final characteristic available to us in each line of the local
+          routing table output is the <option>src</option> keyword.  This is
+          treated as a hint to the kernel about what IP address to select for
+          a source address on outgoing packets on this interface.  Naturally,
+          this is most commonly used (and abused) on multi-homed hosts,
+          although almost every machine out there uses this hint for
+          connections to localhost
+          <footnote>
+            <para>
+              When a user initiates a connection to localhost (let's say
+              localhost:25, where a private SMTP server is listening), the
+              connection could, of course, come from the IP assigned to any of
+              the ethernet interfaces. It makes the most sense, however, for the
+              source IP to be set to 127.0.0.1, since the connection is
+              actually initiated from on the local machine.  Some services
+              running on a local machine rely on the loopback interface and
+              will restrict incoming connections to source addresses of
+              127.0.0.1.  Frankly, I find this quite sensible for services
+              which are not intended for public use.
+            </para>
+          </footnote>.
+        </para>
+        <para>
+          Now that we have inspected the main routing table and the local
+          routing table, let's see how easy it is to look at any one of the
+          other routing tables.  This is as simple as specifying the table by
+          its name in <filename>/etc/iproute2/rt_tables</filename> or by
+          number.  There are a few reserved table identifiers in this file,
+          but the other table numbers between 1 and 252 are available for the
+          user.  Please note that this example is for demonstration only and
+          has no intrinsic value other than showing the use of the
+          <option>table</option> parameter.
+        </para>
+        <example id="ex-tools-ip-route-show-table">
+          <title>Viewing a routing table with <command>ip route
+            show table</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route show table special</userinput>
+<computeroutput>Error: argument "special" is wrong: table id value is invalid
+</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>echo 7 special >> /etc/iproute2/rt_tables</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show table special</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route add table special default via 192.168.99.254</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show table special</userinput>
+<computeroutput>default via 192.168.99.254 dev eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In the above example you get a first glance at how to add a route to
+          a table other than the main routing table, but what we are really
+          interested in is the final command and output.  In
+          <xref linkend="ex-tools-ip-route-show-table"/>, we have identified table 7
+          by the name "special" and have added a route to this table.  The
+          command <userinput>ip route show table special</userinput> shows us
+          routing table number 7 from the kernel.
+        </para>
+        <para>
+          <command>ip route</command> consults
+          <filename>/etc/iproute2/rt_tables</filename> for a table identifier.
+          If it finds no identifier, it complains that it cannot find a
+          reference to such a table.  If a table identifier is found, then the
+          corresponding routing table is displayed.
+        </para>
+        <para>
+          The use of multiple routing tables can make a router very complex,
+          very quickly.  Using names instead of numbers for these tables can
+          assist in the management of this complexity.  For further discussion
+          on managing multiple routing tables and some issues of handling
+          them see <xref linkend="adv-rpdb"/>.
+        </para>
+      </section>
+      <section id="tools-ip-route-show-cache">
+        <title>Displaying the routing cache with <command>ip route
+          show cache</command></title>
+        <para>
+          The routing cache is used by the kernel as a lookup table analogous
+          to a quick reference card.  It's faster for the kernel to refer to
+          the cache (internally implemented as a hash table) for a recently
+          used route than to lookup the destination address again.  Routes
+          existing in the route cache are periodically expired.
+        </para>
+        <para>
+          The routing cache can be displayed in all its glory with <command>ip
+          route show cache</command>, which provides a detailed view of recent
+          destination IP addresses and salient characteristics about those
+          destinations.  On routers, masquerading boxen and firewalls, the
+          routing cache can become very large.  Instead of viewing the entire
+          routing cache even on a workstation, we'll select a particular
+          destination from the routing cache to examine.
+        </para>
+        <example id="ex-tools-ip-route-show-cache">
+          <title>Displaying the routing cache with <command>ip route
+            show cache</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route show cache 192.168.100.17</userinput>
+<computeroutput>192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  mtu 1500 rtt 18ms rttvar 15ms cwnd 15 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  mtu 1500 advmss 1460</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          FIXME!  I don't know how to explain rtt, rttvar, and cwnd, even
+          after reading Alexey's comments in the iproute2 documentation!
+          Not only that, I'm not sure why there are two entries!
+        </para>
+        <para>
+          The output in <xref linkend="ex-tools-ip-route-show-cache"/>
+          summarizes the reachability of the destination 192.168.100.17 from
+          192.168.99.35.  The first line of each entry provides some important
+          information for us:  the destination IP, the source IP, the gateway
+          through which the destination is reachable, and the interface
+          through which packets were routed.  Together, these data
+          identify a route entry in the cache.
+        </para>
+        <para>
+          Characteristics of that route
+          are summarized in the second line of each entry.  For the route
+          between <systemitem class="systemname">tristan</systemitem> and
+          <systemitem class="systemname">isolde</systemitem>, we see that Path
+          MTU discovery has identified 1500 bytes as the maximum packet size
+          from end to end.  The maximum segment size (MSS) of data is 1460
+          bytes.  Although this is not usually of any but the most casual of
+          interest, it can be helpful diagnostic information.
+        </para>
+        <para>
+          If you are a die-hard fan of statistics, and can't get enough
+          information about the routing on your machine, you can always
+          throw the <option>-s</option> switch.
+        </para>
+        <example id="ex-tools-ip-route-show-cache-stats">
+          <title>Displaying statistics from the routing cache with
+            <command>ip -s route show cache</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip -s route show cache 192.168.100.17</userinput>
+<computeroutput>192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  users 1 used 326 age 12sec mtu 1500 rtt 72ms rttvar 22ms cwnd 2 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  users 1 used 326 age 12sec mtu 1500 advmss 1460</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          With this output, you'll get just a bit more information about the
+          routes.  The most interesting datum is usually the "used" field,
+          which indicates the number of times this route has been accessed in
+          the routing cache.  This can give you a very good idea of how many
+          times a particular route has been used.  The age field is used by
+          the kernel to decide when to expire a cache entry.  The age is reset
+          every time the route is accessed
+          <footnote>
+            <para>
+              Be wary of using
+              <link linkend="tools-ip-route-get"><command>ip route
+              get</command></link> and <command>ip route show cache</command>
+              because <command>ip route get</command>
+              implicitly causes a route lookup to be performed, thus
+              increasing the used counter on the route, and resetting the age.
+              This will alter the statistics reported by <command>ip -s route
+              show cache</command>.
+            </para>
+          </footnote>.
+        </para>
+        <para>
+          In sum, you can use the routing cache to learn a good deal about
+          remote IP destinations and some of the characteristics of the
+          network path to those destinations.
+        </para>
+      </section>
+      <section id="tools-ip-route-add">
+        <title>Using <command>ip route add</command> to populate a routing
+          table</title>
+        <para>
+          <command>ip route add</command> is a used to populate a
+          routing table.  Although you can use <link
+          linkend="tools-route-add"><command>route add</command></link> to do
+          the same thing, <command>ip route add</command> offers a large
+          number of options that are not possible with the venerable
+          <command>route</command> command.
+          After we have looked at some simple examples, we'll discuss more
+          complex routes with <command>ip route</command>.
+        </para>
+        <para>
+          In <xref linkend="tools-route"/>, we used two classic examples of
+          adding a network route (to our service provider's network from )
+          and a host route.  Let's look at the
+          difference in syntax with the <command>ip route</command> command.
+        </para>
+        <example id="ex-tools-ip-route-add-net">
+          <title>Adding a static route to a network with <command>route
+            add</command>, cf. <xref linkend="ex-tools-route-add-net"/></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add 10.38.0.0/16 via 192.168.100.1</userinput>
+          </programlisting>
+        </example>
+        <para>
+          This is one of the simplest examples of the syntax of the
+          <command>ip route</command>.  As you may recall, you can only add a
+          route to a destination network through a gateway that is itself
+          already reachable.  In this case,
+          <systemitem class="systemname">masq-gw</systemitem> already knows a
+          route to 192.168.100.1
+          (<systemitem class="systemname">service-router</systemitem>).  Now
+          any packets bound for 10.38.0.0/16 will be forwarded to
+          192.168.100.1.
+        </para>
+        <para>
+          Other interesting examples of this command involve the use of
+          <option>prohibit</option> and <option>from</option>.  Use of the
+          <option>prohibit</option> will cause the router to report that the
+          requested destination is unreachable.  If you know a netblock that
+          hosts a service you are not interested in allowing your users to
+          access, this is an effective way to block the outbound connection
+          attempts.
+        </para>
+        <para>
+          Let's look at an example of <link
+          linkend="tools-tcpdump"><command>tcpdump</command></link> output
+          which shows the <option>prohibit</option> route in action.
+        </para>
+        <example id="ex-tools-ip-route-add-prohibit">
+          <title>Adding a <option>prohibit</option> route with <command>route
+            add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add prohibit 209.10.26.51</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ssh 209.10.26.51</userinput>
+<computeroutput>ssh: connect to address 209.10.26.51 port 22: No route to host</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>tcpdump -nnq -i eth2</userinput>
+<computeroutput>tcpdump: listening on eth2
+22:13:13.740406 192.168.99.35.51973 &gt; 209.10.26.51.22: tcp 0 (DF)
+22:13:13.740714 192.168.99.254 &gt; 192.168.99.35: icmp: host 209.10.26.51 unreachable - admin prohibited filter [tos 0xc0]</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Compare the ICMP packet returned to the sender in this case with the
+          <link linkend="ex-pf-iptables-reject">ICMP packet returned</link> if
+          you used <command>iptables</command> and the <option>REJECT</option>
+          target
+          <footnote>
+            <para>
+              Please note that I in the cross-referenced example I have used
+              <command>iptables</command>.  The same behaviour should be
+              expected with <command>ipchains</command>. (Anybody have any
+              proof?)
+            </para>
+          </footnote>.
+          Although the net effect is identical (the user is unable
+          to reach the intended destinatioan), the user gets two different
+          error messages.  With an <command>iptables</command>
+          <option>REJECT</option>, the user sees <computeroutput>Connection
+          refused</computeroutput>, where the user sees <computeroutput>No
+          route to host</computeroutput> with the use of
+          <option>prohibit</option>.  These are but two of the options for
+          controlling outbound access from your network.
+        </para>
+        <para>
+          Supposing you don't want to block access to this particular host for
+          all of your users, the <option>from</option> option comes to your
+          aid.
+        </para>
+        <example id="ex-tools-ip-route-add-from">
+          <title>Using <option>from</option> in a routing command with
+            <command>route add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add prohibit 209.10.26.51 from 192.168.99.35</userinput>
+          </programlisting>
+        </example>
+        <para>
+          Now, you have effectively blocked the source IP 192.168.99.35 from
+          reaching 209.10.26.51.  Any packets matching this source and
+          destination address will match this route.  In this case,
+          <systemitem class="systemname">masq-gw</systemitem> will generate an
+          ICMP error message indicating that the destination is
+          administratively unreachable.
+        </para>
+        <para>
+          If you are still following along here, you can see that the options
+          for identifying particular routes are many and multi-faceted.  The
+          <option>src</option> option provides a hint to the kernel for source
+          address selection.  When you are working with multiple routing
+          tables and different classes of traffic, you can ease your
+          administrative burden, by hosting several
+          different IPs on your linux machine and setting the source address
+          differently, depending on the type of traffic.
+        </para>
+        <para>
+          In the example below, let's assume that our masquerading host also
+          runs a DNS resolver for the internal network and we have selected
+          all of the outbound DNS packets to be routed according to table 7
+          <footnote>
+            <para>
+              If you wonder how this kind of magic is accomplished, you'll
+              want to read <xref linkend="adv-routing-fwmark"/>.
+            </para>
+          </footnote>.
+          Now, any packet which originates on this box (or is masqueraded
+          through this table) will have its source IP set to 205.254.211.198.
+        </para>
+        <example id="ex-tools-ip-route-add-src">
+          <title>Using <option>src</option> in a routing command with
+            <command>route add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add default via 205.254.211.254 src 205.254.211.198 table 7</userinput>
+          </programlisting>
+        </example>
+        <para>
+          FIXME!!  I have nothing to say about <option>nexthop</option> yet,
+          because I have never used it, this goes for
+          <option>equalize</option> and <option>onlink</option> as well.  If
+          anybody has some examples s/he would like to contribute, I'd love to
+          hear.
+        </para>
+        <para>
+          There are other options to the <command>ip route add</command>
+          documented in Alexey's thorough <command>iproute2</command>
+          documentation.  For further research, I'd suggested acquiring and
+          reading this manual.
+        </para>
+      </section>
+      <section id="tools-ip-route-add-default">
+        <title>Adding a default route with <command>ip route add
+          default</command></title>
+        <para>
+          Naturally, one of the most important routes on a machine is its
+          default route.  Adding a default route is one of the simplest
+          operations with <command>ip route</command>.
+        </para>
+        <para>
+          We need exactly one piece of information in order to set the default
+          route on a machine.  This is the IP address of the gateway.  The
+          syntax of the command is extremely simple and aside from the use of
+          the <option>via</option> instead of <option>gw</option>, it is
+          almost the same command as the equivalent <command>route
+          -n</command>.
+        </para>
+        <example id="ex-tools-ip-route-add-default">
+          <title>Setting the default route with <command>ip route add default</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route add default via 192.168.99.254</userinput>
+          </programlisting>
+        </example>
+      </section>
+      <section id="tools-ip-route-add-nat">
+        <title>Setting up NAT with <command>ip route add nat</command></title>
+        <para>
+          Be sure to see <xref linkend="ch-nat"/> for a full treatment of the
+          issues involved in network address translation (NAT).  If you are
+          here to learn a bit more about how to set up NAT in your network,
+          then you should know that the <command>ip route add nat</command> is
+          only half of the solution.  You must understand that performing NAT
+          with <command>iproute2</command> involves one component to rewrite
+          the inbound packet (<command>ip route add nat</command>), and
+          another command to rewrite the outbound packet (<link
+          linkend="tools-ip-rule-add-nat"><command>ip rule add
+          nat</command></link>).  If you only get half of the system in place,
+          your NAT will only work halfway--or not at all, depending on how you
+          define "work".
+        </para>
+        <para>
+          Alexey documents clearly in the appendix to the
+          <command>iproute2</command> manual that the NAT provided by the
+          <command>iproute2</command> suite is stateless.  This is distinctly
+          unlike NAT with netfilter.  Refer to <xref linkend="nat-dnat"/> and
+          <xref linkend="state-conntrack"/>
+          for a better look at the connection tracking and network address
+          translation support available under netfilter.
+        </para>
+        <para>
+          The <command>ip route add nat</command> command is used to rewrite
+          the destination address of a packet from one IP or range to another
+          IP or range.  The <command>iproute2</command> tools can only operate
+          on the entire IP packet.  There is no provision directly within the
+          <command>iproute2</command> suite to support conditional rewriting
+          based on the destination port of a UDP datagram or TCP segment.
+          It's the whole packet, every packet, and nothing but the packet
+          <footnote>
+            <para>
+              This should not lead you into believing it cannot be done.  This
+              is linux after all!  By routing via fwmark, and using the
+              <option>--mark</option> option to <command>ipchains</command> or
+              the MARK target and <option>--set-mark</option> option in
+              <command>iptables</command>, you can perform conditional routing
+              based on characteristics and contents of the packet.
+            </para>
+          </footnote>.
+        </para>
+        <example id="ex-tools-ip-route-nat-simple">
+          <title>Creating a NAT route for a single IP with <command>ip route add
+            nat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add nat 205.254.211.17 via 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show table local | grep ^nat</userinput>
+<computeroutput>nat 205.254.211.17 via 192.168.100.17  scope host</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          The route entry we have just made tells the kernel to rewrite any
+          inbound packet bound for 205.254.211.17 to 192.168.100.17.  The
+          actual rewriting of the packet occurs at the routing stage of the
+          packets trip through the kernel.  This is an important detail,
+          illuminated more fully in
+          <xref linkend="nat-stateless-pf-interaction"/>.
+        </para>
+        <para>
+          Not only can <command>iproute2</command> support network address
+          translation for single IPs, but also for entire network ranges.  The
+          syntax is substantially similar to the syntax above, but uses a
+          CIDR network address instead of a single IP.
+        </para>
+        <example id="ex-tools-ip-route-nat-network">
+          <title>Creating a NAT route for an entire network with <command>ip
+            route add nat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add nat 205.254.211.32/29 via 192.168.100.32</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show table local | grep ^nat</userinput>
+<computeroutput>nat 205.254.211.32/29 via 192.168.100.32  scope host</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In this example, we are adding a route for an entire network.  Any
+          IP packets which come to us destined for any address between
+          205.254.211.32 and 205.254.211.39 will be rewritten to the
+          corresponding address in the range 192.168.100.32 through
+          192.168.100.39.  This is a shorthand way to specify multiple
+          translations with CIDR notation.
+        </para>
+        <para>
+          Again, this is only one half of the story for NAT with
+          <command>iproute2</command>.  Please be certain to read 
+          the section below for usage information on <link
+          linkend="tools-ip-rule-add-nat"><command>ip rule add
+          nat</command></link>, in addition to <xref linkend="ch-nat"/> which
+          will provide fuller documentation for NAT support under linux.
+          Don't forget to use <link
+          linkend="tools-ip-route-flush-cache"><command>ip route flush
+          cache</command></link> after you add NAT routes and
+          the corresponding NAT rules
+          <footnote>
+            <para>
+              You can always use my
+              <link linkend="ex-sc-nat">SysV initialization script</link>
+              and
+              <link linkend="ex-sc-static-nat">configuration file</link>
+              instead of entering your own commands, however, it is
+              always important to understand the tool you are using.
+            </para>
+          </footnote>.
+        </para>
+      </section>
+      <section id="tools-ip-route-del">
+        <title>Removing routes with <command>ip route del</command></title>
+        <para>
+          The <command>ip route del</command> takes exactly the same syntax as
+          the <link linkend="tools-ip-route-add"><command>ip route
+          add</command></link> command, so if you have familiarized yourself
+          with the syntax, this should be a snap.
+        </para>
+        <para>
+          It is, in fact, almost trivial to delete routes on the command line
+          with <command>ip route del</command>.  You can simply identify the
+          route you wish to remove with <link 
+          linkend="tools-ip-route-show"><command>ip route show</command></link>
+          command and append the output line verbatim to <command>ip route
+          del</command>.
+        </para>
+        <example id="ex-tools-ip-route-del">
+          <title>Removing routes with <command>ip route del</command>
+          <footnote>
+            <para>
+              Please note that this is the same routing table as is shown in
+              the <xref linkend="ex-tools-route-show-complex"/>, which
+              displays the output from <command>route -n</command> on
+              <systemitem class="systemname">masq-gw</systemitem>.
+            </para>
+          </footnote>
+          </title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.100.0/30 dev eth3  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+10.38.0.0/16 via 192.168.100.1 dev eth3
+127.0.0.0/8 dev lo  scope link 
+default via 205.254.211.254 dev eth1</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route del 10.38.0.0/16 via 192.168.100.1 dev eth3</userinput>
+          </programlisting>
+        </example>
+        <para>
+          We identified the network route to 10.38.0.0/16 as the route we
+          wished to remove, and simply appended the description of the route
+          to our <command>ip route del</command> command.
+        </para>
+        <para>
+          This command can be used to remove routes such as broadcast routes
+          and routes to locally hosted IPs in addition to manipulation of
+          any of the other routing tables.  This means that you can cause some
+          very strange problems on your machine by inadvertently removing
+          routes, especially routes to locally hosted IP addresses.
+        </para>
+      </section>
+      <section id="tools-ip-route-change">
+        <title>Altering existing routes with <command>ip route
+          change</command></title>
+        <para>
+          Occasionally, you'll want to remove a route and replace it with
+          another one.  Fortunately, this can be done atomically with
+          <command>ip route change</command>.
+        </para>
+        <para>
+          Let's change the default route on tristan with this command.
+        </para>
+        <example id="ex-tools-ip-route-change">
+          <title>Altering existing routes with <command>ip route
+            change</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route change default via 192.168.99.113 dev eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.99.0/24 dev eth0  scope link 
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.99.113 dev eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          If you do use the <command>ip route change</command> command, you
+          should be aware that it does not communicate a routing table state
+          change to the routing cache, so here is another good place to get in
+          the habit of using <link
+          linkend="tools-ip-route-flush-cache"><command>ip route flush
+          cache</command></link>.
+        </para>
+        <para>
+          There's not much more to say about the use of this command.  If you
+          don't want to use an <link 
+          linkend="tools-ip-route-del"><command>ip route del</command></link>
+          immediately followed by an <link
+          linkend="tools-ip-route-add"><command>ip route add</command></link>
+          you can use <command>ip route change</command>.
+        </para>
+      </section>
+      <section id="tools-ip-route-get">
+        <title>Programmatically fetching route information with <command>ip
+          route get</command></title>
+        <para>
+          When configuring routing tables, it is not always sufficient to
+          search for the destination manually.  Especially with large routing
+          tables, this can become a rather boring and time-consuming endeavor.
+          Fortunately, <command>ip route get</command> elegantly solves the
+          problem.  By simulating a request for the specified destination,
+          <command>ip route get</command> causes the routing selection
+          algorithm to be run.  When this is complete, it prints out the
+          resulting path to the destination.  In one sense, this is almost
+          equivalent to sending an ICMP echo request packet and then using
+          <link linkend="tools-ip-route-show-cache"><command>ip route show
+          cache</command></link>.
+        </para>
+        <example id="ex-tools-ip-route-get">
+          <title>Testing routing tables with <command>ip route
+            get</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip -s route get 127.0.0.1/32</userinput>
+<computeroutput>ip -s route get 127.0.0.1/32
+local 127.0.0.1 dev lo  src 127.0.0.1 
+    cache &lt;local&gt;  users 1 used 1 mtu 16436 advmss 16396</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip -s route get 127.0.0.1/32</userinput>
+<computeroutput>local 127.0.0.1 dev lo  src 127.0.0.1 
+    cache &lt;local&gt;  users 1 used 2 mtu 16436 advmss 16396</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          For casual use, <command>ip route get</command> is an invaluable
+          tool.  An obvious side effect of using <command>ip route
+          get</command> the increase in the usage count of every touched entry
+          in the routing cache.  While this is no problem, it will alter the
+          count of packets which have used that particular route.  If you are
+          using <command>ip</command> to count outbound packets (people have
+          done it!) you should be cautious with this command.
+        </para>
+      </section>
+      <section id="tools-ip-route-flush">
+        <title>Clearing routing tables with <command>ip route
+          flush</command></title>
+        <para>
+          The <option>flush</option> option, when used with <command>ip
+          route</command> empties a routing table or removes the route for a
+          particular destination.  In <xref linkend="ex-tools-ip-route-flush"/>,
+          we'll first remove a route for a destination network using
+          <command>ip route flush</command>, and then we'll remove all of the
+          routes in the main routing table with one command.
+        </para>
+        <para>
+          If you do not wish to delete routes by hand, you can quickly
+          empty all of the routes in a table by specifying a table identifier
+          to the <command>ip route flush</command> command.
+        </para>
+        <example id="ex-tools-ip-route-flush">
+          <title>Removing a specific route and emptying a routing table with
+            <command>ip route flush</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush</userinput>
+<computeroutput>"ip route flush" requires arguments</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush 10.38</userinput>
+<computeroutput>Nothing to flush.</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush 10.38.0.0/16</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show</userinput>
+<computeroutput>192.168.100.0/30 dev eth3  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+127.0.0.0/8 dev lo  scope link 
+default via 205.254.211.254 dev eth1</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush table main</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route show</userinput>
+<prompt>[root@masq-gw]# </prompt>
+          </programlisting>
+        </example>
+        <para>
+          Note that you should exercise caution when using <command>ip route
+          flush table</command> because you can easily destroy your own route
+          to the machine by specifying the main routing table or a routing
+          table that is used to send packets to your workstation.  Naturally,
+          this is not a problem if you are connected to the machine via a
+          serial, modem, console, or other out of band connection.
+        </para>
+      </section>
+      <section id="tools-ip-route-flush-cache">
+        <title><command>ip route flush cache</command></title>
+        <para>
+          Above, in <xref linkend="tools-ip-route-show-cache"/>, we looked at
+          the contents of the routing cache, a hash table in the kernel which
+          contains recently used routes.  To quote John S. Denker, you
+          should not forget to use <command>ip route flush cache</command>
+          after you have changed the routing tables; "otherwise changes will
+          take effect only after some maddeningly irreproducible delay."
+          <footnote>
+            <para>
+              See this remark in his
+              <ulink url="http://www.quintillion.com/moat/ipsec+routing/iproute2.html">documentation</ulink>
+              of a workaround with FreeS/WAN and iproute2 to approximate more
+              RFC-like SPD behaviour for a linux IPSec tunnel.
+            </para>
+          </footnote>
+        </para>
+        <para>
+          Since the kernel refers to the routing cache before fetching a new
+          route from the routing tables, <command>ip route flush
+          cache</command> empties the cache of any data.  Now when the kernel
+          goes to the routing cache to locate the best route to a destination,
+          it finds the cache empty.  Next, it traverses the routing policy
+          database and routing tables.  When the kernel finds the route, it
+          will enter the newly fetched destination into the routing cache.
+        </para>
+        <example id="ex-tools-ip-route-flush-cache">
+          <title>Emptying the routing cache with <command>ip route flush
+            cache</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip route show cache</userinput>
+<computeroutput>local 127.0.0.1 from 127.0.0.1 tos 0x10 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+local 127.0.0.1 from 127.0.0.1 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  mtu 1500 rtt 18ms rttvar 15ms cwnd 15 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  mtu 1500 advmss 1460</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip route flush cache</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show cache</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip route show cache</userinput>
+<computeroutput>local 127.0.0.1 from 127.0.0.1 tos 0x10 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+local 127.0.0.1 from 127.0.0.1 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          When making routing changes to a linux box, you can save yourself
+          some troubleshooting time (and confusion) by getting in the habit of
+          finishing your routing commands with <command>ip route flush
+          cache</command>.
+        </para>
+      </section>
+      <section id="tools-ip-route-summary">
+        <title>Summary of the use of <command>ip route</command></title>
+        <para>
+          With this overview of the use of the <command>ip route</command>
+          utility, you should be ready to step into some advanced territory to
+          harness multiple routing tables, take advantage of special types of
+          routes, use network address translation, and gather detailed
+          statistics on the usage of your routing tables.
+        </para>
+      </section>
+    </section>
+    <section id="tools-ip-rule">
+      <title><command>ip rule</command></title>
+      <para>
+        Another part of the <command>iproute2</command> software package,
+        <command>ip rule</command> is the single tool for manipulating the
+        routing policy database under linux (RPDB).  For a fuller discussion
+        of the RPDB, see <xref linkend="adv-rpdb"/>.  The RPDB can be <link
+        linkend="tools-ip-rule-show">displayed with <command>ip rule
+        show</command></link>.  Particular rules can be added and removed with
+        (predictably, if you have been reading the sections on the other
+        <command>iproute2</command> tools) <link
+        linkend="tools-ip-rule-add"><command>ip rule add</command></link>
+        command and the <link
+        linkend="tools-ip-rule-add"><command>ip rule del</command></link>
+        command.  We'll make a particular example of the <link
+        linkend="tools-ip-rule-add-nat"><command>ip rule add
+        nat</command></link>.
+      </para>
+      <section id="tools-ip-rule-intro">
+        <title><command>ip rule show</command></title>
+        <para>
+          Briefly, the RPDB mediates access to the routing tables.  In the
+          overwhelming majority of installations (most workstations, servers,
+          and even routers),
+          there is no need to take advantage of the RPDB.  A single IP routing
+          table is all that is required for basic connectivity.  In more complex
+          networking configurations, however, the RPDB allows the administrator
+          to programmatically select a routing table based on characteristics of
+          a packet.
+        </para>
+        <para>
+          Along with this freedom and flexibility comes the power to break
+          networking in strange and unexpected ways.  I will reiterate:
+          <emphasis>IP routing is stateless</emphasis>.  Because IP routing is
+          stateless, the network architect, planner or administrator needs to be
+          aware of the issues involved with using multiple routing tables.
+        </para>
+        <para>
+          For a fuller discussion of some of these issues, be sure to read
+          <xref linkend="adv-rpdb"/>.  Now, let's look at some of the ways to use
+          <command>ip rule</command>.
+        </para>
+      </section>
+      <section id="tools-ip-rule-show">
+        <title>Displaying the RPDB with <command>ip rule show</command></title>
+        <para>
+          To display the RPDB, use the command <command>ip route show</command>.
+          The output of the command is a list of rules in the RPDB sorted by
+          order of priority.  The rules with the highest priority will be
+          displayed at the top of the output.
+        </para>
+        <example id="ex-tools-ip-rule-show">
+          <title>Displaying the RPDB with <command>ip rule
+            show</command></title>
+          <programlisting>
+<prompt>[root@isolde]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          There are some interesting items to observe here.  First, these are
+          the three default rules in the RPDB which will be available on any
+          machine with an RPDB.  The first rule specifies that any packet from
+          any where should first be matched against routes in the local
+          routing table.  Remember that the local routing table is for
+          broadcast addresses on link layers, network address translation, and
+          locally hosted IP addresses.
+        </para>
+        <para>
+          If a packet is not bound for any of these three destinations, the
+          kernel will check the next entry in the RPDB.  In the simple case
+          above, on <systemitem class="systemname">isolde</systemitem>, a
+          packet bound for 205.254.211.182 would first pass through the local
+          routing table without matching any of the local destinations.  The
+          next entry in the RPDB recommends using the main routing table to
+          select a destination route.
+        </para>
+        <para>
+          In <systemitem class="systemname">isolde</systemitem>'s main routing
+          table, it is likely that there is no host nor network match for this
+          destination, thus the packet will match the default route in the
+          main routing table.
+        </para>
+        <para>
+          FIXME!!  Can anybody (somebody?) explain to me why there is a rule
+          priority 32767 which refers to table 253?  I'm still confused about
+          this.
+        </para>
+      </section>
+      <section id="tools-ip-rule-add">
+        <title>Adding a rule to the RPDB with <command>ip rule
+          add</command></title>
+        <para>
+          Adding a rule to the routing policy database is simple.  The syntax
+          of the <command>ip rule add</command> command should be familiar to
+          those who have read <xref linkend="tools-ip-route"/> or have used the
+          <command>ip route</command> to populate routing tables.
+        </para>
+        <para>
+          A simple rule selects a packet on the the packet's characteristics.
+          Some characteristics available as selection criteria  are the
+          source address, the destination, the type of service (ToS), the
+          interface on which the packet arrived, and an fwmark.
+        </para>
+        <para>
+          One great way to take advantage of the RPDB is to split different
+          types of traffic to different providers based on packet
+          characteristics.  Let's assume two network connections on
+          &masq-gw;, one that is a
+          highly reliable high cost connection, and a much lower cost less
+          reliable connection.  Let's also assume that we are using Type of
+          Service flags on IP packets on the internal network.
+        </para>
+        <para>
+          We might want to prefer a low-latency, highly reliable link
+          for one type of packet.  By using <option>tos</option> as a
+          selection criterion with <command>ip rule</command> we can
+          effectively route these packets via our faster and more reliable
+          internet connection.
+        </para>
+        <example id="ex-tools-ip-rule-add-simple">
+          <title>Creating a simple entry in the RPDB with <command>ip rule
+            add</command>
+            <footnote>
+              <para>
+                Please note that this is an incomplete example.  Simply put,
+                I'm not dealing with the issues of inbound packets or packets
+                destined for locally connected networks in this example.  Keep
+                in mind the instructional nature of this example, and plan
+                your own network accordingly.  For a fuller discussion of the
+                issues involved with handling multiple Internet links, see
+                <xref linkend="adv-multi-internet"/>.  Note also, that there is
+                no corresponding network connection in the example network for
+                this network connection.
+              </para>
+            </footnote>
+          </title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route add default via 205.254.211.254 table 8</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add tos 0x08 table 8</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip route flush cache</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32765:  from all tos 0x08 lookup 8 
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Note that the rule we inserted was added to the next available
+          higher priority in the RPDB because we did not specify a priority.
+          If we wished to specify a priority, we could use
+          <option>prio</option>.
+        </para>
+        <para>
+          Now any packet with an IP ToS field matching 0x08 will be routed
+          according to the instructions in table 8.  If no route in table 8
+          applies to the matched packet (not possible, since we added a
+          default route), the packet would be routed according to the
+          instructions in table "main".
+        </para>
+        <para>
+          The selection criteria for matching a packet can be grouped.  Let's
+          look at a more complex example of <command>ip rule</command> where
+          we use multiple selection criteria.
+        </para>
+        <example id="ex-tools-ip-rule-add-complex">
+          <title>Creating a complex entry in the RPDB with <command>ip rule
+            add</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add from 192.168.100.17 tos 0x08 fwmark 4 table 7</userinput>
+          </programlisting>
+        </example>
+        <para>
+          Frankly, that's a very complex rule!  I do not know if I could
+          describe a scenario where this particular rule would be required.
+          The point, though, is that you can have arbitrarily complex
+          selection criteria, and multiple rules which lookup routes in as
+          many of the 253 routing tables as you wish.
+        </para>
+        <para>
+          <command>ip rule add</command>, while a powerful tool, can quickly
+          make a routing table or router too complex to easily understand.
+          It's important to try to design and implement the simplest
+          configuration to maintain on your router.  If you cannot avoid using
+          multiple routing tables and the RPDB, at least be systematic about
+          it.
+        </para>
+      </section>
+      <section id="tools-ip-rule-add-nat">
+        <title><command>ip rule add nat</command></title>
+        <para>
+          As discussed more thoroughly in <xref linkend="ch-nat"/>, this is the
+          other half of <command>iproute2</command> supported network address
+          translation.  The two components are <link
+          linkend="tools-ip-route-add-nat"><command>ip route add
+          nat</command></link> and <command>ip rule add nat</command>.
+        </para>
+        <para>
+          <command>ip rule add nat</command> is used to rewrite the source IP
+          on packets during the routing stage.  Each packet from the real IP
+          is translated to the NAT IP without altering the destination address
+          of the packet.
+        </para>
+        <para>
+          NAT is commonly used to publish a service in an internal network on
+          a public IP.  Thus packets returning to the public network need to
+          be readdressed to appear with a source address of the publicly
+          accessibly IP.
+        </para>
+        <example id="ex-tools-ip-rule-add-nat-simple">
+          <title>Creating a NAT rule with <command>ip rule add
+            nat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add nat 205.254.211.17 from 192.168.100.17</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In more complex situations, entire subnets can be translated to
+          provide NAT for a range of IPs.  The example below shows how to
+          specify the <command>ip rule add nat</command> to complete the NAT
+          mapping in <xref linkend="ex-tools-ip-route-nat-network"/>.
+        </para>
+        <example id="ex-tools-ip-rule-add-nat-network">
+          <title>Creating a NAT rule for an entire network with <command>ip
+            rule add nat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule add nat 205.254.211.32 from 192.168.100.32/29</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32765:  from 192.168.100.32/29 lookup main map-to 205.254.211.32
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Notice the <command>ip rule</command> synonym for the
+          <option>nat</option> option.  It is valid to substitute
+          <option>map-to</option> for <option>nat</option>.
+        </para>
+      </section>
+      <section id="tools-ip-rule-del">
+        <title><command>ip rule del</command></title>
+        <para>
+          Naturally, no <command>iproute2</command> tool would be complete
+          without the ability to undo what has been done.  With <command>ip
+          rule del</command>, individual rules can be removed from the RPDB.
+        </para>
+        <para>
+          It is at first quite confusing that the word <option>all</option> in
+          the <command>ip rule show</command> output needs to be replaced with
+          the network address 0/0.  I do not know why <option>all</option> is
+          not acceptable as a synonym for 0/0, but you'll save yourself some
+          headache by getting in the habit of replacing <option>all</option>
+          with 0/0.
+        </para>
+        <para>
+          By replacing the verb <option>add</option> in any of the command
+          lines above with the verb <option>del</option>, you can remove the
+          specified entry from the RPDB.
+        </para>
+        <example id="ex-tools-ip-rule-del-nat-network">
+          <title>Removing a NAT rule for an entire network with <command>ip
+            rule del nat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule del nat 205.254.211.32 from 192.168.100.32/29</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local 
+32766:  from all lookup main 
+32767:  from all lookup 253</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          The <command>ip rule</command> utility can be a great boon in the
+          manipulation and maintenance of complex routers.
+        </para>
+      </section>
+    </section>
+</appendix>

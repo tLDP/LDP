@@ -1,0 +1,224 @@
+<!-- $Id$ -->
+
+<chapter id="ch-pat">
+  <title>Port Address Translation</title>
+  <para>
+    Port address translation (PAT) is a logical extension of the concept of 
+    network address translation (NAT).  PAT is occasionally known as network
+    address and port translation (NAPT).  At the cost of some complexity, PAT
+    allows for the use of a single IP address to present multiple services on
+    different internal IPs to an exterior network.
+  </para>
+  <section id="pat-overview">
+    <title>PAT Overview and Rationale</title>
+    <para>
+      Port address translation (hereafter PAT) provides a similar
+      functionality to NAT, but is a more specific tool.  PAT forwards
+      requests for a particular IP and port pair to another IP port pair.
+      This feature is commonly used on publicly connected hosts to make an
+      internal service available to a larger network.
+    </para>
+    <para>
+      PAT will break in strange and wonderful ways if there is an alternate
+      route between the two hosts connected by the port address translation.
+    </para>
+    <para>
+      PAT address translation has one important benefit over NAT (with the
+      <command>iproute2</command> tools).  Let's assume that you have only
+      five public IP addresses for which you have paid dearly.  Additionally,
+      let's assume that you want to run services on standard ports.  You had
+      hoped to connect four SMTP servers, two SSH servers and five HTTP servers.
+      If you had wanted to accomplish this with NAT, you'd need more IP space.
+    </para>
+    <para>
+      With PAT, however,  you can define a separate destination address and port
+      for each translation.  This means that you could do something like this
+      to squeeze the most out of your public IP space:
+    </para>
+    <table pgwide="1" id="pat-table">
+      <title>Port Address Translation</title>
+      <tgroup cols="4" align="center" colsep="1" rowsep="1">
+        <thead>
+          <row>
+            <entry>Public IP</entry>
+            <entry>Port</entry>
+            <entry>Translated IP</entry>
+            <entry>Port</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>205.254.211.81</entry>
+            <entry>tcp/22 (ssh)</entry>
+            <entry>192.168.100.31</entry>
+            <entry>tcp/22 (ssh)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.82</entry>
+            <entry>tcp/22 (ssh)</entry>
+            <entry>192.168.100.39</entry>
+            <entry>tcp/22 (ssh)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.81</entry>
+            <entry>tcp/25 (smtp)</entry>
+            <entry>192.168.100.24</entry>
+            <entry>tcp/25 (smtp)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.82</entry>
+            <entry>tcp/25 (smtp)</entry>
+            <entry>192.168.100.7</entry>
+            <entry>tcp/25 (smtp)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.83</entry>
+            <entry>tcp/25 (smtp)</entry>
+            <entry>192.168.100.57</entry>
+            <entry>tcp/25 (smtp)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.84</entry>
+            <entry>tcp/25 (smtp)</entry>
+            <entry>192.168.100.44</entry>
+            <entry>tcp/25 (smtp)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.81</entry>
+            <entry>tcp/80 (http)</entry>
+            <entry>192.168.100.95</entry>
+            <entry>tcp/80 (http)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.82</entry>
+            <entry>tcp/80 (http)</entry>
+            <entry>192.168.100.74</entry>
+            <entry>tcp/80 (http)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.83</entry>
+            <entry>tcp/80 (http)</entry>
+            <entry>192.168.100.101</entry>
+            <entry>tcp/80 (http)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.84</entry>
+            <entry>tcp/80 (http)</entry>
+            <entry>192.168.100.39</entry>
+            <entry>tcp/80 (http)</entry>
+          </row>
+          <row>
+            <entry>205.254.211.85</entry>
+            <entry>tcp/80 (http)</entry>
+            <entry>192.168.100.5</entry>
+            <entry>tcp/80 (http)</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <para>
+      This can be a convincing argument for the use of PAT where IP space is
+      at a premium.  Let's examine the different methods of PAT under linux.
+    </para>
+    <para>
+      The support for PAT under kernel 2.4 via netfilter is accomplished with
+      the nat table and the DNAT target.  Because netfilter allows the
+      arbitrary selection of packets, the translation can be made for a packet
+      matching a very specific set of criteria.
+    </para>
+    <para>
+      The userspace options for providing PAT are varied, but can be used with
+      both kernel 2.2 and kernel 2.4.
+    </para>
+  </section>
+  <section id="pat-userland">
+    <title>PAT in User Space</title>
+    <para>
+      There are many tools which can accomplish PAT for you.  <link
+      linkend="tools-redir"><command>redir</command></link> is a mature
+      TCP port redirector.  There are a large
+      number of similar projects which have varying maturity, reliability and
+      configurability.
+    </para>
+    <para>
+      There are some general issues which can affect the choice of a user
+      space port redirection utility.  First, because the kernel is not
+      performing the task, your CPU utilization will be higher simply because
+      the a process is not as efficient as the kernel would be.  For port
+      redirection utilities which work under a connection server (for
+      example
+      <link linkend="tools-tcpserver"><command>tcpserver</command></link>,
+      <link linkend="tools-inetd"><command>inetd</command></link>, or
+      <link linkend="tools-xinetd"><command>xinetd</command></link>)
+      there will be additional process forking and memory consumption overhead.
+    </para>
+    <para>
+      In practice, the above issues tend to be far less important than the
+      following concerns:
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          Will the internal server receive a TCP connection initiated from
+          the device on which the port redirector is running, or will the
+          session appear to come from the real client?
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Is the number of connections going to overload the port redirector?
+          (Hint: if you are expecting hundreds of connections an hour, you
+          should probably be looking at DNAT or NAT instead of PAT.)
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Can the port redirector perform rate limiting?
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      One of the first questions you will need to answer as you are deciding
+      what PAT tool to use is the first question above.  If the source IP
+      is important to the server, the port redirector will need to provide
+      support for <link linkend="adv-non-local-bind">binding to non-local
+      sockets</link>.  To my knowledge this is not an option compiled into
+      most stock kernels, so may require a kernel compilation.
+    </para>
+    <para>
+      <link linkend="tools-redir"><command>redir</command></link> supports
+      port redirection running either under a connection server or binding
+      directly to sockets itself.  If allowed to bind to sockets directly,
+      <command>redir</command> can operate in what it terms transparent proxy
+      mode.  This means that it binds to a non-local socket (the client's IP)
+      on the routing device and connects to the server from that socket.
+    </para>
+    <para>
+      If the IP of the client is an unimportant matter for the port
+      redirector, there are many port redirection tools available.
+      <link linkend="tools-xinetd"><command>xinetd</command></link> provides
+      support for redirection out of the box.  A casual search of the net
+      reveals that a large number of other port redirectors.
+    </para>
+    <para>
+      If you are looking for a UDP port redirector, you'll need to seek out
+      the tool <command>uredir</command> which appears to function exactly as
+      the TCP port redirectors.
+    </para>
+  </section>
+  <section id="pat-userspace">
+    <title>PAT with Userspace Tools</title>
+    <para>
+    </para>
+  </section>
+  <section id="pat-transparent-userspace">
+    <title>Transparent PAT with Userspace Tools</title>
+    <para>
+    </para>
+  </section>
+  <section id="pat-transparent-netfilter">
+    <title>Transparent PAT with Netfilter (DNAT)</title>
+    <para>
+    </para>
+  </section>
+</chapter>

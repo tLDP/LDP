@@ -1,0 +1,240 @@
+<!-- $Id$ -->
+
+<chapter id="ch-advanced">
+  <title>Advanced IP Management</title>
+  <para>
+    In many of the previous chapters, we have covered the many of the key
+    elements required to understand basic networking with linux.  In this
+    chapter, we will introduce a few new concepts, but will endeavor to put
+    some of the ideas together to solve practical networking problems.
+  </para>
+  <section id="adv-arp-problem">
+    <title>Multiple IPs and the ARP Problem</title>
+    <para>
+      ARP flux. <filename>/proc/sys/net/ipv4/conf/all/hidden</filename>
+      Nothing here for now.  Refer to
+      <xref linkend="ether-arp-flux"/>.
+    </para>
+  </section>
+  <section id="adv-media-share">
+    <title>Multiple IP Networks on one Ethernet Segment</title>
+    <para>
+      Media share; IP overlay; compare VLANS; consider bridging; consider
+      migrating from one IP space to another (vrrpd, anybody?).
+    </para>
+  </section>
+  <section id="adv-proxy-arp">
+    <title>Breaking a network in two with proxy arp</title>
+    <para>
+      Proxy ARP is a method of advertising by a routing device 
+      for a destination on one ethernet which is reachable via another
+      ethernet.  Frequently, a bridge is used instead.  If a machine sits
+      between two parts of an IP network and is not running bridging software,
+      then routing and proxy ARP are required to allow each half of the IP
+      network to communicate with another.
+    </para>
+    <para>
+      The key part of the correct functioning of proxy ARP in a network is
+      that the host breaking a network into two parts has correct routes for
+      all destinations in both halves of the network.  If the host which has
+      interfaces in both networks does not have an accurate routing table, IP
+      packets will get dropped on the routing device.
+    </para>
+    <para>
+      One common method of breaking a network in two involves making a very
+      small stub subnet at one end or the other of the IP range.  This small
+      subnet (maybe as small as a /30 network, with two usable IPs) makes an
+      excellent sequestered location for a host which requires more
+      protection or even, a generally untrusted host which shouldn't have
+      complete access to the ethernet to which the other machines connect.
+    </para>
+    <para>
+      For a practical example of this, see the relationship between the
+      &service-router;, &masq-gw; and &isolde; in the
+      <link linkend="example-network-netmap">network map</link>.  &isolde; and
+      &service-router; share the same IP network, 192.168.100.0/24.  If either
+      has a packet for the other, it will generate an ARP request which should
+      be answered by &masq-gw;.  Naturally, &masq-gw; has its routes
+      configured in such a way that both hosts are reachable from it.  Thus,
+      the packet will successfully pass through &masq-gw;.
+    </para>
+    <para>
+      Let's examine what the sequence of events is by which the packet will
+      reach &service-router; from &isolde;.  In this example, &isolde; will
+      send an echo request packet to &service-router;.  Please also refer to
+      <xref linkend="tools-arp"/> for examples and command lines to create
+      a proxy ARP configuration.
+    </para>
+    <anchor id="list-adv-proxy-arp"/>
+    <itemizedlist>
+      <listitem>
+        <para>
+          the admin on &isolde; creates an echo request packet 
+          for 192.168.100.1 with
+          <link linkend="tools-ping"><command>ping</command></link>
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &isolde; sends an ARP request for the owner of 192.168.100.1
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; replies that &isolde; should send packets for
+          192.168.100.1 to its ethernet address, 00:80:c8:f8:5c:71
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; receives the packet, unwraps it and selects eth3 as
+          the output interface
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; sends an ARP request for the owner of 192.168.100.1
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &service-router; replies that &masq-gw; should send packets for
+          192.168.100.1 to its ethernet address, 00:c0:7b:7d:00:c8
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &service-router; receives the packet unwraps it and hands it up
+          the IP stack, which generates an echo reply bound for the source
+          address, 192.168.100.17 (&isolde;'s IP)
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &service-router; sends an ARP request for the owner of 192.168.100.17
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; replies that &service-router; should send packets for
+          192.168.100.17 to its ethernet address, 00:80:c8:f8:5c:74
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; receives the packet, unwraps it and selects eth0 as
+          the output interface
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &masq-gw; sends an ARP request for the owner of 192.168.100.17
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &isolde; replies that &masq-gw; should send packets for
+          192.168.100.17 to its ethernet address, 00:80:c8:e8:4b:8e
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          &isolde; receives the reply, unwraps it and hands it up the IP stack
+          to the awaiting
+          <link linkend="tools-ping"><command>ping</command></link> command
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      Where possible, a simplified network is easier to maintain, but
+      occasionally, this sort of trickery is necessary.  This is an excellent
+      way to insert a firewall into the middle of a network.  The firewall,
+      naturally, has to have its routes set properly, and proxy ARP entries
+      will be required for routers.
+    </para>
+    <para>
+      Now, here's a short script and configuration file which can be run as a
+      SysVInit style script.  This script provides a great deal of control
+      over the ARP table directly so may be preferable in some cases to an
+      alternate solution outlined below.  This
+      <link linkend="ex-sc-proxy-arp">proxy-arp script</link> reads the
+      following
+      <link linkend="ex-sc-proxy-arp-conf">configuration file</link>.
+      Each is commented heavily so it should be clear how to use them.
+    </para>
+    <para>
+      This chapter discussed how to break a network in twain with proxy ARP
+      techniques.  For another explanation of the same concepts, read the
+      <ulink url="http://www.linuxpowered.com/HOWTO/mini/Proxy-ARP-Subnet/">Proxy
+      ARP Subnet mini-HOWTO</ulink>.  Available in most (all?) 2.4 kernels is
+      built-in capability for Proxy ARP.  This is documented in deeper detail
+      <link linkend="ether-arp-proxy-kernel">above</link>.
+      Consider familiarizing yourself with the methods of suppressing
+      and controling ARP through
+      <ulink url="http://www.linuxvirtualserver.org/~julian/">Julian
+      Anastasov's work</ulink>.
+    </para>
+  </section>
+  <section id="adv-multi-ips">
+    <title>Multiple IPs on an Interface</title>
+    <para>
+      Don't forget to add something here about multiple IPs bound to
+      loopback; and refer to Julian's work.  FIXME
+    </para>
+  </section>
+  <section id="adv-multi-ethernet">
+    <title>Multiple connections to the same ethernet</title>
+    <para>
+      Assume a machine has multiple connections to the same ethernet segment,
+      and has individual IPs bound to each interface.  A peculiar feature of
+      linux is its willingness to respond to ARP requests for any IP bound
+      to any interface.  This can lead to ARP flux, a situation where a
+      given IP is sometimes accessed on one MAC address and sometimes
+      another.
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+      <filename>/proc/sys/net/ipv4/conf/all/hidden</filename>; consider  arp
+      suppression issues.
+    </para>
+  </section>
+  <section id="adv-multi-homed">
+    <title>Multihomed Hosts</title>
+    <para>
+      Consider ARP suppression issues.  Leakage of sensitive (IP addressing)
+      information from other interfaces.
+    </para>
+  </section>
+  <section id="adv-non-local-bind">
+    <title>Binding to Non-local Addresses</title>
+    <para>
+    </para>
+    <para>
+      FIXME!! Don't forget to note that iproute2 NAT and binding to
+      non-local IPs do not play well together.  I disagree with
+      <ulink url="http://www.cs.helsinki.fi/linux/linux-kernel/2001-22/0813.html">this</ulink>.
+      Binding to a non-local socket, which was possible under
+      kernel 2.2 with when the kernel was compiled with
+      CONFIG_IP_TRANSPROXY, is available under kernel 2.4 via the
+      <filename>/proc</filename> IP sysctl interface.  If you wish to be
+      able to bind to non-local sockets:
+      <programlisting>
+<prompt># </prompt><userinput>echo 1 &gt; /proc/sys/net/ipv4/ip_nonlocal_bind</userinput>
+      </programlisting>
+      Thanks go to Oskar Andreasson for his IP sysctl tutorial page.
+      If using sysctl to allow binding to non-local IP doesn't solve
+      your problem, then see if
+      <link linkend="nat-dnat">netfilter NAT</link>
+      can be used to solve this class of problem.
+      Some people view the technique of binding to non-local IPs as
+      spoofing, and indeed, it can be used for nefarious purposes, if an
+      attacker controls a machine on the route between a target and a
+      victim.
+    </para>
+  </section>
+</chapter>

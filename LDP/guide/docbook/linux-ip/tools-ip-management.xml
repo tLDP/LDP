@@ -1,0 +1,609 @@
+<!-- $Id$ -->
+
+<appendix id="tools-ip-management">
+    <title>IP Address Management</title>
+    <para>
+      A machine which can access Internet resources has an IP address, whether
+      that IP address is a public address or a private address hidden behind
+      an
+      <link linkend="ch-snat">SNAT router</link>
+      <footnote>
+        <para>
+          I'm sure somebody will be glad to nitpick here and tell me that
+          s/he has a machine connected to the Internet which uses SNA,
+          DecNET, IPX, or NetBEUI to connect to another host which actually
+          <emphasis>does</emphasis> speak IP, thus proving that not every host
+          which has access to the Internet is actually directly speaking IP.
+          Another example is doubtless, wireless devices, such as telephones.
+          Here, I'll concern myself with the majority case.
+        </para>
+      </footnote>.
+      With the increasingly common use of linux machines as servers, desktops,
+      and
+      embedded devices and with changing network topologies and re-addressing,
+      the need to be able to determine the current IP address of a machine and
+      modify that address has consequently become a common need.
+    </para>
+    <para>
+      I assume in this chapter that the reader has some familiarity with CIDR
+      addressing and netmasks.  If any of these concepts are unfamiliar, or
+      the reader would like to brush up, I suggest a visit to some of the
+      links which can be found in <xref linkend="links-general-ip"/>.
+    </para>
+    <para>
+      We'll begin our tour of the utilities for
+      observing, changing, removing, and adding IP addresses to network
+      devices with <link
+      linkend="tools-ifconfig"><command>ifconfig</command></link>, the
+      traditional utility for IP management.  We will also examine the newer
+      and more flexible <link
+      linkend="tools-ip-address"><command>ip address</command></link>, a key
+      part of the <command>iproute2</command> package.
+    </para>
+    <section id="tools-ifconfig">
+      <title><command>ifconfig</command></title>
+      <para>
+        The venerable <command>ifconfig</command> is available on almost every
+        unix I have encountered.  In addition to
+        <link linkend="tools-ifconfig-display">reporting the IP addressing and
+        usage statistics</link> of an optionally specified interface,
+        <command>ifconfig</command> can modify
+        <link linkend="tools-ifconfig-mtu">an interface's MTU</link>
+        and other <link linkend="tools-ifconfig-flags">flags and interface
+        characteristics</link>,
+        <link linkend="tools-ifconfig-up">bring up an interface</link> and
+        <link linkend="tools-ifconfig-down">bring down an interface</link>.
+        This tool is the primary tool for manipulation of IP addressing on many
+        linux distributions.
+      </para>
+      <para>
+      </para>
+      <section id="tools-ifconfig-display">
+        <title>Displaying interface information with
+          <command>ifconfig</command></title>
+        <para>
+          In its simplest use, <command>ifconfig</command> merely reports the
+          IP interface and relevant statistics.  For ethernet devices, the
+          hardware address, IP address, broadcast, netmask, IP interface states,
+          and some other additional information is presented.  For other
+          interfaces, different information may be presented to the user, but
+          the basic summary of IP addressing information will always be
+          available.  Be sure to read <xref linkend="tools-ifconfig-output"/>
+          also.
+        </para>
+        <example id="ex-tools-ifconfig-display">
+          <title>Viewing interface information with <command>ifconfig</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:306 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:306 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:29504 (28.8 Kb)  TX bytes:29504 (28.8 Kb)</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          It is fairly common to specify the name of an interface as an argument
+          to <command>ifconfig</command>, which will restrict the output to the
+          named interface.  This is the only way to retrieve information from
+          <command>ifconfig</command> about link layer devices which are
+          available, but not in an UP state.  See also
+          <xref linkend="tools-ip-link"/> and <xref linkend="tools-ip-address"/>.
+        </para>
+        <para>
+          There are many other options available to the
+          <command>ifconfig</command> command to control addressing and
+          interface state.  Contrary to the behaviour of most other standard
+          unix command line utilities which operate on arguments and options,
+          <command>ifconfig</command> operates on a grammar after the specified
+          interface.  Subsequent examples will demonstrate how this differs from
+          conventional modern unix tools.
+        </para>
+      </section>
+      <section id="tools-ifconfig-down">
+        <title>Bringing down an interface with
+          <command>ifconfig</command></title>
+        <para>
+          Let's look at some simple operations you can perform with
+          <command>ifconfig</command>.  Occasionally, you will need to bring
+          down a network interface.
+          For an introduction to this and its side effects, see
+          <xref linkend="ex-basic-ifconfig-down"/> and
+          <link linkend="list-basic-ifconfig-side-effects-down">the list of
+          side effects</link>.
+        </para>
+        <example id="ex-tools-ifconfig-down">
+          <title>Bringing down an interface with <command>ifconfig</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 down</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig</userinput>
+<computeroutput>lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:306 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:306 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:29504 (28.8 Kb)  TX bytes:29504 (28.8 Kb)</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Naturally, when we view the active interfaces after downing the first
+          ethernet interface, we see that eth0 is no longer present.  This is
+          exactly what we had intended.  Now to bring up the interface, we'll
+          need the IP address and netmask information.
+        </para>
+      </section>
+      <section id="tools-ifconfig-up">
+        <title>Bringing up an interface with
+          <command>ifconfig</command></title>
+        <para>
+          Bringing up an interface is slightly more complex than bringing an
+          interface down because you need to have the IP addressing
+          information handy in order to bring the interface back.
+          For an introduction to the side effects of bringing up an IP address
+          on an interface, see
+          <xref linkend="ex-basic-ifconfig-up"/> and
+          <link linkend="list-basic-ifconfig-side-effects-up">the list of
+          side effects</link>.
+        </para>
+        <example id="ex-tools-ifconfig-up">
+          <title>Bringing up an interface with <command>ifconfig</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 192.168.99.35 netmask 255.255.255.0 up</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:306 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:306 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:29504 (28.8 Kb)  TX bytes:29504 (28.8 Kb)</computeroutput>
+          </programlisting>
+        </example>
+      </section>
+      <section id="tools-ifconfig-output">
+        <title>Reading <command>ifconfig</command> output</title>
+        <para>
+          The above operations are the simple operations one can perform with
+          <command>ifconfig</command>.  Let's examine the output a bit more
+          closely now, with an eye toward the other flags and settings we can
+          manually twiddle.
+        </para>
+        <para>
+          The first line of each interface definition represents data which
+          cannot be altered with ifconfig.  If we consider only ethernet
+          interfaces, the link encapsulation will always say "Ethernet", and the
+          hardware address cannot be altered with <command>ifconfig</command>
+          <footnote>
+            <para>
+              If you need to change the hardware address of an ethernet
+              interface, you have a strange need, but you can accomplish this
+              using the <link linkend="tools-ip-link-set-address"><command>ip
+              link set address</command></link> command.
+            </para>
+          </footnote>.
+          Below this, one line summarizes the IP information associated with
+          this logical interface.
+        </para>
+        <para>
+          The third line indicates the current states of the interface, maximum
+          transmission unit, and the metric for this interface.  Possible
+          state options are itemized in the table below.  The maximimum
+          transmission unit is routinely set to 1500 bytes for ethernet and 
+          promptly forgotten.  MTU suddenly becomes important when IP packets
+          are forwarded across a link layer which requires a smaller MTU.  Thus
+          <command>ifconfig</command> provides a method to set the MTU on an
+          interface.  For more on MTU, see <xref linkend="routing-icmp-mtu"/>.  The
+          remaining lines of output are taken from the ethernet driver.  See
+          further discussion of these statistics below.
+        </para>
+      </section>
+      <section id="tools-ifconfig-mtu">
+        <title>Changing MTU with <command>ifconfig</command></title>
+        <para>
+           It is a rare occasion on which the MTU needs to be changed, but
+           when it needs to be changed, nothing else will suffice.  Here's an
+           example of setting the MTU on an interface to 1412 bytes.
+        </para>
+        <example id="ex-tools-ifconfig-mtu">
+          <title>Changing MTU with <command>ifconfig</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 mtu 1412</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1412  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000</computeroutput>
+          </programlisting>
+        </example>
+      </section>
+      <section id="tools-ifconfig-flags">
+        <title>Changing device flags with <command>ifconfig</command></title>
+        <para>
+          Every device on a system has flags which indicate the state the
+          device may be in.  These flags can be altered by the
+          <command>ifconfig</command> utility.
+        </para>
+        <table id="tb-tools-ifconfig-flags">
+          <title>Interface Flags</title>
+          <tgroup cols="2" align="center" colsep="1" rowsep="1">
+            <thead>
+              <row>
+                <entry>Flag</entry>
+                <entry>Description</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>UP</entry>
+                <entry>device is functioning</entry>
+              </row>
+              <row>
+                <entry>BROADCAST</entry>
+                <entry>device can send traffic to all hosts on the link</entry>
+              </row>
+              <row>
+                <entry>RUNNING</entry>
+                <entry>???</entry>
+              </row>
+              <row>
+                <entry>MULTICAST</entry>
+                <entry>device can perform and receive multicast packets</entry>
+              </row>
+              <row>
+                <entry>ALLMULTI</entry>
+                <entry>device receives all multicast packets on the link</entry>
+              </row>
+              <row>
+                <entry>PROMISC</entry>
+                <entry>device receives all traffic on the link</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
+        <para>
+          I cannot confidently recommend believing the flags as reported by
+          <command>ifconfig</command> output.  Attestations from others and
+          experimentation has proven to me that these flags (particularly the
+          PROMISC flag) do not accurately represent the state of the device as
+          reported in log files (by the kernel) and by the <link
+          linkend="tools-ip-link-show"><command>ip link show</command></link>
+          utility.
+        </para>
+        <para>
+          This does not mean, however, that the flags cannot be set with the
+          ifconfig utility.  Manipulation of the flags on an interface operates
+          according to a peculiar grammar.  To set the PROMISC flag, one issues
+          a command with the <command>promisc</command> option from the grammar.
+          If one wishes to remove the PROMISC flag from an interface, 
+          the <command>-promisc</command> option is required.
+        </para>
+        <example id="ex-tools-ifconfig-flags">
+          <title>Setting interface flags with <command>ifconfig</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 promisc</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING PROMISC MULTICAST  MTU:1412  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 -promisc</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 -arp</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING NOARP MULTICAST  MTU:1412  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig eth0 arp</userinput>
+          </programlisting>
+        </example>
+      </section>
+      <section id="tools-ifconfig-conclusion">
+        <title>General remarks about <command>ifconfig</command></title>
+        <para>
+          Since linux 2.0 the kernel has supported multiple IP addresses hosted
+          on the same device.  By suffixing the real interface name with a
+          colon and a non-negative integer, you can bring up additional IP
+          adresses on the same device.  Example alias names are eth0:0 eth0:7.
+          See <xref linkend="adv-multi-ips"/> for further details.
+        </para>
+        <para>
+          As you can see, <command>ifconfig</command> is both a powerful and
+          idiosyncratic tool for controlling network interfaces and devices.
+        </para>
+      </section>
+    </section>
+    <section id="tools-ip-address">
+      <title><command>ip address</command></title>
+      <para>
+        Part of the <command>iproute2</command> suite, <command>ip
+        address</command> can
+        <link linkend="tools-ip-address-show">list the IP addresses</link>
+        affiliated with
+        interfaces,
+        <link linkend="tools-ip-address-add">add IPs</link>,
+        <link linkend="tools-ip-address-del">delete IPs</link>, and
+        <link linkend="tools-ip-address-flush">remove all IPs on a given
+        device</link>.
+      </para>
+      <section id="tools-ip-address-show">
+          <title>Displaying interface information with
+            <command>ip address show</command></title>
+        <para>
+          The first thing you'll want to do is list the IPs on your machine.
+          The <command>ip address</command> tool will display IP (and
+          terse encapsulation information) when invoked with the
+          <command>show</command> verb.  To specify that you wish to see the IP
+          information for only one interface, you can add <command>dev
+          &lt;device-name&gt;</command>
+        </para>
+        <example id="ex-tools-ip-address-display">
+          <title>Displaying IP information with <command>ip address</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip address show</userinput>
+<computeroutput>1: lo: &lt;LOOPBACK,UP&gt; mtu 16436 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo
+2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</computeroutput>
+<prompt>[root@wan-gw]# </prompt><userinput>ip address show wan0</userinput>
+<computeroutput>8: wan0: &lt;POINTOPOINT,NOARP,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ppp 01:f4 peer 00:00
+    inet 205.254.209.73 peer 205.254.209.74/32 scope global wan0</computeroutput>
+<prompt>[root@real-example]# </prompt><userinput>ip address show ppp0</userinput>
+<computeroutput>5: ppp0: &lt;POINTOPOINT,MULTICAST,NOARP,UP&gt; mtu 1492 qdisc htb qlen 3
+    link/ppp 
+    inet 67.38.163.197 peer 67.38.163.254/32 scope global ppp0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          You should notice some similarity between the output of
+          <command>ip address</command> and
+          <link linkend="tools-ifconfig-output"><command>ifconfig</command></link>.
+          Each device is given an sequential number as an identifying number.
+          This is merely a convenience, and should not be used to refer to
+          devices.  The second field in an entry is the interface name (which
+          usually corresponds to the device name).  Next, we see the familiar
+          device <link linkend="tb-tools-ifconfig-flags">flags</link> and
+          maximum transmission unit size.
+        </para>
+        <para>
+          The final fields in the first line of output for each device entry
+          refer to the traffic control queueing discipline (qdisc) and the
+          ethernet buffer transmit queue length (qlen).  For more on
+          understanding and using traffic control under linux, see
+          <ulink url="http://lartc.org/howto/">the LARTC documentation</ulink>.
+        </para>
+        <para>
+          The second line of output describes the link layer characteristics
+          of the device.  For ethernet devices, this will always say
+          "link/ether" followed by the hardware address of the device and the
+          media broadcast address.  For more detail on the link layer
+          characteristics of a device see <xref linkend="tools-ip-link"/>.
+        </para>
+        <para>
+          Subsequent lines of output describe the IP addresses available on each
+          interface.  In a typical installation only one address is used on
+          each interface, although an arbitrary number of addresses can also be
+          used on each interface.
+        </para>
+        <para>
+          Each line contains the IP address and netmask in CIDR notation, an
+          optional broadcast address, scope information and a label.  Let's
+          examine the scope and label first and then discuss IP addressing and
+          broadcast calculation.  The possible values for scope are outlined in
+          the following table.
+        </para>
+        <table id="tb-tools-ip-addr-scope">
+          <title>IP Scope under <command>ip address</command></title>
+          <tgroup cols="2" align="center" colsep="1" rowsep="1">
+            <thead>
+              <row>
+                <entry>Scope</entry>
+                <entry>Description</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>global</entry>
+                <entry>valid everywhere</entry>
+              </row>
+              <row>
+                <entry>site</entry>
+                <entry>valid only within this site (IPv6)</entry>
+              </row>
+              <row>
+                <entry>link</entry>
+                <entry>valid only on this device</entry>
+              </row>
+              <row>
+                <entry>host</entry>
+                <entry>valid only inside this host (machine)</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
+        <para>
+          Scope is normally determined by the <command>ip</command> utility
+          without explicit use on the command line.  For example, an IP address
+          in the 127.0.0.0/8 range falls in the range of localhost IPs, so
+          should not be routed out any device.  This explains the presence of
+          the <command>host</command> scope for addresses bound to interface
+          <command>lo</command>.  Usually, addresses on other interfaces are
+          public interfaces, which means that their scope will be global.  We
+          will revisit scope again when we discuss routing with <command>ip
+          route</command>, and there we will also encounter the link scope.
+        </para>
+        <para>
+          Now, let's examine IP addressing with the <command>ip
+          address</command> utility by adding and removing IP addresses from
+          active interfaces. 
+        </para>
+      </section>
+      <section id="tools-ip-address-add">
+        <title>Using <command>ip address add</command> to configure
+          IP address information</title>
+        <para>
+          If you need to host an additional IP address on
+          <systemitem class="systemname">tristan</systemitem>, here's how you
+          would accomplish this task.
+        </para>
+        <example id="ex-tools-ip-address-add">
+          <title>Adding IP addresses to an interface with <command>ip address</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip address add 192.168.99.37/24 brd + dev eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          There are a few items of note.  You can use <command>ip address
+          add</command> even if the link layer on the device is down.  This
+          means that you can readdress an interface without bringing it up.
+          When you add an address within the same CIDR network as another
+          address on the same interface, the second address becomes a secondary
+          address, meaning that if the first address is removed, the second
+          address will also be purged from the interface.
+        </para>
+        <para>
+          In order to support compatibility with
+          <link linkend="tools-ifconfig"><command>ifconfig</command></link> the
+          <command>ip address</command> command allows the user to specify a
+          label on every hosted address on a given device.  After adding an
+          address to an interface as we did in
+          <xref linkend="ex-tools-ip-address-add"/>,
+          <command>ifconfig</command> will not report that the new IP
+          192.168.99.37 is hosted on the same device as the primary IP
+          192.168.99.35.  In order to prevent this sort of confusion or apparently
+          contradictory output, you should get in the habit of using the
+          <command>label</command> option to identify each IP hosted on a
+          device.  Let's take a look at how to remove the 192.168.99.37 IP from
+          eth0 and add it back so that <command>ifconfig</command> will report
+          the presence of another IP on the eth0 device.
+        </para>
+      </section>
+      <section id="tools-ip-address-del">
+        <title>Using <command>ip address del</command> to remove IP addresses
+          from an interface</title>
+        <example id="ex-tools-ip-address-del">
+          <title>Removing IP addresses from interfaces with <command>ip address</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip address del 192.168.99.37/24 brd + dev eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address add 192.168.99.37/24 brd + dev eth0 label eth0:0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0:0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ifconfig</userinput>
+<computeroutput>eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000 
+
+eth0:0    Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51  
+          inet addr:10.10.20.10  Bcast:10.10.20.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:9 Base address:0x1000
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:306 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:306 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:29504 (28.8 Kb)  TX bytes:29504 (28.8 Kb)</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Taking the minor precaution of using <command>label</command>s on IP
+          addresses added to an interface will prevent confusion if there are
+          multiple administrators of a machine, some of whom use
+          <command>ifconfig</command>.
+        </para>
+      </section>
+      <section id="tools-ip-address-flush">
+        <title>Removing all IP address information from an interface
+          with <command>ip address flush</command></title>
+        <para>
+          Finally, let's look at the use of <command>ip address flush</command>.
+          If an interface has already had IP addresses assigned to it, and all
+          of the addresses need to be removed (along with their routes), there
+          is one handy command to accomplish all of these tasks.  <command>ip
+          address flush</command> takes an interface name as an argument.
+          Let's look at the output of <command>ip address show</command> just
+          before and just after removing all IPs.
+        </para>
+        <example id="ex-tools-ip-address-flush">
+          <title>Removing all IPs on an interface with <command>ip address flush</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0:0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip address flush</userinput>
+<computeroutput>Flush requires arguments.</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip address flush dev eth0</userinput>
+<prompt>[root@tristan]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</computeroutput>
+          </programlisting>
+        </example>
+      </section>
+      <section id="tools-ip-address-conclusion">
+        <title>Conclusion</title>
+        <para>
+          As you can see, the <command>ip address</command> utility provides a
+          wealth of information and a great deal of control over the IPs
+          associated with each device.  For more detailed information about
+          the <command>iproute2</command> package and included tools, see
+          <xref linkend="links-iproute2"/>.
+        </para>
+      </section>
+    </section>
+</appendix>

@@ -1,0 +1,933 @@
+<!-- $Id$ -->
+
+<chapter id="ch-ether">
+  <title>Ethernet: Address Resolution Protocol and Bridging</title>
+  <para>
+    The most common link layer network in use today is ethernet.  Although
+    there are several common speeds of ethernet devices, they function
+    identically with regard to higher layer protocols.  As this documentation
+    focusses on higher layer protocols (IP), some fine distinctions about
+    different types of ethernet will be overlooked in favor of depicting the
+    uniform manner in which IP networks overlay ethernets.
+  </para>
+  <para>
+    Address Resolution Protocol provides the necessary mapping between MAC
+    addresses and IP addresses for machines connected to ethernets.  Linux
+    offers control of ARP requests and replies via several
+    not-well-known <filename>/proc</filename> interfaces;
+    <filename>net/ipv4/conf/$DEV/proxy_arp</filename>,
+    <filename>net/ipv4/conf/$DEV/medium_id</filename>, and
+    <filename>net/ipv4/conf/$DEV/hidden</filename>.  For even
+    finer control of ARP requests than is available in stock kernels,
+    there are kernel and <command>iproute2</command> patches.
+  </para>
+  <para>
+    Bridging, once the realm of hardware devices, can also be performed by a
+    linux machine.  Along with bridging comes the capability of filtering
+    and transforming frames (or even higher layer protocols) via hooks 
+    at the ethernet layer with the <command>ebtables</command> and
+    <command>iptables</command> commands.
+  </para>
+  <para>
+    This chapter will introduce the
+    <link linkend="ether-arp-overview">ARP conversation</link>, discuss the
+    <link linkend="ether-arp-cache">ARP cache</link>, which is usually
+    a volatile mapping of the reachable IPs and MAC addresses on a
+    segment, examine
+    <link linkend="ether-arp-flux">the ARP flux problem</link>,
+    and explore several
+    <link linkend="ether-arp-filtering">ARP filtering and suppression
+    techniques</link>.  A section on
+    <link linkend="ether-vlan">VLAN technology</link> will round out the
+    chapter on Ethernet.
+  </para>
+  <section id="ether-arp">
+    <title>Address Resolution Protocol (ARP)</title>
+    <para>
+      Address Resolution Protocol (ARP) hovers in the shadows of most networks.
+      Because of its simplicity, by comparison to higher layer protocols, ARP
+      rarely intrudes upon the network administrator's routine.  All modern
+      IP-capable operating systems provide support for ARP.  Uncommon
+      alternatives to ARP include static ethernet-to-IP mappings.
+    </para>
+    <para>
+      ARP defines the exchanges between network interfaces connected to an
+      ethernet media segment in order to map an IP address to a MAC address on
+      demand.  MAC addresses are hardware addresses (although
+      <link linkend="tools-ip-link-set-address">they are not immutable</link>
+      on ethernet cards and IP addresses are logical addresses
+      assigned to machines attached to the ethernet.  Subsequently in this
+      chapter, MAC addresses may be known by many different names:  ethernet
+      addresses, hardware addresses, and even link layer addresses.
+      Disputably, the correct term from the kernel's perspective is "link
+      layer address" because this address can be changed (on many ethernet
+      cards) via command line tools.  Nevertheless, these terms are not
+      realistically distinct and can be used interchangeably.
+    </para>
+    <section id="ether-arp-overview">
+      <title>Overview of Address Resolution Protocol</title>
+      <para>
+        Address Resolution Protocol (ARP) exists solely to glue together the
+        IP and ethernet networking layers.  Since networking hardware
+        such as switches, hubs, and bridges operate on ethernet frames, they
+        are unaware of the higher layer data carried by these frames.
+        Similarly, IP layer devices, operating on IP packets need to be able
+        to transmit their IP data on ethernets.  ARP defines the
+        conversation by which IP capable hosts can exchange mappings of
+        their ethernet and IP addressing..
+      </para>
+      <para>
+        ARP is used to locate the ethernet address associated with a desired IP
+        address.  When a machine has a packet bound for another IP on a locally
+        connected ethernet network, it will send a broadcast ethernet frame
+        containing an ARP request onto the ethernet
+        <footnote>
+          <para>
+            This should underscore the importance of accurate netmasks.  A
+            host determines if a host is on the local ethernet by consulting
+            its routing table.  See also
+            <xref linkend="routing-local"/>.
+          </para>
+        </footnote>.
+        All machines with the same
+        ethernet broadcast address will receive this packet.
+        If a machine receives the ARP request and it hosts the IP requested,
+        it will respond with the link layer address on which it will receive
+        packets for that IP address.
+      </para>
+      <para>
+        Once the requestor receives the response packet, it associates
+        the MAC address and the IP address.  This information is stored in the
+        <link linkend="ether-arp-cache">arp cache</link>.  The arp cache
+        can be manipulated with the
+        <link linkend="tools-ip-neighbor"><command>ip neighbor</command></link>
+        and
+        <link linkend="tools-arp"><command>arp</command></link> commands.
+        To learn how and when to manipulate the arp cache, see
+        <xref linkend="tools-arp"/>.
+      </para>
+      <para>
+        In <xref linkend="ex-basic-ping"/>, we used <command>ping</command> to
+        test reachability of &masq-gw;.  Using a packet sniffer to capture
+        the sequence of packets on the ethernet as a result of &tristan;'s
+        attempt to ping, provides an example of ARP <foreignphrase>in flagrante
+        delicto</foreignphrase>.  Consult the
+        <link linkend="example-network-netmap">example network map</link> for a
+        visual representation of the network layout in which this traffic
+        occurs.
+      </para>
+      <example id="ex-ether-arp-overview">
+        <title>ARP conversation captured with tcpdump
+          <footnote>
+            <para>
+              <command>tcpdump</command> is one of a number of utilities for
+              watching packets visible to an interface.  For further
+              introduction to <command>tcdpump</command>, see
+              <xref linkend="tools-tcpdump"/>.
+            </para>
+          </footnote>
+        </title>
+        <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>tcpdump -ennqti eth0 \( arp or icmp \)</userinput>
+<computeroutput>tcpdump: listening on eth0
+0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 42: arp who-has 192.168.99.254 tell 192.168.99.35
+0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 60: arp reply 192.168.99.254 is-at 0:80:c8:f8:5c:73
+0:80:c8:f8:4a:51 0:80:c8:f8:5c:73 98: 192.168.99.35 &gt; 192.168.99.254: icmp: echo request (DF)
+0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 98: 192.168.99.254 &gt; 192.168.99.35: icmp: echo reply</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        The above conversation is an archetypal conversation between two
+        computers exchanging relevant hardware addressing in order that they 
+        be able to pass IP packets.  The ARP conversation is comprised of two
+        ethernet frames.
+      </para>
+      <para>
+        <programlisting>
+<computeroutput>0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 42: arp who-has 192.168.99.254 tell 192.168.99.35</computeroutput>
+        </programlisting>
+      </para>
+      <para>
+        The above broadcast ethernet frame,
+        identifiable by the destination ethernet address with all bits
+        set (ff:ff:ff:ff:ff:ff)
+        <footnote>
+          <para>
+            The kernel uses the ethernet broadcast address configured on the
+            link layer device.  This is rarely anything but ff:ff:ff:ff:ff:ff.
+            In the extraordinary event that this is not the ethernet broadcast
+            address in your network, see
+            <xref linkend="tools-ip-link-set-address"/>.
+          </para>
+        </footnote>,
+        contains an ARP request from
+        &tristan; for IP address 192.168.99.254.  The
+        request includes the source link layer address and the IP address of
+        the requestor, which provides enough information for the owner of the
+        IP address to reply with its link layer address.
+      </para>
+      <para>
+        The ARP reply from &masq-gw; includes its link
+        layer address and declaration of ownership of the requested
+        IP address.  Note that the ARP reply is a unicast response to a
+        broadcast request.  The payload of the ARP reply contains the MAC
+        address mapping.  The machine which
+        initiated the ARP request (&tristan;) now has enough information to
+        encapsulate an IP packet in an ethernet frame and forward it to the
+        link layer address of the recipient (00:80:c8:f8:5c:73).
+      </para>
+      <para>
+        <programlisting>
+<computeroutput>0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 60: arp reply 192.168.99.254 is-at 0:80:c8:f8:5c:73</computeroutput>
+        </programlisting>
+      </para>
+      <para>
+        The final two packets in
+        <xref linkend="ex-ether-arp-overview"/> display the link layer header
+        and the encapsulated IP ICMP packets exchanged between these two
+        hosts.  Examining the ARP cache on each of these hosts would reveal
+        entries on each host for the other host's link layer address.
+      </para>
+    </section>
+    <section id="ether-arp-cache">
+      <title>The ARP cache</title>
+      <para>
+        In simplest terms, an ARP cache is a stored mapping of IP addresses
+        with link layer addresses.  An ARP cache obviates the need for an ARP
+        request/reply conversation for each IP packet exchanged.  Naturally,
+        this efficiency comes with a price.  Each host maintains its own ARP
+        cache, which can become outdated when a host is replaced, or an IP
+        address moves from one host to another.  The ARP cache is also known
+        as the neighbor table.
+      </para>
+      <para>
+        To display the ARP cache, the venerable and cross-platform
+        <command>arp</command> admirably dispatches its duty.  As with many of
+        the <command>iproute2</command> tools, more information is available
+        via <command>ip neighbor</command> than with <command>arp</command>.
+        <xref linkend="ex-ether-arp-cache"/> below illustrates the differences
+        in the output between the output of these two different tools.
+      </para>
+      <example id="ex-ether-arp-cache">
+        <title>ARP cache listings with <command>arp</command> and
+          <command>ip neighbor</command></title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>arp -na</userinput>
+<computeroutput>? (192.168.99.7) at 00:80:C8:E8:1E:FC [ether] on eth0
+? (192.168.99.254) at 00:80:C8:F8:5C:73 [ether] on eth0</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show</userinput>
+<computeroutput>192.168.99.7 dev eth0 lladdr 00:80:c8:e8:1e:fc nud reachable
+192.168.99.254 dev eth0 lladdr 00:80:c8:f8:5c:73 nud reachable</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+      </para>
+      <para>
+        Entries in the ARP cache are periodically and automatically
+        verified unless continually used.  Along with 
+        <filename>/proc/sys/net/ipv4/neigh/$DEV/gc_stale_time</filename>,
+        there are a number of other parameters which control the expiration of
+        entries in the ARP cache.
+      </para>
+      <para>
+        When a host is down or disconnected from the ethernet, there is a
+        period of time during which other hosts may have an ARP cache entry
+        for the disconnected host.  The disconnected host may seem reachable
+        during this time because there is a recently known-good link layer
+        address on which the IP was reachable.  At
+        <constant>gc_stale_time</constant> the state of the entry will change,
+        reflecting the need to verify the reachability of the link layer
+        address.
+      </para>
+      <para>
+        Here are a the possible states for entries in the neighbor table.
+      </para>
+      <table id="tb-ether-arp-cache-states">
+        <title>Active ARP cache entry states</title>
+        <tgroup cols="2" align="center" colsep="1" rowsep="1">
+          <thead>
+            <row>
+              <entry>ARP cache entry state</entry>
+              <entry>meaning</entry>
+              <entry>action if used</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>permanent</entry>
+              <entry>never expires; never verified</entry>
+              <entry>reset use counter</entry>
+            </row>
+            <row>
+              <entry>noarp</entry>
+              <entry>normal expiration; never verified</entry>
+              <entry>reset use counter</entry>
+            </row>
+            <row>
+              <entry>reachable</entry>
+              <entry>normal expiration</entry>
+              <entry>reset use counter</entry>
+            </row>
+            <row>
+              <entry>stale</entry>
+              <entry>still usable; needs verification</entry>
+              <entry>reset use counter; change state to delay</entry>
+            </row>
+            <row>
+              <entry>delay</entry>
+              <entry>schedule ARP request; needs verification</entry>
+              <entry>reset use counter</entry>
+            </row>
+            <row>
+              <entry>probe</entry>
+              <entry>sending ARP request</entry>
+              <entry>reset use counter</entry>
+            </row>
+            <row>
+              <entry>incomplete</entry>
+              <entry>first ARP request sent</entry>
+              <entry>send ARP request</entry>
+            </row>
+            <row>
+              <entry>failed</entry>
+              <entry>no response received</entry>
+              <entry>send ARP request</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <para>
+        To resume, a host (192.168.99.7) in the ARP cache on the
+        <link linkend="ax-example-network">example network</link> has just
+        been removed from the network.  There are a series of events which
+        will occur as &tristan;'s ARP cache entry for 192.168.99.7 expires and
+        gets scheduled for verification.  Imagine that the following commands
+        are run to capture each of these states immediately before state
+        change.
+      </para>
+      <example id="ex-ether-arp-cache-timeout">
+        <title>ARP cache timeout</title>
+        <programlistingco>
+          <areaspec>
+            <area id="ex-eact-reachable"   coords="2"/>
+            <area id="ex-eact-stale"       coords="4"/>
+            <area id="ex-eact-delay"       coords="6"/>
+            <area id="ex-eact-probe"       coords="8"/>
+            <area id="ex-eact-incomplete"  coords="10"/>
+          </areaspec>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.7</userinput>
+<computeroutput>192.168.99.7 dev eth0 lladdr 00:80:c8:e8:1e:fc nud reachable</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.7</userinput>
+<computeroutput>192.168.99.7 dev eth0 lladdr 00:80:c8:e8:1e:fc nud stale</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.7</userinput>
+<computeroutput>192.168.99.7 dev eth0 lladdr 00:80:c8:e8:1e:fc nud delay</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.7</userinput>
+<computeroutput>192.168.99.7 dev eth0 lladdr 00:80:c8:e8:1e:fc nud probe</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>ip neighbor show 192.168.99.7</userinput>
+<computeroutput>192.168.99.7 dev eth0  nud incomplete</computeroutput>
+          </programlisting>
+          <calloutlist>
+            <callout arearefs="ex-eact-reachable">
+              <para>
+                Before the entry has expired for 192.168.99.7, but after the
+                host has been disconnected from the network.  During this
+                time, &tristan; will continue to send out ethernet frames with
+                the destination frame address set to the link layer address
+                according to this entry.
+              </para>
+            </callout>
+            <callout arearefs="ex-eact-stale">
+              <para>
+                It has been <constant>gc_stale_time</constant> seconds since
+                the entry has been verified, so the state has changed to
+                stale.
+              </para>
+            </callout>
+            <callout arearefs="ex-eact-delay">
+              <para>
+                This entry in the neighbor table has been requested.  Because
+                the entry was in a stale state, the link layer address was
+                used, but now the kernel needs to verify the accuracy of the
+                data.  The kernel will soon send an ARP request for the
+                destination IP address.
+              </para>
+            </callout>
+            <callout arearefs="ex-eact-probe">
+              <para>
+                The kernel is actively performing address resolution for the
+                entry.  It will send a total of
+                <constant>ucast_solicit</constant> frames to the last known
+                link layer address to attempt to verify reachability of the
+                address.  Failing this, it will send
+                <constant>mcast_solicit</constant> broadcast frames before
+                altering the ARP cache state and returning an error to any
+                higher layer services.
+              </para>
+            </callout>
+            <callout arearefs="ex-eact-incomplete">
+              <para>
+                After all attempts to reach the destination address have
+                failed, the entry will appear in the neighbor table in this
+                state.
+              </para>
+            </callout>
+          </calloutlist>
+        </programlistingco>
+      </example>
+      <para>
+        The remaining neighbor table flags are visible when inital ARP
+        requests are made.  If no ARP cache entry exists for a requested
+        destination IP, the kernel will generate
+        <constant>mcast_solicit</constant> ARP requests until receiving an
+        answer.  
+        During this discovery period, the ARP cache
+        entry will be listed in an <emphasis>incomplete</emphasis> state.  If
+        the lookup does not succeed after the specified number of ARP
+        requests, the ARP cache entry will be listed in a
+        <emphasis>failed</emphasis> state.
+      </para>
+      <para>
+        After receipt of a corresponding ARP reply, the kernel enters the
+        response into the ARP cache and resets the confirmation and update
+        timers.
+      </para>
+      <para>
+        For machines not using a static mapping for link layer and IP
+        addresses, ARP provides on demand mappings.  The remainder of this
+        section will cover the methods available under linux to control the
+        address resolution protocl.
+      </para>
+    </section>
+    <section id="ether-arp-suppression">
+      <title>ARP Suppression</title>
+      <para>
+        Complete ARP suppression is not difficult at all.  ARP suppression can
+        be accomplished under linux on a per-interface basis by setting the
+        noarp flag on any ethernet interface.
+        Disabling ARP will require static neighbor table mappings
+        for all hosts wishing to exchange packets across the ethernet.
+      </para>
+      <para>
+        Additionally, and notably, you can suppress ARP on an interface by
+        simply using <command>ip link set dev $DEV arp off</command> as in
+        <xref linkend="ex-tools-ip-link-set"/>
+        or <command>ifconfig $DEV -arp</command> as in
+        <xref linkend="ex-tools-ifconfig-flags"/>.
+      </para>
+      <para>
+      </para>
+    </section>
+
+    <!--
+      
+      FIXME; new little network map needed to illustrate these ARP examples
+      
+      -->
+    
+    <section id="ether-arp-flux">
+      <title>The ARP Flux Problem</title>
+      <para>
+        When a linux box is connected to a network segment with multiple
+        network cards, a potential problem with the link layer address 
+        to IP address mapping can occur.
+        The machine may respond to ARP requests from both ethernet interfaces.
+        On the machine creating the ARP request, these multiple answers can
+        cause confusion, or worse yet, non-deterministic population
+        of the ARP cache.  Known as ARP flux
+        <footnote>
+          <para>
+            I have seen it called names other than ARP flux--anybody out there
+            heard of this called anything besides ARP flux?
+          </para>
+        </footnote>,
+        this can lead to the possibly puzzling effect that an IP migrates
+        non-deterministically through multiple link layer addresses.
+      </para>
+      <para>
+        This is a simple illustration of the problem in a network where a
+        server has two ethernet adapters connected to the same media
+        segment.  They need not have IP addresses in the same IP network for
+        the ARP reply to be generated by each interface.  Note the
+        first replies received in response to the ARP broadcast request.
+        Two replies from conflicting link layer addresses arrive in
+        response to this request.  Also notice the greater time required for
+        the sending and receiving hosts to process the broadcast ARP request
+        frames than the unicast frames which follow (probes two and three).
+      </para>
+      <example id="ex-ether-arp-flux">
+        <title>ARP flux</title>
+        <programlisting>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 10.10.20.67</userinput>
+<computeroutput>ARPING 10.10.20.67 from 10.10.20.33 eth0
+Unicast reply from 10.10.20.67 [00:80:C8:7E:71:D4]  11.298ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  12.077ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.542ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.547ms
+Sent 3 probes (1 broadcast(s))
+Received 4 response(s)</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        There are four solutions to this problem.  The common solution for
+        kernel 2.4 harnesses the
+        <link linkend="ether-arp-flux-arpfilter"><constant>arp_filter</constant>
+        sysctl</link>, while the common solution for kernel 2.2 takes
+        advantage of the
+        <link linkend="ether-arp-flux-hidden"><constant>hidden</constant>
+        sysctl</link>.  These two solutions alter the behaviour of ARP on a
+        per interface basis and only if the functionality has been enabled.
+      </para>
+      <para>
+        Alternate solutions which provide much greater control of the ARP
+        process (possibly documented
+        <link linkend="ether-arp-filtering">here</link> at a later date)
+        include Julian Anastasov's
+        <ulink url="http://www.linuxvirtualserver.org/~julian/#iparp"><command>ip
+        arp</command></ulink> tool and his
+        <ulink url="http://www.linuxvirtualserver.org/~julian/#noarp">noarp
+        route flag</ulink>.  While these tools were conceived in the course of
+        the
+        <ulink url="http://www.linuxvirtualserver.org/">Linux Virtual
+        Server</ulink> project, they have practical application outside this
+        realm.
+      </para>
+      <section id="ether-arp-flux-arpfilter">
+        <title>ARP flux prevention with <constant>arp_filter</constant></title>
+        <para>
+          One method for preventing ARP flux involves the use of
+          <filename>/proc/sys/net/ipv4/conf/$DEV/arp_filter</filename>.  In
+          short, the use of <filename>arp_filter</filename> causes the recipient
+          (in the case below, &real-server;) to perform a route lookup to
+          determine the interface through which to send the
+          reply, instead of the default behaviour (shown above), replying
+          from all ethernet interfaces which receive the request.
+        </para>
+        <!--
+          
+          FIXME; read the spec, why is this smart?  Doesn't this mean
+                 using the informational data in the ethernet frame?
+
+         -->
+        <para>
+          This can have unintended effects if the only route to the destination
+          is through one of the network cards.  In
+          <xref linkend="ex-ether-arp-flux-arpfilter"/>, &real-client; will
+          demonstrate this.  This instructive example should highlight
+          the shortcomings of the <constant>arp_filter</constant> solution.
+        </para>
+        <example id="ex-ether-arp-flux-arpfilter">
+          <title>Correction of ARP flux with
+            <filename>conf/$DEV/arp_filter</filename></title>
+          <programlisting>
+<prompt>[root@real-server]# </prompt><userinput>echo 1 &gt; /proc/sys/net/ipv4/conf/all/arp_filter</userinput>
+<prompt>[root@real-server]# </prompt><userinput>echo 1 &gt; /proc/sys/net/ipv4/conf/eth0/arp_filter</userinput>
+<prompt>[root@real-server]# </prompt><userinput>echo 1 &gt; /proc/sys/net/ipv4/conf/eth1/arp_filter</userinput>
+<prompt>[root@real-server]# </prompt><userinput>ip address show dev eth0</userinput>
+<computeroutput>2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:e8:1e:fc brd ff:ff:ff:ff:ff:ff
+    inet 10.10.20.67/24 scope global eth0</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip address show dev eth1</userinput>
+<computeroutput>3: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:7e:71:d4 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.100.1/24 brd 192.168.100.255 scope global eth1</computeroutput>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 10.10.20.67</userinput>
+<computeroutput>ARPING 10.10.20.67 from 10.10.20.33 eth0
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  0.882ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.221ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.487ms
+Sent 3 probes (1 broadcast(s))
+Received 3 response(s)</computeroutput>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 192.168.100.1</userinput>
+<computeroutput>ARPING 192.168.100.1 from 10.10.20.33 eth0
+Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  0.877ms
+Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  1.517ms
+Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  1.661ms
+Sent 3 probes (1 broadcast(s))
+Received 3 response(s)</computeroutput>
+<prompt>[root@real-client]# </prompt><userinput>ip neighbor del 192.168.100.1 dev eth0</userinput>
+<prompt>[root@real-client]# </prompt><userinput>ip addr add 192.168.100.2/24 brd + dev eth0</userinput>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 192.168.100.1</userinput>
+<computeroutput>ARPING 192.168.100.1 from 192.168.100.2 eth0
+Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  0.804ms
+Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  1.381ms
+Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  2.487ms
+Sent 3 probes (1 broadcast(s))
+Received 3 response(s)</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          After &real-server; can reach &real-client; via its eth1 interface,
+          the ARP reply matches the ethernet interface to which 192.168.100.1 is
+          bound.
+        </para>
+      </section>
+      <section id="ether-arp-flux-hidden">
+        <title>ARP flux prevention with <constant>hidden</constant></title>
+        <para>
+          The ARP flux problem can also be combatted with a
+          <ulink url="http://www.linuxvirtualserver.org/~julian/#hidden">kernel
+          patch</ulink> by Julian Anastasov, which was incorporated into the
+          2.2.14+ kernel series, but never into the 2.4+ kernel series.  In sum,
+          this means that the functionality may not be available in all
+          kernels.
+        </para>
+        <para>
+          <filename>/proc/sys/net/ipv4/conf/$DEV/hidden</filename> toggles
+          the generation of ARP replies for requested IPs.
+          It marks an interface invisible to
+          other interfaces for the purpose of ARP requests.  This means that
+          each interface marked with the <filename>hidden</filename> attribute
+          can answer ARP requests only for IPs bound to it.
+        </para>
+        <para>
+          As shown in
+          <xref linkend="ex-ether-arp-flux-hidden"/>, not only can ARP flux be
+          corrected, but sensitive information about the IP addresses
+          available on a linux box can be safeguarded
+          <footnote>
+            <para>
+              Consider a masquerading firewall which answers ARP requests on a
+              public segment for IPs hosted on an internal interface.  This
+              amounts to inadvertent exposure of internal addressing, and can be
+              used by an attacker as part of a data-gathering or reconaissance
+              operation on a network.
+            </para>
+          </footnote>.
+        </para>
+        <example id="ex-ether-arp-flux-hidden">
+          <title>Correction of ARP flux with
+            <filename>net/$DEV/hidden</filename></title>
+            <programlisting>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 1 172.19.22.254</userinput>
+<computeroutput>ARPING 172.19.22.254 from 172.19.24.2 eth0
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2D]  0.704ms
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2E]  0.844ms
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2F]  0.918ms
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2C]  0.974ms
+Sent 1 probes (1 broadcast(s))
+Received 4 response(s)</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>for i in all eth2 eth3 eth4 eth5 ; do</userinput>
+<prompt>&gt; </prompt><userinput>echo 1 &gt; /proc/sys/net/ipv4/conf/$i/hidden</userinput>
+<prompt>&gt; </prompt><userinput>done</userinput>
+<prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 2 172.19.22.254</userinput>
+<computeroutput>ARPING 172.19.22.254 from 172.19.22.2 eth0
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2D]  0.710ms
+Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2D]  0.624ms
+Sent 2 probes (1 broadcast(s))
+Received 2 response(s)</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          These are two examples of methods to prevent ARP flux.  Other
+          alternatives for correcting this problem are documented in
+          <xref linkend="ether-arp-filtering"/>, where much more sophisticated
+          tools are available for manipulation and control over the ARP
+          functions of linux.
+        </para>
+      </section>
+    </section>
+    <section id="ether-arp-proxy">
+      <title>Proxy ARP</title>
+      <para>
+        FIXME; manual proxy ARP (see also
+        <xref linkend="adv-proxy-arp"/>), kernel proxy ARP, and the newly
+        supported <filename>/proc/sys/net/ipv4/conf/$DEV/medium_id</filename>.
+      </para>
+      <para>
+        For a brief description of the use of medium_id, see
+        <ulink url="http://www.linuxvirtualserver.org/~julian/#medium_id">Julian's
+        remarks</ulink>.
+      </para>
+      <anchor id="ether-arp-proxy-kernel"/>
+      <para>
+        FIXME; Kernel proxy ARP with
+        <filename>/proc/sys/net/ipv4/conf/$DEV/proxy_arp</filename>.
+      </para>
+      <para>
+      </para>
+    </section>
+    <section id="ether-arp-filtering">
+      <title>ARP filtering</title>
+      <para>
+        This section should be part of the "ghetto" which will
+        include documentation on <command>ip arp</command>.  There's nothing
+        more to add here at the moment (low priority).
+      </para>
+      <para>
+        <programlisting>
+<prompt># </prompt><userinput>ip arp help</userinput>
+<computeroutput>Usage: ip arp [ list | flush ] [ RULE ]
+       ip arp [ append | prepend | add | del | change | replace | test ] RULE
+RULE := [ table TABLE_NAME ] [ pref NUMBER ] [ from PREFIX ] [ to PREFIX ]
+           [ iif STRING ] [ oif STRING ] [ llfrom PREFIX ] [ llto PREFIX ]
+           [ broadcasts ] [ unicasts ] [ ACTION ] [ ALTER ]
+TABLE_NAME := [ input | forward | output ]
+ACTION := [ deny | allow ]
+ALTER := [ src IP ] [ llsrc LLADDR ] [ lldst LLADDR ]</computeroutput>
+        </programlisting>
+      </para>
+      <para>
+        The 
+        <ulink url="http://www.linuxvirtualserver.org/~julian/#iparp"><command>ip
+        arp</command></ulink> tool.
+        Patches and code for the
+        <ulink url="http://www.linuxvirtualserver.org/~julian/#noarp">noarp
+        route flag</ulink>.
+      </para>
+      <para>
+        FIXME; add a few paragraphs on <command>ip arp</command> and the noarp
+        flag.
+      </para>
+      <para>
+      </para>
+    </section>
+  </section>
+  <section id="ether-vlan">
+    <title>Connecting to an ethernet 802.1q VLAN</title>
+    <para>
+      Virtual LANs are a way to take a single switch and subdivide it into
+      logical media segments.  A single switch port in a VLAN-capable switch
+      can carry packets from multiple virtual LANs and linux can understand
+      the format of these ethernet frames.  For more on this, see
+      <ulink url="http://www.candelatech.com/~greear/vlan.html">the linux
+      802.1q VLAN implementation site</ulink>.
+    </para>
+    <para>
+      Kernels in the late 2.4 series have support for VLAN incorporated into
+      the stock release.  The <command>vconfig</command> tool, however needs
+      to be compiled against the kernel source in order to provide userland
+      configurability of the kernel support for VLANs.
+    </para>
+    <para>
+      There are a few items of note which may prevent quick adoption of VLAN
+      support under linux.  Ben McKeegan wrote a
+      <ulink url="http://www.wanfear.com/pipermail/vlan/2002q4/002882.html">good
+      summary</ulink> of the MTU/MRU issues involved with VLANs and 10/100
+      Ethernet.  Gigabit ethernet drivers are not hamstrung with this problem.
+      Consider using gigabit ethernet cards from the outset to avoid these
+      potential problems.
+    </para>
+    <example id="ex-ether-vlan">
+      <title>Bringing up a VLAN interface</title>
+        <programlisting>
+<prompt>[root@real-router]# </prompt><userinput>vconfig add eth0 7</userinput>
+<prompt>[root@real-router]# </prompt><userinput>ip addr add dev eth0.7 192.168.30.254/24 brd +</userinput>
+<prompt>[root@real-router]# </prompt><userinput>ip link set dev eth0.7 up</userinput>
+       </programlisting>
+    </example>
+    <para>
+      Each interface defined using the <command>vconfig</command> utility
+      takes its name from the base device to which it has been bound, and
+      appends the VLAN tag ID, as shown in
+      <xref linkend="ex-ether-vlan"/>.
+    </para>
+    <para>
+      This documentation is sparse.  Visit the 
+      <ulink url="http://www.candelatech.com/~greear/vlan.html">main
+      site</ulink> and the
+      <ulink url="http://www.wanfear.com/pipermail/vlan/">VLAN mailing list
+      archives</ulink>.
+    </para>
+    <para>
+    </para>
+  </section>
+  <section id="ether-bonding">
+    <title>Link Aggregation and High Availability with Bonding</title>
+    <para>
+      Networking vendors have long offered a functionality for aggregating
+      bandwidth across multiple physical links to a switch.  
+      This allows a machine (frequently a server) to treat multiple
+      physical connections to switch units as a single logical link.
+      The standard moniker for this technology is IEEE 802.3ad, although
+      it is known by the common names of trunking, port trunking
+      and link aggregation.  The conventional use of bonding under linux is
+      an implementation of this
+      <link linkend="ether-bonding-aggregation">link aggregation</link>.
+    </para>
+    <para>
+      A separate use of the same driver allows the kernel to present a single
+      logical interface for two physical links to two separate
+      switches.  Only one link is used at any given time.  By using media
+      independent interface signal failure to detect when a switch or link
+      becomes unusable, the kernel can, transparently to userspace and
+      application layer services, fail to the backup physical connection.
+      Though not common, the failure of switches, network interfaces, and
+      cables can cause outages.  As a component of high availability planning,
+      <link linkend="ether-bonding-ha">these bonding techniques</link>
+      can help reduce the number of single points of failure.
+    </para>
+    <para>
+      For more information on bonding, see the
+      <filename>Documentation/networking/bonding.txt</filename> from the linux
+      source code tree.
+    </para>
+    <para>
+    </para>
+    <section id="ether-bonding-aggregation">
+      <title>Link Aggregation</title>
+      <para>
+        Bonding for link aggregation must be supported by both endpoints.
+        Two linux machines connected via crossover cables can take advantage
+        of link aggregation.  A single machine connected with two physical
+        cables to a switch which supports port trunking can use link
+        aggregation to the switch.
+        Any conventional switch
+        will become ineffably confused by a hardware address appearing on
+        multiple ports simultaneously.
+      </para>
+      <example id="ex-ether-bonding-aggregation">
+        <title>Link aggregation bonding</title>
+        <programlisting>
+<prompt>[root@real-server root]# </prompt><userinput>modprobe  bonding</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ip addr add 192.168.100.33/24 brd + dev bond0</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ip link set dev bond0 up</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ifenslave  bond0 eth2 eth3</userinput>
+<computeroutput>master has no hw address assigned; getting one from slave!
+The interface eth2 is up, shutting it down it to enslave it.
+The interface eth3 is up, shutting it down it to enslave it.</computeroutput>
+<prompt>[root@real-server root]# </prompt><userinput>ifenslave  bond0 eth2 eth3</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>cat /proc/net/bond0/info</userinput>
+<computeroutput>Bonding Mode: load balancing (round-robin)
+MII Status: up
+MII Polling Interval (ms): 0
+Up Delay (ms): 0
+Down Delay (ms): 0
+
+Slave Interface: eth2
+MII Status: up
+Link Failure Count: 0
+
+Slave Interface: eth3
+MII Status: up
+Link Failure Count: 0</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        FIXME;  Need an experiment here....maybe a tcpdump to show how the
+        management frames appear on the wire.
+      </para>
+      <para>
+        This
+        <ulink url="http://www.beowulf.org/software/bonding.html">Beowulf
+        software page</ulink> describes in a bit more detail the rationale and
+        a practical application of linux channel bonding (for link
+        aggregation).
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+    </section>
+    <section id="ether-bonding-ha">
+      <title>High Availability</title>
+      <para>
+        Bonding support under linux is part of a high availability solution.
+        For an entry point into the complexity of high availability in
+        conjunction with linux, see the
+        <ulink url="http://linux-ha.org/">linux-ha.org</ulink> site.  To guard
+        against layer two (switch) and layer one (cable) failure, a machine
+        can be configured with multiple physical connections to separate
+        switch devices while presenting a single logical interface to
+        userspace.
+      </para>
+      <para>
+        The name of the interface can be specified by the user.  It is
+        commonly <constant>bond0</constant> or something similar.  As a
+        logical interface, it can be used in routing tables and by
+        <link linkend="tools-tcpdump"><command>tcpdump</command></link>.
+      </para>
+      <para>
+        The bond interface, when created, has no link layer address.  In the
+        example below, an address is manually added to the interface.  See
+        <xref linkend="ex-ether-bonding-aggregation"/> for an example of the
+        bonding driver reporting setting the link layer address when the first
+        device is enslaved to the bond (doesn't that sound cruel!).
+      </para>
+      <example id="ex-ether-bonding-ha">
+        <title>High availability bonding</title>
+        <programlisting>
+<prompt>[root@real-server root]# </prompt><userinput>modprobe bonding mode=1 miimon=100 downdelay=200 updelay=200</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ip link set dev bond0 addr 00:80:c8:e7:ab:5c</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ip addr add 192.168.100.33/24 brd + dev bond0</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ip link set dev bond0 up</userinput>
+<prompt>[root@real-server root]# </prompt><userinput>ifenslave  bond0 eth2 eth3</userinput>
+<computeroutput>The interface eth2 is up, shutting it down it to enslave it.
+The interface eth3 is up, shutting it down it to enslave it.</computeroutput>
+<prompt>[root@real-server root]# </prompt><userinput>ip link show eth2 ; ip link show eth3 ; ip link show bond0</userinput>
+<computeroutput>4: eth2: &lt;BROADCAST,MULTICAST,SLAVE,UP&gt; mtu 1500 qdisc pfifo_fast master bond0 qlen 100
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff
+5: eth3: &lt;BROADCAST,MULTICAST,NOARP,SLAVE,DEBUG,AUTOMEDIA,PORTSEL,NOTRAILERS,UP&gt; mtu 1500 qdisc pfifo_fast master bond0 qlen 100
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff
+58: bond0: &lt;BROADCAST,MULTICAST,MASTER,UP&gt; mtu 1500 qdisc noqueue
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Immediately noticeable, there is a new flag in the <command>ip link
+        show</command> output.  The <constant>MASTER</constant> and
+        <constant>SLAVE</constant> flags clearly report the nature of the
+        relationship between the interfaces.  Also, the ethernet interfaces
+        indicate the master interface via the keywords <constant>master
+        bond0</constant>.
+      </para>
+      <para>
+        Note also, that all three of the interfaces share the same link layer
+        address, <constant>00:80:c8:e7:ab:5c</constant>.
+      </para>
+      <para>
+        FIXME; What doe DEBUG,AUTOMEDIA,PORTSEL,NOTRAILERS mean?
+      </para>
+    </section>
+    
+    <!--
+
+      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+      #                                                                 #
+      #                     link aggregation                            #
+      #                                                                 #
+      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+      
+      #
+      # Cisco-think for stuff on "etherchannel", aka 802.3ad.
+      #
+
+      http://www.cisco.com/warp/public/473/140.html#pagp
+      http://www.cisco.com/univercd/cc/td/doc/product/lan/cat2950/1216ea2b/scg/swgports.htm#xtocid21
+
+      #
+      # Here's a thread on 802.3ad under linux started in 2000-08
+      #
+      
+      http://www.wcug.wwu.edu/lists/netdev/200008/msg00093.html
+
+      #
+      # here's link aggregation in a Beowulf cluster; sort of a HOWTO
+      #
+      
+      http://ilab.usc.edu/beo/
+
+      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+      #                                                                 #
+      #                      high availability                          #
+      #                                                                 #
+      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+      #
+      # HA is a huge topic, encompassing application layer problems
+      # as well as network layer problems, but linux-ha tries to solve
+      # some of them
+
+      http://linux-ha.org/
+
+      #
+      # see also, vrrpd (keepalived) and fake
+      #
+      
+      http://www.vergenet.net/linux/fake/
+      http://www.keepalived.org/
+
+      -->
+
+  </section>
+</chapter>

@@ -1,0 +1,1265 @@
+<!-- $Id$ -->
+
+<appendix id="tools-diagnostics">
+    <title>Diagnostics</title>
+    <para>
+      Now that we have covered most of the basic tools for management of
+      routes, IP addresses, and a few ethernet tools, we come to a set of
+      tools which are used primarily to help you figure out what is wrong in
+      your network, where a route is broken, or even, simply, whether a host
+      is reachable.
+    </para>
+    <para>
+      Some of these tools are available on other platforms, but may have
+      different command line switches or may use different packet signatures
+      than those described here.  The concepts in many cases, transfer, but,
+      of course, the command line options may be different.
+    </para>
+    <para>
+      We are going to start with one of the first networking tools that many
+      people learn, <link linkend="tools-ping"><command>ping</command></link>
+      and we'll move along to the common 
+      <link linkend="tools-traceroute"><command>traceroute</command></link>,
+      which maps out a route from one host to another,
+      <link linkend="tools-mtr"><command>mtr</command></link>, which
+      represents traceroute-type information in a richer format,
+      <link linkend="tools-netstat"><command>netstat</command></link>, for
+      examining sockets (and routes) in use, and finally, the indispensable
+      <link linkend="tools-tcpdump"><command>tcpdump</command></link>, which
+      reports on all traffic passing through a device.
+    </para>
+    <para>
+      By learning both how and when to use these tools, but even more
+      importantly, how to read their output, you can perform a tremendous
+      amount of reconnaisance on your own network and frequently quickly
+      isolate problems and identify error conditions.  These tools are some of
+      the core tools of any linux administrator who is responsible for an IP
+      network.
+    </para>
+    <section id="tools-ping">
+      <title><command>ping</command></title>
+      <para>
+        <command>ping</command> is one of the oldest IP utilities around.
+        Simply put, <command>ping</command> asks another host if it is alive,
+        and records the round-trip time between the request and the reply.
+      </para>
+      <para>
+        In this section, we'll look at several examples of the use of
+        <command>ping</command> to
+        <link linkend="tools-ping-simple">test reachability</link>,
+        <link linkend="ex-tools-ping-simple-count">send a specified number of
+        packets</link>,
+        <link linkend="ex-tools-ping-simple-quiet">suppress all but summary
+        output</link>,
+        <link linkend="tools-ping-stress">stress the network</link>,
+        <link linkend="tools-ping-record-route">record the route a
+        packet takes</link>,
+        <link linkend="tools-ping-ttl">set the TTL</link>,
+        <link linkend="tools-ping-tos">specify ToS</link>,
+        and <link linkend="tools-ping-specify-source">specify the source
+        IP</link>.
+      </para>
+      <para>
+        The <command>ping</command> utility has a simple and elegant design.
+        When run, it will craft a packet bound for the specified destination,
+        send the packet, and record the time it took that packet to reach its
+        destination.  The generated packet is an ICMP packet known as an
+        echo-request.  If the destination host receives the packet, it should
+        generate an echo-reply.  The success or failure of this very simple
+        operation can provide some insight into the state of a network or a
+        series of networks.
+      </para>
+      <para>
+        In most cases, the ICMP echo-request packets and echo-reply packets,
+        upon which <command>ping</command>'s functionality relies, are allowed
+        through routers and firewalls, however with the advent of trojans and
+        distributed denial of service tools which transmit information within
+        ICMP packets, some networks and network administrators block ICMP at
+        their borders.  For an example of such a trojan, see this <ulink
+        url="http://staff.washington.edu/dittrich/misc/tfn.analysis">dissection
+        of the trinoo</ulink> distributed denial of service tool.  As a result
+        of these nefarious uses of echo-request and echo-reply packets, some
+        cautious network administrators block all non-essential ICMP at their
+        border routers.  See <xref linkend="routing-icmp"/> for a more complete
+        discussion of ICMP.
+      </para>
+      <para>
+        Thus, we can no longer assume (as perhaps we once could) that simply
+        because a host is not answering our <command>ping</command> request,
+        this host is down.  There may be a device which has been configured to
+        filter out this traffic.
+      </para>
+      <para>
+        If a host is reachable and answering our echo-requests, then we may
+        also wish to believe that the round-trip times recorded by ping are
+        an accurate representation of network conditions.  This can be
+        misleading.  Some routers are configured to give ICMP diagnostic
+        messages the lowest priority of any IP packets travelling through
+        them, in which case that router may contribute significantly to the
+        round trip time of any echo-request packet passing through it.
+      </para>
+      <para>
+        With knowledge of these two potential roadblocks to the successful use
+        of <command>ping</command> as a network diagnostic tool, we can begin
+        to explore how <command>ping</command> is useful.  In most internal
+        networks, and many public networks, there are no filters to block our
+        echo-request packets.
+      </para>
+      <section id="tools-ping-simple">
+        <title>Using <command>ping</command> to test reachability</title>
+        <para>
+          In its simplest form, <command>ping</command> is used interactively
+          on the command line to test reachability of a remote host.  Again,
+          you'll see in all of the examples below the use of the
+          <option>-n</option> switch to suppress DNS lookups.  Since the
+          proper functioning of DNS relies on a properly configured network,
+          and <command>ping</command> is one of your tools for diagnosing
+          network problems, it makes sense to suppress all name lookup until
+          you have verified that the IP layer is functioning properly.
+        </para>
+        <para>
+          Let's see first if the host
+          &morgan; can reach its default gateway.  This example is similar
+          to the test we performed in <xref linkend="ex-basic-ping"/>
+          from &tristan;.
+        </para>
+        <para>
+          On many systems, <command>ping</command> can be used by non-root
+          users, but there are some options and features to
+          <command>ping</command> which require the user to have
+          administrative privilege or root-level access to the box.
+          Therefore, all examples below will be run as the root user.  Please
+          be aware, that many diagnostics can be run without this high a level
+          of privilege.
+        </para>
+        <example id="ex-tools-ping-simple">
+          <title>Using <command>ping</command> to test reachability</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -n 192.168.98.254</userinput>
+<computeroutput>PING 192.168.98.254 (192.168.98.254) from 192.168.98.82 : 56(84) bytes of data.
+64 bytes from 192.168.98.254: icmp_seq=0 ttl=255 time=231 usec
+64 bytes from 192.168.98.254: icmp_seq=1 ttl=255 time=179 usec
+64 bytes from 192.168.98.254: icmp_seq=2 ttl=255 time=215 usec</computeroutput>
+<userinput>&lt;ctrl-C&gt;</userinput>
+<computeroutput> 
+--- 192.168.98.254 ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 0.179/0.208/0.231/0.024 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          We have verified from 
+          &morgan; that its default
+          gateway, &branch-router;
+          is reachable.  The first line of output tells us what the source
+          and destination addresses (and names, if using DNS) are.
+          Additionally, we learn the size of the data segment of the ping
+          packet, 56 bytes, and the size of the entire outbound IP packet 84
+          bytes.
+        </para>
+        <para>
+          Each subsequent line of output before the summary is a record of the
+          receipt of a reply from the destination (and what IP address sent
+          the reply).  Because <command>ping</command> needs to keep track of
+          the number of bytes
+          it has sent, and the round-trip time, each time you run ping, it
+          creates a sequence number inside the data of the ping packet and
+          reports the sequence number on any packets which return.  By
+          analyzing the timestamps on the returned packets,
+          <command>ping</command> can determine the round trip time of the
+          journey and reports this as the final field in each line of output.
+        </para>
+        <para>
+          At the end of the run, <command>ping</command> summarizes the number
+          of replies, and performs some calculations on the round-trip times.
+          As with much data collection, you need a large sample set of data to
+          draw conclusions about your network.  You can usually conclude that
+          something is quite wrong if you cannot reach a remote host, but you
+          should be cautious when concluding that your ethernet card is bad
+          simply because round-trip times to a destination on the LAN is high.
+          It is more likely that there's another problem.  Collecting
+          <command>ping</command> data from a number of hosts to a number of
+          destinations can help you determine if the problem is a localized to
+          a single machine.
+        </para>
+        <para>
+          Frequently, you'll want to use <command>ping</command> in a script,
+          or you'll want to specify that <command>ping</command> should only
+          run for a few cycles.  Fortunately, this is trivial (and I'll use
+          the count option many times further below in this section).  The
+          <option>-c</option> restricts the number of packets which
+          <command>ping</command> will send (or receive).  It can be combined
+          with some of the other options for a variety of diagnostic purposes.
+        </para>
+        <example id="ex-tools-ping-simple-count">
+          <title>Using <command>ping</command> to specify number of packets to
+            send</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -c 10 -n 192.168.100.17</userinput>
+<computeroutput>PING 192.168.100.17 (192.168.100.17) from 192.168.98.82 : 56(84) bytes of data.
+64 bytes from 192.168.100.17: icmp_seq=0 ttl=251 time=39.568 msec
+64 bytes from 192.168.100.17: icmp_seq=1 ttl=251 time=38.529 msec
+64 bytes from 192.168.100.17: icmp_seq=2 ttl=251 time=38.214 msec
+64 bytes from 192.168.100.17: icmp_seq=3 ttl=251 time=38.173 msec
+64 bytes from 192.168.100.17: icmp_seq=4 ttl=251 time=38.652 msec
+64 bytes from 192.168.100.17: icmp_seq=5 ttl=251 time=38.278 msec
+64 bytes from 192.168.100.17: icmp_seq=6 ttl=251 time=38.472 msec
+64 bytes from 192.168.100.17: icmp_seq=7 ttl=251 time=38.481 msec
+64 bytes from 192.168.100.17: icmp_seq=8 ttl=251 time=38.248 msec
+64 bytes from 192.168.100.17: icmp_seq=9 ttl=251 time=38.188 msec
+
+--- 192.168.100.17 ping statistics ---
+10 packets transmitted, 10 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 38.173/38.480/39.568/0.423 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In this example, we see a very regular 38 millisecond round trip
+          time between &morgan; (192.168.98.82) and &isolde;
+          (192.168.100.17).  After sending 10 echo request packets and
+          receiving the replies, <command>ping</command> summarizes the data
+          for us and exits. 
+        </para>
+        <para>
+          Occasionally, either in a script, or on the command line, you may
+          not care about the output of each individual line.  In this case,
+          you can suppress everything except the summary data with the
+          <option>-q</option> switch.  In the following example, we are again
+          testing reachability of &isolde; (192.168.100.17)
+          though we only care about the summary output.
+        </para>
+        <example id="ex-tools-ping-simple-quiet">
+          <title>Using <command>ping</command> to specify number of packets to
+            send</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -q -c 10 -n 192.168.100.17</userinput>
+<computeroutput>PING 192.168.100.17 (192.168.100.17) from 192.168.98.82 : 56(84) bytes of data.
+
+--- 192.168.100.17 ping statistics ---
+10 packets transmitted, 10 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 37.853/38.370/39.320/0.430 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Here, we see only the output from <command>ping</command> as it
+          begins to send packets to the destination, and the summary output
+          when it has completed its run.
+        </para>
+        <para>
+          These are some simple examples of the use of <command>ping</command>
+          to gather and present statistics on reachability of destination
+          hosts, packet loss, and round trip times.  Some other diagnostics
+          information can be gathered with <command>ping</command>, too.
+          Let's look at the use of <command>ping</command> to test
+          reachability as aggressively as possible.
+        </para>
+      </section>
+      <section id="tools-ping-stress">
+        <title>Using <command>ping</command> to stress a network</title>
+        <para>
+          Occasionally, you'll want to stress the network to test how many
+          packets you can squeeze through a link, and how gracefully
+          performance on that link degrades.  Fortunately,
+          <command>ping</command>, when run with the <option>-f</option>
+          switch can perform exactly this kind of test for you.
+        </para>
+        <example id="ex-tools-ping-stress">
+          <title>Using <command>ping</command> to stress a network</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -c 400 -f -n 192.168.99.254</userinput>
+<computeroutput>PING 192.168.99.254 (192.168.99.254) from 192.168.98.82 : 56(84) bytes of data.
+............
+--- 192.168.99.254 ping statistics ---
+411 packets transmitted, 400 packets received, 2% packet loss
+round-trip min/avg/max/mdev = 37.840/62.234/97.807/12.946 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          In this example, we have used the default packet size and sent 411
+          packets, receiving only 400 back from the remote host for a mere 2%
+          packet loss.  By increasing the packet size of the packet we are
+          sending across the link we can get a sense for how quickly
+          performance degrades on this link.  If we use a much larger packet
+          size (still smaller than ethernet's 1500 byte frame), we see even
+          more packet loss.  We'll specify a packet size of 512 bytes with the
+          <option>-s</option> option.
+        </para>
+        <example id="ex-tools-ping-stress-size">
+          <title>Using <command>ping</command> to stress a network with large
+            packets</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -s 512 -c 400 -f -n 192.168.99.254</userinput>
+<computeroutput>PING 192.168.99.254 (192.168.99.254) from 192.168.98.82 : 512(540) bytes of data.
+............................................................................
+................................................................
+--- 192.168.99.254 ping statistics ---
+551 packets transmitted, 400 packets received, 27% packet loss
+round-trip min/avg/max/mdev = 47.854/295.711/649.595/153.345 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Flooding a low bandwidth link, like the ISDN link between
+          &morgan; and
+          &masq-gw; can be
+          detrimental to other traffic on that link, so it is wise to use the
+          <option>-f</option> with restraint.  Although
+          <command>ping</command> is a versatile tool for network diagnostics,
+          it is not intended as a network performance measurement tool.  For
+          this sort of task, try <ulink
+          url="http://www.netperf.org/">netperf</ulink> or collect some data
+          with SNMP to analyze with <ulink
+          url="http://people.ee.ethz.ch/~oetiker/webtools/mrtg/">MRTG</ulink>.
+        </para>
+        <para>
+          As you can see, the use of ping floods is a good way to stress the
+          network to which you are connected, and can be a good diagnostic
+          tool.  Be careful to stress the network for short periods of time if
+          possible, or in a carefully controlled setting.  Unless you want to
+          alienate coworkers and anger your network administrator, you shouldn't
+          start a ping flood and go home for the night.
+        </para>
+      </section>
+      <section id="tools-ping-record-route">
+        <title>Recording a network route with <command>ping</command></title>
+        <para>
+          The options we have outlined above are common options to
+          <command>ping</command>, but now, let's look at some of the less
+          common options.  Occasionally, you may find yourself on a linux box
+          without <link
+          linkend="tools-traceroute"><command>traceroute</command></link> or 
+          <link linkend="tools-mtr"><command>mtr</command></link>.  Perhaps
+          it's an embedded linux host, or a minimal installation with
+          <command>ping</command>.  There is an almost unknown option for
+          recording the route a packet takes.  By comparison to the more
+          sophisticated tools for tracing network paths,
+          <command>ping</command> with the record route option
+          (<option>-R</option>) doesn't convey the information in as visually
+          an appealing way, but it can get the job done.
+        </para>
+        <example id="ex-tools-ping-record-route">
+          <title>Recording a network route with <command>ping</command></title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -c 2 -n -R 192.168.99.35</userinput>
+<computeroutput>PING 192.168.99.35 (192.168.99.35) from 192.168.98.82 : 56(124) bytes of data.
+64 bytes from 192.168.99.35: icmp_seq=0 ttl=253 time=56.311 msec
+RR:     192.168.98.82
+        192.168.98.254
+        192.168.99.1
+        192.168.99.35
+        192.168.99.35
+        192.168.99.1
+        192.168.98.254
+        192.168.98.82
+
+64 bytes from 192.168.99.35: icmp_seq=1 ttl=253 time=47.893 msec  (same route)
+
+--- 192.168.99.35 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 47.893/52.102/56.311/4.209 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          As always, <command>ping</command> summarizes the output after it
+          has completed its run, but let's examine the new section.  By using
+          the record route option, we are asking all routers along the way to
+          include their IPs in the header.  Although some routers may not
+          observe this courtesy, many do.  Unfortunately, there is only room
+          to record 8 different hops (FIXME--verify this!), so the use of
+          <command>ping</command> <option>-R</option> is mostly useful only
+          in smaller networks.
+        </para>
+        <para>
+          The first IP we hit is our own IP on the way out our ethernet
+          interface, 192.168.98.82.  Then it is a palindromic journey through
+          the network stacks of each of the following hosts in order:
+          &branch-router;, &isdn-router;, &tristan;, and back again
+          in reverse order.
+        </para>
+        <para>
+          <command>ping</command> is even nice enough to report to us that a
+          subsequent journey took the same route as the first packet.  If you
+          have a statically routed internal network, any subsequent packets
+          should look exactly like the second packet.  If dynamic routing is
+          in use on your internal network, you may find that the routes change
+          occasionally.
+        </para>
+      </section>
+      <section id="tools-ping-ttl">
+        <title>Setting the TTL on a <command>ping</command> packet</title>
+        <para>
+          Now, frankly, I'm not sure of a practical use for the following
+          option to <command>ping</command>, however, you can specify the TTL
+          for an outbound echo requust packet.  By setting the TTL you are
+          specifying the maximum number of hops this packet will travel before
+          it will be dropped.  Conventionally, the TTL is set by the kernel to
+          a reasonable number of hops (like 64).  The <option>-t</option>
+          provides us the capability to force the TTL for our echo requests.
+          Now that we know it takes four hops to get to 
+          &tristan; from &morgan; we should be able
+          to test whether setting the TTL makes any difference.
+        </para>
+        <example id="ex-tools-ping-ttl">
+          <title>Setting the TTL on a <command>ping</command> packet</title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>ping -c 1 -n -t 4 192.168.99.35</userinput>
+<computeroutput>tcpdump: listening on eth0
+02:02:04.679152 192.168.98.82 > 192.168.99.35: icmp: echo request (DF)
+02:02:04.711474 192.168.99.35 > 192.168.98.82: icmp: echo reply</computeroutput>
+<prompt>[root@morgan]# </prompt><userinput>ping -c 1 -n -t 3 192.168.99.35</userinput>
+<computeroutput>tcpdump: listening on eth0
+02:01:50.810567 192.168.98.82 > 192.168.99.35: icmp: echo request (DF)
+02:01:50.841917 192.168.99.1 > 192.168.98.82: icmp: time exceeded in-transit</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Clearly, we are able to reach &tristan; if we set the
+          TTL on our echo requests to 4, but as soon as we drop the TTL to 3,
+          we get a reply from the third hop (&isdn-router;), telling
+          us that our packet was too old to be forwarded to its destination.
+          If you are unclear on the rationale for TTL, I'd suggest reviewing
+          some of the general IP documentation available in
+          <xref linkend="links-general-ip"/>.
+        </para>
+      </section>
+      <section id="tools-ping-tos">
+        <title>Setting ToS for a diagnostic <command>ping</command></title>
+        <para>
+          Type of Service (ToS) is increasingly in use on backbones across the
+          Internet which has brought with it Service Level Agreements (SLA).
+          If you have an SLA with your provider, you may find the use of
+          <command>ping</command> <option>-Q</option> to set the IP packet ToS
+          flags will help you to determine if your provider is holding up
+          their end of the bargain.
+        </para>
+        <para>
+          In <xref linkend="ex-tools-ping-tos"/> we'll set the ToS flag and
+          verify with <link linkend="tools-tcpdump">tcpdump</link> that the
+          ToS flag on the outbound packets have actually been set.  Let's
+          assume that we have an SLA with a backbone provider for our link
+          between our German office (195.73.22.45) and our North American
+          office (205.254.209.73).  We'll send two test packets to the remote
+          end, and observe the data on the wire.
+        </para>
+        <example id="ex-tools-ping-tos">
+          <title>Setting ToS for a diagnostic <command>ping</command></title>
+          <programlisting>
+<prompt>[root@wan-gw]# </prompt><userinput>ping -c 2 -Q 8 -n 195.73.22.45</userinput>
+<computeroutput>PING 195.73.22.45 (195.73.22.45) from 205.254.209.73 : 56(84) bytes of data.
+64 bytes from 195.73.22.45: icmp_seq=0 ttl=252 time=51.633 msec
+64 bytes from 195.73.22.45: icmp_seq=1 ttl=252 time=36.323 msec
+
+--- 195.73.22.45 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 36.323/43.978/51.633/7.655 ms</computeroutput>
+<prompt>[root@wan-gw]# </prompt><userinput>tcpdump -nni wan0 icmp</userinput>
+<computeroutput>tcpdump: listening on wan0
+21:55:37.983149 10.10.14.2 > 10.10.22.254: icmp: echo request (DF) [tos 0x8] 
+21:55:38.034770 10.10.22.254 > 10.10.14.2: icmp: echo reply [tos 0x8] 
+21:55:38.982277 10.10.14.2 > 10.10.22.254: icmp: echo request (DF) [tos 0x8] 
+21:55:39.018588 10.10.22.254 > 10.10.14.2: icmp: echo reply [tos 0x8]</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Naturally, <command>ping</command> reports to us the round-trip
+          times, the source and destination IPs, and that there was no packet
+          loss.  And our <command>tcpdump</command> output shows that the ToS
+          flags were properly set on the packet.  With all of this
+          information, we can collect data about the reliability of the
+          network between our two offices.
+        </para>
+      </section>
+      <section id="tools-ping-specify-source">
+        <title>Specifying a source address for <command>ping</command></title>
+        <para>
+          Occasionally, you'll find yourself on a heavily packet filtered
+          host, or a host which employs conditional routing for packets with
+          certain source addresses.  Such packet filtering can prevent or
+          conflict with the use of <command>ping</command>.  Fortunately,
+          <command>ping</command> allows the user to specify the source
+          address of an outbound packet, thus allowing traversal of packet
+          filters and conditional routing tables.
+        </para>
+        <para>
+          My classic example of a need for specifying source address on a
+          <command>ping</command> is a VPN connected network.  Let's assume 
+          &masq-gw; has a <link linkend="tools-cipe">CIPE</link>peer in
+          another city.  Let's assume the internal IP on the peer
+          is 192.168.70.254.  If &masq-gw; sends a packet
+          to the peer with a source address of 205.254.211.179, the peer might
+          drop the inbound packet on a VPN interface from the public IP of the
+          peer
+          <footnote>
+            <para>
+              If the admin controls both sides of the link, it is a matter of
+              choice and preference whether traffic from the outside IP of the
+              peer VPN endpoint should be allowed.  I'll argue that traffic
+              from the peer endpoint should not be allowed, but this is
+              opinion only.
+            </para>
+          </footnote>.
+          In this case, the peer should still accept traffic from &masq-gw;
+          if the originating IP is inside the private network IP range.
+        </para>
+        <para>
+          In the <xref linkend="ex-tools-ping-specify-source"/> we'll use
+          <command>ping</command> to check reachability of the inside
+          interface of the CIPE peer of &masq-gw;.
+        </para>
+        <example id="ex-tools-ping-specify-source">
+          <title>Specifying a source address for <command>ping</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>ping -c 2 -n -I 192.168.99.254 192.168.70.254</userinput>
+<computeroutput>PING 192.168.70.254 (192.168.70.254) from 192.168.99.254 : 56(84) bytes of data.
+64 bytes from 192.168.70.254: icmp_seq=0 ttl=254 time=69.285 msec
+64 bytes from 192.168.70.254: icmp_seq=1 ttl=254 time=53.976 msec
+
+--- 192.168.70.254 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 53.976/61.630/69.285/7.658 ms</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          By forcing the echo request packet to use the IP bound to one of our
+          internal interfaces as the source address with the
+          <option>-I</option> we are able to send traffic through the <link
+          linkend="tools-cipe">CIPE</link> tunnel to the other side, and back.
+        </para>
+      </section>
+      <section id="tools-ping-summary">
+        <title>Summary on the use of <command>ping</command></title>
+        <para>
+          As you can see, <command>ping</command> is a versatile tool in the
+          network administrator's toolkit, and can be used for a wide range of
+          tests beyond the simple reachability test.  For a brief and
+          humourous introduction to the program itself, see <ulink
+          url="http://ftp.arl.mil/~mike/ping.html">The Story of Ping</ulink>.
+        </para>
+        <para>
+          Now that we have a good idea of the uses of the
+          <command>ping</command> utility, let's move on to some other tools
+          which can provide us other diagnostic data about our networks.
+        </para>
+      </section>
+    </section>
+    <section id="tools-traceroute">
+      <title><command>traceroute</command></title>
+      <para>
+        <command>traceroute</command> is a utility for identifying the network
+        path a packet will take to a destination.  Like ping, it can be called
+        a number of ways.
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+      <section id="tools-traceroute-icmp">
+        <title>Telling <command>traceroute</command> to use ICMP echo request
+          instead of UDP</title>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-traceroute-tos">
+        <title>Setting ToS with <command>traceroute</command></title>
+        <para>
+        </para>
+      </section>
+      <section id="tools-traceroute-summary">
+        <title>Summary on the use of <command>traceroute</command></title>
+        <para>
+        </para>
+      </section>
+    </section>
+    <section id="tools-mtr">
+      <title><command>mtr</command></title>
+      <para>
+        FIXME
+      </para>
+    </section>
+    <section id="tools-netstat">
+      <title><command>netstat</command></title>
+      <para>
+        The <command>netstat</command> utility summarizes a variety of
+        characteristics of the networking stack.  With
+        <command>netstat</command> you can learn a number of important things.
+        If no other type of data is requested it will report on the <link
+        linkend="tools-netstat-socket">state of all active sockets</link>.
+        You can however request the
+        <link linkend="tools-netstat-route">routing table</link>,
+        <link linkend="tools-netstat-masquerade">masquerading table</link>,
+        <link linkend="tools-netstat-interface">network interface
+        statistics</link>, and 
+        <link linkend="tools-netstat-statistics">network stack
+        statistics</link>
+        <footnote>
+          <para>
+            Additionally, <command>netstat</command> can display multicast
+            information with the <option>--group</option> switch.  I have zero
+            experience here.  Anybody with experience want to write about
+            this?
+          </para>
+        </footnote>.
+      </para>
+      <section id="tools-netstat-socket">
+        <title>Displaying socket status with
+          <command>netstat</command></title>
+        <para>
+          One of the most common uses of the <command>netstat</command>
+          utility is to determine the state of sockets on a machine.
+          There are many questions that <command>netstat</command> can 
+          answer with the right set of options.  Here's a list of some of
+          the things different things we can learn.
+        </para>
+        <itemizedlist>
+          <listitem>
+            <para>
+              which services are listening on which sockets
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              what process (and controlling PID) is listening on a given socket
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              whether data is waiting to be read on a socket
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              what connections are currently established to which sockets
+            </para>
+          </listitem>
+        </itemizedlist>
+        <para>
+          By invoking <command>netstat</command> without any options, you are
+          asking for a list of all currently open connections to and from the
+          networking stack on the local machine.  This means IP network
+          connections, unix domain sockets, IPX sockets and Appletalk sockets
+          among others.  Naturally, we'll skip over the
+          non-IP sockets since this is about IP networking with linux.
+        </para>
+        <para>
+          Assume the <option>--inet</option> switch in all cases below unless
+          we are examining a particular higher layer protocol (e.g., TCP with
+          the <option>--tcp</option> switch or UDP with <option>--udp</option>
+          switch.
+        </para>
+        <para>
+          A convenient feature of <command>netstat</command> is its ability to
+          differentiate between two different sorts of name lookup.  Normally
+          the <option>-n</option> specifies no name lookup, but this is
+          ambiguous when there are hostnames, port names, and user names.
+          Fortunately, <command>netstat</command> offers the following options
+          to differentiate the different forms of lookup and suppress only the
+          [un-]desired lookup.
+        </para>
+        <itemizedlist>
+          <listitem>
+            <para>
+              <option>--numeric-hosts</option>
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <option>--numeric-ports</option>
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <option>--numeric-users</option>
+            </para>
+          </listitem>
+        </itemizedlist>
+        <para>
+          The option <option>-n</option> (my favorite), suppress all hostname,
+          port name and username lookup, and is a synonym for
+          <option>--numeric</option>.  I'll reiterate that hostnames and DNS in
+          particular can be confusing, or worse, misleading when trying to
+          diagnose or debug a networking related issue, so it is wise to
+          suppress hostname lookups in these sorts of situations.
+        </para>
+        <para>
+          In <xref linkend="ex-tools-netstat-inet"/> we will look at
+          <command>netstat</command>'s numeric output and then we'll invoke
+          the same command but suppress the host lookups.  Though the output
+          is almost the same, a particular situation might call for one or the
+          other invocation.
+        </para>
+        <example id="ex-tools-netstat-inet">
+          <title>Displaying IP socket status with
+            <command>netstat</command></title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>netstat --inet -n</userinput>
+<computeroutput>Active Internet connections (w/o servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0    192 192.168.98.82:22        192.168.99.35:40991     ESTABLISHED
+tcp        0      0 192.168.98.82:42929     192.168.100.17:993      ESTABLISHED
+tcp       96      0 127.0.0.1:40863         127.0.0.1:6010          ESTABLISHED
+tcp        0      0 127.0.0.1:6010          127.0.0.1:40863         ESTABLISHED
+tcp        0      0 127.0.0.1:38502         127.0.0.1:6010          ESTABLISHED
+tcp        0      0 127.0.0.1:6010          127.0.0.1:38502         ESTABLISHED
+tcp        0      0 192.168.98.82:53733     209.10.26.51:80         SYN_SENT
+tcp        0      0 192.168.98.82:44468     192.168.100.17:993      ESTABLISHED
+tcp        0      0 192.168.98.82:44320     192.168.100.17:139      TIME_WAIT</computeroutput>
+<prompt>[root@morgan]# </prompt><userinput>netstat --inet --numeric-hosts</userinput>
+<computeroutput>Active Internet connections (w/o servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 192.168.98.82:ssh       192.168.99.35:40991     ESTABLISHED
+tcp        0      0 192.168.98.82:42929     192.168.100.17:imaps    ESTABLISHED
+tcp        0      0 127.0.0.1:40863         127.0.0.:x11-ssh-offset ESTABLISHED
+tcp        0      0 127.0.0.:x11-ssh-offset 127.0.0.1:40863         ESTABLISHED
+tcp        0      0 127.0.0.1:38502         127.0.0.:x11-ssh-offset ESTABLISHED
+tcp        0      0 127.0.0.:x11-ssh-offset 127.0.0.1:38502         ESTABLISHED
+tcp        0      0 192.168.98.82:53733     209.10.26.51:http       SYN_SENT
+tcp        0      0 192.168.98.82:44468     192.168.100.17:imaps    ESTABLISHED
+tcp        0      0 192.168.98.82:44320     192.168.100:netbios-ssn TIME_WAIT</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Each line represents a either the sending or
+          receiving half of a connection.  In the above output on &morgan; it
+          appears that there are no connections other than TCP connections.
+          If you are very familiar with TCP ports and the service associated
+          with that port, then the first format will suffice in most cases.  A
+          possibly misleading aspect of the latter output is visible in the
+          connections to and from localhost and the final line.
+          <command>netstat</command> abbreviates the IP endpoint in order to
+          reproduce the entire string retrieved from the port lookup
+          (in <filename>/etc/services</filename>).  Also interestingly, this
+          line conveys to us (in the first output) that the kernel is
+          waiting for the remote endpoint to acknowledge the 192 bytes which
+          are still in the Send-Q buffer.
+        </para>
+        <para>
+          The first line describes a TCP connection to the IP locally hosted
+          on &morgan;'s ethernet interface.  The connection was initiated from
+          an ephemeral port (40991) on &tristan; to a service running on port
+          22.  The service normally running on this well-known port is sshd,
+          so we can conclude that somebody on &tristan; has connected to the
+          &morgan;'s ssh server.
+          The second line describes a TCP session open to port 993 on
+          &isolde;, which probably means that the user on &morgan; has an open
+          connection to an IMAP over SSL server.
+        </para>
+        <para>
+          The third through the sixth lines can be understood in pairs.  By
+          examining the source and destination IP and port pairs, we can see
+          that two different TCP sessions have been established with the
+          source and destination address of 127.0.0.1.  For an administrator
+          to publish services on localhost is not at all uncommon.  This makes
+          the service harder to abuse from the network.  In this case, when we
+          allow the service lookup, the port in question (6010) appears to be
+          used to tunnel forwarded X applications over ssh.
+        </para>
+        <para>
+          The next line is the first TCP session in our output which is not in
+          a state of ESTABLISHED.  Refer to
+          <xref linkend="tb-tools-netstat-socket-states"/> for a full list of the
+          possible values of the State field in the <command>netstat</command>
+          output.  The state SYN_SENT means that an application has made
+          arequest for a TCP session, but has not yet received the return
+          SYN+ACK packet.
+        </para>
+        <para>
+          The final line of our <command>netstat</command>output shows a
+          connection in the TIME_WAIT state, which means that the TCP sessions
+          have been terminated, but the kernel is waiting for any packets
+          which may still be left on the network for this session.  It is not
+          at all abnormal for sockets to be in a TIME_WAIT state for a short
+          period of time after a TCP session has ended.
+        </para>
+        <para>
+          If we needed to know exactly which application owned a particular
+          network connection, we would use the <option>-p | --program</option>
+          switch which gives us the PID and process name of the owner process.
+          If we want to see the unix user and the PID and process we'll add the
+          <option>-e | --extend</option> switch.
+        </para>
+        <example id="ex-tools-netstat-inet-details">
+          <title>Displaying IP socket status details with
+            <command>netstat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>netstat -p -e --inet --numeric-hosts</userinput>
+<computeroutput>Proto Recv-Q Send-Q Local Address           Foreign Address         State       User       Inode      PID/Program name   
+tcp        0      0 192.168.100.254:ssh     192.168.100.17:49796    ESTABLISHED root       25453      6326/sshd
+tcp        0    240 192.168.99.254:ssh      192.168.99.35:42948     ESTABLISHED root       171748     31535/sshd</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          There doesn't appear to be a large number of connections to and
+          from the &masq-gw; host.  The two sessions are initiated to the sshd
+          running on port 22, and the process which owns each socket is a root
+          process.
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <table id="tb-tools-netstat-socket-states">
+          <title>Possible Session States in <command>netstat</command>
+            output</title>
+          <tgroup cols="2" align="left" colsep="1" rowsep="1">
+            <thead>
+              <row>
+                <entry>State</entry>
+                <entry>Description</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>LISTEN</entry>
+                <entry>accepting connections</entry>
+              </row>
+              <row>
+                <entry>ESTABLISHED</entry>
+                <entry>connection up and passing data</entry>
+              </row>
+              <row>
+                <entry>SYN_SENT</entry>
+                <entry>TCP; session has been requested by us; waiting for
+                       reply from remote endpoint</entry>
+              </row>
+              <row>
+                <entry>SYN_RECV</entry>
+                <entry>TCP; session has been requested by a remote endpoint
+                       for a socket on which we were listening</entry>
+              </row>
+              <row>
+                <entry>LAST_ACK</entry>
+                <entry>TCP; our socket is closed; remote endpoint has also
+                       shut down; we are waiting for a final
+                       acknowledgement</entry>
+              </row>
+              <row>
+                <entry>CLOSE_WAIT</entry>
+                <entry>TCP; remote endpoint has shut down; the kernel is
+                       waiting for the application to close the socket</entry>
+              </row>
+              <row>
+                <entry>TIME_WAIT</entry>
+                <entry>TCP; socket is waiting after closing for any packets
+                       left on the network</entry>
+              </row>
+              <row>
+                <entry>CLOSED</entry>
+                <entry>socket is not being used (FIXME. What does mean?)</entry>
+              </row>
+              <row>
+                <entry>CLOSING</entry>
+                <entry>TCP; our socket is shut down; remote endpoint is shut
+                       down; not all data has been sent</entry>
+              </row>
+              <row>
+                <entry>FIN_WAIT1</entry>
+                <entry>TCP; our socket has closed; we are in the process of
+                       tearing down the connection</entry>
+              </row>
+              <row>
+                <entry>FIN_WAIT2</entry>
+                <entry>TCP; the connection has been closed; our socket is
+                       waiting for the remote endpoint to shut down</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-netstat-route">
+        <title>Displaying the main routing table with
+          <command>netstat</command></title>
+        <para>
+          One of the most common uses of <command>netstat</command>,
+          especially in cross-platform environments is the reporting of the
+          main routing table.  On many platforms, <command>netstat
+          -rn</command> is the preferred method of displaying routing
+          information, although linux provides at least two alternatives to
+          this:  <link linkend="tools-route"><command>route</command></link>
+          and <link linkend="tools-ip-route"><command>ip route
+          show</command></link>.
+        </para>
+        <example id="ex-tools-netstat-route">
+          <title>Displaying the main routing table with
+            <command>netstat</command></title>
+          <programlisting>
+<prompt>[root@morgan]# </prompt><userinput>netstat -rn</userinput>
+<computeroutput>Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+192.168.98.0    0.0.0.0         255.255.255.0   U        40 0          0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U        40 0          0 lo
+0.0.0.0         192.168.98.254  0.0.0.0         UG       40 0          0 eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          This output should look familiar.  The routing cache itself may not
+          be as familiar to most, but can also be displayed with
+          <command>netstat</command>.  The ouput below is exactly the same as
+          the ouput from <command>route -enC</command>.  Refer also to
+          <xref linkend="ex-tools-route-show-cache"/>.
+        </para>
+        <example id="ex-tools-netstat-route-cache">
+          <title>Displaying the routing cache with
+            <command>netstat</command></title>
+          <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>netstat -rnC</userinput>
+<computeroutput>Kernel IP routing cache
+Source          Destination     Gateway         Flags   MSS Window  irtt Iface
+194.52.197.133  192.168.99.35   192.168.99.35     l      40 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0         29 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0
+192.168.99.254  192.168.99.35   192.168.99.35     il     40 0          0 lo
+192.168.99.35   192.168.99.35   192.168.99.35     l   16436 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0          0 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+          Consult <xref linkend="tools-route-show"/> for more detail on
+          reading and interpreting the data in this output.  Because this is
+          simply another way of reporting the routing table information, we'll
+          skip over any detailed description.
+        </para>
+      </section>
+      <section id="tools-netstat-interface">
+        <title>Displaying network interface statistics with
+          <command>netstat</command></title>
+        <para>
+          <command>netstat -i</command> summarizes interface statistics in a
+          terse format.  This format 
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+          OK!  This is strange.  <command>netstat -ie</command> looks exactly
+          like <command>ifconfig</command> output.  That's weird!
+        </para>
+      </section>
+      <section id="tools-netstat-statistics">
+        <title>Displaying network stack statistics with
+          <command>netstat</command></title>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-netstat-masquerade">
+        <title>Displaying the masquerading table with
+          <command>netstat</command></title>
+        <para>
+          For machines which perform masquerading, typically dual-homed
+          packet-filtering firewalls like &masq-gw; a tool to list the current
+          state of the masquerading table is convenient.
+        </para>
+        <para>
+          Each masqueraded connection can be described by a tuple of six
+          pieces of data:  the source IP and source port, the destination IP
+          and destination port, and the (usually implicit) locally hosted IP
+          and a local port.
+        </para>
+        <example id="ex-tools-netstat-masquerade">
+          <title>Displaying the masquerading table with <command>netstat</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput>netstat -Mn</userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+          FIXME; this command seems to fail on all of the iptables boxen, even
+          if I'm using the <option>-j MASQUERADE</option> target.  I
+          can use it successfully on ipchains boxen.  Anybody have any ideas
+          or explanation here?
+        </para>
+      </section>
+    </section>
+    <section id="tools-tcpdump">
+      <title><command>tcpdump</command></title>
+      <para>
+      </para>
+      <para>
+      </para>
+      <para>
+        This is a good time to mention that tcpdump can capture and store
+        packet flows for consumption at a later date.  Frequently, you may
+        find yourself without a top-notch packet analysis utility such as
+        <ulink url="http://www.ethereal.com/"><command>ethereal</command></ulink>.
+        Fortunately, you can
+        <link linkend="ex-tools-tcpdump-file-write">create tcpdump data
+        files</link> and view them with a tool such as
+        <command>ethereal</command>.  Even if a stream analysis tool is not
+        available, the
+        <ulink url="http://www.ethereal.com/docs/user-guide/">documentation
+        for <command>ethereal</command></ulink> is tremendously helpful in
+        packet analysis.
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+      <section id="tools-tcpdump-arp">
+        <title>Using <command>tcpdump</command> to view ARP messages</title>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-arp-broadcast">
+          <title>Viewing an ARP broadcast request and reply with 
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-arp-gratuitous">
+          <title>Viewing a gratuitous ARP packet with 
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-arp-unicast">
+          <title>Viewing unicast ARP packets with 
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-tcpdump-unreach">
+        <title>Using <command>tcpdump</command> to see ICMP unreachable
+          messages</title>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-unreach-port">
+          <title><command>tcpdump</command> reporting port unreachable</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-unreach-host">
+          <title><command>tcpdump</command> reporting host unreachable</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-unreach-net">
+          <title><command>tcpdump</command> reporting net unreachable</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-tcpdump-tcp">
+        <title>Using <command>tcpdump</command> to watch TCP sessions</title>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-tcp-windows">
+          <title>Monitoring TCP window sizes with
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-tcp-flags">
+          <title>Examining TCP flags with <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-tcp-ack">
+          <title>Examining TCP acknowledgement numbers with
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <para>
+        </para>
+      </section>
+      <section id="tools-tcpdump-file">
+        <title>Reading and writing <command>tcpdump</command> data</title>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-file-write">
+          <title>Writing <command>tcpdump</command> data to a file</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-file-read">
+          <title>Reading <command>tcpdump</command> data from a file</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-file-line-buffer">
+          <title>Causing <command>tcpdump</command> to use a line buffer</title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+      </section>
+      <section id="tools-tcpdump-frag">
+        <title>Understanding fragmentation as reported by
+          <command>tcpdump</command></title>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-frag">
+          <title>Understanding fragmentation as reported by
+            <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+      </section>
+      <section id="tools-tcpdump-other">
+        <title>Other options to the <command>tcpdump</command> command</title>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-interface">
+          <title>Specifying interface with <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+        <example id="ex-tools-tcpdump-timestamp">
+          <title>Timestamp related options to <command>tcpdump</command></title>
+          <programlisting>
+<prompt>[root@masq-gw]# </prompt><userinput></userinput>
+<computeroutput>
+</computeroutput>
+          </programlisting>
+        </example>
+        <para>
+        </para>
+      </section>
+    </section>
+    <section id="tools-tcpflow">
+      <title><command>tcpflow</command></title>
+      <para>
+        FIXME
+      </para>
+    </section>
+    <section id="tools-tcpreplay">
+      <title><command>tcpreplay</command></title>
+      <para>
+        FIXME
+      </para>
+    </section>
+</appendix>

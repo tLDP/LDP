@@ -1,0 +1,77 @@
+#! /bin/sh -
+#
+# proxy-arp	Set proxy-arp settings in arp cache
+#
+# chkconfig: 2345 15 85
+# description: using the arp command line utility, populate the arp
+#              cache with IP addresses for hosts on different media
+#              which share IP space.
+# <!-- trick an XML parser sourcing us. Rest of file is CDATA --> <![CDATA[
+# Copyright (c)2002 SecurePipe, Inc. - http://www.securepipe.com/
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, 
+# Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# -- written initially during 1998
+#    2002-08-14; Martin A. Brown <mabrown@securepipe.com>
+#      - cleaned up and commented extensively
+#      - joined the process parsimony bandwagon, and eliminated
+#        many unnecessary calls to ifconfig and awk
+#
+
+gripe () {  echo "$@" >&2;               }
+abort () {  gripe "Fatal: $@"; exit 1;   }
+
+CONFIG=${CONFIG:-/etc/proxy-arp.conf}
+[ -r "$CONFIG" ] || abort $CONFIG is not readable
+
+case "$1" in
+  start)
+        # -- create proxy arp settings according to
+        #    table in the config file
+        #
+        grep -Ev '^#|^$' $CONFIG | {
+          while read INTERFACE IPADDR ; do
+            [ -z "$INTERFACE" -o -z "$IPADDR" ] && continue
+            arp -s $IPADDR -i $INTERFACE -D $INTERFACE pub
+          done
+        }
+	;;
+  stop)
+	# -- clear the cache for any entries in the
+        #    configuration file
+        #
+        grep -Ev '^#|^$' /etc/proxy-arp.conf | {
+          while read INTERFACE IPADDR ; do
+            [ -z "$INTERFACE" -o -z "$IPADDR" ] && continue
+            arp -d $IPADDR -i $INTERFACE
+	  done
+        }
+	;;
+  status)
+        arp -an | grep -i perm
+	;;
+  restart)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: proxy-arp {start|stop|restart}"
+	exit 1
+esac
+
+exit 0
+# ]]>  <!-- the line above closes the XML CDATA from above -->
+# - end of proxy-arp
+
