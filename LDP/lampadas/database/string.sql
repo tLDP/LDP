@@ -2,7 +2,7 @@ DROP TABLE string;
 
 CREATE TABLE string
 (
-	string_id		INT4	NOT NULL,
+	string_code		CHAR(12)	NOT NULL,
 
-	PRIMARY KEY (string_id)
+	PRIMARY KEY (string_code)
 );

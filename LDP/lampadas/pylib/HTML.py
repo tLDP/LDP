@@ -9,28 +9,26 @@ to the Lampadas system.
 
 # Modules ##################################################################
 
+from Globals import *
+import Config
+import Database
 import DataLayer
+import WebLayer
 import Converter
 import commands
-from types import *
-
-# Constants
-
-# These are string_id values for looking up strings in the string table
-# 
-PG_HEADER	= 2
-PG_FOOTER	= 3
-
-TPL_DEFAULT	= 1000
-PG_ABOUT	= 2000
+from string import split
 
 
 # Globals
 
+Config = Config.Config()
 L = DataLayer.Lampadas()
 C = Converter.Converter()
+DB = Database.Database()
+DB.Connect(Config.DBType, Config.DBName)
 
 cvs_root = L.Config('cvs_root')
+
 
 # HTMLFactory
 
@@ -45,18 +43,29 @@ class HTMLFactory:
 
 class PageFactory:
 
+	Blocks		= WebLayer.Blocks()
+	Pages		= WebLayer.Pages()
+	Strings		= WebLayer.Strings()
+	Templates	= WebLayer.Templates()
+
 	def __call__(self, key, lang):
-		if type(key) is IntType:
-			return self.Page(key, lang)
-		elif key[:4] == 'doc/':
-			DocID = int(key[4:])
-			return self.DocPage(DocID, lang)
+		return self.Page(key, lang)
 
 	def Page(self, key, lang):
-		page = L.Strings[TPL_DEFAULT].I18n[lang].Text
-		page = page.replace('|header|', L.Strings[PG_HEADER].I18n[lang].Text)
-		page = page.replace('|footer|', L.Strings[PG_FOOTER].I18n[lang].Text)
-		page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
+		Keys = split(key, '/')
+		pagecode = Keys[0]
+		if pagecode == 'doc':
+			DocID = int(Keys[1])
+			page = self.DocPage(DocID, lang)
+		else:
+			Page = self.Pages[pagecode] 
+			assert not Page == None
+			Template = self.Templates[Page.TemplateCode]
+			assert not Template == None
+			page = Template.Template
+			page = page.replace('|header|', self.Blocks['header'].I18n[lang].Block)
+			page = page.replace('|body|', Page.I18n[lang].Page)
+			page = page.replace('|footer|', self.Blocks['footer'].I18n[lang].Block)
 		return page
 
 	def DocPage(self, DocID, lang):
@@ -147,31 +156,31 @@ class ComboFactory:
 		return self.combo
 
 
-Factory = HTMLFactory()
+#Factory = HTMLFactory()
 
 # Sample low-level ComboBox, Classes
-output = Factory.Combo.Classes(2, 'EN')
-print output
+#output = Factory.Combo.Classes(2, 'EN')
+#print output
 
 # Sample low-level ComboBox, DTDs
-output = Factory.Combo.DTDs(1, 'EN')
-print output
+#output = Factory.Combo.DTDs(1, 'EN')
+#print output
 
 # Sample low-level ComboBox, Formats
-output = Factory.Combo.Formats(1, 'EN')
-print output
+#output = Factory.Combo.Formats(1, 'EN')
+#print output
 
 # Sample i18n page, About Lampadas
-output = Factory.Page(PG_ABOUT, 'EN')
-print output
+#output = Factory.Page(PG_ABOUT, 'EN')
+#print output
 
 # Sample SGML processing, LDP Reviewer HOWTO
-output = Factory.Page('doc/419', 'EN')
-print output
+#output = Factory.Page('doc/419', 'EN')
+#print output
 
 # Sample XML processing, Finnish HOWTO
-output = Factory.Page('doc/68', 'EN')
-print output
+#output = Factory.Page('doc/68', 'EN')
+#print output
 
 
 #if __name__ == "__main__":

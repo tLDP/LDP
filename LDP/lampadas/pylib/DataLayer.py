@@ -10,11 +10,11 @@ performed through this layer.
 
 # Modules
 
+from Globals import *
+from BaseClasses import *
 import Config
 import Database
 import Log
-from string import strip
-from types import StringType
 
 
 # Globals
@@ -24,74 +24,6 @@ DB = Database.Database()
 DB.Connect(Config.DBType, Config.DBName)
 Log = Log.Log()
 Log.Truncate()
-
-
-# Base Classes
-
-class LampadasList:
-	"""
-	Base class for Lampadas list objects, which are cached in RAM
-	for high performance.
-
-	Classes based on this one emulate lists, with additional methods.
-	"""
-
-	list = []
-
-	def __len__(self):
-		return len(self.list)
-
-	def __getitem__(self, key):
-		return self.list[key]
-
-	def __setitem__(self, key, value):
-		self.list[key] = value
-	
-	def __delitem__(self, key):
-		del self.list[key]
-
-	def items(self):
-		return self.list.items()
-
-	def append(self, item):
-		self.list.append(item)
-		
-	def Count(self):
-		return len(self.list)
-
-
-class LampadasCollection:
-	"""
-	Base class for Lampadas collection objects, which are cached in RAM
-	for high performance.
-
-	Classes based on this one become pseudo-dictionaries, providing
-	iteration and similar methods. This is done by providing a wrapper to
-	the built-in dictionary type. In Python 2.2, dictionaries will be
-	subclassable, so this can be rewritten to take advantage of that.
-	"""
-
-	def __init__(self):
-		self.data = {}
-
-	def __getitem__(self, key):
-		try:
-			item = self.data[key]
-		except KeyError:
-			item = None
-		return item
-
-	def __setitem__(self, key, item):
-		self.data[key] = item
-
-	def __delitem__(self, key):
-		del self.data[key]
-
-	def keys(self):
-		return self.data.keys()
-
-	def Count(self):
-		return len(self.data)
 
 
 # Lampadas
@@ -118,7 +50,6 @@ class Lampadas:
 		self.Formats		= Formats()
 		self.Languages		= Languages()
 		self.PubStatuses	= PubStatuses()
-		self.Strings		= Strings()
 		self.Topics		= Topics()
 		self.Users		= Users()
 
@@ -713,55 +644,6 @@ class PubStatusI18n:
 		self.Description	= trim(row[2])
 
 
-# Strings
-
-class Strings(LampadasCollection):
-	"""
-	A collection object of all localized strings.
-	"""
-	
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT string_id FROM string"
-		self.cursor = DB.Select(self.sql)
-		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
-			newString = String()
-			newString.Load(row)
-			self.data[newString.ID] = newString
-
-class String:
-	"""
-	Each string is Unicode text, that can be used in a web page or in other
-	Lampadas output.
-	"""
-
-	def __init__(self, StringID=None):
-		self.I18n = {}
-		if StringID==None: return
-		self.ID = StringID
-
-	def Load(self, row):
-		self.ID = row[0]
-		self.sql = "SELECT lang, string FROM string_i18n WHERE string_id=" + str(self.ID)
-		self.cursor = DB.Select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newStringI18n = StringI18n()
-			newStringI18n.Load(self.row)
-			self.I18n[newStringI18n.Lang] = newStringI18n
-
-# StringI18n
-
-class StringI18n:
-
-	def Load(self, row):
-		self.Lang		= row[0]
-		self.Text		= trim(row[1])
-
-
 # Topics
 
 class Topics(LampadasCollection):
@@ -919,82 +801,6 @@ class UserDoc:
 		DB.Exec(self.sql)
 		DB.Commit()
 	
-
-# Utility routines
-
-def wsq(astring):
-	"""
-	WSQ stands for "Wrap in Single Quotes". It accepts a string, and returns an escaped string
-	suitable for submission to the database.
-
-	For example, a string which contains an embedded quote will break the database unless it is replaced
-	by two single quotes.
-
-	This routine also replaces null strings ('') with the word "NULL", so empty strings are not stored
-	into the database.
-	"""
-	
-	if astring == None:
-		return 'NULL'
-	elif astring == '':
-		return 'NULL'
-	else:
-		return "'" + astring.replace("'", "''") + "'"
-
-def dbint(anint):
-	"""
-	This routine converts an integer into a format ready to be submitted to the database.
-	"""
-	
-	if anint == None:
-		temp = 'NULL'
-	else:
-		temp = str(anint)
-	return temp
-
-def safeint(anint):
-	"""
-	When loading an integer value from the database, this routine replaces NULL values with zeroes.
-	"""
-	
-	if anint == None:
-		return 0
-	elif anint == '':
-		return 0
-	else:
-		return int(anint)
-
-def bool2tf(bool):
-	"""
-	Converts a 1/0 integer value into a t/f string value suitable for submission to the database.
-	"""
-	
-	if bool == 1:
-		return 't'
-	else:
-		return 'f'
-
-def tf2bool(tf):
-	"""
-	Converts a t/f string value into a 1/0 integer value.
-	"""
-	
-	if tf == 't':
-		return 1
-	else:
-		return 0
-
-def trim(astring):
-	"""
-	Trims leading and trailing spaces from a string.
-	"""
-	
-	if astring == None:
-		temp = ''
-	else:
-		temp = str(astring)
-	return strip(temp)
-
 
 # main
 if __name__ == '__main__' :

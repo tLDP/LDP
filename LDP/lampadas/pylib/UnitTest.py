@@ -8,6 +8,7 @@ import unittest
 import Config
 import Database
 import DataLayer
+import HTML
 
 Config = Config.Config()
 DB = Database.Database()
@@ -223,14 +224,6 @@ class testPubStatuses(unittest.TestCase):
 		assert L.PubStatuses['A'].I18n['EN'].Name > ''
 		assert L.PubStatuses['A'].I18n['EN'].Description > ''
 		
-class testStrings(unittest.TestCase):
-
-	def testStrings(self):
-		assert not L.Strings == None
-		assert L.Strings.Count() > 0
-		assert not L.Strings[1] == None
-		assert L.Strings[1].I18n['EN'].Text == 'Test Text'
-
 class testTopics(unittest.TestCase):
 
 	def testTopics(self):
@@ -280,6 +273,15 @@ class testUserDocs(unittest.TestCase):
 			assert not UserDoc.DocID == None
 			assert UserDoc.DocID > 0
 			assert UserDoc.Active == 1 or UserDoc.Active == 0
+
+class testHTML(unittest.TestCase):
+	
+	def setUp(self):
+		self.HTML = HTML.HTMLFactory()
+
+	def testHTML(self):
+		assert not self.HTML.Page == None
+		assert self.HTML.Page('test', 'EN') > ''
 
 
 if __name__ == "__main__":
