@@ -1,0 +1,53 @@
+# Albert Reiner gives an example of how to use "continue N":
+# ---------------------------------------------------------
+
+#  Suppose I have a large number of jobs that need to be run, with
+#+ any data that is to be treated in files of a given name pattern in a
+#+ directory. There are several machines that access this directory, and
+#+ I want to distribute the work over these different boxen. Then I
+#+ usually nohup something like the following on every box:
+
+while true
+do
+  for n in .iso.*
+  do
+    [ "$n" = ".iso.opts" ] && continue
+    beta=${n#.iso.}
+    [ -r .Iso.$beta ] && continue
+    [ -r .lock.$beta ] && sleep 10 && continue
+    lockfile -r0 .lock.$beta || continue
+    echo -n "$beta: " `date`
+    run-isotherm $beta
+    date
+    ls -alF .Iso.$beta
+    [ -r .Iso.$beta ] && rm -f .lock.$beta
+    continue 2
+  done
+  break
+done
+
+#  The details, in particular the sleep N, are particular to my
+#+ application, but the general pattern is:
+
+while true
+do
+  for job in {pattern}
+  do
+    {job already done or running} && continue
+    {mark job as running, do job, mark job as done}
+    continue 2
+  done
+  break        # Or something like `sleep 600' to avoid termination.
+done
+
+#  This way the script will stop only when there are no more jobs to do
+#+ (including jobs that were added during runtime). Through the use
+#+ of appropriate lockfiles it can be run on several machines
+#+ concurrently without duplication of calculations [which run a couple
+#+ of hours in my case, so I really want to avoid this]. Also, as search
+#+ always starts again from the beginning, one can encode priorities in
+#+ the file names. Of course, one could also do this without `continue 2',
+#+ but then one would have to actually check whether or not some job
+#+ was done (so that we should immediately look for the next job) or not
+#+ (in which case we terminate or sleep for a long time before checking
+#+ for a new job).
