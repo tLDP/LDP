@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh --debug
 #
 # This file is part of the Lampadas Documentation System.
 # 
@@ -17,6 +17,67 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# 
+#
+
+usage()
+{
+	echo "\
+Usage: close-sessions { OPTIONS }
+
+Where OPTIONS can be chosen from:
+
+   -h, --help                Write this message and exit.
+   -db <database>            Override value of LAMPADAS_DB.
+   -v, --verbose             Display debugging information.
+   -t, --timeout <minutes>   Specify session timeout. Default is 20 minutes.
+
+The environment variables prefixed with 'LAMPADAS_' are typically set
+within setenv.sh. Read comments in that file for a description.
+"
+}
+
+check_var()
+{
+  [ -n "$1" ] && return  
+  echo "Environment variable $2 is not set."
+  echo "Read the comments in file 'setenv.sh' how to fix that."
+  [ -n "$3" ] && echo "You can also use option -$3."
+  exit -1
+}
+
+#---------------------
+# main()
+
+
+MINUTES="20"
+QUIET="-q"
+
+until [ -z "$1" ]
+do
+  case "$1" in
+      -h | --help )
+	      usage
+	      exit 1
+	      ;;
+      -db ) shift; LAMPADAS_DB="$1" ;;
+      -v | --verbose) QUIET="" ;;
+      -t | -timeout ) shift; MINUTES="$1" ;;
+      *)      echo "Invalid option: $1"
+	      exit 1
+	      ;;
+  esac
+  shift
+done
+
+check_var "$LAMPADAS_DB" "LAMPADAS_DB" "db"
+
+sql="DELETE FROM session WHERE ABS(EXTRACT(MINUTE FROM AGE(timestamp, NOW()))) > $MINUTES"
+
+if [ "$QUIET" = "" ]
+then
+  echo "psql -d $LAMPADAS_DB $QUIET -c '$sql'"
+fi
+
+psql -d $LAMPADAS_DB $QUIET -c "$sql"
+
 # psql $LAMPADAS_DB -c "SELECT username, timestamp, ABS(EXTRACT(MINUTE FROM AGE(timestamp, NOW()))) FROM session WHERE ABS(EXTRACT(MINUTE FROM AGE(timestamp, NOW()))) > 20"
-psql $LAMPADAS_DB -qc "DELETE FROM session WHERE ABS(EXTRACT(MINUTE FROM AGE(timestamp, NOW()))) > 20"
