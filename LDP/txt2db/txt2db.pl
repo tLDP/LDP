@@ -14,7 +14,8 @@ my($level1,
    $listitem,
    $para,
    $qandaset,
-   $qandaentry);
+   $qandaentry,
+   $answer);
 
 my($line);
 my($id, $title);
@@ -79,8 +80,7 @@ sub proc_txt {
 	open(TXT, "$f") || die "txt2db: cannot open $f ($!)\n";
 	while (<TXT>) {
 		$line = $_;
-		$line =~ s/\s+$//;
-		$line =~ s/^\s+//;
+		&trimline;
 
 		# blank lines
 		if ($line eq '') {
@@ -146,18 +146,19 @@ sub proc_txt {
 			}
 			$level1 = 1;
 		} elsif ($line =~ /^#/) {
-			&closeqandaset;
+#			&closeqandaset;
 			if ($orderedlist == 0) {
 				$buf .= "\n<orderedlist>\n";
 				$orderedlist = 1;
 			}
 			&closelistitem;
 			$line =~ s/^#//;
+			&trimline;
 			$line =~ s/^/\n<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
 		} elsif ($line =~ /^\*/) {
-			&closeqandaset;
+#			&closeqandaset;
 			if ($list == 0) {
 				$buf .= "\n<simplelist>\n";
 				$list = 1;
@@ -168,22 +169,31 @@ sub proc_txt {
 			$listitem = 1;
 			$para = 1;
 		} elsif ($line =~ /^Q:/) {
+			&closeqandaentry;
 			$line =~ s/^Q://;
-			$line = "<question><para>" . $line . "</para></question>\n";
+			&trimline;
+			&splittitle;
+			$line = "<question><para>" . $title . "</para></question>\n";
 			unless ($qandaentry == 1) {
-				$line = "<qandaentry>\n" . $line;
+				if ($id eq '') {
+					$line = "<qandaentry>\n" . $line;
+				} else {
+					$line = "<qandaentry id='$id'>\n" . $line;
+				}
 				$qandaentry = 1;
 			}
 			if ($qandaset == 0) {
-				$line = "<qandaset>\n". $line;
+				$line = "<qandaset defaultlabel='qanda'>\n". $line;
 				$qandaset = 1;
 			}
 			
 		} elsif ($line =~ /^A:/) {
 			$line =~ s/^A://;
-			$line = "<answer><para>" . $line . "</para></answer>\n";
+			&trimline;
+			&closeanswer;
+			$line = "<answer><para>" . $line . "</para>\n";
 		} else {
-			&closeqandaset;
+#			&closeqandaset;
 			if ( $para == 0 ) {
 				$line =~ s/^/<para>/;
 				$para = 1;
@@ -260,7 +270,7 @@ sub closenonsect {
 	&closepara;
 	&closeorderedlist;
 	&closelist;
-	&closeqandaentry;
+#	&closeqandaentry;
 }
 
 sub closeorderedlist {
@@ -289,7 +299,15 @@ sub closelistitem {
 	}
 }
 
+sub closeanswer {
+	if ($answer == 1) {
+		$line = "</answer>\n";
+		$answer = 0;
+	}
+}
+
 sub closeqandaentry {
+	&closeanswer;
 	if ($qandaentry == 1) {
 		$buf .= "</qandaentry>\n";
 		$qandaentry = 0;
@@ -309,6 +327,11 @@ sub closepara {
 		$buf .= "</para>\n";
 		$para = 0;
 	}
+}
+
+sub trimline {
+	$line =~ s/\s+$//;
+	$line =~ s/^\s+//;
 }
 
 sub splittitle {
