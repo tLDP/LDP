@@ -1,0 +1,289 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Xinerama Howto (MultiHead X) -->
+
+<title>Using the Xinerama Extensions to MultiHead X V. 4.0
+<author>Dennis Baker <tt/drbaker@softhome.net/
+<date>v1.0, May 2, 2000
+<abstract>
+This document describes how to configure XFree86 Version 4.0 with Multiple monitors and the Xinerama extentions.  
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>Introduction
+
+<p> This is not meant to be a guide on how to set up your specific monitor,  or videocard.  In fact,  I assume that you already have X windows running for your setup.  Please refer to the XF86 Documentation for more information.  
+
+As far as I know,  there are no limits to which video cards you can configure this way,  nor does it seem to matter if you mix different types of video cards in a setup,  The sample configuration I use in this documentation uses two different video cards,  a AGP Fire GL 1000 and a PCI Matrox Millenium II.  What effect this has on 3d Accelleration I don't know as I don't currently accellerate either of my video cards.
+
+<P>This Howto assumes that you know how to edit text files,  do basic video card configuration for X Windows, add and remove hardware from your system, start and stop system services, and follow simple instructions.  If feel you will have trouble with any of these things,  please seek help.  I am not responsible if you damage any of your stuff.
+
+<sect>Planning
+
+<P>Planning a Xinerama setup is pretty straight forward.  There as essentially three things you need to take into account,  screen resolution, color depth, and screen layout.
+
+<P>It is possible to have each physical screen in your Xinerama setup to have a different resolution. There are some advantages to this,  I was able to use an old monitor which only operates at 640x480,  and a bigger 17" at 1280x1024 in my setup.  I have also heard of web developers and graphics designed who use one big "preview" screen and flank it with one or two smaller screens.  I think this is one of the great things about the Xinerama extensions.  
+
+<P>There is one significant problem with using multiple screen reolutions.  Current generation window managers assume the screen is rectangular and will assume this rectangle is equal in size to the heighth and width of your total desktop.  If you have one monitor at 1600x1200 and another at 800x600,  your window manager will assume your desktop is 2400x1200.  This leaves a big area below the smaller screen which the window manager interprets as "Empty", many window managers will try to utilize this space for new windows.  There are ways to configure your window manager to minimize this problem but is a nuisance. As window managers become Xinerama aware and this problem will go away quickly.  
+
+
+<P>Unlike with screen resolotion, Xinerama limits your entire virtual screen to one color depth.  If you were planning on pulling out a cheap video card for your second display you need to keep this in mind.  If your old video card only supports 8 bit color you might get a bigger display but most newer programs look lousy in 256 colors.
+
+<P>Layout decisions are fairly simple,  you just need to decide how you want to lay out your monitors.  Most people will simply place their monitors in a row and view their desktop as one giant monitor.  It is also possible to overlap displays, or place them in more complex layouts.  Keep in mind though what I said above about window managers expecting rectangular displays.
+
+<sect>Video Card set up.
+<P> This is a good time to back up your existing config file:
+I did it like this:
+<P><tscreen><tt>root# > cp /etc/X11/XF86Config /etc/X11/XFree86Config.working</tt></tscreen>
+
+<P>Before we start the multihead portion of this process you need to have ALL of your existing cards working properly with the display they will have in the final configuration.  If you haven't already,  configure and install each different video card/ monitor combination you are going to have in your final setup.  If you have several identical video cards you can get away with configuring one and copying the configuration for the other cards.  
+
+<P>After you have each card set up, back up or print it's config file as you will need it later.  
+Here's how I did it:
+<P><tscreen><tt>root# > cp /etc/X11/XF86Config /etc/X11/XFree86Config.Matrox</tt></tscreen>
+
+<P>If your video cards are identical you can probably get away with just one copy.  However don't skip this step,  If all else fails this will be you backup config file incase my instructions lead you astray.
+
+<P>Once you have all of your displays configured you are almost there...
+
+<sect>Scan the PCI Bus
+<P>This is a good time to put all of your video cards into your system and set up your monitors.  Set everything up the way you want it when you are done,  as you will have to repeat steps later if you change things.
+<P> This next step needs to be done from the console with-out X running.  If you are in X, exit now.  If your system uses a display manager such as xdm or gdm exit you need to stop that service.  
+If you need to stop a display manager from RedHat the easiest way is like this:
+<P><tscreen><tt>root# > telinit 3</tt></tscreen>
+<P>for Debian,  Storm or Corel :
+<P><tscreen><tt>root# > /etc/init.d/xdm stop</tt></tscreen>
+<P>If neither of these methods work you, reboot your computer and start up in single user mode.  
+
+<P>In a multi-head setup you need to explicitly identify each video card in your config file.  To do this you need to use the PCI Bus Identifier your system assigns the card.  At this time, all video cards need to be in your system.
+<P>To find out what your PCI bus IDs are: <label id="prior step">
+<tscreen><P><tt>root# > XFree86 -scanpci </tt></tscreen>
+<P>X will then output a code for each device on your PCI bus.  
+<tscreen><code>
+(0:0:0) Intel 82443BX Host
+(0:1:0) Intel 82443BX AGP
+(0:7:0) Intel 82371AB PIIX4 ISA
+(0:7:1) Intel 82371AB PIIX4 IDE
+(0:7:2) Intel 82371AB PIIX4 USB
+(0:7:3) Intel 82371AB PIIX4 ACPI
+(0:9:0) Adaptec 2940U/UW
+(0:11:0) 3COM 3C900 10b Combo
+(0:12:0) Matrox unknown card (0x2007) using a Matrox MGA 2164W
+(1:0:0) unknown card (0x1092/0x0152) using a Texas Instruments Permedia 2
+</code></tscreen>
+
+<P>PCI cards and devices are identified with a leading 0, AGP cards with a 1.  In my case I have a Matrox Millenium II (0:12:0) and a Diamond FireGL(1:0:0).  Find your video cards and write down the numbers associated with them.  It is important that you know which number goes with which card.
+
+<sect>Editing your XConfig File
+
+<P>If I haven't lost you so far,  we are in the home stretch now.  This section is pretty confusion so I suggest you also read the manpage for XF86Config,  or at least skim it.  Do it now... I'll wait.
+
+<P><tscreen><tt> root# > man XF86Config </tt></tscreen>
+
+<sect1>Adding all of your video cards
+
+<P>Open your current XF86Config file and scroll down to the Monitor Section.  You want to copy the following sections from the XF86Config backup files you created above : Monitor, Device, Screen.  These sections should go in your XF86Config file after the coresponding section in the file you have open.  As you copy each section make certain that the Identifier is unique for each section,  you will reference these identifies later.
+
+<P>Clear as Mud Right?  You should now have a Monitor Section, a Device Section,  and a Screen Section for EACH video card/monitor combination, each Section should have a unique Identifier.  If you are still confused reread the prior paragraph.  If that doesn't help, look at the sample <ref id="XF86Config"> I have included at the end.  You did read the manpage right?
+
+<sect1>Identifying Your Video Cards
+<P>Now you need to add the coresponding PCI BusID as an option at the end of each Device Section.  The entry should look like this: BusID    "PCI:0:12:0",  substituting the three numbers with the PCI bus ID which identifies YOUR video card you should have this ID from the <ref id="prior step">.  Here is a sample Device Section for one of my video cards.
+
+<tscreen><code>
+Section "Device"
+    Identifier  "FireGL"
+    Driver      "glint"
+    BusID      "PCI:1:0:0"
+EndSection
+</code></tscreen>
+<P>Please note,  even AGP cards use this layout.
+
+<sect1>Configuring the ServerLayout Section
+
+<P>Now you need to edit the ServerLayout Section at the end of the XF86Config File.  The ServerLayour Section is exactally that,  it tells you what Screens to use, how to lay them out logically, and what input devices to assign to them.  Your current layout is for one screen, keyboard, and mouse.  For each Screen section you have created about you need reference in this section for them to appear in your display.
+
+<P>Using the existing screen reference as a starting point,  create additional references for your other Screen Sections.  The reference looks like this: 
+<P><tscreen><TT>Screen "Screen 2" Relationship "Screen 1"</></tscreen>
+This defines the relationship between the "Screen 2" and "Screen 1".  Valid Relationships include: RightOf, Below, Above, LeftOf, Absolute X Y, Relative.  Use of the first four relationships is pretty obvious as illustrated in my sample:
+<tscreen><code>
+Section "ServerLayout"
+    Identifier  "Simple Layout"
+    Screen "Screen 2"
+    Screen "Screen 1" RightOf "Screen 2"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+</code></tscreen>
+
+I have other examples in the <ref id="sample XF86Config"> section.
+<sect>Testing Your Configuration
+<P>Once you have completed changing your XF86Config file, save it and your can now test your configuration :
+
+<P><tscreen><tt> root# > startx -- +xinerama </tt></tscreen>
+
+Hopefully you can now enjoy X with multiple partners... er that is, Monitors.
+
+<sect>Editing your startup files
+
+<P>If this worked you will probably want to change your X configuration to start X this way automatically.  There are lots of ways to do this and there are probably better ways than what I've shown below.  Here are the methods I used for changing startx and gdm.
+
+<P>If you run X from the command prompt add the +xinerama option to the startx script.  
+
+<P><tscreen><tt> root# > vi /usr/X11R6/bin/startx </tt></tscreen>
+
+<P>At the very end of the file the script starts X with the command xinit.  Add the +xinerama option to the very end of that line.
+
+<P>To Configure gdm to start with the xinerama extentions look for [servers] section at the bottom of /etc/X11/gdm/gdm.conf.  Add the +xinerama extension to the end of the line that starts with 0=.  It should look like this :
+
+<P><tscreen><tt> 0=/usr/bin/X11/X +xinerama </tt></tscreen>
+
+I am certain configuring KDE, and xdm to start xinerama are equally easy,  if you figure it out please drop me a note and I will add it to this Howto.
+
+<sect>Sample XF86Config Files <label id="XF86Config">
+<P>My current XF86Config File :
+<code>
+
+Section "Module"
+    Load        "dbe"  	# Double buffer extension
+    SubSection  "extmod"
+      Option    "omit xfree86-dga"   # don't initialise the DGA extension
+    EndSubSection
+    Load        "type1"
+    Load        "freetype"
+# This loads the GLX module
+#    Load       "glx"
+EndSection
+
+Section "Files"
+    RgbPath	"/usr/X11R6/lib/X11/rgb"
+    FontPath   "/usr/X11R6/lib/X11/fonts/local/"
+    FontPath   "/usr/X11R6/lib/X11/fonts/misc/"
+    FontPath   "/usr/X11R6/lib/X11/fonts/75dpi/:unscaled"
+    FontPath   "/usr/X11R6/lib/X11/fonts/100dpi/:unscaled"
+    FontPath   "/usr/X11R6/lib/X11/fonts/Type1/"
+    FontPath   "/usr/X11R6/lib/X11/fonts/Speedo/"
+    FontPath   "/usr/X11R6/lib/X11/fonts/75dpi/"
+    FontPath   "/usr/X11R6/lib/X11/fonts/100dpi/"
+# The module search path.  The default path is shown here.
+#    ModulePath "/usr/X11R6/lib/modules"
+EndSection
+
+Section "ServerFlags"
+
+EndSection
+
+Section "InputDevice"
+    Identifier	"Keyboard1"
+    Driver	"Keyboard"
+    Option "AutoRepeat" "500 30"
+    Option "XkbRules"	"xfree86"
+    Option "XkbModel"	"pc101"
+    Option "XkbLayout"	"us"
+EndSection
+
+Section "InputDevice"
+    Identifier	"Mouse1"
+    Driver	"mouse"
+    Option "Protocol"    "PS/2"
+    Option "Device"      "/dev/psaux"
+EndSection
+
+Section "Monitor"
+    Identifier  "Mini"
+    HorizSync   31.5
+    VertRefresh 50-90
+EndSection
+
+Section "Monitor"
+    Identifier  "Impression"
+    HorizSync   31.5 - 82.0
+    VertRefresh 50-100
+EndSection
+
+# Video Card #1, Matrox Millenium II PCI Video Card
+Section "Device"
+    Identifier  "Matrox"
+    Driver      "mga"
+    VideoRam 8192
+    BusID      "PCI:0:12:0"
+EndSection
+
+# Video Card # 2, Fire GL 1000 AGP video card.
+Section "Device"
+    Identifier  "FireGL"
+    Driver      "glint"
+    #VideoRam    8192
+    BusID      "PCI:1:0:0"
+
+EndSection
+
+Section "Screen"
+    Identifier  "Screen 2"
+    Device      "FireGL"
+    Monitor     "Impression"
+    DefaultDepth 16
+
+    Subsection "Display"
+        Depth       16
+        Modes       "1280x1024" "640x480"
+        ViewPort    0 0
+    EndSubsection
+EndSection
+
+# My Miniature monitor,  notice that I used the virtual option so it is
+#   the same heighth as the larger monitor,  this is not necessary.
+Section "Screen"
+    Identifier  "Screen 1"
+    Device      "Matrox"
+    Monitor     "Mini"
+    DefaultDepth 16
+
+    Subsection "Display"
+        Depth       16
+        Modes       "640x480"
+        ViewPort    0 0
+        Virtual     640 1024
+    EndSubsection
+EndSection
+
+Section "ServerLayout"
+    Identifier  "Simple Layout"
+    Screen "Screen 2"  
+    Screen "Screen 1" Rightof "Screen 2" 
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+
+</code>
+<label id="sample XF86Config">
+
+An alternate ServerLayout Section with one Monitor above the other.
+<code>
+Section "ServerLayout"
+    Identifier  "Simple Layout"
+    Screen "Screen 2"
+    Screen "Screen 1" Below "Screen 2"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+</code>
+
+Screens can overlap too.  In this configuration I make the two monitors overlap by 80 pixels..
+<code>
+Section "ServerLayout"
+    Identifier  "Simple Layout"
+    Screen "Screen 2"
+    Screen "Screen 1" Relative "Screen 2" 1200 0
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+</code>
+
+
+</article>
