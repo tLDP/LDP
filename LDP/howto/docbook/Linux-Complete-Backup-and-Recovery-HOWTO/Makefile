@@ -1,11 +1,10 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2002-01-27 12:36:19 ccurley Makefile>
+# Time-stamp: <2002-01-27 13:35:23 ccurley Makefile>
 
 # All the scripts we incorporate into the HOWTO
-SCRIPTS = cooked/back.up.all cooked/back.up.all.ssh cooked/dev.hda cooked/get.tester cooked/make.dev.hda cooked/make.fdisk cooked/restore.all cooked/restore.all.ssh cooked/restore.metadata cooked/restore.tester cooked/save.metadata
-
-ILLOS = tomsrtbt.eps
+# SCRIPTS = cooked/back.up.all cooked/back.up.all.ssh cooked/dev.hda cooked/get.tester cooked/make.dev.hda cooked/make.fdisk cooked/restore.all cooked/restore.all.ssh cooked/restore.metadata cooked/restore.tester cooked/save.metadata
+SCRIPTS = `echo scripts/[a-z]* | sed "s/scripts\///g"`
 
 # The base name of the document
 DOCUMENT = Linux-Complete-Backup-and-Recovery-HOWTO
@@ -20,49 +19,17 @@ dslprint = -d /usr/share/sgml/docbook/dsssl-stylesheets/ldp.dsl\\\#print
 
 
 cooked:
-	mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
+	-mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
 
 clean:
-	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked *.eps ../images
+	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked ../images
 	mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
 
-cooked/back.up.all: scripts/back.up.all
-	./buildscript back.up.all
-
-cooked/back.up.all.ssh: scripts/back.up.all.ssh
-	./buildscript back.up.all.ssh
-
-cooked/dev.hda: scripts/dev.hda
-	./buildscript dev.hda
-
-cooked/get.tester: scripts/get.tester
-	./buildscript get.tester
-
-cooked/make.dev.hda: scripts/make.dev.hda
-	./buildscript make.dev.hda
-
-cooked/make.fdisk: scripts/make.fdisk
-	./buildscript make.fdisk
-
-cooked/restore.all: scripts/restore.all
-	./buildscript restore.all
-
-cooked/restore.all.ssh: scripts/restore.all.ssh
-	./buildscript restore.all.ssh
-
-cooked/restore.metadata: scripts/restore.metadata
-	./buildscript restore.metadata
-
-cooked/restore.tester: scripts/restore.tester
-	./buildscript restore.tester
-
-cooked/save.metadata: scripts/save.metadata
-	./buildscript save.metadata
-
-scripts: $(SCRIPTS)
-
-tomsrtbt.eps: tomsrtbt.png
-	convert tomsrtbt.png tomsrtbt.eps
+# scripts: $(SCRIPTS)
+scripts: cooked
+	for S in $(SCRIPTS) ; do \
+	./buildscript $$S ; \
+	done
 
 $(DOCUMENT)/index.html: $(DOCUMENT).sgml scripts
 	rm -r $(DOCUMENT).junk
