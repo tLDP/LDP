@@ -9,4 +9,4 @@ CREATE TABLE maintainer (
 );
 
 GRANT ALL ON maintainer TO "www-data";
-
+GRANT SELECT ON maintainer TO root;

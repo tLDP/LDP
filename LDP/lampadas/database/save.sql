@@ -21,3 +21,4 @@ copy stats to '/tmp/ldp_stats.txt';
 copy stats_cdf to '/tmp/ldp_stats_cdf.txt';
 copy subtopic to '/tmp/ldp_subtopic.txt';
 copy topic to '/tmp/ldp_topic.txt';
+copy volunteer to '/tmp/ldp_volunteer.txt';

@@ -34,6 +34,8 @@ psql ldp -f stats_cdf.sql
 
 psql ldp -f license.sql
 
+psql ldp -f volunteer.sql
+
 #views
 psql ldp -f vw_gfdl_emails.sql
 psql ldp -f vw_gfdl_docs.sql
