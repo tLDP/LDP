@@ -55,8 +55,11 @@ class Database:
 			Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
-		self.value = self.cursor.fetchone()
-		self.value = self.value[0]
+		self.row = self.cursor.fetchone()
+		if self.row == None:
+			self.value = None
+		else:
+			self.value = self.row[0]
 		return self.value
 
 	def Exec(self, sql):
@@ -67,6 +70,8 @@ class Database:
 		return self.cursor.rowcount
 
 	def Commit(self):
+		if Config.Loglevel >= 3:
+			Log('Committing database')
 		self.db.connection.commit()
 
 

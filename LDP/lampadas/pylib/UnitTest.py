@@ -109,19 +109,6 @@ class testDocs(unittest.TestCase):
 		self.Doc2 = L.Docs[1]
 		assert self.Doc2.Title == self.Title
 
-class testDocFiles(unittest.TestCase):
-
-	def testDocFiles(self):
-		Doc = L.Docs[1]
-		assert not Doc == None
-		assert Doc.Files.Count() > 0
-		keys = Doc.Files.keys()
-		for key in keys:
-			File = Doc.Files[key]
-			if File == None: break
-			assert File.DocID == Doc.ID
-			assert File.Filename > ''
-	
 class testDocErrors(unittest.TestCase):
 
 	def testDocErrors(self):
@@ -136,6 +123,58 @@ class testDocErrors(unittest.TestCase):
 					assert Error.DocID == Doc.ID
 					assert Error.Error > ''
 	
+class testDocFiles(unittest.TestCase):
+
+	def testDocFiles(self):
+		Doc = L.Docs[1]
+		assert not Doc == None
+		assert Doc.Files.Count() > 0
+		keys = Doc.Files.keys()
+		for key in keys:
+			File = Doc.Files[key]
+			if File == None: break
+			assert File.DocID == Doc.ID
+			assert File.Filename > ''
+
+class testDocRatings(unittest.TestCase):
+
+	def testDocRatings(self):
+		Doc = L.Docs[1]
+		assert not Doc == None
+		Doc.Ratings.Clear()
+		assert Doc.Ratings.Count() == 0
+		assert Doc.Rating == 0
+
+		# Add UserID: 1   Rating: 5   -- Avg: 5
+
+		Doc.Ratings.Add(1, 5)
+		assert Doc.Ratings.Count() == 1
+		assert Doc.Ratings.Average == 5
+		assert Doc.Rating == 5
+
+		# Add UserID: 2   Rating: 7   -- Avg: 6
+		
+		Doc.Ratings.Add(2, 7)
+		assert Doc.Ratings.Count() == 2
+		assert Doc.Ratings.Average == 6
+		assert Doc.Rating == 6
+
+		# Del UserID: 1
+	
+		Doc.Ratings.Del(1)
+		assert Doc.Ratings.Count() == 1
+		assert Doc.Ratings.Average == 7
+		assert Doc.Rating == 7
+
+		# Clear again
+
+		Doc.Ratings.Clear()
+		assert Doc.Ratings.Count() == 0
+		assert Doc.Ratings.Average == 0
+		assert Doc.Rating == 0
+
+		
+		
 class testStrings(unittest.TestCase):
 
 	def testStrings(self):

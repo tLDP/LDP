@@ -118,7 +118,6 @@ class Lampadas:
 		self.Strings	= Strings()
 		self.Users	= Users()
 
-
 	def User(self, UserID):
 		return User(UserID)
 
@@ -199,10 +198,10 @@ class Docs(LampadasCollection):
 		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
 		self.cursor = DB.Select(self.sql)
 		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
 			newDoc = Doc()
-			newDoc.Load(row)
+			newDoc.Load(self.row)
 			self[newDoc.ID] = newDoc
 
 	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
@@ -231,8 +230,8 @@ class Doc:
 		if id == None: return
 		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
 		self.cursor = DB.Select(self.sql)
-		row = self.cursor.fetchone()
-		self.Load(row)
+		self.row = self.cursor.fetchone()
+		self.Load(self.row)
 
 	def Load(self, row):
 		self.ID			= row[0]
@@ -254,17 +253,66 @@ class Doc:
 		self.Maintained		= tf2bool(row[16])
 		self.License		= trim(row[17])
 		self.Abstract		= trim(row[18])
-		self.Rating		= row[19]
+		self.Rating		= safeint(row[19])
 		self.LanguageCode	= trim(row[20])
 		self.SeriesID		= trim(row[21])
 
-		self.Files		= DocFiles(self.ID)
 		self.Errors		= DocErrors(self.ID)
+		self.Files		= DocFiles(self.ID)
+		self.Ratings		= DocRatings(self.ID)
+		self.Ratings.Parent	= self
 
 	def Save(self):
 		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
 		DB.Exec(self.sql)
 		DB.Commit()
+
+
+# DocErrors
+
+class DocErrors(LampadasList):
+	"""
+	A collection object providing access to all document errors, as identified by the
+	Lintadas subsystem.
+	"""
+
+	def __init__(self, DocID):
+		assert not DocID == None
+		self.DocID = DocID
+		self.sql = "SELECT error FROM document_error WHERE doc_id=" + str(DocID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDocError = DocError()
+			newDocError.Load(DocID, row)
+			self.list = self.list + [newDocError]
+
+	def Clear(self):
+		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
+		DB.Exec(self.sql)
+		self.list = []
+
+	def Add(self, Error):
+		self.sql = "INSERT INTO document_error(doc_id, error) VALUES (" + str(self.DocID) + ", " + wsq(Error)
+		assert DB.Exec(self.sql) == 1
+		newDocError = DocError()
+		newDocError.DocID = self.DocID
+		newDocError.Error = Error
+		self.list = self.list + [newDocError]
+		DB.Commit()
+		
+
+class DocError:
+	"""
+	An error filed against a document by the Lintadas subsystem.
+	"""
+
+	def Load(self, DocID, row):
+		assert not DocID == None
+		assert not row == None
+		self.DocID	= DocID
+		self.Error	= trim(row[0])
 
 
 # DocFiles
@@ -304,53 +352,84 @@ class DocFile:
 		self.sql = "UPDATE document_file SET format=" + wsq(self.Format) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
-		
 
 
-# DocErrors
+# DocRatings
 
-class DocErrors(LampadasList):
+class DocRatings(LampadasCollection):
 	"""
-	A collection object providing access to all document errors, as identified by the
-	Lintadas subsystem.
+	A collection object providing access to all ratings placed on documents by users.
 	"""
 
 	def __init__(self, DocID):
+		self.data = {}
+		self.Parent = None
 		assert not DocID == None
 		self.DocID = DocID
-		self.sql = "SELECT error FROM document_error WHERE doc_id=" + str(DocID)
+		self.sql = "SELECT user_id, date_entered, vote FROM doc_vote WHERE doc_id=" + str(DocID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
-			newDocError = DocError()
-			newDocError.Load(DocID, row)
-			self.list = self.list + [newDocError]
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newDocRating = DocRating()
+			newDocRating.Load(DocID, self.row)
+			self.data[newDocRating.UserID] = newDocRating
+		self.CalcAverage()
 
-	def Clear(self):
-		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
+	def Add(self, UserID, Rating):
+		newDocRating = DocRating()
+		newDocRating.DocID	= self.DocID
+		newDocRating.UserID	= UserID
+		newDocRating.Rating	= Rating
+		newDocRating.Save()
+		self.data[newDocRating.UserID] = newDocRating
+		self.CalcAverage()
+
+	def Del(self, UserID):
+		if self.data[UserID] == None: return
+		del self.data[UserID]
+		self.sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.DocID) + ' AND user_id=' + str(UserID)
 		DB.Exec(self.sql)
-		self.list = []
-
-	def Add(self, Error):
-		self.sql = "INSERT INTO document_error(doc_id, error) VALUES (" + str(self.DocID) + ", " + wsq(Error)
-		assert DB.Exec(self.sql) == 1
-		newDocError = DocError()
-		newDocError.DocID = self.DocID
-		newDocError.Error = Error
-		self.list = self.list + [newDocError]
+		self.CalcAverage()
 		
+	def Clear(self):
+		self.sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.DocID)
+		DB.Exec(self.sql)
+		self.data = {}
+		self.CalcAverage()
 
-class DocError:
+	def CalcAverage(self):
+		self.Average = 0
+		if self.Count() > 0:
+			keys = self.data.keys()
+			for key in keys:
+				self.Average = self.Average + self.data[key].Rating
+			self.Average = self.Average / self.Count()
+		self.sql = "UPDATE document SET rating=" + str(self.Average) + " WHERE doc_id=" + str(self.DocID)
+		DB.Exec(self.sql)
+		if not self.Parent == None:
+			self.Parent.Rating = self.Average
+
+
+class DocRating:
 	"""
-	An error filed against a document by the Lintadas subsystem.
+	A rating of a document, assigned by a registered user.
 	"""
 
 	def Load(self, DocID, row):
 		assert not DocID == None
 		assert not row == None
-		self.DocID	= DocID
-		self.Error	= trim(row[0])
+		self.DocID		= DocID
+		self.UserID		= row[0]
+		self.DateEntered	= trim(row[1])
+		self.Rating		= row[2]
+
+	def Save(self):
+		self.sql = "DELETE from doc_vote WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+		DB.Exec(self.sql)
+		self.sql = "INSERT INTO doc_vote (doc_id, user_id, vote) VALUES (" + str(self.DocID) + ", " + str(self.UserID) + ", " + str(self.Rating) + ")"
+		DB.Exec(self.sql)
+		DB.Commit()
 
 
 # Languages
@@ -560,6 +639,14 @@ def dbint(anint):
 	else:
 		temp = str(anint)
 	return temp
+
+def safeint(anint):
+	if anint == None:
+		return 0
+	elif anint == '':
+		return 0
+	else:
+		return int(anint)
 
 def bool2tf(bool):
 	if bool == 1:
