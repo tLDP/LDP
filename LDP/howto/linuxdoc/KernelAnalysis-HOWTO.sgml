@@ -9,7 +9,7 @@ KernelAnalysis-HOWTO
 Roberto Arcomano 
 </author>
 <date>
-v0.61 - June 2, 2002
+v0.62 - July 25, 2002
 </date>
 <abstract>
 This document tries to explain some things about the Linux Kernel, such
@@ -2489,7 +2489,7 @@ This feature is managed since kernel 1.x by the "bottom half" (BH). The irq
  handler "marks" a bottom half, to be executed later, in scheduling time.
 </p>
 <p>
-In the latest kernels there is a "task queue"that is more  dynamic than BH
+In the latest kernels there is a "task queue"that is more dynamic than BH
  and there is also a "tasklet" to manage multiprocessor environments.
 </p>
 <p>
@@ -2545,19 +2545,62 @@ For example, when an IRQ handler wants to "postpone" some work, it would
 <sect2>
 Execution
 <p>
-We can see this calling from "schedule" &lsqb;kernel/sched.c&rsqb; function:
+We can see this calling from "do_IRQ" &lsqb;arch/i386/kernel/irq.c&rsqb;
+ function:
 </p>
 <p>
 <verb>
-/* Do &quot;administrative&quot; work here while we don't hold any locks */ 
-|if (softirq_active(this_cpu) &amp; softirq_mask(this_cpu)) 
-   |do_softirq();
-      |for (active=softirq_active &amp; softirq_mask;active;active &gt;&gt;= 1)
-         |softirq_vec++-&gt;action();
-                   
-                  ''schedule'' &lsqb;kernel/sched.c&rsqb;
+if (softirq_pending(cpu)) 
+  do_softirq();
 </verb>
-</p><sect1>
+</p><p>
+then from "do_softirq.c" &lsqb;kernel/softirq.c&rsqb; function:
+</p>
+<p>
+<verb>
+asmlinkage void do_softirq() &lcub; 
+  int cpu = smp_processor_id(); 
+  __u32 pending; 
+  long flags; 
+  __u32 mask;
+  debug_function(DO_SOFTIRQ,NULL);
+  if (in_interrupt()) 
+    return;
+  local_irq_save(flags);
+  pending = softirq_pending(cpu);
+  if (pending) &lcub; 
+    struct softirq_action *h;
+    mask = &tilde;pending; 
+    local_bh_disable(); 
+    restart: 
+        /* Reset the pending bitmask before enabling irqs */ 
+    softirq_pending(cpu) = 0;
+    local_irq_enable();
+    h = softirq_vec;
+    do &lcub; 
+      if (pending &amp; 1) 
+        h-&gt;action(h); 
+      h++; 
+      pending &gt;&gt;= 1; 
+    &rcub; while (pending);
+    local_irq_disable();
+    pending = softirq_pending(cpu); 
+    if (pending &amp; mask) &lcub; 
+      mask &amp;= &tilde;pending; 
+      goto restart; 
+    &rcub; 
+    __local_bh_enable();
+    if (pending) 
+      wakeup_softirqd(cpu); 
+  &rcub;
+  local_irq_restore(flags); 
+&rcub;
+
+</verb>
+</p><p>
+"h-&gt;action(h);" is the function has been previously queued.
+</p>
+<sect1>
 Very low level routines
 <p>
 set_intr_gate
