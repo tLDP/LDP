@@ -22,6 +22,7 @@ CREATE TABLE document
 	tech_review_status	CHAR,
 	maintained		BOOLEAN	DEFAULT True,
 	license_id		INT4,
+	license			CHAR(12),
 	abstract		TEXT,
 
 	PRIMARY KEY (doc_id)

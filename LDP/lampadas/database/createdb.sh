@@ -28,3 +28,6 @@ psql ldp -f document_audience.sql
 
 psql ldp -f doc_vote.sql
 
+psql ldp -f stats.sql
+psql ldp -f stats_cdf.sql
+
