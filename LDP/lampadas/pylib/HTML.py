@@ -845,7 +845,7 @@ class TableFactory:
             if doc.errors > 0 or doc.files.error_count() > 0:
                 if user==None:
                     ok = 0
-                elif user.can_edit(doc_id=doc.doc_id)==0:
+                elif user.can_edit(doc_id=doc.id)==0:
                     ok = 0
 
             # Build the table for any documents that passed the filters
