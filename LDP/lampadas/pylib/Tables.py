@@ -1282,11 +1282,11 @@ class Tables(LampadasCollection):
             <form name="login" action="|uri.base|data/session/login" method="GET">
             <tr>
               <td class="label">|strusername|</td>
-              <td><input type="text" name="username" size="12"></td>
+              <td><input type="text" name="username" size="10"></td>
             </tr>
             <tr>
               <td class="label">|strpassword|</td>
-              <td><input type="password" name="password" size="12"></td>
+              <td><input type="password" name="password" size="10"></td>
             </tr>
             <tr>
               <td align="center" colspan="2">
@@ -2211,7 +2211,7 @@ class TabEditThisPage(Table):
         elif sessions.session.user.can_edit(page_code=uri.page_code)==0:
             return ''
         if uri.page_code=='page_edit':
-            return '<center><a href="|uri.base||uri.page_code||uri.lang_ext|">|strview_this_page|</a></center>'
+            return '<center><a href="|uri.base||uri.code||uri.lang_ext|">|strview_this_page|</a></center>'
         else:
             return '<center><a href="|uri.base|page_edit/|uri.page_code||uri.lang_ext|">|stredit_this_page|</a></center>'
 
