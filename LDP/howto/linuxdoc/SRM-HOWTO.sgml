@@ -1,0 +1,1139 @@
+<!doctype linuxdoc system>
+<linuxdoc>
+<article>
+<titlepag>
+<title>SRM Firmware Howto</title>
+<author>
+<name>
+<url url="mailto:rdp@alphalinux.org" name="Rich Payne">,
+and <url url="mailto:dhuggins@linuxcare.com" name="David
+Huggins-Daines">
+</name>
+</author>
+<date>v0.6.1, 5 March 2000</date>
+<abstract>
+This document describes how to boot Linux/Alpha using the SRM console,
+which is the console firmware also used to boot Compaq Tru64 Unix
+(also known as Digital Unix and OSF/1) and OpenVMS.
+</abstract>
+</titlepag>
+<toc>
+
+<sect><heading>About this manual</heading>
+
+<sect1><heading>Who should read this manual</heading>
+<p>
+You should read this manual if you are installing Linux on a new
+Alpha system that can only boot from the SRM console, or if you are
+installing Linux on an older Alpha system that can use the SRM console
+and wish to use SRM to boot your Linux installation.
+</p>
+<p>
+Because SRM is the only way to boot Linux on modern Alpha systems,
+and because it provides the proper operating environment for Unix and
+Unix-like operating systems (such as Linux), it is the recommended way
+of booting Linux on Alpha when available.
+</p>
+<p>
+Sometimes, it is preferable to use the ARC, ARCSBIOS, or AlphaBIOS
+console, such as if you have a machine for which SRM is not available,
+if you wish to dual-boot with Windows NT without switching consoles,
+or if you have hardware that is not supported by SRM.  On these
+machines, you will typically use MILO to boot Linux.  For more
+information, refer to the MILO Howto, available from
+<url url="http://www.alphalinux.org/faq/milo.html" name="http://www.alphalinux.org/faq/milo.html">.
+</p>
+</sect1>
+
+<sect1><heading>Conventions</heading>
+<p>
+Throughout this manual, we will use the following conventions for
+commands to be entered by the user:
+</p>
+<p>
+SRM console commands will be shown with the characteristic SRM
+'>>>' prompt, like this: <footnote>On multiprocessor machines, you
+will see 'P00>' instead, or possibly some other number depending on
+which processor SRM is running.</footnote>
+<tscreen><verb>
+>>> boot dva0 -fi linux.gz -fl "root=/dev/fd0 load_ramdisk=1"
+</verb></tscreen>
+</p>
+<p>
+Unix commands will be shown with the '&num;' command prompt if they are
+to be run as <tt>root</tt>, or '$' if they are to be run by a normal user,
+like this:
+<tscreen><verb>
+# swriteboot -f3 /dev/sda /boot/bootlx
+</verb></tscreen>
+</p>
+<p>
+Aboot commands will be shown with the 'aboot>' command prompt, like
+this:
+<tscreen><verb>
+aboot> b 6/boot/vmlinuz root=/dev/hda6
+</verb></tscreen>
+</p>
+</sect1>
+</sect>
+
+<sect><heading>What is SRM?</heading>
+<p>
+SRM console is used by Alpha systems as
+Unix-style boot firmware. Tru64 Unix and OpenVMS depend on it and
+Linux can boot from it. You can recognize SRM console as a blue screen
+with a prompt that is presented to you on power-up.
+</p>
+
+<sect1><heading>Getting to SRM</heading>
+<p>
+Most Alpha systems have both the SRM and ARC/AlphaBIOS console in
+their firmware.  On one of these machines, if your machine starts up
+with ARC/AlphaBIOS by default, you can switch to SRM through the
+"Console Selection" option in the Advanced CMOS Setup menu.  To make
+the change permanent, you should set the <tt>os&lowbar;type</tt> environment
+variable in SRM to "OpenVMS" or "Unix", like this:
+<tscreen><verb>
+>>> set os_type Unix
+</verb></tscreen>
+</p>
+<p>
+Either one will work to boot Linux.  However, if you intend to
+dual-boot OpenVMS on this machine, you must set <tt>os&lowbar;type</tt> to
+"OpenVMS".  Conversely, to return to ARC/AlphaBIOS, you can set
+<tt>os&lowbar;type</tt> to "NT".
+</p>
+<p>
+Some older systems may not have both SRM and ARC in firmware as
+shipped.  On these systems, you will have to upgrade your firmware.
+See <url url="http://ftp.digital.com/pub/DEC/Alpha/firmware/"> for the
+latest firmware updates and instructions.
+</p>
+<p>
+A few older systems (primarily evaluation boards such as the 164SX
+and 164LX) are "half-flash" systems, whose firmware can hold SRM or
+AlphaBIOS, but not both.  If you have one of these machines, you will
+have to reflash your firmware with the SRM console using the AlphaBIOS
+firmware update utility.  Again, see
+<url url="http://ftp.digital.com/pub/DEC/Alpha/firmware/"> for firmware
+images and instructions.  If you wish to return to AlphaBIOS on these
+machines, you may rerun the firmware update utility from a floppy in
+SRM using the <tt>fwupdate</tt> command.  You can also start AlphaBIOS
+from a floppy using the <tt>arc</tt> command.
+</p>
+</sect1>
+
+<sect1><heading>Using the SRM console</heading>
+<p>
+The SRM console works very much like a Unix or OpenVMS shell.  It
+views your NVRAM and devices as a pseudo-filesystem.  You can see this
+if you use the <tt>ls</tt> command.  Also, it contains a fairly large set
+of diagnostic, setup, and debugging utilities, the details of which
+are beyond the scope of this document.  As in the Unix shell, you can
+pipe the output of one command to the input of another, and there is a
+<tt>more</tt> command that works not unlike the Unix one.  To get a full
+listing of available commands, run:
+<tscreen><verb>
+>>> help | more
+</verb></tscreen>
+</p>
+<p>
+As well, SRM has environment variables, a number of which are
+pre-defined and correspond to locations in NVRAM.  You can view the
+entire list of environment variables and their values with the
+<tt>show</tt> command (there are quite a few of them, so you will probably
+want to pipe its output to <tt>more</tt>).  You can also show variables
+matching a "glob" pattern - for example, <tt>show boot*</tt> will show all
+the variables starting in "boot".
+</p>
+<p>
+Environment variables are categorized as either <em>read-only</em>,
+<em>warm non-volatile</em>, or <em>cold non-volatile</em>.  The full listing
+of pre-defined variables is detailed in the Alpha Architecture
+Reference Manual.  The most useful pre-defined environment variables
+for the purposes of booting Linux are <tt>bootdef&lowbar;dev</tt>,
+<tt>boot&lowbar;file</tt>, <tt>boot&lowbar;flags</tt>, and
+<tt>auto&lowbar;action</tt>, all of which are cold non-volatile.
+</p>
+<p>
+To set environment variables, use the <tt>set</tt> command, like this:
+<tscreen><verb>
+>>> set bootdef_def dka0
+</verb></tscreen>
+</p>
+<p>
+If you set an undefined variable, it will be created for you, however
+it will not persist across reboots.
+</p>
+<p>
+The <tt>bootdef&lowbar;dev</tt> variable specifies the device (using
+VMS naming conventions - see <ref id="device naming"> for an
+explanation of these) which will be booted from if no device is
+specified on the <tt>boot</tt> command line, or in an automatic boot.
+The <tt>boot&lowbar;file</tt> variable contains the filename to be
+loaded by the secondary bootloader, while <tt>boot&lowbar;flags</tt>
+contains any extra flags.  <tt>auto&lowbar;action</tt> specifies the
+action which the console should take on power-up.  By default, it is
+set to <tt>HALT</tt>, meaning that the machine will start up in the
+SRM console.  Once you have configured your bootloader and the
+boot-related variables, you can set it to <tt>BOOT</tt> in order to
+boot automatically on power-up.
+</p>
+<p>
+Finally, two helpful console keystrokes you should know are
+Control-C, which, as in the shell, halts a command in progress (such
+as an automatic boot), and Control-P, which if issued from the aboot
+prompt (or other secondary bootloader) will halt the bootloader and
+return you to the SRM console.
+</p>
+</sect1>
+
+<sect1><heading>How Does SRM Boot an OS?<label id="how-srm-boots"></heading>
+<p>
+All versions of SRM can boot from SCSI disks and the versions for
+recent platforms, such as the Noname or AlphaStations can boot from
+floppy disks as well.  Network booting via <tt>bootp</tt> is supported.
+Note that older SRM versions (notably the one for the Jensen)
+cannot boot from floppy disks. Booting from IDE devices
+is supported on newer platforms (DS20, DS10, DP264, UP2000 etc..). 
+</p>
+<p>
+Booting Linux with SRM is a two step process: first, SRM loads and
+transfers control to the secondary bootstrap loader.  Then the
+secondary bootstrap loader sets up the environment for Linux, reads
+the kernel image from a disk filesystem and finally transfers control to Linux.
+</p>
+<p>
+Currently, there are two secondary bootstrap loaders for Linux:
+the <em>raw</em> loader that comes with the Linux kernel and <tt>aboot</tt>
+which is distributed separately.  These two loaders are described in
+more detail below.
+</p>
+</sect1>
+
+<sect1><heading>Loading The Secondary Bootstrap Loader</heading>
+<p>
+SRM knows nothing about filesystems or disk-partitions.  It simply
+expects that the secondary bootstrap loader occupies a consecutive
+range of physical disk sector, starting from a given offset.  The
+information on the size of the secondary bootstrap loader and the
+offset of its first disk sector is stored in the first 512 byte
+sector.  Specifically, the long integer at offset 480 stores the
+<em>size</em> of the secondary bootstrap loader (in 512-byte blocks) and
+the long at offset 488 gives the <em>sector number</em> at which the
+secondary bootstrap loader starts.  The first sector also stores a
+flag-word at offset 496 which is always 0 and a checksum at offset
+504.  The checksum is simply the sum of the first 63 long integers in
+the first sector.
+</p>
+<p>
+If the checksum in the first sector is correct, SRM goes ahead and
+reads the <em>size</em> sectors starting from the sector given in the
+<em>sector number</em> field and places them in <em>virtual</em> memory at
+address <tt>0x20000000</tt>.  If the reading completes successfully,
+SRM performs a jump to address <tt>0x20000000</tt>.
+</p>
+</sect1>
+</sect>
+
+<sect><heading>The Raw Loader</heading>
+<p>
+The sources for this loader can be found in directory
+<tt>arch/alpha/boot</tt> of the Linux kernel source
+distribution.  It loads the Linux kernel by reading
+<tt>START&lowbar;SIZE</tt> bytes starting at disk offset
+<tt>BOOT&lowbar;SIZE+512</tt> (also in bytes).  The constants
+<tt>START&lowbar;SIZE</tt> and <tt>BOOT&lowbar;SIZE</tt> are defined in
+<tt>linux/include/asm-alpha/system.h</tt>.  <tt>START&lowbar;SIZE</tt>
+must be at least as big as the kernel image (i.e., the size of the
+<tt>.text</tt>, <tt>.data</tt>, and <tt>.bss</tt> segments).  Similarly,
+<tt>BOOT&lowbar;SIZE</tt> must be at least as big as the image of the raw
+bootstrap loader.  Both constants should be an integer multiple of the
+sector size, which is 512 bytes.  The default values are currently 2MB
+for <tt>START&lowbar;SIZE</tt> and 16KB for <tt>BOOT&lowbar;SIZE</tt>.  Note
+that if you want to boot from a 1.44MB floppy disk, you have to reduce
+<tt>START&lowbar;SIZE</tt> to 1400KB and make sure that the kernel you
+want to boot is no bigger than that.
+</p>
+<p>
+To build a raw loader, simply type <tt>make rawboot</tt> in the top
+directory of your linux source tree (typically
+<tt>/usr/src/linux</tt>).  This should produce the following files in
+<tt>arch/alpha/boot</tt>:
+</p>
+<p>
+<descrip>
+<tag><tt>tools/lxboot</tt>:</tag> <p>The first
+sector on the disk.  It contains the offset and size of
+the next file in the format described above.</p>
+<tag><tt>tools/bootlx</tt>:</tag> <p>The raw boot loader that
+will load the file below.</p>
+<tag><tt>vmlinux.nh</tt>:</tag> <p>The raw kernel image consisting of
+the <tt>.text</tt>, <tt>.data</tt>, and <tt>.bss</tt> segments of the
+object file in <tt>/usr/src/linux/vmlinux</tt>.  The
+extension <tt>.nh</tt> indicates that this file has no object-file
+header.</p>
+</descrip>
+</p>
+<p>
+ The concatenation of these three files should be written to the
+disk from which you want to boot.  For example, to boot from a floppy,
+insert an empty floppy disk in, say, <tt>/dev/fd0</tt> and then type:
+<tscreen><verb>
+# cat tools/lxboot tools/bootlx vmlinux >/dev/fd0
+</verb></tscreen>
+</p>
+<p>
+You can then shutdown the system and boot from the floppy by
+issuing the command <tt>boot dva0</tt>.
+</p>
+</sect>
+
+<sect><heading>The aboot Loader<label id="aboot"></heading>
+<p>
+When using the SRM firmware, <tt>aboot</tt> is the preferred way of
+booting Linux.  It supports:
+</p>
+<p>
+<itemize>
+<item> direct booting from various filesystems (<tt>ext2</tt>, <tt>ISO9660</tt>, and
+<tt>UFS</tt>, the DEC Unix filesystem)</item>
+<item> listing directories and following symbolic links on ext2 (version 0.6 and later)</item>
+<item> booting of executable object files (both ELF and ECOFF)</item>
+<item> booting compressed kernels</item>
+<item> network booting (using bootp)</item>
+<item> partition tables in DEC Unix format (which is
+compatible with BSD Unix partition tables)</item>
+<item> interactive booting and default configurations for
+SRM consoles that cannot pass long option strings</item>
+</itemize>
+</p>
+
+<sect1><heading>Getting and Building aboot</heading>
+<p>
+The latest sources for <tt>aboot</tt> are available in <url
+url="ftp://ftp.alphalinux.org/pub/aboot" name="this ftp directory">.
+The description in this manual applies to <tt>aboot</tt> version 0.6
+or newer. Please note that many distributions ship aboot with them so
+downloading aboot from this directory is probably unnessesary.
+</p><p> Once you downloaded and extracted the latest tar file, take a
+look at the <tt>README</tt> and <tt>INSTALL</tt> files for
+installation hints.  In particular, be sure to adjust the variables in
+<tt>Makefile</tt> and in <tt>include/config.h</tt> to match your
+environment.  Normally, you won't need to change anything when
+building under Linux, but it is always a good idea to double check.
+If you're satisfied with the configuration, simply type <tt>make</tt>
+to build it (if you're not building under Linux, be advised that
+<tt>aboot</tt> requires GNU <tt>make</tt>).
+</p>
+<p>
+After running <tt>make</tt>, the <tt>aboot</tt> directory should contain the
+following files:
+</p>
+<p>
+<descrip>
+<tag>aboot</tag> <p>This is the actual <tt>aboot</tt> executable (either an
+ECOFF or ELF object file).</p>
+<tag>bootlx</tag> <p>Same as above, but it contains only the text, data
+and bss segments---that is, this file is not an object file.</p>
+<tag>sdisklabel/writeboot</tag> <p>Utility to install <tt>aboot</tt> on a
+hard disk.</p>
+<tag>tools/e2writeboot</tag> <p>Utility to install <tt>aboot</tt> on an ext2
+filesystem (usually used for floppies only).</p>
+<tag>tools/isomarkboot</tag> <p>Utility to install <tt>aboot</tt> on a iso9660
+filesystem (used by CD-ROM distributors).</p>
+<tag>tools/abootconf</tag> <p>Utility to configure an installed <tt>aboot</tt>.</p>
+</descrip>
+</p>
+</sect1>
+
+<sect1><heading>Floppy Installation</heading>
+<p> The bootloader can be installed on a floppy using the
+<tt>e2writeboot</tt> command (note: this can't be done on a Jensen since
+its firmware does <em>not</em> support booting from floppy).  This command
+requires that the disk is not overly fragmented as it needs to find
+enough contiguous file blocks to store the entire <tt>aboot</tt> image
+(currently about 90KB).  If <tt>e2writeboot</tt> fails because of this,
+reformat the floppy and try again (e.g., with <tt>fdformat(1)</tt>).  For
+example, the following steps install <tt>aboot</tt> on floppy disk
+assuming the floppy is in drive <tt>/dev/fd0</tt>:
+<tscreen><verb>
+# fdformat /dev/fd0
+# mke2fs /dev/fd0
+# e2writeboot /dev/fd0 bootlx
+</verb></tscreen>
+</p>
+</sect1>
+
+<sect1><heading>Harddisk Installation</heading>
+<p>
+Since the <tt>e2writeboot</tt> command may fail on highly fragmented
+disks and since reformatting a harddisk is not without pain, it is
+generally safer to install <tt>aboot</tt> on a harddisk using the
+<tt>swriteboot</tt> command.  <tt>swriteboot</tt> requires that the first few
+sectors are reserved for booting purposes.  We suggest that the disk
+be partitioned such that the first partition starts at an offset of
+2048 sectors.  This leaves 1MB of space for storing <tt>aboot</tt>.  On
+a properly partitioned disk, it is then possible to install <tt>aboot</tt>
+as follows (assuming the disk is <tt>/dev/sda</tt>):
+<tscreen><verb>
+# swriteboot /dev/sda bootlx
+</verb></tscreen>
+</p>
+<p>
+On systems where partition <tt>c</tt> in the entire disk it will be
+necessary to 'force' the write of aboot. In this case use the <tt>-f</tt>
+flag followed by the partition number (in the case of partition <tt>c</tt>
+this is 3):
+<tscreen><verb>
+# swriteboot /dev/sda bootlx -f3
+</verb></tscreen>
+</p>
+<p>On a Jensen, you will want to leave some more space, since you need to
+write a kernel to this place, too---2MB should be sufficient when
+using compressed kernels.  Use <tt>swriteboot</tt> as described in Section
+<ref id="booting"> to write <tt>bootlx</tt> together with the Linux
+kernel.
+</p>
+</sect1>
+
+<sect1><heading>CD-ROM Installation</heading>
+<p> To make a CD-ROM bootable by SRM, simply build <tt>aboot</tt> as
+described above.  Then, make sure that the <tt>bootlx</tt> file is present
+on the iso9660 filesystem (e.g., copy <tt>bootlx</tt> to the directory
+that is the filesystem master, then run <tt>mkisofs</tt> on that
+directory).  After that, all that remains to be done is to mark the
+filesystem as SRM bootable.  This is achieved with a command of the
+form:
+<tscreen><verb>
+# isomarkboot filesystem bootlx
+</verb></tscreen>
+</p>
+<p>
+The command above assumes that <tt>filesystem</tt> is a file containing
+the iso9660 filesystem and that <tt>bootlx</tt> has been copied into the
+root directory of that filesystem.  That's it!
+</p>
+</sect1>
+
+<sect1><heading>Building the Linux Kernel<label id="Building Linux"></heading>
+<p>
+A bootable Linux kernel can be built with the following steps.
+During the <tt>make config</tt>, be sure to answer "yes" to the question
+whether you want to boot the kernel via SRM (for certain platforms
+this is automatically selected).  Note that if you build a generic
+kernel (by selecting "Generic" as the alpha system type), the kernel
+is able to guess whether it is running under SRM or not.
+<tscreen><verb>
+# cd /usr/src/linux
+# make config
+# make dep
+# make boot
+# make modules (if applicable)
+# make modules_install (if applicable)
+</verb></tscreen>
+</p>
+<p>
+The last command will build the file
+<tt>arch/alpha/boot/vmlinux.gz</tt> which can then be copied to the
+disk from which you want to boot from.  In our floppy disk example
+above, this would entail:
+<tscreen><verb>
+# mount /dev/fd0 /mnt
+# cp arch/alpha/boot/vmlinux.gz /mnt
+# umount /mnt
+</verb></tscreen>
+</p>
+</sect1>
+
+<sect1><heading>Booting Linux<label id="booting"></heading>
+<p> With the SRM firmware and <tt>aboot</tt> installed, Linux is generally
+booted with a command of the form:
+<tscreen>
+<tt>boot</tt> <it>devicename</it> <tt>-fi</tt> <it>filename</it>
+<tt>-fl</tt> <it>flags</it>
+</tscreen>
+</p>
+
+<p>
+The <it>filename</it> and <it>flags</it> arguments are optional.  If
+they are not specified, SRM uses the default values stored in
+environment variables <tt>BOOTDEF&lowbar;DEV</tt> ,
+<tt>BOOT&lowbar;OSFILE</tt> and <tt>BOOT&lowbar;OSFLAGS</tt>.  The
+syntax and meaning of these two arguments is described in more detail
+below. To list the current values of these variables type <tt>show
+boot*</tt> at the SRM command prompt. This will also show a
+boot&lowbar;dev variable (among others), this variable is read only
+and needs to be changed via the bootdef&lowbar;dev variable.
+</p>
+
+<sect2><heading>Device Naming<label id="device naming"></heading>
+<p>
+This corresponds to the device from which SRM will attempt to boot. Examples include:
+</p>
+<p>
+<descrip>
+<tag>dva0</tag> <p>- First floppy drive, <tt>/dev/fd0</tt> under Linux</p>
+<tag>dqa0</tag> <p>- Primary IDE cdrom or hard disk as Master, <tt>/dev/hda</tt> under Linux</p>
+<tag>dqa1</tag> <p>- Primary IDE cdrom or hard disk as Slave, <tt>/dev/hdb</tt> under Linux</p>
+<tag>dka0</tag> <p>- SCSI disk on first bus, Device 0, <tt>/dev/sda</tt> under Linux</p>
+<tag>ewa0</tag> <p>- First Ethernet Device, <tt>/dev/eth0</tt> under Linux</p>
+</descrip>
+</p>
+<p>
+For example to boot from the disk at SCSI id 6, you would enter:
+<tscreen><verb>
+>>> boot dka600
+</verb></tscreen>
+</p>
+<p>
+To list the devices currently installed in the system type <tt>show
+dev</tt> at the SRM command line.  In contrast to Linux device naming, the
+partition number on a disk device is <em>not</em> given as part of the
+device name (you may see extra numbers after the device names when
+running <tt>show dev</tt> - these correspond to things like PCI bus and
+device numbers and are not useful to the user).  Remember, as
+mentioned in <ref id="how-srm-boots">, that SRM knows <em>nothing</em>
+about partitions or disklabels - it merely reads a boot block and
+secondary bootstrap from sectors on a disk.  Therefore, the partition
+number is given as part of the boot filename.
+</p>
+</sect2>
+
+<sect2><heading>Boot Filename</heading>
+<p>
+The filename argument takes the form:
+<quote>
+&lsqb;<em>n</em>/&rsqb;<em>filename</em>
+</quote>
+</p>
+<p>
+<em>n</em> is a single digit in the range 1..8 that gives the partition
+number from which to boot from.  <em>filename</em> is the path of the file
+you want boot.  For example to boot a kernel named vmlinux.gz from the second partition of SCSI
+device 6, you would enter:
+<tscreen><verb>
+>>> boot dka600 -file 2/vmlinux.gz
+</verb></tscreen>
+</p>
+<p>Or to boot from floppy drive 0, you'd enter:
+<tscreen><verb>
+>>> boot dva0 -file vmlinux.gz
+</verb></tscreen>
+</p>
+<p>
+If a disk has no partition table, <tt>aboot</tt> pretends the disk
+contains one <tt>ext2</tt> partition starting at the first diskblock.
+This allows booting from floppy disks.
+</p>
+<p>
+As a special case, partition number 0 is used to request booting
+from a disk that does not (yet) contain a file system.  When
+specifying "partition" number 0, <tt>aboot</tt> assumes that the Linux
+kernel is stored right behind the <tt>aboot</tt> image.  Such a layout
+can be achieved with the <tt>swriteboot</tt> command.  For example, to
+setup a filesystem-less boot from <tt>/dev/sda</tt>, one could use
+the command:
+<tscreen><verb>
+# swriteboot /dev/sda bootlx vmlinux.gz
+</verb></tscreen>
+</p>
+<p>
+Booting a system in this way is not normally necessary.  The
+reason this feature exists is to make it possible to get Linux
+installed on a systems that can't boot from a floppy disk (e.g., the
+Jensen).
+</p>
+</sect2>
+
+<sect2><heading>Boot Flags</heading>
+<p>
+A number of bootflags can be specified.  The syntax is:
+<tscreen><verb>
+-flags "options..."
+</verb></tscreen>
+</p>
+<p>
+Where "options..." is any combination the following options (separated
+by blanks).  There are many more bootoptions, depending on what
+drivers your kernel has installed.  The options listed below are
+therefore just examples to illustrate the general idea:
+</p>
+<p>
+<descrip>
+<tag>load&lowbar;ramdisk=1</tag>
+<p>Copy root file system from a (floppy) disk to the RAM disk
+before starting the system.  The RAM disk will be used in
+lieu of the root device.  This is useful to bootstrap Linux
+on a system with only one floppy drive.
+</p>
+<tag>floppy=<em>str</em></tag>
+<p>Sets floppy configuration to <em>str</em>.
+</p>
+<tag>root=<em>dev</em></tag>
+<p>Select device <em>dev</em> as the root-file
+system. The device can be specified as a major/minor hex number (e.g.,
+0x802 for /dev/sda2) or one of a few canonical names (e.g.,
+<tt>/dev/fd0</tt>, <tt>/dev/sda2</tt>).
+</p>
+<tag>single</tag>
+<p>Boot system in single user mode.
+</p><tag>kgdb</tag> <p>Enable kernel-gdb (works only if <tt>CONFIG&lowbar;KGDB</tt> is
+enabled; a second Alpha system needs to be connected over the serial
+port in order to make this work)
+</p>
+</descrip>
+</p>
+<p>
+Some SRM implementations (e.g., the one for the Jensen) are
+handicapped and allow only short option strings (e.g., at most 8
+characters).  In such a case, <tt>aboot</tt> can be booted with the
+single-character boot flag "i".  With this flag, <tt>aboot</tt> will
+enter interactive mode
+</p>
+</sect2>
+
+<sect2><heading>Using aboot interactively</heading>
+<p>
+As of version 0.6, <tt>aboot</tt> supports a simple command-oriented
+interactive mode.  Note that this is <em>different</em> from the prompt
+which previous versions issued when booted with the "i" flag, or after
+failing to load a kernel.  You can get a summary of the available
+commands by typing "h" or "?" at the prompt:
+<tscreen><verb>
+>>> boot dka0 -fl i
+aboot> ?
+ h, ?                   Display this message
+ q                      Halt the system and return to SRM
+ p 1-8                  Look in partition <num> for configuration/kernel
+ l                      List pre-configured kernels
+ d <dir>                List directory <dir> in current filesystem
+ b <file> <args>        Boot kernel in <file> (- for raw boot)
+                        with arguments <args>
+ 0-9                    Boot pre-configuration 0-9 (list with 'l')
+aboot> b 3/vmlinux.gz root=/dev/sda3 single
+</verb></tscreen>
+</p>
+</sect2>
+
+<sect2><heading>The aboot.conf configuration file</heading>
+<p>
+Since booting in that manner quickly becomes tedious, <tt>aboot</tt>
+allows to define short-hands for frequently used command lines.  In
+particular, a single digit option (0-9) requests that <tt>aboot</tt> uses
+the corresponding option string stored in file
+<tt>/etc/aboot.conf</tt>.  A sample <tt>aboot.conf</tt> is shown below:
+<tscreen><verb>
+#
+# aboot default configurations
+#
+0:3/vmlinux.gz root=/dev/sda3
+1:3/vmlinux.gz root=/dev/sda3 single
+2:3/vmlinux.new.gz root=/dev/sda3
+3:3/vmlinux root=/dev/sda3
+8:- root=/dev/sda3            # fs-less boot of raw kernel
+9:0/vmlinux.gz root=/dev/sda3 # fs-less boot of (compressed) ECOFF kernel
+-
+</verb></tscreen>
+</p>
+<p>With this configuration file, the command
+<tscreen><verb>
+>>> boot dka0 -fl 1
+</verb></tscreen>
+corresponds exactly to the boot command shown above.
+</p>
+<p>
+Finally, at the <tt>aboot</tt> prompt, it is possible to enter one of the
+single character flags ("0"-"9") to get the same effect as if that
+flag had been specified in the boot command line.  As noted in the
+help text cited above, you can also list the available default
+configurations with the "l" command.
+</p>
+
+<sect3><heading>Selecting the Partition of /etc/aboot.conf</heading>
+<p>
+When installed on a harddisk, <tt>aboot</tt> needs to know what
+partition to search for the <tt>/etc/aboot.conf</tt> file.  A newly
+compiled <tt>aboot</tt> will search the <em>second</em> partition (e.g.,
+<tt>/dev/sda2</tt>).  Since it would be inconvenient to have to
+recompile <tt>aboot</tt> just to change the partition number,
+<tt>abootconf</tt> allows to directly modify an installed <tt>aboot</tt>.
+Specifically, if you want to change <tt>aboot</tt> to use the <em>third</em>
+partition on disk <tt>/dev/sda</tt>, you'd use the command:
+<tscreen><verb>
+# abootconf /dev/sda 3
+</verb></tscreen>
+</p>
+<p>
+You can verify the current setting by simply omitting the partition
+number.  That is: <tt>abootconf /dev/sda</tt> will print the currently
+selected partition number.  Note that <tt>aboot</tt> does have to be
+installed already for this command to succeed.  As of version 0.6,
+<tt>swriteboot</tt> will preserve the existing configuration when
+installing a new <tt>aboot</tt> on a hard disk.
+</p><p>Since <tt>aboot</tt> version 0.5, it is also possible to select the
+<tt>aboot.conf</tt> partition via the boot command line. This can be
+done with a command line of the form <it>a</it><tt>:</tt><it>b</it>
+where <it>a</it>
+is the partition that holds <tt>/etc/aboot.conf</tt> and <it>b</it> is a
+single-letter option as described above (<tt>0</tt>-<tt>9</tt>, <tt>i</tt>, or
+<tt>h</tt>). For example, if you type <tt>boot -fl "3:h" dka100</tt> the
+system boots from SCSI ID 1, loads <tt>/etc/aboot.conf</tt> from the
+third partition, prints its contents on the screen and waits for you
+to enter the boot options.
+</p>
+</sect3>
+</sect2>
+</sect1>
+
+
+<sect1><heading>Booting Over the Network<label id="Network Booting"></heading>
+<p>
+Three steps are necessary before Linux can be booted via
+a network.  First you need an Ethernet adapter that is supported by SRM.
+Most version of SRM support the DE500 series of cards, with newer
+versions (5.6 and later) also supporting the Intel EtherExpress/Pro series
+of cards.
+Second, you need to set the SRM environment variables to
+enable booting via the bootp protocol and third you need to setup
+another machine as the your boot server.  Enabling bootp in SRM is
+usually done by setting the ewa0_protocol (DE500 cards) or eia0_protocol (Intel cards) variable to bootp.
+<tscreen><verb>
+>>> set ewa0_protocol bootp
+</verb></tscreen>  Setting up the boot server is obviously dependent on
+what operating system that machine is running, but typically it
+involves starting the program <tt>bootpd</tt> in the background after
+configuring the <tt>/etc/bootptab</tt> file.  The <tt>bootptab</tt> file
+has one entry describing each client that is allowed to boot from
+the server.  For example, if you want to boot the machine
+<tt>myhost.cs.arizona.edu</tt>, then an entry of the following form would
+be needed:
+<tscreen><verb>
+myhost.cs.arizona.edu:\
+	:hd=/remote/:bf=vmlinux.bootp:\
+	:ht=ethernet:ha=08012B1C51F8:hn:vm=rfc1048:\
+	:ip=192.12.69.254:bs=auto:
+</verb></tscreen>
+</p>
+<p>
+This entry assumes that the machine's Ethernet address is
+<tt>08012B1C51F8</tt> and that its IP address is 192.12.69.254.  The
+Ethernet address can be found with the <tt>show device</tt> command of the
+SRM console or, if Linux is running, with the <tt>ifconfig</tt> command.
+The entry also defines that if the client does not specify otherwise,
+the file that will be booted is <tt>vmlinux.bootp</tt> in directory
+<tt>/remote</tt>.  For more information on configuring <tt>bootpd</tt>,
+please refer to its man page.
+</p>
+<p>
+Next, build <tt>aboot</tt> with with the command <tt>make netboot</tt>.  Make
+sure the kernel that you want to boot has been built already.  By
+default, the <tt>aboot</tt> <tt>Makefile</tt> uses the kernel in
+<tt>/usr/src/linux/arch/alpha/boot/vmlinux.gz</tt> (edit the
+<tt>Makefile</tt> if you want to use a different path).  The result of
+<tt>make netboot</tt> is a file called <tt>vmlinux.bootp</tt> which contains
+<tt>aboot</tt> <em>and</em> the Linux kernel, ready for network booting.
+</p>
+<p>
+Finally, copy <tt>vmlinux.bootp</tt> to the bootserver's directory.  In the
+example above, you'd copy it into <tt>/remote/vmlinux.bootp</tt>.
+Next, power up the client machine and boot it, specifying the Ethernet
+adapter as the boot device.  Typically, SRM calls the first Ethernet
+adapter <tt>ewa0</tt>, so to boot from that device, you'd use the command:
+<tscreen><verb>
+>>> boot ewa0
+</verb></tscreen>
+</p>
+<p>
+The <tt>-fi</tt> and <tt>-fl</tt> options can be used as usual.  In
+particular, you can ask <tt>aboot</tt> to prompt for Linux kernel
+arguments by specifying the option <tt>-fl i</tt>.
+</p>
+</sect1>
+
+<sect1><heading>Partitioning Disks</heading>
+<sect2><heading>What is a disklabel?</heading>
+<p>
+A disk label is a partition table. Unfortunately, there are several
+formats the partition table can take, depending on the operating
+system.
+</p>
+<p>
+DOS partition tables are the standard used by Linux and
+Windows. AlphaBIOS systems and every Linux kernel can read DOS
+partition tables. Unfortunately, the SRM console's boot sector format
+overlaps with parts of the DOS partition table on disk, and therefore
+DOS partition tables cannot be used with SRM.
+</p>
+<p>
+BSD disklabels are used by several variants of Unix, including
+Tru64.  SRM's boot block does not conflict with the BSD disklabel (in
+fact, the BSD disklabel resides entirely within "reserved" areas of
+the first sector), and Linux can use a BSD disklabel, provided that
+support for BSD disklabels has been compiled into the kernel.
+</p>
+<p>
+To boot from a disk using SRM, a BSD disklabel is required. If the
+disk is not a boot disk, the BSD disklabel is not required. A BSD
+disklabel can be created using fdisk, the standard Linux disk
+partitioning tool.
+</p>
+</sect2>
+
+<sect2><heading>Partitioning the Easy Way: a DOS Disklabel</heading>
+<p>
+The simplest way to partition your disk is to let your Linux installer
+do it for you, for example by using Red Hat's disk druid or fdisk.  On
+Red Hat 6.1, this will produce a valid BSD disklabel, but
+<em>only</em> if the disk in question previously contained one.  In
+most cases, this will produce a DOS disklabel.  It will be readable by
+Linux, but you will not be able to boot from it via SRM.  For this
+reason, you will probably want to create a BSD disklabel manually in
+order to boot Linux
+</p>
+</sect2>
+
+<sect2>
+<heading>Partitioning with a BSD Disklabel</heading>
+<p>
+<enum>
+<item>Start fdisk on the disk you're configuring</item> 
+<item>Choose to make a BSD disklabel - option 'b' (newer versions of
+fdisk will detect existing BSD disklabels and automatically enter
+disklabel mode)</item>
+<item>You'll notice some things: Partitions are letters instead of
+numbers, from a-h Partition 'c' covers the whole of the disk. This is
+the convention, don't touch it.  While you can see it, note down the
+disk parameters as you'll use them more often than with the
+DOS-disklabel approach</item>
+<item>Creating a new partition uses the same procedure as the
+DOS-disklabel approach, except that the partitions are referred to by
+letter instead of number. That is, 'n' to make a new partition
+followed by the partition letter followed by the starting block
+followed by the end block</item>
+<item>Setting partition type is slightly different, because the
+numbering scheme is different (1 is swap, 8 is ext2).</item>
+<item>When you are finished, write ('w') and quit ('q') as normal.</item> 
+</enum>
+</p>
+<p>
+There are some important catches that you must be aware of when
+partitioning using a BSD disklabel:
+<itemize>
+<item>Partition 'a' should start about 1M into the disk: don't start
+it at sector 1, try starting at sector 10 (for example). This leaves
+plenty of space for writing the boot block (see below)</item>
+<item>There is a bug in some versions of fdisk which makes the disk
+look one sector bigger than it actually is.  The listing when you
+create the BSD disklabel is correct.  The last sector of partition 'c'
+is correct.  The default last sector when creating a new partition is
+1 sector too big</item>
+<item>Always adjust for this extra sector. This bug exists in the
+version of fdisk shipped with Red Hat 6.0. Not making an adjustment
+for this problem almost always leads to "Access beyond end of device"
+errors from the Linux kernel.</item>
+</itemize>
+</p>
+<p>
+Once you have made a BSD disklabel, continue the installation. After
+installation, you can write a boot block to your disk to make it
+bootable from SRM.
+</p>
+</sect2>
+</sect1>
+</sect>
+
+
+
+<sect><heading>Sharing a Disk With DEC Unix</heading>
+<p>
+Unfortunately, DEC Unix doesn't know anything about Linux, so sharing
+a single disk between the two OSes is not entirely trivial.  However,
+it is not a difficult task if you heed the tips in this section.  The
+section assumes you are using <tt>aboot</tt> version 0.5 or newer.
+</p>
+
+<sect1><heading>Partitioning the disk</heading>
+<p>
+First and foremost: <em>never</em> use any of the Linux partitioning
+programs (<tt>minlabel</tt> or <tt>fdisk</tt>) on a disk that is also
+used by DEC Unix.  The Linux <tt>minlabel</tt> program uses the same
+partition table format as DEC Unix <tt>disklabel</tt>, but there are
+some incompatibilities in the data that <tt>minlabel</tt> fills in, so
+DEC Unix will simply refuse to accept a partition table generated by
+<tt>minlabel</tt>.  To setup a Linux <tt>ext2</tt> partition under DEC
+Unix, you'll have to change the disktab entry for your disk.  For the
+purpose of this discussion, let's assume that you have an rz26 disk (a
+common 1GB drive) on which you want to install Linux.  The disktab
+entry under DEC Unix v3.2 looks like this (see file
+<tt>/etc/disktab</tt>):
+<tscreen><verb>
+rz26|RZ26|DEC RZ26 Winchester:\
+        :ty=winchester:dt=SCSI:ns#57:nt#14:nc#2570:\
+        :oa#0:pa#131072:ba#8192:fa#1024:\
+        :ob#131072:pb#262144:bb#8192:fb#1024:\
+        :oc#0:pc#2050860:bc#8192:fc#1024:\
+        :od#393216:pd#552548:bd#8192:fd#1024:\
+        :oe#945764:pe#552548:be#8192:fe#1024:\
+        :of#1498312:pf#552548:bf#8192:ff#1024:\
+        :og#393216:pg#819200:bg#8192:fg#1024:\
+        :oh#1212416:ph#838444:bh#8192:fh#1024:
+</verb></tscreen>
+</p>
+<p>
+The interesting fields here are <tt>o</tt><it>?</it>, and
+<tt>p</tt><it>?</it>, where <it>?</it> is a letter in the range
+<tt>a</tt>-<tt>h</tt> (first through 8-th partition).  The <tt>o</tt>
+value gives the starting offset of the partition (in sectors) and the
+<tt>p</tt> value gives the size of the partition (also in sectors).
+See <tt>disktab(4)</tt> for more info.  Note that DEC Unix likes to
+define overlapping partitions.  For the entry above, the partition
+layout looks like this (you can verify this by adding up the various
+<tt>o</tt> and <tt>p</tt> values):
+<tscreen><verb>
+  a    	b      	  d    	      e	     	  f
+|---|-------|-----------|-----------|-----------|
+
+                        c
+|-----------------------------------------------|
+
+                     g                 h
+            |-----------------|-----------------|
+</verb></tscreen>
+</p>
+<p>
+DEC Unix insists that partition <tt>a</tt> starts at offset 0 and that
+partition <tt>c</tt> spans the entire disk.  Other than that, you can
+setup the partition table any way you like.
+</p>
+<p>
+Let's suppose you have DEC Unix using partition <tt>g</tt> and want to
+install Linux on partition <tt>h</tt> with partition <tt>b</tt> being a
+(largish) swap partition.  To get this layout without destroying the
+existing DEC Unix partition, you need to set the partition types
+explicitly.  You can do this by adding a <tt>t</tt> field for each
+partition.  In our case, we add the following line to the above
+disktab entry.
+<tscreen><verb>
+	:ta=unused:tb=swap:tg=4.2BSD:th=resrvd8:
+</verb></tscreen>
+</p>
+<p>
+Now why do we mark partition <tt>h</tt> as "reservd8" instead of "ext2"?
+Well, DEC Unix doesn't know about Linux.  It so happens that partition
+type "ext2" corresponds to a numeric value of 8, and DEC Unix uses the
+string "reservd8" for that value.  Thus, in DEC Unix speak, "reservd8"
+means "ext2".  OK, this was the hard part.  Now we just need to
+install the updated disktab entry on the disk.  Let's assume the disk
+has SCSI id 5.  In this case, we'd do:
+<tscreen><verb>
+# disklabel -rw /dev/rrz5c rz26
+</verb></tscreen>
+</p>
+<p>
+You can verify that everything is all right by reading back the
+disklabel with <tt>disklabel -r /dev/rrz5c</tt>.  At this point, you
+may want to reboot DEC Unix and make sure the existing DEC Unix
+partition is still alive and well.  If that is the case, you can shut
+down the machine and start with the Linux installation.  Be sure to
+skip the disk partitioning step during the install.  Since we already
+installed a good partition table, you should be able to proceed and
+select the 8th partition as the Linux root partition and the 2nd
+partition as the swap partition.  If the disk is, say, the second SCSI
+disk in the machine, then the device name for these partitions would
+be <tt>/dev/sdb8</tt> and <tt>/dev/sdb2</tt>, respectively (note that
+Linux uses letters to name the drives and numbers to name the
+partitions, which is exactly reversed from what DEC Unix does; the
+Linux scheme makes more sense, of course ;-).
+</p>
+</sect1>
+
+<sect1><heading>Installing <tt>aboot</tt></heading>
+<p>
+<em>First big caveat</em>: with the SRM firmware, you can boot one and
+only one operating system per disk.  For this reason, it is generally
+best to have at least two SCSI disks in a machine that you want to
+dual-boot between Linux and DEC Unix.  Of course, you could also boot
+Linux from a floppy if speed doesn't matter or over the network, if
+you have a <tt>bootp</tt>-capable server.  But in this section we assume
+you want to boot Linux from a disk that contains one or more DEC Unix
+partitions.
+</p>
+<p>
+<em>Second big caveat</em>: installing <tt>aboot</tt> on a disk shared with
+DEC Unix renders the first and third partition unusable (since those
+<em>must</em> have a starting offset of 0).  For this reason, we recommend
+that you change the size of partition <tt>a</tt> to something that is just
+big enough to hold <tt>aboot</tt> (1MB should be plenty).
+</p><p>Once these two caveats are taken care of, installing <tt>aboot</tt> is
+almost as easy as usual: since partition <tt>a</tt> and <tt>c</tt> will
+overlap with <tt>aboot</tt>, we need to tell <tt>swriteboot</tt> that this is
+indeed OK.  We can do this under Linux with a command line of the
+following form (again, assuming we're trying to install <tt>aboot</tt> on
+the second SCSI disk):
+<tscreen><verb>
+# swriteboot -f1 -f3 /dev/sdb bootlx
+</verb></tscreen>
+</p>
+<p>
+The <tt>-f1</tt> means that we want to force writing <tt>bootlx</tt> even
+though it overlaps with partition 1.  The corresponding applies for
+partition 3.
+</p>
+<p>This is it.  You should now be able to shutdown the system and boot
+Linux from the harddisk.  In our example, the SRM command line to do
+this would be:
+<tscreen><verb>
+>>> boot dka5 -fi 8/vmlinux.gz -fl root=/dev/sdb8
+</verb></tscreen>
+</p>
+</sect1>
+</sect>
+
+<sect><heading>Installation of Distributions</heading>
+<sect1>RedHat 6.0 and 6.1
+<sect2><heading>Installation from the Red Hat 6.0 or 6.1 CD</heading>
+<p>
+Red Hat have made their distribution CD bootable from SRM console
+<footnote>Please note that through the official RedHat CD-ROM is SRM
+bootable, copies made by various other companies may not be
+bootable.</footnote> To start an installation, put the CD in and type
+the following:
+<tscreen><verb>
+>>> boot srm-device -file kernels/generic.gz -flags root=linux-device
+</verb></tscreen>
+</p>
+<p>
+In the above, the SRM device name and Linux device name for your
+CD-ROM drive are needed.  For Example if the machine had an IDE cdrom
+installed as primary master the command would look like this:
+<tscreen><verb>
+>>> boot dqa0 -file kernels/generic.gz -flags "root=/dev/hda"
+</verb></tscreen>
+</p>
+<p>
+See the section on <ref id="device naming"> conventions if you don't know what these are.
+</p>
+</sect2>
+</sect1>
+
+<sect1>SuSE 6.1
+<sect2><heading>Installation from the SuSE 6.1 CD</heading>
+<p>
+The SuSE 6.1 CD is not bootable from SRM console. SuSE have an
+alternative approach which involves creating two boot floppies, the
+images of which are included on the CD.  The boot disks can be created
+in various ways, depending on the systems you have available
+</p>
+<p>Writing the boot disks from a linux system
+The command to use is dd. From the mount-point of SuSE CD 1, the commands are:
+<tscreen><verb>
+# dd if=disks/aboot of=/dev/fd0
+# dd if=disks/install of=/dev/fd0
+</verb></tscreen>
+</p>
+<p>
+For writing the boot disks from a windows system, the command to use
+is rawrite. It is available on the CD.
+<tscreen> <verb>
+D:\tools\> rawrite
+</verb></tscreen>
+</p>
+<p>
+The program then prompts for input disk image and output disk
+drive. Run this command once for each of the disk images as shown
+above.
+</p>
+<p>
+Starting the SuSE installer from the boot disks
+With the floppy disk made from the aboot image in place, type:
+<tscreen><verb>
+>>> boot dva0 -file vmlinux.gz -flags "root=/dev/fd0 load_ramdisk=1"
+</verb></tscreen>
+</p>
+<p>
+This will start the kernel, prompt you for the second boot disk, and start the installer
+</p>
+</sect2>
+</sect1>
+
+<sect1>SuSE 6.3
+
+<sect2><heading>Installation from the SuSE 6.3 CD</heading>
+<P>
+The SuSE 6.3 CD-ROM is SRM bootable much like the RedHat 6.0 and 6.1 CD-ROMs. The best way
+to start the install from SRM is to use the following command:
+<tscreen><verb>
+>>> boot srm-device -flags 0
+</verb></tscreen>
+</p>
+<p>
+In the above, the SRM device names for your
+CD-ROM drive is needed.  For Example if the machine had an IDE cdrom
+installed as primary master the command would look like this:
+<tscreen><verb>
+>>> boot dqa0 -flags 0
+</verb></tscreen>
+SuSE has added support to aboot to allow it to load initrd files. The above command will from the
+CD-ROM drive and use config number 0 from the /etc/aboot.conf file. For other variations
+on this refer to the SuSE installation guide.
+</sect2>
+</sect1>
+</sect>
+
+
+<sect><heading>Document History</heading>
+<p>
+v0.6.1 21 March 2000 Changes from Rich Payne &lt;rdp@alphalinux.org&gt;
+<itemize>
+<item> Made the installation hints a new chapter</item>
+<item> Added information on Netbooting</item>
+<item> Added to the new section on RedHat 6.1 and BSD disklabels</item>
+<item> Removed David Mosberger-Tang's name from the authors list</item>
+<item> Marked a few of the feature as being in 0.6 only</item>
+<item> Added info for SuSE 6.3 and RedHat 6.1</item>
+</itemize>
+</p>
+<p>
+v0.6 3 March 2000 Changes and information from David Huggins-Daines
+&lt;dhd@linuxcare.com&gt;
+<itemize>
+<item>Moved the notes on MILO vs. SRM to an "About this document" section</item>
+<item>Added sections on switching to SRM, and basic SRM usage</item>
+<item>Added section on the new interactive use of aboot</item>
+<item>Updated the note on DOS partition tables to mention the Red Hat 6.1
+installer's behavior.</item>
+<item>Normalized the markup, and codified the conventions used for
+user-entered commands.</item>
+<item>Corrected the notes on BSD disklabels (SRM does <em>not</em>
+read BSD disklabels, it's just that they don't conflict with the boot
+block).</item>
+</itemize>
+</p>
+<p>
+v0.5.2 5 December 1999 Added comments and information from Stig Telfer
+(stig @ alpha-processor.com).
+<itemize>
+<item>Added chart on SRM to Linux name mappings</item>
+<item>Added RedHat 6.0 and SuSE 6.1 installation information</item>
+<item>Added Disk Partitioning Information</item>
+</itemize>
+</p>
+<p>
+v0.5.1 (Not Released) 13 November 1999 Took the original 0.5 document and updated several parts:
+</p>
+<p>
+<itemize>
+<item>Update information on SRM booting from IDE devices</item>
+<item>Fixed URL to aboot source</item>
+<item>Update toc page to reflect MILO's future</item>
+<item>Included information on bootdef&lowbar;dev and boot&lowbar;dev to chapter 3</item>
+<item>Added this section</item>
+</itemize>
+</p>
+<p>
+v0.5 17 August 1996 - Original Document by David Mosberger-Tang
+</p>
+</sect>
+</article>
+</linuxdoc>

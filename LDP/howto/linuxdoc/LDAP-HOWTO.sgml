@@ -1,0 +1,1370 @@
+<!doctype linuxdoc system>
+
+<!-- LDAP Linux HOWTO -->
+
+<article>
+
+<!-- Title information -->
+
+<title>LDAP Linux HOWTO
+<author>Luiz Ernesto Pinheiro Malere, <tt/malere@yahoo.com/
+<date>v1.01, 15 February 2000
+<abstract>
+Information about installing, configuring, running and maintaining a LDAP (Lightweight Directory Access Protocol) Server on a Linux machine is presented on this document. There are also details about how to create LDAP databases, how to update and delete information on the database, how to implement roaming access and how to use Netscape Address Book. This document is mostly based on the University of Michigan LDAP information pages.
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>Introduction
+
+<p>
+The main purpose of this document is to setup and use a LDAP Directory Server on your Linux machine.You will learn how to install, configure, run and maintain the LDAP server. After you also learn how you can store, retrieve and update information on your Directory using the LDAP clients and utilities.
+The daemon for the LDAP directory server is called <it/slapd/ and it runs on many different UNIX platforms. 
+<p>
+There is another daemon that cares for replication between LDAP servers. It's called <it/slurpd/ and for the moment you don't need to worry about it. In this document you run a slapd which provides directory service for your local domain only, without replication, so without slurpd. 
+<p>
+This is a simple configuration for the server, good for starting but easy to upgrade to another configuration later if you want.
+The information presented on this document represents a nice initialization on using the LDAP protocol. Possibly after reading this document you would feel encouraged to expand the capabilities of your server and even write your own clients, using the already avaiable C, C++ and Java Development Kits.
+
+<sect1>What's LDAP ?
+<p>
+LDAP is a client-server protocol for accessing a directory service.
+It was initially used as a front-end to X.500, but can also be used with stand-alone and other kinds of directory servers.
+
+<sect1>What's a Directory Service ?
+<p>
+A directory is like a database, but tends to contain more descriptive, attribute-based information. The information in a directory is generally read much more often than it is written. As a consequence, directories don't usually implement the complicated transaction or roll-back schemes that regular databases use for doing high-volume complex updates. Directory updates are typically simple all-or-nothing changes, if they are allowed at all. 
+<p>
+Directories are tuned to give quick-response to high-volume lookup or search operations. They may have the ability to replicate information widely in order to increase availability and reliability, while reducing response time. When directory information is replicated, temporary inconsistencies between the replicas may be OK, as long as they get in sync eventually.
+<p>
+There are many different ways to provide a directory service. Different methods allow different kinds of information to be stored in the directory, place different requirements on how that
+information can be referenced, queried and updated, how it is protected from unauthorized access, etc. Some directory services are local, providing service to a restricted context (e.g., the finger service on a single machine). Other services are global, providing service to a much broader context.
+
+<sect1>How does LDAP work ?
+<p>
+LDAP directory service is based on a client-server model. One or more LDAP servers contain the data making up the LDAP directory tree or LDAP backend database. An LDAP client connects to an LDAP server and asks it a question. The server responds with the answer, or with a pointer to where the client can get more information (typically, another LDAP server). No matter which LDAP server a client connects to, it sees the same view of the directory; a name presented to one LDAP server references the same entry it would at another LDAP server. This is an important feature of a global directory service, like LDAP.
+
+<sect1>LDAP backends, objects and attributes
+<p>
+Slapd comes with three different backend databases you can choose from. They are LDBM, a high-performance disk-based database; SHELL, a database interface to arbitrary UNIX commands or shell scripts; and PASSWD, a simple password file database.
+<p>
+In this document I assume that you choose the LDBM database.
+<p>
+The LDBM database works by assigning a compact four-byte unique identifier to each entry in the database. It uses this identifier to refer to entries in indexes. The database consists of one
+main index file, called id2entry, which maps from an entry's unique identifier (EID) to a text representation of the entry itself. Other index files are maintained as well.
+<p>
+To import and export directory information between LDAP-based directory servers, or to describe a set of changes which are to be applied to a directory, the file format known as LDIF, for LDAP Data Interchange Format, is typically used. An LDIF file stores information in object-oriented hierarchies of entries. The LDAP software package you're going to get comes with an utility to convert LDIF files to the LDBM format
+<p>
+A common LDIF file looks like this :
+<p><tscreen><verb>
+dn: o=TUDelft, c=NL
+o: TUDelft
+objectclass: organization
+dn: cn=Luiz Malere, o=TUDelft, c=NL
+cn: Luiz Malere
+sn: Malere
+mail: malere@yahoo.com
+objectclass: person
+</verb></tscreen>
+<p>
+As you can see each entry is uniquely identified by a distinguished name, or DN. the DN consists of the name of the entry plus a path of names tracing the entry back to the top of the directory hierarchy.
+<p>
+In LDAP, an object class defines the collection of attributes that can
+be used to define an entry. The LDAP standard provides these basic types
+of object classes:
+<itemize>
+<item>Groups in the directory, including unordered lists of individual objects or groups of objects.
+<item>Locations, such as the country name and description.
+<item>Organizations in the directory.
+<item>People in the directory.
+</itemize>
+<p>
+An entry can belong to more than one object class. For example, the entry for a person is defined by the <it/person/ object class, but may also be defined by attributes in the inetOrgPerson, groupOfNames, and organization objectclasses. The server's object class structure (its schema) determines the total list of required and allowed attributes for a particular entry.
+<p>
+Directory data is represented as attribute-value pairs. Any specific piece of information is associated with a descriptive attribute.
+<p>
+For instance, the commonName, or cn, attribute is used to store a person's name. A person named Jonas Salk can be represented in the directory as
+<tscreen><verb>
+cn: Jonas Salk
+</verb></tscreen>
+<p>
+Each person entered in the directory is defined by the collection of attributes in the <it/person/ object class. Other attributes used to define this entry could include:
+<tscreen><verb>
+givenname: Jonas
+surname: Salk
+mail: jonass@airius.com
+</verb></tscreen>
+<p>
+Required attributes include the attributes that must be present in entries using the object class. All entries require the objectClass attribute, which lists the object classes to which an entry belongs.
+<p>
+Allowed attributes include the attributes that may be present in entries using the object class. For example, in the person object class, the cn and sn attributes are required. The description, telephoneNumber, seeAlso, and userpassword attributes are allowed but are not required.
+<p>
+Each attribute has a corresponding syntax definition. The syntax definition describes the type of information provided by the attribute :
+<itemize>
+<item>bin binary
+<item>ces case exact string (case must match during comparisons)
+<item>cis case ignore string (case is ignored during comparisons)
+<item>tel telephone number string (like cis but blanks and dashes `- ' are ignored during comparisons)
+<item>dn distinguished name
+</itemize>
+<p> 
+Go to the first paragraph of <ref id="3" name="section 3"> to know where the objectclass and attribute definitions lay on your system.
+
+<sect1>New Versions of this Document
+<p>
+This document may receive corrections and updates based on the feedback received by the readers. You should look at :
+<p>
+<url url="http://dutedin.et.tudelft.nl/~malere/LDAP-Linux-HOWTO.html"
+name="http://dutedin.et.tudelft.nl/~malere/LDAP-Linux-HOWTO.html">
+<p>
+for new versions of this HOWTO.
+
+<sect1>Opinions and Sugestions
+<p>
+If you have any kind of doubt about some information avaiable on this document,please contact me on the following email address :
+<p>
+<url url="mailto:malere@yahoo.com" name="malere@yahoo.com">
+<p>
+If you have commentaries and/or sugestions, please let me know too !
+
+<sect1>Acknowledgments
+<p>
+This Howto was result of an internship made by me on the TUDelft University - Netherlands. I would like to thank the persons that encouraged me to write this document : Rene van Leuken and Wim Tiwon. Thank you very much. They are also Linux fans, just like me.
+
+<sect1>Copyright and Disclaimer
+<p>
+The LDAP Linux HOWTO is Copyrighted 1999 by Luiz Ernesto Pinheiro Malere. It can be distributed freely. It cannot be modified. If you have any kind of sugestion, please send me an email (I will update the document if the sugestion proceeds).
+<p>
+If you want a translation, for example to Portuguese, you can send me an email about it too.
+<p>
+No liability for the contents of this document can be accepted. I have no responsability about the consequences of following the steps provided in this document.
+<p>
+If you have questions, please contact, the Linux HOWTO coordinator, at
+<p><url url="linux-howto@metalab.unc.edu" name="linux-howto@metalab.unc.edu">
+
+<sect>Installing the LDAP Server
+<p>
+Four steps are necessary to install the server : Download the package, Unpack the software, Configure the Makefiles and Build the server. 
+
+<sect1>Downloading the package
+<p>
+There are two free distributed LDAP servers : University of Michigan LDAP server and OpenLDAP server. There's also the Netscape Directory Server, which is free only under
+some conditions (educational institutions get it free, for example).The OpenLDAP server is based on the latest version of the University of Michigan Server and there are mailing
+lists and aditional documentation avaiable for it. This document supposes that you are using the OpenLDAP server. 
+<p>
+It's latest tar gziped version is avaiable on the following address : 
+<p>
+<url url="http://www.openldap.org" name="http://www.openldap.org">
+<p>
+If you want to get the latest version of University of Michigan Server, go to this address : 
+<p>
+<url url="ftp://terminator.rs.itd.umich.edu/ldap" name="ftp://terminator.rs.itd.umich.edu/ldap">
+<p>
+To write this document, I used the OpenLDAP latest stable version and OpenLDAP 1.2.8 on a Slackware Linux machine with kernel 2.2.6. On the OpenLDAP site you can find the latest development and stable versions of the OpenLDAP server. By the time this document was updated, the latest stable version was openldap-stable-990918.tgz, also available through the link openldap-stable.tgz. The latest development version was openldap-1_2_8.tgz. 
+
+<sect1>Unpacking the server
+<p>
+Now that you have the tar gziped package on your local machine you can unpack it. 
+<p>
+First copy the package to a desirable directory, for example /usr/local. 
+<p>
+Then use the following command : 
+<p>
+<tscreen><verb>
+tar xvzf openldap-stable.tgz 
+</verb></tscreen>
+<p>
+You can use this command too, as well : 
+<p>
+<tscreen><verb>
+gunzip openldap-stable.tgz &verbar; tar xvf - 
+</verb></tscreen>
+
+<sect1>Configuring the software
+<p>
+There are several options that you should like to customize so you can build the best software to your site. 
+<p>
+To configure the software you just need 2 steps : 
+<itemize>
+<item>Edit the file <it/ldapconfig.h.edit/, located on the subdirectory <it/include/ beneath the directory where you unpacked the software. 
+<item>Run the configure script (if you are a tough guy, you can also edit the Make-common file
+instead of running the configure script :^) 
+</itemize>
+<p>
+In the file include/ldapconfig.h.edit you can set options like the location of the slapd and slurpd daemons. The file itself is well commented and it's default settings also reflect the
+most common administrator choices so, if you are in a hurry you can skip this step, and run directly: 
+<p>
+<tscreen><verb>
+vi include/ldapconfig.h.edit 
+</verb></tscreen>
+<p>
+The OpenLDAP server sources are distributed with a configuration script for setting options like instalation directories, compiler and linker flags. Type the following command on
+the directory where you unpacked the software : 
+<tscreen><verb>
+./configure --help 
+</verb></tscreen>
+This will print all options that you can customize with the configure script before you build the software. Some usefull options are --prefix=pref , --exec-prefix=eprefix and
+--bindir=dir, for setting instalation directories. Normally if you run configure without options, it will auto-detect the appropriate settings and prepar to build things on the default
+common location. So just type : 
+<tscreen><verb>
+./configure 
+</verb></tscreen>
+And watch the output to see if all went well 
+
+<sect1>Building the server
+<p>
+After configuring the software you can start building it. First build the dependencies, using the command : 
+<tscreen><verb>
+make depend 
+</verb></tscreen>
+After build the server, using the command : 
+<tscreen><verb>
+make 
+</verb></tscreen>
+If all goes well, the server will build as configured.  If not, return to the previous step to review the configuration settings. You should check the platform specific hints, they are
+located in the path doc/install/hints under the directory you unpacked the software. 
+<p>
+Now install the binaries and man pages.  You may need to be superuser to do this (depending on where you are installing things): 
+<tscreen><verb>
+su 
+make install 
+</verb></tscreen>
+That's all, now you have the binary of the server and the binaries of several other utilities. Go to the <ref id="3" name="next"> section to see how to configure the operation of your LDAP server. 
+
+<p>
+If before learning how to configure your LDAP server you would like to test the recently built binaries, the latest versions of the OpenLDAP server come with a test script. When this document was updated the test script was not 100% stable for all diagnostics that it performed. Anyway you can try to run it and, if anything goes wrong with the script you can just abort it hitting Ctrl-C. In my case before the script stopped working I could see some successfull messages about the results of the most common diagnostics. To run the test script, go to the subdirectory <tt>/test</tt> beneath the path where you unpacked the software and type : 
+<tscreen><verb>
+make
+</verb></tscreen>   
+
+<sect>Configuring the LDAP Server<label id="3">
+<p>
+Once the software has been installed and built, you are ready to configure it for use at your site. All slapd runtime configuration is accomplished through the slapd.conf file,
+installed in the prefix directory you specified in the configuration script or by default in /usr/local/etc/openldap. 
+<p>
+In this directory you will also find the files <it/slapd.oc.conf/ and <it/slapd.at.conf/ which are
+included on the slad.conf file (see include option on <ref id="3.2" name="section 3.2">) and that hold respectively the objectclasses and attributes definitions for the LDAP database backend. 
+Next comes a description of the general format of the config file, followed by a detailed description of each config file option. 
+
+<sect1>Configuration File Format
+<p>
+The slapd.conf file consists of a series of global configuration options that apply to slapd as a whole (including all database backends), followed by zero or more database
+backend definitions that contain information specific to a backend instance. 
+<p>
+Global options can be overridden in a backend (for options that appear more than once, the last appearance in the slapd.conf file is used). Blank lines and comment lines
+beginning with a ``&num;'' character are ignored. If a line begins with white space, it is considered a continuation of the previous line. The general format of slapd.conf is as follows: 
+<tscreen><verb>
+     &num; comment - these options apply to every database 
+     &lt;global config options&gt; 
+     &num; first database definition & config options 
+     database &lt;backend 1 type&gt; 
+     &lt;config options specific to backend 1&gt; 
+     &num; second database definition &amp; config options 
+     database &lt;backend 2 type&gt; 
+     &lt;config options specific to backend 2&gt; 
+     &num; subsequent database definitions & config options 
+     ... 
+</verb></tscreen>
+<p>
+Configuration line arguments are separated by white space. If an argument contains white space, the argument should be enclosed in double quotes "like this". If an argument
+contains a double quote or a backslash character `&bsol;', the character should be preceded by a backslash character `&bsol;', (e.g. `&bsol;&bsol;d').. 
+<p>
+The distribution contains an example configuration file that will be installed in the configuration prefix directory. Also provided are slapd.at.conf, which contains many commonly
+used attribute definitions, and slapd.oc.conf, which contains many commonly used object class definitions. 
+
+<sect1>Global Options<label id="3.2">
+<p>
+Options described in this section apply to all backends, unless specifically overridden in a backend definition. Option arguments that should be replaced by actual text are shown
+in brackets &lt;&gt;. 
+<p>
+access to &lt;what&gt; &lsqb; by &lt;who&gt; &lt;accesslevel&gt; &rsqb;+ 
+<tscreen><verb>
+This option grants access (specified by &lt;accesslevel&gt;) to a set of entries and/or attributes (specified by 
+&lt;what&gt;) by one or more requesters (specified by &lt;who&gt;). See the Access Control Examples for more details. 
+</verb></tscreen>
+<p>
+attribute &lt;name&gt; &lsqb;&lt;name2&gt;&rsqb; &lcub; bin &verbar; ces &verbar; cis &verbar; tel &verbar; dn &rcub; 
+<tscreen><verb>
+This option associates a syntax with an attribute name. By default, an attribute is assumed to have 
+syntax cis. An optional alternate name can be given for an attribute. The possible syntaxes and their 
+meanings are :
+
+bin : binary 
+ces : case exact string (case must match during comparisons) 
+cis : case ignore string (case is ignored during comparisons) 
+tel : telephone number string (like cis but blanks and dashes `-' are ignored during comparisons) 
+dn : distinguished name 
+</verb></tscreen>
+<p>
+defaultaccess &lcub; none &verbar; compare &verbar; search &verbar; read &verbar; write &rcub; 
+<tscreen><verb>
+This option specifies the default access to grant requesters not matched by any other access line (take a look on
+Access Control examples down). Note that an access level implies all lesser access levels (e.g., write access 
+implies read, search and compare). 
+Default: 
+defaultaccess read 
+</verb></tscreen>
+<p>
+include &lt;filename&gt;
+<tscreen><verb>
+This option specifies that slapd should read additional configuration information from the given file before 
+continuing with the next line of the current file. The included file should follow the normal slapd config file 
+format. You can use this option to include the files that contain the objectclass and attribute definitions of 
+your backend database. The LDAP software package comes with the files slapd.oc.conf and slapd.at.conf 
+
+Note: You should be careful when using this option - there is no small limit on the number of nested include 
+options, and no loop detection is done. 
+</verb></tscreen>
+<p>
+loglevel &lt;integer&gt; 
+<tscreen><verb>
+This option specifies the level at which debugging statements and operation statistics should be syslogged 
+(currently logged to the syslogd(8) LOCAL4 facility). You must have 
+compiled slapd with - DLDAP_DEBUG for this to work (except for the two stats levels, which are always enabled).
+Log levels are additive. To display what numbers correspond to what kind of debugging, invoke slapd with 
+the - ? flag or consult the table below. The possible values for &lt;integer&gt; are: 
+
+1 trace function calls 
+2 debug packet handling 
+4 heavy trace debugging 
+8 connection management 
+16 print out packets sent and received 
+32 search filter processing 
+64 configuration file processing 
+128 access control list processing 
+256 stats log connections/operations/results 
+512 stats log entries sent 
+1024 print communication with shell backends 
+2048 print entry parsing debugging 
+
+Example: 
+loglevel 255 
+This will cause lots and lots of debugging information to be syslogged. 
+Default: 
+loglevel 256 
+</verb></tscreen>
+<p>
+objectclass &lt;name&gt; 
+&lsqb; requires &lt;attrs&gt; &rsqb; 
+&lsqb; allows &lt;attrs&gt; &rsqb; 
+<tscreen><verb>
+This option defines the schema rules for the given object class. Used in conjunction with the schemacheck
+ option. 
+</verb></tscreen>
+<p>
+referral &lt;url&gt; 
+<tscreen><verb>
+This option specifies the referral to pass back when slapd cannot find a local database to handle a request. 
+Example: 
+referral ldap://ldap.itd.umich.edu 
+This will refer non-local queries to the LDAP server at the University of Michigan. Smart LDAP clients can
+re-ask their query at that server, but note that most of these clients are only going to know how to handle
+simple LDAP URLs that contain a host part and optionally a distinguished name part. 
+</verb></tscreen>
+<p>
+schemacheck &lcub; on &verbar; off &rcub; 
+<tscreen><verb>
+This option turns schema checking on or off. If schema checking is on, entries added or modified will be 
+checked to ensure they obey the schema rules implied by their object class(es) as defined by the corresponding 
+objectclass option(s). If schema checking is off this check is not done. 
+Default: 
+schemacheck off 
+</verb></tscreen>
+<p>
+sizelimit &lt;integer&gt; 
+<tscreen><verb>
+This option specifies the maximum number of entries to return from a search operation. 
+Default: 
+sizelimit 500 
+</verb></tscreen>
+<p>
+srvtab &lt;filename&gt;
+<tscreen><verb>
+This option specifies the srvtab file in which slapd can find the kerberos keys necessary for authenticating 
+clients using kerberos. This option is only meaningful if you are using kerberos authentication, which must 
+be enabled at compile time by including the appropriate definitions in the Make-common file. 
+Default: 
+srvtab /etc/srvtab 
+</verb></tscreen>
+<p>
+timelimit &lt;integer&gt;
+<tscreen><verb>
+This option specifies the maximum number of seconds (in real time) slapd will spend answering a search request.
+If a request is not finished in this time, a result indicating an exceeded timelimit will be returned. 
+Default: 
+timelimit 3600 
+</verb></tscreen>
+
+<sect1>General Backend Options
+<p>
+Options in this section only apply to the backend in which they are defined. They are supported by every type of
+backend. 
+<p>
+database &lt;databasetype&gt;
+<tscreen><verb>
+This option marks the beginning of a new database instance definition. &lt;databasetype&gt; should be one of 
+ldbm, shell, or passwd, depending on which backend will serve the database. 
+Example: 
+database ldbm 
+This marks the beginning of a new LDBM backend database instance definition. 
+</verb></tscreen>
+<p>
+lastmod &lcub; on &verbar; off &rcub; 
+<tscreen><verb>
+This option controls whether slapd will automatically maintain the modifiersName, modifyTimestamp, creatorsName,
+and createTimestamp attributes for entries. 
+Default: 
+lastmod off 
+</verb></tscreen>
+<p>
+readonly &lcub; on &verbar; off &rcub; 
+<tscreen><verb>
+This option puts the database into "read-only" mode. Any attempts to modify the database will return an 
+"unwilling to perform" error. 
+Default: 
+readonly off 
+</verb></tscreen>
+<p>
+replica host=&lt;hostname&gt;&lsqb;:&lt;port&gt;&rsqb; 
+"binddn=&lt;DN&gt;" 
+bindmethod=&lcub; simple &verbar; kerberos &rcub; 
+&lsqb;credentials=&lt;password&gt;&rsqb; 
+&lsqb;srvtab=&lt;filename&gt;&rsqb; 
+<tscreen><verb>
+This option specifies a replication site for this database. The host= parameter specifies a host and 
+optionally a port where the slave slapd instance can be found. Either a domain name or IP address may be
+used for &lt;hostname&gt;. If &lt;port&gt; is not given, the standard LDAP port number (389) is used. 
+The binddn parameter gives the DN to bind as for updates to the slave slapd. It should be a DN which has
+read/write access to the slave slapd's database, typically given as a "rootdn" in the slave's config file. 
+It must also match the updatedn option in the slave slapd's config file. Since DNs are likely to contain 
+embedded spaces, the entire "binddn=&lt;DN&gt;" string should be enclosed in quotes. 
+bindmethod is either simple or kerberos, depending on whether simple password-based authentication or kerberos
+authentication is to be used when connecting to the slave slapd. Simple authentication requires a valid password
+be given. Kerberos authentication requires a valid srvtab file. 
+The credentials= parameter, which is only required if using simple authentication, gives the password for 
+binddn on the slave slapd. 
+The srvtab= parameter, which is only required if using kerberos, specifies the filename which holds the kerberos
+key for the slave slapd. If omitted, /etc/srvtab is used. 
+</verb></tscreen>
+<p>
+replogfile &lt;filename&gt; 
+<tscreen><verb>
+This option specifies the name of the replication log file to which slapd will log changes. The replication log
+is typically written by slapd and read by slurpd. Normally, this option is only used if slurpd is being used 
+to replicate the database. However, you can also use it to generate a transaction log, if slurpd is not running.
+In this case, you will need to periodically truncate the file, since it will grow indefinitely otherwise. 
+</verb></tscreen>   
+<p>
+rootdn &lt;dn&gt; 
+<tscreen><verb>
+This option specifies the DN of an entry that is not subject to access control or administrative limit restrictions
+for operations on this database. 
+Example: 
+rootdn "cn=Manager, o=U of M, c=US" 
+</verb></tscreen>
+<p>
+rootkrbname &lt;kerberosname&gt; 
+<tscreen><verb>
+This option specifies a kerberos name for the DN given above that will always work, regardless of whether an
+entry with the given DN exists or has a krbName attribute. This option is usefull when creating a database and 
+also when using slurpd to provide replication service. 
+Example: 
+rootkrbname admin@umich.edu 
+</verb></tscreen>
+<p>
+rootpw &lt;password&gt; 
+<tscreen><verb>
+This option specifies a password for the DN given above that will always work, regardless of whether an entry
+with the given DN exists or has a password. This option is usefull when creating a database and also when using
+slurpd to provide replication service. Avoid having cleartext password on this option. At least provide an 
+crypto (you can use an entry of Unix /etc/passwd file) password. Slapd supports other types of encryption 
+methods too. 
+Example: 
+rootpw secret 
+rootpw &lcub;crypto&rcub;encrypted_password_here 
+</verb></tscreen>
+<p>
+suffix &lt;dn suffix&gt; 
+<tscreen><verb>
+This option specifies the DN suffix of queries that will be passed to this backend database. Multiple suffix 
+lines can be given, and at least one is required for each database definition. 
+Example: 
+suffix "o=University of Michigan, c=US" 
+Queries with a DN ending in "o=University of Michigan, c=US" will be passed to this backend. 
+Note: when the backend to pass a query to is selected, slapd looks at the suffix line(s) in each database 
+definition in the order they appear in the file. Thus, if one database suffix is a prefix of another, it 
+must appear after it in the config file. 
+</verb></tscreen>
+<p>
+updatedn &lt;dn&gt; 
+<tscreen><verb>
+This option is only applicable in a slave slapd. It specifies the DN allowed to make changes to the replica
+(typically, this is the DN slurpd binds as when making changes to the replica). 
+</verb></tscreen>
+<sect1>LDBM Backend-Specific Options
+<p>
+Options in this category only apply to the LDBM backend database. That is, they must follow a "database ldbm"
+line and come before any other "database" line. 
+<p>
+cachesize &lt;integer&gt; 
+<tscreen><verb>
+This option specifies the size in entries of the in-memory cache maintained by the LDBM backend database 
+instance. 
+Default: 
+cachesize 1000 
+</verb></tscreen>
+<p>
+dbcachesize &lt;integer&gt; 
+<tscreen><verb>
+This option specifies the size in bytes of the in-memory cache associated with each open index file. If not
+supported by the underlying database method, this option is ignored without comment. Increasing this number
+uses more memory but can cause a dramatic performance increase, especially during modifies or when building 
+indexes. 
+Default: 
+dbcachesize 100000 
+</verb></tscreen>
+<p>
+directory &lt;directory&gt; 
+<tscreen><verb>
+This option specifies the directory where the LDBM files containing the database and associated indexes live. 
+Default: 
+directory /usr/tmp 
+</verb></tscreen>
+<p>
+index &lcub;&lt;attrlist&gt; &verbar; default&rcub; &lsqb;pres,eq,approx,sub,none&rsqb; 
+<tscreen><verb>
+This option specifies the indexes to maintain for the given attribute. If only an &lt;attrlist&gt; is given,
+all possible indexes are maintained. 
+Example: 
+index cn 
+index sn,uid eq,sub,approx 
+index default none 
+
+This example causes all indexes to be maintained for the cn attribute; equality, substring, and approximate 
+indexes for the sn and uid attributes; and no indexes for all other attributes. 
+</verb></tscreen>
+<p>
+mode &lt;integer&gt; 
+<tscreen><verb>
+This option specifies the file protection mode that newly created database index files should have. 
+Default: 
+mode 0600 
+</verb></tscreen>
+<sect1>Access Control Examples <label id="bla">
+<p>
+The access control facility presented on <ref id="3.2" name="section 3.2"> is quite powerful. This section shows some examples of 
+its use. First, some simple examples: 
+<tscreen><verb>
+access to * by * read 
+</verb></tscreen>
+<p>
+This access directive grants read access to everyone. If it appears alone it is the same as the following defaultaccess line. 
+<tscreen><verb>
+defaultaccess read 
+</verb></tscreen>
+<p>
+The following example shows the use of a regular expression to select the entries by DN in two access directives where ordering is significant. 
+<tscreen><verb>
+access to dn=".*, o=U of M, c=US" 
+by * search 
+access to dn=".*, c=US" 
+by * read 
+</verb></tscreen>
+<p>
+Read access is granted to entries under the c=US subtree, except for those entries under the "o=University of Michigan, c=US" subtree, to which search access is granted. If
+the order of these access directives was reversed, the U-M-specific directive would never be matched, since all U-M entries are also c=US entries. 
+<p>
+The next example again shows the importance of ordering, both of the access directives and the "by" clauses. It also shows the use of an attribute selector to grant access to a
+specific attribute and various &lt;who&gt; selectors. 
+<tscreen><verb>
+access to dn=".*, o=U of M, c=US" attr=homePhone 
+by self write 
+by dn=".*, o=U of M, c=US" search 
+by domain=.*&bsol;.umich&bsol;.edu read 
+by * compare 
+access to dn=".*, o=U of M, c=US" 
+by self write 
+by dn=".*, o=U of M, c=US" search 
+by * none 
+</verb></tscreen>
+<p>
+This example applies to entries in the "o=U of M, c=US" subtree. To all attributes except homePhone, the entry itself can write them, other U-M entries can search by them,
+anybody else has no access. The homePhone attribute is writable by the entry, searchable by other U-M entries, readable by clients connecting from somewhere in the
+umich.edu domain, and comparable by everybody else. 
+<p>
+Sometimes it is usefull to permit a particular DN to add or remove itself from an attribute. For example, if you would like to create a group and allow people too add and remove only
+their own DN from the member attribute, you could accomplish it with an access directive like this: 
+<tscreen><verb>
+access to attr=member,entry 
+by dnattr=member selfwrite 
+</verb></tscreen>
+<p>
+The dnattr &lt;who&gt; selector says that the access applies to entries listed in the member attribute. The selfwrite access selector says that such members can only add or delete
+their own DN from the attribute, not other values. The addition of the entry attribute is required because access to the entry is required to access any of the entry's attributes. 
+<p>
+Note that the attr=member construct in the &lt;what&gt; clause is a shorthand for the clause "dn=* attr=member" (i.e., it matches the member attribute in all entries). 
+
+<sect>Running the LDAP Server<label id="4">
+<p>
+Slapd can be run in two different modes, stand-alone or from inetd(8). Stand-alone operation is recommended, especially if you are using the LDBM backend. This allows the
+backend to take advantage of caching and avoids concurrency problems with the LDBM index files. If you are running only a PASSWD or SHELL backend, running from inetd is an option. 
+
+<sect1>Command Line Options<label id="4.1">
+<p>
+Slapd supports the following command-line options. 
+<p>
+-d &lt;level&gt; &verbar; ? 
+<tscreen><verb>
+This option sets the slapd debug level to &lt;level&gt;. When level is a `?' character, the various debugging 
+levels are printed and slapd exits, regardless of any other options you give it. Current debugging levels are 
+
+1 trace function calls 
+2 debug packet handling 
+4 heavy trace debugging 
+8 connection management 
+16 print out packets sent and received 
+32 search filter processing 
+64 configuration file processing 
+128 access control list processing 
+256 stats log connections/operations/results 
+512 stats log entries sent 
+1024 print communication with shell backends 
+2048 print entry parsing debugging 
+65535 enable all debugging 
+
+Debugging levels are additive. That is, if you want to trace function calls and watch the config file being
+processed, you would set level to the sum of those two levels (in this case, 65). Consult the &lt;ldap.h&gt; file
+for more details. 
+Note that slapd must have been compiled with -DLDAP_DEBUG defined for any debugging information beyond the 
+two stats levels to be available. 
+</verb></tscreen>
+<p>
+-f &lt;filename&gt; 
+<tscreen><verb>
+This option specifies an alternate configuration file for slapd. 
+</verb></tscreen>
+<p>
+-i 
+<tscreen><verb>
+This option tells slapd that it is running from inetd instead of as a stand-alone server. On the following section
+about running slapd from inetd you will find more details. 
+</verb></tscreen>
+<p>
+-p &lt;port&gt; 
+<tscreen><verb>
+This option specifies an alternate TCP port on which slapd should listen for connections. The default port 
+is 389. 
+</verb></tscreen>
+
+<sect1>Running slapd as a Stand Alone Daemon<label id="42">
+<p>
+In general, slapd is run like this: 
+<p>
+$(ETCDIR)/slapd &lsqb;&lt;option&gt;&rsqb;* 
+<p>
+where ETCDIR has the value you gave in the Make-common file or configure script during the pre-build configuration, and &lt;option&gt; is one of the options described above.
+Unless you have specified a debugging level, slapd will automatically fork and detach itself from its controlling terminal and run in the background. Any of the options given above
+can be given to slapd to point it at a different configuration file, listen on another port, etc. 
+<p>
+See this example of starting slapd : 
+<p>
+$(ETCDIR)/slapd -f /home/malere/myslapd.conf -d 255 
+
+<sect1>Running slapd from inetd
+<p>
+First, make sure that running from inetd(8) is a good idea. If you are using the LDBM backend, it is not. If you are in a high-volume environment, the overhead of running from
+inetd also makes it a bad idea. Otherwise, you may proceed with the two steps necessary. 
+<p>
+Step 1 is to add a line like this to your /etc/services file: 
+<tscreen><verb>
+ldap 389 &num; ldap directory service 
+</verb></tscreen>
+<p>
+Step 2 is to add a line like this to your /etc/inetd.conf file: 
+<tscreen><verb>
+ldap stream tcp nowait nobody $(ETCDIR)/slapd slapd -i 
+</verb></tscreen>
+<p>
+where ETCDIR has the value you gave it in the Make-common file or configure script during pre-build configuration. Finally, send inetd a HUP signal, and you should be all set. 
+
+<sect>Database Creation and Maintenance
+<p>
+This section tells you how to create a slapd database from scratch. There are two ways to create a database. First, you can create the database on-line using LDAP. With this
+method, you simply start up slapd and add entries using the LDAP client of your choice. This method is fine for relatively small databases (a few hundred or thousand entries,
+depending on your requirements). 
+<p>
+The second method of database creation is to do it off-line, using the index generation tools. This method is best if you have many thousands of entries to create, which would
+take an unacceptably long time using the LDAP method, or if you want to ensure the database is not accessed while it is being created. 
+
+<sect1>Creating a Database online
+<p>
+The OpenLDAP software package comes with an utility called ldapadd, used to add entries while the LDAP server is running. If you choose to create the Database online, you
+can use the ldapadd tool to add entries. After adding the first entries, you can still use ldapadd to add more entries. You should be sure to set the following configuration options
+on your sladp.conf file before starting slapd: 
+<p>
+suffix &lt;dn&gt; 
+<p>
+As described in the <ref id="3" name="section 3">, this option says what entries are to be held by this database. You should set this to the DN of the root of the subtree you are trying to create. For
+example : 
+<p>
+suffix "o=TUDelft, c=NL" 
+<p>
+You should be sure to specify a directory where the index files should be created: 
+<p>
+directory &lt;directory&gt; 
+<p>
+For example: 
+<p>
+directory /usr/local/tudelft 
+<p>
+You need to make it so you can connect to slapd as somebody with permission to add entries. This is done through the following two options in the database definition: 
+<p>
+rootdn &lt;dn&gt; 
+<p>
+rootpw &lt;passwd&gt;   /* Remember to use crypto password here !!! */ 
+<p>
+These options specify a DN and password that can be used to authenticate as the "superuser" entry of the database (i.e., the entry allowed to do anything). The DN and
+password specified here will always work, regardless of whether the entry named actually exists or has the password given. This solves the chicken-and-egg problem of how to authenticate and
+add entries before any entries yet exist. 
+<p>
+Finally, you should make sure that the database definition contains the index definitions you want: 
+<p>
+index &lcub;&lt;attrlist&gt; &verbar; default&rcub; &lsqb;pres,eq,approx,sub,none&rsqb; 
+<p>
+For example, to index the cn, sn, uid and objectclass attributes the following index configuration lines could be used. 
+<p>
+index cn,sn,uid 
+<p>
+index objectclass pres,eq 
+<p>
+index default none 
+<p>
+Once you have configured things to your liking, start up slapd, connect with your LDAP client, and start adding entries. For example, to add a the TUDelft entry followed by a
+Postmaster entry using the ldapadd tool, you could create a file called /tmp/newentry with the contents: 
+<tscreen><verb>
+o=TUDelft, c=NL 
+objectClass=organization 
+description=Technical University of Delft Netherlands 
+
+cn=Postmaster, o=TUDelft, c=NL 
+objectClass=organizationalRole 
+cn=Postmaster 
+description= TUDelft postmaster - postmaster@tudelft.nl 
+</verb></tscreen>
+<p>
+and then use a command like this to actually create the entry: 
+<tscreen><verb>
+ldapadd -f /tmp/newentry -D "cn=Manager, o=TUDelft, c=NL" -w secret 
+</verb></tscreen>
+<p>
+The above command assumes that you have set rootdn to "cn=Manager, o=TUDelft, c=NL" and rootpw to "secret". 
+If you don't want to type the password on the command line, use the -W option for the ldapadd command instead of -w "password". You will be prompted to enter the password : 
+<tscreen><verb>
+ldapadd -f /tmp/newentry -D "cn=Manager, o=TUDelft, c=NL" -W 
+Enter LDAP Password : 
+</verb></tscreen>
+
+<sect1>Creating a Database offline
+<p>
+The second method of database creation is to do it off-line, using the index generation tools described below. This method is best if you have many thousands of entries to
+create, which would take an unacceptably long time using the LDAP method described above. These tools read the slapd configuration file and an input LDIF file containing a text representation of
+the entries to add. 
+They produce the LDBM index files directly. There are several important configuration options you will want to be sure and set in the config file database definition first: 
+<p>
+suffix &lt;dn&gt; 
+<p>
+As described in the preceding section, this option says what entries are to be held by this database. You should set this to the DN of the root of the subtree you are trying to
+create. For example :
+<p>
+suffix "o=TUDelft, c=NL" 
+<p>
+You should be sure to specify a directory where the index files should be created: 
+<p>
+directory &lt;directory&gt; 
+<p>
+For example: 
+<p>
+directory /usr/local/tudelft 
+<p>
+Next, you probably want to increase the size of the in-core cache used by each open index file. For best performance during index creation, the entire index should fit in memory.
+If your data is too big for this, or your memory too small, you can still make it pretty big and let the paging system do the work. This size is set with the following option: 
+<p>
+dbcachesize &lt;integer&gt; 
+<p>
+For example: 
+<p>
+dbcachesize 50000000 
+<p>
+This would create a cache 50 MB big, which is pretty big (at University of Michigan, the database has about 125K entries, and the biggest index file is about 45 MB). Experiment
+with this number a bit, and the degree of parallelism (explained below), to see what works best for your system. Remember to turn this number back down once your index files are
+created and before you run slapd. 
+<p>
+Finally, you need to specify which indexes you want to build. This is done by one or more index options. 
+<p>
+index &lcub;&lt;attrlist&gt; &verbar; default&rcub; &lsqb;pres,eq,approx,sub,none&rsqb; 
+<p>
+For example: 
+<p>
+index cn,sn,uid pres,eq,approx 
+<p>
+index default none 
+<p>
+This would create presence, equality and approximate indexes for the cn, sn, and uid attributes, and no indexes for any other attributes. See the configuration file on <ref id="3" name="section 3"> for
+more information on this option. 
+<p>
+Once you've configured things to your liking, you create the indexes by running the ldif2ldbm program: 
+<p>
+ldif2ldbm -i &lt;inputfile&gt; -f &lt;slapdconfigfile&gt; 
+&lsqb;-d &lt;debuglevel&gt;&rsqb; &lsqb;-j &lt;integer&gt;&rsqb; 
+&lsqb;-n &lt;databasenumber&gt;&rsqb; &lsqb;-e &lt;etcdir&gt;&rsqb; 
+<p>
+The arguments have the following meanings: 
+<p>
+-i &lt;inputfile&gt; 
+<p>
+Specifies the LDIF input file containing the entries to add in text form. 
+<p>
+-f &lt;slapdconfigfile&gt; 
+<p>
+Specifies the slapd configuration file that tells where to create the indexes, what indexes to create, etc. 
+<p>
+-d &lt;debuglevel&gt; 
+<p>
+Turn on debugging, as specified by &lt;debuglevel&gt;. The debug levels are the same as for slapd (see <ref id="4.1" name="section 4.1">). 
+<p>
+-j &lt;integer&gt; 
+<p>
+An optional argument that specifies that at most &lt;integer&gt; processes should be started in parallel when building the indexes. The default is 1. If set to a value greater than one,
+ldif2ldbm will create at most that many subprocesses at a time when building the indexes. A separate subprocess is created to build each attribute index. Running these processes in parallel
+can speed things up greatly, but beware of creating too many processes, all competing for memory and disk resources. 
+<p>
+-n &lt;databasenumber&gt; 
+<p>
+An optional argument that specifies the configuration file database for which to build indices. The first database listed is "1", the second "2", etc. By default, the first ldbm database
+in the configuration file is used. 
+<p>
+-e &lt;etcdir&gt; 
+<p>
+An optional argument that specifies the directory where ldif2ldbm can find the other database conversion tools it needs to execute (ldif2index and friends). The default is the
+installation directory set on the configure script. Look an example of using the ldif2ldbm command : 
+<p>
+/usr/local/sbin/ldif2ldbm -i new_entries -f myslapd.conf 
+
+<sect1>More on the LDIF format
+<p>
+The LDAP Data Interchange Format (LDIF) is used to represent LDAP entries in a simple text format. The basic form of an entry is: 
+<tscreen><verb>
+&lsqb;&lt;id&gt;&rsqb; 
+dn: &lt;distinguished name&gt; 
+&lt;attrtype&gt;: &lt;attrvalue&gt; 
+&lt;attrtype&gt;: &lt;attrvalue&gt; 
+... 
+</verb></tscreen>
+<p>
+where &lt;id&gt; is the optional entry ID (a positive decimal number). Normally, you would not supply the &lt;id&gt;, allowing the database creation tools to do that for you. The ldbmcat
+program, however, produces an LDIF format that includes &lt;id&gt; so that new indexes created will be consistent. 
+<p>
+A line may be continued by starting the next line with a single space or tab character. e.g., 
+<tscreen><verb>
+dn: cn=Barbara J Jensen, o=University of Michigan, c=US 
+</verb></tscreen>
+<p>
+Multiple attribute values are specified on separate lines. e.g., 
+<tscreen><verb>
+cn: Barbara J Jensen 
+cn: Babs Jensen 
+</verb></tscreen>
+<p>
+If an &lt;attrvalue&gt; contains a non-printing character, or begins with a space or a colon `:', the &lt;attrtype&gt; is followed by a double colon and the value is encoded in base 64
+notation. e.g., the value " begins with a space" would be encoded like this: 
+<tscreen><verb>
+cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U= 
+</verb></tscreen>
+<p>
+Multiple entries within the same LDIF file are separated by blank lines. Here's an example of an LDIF file containing three entries. 
+<tscreen><verb>
+dn: cn=Barbara J Jensen, o=University of Michigan, c=US 
+cn: Barbara J Jensen 
+cn: Babs Jensen 
+objectclass: person 
+sn: Jensen 
+
+dn: cn=Bjorn J Jensen, o=University of Michigan, c=US 
+cn: Bjorn J Jensen 
+cn: Bjorn Jensen 
+objectclass: person 
+sn: Jensen 
+
+dn: cn=Jennifer J Jensen, o=University of Michigan, c=US 
+cn: Jennifer J Jensen 
+cn: Jennifer Jensen 
+objectclass: person 
+sn: Jensen 
+jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD 
+A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ 
+ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG 
+... 
+</verb></tscreen>
+<p>
+Notice that the jpegPhoto in Jennifer Jensen's entry is encoded using base 64. The ldif program that comes with the OpenLDAP package can be used to produce the LDIF
+format. 
+<p>
+NOTE: Trailing spaces are not trimmed from values in an LDIF file. Nor are multiple internal spaces compressed. If you don't want them in your data, don't put them there. 
+
+<sect1>The ldapsearch, ldapdelete and ldapmodify utilities
+<p>
+ldapsearch - ldapsearch is a shell accessible interface to the ldap_search(3) library call. Use this utility to search for entries on our LDAP databse backend. 
+<p>
+The synopsis to call ldapsearch is the following (take a look at the ldapsearch man page to see what each option mean) : 
+<tscreen><verb>
+ldapsearch  &lsqb;-n&rsqb;  &lsqb;-u&rsqb;  &lsqb;-v&rsqb;  &lsqb;-k&rsqb;  &lsqb;-K&rsqb;  &lsqb;-t&rsqb;  &lsqb;-A&rsqb; &lsqb;-B&rsqb; &lsqb;-L&rsqb; &lsqb;-R&rsqb; &lsqb;-d debuglevel&rsqb; &lsqb;-F sep&rsqb; &lsqb;-f file&rsqb; 
+&lsqb;-D binddn&rsqb;  &lsqb;-W&rsqb;  &lsqb;-w bindpasswd&rsqb;  &lsqb;-h ldaphost&rsqb;  &lsqb;-p ldapport&rsqb;   &lsqb;-b searchbase&rsqb;   &lsqb;-s base&verbar;one&verbar;sub&rsqb; 
+&lsqb;-a never&verbar;always&verbar;search&verbar;find&rsqb; &lsqb;-l timelimit&rsqb; &lsqb;-z sizelimit&rsqb; filter &lsqb;attrs...&rsqb; 
+</verb></tscreen>
+<p>
+ldapsearch opens a connection to an LDAP server, binds, and performs a search using the filter filter. The filter should conform to the string representation for LDAP filters as
+defined in RFC 1558. If ldapsearch finds one or more entries, the attributes specified by attrs are retrieved and the entries and values are printed to standard output. If no attrs
+are listed, all attributes are returned. 
+<p>
+Here are some examples of use of ldapsearch : 
+<tscreen><verb>
+ldapsearch -b 'o=TUDelft,c=NL' 'objectclass=*' 
+
+ldapsearch -b 'o=TUDelft,c=NL' 'cn=Rene van Leuken' 
+
+ldasearch -u -b 'o=TUDelft,c=NL' 'cn=Luiz Malere' sn mail 
+</verb></tscreen>
+<p>
+The -b option stands for searchbase (initial search point) and the -u option stands for userfriendly output information. 
+<p>
+ldapdelete - ldapdelete is a shell accessible interface to the ldap_delete(3) library call. Use this utility to delete entries on our LDAP databse backend. 
+<p>
+The synopsis to call ldapdelete is the following (take a look at the ldapdelete man page to see what each option mean) : 
+<tscreen><verb>
+ldapdelete   &lsqb;-n&rsqb;   &lsqb;-v&rsqb;  &lsqb;-k&rsqb;  &lsqb;-K&rsqb;  &lsqb;-c&rsqb;  &lsqb;-d debuglevel&rsqb;  &lsqb;-f file&rsqb;  &lsqb;-D binddn&rsqb;  &lsqb;-W&rsqb;  &lsqb;-w passwd&rsqb; 
+&lsqb;-h ldaphost&rsqb; &lsqb;-p ldapport&rsqb; &lsqb;dn&rsqb;... 
+</verb></tscreen>
+<p>
+ldapdelete opens a connection to an LDAP server, binds, and deletes one or more entries. If one or more dn arguments are provided, entries with those Distinguished Names are
+deleted. Each dn should be a string-represented DN as defined in RFC 1779. If no dn arguments are provided, a list of DNs is read from standard input (or from file if the -f flag is
+used). 
+<p>
+Here are some examples of use of ldapdelete : 
+<tscreen><verb>
+ldapdelete 'cn=Luiz Malere,o=TUDelft,c=NL' 
+
+ldapdelete -v 'cn=Rene van Leuken,o=TUDelft,c=NL' -D 'cn=Luiz Malere,o=TUDelft,c=NL' -W 
+</verb></tscreen>
+<p>
+The -v option stands for verbose mode, the -D option stands for Binddn (the dn to authenticate against) and the -W option stands for password prompt. 
+<p>
+ldapmodify - ldapmodify is a shell accessible interface to the ldap_modify(3) and ldap_add(3) library calls. Use this utility to modify entries on our LDAP databse backend. 
+<p>
+The synopsis to call ldapmodify is the following (take a look at the ldapmodify man page to see what each option mean) : 
+<tscreen><verb>
+ldapmodify   &lsqb;-a&rsqb;  &lsqb;-b&rsqb;  &lsqb;-c&rsqb;  &lsqb;-r&rsqb;  &lsqb;-n&rsqb;  &lsqb;-v&rsqb;  &lsqb;-k&rsqb;  &lsqb;-d debuglevel&rsqb;  &lsqb;-D binddn&rsqb;  &lsqb;-W&rsqb;  &lsqb;-w passwd&rsqb; 
+&lsqb;-h ldaphost&rsqb; &lsqb;-p ldapport&rsqb; &lsqb;-f file&rsqb; 
+
+ldapadd &lsqb;-b&rsqb; &lsqb;-c&rsqb; &lsqb;-r&rsqb; &lsqb;-n&rsqb; &lsqb;-v&rsqb;  &lsqb;-k&rsqb;  &lsqb;-K&rsqb;  &lsqb;-d debuglevel&rsqb;  &lsqb;-D binddn&rsqb;  &lsqb;-w passwd&rsqb;  &lsqb;-h ldaphost&rsqb; 
+&lsqb;-p ldapport&rsqb; &lsqb;-f file&rsqb; 
+</verb></tscreen>
+<p>
+ldapadd is implemented as a hard link to the ldapmodify tool.  When invoked as ldapadd the -a  (add  new entry) flag of ldapmodify is turned on automatically. 
+ldapmodify  opens  a  connection  to  an  LDAP server, binds, and modifies or adds entries.  The entry information is read from standard input or from file through the use of the -f
+option. 
+<p>
+Here are some examples of use of ldapmodify : 
+<p>
+Assuming that the file /tmp/entrymods exists and has the contents: 
+<tscreen><verb>
+dn: cn=Modify Me, o=University of Michigan, c=US 
+changetype: modify 
+replace: mail 
+mail: modme@terminator.rs.itd.umich.edu 
+- 
+add: title 
+title: Grand Poobah 
+- 
+add: jpegPhoto 
+jpegPhoto: /tmp/modme.jpeg 
+- 
+delete: description 
+- 
+</verb></tscreen>
+<p>
+The command: 
+<tscreen><verb>
+ldapmodify -b -r -f /tmp/entrymods 
+</verb></tscreen>
+<p>
+will  replace  the  contents  of the "Modify Me" entry's mail attribute with the value "modme@terminator.rs.itd.umich.edu", add a title of "Grand Poobah", and the contents of the file
+/tmp/modme.jpeg as a jpegPhoto, and completely remove the description attribute. 
+<p>
+The same modifications as above can be performed using the older ldapmodify input format: 
+<tscreen><verb>
+cn=Modify Me, o=University of Michigan, c=US 
+mail=modme@terminator.rs.itd.umich.edu 
++title=Grand Poobah 
++jpegPhoto=/tmp/modme.jpeg 
+-description 
+</verb></tscreen>
+<p>
+And plus the command bellow: 
+<tscreen><verb>
+ldapmodify -b -r -f /tmp/entrymods 
+</verb></tscreen>
+<p>
+Assuming that the file /tmp/newentry exists and has the contents: 
+<tscreen><verb>
+dn: cn=Barbara Jensen, o=University of Michigan, c=US 
+objectClass: person 
+cn: Barbara Jensen 
+cn: Babs Jensen 
+sn: Jensen 
+title: the world's most famous manager 
+mail: bjensen@terminator.rs.itd.umich.edu 
+uid: bjensen 
+</verb></tscreen>
+<p>
+The command: 
+<tscreen><verb>
+ldapadd -f /tmp/entrymods 
+</verb></tscreen>
+<p>
+Assuming that the file /tmp/newentry exists and has the contents: 
+<tscreen><verb>
+dn: cn=Barbara Jensen, o=University of Michigan, c=US 
+changetype: delete 
+</verb></tscreen>
+<p>
+The command: 
+<tscreen><verb>
+ldapmodify -f /tmp/entrymods 
+</verb></tscreen>
+<p>
+will remove Babs Jensen's entry. 
+<p>
+The -f option stands for file (read the modification information from a file instead of standard input), the -b option stands for binary (any values starting with a '/' on the input file
+are interpreted as binaries), the -r stands for replace (replace existing values by default). 
+
+<sect>Aditional Informations and Features
+<p>
+On this section you will find information about the Netscape Address Book, a LDAP client that can be used to query your Directory. Also is presented details on how to implement
+Roaming Access using the Netscape Navigator, version 4.5 or above and your LDAP server. There have been a lot of talk on the OpenLDAP mailing lists about the Roaming
+Access, since this is a feature that is not totally implemented. Most part of the people don't like the way Netscape Navigator operates with the LDAP server while making
+downloads and uploads to it. So, if after reading this you find that the Roaming Access is not working the way you would like, nevermind, a lot of people passed through this
+situation already. The purpose of introducing this feature here is more for giving people an idea about the capabilities of the LDAP protocol. To finish you will see some information
+about killing safely the slapd process and about slapd logs. 
+
+<sect1>Roaming Access
+<p>
+The goal of Roaming Access is that wherever you are on the Net, you can retrieve your bookmarks, preferences, mail filters, etc. using a Netscape Navigator and a LDAP server.
+This is a very nice feature, imagine that wherever you access the Web, you can have your own settings on the browser. If you will travell and you need to access that currency
+site that is stored on your local bookmarks, don't worry, upload the bookmarks and other configuration files to a LDAP server and you can retrieve them all later independent of
+the place you will be. 
+<p>
+To implement the Roaming Access you have to follow these steps : 
+<itemize>
+<item>Change your attributes description file 
+<item>Change your objectclass description file 
+<item>Change the LDIF file to include profiles 
+<item>Configure Netscape Navigator to use the LDAP server as a Roaming Access Server 
+<item>Restart the LDAP server with the new settings. 
+</itemize>
+<p>
+- Changing the attributes file : 
+You need to add new attributes on the attribute list present on the file slapd.at.conf (this is a file you include on your slapd.conf and it's normally located at /usr/local/etc/openldap)
+: 
+<tscreen><verb>
+attribute	nsLIPtrURL		ces 
+attribute	nsLIPrefs		ces 
+attribute	nsLIProfileName		cis 
+attribute	nsLIData		bin 
+attribute	nsLIElementType		cis 
+attribute	nsLIServerType		cis 
+attribute	nsLIVersion		cis 
+</verb></tscreen>
+<p>
+- Changing the objectclass file : 
+You also have to add some new classes to your slapd.oc.conf (this is another file you include on your slapd.conf and it's normally located at /usr/local/etc/openldap) in order to
+enable the roaming access : 
+<tscreen><verb>
+objectclass nsLIPtr 
+requires 
+	objectclass 
+allows 
+	nsliptrurl, 
+	owner 
+
+objectclass nsLIProfile 
+requires 
+	objectclass, 
+	nsliprofilename 
+allows 
+	nsliprefs, 
+	uid, 
+	owner 
+
+objectclass nsLIProfileElement 
+requires 
+	objectclass, 
+	nslielementtype 
+allows 
+	owner, 
+	nslidata, 
+	nsliversion 
+
+objectclass nsLIServer 
+requires 
+	objectclass, 
+	serverhostname 
+allows 
+	description, 
+	cn, 
+	nsserverport, 
+	nsliservertype, 
+	serverroot 
+</verb></tscreen>
+<p>
+- Changing the LDIF file : 
+Now you have to modify your LDIF file, adding profiles entries to each user that wish to try the Roaming Access feature of Netscape. Look an example of a simple LDIF file with
+profiles entries : 
+<tscreen><verb>
+dn: o=myOrg,c=NL 
+o: myOrg 
+objectclass: organization 
+
+dn: cn=seallers,ou=People,o=myOrg,c=NL 
+cn: seallers 
+userpassword: myPassword 
+objectclass: top 
+objectclass: person 
+
+dn: nsLIProfileName=seallers,ou=Roaming,o=myOrg,c=NL 
+changetype: add 
+objectclass: top 
+owner: cn=seallers,ou=People,o=myOrg,c=NL 
+objectclass: top 
+objectclass: nsLIProfile 
+</verb></tscreen>
+The next step is to configure Netscape to enable the Roaming Access against your LDAP server. Just follow the sequence : 
+<p>
+- Go to Menu Edit -&gt; Preferences -&gt; Roaming User 
+<p>
+Now you have to first Enable the Roaming Access for this profile, clicking on the checkbox correspondent to this option. 
+<p>
+- Fill the username box with an appropiate value, for instance john 
+<p>
+Pull down the arrow of the Roaming User option on the left side of the Preferences Window, so see the suboptions of Roaming Access. 
+<p>
+- Click on Server Information and enable the option LDAP Server and fill the boxes with the following information : 
+<p>
+Address: ldap://myHost/nsLIProfileName=$USERID,ou=Roaming,o=myOrg,c=NL 
+<p>
+User DN: cn=$USERID,ou=People,o=myOrg,c=NL 
+<p>
+IMPORTANT : Netscape automatically substitutes the $USERID variable for the name of the profile you selected before running the browser. So if you selected the profile seallers,
+it will substitute $USERID for seallers, if you selected profile gonzales, if will substitute  $USERID for gonzales. If you are not familiar with profiles, run the Profile Manager aplication
+that comes on the Netscape Comunicator package. It's an application designed to satisfy the multiple users of a browser on the same machine, so each one can have their on
+settings on the browser. 
+<p>
+The final step is to restart the server, take a look on the <ref id="6.6" name="section 6.6"> to see how you do that safely and on <ref id="4" name="section 4"> to see how to start it again. 
+
+<sect1>Netscape Address Book
+<p>
+Once you have your LDAP server up and running, you can access it with many diferent clients (e.g. ldapsearch command line utility). A very interesting one is the Netscape
+Address Book. It's avaiable from version 4.x of Netscape but you have to use the 4.5 or above version for a stable interoperation with your LDAP server. 
+<p>
+Just follow the sequence : 
+<p>
+Open Netscape Navigator -&gt; Go to Communicator Menu -&gt; Address Book 
+<p>
+The Netscape Address Book will be launched with some default LDAP directories. You have to add your own LDAP directory too ! 
+<p>
+Go to File Menu -&gt; New Directory 
+<p>
+Fill the boxes with your server information. For example : 
+<p>
+- Description : TUDelft 
+
+- LDAP Server : dutedin.et.tudelft.nl 
+
+- Server Root : o=TUDelft, c=NL 
+<p>
+The default LDAP port is 389, don't change it, at least if you changed this option while building your server. 
+<p>
+Now, make simple queries to your server, using the box Show Names Containing, or advanced queries, using the Search for button.
+
+<sect1>LDAP Migration Tools
+<p>
+The LDAP Migration Tools are a collection of Perl scripts used to convert configuration files to the LDIF format. The scripts are provided by PADL Software Ltd and I recommend you to take a look on the license terms before using them, even being free. If you plan to use your LDAP server to authenticate users, this tools may be very usefull. Use the Migration Tools to convert your NIS or password archives to the LDIF format, making these files compatible with your LDAP Server. Apply also these Perl Scripts to migrate users, groups, aliases, hosts, netgroups, networks, protocols, RPCs and services from existing nameservices (NIS, flat files and NetInfo) to the LDIF format.
+To download the LDAP Migration Tools and get more information, go to the following address:
+
+<p>
+<tscreen><htmlurl url="http://www.padl.com/tools.html"
+		  name="http://www.padl.com/tools.html"></tscreen>
+
+<p>
+The package comes with a README file and the name of the script files are intuitive. Take a first look on the README file and then start aplying the scripts.
+
+<sect1>Authentication using LDAP
+<p>
+Your LDAP server can authenticate users using a mechanism called PAM (Pluggable Authentication Modules). Since the beginnings of UNIX, authenticating a user has been accomplished via the user entering a password and the system checking if the entered password corresponds to the encrypted official password that is stored in /etc/passwd.
+
+<p>
+That was in the beginning. Since then, a number of new ways for authenticating users became popular, including more complicated replacements for the /etc/passwd file and hardware devices called Smart cards. The problem is that each time a new authentication schema is developed, it requires all the necessary programs (login, ftpd etc...) to be rewritten to support it. PAM provides a way to develop programs that are independent of authentication scheme. These programs need "authentication modules" to be attatched to them at run-time in order to work. 
+
+<p>
+The authentication module for LDAP is available as a tar ball on the following address :
+
+<p>
+<tscreen><htmlurl url="http://www.padl.com/pam_ldap.html"
+		  name="http://www.padl.com/pam_ldap.html"></tscreen>
+
+<p>
+Here I assume that your Linux distribution is already PAM prepared. If not take a look on this url : <url url="http://www.kernel.org/pub/linux/libs/pam" name="http://www.kernel.org/pub/linux/libs/pam">. Actually, the various Linux distributions use different standard settings related to PAM. Usually, the configuration PAM files reside on the <tt>/etc/pam.d/</tt> directory. There you can find a file for each service running on your box. As an example, if you want to use the LDAP server for logging users in after your Linux boot up, you should make your Linux PAM compatible (as described on the begin of this paragraph), install the LDAP PAM module and edit a file called login on the PAM configuration directory (/etc/pam.d/) with the following content :
+
+<tscreen><verb>
+#%PAM-1.0
+auth       required     /lib/security/pam_securetty.so
+auth       required     /lib/security/pam_nologin.so
+auth       sufficient   /lib/security/pam_ldap.so
+auth       required     /lib/security/pam_unix_auth.so try_first_pass
+account    sufficient   /lib/security/pam_ldap.so
+account    required     /lib/security/pam_unix_acct.so
+password   required     /lib/security/pam_cracklib.so
+password   required     /lib/security/pam_ldap.so
+password   required     /lib/security/pam_pwdb.so use_first_pass
+session    required     /lib/security/pam_unix_session.so
+</verb></tscreen>
+
+<sect1>Graphical LDAP tools
+
+<p>
+<itemize>
+<item>Kldap
+</itemize>
+
+<p>
+<tscreen>
+Kldap is a graphical LDAP client wrote for the KDE desktop environment. Kldap has a nice interface and is able to show all the information tree stored on your Directory. You can check some screenshots from the application and download it at:
+</tscreen>
+
+<p>
+<tscreen><htmlurl url="http://www.mountpoint.ch/oliver/kldap/"
+		  name="http://www.mountpoint.ch/oliver/kldap"></tscreen>
+
+<p>
+<itemize>
+<item>GQ
+</itemize>
+
+<p>
+<tscreen>
+GQ is another graphical LDAP client with a simpler interface and that was wrote for the Gnome environment. It also runs under KDE, the same way Kldap runs under Gnome. The address for downloading and getting more information is :
+</tscreen>
+
+<p>
+<tscreen><htmlurl url="http://biot.com/gq/"
+		  name="http://biot.com/gq/"></tscreen>
+
+<sect1>Killing the LDAP server <label id="6.6">
+<p>
+To kill off slapd safely, you should give a command like this 
+<p>
+kill -TERM `cat $(ETCDIR)/slapd.pid` 
+<p>
+Killing slapd by a more drastic method may cause its LDBM databases to be corrupted, as it may need to flush various buffers before it exits. Note that slapd writes its pid to a file
+called slapd.pid in the directory you configured in slapd.conf file, for example : /usr/local/var/slapd.pid 
+
+You can change the location of this pid file by changing the SLAPD_PIDFILE variable in include/ldapconfig.h.edit 
+<p>
+Slapd will also write its arguments to a file called slapd.args in the directory you configured in slapd.conf file, for example /usr/local/var/slapd.args 
+
+You can change the location of the args file by changing the SLAPD_ARGSFILE variable in include/ldapconfig.h.edit. 
+
+<sect1>Logs
+<p>
+Slapd uses the syslog(8) facility to generate logs. The default user of the syslog(8) facility is LOCAL4, but values from LOCAL0, LOCAL1, up to LOCAL7 are allowed. 
+<p>
+In order to enable the generation of logs you have to edit your syslog.conf file, usually located at /etc directory. 
+<p>
+Create a line like this : 
+<p>
+local4.*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/usr/adm/ldalog 
+<p>
+This will use the default user LOCAL4 for the syslog facility. If you are not familiar with the sintax of this line, take a look at the man pages of syslog, syslog.conf and syslogd. If you
+want to change the default user or to specify the level of the logs generated, you have the following options while starting slapd : 
+<p>
+-s syslog-level 
+    This option tells slapd at what level debugging statements should be logged to the syslog(8) facility. The level describes the severity of the message, and is a keyword from the
+    following ordered list (higher to lower): emerg, alert, crit, err, warning, notice, info, and debug.  Ex : 
+    slapd -f myslapd.conf -s debug 
+<p>
+-l syslog-local-user 
+    Selects  the local user of the syslog(8) facility. Values can be LOCAL0, LOCAL1, and so on, up to LOCAL7. The default is LOCAL4. However, this option is only permitted on
+    systems that support local users with the syslog(8) facility. 
+<p>
+Now take a look at the logs generated, they can help you a lot to solve problems with queries, updates, binding, etc. 
+
+<sect>References
+<p>
+On this section you will find aditional documentation about LDAP : usefull Urls, cool Books and definition RFCs. 
+
+<sect1>URLs
+<p>
+Here are the URLs that contain very usefull information about LDAP. From this URLs this howto was made, so if after reading this document you need more specific information, you probably will find here : 
+<itemize>
+<item>
+University of Michigan LDAP Page : 
+<p>
+<url url="http://www.umich.edu/&tilde;dirsvcs/ldap/index.html" name="http://www.umich.edu/&tilde;dirsvcs/ldap/index.html">
+<item>
+University of Michigan LDAP Documentation Page : 
+<p>
+<url url="http://www.umich.edu/&tilde;dirsvcs/ldap/doc/" name="http://www.umich.edu/&tilde;dirsvcs/ldap/doc/">
+<item>
+Manually Implementing Roaming Access 
+<p>
+<url url="http://help.netscape.com/products/client/communicator/manual_roaming2.html" name="http://help.netscape.com/products/client/communicator/manual_roaming2.html">
+<item>
+Customizing LDAP Settings for Communicator 4.5 : 
+<p>
+<url url="http://developer.netscape.com/docs/manuals/communicator/ldap45.htm" name="http://developer.netscape.com/docs/manuals/communicator/ldap45.htm">
+<item>
+Linux Directory Service
+<p>
+<url url="http://www.rage.net/ldap/" name="http://www.rage.net/ldap/">
+</itemize>
+
+<sect1>Books
+<p>These are the most popular and usefull books about LDAP :
+ 
+<itemize>
+<item>Implementing LDAP by Mark Wilcox
+<item>LDAP: Programming Directory-Enabled Applications with Lightweight
+Directory Access Protocol by Howes and Smith
+<item>Understanding and Deploying LDAP Directory Servers by Howes, Smith,
+and Good
+</itemize>
+
+<sect1>RFCs
+      
+<p>The RFCs that support the LDAP development efforts :
+<itemize>
+<item>RFC 1558: A String Representation of LDAP Search Filters
+<item>RFC 1777: Lightweight Directory Access Protocol
+<item>RFC 1778: The String Representation of Standard Attribute Syntaxes
+<item>RFC 1779: A String Representation of Distinguished Names
+<item>RFC 1781: Using the OSI Directory to Achieve User Friendly Naming
+<item>RFC 1798: Connectionless LDAP
+<item>RFC 1823: The LDAP Application Programming Interface
+<item>RFC 1959: An LDAP URL Format
+<item>RFC 1960: A String Representation of LDAP Search Filters
+<item>RFC 2251: Lightweight Directory Access Protocol (v3)
+<item>RFC 2307: LDAP as a Network Information Service
+</itemize>
+</article>

@@ -1,0 +1,1249 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article>
+
+<artheader>
+<title>Program Library HOWTO</title>
+<author><firstname>David A.</firstname> <surname>Wheeler</surname>
+</author>
+<address><email>dwheeler@dwheeler.com</email></address>
+<pubdate>v 0.50, 14 April 2000</pubdate>
+<abstract>
+<para>
+This HOWTO for programmers
+discusses how to create and use program libraries on Linux.
+This includes static libraries, shared libraries, and
+dynamically loaded libraries.
+</para>
+</abstract>
+</artheader>
+
+<sect1>
+<title>Introduction</title>
+<para>
+This HOWTO for programmers
+discusses how to create and use program libraries on Linux
+using the GNU toolset.
+A ``program library'' is simply a file containing compiled code (and data)
+that is to be incorporated later into a program;
+program libraries allow programs to be more modular, faster to recompile,
+and easier to update.
+Program libraries can be divided into three types:
+static libraries, shared libraries, and
+dynamically loaded (DL) libraries.
+</para>
+
+<para>
+This paper first discusses static libraries, which are installed
+into a program executable before the program is run.
+It then discusses shared libraries, which are loaded at program
+start-up and shared between programs.
+Finally, it discusses dynamically loaded (DL) libraries, which can
+be loaded and used at any time while a program is running.
+DL libraries aren't really a different kind of library format
+(both static and shared libraries can be used as DL libraries);
+instead, the difference is in how DL libraries are used by programmers.
+The HOWTO wraps up with a section with more examples and a section
+with references to other sources of information.
+</para>
+
+<para>
+This HOWTO discusses only the Executable and Linking Format
+(ELF) format for executables and libraries, the format
+used by nearly all Linux distributions today.
+The GNU gcc toolset can actually handle library formats other than ELF;
+in particular, most Linux distributions can still
+use the obsolete a.out format.
+However, these formats are outside the scope of this paper.
+</para>
+
+<para>
+It's worth noting that some people use the term
+dynamically <emphasis>linked</emphasis> libraries (DLLs)
+to refer to shared libraries,
+some use the term DLL to mean any library that is used
+as a DL library, and some
+use the term DLL to mean a library meeting either condition.
+No matter which meaning you pick, this HOWTO covers DLLs.
+</para>
+
+<para>
+This HOWTO's master location is
+<ulink url="http://www.dwheeler.com/program-library">http://www.dwheeler.com/program-library</ulink>, and it has been
+contributed to the Linux Documentation Project
+(<ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>).
+It is (C) 2000 David A. Wheeler and is licensed through the
+General Public License (GPL); see the last section for more information.
+</para>
+</sect1>
+
+<sect1>
+<title>Static Libraries</title>
+<para>
+Static libraries are simply a collection of ordinary object files;
+conventionally, static libraries end with the ``.a'' suffix.
+This collection is created using the ar (archiver) program.
+Static libraries aren't used as often as they once were, because of the
+advantages of shared libraries (described below).
+Still, they're sometimes created, they existed first historically,
+and they're simpler to explain.
+</para>
+<para>
+Static libraries permit users to link to programs without having to
+recompile its code, saving recompilation time.
+Note that recompilation time is less important given today's faster compilers,
+so this reason is not as strong as it once was.
+Static libraries are often useful for developers if they wish to
+permit programmers to link to their library, but don't want to give
+the library source code (which is an advantage to the library vendor, but
+obviously not an advantage to the programmer trying to use the library).
+In theory, code in static ELF libraries that is linked into an
+executable should run slightly faster (by 1-5%), but in practice this
+rarely seems to be the case due to other confounding factors.
+</para>
+<para>
+To create a static library, or to add additional object files to
+an existing static library, use a command like this:
+</para>
+
+<programlisting>
+ar rcs my_library.a file1.o file2.o
+</programlisting>
+
+<para>
+This sample command adds the object files file1.o and file2.o to the
+static library my_library.a, creating my_library.a if it doesn't
+already exist.
+For more information on creating static libraries, see ar(1).
+</para>
+
+<para>
+Once you've created a static library, you'll want to use it.
+You can use a static library by invoking it as part of the compilation
+and linking process when creating a program executable.
+If you're using gcc(1) to generate your executable, you can use the -l
+option to specify the library; see info:gcc for more information.
+You can also use the linker ld(1) directly, using its -l and -L options;
+however, in most cases it's better to use gcc(1) since the interface of
+ld(1) is more likely to change.
+</para>
+</sect1>
+
+<sect1>
+<title>Shared Libraries</title>
+
+<para>
+Shared libraries are libraries that are loaded by programs when they start.
+When a shared library is installed properly, all programs that start afterwards
+automatically use the new shared library.
+It's actually much more flexible and sophisticated than this, because the
+approach used by Linux permits you to:
+<itemizedlist>
+<listitem><para>update libraries and still support programs that want to use older,
+non-backward-compatible versions of those libraries;</para>
+</listitem>
+<listitem><para>override specific libraries or even specific functions
+in a library when executing a particular program.</para>
+</listitem>
+<listitem><para>do all this while programs are running using existing libraries.
+</para>
+</listitem>
+</itemizedlist>
+</para>
+
+<sect2>
+<title>Conventions</title>
+<para>
+For shared libraries to support all of these desired properties,
+a number of conventions and guidelines must be followed.
+You need to understand the difference between a library's
+names, in particular its ``soname'' and ``real name'' (and how they interact).
+You also need to understand where they should be placed in the filesystem.
+</para>
+
+<sect3>
+<title>Shared Library Names</title>
+<para>
+Every shared library has a special name called the ``soname''.
+The soname has the prefix ``lib'', the name of the library,
+the phrase ``.so'', followed by a period and a
+version number that is incremented whenever the interface changes
+(as a special exception, the lowest-level C libraries don't start
+with ``lib'').
+A fully-qualified soname includes as a prefix the directory it's in;
+on a working system a fully-qualified soname is simply a symbolic
+link to the shared library's ``real name''.
+</para>
+
+<para>
+Every shared library also has a ``real name'', which is the filename
+containing the actual library code.
+The real name adds to the soname a period, a
+minor number, another period, and the release number.
+The last period and release number are optional.
+The minor number and release number
+support configuration control by letting you know exactly what version(s)
+of the library are installed.  Note that these numbers might not be
+the same as the numbers used to describe the library in documentation,
+although that does make things easier.
+</para>
+
+<para>
+In addition, there's the name that the compiler uses when requesting a library,
+(I'll call it the ``linker name''), which is simply the soname without
+any version number.
+</para>
+
+<para>
+The key to managing shared libraries is the separation of these names.
+Programs, when they internally list the shared libraries they need,
+should only list the soname they need.
+Conversely, when you create a shared library, you only create the
+library with a specific filename (with more detailed version information).
+When you install a new version of a library, you
+install it in one of a few special directories and then run the
+program ldconfig(8).
+ldconfig examines the existing files and creates the sonames as
+symbolic links to the real names, as well as setting up the
+cache file /etc/ld.so.cache (described in a moment).
+</para>
+
+<para>
+ldconfig doesn't set up the linker names; typically this is done during
+library installation, and the linker name is simply created as a symbolic
+link to the ``latest'' soname or the latest real name.
+I would recommend having the linker name be a symbolic link to the soname,
+since in most cases if you update the library
+you'd like to automatically use it when linking.
+I asked H. J. Lu why ldconfig doesn't automatically set up the linker names.
+His explanation was basically that
+you might want to run code using the latest version of a library,
+but might instead want <emphasis>development</emphasis> to link
+against an old (possibly incompatible) library.
+Therefore, ldconfig makes no assumptions about what you want programs to
+link to, so installers must specifically modify symbolic links to
+update what the linker will use for a library.
+<!-- Private correspondance, 10-April-2000 -->
+</para>
+
+<para>
+Thus, <filename>/usr/lib/libreadline.so.3</filename>
+is a fully-qualified soname, which
+ldconfig would set to be a symbolic link to some realname like
+<filename>/usr/lib/libreadline.so.3.0</filename>.
+There should also be a linker name,
+<filename>/usr/lib/libreadline.so</filename>
+which could be a symbolic link referring to
+<filename>/usr/lib/libreadline.so.3</filename>.
+</para>
+</sect3>
+
+<sect3>
+<title>Filesystem Placement</title>
+<para>
+Shared libraries must be placed somewhere in the filesystem.
+Most open source software tends to follow the GNU standards; for more
+information see the info file documentation at
+<ulink url="info:standards#Directory_Variables">
+info:standards#Directory_Variables</ulink>.
+The GNU standards recommend
+installing by default all libraries in /usr/local/lib
+when distributing source code
+(and all commands should go into /usr/local/bin).
+They also define the convention for overriding these defaults
+and for invoking the installation routines.
+</para>
+
+<para>
+The Filesystem Hierarchy Standard (FHS) discusses what should go where
+in a distribution (see 
+<ulink url="http://www.pathname.com/fhs">http://www.pathname.com/fhs</ulink>).
+According to the FHS, most libraries should
+be installed in /usr/lib, but libraries required for startup
+should be in /lib and libraries that are not
+part of the system should be in /usr/local/lib.
+</para>
+
+<para>
+There isn't really a conflict between these two documents;
+the GNU standards recommend the default for developers
+of source code, while the FHS recommends the default for distributors
+(who selectively override the source code defaults, usually via the
+system's package management system).
+In practice this works nicely: the ``latest'' (possibly buggy!) source
+code that you download automatically installs itself in the ``local''
+directory (<filename>/usr/local</filename>),
+and once that code has matured the package managers can
+trivially override the default to place the code in the standard
+place for distributions.
+Note that if your library calls programs that can only be called via
+libraries, you should place those programs in /usr/local/libexec
+(which becomes /usr/libexec in a distribution).
+One complication is that Red Hat-derived systems don't include
+/usr/local/lib by default in their search for libraries;
+see the discussion below about /etc/ld.so.conf.
+Other standard library locations include
+/usr/X11R6/lib for X-windows.
+Note that /lib/security is used for PAM modules, but those are usually
+loaded as DL libraries (also discussed below).
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>How Libraries are Used</title>
+<para>
+On GNU glibc-based systems, including all Linux systems,
+starting up an ELF binary executable automatically causes the program loader
+to be loaded and run.
+On Linux systems, this loader is named
+/lib/ld-linux.so.X (where X is a version number).
+This loader,
+in turn, finds and loads all other shared libraries used by the program.
+</para>
+
+<para>
+The list of directories to be searched is stored in the file /etc/ld.so.conf.
+Many Red Hat-derived distributions don't normally include /usr/local/lib in the
+file /etc/ld.so.conf. I consider this a bug, and adding
+/usr/local/lib to /etc/ld.so.conf is a common ``fix'' required
+to run many programs on Red Hat-derived systems.
+</para>
+
+<para>
+If you want to just override a few functions in a library, but
+keep the rest of the library, you can enter the names of overriding
+libraries (.o files) in /etc/ld.so.preload; these
+``preloading'' libraries will take precedence over the standard set.
+This preloading file is typically used for emergency patches;
+a distribution usually won't include such a file when delivered.
+</para>
+
+<para>
+Searching all of these directories at program start-up
+would be grossly inefficient, so a caching arrangement is actually used.
+The program ldconfig(8) by default reads in the file /etc/ld.so.conf,
+sets up the appropriate symbolic links in the dynamic link directories
+(so they'll follow the standard conventions), and then writes a cache to
+/etc/ld.so.cache that's then used by other programs.
+This greatly speeds up access to libraries.
+The implication is that
+ldconfig must be run whenever a DLL is added, when a DLL is removed,
+or when the set of DLL directories changes;
+running ldconfig is often one of the steps performed by package
+managers when installing a library.
+On start-up, then, the dynamic loader actually uses
+the file /etc/ld.so.cache and then loads the libraries it needs. 
+</para>
+</sect2>
+
+<sect2>
+<title>Environment Variables</title>
+<para>
+Various environment variables can control this process,
+and in fact there are environment variables that permit
+you to override this process.
+For example, you can temporarily substitute a different library for
+this particular execution.
+In Linux, the environment variable LD_LIBRARY_PATH
+is a colon-separated set of directories where libraries should be
+searched for first, before
+the standard set of directories; this is useful when debugging
+a new library or using a nonstandard library for special purposes.
+The environment variable LD_PRELOAD lists object files with functions that
+override the standard set, just as /etc/ld.so.preload does. 
+These are implemented by the loader /lib/ld-linux.so.
+</para>
+
+<para>
+There are actually a number of other environment variables that control
+the loading process; their names begin with LD_ or RTLD_.
+Most of the others are for low-level debugging of the loader process or
+for implementing specialized capabilities.
+Most of them aren't well-documented; if you need to know about them, the
+best way to learn about them is to read the source code.
+</para>
+
+<para>
+Permitting user control over dynamically linked libraries
+would be disastrous for setuid/setgid programs
+if special measures weren't taken.
+Therefore, in GNU loader, if the
+program is setuid or setgid these variables
+(and other similar variables) are ignored or greatly limited in
+what they can do.
+The loader determines if a program is setuid or setgid by
+checking the program's credentials; if the uid and euid differ,
+or the gid and the egid differ,
+the loader presumes the program is setuid/setgid (or descended from one)
+and therefore greatly limits its abilities to control linking.
+If you read the GNU glibc library source code, you can see this;
+see especially the files elf/rtld.c and sysdeps/generic/dl-sysdep.c.
+This means that if you cause the uid and gid
+to equal the euid and egid, and then call a program,
+these variables will have full effect.
+Other Unix-like systems handle the situation differently but
+for the same reason: a setuid/setgid program
+should not be unduly affected by the environment variables set. 
+</para>
+</sect2>
+
+<sect2>
+<title>Creating a Shared Library</title>
+<para>
+Creating a shared library is easy.
+First, create the object files that will go into the shared
+library using the gcc -fPIC flag (this enables the ``position indendependent
+code'' generation, a requirement for shared libraries).
+Then create the shared library using this format:
+</para>
+
+<programlisting>
+gcc -shared -Wl,-soname,<replaceable>your_soname</replaceable> \
+    -o <replaceable>library_name</replaceable> <replaceable>file_list</replaceable> <replaceable>library_list</replaceable>
+</programlisting>
+
+<para>
+Here's an example, which creates two object files (a.o and b.o) and then
+creates a shared library that contains both of them.
+Note that this compilation includes debugging information (-g) and
+will generate warnings (-Wall), which aren't required for shared libraries
+but are recommended.
+The compilation generates object files (using -c), and obviously includes
+the required -fPIC option:
+</para>
+
+<programlisting>
+gcc -fPIC -g -c -Wall a.c
+gcc -fPIC -g -c -Wall b.c
+gcc -shared -Wl,-soname,libmystuff.so.1 \
+    -o libmystuff.so.1.0.1 a.o b.o -lc
+</programlisting>
+
+<para>
+Here are a few points worth noting:
+<itemizedlist>
+<listitem><para>Don't strip the resulting library, and don't use the
+compiler option -fomit-frame-pointer unless you really have to.
+The resulting library will work, but these actions make debuggers
+mostly useless.</para>
+</listitem>
+<listitem><para>Use -fPIC to generate code,
+not -fpic (the latter may not work, because if branches need large
+displacements -fpic may not generate fully position-independent code).</para>
+</listitem>
+</itemizedlist>
+</para>
+
+</sect2>
+
+<sect2>
+<title>Installing and Using a Shared Library</title>
+<para>
+Once you've created a shared library, you'll want to install it.
+The simple approach is simply to copy the library into one of the
+standard directories (e.g., /usr/lib) and run ldconfig(8).
+</para>
+
+<para>
+If you can't do that (e.g., you don't have the right to modify
+/usr/lib), then you can use environment variables to control things.
+First, you'll need to create the shared libraries somewhere.
+Then, you'll need to set up the necesary symbolic links, in particular
+a link from a soname to the real name (as well as from a versionless
+soname, that is, a soname that ends in ``.so'' for users who don't specify
+a version at all).  The simplest approach is to run:
+</para>
+
+<programlisting>
+ ldconfig -n <replaceable>directory_with_shared_libraries</replaceable>
+</programlisting>
+
+<para>
+Then you can set LD_LIBRARY_PATH, which is a colon-separated
+list of directories in which to search for shared libraries before
+the usual places.
+If you're using bash, you could invoke my_program this way using:
+</para>
+
+<programlisting>
+LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH  my_program
+</programlisting>
+
+<para>
+If you want to override just a few selected functions,
+you can do this by creating an overriding object file and setting
+LD_PRELOAD; the functions in this object file will override just
+those functions.
+</para>
+
+<para>
+Usually you can update libraries without concern; if there was an API
+change, the library creator will change the soname.
+However, if a program breaks on an update to a library that kept the
+same soname, you can force it to use the older library version by
+copying the old library back somewhere,
+renaming the program (say to the old name plus ``.orig''),
+and then create a small
+``wrapper'' script that resets the library to use and
+calls the real (renamed) program.
+You could place the old library in its own special area, if you like,
+though the numbering conventions do permit multiple versions to live
+in the same directory.
+The wrapper script could look something like this:
+<programlisting>
+  #!/bin/sh
+  export LD_LIBRARY_PATH=/usr/local/my_lib:$LD_LIBRARY_PATH
+  exec /usr/bin/my_program.orig $*
+</programlisting>
+</para>
+
+<para>
+You can see the list of the shared libraries used by a program using ldd(1).
+So, for example, you can see the shared libraries used by ls by typing:
+<programlisting>
+  ldd /bin/ls
+</programlisting>
+Generally you'll see a list of the sonames being depended on, along with
+the directory that those names resolve to.
+In practically all cases you'll have at least two dependencies:
+<itemizedlist>
+<listitem><para>/lib/ld-linux.so.N (where N is 1 or more, usually at least 2).
+This is the library that loads all other libraries.
+</para></listitem>
+<listitem><para>libc.so.N (where N is 6 or more).
+This is the C library.  Even other languages tend to use the C
+library (at least to implement their own libraries), so most programs
+at least include this one.
+</para></listitem>
+</itemizedlist>
+Beware: do <emphasis>not</emphasis> run ldd on a program you don't trust;
+as is clearly stated in the ldd(1) manual, ldd works by calling the
+program directly; an untrusted program could execute unexpected code.
+</para>
+</sect2>
+
+<sect2>
+<title>Incompatible Libraries</title>
+<para>
+When a new version of a library is binary-incompatible with the old one
+the soname needs to change.
+There are four basic reasons that a library would cease to
+be binary compatible:
+<orderedlist>
+<listitem><para>The behavior of a function changes so that it no longer
+meets its original specification,</para>
+</listitem>
+<listitem><para>Exported data items change (exception: adding optional
+items to the ends of structures is okay, as long as those structures
+are only allocated within the library).</para>
+</listitem>
+<listitem><para>An exported function is removed.</para>
+</listitem>
+<listitem><para>The interface of an exported function changes.</para>
+</listitem>
+</orderedlist>
+</para>
+
+<para>
+If you can avoid these reasons, you can keep your libraries binary-compatible.  Said another way, you can keep your
+Application Binary Interface (ABI) compatible if you avoid such changes.
+For example, you might want to add new functions but not delete the old ones.
+You can add items to structures but only if you can make sure that old
+programs won't be sensitive to such changes by adding items
+only to the end of the structure, only allowing the library (and not the
+application) to allocate the structure, making the extra items optional
+(or having the library fill them in), and so on.
+Watch out - you probably
+can't expand structures if users are using them in arrays.
+</para>
+</sect2>
+</sect1>
+
+<sect1>
+<title>Dynamically Loaded (DL) Libraries</title>
+<para>
+Dynamically loaded (DL) libraries are libraries that are loaded
+at times other than during the startup of a program.
+They're particularly useful for implementing plugins or modules, because
+they permit waiting to load the plugin until it's needed.
+For example, the Pluggable Authentication Modules (PAM) system
+uses DL libraries to permit administrators to configure and reconfigure
+authentication.
+They're also useful for implementing interpreters that wish to
+occasionally compile their code into machine code and use the compiled
+version for efficiency purposes, all without stopping.
+This approach can be useful in implementing 
+a just-in-time compiler or multi-user dungeon (MUD).
+</para>
+
+<para>
+In Linux, DL libraries aren't actually special from the point-of-view of their
+format; they are built as standard object files or standard shared libraries
+as discussed above.
+The main difference is that the libraries aren't automatically loaded
+at program link time or start-up; instead, there is an API for
+opening a library, looking up symbols, handling errors, and closing the library.
+C users will need to include the header file &lt;dlfcn.h&gt;
+to use this API.
+</para>
+
+<para>
+The interface used by Linux is essentially the same as that used in Solaris,
+which I'll call the ``dlopen()'' API.
+However, this same interface is not supported by all platforms;
+HP-UX uses the different shl_load() mechanism, and Windows platforms use
+DLLs with a completely different interface.
+If your goal is wide portability, you probably ought to consider using
+the glib library with its support for Dynamic Loading of Modules; it uses
+the underlying dynamic loading routines of the platform to implement
+a portable interface to these functions.
+You can learn more about glib at
+<ulink url="http://developer.gnome.org/doc/API/glib/glib-dynamic-loading-of-modules.html">http://developer.gnome.org/doc/API/glib/glib-dynamic-loading-of-modules.html</ulink>.
+Since the glib interface is well-explained in its documentation,
+I won't discuss it further here.
+If you want much more functionality than either the Linux-specific
+interfaces or glib, you might want to
+look into a CORBA Object Request Broker (ORB).
+If you're still interested in directly using the interface supported
+by Linux and Solaris, read on.
+</para>
+
+<sect2>
+<title>dlopen()</title>
+<para>
+The dlopen(3) function opens a library and prepares it for use.
+In C its prototype is:
+<programlisting>
+  void * dlopen(const char *filename, int flag);
+</programlisting>
+If filename begins with ``/'' (i.e., it's an absolute path),
+dlopen() won't search for a library.
+Otherwise, dlopen() will search for the library
+in the following order:
+<orderedlist>
+<listitem><para>A colon-separated list of directories in the user's
+                LD_LIBRARY path environment variable.
+</para></listitem>
+<listitem><para>The list of libraries specified in /etc/ld.so.cache.
+</para></listitem>
+<listitem><para>/usr/lib, followed by /lib.
+</para></listitem>
+</orderedlist>
+In dlopen(), the value of
+<replaceable>flag</replaceable> must be either RTLD_LAZY,
+meaning
+``resolve undefined symbols as code from the dynamic library is executed'',
+or RTLD_NOW,
+meaning ``resolve all undefined symbols before
+dlopen() returns and fail if this cannot be done''.
+RTLD_GLOBAL may be optionally or'ed with either value
+in <replaceable>flag</replaceable>,
+meaning that the external symbols defined in the library will be made
+available to subsequently loaded libraries.
+While you're debugging, you'll probably want to use RTLD_NOW; using
+RTLD_LAZY can create inscrutible errors if there are unresolved references.
+Using RTLD_NOW makes opening the library take slightly longer
+(but it speeds up lookups later); if this causes a user interface problem
+you can switch to RTLD_LAZY later.
+</para>
+
+<para>
+If the libraries depend on each other (e.g., X depends on Y), then you
+need to load the dependees first (in this example, load Y first, and then X).
+</para>
+
+<para>
+The return value of dlopen() is a ``handle'' that should be considered an
+opaque value to be used by the other DL library routines.
+dlopen() will return NULL if the attempt to load does not succeed, and
+you need to check for this.
+If the same library is loaded more than once with dlopen(),
+the same file handle is returned.
+</para>
+
+<para>
+If the library exports a routine named  _init,  then  that
+code  is  executed  before  dlopen() returns.
+You can use this fact in your own libraries to implement
+initialization routines.
+</para>
+</sect2>
+
+<sect2>
+<title>dlerror()</title>
+<para>
+Errors can be reported by calling dlerror(), which returns a string
+describing the error from the last call to dlopen(), dlsym(), or dlclose().
+One oddity is that after calling dlerror(), future calls to dlerror()
+will return NULL until another error has been encountered.
+</para>
+</sect2>
+
+<sect2>
+<title>dlsym()</title>
+<para>
+There's no point in loading a DL library if you can't use it.
+The main routine for using a DL library is dlsym(3), which
+looks up the value of a symbol in a given (opened) library.
+This function is defined as:
+<programlisting>
+ void * dlsym(void *handle, char *symbol);
+</programlisting>
+the handle is the value returned from dlopen, and symbol is a
+NIL-terminated string.
+If you can avoid it, don't store the result of dlsym() into a void*
+pointer, because then you'll have to cast it each time you use it
+(and you'll give less information to other people trying to
+maintain the program).
+</para>
+
+<para>
+dlsym() will return a NULL result if the symbol wasn't found.
+If you know that the symbol could never have the value of NULL or zero,
+that may be fine, but there's a potential ambiguity otherwise: if you got
+a NULL, does that mean there is no such symbol, or that NULL is the
+value of the symbol?
+The standard solution is to call dlerror() first (to clear any error
+condition that may have existed), then call dlsym() to request a symbol,
+then call dlerror() again to see if an error occurred.
+A code snippet would look like this:
+<programlisting>
+ dlerror(); /* clear error code */
+ s = (actual_type) dlsym(handle, symbol_being_searched_for);
+ if ((err = dlerror()) != NULL) {
+  /* handle error, the symbol wasn't found */
+ } else {
+  /* symbol found, its value is in s */
+ }
+</programlisting>
+</para>
+</sect2>
+
+<sect2>
+<title>dlclose()</title>
+<para>
+The converse of dlopen() is dlclose(), which closes a DL library.
+The dl library maintains link counts for
+dynamic file handles, so a dynamic library is not actually deallocated
+until dlclose has been called on it as many times as
+dlopen has succeeded on it.
+Thus, it's not a problem for the same program
+to load the same library multiple times.
+</para>
+</sect2>
+
+<sect2>
+<title>DL Library Example</title>
+<para>
+Here's an example from the man page of dlopen(3).
+This example loads the math library and prints the cosine of 2.0, and
+it checks for errors at every step (recommended):
+<programlisting>
+<![CDATA[
+
+    #include <stdio.h>
+    #include <dlfcn.h>
+
+    int main(int argc, char **argv) {
+        void *handle;
+        double (*cosine)(double);
+        char *error;
+
+        handle = dlopen ("/lib/libm.so", RTLD_LAZY);
+        if (!handle) {
+            fputs (dlerror(), stderr);
+            exit(1);
+        }
+
+        cosine = dlsym(handle, "cos");
+        if ((error = dlerror()) != NULL)  {
+            fputs(error, stderr);
+            exit(1);
+        }
+
+        printf ("%f\n", (*cosine)(2.0));
+        dlclose(handle);
+    }
+]]>
+</programlisting>
+</para>
+
+<para>
+If  this  program were in a file named "foo.c",
+you would build the program with the following command:
+<programlisting>
+    gcc -Wl,export-dynamic -o foo foo.c -ldl
+</programlisting>
+</para>
+
+<para>
+The ``-Wl,export-dynamic'' option isn't actually required, but you
+may sometimes find it useful.
+It is defined in ld(1):
+``When  creating  an ELF file, [this option adds] all symbols to the
+dynamic symbol table.  Normally, the dynamic symbol
+table contains only symbols which are used by a dynamic object.
+This option is needed for some  uses of dlopen.''
+Note that you could say ``-rdynamic'' instead of ``-Wl,export-dynamic''
+if you only work with Linux systems, but according to the ELF documentation
+the ``-rdynamic'' flag doesn't always work for gcc on non-Linux systems.
+</para>
+</sect2>
+
+</sect1>
+
+<sect1>
+<title>Miscellaneous</title>
+
+<sect2>
+<title>nm command</title>
+<para>
+The nm(1) command can report the list of
+symbols in a given library.
+It works on both static and shared libraries. 
+For a given library nm(1) can list the symbol names defined, each
+symbol's value, and the symbol's type.
+It can also identify where the symbol was defined in the source code
+(by filename and line number), if that information is available in
+the library (see the -l option).
+</para>
+
+<para>
+The symbol type requires a little more explanation.
+The type is displayed as a letter; lowercase means that the symbol is
+local, while uppercase means that the symbol is global (external).
+Typical symbol types include
+T (a normal definition in the code section),
+D (initialized data section),
+B (uninitialized data section),
+U (undefined; the symbol is used by the library
+  but not defined by the library), and
+W (weak; if another library also defines this symbol, that definition
+   overrides this one).
+</para>
+
+<para>
+If you know the name of a function, but
+you truly can't remember what library it was defined in, you can use
+nm's ``-o'' option (which prefixes the filename in each line) along
+with grep to find the library name.  From a Bourne shell, you
+can search all the libraries in /lib, /usr/lib, direct subdirectories of
+/usr/lib, and /usr/local/lib for ``cos'' as follows:
+<programlisting>
+nm -o /lib/* /usr/lib/* /usr/lib/*/* \
+      /usr/local/lib/* 2> /dev/null | grep 'cos$' 
+</programlisting>
+</para>
+<para>
+Much more information about nm can be found in the nm ``info''
+documentation locally installed at
+<ulink url="info:binutils#nm">info:binutils#nm</ulink>.
+</para>
+</sect2>
+
+<sect2>
+<title>Shared Libraries Can Be Scripts</title>
+<para>
+It's worth noting that the GNU loader
+permits shared libraries to be text files using a
+specialized scripting language instead of the usual library format.
+This is useful for indirectly combining other libraries.
+For example, here's the listing of
+<filename>/usr/lib/libc.so</filename>
+on one of my systems:
+<programlisting>
+/* GNU ld script
+   Use the shared library, but some functions are only in
+   the static library, so try that secondarily.  */
+GROUP ( /lib/libc.so.6 /usr/lib/libc_nonshared.a )
+</programlisting>
+</para>
+<para>
+For more information about this, see the texinfo documentation on ld
+linker scripts (ld command language).
+General information is at
+info:ld#Options and info:ld#Commands,
+with likely commands discussed in
+info:ld#Option Commands.
+</para>
+</sect2>
+</sect1>
+
+<sect1>
+<title>More Examples</title>
+<para>
+The following are more examples of all three approaches
+(static, shared, and dynamically loaded libraries).
+File libhello.c is a trivial library,
+with libhello.h as its header.
+File demo_use.c is a trivial caller of the library.
+This is followed by commented scripts (script_static and script_dynamic)
+showing how to use the library as a static and shared library.
+This is followed by demo_dynamic.c and script_dynamic, which show
+how to use the shared library as a dynamically loaded library.
+</para>
+
+<!-- BEGINNING OF demo.sgml -->
+
+<sect2>
+<title>File libhello.c</title>
+<para>
+<programlisting>
+<![CDATA[
+/* libhello.c - demonstrate library use. */
+
+#include <stdio.h>
+
+void hello(void) {
+  printf("Hello, library world.\n");
+}
+
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File libhello.h</title>
+<para>
+<programlisting>
+<![CDATA[
+/* libhello.h - demonstrate library use. */
+
+
+void hello(void);
+
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File demo_use.c</title>
+<para>
+<programlisting>
+<![CDATA[
+/* demo_use.c -- demonstrate direct use of the "hello" routine */
+
+#include "libhello.h"
+
+int main(void) {
+ hello();
+ return 0;
+}
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File script_static</title>
+<para>
+<programlisting>
+<![CDATA[
+#!/bin/sh
+# Static library demo
+
+# Create static library's object file, libhello-static.o.
+# I'm using the name libhello-static to clearly
+# differentiate the static library from the
+# dynamic library examples, but you don't need to use
+# "-static" in the names of your
+# object files or static libraries.
+
+gcc -Wall -g -c -o libhello-static.o libhello.c
+
+# Create static library.
+
+ar rcs libhello-static.a libhello-static.o
+
+# At this point we could just copy libhello-static.a
+# somewhere else to use it.
+# For demo purposes, we'll just keep the library
+# in the current directory.
+
+# Compile demo_use program file.
+
+gcc -Wall -g -c demo_use.c -o demo_use.o
+
+# Create demo_use program; -L. causes "." to be searched during
+# creation of the program.  Note that this command causes
+# the relevant object file in libhello-static.a to be
+# incorporated into file demo_use_static.
+
+gcc -g -o demo_use_static demo_use.o -L. -lhello-static
+
+# Execute the program.
+
+./demo_use_static
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File script_shared</title>
+<para>
+<programlisting>
+<![CDATA[
+#!/bin/sh
+# Shared library demo
+
+# Create shared library's object file, libhello.o.
+
+gcc -fPIC -Wall -g -c libhello.c
+
+# Create shared library.
+# Use -lc to link it against C library, since libhello
+# depends on the C library.
+
+gcc -g -shared -Wl,-soname,libhello.so.0 \
+    -o libhello.so.0.0 libhello.o -lc
+
+# At this point we could just copy libhello.so.0.0 into
+# some directory, say /usr/local/lib.
+
+# Now we need to call ldconfig to fix up the symbolic links.
+ 
+# Set up the soname.  We could just execute:
+# ln -sf libhello.so.0.0 libhello.so.0
+# but let's let ldconfig figure it out.
+
+/sbin/ldconfig -n .
+
+# Set up the linker name.
+# In a more sophisticated setting, we'd need to make
+# sure that if there was an existing linker name,
+# and if so, check if it should stay or not.
+
+ln -sf libhello.so.0 libhello.so
+
+# Compile demo_use program file.
+
+gcc -Wall -g -c demo_use.c -o demo_use.o
+
+# Create program demo_use.
+# The -L. causes "." to be searched during creation
+# of the program; note that this does NOT mean that "."
+# will be searched when the program is executed.
+
+gcc -g -o demo_use demo_use.o -L. -lhello
+
+# Execute the program.  Note that we need to tell the program
+# where the shared library is, using LD_LIBRARY_PATH.
+
+LD_LIBRARY_PATH="." ./demo_use
+
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File demo_dynamic.c</title>
+<para>
+<programlisting>
+<![CDATA[
+/* demo_dynamic.c -- demonstrate dynamic loading and
+   use of the "hello" routine */
+
+
+/* Need dlfcn.h for the routines to
+   dynamically load libraries */
+#include <dlfcn.h>
+
+#include <stdio.h>
+
+/* Note that we don't have to include "libhello.h".
+   However, we do need to specify something related;
+   we need to specify a type that will hold the value
+   we're going to get from dlsym(). */
+
+/* The type "simple_demo_function" describes a function that
+   takes no arguments, and returns no value: */
+
+typedef void (*simple_demo_function)(void);
+
+
+int main(void) {
+ const char *error;
+ void *module;
+ simple_demo_function demo_function;
+
+ /* Load dynamically loaded library */
+ module = dlopen("libhello.so", RTLD_LAZY);
+ if (!module) {
+   fprintf(stderr, "Couldn't open libhello.so: %s\n",
+           dlerror());
+   exit(1);
+ }
+
+ /* Get symbol */
+ dlerror();
+ demo_function = dlsym(module, "hello");
+ if ((error = dlerror())) {
+   fprintf(stderr, "Couldn't find hello: %s\n", error);
+   exit(1);
+ }
+
+ /* Now call the function in the DL library */
+ (*demo_function)();
+
+ /* All done, close things cleanly */
+ dlclose(module);
+ return 0;
+}
+]]>
+</programlisting>
+</para>
+</sect2>
+<sect2>
+<title>File script_dynamic</title>
+<para>
+<programlisting>
+<![CDATA[
+#!/bin/sh
+# Dynamically loaded library demo
+
+# Presume that libhello.so and friends have
+# been created (see dynamic example).
+
+# Compile demo_dynamic program file into an object file.
+
+gcc -Wall -g -c demo_dynamic.c
+
+# Create program demo_use.
+# Note that we don't have to tell it where to search for DL libraries,
+# since the only special library this program uses won't be
+# loaded until after the program starts up.
+# However, we DO need the option -ldl to include the library
+# that loads the DL libraries.
+
+gcc -g -o demo_dynamic demo_dynamic.o -ldl
+
+# Execute the program.  Note that we need to tell the
+# program where get the dynamically loaded library,
+# using LD_LIBRARY_PATH.
+
+LD_LIBRARY_PATH="." ./demo_dynamic
+]]>
+</programlisting>
+</para>
+</sect2>
+<!-- END OF demo.sgml -->
+</sect1>
+
+<sect1>
+<title>Other Information Sources</title>
+<para>
+Particularly useful sources of information about libraries
+include the following:
+<itemizedlist>
+<listitem><para>``The GCC HOWTO'' by Daniel Barlow.
+In particular, this HOWTO discusses
+compiler options for creating libraries and how to query
+libraries.
+It covers information not covered here, and vice versa.
+This HOWTO is available through the Linux Documentation Project at
+<ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.
+</para></listitem>
+<listitem><para>``Executable and Linkable Format (ELF)'' by
+the Tool Interface Standards (TIS) committee
+(this is actually one chapter of the Portable Formats Specification
+Version 1.1 by the same committee).
+This provides information about the ELF format
+(it isn't specific to Linux or GNU gcc), and provides a great deal of
+detail on the ELF format.
+See
+<ulink url="ftp://tsx-11.mit.edu/pub/linux/packages/GCC/ELF.doc.tar.gz">ftp://tsx-11.mit.edu/pub/linux/packages/GCC/ELF.doc.tar.gz</ulink>
+If you get the file from MIT, note that the format is unusual;
+after gunzipping and untarring, you'll get an ``hps'' file; just
+strip off the top and bottom lines and you'll get a printable
+Postscript file.
+</para></listitem>
+<listitem><para>
+``ELF: From the Programmer's Perspective'' by
+Hongjui Lu. This gives Linux and GNU gcc-specific information on ELF, and is
+available at
+<ulink url="ftp://tsx-11.mit.edu/pub/linux/packages/GCC/elf.ps.gz">ftp://tsx-11.mit.edu/pub/linux/packages/GCC/elf.ps.gz</ulink>.
+</para></listitem>
+</itemizedlist>
+</para>
+</sect1>
+
+<sect1>
+<title>Copyright and License</title>
+<para>
+This document is Copyright (C) 2000 David A. Wheeler.
+It is covered by the GNU General Public License (GPL).
+You may redistribute it without cost.
+Interpret the document's source text
+as the ``program'' and adhere to the following terms:
+<blockquote>
+<para>
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+</para>
+
+<para>
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+</para>
+
+<para>
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</para>
+</blockquote>
+</para>
+
+<para>
+These terms do permit mirroring by other web sites,
+but please:
+<itemizedlist>
+<listitem><para>make sure your mirrors automatically get
+  upgrades from the master site,</para></listitem>
+<listitem><para>clearly show the location of the master site,
+<ulink url="http://www.dwheeler.com/program-library">http://www.dwheeler.com/program-library</ulink>,
+with a hypertext link
+to the master site, and</para></listitem>
+<listitem><para>give me (David A. Wheeler) credit as the author.
+</para></listitem>
+</itemizedlist>
+</para>
+
+<para>
+The first two points primarily protect me from repeatedly hearing about
+obsolete bugs.
+I do not want to hear about bugs I fixed a year ago, just because you
+are not properly mirroring the document.
+By linking to the master site,
+users can check and see if your mirror is up-to-date.
+I'm sensitive to the problems of sites which have very
+strong security requirements and therefore cannot risk normal
+connections to the Internet; if that describes your situation,
+at least try to meet the other points
+and try to occasionally sneakernet updates into your environment.
+</para>
+
+<para>
+By this license, you may modify the document,
+but you can't claim that what you didn't write is yours (i.e., plagiarism)
+nor can you pretend that a modified version is identical to
+the original work.
+Modifying the work does not transfer copyright of the entire work to you;
+this is not a ``public domain'' work in terms of copyright law.
+See the license for details, in particular noting that
+``You must cause the modified files to carry prominent notices
+stating that you changed the files and the date of any change.''
+If you have questions about what the license allows, please contact me.
+In most cases, it's better if you send your changes to the master
+integrator (currently David A. Wheeler), so that your changes will be
+integrated with everyone else's changes into the master copy.
+</para>
+
+</sect1>
+
+</article>
+

@@ -1,0 +1,1278 @@
+<!-- This is the Linux Kernel HOWTO, SGML source -- >
+
+<!doctype linuxdoc system>
+
+<article>
+
+<title>The Linux Kernel HOWTO
+<author>Brian Ward, <tt>bri@cs.uchicago.edu</tt>
+<date>v1.0, 5 June 1999
+
+<abstract>
+This is a detailed guide to kernel configuration, compilation, upgrades,
+and troubleshooting for ix86-based systems.
+</abstract>
+
+<toc>
+
+<sect> Introduction <p>
+
+Should you read this document? Well, see if you've got any of the following
+symptoms:
+<p>
+
+<itemize>
+<item> ``Arg! This wizzo-46.5.6 package says it needs kernel
+release 2.8.193 and I still only have release 1.0.9!''
+<item> There's a device driver in one of the newer kernels that
+you just gotta have
+<item> You really have no idea at all how to compile a kernel
+<item> ``Is this stuff in the README <it>really</it> the whole story?''
+<item> You came, you tried, it didn't work
+<item> You need something to give to people who insist on asking you to
+install their kernels for them
+</itemize>
+
+<sect1> Read this first! (I mean it)<p>
+Some of the examples in this document assume that you have GNU <tt>tar</tt>,
+<tt>find</tt>, and <tt>xargs</tt>. These are quite standard; this should
+not cause problems. It is also assumed that
+you know your system's filesystem structure; if you don't, it is critical
+that you keep a written copy of the <tt>mount</tt> command's output during
+normal system operation (or a listing of <tt>/etc/fstab</tt>, if you can
+read it). This information is important, and does not change unless you
+repartition your disk, add a new one, reinstall your system, or something
+similar.<p>
+
+The latest ``production'' kernel version at the time of this writing was
+2.2.9, meaning that the references and examples correspond to that
+release. Even though I try to make this document as version-independent as
+possible, the kernel is constantly under development, so if you get a
+newer release, it will inevitably have some differences. Again, this should
+not cause major problems, but it may create some confusion.<p>
+
+There are two versions of the linux kernel source, ``production'' and
+``development.'' Production releases are the even-minor-numbered releases;
+1.2.x was production, 2.0.x is production, as well as 2.2.x. These kernels
+are considered to be the
+most stable, bug-free versions available at the time of release. The
+development kernels (2.1.x, 2.3.x, etc) are meant as testing kernels, for
+people willing to test out new and possibly very buggy kernels. You have
+been warned.<p>
+
+<sect1>A word on style<p>
+<tt>Text that looks like this</tt> is either something that appears on
+your screen, a filename, or something that can be directly typed in, such as a
+command, or options to a command (if you're looking
+at a plain-text file, it doesn't look any different). Commands and other
+input are frequently quoted (with ` '), which causes the following
+classic punctuation problem: if such an item appears at the end of a sentence
+in quotes, people often type a `.' along with the command, because the
+American quoting style says to put the period inside of the quotation
+marks. Even though common sense (and unfortunately, this assumes that the
+one with the ``common sense'' is used to the so-called American style of
+quotation) should tell one to strip off the
+punctuation first, many people simply do not remember, so I will place
+it outside the quotation marks in such cases. In other words, when
+indicating that you should type ``<tt>make config</tt>'' I would write 
+`<tt>make config</tt>', not `<tt>make config</tt>.'
+<p>
+
+<sect>Important questions and their answers <p>
+
+<sect1>What does the kernel do, anyway? <p>
+
+The Unix kernel acts as a mediator for your programs and your hardware.
+First, it does (or arranges for) the memory management for all of the
+running programs (processes), and makes sure that they all get a fair (or
+unfair, if you please) share of the processor's cycles. In addition, it
+provides a nice, fairly portable interface for programs to talk to your
+hardware.
+<p>
+
+There is certainly more to the kernel's operation than this, but these
+basic functions are the most important to know.
+<p>
+
+<sect1>Why would I want to upgrade my kernel? <p>
+
+Newer kernels generally offer the ability to talk to more types of
+hardware (that is, they have more device drivers), they can have better
+process management, they can run faster than the older versions, they
+could be more stable than the older versions, and they fix silly bugs in
+the older versions. Most people upgrade kernels because they want the
+device drivers and the bug fixes.
+<p>
+
+<sect1>What kind of hardware do the newer kernels support? <p>
+
+See the Hardware-HOWTO. Alternatively, you can look at the
+`<tt>config.in</tt>' file in the linux source, or just find out
+when you try `<tt>make config</tt>'.
+This shows you all hardware supported by the
+standard kernel distribution, but not everything that linux supports; many
+common device drivers (such as the PCMCIA drivers and some tape drivers) are
+loadable modules maintained and distributed separately.
+<p>
+
+<sect1>What version of gcc and libc do I need? <p>
+
+Linus recommends a version of gcc in the <tt>README</tt> file included with
+the linux source. If you don't have this version, the documentation in the
+recommended version of gcc should tell you if you need to upgrade your libc.
+This is not a difficult procedure, but it is important to follow the
+instructions.
+<p>
+
+<sect1>What's a loadable module? <p>
+
+These are pieces of kernel code which are not
+linked (included) directly in the kernel. One compiles them separately,
+and can insert and remove them into the running kernel at almost any
+time. Due to its flexibility, this is now the preferred way to code certain
+kernel features. Many popular device drivers, such as the PCMCIA
+drivers and the QIC-80/40 tape driver, are loadable modules.
+<p>
+
+<sect1>How much disk space do I need? <p>
+
+It depends on your particular system configuration. First, the compressed
+linux source is nearly 14 megabytes large at version 2.2.9. Many sites keep
+this even after unpacking.
+Uncompressed and built with a moderate configuration, it takes up another 67
+MB.
+<p>
+
+<sect1>How long does it take? <p>
+With newer machines, the compilation takes dramatically less time than
+older ones; an AMD K6-2/300 with a fast disk can do a 2.2.x kernel in about
+four minutes. As for old Pentiums, 486s, and 386s, if you plan to compile
+one, be prepared to wait, possibly hours, days..
+<p>
+If this troubles you, and you happen to have a faster machine around to
+compile on, you can build on the fast machines (assuming you give it the
+right parameters, that your ulilities are up-to-date, and so on), and then
+transfer the kernel image to the slower machine.
+<p>
+
+<sect>How to actually configure the kernel <p>
+
+<sect1>Getting the source <p>
+
+You can obtain the source via anonymous ftp from <tt>ftp.kernel.org</tt> in
+<tt>/pub/linux/kernel/vx.y</tt>, where <tt>x.y</tt> is the version (eg 2.2),
+and as mentioned before, the ones that end with an odd number are
+development releases and may be unstable.
+It is typically labelled <tt>linux-x.y.z.tar.gz</tt>, where <tt>x.y.z </tt>
+is the version number. The sites also typically carry ones with a suffix of
+<tt>.bz2</tt>, which have been compressed with bzip2 (these files will be
+smaller and take less time to transfer).
+<p>
+It's best to use <tt>ftp.xx.kernel.org</tt> where <tt>xx</tt> is your
+country code; examples being <tt>ftp.at.kernel.org</tt> for Austria,
+and <tt>ftp.us.kernel.org</tt> for the United States.
+<p>
+
+<sect1>Unpacking the source <p>
+
+Log in as or <tt>su</tt> to `<tt>root</tt>', and <tt>cd</tt> to
+<tt>/usr/src</tt>.
+If you installed kernel source when you first installed linux (as most do),
+there will already be a directory called `<tt>linux</tt>' there, which
+contains the entire old source tree.
+If you have the disk space and you want to play it safe, preserve that
+directory. A good idea is to figure out
+what version your system runs now and rename the directory
+accordingly. The command `<tt>uname -r</tt>' prints the current
+kernel version.
+Therefore, if `<tt>uname -r</tt>' said `<tt>1.0.9</tt>', you would
+rename (with `<tt>mv</tt>') `<tt>linux</tt>' to `<tt>linux-1.0.9</tt>'.
+If you feel mildly reckless, just wipe out the entire
+directory. In any case, make certain there is no `<tt>linux</tt>' directory
+in <tt>/usr/src</tt> before unpacking the full source code.
+<p>
+
+Now, in <tt>/usr/src</tt>, unpack the source with
+`<tt>tar zxpvf linux-x.y.z.tar.gz</tt>'
+(if you've just got a <tt>.tar</tt>  file with no <tt>.gz</tt> at the end,
+`<tt>tar xpvf linux-x.y.z.tar</tt>' works.).
+The contents of the source will fly by. When finished, there will be
+a new `<tt>linux</tt>' directory in <tt>/usr/src</tt>. <tt>cd</tt> to
+<tt>linux</tt> and look over the <tt>README</tt>  file.
+There will be a section with the label `<tt>INSTALLING the kernel</tt>'.
+Carry out the instructions when appropriate -- symbolic links that should
+be in place, removal of stale <tt>.o</tt> files, etc.
+<p>
+If you have a <tt>.bz2</tt> file and the bzip2 program (read about it at
+<tt>http://www.muraroa.demon.co.uk/</tt>), do this:
+<p>
+<verb>
+     bz2cat linux-x.y.z.tar.bz2 | tar xvf -
+</verb>
+
+<sect1>Configuring the kernel <p>
+
+    Note: Some of this is reiteration/clarification of a similar
+    section in Linus' <tt>README</tt> file.
+<p>
+
+The command `<tt>make config</tt>' while in <tt>/usr/src/linux</tt> starts
+a configure script which asks you many questions. It requires bash,
+so verify that bash is <tt>/bin/bash</tt>, <tt>/bin/sh</tt>,
+or <tt>&dollar;BASH</tt>.
+<p>
+
+However, there are some much more pleasant alternatives to `<tt>make
+config</tt>' and you may very well find them easier and more comfortable to
+use.
+`<tt>make menuconfig</tt>' is probably the most widely-used. Whatever you
+choose, it's best to get familiar with the interface because you may find
+yourself back at it sooner than you think.
+For those ``running X,'' you can try `<tt>make xconfig</tt>' if you have Tk
+installed (`click-o-rama' - Nat). `<tt>make menuconfig</tt>' is for those
+who have
+(n)curses and would prefer a text-based menu. These interfaces have a rather
+clear advantage: If you goof up and make a
+wrong choice during configuration, it is simple to go back and fix it.
+<p>
+
+The configuration options will appear in hierarchies with `<tt>make
+menuconfig</tt>' and `<tt>make xconfig</tt>'.
+<p>
+
+You are ready to answer the questions, usually with `<tt>y</tt>' (yes) or
+`<tt>n</tt>' (no). Device drivers typically have an `<tt>m</tt>' option.
+This means ``module,'' meaning that the system will compile it, but not
+directly into the kernel, but as a loadable module. A more comical way to
+describe it is as ``maybe.'' Some of the
+more obvious and non-critical options are not described here; see the section
+``Other configuration options'' for short descriptions of a few others.
+With `<tt>make menuconfig</tt>', the space bar toggles the selection.
+<p>
+
+In 2.0.x and later, there is a `?' option, which provides a brief
+description of the configuration parameter. That information is likely to
+be the most up-to-date. Here are a listing of some of the important
+features, which hierarchy they are in, and brief description.
+<p>
+
+<sect2>Kernel math emulation (Processor type and features)<p>
+If you don't have a math coprocessor (you have a bare 386 or
+486SX), you must say `<tt>y</tt>' to this. If you do have a coprocessor and
+you still say `<tt>y</tt>', don't worry too much -- the coprocessor is
+still used and the emulation ignored. For any halfway modern machine, the
+answer will be no, but don't worry if you say yes accidentally; if not
+needed, it is not used.
+<p>
+
+<sect2>Enhanced (MFM/RLL) disk and IDE disk/cdrom support (Block Devices)<p>
+
+You probably need to support this; it means that the
+kernel will support standard PC hard disks, which most
+people have. This driver does not include SCSI drives; they come later in
+the configuration.
+<p>
+You will then be asked about the ``old disk-only'' and ``new IDE'' drivers.
+You want to choose one of them; the main difference is that the old driver
+only supports two disks on a single interface, and the new one supports a
+secondary interface and IDE/ATAPI cdrom drives. The new driver is 4k
+larger than the old one and is also supposedly ``improved,'' meaning that
+aside from containing a different number of bugs, it might improve your
+disk performance, especially if you have newer (EIDE-type) hardware.
+<p>
+
+<sect2>Networking support (General Setup)<p>
+
+In principle, you would only say `<tt>y</tt>' if your machine is on a network
+such as the internet, or you want to use SLIP, PPP, term, etc to
+dial up for internet access. However, as many packages (such as the X
+window system)
+require networking support even if your machine does not live on a real
+network, you should say `<tt>y</tt>'. Later on, you will be asked if you
+want to support TCP/IP networking; again, say `<tt>y</tt>' here if you
+are not absolutely sure.
+<p>
+
+<sect2>System V IPC (General Setup)<p>
+
+One of the best definitions of IPC (Interprocess Communication) is in the
+Perl book's glossary. Not surprisingly, some Perl programmers employ it to
+let processes talk to each other, as well as many other packages (DOOM,
+most notably), so it is not a good idea to say <tt>n</tt> unless you know
+exactly what you are doing.
+<p>
+
+<sect2>Processor family (Processor type and features)<p>
+(in older kernels: Use -m486 flag for 486-specific optimizations)<p>
+
+Traditionally, this compiled in certain optimizations for a particular
+processor; the kernels ran fine on other chips, but the kernel was perhaps
+a bit larger. In newer kernels, however, this is no longer true, so you
+should enter the processor for which you are compiling the kernel. A
+``386'' kernel will work on all machines.
+<p>
+
+<sect2>SCSI support<p>
+
+If you have SCSI devices, say `<tt>y</tt>'. You will be prompted for
+further information, such as support for CD-ROM, disks, and what kind
+of SCSI adapter you have. See the SCSI-HOWTO for greater detail.
+<p>
+
+<sect2>Network device support<p>
+
+If you have a network card, or you would like to use SLIP, PPP, or a
+parallel port adapter for connecting to the Internet,
+say `<tt>y</tt>'. The config script will prompt
+for which kind of card you have, and which protocol to use.
+<p>
+
+<sect2>Filesystems<p>
+
+The configure script then asks if you wish to support the following
+filesystems:
+<p>
+
+Standard (minix) - Newer distributions don't create minix filesystems,
+and many people don't use it, but it may still be a good idea to
+configure this one. Some ``rescue disk'' programs use it, and still more
+floppies may have a minix filesystem, since the minix filesystem is less
+painful to use on a floppy.
+<p>
+
+Second extended - This is the standard Linux filesystem. You
+almost definitely have one of these, and need to say `<tt>y</tt>'.
+<p>
+
+msdos - If you want to use your MS-DOS hard disk
+partitions, or mount MS-DOS formatted floppy disks, say `<tt>y</tt>'.
+<p>
+
+There are various other foreign operating system filesystem types available.
+<p>
+
+/proc - (idea from Bell Labs, I guess). One doesn't make a proc
+filesystem on a disk; this is a filesystem interface to the kernel and
+processes. Many process listers (such as `<tt>ps</tt>') use it. Try
+`<tt>cat /proc/meminfo</tt>' or `<tt>cat /proc/devices</tt>' sometime.
+Some shells (rc, in particular) use <tt>/proc/self/fd</tt>  (known as
+<tt>/dev/fd</tt>
+on other systems) for I/O. You should almost certainly say `<tt>y</tt>' to
+this; many important linux tools depend on it.
+<p>
+
+NFS - If your machine lives on a network and you want to use filesystems which
+reside on other systems with NFS, say `<tt>y</tt>'.
+<p>
+
+ISO9660 - Found on most CD-ROMs. If you have a CD-ROM drive and you wish to
+use it under Linux, say `<tt>y</tt>'.
+<p>
+
+<sect3>But I don't know which filesystems I need!
+<p>
+
+Ok, type `<tt>mount</tt>'. The output will look something like this:
+<p>
+
+<tscreen><verb>
+    blah# mount
+    /dev/hda1 on / type ext2 (defaults)
+    /dev/hda3 on /usr type ext2 (defaults)
+    none on /proc type proc (defaults)
+    /dev/fd0 on /mnt type msdos (defaults)
+</verb></tscreen>
+
+Look at each line; the word next to `<tt>type</tt>' is the filesystem
+type. In this example, my <tt>/</tt>  and <tt>/usr</tt> filesystems are
+second extended, I'm using <tt>/proc</tt>, and there's a floppy
+disk mounted using the msdos (bleah) filesystem.
+<p>
+You can try `<tt>cat /proc/filesystems</tt>' if you have <tt>/proc</tt>
+currently enabled; it will list your current kernel's filesystems.
+<p>
+The configuration of rarely-used, non-critical filesystems can cause kernel
+bloat; see the section on modules for a way to avoid this and the
+``Pitfalls'' section on why a bloated kernel is undesirable.
+<p>
+
+<sect2>Character devices <p>
+
+Here, you enable the drivers for your printer (parallel printer, that is),
+busmouse, PS/2 mouse (many notebooks use the PS/2 mouse protocol for their
+built-in trackballs), some tape drives, and other such ``character''
+devices. Say `<tt>y</tt>'
+when appropriate.
+<p>
+
+Note: <tt>gpm</tt> is a program which
+allows the use of the mouse outside of the X window system for cut and paste
+between virtual consoles. It's fairly nice if you have a serial mouse,
+because it coexists well with X, but you need to do special tricks
+for others.
+<p>
+
+<sect2>Sound<p>
+
+If you feel a great desire to hear <tt>biff</tt> bark, say
+`<tt>y</tt>',
+and you can tell the configuration program all about your
+sound board. (A note on sound card configuration: when it asks you if you
+want to install the full version of the driver, you can say `<tt>n</tt>'
+and save some kernel memory by picking only the features which you deem
+necessary.)
+<p>
+
+If you are serious about sound card support, have a look at both the free
+drivers at <tt>http://www.linux.org.uk/OSS/</tt> and the commercial
+Open Sound System at <tt>http://www.opensound.com/</tt>.
+<p>
+
+<sect2>Other configuration options<p>
+Not all of the configuration options are listed here because they change
+too often or fairly self-evident (for instance, 3Com 3C509 support to
+compile the device drive for this particular ethernet card).
+There exists a fairly comprehensive list of all the options (plus a way to
+place them into the <tt>Configure</tt> script) in an effort started and
+maintained by Axel Boldt (<tt>boldt@math.ucsb.edu</tt>) and it's the online
+help. It's also available as one big file at the
+<tt>Documentation/Configure.help</tt> in your Linux kernel source tree as
+of version 2.0.
+<p>
+
+<sect2>Kernel hacking <p>
+
+>From Linus' README:
+
+    the ``kernel hacking'' configuration details usually result in
+    a bigger or slower kernel (or both), and can even make the
+    kernel less stable by configuring some routines to actively try
+    to break bad code to find kernel problems (kmalloc()).  Thus
+    you should probably answer `n' to the questions for a
+    ``production'' kernel. 
+<p>
+
+<sect1>Now what? (The Makefile) <p>
+
+After you finish configuration, a message tells you that your kernel has
+been configured, and to ``check the top-level <tt>Makefile</tt> for
+additional configuration,'' etc.
+<p>
+
+So, look at the <tt>Makefile</tt>. You probably will not need to change it,
+but it never hurts to look. You can also change its options
+with the `<tt>rdev</tt>' command once the new kernel is in place. If you're
+feel lost when you look at the file, then don't worry about it.
+<p>
+
+<sect>Compiling the kernel <p>
+
+<sect1>Cleaning and depending <p>
+
+When the configure script ends, it also tells you to `<tt>make dep</tt>'
+and (possibly) `<tt>clean</tt>'.
+So, do the `<tt>make dep</tt>'. This insures that all of the
+dependencies, such the include files, are in place. It does not take long,
+unless your computer is fairly slow to begin with.
+For older versions of the kernel, when finished, you should do a
+`<tt>make clean</tt>'.
+This removes all of the object files and some other things
+that an old version leaves behind. In any case,
+<it>do not</it> forget this step before attempting to recompile a kernel.
+<p>
+
+<sect1>Compile time <p>
+
+After <tt>dep</tt>ending and <tt>clean</tt>ing, you may now `<tt>make
+bzImage</tt>' or `<tt>make bzdisk</tt>' (this is the part that takes a long
+time.).
+`<tt>make bzImage</tt>' will compile the kernel, and leave
+a file in <tt>arch/i386/boot</tt> called `<tt>bzImage</tt>'
+(among other things). This is the new compressed kernel. `<tt>make bzdisk</tt>'
+does the same thing, but also places the new <tt>bzImage</tt>
+on a floppy disk which you hopefully put in drive ``A:''.
+`<tt>bzdisk</tt>' is fairly handy for testing new
+kernels; if it bombs (or just doesn't work right), just remove the floppy
+and boot with
+your old kernel. It can also be a handy way to boot if you accidentally
+remove your kernel (or something equally as dreadful). You can also use it
+to install new systems when you just dump the contents of one disk onto the
+other (``all this and more! NOW how much would you pay?'').
+<p>
+
+All even halfway reasonably recent kernels are compressed, hence the
+`<tt>bz</tt>' in front of the names. A compressed kernel automatically
+decompresses itself when executed.
+<p>
+In older kernels, you don't have the option to build a <tt>bzImage</tt>; it
+was simply a <tt>zImage</tt>. That option is at the moment still available,
+however, given the code size of newer kernels, it is now more or
+less mandatory to build a <tt>bzImage</tt> because the older methods can't
+handle a kernel that's just too large.
+<p>
+
+<sect1>Other ``make''ables <p>
+
+`<tt>make mrproper</tt>' will do a more extensive `<tt>clean</tt>'ing.
+It is sometimes necessary; you may wish to do it at every patch. `<tt>make
+mrproper</tt>' will also delete your configuration file, so you might want
+to make a backup of it (<tt>.config</tt>) if you see it as valuable.
+<p>
+
+`<tt>make oldconfig</tt>' will attempt to configure the kernel from an old
+configuration file; it will run through the `<tt>make config</tt>' process
+for you. If you haven't ever compiled a kernel before or don't have an old
+config file, then you probably shouldn't do this, as you will most likely
+want to change the default configuration.
+<p>
+
+See the section on modules for a description of `<tt>make modules</tt>'.
+<p>
+
+<sect1>Installing the kernel <p>
+After you have a new kernel that seems to work the way you want it
+to, it's time to install it. Most people use LILO (Linux Loader) for
+this. `<tt>make bzlilo</tt>' will install the kernel, run LILO on it,
+and get you all ready to boot, BUT ONLY if lilo is configured in the
+following way on your system: kernel is
+<tt>/vmlinuz</tt>, lilo is in <tt>/sbin</tt>, and your lilo config
+(<tt>/etc/lilo.conf</tt>) agrees with this.
+<p>
+
+Otherwise, you need to use LILO directly. It's a fairly easy package to
+install and work with, but it has a tendency to
+confuse people with the configuration file.
+Look at the config file (either <tt>/etc/lilo/config</tt> for older
+versions or <tt>/etc/lilo.conf</tt> for new versions), and see what the
+current setup is. The config file looks like this:
+<p>
+
+<verb>
+    image = /vmlinuz
+	label = Linux
+	root = /dev/hda1
+	...
+</verb>
+
+The `<tt>image =</tt>' is set to the currently installed kernel.
+Most people use <tt>/vmlinuz</tt>. `<tt>label</tt>'
+is used by lilo to determine which kernel or operating system to
+boot, and `<tt>root</tt>' is the <tt>/</tt> of that particular operating
+system. Make a backup
+copy of your old kernel and copy the <tt>bzImage</tt>
+which you just
+made into place (you would say `<tt>cp bzImage /vmlinuz</tt>' if you
+use `<tt>/vmlinuz</tt>').  Then, rerun lilo -- on newer systems, you can
+just run `<tt>lilo</tt>', but on older stuff, you might have to do an
+<tt>/etc/lilo/install</tt> or even an
+<tt>/etc/lilo/lilo -C /etc/lilo/config</tt>.
+<p>
+
+If you would like to know more about LILO's configuration, or you don't have
+LILO, get the newest version from your favorite ftp site and follow the
+instructions.
+<p>
+
+To boot one of your old kernels off the hard disk
+(another way to save yourself in case you screw up the new kernel),
+copy the lines below (and including) `<tt>image = xxx</tt>' in the LILO config
+file to the bottom of the file, and change the `<tt>image = xxx</tt>' to
+`<tt>image = yyy</tt>', where `<tt>yyy</tt>' is the full pathname of
+the file you saved your
+backup kernel to. Then, change the `<tt>label = zzz</tt>' to
+`<tt>label = linux-backup</tt>' and rerun <tt>lilo</tt>. You may need to
+put a line in
+the config file saying `<tt>delay=x</tt>', where x is an amount in tenths of a
+second, which tells LILO to wait that much time before booting, so that you
+can interrupt it (with the shift key, for example), and type in the label
+of the backup boot image (in case unpleasant things happen).
+<p>
+
+<sect>Patching the kernel <p>
+
+<sect1>Applying a patch <p>
+
+Incremental upgrades of the kernel are distributed as patches. For
+example, if you have version 1.1.45, and you notice that there's a
+`<tt>patch46.gz</tt>' out there for it, it means you can upgrade to version
+1.1.46 through application of the patch. You might want to make a backup of the
+source tree first (`<tt>make clean</tt>' and then
+`<tt>cd /usr/src; tar zcvf old-tree.tar.gz linux</tt>'
+will make a compressed tar archive for you.).
+<p>
+
+So, continuing with the example above, let's suppose that
+you have `<tt>patch46.gz</tt>' in <tt>/usr/src</tt>. <tt>cd</tt> to
+<tt>/usr/src</tt>  and do a `<tt>zcat patch46.gz | patch -p0</tt>'
+(or `<tt>patch -p0 &lt; patch46</tt>'
+if the patch isn't compressed). You'll see things whizz by
+(or flutter by, if your
+system is that slow) telling you that it is trying to apply hunks,
+and whether it succeeds or not. Usually, this action goes by too quickly for
+you to read, and you're not too sure whether it worked or not, so you might
+want to use the <tt>-s</tt> flag to <tt>patch</tt>, which tells <tt>patch</tt>
+to only report error messages (you don't get as much of the ``hey, my
+computer is actually doing something for a change!'' feeling, but you may
+prefer this..). To look for
+parts which might not have gone smoothly, cd to <tt>/usr/src/linux</tt>  and
+look for files with a <tt>.rej</tt> extension. Some versions of <tt>patch</tt>
+(older versions which may have been compiled with on an inferior
+filesystem) leave the rejects with a <tt>&num;</tt> extension. You can use
+`<tt>find</tt>' to look for you;
+<verb>
+    find .  -name '*.rej' -print
+</verb>
+prints all files who live in the current directory or any subdirectories with
+a <tt>.rej</tt> extension to the standard output.
+<p>
+
+If everything went right, do a `<tt>make clean</tt>', `<tt>config</tt>',
+and `<tt>dep</tt>' as described in sections 3 and 4.
+<p>
+
+There are quite a few options to the <tt>patch</tt> command. As mentioned
+above, <tt>patch -s</tt>
+will suppress all messages except the errors. If you keep your kernel
+source in some other place than <tt>/usr/src/linux</tt>, <tt>patch -p1</tt>
+(in that directory) will patch things cleanly. Other <tt>patch</tt> options are
+well-documented in the manual page.
+<p>
+
+<sect1>If something goes wrong <p>
+
+(Note: this section refers mostly to quite old kernels)<p>
+
+The most frequent problem that used to arise was when a patch modified
+a file called `<tt>config.in</tt>' and it didn't look quite right,
+because you changed the options to suit your machine. This has been
+taken care of, but one still might encounter it with an older release.
+To fix it, look at the <tt>config.in.rej</tt>  file, and see what remains
+of the original patch.
+The changes will typically be marked with `<tt>+</tt>' and `<tt>-</tt>'
+at the beginning of the
+line. Look at the lines surrounding it, and remember if they were set to
+`<tt>y</tt>' or `<tt>n</tt>'. Now, edit <tt>config.in</tt>, and change
+`<tt>y</tt>' to `<tt>n</tt>' and `<tt>n</tt>' to `<tt>y</tt>'
+when appropriate. Do a
+<verb>
+    patch -p0 < config.in.rej
+</verb>
+and if it reports that it
+succeeded (no fails), then you can continue on with a configuration and
+compilation. The <tt>config.in.rej</tt> file will remain, but you can get
+delete it.
+<p>
+
+If you encounter further problems, you might have installed a patch out
+of order. If patch says `<tt>previously applied patch detected: Assume
+-R?</tt>', you are probably trying to apply a patch which is below your current
+version number; if you answer `<tt>y</tt>', it will attempt to degrade
+your source, and will most likely fail; thus, you will need to get a whole new
+source tree (which might not have been such a bad idea in the first place).
+<p>
+
+To back out (unapply) a patch, use `<tt>patch -R</tt>' on the original patch.
+<p>
+
+The best thing to do when patches really turn out wrong is to start over
+again with a clean, out-of-the-box source tree (for example, from one
+of the <tt>linux-x.y.z.tar.gz</tt>  files), and start again.
+<p>
+
+<sect1>Getting rid of the .orig files <p>
+
+After just a few patches, the <tt>.orig</tt>  files will start to pile up. For
+example, one 1.1.51 tree I had was once last cleaned out at 1.1.48.
+Removing the .orig files saved over a half a meg.
+<verb>
+    find .  -name '*.orig' -exec rm -f {} ';'
+</verb>
+will take care of it for you. Versions of <tt>patch</tt> which use
+<tt>&num;</tt> for rejects use a tilde instead of <tt>.orig</tt>.
+<p>
+There are better ways to get rid of the <tt>.orig</tt> files, which
+depend on GNU <tt>xargs</tt>:
+<verb>
+    find .  -name '*.orig' | xargs rm
+</verb>
+or the ``quite secure but a little more verbose'' method:
+<verb>
+    find . -name '*.orig' -print0 | xargs --null rm --
+</verb>
+<p>
+
+<sect1>Other patches <p>
+
+There are other patches (I'll call them ``nonstandard'') than the
+ones Linus distributes. If you apply these, Linus' patches may not work
+correctly and you'll have to either back them out, fix the source or
+the patch, install a new source tree, or a combination of the above. This
+can become very frustrating, so if you do not want to modify the source (with
+the possibility of a very bad outcome), back
+out the nonstandard patches before applying Linus', or just install a new
+tree. Then, you can see
+if the nonstandard patches still work. If they don't, you are either
+stuck with an old kernel, playing with the patch or source to
+get it to work, or waiting (possibly begging) for a new version of
+the patch to come out.
+<p>
+
+How common are the patches not in the standard distribution? You will
+probably hear of them. I used to use the noblink patch 
+for my virtual consoles because I hate blinking cursors (This patch
+is (or at least was) frequently updated for new kernel releases.). With
+most newer device drivers being developed as loadable modules, though, the
+frequecy of ``nonstandard'' patches is decreasing significantly.
+<p>
+
+<sect>Additional packages<p>
+Your linux kernel has many features which are not explained in the
+kernel source itself; these features are typically utilized through
+external packages. Some of the most common are listed here.<p>
+
+<sect1>kbd<p>
+The linux console probably has more features than it deserves. Among these
+are the ability to switch fonts, remap your keyboard, switch
+video modes (in newer kernels), etc. The kbd package has programs which
+allow the user to do all of this, plus many fonts and keyboard maps
+for almost any keyboard, and is available from the same sites that carry
+the kernel source.<p>
+
+<sect1>util-linux<p>
+Rik Faith (<tt>faith@cs.unc.edu</tt>) put together a large collection of
+linux utilities which are, by odd coincidence, called util-linux. These are
+now maintained by Andries Brouwer (<tt>util-linux@math.uio.no</tt>).
+Available via
+anonymous ftp from sunsite.unc.edu in <tt>/pub/Linux/system/misc</tt>, it
+contains programs such as <tt>setterm</tt>, <tt>rdev</tt>, and
+<tt>ctrlaltdel</tt>, which are relevant to the kernel. As Rik says, <it>do
+not install without thinking;</it> you do not need to install everything in
+the package, and it could very well cause serious problems if you do.
+<p>
+
+<sect1>hdparm<p>
+As with many packages, this was once a kernel patch and support programs.
+The patches made it into the official kernel, and the programs
+to optimize and play with your hard disk are distributed separately.
+<p>
+
+<sect1>gpm<p>
+gpm stands for general purpose mouse. This program allows you to cut and
+paste text between virtual consoles and do other things with a large
+variety of mouse types.
+<p>
+
+<sect>Some pitfalls <p>
+
+<sect1>make clean <p>
+If your new kernel does really weird things after a routine kernel upgrade,
+chances are you forgot to <tt>make clean</tt> before compiling the new
+kernel. Symptoms can be anything from
+your system outright crashing, strange I/O problems, to crummy
+performance. Make sure you do a <tt>make dep</tt>, too.
+<p>
+
+<sect1>Huge or slow kernels <p>
+If your kernel is sucking up a lot of memory, is too large,
+and/or just takes forever to compile even when you've got your new
+Quadbazillium-III/4400 working on it, you've probably got lots of unneeded
+stuff (device drivers, filesystems, etc) configured. If you don't use it,
+don't configure it, because it does take up memory.
+The most obvious symptom of kernel bloat is extreme swapping in and out of
+memory to disk; if your disk is making a lot of noise and it's not one of
+those old Fujitsu Eagles that sound like like a jet landing when turned
+off, look over your kernel configuration.
+<p>
+
+You can find out how much memory the kernel is using by taking the
+total amount of memory in your machine and subtracting from it the
+amount of ``total mem'' in <tt>/proc/meminfo</tt>  or the output of the command
+`<tt>free</tt>'.
+<p>
+
+<sect1>The parallel port doesn't work/my printer doesn't work<p>
+Configuration options for PCs are: First, under the category `General Setup',
+select `Parallel port support' and `PC-style hardware'. Then under
+`Character devices', select `Parallel printer support'.
+<p>
+Then there are the names. Linux 2.2 names the printer devices differently
+than previous releases. The upshot of this is that if you had an <tt>lp1</tt>
+under your old kernel, it's probably an <tt>lp0</tt> under your new one.
+Use `<tt>dmesg</tt>' or look through the logs in <tt>/var/log</tt> to find
+out.
+<p>
+
+<sect1>Kernel doesn't compile <p>
+
+If it does not compile, then it is likely that a patch failed, or your
+source is somehow corrupt. Your version of gcc also might not
+be correct, or could also be corrupt (for example, the include files
+might be in error). Make sure that the symbolic links which
+Linus describes in the <tt>README</tt> are set up correctly. In general, if
+a standard kernel
+does not compile, something is seriously wrong with the system, and 
+reinstallation of certain tools is probably necessary.
+<p>
+
+In some cases, gcc can crash due to hardware problems. The error
+message will be something like ``xxx exited with signal 15'' and it will
+generally look very mysterious. I probably would not mention this, except
+that it happened to me once - I had some bad cache memory, and the compiler
+would occasionally barf at random. Try reinstalling gcc first if you
+experience problems. You should only get suspicious if your kernel compiles
+fine with external cache turned off, a reduced amount of RAM, etc.
+<p>
+
+It tends to disturb people when it's suggested that their hardware has
+problems. Well, I'm not making this up. There is an FAQ for it -- it's at
+<tt>http://www.bitwizard.nl/sig11/</tt>.
+<p>
+
+<sect1>New version of the kernel doesn't seem to boot<p>
+
+You did not run LILO, or it is not configured correctly. One thing that
+``got'' me once was a problem in the config file; it said `<tt>boot =
+/dev/hda1</tt>'
+instead of `<tt>boot = /dev/hda</tt>' (This can be really annoying at first,
+but once you have a working config file, you shouldn't need to
+change it.).
+<p>
+
+<sect1> You forgot to run LILO, or system doesn't boot at all<p>
+
+Ooops! The best thing you can do here is to boot off of a floppy disk or
+CDROM and
+prepare another bootable floppy (such as `<tt>make zdisk</tt>' would do).
+You need to know where your root (<tt>/</tt>) filesystem is and what type
+it is (e.g. second extended, minix). In the example below, you also need
+to know what filesystem your <tt>/usr/src/linux</tt> source
+tree is on, its type, and where it is normally mounted.<p>
+
+In the following example, <tt>/</tt> is <tt>/dev/hda1</tt>, and the
+filesystem which holds <tt>/usr/src/linux</tt>
+is <tt>/dev/hda3</tt>, normally mounted at <tt>/usr</tt>. Both are
+second extended filesystems. The working kernel image in
+<tt>/usr/src/linux/arch/i386/boot</tt> is called <tt>bzImage</tt>.<p>
+
+The idea is that if there is a functioning
+<tt>bzImage</tt>, it is possible to use that
+for the new floppy. Another alternative, which may or may not work better
+(it depends on the particular method in which you messed up your system) is
+discussed after the example.<p>
+
+First, boot from a boot/root disk combo or rescue disk, and
+mount the filesystem which contains the working kernel image:<p>
+
+<verb>
+    mkdir /mnt
+    mount -t ext2 /dev/hda3 /mnt
+</verb>
+
+If <tt>mkdir</tt> tells you that the directory already exists, just ignore
+it. Now, <tt>cd</tt> to the place where the working kernel image was. Note
+that
+<verb>
+/mnt + /usr/src/linux/arch/i386/boot - /usr = /mnt/src/linux/arch/i386/boot
+</verb>
+Place a formatted
+disk in drive ``A:'' (not your boot or root disk!), dump
+the image to the disk, and configure it for your root filesystem:<p>
+
+<verb>
+    cd /mnt/src/linux/arch/i386/boot
+    dd if=bzImage of=/dev/fd0
+    rdev /dev/fd0 /dev/hda1
+</verb>
+
+<tt>cd</tt> to <tt>/</tt> and unmount the normal <tt>/usr</tt> filesystem:<p>
+<verb>
+    cd /
+    umount /mnt
+</verb>
+
+You should now be able to reboot your system as normal from this floppy.
+Don't forget to run lilo (or whatever it was that you did wrong) after
+the reboot!<p>
+
+As mentioned above, there is another common alternative. If you
+happened to have a working kernel image in <tt>/</tt> (<tt>/vmlinuz</tt>
+for example), you can use that for a boot disk. Supposing all of the above
+conditions, and that my kernel image is <tt>/vmlinuz</tt>, just make these
+alterations to the example above: change
+<tt>/dev/hda3</tt> to <tt>/dev/hda1</tt> (the <tt>/</tt> filesystem),
+<tt>/mnt/src/linux</tt> to
+<tt>/mnt</tt>, and <tt>if=bzImage</tt> to <tt>if=vmlinuz</tt>. The
+note explaining how to derive <tt>/mnt/src/linux</tt> may be ignored.
+<p>
+
+Using LILO with big drives (more than 1024 cylinders) can cause problems.
+See the LILO mini-HOWTO or documentation for help on that.
+<p>
+
+<sect1>It says `warning: bdflush not running' <p>
+
+This can be a severe problem. Starting with a kernel release
+after 1.0 (around 20 Apr 1994), a program called `<tt>update</tt>' which
+periodically flushes out the filesystem buffers, was upgraded/replaced. Get
+the sources to `<tt>bdflush</tt>'
+(you should find it where you got your kernel source), and install it (you
+probably want to run your system under the old kernel while doing this). It
+installs itself as `<tt>update</tt>' and after a reboot, the new kernel
+should no longer complain.
+<p>
+
+<sect1>I can't get my IDE/ATAPI CD-ROM drive to work<p>
+Strangely enough, lots of people cannot get their ATAPI drives working,
+probably because there are a number of things that can go wrong.
+<p>
+If your CD-ROM drive is the only device on a particular IDE
+interface, it must be jumpered as ``master'' or ``single.'' Supposedly,
+this is the most common error.
+<p>
+Creative Labs (for one) has put IDE interfaces on their sound cards now.
+However, this leads to the interesting problem that while some people only
+have one interface to being with, many have two IDE interfaces built-in to
+their motherboards (at IRQ15, usually), so a common practice is to make the
+soundblaster interface a third IDE port (IRQ11, or so I'm told).
+<p>
+This causes problems with linux in that versions 1.2.x don't support a third
+IDE interface (there is support in starting somewhere in the 1.3.x series
+but that's development, remember, and it doesn't auto-probe). To get around
+this, you have a few choices.<p>
+<p>
+If you have a second IDE port already, chances are that you are not using
+it or it doesn't already have two devices on it. Take the ATAPI drive off
+the sound card and put it on the second interface. You can then disable the
+sound card's interface, which saves an IRQ anyway.
+<p>
+If you don't have a second interface, jumper the sound card's interface
+(not the sound card's sound part) as IRQ15, the second interface. It should
+work.
+<p>
+
+<sect1>It says weird things about obsolete routing requests <p>
+
+Get new versions of the <tt>route</tt> program and any other programs
+which do route manipulation.
+<tt>/usr/include/linux/route.h</tt>  (which is actually a file in
+<tt>/usr/src/linux</tt>) has changed.
+<p>
+
+<sect1>Firewalling not working in 1.2.0<p>
+Upgrade to at least version 1.2.1.
+<p>
+
+<sect1>``Not a compressed kernel Image file''<p>
+Don't use the <tt>vmlinux</tt> file created in <tt>/usr/src/linux</tt> as
+your boot image; <tt>[..]/arch/i386/boot/bzImage</tt> is the right
+one.
+<p>
+
+<sect1>Problems with console terminal after upgrade to 1.3.x<p>
+Change the word <tt>dumb</tt> to <tt>linux</tt> in the console termcap
+entry in <tt>/etc/termcap</tt>. You may also have to make a terminfo entry.
+<p>
+
+<sect1> Can't seem to compile things after kernel upgrade<p>
+The linux kernel source includes a number of include files (the things that
+end with <tt>.h</tt>) which are referenced by the standard ones in
+<tt>/usr/include</tt>. They are typically referenced like this (where
+<tt>xyzzy.h</tt> would be something in <tt>/usr/include/linux</tt>):
+<verb>
+    #include <linux/xyzzy.h>
+</verb>
+Normally, there is a link called <tt>linux</tt> in <tt>/usr/include</tt> to
+the <tt>include/linux</tt> directory of your kernel source
+(<tt>/usr/src/linux/include/linux</tt> in the typical system). If this link
+is not there, or points to the wrong place, most things will not compile at
+all. If you decided that the kernel source was taking too much room on the
+disk and deleted it, this will obviously be a problem. Another way it might
+go wrong is with file permissions; if your <tt>root</tt> has a umask
+which doesn't allow other users to see its files by default, and you
+extracted the kernel source without the <tt>p</tt> (preserve filemodes)
+option, those users also won't be able to use the C compiler. Although you
+could use the <tt>chmod</tt> command to fix this, it is probably easier to
+re-extract the include files. You can do this the same way you did the
+whole source at the beginning, only with an additional argument:<p>
+<verb>
+    blah# tar zxvpf linux.x.y.z.tar.gz linux/include
+</verb>
+Note: ``<tt>make config</tt>'' will recreate the <tt>/usr/src/linux</tt>
+link if it isn't there.
+<p>
+
+<sect1>Increasing limits<p>
+The following few <it>example</it> commands may be helpful to those
+wondering how to increase certain soft limits imposed by the kernel:
+<verb>
+echo 4096 > /proc/sys/kernel/file-max
+echo 12288 > /proc/sys/kernel/inode-max
+echo 300 400 500 > /proc/sys/vm/freepages
+</verb>
+<p>
+
+<sect>Note for upgrade to version 2.0.x, 2.2.x<p>
+Kernel versions 2.0.x and 2.2.x introduced quite a bit of changes for kernel
+installation. The file <tt>Documentation/Changes</tt> in the 2.0.x source
+tree contains information that you should know when upgrading to either of
+these versions. You will most likely need to upgrade several key packages,
+such as gcc, libc, and SysVInit, and perhaps alter some system files, so
+expect this. Don't panic, though.
+<p>
+
+<sect>Modules<p>
+Loadable kernel modules can save memory and ease configuration. The scope
+of modules has grown to include filesystems, ethernet card drivers, tape
+drivers, printer drivers, and more.
+<p>
+
+<sect1>Installing the module utilities<p>
+The module utilities are available from wherever you got your kernel
+source as <tt>modutils-x.y.z.tar.gz</tt>; choose the highest
+patchlevel <tt>x.y.z</tt> that is equal to or below that of your current
+kernel. Unpack it with `<tt>tar zxvf modutils-x.y.z.tar.gz</tt>',
+<tt>cd</tt> to the directory it creates (<tt>modutils-x.y.z</tt>), look
+over the <tt>README</tt>, and carry out its installation instructions
+(which is usually something simple, such as <tt>make install</tt>). You
+should now have the programs
+<tt>insmod</tt>, <tt>rmmod</tt>, <tt>ksyms</tt>, <tt>lsmod</tt>, 
+<tt>genksyms</tt>, <tt>modprobe</tt>, and <tt>depmod</tt> in
+<tt>/sbin</tt>. If you wish,
+test out the utilities with the ``hw'' example driver in <tt>insmod</tt>; look
+over the <tt>INSTALL</tt> file in that subdirectory for details.
+<p>
+<tt>insmod</tt> inserts a module into the running kernel. Modules
+usually have a <tt>.o</tt> extension; the example driver mentioned above
+is called <tt>drv_hello.o</tt>, so to insert this, one would say
+`<tt>insmod drv_hello.o</tt>'. To see the modules that the kernel is
+currently using, use <tt>lsmod</tt>. The output looks like this:
+<verb>
+    blah# lsmod
+    Module:        #pages:  Used by:
+    drv_hello          1
+</verb>
+`<tt>drv_hello</tt>' is the name of the module, it uses one page (4k) of
+memory, and no other kernel modules depend on it at the moment. To remove
+this module, use `<tt>rmmod drv_hello</tt>'. Note that <tt>rmmod</tt>
+wants a <it>module name,</it> not a filename; you get this from
+<tt>lsmod</tt>'s listing. The other module utilities' purposes are documented
+in their manual pages.
+<p>
+
+<sect1>Modules distributed with the kernel<p>
+As of version 2.0.30, most of everything is available as a loadable
+modules. To use
+them, first make sure that you don't configure them into the regular
+kernel; that is, don't say <tt>y</tt> to it during `<tt>make config</tt>'.
+Compile a new kernel and reboot with it. Then, <tt>cd</tt> to
+<tt>/usr/src/linux</tt> again, and do a `<tt>make modules</tt>'. This
+compiles all of the modules which you did not specify in the kernel
+configuration, and places links to them in <tt>/usr/src/linux/modules</tt>.
+You can use them straight from that directory or execute `<tt>make
+modules_install</tt>', which installs them in
+<tt>/lib/modules/x.y.z</tt>, where <tt>x.y.z</tt> is the kernel release.
+<p>
+
+This can be especially handy with filesystems. You may not use the minix
+or msdos filesystems frequently. For example, if I encountered an msdos
+(shudder) floppy, I would <tt>insmod /usr/src/linux/modules/msdos.o</tt>,
+and then <tt>rmmod msdos</tt> when finished. This procedure saves about
+50k of RAM in the kernel during normal operation. A small note is in order for
+the minix filesystem: you should <it>always</it> configure it directly into the
+kernel for use in ``rescue'' disks.
+<p>
+
+<sect>Tips and tricks <p>
+
+<sect1>Redirecting output of the make or patch commands <p>
+
+If you would like logs of what those `<tt>make</tt>' or `<tt>patch</tt>'
+commands did, you can redirect output to a file. First,
+find out what shell you're running:
+`<tt>grep root /etc/passwd</tt>' and look for something like
+`<tt>/bin/csh</tt>'.
+<p>
+
+If you use sh or bash,
+<verb>
+    (command) 2>&1 | tee (output file)
+</verb>
+will place a copy of <tt>(command)</tt>'s output in the
+file `<tt>(output file)</tt>'.
+<p>
+
+For csh or tcsh, use
+<verb>
+    (command) |& tee (output file)
+</verb>
+<p>
+
+For rc (Note: you probably do not use rc) it's
+<verb>
+    (command) >[2=1] | tee (output file)
+</verb>
+<p>
+
+<sect1>Conditional kernel install <p>
+Other than using floppy disks, there are several methods of testing out a new
+kernel without touching the old one. Unlike many other Unix flavors, LILO has
+the ability to boot a kernel from anywhere on the disk (if you have a
+large (500 MB or above) disk, please read over the LILO documentation on
+how this may cause problems). So, if you add something similar to
+<verb>
+    image = /usr/src/linux/arch/i386/boot/bzImage
+        label = new_kernel
+</verb>
+to the end of your LILO configuration file, you can choose to run a newly
+compiled kernel without touching your old <tt>/vmlinuz</tt> (after running
+<tt>lilo</tt>, of course). The easiest way to tell LILO to boot a new
+kernel is to press the shift key at bootup time (when it says
+<tt>LILO</tt> on the screen, and nothing else), which gives you a prompt.
+At this point, you can enter `<tt>new_kernel</tt>' to boot the new kernel.
+<p>
+If you wish to keep several different kernel source trees on your system at
+the same time (this can take up a <it>lot</it> of disk space; be careful), the
+most common way is to name them <tt>/usr/src/linux-x.y.z</tt>, where
+<tt>x.y.z</tt> is the kernel version. You can then ``select'' a source
+tree with a symbolic link; for example, `<tt>ln -sf linux-1.2.2
+/usr/src/linux</tt>' would make the 1.2.2 tree current. Before creating a
+symbolic link like this, make certain that the last argument to
+<tt>ln</tt> is not a real directory (old symbolic links are fine); the
+result will not be what you expect.
+<p>
+
+<sect1>Kernel updates <p>
+Russell Nelson (<tt>nelson@crynwr.com</tt>) summarizes the changes in new
+kernel releases. These are short, and you might like to look at them
+before an upgrade. They are available with anonymous ftp from
+<tt>ftp.emlist.com</tt> in <tt>pub/kchanges</tt> or through the URL
+<verb>
+    http://www.crynwr.com/kchanges
+</verb>
+<p>
+
+<sect>Other relevant HOWTOs that might be useful<p>
+<itemize>
+<item> Sound-HOWTO: sound cards and utilities
+<item> SCSI-HOWTO: all about SCSI controllers and devices
+<item> NET-2-HOWTO: networking
+<item> PPP-HOWTO: PPP networking in particular
+<item> PCMCIA-HOWTO: about the drivers for your notebook
+<item> ELF-HOWTO: ELF: what it is, converting..
+<item> Hardware-HOWTO: overview of supported hardware
+<item> Module mini-HOWTO: more on kernel modules
+<item> Kerneld mini-HOWTO: about kerneld
+<item> BogoMips mini-HOWTO: in case you were wondering
+</itemize>
+
+<sect>Misc<p>
+
+<sect1>Author <p>
+
+The author and maintainer of the Linux Kernel-HOWTO is Brian Ward
+(<tt>bri@cs.uchicago.edu</tt>). Please send me any comments, additions,
+corrections (Corrections are, in particular, the most important to me.).
+<p>
+
+You can take a look at my `home page' at one of these URLs:
+<verb>
+    http://www.math.psu.edu/bri/
+    http://blah.math.tu-graz.ac.at/~bri/
+</verb>
+<p>
+
+Even though I try to be attentive as possible with mail, please remember
+that I get a <it>lot</it> of it every day, so it may take a little time to
+get back to you. Especially when emailing me with a question, please try
+extra hard to be clear and detailed in your message. If you're writing
+about non-working hardware (or something like that), I need to know what
+your hardware configureation is. If you report an error, don't just say
+``I tried this but it gave an error;'' I need to know what the error was.
+I would also like to know what versions of the kernel, gcc, and libc you're
+using. If you just tell me you're using this-or-that distribution, it won't
+tell me much at all. I don't care if you
+ask simple questions; remember, if you don't ask, you may never get an
+answer! I'd like to thank everyone who has given me feedback.
+<p>
+If your question does not relate to the kernel, or is in some language that
+I don't understand, I may not answer.
+<p>
+
+If you mailed me and did not get an answer within a resonable amount of
+time (three weeks or more), then chances are that I accidentally deleted your
+message or something (sorry). Please try again.
+<p>
+
+I get a lot of mail about thing which are actually hardware problems or
+issues. That's OK, but please try to keep in mind that I'm not familiar
+with all of the hardware in the world. I use AMD processors, Adaptec and
+Sybios SCSI controllers, and IBM SCSI disks.
+<p>
+
+Version -0.1 was written on October 3, 1994. This document is available in
+SGML, PostScript, TeX, roff, and plain-text formats.
+<p>
+
+<sect1>To do<p>
+The ``Tips and tricks'' section is a little small. I hope to expand on it
+with suggestions from others.<p>
+So is ``Additional packages.''<p>
+More debugging/crash recovery info needed.<p>
+
+<sect1>Contributions <p>
+A small part of Linus' README (kernel hacking options) is inclusive.
+(Thanks, Linus!)
+<p>
+<tt>uc@brian.lunetix.de</tt> (Ulrich Callmeier): patch -s and xargs.<p>
+<tt>quinlan@yggdrasil.com</tt> (Daniel Quinlan): corrections and
+additions in many sections.<p>
+<tt>nat@nat@nataa.fr.eu.org</tt> (Nat Makarevitch): mrproper, tar -p, many
+other things<p>
+<tt>boldt@math.ucsb.edu</tt> (Axel Boldt): collected descriptions of
+kernel configuration options on the net; then provided me with the list<p>
+<tt>lembark@wrkhors.psyber.com</tt> (Steve Lembark): multiple boot
+suggestion<p>
+<tt>kbriggs@earwax.pd.uwa.edu.au</tt> (Keith Briggs): some corrections and
+suggestions<p>
+<tt>rmcguire@freenet.columbus.oh.us</tt> (Ryan McGuire): makeables
+additions<p>
+<tt>dumas@excalibur.ibp.fr</tt> (Eric Dumas): French translation<p>
+<tt>simazaki@ab11.yamanashi.ac.jp</tt> (Yasutada Shimazaki): Japanese translation<p>
+<tt>jjamor@lml.ls.fi.upm.es</tt> (Juan Jose Amor Iglesias): Spanish translation<p>
+<tt>mva@sbbs.se</tt> (Martin Wahlen): Swedish translation<p>
+<tt>jzp1218@stud.u-szeged.hu</tt> (Zoltan Vamosi): Hungarian translation<p>
+<tt>bart@mat.uni.torun.pl</tt> (Bartosz Maruszewski): Polish translation<p>
+<tt>donahue@tiber.nist.gov</tt> (Michael J Donahue): typos, winner of the
+``sliced bread competition''<p>
+<tt>rms@gnu.ai.mit.edu</tt> (Richard Stallman):
+``free'' documentation concept/distribution notice<p>
+<tt>dak@Pool.Informatik.RWTH-Aachen.DE</tt> (David Kastrup): NFS thing<p>
+<tt>esr@snark.thyrsus.com</tt> (Eric Raymond): various tidbits<p>
+
+The people who have sent me mail with questions and problems have also been
+quite helpful.
+<p>
+
+<sect1>Copyright notice, License, and all that stuff<p>
+Copyright &copy Brian Ward, 1994-1999.<p>
+Permission is granted to make and distribute copies of this manual provided
+the copyright notice and this permission notice are preserved on all
+copies.<p>
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the derived
+work is distributed under the terms of a permission notice identical to
+this one. Translations fall under the catagory of ``modified versions.''
+<p>
+
+Warranty: None.<p>
+
+Recommendations:
+Commercial redistribution is allowed and encouraged; however, it is
+strongly recommended that the redistributor contact the author before the
+redistribution, in the interest of keeping things up-to-date (you could
+send me a copy of the thing you're making while you're at it). Translators
+are also advised to contact the author before translating. The printed
+version looks nicer. Recycle.<p>
+
+</article>
