@@ -10,7 +10,7 @@ a data object factory.
 
 ### THIS CODE IS NOT FUNCTIONAL YET ###
 
-__version__ = '0.2'
+__version__ = '0.1.200205131'
 
 
 # Modules ##################################################################
@@ -65,6 +65,7 @@ class User :
 		self.username = None
 		self.user_id = None
 		self.firstname = None
+		self.middlename = None
 		self.surname = None
 		self.name = None
 		self.email = None
@@ -95,7 +96,7 @@ class Document :
 		self.url = None
 		self.isbn = None
 		self.pub_status = PubStatus()
-		self.author_status = None
+		self.author_status = None				## XXX FIXME
 		self.review_status = ReviewStatus()
 		self.tickle_date = None
 		self.pub_date = None
@@ -291,7 +292,7 @@ class Database :
 		"""
 		Init database connection
 		"""
-		self.dbname = None
+		pass
 
 	def get_config(self, name) :
 		"""
@@ -370,7 +371,7 @@ class Database :
 		cur.execute('SELECT user_id, username, first_name, middle_name, surname, email, admin, notes from username')
 		return [self.mk_user(row) for row in cur.fetchall()]
 	
-	def get_user_from_sessionid(self, session_id) :
+	def get_user_by_sessionid(self, session_id) :
 		"""
 		Return a user that has corresponding session_id
 		"""
@@ -502,21 +503,21 @@ class Database :
 		cur.execute('SELECT d.doc_id, d.title, df.filename, c.class, c.class_name, a.audience, a.audience_level, a.audience_description, f.format, f.format_name, d.dtd, d.dtd_version, d.version, d.last_update, d.url, d.isbn, p.pub_status, p.pub_status_name, p.pub_status_desc, r.review_status, r.review_status_name, d.tickle_date, d.pub_date, d.ref_url, r2.review_status, r2.review_status_name, d.maintained, l.license, l.free, d.abstract, d.rating FROM document d, document_file df, class c, audience a, document_audience da, format f, pub_status p, review_status r, review_status r2, license l, document_user du WHERE d.doc_id = df.doc_id AND d.class = c.class AND d.doc_id = da.doc_id AND da.audience = a.audience AND d.format = f.format AND d.pub_status = p.pub_status AND d.review_status = r.review_status AND d.tech_review_status = r2.review_status AND d.license = l.license AND du.user_id = %s AND du.doc_id = d.doc_id', user_id)
 		return [self.mk_document(row) for row in cur.fetchall()]
 
-	def add_document(self, doc) :
+	def add_document(self, document) :
 		"""
 		Add a new document
 		"""
 		# turn Document instance into SQL INSERT
 		pass
 
-	def update_document(self, doc) :
+	def update_document(self, document) :
 		"""
 		Update document description
 		"""
 		# turn Document instance into SQL UPDATE
 		pass
 
-	def doc_count(self, type=None) :
+	def get_document_count(self, type=None, tuple=[]) :
 		"""
 		return number of documents
 		"""
@@ -530,7 +531,7 @@ class Database :
 			# SELECT COUNT(*) FROM document
 			pass
 
-	def get_users(self) :
+	def get_users_by_document(self, doc_id) :
 		"""
 		Return list of users with their roles
 		"""
@@ -540,7 +541,7 @@ class Database :
 	
 	# topics ###
 	
-	def get_topics(self) :
+	def get_topics_by_document(self, doc_id) :
 		"""
 		Return a list of topics
 		"""
@@ -554,72 +555,45 @@ class Database :
 		# SELECT topic_num, topic_name, topic_description FROM topic WHERE topic_num=$topic_num
 		pass
 
-	def get_topics(self) :
+	def get_topics(self, father_id=0) :
 		"""
 		Return list of topics
 		"""
 		# SELECT topic_num, topic_name, topic_description FROM topic
 		pass
 
-	def SaveTopic(self, topic_num, topic_name, topic_description) :
+	def add_topic(self, topic) :
 		"""
-		Save a given topic
+		Add a new topic
 		"""
 		# UPDATE topic SET topic_name=" . wsq($topic_name) . ", topic_description=" . wsq($topic_description) . " WHERE topic_num=$topic_num
 		pass
 
-	def Subtopics(self, topic_num) :
+	def update_topic(self, topic) :
 		"""
-		Return the subtopics of a given topic
+		Update a given topic
 		"""
-		"""
-	my %subtopics = ()
-	my $sql = "SELECT topic.topic_num, topic_name, topic_description, subtopic_num, subtopic_name, subtopic_description from subtopic, topic WHERE subtopic.topic_num = topic.topic_num"
-	$sql .= " AND topic.topic_num = $topic_num" if ($topic_num)
-	my $recordset = $DB->Recordset($sql)
-	while (@row = $recordset->fetchrow) {
-		$topicnum	= strip($row[0])
-		$topicname	= strip($row[1])
-		$topicdesc	= strip($row[2])
-		$subtopicnum	= strip($row[3])
-		$subtopicname	= strip($row[4])
-		$subtopicdesc	= strip($row[5])
-		$key		= $topicnum . '.' . $subtopicnum
-		$subtopics{$key}{topicnum}	= $topicnum
-		$subtopics{$key}{topicname}	= $topicname
-		$subtopics{$key}{topicdesc}	= $topicdesc
-		$subtopics{$key}{num}		= $subtopicnum
-		$subtopics{$key}{name}		= $subtopicname
-		$subtopics{$key}{description}	= $subtopicdesc
-	}
-	return %subtopics
-	"""
+		# UPDATE topic SET topic_name=" . wsq($topic_name) . ", topic_description=" . wsq($topic_description) . " WHERE topic_num=$topic_num
 		pass
 
-	def SaveSubtopic(self, topic_num, subtopic_num, subtopic_name, subtopic_description) :
-		"""
-		$DB->Exec("UPDATE subtopic SET subtopic_name=" . wsq($subtopic_name) . ", subtopic_description=" . wsq($subtopic_description) . " WHERE topic_num=$topic_num AND subtopic_num=$subtopic_num")
-	}"""
-		pass
-	
 	
 	# notes ###
 	
-	def get_notes(self) :
+	def get_notes_by_document(self, doc_id) :
 		"""
 		Return a list of notes
 		"""
 		# "SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id = u.user_id AND n.doc_id = $doc_id ORDER BY n.date_entered"
 		pass
 
-	def get_notes_from_user(self, user_id) :
+	def get_notes_by_user(self, user_id) :
 		"""
 		Return list of notes. notes list factory.
 		"""
 		# SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id
 		pass
 
-	def add_note(self) :
+	def add_note(self, note) :
 		"""
 		Add a new note
 		"""
@@ -629,7 +603,7 @@ class Database :
 
 	# revisions ###
 	
-	def get_revisions(self) :
+	def get_revisions_by_document(self, doc_id) :
 		"""
 		Return a list of revisions
 		"""
@@ -652,7 +626,7 @@ class Database :
 	# UPDATE document_rev SET version=" . wsq($version) . ", pub_date=" . wsq($pub_date) . ", initials=" . wsq($initials) . ", notes=" . wsq($notes) . " WHERE doc_id=$doc_id AND rev_id=$rev_id"
 		pass
 
-	def remove_revision(self, revision) :
+	def remove_revision(self, revision_id) :
 		"""
 		Remove a document revision
 		"""
