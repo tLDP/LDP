@@ -274,7 +274,7 @@ if (-f $syncfile and -w $syncfile) {
 
 # Open our mail program
 
-open (MAIL, '| /var/qmail/sendmail -t -oi -oem')
+open (MAIL, '| /var/qmail/bin/sendmail -t -oi -oem')
     or die "$0: cannot fork sendmail: $!\n";
 
 
