@@ -5,14 +5,7 @@ Lampadas system
 
 This modules defines Data Objects (Users, Documents, Notes, Topics, etc.)
 and a Database object that manages SQL queries to the back-end and acts as
-a data objects factory.
-"""
-
-__license__ = "General Public License version 2 or above"
-
-__copyright__ = """
-(c) 2002 Nicolas Chauvat <nicolas.chauvat@logilab.fr>
-(c) 2002 David Merril <david@lupercalia.net>
+a data object factory.
 """
 
 ### THIS CODE IS NOT FUNCTIONAL YET ###
@@ -28,6 +21,7 @@ def get_database(dbtype, dbname) :
     """
     To let people use different DBs, use specific class derived from Database
     """
+
     if dbtype == 'pgsql' :
         return PgSQLDatabase(dbname)
     elif dbtype == 'mysql' :
@@ -51,7 +45,7 @@ class Database :
         Return value of config parameter
         """
         # SELECT value FROM config WHERE name='$name'
-        cur = self.cnx.cursor()
+        cur = self.connection.cursor()
         cur.execute("SELECT value FROM config WHERE name='%s'", (name,))
         return cur.fetchone()
 
@@ -61,14 +55,15 @@ class Database :
         """
         User factory
         """
-        return User()
+        u = User()
     
     def get_user(self,user_id) :
         """
         Return user
         """
-        # SELECT username, first_name, middle_name, surname, email, admin, notes FROM username WHERE user_id=$user_id
-        return mk_user(row)
+        c = self.connection.cursor()
+        c.execute('SELECT * from username WHERE user_id = %s', user_id)
+        return mk_user(c.fetchone())
 
     def get_users(self) :
         """
@@ -219,7 +214,7 @@ try:
 
         def __init__(self,dbname) :
             from pyPgSQL import PgSQL
-            self.cnx = PgSQL.connect(database=dbname)
+            self.connection = PgSQL.connect(database=dbname)
 except ImportError:
     # PostgresSQL back-end is not available
     pass

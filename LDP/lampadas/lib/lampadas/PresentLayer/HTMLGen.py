@@ -8,57 +8,53 @@ This modules provides HTML functions to help generate the web interface.
 
 __version__ = '0.2'
 
-def start_page(title, cookie) :
+def start_page(out,title='Lampadas') :
     """
     HTML header
     """
-    if ($cookie) {
-            print $CGI->header(-cookie=>$cookie,-expires=>'now')
-            push @errors, "cookie: $cookie" if ($debug)
-    } else {
-            print $CGI->header(-expires=>'now')
-    }
 
-    print "<html><head>\n"
-    print "<title>Lampadas || $title</title>\n"
-    print "<link rel='stylesheet' href='css/default.css' type='text/css'>\n"
-    print "</head>\n"
-    print "<body><a name='top'>\n"
+    #if ($cookie) {
+    #        print $CGI->header(-cookie=>$cookie,-expires=>'now')
+    #        push @errors, "cookie: $cookie" if ($debug)
+    #} else {
+    #        print $CGI->header(-expires=>'now')
+    #}
 
-    if ($debug) {
-            push @errors, "UserID: $currentuser_id"
-            push @errors, "UserName: " . $currentuser{username}
-    }
+    out.write("""<html><head>
+    <title>Lampadas || %s</title>
+    <link rel='stylesheet' href='css/default.css' type='text/css'>
+    </head>
+    <body>""" % title)
 
-    print "<table style='width:100%' class='layout'>\n"
-    print "<tr><td colspan=2>\n"
-    HeaderBox($foo, $title)
-    print "</td></tr>\n"
-    if (scalar @errors) {
-            print "<tr><td colspan=2>\n"
-            ErrorsTable()
-            print "</td><tr>\n"
-    }
-    print "<tr><td valign=top width='200'>\n"
-    LoginBox() unless ($currentuser_id)
-    AdminBox() if (Maintainer())
-    NavBox()
-    TopicsBox()
-    print "</td><td valign=top>\n"
-}
+    #out.write("""<a name='top'>
+    #<table style='width:100%' class='layout'>
+    #<tr><td colspan='2'>
 
-def end_page() :
+    #HeaderBox($foo, $title)
+    #print "</td></tr>\n"
+    #if (scalar @errors) {
+    #        print "<tr><td colspan=2>\n"
+    #        ErrorsTable()
+    #        print "</td><tr>\n"
+    #}
+    #print "<tr><td valign=top width='200'>\n"
+    #LoginBox() unless ($currentuser_id)
+    #AdminBox() if (Maintainer())
+    #NavBox()
+    #TopicsBox()
+    #print "</td><td valign=top>\n"
+#}
+
+def end_page(out,copyright='(c) LDP') :
     """
     HTML footer
     """
-    print """</td></tr>
-    </table>
-    
+    out.write("""
     <p><hr>
     <p><center>%s</center>
     <br>
     </body>
-    </html>""" % Config($foo, 'copyright')
+    </html>""" % copyright)
 
 # Combo boxes
 
@@ -76,20 +72,27 @@ def RoleCombo(out, roles, selected=None) :
 
 
 def ClassCombo(self, selected) :
-	my %classes = Classes()
-	my $classcombo = "<select name='class'>\n"
-	foreach $class (sort keys %classes) {
-		if ($selected eq $class) {
-			$classcombo .= "<option selected>$class</option>\n"
-		} else {
-			$classcombo .= "<option>$class</option>\n"
-		}
-	}
-	$classcombo .= "</select>\n"
-	return $classcombo
-}
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
+    my %classes = Classes()
+    my $classcombo = "<select name='class'>\n"
+    foreach $class (sort keys %classes) {
+        if ($selected eq $class) {
+        $classcombo .= "<option selected>$class</option>\n"
+        } else {
+        $classcombo .= "<option>$class</option>\n"
+        }
+    }
+    $classcombo .= "</select>\n"
+    return $classcombo
 
 def PubStatusCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
 	my %pubstatuses = PubStatuses()
 	my $pubstatuscombo = "<select name='pub_status'>\n"
 	foreach $pubstatus (sort { $pubstatuses{$a}{name} cmp $pubstatuses{$b}{name} } keys %pubstatuses) {
@@ -104,6 +107,9 @@ def PubStatusCombo(self, selected) :
 }
 
 def ReviewStatusCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %reviewstatuses = ReviewStatuses()
 	my $reviewstatuscombo = "<select name='review_status'>\n"
 	$reviewstatuscombo .= "<option></option\n"
@@ -119,6 +125,9 @@ def ReviewStatusCombo(self, selected) :
 }
 
 def TechReviewStatusCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %reviewstatuses = ReviewStatuses()
 	my $reviewstatuscombo = "<select name='tech_review_status'>\n"
 	$reviewstatuscombo .= "<option></option\n"
@@ -134,6 +143,9 @@ def TechReviewStatusCombo(self, selected) :
 }
 
 def LicenseCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %licenses = Licenses()
 	my $licensecombo = "<select name='license'>\n"
 	$licensecombo .= "<option></option>\n"
@@ -149,6 +161,9 @@ def LicenseCombo(self, selected) :
 }
 
 def TopicCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %topics = Topics()
 	my $topiccombo = "<select name='topic'>\n"
 	foreach $topic (sort { $a <=> $b } keys %topics) {
@@ -163,6 +178,9 @@ def TopicCombo(self, selected) :
 }
 
 def SubtopicCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %subtopics = Subtopics()
 	my $subtopiccombo = "<select name='topic'>\n"
 	foreach $subtopic (sort { $subtopics{$a}{topicnum} * 100 + $subtopics{$a}{num} <=> $subtopics{$b}{topicnum} * 100 + $subtopics{$b}{num} } keys %subtopics) {
@@ -177,6 +195,9 @@ def SubtopicCombo(self, selected) :
 }
 
 def FormatCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %formats = Formats()
 	my $formatcombo = "<select name='format'>\n"
 	foreach $format (sort keys %formats) {
@@ -191,6 +212,9 @@ def FormatCombo(self, selected) :
 }
 
 def DTDCombo(self, selected) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %dtds = DTDs()
 	my $dtdcombo = "<select name='dtd'>\n"
 	foreach $dtd (sort keys %dtds) {
@@ -207,6 +231,9 @@ def DTDCombo(self, selected) :
 # tables
 
 def UsersTable {
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my $table = "<table class='box'>\n"
 	my %users = Users()
 	$table .= "<tr><th>Username</th><th>Name</th><th>Email</th><th>Admin</th></tr>\n"
@@ -223,6 +250,9 @@ def UsersTable {
 }
 
 def UserTable(self, user_id) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
 	my %user = User($foo, $user_id)
 	my $table = ''
 	$table .= "<table width='100%' class='box'>\n"
@@ -255,6 +285,10 @@ def UserTable(self, user_id) :
 }
 
 def NewUserTable() :
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
     table = """
     <table class='box'>
     <tr><th>New User</th></tr>
@@ -298,19 +332,23 @@ def NewUserTable() :
 
 
 def UserDocsTable {
-	my $self = shift
-	my $user_id = shift
-	my %docs = UserDocs($foo, $user_id)
-	my $table = ''
-	$table .= "<table class='box'>\n"
-	$table .= "<tr><th colspan=6>User Documents</th></tr>\n"
-	$table .= "<tr><th>Title</th>"
-#	$table .= "<th>Class</th>"
-	$table .= "<th>Doc Status</th>"
-	$table .= "<th>Role</th>"
-	$table .= "<th>Active</th>"
-	$table .= "<th>Feedback Email</th></tr>\n"
-	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
+    my $self = shift
+    my $user_id = shift
+    my %docs = UserDocs($foo, $user_id)
+    my $table = ''
+    $table .= "<table class='box'>\n"
+    $table .= "<tr><th colspan=6>User Documents</th></tr>\n"
+    $table .= "<tr><th>Title</th>"
+    #	$table .= "<th>Class</th>"
+    $table .= "<th>Doc Status</th>"
+    $table .= "<th>Role</th>"
+    $table .= "<th>Active</th>"
+    $table .= "<th>Feedback Email</th></tr>\n"
+    foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
 		$table .= "<tr>"
 		$table .= "<td valign=top>"
 		$table .= "<a href='document_edit.pl?doc_id=$docs{$doc}{id}'>" . EditImage() . "</a>"
@@ -332,6 +370,10 @@ def UserDocsTable {
 }
 
 def UserNotesTable {
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
 	my ($self, $user_id) = @_
 	my %usernotes = UserNotes($foo, $user_id)
 	my $table = "<table style='width:100%' class='box'>\n"
@@ -355,7 +397,12 @@ def UserNotesTable {
 	return $table
 }
 
-def DocsTable(self) :
+def DocsTable(out,documents) :
+    """
+    XXXFIXME: look at RoleCombo
+    """
+
+    out.write(
 	my %docs = Docs()
 	my %userdocs = UserDocs($foo, CurrentUserID())
 	my %classes = Classes()
@@ -652,6 +699,9 @@ def DocsTable(self) :
 }
 
 def sortTitle(title) :
+    """
+    XXXFIXME
+    """
 	my $oldtitle
 	$title = uc($title)
 	while ($title ne $oldtitle) { 
@@ -669,6 +719,9 @@ def sortTitle(title) :
 }
 
 def DocTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	if ($doc_id) {
 		my %doc = Doc($foo, $doc_id)
@@ -751,6 +804,10 @@ def DocTable {
 }
 
 def PubStatusStatsTable{
+    """
+    XXXFIXME
+    """
+
 	my $document_total = DocCount()
 	my $sql = "SELECT pub_status_name, COUNT(*) FROM pub_status, document WHERE pub_status.pub_status = document.pub_status GROUP BY pub_status_name"
 	my $recordset = $DB->Recordset($sql)
@@ -773,6 +830,10 @@ def PubStatusStatsTable{
 }
 
 def LicenseStatsTable {
+    """
+    XXXFIXME
+    """
+
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT license, COUNT(*) FROM document WHERE pub_status = 'N' GROUP BY license"
 	my $recordset = $DB->Recordset($sql)
@@ -798,6 +859,10 @@ def LicenseStatsTable {
 }
 
 def FreeNonfreeStatsTable {
+    """
+    XXXFIXME
+    """
+
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT l.free, COUNT(*) FROM document d, license l WHERE d.license = l.license GROUP BY free"
 	my $recordset = $DB->Recordset($sql)
@@ -825,6 +890,10 @@ def FreeNonfreeStatsTable {
 }
 
 def ClassStatsTable {
+    """
+    XXXFIXME
+    """
+
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT class_name, count(*) FROM class, document WHERE pub_status = 'N' and class.class = document.class group by class_name"
 	my $recordset = $DB->Recordset($sql)
@@ -847,6 +916,9 @@ def ClassStatsTable {
 }
 
 def FormatStatsTable {
+    """
+    XXXFIXME
+    """
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT format, count(*) FROM document WHERE pub_status = 'N' group by format"
 	my $recordset = $DB->Recordset($sql)
@@ -869,6 +941,9 @@ def FormatStatsTable {
 }
 
 def DTDStatsTable {
+    """
+    XXXFIXME
+    """
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT dtd, count(*) FROM document WHERE pub_status = 'N' group by dtd"
 	my $recordset = $DB->Recordset($sql)
@@ -891,6 +966,9 @@ def DTDStatsTable {
 }
 
 def FormatDTDStatsTable {
+    """
+    XXXFIXME
+    """
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT format, dtd, count(*) FROM document WHERE pub_status = 'N' group by format, dtd"
 	my $recordset = $DB->Recordset($sql)
@@ -917,6 +995,9 @@ def FormatDTDStatsTable {
 }
 
 def DetailedStatsTable {
+    """
+    XXXFIXME
+    """
 	my $active_count = DocCountByPubStatus($foo, "'N'")
 	my $sql = "SELECT class, dtd, format, count(*) FROM document WHERE pub_status = 'N' group by class, dtd, format"
 	my $recordset = $DB->Recordset($sql)
@@ -941,6 +1022,9 @@ def DetailedStatsTable {
 }
 
 def MiscStatsTable {
+    """
+    XXXFIXME
+    """
 	use Date::Calc qw(:all)
 	my $sql = "SELECT last_update FROM document WHERE pub_status='N'"
 	my $recordset = $DB->Recordset($sql)
@@ -973,6 +1057,9 @@ def MiscStatsTable {
 }
 
 def BarGraphTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $value) = @_
 	my $graph = ''
 	if ($value) {
@@ -990,6 +1077,9 @@ def BarGraphTable {
 }
 
 def DocVersionsTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my $table = ''
 	my %docversions = DocVersions($foo, $doc_id)
@@ -1033,6 +1123,9 @@ def DocVersionsTable {
 }
 
 def DocFilesTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my %docfiles = DocFiles($foo, $doc_id)
 	my $table = ''
@@ -1062,6 +1155,9 @@ def DocFilesTable {
 }
 
 def DocUsersTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my $table = ''
 	my %docusers = DocUsers($foo, $doc_id)
@@ -1142,6 +1238,9 @@ def DocUsersTable {
 }
 
 def DocTopicsTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my %doctopics = DocTopics($foo, $doc_id)
 	my $table = "<table class='box'>"
@@ -1173,6 +1272,9 @@ def DocTopicsTable {
 }
 
 def DocRatingTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my $vote_count	= $DB->Value("SELECT COUNT(*) FROM doc_vote WHERE doc_id=$doc_id")
 	my $vote	= $DB->Value("SELECT vote FROM doc_vote WHERE doc_id=$doc_id AND user_id=" . CurrentUserID())
@@ -1194,6 +1296,9 @@ def DocRatingTable {
 }
 
 def DocNotesTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $doc_id) = @_
 	my %docnotes = DocNotes($foo, $doc_id)
 	my $table = "<table style='width:100%' class='box'>\n"
@@ -1218,6 +1323,9 @@ def DocNotesTable {
 }
 
 def TopicsTable {
+    """
+    XXXFIXME
+    """
 	my $self = shift
 	my %topics = Topics()
 	my $table = "<table class='box'>\n"
@@ -1232,6 +1340,9 @@ def TopicsTable {
 }
 
 def TopicTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $topic_num) = @_
 	my %topics = Topics()
 	my $table = "<table style='width:100%' class='box'>\n"
@@ -1248,6 +1359,9 @@ def TopicTable {
 }
 
 def SubtopicsTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $subtopic_num) = @_
 	my %subtopics = Subtopics($foo, $topic_num)
 	my %topic = Topic($foo, $topic_num)
@@ -1262,6 +1376,9 @@ def SubtopicsTable {
 }
 
 def SubtopicTable {
+    """
+    XXXFIXME
+    """
 	my ($self, $subtopic_id) = @_
 	my %subtopics = Subtopics()
 	my $table = "<table class='box'>\n"
@@ -1279,6 +1396,9 @@ def SubtopicTable {
 	return $table
 
 def TopicDocsTable {
+    """
+    XXXFIXME
+    """
 	my %docs = Docs()
 	my %userdocs = UserDocs($foo, CurrentUserID())
 	my $sql = "SELECT topic.topic_num, topic.topic_name, subtopic.subtopic_num, subtopic.subtopic_name, document.doc_id, document.title, topic_description, subtopic_description, url "
@@ -1333,6 +1453,9 @@ def TopicDocsTable {
 }
 
 def ErrorsTable {
+    """
+    XXXFIXME
+    """
 	my $message = ''
 	if (scalar @errors) {
 		print "<table><tr><td>\n"
@@ -1345,15 +1468,19 @@ def ErrorsTable {
 	}
 }
 
-def NavBar {
-	print "<table class='navbar'><tr>\n"
-	print "<th><a href='document_list.pl'>Documents</a></th>\n"
-	print "<th><a href='topic_list.pl'>Topics</a></th> \n"
-	print "</tr>\n"
-	print "</table>\n"
-}
+def nav_bar(out) :
+    """
+    XXXFIXME
+    """
+    out.write("<table class='navbar'><tr>\n" \
+              "<th><a href='document_list.pl'>Documents</a></th>\n" \
+              "<th><a href='topic_list.pl'>Topics</a></th> \n" \
+              "</tr>\n</table>\n")
 
 def NavBox {
+    """
+    XXXFIXME
+    """
 	print "<table class='navbox'>\n"
 	print "<tr><th>Menu</th></tr>\n"
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n"
@@ -1363,6 +1490,9 @@ def NavBox {
 }
 
 def TopicsBox {
+    """
+    XXXFIXME
+    """
 	my %topics = Topics()
 	my %subtopics = Subtopics()
 	print "<table class='navbox'>\n"
@@ -1382,6 +1512,9 @@ def TopicsBox {
 }
 
 def HeaderBox {
+    """
+    XXXFIXME
+    """
 	my ($foo, $title) = @_
 	my $project = Config($foo, project)
 	my $table = "<table class = 'header'><tr>\n"
@@ -1406,6 +1539,9 @@ def HeaderBox {
 }
 
 def LoginBox() :
+    """
+    XXXFIXME
+    """
     print """<table class='navbox'>
     <form name='login' action='login.pl' method='POST'>
     <tr><th colspan='2'>Log In</th></tr>
@@ -1432,6 +1568,9 @@ def LoginBox() :
     </table>"""
 
 def AdminBox() :
+    """
+    XXXFIXME
+    """
 	return unless Admin()
 	print "<p><table class='navbox'>\n"
 	print "<tr><th>Admin Tools</th></tr>\n"
@@ -1441,6 +1580,9 @@ def AdminBox() :
 }
 
 def EditImage {
+    """
+    XXXFIXME
+    """
 	return "<img src='images/edit.png' alt='Edit' height='20' width='20' border='0' hspace='5' vspace='0' align='top'>"
 }
 
