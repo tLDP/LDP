@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# lyxcodelinewrapper.pl
+# $Id$
 #
 # LyX codeline wrapper tool
 #
@@ -12,7 +12,8 @@
 #  Wraps length of code lines to a given limit.
 #  Marks second and next lines with a given character.
 #
-# $Id$
+# Attention: no warranty that the new LyX code is very well!
+#            Use diff to check proper work
 #
 # Changes:
 #  20020118: Initial try
@@ -154,3 +155,5 @@ sub print_long_line ($){
 		$l = $l + $t;
 	};
 };
+
+print STDERR "WARNING: check code using utility 'diff' for proper LyX output!"
