@@ -36,7 +36,8 @@ def initialize(context):
                                                       "Lampadas",
                                                       edit_dir=edit_dir,
                                                       view_dir=view_dir,
-                                                      script_dir=script_dir)
+                                                      script_dir=script_dir,
+                                                      metadatatype=ExtensibleMetadata)
     ContentInit(
         PROJECT_NAME + ' Content',
         content_types = content_types,

@@ -9,7 +9,7 @@ from Globals import package_home
 import sys, traceback
 
 PRODUCT_NAME = 'Lampadas'
-SKIN_DIRS = ['cmft', 'lampadas_templates', 'lampadas_scripts']
+SKIN_DIRS = ['lampadas_templates', 'lampadas_scripts']
 
 def install_tool(self, out):
     if not hasattr(self, "content_tool"):
@@ -153,6 +153,7 @@ def install_actions(self, out, types, metadatatype=None):
             print >> out, type.factory_type_information
             typeInfo.__dict__.update(type.factory_type_information)
             typeInfo._p_changed = 1
+            print >> out, 'dict is: ', typeInfo.__dict__
         else:
             print >> out, 'type ', type, ' has no factory_type_information.'
 
