@@ -43,7 +43,7 @@ while (1) {
 	} elsif($ARGV[0] eq "-h" or $ARGV[0] eq "--help") {
 		&usage;
 	} elsif($ARGV[0] eq "-v" or $ARGV[0] eq "--verbose") {
-		$verbose = 1;
+		$verbose++;
 		shift(@ARGV);
 	} else {
 		$txtfile = $ARGV[0];
@@ -130,34 +130,33 @@ sub proc_txt {
 			# separate link url from link name
 			#
 			$link = $line;
-			$link=~ s/\n//;
+			$link=~ s/\n//g;
 			$link =~ s/.*?\[\[//;
 			$link =~ s/\]\].*?$//;
 			if ($link =~ /\|/) {
 				$linkname = $link;
 				$link =~ s/\|.+$//;
 				$linkname =~ s/^\S+\|//;
-			} elsif ($link =~ /\s/) {
-				$linkname = $link;
-				$link =~ s/\s.*$//;
-				$linkname =~ s/^.*?\s//;
 			} else {
 				$linkname = $link;
 			}
 			
 			# namespaces are handled differently
 			#
-			if ($link =~ /mailto:/) {
+			print "$link\n" if ($verbose);
+			if ($link =~ /^http:/) {
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			} elsif ($link =~ /^mailto:/) {
 				$linkname =~ s/^mailto://;
 				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
-			} elsif ($link =~ /wiki:/) {
-				$link =~ s/^wiki:/http:\/\/www\.wikipedia\.com\/wiki\//;
-				$link =~ s/\ /_/;
+			} elsif ($link =~ /^wiki:/) {
 				$linkname =~ s/^wiki://;
+				$link =~ s/^wiki:/http:\/\/www\.wikipedia\.com\/wiki\.phtml\?title=/;
+				$link =~ s/\ /+/;
 				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
-			} elsif ($link =~ /ldp:/) {
-				$link =~ s/^ldp://;
+			} elsif ($link =~ /^ldp:/) {
 				$linkname =~ s/^ldp://;
+				$link =~ s/^ldp://;
 				$tempfile = "/tmp/txt2db-" . $rand;
 				$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
 				system("$cmd");
@@ -178,9 +177,10 @@ sub proc_txt {
 				}
 				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			} elsif ($link =~ /^file:/) {
+				$linkname =~ s/^file://;
 				$line =~ s/\[\[.*?\]\]/<filename>$linkname<\/filename>/;
 			} else {
-				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+				$line =~ s/\[\[.*?\]\]/<filename>$linkname<\/filename>/;
 			}
 		}
 
