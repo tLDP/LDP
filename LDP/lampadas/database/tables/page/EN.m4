@@ -15,6 +15,8 @@ insert(news,                 default,    admin,      6,  [],                 f, 
 insert(addnews,              default,    admin,      7,  [],                 f,  f,  t,  f)
 insert(pages,                default,    admin,      8,  [],                 f,  f,  t,  f)                             
 insert(addpage,              default,    admin,      9,  [],                 f,  f,  t,  f)
+insert(strings,              default,    admin,     10,  [],                 f,  f,  t,  f)                             
+insert(addstring,            default,    admin,     11,  [],                 f,  f,  t,  f)
 
 insert(recentnews,           default,    news,       1,  [],                 f,  f,  f,  f)
 insert(stats,                default,    news,       2,  [],                 f,  f,  f,  f)
@@ -48,6 +50,7 @@ insert(document_translation, default,    [],         0,  [doc],              t, 
 insert(document_admin,       default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(news_edit,            default,    [],         0,  [news],             f,  f,  t,  f)
 insert(page_edit,            default,    [],         0,  [page],             f,  f,  t,  f)
+insert(string_edit,          default,    [],         0,  [string],           f,  f,  t,  f)
 insert(404,                  default,    [],         0,  [],                 t,  f,  f,  f)
 insert(user_exists,          default,    [],         0,  [],                 t,  f,  f,  f)
 insert(username_required,    default,    [],         0,  [],                 t,  f,  f,  f)

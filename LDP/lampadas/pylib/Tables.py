@@ -26,7 +26,7 @@ from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
-from WebLayer import lampadasweb, Page, NewsItem
+from WebLayer import lampadasweb, Page, NewsItem, String
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
@@ -1862,7 +1862,6 @@ class TabPages(Table):
                          '</tr>\n')
         keys = lampadasweb.pages.sort_by('code')
         odd_even = OddEven()
-        items = 0
         for key in keys:
             page = lampadasweb.pages[key]
             if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
@@ -2080,6 +2079,102 @@ class TabPage(Table):
             
         return box.get_value()
         
+class TabStrings(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'strings', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating strings table')
+        box = WOStringIO('<table class="box" width="100%%">\n' \
+                         '<tr><th colspan="3">|strstrings|</th></tr>\n' \
+                         '<tr><th class="collabel" colspan="2">|strstring_code|</th>\n' \
+                         '    <th class="collabel">|strstring|</th>\n' \
+                         '</tr>\n')
+        keys = lampadasweb.strings.sort_by('code')
+        odd_even = OddEven()
+        for key in keys:
+            string = lampadasweb.strings[key]
+            if sessions.session and sessions.session.user.can_edit(string_code=string.code)==1:
+                edit_icon = '<a href="|uri.base|string_edit/' + str(string.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
+            else:
+                edit_icon = ''
+
+            box.write('<tr class="%s">\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td>%s</td>\n' \
+                      '</tr>\n' \
+                      % (odd_even.get_next(),
+                         edit_icon,
+                         string.code,
+                         escape_tokens(safestr(string.string[uri.lang]))
+                        ))
+        box.write('</table>\n')
+        return box.get_value()
+
+class TabString(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'string', self.method)
+
+    def method(self, uri):
+        if not sessions.session:
+            return '|blknopermission|'
+        elif sessions.session.user.can_edit(string_code=uri.code)==0:
+            return '|blknopermission|'
+
+        if uri.code > '':
+            string = lampadasweb.strings[uri.code]
+
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/string">\n' \
+                             '<table class="box"><tr><th colspan="2">|strstring|</th></tr>\n' \
+                             '<tr><td class="label">|strstring_code|:</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (string.code))
+
+            # List the available translations
+            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
+                      '<tr><th class="collabel">|strlanguage|</td>\n' \
+                      '    <th class="collabel" colspan="2">|strstring|</th>' \
+                      '</tr>')
+
+            odd_even = OddEven()
+            for lang in languages.supported_keys():
+                if not string.string[lang]==None:
+                    box.write('<form method=GET action="|uri.base|data/save/string_lang">\n' \
+                              '<input type=hidden name="string_code" value="%s">\n' \
+                              '<input type=hidden name="lang" value="%s">\n' \
+                              '<tr class="%s"><td class="label">%s:</td>' \
+                              '    <td><input type=text name="string" value="%s" style="width:100%%"></td>' \
+                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                              '</tr></form>'
+                              % (string.code, lang, odd_even.get_next(), languages[lang].name[uri.lang], string.string[lang]))
+
+            # Add a new translation
+            box.write('<form method=GET action="|uri.base|data/save/newstring_lang">\n' \
+                      '<input type=hidden name="string_code" value="%s">\n' \
+                      '<tr class="%s"><td>%s:</td>' \
+                      '    <td><input type=text name="string" style="width:100%%"></td>' \
+                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '</tr></form>'
+                      % (string.code, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+            box.write('</table>')
+        else:
+            string = String()
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/newstring">\n' \
+                             '<table class="box"><tr><th colspan="3">|stradd_string|</th></tr>\n' \
+                             '<tr class="odd"><td class="label">|strstring_code|:</td>\n' \
+                             '    <td><input type=text name="string_code" value="%s"></td>\n' \
+                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (string.code))
+            
+        return box.get_value()
+        
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -2090,8 +2185,10 @@ class TableMap(LampadasCollection):
         self['tabrecentnews'] = TabNews(items=10)
         self['tabnews'] = TabNews()
         self['tabnewsitem'] = TabNewsItem()
-        self['tabpage'] = TabPage()
         self['tabpages'] = TabPages()
+        self['tabpage'] = TabPage()
+        self['tabstrings'] = TabStrings()
+        self['tabstring'] = TabString()
 
 tables = Tables()
 tablemap = TableMap()

@@ -262,12 +262,22 @@ class Strings(LampadasCollection):
             newString.load_row(row)
             self.data[newString.code] = newString
 
+    def add(self, string_code):
+        sql = 'INSERT INTO string(string_code) VALUES (' + wsq(string_code) + ')'
+        db.runsql(sql)
+        db.commit()
+        astring = String(string_code)
+        self[astring.code] = astring
+        return astring
+        
+        
 class String:
     """
     Each string is Unicode text, that can be used in a web page.
     """
 
-    def __init__(self, string_code=None):
+    def __init__(self, string_code=''):
+        self.code = string_code
         self.string = LampadasCollection()
 
     def load_row(self, row):
@@ -279,6 +289,18 @@ class String:
             if row==None: break
             lang              = row[0]
             self.string[lang] = trim(row[1])
+
+    def add_lang(self, lang, string):
+        sql = 'INSERT INTO string_i18n(string_code, lang, string) VALUES (' + wsq(self.code) + ', ' + wsq(lang) + ', ' + wsq(string) + ')'
+        db.runsql(sql)
+        db.commit()
+        self.string[lang] = string
+
+    def save(self):
+        for lang in self.string.keys():
+            sql = 'UPDATE string_i18n SET string=' + wsq(self.string[lang]) + ' WHERE string_code=' + wsq(self.code)
+            db.runsql(sql)
+            db.commit()
 
 
 # Templates

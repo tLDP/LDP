@@ -532,6 +532,11 @@ insert([page_edit], [Edit Page], [],
     |tabpage|
 ])
 
+insert([string_edit], [Edit String], [],
+[
+    |tabstring|
+])
+
 insert([404], [Error 404, Page Not Found], Error,
 [
     <p>I\'m sorry, but the page you requested does not exist.
@@ -638,4 +643,14 @@ insert([pages], [Page List], [],
 insert([addpage], [Add Page], [],
 [
     |tabpage|
+], 1)
+
+insert([strings], [String List], [],
+[
+    |tabstrings|
+], 1)
+
+insert([addstring], [Add String], [],
+[
+    |tabstring|
 ], 1)

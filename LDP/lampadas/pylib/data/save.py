@@ -288,3 +288,18 @@ def newpage_lang(req, page_code, lang, title, menu_name, page, version):
     webpage = lampadasweb.pages[page_code]
     webpage.add_lang(lang, title, menu_name, page, version)
     go_back(req)
+
+def newstring(req, string_code):
+    astring = lampadasweb.strings.add(string_code)
+    redirect(req, '../../string_edit/' + str(astring.code) + referer_lang_ext(req))
+
+def string_lang(req, string_code, lang, string):
+    astring = lampadasweb.strings[string_code]
+    astring.string[lang] = string
+    astring.save()
+    go_back(req)
+
+def newstring_lang(req, string_code, lang, string):
+    astring = lampadasweb.strings[string_code]
+    astring.add_lang(lang, string)
+    go_back(req)
