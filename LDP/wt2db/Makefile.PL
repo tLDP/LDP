@@ -2,7 +2,9 @@
 ##
 ## Makefile for the wt2db Perl module.
 ##
-## Copyright (c) 2001, 2002, David Merrill. All rights reserved.
+## Copyright (c) 2001, 2002, 2003 David Merrill <david@lupercalia.net>.
+## All rights reserved.
+##
 ## This code is Free Software; you can redistribute it and/or modify
 ## it under the GNU General Public License. See COPYING for details.
 ##
