@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# This is an alternate form of the preceding script.
+
+# Suggested by Heiner Steven
+# as a workaround in those situations when a redirect loop
+# runs as a subshell, and therefore variables inside the loop
+# do not keep their values upon loop termination.
+
+
+if [ -z "$1" ]
+then
+  Filename=names.data  # Default, if no filename specified.
+else
+  Filename=$1
+fi  
+
+
+exec 3<&0                 # Save stdin to file descriptor 3.
+exec 0<"$Filename"        # Redirect standard input.
+
+count=0
+echo
+
+
+while [ "$name" != Smith ]
+do
+  read name         # Reads from redirected stdin ($Filename).
+  echo $name
+  let "count += 1"
+done <"$Filename"   # Loop reads from file $Filename. 
+
+
+exec 0<&3               # Restore old stdin.
+exec 3<&-               # Close temporary fd 3.
+
+echo; echo "$count names read"; echo
+
+exit 0

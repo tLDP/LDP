@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Adding a second hard drive to system.
+# Software configuration. Assumes hardware already mounted.
+# From an article by the author of this document.
+# in issue #38 of "Linux Gazette", http://www.linuxgazette.com.
+
+# This script must be run as root.
+# Use with extreme caution!
+# If something goes wrong, you may wipe out your current filesystem.
+
+
+NEWDISK=/dev/hdb   # Assumes /dev/hdb vacant. Check!
+MOUNTPOINT=/mnt/newdisk  # Or choose another mount point.
+
+
+fdisk $NEWDISK
+mke2fs -cv $NEWDISK1  # Check for bad blocks & verbose output.
+#  Note:    /dev/hdb1, *not* /dev/hdb!
+mkdir $MOUNTPOINT
+chmod 777 $MOUNTPOINT  # Makes new drive accessible to all users.
+
+
+# Now, test...
+# mount -t ext2 /dev/hdb1 /mnt/newdisk
+# Try creating a directory.
+# If it works, umount it, and proceed.
+
+# Final step:
+# Add following line to /etc/fstab.
+# /dev/hdb1  /mnt/newdisk  ext2  defaults  1 1
+
+
+exit 0

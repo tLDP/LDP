@@ -1,0 +1,18 @@
+#!/bin/bash
+# Detect a user keypress  ("hot keyboard").
+
+echo
+
+old_tty_settings=$(stty -g)   # Save old settings.
+stty -icanon
+Keypress=$(head -c1) # or $(dd bs=1 count=1 2> /dev/null) on non-GNU systems
+
+echo
+echo "Key pressed was \""$Keypress"\"."
+echo
+
+stty "$old_tty_settings"      # Restore old settings.
+
+# Thanks, Stephane Chazelas.
+
+exit 0

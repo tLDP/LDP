@@ -1,0 +1,59 @@
+#!/bin/bash
+# logevents.sh, by Stephane Chazelas.
+
+# Event logging to a file.
+# Must be run as root (for write access in /var/log).
+
+
+FD_DEBUG1=3
+FD_DEBUG2=4
+FD_DEBUG3=5
+
+# Uncomment a line below to activate script.
+# LOG_EVENTS=1
+# LOG_VARS=1
+
+
+log()  # Writes time and date to log file.
+{
+echo "$(date)  $*" &gt;&7     # This *appends* the date to the file.
+                           # See below.
+}
+
+
+
+case $LOG_LEVEL in
+ 1) exec 3&gt;&2         4&gt; /dev/null 5&gt; /dev/null;;
+ 2) exec 3&gt;&2         4&gt;&2         5&gt; /dev/null;;
+ 3) exec 3&gt;&2         4&gt;&2         5&gt;&2;;
+ *) exec 3&gt; /dev/null 4&gt; /dev/null 5&gt; /dev/null;;
+esac
+
+FD_LOGVARS=6
+if [[ $LOG_VARS ]]
+then exec 6&gt;&gt; /var/log/vars.log
+else exec 6&gt; /dev/null               # Bury output.
+fi
+
+FD_LOGEVENTS=7
+if [[ $LOG_EVENTS ]]
+then
+  # then exec 7 &gt;(exec gawk '{print strftime(), $0}' &gt;&gt; /var/log/event.log)
+  # Above line will not work in Bash, version 2.04.
+  exec 7&gt;&gt; /var/log/event.log        # Append to "event.log".
+  log                                # Write time and date.
+else exec 7&gt; /dev/null               # Bury output.
+fi
+
+echo "DEBUG3: beginning" &gt;&${FD_DEBUG3}
+
+#command1 &gt;&5 2&gt;&4
+ls -l &gt;&5 2&gt;&4
+
+#command2 
+echo "Done"
+
+echo "sending mail" &gt;&${FD_LOGEVENTS}   # Writes "sending mail" to fd #7.
+
+
+exit 0
