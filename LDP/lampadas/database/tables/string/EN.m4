@@ -1,0 +1,8 @@
+insert(test)
+insert(footer)
+insert(project)
+insert(projectshort)
+insert(mmtitle)
+insert(home)
+insert(doctable)
+insert(docdetails)
