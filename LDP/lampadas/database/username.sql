@@ -7,6 +7,7 @@ CREATE TABLE username (
 	maintainer_id	INT4,
 	email		TEXT,
 	admin		BOOLEAN,
+	editor_id	INT4,
 
 	PRIMARY KEY (username)
 );
