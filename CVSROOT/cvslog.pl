@@ -30,7 +30,7 @@
 
 use strict;
 use vars qw ($project $repository $from_email $dest_email $reply_email
-		$CVS $cvsweb_url $help_msg $sync_delay);
+		$CVS $cvsweb_url $help_msg $sync_delay $x_mailer);
 
 
 
