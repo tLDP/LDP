@@ -14,6 +14,8 @@ psql lampadas -qf document_user.sql
 psql lampadas -qf document_wiki.sql
 psql lampadas -qf doc_vote.sql
 psql lampadas -qf dtd.sql
+psql lampadas -qf error.sql
+psql lampadas -qf error_i18n.sql
 psql lampadas -qf format.sql
 psql lampadas -qf format_i18n.sql
 psql lampadas -qf language.sql

@@ -12,6 +12,8 @@ copy document_topic to '/tmp/lampadas_document_topic.txt';
 copy document_user to '/tmp/lampadas_document_user.txt';
 copy document_wiki to '/tmp/lampadas_document_wiki.txt';
 copy dtd to '/tmp/lampadas_dtd.txt';
+copy error to '/tmp/lampadas_error.txt';
+copy error_i18n to '/tmp/lampadas_error_i18n.txt';
 copy format to '/tmp/lampadas_format.txt';
 copy format_i18n to '/tmp/lampadas_format_i18n.txt';
 copy language to '/tmp/lampadas_language.txt';

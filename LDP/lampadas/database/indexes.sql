@@ -21,6 +21,8 @@ ALTER TABLE document_wiki	ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFER
 ALTER TABLE document_wiki	ADD CONSTRAINT user_id_fk		FOREIGN KEY (user_id)			REFERENCES username(user_id);
 ALTER TABLE doc_vote		ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE doc_vote		ADD CONSTRAINT user_id_fk		FOREIGN KEY (user_id)			REFERENCES username(user_id);
+ALTER TABLE error_i18n		ADD CONSTRAINT err_id_fk		FOREIGN KEY (err_id)			REFERENCES error(err_id);
+ALTER TABLE error_i18n		ADD CONSTRAINT lang_fk			FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE format_i18n		ADD CONSTRAINT format_fk		FOREIGN KEY (format)			REFERENCES format(format);
 ALTER TABLE format_i18n		ADD CONSTRAINT format_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE language_i18n	ADD CONSTRAINT language_fk		FOREIGN KEY (language)			REFERENCES language(isocode);

@@ -106,19 +106,19 @@ class testDocs(unittest.TestCase):
 		self.Doc2 = L.Docs[1]
 		assert self.Doc2.Title == self.Title
 
-class testDocErrors(unittest.TestCase):
+class testDocErrs(unittest.TestCase):
 
-	def testDocErrors(self):
+	def testDocErrs(self):
 		keys = L.Docs.keys()
 		for key in keys:
 			Doc = L.Docs[key]
 			assert not Doc == None
-			if Doc.Errors.Count() > 0:
+			if Doc.Errs.Count() > 0:
 				print "found a doc with errors"
-				for Error in Doc.Errors:
-					assert not Error == None
-					assert Error.DocID == Doc.ID
-					assert Error.Error > ''
+				for Err in Doc.Errs:
+					assert not Err == None
+					assert Err.DocID == Doc.ID
+					assert Err.ErrID > 1
 	
 class testDocFiles(unittest.TestCase):
 

@@ -257,7 +257,7 @@ class Doc:
 		self.LanguageCode	= trim(row[20])
 		self.SeriesID		= trim(row[21])
 
-		self.Errors		= DocErrors(self.ID)
+		self.Errs		= DocErrs(self.ID)
 		self.Files		= DocFiles(self.ID)
 		self.Ratings		= DocRatings(self.ID)
 		self.Ratings.Parent	= self
@@ -269,9 +269,9 @@ class Doc:
 		DB.Commit()
 
 
-# DocErrors
+# DocErrs
 
-class DocErrors(LampadasList):
+class DocErrs(LampadasList):
 	"""
 	A collection object providing access to all document errors, as identified by the
 	Lintadas subsystem.
@@ -280,30 +280,30 @@ class DocErrors(LampadasList):
 	def __init__(self, DocID):
 		assert not DocID == None
 		self.DocID = DocID
-		self.sql = "SELECT error FROM document_error WHERE doc_id=" + str(DocID)
+		self.sql = "SELECT err_id FROM document_error WHERE doc_id=" + str(DocID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
-			newDocError = DocError()
-			newDocError.Load(DocID, row)
-			self.list = self.list + [newDocError]
+			newDocErr = DocErr()
+			newDocErr.Load(DocID, row)
+			self.list = self.list + [newDocErr]
 
 	def Clear(self):
 		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
 		DB.Exec(self.sql)
 		self.list = []
 
-	def Add(self, Error):
-		self.sql = "INSERT INTO document_error(doc_id, error) VALUES (" + str(self.DocID) + ", " + wsq(Error)
+	def Add(self, ErrID):
+		self.sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.DocID) + ", " + wsq(ErrID)
 		assert DB.Exec(self.sql) == 1
-		newDocError = DocError()
-		newDocError.DocID = self.DocID
-		newDocError.Error = Error
-		self.list = self.list + [newDocError]
+		newDocErr = DocErr()
+		newDocErr.DocID = self.DocID
+		newDocErr.ErrID = ErrID
+		self.list = self.list + [newDocErr]
 		DB.Commit()
 
-class DocError:
+class DocErr:
 	"""
 	An error filed against a document by the Lintadas subsystem.
 	"""
@@ -312,7 +312,7 @@ class DocError:
 		assert not DocID == None
 		assert not row == None
 		self.DocID	= DocID
-		self.Error	= trim(row[0])
+		self.ErrID	= safeint(row[0])
 
 
 # DocFiles
@@ -497,6 +497,52 @@ class DTD:
 
 	def Load(self, row):
 		self.DTD = trim(row[0])
+
+
+# Errs
+
+class Errs(LampadasCollection):
+	"""
+	A collection object of all errors that can be filed against a document.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT err_id FROM error"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newErr = Err()
+			newErr.Load(row)
+			self.data[newErr.ErrID] = newErr
+
+class Err:
+
+	def __init__(self, ErrID=None):
+		self.I18n = {}
+		if Err==None: return
+		self.ErrID = ErrID
+
+	def Load(self, row):
+		self.ErrID = trim(row[0])
+		self.sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + wsq(self.ErrID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newErrI18n = ErrI18n()
+			newErrI18n.Load(self.row)
+			self.I18n[newErrI18n.Lang] = newErrI18n
+
+# ErrI18n
+
+class ErrI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+		self.Description	= trim(row[1])
 
 
 # Formats
