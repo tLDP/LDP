@@ -2,7 +2,7 @@ logprefix = /var/log
 
 INSTALLDIR = install -d
 
-all:	bin pylib database www conf docs
+all:	bin pylib database www conf docs xsl
 
 install: bin pylib www conf docs
 	$(INSTALLDIR) $(logprefix)/lampadas
@@ -12,6 +12,7 @@ install: bin pylib www conf docs
 	cd www; $(MAKE) install
 	cd conf; $(MAKE) install
 	cd doc; $(MAKE) install
+	cd xsl; $(MAKE) install
 	echo "Lampadas installation complete."
 
 clean:
@@ -21,6 +22,7 @@ clean:
 	cd www; $(MAKE) clean
 	cd conf; $(MAKE) clean
 	cd doc; $(MAKE) clean
+	cd xsl; $(MAKE) clean
 
 bin:
 	cd bin; $(MAKE) all
@@ -39,4 +41,7 @@ conf:
 
 docs:
 	cd doc; $(MAKE) all
+
+xsl:
+	cd xsl; $(MAKE) all
 

@@ -1,5 +1,23 @@
 #!/usr/bin/python
-
+# 
+# This file is part of the Lampadas Documentation System.
+# 
+# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# 
 """
 Lampadas Web Objects Module
 
@@ -12,15 +30,12 @@ should come through this layer.
 
 from Globals import *
 from BaseClasses import *
-import Config
-import Database
+from Config import config
+from Database import db
 
 
 # Globals
 
-Config = Config.Config()
-DB = Database.Database()
-DB.Connect(Config.DBType, Config.DBName)
 
 
 # Blocks
@@ -30,7 +45,7 @@ class Blocks(LampadasCollection):
 	def __init__(self):
 		self.data = {}
 		self.sql = "SELECT block_code FROM block"
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -46,7 +61,7 @@ class Block:
 	def Load(self, row):
 		self.Code		= trim(row[0])
 		self.sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.Code)
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -68,7 +83,7 @@ class Sections(LampadasCollection):
 	def __init__(self):
 		self.data = {}
 		self.sql = "SELECT section_code FROM section"
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -84,7 +99,7 @@ class Section:
 	def Load(self, row):
 		self.Code		= trim(row[0])
 		self.sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.Code)
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -106,7 +121,7 @@ class Pages(LampadasCollection):
 	def __init__(self):
 		self.data = {}
 		self.sql = "SELECT page_code, section_code, template_code FROM page"
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -124,7 +139,7 @@ class Page:
 		self.SectionCode	= trim(row[1])
 		self.TemplateCode	= trim(row[2])
 		self.sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -150,7 +165,7 @@ class Strings(LampadasCollection):
 	def __init__(self):
 		self.data = {}
 		self.sql = "SELECT string_code FROM string"
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
@@ -169,7 +184,7 @@ class String:
 	def Load(self, row):
 		self.Code = trim(row[0])
 		self.sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
@@ -193,7 +208,7 @@ class Templates(LampadasCollection):
 	def __init__(self):
 		self.data = {}
 		self.sql = "SELECT template_code, template FROM template"
-		self.cursor = DB.Select(self.sql)
+		self.cursor = db.select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
 			if self.row == None: break

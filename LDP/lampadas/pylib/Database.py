@@ -1,5 +1,23 @@
 #!/usr/bin/python
-
+# 
+# This file is part of the Lampadas Documentation System.
+# 
+# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# 
 """
 Lampadas Database Module
 
@@ -9,113 +27,102 @@ This module generates a Database object for accessing a back-end RDBMS
 # Modules ##################################################################
 
 import pyPgSQL
-import Config
-import Log
+from Config import config
+from Log import log
 
-# Database
 
 class UnknownDBException(Exception):
-	pass
+    pass
 
 class Database:
-	"""
-	The database contains all users and documents
-	"""
+    """
+    The database contains all users and documents
+    """
 
-	Config = Config.Config()
-	Log = Log.Log()
-	Connected = 0
+    connected = 0
 
-	def __del__(self):
-		if self.Connected:
-			self.db.connection.close()
-		
-	def Connect(self, dbtype, dbname):
-		"""
-		Connect to the database specified in Config.
-		"""
+    def __del__(self):
+        if self.connected:
+            self.database.connection.close()
+        
+    def connect(self, db_type, db_name):
+        """
+        Connect to the database specified in Config.
+        """
 
-		if dbname == '':
-			raise UnknownDBException('Database name not specified')
-		elif dbtype == 'pgsql':
-			self.db = PgSQLDatabase(dbname)
-			self.Connected = 1
-		else:
-			raise UnknownDBException('Unknown database type %s' % dbtype)
+        if db_name == '':
+            raise UnknownDBException('Database name not specified')
+        elif db_type == 'pgsql':
+            self.database = PgSQLDatabase(db_name)
+            self.connected = 1
+        else:
+            raise UnknownDBException('Unknown database type %s' % db_type)
 
-#		self.Log(3, 'Thread safety ' + str(self.db.connection.threadsafety()))
+    def connection(self):
+        return self.database.connection
 
-	def Connection(self):
-		return self.db.connection
+    def cursor(self):
+        return self.database.connection.cursor()
 
-	def Cursor(self):
-		return self.db.connection.cursor()
+    # FIXME : the python DB-API 2.0 states that you can transfer the burden
+    # of quoting values to the cursor as in
+    #
+    # sql = "select * from document where doc_id = %(did)s"
+    # param = {'did':'123'}
+    # my_cursor.execute(sql,param)
+    #
+    # I like Python :-)
+    #
+    def select(self, sql):
+        if config.log_sql:
+            log(3, sql)
+        self.cursor = self.database.connection.cursor()
+        self.cursor.execute(sql)
+        return self.cursor
 
-	# FIXME : the python DB-API 2.0 states that you can transfer the burden
-	# of quoting values to the cursor as in
-	#
-	# sql = "select * from document where doc_id = %(did)s"
-	# param = {'did':'123'}
-	# my_cursor.execute(sql,param)
-	#
-	# I like Python :-)
-	#
-	def Select(self, sql):
-		if self.Config.LogSQL:
-			self.Log(3, sql)
-		self.cursor = self.db.connection.cursor()
-		self.cursor.execute(sql)
-		return self.cursor
+    def value(self, sql):
+        if config.log_sql:
+            log(3, sql)
+        self.cursor = self.database.connection.cursor()
+        self.cursor.execute(sql)
+        self.row = self.cursor.fetchone()
+        if self.row == None:
+            self.value = None
+        else:
+            self.value = self.row[0]
+        return self.value
 
-	def Value(self, sql):
-		if self.Config.LogSQL:
-			self.Log(3, sql)
-		self.cursor = self.db.connection.cursor()
-		self.cursor.execute(sql)
-		self.row = self.cursor.fetchone()
-		if self.row == None:
-			self.value = None
-		else:
-			self.value = self.row[0]
-		return self.value
+    def runsql(self, sql):
+        if config.log_sql:
+            log(3, sql)
+        self.cursor = self.database.connection.cursor()
+        self.cursor.execute(sql)
+        return self.cursor.rowcount
 
-	def Exec(self, sql):
-		if self.Config.LogSQL:
-			self.Log(3, sql)
-		self.cursor = self.db.connection.cursor()
-		self.cursor.execute(sql)
-		return self.cursor.rowcount
-
-	def Commit(self):
-		self.Log(3, 'Committing database')
-		self.db.connection.commit()
+    def commit(self):
+        log(3, 'Committing database')
+        self.database.connection.commit()
 
 
 # Specific derived DB classes ##################################################
 
 class PgSQLDatabase(Database):
 
-	def __init__(self,dbname):
-		from pyPgSQL import PgSQL
-		self.connection = PgSQL.connect(database=dbname)
+    def __init__(self,db_name):
+        from pyPgSQL import PgSQL
+        self.connection = PgSQL.connect(database=db_name)
 
-#	except ImportError:
-#		# PostgresSQL back-end is not available
-#		pass
 
 class MySQLDatabase(Database):
 
-	def __init__(self,dbname):
-		from pyMySQL import MySQL
-		self.cnx = MySQL.connection(dbname=dbname)
+    def __init__(self,db_name):
+        from pyMySQL import MySQL
+        self.cnx = MySQL.connection(db_name=db_name)
 
-#	except ImportError:
-#		# MySQL back-end is not available
-#		pass
+db = Database()
+db.connect(config.db_type, config.db_name)
 
-
-# main
 if __name__ == '__main__':
-	print "Running unit tests..."
-	print "Unit tests run."
+    print "Running unit tests..."
+    print "Unit tests run."
 
