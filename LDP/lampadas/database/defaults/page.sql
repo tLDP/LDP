@@ -2,6 +2,7 @@ DELETE FROM page_i18n;
 DELETE FROM page;
 
 INSERT INTO page (page_code, section_code, template_code) VALUES ('test',	'test',		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('404',	NULL,		'default');
 INSERT INTO page (page_code, section_code, template_code) VALUES ('home',	'main',		'default');
 INSERT INTO page (page_code, section_code, template_code) VALUES ('lampadas',	NULL,		'default');
 INSERT INTO page (page_code, section_code, template_code) VALUES ('copyright',	NULL,		'default');
@@ -9,6 +10,7 @@ INSERT INTO page (page_code, section_code, template_code) VALUES ('contribute',	
 INSERT INTO page (page_code, section_code, template_code) VALUES ('privacy',	NULL,		'default');
 INSERT INTO page (page_code, section_code, template_code) VALUES ('about',	NULL,		'default');
 INSERT INTO page (page_code, section_code, template_code) VALUES ('doctable',	NULL,		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('editdoc',	NULL,		'default');
 
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'EN', 'Test Page',
@@ -16,6 +18,12 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'EN', 'Test
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'FR', 'Le Test Page',
 'Test Page');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('404', 'EN', 'Not Found',
+'Not Found');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('404', 'FR', 'Le Not Found',
+'Not Found');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('home', 'EN', 'Lampadas',
 '
@@ -138,12 +146,22 @@ Le About Project
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('doctable', 'EN', 'DocTable',
 '
-|tabdoctable|
+|tabdocstable|
 ');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('doctable', 'FR', 'Le DocTable',
 '
-Le DocTable goes here...
+|tabdocstable|
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('editdoc', 'EN', 'Document Meta-data',
+'
+|tabeditdoc|
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('editdoc', 'FR', 'Le Document Meta-data',
+'
+|tabeditdoc|
 ');
 
 

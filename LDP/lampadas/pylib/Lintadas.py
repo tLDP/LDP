@@ -21,7 +21,6 @@ import os
 
 L = DataLayer.Lampadas()
 Log = Log.Log()
-cvs_root = L.Config('cvs_root')
 
 
 # Lintadas
@@ -69,7 +68,7 @@ class Lintadas:
 			if File.Format == 'XML' or File.Format == 'SGML':
 				DTDVersion = ''
 				try:
-					command = 'grep -i DOCTYPE ' + cvs_root + File.Filename + ' | head -n 1'
+					command = 'grep -i DOCTYPE ' + Config.CVSRoot + File.Filename + ' | head -n 1'
 					grep = os.popen(command, 'r')
 					DTDVersion = grep.read()
 				except IOError:

@@ -33,6 +33,10 @@ class Config:
 	LogConsole = 0
 	Interface = ''
 	Port = 80
+	Hostname = ''
+	RootDir = ''
+	FileDir = ''
+	CVSRoot = ''
 
 	def __init__(self) :
 		import ConfigParser
@@ -48,6 +52,10 @@ class Config:
 		self.LogConsole	= int(self.ReadVar('LOG', 'logcon'))
 		self.Interface	= self.ReadVar('WEBSERVER', 'interface')
 		self.Port	= int(self.ReadVar('WEBSERVER', 'port'))
+		self.Hostname	= self.ReadVar('WEBSERVER', 'hostname')
+		self.RootDir	= self.ReadVar('WEBSERVER', 'rootdir')
+		self.FileDir	= self.ReadVar('WEBSERVER', 'filedir')
+		self.CVSRoot	= self.ReadVar('CVS', 'cvsroot')
 
 	def ReadVar(self, section, name):
 		if not self.config.has_section(section) :
@@ -73,4 +81,8 @@ if __name__ == '__main__' :
 	print "LogConsole=" + str(Config.LogConsole)
 	print "Interface=" + Config.Interface
 	print "Port=" + str(Config.Port)
+	print "Hostname=" + Config.Hostname
+	print "RootDir=" + Config.RootDir
+	print "CVSRoot=" + Config.CVSRoot
+	print "FileDir=" + Config.FileDir
 	print "Unit tests complete."

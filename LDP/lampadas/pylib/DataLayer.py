@@ -50,6 +50,7 @@ class Lampadas:
 		self.Formats		= Formats()
 		self.Languages		= Languages()
 		self.PubStatuses	= PubStatuses()
+		self.ReviewStatuses	= ReviewStatuses()
 		self.Topics		= Topics()
 		self.Users		= Users()
 
@@ -148,9 +149,9 @@ class Docs(LampadasCollection):
 			self[newDoc.ID] = newDoc
 			Log(3, 'Loaded document ' + str(newDoc.ID))
 
-	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, Lang, SeriesID):
+	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, Lang, SeriesID):
 		self.id = DB.Value('SELECT max(doc_id) from document') + 1
-		self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
+		self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
 		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
@@ -187,7 +188,7 @@ class Doc:
 		self.LastUpdate		= trim(row[7])
 		self.URL		= trim(row[8])
 		self.ISBN		= trim(row[9])
-		self.PubStatus		= trim(row[10])
+		self.PubStatusCode	= trim(row[10])
 		self.ReviewStatus	= trim(row[11])
 		self.TickleDate		= trim(row[12])
 		self.PubDate		= trim(row[13])
@@ -207,7 +208,7 @@ class Doc:
 		self.Versions		= DocVersions(self.ID)
 
 	def Save(self):
-		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
 		DB.Exec(self.sql)
 		DB.Commit()
 
@@ -614,7 +615,7 @@ class PubStatuses(LampadasCollection):
 			if row == None: break
 			newPubStatus = PubStatus()
 			newPubStatus.Load(row)
-			self.data[newPubStatus.PubStatus] = newPubStatus
+			self.data[newPubStatus.Code] = newPubStatus
 
 class PubStatus:
 	"""
@@ -622,14 +623,14 @@ class PubStatus:
 	document is.
 	"""
 	
-	def __init__(self, PubStatus=None):
+	def __init__(self, PubStatusCode=None):
 		self.I18n = {}
-		if PubStatus==None: return
-		self.PubStatus = PubStatus
+		if PubStatusCode==None: return
+		self.Code = PubStatusCode
 
 	def Load(self, row):
-		self.PubStatus = trim(row[0])
-		self.sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.PubStatus)
+		self.Code = trim(row[0])
+		self.sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.Code)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
@@ -641,6 +642,56 @@ class PubStatus:
 # PubStatusI18n
 
 class PubStatusI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+		self.Description	= trim(row[2])
+
+
+# ReviewStatuses
+
+class ReviewStatuses(LampadasCollection):
+	"""
+	A collection object of all publication statuses.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT review_status FROM review_status"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newReviewStatus = ReviewStatus()
+			newReviewStatus.Load(row)
+			self.data[newReviewStatus.Code] = newReviewStatus
+
+class ReviewStatus:
+	"""
+	The Reviewlication Status defines where in the publication process a
+	document is.
+	"""
+	
+	def __init__(self, ReviewStatusCode=None):
+		self.I18n = {}
+		if ReviewStatusCode==None: return
+		self.Code = ReviewStatusCode
+
+	def Load(self, row):
+		self.Code = trim(row[0])
+		self.sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.Code)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newReviewStatusI18n = ReviewStatusI18n()
+			newReviewStatusI18n.Load(self.row)
+			self.I18n[newReviewStatusI18n.Lang] = newReviewStatusI18n
+
+# ReviewStatusI18n
+
+class ReviewStatusI18n:
 
 	def Load(self, row):
 		self.Lang		= row[0]

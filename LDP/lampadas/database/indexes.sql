@@ -31,7 +31,7 @@ ALTER TABLE notes		ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES d
 ALTER TABLE notes		ADD CONSTRAINT creator_id_fk		FOREIGN KEY (creator_id)		REFERENCES username(user_id);
 ALTER TABLE pub_status_i18n	ADD CONSTRAINT pub_status_fk		FOREIGN KEY (pub_status)		REFERENCES pub_status(pub_status);
 ALTER TABLE pub_status_i18n	ADD CONSTRAINT pub_status_lang_fk	FOREIGN KEY (lang)			REFERENCES language(isocode);
-ALTER TABLE string_i18n		ADD CONSTRAINT string_id_fk		FOREIGN KEY (string_id)			REFERENCES string(string_id);
+ALTER TABLE string_i18n		ADD CONSTRAINT string_code_fk		FOREIGN KEY (string_code)		REFERENCES string(string_code);
 ALTER TABLE string_i18n		ADD CONSTRAINT string_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE subtopic		ADD CONSTRAINT topic_num_fk		FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
 ALTER TABLE topic_i18n		ADD CONSTRAINT topic_num_fk		FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);

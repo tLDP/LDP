@@ -19,9 +19,9 @@ class Log:
 	Config = Config.Config()
 
 	def __call__(self, level, message):
-		self.Log(level, message)
+		self.Write(level, message)
 
-	def Log(self, level, message):
+	def Write(self, level, message):
 		if self.Config.LogLevel >= level:
 			self.log = open(self.Config.LogFile, 'a+')
 			self.log.write(message + "\n")

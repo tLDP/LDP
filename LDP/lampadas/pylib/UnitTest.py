@@ -31,6 +31,7 @@ class testConfigFile(unittest.TestCase):
 		L.Log(3, 'testing Config file')
 		assert Config.DBType == "pgsql", "DBType is not valid"
 		assert Config.DBName == "lampadas", "Database name is not valid"
+		assert Config.CVSRoot > ''
 		L.Log(3, 'testing Config file done')
 
 class testDatabase(unittest.TestCase):
@@ -62,7 +63,6 @@ class testConfig(unittest.TestCase):
 	def testConfig(self):
 		L.Log(3, 'testing Config')
 		assert not L.Config == None
-		assert not L.Config['cvs_root'] == None
 		assert L.Config['project_short'] == 'LDP'
 		L.Log(3, 'testing Config done')
 
@@ -99,28 +99,28 @@ class testDocs(unittest.TestCase):
 
 	def testMapping(self):
 		L.Log(3, 'testing Docs Mapping')
-		self.Doc = L.Docs[1]
+		self.Doc = L.Docs[100]
 		assert not self.Doc == None
 		assert not self.Doc.Title == ''
-		assert self.Doc.ID == 1
+		assert self.Doc.ID == 100
 		self.Doc = L.Docs[2]
 		assert self.Doc.ID == 2
 		L.Log(3, 'testing Docs Mapping done')
 
 	def testSave(self):
 		L.Log(3, 'testing Docs Save')
-		self.Doc = L.Docs[1]
+		self.Doc = L.Docs[100]
 		self.Title = self.Doc.Title
 		self.Doc.Title = 'Foo'
 		assert self.Doc.Title == 'Foo'
 		self.Doc.Save()
-		self.Doc2 = L.Docs[1]
+		self.Doc2 = L.Docs[100]
 		assert self.Doc2.Title == 'Foo'
 		
 		self.Doc.Title = self.Title
 		assert self.Doc.Title == self.Title
 		self.Doc.Save()
-		self.Doc2 = L.Docs[1]
+		self.Doc2 = L.Docs[100]
 		assert self.Doc2.Title == self.Title
 		L.Log(3, 'testing Docs Save done')
 
@@ -144,7 +144,7 @@ class testDocFiles(unittest.TestCase):
 
 	def testDocFiles(self):
 		L.Log(3, 'testing DocFiles')
-		Doc = L.Docs[1]
+		Doc = L.Docs[100]
 		assert not Doc == None
 		assert Doc.Files.Count() > 0
 		keys = Doc.Files.keys()
@@ -159,7 +159,7 @@ class testDocRatings(unittest.TestCase):
 
 	def testDocRatings(self):
 		L.Log(3, 'testing DocRatings')
-		Doc = L.Docs[1]
+		Doc = L.Docs[100]
 		assert not Doc == None
 		Doc.Ratings.Clear()
 		assert Doc.Ratings.Count() == 0

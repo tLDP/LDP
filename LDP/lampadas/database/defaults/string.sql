@@ -9,6 +9,7 @@ INSERT INTO string(string_code) VALUES ('projectshort');
 INSERT INTO string(string_code) VALUES ('mmtitle');
 INSERT INTO string(string_code) VALUES ('home');
 INSERT INTO string(string_code) VALUES ('doctable');
+INSERT INTO string(string_code) VALUES ('docdetails');
 
 INSERT INTO string_i18n(string_code, lang, string) VALUES ('test',		'EN', 'Test Text');
 INSERT INTO string_i18n(string_code, lang, string) VALUES ('test',		'FR', 'Le Test Text');
@@ -26,3 +27,5 @@ INSERT INTO string_i18n(string_code, lang, string) VALUES ('home',		'EN', 'Home'
 INSERT INTO string_i18n(string_code, lang, string) VALUES ('home',		'FR', 'Le Home');
 INSERT INTO string_i18n(string_code, lang, string) VALUES ('doctable',		'EN', 'DocTable');
 INSERT INTO string_i18n(string_code, lang, string) VALUES ('doctable',		'FR', 'Le DocTable');
+INSERT INTO string_i18n(string_code, lang, string) VALUES ('docdetails',	'EN', 'Document Details');
+INSERT INTO string_i18n(string_code, lang, string) VALUES ('docdetails',	'FR', 'Le Document Details');
