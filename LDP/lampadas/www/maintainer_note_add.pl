@@ -5,6 +5,8 @@ use Pg;
 
 $query = new CGI;
 
+$caller = param('caller');
+
 $username = $query->remote_user();
 if ( $username eq "guest") {
   print header;
@@ -32,4 +34,9 @@ $conn=Pg::connectdb("dbname=$dbmain");
 $sql = "INSERT INTO maintainer_notes (maintainer_id, date_entered, username, notes) values ($maintainer_id, now(), '$username', '$note')";
 $result=$conn->exec($sql);
 
-print $query->redirect("maintainer_edit.pl?maintainer_id=$maintainer_id");
+if ( $caller) {
+	print $query->redirect($caller);
+}
+else {
+	print $query->redirect("maintainer_edit.pl?maintainer_id=$maintainer_id");
+}
