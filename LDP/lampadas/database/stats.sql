@@ -32,6 +32,7 @@ CREATE TABLE stats (
 	license_FREE		INT4,
 	license_NONFREE		INT4,
 	license_UNKNOWN		INT4,
+	rating_avg		REAL,
 
 	PRIMARY KEY (date_entered)
 );

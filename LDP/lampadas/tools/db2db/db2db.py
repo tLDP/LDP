@@ -1,4 +1,4 @@
-#!/usr/bin/python2.0
+#!/usr/bin/python
 
 # Import required modules
 #import sys
@@ -10,7 +10,6 @@
 #import shutil
 import os
 from xml.dom.minidom import parse
-
 					
 class Address:
 	"""
