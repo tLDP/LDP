@@ -7,7 +7,6 @@ from Sessions import sessions
 from Config import config
 from URLParse import URI
 from mod_python import apache
-import Cookie
 import os
 import string
 
@@ -27,37 +26,18 @@ def handler(req):
         send_File(req, filename)
     else:
         log(3, 'Sending dynamic page: ' + req.uri)
-        session = None
-        cookie = get_cookie(req.headers_in, 'lampadas')
-        if cookie:
-            session_id = str(cookie)
-            username = lampadas.users.find_session_user(session_id)
-            if username > '':
-                sessions.load()
-                session = sessions[username]
-                if session:
-                    session.refresh(req.connection.remote_addr[0], uri.uri)
-                else:
-                    session = sessions.add(username, req.connection.remote_addr[0], uri.uri)
-        send_HTML(req, page_factory.page(uri, session))
+        session = sessions.get_session(req)
+        send_HTML(req, page_factory.page(uri))
     return apache.OK
 
 
-def get_cookie(headers_in, key):
-    if headers_in.has_key('Cookie'):
-        cookie = Cookie.SmartCookie(headers_in['Cookie'])
-        cookie.load(headers_in['Cookie'])
-        if cookie.has_key(key):
-            return cookie[key].value
-    return None
-    
 def send_HTML(req, HTML):
     """
     Send the passed HTML page.
     """
     log(3, 'Sending HTML')
     req.content_type = 'text/html; charset=UTF-8'
-    add_content_length(req, len(HTML))
+    add_headers(req, len(HTML))
     req.send_http_header()
     req.write(HTML)
     log(3, "HTML sent")
@@ -101,7 +81,7 @@ def send_File(req, filename):
     fd = open(filename, 'r')
     file_contents = fd.read()
     req.content_type = mimetype
-    add_content_length(req, len(file_contents))
+    add_headers(req, len(file_contents))
     req.send_http_header()
     req.write(file_contents)
 
@@ -112,11 +92,12 @@ def send_Text(req, text):
     """
     log(3, 'Sending text')
     req.content_type = 'text/plain'
-    add_content_length(req, len(text))
+    add_headers(req, len(text))
     req.send_http_header()
     req.write(text)
 
-def add_content_length(req, length):
+def add_headers(req, length):
     log(3, "content-length is: " + str(length))
     req.headers_out.add('Content-length', str(length))
+    req.headers_out.add('Expires', 'Tue, 20 Aug 1996 14:25:27 GMT')
 

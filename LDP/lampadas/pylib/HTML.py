@@ -289,10 +289,10 @@ class TableFactory:
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
-    def doc(self, uri, user):
-        if not user:
+    def doc(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         box = WOStringIO()
@@ -313,7 +313,7 @@ class TableFactory:
                       'name="document">')
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
-        ''' % (user.username, doc.id))
+        ''' % (sessions.session.username, doc.id))
         box.write('''<table class="box" width="100%%">
         <tr><th colspan="6">|strdocdetails|</th></tr>
         <tr><th class="label">|strtitle|</th>
@@ -369,10 +369,10 @@ class TableFactory:
         </form>''' % (doc.abstract, doc.short_desc))
         return box.get_value()
 
-    def docversions(self, uri, user):
-        if not user:
+    def docversions(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docversions table')
@@ -419,10 +419,10 @@ class TableFactory:
         return box
         
 
-    def docfiles(self, uri, user):
-        if not user:
+    def docfiles(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docfiles table')
@@ -487,10 +487,10 @@ class TableFactory:
         return box
         
 
-    def docusers(self, uri, user):
-        if not user:
+    def docusers(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docusers table')
@@ -536,10 +536,10 @@ class TableFactory:
         return box
         
 
-    def doctopics(self, uri, user):
-        if not user:
+    def doctopics(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating doctopics table')
@@ -578,10 +578,10 @@ class TableFactory:
         return box
 
 
-    def docnotes(self, uri, user):
-        if not user:
+    def docnotes(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docnotes table')
@@ -605,7 +605,7 @@ class TableFactory:
             box = box + '</tr>\n'
         box = box + '<form method=GET action="/data/save/newdocument_note" name="document_note">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<input name="creator" type=hidden value=' + user.username + '>\n'
+        box = box + '<input name="creator" type=hidden value=' + sessions.session.username + '>\n'
         box = box + '<tr><td></td><td></td>\n'
         box = box + '<td><textarea name="notes" rows=5 cols=40></textarea></td>\n'
         box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
@@ -615,14 +615,14 @@ class TableFactory:
         return box
 
 
-    def errors(self, uri, user):
+    def errors(self, uri):
         """
         Builds a complete list of all errors reported by Lintadas.
         It uses docerrors() and docfileerrors(), and just concatenates
         all of their contents.
         """
 
-        if not user:
+        if not sessions.session:
             return '|blknopermission|'
 
         log(3, 'Creating errors table')
@@ -632,7 +632,7 @@ class TableFactory:
             doc = lampadas.docs[doc_id]
 
             # Only display docs the user has rights to.
-            if user.can_edit(doc_id=doc_id)==0:
+            if sessions.session.user.can_edit(doc_id=doc_id)==0:
                 continue
             if doc.lang==uri.lang:
                 show_doc = 0
@@ -649,15 +649,15 @@ class TableFactory:
                     box = box + '<h1>' + doc.title + '</h1>'
                     uri.id = doc_id
                 if show_doc==1:
-                    box = box + '<p>' + self.docerrors(uri, user)
+                    box = box + '<p>' + self.docerrors(uri)
                 if show_files==1:
-                    box = box + '<p>' + self.docfileerrors(uri, user)
+                    box = box + '<p>' + self.docfileerrors(uri)
         return box
 
-    def docerrors(self, uri, user):
-        if not user:
+    def docerrors(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docerrors table')
@@ -680,10 +680,10 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def filereports(self, uri, user):
-        if not user:
+    def filereports(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating filereports table')
@@ -702,10 +702,10 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def filereport(self, uri, user):
-        if not user:
+    def filereport(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating filereport table')
@@ -734,10 +734,10 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def docfileerrors(self, uri, user):
-        if not user:
+    def docfileerrors(self, uri):
+        if not sessions.session:
             return '|blknopermission|'
-        elif user.can_edit(doc_id=uri.id)==0:
+        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating docfileerrors table')
@@ -765,19 +765,6 @@ class TableFactory:
         return box
 
 
-    def cvslog(self, uri):
-        doc = lampadas.docs[uri.id]
-        box = '<table class="box" width="100%">\n'
-        box = box + '<tr><th>|strcvslog|</th></tr>\n'
-        box = box + '<tr><td>\n'
-        cvsdir = config.cvs_root + str(doc.id)
-
-        # FIXME: finish this.
-
-        box = box + '</td></tr>\n'
-        box = box + '</table>\n'
-        return box
-
     def letters(self, uri):
         log(3, 'Creating letter table')
         box = '<table class="box" width="100%"><tr>\n'
@@ -785,11 +772,15 @@ class TableFactory:
             if letter==uri.letter:
                 box = box + '<th>' + letter + '</th>\n'
             else:
-                box = box + '<th><a href="/' + uri.filename + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
+                box = box + '<th><a href="/' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
         return box
         
-    def users(self, uri, build_user):
+    def users(self, uri):
+        if not sessions.session:
+            return '|tabnopermission|'
+        elif sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
+            return '|tabnopermission|'
         log(3, 'Creating users table')
         box = '<table class="box" width="100%"><tr><th colspan=2>|strusers|</th></tr>\n'
         box = box + '<tr>\n'
@@ -807,10 +798,10 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def user(self, uri, build_user):
-        if not build_user:
+    def user(self, uri):
+        if sessions.session==None:
             return '|blknopermission|'
-        elif build_user.can_edit(username=uri.username)==0:
+        elif sessions.session.user.can_edit(username=uri.username)==0:
             return '|blknopermission|'
 
         if uri.username > '':
@@ -834,13 +825,14 @@ class TableFactory:
         box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname size="15" value="' + user.surname + '"></td></tr>\n'
         box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email size="15" value="' + user.email + '"></td></tr>\n'
         box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
-        box = box + '<tr><th class="label">'
         if user.username=='':
-            box = box + '|strpassword|'
+            box = box + '<tr><th class="label">|strpassword|</th><td><input type=text name=password size="12"></td></tr>\n'
         else:
-            box = box + '|strnewpassword|'
-        box = box + '</th><td><input type=text name=password size="12"></td></tr>\n'
-        if build_user and build_user.admin > 0 or build_user.sysadmin > 0:
+            if sessions.session:
+                if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+                    box = box + '<tr><th class="label">|strpassword|</th><td>' + user.password + '</td></tr>\n'
+            box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password size="12"></td></tr>\n'
+        if sessions.session.user and sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0:
             box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
             box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
         else:
@@ -853,14 +845,15 @@ class TableFactory:
         box = box + '</form>\n'
         return box
         
-    def doctable(self, uri, user,
+    def doctable(self, uri,
            title=None,
            pub_status_code=None,
            type_code=None,
            subtopic_code=None,
            username=None,
            maintained=None,
-           maintainer_wanted=None
+           maintainer_wanted=None,
+           lang=None
            ):
         """
         Creates a listing of all documents which fit the parameters passed in.
@@ -873,14 +866,13 @@ class TableFactory:
             doc = lampadas.docs[key]
             ok = 1
 
-            # If a usename is passed in, do not filter by language.
-            # We're building the user's personal doctable, so language
-            # doesn't matter in that table.
-            if username:
+            # Filter documents according to parameters passed in
+            # by the calling routine.
+            if not username==None:
                 if doc.users[username]==None:
                     ok = 0
-            else:
-                if doc.lang <> uri.lang:
+            if not lang==None:
+                if doc.lang <> lang:
                     ok = 0
 
             # Don't display deleted or cancelled documents
@@ -889,9 +881,9 @@ class TableFactory:
                 if doc.pub_status_code <> pub_status_code:
                     ok = 0
             elif doc.pub_status_code=='D' or doc.pub_status_code=='C':
-                if user==None:
+                if sessions.session==None:
                     ok = 0
-                elif user.admin==0 and user.sysadmin==0:
+                elif sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
                     ok = 0
 
             # If any other parameters were specified, limit the documents
@@ -915,24 +907,19 @@ class TableFactory:
 
             # Only show documents with errors if the user owns them
             if doc.errors > 0 or doc.files.error_count() > 0:
-                if user==None:
+                if sessions.session==None:
                     ok = 0
-                elif user.can_edit(doc_id=doc.id)==0:
+                elif sessions.session.user.can_edit(doc_id=doc.id)==0:
                     ok = 0
 
             # Build the table for any documents that passed the filters
             if ok > 0:
                 box = box + '<tr><td>'
 
-                if user and user.can_edit(doc_id=doc.id):
+                if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                     box = box + '<a href="/editdoc/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td>'
-#                if user and user.can_edit(doc_id=doc.id):
-#                    box = box + '<form name="make" action="/data/control/make">\n'
-#                    box = box + '<input type=hidden name=doc_id value="' + str(doc.id) + '">\n'
-#                    box = box + '<input type=submit name="action" value="|strmake|">\n'
-#                    box = box + '</form>\n'
                 box = box + '</td>\n'
                 if doc.pub_status_code=='N' or doc.pub_status_code=='A':
                     if doc.errors.count() > 0 or doc.files.error_count() > 0:
@@ -945,14 +932,14 @@ class TableFactory:
         box = box + '</table>'
         return box
 
-    def userdocs(self, uri, user):
-        if user:
-            box = self.doctable(uri, user, username=user.username)
-        else:
-            box = '|nopermission|'
-        return box
+    def userdocs(self, uri, username=''):
+        if sessions.session==None:
+            return '|nopermission|'
+        if sessions.session.user.can_edit(username=username)==0:
+            return '|nopermission|'
+        return self.doctable(uri, username=sessions.session.username)
 
-    def section_menu(self, uri, user, section_code):
+    def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
         box = '<table class="navbox" width="210"><tr><th>' + section.name[uri.lang] + '</th></tr>\n'
@@ -962,19 +949,19 @@ class TableFactory:
             page = lampadasweb.pages[key]
             if page.section_code==section.code:
                 if page.only_registered or page.only_admin or page.only_sysadmin > 0:
-                    if user==None:
+                    if sessions.session==None:
                         continue
                 if page.only_admin > 0:
-                    if user.admin==0 and user.sysadmin==0:
+                    if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
                         continue
                 if page.only_sysadmin > 0:
-                    if user.sysadmin==0:
+                    if sessions.session.user.sysadmin==0:
                         continue
                 box = box + '<a href="/' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr></table>\n'
         return box
 
-    def section_menus(self, uri, user):
+    def section_menus(self, uri):
         log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
@@ -982,22 +969,22 @@ class TableFactory:
         for key in keys:
             section = lampadasweb.sections[key]
             if section.only_registered or section.only_admin or section.only_sysadmin > 0:
-                if user==None or section.registered_count==0:
+                if sessions.session==None or section.registered_count==0:
                     continue
             if section.only_admin > 0:
-                if (user.admin==0 and user.sysadmin==0) or (section.admin_count==0):
+                if (sessions.session.user.admin==0 and sessions.session.user.sysadmin==0) or (section.admin_count==0):
                     continue
             if section.only_sysadmin > 0:
-                if user.sysadmin==0 or section.sysadmin_count==0:
+                if sessions.session.user.sysadmin==0 or section.sysadmin_count==0:
                     continue
             if first_menu==1:
                 first_menu = 0
             else:
                 box = box + '<p>'
-            box = box + self.section_menu(uri, user, section.code)
+            box = box + self.section_menu(uri, section.code)
         return box
 
-    def sitemap(self, uri, user):
+    def sitemap(self, uri):
         log(3, 'Creating sitemap')
         box = ''
         box = '<table class="box" width="100%"><tr><th colspan="2">|strsitemap|</th></tr>\n'
@@ -1101,10 +1088,10 @@ class TableFactory:
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
-    def login(self, uri, user):
+    def login(self, uri):
         if self.command_line==1:
             return ''
-        if user:
+        if sessions.session:
             log(3, 'Creating active user box')
             box = '''<table class="navbox" width="210">
             <tr><th>|stractive_user|</th></tr>
@@ -1117,7 +1104,7 @@ class TableFactory:
             value="|strlog_out|"></td></tr>
             </form>
             </table>
-            ''' % user.username
+            ''' % sessions.session.username
         else:
             log(3, 'Creating login box')
             box = '''<table class="navbox" width="210">
@@ -1142,8 +1129,8 @@ class TableFactory:
             '''
         return box
 
-    def navsessions(self, uri, user):
-        if user and user.admin > 0:
+    def navsessions(self, uri):
+        if sessions.session and sessions.session.user.admin > 0:
             log(3, 'Creating navsessions table')
             box = WOStringIO('''<table class="navbox" width="210">
             <tr><th>|strsessions|</th></tr>
@@ -1158,8 +1145,8 @@ class TableFactory:
             return box.get_value()
         return ' '
 
-    def tabsessions(self, uri, user):
-        if user and user.admin > 0:
+    def tabsessions(self, uri):
+        if sessions.session.user and sessions.session.user.admin > 0:
             log(3, 'Creating sessions table')
             box = WOStringIO('''<table class="box" width="100%">
             <tr><th colspan="4">|strsessions|</th></tr>
@@ -1223,6 +1210,7 @@ class TableFactory:
             <tr><th class="label">|strtopic|</th><td>%s</td></tr>
             <tr><th class="label">|strmaintained|</th><td>%s</td></tr>
             <tr><th class="label">|strmaint_wanted|</th><td>%s</td></tr>
+            <tr><th class="label">|strlanguage|</th><td>%s</td></tr>
             <tr><td></td><td><input type="submit" value="|strsearch|"></td></tr>
             </form>
             </table>
@@ -1231,7 +1219,8 @@ class TableFactory:
               combo_factory.type('', uri.lang),
               combo_factory.subtopic('', uri.lang),
               combo_factory.tf('maintained', '', uri.lang),
-              combo_factory.tf('maintainer_wanted', '', uri.lang)))
+              combo_factory.tf('maintainer_wanted', '', uri.lang),
+              combo_factory.language(uri.lang, uri.lang)))
         
         return box.get_value()
         
@@ -1261,21 +1250,19 @@ class PageFactory:
             return 1
         return
 
-    def page(self, uri, session=None):
-        build_user = None
-        if session:
-            build_user = lampadas.users[session.username]
-            log(3, 'build_user: ' + build_user.username)
+    def page(self, uri):
+        if sessions.session:
+            log(3, 'user: ' + sessions.session.username)
 
         page = lampadasweb.pages[uri.page_code]
         if page==None:
             page = lampadasweb.pages['404']
         assert not page==None
-        html = self.build_page(page, uri, build_user)
+        html = self.build_page(page, uri)
 
         return html
     
-    def build_page(self, page, uri, build_user):
+    def build_page(self, page, uri):
         template = lampadasweb.templates[page.template_code]
         assert not template==None
         html = template.template
@@ -1296,22 +1283,25 @@ class PageFactory:
                 # Tokens based on a logged-in user
                 # 
                 if token=='session_id':
-                    if build_user==None:
-                        newstring = ''
+                    if sessions.session:
+                        newstring = sessions.session.user.session_id
                     else:
-                        newstring = build_user.session_id
+                        newstring = ''
                 if token=='session_username':
-                    if build_user==None:
-                        newstring = ''
+                    if sessions.session:
+                        newstring = sessions.session.username
                     else:
-                        newstring = build_user.username
+                        newstring = ''
                 if token=='session_name':
-                    if build_user==None:
-                        newstring = ''
+                    if sessions.session:
+                        newstring = sessions.session.user.name
                     else:
-                        newstring = build_user.name
+                        newstring = ''
                 if token=='session_user_docs':
-                    newstring = self.tablef.userdocs(uri, build_user)
+                    if sessions.session:
+                        newstring = self.tablef.userdocs(uri, username=sessions.session.username)
+                    else:
+                        newstring = '|nopermission|'
 
                 # Meta-data about the page being served
                 # 
@@ -1334,6 +1324,8 @@ class PageFactory:
                     newstring = uri.code
                 if token=='uri.base':
                     newstring = uri.base
+                if token=='uri.page_code':
+                    newstring = uri.page_code
                 if token=='uri.filename':
                     newstring = uri.filename
 
@@ -1347,8 +1339,8 @@ class PageFactory:
                 if token=='port':
                     newstring = str(config.port)
                 if token=='stylesheet':
-                    if build_user:
-                        newstring = build_user.stylesheet
+                    if sessions.session:
+                        newstring = sessions.session.user.stylesheet
                     else:
                         newstring='default'
                 if token=='version':
@@ -1360,23 +1352,20 @@ class PageFactory:
                 
                 # Embedded User
                 if token=='user.username':
-                    user = lampadas.users[uri.username]
-                    if not user:
-                        newstring = '|blknotfound|'
+                    if sessions.session:
+                        newstring = sessions.session.username
                     else:
-                        newstring = user.username
+                        newstring = '|blknotfound|'
                 if token=='user.name':
-                    user = lampadas.users[uri.username]
-                    if not user:
-                        newstring = '|blknotfound|'
-                    else:
+                    if sessions.session:
                         newstring = user.name
-                if token=='user.docs':
-                    user = lampadas.users[uri.username]
-                    if not user:
-                        newstring = '|blknotfound|'
                     else:
-                        newstring = self.tablef.userdocs(uri, build_user)
+                        newstring = '|blknotfound|'
+                if token=='user.docs':
+                    if sessions.session:
+                        newstring = self.tablef.userdocs(uri, sessions.session.username)
+                    else:
+                        newstring = '|blknotfound|'
 
                 # Embedded Type
                 if token=='type.name':
@@ -1403,15 +1392,15 @@ class PageFactory:
                 # Navigation Boxes
                 # 
                 if token=='navlogin':
-                    newstring = self.tablef.login(uri, build_user)
+                    newstring = self.tablef.login(uri)
                 if token=='navmenus':
-                    newstring = self.tablef.section_menus(uri, build_user)
+                    newstring = self.tablef.section_menus(uri)
                 if token=='navtopics':
                     newstring = self.tablef.topics(uri)
                 if token=='navtypes':
                     newstring = self.tablef.types(uri)
                 if token=='navsessions':
-                    newstring = self.tablef.navsessions(uri, build_user)
+                    newstring = self.tablef.navsessions(uri)
                 if token=='navlanguages':
                     newstring = self.tablef.languages(uri)
 
@@ -1420,59 +1409,59 @@ class PageFactory:
                 if token=='tabsubtopics':
                     newstring = self.tablef.subtopics(uri)
                 if token=='tabdocs':
-                    newstring = self.tablef.doctable(uri, build_user)
+                    newstring = self.tablef.doctable(uri, lang=uri.lang)
                 if token=='tabmaint_wanted':
-                    newstring = self.tablef.doctable(uri, build_user, maintainer_wanted=1)
+                    newstring = self.tablef.doctable(uri, maintainer_wanted=1, lang=uri.lang)
                 if token=='tabunmaintained':
-                    newstring = self.tablef.doctable(uri, build_user, maintained=0)
+                    newstring = self.tablef.doctable(uri, maintained=0, lang=uri.lang)
                 if token=='tabpending':
-                    newstring = self.tablef.doctable(uri, build_user, pub_status_code='P')
+                    newstring = self.tablef.doctable(uri, pub_status_code='P', lang=uri.lang)
                 if token=='tabwishlist':
-                    newstring = self.tablef.doctable(uri, build_user, pub_status_code='W')
+                    newstring = self.tablef.doctable(uri, pub_status_code='W', lang=uri.lang)
                 if token=='tabeditdoc':
-                    newstring = self.tablef.doc(uri, build_user)
+                    newstring = self.tablef.doc(uri)
                 if token=='tabdocfiles':
-                    newstring = self.tablef.docfiles(uri, build_user)
+                    newstring = self.tablef.docfiles(uri)
                 if token=='tabdocusers':
-                    newstring = self.tablef.docusers(uri, build_user)
+                    newstring = self.tablef.docusers(uri)
                 if token=='tabdocversions':
-                    newstring = self.tablef.docversions(uri, build_user)
+                    newstring = self.tablef.docversions(uri)
                 if token=='tabdoctopics':
-                    newstring = self.tablef.doctopics(uri, build_user)
+                    newstring = self.tablef.doctopics(uri)
                 if token=='tabdocerrors':
-                    newstring = self.tablef.docerrors(uri, build_user)
+                    newstring = self.tablef.docerrors(uri)
                 if token=='tabfile_reports':
-                    newstring = self.tablef.filereports(uri, build_user)
+                    newstring = self.tablef.filereports(uri)
                 if token=='tabfile_report':
-                    newstring = self.tablef.filereport(uri, build_user)
+                    newstring = self.tablef.filereport(uri)
                 if token=='tabdocfileerrors':
-                    newstring = self.tablef.docfileerrors(uri, build_user)
+                    newstring = self.tablef.docfileerrors(uri)
                 if token=='tabdocnotes':
-                    newstring = self.tablef.docnotes(uri, build_user)
+                    newstring = self.tablef.docnotes(uri)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabletters':
                     newstring = self.tablef.letters(uri)
                 if token=='tabusers':
-                    newstring = self.tablef.users(uri, build_user)
+                    newstring = self.tablef.users(uri)
                 if token=='tabuser':
-                    newstring = self.tablef.user(uri, build_user)
+                    newstring = self.tablef.user(uri)
                 if token=='tabrecentnews':
                     newstring = self.tablef.recent_news(uri)
                 if token=='tabsubtopic':
                     newstring = self.tablef.subtopic(uri)
                 if token=='tabtypedocs':
-                    newstring = self.tablef.doctable(uri, build_user, type_code=uri.code)
+                    newstring = self.tablef.doctable(uri, type_code=uri.code, lang=uri.lang)
                 if token=='tabsubtopicdocs':
-                    newstring = self.tablef.doctable(uri, build_user, subtopic_code=uri.code)
+                    newstring = self.tablef.doctable(uri, subtopic_code=uri.code, lang=uri.lang)
                 if token=='tabsitemap':
-                    newstring = self.tablef.sitemap(uri, build_user)
+                    newstring = self.tablef.sitemap(uri)
                 if token=='tabsessions':
-                    newstring = self.tablef.tabsessions(uri, build_user)
+                    newstring = self.tablef.tabsessions(uri)
                 if token=='tabmailpass':
                     newstring = self.tablef.tabmailpass(uri)
                 if token=='taberrors':
-                    newstring = self.tablef.errors(uri, build_user)
+                    newstring = self.tablef.errors(uri)
                 if token=='tabsearch':
                     newstring = self.tablef.tabsearch(uri)
             

@@ -25,6 +25,7 @@ from Config import config
 from DataLayer import lampadas
 from WebLayer import lampadasweb
 from HTML import page_factory
+from Sessions import sessions
 from URLParse import URI
 from Log import log
 from mod_python import apache
@@ -35,46 +36,60 @@ def document(req, title='',
                   type_code='',
                   subtopic_code='',
                   maintained='',
-                  maintainer_wanted=''):
+                  maintainer_wanted='',
+                  lang=''):
     """
     Returns the results of a document search.
     """
-    
+
+    # Read session state
+    sessions.get_session(req)
+
     # Replace null strings with None
     search_title             = None
-    search_pub_status_code   = None
-    search_type_code         = None
-    search_subtopic_code     = None
-    search_maintained        = None
-    search_maintainer_wanted = None
     if title > '':
         search_title = title
+    search_pub_status_code   = None
     if pub_status_code > '':
         search_pub_status_code = pub_status_code
+    search_type_code         = None
     if type_code > '':
         search_type_code = type_code
+    search_subtopic_code     = None
     if subtopic_code > '':
         search_subtopic_code = subtopic_code
+    search_maintained        = None
     if maintained > '':
-        message = 'maintained is ' + maintained
         search_maintained = int(maintained)
+    search_maintainer_wanted = None
     if maintainer_wanted > '':
         search_maintainer_wanted = int(maintainer_wanted)
+    search_lang = None
+    if lang > '':
+        search_lang = lang
     
     uri = URI(req.uri)
     page = lampadasweb.pages['doctable']
 
-    # This avoids the use of a copy.deepcopy().
+    # serve search results by manually replacing the
+    # doctable here instead of during the regular call.
+    # It's a bit ugly, but works.
+
+    # We store and restore the contents to avoid doing
+    # a copy.deepcopy() which I haven't tested but imagine to
+    # be rather expensive. -- DCM
     save_page = page.page[uri.lang]
-    table = page_factory.tablef.doctable(uri, None, title=search_title,
-                                                    pub_status_code=search_pub_status_code,
-                                                    type_code=search_type_code,
-                                                    subtopic_code=search_subtopic_code,
-                                                    maintained=search_maintained,
-                                                    maintainer_wanted=search_maintainer_wanted)
+    table = page_factory.tablef.doctable(uri, title=search_title,
+                                              pub_status_code=search_pub_status_code,
+                                              type_code=search_type_code,
+                                              subtopic_code=search_subtopic_code,
+                                              maintained=search_maintained,
+                                              maintainer_wanted=search_maintainer_wanted,
+                                              lang=search_lang)
     page.page[uri.lang] = page.page[uri.lang].replace('|tabdocs|', table)
-    html = page_factory.build_page(page, URI('doctable' + uri.lang_ext), None)
+    html = page_factory.build_page(page, URI('doctable' + uri.lang_ext))
     
+    # Restore the original page
     page.page[uri.lang] = save_page
     return html
 

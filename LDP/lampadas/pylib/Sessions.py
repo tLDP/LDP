@@ -31,19 +31,27 @@ This module tracks users who have active sessions.
 
 from Globals import *
 from BaseClasses import *
+from DataLayer import lampadas
 from Config import config
 from Database import db
 from Log import log
+import Cookie
 
 
 # Sessions
 
+# WARNING: Whenever the sessions.session property is set, which identifies the
+# currently logged-on user's session, the sessions.session.user attribute
+# must also be set. You can't have a session without a user!
+# 
 class Sessions(LampadasCollection):
     """
     All users with currently active sessions.
+
     """
 
     def __init__(self):
+        self.session = None
         self.load()
 
     def load(self):
@@ -64,24 +72,50 @@ class Sessions(LampadasCollection):
         sql = 'INSERT INTO session(username, ip_address, uri) VALUES (' + wsq(username) + ', ' + wsq(ip_address) + ', ' + wsq(uri) + ')'
         db.runsql(sql)
         db.commit()
-        session = Session(username)
-        self.data[username] = session
-        return session
+        self.session = Session(username)
+        self.session.user = lampadas.users[username]
+        self.data[username] = self.session
 
     def delete(self, username):
         sql = 'DELETE FROM session WHERE username=' + wsq(username)
         db.runsql(sql)
         db.commit()
         del self[username]
+        self.session = None
 
     def count(self):
         return db.read_value('SELECT COUNT(*) FROM session')
 
+    def get_session(self, req):
+        self.session = None
+        cookie = self.get_cookie(req.headers_in, 'lampadas')
+        if cookie:
+            session_id = str(cookie)
+            username = lampadas.users.find_session_user(session_id)
+            if username > '':
+                self.load()
+                self.session = sessions[username]
+                if self.session:
+                    self.session.refresh(req.connection.remote_addr[0], req.uri)
+                else:
+                    self.add(username, req.connection.remote_addr[0], req.uri)
+                self.session.user = lampadas.users[username]
+
+    def get_cookie(self, headers_in, key):
+        if headers_in.has_key('Cookie'):
+            cookie = Cookie.SmartCookie(headers_in['Cookie'])
+            cookie.load(headers_in['Cookie'])
+            if cookie.has_key(key):
+                return cookie[key].value
+        return None
+    
 
 class Session:
 
     def __init__(self, username=None):
+        self.user = None
         if username:
+            self.user = lampadas.users[username]
             sql = 'SELECT username, ip_address, uri, timestamp FROM session WHERE username=' + wsq(username)
             cursor = db.select(sql)
             row = cursor.fetchone()

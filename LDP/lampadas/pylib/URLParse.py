@@ -127,6 +127,8 @@ class URI:
         # read the identifier for the object.
         data = self.data
         for item in page.data:
+            if len(data)==0:
+                break
             if item in ('doc',):
                 self.id = int(data[0])
                 data = data[1:]
