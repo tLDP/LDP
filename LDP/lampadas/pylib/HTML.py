@@ -724,7 +724,7 @@ class TableFactory:
 
     def letters(self, uri):
         log(3, 'Creating letter table')
-        box = '<table class="box"><tr>\n'
+        box = '<table class="box" width="100%"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
                 box = box + '<th>' + letter + '</th>\n'
@@ -735,7 +735,7 @@ class TableFactory:
         
     def users(self, uri, build_user):
         log(3, 'Creating users table')
-        box = '<table class="box"><tr><th colspan=2>|strusers|</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th colspan=2>|strusers|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strusername|</th>\n'
         box = box + '<th class="collabel">|strname|</th>\n'
@@ -841,6 +841,13 @@ class TableFactory:
                 if doc.pub_status_code <> pub_status_code:
                     ok = 0
 
+            # Only show documents with errors if the user owns them
+            if doc.errors > 0 or doc.files.error_count() > 0:
+                if user==None:
+                    ok = 0
+                elif user.can_edit(doc_id=doc.doc_id)==0:
+                    ok = 0
+
             # Build the table for any documents that passed the filters
             if ok > 0:
                 box = box + '<tr><td>'
@@ -875,7 +882,7 @@ class TableFactory:
     def section_menu(self, uri, user, section_code):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
-        box = '<table class="navbox"><tr><th>' + section.name[uri.lang] + '</th></tr>\n'
+        box = '<table class="navbox" width="210"><tr><th>' + section.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>'
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
@@ -970,7 +977,7 @@ class TableFactory:
 
     def topics(self, uri):
         log(3, 'Creating topics menu')
-        box = WOStringIO('''<table class="navbox">
+        box = WOStringIO('''<table class="navbox" width="210">
         <tr><th>|strtopics|</th></tr>
         <tr><td><ol>''')
         keys = lampadas.topics.sort_by('num')
@@ -1010,7 +1017,7 @@ class TableFactory:
 
     def types(self, uri):
         log(3, 'Creating types menu')
-        box = WOStringIO('''<table class="navbox">
+        box = WOStringIO('''<table class="navbox" width="210">
         <tr><th>|strtypes|</th></tr>
         <tr><td>''')
         keys = lampadas.types.sort_by('sort_order')
@@ -1026,7 +1033,7 @@ class TableFactory:
             return ''
         if user:
             log(3, 'Creating active user box')
-            box = '''<table class="navbox">
+            box = '''<table class="navbox" width="210">
             <tr><th>|stractive_user|</th></tr>
             <form name="logout" action="/data/session/logout">
             <input name="username" type="hidden" value="%s">
@@ -1040,7 +1047,7 @@ class TableFactory:
             ''' % user.username
         else:
             log(3, 'Creating login box')
-            box = '''<table class="navbox">
+            box = '''<table class="navbox" width="210">
             <tr><th colspan="2">|strlogin|</th></tr>
             <form name="login" action="/data/session/login" method="GET">
             <tr>
@@ -1054,7 +1061,7 @@ class TableFactory:
             <tr>
               <td align="center" colspan="2">
               <input type=submit name="login" value="login"><br>
-              <a href="/mailpass">|strmail_passwd||uri.lang_ext|</a><br>
+              <a href="/mailpass|uri.lang_ext|">|strmail_passwd|</a><br>
               <a href="/newuser|uri.lang_ext|">|strcreate_acct|</a></td>
             </tr>
             </form> 
@@ -1065,7 +1072,7 @@ class TableFactory:
     def navsessions(self, uri, user):
         if user and user.admin > 0:
             log(3, 'Creating navsessions table')
-            box = WOStringIO('''<table class="navbox">
+            box = WOStringIO('''<table class="navbox" width="210">
             <tr><th>|strsessions|</th></tr>
             <tr><td>
             ''')
@@ -1081,7 +1088,7 @@ class TableFactory:
     def tabsessions(self, uri, user):
         if user and user.admin > 0:
             log(3, 'Creating sessions table')
-            box = WOStringIO('''<table class="box">
+            box = WOStringIO('''<table class="box" width="100%">
             <tr><th colspan="4">|strsessions|</th></tr>
             <tr>
             <th class="collabel">|strusername|</th>
@@ -1109,7 +1116,7 @@ class TableFactory:
 
     def languages(self, uri):
         log(3, 'Creating languages table')
-        box = WOStringIO('''<table class="navbox">
+        box = WOStringIO('''<table class="navbox" width="210">
         <tr><th>|strlanguages|</th></tr>
         <tr><td>
         ''')
@@ -1121,7 +1128,7 @@ class TableFactory:
                     add_data = '/' + uri.data
                 else:
                     add_data = ''
-                box.write('<a href="/%s%s.%s">%s</a><br>\n'
+                box.write('<a href="/%s%s.%s.html">%s</a><br>\n'
                           % (uri.filename,
                              add_data,
                              language.code.lower(),
@@ -1132,7 +1139,7 @@ class TableFactory:
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
         box = '''<form name="mailpass" action="/data/save/mailpass">
-        <table class="box">
+        <table class="box" width="100%">
         <tr><th colspan="2">|strmail_passwd|</th></tr>
         <tr>
         <td><input type="text" name="email"></td>

@@ -4,7 +4,6 @@ insert(default,
 	<html>
 	  <head>
 	    <title>|title|</title>
-<!--	    <base href="|base|">    -->
 	    <link rel="stylesheet" href="/css/|stylesheet|.css" type="text/css">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
@@ -24,7 +23,7 @@ insert(default,
               <p>|navtypes|
               <p>|navlanguages|
             </td>
-            <td class="body" valign="top">
+            <td class="body" width="100%" valign="top">
               |body|
             </td>
 	      </tr>
@@ -46,7 +45,6 @@ insert(index,
 	<html>
 	  <head>
 	    <title>|title|</title>
-<!--	    <base href="|base|">    -->
 	    <link rel="stylesheet" href="/css/|stylesheet|.css" type="text/css">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
@@ -66,7 +64,7 @@ insert(index,
               <p>|navtypes|
               <p>|navlanguages|
             </td>
-            <td class="body" valign="top">
+            <td class="body" width="100%" valign="top">
               |body|
             </td>
             <td class="sidebarright" valign="top">
