@@ -1,0 +1,690 @@
+<!doctype linuxdoc system>
+<!-- $Id$  -->
+<!-- Last checkout: $Date$  -->
+<!-- Created: 2002-06-08, 10:59:43 Nils.Radtke_@_Think-Future.de  -->
+<!-- Last modified: 2002-10-08, 13:36:23 -> nr                          -->
+<article>
+
+<title>Ethernet Bridge + netfilter Howto
+
+<author><url url="mailto:Nils.Radtke_@_Think-Future.de" name="Nils Radtke">
+
+<date>v0.2, October 2002
+
+<abstract>
+Setting up an ethernet bridge gives us the chance to integrate a surveying and/or 
+regulating instance transparently into an existing network. This setup requires no 
+changes to the logical network topology. It is accomplished by plugging the ethernet 
+bridge in the physical network topology between the network itself and the routing 
+instance (that piece of hardware connected to the Internet).
+</abstract>
+
+<toc>
+
+<p>
+
+This Howto is available in 
+<url url="http://www.think-future.de/DOCUMENTATION/Ethernet-Bridge-netfilter-HOWTO/other_formats/" name="other formats">.
+Preferably downloadable: 
+<url url="http://www.think-future.de/DOCUMENTATION/Ethernet-Bridge-netfilter-HOWTO/Ethernet-Bridge-netfilter-HOWTO.tar.gz" name="documentation tarball">.
+You may find this Howto as part of the 
+<url url="http://www.tldp.org/docs.html#howto" name="Linux Documentation Project">.
+<newline>
+Looking for other languages? See the 
+<url url="http://www.think-future.de/DOCUMENTATION/Ethernet-Bridge-netfilter-HOWTO_de/" name="German version">, then!
+
+History 
+<newline>
+2002-09-19: links about ebtables have been updated in the 
+&quot;Related Topics&quot; Section. Added note about 
+<ref id="HINT_False_positive" name="&quot;false positive&quot; br-nf debugging output">.
+<newline>
+2002-10-08: Added section
+<ref id="TESTING_actual_configuration" name="Actual configuration">
+and hints about routing in
+<ref id="BRIDGE_routing" name="Setting up the routing">,
+<ref id="TESTING_routing" name="Ping it, Jim!">
+, resp.
+<newline>
+
+
+
+<!--  #################### -->
+<!-- ### introduction ### -->
+<sect>Introduction
+<p>
+Ethernet bridges connect two or more distinct ethernet segments transparently.
+<newline>
+An ethernet bridge distributes ethernet frames coming in on one port to other ports 
+associated to the bridge interface. This is accomplished with brain: Whenever the 
+bridge knows on which port the MAC address to which the frame is to be delivered 
+is located it forwards this frame only to this only port instead of polluting all 
+ports together. 
+<newline>
+Ethernet interfaces can be added to an existing bridge interface 
+and become then (logical) ports of the bridge interface.
+<newline>
+Putting a netfilter structure on top of a bridge interface renders the bridge capable 
+of servicing filtering mechanisms. This way, a transparent filtering instance can be 
+created. It even needs no IP address assigned to work.
+Of course, you can assign an IP address to the bridge interface for maintenance 
+purposes ( certainly, with ssh only ;-).
+<newline>
+The advantage of this system is evident. Transparency alleviates the network 
+administrator of the pain of restructuring the network topology. And users may 
+not notice the existence of the bridge but their connection beeing blocked. Also, 
+users are not disturbed while working (think of a company where network connection loss
+pays alot).
+<newline>
+The other common case is a client beeing connected to the global web via a leased 
+router. As the providers seldomly grant administration privileges on their leasing 
+hardware, the client cannot change the interconnecting configuration. 
+But, of course, the client has a network running, and wants to spend at least as 
+possible, he does not want to reconfigure his entire network. And he does not need 
+to if he uses a bridging device.
+<!--Bridging: Legt die Ethernet frames eines Segmentes auf das Interface
+eines anderen Segmentes. FW auf der Ethernet Bridge ermoeglicht die
+Verbindungskontrolle.
+Eine Ethernet Bridge ist fuer die verbundenen Netzwerke nicht sichtbar.
+Sie kann 2 oder mehr Ethernet Segmente verbinden, ohne Eingriff in die
+bestehende Netzwerk-Topologie. Ein weiterer Vorteil eroeffnet sich, wenn
+der Router nach extern nicht der eigenen Administration angehoert und
+somit eine Modifikation der Netzwerk-Topologie ausgeschlossen ist.
+-->
+
+<!-- ### introduction ### -->
+<!--  #################### -->
+
+
+<!--  ############ -->
+<!-- ### make ### -->
+<sect>Required software
+<p>
+This software setup is needed on the ethernet bridge computer. According to our <ref id="TESTING_Testing_grounds" name="Testing grounds">.
+
+<sect1>Featured Linux kernel
+<p>
+
+As of kernel version <em/2.4.18/ there's already support for the Ethernet Bridge 
+capability built-in. No patches needed so far.
+<newline>
+But if we intend to use netfilter capabilities, because we want to run iptables on our new Linux router/fw box, we still need to apply a patch.
+Any patches needed can be found and downloaded on the <ref id="LINK_Bridge-home" name="sourceforge Ethernet Bridge homepage">.
+<tscreen>
+        <verb>
+root@bridge:~> cd /usr/src/
+root@bridge:~> wget -c http://bridge.sourceforge.net/devel/bridge-nf/bridge-nf-0.0.7-against-2.4.18.diff
+root@bridge:~> cd /usr/src/linux/
+root@bridge:~> patch -p1 -i ../bridge-nf/bridge-nf-0.0.7-against-2.4.18.diff
+        </verb>
+</tscreen>
+
+Supposedly we want netfilter support on our bridge interface and we have already 
+patched the vanillal kernel we may now activate some necessary kernel configuration 
+items. On how to build a private kernel image see the 
+<url url="http://www.think-future.de/DOCUMENTATION/CD-Net-Install-HOWTO/CD-Net-Install-HOWTO-4.html#Kernel_Configuration" name="CD-Net-Install-HOWTO, Toolbox">. 
+Oh, yeah, it's still in German only. Hm, I have to fix this some time.. 
+
+Nevertheless, we start by now:
+In 
+<tscreen>
+        <verb>
+        Code maturity level options
+        </verb>
+</tscreen>
+we activate
+<tscreen>
+        <verb>
+        [*] Prompt for development and/or incomplete code/drivers
+        </verb>
+</tscreen>
+and in 
+<tscreen>
+        <verb>
+        Loadable module support
+        </verb>
+</tscreen>
+<tscreen>
+        <verb>
+        [*] Enable loadable module support  
+        [*]   Set version information on all module symbols
+        [*]   Kernel module loader
+        </verb>
+</tscreen>
+Ok, so far so good.
+Now, we go to 
+<tscreen>
+        <verb>
+        Networking options
+        </verb>
+</tscreen>
+and mark
+<tscreen>
+        <verb>
+        [*] Network packet filtering (replaces ipchains)
+        [*]   Network packet filtering debugging
+        </verb>
+</tscreen>
+Furthermore, in 
+<tscreen>
+        <verb>
+          IP: Netfilter Configuration  --->
+        </verb>
+</tscreen>
+we mark any item we need as module.
+Now the long awaited item: activate
+<tscreen>
+        <verb>
+        <M> 802.1d Ethernet Bridging
+        </verb>
+</tscreen>
+as well as
+<tscreen>
+        <verb>
+        [*]   netfilter (firewalling) support
+        </verb>
+</tscreen>
+<descrip>
+        <tag>Note:</tag> 
+        The above entry is available only if we successfully patched our kernel!
+</descrip>
+
+Finally, we just need a successful 
+<tscreen>
+        <verb>
+root@bridge:~> make dep clean bzImage modules modules_install
+        </verb>
+</tscreen>
+cycle and we're done.
+Don't forget to edit <tt>/etc/lilo.conf</tt> and do
+<tscreen>
+        <verb>
+root@bridge:~> lilo -t
+root@bridge:~> lilo
+root@bridge:~> reboot
+        </verb>
+</tscreen>
+, though.
+
+<descrip>
+        <tag>Hint:</tag> 
+        Perhaps we might mark our new kernel as the bridge kernel? We 
+        <tt/vi/ the toplevel Makefile in our kernel sources and edit the head 
+        line called <tt>EXTRAVERSION =</tt>. 
+        We may actually set it to, say <em/bridge/? ;-) 
+        <newline>
+        After the <tt/modules_install/ we find the fresh modules in 
+        <tt>/lib/modules/2.4.18bridge</tt>
+</descrip>
+
+<sect1>Userspace tool: <tt/brctl/
+<p>
+Once our kernel has the capabilities needed to perform Ethernet Bridge and netfilter 
+actions, we prepare the user space tool <tt/brctl/. <tt/brctl/ is the configuration 
+tool we use to <ref id="SETUP_Linux_brctl" name="set up"> anything to suit our needs.
+
+We <ref id="LINK_Bridge-home" name="download the source tarball">, unpack it and 
+change directory into it.
+<tscreen>
+        <verb>
+root@bridge:~> wget -c http://bridge.sourceforge.net/bridge-utils/bridge-utils-0.9.5.tar.gz
+root@bridge:~> tar xvzf bridge-utils-0.9.5.tar.gz
+root@bridge:~> cd bridge-utils-0.9.5
+        </verb>
+</tscreen>
+At this time, read the <tt/README/ and the files in the <tt>doc/</tt> subdirectory. 
+Then do a simple make and copy the resulting <tt>brctl/brctl</tt> executable to 
+<tt>/sbin/</tt>.
+<tscreen>
+        <verb>
+root@bridge:~> make
+root@bridge:~> cp -vi brctl/brctl /sbin/
+        </verb>
+</tscreen>
+This is it. Go for <ref id="SETUP_Linux_brctl" name="Setup"> now.
+
+<!-- ### make ### -->
+<!--  ############ -->
+
+<!--  ############# -->
+<!-- ### Setup ### -->
+<sect>Set Linux up to serve<label id="SETUP_Linux_brctl">
+<p>
+
+<sect1>Setting up the bridge
+<p>
+We need Linux to know about the bridge. First tell it that we want one virtual 
+ethernet bridge interface: (this is to be executed on host <tt/bridge/, of course. 
+See <ref id="TESTING_Testing_grounds" name="Testing grounds">)
+<tscreen>
+        <verb>
+root@bridge:~> brctl addbr br0
+        </verb>
+</tscreen>
+Second, we do not need the STP (Spanning Tree Protocol). I.e. we do only have 
+one single router, so a loop is highly improbable. We may then deactivate this feature. 
+(Results in less polluted networking environment, too):
+<tscreen>
+        <verb>
+root@bridge:~> brctl stp br0 off
+        </verb>
+</tscreen>
+After these preparations, we now do finally some effective commands. We add our two 
+(or even more) physical ethernet interfaces. That means, we attach them to the just 
+born logical (virtual) bridge interface <tt/br0/. 
+<tscreen>
+        <verb>
+root@bridge:~> brctl addif br0 eth0
+root@bridge:~> brctl addif br0 eth1
+        </verb>
+</tscreen>
+Now, our two previously physical ethernet interfaces became a logical bridge port each. 
+Erm, ok, there were and will be the physical devices. They are still there, 
+go have a look ;-) But now they became part of the logical bridge device and 
+therefore need no IP configuration any longer. So release the IPs:
+<tscreen>
+        <verb>
+root@bridge:~> ifconfig eth0 down
+root@bridge:~> ifconfig eth1 down
+root@bridge:~> ifconfig eth0 0.0.0.0 up
+root@bridge:~> ifconfig eth1 0.0.0.0 up
+        </verb>
+</tscreen>
+Great! We now have a box w/o any IP attached. So if you were configuring your future
+fw/router via TP, go for your local console now ;-)) You have a serial console? Happy one :-)
+<newline>
+<descrip>
+        <tag/Optional:/
+        We tell Linux the new (logical) interface and associate one single IP with it:
+<tscreen>
+        <verb>
+root@bridge:~> ifconfig br0 10.0.3.129 up
+        </verb>
+</tscreen>
+</descrip>
+And we're done. 
+<newline>
+Read the <ref id="TESTING_Important_note" name="Important Note">!
+
+<sect1>Setting up the routing
+<p>
+<label id="BRIDGE_routing">
+In case we are configuring a gateway we enable the forwarding in 
+the linux kernel.
+<tscreen>
+        <verb>
+root@bridge:~> echo "1" > /proc/sys/net/ipv4/ip_forward
+        </verb>
+</tscreen>
+Our box already has an IP assigned but no default route. We
+solve this now:
+<tscreen>
+        <verb>
+root@bridge:~> route add default gw 10.0.3.129
+        </verb>
+</tscreen>
+Finally, we should have a working net from, to and through the gateway.
+
+
+<!-- ### Setup ### -->
+<!--  ############# -->
+
+<!--  ############### -->
+<!-- ### Testing ### -->
+<sect>Test your new bridged environment! <label id="TESTING_Testing_grounds">
+<p>
+
+
+
+<sect1>Testing Grounds
+<p>
+We imagine this scenario or similar: 
+<tscreen>
+        <verb>
+                                                          /\
+          Ethernet           Ethernet           ATM    /-/  \
+---------          ---------          ---------     /-/      |
+|  Box  |----------|Bridge |----------|Router |-----| Inter-  \
+---------          ---------          ---------     \  net  ---|
+         ^        ^         ^        ^               \     /
+         |        |         |        |                \---/
+        eth0     eth0      eth1     if0                 ^
+         |        |         |        |                  |
+      10.0.3.2   none/10.0.3.1      195.137.15.7    anything else
+                  \         /
+                   \       /
+   ^                \-br0-/
+   |                                      ^             ^
+   |                   ^                  |             |
+   |                   |                  |             |
+  own                 own              foreign        hostile
+        </verb>
+</tscreen>
+Our administrative power includes only machines marked with <tt/own/, the Router is 
+completely off-limits and so is the Internet, of course.
+<newline>
+That means, if we want to control the flying bits'n'bytes on the ethernet wire we can 
+chose to integrate a common firewall or file in a bridge. 
+<newline>
+Drawback of the standard 
+way is you have to change the default gateway route on every and any single host in 
+your net. And this is really a heavy weighting drawback, nobody wants to change more 
+than 5 default routes on 5 different hosts more than one time. Keep the time in mind, 
+this will consume, also! Not to forget, this is a error-prone way to handle the more 
+about security..
+<newline>
+The other way is clean, less time-consuming, more secure and less error-prone.
+More secure in that we won't have the need to assign any IP address. No IP, no danger. 
+So far the theory, we hope, our stacks are safe. (Although this hope should better not 
+relied on..) The overall advantage is, this bridge-setup is completely transparent, 
+no IP, MAC, .. changes at all. 
+<newline>
+So it's up to you to chose your preferred method. But we will handle just the fancy one here ;-)
+
+
+<sect1>Ping it, Jim!
+<p>
+We will configure the Box' eth0 as usual. The bridge's interfaces 
+are configured as described in <ref id="SETUP_Linux_brctl" name="Setup">.
+<newline>
+<label id="TESTING_routing">
+If we are to use forwarding we might perhaps do this one: ;-)
+<tscreen>
+        <verb>
+root@bridge:~> echo "1" > /proc/sys/net/ipv4/ip_forward
+        </verb>
+</tscreen>
+Optionally, we set up a default route:
+<tscreen>
+        <verb>
+root@bridge:~> route add default gw 10.0.3.129
+        </verb>
+</tscreen>
+Then we set up some iptables rules on host <tt/bridge/:
+<label id="TESTING_iptables_listing">
+<tscreen>
+        <verb>
+root@bridge:~> iptables -P FORWARD DROP
+root@bridge:~> iptables -F FORWARD
+root@bridge:~> iptables -I FORWARD -j ACCEPT
+root@bridge:~> iptables -I FORWARD -j LOG
+root@bridge:~> iptables -I FORWARD -j DROP
+root@bridge:~> iptables -A FORWARD -j DROP
+root@bridge:~> iptables -x -v --line-numbers -L FORWARD
+        </verb>
+</tscreen>
+The last line gives us the following output:
+<tscreen>
+        <verb>
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num      pkts      bytes target   prot opt in     out     source   destination
+1           0        0 DROP       all  --  any    any     anywhere anywhere
+2           0        0 LOG        all  --  any    any     anywhere anywhere      LOG level warning
+3           0        0 ACCEPT     all  --  any    any     anywhere anywhere
+4           0        0 DROP       all  --  any    any     anywhere anywhere
+        </verb>
+</tscreen>
+The <tt/LOG/ target logs every packet via <tt/syslogd/. Beware, this is intended for 
+testing purposes only, remove in production environment. Else you end up either with 
+filled logs and harddisk partitions by you yourself or anyone else does this Denial 
+of Service to you. You've been warned.
+<newline>
+Test this ruleset now. Ping the router interface's IP (195.137.15.7) on host <tt/box/:
+<tscreen>
+        <verb>
+root@box:~> ping -c 3 195.137.15.7
+PING router.provider.net (195.137.15.7) from 10.0.3.2 : 56(84) bytes of data.
+--- router.provider.net ping statistics ---
+3 packets transmitted, 0 received, 100% loss, time 2020ms
+^C
+root@box:~> 
+        </verb>
+</tscreen>
+By default, we <tt/DROP/ everything. No response, no logged packet. This netfilter 
+setup is designed to <tt/DROP/ all packets unless we delete the rule that drops every 
+packet (rule no. 1 above) before the <tt/LOG/ target matches:
+<tscreen>
+        <verb>
+root@bridge:~> iptables -D FORWARD 1
+root@bridge:~> iptables -x -v --line-numbers -L FORWARD
+        </verb>
+</tscreen>
+Now, the rules are:
+<tscreen>
+        <verb>
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num      pkts      bytes target   prot opt in     out     source   destination
+2           0        0 LOG        all  --  any    any     anywhere anywhere      LOG level warning
+3           0        0 ACCEPT     all  --  any    any     anywhere anywhere
+4           0        0 DROP       all  --  any    any     anywhere anywhere
+        </verb>
+</tscreen>
+And any packet may pass through. Test it with a ping on host <tt/box/:
+<tscreen>
+        <verb>
+root@box:~> ping -c 3 195.137.15.7
+PING router.provider.net (195.137.15.7) from 10.0.3.2 : 56(84) bytes of data.
+64 bytes from router.provider.net (195.137.15.7): icmp_seq=1 ttl=255 time=0.103 ms
+64 bytes from router.provider.net (195.137.15.7): icmp_seq=2 ttl=255 time=0.082 ms
+64 bytes from router.provider.net (195.137.15.7): icmp_seq=3 ttl=255 time=0.083 ms
+
+--- router.provider.net ping statistics ---
+3 packets transmitted, 3 received, 0% loss, time 2002ms
+rtt min/avg/max/mdev = 0.082/0.089/0.103/0.012 ms
+root@box:~> 
+        </verb>
+</tscreen>
+Yippeah! The router is alive, up and running. (Well it has been all day long.. ;-)
+
+<descrip>
+        <tag/Important Note:/ <label id="TESTING_Important_note">
+        When we just fired up the bridge interface it takes about roughly 30 seconds 
+        until the bridge is fully operational. This is due the 30-seconds-learning phase
+         of the bridge interface. During this phase, the bridge ports are learning what
+        MAC addresses exist on what port. The bridge author, Lennert, tells us in his
+        TODO file, the 30-seconds-learning phase is subjected to some improvement in a
+        timely manner some time.
+        <newline>
+        During the test phase, no packet will we forwarded. No ping be answered. 
+        Remind this!
+</descrip>
+
+<sect1>Actual configuration
+<p>
+<label id="TESTING_actual_configuration">
+This section is intended to give you, dear reader, some hints about
+how your system should look and feel after having processed this 
+howto successfully.
+
+<sect2>Interface configuration
+<p>
+The output of your <tt/ifconfig/ command might look similar to
+this:
+<tscreen>
+        <verb>
+root@bridge:~> ifconfig
+br0       Link encap:Ethernet  HWaddr 00:04:75:81:D2:1D
+          inet addr:10.0.3.129  Bcast:195.30.198.255  Mask:255.255.255.128
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:826 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:737 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:161180 (157.4 Kb)  TX bytes:66708 (65.1 Kb)
+
+eth0      Link encap:Ethernet  HWaddr 00:04:75:81:ED:B7
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:5729 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:3115 errors:0 dropped:0 overruns:0 carrier:656
+          collisions:0 txqueuelen:100
+          RX bytes:1922290 (1.8 Mb)  TX bytes:298837 (291.8 Kb)
+          Interrupt:11 Base address:0xe400
+
+eth1      Link encap:Ethernet  HWaddr 00:04:75:81:D2:1D
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:1 frame:0
+          TX packets:243 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100
+          RX bytes:342 (342.0 b)  TX bytes:48379 (47.2 Kb)
+          Interrupt:7 Base address:0xe800
+
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:1034 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1034 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:82068 (80.1 Kb)  TX bytes:82068 (80.1 Kb)
+        </verb>
+</tscreen>
+
+<sect2>Routing configuration
+<p>
+The output of your <tt/route/ command might look similar to
+this:
+<tscreen>
+        <verb>
+root@bridge:~> route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+10.0.3.129      0.0.0.0         255.255.255.128 U     0      0        0 br0
+0.0.0.0         10.0.3.129      0.0.0.0         UG    0      0        0 br0
+root@bridge:~>
+        </verb>
+</tscreen>
+
+<sect2>Iptables configuration
+<p>
+Please have a look at the 
+<ref id="TESTING_iptables_listing" name="Ping it, Jim!"> section.
+
+<sect1>Note
+<p>
+<label id="HINT_False_positive">
+Apparently, there must have been a bug in the br-nf code:
+<tscreen>
+        <verb>
+From: Bart De Schuymer <bart.de.schuymer_@_pandora.be>
+Date: Sun, 1 Sep 2002 21:52:46 +0200
+To: Nils Radtke <Nils.Radtke_@_Think-Future.de>
+Subject: Re: Ethernet-Brigde-netfilter-HOWTO
+
+Hello Nils,
+
+[...]
+Also, network packet filtering debugging is generally a bad idea with the
+br-nf patch. It can gives a lot of false warnings (about bugs) in the logs.
+[...]
+        </verb>
+</tscreen>
+
+Personally, I never had false positives in my log. Maybe, that bug has been 
+fixed. This mailed to Bart, he wrote:
+<tscreen>
+        <verb>
+From: Bart De Schuymer <bart.de.schuymer_@_pandora.be>
+Date: Mon, 2 Sep 2002 18:30:25 +0200
+To: Nils Radtke <Nils.Radtke_@_Think-Future.de>
+Subject: Re: Ethernet-Brigde-netfilter-HOWTO
+
+On Monday 02 September 2002 00:39, Nils Radtke wrote:
+> Will the revision of the nf-debug code in br-nf be subject of improvement?
+
+I must admit I haven't been running any kernel with netfilter debugging
+lately. It sure used to give false positives a few months ago (the bridge
+mailing list has posts about that), I've been lacking time to see why and if
+it is still the case. It's on my todo list.
+[...]
+        </verb>
+</tscreen>
+But (as of writing this 2002-09-19) I haven't found an official announcement, 
+this particular bug has been closed. So have a constant look at this topic on 
+the 
+<ref id="LINK_Mailinglist" name="ethernet bridge mailinglist">
+, if you are interested in it's cure.
+
+
+<!-- ### Testing ### -->
+<!--  ############### -->
+
+
+<!--  ############# -->
+<!-- ### links ### -->
+<sect>Links
+<p>
+The Howto's author may be contacted via <url url="mailto:Ethernet-Bridge-netfilter-Howto_@_Think-Future.de" name="e-mail">.
+<newline>
+<url url="http://www.Think-Future.de/" name="Howto Author's homepage">.
+
+<sect1>Ethernet-Bridge
+<p>
+<itemize>
+        <item>
+        <label id="LINK_Mailinglist">
+        <tt><url url="http://www.math.leidenuniv.nl/pipermail/bridge/" name="Ethernet Bridge Mailinglist"></tt>
+        </item>
+
+        <item>
+        <label id="LINK_Bridge-home">
+        User space utilities, patches, etc.: 
+        <tt><url url="http://bridge.sourceforge.net" name="Home of Linux kernel Ethernet Bridge"></tt>
+        </item>
+
+        <item>
+        <label id="LINK_Bridge-stp-howto">
+        <tt><url url="http://www.tldp.org/HOWTO/BRIDGE-STP-HOWTO/index.html" name="Bridge-STP-HOWTO"></tt>
+        </item>
+
+        <item>
+        <label id="LINK_Enterprise_fw">
+        <tt><url url="./additional_docs/Firewalling_for_Free.pdf" name="Firewalling for Free, Shawn Grimes"></tt>
+        </item>
+
+</itemize>
+
+
+<sect1>Related Topics
+<p>
+<itemize>
+        <item>
+        Filtering on frame level, Ethernet-Bridging-Tables:
+        <newline>
+        <tt><url url="http://sourceforge.net/projects/ebtables" name="ebtables, sourceforge"></tt>
+        <newline>
+        <tt><url url="http://users.pandora.be/bart.de.schuymer/ebtables/" name="ebtables, homepage at pandora.be"></tt>
+        <newline>
+        <tt><url url="http://users.pandora.be/bart.de.schuymer/ebtables/properties.html" name="ebtables, supported features"></tt>
+        <newline>
+        <tt>ebtables, examples: <url url="http://users.pandora.be/bart.de.schuymer/ebtables/examples.html" name="basic">, <url url="http://users.pandora.be/bart.de.schuymer/ebtables/battlefield_examples.html" name="advanced"></tt>
+        <newline>
+        <tt><url url="http://users.pandora.be/bart.de.schuymer/ebtables/br_fw_ia/br_fw_ia.html" name="ebtables, in-depth documentation"></tt>
+        <newline>
+        <tt><url url="http://users.pandora.be/bart.de.schuymer/ebtables/ebtables-hacking/ebtables-hacking-HOWTO.html" name="ebtables, Hacking HOWTO"></tt>
+        </item>
+
+        <item>
+        IP mode, Linux Bridge extension: 
+        <tt><url url="http://www.linuxvirtualserver.org/~julian/#bridging" name="IP mode, LVS"></tt>
+        </item>
+
+        <item>
+        Linux in High-Availability environments: 
+        <tt><url url="http://www.linux-ha.org/" name="High-Availability Linux"></tt>
+        </item>
+
+        <item>
+        Linux Virtual Server: 
+        <tt><url url="http://www.linuxvirtualserver.org/" name="LVS"></tt>
+        </item>
+
+</itemize>
+
+<!-- ### links ### -->
+<!--  ############# -->
+
+
+<!-- ### inf.misc_make ### -->
+<!--  ###################### -->
+
+</article>
+<!-- EOF -->
+<!-- vim: set tw=200 et sw=8 : -->
