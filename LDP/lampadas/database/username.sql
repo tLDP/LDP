@@ -11,6 +11,7 @@ CREATE TABLE username (
 	admin		BOOLEAN,
 	password	CHAR(12),
 	notes		TEXT,
+	stylesheet	CHAR(12),
 
 	PRIMARY KEY (user_id)
 );

@@ -12,6 +12,7 @@ $email		= $L->Param('email');
 $admin		= $L->Param('admin');
 $password	= $L->Param('password');
 $notes		= $L->Param('notes');
+$stylesheet	= $L->Param('stylesheet');
 
-$L->SaveUser($user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes);
+$L->SaveUser($user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes, $stylesheet);
 $L->Redirect("user_edit.pl?user_id=$user_id");

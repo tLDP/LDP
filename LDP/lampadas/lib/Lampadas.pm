@@ -8,6 +8,7 @@ package Lampadas;
 
 use Lampadas::Database;
 use HTML::Entities;
+use HTTP::SimpleLinkChecker;
 
 use CGI qw(:standard);
 use Exporter;
@@ -60,7 +61,9 @@ use Exporter;
 	SaveSubtopic,
 	Formats,
 	DTDs,
+	Stylesheets,
 	Errors,
+	AddError,
 
 	DocCount,
 	DocCountByClass,
@@ -82,6 +85,7 @@ use Exporter;
 	SubtopicCombo,
 	FormatCombo,
 	DTDCombo,
+	CSSCombo,
 
 	UsersTable,
 	UserTable,
@@ -97,6 +101,7 @@ use Exporter;
 	DocTopicsTable,
 	DocRatingTable,
 	DocNotesTable,
+	ErrorsTable,
 	TopicsTable,
 	TopicTable,
 	SubtopicsTable,
@@ -235,7 +240,7 @@ sub User {
 	my $self = shift;
 	my $user_id = shift;
 	my %user = ();
-	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, notes FROM username WHERE user_id=$user_id";
+	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, notes, stylesheet FROM username WHERE user_id=$user_id";
 	my @row = $DB->Row("$sql");
 	$user{id}		= $user_id;
 	$user{username}		= &trim($row[0]);
@@ -246,6 +251,7 @@ sub User {
 	$user{email}		= &trim($row[4]);
 	$user{admin}		= &yn2bool($row[5]);
 	$user{notes}		= &trim($row[6]);
+	$user{stylesheet}	= &trim($row[7]);
 
 	return %user;
 }
@@ -409,20 +415,77 @@ sub Lintadas {
 sub LintadasDoc {
 	my ($self, $doc_id) = @_;
 	my $cvsroot = Config($foo, 'cvs_root');
-	my %docfiles = DocFiles($foo, $doc_id);
+
 	$DB->Exec("DELETE from document_error WHERE doc_id=$doc_id");
 
-	# Test that all files exist and are writable
+	# Test document ref_url (canonical, home url)
+	# 
+	my $doc = Doc($foo, $doc_id);
+	if ($doc{ref_url}) {
+		my $code = HTTP::SimpleLinkChecker::check_link($doc{ref_url});
+		unless ($code eq '200') {
+			AddError($doc_id, "Home URL returns code $code");
+		}
+	}
+	
+	# Load meta-data from source files
 	#
+	$DB->Exec("UPDATE document SET format=NULL WHERE doc_id=$doc_id");
+	$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
+	$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
+	my %docfiles = DocFiles($foo, $doc_id);
 	foreach $key (keys %docfiles) {
+		$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
 		$filename = $cvsroot . $key;
 		if (-e $filename) {
 			if (-r $filename) {
+				my $format = `file -b $filename`;
+				if ($format =~ /SGML/) {
+					$format = 'SGML';
+					$readmetadata = 1;
+				} elsif ($format =~ /XML/) {
+					$format = 'XML';
+					$readmetadata = 1;
+				} elsif ($format =~ /ISO\-8859\ English\ text/is) {
+					$format = 'WIKI';
+					$readmetadata = 0;
+					$dtd = 'N/A';
+					$dtd_version = '';
+				} else {
+					AddError($doc_id, "Unrecognized file format $format ($key)");
+					next;
+				}
+
+				if ($readmetadata) {
+					$dtd_version = `grep -i DOCTYPE $filename`;
+					if ($dtd_version =~ /DocBook/i) {
+						$dtd = "DocBook";
+						$dtd_version =~ s/^.*?DocBook\s+//i;
+						$dtd_version =~ s/\/\/.*//;
+						$dtd_version =~ s/^XML\s*//;
+						$dtd_version =~ s/^V//i;
+					} elsif ($dtd_version =~ /LinuxDoc/i) {
+						$dtd = "LinuxDoc";
+						$dtd_version='';
+					} else {
+						$dtd = '';
+						$dtd_version = '';
+					}
+				}
+				$DB->Exec("UPDATE document_file SET format=" . wsq($format) . " WHERE doc_id=$doc_id AND filename=" . wsq($key));
+				$DB->Exec("UPDATE document SET format=" . wsq($format) . " WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd=" . wsq($dtd) . " WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd_version=" . wsq($dtd_version) . " WHERE doc_id=$doc_id");
+				
 				unless (-w $filename) {
 					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
 				}
 			} else {
 				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
+				$DB->Exec("UPDATE document_file SET format='' WHERE doc_id=$doc_id AND filename=" . wsq($key));
+				$DB->Exec("UPDATE document SET format='' WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd='' WHERE doc_id=$doc_id");
+				$DB->Exec("UPDATE document SET dtd_version='' WHERE doc_id=$doc_id");
 			}
 		} else {
 			$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
@@ -433,11 +496,13 @@ sub LintadasDoc {
 sub DocFiles {
 	my ($self, $doc_id) = @_;
 	my %docfiles = ();
-	my $sql = "SELECT filename FROM document_file WHERE doc_id=$doc_id";
+	my $sql = "SELECT filename, format FROM document_file WHERE doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$filename	= &trim($row[0]);
-		$docfiles{$filename}{filename} = $filename;
+		$format		= &trim($row[1]);
+		$docfiles{$filename}{filename}	= $filename;
+		$docfiles{$filename}{format}	= $format;
 	}
 	return %docfiles;
 }
@@ -733,6 +798,18 @@ sub DTDs {
 	return %dtds;
 }
 
+sub Stylesheets {
+	my %stylesheets = ();
+#	my @filenames = `cd css; ls *.css`;
+	my @filenames = `cd ../css; ls *.css`;
+	foreach $filename (@filenames) {
+		$stylesheet = $filename;
+		chomp $stylesheet;
+		$stylesheets{$stylesheet}{stylesheet}	= $stylesheet;
+	}
+	return %stylesheets;
+}
+
 sub Errors {
 	my %errors = ();
 	my $sql = "SELECT doc_id, error FROM document_error";
@@ -746,6 +823,11 @@ sub Errors {
 		$errors{$count}{error}	= $error;
 	}
 	return %errors;
+}
+
+sub AddError {
+	my ($doc_id, $error) = @_;
+	$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, " . wsq($error) . " )");
 }
 
 sub DocCount {
@@ -780,9 +862,13 @@ sub StartPage {
 		print $CGI->header(-expires=>'now');
 	}
 
+	my %user = CurrentUser();
+	my $stylesheet = $user{stylesheet};
+	$stylesheet = 'default' unless ($stylesheet);
 	print "<html><head>\n";
 	print "<title>Lampadas || $title</title>\n";
-	print "<link rel='stylesheet' href='css/default.css' type='text/css'>\n";
+#	print "<link rel='stylesheet' href='css/default.css' type='text/css'>\n";
+	print "<link rel='stylesheet' href='css/$stylesheet.css' type='text/css'>\n";
 	print "</head>\n";
 	print "<body><a name='top'>\n";
 
@@ -960,6 +1046,7 @@ sub FormatCombo {
 	my $selected = shift;
 	my %formats = Formats();
 	my $formatcombo = "<select name='format'>\n";
+	$formatcombo .= "<option></option>\n";
 	foreach $format (sort keys %formats) {
 		if ($selected eq $format) {
 			$formatcombo .= "<option selected>$format</option>\n";
@@ -971,11 +1058,28 @@ sub FormatCombo {
 	return $formatcombo;
 }
 
+sub StylesheetCombo {
+	my ($self, $selected) = @_;
+	my %stylesheets = Stylesheets();
+	my $stylesheetcombo = "<select name='stylesheet'>\n";
+	foreach $stylesheet (sort keys %stylesheets) {
+		$stylesheet =~ s/\.css//;
+		if ($selected eq $stylesheet) {
+			$stylesheetcombo .= "<option selected>$stylesheet</option>\n";
+		} else {
+			$stylesheetcombo .= "<option>$stylesheet</option>\n";
+		}
+	}
+	$stylesheetcombo .= "</select>\n";
+	return $stylesheetcombo;
+}
+
 sub DTDCombo {
 	my $self = shift;
 	my $selected = shift;
 	my %dtds = DTDs();
 	my $dtdcombo = "<select name='dtd'>\n";
+	$dtdcombo .= "<option></option>\n";
 	foreach $dtd (sort keys %dtds) {
 		if ($selected eq $dtd) {
 			$dtdcombo .= "<option selected>$dtd</option>\n";
@@ -1013,12 +1117,16 @@ sub UserTable {
 	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
 	$table .= "<tr><th colspan=2>User Details</th><th>Comments</th></tr>\n";
 	$table .= "<tr><th>Username</th><td><input type=text name='username' size=20 value='$user{username}'></input></td>\n";
-	$table .= "<td rowspan=5 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
+	$table .= "<td valign=top rowspan=12 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
 	$table .= "</tr>\n";
 	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=20 value='$user{first_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=20 value='$user{middle_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=20 value='" . html($user{surname}) . "'></input></td></tr>\n";
 	$table .= "<tr><th>Email</th><td><input type=text name='email' size=20 value='$user{email}'></input></td></tr>\n";
+	$table .= "<tr><th>Stylesheet</th><td>";
+	$table .= StylesheetCombo($foo, $user{stylesheet});
+	$table .= "</td></tr>\n";
+	$table .= "<tr><th>New Password</th><td><input type=password name='password' size=12></input></td></tr>";
 	if (&Admin()) {
 		$table .= "<tr><th>Admin</th><td><select name='admin'>\n";
 		if ($user{admin}) {
@@ -1030,7 +1138,6 @@ sub UserTable {
 		}
 		$table .= "</select></td></tr>\n";
 	}
-	$table .= "<tr><th>New Password</th><td><input type=password name='password' size=12></input></td></tr>";
 	$table .= "<tr><td></td><td><input type=submit value=Save></td></tr>";
 	$table .= "</form>";
 	$table .= "</table>";
@@ -1484,8 +1591,8 @@ sub DocTable {
 	$doctable .= "</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>";
-	if ($ref_url) {
-		$doctable .= "<a href='$ref_url'>Home URL</a>";
+	if ($doc{ref_url}) {
+		$doctable .= "<a href='$doc{ref_url}'>Home URL</a>";
 	} else {
 		$doctable .= "Home URL";
 	}
@@ -1520,13 +1627,25 @@ sub DocTable {
 	$doctable .= "<th align=right>Version</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Format</th><td>";
-	$doctable .= FormatCombo($foo, $doc{format});
+	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
+		$doctable .= $doc{format};
+	} else {
+		$doctable .= FormatCombo($foo, $doc{format});
+	}
 	$doctable .= "</td>";
 	$doctable .= "<th align=right>DTD</th><td>";
-	$doctable .= DTDCombo($foo, $doc{dtd});
+	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
+		$doctable .= $doc{dtd};
+	} else {
+		$doctable .= DTDCombo($foo, $doc{dtd});
+	}
 	$doctable .= "</td>";
 	$doctable .= "<th align=right>DTD Version</th><td>";
-	$doctable .= "<input type=text name=dtd_version size=10 value='$doc{dtd_version}'>";
+	if (($doc{format} eq 'XML') or ($doc{format} eq 'SGML')) {
+		$doctable .= $doc{dtd_version};
+	} else {
+		$doctable .= "<input type=text name=dtd_version size=10 value='$doc{dtd_version}'>";
+	}
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$doc{tickle_date}'></td>";
@@ -1847,7 +1966,7 @@ sub DocFilesTable {
 	my %docfiles = DocFiles($foo, $doc_id);
 	my $table = '';
 	$table .= "<table class='box'>\n";
-	$table .= "<tr><th colspan=4>Document Files</th></tr>\n";
+	$table .= "<tr><th colspan=5>Document Files</th></tr>\n";
 	foreach $filename (sort keys %docfiles) {
 		$table .= "<tr>\n";
 		$table .= "<td>\n";
@@ -1859,6 +1978,7 @@ sub DocFilesTable {
 		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
 		$table .= "<input type=text name='filename' size=40 style='width:100%' value='$filename'></input>\n";
 		$table .= "</td>\n";
+		$table .= "<td>$docfiles{$filename}{format}</td>\n";
 		$table .= "<td valign=top><input type=checkbox name='chkDel'>Del</td>\n";
 		$table .= "<td><input type=submit value=Save></td>\n";
 		$table .= "</form></td></tr>\n";
@@ -1870,6 +1990,7 @@ sub DocFilesTable {
 	$table .= "<input type=hidden name=doc_id value=$doc_id>";
 	$table .= "<input type=text name='filename' size=40 style='width:100%'></input>\n";
 	$table .= "</td>\n";
+	$table .= "<td></td>\n";
 	$table .= "<td></td>\n";
 	$table .= "<td><input type=submit value=Add></td>\n";
 	$table .= "</tr>\n";
@@ -2038,6 +2159,24 @@ sub DocNotesTable {
 	$table .= "</tr>";
 	$table .= "</table>\n";
 	$table .= "</form>";
+	return $table;
+}
+
+sub ErrorsTable {
+	my ($self) = @_;
+	my %errors = Errors();
+	my %docs = Docs();
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th>Document</th><th>Error</th></tr>\n";
+	foreach $key (sort { $docs{$errors{$a}{doc_id}}{title} cmp $docs{$errors{$b}{doc_id}}{title} } keys %errors) {
+		$doc_id = $errors{$key}{doc_id};
+		$table .= "<tr>";
+		$table .= "<td><a href='document_edit.pl?doc_id=$doc_id'>$docs{$doc_id}{title}</a></td>\n";
+		$table .= "<td>$errors{$key}{error}</td>\n";
+		$table .= "</tr>\n";
+	}
+	$table .= "</table>\n";
 	return $table;
 }
 
@@ -2279,6 +2418,7 @@ sub AdminBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Admin Tools</th></tr>\n";
 	print "<tr><td><a href='lintadas.pl'>Run Lintadas on All Docs</a></td></tr>\n";
+	print "<tr><td><a href='error_list.pl'>View All Errors</a></td></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
@@ -2392,9 +2532,9 @@ sub AddUser {
 }
 
 sub SaveUser {
-	my ($self, $user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes) = @_;
+	my ($self, $user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes, $stylesheet) = @_;
 	$admin = 'f' unless ($admin eq 't');
-	$DB->Exec("UPDATE username SET username=" . wsq($username) . ", first_name=" . wsq($first_name) . ", middle_name=" . wsq($middle_name) . ", surname=" . wsq($surname) . ", email=" . wsq($email) . ", admin=" . wsq($admin) . ", notes=" . wsq($notes) . " WHERE user_id=$user_id");
+	$DB->Exec("UPDATE username SET username=" . wsq($username) . ", first_name=" . wsq($first_name) . ", middle_name=" . wsq($middle_name) . ", surname=" . wsq($surname) . ", email=" . wsq($email) . ", admin=" . wsq($admin) . ", notes=" . wsq($notes) . ", stylesheet=" . wsq($stylesheet) .  " WHERE user_id=$user_id");
 	if ($password) {
 		$DB->Exec("UPDATE username SET password=" . wsq($password) . " WHERE user_id=$user_id");
 	}

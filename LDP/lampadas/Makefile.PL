@@ -21,6 +21,7 @@ WriteMakefile(
     PREREQ_PM     => { 
                        'Mail::Sendmail'	=> 0,
 		       'String::Random'	=> 0,
+		       'HTTP::SimpleLinkChecker' => 0,
 		       'CGI'		=> 0,
 		       'Pg'		=> 0,
 		       'FileHandle'	=> 0,

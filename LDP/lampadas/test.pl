@@ -8,7 +8,7 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
-Language();
+#Language();
 #Topic(1);
 #UserDocs(11);
 #Doc(473);
@@ -31,7 +31,7 @@ Language();
 #AddUser();
 #NavBar();
 #RoleCombo();
-ClassCombo();
+#ClassCombo();
 #PubStatusCombo();
 #ReviewStatusCombo();
 #TechReviewStatusCombo();
@@ -59,6 +59,9 @@ ClassCombo();
 #Lintadas();
 #DocErrorsTable(1);
 #Errors();
+#ErrorsTable();
+Stylesheets();
+StylesheetCombo();
 
 print "All tests run.\n\n";
 
@@ -445,4 +448,23 @@ sub Errors {
 		print "doc_id: $errors{$key}{doc_id}, error: $errors{$key}{error}\n";
 	}
 	print "\n";
+}
+
+sub ErrorsTable {
+	print "Errors Table:\n";
+	print $L->ErrorsTable();
+	print "\n\n";
+}
+
+sub Stylesheets {
+	print "Stylesheets:\n";
+	my %stylesheets = $L->Stylesheets();
+	foreach $stylesheet (keys %stylesheets) {
+		print "stylesheet: $stylesheet\n";
+	}
+	print "\n";
+}
+
+sub StylesheetCombo {
+	print $L->StylesheetCombo('green') . "\n";
 }

@@ -9,6 +9,7 @@ ALTER TABLE document		ADD CONSTRAINT tech_status_fk	FOREIGN KEY (tech_review_sta
 ALTER TABLE document		ADD CONSTRAINT license_fk	FOREIGN KEY (license)			REFERENCES license(license);
 ALTER TABLE document_error	ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_file	ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
+ALTER TABLE document_file	ADD CONSTRAINT format_fk	FOREIGN KEY (format)			REFERENCES format(format);
 ALTER TABLE document_rev	ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_topic	ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_topic	ADD CONSTRAINT topic_num_fk	FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
