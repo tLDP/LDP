@@ -10,7 +10,7 @@ do
   echo "Your favorite veggie is $vegetable."
   echo "Yuck!"
   echo
-  break  # if no 'break' here, keeps looping forever.
+  break  # What happens if there is no 'break' here?
 done
 
 exit 0

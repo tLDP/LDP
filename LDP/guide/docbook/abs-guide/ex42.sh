@@ -1,12 +1,14 @@
 #!/bin/bash
 
-# Copy (verbose) all files in current directory
-# to directory specified on command line.
+#  Copy (verbose) all files in current directory
+#+ to directory specified on command line.
+
+E_NOARGS=65
 
 if [ -z "$1" ]   # Exit if no argument given.
 then
   echo "Usage: `basename $0` directory-to-copy-to"
-  exit 65
+  exit $E_NOARGS
 fi  
 
 ls . | xargs -i -t cp ./{} $1

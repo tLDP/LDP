@@ -11,27 +11,28 @@
 #  The plot is actually all water, except for the four corners.
 #  (Think of it as a square with an inscribed circle.)
 #
-#  Let us fire solid iron cannonballs from an old-style cannon
+#  Let us fire iron cannonballs from an old-style cannon
 #+ at the square of land.
 #  All the shots impact somewhere on the plot of land,
 #+ either in the lake or on the dry corners.
 #  Since the lake takes up most of the land area,
 #+ most of the shots will SPLASH! into the water.
 #  Just a few shots will THUD! into solid ground
-#+ in the far corners of the land.
+#+ in the four corners of the land.
 #
 #  If we take enough random, unaimed shots at the plot of land,
 #+ Then the ratio of SPLASHES to total shots will approximate
 #+ the value of PI/4.
 #
 #  The reason for this is that the cannon is actually shooting
-#+ only at the upper right-hand quadrant of the square.
+#+ only at the upper right-hand quadrant of the square,
+#+ i.e., Quadrant I of the Cartesian coordinate plane.
 #  (The previous explanation was a simplification.)
 #
 #  Theoretically, the more shots taken, the better the fit.
 #  However, a shell script, as opposed to a compiled language
 #+ with floating-point math built in, requires a few compromises.
-#  This tends to make the simulation less accurate, unfortunately.
+#  This tends to lower the accuracy of the simulation, unfortunately.
 
 
 DIMENSION=10000  # Length of each side of the plot of land.
@@ -86,6 +87,7 @@ do
   printf "Yc = %4d  " $yCoord
   printf "Distance = %5d  " $distance         #  Distance from 
                                               #+ center of lake,
+                                              #  the "origin,"
                                               #+ coordinate (0,0).
 
   if [ "$distance" -le "$DIMENSION" ]
@@ -106,7 +108,7 @@ done
 
 echo
 echo "After $shots shots, PI looks like approximately $Pi."
-# Tends to run a bit high... 
+# Tends to run a bit high . . . 
 # Probably due to round-off error and imperfect randomness of $RANDOM.
 echo
 

@@ -8,7 +8,7 @@
 # Thank you, all you good people at LJ.
 
 
-#Input error in dialog box.
+# Input error in dialog box.
 E_INPUT=65
 # Dimensions of display, input widgets.
 HEIGHT=50

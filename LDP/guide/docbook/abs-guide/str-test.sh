@@ -1,6 +1,6 @@
 #!/bin/bash
-# str-test.sh: Testing null strings and unquoted strings,
-# but not strings and sealing wax, not to mention cabbages and kings...
+#  str-test.sh: Testing null strings and unquoted strings,
+#+ but not strings and sealing wax, not to mention cabbages and kings . . .
 
 # Using   if [ ... ]
 
@@ -28,7 +28,7 @@ then
   echo "String \"string1\" is not null."
 else  
   echo "String \"string1\" is null."
-fi      # Quote strings within test brackets!
+fi                    # Quote strings within test brackets!
 
 
 echo
@@ -45,8 +45,8 @@ fi
 # However it is good practice to quote it ("$string1").
 #
 # As Stephane Chazelas points out,
-#    if [ $string 1 ]   has one argument, "]"
-#    if [ "$string 1" ]  has two arguments, the empty "$string1" and "]" 
+#    if [ $string1 ]    has one argument, "]"
+#    if [ "$string1" ]  has two arguments, the empty "$string1" and "]" 
 
 
 
@@ -63,7 +63,7 @@ else
   echo "String \"string1\" is null."
 fi  
 # Again, gives correct result.
-# Still, it is better to quote it ("$string1"), because...
+# Still, it is better to quote it ("$string1"), because . . .
 
 
 string1="a = b"
@@ -77,4 +77,4 @@ fi
 # Not quoting "$string1" now gives wrong result!
 
 exit 0
-# Also, thank you, Florian Wisser, for the "heads-up".
+# Thank you, also, Florian Wisser, for the "heads-up".

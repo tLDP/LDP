@@ -4,12 +4,14 @@
 echo -n "What is your name? "
 read name                      #  Try to backspace
                                #+ to erase characters of input.
-                               #  Won't work.
+                               #  Problems?
 echo "Your name is $name."
 
 stty erase '#'                 #  Set "hashmark" (#) as erase character.
 echo -n "What is your name? "
 read name                      #  Use # to erase last character typed.
 echo "Your name is $name."
+
+# Warning: Even after the script exits, the new key value remains set.
 
 exit 0

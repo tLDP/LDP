@@ -37,9 +37,9 @@ Primes 1
 
 exit 0
 
-# Uncomment lines 17 and 25 to help figure out what is going on.
+#  Uncomment lines 16 and 24 to help figure out what is going on.
 
-# Compare the speed of this algorithm for generating primes
-# with the Sieve of Eratosthenes (ex68.sh).
+#  Compare the speed of this algorithm for generating primes
+#+ with the Sieve of Eratosthenes (ex68.sh).
 
-# Exercise: Rewrite this script without recursion, for faster execution.
+#  Exercise: Rewrite this script without recursion, for faster execution.

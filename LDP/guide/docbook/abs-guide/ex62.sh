@@ -1,25 +1,29 @@
 #!/bin/bash
+# Global and local variables inside a function.
 
 func ()
 {
-  local loc_var=23       # Declared local.
-  echo
+  local loc_var=23       # Declared as local variable.
+  echo                   # Uses the 'local' builtin.
   echo "\"loc_var\" in function = $loc_var"
-  global_var=999         # Not declared local.
+  global_var=999         # Not declared as local.
+                         # Defaults to global. 
   echo "\"global_var\" in function = $global_var"
 }  
 
 func
 
-# Now, see if local 'a' exists outside function.
+# Now, to see if local variable "loc_var" exists outside function.
 
 echo
 echo "\"loc_var\" outside function = $loc_var"
-                                      # "loc_var" outside function = 
-                                      # Nope, $loc_var not visible globally.
+                                      # $loc_var outside function = 
+                                      # No, $loc_var not visible globally.
 echo "\"global_var\" outside function = $global_var"
-                                      # "global_var" outside function = 999
+                                      # $global_var outside function = 999
                                       # $global_var is visible globally.
 echo				      
 
 exit 0
+#  In contrast to C, a Bash variable declared inside a function
+#+ is local *only* if declared as such.

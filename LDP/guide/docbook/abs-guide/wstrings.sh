@@ -3,7 +3,7 @@
 #
 #  This script filters the output of "strings" by checking it
 #+ against a standard word list file.
-#  This effectively eliminates all the gibberish and noise,
+#  This effectively eliminates gibberish and noise,
 #+ and outputs only recognized words.
 
 # =================================================================
@@ -30,7 +30,7 @@ MINSTRLEN=3                           #  Minimum string length.
 WORDFILE=/usr/share/dict/linux.words  #  Dictionary file.
                                       #  May specify a different
                                       #+ word list file
-                                      #+ of format 1 word per line.
+                                      #+ of one-word-per-line format.
 
 
 wlist=`strings "$1" | tr A-Z a-z | tr '[:space:]' Z | \
@@ -64,7 +64,9 @@ do
     continue
   fi
 
-  grep -Fw $word "$WORDFILE"          # Match whole words only.
+  grep -Fw $word "$WORDFILE"          #  Match whole words only.
+#      ^^^                            #  "Fixed strings" and
+                                      #+ "whole words" options. 
 
 done  
 

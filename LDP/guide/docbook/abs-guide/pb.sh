@@ -6,6 +6,7 @@
 
 MINARGS=1     # Script needs at least one argument.
 DATAFILE=./phonebook
+              # A data file named "phonebook" must exist.
 PROGNAME=$0
 E_NOARGS=70   # No arguments error.
 
@@ -17,6 +18,7 @@ fi
 
 if [ $# -eq $MINARGS ]; then
       grep $1 "$DATAFILE"
+      # 'grep' prints an error message if $DATAFILE not present.
 else
       ( shift; "$PROGNAME" $* ) | grep $1
       # Script recursively calls itself.
@@ -44,4 +46,4 @@ $bash pb.sh Roe Sam
 Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
 
 #  When more than one argument passed to script,
-#+ prints *only* the line(s) containing all the arguments.
+#+ it prints *only* the line(s) containing all the arguments.

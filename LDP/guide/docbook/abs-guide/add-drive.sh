@@ -3,7 +3,7 @@
 # Adding a second hard drive to system.
 # Software configuration. Assumes hardware already mounted.
 # From an article by the author of this document.
-# in issue #38 of "Linux Gazette", http://www.linuxgazette.com.
+# In issue #38 of "Linux Gazette", http://www.linuxgazette.com.
 
 ROOT_UID=0     # This script must be run as root.
 E_NOTROOT=67   # Non-root exit error.

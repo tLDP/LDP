@@ -1,4 +1,7 @@
 #!/bin/bash
+# reply.sh
+
+# REPLY is the default value for a 'read' command.
 
 echo
 echo -n "What is your favorite vegetable? "

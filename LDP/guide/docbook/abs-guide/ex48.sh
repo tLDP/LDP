@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copying a directory tree using cpio.
+# Copying a directory tree using 'cpio.'
 
 ARGS=2
 E_BADARGS=65
@@ -15,6 +15,10 @@ source=$1
 destination=$2
 
 find "$source" -depth | cpio -admvp "$destination"
-# Read the man page to decipher these cpio options.
+#               ^^^^^         ^^^^^
+# Read the 'find' and 'cpio' man page to decipher these options.
+
+#  It may be useful to check the exit status ($?) here
+#+ to see if everything worked all right.
 
 exit 0

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Invoke both with and without arguments, and see what happens.
+#  Invoke this script both with and without arguments,
+#+ and see what happens.
 
 for a
 do

@@ -1,4 +1,6 @@
 #!/bin/bash
+# patt-matching.sh
+
 # Pattern matching  using the # ## % %% parameter substitution operators.
 
 var1=abcd12345abc6789
@@ -6,7 +8,8 @@ pattern1=a*c  # * (wild card) matches everything between a - c.
 
 echo
 echo "var1 = $var1"           # abcd12345abc6789
-echo "var1 = ${var1}"         # abcd12345abc6789   (alternate form)
+echo "var1 = ${var1}"         # abcd12345abc6789
+                              # (alternate form)
 echo "Number of characters in ${var1} = ${#var1}"
 echo "pattern1 = $pattern1"   # a*c  (everything between 'a' and 'c')
 echo
@@ -33,7 +36,7 @@ echo '${var1%%pattern2} =' "${var1%%$pattern2}"    #     a
 # Longest possible match, strips out last 12 characters  abcd12345abc6789
 #                                    ^^^^                 |-------------|
 
-# Remember, # and ## work from the left end of string,
+# Remember, # and ## work from the left end (beginning) of string,
 #           % and %% work from the right end.
 
 echo

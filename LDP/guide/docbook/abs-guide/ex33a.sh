@@ -1,16 +1,17 @@
 #!/bin/bash
+# Using getopt.
 
-# Try the following when invoking this script.
-#   sh ex33a -a
-#   sh ex33a -abc
-#   sh ex33a -a -b -c
-#   sh ex33a -d
-#   sh ex33a -dXYZ
-#   sh ex33a -d XYZ
-#   sh ex33a -abcd
-#   sh ex33a -abcdZ
-#   sh ex33a -z
-#   sh ex33a a
+# Try the following when invoking this script:
+#   sh ex33a.sh -a
+#   sh ex33a.sh -abc
+#   sh ex33a.sh -a -b -c
+#   sh ex33a.sh -d
+#   sh ex33a.sh -dXYZ
+#   sh ex33a.sh -d XYZ
+#   sh ex33a.sh -abcd
+#   sh ex33a.sh -abcdZ
+#   sh ex33a.sh -z
+#   sh ex33a.sh a
 # Explain the results of each of the above.
 
 E_OPTERR=65
@@ -38,7 +39,7 @@ do
   shift
 done
 
-#  It is better to use the 'getopts' builtin in a script,
+#  It is usually better to use the 'getopts' builtin in a script,
 #+ rather than 'getopt'.
 #  See "ex33.sh".
 

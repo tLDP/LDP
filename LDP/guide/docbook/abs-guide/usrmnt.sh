@@ -38,7 +38,7 @@ exit 0
 # Additional notes (from the author of this script): 
 # -------------------------------------------------
 
-# 1) Linux allows the users option in the /etc/fstab
+# 1) Linux allows the "users" option in the /etc/fstab
 #    file so that any user can mount removable media.
 #    But, on a server, I like to allow only a few
 #    individuals access to removable media.  I find
@@ -53,4 +53,3 @@ exit 0
 #    control over which access can be mounted by using this
 #    same technique in separate mntfloppy, mntcdrom,
 #    and mntsamba scripts.
-

@@ -9,7 +9,7 @@ RANGE=10
 MAXVAL=9
 
 i=$RANDOM
-let "i %= $RANGE"  # Generate a random number between 0 and $MAXVAL.
+let "i %= $RANGE"  # Generate a random number between 0 and $RANGE - 1.
 
 if [ "$i" -lt "$MAXVAL" ]
 then

@@ -2,6 +2,7 @@
 # ex74.sh
 
 # This is a buggy script.
+# Where, oh where is the error?
 
 a=37
 

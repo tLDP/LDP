@@ -2,9 +2,9 @@
 
 # Example "ex72.sh" modified to use encrypted password.
 
-#  Note that this is still somewhat insecure,
+#  Note that this is still rather insecure,
 #+ since the decrypted password is sent in the clear.
-# Use something like "ssh" if this is a concern.
+#  Use something like "ssh" if this is a concern.
 
 E_BADARGS=65
 

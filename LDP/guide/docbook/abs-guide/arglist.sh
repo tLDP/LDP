@@ -12,7 +12,7 @@ fi
 
 echo
 
-index=1
+index=1          # Initialize count.
 
 echo "Listing args with \"\$*\":"
 for arg in "$*"  # Doesn't work properly if "$*" isn't quoted.
@@ -24,7 +24,8 @@ echo "Entire arg list seen as single word."
 
 echo
 
-index=1
+index=1          # Reset count.
+                 # What happens if you forget to do this?
 
 echo "Listing args with \"\$@\":"
 for arg in "$@"
@@ -35,6 +36,8 @@ done             # $@ sees arguments as separate words.
 echo "Arg list seen as separate words."
 
 echo
+
+index=1          # Reset count.
 
 echo "Listing args with \$* (unquoted):"
 for arg in $*

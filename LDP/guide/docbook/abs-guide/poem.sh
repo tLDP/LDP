@@ -11,7 +11,7 @@ Line[5]="Or just after."
 # Attribution.
 Attrib[1]=" Wallace Stevens"
 Attrib[2]="\"Thirteen Ways of Looking at a Blackbird\""
-# Above poem is in the Public Domain (copyright expired).
+# This poem is in the Public Domain (copyright expired).
 
 for index in 1 2 3 4 5    # Five lines.
 do

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Hunting variables with a trap.
 
 trap 'echo Variable Listing --- a = $a  b = $b' EXIT
 # EXIT is the name of the signal generated upon exit from a script.

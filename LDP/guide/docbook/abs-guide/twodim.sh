@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simulating a two-dimensional array.
+# twodim.sh: Simulating a two-dimensional array.
 
 # A two-dimensional array stores rows sequentially.
 
@@ -7,7 +7,7 @@ Rows=5
 Columns=5
 
 declare -a alpha     # char alpha [Rows] [Columns];
-                     # Unnecessary declaration.
+                     # Unnecessary declaration. Why?
 
 load_alpha ()
 {
@@ -16,17 +16,18 @@ local index
 
 
 for i in A B C D E F G H I J K L M N O P Q R S T U V W X Y
-do
+do     # Use different symbols if you like.
   local row=`expr $rc / $Columns`
   local column=`expr $rc % $Rows`
   let "index = $row * $Rows + $column"
-  alpha[$index]=$i   # alpha[$row][$column]
+  alpha[$index]=$i
+# alpha[$row][$column]
   let "rc += 1"
 done  
 
-# Simpler would be
-#   declare -a alpha=( A B C D E F G H I J K L M N O P Q R S T U V W X Y )
-# but this somehow lacks the "flavor" of a two-dimensional array.
+#  Simpler would be
+#+   declare -a alpha=( A B C D E F G H I J K L M N O P Q R S T U V W X Y )
+#+ but this somehow lacks the "flavor" of a two-dimensional array.
 }
 
 print_alpha ()
@@ -63,12 +64,14 @@ filter ()     # Filter out negative array indices.
 {
 
 echo -n "  "  # Provides the tilt.
+              # Explain why.
 
 if [[ "$1" -ge 0 &&  "$1" -lt "$Rows" && "$2" -ge 0 && "$2" -lt "$Columns" ]]
 then
     let "index = $1 * $Rows + $2"
     # Now, print it rotated.
-    echo -n " ${alpha[index]}"  # alpha[$row][$column]
+    echo -n " ${alpha[index]}"
+    #           alpha[$row][$column]
 fi    
 
 }
@@ -76,13 +79,13 @@ fi
 
 
 
-rotate ()  # Rotate the array 45 degrees
-{          # ("balance" it on its lower lefthand corner).
+rotate ()  #  Rotate the array 45 degrees
+{          #+ ("balance" it on its lower lefthand corner).
 local row
 local column
 
-for (( row = Rows; row > -Rows; row-- ))  # Step through the array backwards.
-do
+for (( row = Rows; row > -Rows; row-- ))
+  do       # Step through the array backwards.
 
   for (( column = 0; column < Columns; column++ ))
   do
@@ -103,14 +106,14 @@ do
 
 done 
 
-# Array rotation inspired by examples (pp. 143-146) in
-# "Advanced C Programming on the IBM PC", by Herbert Mayer
-# (see bibliography).
+#  Array rotation inspired by examples (pp. 143-146) in
+#+ "Advanced C Programming on the IBM PC", by Herbert Mayer
+#+ (see bibliography).
 
 }
 
 
-#-----------------------------------------------------#
+#--------------- Now, let the show begin. ------------#
 load_alpha     # Load the array.
 print_alpha    # Print it out.  
 rotate         # Rotate it 45 degrees counterclockwise.

@@ -27,7 +27,7 @@ FD_DEBUG3=5
 log()  # Writes time and date to log file.
 {
 echo "$(date)  $*" &gt;&7     # This *appends* the date to the file.
-                           # See below.
+                              # See below.
 }
 
 
