@@ -59,7 +59,7 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('lampadas', 'FR', '
 '
 <p>Lampadas est un syst&egrave;me de r&eacute;daction, gestion, publication et lecture de documentaion.
 
-<p>Une fois enregistr&eacute; dans Lampadas, vous devenez membre d'une communaut&eacute; incluant auteurs, &eacute;diteurs, experts techniques et lecteurs, qui collaborent et partagent des informations.
+<p>Une fois enregistr&eacute; dans Lampadas, vous devenez membre d''une communaut&eacute; incluant auteurs, &eacute;diteurs, experts techniques et lecteurs, qui collaborent et partagent des informations.
 
 
 <p>See <a href="contribute">Contribuer &agrave; Lampadas</a>.
@@ -129,7 +129,7 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('contribute', 'FR',
 '
 En tant que membre de ce syst&egrave;me, vous b&eacute;n&eacute;ficiez du travail de plusieurs centaines d''utilisateurs de Linux, qui ont b&eacute;n&eacute;volement contribu&eacute; &agrave; cr&eacute;er cette &eacute;norme biblioth&egrave;que &eacute;lectronique.
 
-Nous sommes s&ucric;rs que vous souhaiteriez apporter votre pierre &agrave; l''&eacute;difice aussi avons-nous con&ccedil;u Lampadas pour que vous puissiez ais&eacute;ment participer. Voici plusieurs fa&ccedil;ons d'aider, class&eacute;es par ordre de difficult&eacute;:
+Nous sommes s&ucric;rs que vous souhaiteriez apporter votre pierre &agrave; l''&eacute;difice aussi avons-nous con&ccedil;u Lampadas pour que vous puissiez ais&eacute;ment participer. Voici plusieurs fa&ccedil;ons d''aider, class&eacute;es par ordre de difficult&eacute;:
 
 <ul>
 <li>Noter les documents
@@ -159,7 +159,7 @@ Nous sommes s&ucric;rs que vous souhaiteriez apporter votre pierre &agrave; l''&
 
 <li>Ecrire un document
 
-<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n'h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
+<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n''h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 </li>
 
 </ul>
