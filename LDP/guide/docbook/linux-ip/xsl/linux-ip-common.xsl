@@ -8,6 +8,12 @@
 
 <xsl:param name="html.stylesheet" select="'linux-ip.css'"/>
 
+<!-- experimental -->
+
+<xsl:param name="xref.with.number.and.title" select="1"/>
+<xsl:param name="footer.rule" select="1"/>
+<xsl:param name="header.rule" select="1"/>
+
 
 <!--
   Tried chunk.tocs.and.lots, and got a main page with revision history
@@ -18,6 +24,19 @@
   Appears to be used by the LDP stylesheets, on which this is based
 
   <xsl:param name="chunk.first.sections" select="1"/>
+
+  Not much happened with this.  Hmph.
+
+  <xsl:param name="xref.properties" select="'local'"/>
+
+  Attempted, 2003-04-18, looks terrible; hard to navigate.
+
+  <xsl:param name="generate.toc">
+  book      toc
+  part      toc,title
+  appendix  toc,title,example
+  section   toc,title
+  </xsl:param>
 
   -->
 
