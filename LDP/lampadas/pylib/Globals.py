@@ -32,7 +32,7 @@ import htmlentitydefs
 
 # Globals
 
-VERSION = '0.9.5-cvs'
+VERSION = '0.9.6'
 
 YES = 1
 NO  = 0
