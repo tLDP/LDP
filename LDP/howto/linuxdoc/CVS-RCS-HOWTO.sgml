@@ -44,7 +44,7 @@ Revision Control System
 <author>Al Dev (Alavoor Vasudevan) 
        <htmlurl url="mailto:alavoor[AT]yahoo.com"
              name="alavoor[AT]yahoo.com">
-<date>v22.6, 2002-06-22 	<!-- correct date as per linuxdoc ISO 8601 -->
+<date>v22.8, 2003-03-12 	<!-- YYYY-MM-DD correct date as per linuxdoc ISO 8601 -->
 <abstract>
 This document is a "practical guide" to very quickly setup CVS/RCS source code
 control system. This document has custom shell scripts that are wrappers 
@@ -774,6 +774,22 @@ and mirror sites at
 </itemize>
 
 
+<sect1> CVS Online Textbook <label id="textbook">
+<p>
+The following CVS textbook is available online.
+<enum>
+<item> <bf>"CVS Best Practices" </bf>
+Version: 0.5 by Vivek Venugopalan, 
+<htmlurl url="mailto:vivek@magic-cauldron.com"
+name="vivek@magic-cauldron.com">
+at <url url="http://www.tldp.org/REF/CVS-BestPractices/html/index.html">
+<p>
+<item> Open Source Development with CVS by Karl Fogel <url url="http://cvsbook.red-bean.com">
+<p>
+<item> The Official manual for CVS by Cederqvist 
+is at <url url="http://www.cvshome.org/docs/manual/cvs.html">
+</enum>
+
 
 <sect> Graphical Front Ends <label id="frontend">
 <p>
@@ -968,7 +984,7 @@ do not want to give them a chance to run dangerous programs.
 
 
 
-<sect> Multi-User CVS Remote Repository <label id="multiuser">
+<sect> Remote, Multi-User CVS Repository <label id="multiuser">
 <p>
 The Cederqvist manual at 
 <url url="http://cvshome.org/docs/manual/cvs_2.html#SEC30"> 
@@ -1064,6 +1080,126 @@ disk, e.g. PGPDisk holding the $HOME directory on the client. So when an intrude
 takes over your machine s/he needs to know the password for your encrypted disk in
 order to get further into the server. Another advantage of using a encrypted disk is
 that your (checked out) source code can reside on it.
+
+
+<sect1> Securing CVS by pserver Port Forwarding using an SSH Tunnel <label id="sshtunnel">
+<p>
+
+From : <url url="http://www.cycom.co.uk/howto/cvssshtunnel.html">
+
+The Concurrent Versions System, in its "pserver" client/server mode, and secured by "ssh" encrypted tunnels, can allow multiple authors to safely collaborate over the internet. CVS is a source file version control system optimised for wide area networks, concurrent editing, and reuse of 3rd party source libraries. Pserver is a protocol used for communication between CVS clients and servers. SSH is a tool to transparently encrypt TCP/IP network connections.
+MSWindows users can use a posix shell
+
+The tools discussed here are most functional in a unix environment but windows users can obtain similar functions by using a posix shell available from http://www.cygwin.com/. which will include an openssh package in 'latest' and a cvs package in 'contrib'. Other native windows ports of the tools are available but may lack needed features such as SSH2 DSA support.
+Creating the CVS Repository on the repository server machine
+
+If you are a contributing author, you don't need to know how the repository was created. You may skip this section.
+If you are the unix repository administrator, you would create a directory and run
+cvs init
+then adjust the control files in CVSROOT to suit the permitted users (writers, passwd). It is convenient to have all files owned by "cvsuser"
+Starting the repository service
+
+If you are a contributing author, you don't need to know how the repository server is started. You may skip this section. If you are the unix repository administrator, you allow the server to be started by xinetd with security constraints that specify that only clients local to the server machine may connect. To do this, create a configuration file named "/etc/xinetd.d/cvspserver" with contents similar to:
+
+<code>
+service cvspserver
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = cvsuser
+        server          = /usr/bin/cvs
+        server_args     = -f --allow-root=/cycomcvs pserver
+        passenv         =
+        log_on_failure  += USERID
+        only_from               = 127.0.0.1
+        bind                    = 127.0.0.1
+}   
+</code>
+
+
+then restart the xinetd super-service.
+Generating a public/private DSA keypair on the author's client machine
+
+Contributing authors must perform this step only once. The "ssh" tools have various ways of authenticating users. The method chosen here is to use the DSA Digital Signature Algorithm. This is a public/private keypair algorithm which means that the secret private key need never be communicated to anyone and can stay safe on the clients hard disk (protected by a passphrase). The public key can be advertised to anyone with no loss of security. If you do not already have the ssh tools then you should obtain them from http://www.openssh.com/. They must support SSH2 as we use the DSA algorithm not RSA.
+
+A unix client will generate the keypair using:-
+ssh-keygen -d
+This will result in the creation of a file "~/.ssh/id_dsa.pub". You must send this public file to the unix repository administrator. Do not send any other file nor reveal any passphrase.
+Authorizing a client to tunnel to the repository server machine
+
+If you are a contributing author, you don't need to know how authorization is allowed. You may skip this section.
+If you are the unix repository administrator, on receipt of a clients "id_dsa.pub" file, append the single line therein to the "~cvsnobody/.ssh/authorized_keys2" file on the server.
+Creating the secure tunnel between author's client machine and the repository server machine.
+
+CVS keeps a single copy of the master sources called a source repository. Remote authors access the repository using CVS client programs which talk to the repository service using a "pserver" protocol and connect using a registered TCP/IP port (port 2401).
+
+The pserver protocol is insecure because passwords are transmitted unencrypted and there are often some hacked hosts on a network that are sniffing for passwords. The connection to be used for the pserver protocol therefore needs to be encrypted where it passes over any network. The "ssh" suite of programs provides such encrypted connections.
+
+SSH will create a secure tunnel which makes the repository service appear to be local to your client machine. Similarly, your client machine will appear to be local to the repository service. Both client and server are fooled into thinking that they are on the same machine and that no traffic travels over any network.
+
+The single line unix command to achieve this is:-
+/usr/bin/ssh -v -a -e none -N -o 'KeepAlive=yes' -o 'BatchMode=yes' -L 2401:localhost:2401 cvsnobody@j2ee.cycom.co.uk
+The fixed cvsnobody user is just for ssh tunneling purposes; it is not relevant to CVS. The j2ee.cycom.co.uk is the repository server machine name. This command will block. To destroy the tunnel, cntrl-c the command. If the tunnel collapses in use, reestablish it by repeating the command. Use another window to operate the CVS clients.
+Operating CVS clients on the author's client machine
+
+Having established a tunnel, the remote CVS repository service now appears to be local to your client machine (i.e. at localhost). The CVS client programs obtain configuration data from a CVSROOT environment variable which should be set in unix (e.g in your ".bash_profile") using:-
+
+<code>
+CVSROOT=':pserver:jsharp@localhost:/cycomcvs'
+export CVSROOT
+</code>
+
+
+The username "jsharp" and the repository root "/cycomcvs" will have been sent to you by the repository administrator.
+
+The first CVS client command should always be:-
+cvs login
+You will be prompted for a password (again sent to you by the repository administrator).
+
+To create a new cvs working directory and populate it from Honest John Car Rental Demo sources, use :-
+
+<code>
+mkdir mywork
+cd mywork
+cvs co hjvh
+cvs co hjvhear
+cvs co hjvhmodel
+</code>
+
+To freshen an existing working directory with updates from other authors, use:-
+
+<code>
+cd mywork/hjvh
+cvs update
+</code>
+
+To publish the files that you have changed in an existing working directory, use:-
+
+<code>
+cd mywork/hjvh
+cvs commit
+</code>
+
+To publish a newly created file in an existing working directory, use:-
+
+<code>
+cd mywork/hjvh
+cd mywork/hjvh
+cvs add mynewfile.txt
+cvs commit
+</code>
+
+To import a new independent directory tree of sources into the repository, make sure all files in the tree are useful source and then use:-
+
+<code>
+cd projdir
+cvs import projdir projV1_1 proj_V1_1
+cd ..
+mv projdir origprojsources
+cvs co projdir
+</code>
+
 
 
 
