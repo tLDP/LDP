@@ -13,8 +13,9 @@ Gregory Maxwell &lt;greg@linuxpower.cx&gt; &nl;
 Remco van Mook &lt;remco@virtu.nl&gt; &nl;
 Martijn van Oosterhout &lt;kleptog@cupid.suninternet.com&gt; &nl;
 Paul B Schroeder  &lt;paulsch@us.ibm.com&gt; &nl;
+Jasper Spaans &lt;jasper@spaans.ds9a.nl&gt; &nl;
 howto@ds9a.nl
-<date>v0.1.0 $Date$
+<date>v0.3.0 $Date$
 <abstract>
 A very hands-on approach to iproute2, traffic shaping and a bit of netfilter
 </abstract>
@@ -49,7 +50,15 @@ I hope that this HOWTO will become as readable as the ones by Rusty Russell
 of (amongst other things) netfilter fame.
 
 You can always reach us by writing the <url name="HOWTO team"
-url="mailto:HOWTO@ds9a.nl">.
+url="mailto:HOWTO@ds9a.nl">. However, please consider posting to the mailing
+list (see the relevant section) if you have questions which are not directly
+related to this HOWTO.
+
+Before losing your way in this HOWTO, if all you want to do is simple
+traffic shaping, skip everything and head to the 'Other possibilties'
+chapter, and read about CBQ.init.
+
+
 <sect1>Disclaimer &amp; License
 <p>
 This document is distributed in the hope that it will be useful,
@@ -59,7 +68,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 In short, if your STM-64 backbone breaks down and distributes pornography to
 your most esteemed customers - it's never our fault. Sorry.
 
-Copyright (c) 2000 by bert hubert, Gregory Maxwell, Martijn van
+Copyright (c) 2001 by bert hubert, Gregory Maxwell, Martijn van
 Oosterhout, Remco van Mook, Paul B. Schroeder and others.
 
 Please freely copy and distribute (sell or give away) this document in any
@@ -88,15 +97,12 @@ send the authors some samples for 'review purposes' :-)
 <sect1>Prior knowledge
 <p>
 As the title implies, this is the 'Advanced' HOWTO. While by no means rocket
-science, some prior knowledge is assumed. This document is meant as a sequel
-to the <url name="Linux 2.4 Networking HOWTO"
-url="http://www.ds9a.nl/2.4Networking/"> by the same authors. You should
-probably read that first.
+science, some prior knowledge is assumed. 
 
 Here are some orther references which might help learn you more:
 <descrip>
 <tag><url
-url="http://netfilter.kernelnotes.org/unreliable-guides/networking-concepts-HOWTO.html"
+url="http://netfilter.samba.org/unreliable-guides/networking-concepts-HOWTO/index.html"
 name="Rusty Russell's networking-concepts-HOWTO"></tag>
 Very nice introduction, explaining what a network is, and how it is
 connected to other networks
@@ -114,7 +120,7 @@ A small list of things that are possible:
 <p>
 <itemize>
 	<item>Throttle bandwidth for certain computers
-	<item>Throttle bandwidth to certain computers
+	<item>Throttle bandwidth TO certain computers
 	<item>Help you to fairly share your bandwidth
 	<item>Protect your network from DoS attacks
 	<item>Protect the internet from your customers
@@ -182,6 +188,7 @@ tetex to get all formats.
 
 <sect1>Mailing list
 <p>
+<label id="MLIST">
 The authors receive an increasing amount of mail about this HOWTO. Because
 of the clear interest of the community, it has been decided to start a
 mailinglist where people can talk to each other about Advanced Routing and
@@ -203,7 +210,7 @@ Routing and filtering are two distinct things. Filtering is documented very
 well by Rusty's HOWTOs, available here:
 
 <itemize>
-	<item><url url="http://netfilter.kernelnotes.org/unreliable-guides/"
+	<item><url url="http://netfilter.samba.org/unreliable-guides/"
 name="Rusty's Remarkably Unreliable Guides">
 </itemize>
 
@@ -249,10 +256,19 @@ We'll start off with a tiny tour of iproute2 possibilities.
 You should make sure that you have the userland tools installed. This
 package is called 'iproute' on both RedHat and Debian, and may otherwise be
 found at <tt>ftp://ftp.inr.ac.ru/ip-routing/iproute2-2.2.4-now-ss??????.tar.gz"</tt>. 
-Some parts of iproute require you to have certain kernel options enabled.
 
 You can also try <url name="here" url="ftp://ftp.inr.ac.ru/ip-routing/iproute2-current.tar.gz"> 
 for the latest version.
+
+Some parts of iproute require you to have certain kernel options enabled. It
+should also be noted that all releases of RedHat up to and including 6.2
+come without most of the traffic control features in the default kernel. 
+
+FIXME: can anybody confirm that 7.0 does have the necessary stuff compiled
+in?
+
+Also make sure that you have netlink support, should you chose to roll your
+own kernel. Iproute2 needs it.
 
 <sect1>Exploring your current configuration
 <p>
@@ -495,7 +511,7 @@ router. People living here pay me to use the internet. Suppose one of my
 house mates only visits hotmail and wants to pay less. This is fine with me,
 but you'll end up using the low-end cable modem.
 
-The 'fast' cable modem is known as 212.64.94.251 and is an PPP link to
+The 'fast' cable modem is known as 212.64.94.251 and is a PPP link to
 212.64.94.1. The 'slow' cable modem is known by various ip addresses,
 212.64.78.148 in this example and is a link to 195.96.98.253.
 
@@ -644,6 +660,7 @@ from A to B and vice versa. How and why, we do not care.
 On the router of network A, you do the following:
 <tscreen><verb>
 ip tunnel add netb mode gre remote 172.19.20.21 local 172.16.17.18 ttl 255
+ip link set netb up
 ip addr add 10.0.1.1 dev netb
 ip route add 10.0.2.0/24 dev netb
 </verb></tscreen>
@@ -657,17 +674,20 @@ router to have several IP addresses on network C and let you decide which
 one to use for tunneling) and that the TTL field of the packet should be set
 to 255 (ttl 255).
 
-In the second line we gave the newly born interface netb the address
+The second line enables the device.
+
+In the third line we gave the newly born interface netb the address
 10.0.1.1. This is OK for smaller networks, but when you're starting up a
 mining expedition (LOTS of tunnels), you might want to consider using
 another IP range for tunneling interfaces (in this example, you could use
 10.0.3.0).
 
-<p>In the third line we set the route for network B. Note the different notation for the netmask. If you're not familiar with this notation, here's how it works: you write out the netmask in binary form, and you count all the ones. If you don't know how to do that, just remember that 255.0.0.0 is /8, 255.255.0.0 is /16 and 255.255.255.0 is /24. Oh, and 255.255.254.0 is /23, in case you were wondering.
+<p>In the fourth line we set the route for network B. Note the different notation for the netmask. If you're not familiar with this notation, here's how it works: you write out the netmask in binary form, and you count all the ones. If you don't know how to do that, just remember that 255.0.0.0 is /8, 255.255.0.0 is /16 and 255.255.255.0 is /24. Oh, and 255.255.254.0 is /23, in case you were wondering.
 <p>
 But enough about this, let's go on with the router of network B.
 <tscreen><verb>
 ip tunnel add neta mode gre remote 172.16.17.18 local 172.19.20.21 ttl 255
+ip link set neta up
 ip addr add 10.0.2.1 dev neta
 ip route add 10.0.1.0/24 dev neta
 </verb></tscreen>
@@ -716,13 +736,194 @@ GRE tunnels are currently the preferred type of tunneling. It's a standard that'
 <p>
 There are literally dozens of implementations of tunneling outside the kernel. Best known are of course PPP and PPTP, but there are lots more (some proprietary, some secure, some that don't even use IP) and that is really beyond the scope of this HOWTO.
 
+<sect>IPv6 tunneling with Cisco and/or 6bone
+<p>
+By Marco Davids &lt;marco@sara.nl&gt;
+
+NOTE to maintainer:
+
+As far as I am concerned, this IPv6-IPv4 tunneling is not per definition
+GRE tunneling. You could tunnel IPv6 over IPv4 by means of GRE tunnel devices
+(GRE tunnels ANY to IPv4), but the device used here ("sit") only tunnels
+IPv6 over IPv4 and is therefore something different.
+
+<sect1>IPv6 Tunneling
+<p>
+This is another application of the tunneling capabilites of Linux. It is
+populair among the IPv6 early adopters, or pioneers if you like.
+The 'hands-on' example described below is certainly not the only way
+to do IPv6 tunneling. However, it is the method that is often used to tunnel
+between Linux and a Cisco IPv6 capable router and experience learned that
+this is just the thing many people are after. Ten to one this applies to
+you too ;-)
+
+A short bit about IPv6 addresses:
+
+IPv6 addresses are, compared to IPv4 addresses, really big: 128 bits
+against 32 bits. And this provides us just the thing we need: many, many
+IP-addresses: 340,282,266,920,938,463,463,374,607,431,768,211,465 to be
+precise. Apart from this, IPv6 (or IPng, for IP Next Generation) is supposed
+to provide for smaller routing tables on the Internet's backbone routers,
+simpler configuration of equipment, better security at the IP-level and
+better support for QoS.
+
+An example: 2002:836b:9820:0000:0000:0000:836b:9886
+
+Writing down IPv6 addresses can be quite a burden. Therefore, to make
+life easier there are some rules:
+
+<itemize>
+<item>
+Don't use leading zeroes. Same as in IPv4.
+
+<item>Use colons to separate every 16 bits or two bytes.
+
+<item>When you have lots of consecutive zeroes,
+you can write this down as ::. You can only do this once in an
+address and only for quantities of 16 bits, though.
+</itemize>
+
+The address 2002:836b:9820:0000:0000:0000:836b:9886 can be written down
+as 2002:836b:9820::836b:9886, which is somewhat friendlier.
+
+IPv6, is intended to be the succesor of the current IPv4. Because it
+it relatively new technology, there is no worldwide native IPv6 network
+yet. To be able to move forward swiftly, the 6bone was introduced. 
+
+Native IPv6 networks are connected to each other by encapsulating the IPv6
+protocol in IPv4 packets and send them over the existing IPv4 infrastructure
+from one IPv6 site to another. 
+
+That is precisely where the tunnels steps in.
+
+To be able to use IPv6, we should have a kernel that supports it. There
+are many good documents on how to achieve this. But it all comes down to
+a few steps:
+<itemize>
+<item>Get yourself a recent Linux-distribution, with suitable glibc.
+<item>Then get yourself an up-to-date kernel source.
+</itemize>
+If you are all set, than you can go ahead and compile an IPv6-capable
+kernel:
+<itemize>
+<item>Go to /usr/src/linux and type:
+<item>make menuconfig
+<item>Choose "Networking Options"
+<item>Select "The IPv6 protocol", "IPv6: enable EUI-64 token format", "IPv6:
+disable provider based addresses"
+</itemize>
+HINT: Don't go for the 'module' option. Often this won't work well.
+
+In other words, compile IPv6 as 'built-in' in your kernel.
+You can than save your config like usual and go ahead with compiling
+the kernel.
+
+HINT: Before doing so, consider editting the Makefile:
+EXTRAVERSION = -x ; --> ; EXTRAVERSION = -x-IPv6
+
+There is a lot of good documentation about compiling and installing
+a kernel, however this document is about something else. If you run into
+problems at this stage, go and look for documentation about compiling a
+Linux kernel according to your own specifications.
+
+The file /usr/src/linux/README might be a good start.
+After you acomplished all this, and rebooted with your brand new kernel,
+you might want to issue an '/sbin/ifconfig -a' and notice the brand 
+new 'sit0-device'. SIT stands for Simple Internet Transition. You may give
+yourself a compliment; you are now one major step closer to IP, the Next
+Generation ;-)
+
+No on to the next step. You want to connect your host, or maybe even
+your entire LAN to another IPv6 capable network. This might be the "6bone"
+that is setup especially or this particular purpose.
+
+Let's assume that you have the following IPv6 network: 3ffe:604:6:8::/64 and
+you want to connect it to 6bone, or a friend. Please note that the /64
+subnet notation works just like with regular IP adresses.
+
+Your IPv4 address is 145.100.24.181 and the 6bone router has IPv4 address
+145.100.1.5
+<tscreen><verb>
+# ip tunnel add sixbone mode sit remote 145.100.1.5 [local 145.100.24.181 ttl 225]
+# ip link set sixbone up
+# ip addr add 3FFE:604:6:7::2/126 dev sixbone
+# ip route add 3ffe::0/16 dev sixbone
+</verb></tscreen>
+
+Let's discuss this. In the first line, we created a tunnel device called
+sixbone. We gave it mode sit (which is IPv6 in IPv4 tunneling) and told it
+where to go to (remote) and where to come from (local). TTL is set to
+maximum, 255. 
+
+Next, we made the device active (up). After that, we added our own network
+address, and set a route for 3ffe::/15 (which is currently all of 6bone)
+through the tunnel. If the particular machine you run this on is your IPv6
+gateway, then consider adding the following lines:
+
+<tscreen><verb>
+# echo 1 >/proc/sys/net/ipv6/conf/all/forwarding
+# /usr/local/sbin/radvd
+</verb></tscreen>
+The latter, radvd is -like zebra- a router advertisement daemon, to
+support IPv6's autoconfiguration features. Search for it with your favourite
+search-engine if you like.
+You can check things like this:
+
+<tscreen><verb>
+# /sbin/ip -f inet6 addr
+</verb></tscreen>
+
+If you happen to have radvd running on your IPv6 gateway and boot your
+IPv6 capable Linux on a machine on your local LAN, you would be able to
+enjoy the benefits of IPv6 autoconfiguration:
+<tscreen><verb>
+# /sbin/ip -f inet6 addr
+1: lo: &lt;LOOPBACK,UP&gt; mtu 3924 qdisc noqueue inet6 ::1/128 scope host
+
+3: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+inet6 3ffe:604:6:8:5054:4cff:fe01:e3d6/64 scope global dynamic
+valid_lft forever preferred_lft 604646sec inet6 fe80::5054:4cff:fe01:e3d6/10 
+scope link
+</verb></tscreen>
+
+You could go ahead and configure your bind for IPv6 addresses. The A
+type has an equivalent for IPv6: AAAA. The in-addr.arpa's equivalent is:
+ip6.int. There's a lot of information available on this topic.
+
+There is an increasing number of IPv6-aware applications available,
+including secure shell, telnet, inetd, Mozilla the browser, Apache the
+websever and a lot of others. But this is all outside the scope of this
+Routing document ;-)
+
+On the Cisco-site the configuration would be something like this:
+<tscreen><verb>
+!
+interface Tunnel1
+description IPv6 tunnel
+no ip address
+no ip directed-broadcast
+ipv6 enable
+ipv6 address 3FFE:604:6:7::1/126
+tunnel source Serial0
+tunnel destination 145.100.24.181
+tunnel mode ipv6ip
+!
+ipv6 route 3FFE:604:6:8::/64 Tunnel1
+</verb></tscreen>
+But if you don't have a Cisco at your disposal, try one of the many
+IPv6 tunnel brokers available on the Internet. They are willing to configure
+their Cisco with an extra tunnel for you. Mostly by means of a friendly
+web-interface. Search for "ipv6 tunnel broker" on your favourite searchengine.
+
 <sect>IPsec: secure IP over the internet
 <p>
-FIXME: Waiting for our feature editor Stefan to finish his stuf
+FIXME: editor vacancy
+In the meantime, see: <url url="http://www.freeswan.org/" name="The
+FreeS/WAN project">.
 
 <sect>Multicast routing
 <p>
-FIXME: Editor Vacancy! (somebody is working on it, though)
+FIXME: Editor Vacancy! 
 
 <sect>Using Class Based Queueing for bandwidth management
 <p>
@@ -814,7 +1015,7 @@ which is to be shared by our customers, and our corporate needs. We should
 not allow a few people at the office to steal away large amounts of
 bandwidth which we should sell to our customers.
 
-On the other hand, or customers should not be able to drown out the traffic
+On the other hand, our customers should not be able to drown out the traffic
 from our field offices to the customer database.
 
 Previously, one way to solve this was either to use Frame relay/ATM and
@@ -916,14 +1117,14 @@ iproute2, but more interesting applications are possible in combination with
 netfilter.
 
 <tscreen><verb>
-# tc filter add dev eth0 parent 10:0 protocol ip prio 100 u32 match ip dst \
+# tc filter add dev eth0 parent 10:0 protocol ip prio 25 u32 match ip dst \
   150.151.23.24 flowid 10:200
 
-# tc filter add dev eth0 parent 10:0 protocol ip prio 25 u32 match ip dst \
+# tc filter add dev eth0 parent 10:0 protocol ip prio 100 u32 match ip dst \
   150.151.0.0/16 flowid 10:100
 </verb></tscreen>
 
-Here is is assumed that our office hides behind a firewall with IP address
+Here it is assumed that our office hides behind a firewall with IP address
 150.151.23.24 and that all our other IP addresses should be considered to be
 part of the ISP.
 
@@ -951,10 +1152,10 @@ for the upstream. For brevity's sake, all in one go:
 # tc qdisc add dev eth1 parent 20:100 sfq quantum 1514b perturb 15
 # tc qdisc add dev eth1 parent 20:200 sfq quantum 1514b perturb 15
 
-# tc filter add dev eth1 parent 20:0 protocol ip prio 100 u32 match ip src \
+# tc filter add dev eth1 parent 20:0 protocol ip prio 25 u32 match ip src \
   150.151.23.24 flowid 20:200
 
-# tc filter add dev eth1 parent 20:0 protocol ip prio 25 u32 match ip src \
+# tc filter add dev eth1 parent 20:0 protocol ip prio 100 u32 match ip src \
   150.151.0.0/16 flowid 20:100
 </verb></tscreen>
 <sect1>What to do with excess bandwidth
@@ -997,7 +1198,94 @@ FIXME: Finish this example!
 
 <sect1>Loadsharing over multiple interfaces
 <p>
-FIXME: document TEQL
+There are several ways of doing this. One of the easiest and straightforward
+ways is 'TEQL' - "True" (or "trivial") link equalizer. Like most things
+having to do with queueing, loadsharing goes both ways. Both ends of a link
+may need to participate for full effect.
+
+Imagine this situation:
+
+<tscreen><verb>
+                 +-------+   eth1   +-------+
+                 |       |==========|       |
+ 'network 1' ----|   A   |          |   B   |---- 'network 2'
+                 |       |==========|       |
+                 +-------+   eth2   +-------+
+</verb></tscreen>
+
+A and B are routers, and for the moment we'll assume both run Linux. If
+traffic is going from network 1 to network 2, router A needs to distribute
+the packets over both links to B. Router B needs to be configured to accept
+this. Same goes the other way around, when packets go from network 2 to
+network 1, router B needs to send the packets over both eth1 and eth2.
+
+The distributing part is done by a 'TEQL' device, like this (it couldn't be
+easier):
+
+<tscreen><verb>
+# tc qdisc add dev eth1 root teql0
+# tc qdisc add dev eth2 root teql0
+</verb></tscreen>
+
+This needs to be done on both hosts. The device teql0 is basically a
+roundrobbin distributor over eth1 and eth2, for sending packets. No data
+ever comes in over an teql device, that just appears on the 'raw' eth1 and
+eth2.
+
+But now we just have devices, we also need proper routing. One way to do
+this is to assign a /31 network to both links, and a /31 to the teql0 device
+as well:
+
+FIXME: does this need something like 'nobroadcast'? A /31 is too small to
+house a network address and a broadcast address - if this doesn't work as
+planned, try a /30, and adjust the ip adresses accordingly. You might even
+try to make eth1 and eth2 do without an IP address!
+
+On router A:
+<tscreen><verb>
+# ip addr add dev eth1 10.0.0.0/31
+# ip addr add dev eth2 10.0.0.2/31
+# ip addr add dev teql0 10.0.0.4/31
+</verb></tscreen>
+
+On router B:
+<tscreen><verb>
+# ip addr add dev eth1 10.0.0.1/31
+# ip addr add dev eth2 10.0.0.3/31
+# ip addr add dev teql0 10.0.0.5/31
+</verb></tscreen>
+
+Router A should now be able to ping 10.0.0.1, 10.0.0.3 and 10.0.0.5 over the
+2 real links and the 1 equalized device. Router B should be able to ping
+10.0.0.0, 10.0.0.2 and 10.0.0.4 over the links.
+
+If this works, Router A should make 10.0.0.5 its route for reaching network
+2, and Router B should make 10.0.0.4 its route for reaching network 1. For
+the special case where network 1 is your network at home, and network 2 is
+the internet, Router A should make 10.0.0.5 its default gateway.
+
+<sect2>Caveats
+<p>
+Nothing is as easy as it seems. eth1 and eth2 on both router A and B need to
+have return path filtering turned off, because they will otherwise drop
+packets destined for ip addresses other than their own:
+
+<tscreen><verb>
+# echo 0 > /proc/net/ipv4/conf/eth1/rp_filter
+# echo 0 > /proc/net/ipv4/conf/eth2/rp_filter
+</verb></tscreen>
+
+Then there is the nasty problem of packet reordering. Let's say 6 packets
+need to be sent from A to B - eth1 might get 1, 3 and 5. eth2 would then do
+2, 4 and 6. In an ideal world, router B would receive this in order, 1, 2,
+3, 4, 5, 6. But the possibility is very real that the kernel gets it like
+this: 2, 1, 4, 3, 6, 5. The problem is that this confuses TCP/IP. While not
+a problem for links carrying many different TCP/IP sessions, you won't be
+able to to a bundle multiple links and get to ftp a single file lots faster,
+except when your receiving or sending OS is Linux, which is not easily
+shaken by some simple reordering.
+
+However, for lots of applications, link loadbalancing is a great idea.
 
 <sect>More queueing disciplines
 <p>
@@ -1152,6 +1440,273 @@ thus leaving more of the available bandwidth for others.
 
 See the section on protecting your host from SYN floods for an example on
 how this works.
+<sect1>DSMARK
+<p>
+This chapter was written by Esteve Camps &lt;esteve@hades.udg.es&gt;.
+<sect2>Introduction
+<p>
+
+First of all, first of all, it would be a great idea for you to read RFCs
+written about this (RFC2474, RFC2475, RFC2597 and RFC2598) at <url
+url="http://www.ietf.org/html.carters/diffserv-charter.html" name="IETF
+DiffServ working Group web site"> and <url
+url="http://ica1www.epfl.ch/~almesber" name="Werner Almesberger web site">
+(he wrote the code to support Differentiated Services on Linux).
+
+<sect2>What is Dsmark related to?
+<p>
+Dsmark is a queueing discipline that offers the capabilities needed in
+Differentiated Services (also called DiffServ or, simply, DS). DiffServ is
+one of two actual QoS architectures (the other one is called Integrated
+Services) that is based on a value carried by packets in the DS field of the
+IP header.
+
+<p>
+One of the first solutions in IP designed to offer some QoS level was
+the Type of Service field (TOS byte) in IP header. Changing that value
+we could choose a high/low level of throughput, delay or reliability.
+But this didn't provided sufficient flexibility to the needs of new
+services (such as real-time applications, interactive applications and
+others). After this, new architectures appeared. One of these was DiffServ
+which kept TOS bits and renamed DS field.
+<sect2>Differentiated Services guidelines
+<p>
+Differentiated Services is group-oriented. I mean, we don't know nothing
+about flows (this will be the Integrated Services purpose); we know about
+flow aggregations and we will apply different behaviours depending on which
+aggregation a packet belongs to.
+<p>
+
+When a packet arrives to an edge node (entry node to a DiffServ domain)
+entering to a DiffServ Domain we'll have to policy, shape and/or mark those
+packets (marking refers to assign a value to DS field. It's just like the
+cows :-) ). This will be the mark/value that the internal/core nodes on our
+DiffServ Domain will look at to determine which behaviour or QoS level
+apply.
+
+<p>
+As you can deduce, Differentiated Services involves a domain on which
+all DS rules will have to be applied. In fact you can think &dquot;I
+will classify all the packets entering my domain. Once they enter my
+domain they will be subjected to the rules that my classification dictates
+and every traversed node will apply that QoS level&dquot;.
+<p>
+In fact, you can apply your own policies into your local domains, but some
+<em>Service Level Agreements</em> should be considered when connecting to
+other DS domains.
+<p>
+
+At this point, you maybe have a lot of questions. DiffServ is more than I've
+explained. In fact, you can understand that I can not resume more than 3
+RFC's in just 50 lines :-).
+
+<sect2>Working with Dsmark
+<p>
+
+As the DiffServ bibliography specifies, we differentiate boundary nodes and
+interior nodes. These are two important points in the traffic path. Both
+types perform a classification when the packets arrive. Its result may be
+used in different places along the DS process before the packet is released
+to the network. It's just because of this diffserv code supplies an
+structure called sk_buff, including a new field called skb-&gt;tc_index
+where we'll store the result of initial classification that may be used in
+several points in DS treatment.
+
+<p>
+The skb-&gt;tc_index value will be initially set by the DSMARK qdisc,
+retrieving it from the DS field in IP header of every received packet.
+Besides, cls_tcindex classifier will read all or part of skb-&gt;tcindex
+value and use it to select classes.
+
+<p>
+But, first of all, take a look at DSMARK qdisc command and its parameters:
+<tscreen><verb>
+... dsmark indices INDICES [ default_index DEFAULT_INDEX ] [ set_tc_index ]
+</verb></tscreen>
+What do these parameters mean?
+<itemize>
+<item><bf>indices</bf>: size of table of (mask,value) pairs. Maximum value is 2^n, where n&gt=0.
+<item><bf>Default_index</bf>: the default table entry index if classifier finds no match.
+<item><bf>Set_tc_index</bf>: instructs dsmark discipline to retrieve the DS field and store it onto skb-&gt;tc_index.
+</itemize>
+Let's see the DSMARK process.
+
+<sect2>How SCH_DSMARK works.
+<p>
+This qdisc will apply the next steps:
+<itemize>
+<item>If we have declared set_tc_index option in qdisc command, DS field is retrieved and stored onto
+skb-&gt;tc_index variable.
+<item>Classifier is invoked. The classifier will be executed and it will return a class ID that will be stored in
+skb-&gt;tc_index variable.If no filter matches are found, we consider the default_index option to be the
+classId to store. If neither set_tc_index nor default_index has been declared results may be
+impredictibles.
+<item>After been sent to internal qdisc's where you can reuse the result of the filter, the classid returned by
+the internal qdisc is stored into skb-&gt;tc_index. We will use this value in the future to index a mask-
+value table. The final result to assign to the packet will be that resulting from next operation:
+<tscreen><verb>
+New_Ds_field = ( Old_DS_field & mask ) | value
+</verb></tscreen>
+
+<item>Thus, new value will result from "anding" ds_field and mask values and next, this result "ORed" with
+value parameter. See next diagram to understand all this process:
+</itemize>
+<tscreen>
+<verb>
+                         skb-&gt;ihp-&gt;tos
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - &gt;
+     |                                                       |     ^
+     | -- If you declare set_tc_index, we set DS             |     |  &lt;-----May change
+     |    value into skb-&gt;tc_index variable                  |     |O       DS field
+     |                                                      A|     |R
+   +-|-+      +------+    +---+-+    Internal   +-+     +---N|-----|----+
+   | | |      | tc   |---&gt;|   | |--&gt;  . . .  --&gt;| |     |   D|     |    |
+   | | |-----&gt;|index |---&gt;|   | |     Qdisc     | |----&gt;|    v     |    |
+   | | |      |filter|---&gt;| | | +---------------+ |   ----&gt;(mask,value) |
+--&gt;| O |      +------+    +-|-+--------------^----+  /  |  (.  ,  .)    |
+   | | |          ^         |                |       |  |  (.  ,  .)    |
+   | | +----------|---------|----------------|-------|--+  (.  ,  .)    |
+   | | sch_dsmark |         |                |       |                  |
+   +-|------------|---------|----------------|-------|------------------+
+     |            |         | &lt;- tc_index -&gt; |       |
+     |            |(read)   |    may change  |       |  &lt;--------------Index to the
+     |            |         |                |       |                    (mask,value)
+     v            |         v                v       |                    pairs table
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -&gt;
+                         skb-&gt;tc_index
+</verb>
+</tscreen>
+<P>
+How to do marking? Just change the mask and value of the class you want to remark. See next line of code:
+<tscreen>
+tc class change dev eth0 classid 1:1 dsmark mask 0x3 value 0xb8
+</tscreen>
+This changes the (mask,value) pair in hash table, to remark packets belonging to class 1:1.You have to "change" this values
+because of default values that (mask,value) gets initially (see table below).
+<p>
+Now, we'll explain how TC_INDEX filter works and how fits into this. Besides, TCINDEX filter can be
+used in other configurations rather than those including DS services.
+
+
+<sect2>TC_INDEX Filter
+<p>
+This is the basic command to declare a TC_INDEX filter:
+<tscreen>
+<verb>
+... tcindex [ hash SIZE ] [ mask MASK ] [ shift SHIFT ]
+            [ pass_on | fall_through ]
+            [ classid CLASSID ] [ police POLICE_SPEC ]
+</verb>
+</tscreen>
+Next, we show the example used to explain TC_INDEX operation mode. Pay attention to bolded words:
+&nl;&nl;
+tc qdisc add dev eth0 handle 1:0 root dsmark indices 64 <bf>set_tc_index</bf>&nl;
+tc filter add dev eth0 parent 1:0 protocol ip prio 1 tcindex <bf>mask 0xfc  shift 2</bf>&nl;
+tc qdisc add dev eth0 parent 1:0 handle 2:0 cbq bandwidth 10Mbit cell 8 avpkt 1000 mpu 64&nl;
+# EF traffic class&nl;
+tc class add dev eth0 parent 2:0 classid 2:1 cbq bandwidth 10Mbit rate 1500Kbit avpkt 1000 prio 1 bounded isolated allot 1514 weight 1 maxburst 10&nl;
+# Packet fifo qdisc for EF traffic&nl;
+tc qdisc add dev eth0 parent 2:1 pfifo limit 5&nl;
+tc filter add dev eth0 parent 2:0 protocol ip prio 1 <bf>handle 0x2e</bf> tcindex <bf>classid 2:1 pass_on</bf>&nl;
+&nl;&nl;
+(This code is not complete. It's just an extract from EFCBQ example included in iproute2 distribution).
+<p>
+First of all, supose we receive a packet marked as EF .  If you read RFC2598, you'll see that DSCP
+recommended value for EF traffic is 101110. This means that DS field will be 10111000 (remember that
+less signifiant bits in TOS byte are not used in DS) or 0xb8 in hexadecimal codification.
+<p>
+<tscreen>
+<verb>
+              TC INDEX
+              FILTER
+   +---+      +-------+    +---+-+    +------+                +-+    +-------+
+   |   |      |       |    |   | |    |FILTER|  +-+    +-+    | |    |       |
+   |   |-----&gt;| MASK  | -&gt; |   | | -&gt; |HANDLE|-&gt;| |    | | -&gt; | | -&gt; |       |
+   |   |  .   | =0xfc |    |   | |    |0x2E  |  | +----+ |    | |    |       |
+   |   |  .   |       |    |   | |    +------+  +--------+    | |    |       |
+   |   |  .   |       |    |   | |                            | |    |       |
+--&gt;|   |  .   | SHIFT |    |   | |                            | |    |       |--&gt;
+   |   |  .   | =2    |    |   | +----------------------------+ |    |       |
+   |   |      |       |    |   |       CBQ 2:0                  |    |       |
+   |   |      +-------+    +---+--------------------------------+    |       |
+   |   |                                                             |       |
+   |   +-------------------------------------------------------------+       |
+   |                          DSMARK 1:0                                     |
+   +-------------------------------------------------------------------------+
+
+</verb>
+</tscreen>
+<p>
+The packet arrives, then, set with 0xb8 value at DS field. As we explained before, dsmark qdisc identified
+by 1:0 id in the example, retrieves DS field and store it in skb-&gt;tc_index variable.
+Next step in the example will correspond to the filter associated to this qdisc (second line in the example).
+This will perform next operations:
+<tscreen>
+<verb>
+Value1 = skb->tc_index & MASK
+Key = Value1 >> SHIFT
+</verb>
+</tscreen>
+
+<p>
+In the example, MASK=0xFC i SHIFT=2.
+<tscreen>
+<verb>
+Value1 = 10111000 & 11111100 = 10111000
+Key = 10111000 >> 2 = 00101110 -> 0x2E in hexadecimal
+</verb>
+</tscreen>
+
+<p>
+The returned value will correspond to a qdisc interal filter handle (in the example, identifier 2:0). If a
+filter with this id exists, policing and metering conditions will be verified (in case that filter includes this)
+and the classid will be returned (in our example, classid 2:1) and stored in skb-&gt;tc_index variable.
+
+<P>
+But if any filter with that identifier is found, the result will depend on fall_through flag declaration. If so,
+value key is returned as classid. If not, an error is returned and process continues with the rest filters. Be
+careful if you use fall_through flag; this can be done if a simple relation exists between values
+&nl;of skb-&gt;tc_index variable and class id's.
+
+<P>
+The latest parameters to comment are hash and pass_on. The first one relates to hash table size. Pass_on
+will be used to indicate that if no classid equal to the result of this filter is found, try next filter. The
+default action is fall_through (look at next table).
+
+<P>
+Finally, let's see which possible values can be set to all this TCINDEX parameters:
+<tscreen>
+<verb>
+TC Name                 Value           Default
+-----------------------------------------------------------------
+Hash                    1...0x10000     Implementation dependent
+Mask                    0...0xffff      0xffff
+Shift                   0...15          0
+Fall through / Pass_on  Flag            Fall_through
+Classid                 Major:minor     None
+Police                  .....           None
+</verb>
+</tscreen>
+<P>
+This kind of filter is very powerfull. It's necessary to explore all possibilities. Besides, this filter it's not only
+used in DiffServ configurations. You can use it as any other kind of filter.
+<p>
+I recommend you to look at all DiffServ examples included in iproute2 distribution. I promise I will try to
+complement this text as soon as I can. Besides, all I have explained is the result of a lot of tests.
+I would thank you tell me if I'm wrong in any point.
+<sect>Other information
+<p>
+Esteve Camps Chust &lt;marvin@grn.es&gt;&nl;
+This text is an extract from my thesis on "QoS Support in Linux", September 2000.&nl;
+<P>
+Source documents:&nl;
+<itemize>
+<item><url url="http://ica1www.epfl.ch/~almesber" name="Draft-almesberger-wajhak-diffserv-linux-01.txt">.
+<item>Examples in iproute2 distribution.
+<item><url url="http://www.qosforum.com/white-papers/qosprot_v3.pdf" name="White Paper-QoS protocols and architectures"> and
+<url url="http://www.qosforum.com/docs/faq" name="IP QoS Frequently Asked Questions"> both by <em>Quality of Service Forum</em>.
+</itemize>
+
 <sect1>WRR
 <p>
 This qdisc is not included in the standard kernels but can be downloaded from 
@@ -1181,7 +1736,7 @@ relevant behavior for such a site is a central part of the WRR distribution.
 So far we've seen how iproute works, and netfilter was mentioned a few
 times. This would be a good time to browse through <url name="Rusty's Remarkably
 Unreliable Guides"
-url="http://netfilter.kernelnotes.org/unreliable-guides/">. Netfilter itself
+url="http://netfilter.samba.org/unreliable-guides/">. Netfilter itself
 can be found <url name="here"
 url="http://netfilter.filewatcher.org/">.
 
@@ -1232,7 +1787,14 @@ sessions.
 Needless to say, this also works fine on a host that's doing NAT
 ('masquerading').
 
-Note: for this to work, you need to have some options enabled in your
+IMPORTANT: We received a report that MASQ and SNAT at least collide
+with marking packets. Rusty Russell explains it in
+<url
+url="http://lists.samba.org/pipermail/netfilter/2000-November/006089.html" 
+name="this posting">. Turn off the reverse path filter to make it work
+properly.
+
+Note: to mark packets, you need to have some options enabled in your
 kernel:
 
 <tscreen><verb>
@@ -1283,7 +1845,7 @@ Classifiers in general accept a few arguments in common. They are listed here fo
       an already existing class. Required.
 
   <tag>prio</tag>
-      The priority of this classifier. Higher numbers get tested first.
+      The priority of this classifier. Lower numbers get tested first.
 
   <tag>handle</tag>
       This handle means different things to different filters.
@@ -1575,11 +2137,9 @@ police
   Here the filter specifies that packets from the subnetwork 192.168.2.0
   (realm 2) will match class id 1:2.
 
-  
-  
-
 <sect1>The "rsvp" classifier
 <p>FIXME: Fill me in
+
 
 <sect1>The "tcindex" classifier
 <p>FIXME: Fill me in
@@ -1645,7 +2205,7 @@ FIXME: is setting the conf/{default,all}/* files enough? - martijn
 Ok, there are a lot of parameters which can be modified. We try to list them
 all. Also documented (partly) in <file>Documentation/ip-sysctl.txt</file>.
 
-Some of these settings have different defaults based on wether you 
+Some of these settings have different defaults based on whether you 
 answered 'Yes' to 'Configure as router and not host' while compiling your
 kernel.
 
@@ -1661,6 +2221,9 @@ would allow for 2 packets per second. The token bucket filter is also
 configured to allow for a burst of at most 6 packets, if enough tokens have
 been earned.
 
+Several entries in the following list have been copied from
+/usr/src/linux/Documentation/networking/ip-sysctl.txt, written by Alexey
+Kuznetsov &lt;kuznet@ms2.inr.ac.ru&gt; and Andi Kleen &lt;ak@muc.de&gt;
 <descrip>
 <tag>/proc/sys/net/ipv4/icmp_destunreach_rate</tag>
 If the kernel decides that it can't deliver a packet, it will drop it, and
@@ -1675,26 +2238,43 @@ ignore these broadcast messages.
 <tag>/proc/sys/net/ipv4/icmp_echoreply_rate</tag>
 The rate at which echo replies are sent to any one destination.
 <tag>/proc/sys/net/ipv4/icmp_ignore_bogus_error_responses</tag>
-FIXME: fill this in
+Set this to ignore ICMP errors caused by hosts in the network reacting badly
+to frames sent to what they perceive to be the broadcast address.
 <tag>/proc/sys/net/ipv4/icmp_paramprob_rate</tag>
-FIXME: fill this in
+A relatively unknown ICMP message, which is sent in response to incorrect
+packets with broken IP or TCP headers. With this file you can control the
+rate at which it is sent.
 <tag>/proc/sys/net/ipv4/icmp_timeexceed_rate</tag>
 This the famous cause of the 'Solaris middle star' in traceroutes. Limits
 number of ICMP Time Exceeded messages sent. 
 <tag>/proc/sys/net/ipv4/igmp_max_memberships</tag>
-FIXME: fill this in
+Maximum number of listening igmp (multicast) sockets on the host.
+FIXME: Is this true?
 <tag>/proc/sys/net/ipv4/inet_peer_gc_maxtime</tag>
-FIXME: fill this in
+FIXME: Add a little explanation about the inet peer storage?&nl;
+Minimum interval between garbage collection passes.  This interval is in
+effect under low (or absent) memory pressure on the pool. Measured in
+jiffies.
 <tag>/proc/sys/net/ipv4/inet_peer_gc_mintime</tag>
-FIXME: fill this in
+Minimum interval between garbage collection passes.  This interval is in
+effect under high memory pressure on the pool. Measured in jiffies.
 <tag>/proc/sys/net/ipv4/inet_peer_maxttl</tag>
-FIXME: fill this in
+Maximum time-to-live of entries.  Unused entries will expire after this
+period of time if there is no memory pressure on the pool (i.e. when the
+number of entries in the pool is very small). Measured in jiffies.
 <tag>/proc/sys/net/ipv4/inet_peer_minttl</tag>
-FIXME: fill this in
+Minimum time-to-live of entries.  Should be enough to cover fragment
+time-to-live on the reassembling side.  This minimum time-to-live
+is guaranteed if the pool size is less than inet_peer_threshold.
+Measured in jiffies.
 <tag>/proc/sys/net/ipv4/inet_peer_threshold</tag>
-FIXME: fill this in
+The approximate size of the INET peer storage.  Starting from this threshold
+entries will be thrown aggressively.  This threshold also determines
+entries' time-to-live and time intervals between garbage collection passes. 
+More entries, less time-to-live, less GC interval.
 <tag>/proc/sys/net/ipv4/ip_autoconfig</tag>
-FIXME: fill this in
+This file contains the number one if the host received its IP configuration by
+RARP, BOOTP, DHCP or a similar mechanism. Otherwise it is zero.
 <tag>/proc/sys/net/ipv4/ip_default_ttl</tag>
 Time To Live of packets. Set to a safe 64. Raise it if you have a huge
 network. Don't do so for fun - routing loops cause much more damage that
@@ -1711,44 +2291,103 @@ Range of local ports for outgoing connections. Actually quite small by
 default, 1024 to 4999.
 <tag>/proc/sys/net/ipv4/ip_no_pmtu_disc</tag>
 Set this if you want to disable Path MTU discovery - a technique to
-determine the largest Maximum Transfer Unit possible on your path.
+determine the largest Maximum Transfer Unit possible on your path. See also
+the section on Path MTU discovery in the cookbook chapter.
 <tag>/proc/sys/net/ipv4/ipfrag_high_thresh</tag>
-FIXME: fill this in
+Maximum memory used to reassemble IP fragments. When 
+ipfrag_high_thresh bytes of memory is allocated for this purpose,
+the fragment handler will toss packets until ipfrag_low_thresh
+is reached.
+<tag>/proc/sys/net/ipv4/ip_nonlocal_bind</tag>
+Set this if you want your applications to be able to bind to an address
+which doesn't belong to a device on your system. This can be useful when
+your machine is on a non-permanent (or even dynamic) link, so your services
+are able to start up and bind to a specific address when your link is down.
 <tag>/proc/sys/net/ipv4/ipfrag_low_thresh</tag>
-FIXME: fill this in
+Minimum memory used to reassemble IP fragments.
 <tag>/proc/sys/net/ipv4/ipfrag_time</tag>
-FIXME: fill this in
+Time in seconds to keep an IP fragment in memory.
 <tag>/proc/sys/net/ipv4/tcp_abort_on_overflow</tag>
-FIXME: fill this in
+A boolean flag controlling the behaviour under lots of incoming connections.
+When enabled, this causes the kernel to actively send RST packets when a
+service is overloaded.
 <tag>/proc/sys/net/ipv4/tcp_fin_timeout</tag>
-FIXME: fill this in
-<tag>/proc/sys/net/ipv4/tcp_keepalive_intvl</tag>
-FIXME: fill this in
-<tag>/proc/sys/net/ipv4/tcp_keepalive_probes</tag>
-FIXME: fill this in
+Time to hold socket in state FIN-WAIT-2, if it was closed by our side. Peer
+can be broken and never close its side, or even died unexpectedly. Default
+value is 60sec. Usual value used in 2.2 was 180 seconds, you may restore it,
+but remember that if your machine is even underloaded WEB server, you risk
+to overflow memory with kilotons of dead sockets, FIN-WAIT-2 sockets are
+less dangerous than FIN-WAIT-1, because they eat maximum 1.5K of memory, but
+they tend to live longer. Cf. tcp_max_orphans.
 <tag>/proc/sys/net/ipv4/tcp_keepalive_time</tag>
-FIXME: fill this in
+How often TCP sends out keepalive messages when keepalive is enabled. &nl;
+Default: 2hours.
+<tag>/proc/sys/net/ipv4/tcp_keepalive_intvl</tag>
+How frequent probes are retransmitted, when a probe isn't acknowledged. &nl;
+Default: 75 seconds.
+<tag>/proc/sys/net/ipv4/tcp_keepalive_probes</tag>
+How many keepalive probes TCP will send, until it decides that the
+connection is broken. &nl;
+Default value: 9. &nl;
+Multiplied with tcp_keepalive_intvl, this gives the time a link can be
+nonresponsive after a keepalive has been sent.
 <tag>/proc/sys/net/ipv4/tcp_max_orphans</tag>
-FIXME: fill this in
-<tag>/proc/sys/net/ipv4/tcp_max_syn_backlog</tag>
-FIXME: fill this in
-<tag>/proc/sys/net/ipv4/tcp_max_tw_buckets</tag>
-FIXME: fill this in
+Maximal number of TCP sockets not attached to any user file handle, held by
+system. If this number is exceeded orphaned connections are reset
+immediately and warning is printed. This limit exists only to prevent simple
+DoS attacks, you _must_ not rely on this or lower the limit artificially,
+but rather increase it (probably, after increasing installed memory), if
+network conditions require more than default value, and tune network
+services to linger and kill such states more aggressively. Let me to remind
+again: each orphan eats up to ~64K of unswappable memory.
 <tag>/proc/sys/net/ipv4/tcp_orphan_retries</tag>
-FIXME: fill this in
+How may times to retry before killing TCP connection, closed by our side.
+Default value 7 corresponds to ~50sec-16min depending on RTO. If you machine
+is loaded WEB server, you should think about lowering this value, such
+sockets may consume significant resources. Cf. tcp_max_orphans.
+<tag>/proc/sys/net/ipv4/tcp_max_syn_backlog</tag>
+Maximal number of remembered connection requests, which are still did not
+receive an acknowledgement from connecting client. Default value is 1024 for
+systems with more than 128Mb of memory, and 128 for low memory machines. If
+server suffers of overload, try to increase this number. Warning! If you
+make it greater than 1024, it would be better to change TCP_SYNQ_HSIZE in
+include/net/tcp.h to keep TCP_SYNQ_HSIZE*16<=tcp_max_syn_backlog and to
+recompile kernel.
+<tag>/proc/sys/net/ipv4/tcp_max_tw_buckets</tag>
+Maximal number of timewait sockets held by system simultaneously. If this
+number is exceeded time-wait socket is immediately destroyed and warning is
+printed. This limit exists only to prevent simple DoS attacks, you _must_
+not lower the limit artificially, but rather increase it (probably, after
+increasing installed memory), if network conditions require more than
+default value.
 <tag>/proc/sys/net/ipv4/tcp_retrans_collapse</tag>
-FIXME: fill this in
+Bug-to-bug compatibility with some broken printers.
+On retransmit try to send bigger packets to work around bugs in
+certain TCP stacks.
 <tag>/proc/sys/net/ipv4/tcp_retries1</tag>
-FIXME: fill this in
+How many times to retry before deciding that something is wrong
+and it is necessary to report this suspection to network layer.
+Minimal RFC value is 3, it is default, which corresponds
+to ~3sec-8min depending on RTO.
 <tag>/proc/sys/net/ipv4/tcp_retries2</tag>
-FIXME: fill this in
+How may times to retry before killing alive TCP connection.
+RFC1122 says that the limit should be longer than 100 sec.
+It is too small number. Default value 15 corresponds to ~13-30min
+depending on RTO.
 <tag>/proc/sys/net/ipv4/tcp_rfc1337</tag>
-FIXME: fill this in
+This boolean enables a fix for 'time-wait assassination hazards in tcp', described
+in RFC 1337. If enabled, this causes the kernel to drop RST packets for
+sockets in the time-wait state.&nl;
+Default: 0
 <tag>/proc/sys/net/ipv4/tcp_sack</tag>
 Use Selective ACK which can be used to signify that specific packets are
 missing - therefore helping fast recovery.
 <tag>/proc/sys/net/ipv4/tcp_stdurg</tag>
-FIXME: fill this in
+Use the Host requirements interpretation of the TCP urg pointer
+field. &nl;
+Most hosts use the older BSD interpretation, so if you turn this on
+Linux might not communicate correctly with them. &nl;
+Default: FALSE 
 <tag>/proc/sys/net/ipv4/tcp_syn_retries</tag>
 Number of SYN packets the kernel will send before giving up on the new
 connection.
@@ -1756,14 +2395,16 @@ connection.
 To open the other side of the connection, the kernel sends a SYN with a
 piggybacked ACK on it, to acknowledge the earlier received SYN. This is part
 2 of the threeway handshake. This setting determines the number of SYN+ACK
-packets send before the kernel gives up on the connection.
+packets sent before the kernel gives up on the connection.
 <tag>/proc/sys/net/ipv4/tcp_timestamps</tag>
 Timestamps are used, amongst other things, to protect against wrapping
 sequence numbers. A 1 gigabit link might conceivably re-encounter a previous
-sequence number with an out-of-line value, because if was of a previous
+sequence number with an out-of-line value, because it was of a previous
 generation. The timestamp will let it recognise this 'ancient packet'.
 <tag>/proc/sys/net/ipv4/tcp_tw_recycle</tag>
-FIXME: fill this in
+Enable fast recycling TIME-WAIT sockets. Default value is 1.
+It should not be changed without advice/request of technical experts.
+
 <tag>/proc/sys/net/ipv4/tcp_window_scaling</tag>
 TCP/IP normally allows windows up to 65535 bytes big. For really fast
 networks, this may not be enough. The window scaling options allows for
@@ -1986,7 +2627,7 @@ Hadi that's referenced below.
 Let's say we have two customers, with http, ftp and streaming audio, and we
 want to sell them a limited amount of bandwidth. We do so on the server itself.
 
-Customer A should have at most 2 megabits, cusomer B has paid for 5
+Customer A should have at most 2 megabits, customer B has paid for 5
 megabits. We separate our customers by creating virtual IP addresses on our
 server.
 
@@ -2037,6 +2678,9 @@ reasonable values for your system.
 
 If you want to protect an entire network, skip this script, which is best
 suited for a single host.
+
+It appears that you need the very latest version of the iproute2 tools to
+get this to work with 2.4.0.
 
 <tscreen><verb>
 #! /bin/sh -x
@@ -2443,8 +3087,256 @@ kaosarn outgoing data->naret->donmuang->internet
 incoming data from internet->donmuang->kaosarn
 </verb></tscreen>
 
+<sect1>Circumventing Path MTU Discovery issues with per route MTU settings
+<p>
+For sending bulk data, the internet generally works better when using larger
+packets. Each packet implies a routing decision, when sending a 1 megabyte
+file, this can either mean around 700 packets when using packets that are as
+large as possible, or 4000 if using the smallest default.
 
+However, not all parts of the internet support full 1460 bytes of payload
+per packet. It is therefore necessary to try and find the largest packet
+that will 'fit', in order to optimize a connection.
 
+This process is called 'Path MTU Discovery', where MTU stands for 'Maximum
+Transfer Unit.' 
+
+When a router encounters a packet that's too big too send in one piece, AND
+it has been flagged with the "Don't Fragment" bit, it returns an ICMP
+message stating that it was forced to drop a packet because of this. The
+sending host acts on this hint by sending smaller packets, and by iterating
+it can find the optimum packet size for a connection over a certain path.
+
+This used to work well until the internet was discovered by hooligans who do
+their best to disrupt communications. This in turn lead administrators to
+either block or shape ICMP traffic in a misguided attempt to improve
+security or robustness of their internet service.
+
+What has happened now is that Path MTU Discovery is working less and less
+well and fails for certain routes, which leads to strange TCP/IP sessions
+which die after a while.
+
+Although I have no proof for this, two sites who I used to have this problem
+with both run Alteon Acedirectors before the affected systems - perhaps
+somebody more knowledgeable can provide clues as to why this happens.
+
+<sect2>Solution
+<p>
+When you encounter sites that suffer from this problem, you can disable Path
+MTU discovery by setting it manually. Koos van den Hout, slightly edited,
+writes:
+
+<tscreen>
+<p>
+The following problem: I set the mtu/mru of my leased line running ppp to
+296 because it's only 33k6 and I cannot influence the queueing on the
+other side. At 296, the response to a keypress is within a reasonable
+timeframe.
+
+And, on my side I have a masqrouter running (of course) Linux.
+
+Recently I split 'server' and 'router' so most applications are run on a
+different machine then the routing happens on.
+
+I then had trouble logging into irc. Big panic! Some digging did find
+out that I got connected to irc, even showed up as 'connected' on irc
+but I did not receive the motd from irc. I checked what could be wrong
+and noted that I already had some previous trouble reaching certain
+websites related to the MTU, since I had no trouble reaching them when
+the MTU was 1500, the problem just showed when the MTU was set to 296.
+Since irc servers block about every kind of traffic not needed for their
+immediate operation, they also block icmp. 
+
+I managed to convince the operators of a webserver that this was the cause
+of a problem, but the irc server operators were not going to fix this.
+
+So, I had to make sure outgoing masqueraded traffic started with the lower
+mtu of the outside link. But I want local ethernet traffic to have the
+normal mtu (for things like nfs traffic).
+
+Solution:
+<tscreen><verb>
+ip route add default via 10.0.0.1 mtu 296
+</verb></tscreen>
+
+(10.0.0.1 being the default gateway, the inside address of the
+masquerading router)
+</tscreen>
+
+In general, it is possible to override PMTU Discovery by setting specific
+routes. For example, if only a certain subnet is giving problems, this
+should help:
+
+<tscreen><verb>
+ip route add 195.96.96.0/24 via 10.0.0.1 mtu 1000
+</verb></tscreen>
+<sect1>Circumventing Path MTU Discovery issues with MSS Clamping (for ADSL,
+cable, PPPoE &amp; PPtP users)
+<p>
+As explained above, Path MTU Discovery doesn't work as well as it should
+anymore. If you know for a fact that a hop somewhere in your network has a
+limited (&lt;1500) MTU, you cannot rely on PMTU Discovery finding this out.
+
+Besides MTU, there is yet another way to set the maximum packet size, the so
+called Maximum Segment Size. This is a field in the TCP Options part of a
+SYN packet.
+
+Recent Linux kernels, and a few pppoe drivers (notably, the excellent
+Roaring Penguin one), feature the possibility to 'clamp the MSS'. 
+
+The good thing about this is that by setting the MSS value, you are telling
+the remote side unequivocally 'do not ever try to send me packets bigger
+than this value'. No ICMP traffic is needed to get this to work.
+
+The bad thing is that it's an obvious hack - it breaks 'end to end' by
+modifying packets. Having said that, we use this trick in many places and it
+works like a charm.
+
+In order for this to work you need at least iptables-1.2.1a and Linux 2.4.3
+or higher. The basic commandline is:
+<tscreen><verb>
+# iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS  --clamp-mss-to-pmtu
+</verb></tscreen>
+
+This calculates the proper MSS for your link. If you are feeling brave, or
+think that you know best, you can also do something like this:
+
+<tscreen><verb>
+# iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 128
+</verb></tscreen>
+
+This sets the MSS of passing SYN packets to 128. Use this if you have VoIP
+with tiny packets, and huge http packets which are causing chopping in your
+voice calls.
+<sect>Building bridges, and pseudo-bridges with Proxy ARP
+<p>
+Bridges are devices which can be installed in a network without any
+reconfiguration. A network switch is basically a many-port bridge. A bridge
+is often a 2-port switch. Linux does however support multiple interfaces in
+a bridge, making it a true switch.
+
+Bridges are often deployed when confronted with a broken network that needs
+to be fixed without any alterations. Because the bridge is a layer-2 device,
+one layer below IP, routers and servers are not aware of its existence.
+This means that you can transparently block or modify certain packets, or do
+shaping.
+
+Another good thing is that a bridge can often be replaced by a cross cable
+or a hub, should it break down.
+
+The bad news is that a bridge can cause great confusion unless it is very
+well documented. It does not appear in traceroutes, but somehow packets
+disappear or get changed from point A to point B. You should also wonder if
+an organization that 'does not want to change anything' is doing the right
+thing.
+
+The Linux 2.4 bridge is documented on
+<url url="http://www.math.leidenuniv.nl/~buytenh/bridge" name="this page">.
+
+<sect1>State of bridging and iptables
+<p>
+As of Linux 2.4.3, bridging and iptables do not 'see' each other without
+help. If you bridge packets from eth0 to eth1, they do not 'pass' by
+iptables. This means that you cannot do filtering, or NAT or mangling or
+whatever.
+
+There are several projects going on to fix this, the truly right one is by
+the author of the Linux 2.4 briding code, Lennert Buytenhek. The patch is
+not yet finished however, but it does work somewhat. It can be found on 
+<url url="http://www.math.leidenuniv.nl/~buytenh/bridge/devel/bridge-nf/"
+name="the experimental bridge patches page">.
+
+We expect this problem to be fixed soon.
+
+<sect1>Bridging and shaping
+<p>
+This does work as advertised. Be sure to figure out which side each
+interface is on, otherwise you might be shaping outbound traffic in your
+internal interface, which won't work. Use tcpdump if needed.
+
+<sect1>Pseudo-bridges with Proxy-ARP
+<p>
+If you just want to implement a Pseudo-bridge, skip down a few sections 
+to 'Implementing it', but it is wise to read a bit about how it works in
+practice.
+
+A Pseudo-bridge works a bit differently. By default, a bridge passes packets
+unaltered from one interface to the other. It only looks at the hardware
+address of packets to determine what goes where. This in turn means that you
+can bridge traffic that Linux does not understand, as long as it has an
+hardware address it does.
+
+A 'Pseudo-bridge' works differently and looks more like a hidden router than
+a bridge, but like a bridge, it has little impact on network design.
+
+An advantage of the fact that it is not a brige lies in the fact that
+packets really pass through the kernel, and can be filtered, changed,
+redirected or rerouted. 
+
+A real bridge can also be made to perform these feats, but it needs special
+code, like the Ethernet Frame Diverter, or the above mentioned patch.
+
+Another advantage of a pseudo-bridge is that it does not pass packets it
+does not understand - thus cleaning your network of a lot of cruft. In cases
+where you need this cruft (like SAP packets, or Netbeui), use a real bridge.
+<sect2>ARP &amp; Proxy-ARP
+<p>
+When a host wants to talk to another host on the same physical network
+segment, it sends out an Address Resolution Protocol packet, which, somewhat
+simplified, reads like this 'who has 10.0.0.1, tell 10.0.0.7'. In response
+to this, 10.0.0.1 replies with a short 'here' packet.
+
+10.0.0.7 then sends packets to the hardware address mentioned in the 'here' 
+packet. It caches this hardware address for a relatively long time, and
+after the cache expires, it reasks the question.
+
+When building a Pseudo-bridge, we instruct the bridge to reply to these ARP
+packets, which causes the hosts in the network to send its packets to the
+bridge. The brige then processes these packets, and sends them to the
+relevant interface.
+
+So, in short, whenever a host on one side of the bridge asks for the
+hardware address of a host on the other, the bridge replies with a packet
+that says 'hand it to me'.
+
+This way, all data traffic gets transmitted to the right place, and always
+passes through the bridge.
+<sect2>Implementing it
+<p>
+In the bad old days, it used to be possible to instruct the Linux Kernel to
+perform 'proxy-ARP' for just any subnet. So, to configure a pseudo-bridge,
+you would have to specify both the proper routes to both sides of the bridge
+AND create matching proxy-ARP rules. This is bad in that it requires a lot
+of typing, but also because it easily allows you to make mistakes which make
+your bridge respond to ARP queries for networks it does not know how to
+route.
+
+With Linux 2.4 (and possibly 2.2), this possibility has been withdrawn and
+has been replaced by a flag in the /proc directory, called 'proxy_arp'. The
+procedure for building a pseudo-bridge is then:
+
+<enum>
+<item>Assign an IP address to both interfaces, the 'left' and the 'right'
+one
+<item>Create routes so your machine knows which hosts reside on the left,
+and which on the right
+<item>Turn on proxy-ARP on both interfaces, echo 1 >
+/proc/sys/net/ipv4/conf/ethL/proxy_arp, echo 1 >
+/proc/sys/net/ipv4/conf/ethR/proxy_arp, where L and R stand for the numbers
+of your interfaces on the left and on the right side
+</enum>
+
+Also, do not forget to turn on the ip_forwarding flag! When converting from
+a true bridge, you may find that this flag was turned off as it is not
+needed when bridging.
+
+Another thing you might note when converting is that you need to clear the
+arp cache of computers in the network - the arp cache might contain old
+pre-bridge hardware addresses which are no longer correct.
+
+On a Cisco, this is done using the command 'clear arp-cache', under
+Linux, use 'arp -d ip.address'. You can also wait for the cache to expire
+manually, which can take rather long.
 <sect>Advanced Linux Routing
 <p>
 This section is for all you people who either want to understand why the
@@ -2475,7 +3367,7 @@ in other operating systems and how they compare to the Linux one. Since Linux
 is one of the few OSes that has a completely original (non-BSD derived) TCP/IP
 stack, I think it would be useful to see how other people do it.
 
-Unfortunately I have no experiene with other systems so cannot write this.
+Unfortunately I have no experience with other systems so cannot write this.
 
 FIXME: Anyone? - Martijn
 
@@ -2528,6 +3420,138 @@ name="Using the Border Gateway Protocol for interdomain routing">
  
 Although the examples are Cisco-specific, they are remarkably similar
 to the configuration language in Zebra :-)
+<sect>Other possibilities 
+<p>
+This chapter is a list of projects having to do with advanced Linux routing
+&amp; traffic shaping. Some of these links may deserve chapters of their
+own, some are documented very well of themselves, and don't need more HOWTO.
+<p>
+<descrip>
+<tag>802.1Q VLAN Implementation for Linux <url url="http://scry.wanfear.com/~greear/vlan.html"
+name="(site)"></tag>
+<p>
+VLANs are a very cool way to segregate your
+networks in a more virtual than physical way. Good information on VLANs can
+be found <url
+url="ftp://ftp.netlab.ohio-state.edu/pub/jain/courses/cis788-97/virtual_lans/index.htm"
+name="here">. With this implementation, you can have your Linux box talk
+VLANs with machines like Cisco Catalyst, 3Com: {Corebuilder, Netbuilder II,
+SuperStack II switch 630}, Extreme Ntwks Summit 48, Foundry: {ServerIronXL,
+FastIron}.
+<tag>Alternate 802.1Q VLAN Implementation for Linux <url 
+url="http://vlan.sourceforge.net "
+name="(site)"></tag>
+Alternative VLAN implementation for linux. This project was started out of
+disagreement with the 'established' VLAN project's architecture and coding
+style, resulting in a cleaner overall design.
+
+<tag>Linux Virtual Server <url url="http://www.LinuxVirtualServer.org/"  
+name="(site)"></tag>
+<p>
+These people are brilliant. The Linux Virtual Server is a highly scalable and
+highly available server built on a cluster of real servers, with the load
+balancer running on the Linux operating system. The architecture of the
+cluster is transparent to end users. End users only see a single virtual
+server.
+
+In short whatever you need to loadbalance, at whatever level of traffic, LVS
+will have a way of doing it. Some of their techniques are positively evil!
+For example, they let several machines have the same IP address on a
+segment, but turn of ARP on them. Only the LVS machine does ARP - it then
+decides which of the backend hosts should handle an incoming packet, and
+sends it directly to the right MAC address of the backend server. Outgoing
+traffic will flow directly to the router, and not via the LVS machine, which
+does therefor not need to see your 5Gbit/s of content flowing to the world,
+and cannot be a bottleneck.
+
+The LVS is implemented as a kernel patch in Linux 2.0 and 2.2, but as a
+Netfilter module in 2.4, so it does not need kernel patches! Their 2.4
+support is still in early development, so beat on it and give feedback or
+send patches.
+
+<tag>CBQ.init <url url="ftp://ftp.equinox.gu.net/pub/linux/cbq/"
+name="(site)"></tag>
+Configuring CBQ can be a bit daunting, especially if all you want to do is
+shape some computers behind a router. CBQ.init can help you configure Linux
+with a simplified syntax.
+
+For example, if you want all computers in your 192.168.1.0/24 subnet
+(on 10mbit eth1) to be limited to 28kbit/s download speed, put
+this in the CBQ.init configuration file:
+
+<tscreen><verb>
+DEVICE=eth1,10Mbit,1Mbit
+RATE=28Kbit
+WEIGHT=2Kbit
+PRIO=5
+RULE=192.168.1.0/24
+</verb></tscreen>
+
+By all means use this program if the 'how and why' don't interest you.
+We're using CBQ.init in production and it works very well. It can even do
+some more advanced things, like time dependent shaping. The documentation is
+embedded in the script, which explains why you can't find a README.
+
+<tag>Chronox easy shaping scripts <url url="http://www.chronox.de"
+name="(site)"></tag>
+
+Stephan Mueller (smueller@chronox.de) wrote two useful scripts, 'limit.conn'
+and 'shaper'. The first one allows you to easily throttle a single download
+session, like this:
+
+<tscreen><verb>
+# limit.conn -s SERVERIP -p SERVERPORT -l LIMIT
+</verb></tscreen>
+
+It works on Linux 2.2 and 2.4.
+
+The second script is more complicated, and can be used to make lots of
+different queues based on iptables rules, which are used to mark packets
+which are then shaped.
+
+<tag>Virtual Router
+Redundancy Protocol implementation <url url="http://w3.arobas.net/~jetienne/vrrpd/index.html"
+ name="(site)"></tag>
+<p>
+This is purely for redundancy. Two machines with their own IP address and
+MAC Address together create a third IP Address and MAC Address, which is
+virtual. Originally intended purely for routers, which need constant MAC
+addresses, it also works for other servers.
+<p>
+The beauty of this approach is the incredibly easy configuration. No kernel
+compiling or patching required, all userspace.
+
+Just run this on all machines participating in a service:
+<tscreen><verb>
+# vrrpd -i eth0 -v 50 10.0.0.22
+</verb></tscreen>
+
+And you are in business! 10.0.0.22 is now carried by one of your servers,
+probably the first one to run the vrrp daemon. Now disconnect that computer
+from the network and very rapidly one of the other computers will assume the
+10.0.0.22 address, as well as the MAC address.
+
+I tried this over here and had it up and running in 1 minute. For some
+strange reason it decided to drop my default gateway, but the -n flag
+prevented that.
+
+This is a 'live' failover:
+
+<tscreen><verb>
+64 bytes from 10.0.0.22: icmp_seq=3 ttl=255 time=0.2 ms
+64 bytes from 10.0.0.22: icmp_seq=4 ttl=255 time=0.2 ms
+64 bytes from 10.0.0.22: icmp_seq=5 ttl=255 time=16.8 ms
+64 bytes from 10.0.0.22: icmp_seq=6 ttl=255 time=1.8 ms
+64 bytes from 10.0.0.22: icmp_seq=7 ttl=255 time=1.7 ms
+</verb></tscreen>
+
+Not *one* ping packet was lost! Just after packet 4, I disconnected my P200
+from the network, and my 486 took over, which you can see from the higher
+latency.
+
+</descrip>
+
+
 <sect>Further reading
 <p>
 <descrip>
@@ -2536,7 +3560,7 @@ name="http://snafu.freedom.org/linux2.2/iproute-notes.html"></tag>
 Contains lots of technical information, comments from the kernel
 <tag><url url="http://www.davin.ottawa.on.ca/ols/"
 name="http://www.davin.ottawa.on.ca/ols/"></tag>
-Slides by Jamal Hadi, one of the authors of Linux traffic control
+Slides by Jamal Hadi Salim, one of the authors of Linux traffic control
 <tag><url url="http://defiant.coinet.com/iproute2/ip-cref/"
 name="http://defiant.coinet.com/iproute2/ip-cref/"></tag>
 HTML version of Alexeys LaTeX documentation - explains part of iproute2 in
@@ -2565,7 +3589,7 @@ less. We may include a section on this at a later date.
 url="http://www.cisco.com/univercd/cc/td/doc/product/software/ios111/cc111/car.htm"
 name="IOS Committed Access Rate"></tag>
 <label id="CAR">
->From the helpful folks of Cisco who have the laudable habit of putting
+From the helpful folks of Cisco who have the laudable habit of putting
 their documentation online. Cisco syntax is different but the concepts are
 the same, except that we can do more and do it without routers the price of
 cars :-)
@@ -2583,15 +3607,30 @@ for a Netfilter type scoreboard, we do like to recognise the people who are
 helping.
 
 <itemize>
-<item>Jamal Hadi &lt;hadi%cyberus.ca&gt;
+<item>Ron Brinker &lt;service%emcis.com&gt;
+<item>Lennert Buytenhek &lt;buytenh@gnu.org&gt;
+<item>Esteve Camps &lt;esteve@hades.udg.es&gt;
+<item>Marco Davids &lt;marco@sara.nl&gt;
+<item>Stephan "Kobold" Gehring &lt;Stephan.Gehring@bechtle.de&gt;
 <item>Nadeem Hasan &lt;nhasan@usa.net&gt;
+<item>Vik Heyndrickx &lt;vik.heyndrickx@edchq.com&gt;
+<item>Koos van den Hout &lt;koos@kzdoos.xs4all.nl&gt;
 <item>Philippe Latu &lt;philippe.latu%linux-france.org&gt;
 <item>Jason Lunz &lt;j@cc.gatech.edu&gt;
 <item>Alexey Mahotkin &lt;alexm@formulabez.ru&gt;
 <item>Pawel Krawczyk &lt;kravietz%alfa.ceti.pl&gt;
 <item>Wim van der Most 
+<item>Stephan Mueller &lt;smueller@chronox.de&gt;
 <item>Ram Narula &lt;ram@princess1.net&gt;
-<item>Rusty Rusell (with apologies for always misspelling your name)
+<item>Jorge Novo &lt;jnovo@educanet.net&gt;
+<item>Patrik &lt;ph@kurd.nu&gt;
+<item>Jason Pyeron &lt;jason%pyeron.com&gt;
+<item>Rusty Russell (with apologies for always misspelling your name)
+<item>Jamal Hadi Salim &lt;hadi%cyberus.ca&gt;
+<item>Sheharyar Suleman Shaikh &lt;sss23@drexel.edu&gt;
+<item>Nick Silberstein &lt;nhsilber%yahoo.com&gt;
+<item>Konrads Smelkov &lt;konrads@interbaltika.com&gt;
+<item>Jason Tackaberry &lt;tack@linux.com&gt;
 <item>Charles Tassell &lt;ctassell%isn.net&gt;
 <item>Glen Turner &lt;glen.turner%aarnet.edu.au&gt;
 <item>Song Wang &lt;wsong@ece.uci.edu&gt;
