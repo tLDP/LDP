@@ -112,6 +112,7 @@
   #t)
 
 (define %html-ext%
+  ;; when producing HTML files, use this extension
   ".html")
 
 (define %generate-article-toc% 
@@ -120,9 +121,11 @@
   #t)
 
 (define %generate-part-toc%
+  ;; show a partial table of contents on books; usually at chapter level
   #t)
 
 (define %generate-article-titlepage%
+  ;; produce a title page for articles
   #t)
 
 (define (chunk-skip-first-element-list)
@@ -134,11 +137,16 @@
   "index")
 
 (define %shade-verbatim%
+  ;; verbatim sections will be shaded if t(rue)
   #t)
 
 (define %use-id-as-filename%
   ;; Use ID attributes as name for component HTML files?
   #t)
+
+(define %graphic-extensions%
+  ;; graphic extensions allowed
+  '("gif" "png" "jpg" "jpeg" "tif" "tiff" "eps" "epsf" ))
 
 (define %graphic-default-extension% 
   "gif")
@@ -148,8 +156,50 @@
   #t)
 
 (define (toc-depth nd)
-  ;; more depth, 2 levels, to toc, instead of flat hierarchy
+  ;; more depth (2 levels) to toc; instead of flat hierarchy
   2)
+
+(element emphasis
+  ;; make role=strong equate to bold for emphasis tag
+  (if (equal? (attribute-string "role") "strong")
+     (make element gi: "STRONG" (process-children))
+     (make element gi: "EM" (process-children))))
+
+(define (article-titlepage-recto-elements)
+  ;; elements on an article's titlepage
+  ;; note: added othercredit to the default list
+  (list (normalize "title")
+        (normalize "subtitle")
+        (normalize "authorgroup")
+        (normalize "author")
+        (normalize "othercredit")
+        (normalize "releaseinfo")
+        (normalize "copyright")
+        (normalize "pubdate")
+        (normalize "revhistory")
+        (normalize "abstract")))
+
+(mode article-titlepage-recto-mode
+
+(element contrib
+  ;; print out with othercredit information; for translators, etc.
+  (make sequence
+    (make element gi: "SPAN"
+          attributes: (list (list "CLASS" (gi)))
+          (process-children))))
+
+(element othercredit
+  ;; print out othercredit information; for translators, etc.
+  (let ((author-name  (author-string))
+        (author-contrib (select-elements (children (current-node))
+                                          (normalize "contrib"))))
+    (make element gi: "P"
+         attributes: (list (list "CLASS" (gi)))
+         (make element gi: "B"  
+              (literal author-name)
+              (literal " - "))
+         (process-node-list author-contrib))))
+)
 
 </style-specification-body>
 </style-specification>
@@ -157,3 +207,4 @@
 <external-specification id="docbook" document="docbook.dsl">
 
 </style-sheet>
+
