@@ -7,3 +7,6 @@ CREATE TABLE stats_CDF (
 	format		CHAR(12)	NOT NULL,
 	doc_cnt_CDF	INT4		NOT NULL
 );
+
+GRANT SELECT ON stats_CDF to "www-data";
+

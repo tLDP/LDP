@@ -8,3 +8,5 @@ CREATE TABLE volunteer (
 	PRIMARY KEY (volunteer_id)
 );
 
+GRANT ALL ON volunteer TO "www-data";
+

@@ -8,3 +8,6 @@ CREATE TABLE pub_status
 	
 	PRIMARY KEY (pub_status)
 );
+
+GRANT SELECT ON pub_status TO "www-data";
+

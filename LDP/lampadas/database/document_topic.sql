@@ -25,3 +25,4 @@ REFERENCES topic(topic_num);
 #FOREIGN KEY (subtopic_num)
 #REFERENCES subtopic(subtopic_num);
 
+GRANT ALL ON document_topic TO "www-data";

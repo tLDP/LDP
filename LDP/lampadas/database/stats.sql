@@ -35,3 +35,5 @@ CREATE TABLE stats (
 
 	PRIMARY KEY (date_entered)
 );
+
+GRANT SELECT ON stats TO "www-data";

@@ -57,3 +57,5 @@ ALTER TABLE document
 ADD CONSTRAINT dtd_fk
 FOREIGN KEY (dtd)
 REFERENCES dtd(dtd);
+
+GRANT ALL ON document TO "www-data";

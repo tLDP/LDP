@@ -7,3 +7,5 @@ CREATE TABLE class
 
 	PRIMARY KEY (class)
 );
+
+GRANT SELECT ON class TO "www-data";

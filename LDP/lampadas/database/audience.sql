@@ -13,3 +13,4 @@ INSERT INTO audience ( audience, audience_level, audience_description ) VALUES (
 INSERT INTO audience ( audience, audience_level, audience_description ) VALUES ('INTERMEDIATe', 3, 'Intermediate Users');
 INSERT INTO audience ( audience, audience_level, audience_description ) VALUES ('ADVANCED', 4, 'Advanced Users');
 
+GRANT SELECT ON audience TO "www-data";

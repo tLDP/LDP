@@ -6,3 +6,6 @@ CREATE TABLE editor_role(
 
 	PRIMARY KEY (editor_role)
 );
+
+GRANT SELECT ON editor_role TO "www-data";
+

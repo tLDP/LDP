@@ -25,3 +25,5 @@ ALTER TABLE document_editor
 ADD CONSTRAINT editor_role_fk
 FOREIGN KEY (editor_role)
 REFERENCES editor_role(editor_role);
+
+GRANT ALL ON document_editor TO "www-data";

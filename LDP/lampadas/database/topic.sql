@@ -9,3 +9,6 @@ CREATE TABLE topic
 
 	PRIMARY KEY (topic_num)
 );
+
+GRANT SELECT ON topic TO "www-data";
+

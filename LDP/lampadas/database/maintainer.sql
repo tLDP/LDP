@@ -7,3 +7,6 @@ CREATE TABLE maintainer (
 
 	PRIMARY KEY (maintainer_id)	
 );
+
+GRANT ALL ON maintainer TO "www-data";
+

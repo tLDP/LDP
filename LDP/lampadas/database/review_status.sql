@@ -8,3 +8,5 @@ CREATE TABLE review_status
 	PRIMARY KEY (review_status)
 );
 
+GRANT SELECT ON review_status TO "www-data";
+

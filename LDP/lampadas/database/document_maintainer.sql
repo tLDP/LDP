@@ -27,3 +27,5 @@ ALTER TABLE document_maintainer
 ADD CONSTRAINT role_fk
 FOREIGN KEY (role)
 REFERENCES role(role);
+
+GRANT ALL ON document_maintainer TO "www-data";
