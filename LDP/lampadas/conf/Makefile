@@ -1,6 +1,6 @@
 confprefix = /etc
 
-INSTALLCONF = install -p -m 644
+INSTALLCONF = install -p -m 644 --backup=simple
 
 all:	build
 
