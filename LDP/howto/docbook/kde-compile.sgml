@@ -1,0 +1,432 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article lang="en">
+<artheader>
+
+<title>KDE Compile HOWTO</title>
+<author>
+        <firstname>David</firstname>
+        <surname>Lechnyr, MSW, MCSE+I, CNE</surname>
+        <affiliation>
+                <address><email>david@lechnyr.com</email></address>
+        </affiliation>
+</author>
+
+<revhistory>
+<revision>
+        <revnumber>1.1</revnumber>
+        <date>2003-06-02</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>Minor updates</revremark>
+</revision>
+<revision>
+        <revnumber>1.0</revnumber>
+        <date>2003-04-23</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>Initial draft</revremark>
+</revision>
+</revhistory>
+
+<abstract>
+<para>Our goal is to optimize KDE for speed.  Specifically, faster startup time, better response time and
+perceived better response. Typically, most distributions include pre-compiled binaries of KDE which
+are optimized for an Intel i386 computer.  Chances are that you're running something faster than this.</para>
+</abstract>
+</artheader>
+
+<sect1 id="prereq">
+<title>Prerequisites</title>
+
+<para>For this article, we will assume that you are running a relatively recent version of Linux and have the following programs installed:</para>
+<itemizedlist>
+<listitem><para><ulink url="ftp://ftp.gnu.org/pub/gnu/automake/">Automake 1.5 or later</ulink></para></listitem>
+<listitem><para><ulink url="ftp://ftp.gnu.org/pub/gnu/autoconf/">Autoconf 2.5 or later</ulink></para></listitem>
+<listitem><para><ulink url="http://www.gnu.org/software/make/make.html">make 3.8 or later</ulink></para></listitem>
+<listitem><para><ulink url="http://gcc.gnu.org/gcc-3.2/">gcc 3.2 or later</ulink></para></listitem>
+</itemizedlist>
+
+<para>Optionally (but strongly recommended) you can install:</para>
+<itemizedlist>
+<listitem><para><ulink url="http://www.openssl.org">OpenSSL</ulink> (if you want SSL support)</para></listitem>
+<listitem><para><ulink url="http://www.pcre.org/">Perl Compatible Regular Expressions (for better regular-expressions support in Javascript)</ulink></para></listitem>
+<listitem><para><ulink url="ftp://ftp.gnome.org/pub/GNOME/sources/libxml2/">LibXML2 (for the KDE help system; current is 2.5.7)</ulink></para></listitem>
+<listitem><para><ulink url="http://www.lesstif.org/">LessTiff</ulink> (for Netscape-plugin support in konqueror)</para></listitem>
+</itemizedlist>
+
+<para>You also need to determine which system you're going to be building KDE for.
+In this example, we'll compile it for a Pentium 3
+(-march=pentium3) gnu-linux machine using -O3 code optimization.
+Note that if instead you have gcc 2.95, the maximum architecture you can
+specify is -march=i686.</para>
+</sect1>
+
+<sect1 id="qt">
+<title>Building Qt</title>
+
+<para><ulink url="ftp://ftp.trolltech.com/qt/source/">Qt</ulink> 
+is a complete and well-developed object-oriented framework for developing graphical user interface (GUI) applications using C++.
+It is required in order to build KDE.  We'll be downloading it directly into /usr/local, so make sure you've uninstalled
+any previous versions of Qt or archive it elsewhere.</para>
+
+<screen># cd /usr/local
+# wget ftp://ftp.trolltech.com/qt/source/qt-x11-free-[version].tar.bz2
+# bunzip2 qt-x11-free-3.1.2.tar.bz2
+# tar xvf qt-x11-free-3.1.2.tar
+# ln -s qt-x11-free-3.1.2 qt</screen>
+
+<para>This next step assumes you're using the bash(1) shell.
+If you're not, see the file INSTALL in the Qt source directory.  Create the following file, being
+sure to run it from your login script (.profile or whatever) and `chmod 0755` it:</para>
+
+<screen>
+#!/bin/sh
+QTDIR=/usr/local/qt
+PATH=$QTDIR/bin:$PATH
+MANPATH=$MANPATH:$QTDIR/doc/man
+LD_LIBRARY_PATH=$QTDIR/lib:$LD_LIBRARY_PATH
+export QTDIR PATH MANPATH LD_LIBRARY_PATH
+</screen>
+
+<para>Next, you'll need to log out and log back in using the account that your ~/.profile is in otherwise
+the installation of Qt will fail.</para>
+
+<para>When compiling Qt, it will ignore the CFLAGS and CXXFLAGS variables (thanks to Wilco Beekhuizen for pointing
+this out!).  Patch mkspecs/linux-g++/qmake.conf using the following (hint: `man patch`):</para>
+
+<screen>--- ./mkspecs/linux-g++/qmake.conf.orig 2003-05-06 09:03:59.000000000 -0700
++++ ./mkspecs/linux-g++/qmake.conf      2003-05-06 09:04:14.000000000 -0700
+@@ -18,7 +18,7 @@
+ QMAKE_CFLAGS_DEPS      = -M
+ QMAKE_CFLAGS_WARN_ON   = -Wall -W
+ QMAKE_CFLAGS_WARN_OFF  = -w
+-QMAKE_CFLAGS_RELEASE   = -O2
++QMAKE_CFLAGS_RELEASE   = -O3 -march=pentium3
+ QMAKE_CFLAGS_DEBUG     = -g
+ QMAKE_CFLAGS_SHLIB     = -fPIC
+ QMAKE_CFLAGS_YACC      = -Wno-unused -Wno-parentheses</screen>
+
+<para>Additionally, if you want to enable built-in reading fo GIF images in Qt, you can use the following patch:</para>
+
+<screen>--- ./src/kernel/qgif.h.orig    2003-05-06 09:07:32.000000000 -0700
++++ ./src/kernel/qgif.h 2003-05-06 09:08:02.000000000 -0700
+@@ -50,7 +50,7 @@
+ #endif // QT_H
+
+ #ifndef QT_BUILTIN_GIF_READER
+-#define QT_BUILTIN_GIF_READER 0
++#define QT_BUILTIN_GIF_READER 1
+ #endif
+
+ bool qt_builtin_gif_reader();</screen>
+
+<para>Next, we can build Qt:</para>
+
+<screen>./configure \
+	-system-zlib \
+	-qt-gif \
+	-system-libpng \
+	-system-libjpeg \
+	-plugin-imgfmt-mng \
+	-thread \
+	-no-nis \
+	-no-stl \
+	-no-xinerama \
+	-no-g++-exceptions
+$ make</screen>
+
+<para>Of specific interest, <command>-thread</command> is required for KDE, <command>-no-xinerama</command> is
+only if you're not using xinerama, and <command>-no-g++-exceptions</command> is recommended by the KDE team.  There's
+no need to run "make install" since we are building this in the final destination directory, which reportedly
+avoids a lot of build problems with KDE.</para>
+
+<para>A brief word about <command>xinerama</command>:  Xinerama is an extension introduced with XFree86 4.0
+which allows applications and window managers to use the two (or more) physical displays as one large
+virtual display.  Unless you have such use for a multihead setup, you'll want to disable xinerama.
+For additional details, see <ulink url="http://www.tldp.org/HOWTO/Xinerama-HOWTO/">http://www.tldp.org/HOWTO/Xinerama-HOWTO/</ulink>.</para>
+
+<para>It's worth noting that since Qt is a library used for building KDE, it's a myth that just optimizing Qt by itself will
+net you any speed benefits.</para>
+</sect1>
+
+<sect1 id="buildkde">
+<title>Building KDE</title>
+
+<sect2 id="arts">
+<title>arts</title>
+
+<para><ulink url="http://ftp.du.se/pub/mirrors/kde/stable/latest/src/">arts</ulink> 
+should be installed before any other KDE package due to dependency issues.</para>
+
+<screen>$ CFLAGS="-O3 -march=pentium3" CXXFLAGS="-O3 -march=pentium3" ./configure \
+	--prefix=/opt/kde \
+	--without-xinerama \
+	--disable-debug
+$ make
+# make install
+</screen>
+</sect2>
+
+<sect2 id="kdelib">
+<title>kdelib</title>
+<para><ulink url="http://ftp.du.se/pub/mirrors/kde/stable/latest/src/">kdelib</ulink> 
+should be installed next, also due to package dependencies.</para>
+
+<screen>$ CFLAGS="-O3 -march=pentium3" CXXFLAGS="-O3 -march=pentium3" ./configure \
+	--prefix=/opt/kde \
+	--without-xinerama \
+	--disable-debug \
+	--enable-fast-malloc=full \
+	--disable-libfam \
+	--enable-dnotify \
+	--with-ssl-dir=/usr/local/ssl \
+	--enable-kernel-threads
+$ make
+# make install
+</screen>
+</sect2>
+
+<sect2 id="kdebase">
+<title>kdebase</title>
+<para><ulink url="http://ftp.du.se/pub/mirrors/kde/stable/latest/src/">kdebase</ulink> 
+comes next.</para>
+
+<screen>$ CFLAGS="-O3 -march=pentium3" CXXFLAGS="-O3 -march=pentium3" ./configure \
+	--prefix=/opt/kde \
+	--without-xinerama \
+	--disable-debug \
+	--with-shadow
+$ make
+# make install
+</screen>
+</sect2>
+
+<sect2 id="therest">
+<title>Compling the rest</title>
+<para>For each <ulink url="http://ftp.du.se/pub/mirrors/kde/stable/latest/src/">remaining package</ulink>, 
+the following configuration should work nicely.  Note that <command>kdeaddons</command>, if
+installed, should be installed <emphasis>last</emphasis> due to package dependencies.</para>
+
+<screen>$ CFLAGS="-O3 -march=pentium3" CXXFLAGS="-O3 -march=pentium3" ./configure \
+	--prefix=/opt/kde \
+	--without-xinerama \
+	--disable-debug
+$ make
+# make install
+</screen>
+</sect2>
+</sect1>
+
+
+<sect1 id="postinstall">
+<title>Post Installation</title>
+<para>This ensures that nothing bad ever happens to your Qt library path.  Modify the file /etc/ld.so.conf and at the top of the file
+add the following line:</para>
+
+<screen>/usr/local/qt/lib</screen>
+
+<para>And as root, rebuild the library cache by running:</para>
+
+<screen># ldconfig</screen>
+
+<para>Finally, create the file /etc/X11/xinit/xinitrc.kde with the following contents (and `chmod 0755` it):</para>
+
+<screen>#!/bin/sh
+
+userresources=$HOME/.Xresources
+usermodmap=$HOME/.Xmodmap
+sysresources=/usr/X11R6/lib/X11/xinit/.Xresources
+sysmodmap=/usr/X11R6/lib/X11/xinit/.Xmodmap
+
+# merge in defaults and keymaps
+
+if [ -f $sysresources ]; then
+    xrdb -merge $sysresources
+fi
+
+if [ -f $sysmodmap ]; then
+    xmodmap $sysmodmap
+fi
+
+if [ -f $userresources ]; then
+    xrdb -merge $userresources
+fi
+
+if [ -f $usermodmap ]; then
+    xmodmap $usermodmap
+fi
+
+# Start the window manager:
+startkde</screen>
+
+<para>And create a link to it:</para>
+
+<screen># ln -s /etc/X11/xinit/xinitrc.kde /etc/X11/xinit/xinitrc</screen>
+
+<para>To run KDE, use your favorite desktop session manager or simply run:</para>
+
+<screen>$ startx</screen>
+
+<para>If you run into build problems, try dropping the architecture specification down to an i686 (-march=i686)
+and/or dropping the optimization down to an <command>-O2</command> (when in doubt, do both).</para>
+</sect1>
+
+<sect1 id="tuning">
+<title>Additional Tuning</title>
+
+<para>You can perform additional tuning (to increase speed) by compiling in AGP and <ulink url="http://dri.sourceforge.net">DRI</ulink> support in your Linux kernel and your XF86Config
+file.  Recompiling <ulink url="http://www.xfree86.org">XFree86</ulink> from scratch doesn't usually provide an increase in speed, although you should be running XFree86 4.3.0 if
+you're going to all this trouble anyways.  As this article is specific to KDE, these steps are not covered here and
+are left as an exercise to the reader.  (Hint: If you think you've got DRI installed, try running `glxinfo | grep render` to verify -- you might be suprised!)</para>
+
+<para>If you use <command>-no-xinerama</command> in one package, make sure to use it in all packages (and vice-versa) to
+prevent speed delays.</para>
+
+<para>For non-compiling performance tuning tips for KDE, see <ulink url="http://dforce.sh.cvut.cz/~seli/download/tips.html">http://dforce.sh.cvut.cz/~seli/download/tips.html</ulink>.</para>
+</sect1>
+
+<sect1 id="appendix">
+<title>Appendix</title>
+
+<sect2 id="arch">
+<title>Architecture</title>
+
+<para>The info page on gcc 3.2 has this to say about <command>architecture</command>:</para>
+
+<screen>`-mcpu=CPU-TYPE'
+Tune to CPU-TYPE everything applicable about the generated code,
+except for the ABI and the set of available instructions.  The
+choices for CPU-TYPE are `i386', `i486', `i586', `i686',
+`pentium', `pentium-mmx', `pentiumpro', `pentium2', `pentium3',
+`pentium4', `k6', `k6-2', `k6-3', `athlon', `athlon-tbird',
+`athlon-4', `athlon-xp' and `athlon-mp'.
+
+While picking a specific CPU-TYPE will schedule things
+appropriately for that particular chip, the compiler will not
+generate any code that does not run on the i386 without the
+`-march=CPU-TYPE' option being used.  `i586' is equivalent to
+`pentium' and `i686' is equivalent to `pentiumpro'.  `k6' and
+`athlon' are the AMD chips as opposed to the Intel ones.
+
+`-march=CPU-TYPE'
+Generate instructions for the machine type CPU-TYPE.  The choices
+for CPU-TYPE are the same as for `-mcpu'.  Moreover, specifying
+`-march=CPU-TYPE' implies `-mcpu=CPU-TYPE'.</screen>
+</sect2>
+
+<sect2 id="optim">
+<title>Optimization</title>
+
+<para>The info page on gcc 3.2 has this to say about <command>optimization</command>:</para>
+
+<screen>`-O',`-O1'
+Optimize.  Optimizing compilation takes somewhat more time, and a
+lot more memory for a large function.
+
+Without `-O', the compiler's goal is to reduce the cost of
+compilation and to make debugging produce the expected results.
+Statements are independent: if you stop the program with a
+breakpoint between statements, you can then assign a new value to
+any variable or change the program counter to any other statement
+in the function and get exactly the results you would expect from
+the source code.
+
+With `-O', the compiler tries to reduce code size and execution
+time, without performing any optimizations that take a great deal
+of compilation time.
+
+`-O2'
+Optimize even more.  GCC performs nearly all supported
+optimizations that do not involve a space-speed tradeoff.  The
+compiler does not perform loop unrolling or function inlining when
+you specify `-O2'.  As compared to `-O', this option increases
+both compilation time and the performance of the generated code.
+
+`-O2' turns on all optional optimizations except for loop
+unrolling, function inlining, and register renaming.  It also
+turns on the `-fforce-mem' option on all machines and frame
+pointer elimination on machines where doing so does not interfere
+with debugging.
+
+Please note the warning under `-fgcse' about invoking `-O2' on
+programs that use computed gotos.
+
+`-O3'
+Optimize yet more.  `-O3' turns on all optimizations specified by
+`-O2' and also turns on the `-finline-functions' and
+`-frename-registers' options.
+
+`-O0'
+Do not optimize.
+
+`-Os'
+Optimize for size.  `-Os' enables all `-O2' optimizations that do
+not typically increase code size.  It also performs further
+optimizations designed to reduce code size.
+
+If you use multiple `-O' options, with or without level numbers,
+the last such option is the one that is effective.</screen>
+</sect2>
+
+<sect2 id="pipe">
+<title>Pipes</title>
+<para>The info page on gcc 3.2 has this to say about <command>pipes</command>:</para>
+<screen>`-pipe'
+Use pipes rather than temporary files for communication between the
+various stages of compilation.  This fails to work on some systems
+where the assembler is unable to read from a pipe; but the GNU
+assembler has no trouble.</screen>
+</sect2>
+
+<sect2 id="frame">
+<title>Frame Pointers</title>
+<para>The info page on gcc 3.2 has this to say about <command>frame pointers</command>:</para>
+<screen>`-fomit-frame-pointer'
+Don't keep the frame pointer in a register for functions that
+don't need one.  This avoids the instructions to save, set up and
+restore frame pointers; it also makes an extra register available
+in many functions.  *It also makes debugging impossible on some
+machines.*</screen>
+</sect2>
+</sect1>
+
+<sect1 id="about">
+<title>About This Document</title>
+
+<para>Copyright (c) 2003 David Lechnyr. Redistribution and use, with or without modification, are permitted provided that the copyright notice, this list of conditions and the following disclaimer be included.</para>
+<para>THIS DOCUMENTATION IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.</para>
+
+<para>This document was lovingly handcrafted on a Dell Latitude C400 laptop running Slackware Linux 9.0, in case anyone asks.</para>
+</sect1>
+
+</article>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-namecase-general:t
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:nil
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
+
+
+
