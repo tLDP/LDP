@@ -97,6 +97,3 @@ def add_content_length(req, length):
     log(3, "content-length is: " + str(length))
     req.headers_out.add('Content-length', str(length))
 
-if __name__ == '__main__':
-    pass
-

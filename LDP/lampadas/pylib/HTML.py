@@ -476,7 +476,10 @@ class PageFactory:
                 if token=='port':
                     newstring = str(config.port)
                 if token=='base':
-                    newstring = 'http://' + config.hostname + ':' + str(config.port) + config.root_dir
+                    newstring = 'http://' + config.hostname
+                    if config.port > '':
+                        newstring = newstring + ':' + config.port
+                    newstring = newstring + config.root_dir
                     if uri.force_lang:
                         newstring = newstring + uri.language + '/'
                 if token=='page':

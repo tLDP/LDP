@@ -27,10 +27,6 @@ This module provides configuration information from lampadas.conf.
 # Modules ##################################################################
 
 
-# Globals
-
-CONF_FILE = '/etc/lampadas/lampadas.conf'
-
 # BaseConfig ###############################################################
 
 class ConfigFileReadErrorException(Exception) :
@@ -42,6 +38,7 @@ class Config:
     the database.
     """
 
+    config_file = ''
     db_type = ''
     db_name = ''
     log_file = ''
@@ -49,7 +46,7 @@ class Config:
     log_sql = ''
     log_console = 0
     interface = ''
-    port = 80
+    port = ''
     hostname = ''
     root_dir = ''
     file_dir = ''
@@ -61,9 +58,15 @@ class Config:
 
     def __init__(self) :
         import ConfigParser
+        import os
 
         self.config = ConfigParser.ConfigParser()
-        self.config.readfp(open(CONF_FILE))
+        self.config_file    = os.getenv('LAMPADAS_ETC') + '/lampadas.conf'
+        if not os.access(self.config_file, os.F_OK):
+            print self.config_file + " not found."
+            return
+
+        self.config.readfp(open(self.config_file))
 
         self.db_type        = self.read_var('DB', 'dbtype')
         self.db_name        = self.read_var('DB', 'dbname')
@@ -72,7 +75,7 @@ class Config:
         self.log_sql        = int(self.read_var('LOG', 'logsql'))
         self.log_console    = int(self.read_var('LOG', 'logcon'))
         self.interface      = self.read_var('WEBSERVER', 'interface')
-        self.port           = int(self.read_var('WEBSERVER', 'port'))
+        self.port           = self.read_var('WEBSERVER', 'port')
         self.hostname       = self.read_var('WEBSERVER', 'hostname')
         self.root_dir       = self.read_var('WEBSERVER', 'rootdir')
         self.file_dir       = self.read_var('WEBSERVER', 'filedir')
@@ -98,17 +101,15 @@ config = Config()
 # main
 if __name__ == '__main__' :
     print "Running unit tests..."
-    assert config.db_type > ''
-    print "db_type= " + config.db_type
-    assert config.db_name > ''
-    print "db_name= " + config.db_name
-    assert config.log_file > ''
+    print "config_file=" + config.config_file
+    print "db_type=" + config.db_type
+    print "db_name=" + config.db_name
     print "log_file=" + config.log_file
     print "log_level=" + str(config.log_level)
     print "log_sql=" + str(config.log_sql)
     print "log_console=" + str(config.log_console)
     print "interface=" + config.interface
-    print "port=" + str(config.port)
+    print "port=" + config.port
     print "hostname=" + config.hostname
     print "root_dir=" + config.root_dir
     print "cvs_root=" + config.cvs_root

@@ -43,8 +43,8 @@ class testConfigFile(unittest.TestCase):
 
     def testConfigFIle(self):
         log(3, 'testing Config file')
-        assert config.db_type == "pgsql", "db_type is not valid"
-        assert config.db_name == "lampadas", "Database name is not valid"
+        assert config.db_type == "pgsql"
+        assert config.db_name > ''
         assert config.cvs_root > ''
         log(3, 'testing config file done')
 

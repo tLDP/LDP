@@ -119,6 +119,7 @@ class MySQLDatabase(Database):
         from pyMySQL import MySQL
         self.cnx = MySQL.connection(db_name=db_name)
 
+log(2, '               **********Initializing DataLayer**********')
 db = Database()
 db.connect(config.db_type, config.db_name)
 
