@@ -191,7 +191,7 @@ def blast_mail(mail_from, PEOPLE, filestodiff, contextlines, module_name):
 	msgbody = msgbody + "To: " + string.join(dest_addr, ", ") + "\r\n"
 	msgbody = msgbody + "Reply-To: \"General Discuss\" <discuss@en.tldp.org>" + "\n"
 	msgbody = msgbody + "Date: " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + "\r\n"
-	msgbody = msgbody + "Subject: " + module_name + " " + string.join(filestodiff, ", ") + "\r\n"
+	msgbody = msgbody + "Subject: " + module_name + " " + string.join(filestodiff, " , ") + "\r\n"
 	msgbody = msgbody + "X-Mailer: $Id$\r\n"
 	msgbody = msgbody + "Content-Type: text/plain; charset=iso-8859-2" + "\r\n"
 	msgbody = msgbody + "MIME-Version: 1.0" + "\r\n"
