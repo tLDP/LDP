@@ -15,10 +15,30 @@
 
     <revhistory>
       <revision>
-				<revnumber>1.0</revnumber>
-				<date>2002-08-21</date>
-				<authorinitials>ds</authorinitials>
-				<revremark>Better control over bandwidth, more theory, updated for 2.4 kernels</revremark>
+        <revnumber>1.2</revnumber>
+        <date>2002-09-26</date>
+        <authorinitials>ds</authorinitials>
+        <revremark>
+          Added <link linkend="emaillist">link</link> to new Email Discussion List.
+          Added small teaser to caveat section regarding new and improved
+          QoS for Linux designed specifically for ADSL to be released soon.               
+        </revremark>
+      </revision>
+      <revision>
+        <revnumber>1.1</revnumber>
+	<date>2002-08-26</date>
+	<authorinitials>ds</authorinitials>
+	<revremark>
+          A few corrections (Thanks to the many that pointed
+          them out!).  Added informational caveat to implementation
+          section.
+        </revremark>
+      </revision>
+      <revision>
+	<revnumber>1.0</revnumber>
+	<date>2002-08-21</date>
+	<authorinitials>ds</authorinitials>
+	<revremark>Better control over bandwidth, more theory, updated for 2.4 kernels</revremark>
       </revision>
       <revision>
         <revnumber>0.1</revnumber>
@@ -51,10 +71,20 @@
       <title>New Versions of This Document</title>
       <para>You can always view the latest version of this document on the World
       Wide Web at the
-      URL <ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+      URL: <ulink url="http://www.tldp.org">http://www.tldp.org</ulink>.</para>
       <para>New versions of this document will also be uploaded to various Linux
       WWW and FTP sites, including the LDP home page at
-      <ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+      <ulink url="http://www.tldp.org">http://www.tldp.org</ulink>.</para>
+    </sect2>
+    <sect2 id="emaillist">
+      <title>Email Discussion List</title>
+      <para>
+        For questions and update information regarding ADSL Bandwidth Management
+	please subscribe to the ADSL Bandwidth Management email list at
+        <ulink
+         url="http://jared.sonicspike.net/mailman/listinfo/adsl-qos"
+        >http://jared.sonicspike.net/mailman/listinfo/adsl-qos</ulink>.
+      </para>
     </sect2>
     <sect2>
       <title>Disclaimer</title>
@@ -64,13 +94,14 @@
     </sect2>
     <sect2 id="copyright">
       <title>Copyright and License</title>
-      <para>This document is copyright 2001 by Dan Singletary, and is
+      <para>This document is copyright 2002 by Dan Singletary, and is
       released under the terms of the GNU Free Documentation License,
       which is hereby incorporated by reference. </para>
     </sect2>
     <sect2>
       <title>Feedback and corrections</title>
-      <para>If you have questions or comments about this document, please feel free
+      <para>If you have questions or comments about this document, please feel free to
+      contact the author at <ulink url="mailto:dvsing@sonicspike.net">dvsing@sonicspike.net</ulink>.
       </para>
     </sect2>
   </sect1>
@@ -91,6 +122,10 @@
                   <listitem>
                     <para>
                       HTB queue - <ulink url="http://luxik.cdi.cz/~devik/qos/htb/">http://luxik.cdi.cz/~devik/qos/htb/</ulink>
+                    </para> 
+                    <para>
+                      Note: it has been reported that kernels since version 2.4.18-3 shipped with Mandrake (8.1, 8.2)
+                      have already been patched for HTB.
                     </para>
                   </listitem>
                   <listitem>
@@ -335,6 +370,45 @@
     <title>Implementation</title>
     <para>Now with all of the explanation out of the way it's time to implement bandwidth management with Linux.</para>
     <sect2>
+      <title>Caveats</title>
+      <para>
+        Limiting the actual rate of data sent to the DSL modem is not as simple as it may seem.  Most DSL modems
+	are really just ethernet bridges that bridge data back and forth between your linux box and the gateway
+	at your ISP. Most DSL modems use ATM as a link layer to send data.  ATM sends data in cells that are always
+        53 bytes long.  5 of these
+	bytes are header information, leaving 48 bytes available for data.  Even if you are sending 1 byte of data,
+	an entire 53 bytes of bandwidth are consumed sent since ATM cells are always 53 bytes long.  This means that
+	if you are
+	sending a typical TCP ACK packet which consists of 0 bytes data + 20 bytes TCP header + 20 bytes IP header
+	+ 18 bytes Ethernet header.  In actuality, even though the ethernet packet you are sending has only 40 bytes of
+	payload (TCP and IP header), the minimum payload for an Ethernet packet is 46 bytes of data, so the remaining
+	6 bytes are padded with nulls.  This means that the actual length of the Ethernet packet plus header is
+	18 + 46 = 64 bytes.  In order to send 64 bytes over ATM, you have to send two ATM cells which consume 106 
+	bytes of bandwidth.  This means for every TCP ACK packet, you're wasting 42 bytes of bandwidth.
+	This would be okay if Linux accounted for the
+	encapsulation that the DSL modem uses, but instead, Linux only accounts the TCP header, IP header, and 14 bytes
+	of the MAC address (Linux doesn't count the 4 bytes CRC since this is handled at the hardware level).  Linux
+	doesn't count the minimum Ethernet packet size of 46 bytes, nor does it take into account the fixed ATM cell
+	size.
+      </para>
+      <para>
+        What all of this means is that you'll have to limit your outbound bandwidth to somewhat less than your
+	true capacity (until we can figure out a packet scheduler that can account for the various types of
+	encapsulation being used).  You may find that you've figured out a good number to limit your bandwidth to, but
+	then you download a big file and the latency starts to shoot up over 3 seconds.  This is most likely
+	because the bandwidth those small ACK packets consume is being miscalculated by Linux.
+      </para>
+      <para>
+	I have been working on a solution to this problem for a few months and have almost settled on a solution
+	that I will soon release to the public for further testing.  The solution involves using a user-space
+	queue instead of linux's QoS to rate-limit packets.  I've basically implemented a simple HTB queue
+	using linux user-space queues.  This solution (so far) has been able to regulate outbound traffic SO WELL
+	that even during a massive bulk download (several streams) and bulk upload (gnutella, several streams)
+	the latency PEAKS at 400ms over my nominal no-traffic latency of about 15ms.  For more information on
+	this QoS method, subscribe to the email list for updates or check back on updates to this HOWTO.
+      </para>
+    </sect2>
+    <sect2>
       <title>Script: myshaper</title>
       <para>The following is a listing of the script which I use to control bandwidth on my Linux router.  It uses
       several of the concepts covered in the document.  Outbound traffic is placed into one of 7 queues depending
@@ -518,7 +592,7 @@ tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 26 fw flowid 1:26
 # add MYSHAPER-OUT chain to the mangle table in iptables - this sets up the table we'll use
 #                                                      to filter and mark packets.
 iptables -t mangle -N MYSHAPER-OUT
-iptables -t mangle -I POSTROUTING -o eth0 -j MYSHAPER-OUT
+iptables -t mangle -I POSTROUTING -o $DEV -j MYSHAPER-OUT
 
 # add fwmark entries to classify different types of traffic - Set fwmark from 20-26 according to
 #                                                             desired class. 20 is highest prio.
@@ -585,7 +659,7 @@ tc filter add dev imq0 parent 1:0 prio 0 protocol ip handle 21 fw flowid 1:21
 # add MYSHAPER-IN chain to the mangle table in iptables - this sets up the table we'll use
 #                                                         to filter and mark packets.
 iptables -t mangle -N MYSHAPER-IN
-iptables -t mangle -I PREROUTING -i eth0 -j MYSHAPER-IN
+iptables -t mangle -I PREROUTING -i $DEV -j MYSHAPER-IN
 
 # add fwmark entries to classify different types of traffic - Set fwmark from 20-26 according to
 #                                                             desired class. 20 is highest prio.
