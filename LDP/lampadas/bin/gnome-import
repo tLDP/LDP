@@ -1,0 +1,255 @@
+#! /usr/bin/python
+# 
+# This file is part of the Lampadas Documentation System.
+# 
+# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+from Globals import *
+from DataLayer import lampadas
+import sys
+import os
+import fnmatch
+import fileinput
+import re
+import string
+
+# Set to 1 to get debugging messages, 2 to get more
+DEBUG = 1
+
+# These tags don't contain text, so we just mark them
+# in the tag stack, but don't extract anything from them.
+IGNORE_TAGS = ('resource',
+               'subject',
+               'person',
+               '#text')
+
+class Person:
+
+    def __init__(self):
+        self.firstname = ''
+        self.lastname = ''
+        self.email =''
+
+class OMF:
+
+    def __init__(self):
+        self.title = ''
+        self.categories = []
+        self.creators = []
+        self.mime = ''
+        self.language = ''
+        self.url = ''
+        self.description = ''
+        self.type = ''
+
+        self.tags = []
+
+    def parse_xml(self, xml):
+        
+        temp = xml
+
+        # Compress out whitespace around elements
+        temp = temp.replace('\n', '')
+        p = re.compile('>\s+')
+        temp = p.sub('>', temp)
+        p = re.compile('\s+<')
+        temp = p.sub('<', temp)
+
+        # Throw away <omf></omf> and everything outside.
+        p = re.compile('.*<omf>')
+        temp = p.sub('', temp)
+        p = re.compile('<\/omf>.*')
+        temp = p.sub('', temp)
+
+        self.parse_tags(temp)
+        
+    def parse_tags(self, xml):
+        tag, elements, contents, outside = self.parse_next_tag(xml)
+        self.tags = self.tags + [tag]
+
+        # Run through tags recursively. Process any contents
+        # right away, but outside stuff is caught at the
+        # end.
+        if tag in IGNORE_TAGS:
+            if contents > '':
+                self.parse_tags(contents)
+        elif tag=='title':
+            self.title = contents
+        elif tag=='category':
+            self.categories = self.categories + [contents]
+        elif tag=='identifier':
+            self.url = elements['url']
+        elif tag=='format':
+            self.mime = elements['mime']
+        elif tag=='language':
+            self.language = elements['code']
+        elif tag=='creator':
+            creator = Person()
+            self.creators = self.creators + [creator]
+            self.parse_tags(contents)
+        elif tag=='firstname':
+            self.creators[-1].firstname = contents
+        elif tag=='lastname':
+            self.creators[-1].lastname = contents
+        elif tag=='email':
+            self.creators[-1].email = contents
+        elif tag=='description':
+            self.description = contents
+        elif tag=='type':
+            self.type = contents
+        else:
+            print 'ERROR: cannot handle tag %s' % tag
+            sys.exit(1)
+
+        if outside > '':
+            self.parse_tags(outside)
+
+        # Pop this tag back off the stack
+        self.tags.pop()
+            
+    def parse_next_tag(self, xml):
+        p = re.compile('<(\w+)\s*.*?>')
+        m = p.match(xml)
+        tag = m.group(1)
+        
+        p = re.compile('<' + tag + '\s*(.*?)>(.*?)<\/' + tag + '>(.*)')
+        m = p.match(xml)
+
+        if m:
+            elements = self.parse_elements(m.group(1))
+            contents = m.group(2)
+            outside  = m.group(3)
+        else:
+            # If we didn't match, we have shortcut element closure.
+            p = re.compile('<' + tag + '\s*(.*?)\/>(.*)')
+            m = p.match(xml)
+            if m:
+                elements = self.parse_elements(m.group(1))
+                contents = ''
+                outside  = m.group(2)
+            else:
+                print 'ERROR: ' + xml
+                sys.exit(1)
+
+        # lowercase tag once we're done matching it.
+        tag = tag.lower()
+        
+        if DEBUG >= 2:
+            print '------------------------------------'
+            print 'tag:         %s' % tag
+            print 'elements:    %s' % elements
+            print 'contents:    %s' % contents
+            print 'outside:     %s' % outside
+        return tag, elements, contents, outside
+        
+    def parse_elements(self, xml):
+        elements = {}
+        name, value, remainder = self.parse_next_element(xml)
+        elements[name] = value
+        if remainder > '':
+            self.parse_elements(remainder)
+        return elements
+        
+    def parse_next_element(self, xml):
+        if xml=='':
+            return '', '', ''
+        p = re.compile('(\w+)="(.*?)"\s*(.*)')
+        m = p.match(xml)
+        name = m.group(1)
+        value = m.group(2)
+        remainder = m.group(3)
+        return name, value, remainder
+
+    def print_debug(self):
+        print 'title:       %s' % self.title
+        for category in self.categories:
+            print 'category:    %s' % category
+        for creator in self.creators:
+            print 'creator:     %s, %s, %s' % (creator.firstname, creator.lastname, creator.email)
+        print 'mime:        %s' % self.mime
+        print 'language:    %s' % self.language
+        print 'url:         %s' % self.url
+        print 'description: %s' % self.description
+        print 'type:        %s' % self.type
+        
+def callback(arg, directory, files):
+    for file in files:
+        if fnmatch.fnmatch(file, arg):
+            if DEBUG >= 1:
+                print 'Processing %s/%s' % (directory, file)
+            fh = open(os.path.abspath(os.path.join(directory, file)))
+            xml = fh.read()
+            fh.close()
+            omf = OMF()
+            omf.parse_xml(xml)
+
+            # Modify OMF to suit Lampadas
+            omf.language = omf.language.upper()
+            if omf.language=='C':
+                omf.language = 'EN'
+            omf.language = omf.language[:2]
+            if omf.url > '':
+                omf.url = 'file://%s/%s' % (directory, omf.url)
+            if omf.type=='manual':
+                omf.type = 'userguide'
+
+            if DEBUG >= 1:
+                omf.print_debug()
+
+            doc = lampadas.docs.add(omf.title,
+                                    '',              # short_title,
+                                    omf.type,        # type_code
+                                    '',              # format_code
+                                    '',              # dtd_code
+                                    '',              # dtd_version
+                                    '',              # version
+                                    '',              # last_update
+                                    '',              # isbn
+                                    '',              # pub_status_code
+                                    '',              # review_status_code
+                                    '',              # tickle_date
+                                    '',              # pub_date
+                                    '',              # tech_review_status_code
+                                    '',              # license_code
+                                    '',              # license_version
+                                    '',              # copyright_holder
+                                    omf.description, # abstract
+                                    '',              # short_desc
+                                    omf.language,    # lang
+                                    ''               # sk_seriesid
+                                    )
+            if omf.url > '':
+                docfile = doc.files.add(doc.id, omf.url, 1)
+
+
+def usage():
+    print """Usage: gnome-import [FROM-DIR]
+
+    FROM-DIR is a file directory where we start recursively processing
+    OMF files.
+    """
+    sys.exit()
+
+
+# Options passed on the command line
+if len(sys.argv) <> 2:
+    usage()
+gnome_dir = sys.argv[1]
+
+# Read in the omf files.
+os.path.walk(gnome_dir, callback, '*.omf')
+
