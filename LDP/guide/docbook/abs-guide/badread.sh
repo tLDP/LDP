@@ -1,6 +1,6 @@
 #!/bin/bash
 #  badread.sh:
-#  Attempting to use 'read'
+#  Attempting to use 'echo and 'read'
 #+ to assign variables non-interactively.
 
 a=aaa

@@ -36,7 +36,7 @@ fi
 #    *       ) lines=$1;;
 #    esac
 #
-#* Skip ahead to "Loops" chapter to understand this.
+#* Skip ahead to "Loops" chapter to decipher all this.
 
 
 cd $LOG_DIR
@@ -48,8 +48,8 @@ then
   exit $E_XCD
 fi  # Doublecheck if in right directory, before messing with log file.
 
-# far better is:
-# ---
+# far more efficient is:
+#
 # cd /var/log || {
 #   echo "Cannot change to necessary directory." >&2
 #   exit $E_XCD;
@@ -65,7 +65,7 @@ mv mesg.temp messages             # Becomes new log directory.
 # cat /dev/null > messages
 #* No longer needed, as the above method is safer.
 
-cat /dev/null > wtmp  # > wtemp   has the same effect.
+cat /dev/null > wtmp  #  ': > wtmp' and '> wtmp'  have the same effect.
 echo "Logs cleaned up."
 
 exit 0

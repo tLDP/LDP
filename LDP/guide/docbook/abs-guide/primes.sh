@@ -2,7 +2,7 @@
 # primes.sh: Generate prime numbers, without using arrays.
 # Script contributed by Stephane Chazelas.
 
-#  This does *not* use the classic "Sieve of Erastosthenes" algorithm,
+#  This does *not* use the classic "Sieve of Eratosthenes" algorithm,
 #+ but instead uses the more intuitive method of testing each candidate number
 #+ for factors (divisors), using the "%" modulo operator.
 
@@ -40,6 +40,6 @@ exit 0
 # Uncomment lines 17 and 25 to help figure out what is going on.
 
 # Compare the speed of this algorithm for generating primes
-# with the Sieve of Erastosthenes (ex68.sh).
+# with the Sieve of Eratosthenes (ex68.sh).
 
 # Exercise: Rewrite this script without recursion, for faster execution.

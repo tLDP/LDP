@@ -41,7 +41,11 @@ fi
 exit 0
 
 
-# Exercise:
-# --------
+# Exercises:
+# ---------
 # What type of files will this not work on?
 # How can this be fixed?
+#
+#  Rewrite this script to process all the files in a directory
+#+ containing spaces in their names, and to rename them,
+#+ substituting an underscore for each space.

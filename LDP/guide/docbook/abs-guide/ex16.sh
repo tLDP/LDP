@@ -11,7 +11,8 @@ a=`echo Hello!`   # Assigns result of 'echo' command to 'a'
 echo $a
 #  Note that using an exclamation mark (!) in command substitution
 #+ will not work from the command line,
-#+ since this triggers the Bash "history mechanism".
+#+ since this triggers the Bash "history mechanism."
+#  Within a script, however, the history functions are disabled.
 
 a=`ls -l`         # Assigns result of 'ls -l' command to 'a'
 echo $a           # Unquoted, however, removes tabs and newlines.

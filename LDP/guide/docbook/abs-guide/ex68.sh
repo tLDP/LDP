@@ -1,7 +1,7 @@
 #!/bin/bash
 # sieve.sh
 
-# Sieve of Erastosthenes
+# Sieve of Eratosthenes
 # Ancient algorithm for finding prime numbers.
 
 # This runs a couple of orders of magnitude
