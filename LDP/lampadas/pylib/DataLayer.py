@@ -29,7 +29,7 @@ performed through this layer.
 # Modules
 
 # FIXME import * is considered evil for you can pollute your namespace if
-# the imported module changes or makes a mistake
+# the imported module changes or makes a mistake --nico
 
 from Globals import *
 from BaseClasses import *
@@ -37,9 +37,6 @@ from Config import config
 from Database import db
 from Log import log
 
-
-#log(2, '               **********Initializing DataLayer**********')
-#db.connect(config.db_type, config.db_name)
 
 # Lampadas
 
@@ -158,6 +155,7 @@ class Type:
         self.code       = trim(row[0])
         self.sort_order = row[1]
 
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, type_name, type_desc FROM type_i18n WHERE type_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -186,10 +184,11 @@ class Docs(LampadasCollection):
             self[doc.id] = doc
 
 # FIXME: try instantiating a new document, then adding *it* to the collection,
-# rather than passing in all these parameters.
+# rather than passing in all these parameters. --nico
 
     def add(self, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status_code, review_status_code, tickle_date, pub_date, home_url, tech_review_status_code, license_code, abstract, lang, sk_seriesid):
         self.id = db.read_value('SELECT max(doc_id) from document') + 1
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "INSERT INTO document(doc_id, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(url) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(home_url) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(abstract) + ", " + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
@@ -199,6 +198,7 @@ class Docs(LampadasCollection):
         return doc_id
     
     def delete(self, id):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = ('DELETE from document WHERE doc_id=' + str(id))
         assert db.runsql(sql)==1
         db.commit()
@@ -214,6 +214,7 @@ class Doc:
         self.load(id)
 
     def load(self, id):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, maintainer_wanted, license_code, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
@@ -251,6 +252,9 @@ class Doc:
         self.ratings.parent          = self
 
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = "UPDATE document SET title=" + wsq(self.title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", url=" + wsq(self.url) + ", isbn=" + wsq(self.isbn) + ", pub_status=" + wsq(self.pub_status_code) + ", review_status=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", ref_url=" + wsq(self.home_url) + ", tech_review_status=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ", abstract=" + wsq(self.abstract) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
         db.runsql(sql)
         db.commit()
@@ -267,6 +271,7 @@ class DocErrs(LampadasCollection):
     def __init__(self, doc_id):
         self.data = {}
         self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, err_id FROM document_error WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
@@ -277,15 +282,17 @@ class DocErrs(LampadasCollection):
             self.data[doc_err.id] = doc_err
 
     def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM document_error WHERE doc_id=" + str(self.doc_id)
         db.runsql(sql)
         db.commit()
         self.data = {}
 
 # FIXME: Try instantiating a DocErr object, then adding it to the *document*
-# rather than passing all these parameters here.
+# rather than passing all these parameters here. --nico
 
     def add(self, error_id):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.doc_id) + ", " + wsq(error_id)
         assert db.runsql(sql)==1
         doc_err = DocErr()
@@ -315,6 +322,7 @@ class DocFiles(LampadasCollection):
         self.data = {}
         assert not doc_id==None
         self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, filename, top, format_code FROM document_file WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
@@ -325,6 +333,7 @@ class DocFiles(LampadasCollection):
             self.data[newDocFile.filename] = newDocFile
 
     def add(self, doc_id, filename, top, format_code=None):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'INSERT INTO document_file (doc_id, filename, top, format_code) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ')'
         assert db.runsql(sql)==1
         db.commit()
@@ -335,6 +344,7 @@ class DocFiles(LampadasCollection):
         file.format_code = format_code
         
     def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id)
         db.runsql(sql)
         db.commit()
@@ -414,11 +424,15 @@ class DocUser:
         self.active    = tf2bool(row[4])
         
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = 'UPDATE document_user SET role_code=' + wsq(self.role_code) + ', email=' + wsq(self.email) + ', active=' + wsq(bool2tf(self.active)) + ' WHERE doc_id='+ str(self.doc_id) + ' AND username='+ wsq(self.username)
         db.runsql(sql)
         db.commit()
 
     def delete(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM document_user WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
         db.runsql(sql)
         db.commit()
@@ -436,6 +450,7 @@ class DocRatings(LampadasCollection):
         self.parent = None
         assert not doc_id==None
         self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
@@ -458,11 +473,13 @@ class DocRatings(LampadasCollection):
     def delete(self, username):
         if self.data[username]==None: return
         del self.data[username]
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.doc_id) + ' AND username=' + wsq(username)
         db.runsql(sql)
         self.calc_average()
         
     def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.doc_id)
         db.runsql(sql)
         self.data = {}
@@ -475,6 +492,7 @@ class DocRatings(LampadasCollection):
             for key in keys:
                 self.average = self.average + self.data[key].rating
             self.average = self.average / self.count()
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "UPDATE document SET rating=" + str(self.average) + " WHERE doc_id=" + str(self.doc_id)
         if not self.parent==None:
             self.parent.pating = self.average
@@ -492,6 +510,9 @@ class DocRating:
         self.rating       = row[3]
 
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = "DELETE from doc_vote WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
         db.runsql(sql)
         sql = "INSERT INTO doc_vote (doc_id, username, vote) VALUES (" + str(self.doc_id) + ", " + wsq(self.username) + ", " + str(self.rating) + ")"
@@ -510,6 +531,7 @@ class DocVersions(LampadasCollection):
         LampadasCollection.__init__(self)
         assert not doc_id==None
         self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
@@ -533,6 +555,9 @@ class DocVersion:
         self.notes    = trim(row[5])
 
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = "UPDATE document_rev SET version=" + wsq(self.version) + ", pub_date=" + wsq(self.pub_date) + ", initials=" + wsq(self.initials) + ", notes=" + wsq(self.notes) + "WHERE doc_id=" + str(self.doc_id) + " AND rev_id" + wsq(self.id)
         assert db.runsql(sql)==1
         db.commit()
@@ -576,6 +601,7 @@ class License:
         self.license_code = trim(row[0])
         self.free         = tf2bool(row[1])
         self.sort_order   = row[2]
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'SELECT lang, license_short_name, license_name, license_desc FROM license_i18n WHERE license_code=' + wsq(self.license_code)
         cursor = db.select(sql)
         while (1):
@@ -649,6 +675,7 @@ class Err:
 
     def load_row(self, row):
         self.id = trim(row[0])
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + wsq(self.err_id)
         cursor = db.select(sql)
         while (1):
@@ -690,6 +717,7 @@ class Format:
 
     def load_row(self, row):
         self.code = trim(row[0])
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -733,6 +761,7 @@ class Language:
     def load_row(self, row):
         self.code      = trim(row[0])
         self.supported = tf2bool(row[1])
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, lang_name FROM language_i18n WHERE lang_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -777,6 +806,7 @@ class PubStatus:
     def load(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -822,6 +852,7 @@ class ReviewStatus:
     def load(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -869,6 +900,7 @@ class Topic:
     def load(self, row):
         self.code = trim(row[0])
         self.num  = safeint(row[1])
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, topic_name, topic_desc FROM topic_i18n WHERE topic_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -920,6 +952,7 @@ class Subtopic:
         self.num        = safeint(row[1])
         self.topic_code = trim(row[2])
         self.docs       = SubtopicDocs(self.code)
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT lang, subtopic_name, subtopic_desc FROM subtopic_i18n WHERE subtopic_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -936,6 +969,7 @@ class SubtopicDocs(LampadasCollection):
 
     def __init__(self, subtopic_code):
         self.data = {}
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'SELECT doc_id FROM document_topic WHERE subtopic_code=' + wsq(subtopic_code)
         cursor = db.select(sql)
         while (1):
@@ -962,6 +996,7 @@ class UserDocs(LampadasCollection):
     def __init__(self, username):
         self.data = {}
         self.username = username
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE username=" + wsq(username)
         cursor = db.select(sql)
         while (1):
@@ -971,7 +1006,9 @@ class UserDocs(LampadasCollection):
             newUserDoc.load(row)
             self.data[newUserDoc.id] = newUserDoc
 
+
     def add(self, doc_id, role_code, email, active):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "INSERT INTO document_user(doc_id, username, role_code, email, active) VALUES (" + str(doc_id) + ", " + wsq(self.username) + ", " + wsq(role_code) + ", " + wsq(email) + ", " + wsq(bool2tf(active)) +  " )"
         assert db.runsql(sql)==1
         db.commit()
@@ -979,6 +1016,7 @@ class UserDocs(LampadasCollection):
         self.data[doc_id] = newUserDoc
     
     def delete(self, doc_id):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'DELETE from document_user WHERE doc_id=' + str(doc_id) + ' AND username=' + wsq(self.username)
         assert db.runsql(sql)==1
         db.commit()
@@ -1005,6 +1043,9 @@ class UserDoc:
         self.active		= tf2bool(row[4])
 
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = "UPDATE document_user SET role=" + wsq(self.role) + ", email=" + wsq(self.email) + ", active=" + wsq(bool2tf(self.active)) + " WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
         db.runsql(sql)
         db.commit()
@@ -1024,11 +1065,13 @@ class Users:
         return db.read_value('SELECT count(*) from username')
 
     def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ", " + wsq(stylesheet) + ")"
         assert db.runsql(sql)==1
         db.commit()
     
     def delete(self, username):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'DELETE from username WHERE username=' + wsq(username)
         assert db.runsql(sql)==1
         db.commit()
@@ -1040,6 +1083,7 @@ class Users:
     def find_session_user(self, session_id):
         log(3, 'looking for user session: ' + session_id)
         if session_id > '':
+        # FIXME: use cursor.execute(sql,params) instead! --nico
             sql = 'SELECT username FROM username WHERE session_id=' + wsq(session_id)
             cursor = db.select(sql)
             row = cursor.fetchone()
@@ -1069,6 +1113,7 @@ class User:
         self.stylesheet     = ''
         self.name           = ''
 
+        # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE username=' + wsq(username)
         cursor = db.select(sql)
         row = cursor.fetchone()
@@ -1090,6 +1135,9 @@ class User:
         self.docs = UserDocs(self.username)
 
     def save(self):
+        """
+        FIXME: use cursor.execute(sql,params) instead! --nico
+        """
         sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ', stylesheet=' + wsq(self.stylesheet) + ' WHERE username=' + wsq(self.username)
         db.runsql(sql)
         db.commit()
