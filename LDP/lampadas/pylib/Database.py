@@ -39,6 +39,7 @@ import pwd
 import types
 import sys
 
+# FIXME: Why is this here?
 class UnknownDBException(Exception):
     pass
 

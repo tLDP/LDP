@@ -26,36 +26,24 @@ from Globals import *
 from BaseClasses import *
 from Database import db
 
-class Languages(LampadasCollection):
+class Languages(TableCollection):
     """
     A collection object of all languages supported by the ISO 639
     standard.
     """
 
     def __init__(self):
-        self.data = {}
+        TableCollection.__init__(self, Language,
+                                       'language',
+                                       {'lang_code':  'code'},
+                                       ['supported', 'encoding', 'created', 'updated'],
+                                       [{'lang_name': 'name'}])
         self.supported = LampadasCollection()
 
     def load(self):
-        sql = "SELECT lang_code, supported, encoding FROM language"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            language = Language()
-            language.load_row(row)
-            self.data[language.code] = language
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang_code, lang, lang_name FROM language_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang_code = trim(row[0])
-            lang      = trim(row[1])
-            language  = self[lang_code]
-            language.name[lang] = trim(row[2])
+        TableCollection.load(self)
 
+    # TODO: Replace with a reusable filtering system in TableCollection
     def supported_keys(self, lang=''):
         supported = LampadasCollection()
         for key in self.keys():
@@ -77,15 +65,7 @@ class Language:
     Defines a language supported by Lampadas. Documents can be translated into,
     and Lampadas can be localized for, any language supported by ISO 639.
     """
-
-    def __init__(self):
-        self.name = LampadasCollection()
-
-    def load_row(self, row):
-        self.code      = trim(row[0])
-        self.supported = tf2bool(row[1])
-        self.encoding  = trim(row[2])
-
+    pass
 
 languages = Languages()
 languages.load()

@@ -1762,7 +1762,7 @@ class TabNewsItem(Table):
                               '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
                               '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n' \
                               '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td><td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strnews|</td><td>%s</td><td>%s</td></tr>' \
+                              '<tr class="%s"><td class="label">|strnews|</td><td width="100%%">%s</td><td>%s</td></tr>' \
                               '</form>'
                               % (news.id, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],
@@ -1896,10 +1896,9 @@ class TabPage(Table):
                               '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
                               '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
                               '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strpage|:</td><td>%s</td>\n<td>%s</td>\n</tr>\n' \
+                              '<tr class="%s"><td class="label">|strpage|:</td><td width="100%%">%s</td>\n<td>%s</td>\n</tr>\n' \
                               '</form>'
-                              % (page.code,
-                                 lang,
+                              % (page.code, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],
                                  odd_even.get_last(), widgets.version(page.version[lang], ''),
                                  odd_even.get_last(), widgets.title(page.title[lang], ''),
@@ -2014,7 +2013,7 @@ class TabString(Table):
                               '<input type=hidden name="lang" value="%s">\n' \
                               '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td><td></td></tr>\n' \
                               '<tr class="%s"><td class="label">|strversion|</td><td>%s:</td><td></td>'
-                              '<tr class="%s"><td class="label">|strstring|</td><td>%s:</td><td>%s</td>'
+                              '<tr class="%s"><td class="label">|strstring|</td><td width="100%%">%s:</td><td>%s</td>'
                               '</form>'
                               % (webstring.code, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],

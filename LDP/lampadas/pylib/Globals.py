@@ -201,7 +201,6 @@ def time2str(time):
     if time:
         timestr = str(time)
         return timestr
-        return timestr[:19] # Let's try it w/o trimming the TZ.
     else:
         return ''
 

@@ -23,6 +23,11 @@ These base classes are subclassed by other Lampadas objects,
 but are never instantiated directly.
 """
 
+from Globals import *
+from Database import db
+import string
+import types
+
 class LampadasCollection:
     """
     Base class for Lampadas dictionaries or collection objects.
@@ -94,4 +99,91 @@ class LampadasCollection:
             langvalue = value[lang]
             item.sort_order = langvalue
         return self.sort_by('sort_order')
+
+
+class TableCollection(LampadasCollection):
+
+    def __init__(self, object=None, table='', indexfields=[], fields=[], i18nfields=[]):
+        LampadasCollection.__init__(self)
+        self.object      = object
+        self.table       = table
+        self.indexfields = []
+        self.fields      = []
+        self.i18nfields  = []
+        self.map         = {}
+
+        self.indexfields   = self.parse_fieldmap(indexfields)
+        self.fields        = self.parse_fieldmap(fields)
+        self.i18nfields    = self.parse_fieldmap(i18nfields)
+        self.allfields     = self.indexfields + self.fields
+        self.alli18nfields = self.indexfields + self.i18nfields
+
+    def parse_fieldmap(self, map):
+        if type(map)==types.StringType:
+            self.map[map] = map
+            return [map]
+        elif type(map)==types.DictType:
+            self.map[string.join(map.keys())] = string.join(map.values())
+            return map.keys()
+        elif type(map)==types.ListType:
+            fields = []
+            for field in map:
+                fields2 = self.parse_fieldmap(field)
+                fields += fields2
+            return fields
+
+    def load(self):
+        LampadasCollection.__init__(self)
+        self.load_table()
+        if len(self.i18nfields) > 0:
+            self.i18ntable = self.table + '_i18n'
+            self.load_i18n_table()
+
+    def load_table(self):
+        sql = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            identifier = row[0]
+            object = self.object()
+            i = 0
+            for field in self.allfields:
+                alias = self.map[field]
+                value = self.convert_field(row[i])
+                setattr(object, alias, value)
+                i += 1
+            self[identifier] = object
+
+    def load_i18n_table(self):
+        for key in self.keys():
+            object = self[key]
+            for field in self.i18nfields:
+                setattr(object, self.map[field], LampadasCollection())
+        sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields) + ' FROM ' + self.i18ntable + ' ORDER BY ' + string.join(self.indexfields, ', ')
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            identifier = row[0]
+            lang = row[1]
+            object = self[identifier]
+            i = 2
+            for field in self.i18nfields:
+                value = self.convert_field(row[i])
+                alias = self.map[field]
+                coll = getattr(object, alias)
+                coll[lang] = value
+                setattr(object, field, coll)
+
+    def convert_field(self, value):
+        type_name = str(type(value))
+        if type_name=="<type 'string'>":
+            return trim(value)
+        elif type_name=="<type 'DateTime'>":
+            return time2str(value)
+        elif type_name=="<type 'libpq.PgBoolean'>":
+            return tf2bool(value)
+        else:
+            print 'Unrecognized type: ' + type_name
 

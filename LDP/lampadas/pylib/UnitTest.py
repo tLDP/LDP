@@ -75,6 +75,7 @@ class testDocs(unittest.TestCase):
                                 '1.0',
                                 '2002-04-04',
                                 'ISBN',
+                                'UTF-8',
                                 'N',
                                 'N',
                                 '2002-04-05',
@@ -91,7 +92,7 @@ class testDocs(unittest.TestCase):
                                 '2002-01-01 15:35:21',
                                 '2002-02-02 15:35:22',
                                 '2002-03-03 15:35:23',
-                                )
+                                '2002-01-01 12:12:12')
 
         assert not doc==None
         assert doc.title=='Test Document'
@@ -303,7 +304,7 @@ class testUsers(unittest.TestCase):
         count = lampadas.users.count()
         assert count > 0
 
-        user = lampadas.users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
+        user = lampadas.users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here')
         assert not user==None
         assert user.username=='testuser'
         assert user.email=='foo@example.com'
