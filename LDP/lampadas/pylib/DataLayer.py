@@ -115,6 +115,7 @@ class Lampadas:
 		self.Docs	= Docs()
 		self.Docs.Load()
 		self.DTDs	= DTDs()
+		self.Formats	= Formats()
 		self.Languages	= Languages()
 		self.Strings	= Strings()
 		self.Topics	= Topics()
@@ -497,6 +498,51 @@ class DTD:
 		self.DTD = trim(row[0])
 
 
+# Formats
+
+class Formats(LampadasCollection):
+	"""
+	A collection object of all formats.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT format FROM format"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newFormat = Format()
+			newFormat.Load(row)
+			self.data[newFormat.Format] = newFormat
+
+class Format:
+
+	def __init__(self, Format=None):
+		self.I18n = {}
+		if Format==None: return
+		self.Code = Format
+
+	def Load(self, row):
+		self.Format = trim(row[0])
+		self.sql = "SELECT lang, format_name FROM format_i18n WHERE format=" + wsq(self.Format)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newFormatI18n = FormatI18n()
+			newFormatI18n.Load(self.row)
+			self.I18n[newFormatI18n.Lang] = newFormatI18n
+
+# FormatI18n
+
+class FormatI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+
+
 # Languages
 
 class Languages(LampadasCollection):
@@ -529,7 +575,7 @@ class Language:
 		self.Name = trim(row[1])
 
 
-# String
+# Strings
 
 class Strings(LampadasCollection):
 	"""

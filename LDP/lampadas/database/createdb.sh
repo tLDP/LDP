@@ -15,6 +15,7 @@ psql lampadas -qf document_wiki.sql
 psql lampadas -qf doc_vote.sql
 psql lampadas -qf dtd.sql
 psql lampadas -qf format.sql
+psql lampadas -qf format_i18n.sql
 psql lampadas -qf language.sql
 psql lampadas -qf license.sql
 psql lampadas -qf notes.sql

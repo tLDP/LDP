@@ -194,6 +194,12 @@ class testDTDs(unittest.TestCase):
 		assert L.DTDs.Count() > 0
 		assert not L.DTDs['DocBook'] == None
 
+class testFormats(unittest.TestCase):
+
+	def testFormats(self):
+		assert L.Formats.Count() > 0
+		assert not L.Formats['XML'] == None
+
 class testLanguages(unittest.TestCase):
 
 	def testLanguages(self):
