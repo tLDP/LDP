@@ -1,6 +1,8 @@
-# Slovak-HOWTO
-# make a single SGML file from Slovak-HOWTO sources
-# with latin2 chars replaced with SGML entities
+# $Id$
+
+
+VERSION = 4 (Blanka)
+DATE = $(shell LC_TIME=sk date +"%e. %B %Y")
 
 
 SOURCES = 	apps.sgml	\
@@ -14,11 +16,15 @@ SOURCES = 	apps.sgml	\
 		unicode.sgml	\
 		xwindow.sgml
 
+ADD_DEPS = Makefile Lat2ent.pl Single-SGML.awk
 
-Slovak-HOWTO.sgml: $(SOURCES)
-	./Single-SGML.awk <index.sgml | ./Lat2ent.pl >Slovak-HOWTO.sgml
+
+Slovak-HOWTO.sgml: $(SOURCES) $(ADD_DEPS)
+	./Single-SGML.awk <index.sgml \
+	| sed -e"s/@date@/$(DATE)/g" -e"s/@version@/$(VERSION)/g" \
+	| ./Lat2ent.pl >Slovak-HOWTO.sgml
 
 .PHONY: clean
 
 clean:
-	rm Slovak-HOWTO.sgml
+	$(RM) Slovak-HOWTO.sgml

@@ -1,8 +1,6 @@
 #!/bin/awk -f
-#
-# merge Slovak-HOWTO sgml sources into one file
-# author: Jan 'judas' Tomka, Oct 13 2001
-# usage: single-sgml.awk <index.sgml >Slovak-HOWTO.sgml
+# merge Slovak-HOWTO SGML sources into one file
+# usage: Single-SGML.awk <index.sgml >Slovak-HOWTO.sgml
 
 /ENTITY[[[:blank:]]+skhowto\.\w+/ {
 	sub(/skhowto\./, "", $2)
