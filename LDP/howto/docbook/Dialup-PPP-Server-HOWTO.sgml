@@ -1,0 +1,246 @@
+<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+<article id="index">
+<articleinfo id="pppdialin">
+	<title>Dialup PPP Server HOWTO</title>
+	<subtitle>Building a stand-alone Dialup server with Linux</subtitle>
+
+<authorgroup>
+<author>
+        <firstname>Michael</firstname>
+        <surname>Cassera</surname>
+<affiliation>
+	<orgname>Las Vegas Data LLC.</orgname>
+		<address>
+			<email><ulink url="mailto:michaelc@lasvegasdata.com">michaelc@lasvegasdata.com</ulink></email>
+		</address>
+</affiliation>
+</author>
+</authorgroup>
+<othercredit role=translator>
+        <firstname>Eric</firstname>
+        <surname>Womack</surname>
+<affiliation>
+	<orgname>Las Vegas Data LLC.</orgname>
+		<address>
+			<email><ulink url="mailto:eric@lasvegasdata.com">eric@lasvegasdata.com</ulink></email>
+		</address>
+</affiliation>
+<contrib>SGML Markup</contrib>
+</othercredit>
+
+<date>2002-03-01</date>
+
+<revhistory>
+	<revision>
+		<revnumber>.1</revnumber>
+		<date>2002-03-01</date>
+		<revremark>Initial Write-Up</revremark>
+	</revision>
+</revhistory>
+
+<abstract>
+<para>
+This document is compiled from several other HOWTOs to make a single HOWTO that strictly deals with building a dialup server.
+</para>
+</abstract>
+</articleinfo>
+
+<sect1 id="base">
+	<title>What to Install</title>
+<para>
+You will need mgetty and pppd for this howto.  The base Linux install for this HOWTO is RedHat 7.1.  pppd is installed by default, but mgetty is not.  Do a server install, select individual packages.  Select mgetty and continue with the install.
+</para>
+</sect1>
+
+<sect1 id="ppp">
+	<title>PPP Server Setup</title>
+<para>
+For this HOWTO we are adding an external modem to ttyS1.  Adjust the settings to your setup.  External modems usually end up on ttyS0 or ttyS1.  Internal modems are not.
+</para>
+<sect2 id="tty">
+	<title>ttyS? discovery</title>
+<para>
+Red Hat is pretty good at finding internal modems as long as they are not the "winmodem" type.  It assigns a ttyS number to it and creates a symbolic link from /dev/modem to it.  To find the ttyS number for your modem simply do a STAT command:
+</para>
+<programlisting>
+stat /dev/modem
+</programlisting>
+<para>
+You will get a bunch of information regarding the link, but the first line will look somthing like this:
+</para>
+<programlisting>
+File: "/dev/modem" -> "/dev/ttyS1"
+</programlisting>
+<para>
+Use that ttyS number for the rest of this HowTo.
+</para>
+</sect2>
+<sect2 id="inittab">
+	<title>inittab</title>
+<para>
+Add one line to the end of the /etc/inittab  (for each modem)
+</para>
+<programlisting>
+S1:2345:respawn:/sbin/mgetty -D ttyS1
+</programlisting>
+<para>
+The "-D" tells the modem that it is to be treated as a data modem.  No Fax.
+</para>
+</sect2>
+<sect2 id="mgetty">
+	<title>mgetty+sendfax/login.config</title>
+<para>
+You need to edit the /etc/mgetty+sendfax/login.config file to enable Autoppp(a_ppp).  The command is already in the file, but has a leading "#".  Simply remove the "#" from the front of the command and save the file.  It should look like the following:
+</para>
+<programlisting>
+/AutoPPP/ -	a_ppp	/usr/sbin/pppd auth -chap +pap login debug
+</programlisting>
+<para>
+You should not need to change anything since we will put all our connection settings in /etc/ppp/options and /etc/pap-secrets.
+</para>
+</sect2>
+<sect2 id="pap">
+	<title>pap-secrets</title>
+<para>
+Update /etc/ppp/pap-secrets.  Type in "*" for client, "*" for server, " "" " for secret and "*" for IP address (omit the quotes except for secret which only gets one set of double quotes).  This configuation will enable every registered user on the dialup server computer remote access to log in.  You could also specify usernames, passwords and IP address for PAP authentication
+</para>
+</sect2>
+<sect2 id="pppopt">
+	<title>ppp-options</title>
+<para>
+Open /etc/ppp/options for editing.  The file copntains system and initializations default options for pppd.  The default file simply says "lock" on the first line.  Add the following commands so that it matches the following:
+</para>
+<programlisting>
+lock
+-detach
+modem
+crtscts
+proxyarp
+asyncmap 0
+</programlisting>
+<variablelist>
+<varlistentry>
+	<term>Lock</term>
+		<listitem>
+		<para>Create a lock file to have exclusive access to the particular device</para>
+		</listitem>
+</varlistentry>
+<varlistentry>
+	<term>-detach</term>
+		<listitem>
+		<para>tells pppd not to fork to (become a background process), otherwise it will do so is a serial device is specified</para>
+		</listitem>
+</varlistentry>
+<varlistentry>
+	<term>modem</term>
+		<listitem>
+		<para>sets to use modem control lines.  Client will wait for a signal from the modem to be asserted when opening the serial device.  Unless otherwise specified.</para>
+		</listitem>
+</varlistentry>
+<varlistentry>
+	<term>crtcts</term>
+		<listitem>
+		<para>Use hardware flow control.</para>
+		</listitem>
+</varlistentry>
+<varlistentry>
+	<term>proxyarp</term>
+		<listitem>
+		<para>This will make the client appear that it is on the lan to it's peers.</para>
+		</listitem>
+</varlistentry>
+<varlistentry>
+	<term>asyncmap 0</term>
+		<listitem>
+		<para>Tells pppd not to set up and use escape control sequences</para>
+		</listitem>
+</varlistentry>
+</variablelist>
+</sect2>
+<sect2 id="ttyname">
+	<title>options.ttyNAME</title>
+<para>
+To set a specific IP for a client and server for each tty, create the /etc/ppp/options.ttyNAME file for each tty.  Our example is using ttyS1 so the file we create is /etc/ppp/options.ttyS1.  For each serial line you set up a server IP and client IP in the following format:
+</para>
+<programlisting>
+serverIP:clientIP
+</programlisting>
+<para>
+For example.  If the dialup server's IP address on the network was 192.168.1.32 and you wanted the remote machine dialing in to have an IP of 192.168.1.151 you would add the following line options.ttyNAME:
+</para>
+<programlisting>
+192.168.1.32:192.168.1.151
+</programlisting>
+</sect2>
+</sect1>
+
+<sect1 id="remote">
+	<title>Getting the remote machine internet access.</title>
+<para>
+All that we have done to this point was to get a ppp connection between the dialup server and the remote machine.  To allow the remote machine access to the internet through the lan that the dialup server is connect to we need to edit /etc/sysconfig/ipchains and /etc/sysctl.conf
+</para>
+<sect2 id="ipchains">
+	<title>ipchains</title>
+<para>
+Edit the file /etc/sysconfig/ipchains.  More than likely this file does not yet exist.  Add the following line:
+</para>
+<programlisting>
+-A forward -s xxx.xxx.xxx.0/24 -j MASQ
+</programlisting>
+<para>
+Replace the "xxx" with the appropriate IP address.  An example on our network might look like this:
+</para>
+<programlisting>
+-A forward -s 192.168.1.0/24 -j MASQ
+</programlisting>
+<para>
+Save the file.
+</para>
+</sect2>
+
+<sect2 id="sysctl">
+	<title>sysctl.conf</title>
+<para>
+Edit the /etc/sysctl.conf file.
+</para>
+<para>
+change:
+</para>
+<programlisting>
+net.ipv4.ip_forward = 0
+</programlisting>
+<para>
+to:
+</para>
+<programlisting>
+net.ipv4.ip_forward = 1
+</programlisting>
+<para>
+This will enable packet forwarding to the remote computer.  Reboot the computer and it should be ready to receive a call from a remote machine.
+</para>
+</sect2>
+</sect1>
+<sect1 id="credit">
+	<title>Credit</title>
+<para>
+Much of the information here is copied from <ulink url="http://www.redhat.com/support/docs/tips/Dialup-Tips/ppp_server_tips-1.html">PPP Quick Setup Tips</ulink>
+</para>
+</sect1>
+
+<sect1 id="license"><title>License</title>
+
+<para>
+GNU Free Documentation License
+<ulink url="http://www.gnu.org/copyleft/fd1.html">http://www.gnu.org/copyleft/fd1.html</ulink>
+</para>
+
+<para>
+Copyright (C) 2002 Michael Cassera
+</para>
+<para>
+Everyone is permitted to copy and distribute verbatim copies of this license document, but changing it is not allowed.
+</para>
+
+</sect1>
+
+</article>
