@@ -18,19 +18,14 @@ from Defaults import META_TYPE
 from socket import gethostname
 
 factory_type_information = (
-    {'id': 'CMF CVS File',
-     'meta_type': META_TYPE,
-     'description': 'A file in a CVS repository.',
-     'content_icon': 'file_icon.gif',
-     'icon': 'file_icon.gif',
-     'product': 'PloneCVSFile',
-     'factory': 'addPloneCVSFile',
+    {'id':             META_TYPE,
+     'meta_type':      META_TYPE,
+     'description':    'A file in a CVS repository.',
+     'icon':           'file_icon.gif',
+     'product':        'PloneCVSFile',
+     'factory':        'addPloneCVSFile',
      'immediate_view': 'metadata_edit_form',
      'actions': ({'id': 'view',
-                  'name': 'View',
-                  'action': 'view',
-                  'permissions': (CMFCorePermissions.View,)},
-                 {'id': 'file view',
                   'name': 'View',
                   'action': 'file_view',
                   'permissions': (CMFCorePermissions.View,)},
@@ -55,7 +50,7 @@ this_module = sys.modules[__name__]
 
 z_bases = utils.initializeBasesPhase1(bases, this_module)
 
-plonecvsfile_globals = globals()
+cfm_cvsfile_globals = globals()
 registerDirectory('skins', globals())
 
 def initialize(context):
@@ -83,14 +78,14 @@ def initialize(context):
     # CMF Initialization
     utils.initializeBasesPhase2(z_bases, context)
     utils.ContentInit(
-        meta_type = 'CVS File Content',
+        meta_type = META_TYPE,
         content_types = (PloneCVSFile.PloneCVSFile,),
-        permission = 'Create CVS File',
+        permission = CMFCorePermissions.ModifyPortalContent,
         extra_constructors = (PloneCVSFile.manage_add,),
         fti = factory_type_information,
         ).initialize(context)
-    context.registerClass(PloneCVSFile.PloneCVSFile,
-        constructors=(PloneCVSFile.manage_addForm,
-                      PloneCVSFile.manage_add,),
-        )
-                      
+#    context.registerClass(PloneCVSFile.PloneCVSFile,
+#        constructors=(PloneCVSFile.manage_addForm,
+#                      PloneCVSFile.manage_add,),
+#        )
+    

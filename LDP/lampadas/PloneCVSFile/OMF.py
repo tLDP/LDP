@@ -33,24 +33,25 @@ class OMF(DefaultDublinCoreImpl):
                  relations = (),        # A related document's identifier
                  coverages = ()         # geographic, distribution, kernel, architecture, os tuples
                  ):
-        self._editMetadata(title,
-                           subject,
-                           description,
-                           contributors,
-                           effective_date,
-                           expiration_date,
-                           format,
-                           language,
-                           rights,
-                           authors,
-                           maintainers,
-                           versions,
-                           types,
-                           formats,
-                           identifiers,
-                           sources,
-                           relations,
-                           coverages)
+        self.setTitle(title)
+        self.setSubject(subject)
+        self.setDescription(description)
+        self.setContributors(contributors)
+        self.setEffectiveDate(effective_date)
+        self.setExpirationDate(expiration_date)
+        self.setFormat(format)
+        self.setLanguage(language)
+        self.setRights(rights)
+        self.setAuthors(authors)
+        self.setMaintainers(maintainers)
+        self.setVersions(versions)
+        self.setTypes(types)
+        self.setFormats(formats)
+        self.setIdentifiers(identifiers)
+        self.setSources(sources)
+        self.setRelations(relations)
+        self.setCoverages(coverages)
+        #self._editMetadata(title, subject, description, contributors, effective_date, expiration_date, format, language, rights, authors, maintainers, versions, types, formats, identifiers, sources, relations, coverages)
 
     security.declareProtected(CMFCorePermissions.ModifyPortalContent, '_editMetadata')
     def _editMetadata(self,

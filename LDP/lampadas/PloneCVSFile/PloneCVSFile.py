@@ -132,6 +132,8 @@ class PloneCVSFile(CVSFile, File, PortalContent, OMF):
     isPortalContent = 1
     _isPortalContent = 1
     
+    _isTypeInformation = 1
+    
     meta_type = META_TYPE
     portal_type = PORTAL_TYPE
 
@@ -179,6 +181,7 @@ class PloneCVSFile(CVSFile, File, PortalContent, OMF):
         CVSFile.__init__(self, id, title, description, relativeFilePath)
         File.__init__(self, id, title, relativeFilePath)
         OMF.__init__(self)
+        self.data = ''
     
     def inCMF(self):
         """Return true if this object is in a CMF portal.
@@ -194,22 +197,34 @@ class PloneCVSFile(CVSFile, File, PortalContent, OMF):
     def SearchableText(self):
         return self.getContents()
 
-    security.declarePublic('data')
-    def data(self):
-        """Provided for compatibility with CMF File objects."""
-        return self.getContents(None, None)
-        
     security.declarePublic('getContents')
     def getContents(self, REQUEST=None, RESPONSE=None):
         """Returns the contents of the file if possible."""
         return CVSFile.getContents(self, REQUEST, RESPONSE)
 
+    security.declareProtected(CMFCorePermissions.ModifyPortalContent, 'setFileInfo')
     def setFileInfo(self, filepath='', title='', description=''):
         """Sets meta-data from the CVS properties screen.
         """
-        self.filepath = filepath
-        self.title = title
-        self.description = description
+        self.setTitle(title)
+        self.setDescription(description)
+        self.setFilepath(filepath)
 
+    security.declareProtected(CMFCorePermissions.ModifyPortalContent, 'setTitle')
+    def setTitle(self, ttle):
+        """Set ths ttle property."""
+        self.title = title
+        
+    security.declareProtected(CMFCorePermissions.ModifyPortalContent, 'setDescription')
+    def setDescription(self, description):
+        """Set ths description property."""
+        self.description = description
+        
+    security.declareProtected(CMFCorePermissions.ModifyPortalContent, 'setFilepath')
+    def setFilepath(self, filepath):
+        """Set ths filepath property."""
+        self.filepath = filepath
+        self.data = self.getContents()
+        
 # register security information
 Globals.InitializeClass(PloneCVSFile)
