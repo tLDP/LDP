@@ -1778,7 +1778,7 @@ class TabNews(Table):
 # from having this tag applied.
 
                 box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
-                          '<tr class="%s"><td class="nontabular" align="top"><b>%s</b></td>\n'
+                          '<tr class="%s"><td class="nontabularlabel">%s</td>\n'
                           '               <td class="nontabular">%s</td>\n'
                           '</tr>\n'
                           % (edit_icon,
@@ -1809,9 +1809,9 @@ class TabNewsItem(Table):
             box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
                              '<table class="box"><tr><th colspan="3">|strnews|</th></tr>\n' \
                              '<input type=hidden name="news_id" value="%s">\n' \
-                             '<tr><td class="label">|strpub_date|</td>\n' \
-                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                             '<tr><td class="nontabularlabel">|strpub_date|</td>\n' \
+                             '    <td class="nontabular"><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td class="nontabular"><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (news.id, news.pub_date))
@@ -1828,18 +1828,20 @@ class TabNewsItem(Table):
                     box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="label">%s:</td>' \
-                              '    <td><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
-                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                              '<tr class="%s"><td class="nontabularlabel">%s</td>' \
+                              '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%" value="%s">\n' \
+                              ' <p><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
+                              '    <td class="nontabular"><input type=submit name="save" value="|strsave|"></td>\n' \
                               '</tr></form>'
-                              % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.news[lang]))
+                              % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.headline[lang], news.news[lang]))
 
             # Add a new translation
             box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
                       '<input type=hidden name="news_id" value="%s">\n' \
-                      '<tr class="%s"><td>%s:</td>' \
-                      '    <td><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
-                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '<tr class="%s"><td class="nontabularlabel">%s</td>' \
+                      '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%">\n' \
+                      ' <p><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
+                      '    <td class="nontabular"><input type=submit name="save" value="|stradd|"></td>\n' \
                       '</tr></form>'
                       % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
             box.write('</table>')
@@ -1847,9 +1849,9 @@ class TabNewsItem(Table):
             news = NewsItem()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
                              '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
-                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
-                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
+                             '<tr class="odd"><td class="nontabularlabel">|strpub_date|</td>\n' \
+                             '    <td class="nontabular"><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td class="nontabular" colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (news.pub_date))

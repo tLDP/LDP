@@ -2,7 +2,7 @@ insert(none, None,
 [The document format is not based on a DTD.])
 
 insert(html, HTML,
-[HTML is an SGML DTD, and the linguafranca of the Internet.])
+[HTML is an SGML DTD, and the linguafranca of the World Wide Web.])
 
 insert(linuxdoc, LinuxDoc,
 [An SGML based DTD, LinuxDoc is older than DocBook and not as powerful,
