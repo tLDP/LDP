@@ -1,4 +1,3 @@
-
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
 
 <Article Lang="en">
@@ -17,7 +16,7 @@
 
     <Copyright>
       <Year>1995,1996,1997,1998,1999,2000</Year>
-      <Holder>Tom Fawcett.</Holder>
+      <Holder>Tom Fawcett</Holder>
     </Copyright>
 
     <Legalnotice>
@@ -30,7 +29,7 @@
       </Para>
     </Legalnotice>
 
-    <Pubdate>v4.1, September 2000</Pubdate>
+    <Pubdate>v4.2, November 2000</Pubdate>
 
     <Abstract>
       <Para> This document describes how to design and build boot/root
@@ -84,15 +83,12 @@
     <Sect2><Title>Yet to do</Title>
 
       <Para>
-      Any volunteers?
 
       <Orderedlist>
 	  
 	  <Listitem>
 	    <Para>
-            Describe (or link to another document that describes) how to
-	    create other bootable disk-like things, such as CDROMs, ZIP
-	    disks and LS110 disks.
+            Describe how to create bootable LS110 disks.
             </Para>
 	  </Listitem>
 
@@ -1008,8 +1004,9 @@ should contain is surprisingly small.
         /bin/hostname Kangaroo
 </Programlisting>
 
-Be sure the directories are right.  You don't really need to run
-<Command>hostname</Command> &mdash; it just looks nicer if you do.
+Be sure it is executable, and be sure any absolute filenames are
+correct.  You don't really need to run <Command>hostname</Command>
+&mdash; it just looks nicer if you do.
 
 </Para>
 </Listitem>
@@ -2340,6 +2337,142 @@ user through installation.  It appears to use both a customized
 
 </sect1>
 
+<sect1><Title>Creating bootable CD-ROMs</Title>
+    <note>
+      <para>This section was contributed by Rizwan Mohammed Darwe
+      (<literal>rizwan AT clovertechnologies dot com</literal>)
+     </para>
+    </note>
+
+<para>
+This section assumes that you are familiar with the process and workings of
+writing CDs in linux.  Consider this to be a quick reference to include the
+ability to boot the CD which you will burn.  The CD-Writing-HOWTO should give you
+an in-depth reference.
+</para>
+
+<sect2><title>What is El Torito?</title>
+
+<para>
+For the x86 platform, many BIOS's have begun to support bootable CDs.
+The patches for mkisofs is based on the standard called "El Torito".
+Simply put, El Torito is a specification that says how a cdrom should 
+be formatted such that you can directly boot from it.
+</para>
+
+<para>
+The "El Torito" spec says that <emphasis>any</emphasis> cdrom drive should
+work (SCSI or EIDE) as long as the BIOS supports El Torito.  So far this has
+only been tested with EIDE drives because none of the SCSI controllers that
+has been tested so far appears to support El Torito.  The motherboard
+definately has to support El Torito.  How do you if your motherboard supports
+"El Torito"?  Well, the ones that support lets you choose booting from HD,
+Floppy, Network or CDROM.
+</para>
+
+</Sect2>
+<Sect2>
+<title>How it Works</title>
+
+<para> The El Torito standard works by making the CD drive appear, through
+BIOS calls, to be a normal floppy drive.  This way you simply put any floppy
+size image (exactly 1440k for a 1.44 meg floppy) somewhere in the ISO
+filesystem.  In the headers of the ISO fs you place a pointer to this image.
+The BIOS will then grab this image from the CD and for all purposes it acts as
+if it were booting from the floppy drive.  This allows a working LILO boot
+disk, for example, to simply be used as is.  </para>
+
+<para>Roughly speaking, the first 1.44 (or 2.88 if supported) Mbytes of the
+CD-ROM contains a floppy-disk image supplied by you. This image is treated
+like a floppy by the BIOS and booted from.  (As a consequence, while booting
+from this virtual floppy, your original drive A:
+(<filename>/dev/fd0</filename>) may not be accessible, but you can try with
+<filename>/dev/fd1</filename>).  </para>
+
+</Sect2>
+
+<sect2><title>How to make it work</title>
+
+<para>
+First create a file, say "boot.img", which is an exact image of the bootable 
+floppy-disk which you want to boot via the CD-ROM.  This must be an 1.44 MB 
+bootable floppy-disk.  The command below will do this
+<Screen>
+	dd if=/dev/fd0 of=boot.img bs=10k count=144
+</Screen>
+assuming the floppy is in the A: drive.
+</para>
+
+<para>
+Place this image somewhere in the hierarchy which will be the source
+for the iso9660 filesystem. It is a good idea to put all boot related
+files in their own directory ("boot/" under the root of the iso9660 fs,
+for example).
+</para>
+
+<para>
+One caveat -- Your boot floppy <emphasis>must</emphasis> load any initial
+ramdisk via LILO, not the kernel ramdisk driver!  This is because once the
+linux kernel starts up, the BIOS emulation of the CD as a floppy disk is
+circumvented and will fail.  LILO will load the initial ramdisk using BIOS
+disk calls, so the emulation works as designed.
+</para>
+
+<para> 
+The El Torito specification requires a "boot catalog" to be created as
+well.  This is a 2048 byte file which is of no interest except it is required.
+The patchwork done by the author of mkisofs will cause it to automatically
+create the boot catalog, but you must specify where the boot catalog will go
+in the iso9660 filesystem.  Usually it is a good idea to put it in the same
+place as the boot image, and a name like <filename>boot.catalog</filename>
+seems appropriate.
+</para>
+
+<para>So we have our boot image in the file <filename>boot.img</filename>,
+and we are going to put it in the directory <filename
+class="directory">boot/</filename> under the root of the iso9660 filesystem.
+We will have the boot catalog go in the same directory with the name
+<filename>boot.catalog</filename>.  The command to create the iso9660 fs in
+the file <filename>bootcd.iso</filename> is then:
+
+<screen>
+mkisofs -r -b boot/boot.img -c boot/boot.catalog -o bootcd.iso .
+</screen>
+
+The <option>-b</option> option specifies the boot image to be used (note the
+path is relative to the root of the iso9660 disk), and the <option>-c</option>
+option is for the boot catalog file.  The <option>-r</option> option will make
+approptiate file ownerships and modes (see the <filename>mkisofs</filename>
+manpage). The "."  in the end says to take the source from the current
+directory.  </para>
+
+<para>
+Now burn the CD with the usual cdrecord command and it is ready to boot.
+</para>
+</sect2>
+
+<sect2><title>Create Win9x Bootable CD-Roms</title>
+
+<para>The first step is to get hold of the bootable image used by the source
+CD.  But you cannot simply mount the CD under linux and dd the first 1440k to
+a floppy disk or to a file like <filename>boot.img</filename>.  Instead you
+simply boot with the source CD-ROM.  </para>
+
+<para>When you boot the Win98 CD you are dropped to A: prompt which is the
+actual ramdisk.  And D: or Z: is where all the installables are residing.  By
+using the diskcopy command of dos copy the A: image into the actual floppy
+drive which is now B:  The command below will do this.
+<screen>
+diskcopy A: B: 
+</screen>
+
+It works just like dd.  You can try booting from this newly created disk to
+test if the booting process is similar to that of the source CD.  Then the
+usual dd of this floppy to a file like boot.img and then rest is as usual.
+</para>
+</sect2>
+</sect1>
+
 <sect1><title>Frequently Asked Question (FAQ) list</title>
 
 <QandAset defaultlabel='qanda'>
@@ -2944,25 +3077,6 @@ available on Metalab and mirrors.
 
 </Sect1>
 
-<Sect1><title>Linux FAQ and HOWTOs</title>
-
-<para>
-These are available from many sources.  Look at the usenet newsgroups
-<literal>news.answers</literal> and <literal>comp.os.linux.announce</literal>.
-</para>
-
-<para> 
-
-The FAQ is available from <ulink
-url="http://linuxdoc.org/FAQ/Linux-FAQ.html">
-http://linuxdoc.org/FAQ/Linux-FAQ.html</ulink>
-and the HOWTOs from <ulink url="http://linuxdoc.org/HOWTO/HOWTO-INDEX.html">http://linuxdoc.org/HOWTO/HOWTO-INDEX.html</ulink>.  Most documentation for
-Linux may be found at <ulink url="http://linuxdoc.org/">The Linux
-Documentation Project homepage</ulink>.
-</para>
-
-</Sect1>
-
 <Sect1><Title>Ramdisk usage</title>
 <Indexterm><Primary>ramdisk</Primary></Indexterm>
 
@@ -3171,6 +3285,7 @@ Guide for an explanation of these.
 </para>
 
 </Appendix>
+
 
 <Appendix id="Listings">
 <Title>Sample root filesystem listings</title>
@@ -3527,4 +3642,3 @@ lrwxrwxrwx   1 root     root            5 Jul 29 21:35 vi &ndash;&#62; elvis
 </Para>
 </Appendix>
 </Article>
-
