@@ -15,9 +15,18 @@
     </affiliation>
    </author>
   </authorgroup>
-  <pubdate>2001-12-21</pubdate>
+  <pubdate>2002-01-26</pubdate>
 
   <revhistory>
+     <revision>
+       <revnumber>1.6</revnumber>
+       <date>2002-01-26</date>
+       <authorinitials>dpg</authorinitials>
+       <revremark>
+             ATAPI cdrom selection
+       </revremark>
+     </revision>
+     <!-- Additional (*earlier*) revision histories go here -->
      <revision>
        <revnumber>1.5</revnumber>
        <date>2001-12-21</date>
@@ -64,6 +73,7 @@
   <copyright>
    <year>2000</year>
    <year>2001</year>
+   <year>2002</year>
    <holder>Douglas Gilbert</holder>
   </copyright>
 
@@ -146,7 +156,7 @@ version is at <ulink url="http://www.torque.net/scsi/SCSI-2.4-HOWTO.ps">
 <literal>www.torque.net/scsi/SCSI-2.4-HOWTO.ps</literal></ulink>).
 </para>
 <para>
-This document was built on 21st December 2001.
+This document was built on 26th January 2002.
 </para>
 </chapter>
 
@@ -869,13 +879,21 @@ to newsgroups or maintainers it is useful to include the output of this
 file (e.g. <command>cat /proc/scsi/aic7xxx/0 </command>).
 </para>
 <para>
-The general information on the proc pseudo file system can be found in
-the kernel source file: 
-<filename>/usr/src/linux/Documentation/filesystems/proc.txt</filename>.
+The cdrom driver provides information about attached cdrom devices
+in the <filename>/proc/sys/dev/cdrom</filename> directory. This will
+include both SCSI devices (i.e. those controlled by the sr driver) and
+IDE devices (i.e. those controlled by the ide-cd driver).
+See <xref linkend="srproc">.
 </para>
 <para>
-The sg driver provides information about hosts and devices in directory
-<filename>/proc/scsi/sg</filename> . See <xref linkend="sgproc">.
+The sg driver provides information about its state and attached hosts and 
+devices in the <filename>/proc/scsi/sg</filename> directory. 
+See <xref linkend="sgproc">.
+</para>
+<para>
+More general information on the proc pseudo file system can be found in
+the kernel source file: 
+<filename>/usr/src/linux/Documentation/filesystems/proc.txt</filename>.
 </para>
 </chapter>
 
@@ -1252,7 +1270,8 @@ ATA is the modern name for what was previously known as IDE and/or EIDE.
 Note that the subsystem that controls ATA devices in Linux is called
 the "IDE" subsystem for historical reasons.
 </para></footnote>
-transport. 
+transport. [The discussion in this section is also applicable to ATAPI
+tape drives and ATAPI floppy drives.]
 </para>
 <para>
 Currently both <command>cdrecord</command> and <command>cdparanoia</command>
@@ -1269,48 +1288,55 @@ the ATAPI interface.
 </para>
 <para>
 The default action of the IDE subsystem in Linux is to claim all ATA
-devices for its drivers. In the case of an ATAPI cd writer, it will be
-claimed by the ide-cd driver. Once this has happened, the SCSI subsystem
-is unable to get control over an ATAPI device. The ide-scsi (pseudo
-lower level SCSI) driver can only register ATAPI devices in the SCSI
-subsystem that have <emphasis>not</emphasis> already been claimed
-by IDE subsystem.
+devices for its built-in drivers. In the case of an ATAPI cd writer, it 
+will be claimed by the built-in ide-cd driver. Once this has happened, 
+the SCSI subsystem is unable to get control over an ATAPI device. The 
+ide-scsi (pseudo lower level SCSI) driver can only register ATAPI devices 
+in the SCSI subsystem that have <emphasis>not</emphasis> already been 
+claimed by IDE subsystem.
 </para>
 <para>
-To change this default action, parameters need to be passed to the IDE
-subsystem that instruct it not to register a given device. Let us assume that
-a cd writer is connected to the second IDE controller in the slave
-position (i.e. <filename>/dev/hdd</filename>). One of the following
-two techniques may 
-<footnote><para>
-Another less targeted approach is available when both the ide-cd
-and ide-scsi drivers are modules. That is to <command>rmmod ide-scsi;
-rmmod ide-cd; modprobe ide-scsi</command>.
-</para></footnote>
-be used:
-<itemizedlist>
-<listitem><para>at kernel boot time pass the option: "hdd=scsi"
-</para></listitem>
-<listitem><para>load the ide-cd module with
-<command>modprobe ide-cd ignore=hdd</command>. This can also be
-accomplished by placing this line: "options ide-cd ignore=hdd"
-in the <filename>/etc/modules.conf</filename> file
-</para></listitem>
-</itemizedlist>
-The first technique can only be done at boot time (and can be automated
-using lilo with an "append" in the <filename>/etc/lilo.conf</filename>
-file). It assumes that the main IDE subsystem driver is built in, which
-is almost always the case. The second technique assumes that the ide-cd
-driver is a module which is not normally the case (i.e. most distributions
-build it in). After one of these techniques has been applied, loading the
-ide-scsi driver should register the cd writer at <filename>/dev/hdd
-</filename> as <filename>/dev/sr&lt;n></filename> where the "n" is
-the next available number.
+Notice the <emphasis>built-in</emphasis> qualification in the previous 
+paragraph. If both the ide-cd and ide-scsi drivers are modules then the 
+first one loaded will claim the ATAPI cd devices (e.g. cd/dvd readers and 
+writers). Furthermore you can switch the controlling driver module by 
+<command>rmmod</command>-ing one and <command>modprobe</command>-ing the 
+other.
 </para>
 <para>
-To find out if the above worked, the output of 
-<command>cat /proc/scsi/scsi</command> can be checked. Perhaps a simpler
-method is to observe the "drive name:" line of
+Probably the most flexible way to instruct the IDE core driver that you
+want the cd writer at <filename>/dev/hdd</filename> accessible to
+<command>cdrecord</command> is to use the kernel boot option: 
+"hdd=ide-scsi". This will cause the ide-cd driver to bypass 
+<filename>/dev/hdd</filename> (irrespective of whether ide-cd driver is 
+built-in or a module). As long as the ide-scsi driver is built-in or a 
+module then it will "capture" the cd writer
+at <filename>/dev/hdd</filename> (with the IDE core driver loading the
+ide-scsi module if required).
+</para>
+<para>
+The ide-cd driver module can be instructed to ignore certain ATA devices
+with the following syntax:
+<programlisting>
+modprobe ide-cd ignore='hdc hdd'
+</programlisting>
+In this case the ide-cd driver will ignore the devices at 
+<filename>/dev/hdc</filename> and <filename>/dev/hdd</filename> .
+This effect can also be accomplished by placing a line like this: 
+"options ide-cd ignore=hdd" in the <filename>/etc/modules.conf</filename> 
+file.
+</para>
+<para>
+A new option added in the lk 2.4 series is of the form "hdd=scsi".
+This option seems to have a similar function to the "hdd=ide-scsi"
+option discussed above. Furthermore "hdd=scsi" can only be used if
+both the SCSI mid-level and the ide-scsi drivers are built into the
+kernel (otherwise "BAD OPTION" is reported by the ide_setup function).
+</para>
+<para>
+To find out whether an ATAPI cd device is "owned" by the SCSI subsystem, 
+the output of <command>cat /proc/scsi/scsi</command> can be checked. 
+Another technique is to observe the "drive name:" line of
 <command>cat /proc/sys/dev/cdrom/info</command> for "sr" entries. The
 following output is from my system:
 <programlisting>
@@ -1342,6 +1368,30 @@ subsystem, then cdroms should be mounted via the "sr" device name
 and cd players should also use the "sr" device. Strangely the
 <command>hdparm</command> command should still use the <filename>
 /dev/hdd</filename> device file.
+<footnote><para>
+In the linux 2.4 kernel series there has been an increase in problems when
+the ide-scsi driver is used so that <command>cdrecord</command> can control
+ATAPI (IDE) cd writers. The problem may be related to the aggressive manner 
+in which the IDE subsystem attempts to optimize the speed of data transfers 
+on devices it controls. Some people experiencing timeouts and machine lockups 
+have found that reducing the DMA setting via the <command>hdparm</command>
+command has fixed the problem. If the cd writer is connected to 
+<filename>/dev/hdd</filename> then users have reported success with one of
+these two commands: 
+<programlisting>
+    hdparm -d0 -c1 /dev/hdd 
+    hdparm -d 1 -X 34 /dev/hdd 
+</programlisting>
+The first one turns off DMA completely while the second one sets it in
+"multiword DMA mode 2". Cd writers do not need the types of speeds that 
+modern disks utilize. Even burning at "x16" implies a sustained transfer 
+rate of 16 times 150 KB/sec which is approximately 2.4 MB/sec, not
+really that fast. There has also been a report that moving a cd writer off
+a high speed IDE controller (Promise) and back to the motherboard's lower 
+speed IDE controllers has fixed a random IDE bus reset problem. Another 
+report suggests reducing (or turning off) the DMA on the IDE hard disk can 
+also stop lockups.
+</para></footnote>
 </para>
 </sect2>
 </sect1>
@@ -1375,6 +1425,11 @@ variant for each of 4 modes (numbered 0 to 3). See the tape device
 file name examples in <xref  linkend="dnames"> on device names. Any number of
 tape drives (up to the overall limit of 32) can be added after the st
 driver is loaded.
+</para>
+<para>
+ATAPI tape drives can be controlled by this driver with help from the
+ide-scsi pseudo adapter driver.  The discussion in <xref linkend="sratapi"> 
+also applies for ATAPI tape drives (and ATAPI floppies).
 </para>
 
 <sect2 id="stbparams">
@@ -1464,20 +1519,16 @@ book on the subject of SCSI programming and pass through mechanisms see
 reference <link linkend="B3">B3</link>.
 </para>
 <para>
-Currently the sg documentation focuses on the production version of sg found
-in the lk 2.2 series. The abridged form is in the file <filename>
-scsi-generic.txt</filename> which can also be found in the kernel source at
-<filename>/usr/src/linux/Documentation/scsi-generic.txt</filename>.
-The web site also contains a longer form called <filename>
-scsi-generic_long.txt</filename>. This documentation describes
-what is termed as "version 2" sg.
-</para>
-<para>
-The sg driver in lk 2.4 has the "version 3" sg driver which adds an
-additional interface and some new ioctl()s. The most interesting new ioctl()
-is SG_IO which sends a SCSI command and waits for its response. The
-additions and differences in the version 3 sg driver are documented on
-the web site in the file <filename>scsi-generic_v3.txt</filename>.
+The sg driver in lk 2.4 is "version 3" which adds an additional interface
+structure and some new ioctl()s. The most interesting new ioctl()
+is SG_IO which sends a SCSI command and waits for its response. 
+See the Linux Documentation Project site:
+<ulink url="http://www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/">
+<literal>www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/</literal></ulink> 
+for a full description of the sg driver.
+A (possibly later) version of this document can be found at
+<ulink url="http://www.torque.net/sg/p/sg_v3_ho.html">
+<literal>www.torque.net/sg/p/sg_v3_ho.html</literal></ulink>.
 </para>
 <para>
 The abbreviation "sg" is used within the kernel to refer both to the
@@ -2249,16 +2300,19 @@ most recent ATA technology is outlined in the next paragraph.
 </para>
 </formalpara>
 
-<formalpara><title>ATA 100</title>
+<formalpara><title>ATA 133</title>
 <para>
 The ATA standards used by IDE devices have also been marching through
 the adjectives (e.g. fast and ultra) and the numbers (e.g. 2, 33,
-66 and 100). The most recent addition is ATA 100 which supports
-burst rates of 100 MB/sec and up to 4 (was 2) devices per bus. [PCs often
-have 2 ATA buses.] Both ATA 66 and 100 need a special cable. ATA
-cables are relatively short precluding IDE devices being external to
+66, 100 and 133). The most recent addition is ATA 133 which supports
+burst rates of 133 MB/sec and up to 2 devices per bus. [PCs typically
+have 2 and often 4 ATA buses.] ATA 66, 100 and 133 need a special cable.
+ATA cables are relatively short precluding IDE devices being external to
 the computer. Cable lengths have previously been limited to 18 inches
-although 1 metre long cables have now appeared.
+although 1 metre long cables have now appeared. Coincidently 133 MB/sec
+in also the maximum throughput of the normal PCI bus found in most
+PCs. The are higher speed (and wider) versions of PCI but they are
+relatively rare.
 </para>
 </formalpara>
 
@@ -2364,10 +2418,8 @@ No sr changes reported. As a related matter, the way in which the
 IDE subsystem is informed that an ATA device (e.g. a cd writer) is
 to be ignored has changed. [Instructing an ATA device to be ignored
 by the IDE subsystem makes it a candidate to be recognized by the
-ide-scsi pseudo driver.] Previously a kernel boot time option such as
-"hdb=ide-scsi" would instruct the IDE subsystem to ignore the
-device at <filename>/dev/hdb</filename>. In lk 2.4 this has become
-"hdb=scsi".
+ide-scsi pseudo driver.] In lk 2.4 the "hdb=scsi" kernel boot option 
+has been added. See <xref linkend="sratapi"> for more details.
 </para>
 </sect1>
 
@@ -2502,6 +2554,17 @@ SCSI subsystem (and into block subsystem),
 </para></listitem>
 <listitem><para>
 [2.4.15] lk 2.5.0 forks off so lk2.4.15==lk2.5.0 .
+</para></listitem>
+<listitem><para>
+[2.4.17] add generic_unplug_device() call to scsi_wait_req(). This stops
+long waits in SCSI_IOCTL_SEND_COMMAND.
+</para></listitem>
+<listitem><para>
+[2.4.17] fix device scanning bug where, in some cases, the scsi_level
+(i.e. SCSI standard adherence) was misplaced.
+</para></listitem>
+<listitem><para>
+[2.4.17] major sg driver update, add mmap()-ed IO
 </para></listitem>
 </itemizedlist>
 </para>
@@ -3178,10 +3241,13 @@ if any of these links become stale.
 <anchor id="W4">
 [W4] The author's scsi generic (sg) site is:
 <ulink url="http://www.torque.net/sg">
-<literal>www.torque.net/sg</literal></ulink>. The documentation for
-version 3 of the sg driver is also at this site:
+<literal>www.torque.net/sg</literal></ulink>. 
+The Linux Documentation Project's site includes the
+<ulink url="http://www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/">
+<literal>www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/</literal></ulink> .
+A (possibly later) version of that document can be found at
 <ulink url="http://www.torque.net/sg/p/sg_v3_ho">
-<literal>www.torque.net/sg/p/sg_v3_ho</literal></ulink>.
+<literal>www.torque.net/sg/p/sg_v3_ho</literal></ulink> .
 The sg_utils and sg3_utils packages, as tarballs and as binary and source 
 rpms can also be found on this page. These packages and others available
 for the sg driver are discussed at 
