@@ -607,33 +607,6 @@ class Tables(LampadasCollection):
                                      },
                              show_search=0)
 
-    def tabdocadmin(self, uri):
-        """Returns a set of controls for publishing documents."""
-
-        # FIXME: Only 'N'ormal documents should be publishable!
-
-        if sessions.session and sessions.session.user.can_edit(uri.id)==1:
-            doc = lampadas.docs[uri.id]
-            box = WOStringIO('<table class="box"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
-                             '<tr><td class="label">|strdoc_check_errors|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strlint_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
-                             '<tr><td class="label">|strdoc_mirror|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_mirror?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strmirror_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
-                             '<tr><td class="label">|strdoc_publish|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_publish?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strpub_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
-                             '</table>'
-                             % (doc.id, doc.lint_time, doc.id, doc.mirror_time, doc.id, doc.pub_time))
-
-            return box.get_value()
-        else:
-            return '|blknopermission|'
-
     def errors(self, uri):
         """
         Builds a complete list of all errors reported by Lintadas.
@@ -1879,7 +1852,32 @@ class DocAdmin(Table):
         Table.__init__(self, 'docadmin', self.method)
 
     def method(self, uri):
-        return tables.tabdocadmin(uri)
+        """Returns a set of controls for publishing documents."""
+
+        # FIXME: Only 'N'ormal documents should be publishable!
+
+        if sessions.session and sessions.session.user.can_edit(uri.id)==1:
+            doc = lampadas.docs[uri.id]
+            box = WOStringIO('<table class="box nontabular"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
+                             '<tr><td class="label">|strdoc_check_errors|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strlint_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '<tr><td class="label">|strdoc_mirror|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_mirror?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strmirror_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '<tr><td class="label">|strdoc_publish|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_publish?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strpub_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '</table>'
+                             % (doc.id, doc.lint_time, doc.id, doc.mirror_time, doc.id, doc.pub_time))
+
+            return box.get_value()
+        else:
+            return '|blknopermission|'
+
 
 # The off-by-one error is intentional. If 0 is passed in items, we never
 # stop processing items, but list them all intead.

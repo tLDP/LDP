@@ -159,12 +159,29 @@ class Collections(LampadasCollection):
 class Collection:
     """A collection is an arbitrary set of documents."""
 
-    def __init__(self, collection_code=None):
+    def __init__(self, collection_code=''):
+        self.code = collection_code
         self.name = LampadasCollection()
         self.description = LampadasCollection()
-        if collection_code==None: return
-        self.code = collection_code
+        if collection_code=='': return
+        self.load()
 
+    def load(self):
+        sql = 'SELECT collection_code, sort_order FROM collection HHERE collection_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = 'SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n WHERE collection_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang = row[1]
+            self.name[lang] = trim(row[2])
+            self.description[lang] = trim(row[3])
+        
     def load_row(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
