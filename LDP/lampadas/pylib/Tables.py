@@ -37,6 +37,8 @@ import os
 import fpformat
 import string
 
+# FIXME: Replace the rest of the form elements, including buttons, with widgets in the widget library.
+
 ICON_CELLS_COUNT = 4
 
 # MimeType icons for downloadable formats. Not all are used yet.
@@ -1746,7 +1748,7 @@ class Tables(LampadasCollection):
         box = WOStringIO('<p class="hide"><div class="map">\n' \
                          '<h1 id="p1">|strproject|</h1>\n')
         id = 1
-        for key in languages.supported_keys():
+        for key in languages.supported_keys(uri.lang):
             id = id + 1
             language = languages[key]
             box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
@@ -1939,38 +1941,47 @@ class TabNewsItem(Table):
                              '</form>\n' % (news.id, news.pub_date))
 
             # List the available translations
-            box.write('<table class="box nontabular" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
-                      '<tr><th class="collabel">|strlanguage|</td>\n' \
-                      '    <th class="collabel" colspan="2">|strnews|</th>' \
-                      '</tr>')
+            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
-            for lang in languages.supported_keys():
+            for lang in languages.supported_keys(uri.lang):
                 if not news.news[lang]==None:
                     box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="label">%s</td>' \
-                              '    <td><input type=text name="headline" width="40" style="width:100%%" value="%s">\n' \
-                              ' <p><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
-                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                              '</tr></form>'
-                              % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.headline[lang], news.news[lang]))
+                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td><td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strnews|</td><td>%s</td><td>%s</td></tr>' \
+                              '</form>'
+                              % (news.id, lang,
+                                 odd_even.get_next(), languages[lang].name[uri.lang],
+                                 odd_even.get_last(), widgets.version(news.version[lang]),
+                                 odd_even.get_last(), widgets.headline(news.headline[lang]),
+                                 odd_even.get_last(), widgets.news(news.news[lang]),
+                                 widgets.save()))
 
-            # Add a new translation
-            box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
-                      '<input type=hidden name="news_id" value="%s">\n' \
-                      '<tr class="%s"><td class="label">%s</td>' \
-                      '    <td><input type=text name="headline" width="40" style="width:100%%">\n' \
-                      ' <p><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
-                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
-                      '</tr></form>'
-                      % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+            # Add a new translation if there are untranslated languages.
+            if len(news.untranslated_lang_keys(uri.lang)) > 0:
+                box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
+                          '<input type=hidden name="news_id" value="%s">\n' \
+                          '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
+                          '<tr class="%s"><td class="label">|strlanguage|</td><td>%s</td>\n<td></td></tr>\n' \
+                          '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n' \
+                          '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td></tr>\n' \
+                          '<tr class="%s"><td class="label">|strnews|</td><td>%s</td><td>%s</td></tr>' \
+                          '</form>'
+                          % (news.id, odd_even.get_next(),
+                             odd_even.get_last(), widgets.new_news_lang(news.id, uri.lang),
+                             odd_even.get_last(), widgets.version('1.0'),
+                             odd_even.get_last(), widgets.headline(''),
+                             odd_even.get_last(), widgets.news(''),
+                             widgets.save()))
             box.write('</table>')
         else:
             news = NewsItem()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
-                             '<table class="box nontabular"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
+                             '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
                              '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
                              '    <td><input type=text name="pub_date" value="%s"></td>\n' \
                              '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
@@ -2048,7 +2059,7 @@ class TabPage(Table):
                              '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
                              '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
                              '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stradjust_sort_order|</td>\n<td>%s</td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
+                             '<tr><td class="label">|stradjust_sort_order|</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (escape_tokens(page.code),
                                             page.code,
@@ -2059,48 +2070,52 @@ class TabPage(Table):
                                             widgets.tf('only_admin', page.only_admin),
                                             widgets.tf('only_sysadmin', page.only_sysadmin),
                                             widgets.data(page.data),
-                                            widgets.adjust_sort_order()
-                                           ))
+                                            widgets.adjust_sort_order(),
+                                            widgets.save()))
 
             # List the available translations
             box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
 
-            for lang in languages.supported_keys():
+            odd_even = OddEven()
+            for lang in languages.supported_keys(uri.lang):
                 if not page.page[lang]==None:
                     box.write('<form method=GET action="|uri.base|data/save/page_lang">\n' \
                               '<input type=hidden name="page_code" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
-                              '<tr><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr><td class="label">|strpage|:</td><td><textarea name="page" rows="20" cols="40" style="width:100%%">%s</textarea></td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
+                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strpage|:</td><td>%s</td>\n<td>%s</td>\n</tr>\n' \
                               '</form>'
                               % (page.code,
                                  lang,
-                                 languages[lang].name[uri.lang],
-                                 widgets.title(page.title[lang], ''),
-                                 widgets.menu_name(page.menu_name[lang]),
-                                 widgets.version(page.version[lang], ''),
-                                 escape_tokens(page.page[lang])
-                                ))
+                                 odd_even.get_next(), languages[lang].name[uri.lang],
+                                 odd_even.get_last(), widgets.version(page.version[lang], ''),
+                                 odd_even.get_last(), widgets.title(page.title[lang], ''),
+                                 odd_even.get_last(), widgets.menu_name(page.menu_name[lang]),
+                                 odd_even.get_last(), widgets.page(escape_tokens(page.page[lang])),
+                                 widgets.save()))
 
             # Add a new translation if there are untranslated languages.
-            if len(page.untranslated_lang_keys()) > 0:
+            if len(page.untranslated_lang_keys(uri.lang)) > 0:
                 box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
                       '<input type=hidden name="page_code" value="%s">\n' \
-                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
-                      '<tr><td class="label">|strlanguage|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr><td class="label">|strpage|:</td><td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n<td><input type=submit name="save" value="|stradd|"></td>\n</tr>\n' \
+                      '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
+                      '<tr class="%s"><td class="label">|strlanguage|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr class="%s"><td class="label">|strpage|:</td><td>%s</td>\n<td>%s</td>\n</tr>\n' \
                       '</form>'
                       % (page.code,
-                     widgets.new_page_lang(uri.code, uri.lang),
-                     widgets.title(''),
-                     widgets.menu_name(''),
-                     widgets.version('')))
+                         odd_even.get_next(),
+                         odd_even.get_last(), widgets.new_page_lang(uri.code, uri.lang),
+                         odd_even.get_last(), widgets.version('1.0'),
+                         odd_even.get_last(), widgets.title(''),
+                         odd_even.get_last(), widgets.menu_name(''),
+                         odd_even.get_last(), widgets.page(''),
+                         widgets.add()))
             box.write('</table>')
         else:
             page = Page()
@@ -2121,10 +2136,7 @@ class TabPage(Table):
                                             widgets.tf('only_registered', page.only_registered),
                                             widgets.tf('only_admin', page.only_admin),
                                             widgets.tf('only_sysadmin', page.only_sysadmin),
-                                            widgets.data(page.data)
-                                           ))
-
-            
+                                            widgets.data(page.data)))
         return box.get_value()
         
 class TabStrings(Table):
@@ -2173,51 +2185,59 @@ class TabString(Table):
             return '|blknopermission|'
 
         if uri.code > '':
-            string = lampadasweb.strings[uri.code]
+            webstring = lampadasweb.strings[uri.code]
 
             box = WOStringIO('<form method=GET action="|uri.base|data/save/string">\n' \
                              '<table class="box"><tr><th colspan="2">|strstring|</th></tr>\n' \
                              '<tr><td class="label">|strstring_code|:</td>\n<td>%s</td>\n</tr>\n' \
                              '</table>\n' \
-                             '</form>\n' % (string.code))
+                             '</form>\n' % (webstring.code))
 
             # List the available translations
-            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
-                      '<tr><th class="collabel">|strlanguage|</td>\n' \
-                      '    <th class="collabel" colspan="2">|strstring|</th>' \
-                      '</tr>')
+            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
-            for lang in languages.supported_keys():
-                if not string.string[lang]==None:
+            for lang in languages.supported_keys(uri.lang):
+                if not webstring.string[lang]==None:
                     box.write('<form method=GET action="|uri.base|data/save/string_lang">\n' \
                               '<input type=hidden name="string_code" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="label">%s:</td>' \
-                              '    <td><input type=text name="string" value="%s" style="width:100%%"></td>' \
-                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                              '</tr></form>'
-                              % (string.code, lang, odd_even.get_next(), languages[lang].name[uri.lang], string.string[lang]))
+                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td><td></td></tr>\n' \
+                              '<tr class="%s"><td class="label">|strversion|</td><td>%s:</td><td></td>'
+                              '<tr class="%s"><td class="label">|strstring|</td><td>%s:</td><td>%s</td>'
+                              '</form>'
+                              % (webstring.code, lang,
+                                 odd_even.get_next(), languages[lang].name[uri.lang],
+                                 odd_even.get_last(), widgets.version(webstring.version[lang]),
+                                 odd_even.get_last(), widgets.string(webstring.string[lang]),
+                                 widgets.save()))
 
-            # Add a new translation
-            box.write('<form method=GET action="|uri.base|data/save/newstring_lang">\n' \
-                      '<input type=hidden name="string_code" value="%s">\n' \
-                      '<tr class="%s"><td>%s:</td>' \
-                      '    <td><input type=text name="string" style="width:100%%"></td>' \
-                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
-                      '</tr></form>'
-                      % (string.code, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+            # Add a new translation if there are untranslated languages.
+            if len(webstring.untranslated_lang_keys(uri.lang)) > 0:
+                box.write('<form method=GET action="|uri.base|data/save/newstring_lang">\n' \
+                          '<input type=hidden name="string_code" value="%s">\n' \
+                          '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
+                          '<tr class="%s"><td class="label">|strlanguage|:</td><td>%s</td><td></td></tr>' \
+                          '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td><td></td></tr>' \
+                          '<tr class="%s"><td class="label">|strstring|:</td><td>%s</td><td>%s</td></tr>'
+                          '</form>'
+                          % (webstring.code,
+                             odd_even.get_next(),
+                             odd_even.get_last(), widgets.new_string_lang(uri.code, uri.lang),
+                             odd_even.get_last(), widgets.version('1.0'),
+                             odd_even.get_last(), widgets.string(''),
+                             widgets.save()))
             box.write('</table>')
         else:
-            string = String()
+            webstring = String()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newstring">\n' \
                              '<table class="box"><tr><th colspan="3">|stradd_string|</th></tr>\n' \
                              '<tr class="odd"><td class="label">|strstring_code|:</td>\n' \
                              '    <td><input type=text name="string_code" value="%s"></td>\n' \
-                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
+                             '    <td colspan="2">%s</td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
-                             '</form>\n' % (string.code))
+                             '</form>\n' % (webstring.code, widgets.add()))
             
         return box.get_value()
 

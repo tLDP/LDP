@@ -4,6 +4,7 @@ CREATE TABLE news_i18n
 	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
 	news			TEXT		NOT NULL,
 	headline		CHAR(120)	NOT NULL,
+	version			CHAR(12)	NOT NULL DEFAULT '1.0',
 	created			TIMESTAMP	NOT NULL DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 

@@ -85,7 +85,7 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def dtd_version(self, value, lang, css_class='', view=0):
+    def dtd_version(self, value, css_class='', view=0):
         input = WOStringIO('<input type="text" name="dtd_version" size="8" maxlenth="20" value="%s"%s>' % (value, css_class))
         return input.get_value()
 
@@ -95,8 +95,14 @@ class Widgets:
     def abstract(self, value, css_class='', view=0):
         return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, value)
 
+    def news(self, value, view=0):
+        return '<textarea name="news" rows="6" cols="20" style="width:100%%">%s</textarea>' % (value)
+
+    def page(self, value):
+        return '<textarea name="page" rows="20" cols="20" style="width:100%%">%s</textarea>' % (value)
+
     def version(self, value, css_class='', view=0):
-        return '<input type=text name="version" size="10" maxlength="10" value="%s"%s>' % (value, css_class)
+        return '<input type="text" name="version" size="10" maxlength="10" value="%s"%s>' % (value, css_class)
 
     def pub_date(self, value, css_class='', view=0):
         return '<input type=text name="pub_date" size="11" maxlength="10" value="%s"%s>' % (value, css_class)
@@ -126,6 +132,9 @@ class Widgets:
         text = string.join(parts, ' + ')
         return text
         
+    def headline(self, value):
+        return '<input type=text name="headline" style="width:100%%" value="%s">' % value
+
     def short_title(self, value):
         return '<input type=text name="short_title" style="width:100%%" value="%s">' % value
 
@@ -334,6 +343,34 @@ class Widgets:
             language = languages[key]
             assert not language==None
             if language.supported==1 and key not in page.title.keys():
+                combo.write("<option value='" + language.code + "'>")
+                combo.write(language.name[lang])
+                combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
+    def new_news_lang(self, news_id, lang):
+        combo = WOStringIO("<select name='lang'>\n")
+        news = lampadasweb.news[news_id]
+        keys = languages.sort_by_lang('name', lang)
+        for key in keys:
+            language = languages[key]
+            assert not language==None
+            if language.supported==1 and key not in news.headline.keys():
+                combo.write("<option value='" + language.code + "'>")
+                combo.write(language.name[lang])
+                combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
+    def new_string_lang(self, string_code, lang):
+        combo = WOStringIO("<select name='lang'>\n")
+        webstring = lampadasweb.strings[string_code]
+        keys = languages.sort_by_lang('name', lang)
+        for key in keys:
+            language = languages[key]
+            assert not language==None
+            if language.supported==1 and key not in webstring.string.keys():
                 combo.write("<option value='" + language.code + "'>")
                 combo.write(language.name[lang])
                 combo.write("</option>\n")
@@ -570,5 +607,8 @@ class Widgets:
 
     def password(self, value):
         return '<input type="password" name="password" size="12" value="%s">' % value
+
+    def string(self, value):
+        return '<input type="text" name="webstring" size="30" value="%s" style="width:100%%">' % value
 
 widgets = Widgets()

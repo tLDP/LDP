@@ -1527,7 +1527,7 @@ class Topics(LampadasCollection):
             topic = self[topic_code]
             topic.title = LampadasCollection()
             parent_code = topic.parent_code
-            for lang in languages.supported_keys():
+            for lang in languages.supported_keys('EN'):
                 topic.title[lang] = ''
                 if parent_code > '':
                     topic.title[lang] = self[parent_code].title[lang] + ': '

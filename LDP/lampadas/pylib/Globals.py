@@ -312,6 +312,8 @@ class OddEven:
             self.value = 'odd'
         return self.value
 
+    def get_last(self):
+        return self.value
 
 if __name__=='__main__':
     pass

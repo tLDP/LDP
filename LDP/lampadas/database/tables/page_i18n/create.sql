@@ -5,7 +5,7 @@ CREATE TABLE page_i18n
 	title			TEXT		NOT NULL,
 	menu_name		TEXT		NOT NULL,
 	page			TEXT		NOT NULL,
-	version			CHAR(12)	NOT NULL,
+	version			CHAR(12)	NOT NULL DEFAULT '1.0',
 	created			TIMESTAMP	NOT NULL DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 

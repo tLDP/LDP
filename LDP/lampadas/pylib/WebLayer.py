@@ -273,9 +273,9 @@ class Page:
             db.runsql(sql)
             db.commit()
 
-    def untranslated_lang_keys(self):
+    def untranslated_lang_keys(self, lang):
         keys = []
-        for key in languages.supported_keys():
+        for key in languages.supported_keys(lang):
             if key not in self.title.keys():
                 keys = keys + [key]
         return keys
@@ -316,6 +316,7 @@ class String:
     def __init__(self, string_code=''):
         self.code = string_code
         self.string = LampadasCollection()
+        self.version = LampadasCollection()
 
     def load(self):
         """No need to load, we only have a code field.""" 
@@ -331,11 +332,12 @@ class String:
             lang              = row[0]
             self.string[lang] = trim(row[1])
 
-    def add_lang(self, lang, string):
-        sql = 'INSERT INTO string_i18n(string_code, lang, string) VALUES (' + wsq(self.code) + ', ' + wsq(lang) + ', ' + wsq(string) + ')'
+    def add_lang(self, lang, webstring, version):
+        sql = 'INSERT INTO string_i18n(string_code, lang, string, version) VALUES (' + wsq(self.code) + ', ' + wsq(lang) + ', ' + wsq(webstring) + ', ' + wsq(version) + ')'
         db.runsql(sql)
         db.commit()
-        self.string[lang] = string
+        self.string[lang]  = webstring
+        self.version[lang] = version
 
     def save(self):
         for lang in self.string.keys():
@@ -343,6 +345,13 @@ class String:
             db.runsql(sql)
             db.commit()
 
+    def untranslated_lang_keys(self, lang):
+        keys = []
+        for key in languages.supported_keys(lang):
+            if key not in self.string.keys():
+                keys = keys + [key]
+        return keys
+                
 
 # Templates
 
@@ -404,6 +413,7 @@ class NewsItem:
             self.pub_date = pub_date
         self.headline = LampadasCollection()
         self.news = LampadasCollection()
+        self.version = LampadasCollection()
         if id > 0:
             self.load()
 
@@ -417,7 +427,7 @@ class NewsItem:
     def load_row(self, row):
         self.id       = row[0]
         self.pub_date = time2str(row[1])
-        sql = "SELECT lang, headline, news FROM news_i18n WHERE news_id=" + str(self.id)
+        sql = "SELECT lang, headline, news, version FROM news_i18n WHERE news_id=" + str(self.id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -425,9 +435,10 @@ class NewsItem:
             lang                = row[0]
             self.headline[lang] = trim(row[1])
             self.news[lang]     = trim(row[2])
+            self.version[lang]  = trim(row[3])
 
-    def add_lang(self, lang, headline, news):
-        sql = 'INSERT INTO news_i18n(news_id, lang, headline, news) VALUES (' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(headline) + ', ' + wsq(news) + ')'
+    def add_lang(self, lang, headline, news, version):
+        sql = 'INSERT INTO news_i18n(news_id, lang, headline, news, version) VALUES (' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(headline) + ', ' + wsq(news) + ', ' + wsq(version) + ')'
         db.runsql(sql)
         db.commit()
         self.news[lang] = news
@@ -437,10 +448,17 @@ class NewsItem:
         db.runsql(sql)
         db.commit()
         for lang in self.news.keys():
-            sql = 'UPDATE news_i18n SET headline=' + wsq(self.headline[lang]) + ', news=' + wsq(self.news[lang]) + ' WHERE news_id=' + str(self.id) + ' AND lang=' + wsq(lang)
+            sql = 'UPDATE news_i18n SET headline=' + wsq(self.headline[lang]) + ', news=' + wsq(self.news[lang]) + ', version=' + wsq(self.version[lang]) + ' WHERE news_id=' + str(self.id) + ' AND lang=' + wsq(lang)
             db.runsql(sql)
             db.commit()
         
+    def untranslated_lang_keys(self, lang):
+        keys = []
+        for key in languages.supported_keys(lang):
+            if key not in self.headline.keys():
+                keys = keys + [key]
+        return keys
+                
 
 # FileReports
 

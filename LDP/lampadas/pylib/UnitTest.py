@@ -275,7 +275,7 @@ class testPubStatuses(unittest.TestCase):
         # descriptions.
         for pub_status in ('C', 'D', 'N', 'P', 'W'):
             assert not lampadas.pub_statuses[pub_status]==None
-            for lang in languages.supported_keys():
+            for lang in languages.supported_keys('EN'):
                 assert lampadas.pub_statuses[pub_status].name[lang] > ''
                 assert lampadas.pub_statuses[pub_status].description[lang] > ''
         log(3, 'testing PubStatuses done')

@@ -248,16 +248,17 @@ def news(req, news_id, pub_date):
     newsitem.save()
     go_back(req)
 
-def news_lang(req, news_id, lang, headline, news):
+def news_lang(req, news_id, lang, headline, news, version):
     newsitem = lampadasweb.news[int(news_id)]
     newsitem.headline[lang] = headline
     newsitem.news[lang] = news
+    newsitem.version[lang] = version
     newsitem.save()
     go_back(req)
 
-def newnews_lang(req, news_id, lang, headline, news):
+def newnews_lang(req, news_id, lang, headline, news, version):
     newsitem = lampadasweb.news[int(news_id)]
-    newsitem.add_lang(lang, headline, news)
+    newsitem.add_lang(lang, headline, news, version)
     go_back(req)
 
 def newpage(req, page_code, section_code, template_code,
@@ -297,13 +298,14 @@ def newstring(req, string_code):
     astring = lampadasweb.strings.add(string_code)
     redirect(req, '../../string_edit/' + str(astring.code) + referer_lang_ext(req))
 
-def string_lang(req, string_code, lang, string):
+def string_lang(req, string_code, lang, webstring, version):
     astring = lampadasweb.strings[string_code]
-    astring.string[lang] = string
+    astring.string[lang] = webstring
+    astring.version[lang] = version
     astring.save()
     go_back(req)
 
-def newstring_lang(req, string_code, lang, string):
-    astring = lampadasweb.strings[string_code]
-    astring.add_lang(lang, string)
+def newstring_lang(req, string_code, lang, webstring, version):
+    thestring = lampadasweb.strings[string_code]
+    thestring.add_lang(lang, webstring, version)
     go_back(req)

@@ -56,10 +56,10 @@ class Languages(LampadasCollection):
             language  = self[lang_code]
             language.name[lang] = trim(row[2])
 
-    def supported_keys(self):
+    def supported_keys(self, lang):
         if len(self.supported)==0:
             self.supported = []
-            for key in self.sort_by('code'):
+            for key in self.sort_by_lang('name', lang):
                 if self[key].supported==1:
                     self.supported = self.supported + [key]
         return self.supported
