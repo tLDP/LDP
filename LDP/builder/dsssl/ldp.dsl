@@ -168,7 +168,8 @@
 
 (define (toc-depth nd)
   ;; more depth (2 levels) to toc; instead of flat hierarchy
-  2)
+  ;; 2)
+  4)
 
 (element emphasis
   ;; make role=strong equate to bold for emphasis tag
