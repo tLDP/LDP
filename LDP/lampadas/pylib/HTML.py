@@ -247,10 +247,10 @@ class TableFactory:
         box = '<table class="box"><tr><th colspan="6">|docdetails|</th></tr>'
         if DocID:
             doc = lampadas.Docs[DocID]
-            box = box + '<form method=POST action="data/save/document" name="document">'
+            box = box + '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
-            box = box + '<form method=POST action="data/save/newdocument" name="document">'
+            box = box + '<form method=GET action="data/save/newdocument" name="document">'
             
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
         box = box + '<tr>\n'
@@ -329,23 +329,22 @@ class TableFactory:
         box = '<table class="box">\n'
         if username > '':
             user = lampadas.users[username]
-            box = box + '<form method=POST action="data/save/user" name="user">\n'
+            box = box + '<form method=GET action="data/save/user" name="user">\n'
         else:
             user = User()
-            box = box + '<form method=POST action="data/save/newuser" name="user">\n'
-        box = box + '<input name="username" type=hidden value=' + username + '>\n'
+            box = box + '<form method=GET action="data/save/newuser" name="user">\n'
+        box = box + '<input name="username" type=hidden value=' + username + '></input>\n'
         box = box + '<tr><th colspan=2>|userdetails|</th><th>|comments|</th></tr>\n'
-        box = box + '<tr><th class="label">|strusername|</th><td><input type=text name=username value="' + username + '"></input></td>\n'
-        box = box + '<td rowspan=10><textarea name="note"></textarea></td></tr>\n'
-        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td>\n'
-        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name value="' + user.middle_name + '"></input></td>\n'
-        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname value="' + user.surname + '"></input></td>\n'
-        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email value="' + user.email + '"></input></td>\n'
-        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td>\n'
-        box = box + '<tr><th class="label">|strpassword|</th><td><input type=text name=password value="' + user.password + '"></input></td>\n'
-        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, lang) + '</td>\n'
-        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('admin', user.sysadmin, lang) + '</td>\n'
-        
+        box = box + '<tr><th class="label">|strusername|</th><td>' + username + '</td>\n'
+        box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
+        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name value="' + user.middle_name + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname value="' + user.surname + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email value="' + user.email + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet value="' + user.stylesheet + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password></input></td></tr>\n'
+        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, lang) + '</td></tr>\n'
+        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, lang) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
         box = box + '</form>\n'
         box = box + '</table>\n'
@@ -364,7 +363,6 @@ class TableFactory:
                 box = box + '<td><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
                 box = box + '</tr>\n'
         box = box + '</table>'
-        log(3, "doctable complete")
         return box
 
     def section_menu(self, section_code, lang):
@@ -377,10 +375,8 @@ class TableFactory:
         for key in keys:
             page = lampadasweb.pages[key]
             if page.section_code == section_code:
-                log(3, 'adding item: ' + page.code + ', citeref: ' + page.i18n[lang].menu_name)
                 box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
         box = box + '</td></tr></table>\n'
-        log(3, "section menu complete")
         return box
 
     def section_menus(self, lang):
@@ -389,7 +385,6 @@ class TableFactory:
         keys = lampadasweb.sections.sort_by('sort_order')
         for key in keys:
             box = box + self.section_menu(key, lang)
-        log(3, "all section menus complete")
         return box
 
     def recent_news(self, lang):
@@ -404,7 +399,6 @@ class TableFactory:
                 box = box + '<td>' + news.i18n[lang].news + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
-        log(3, 'Recent news table complete')
         return box
 
     def topics(self, lang):
@@ -418,7 +412,6 @@ class TableFactory:
             box = box + topic.i18n[lang].name + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
-        log(3, "Topics table complete")
         return box
 
     def subtopics(self, topic_code, lang):
@@ -434,7 +427,21 @@ class TableFactory:
                 box = box + subtopic.i18n[lang].name + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
-        log(3, "Topics table complete")
+        return box
+
+    def subtopic(self, subtopic_code, lang):
+        log(3, 'Creating subtopic table')
+        subtopic = lampadas.subtopics[subtopic_code]
+        box = '<table class="navbox"><tr><th>' + subtopic.i18n[lang].name + '</th></tr>\n'
+        box = box + '<tr><td><ol>\n'
+        keys = subtopic.docs.sort_by('Title')
+        for key in keys:
+            doc = subtopic.docs[key]
+            if doc.subtopic.topic_code == topic_code and doc.Lang == lang:
+                box = box + '<li><a href="/doc/' + str(doc.ID) + '">\n'
+                box = box + doc.Title + '</a>\n'
+        box = box + '</ol></td></tr>\n'
+        box = box + '</table>\n'
         return box
 
     def classes(self, lang):
@@ -448,34 +455,47 @@ class TableFactory:
             box = box + Class.I18n[lang].Name + '</a><br>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
-        log(3, "Classes table complete")
         return box
 
-    def login(self, lang):
-        log(3, 'Creating login box')
-        box = '<table class="navbox"><tr><th colspan="2">|login|</th></tr>\n'
-        box = box + '<form name="login" action="data/session/login" method=GET>\n'
-        box = box + '<tr><td align=right>|username|</td><td><input type=text size=12 name=username></input></td></tr>\n'
-        box = box + '<tr><td align=right>|password|</td><td><input type=password size=12 name=password></input></td></tr>\n'
-        box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="|login|"><br>\n'
-        box = box + '<a href="mailpass">|mail_password|</a><br>\n'
-        box = box + '<a href="newuser">|create_account|</a></td></tr>\n'
-        box = box + '</table>\n'
+    def login(self, user, lang):
+        if user:
+            log(3, 'Creating active user box')
+            box = '<table class="navbox"><tr><th>|stractive_user|</th></tr>\n'
+            box = box + '<form name="logout" action="data/session/logout">\n'
+            box = box + '<input name=username type=hidden value="' + user.username + '">\n'
+            box = box + '<tr><td align=center>|session_name|</td></tr>\n'
+            box = box + '<tr><td align=center><input type=submit name=logout value="|strlog_out|"></td></tr>\n'
+            box = box + '</form>\n'
+            box = box + '</table>\n'
+        else:
+            log(3, 'Creating login box')
+            box = '<table class="navbox"><tr><th colspan="2">|login|</th></tr>\n'
+            box = box + '<form name="login" action="data/session/login" method=GET>\n'
+            box = box + '<tr><td align=right>|strusername|</td><td><input type=text size=12 name=username></input></td></tr>\n'
+            box = box + '<tr><td align=right>|password|</td><td><input type=password size=12 name=password></input></td></tr>\n'
+            box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="|login|"><br>\n'
+            box = box + '<a href="mailpass">|mail_password|</a><br>\n'
+            box = box + '<a href="newuser">|create_account|</a></td></tr>\n'
+            box = box + '</form>\n'
+            box = box + '</table>\n'
         return box
 
-    def sessions(self, lang):
-        log(3, 'Creating sessions table')
-        box = '<table class="navbox"><tr><th>|sessions|</th></tr>\n'
-        box = box + '<tr><td>\n'
-        keys = sessions.sort_by('username')
-        for key in keys:
-            session = sessions[key]
-            box = box + '<a href="user/' + str(session.username) + '">\n'
-            box = box + session.name + '</a><br>\n'
-        box = box + '</td></tr>\n'
-        box = box + '</table>\n'
-        log(3, "sessiones table complete")
-        return box
+    def sessions(self, user, lang):
+        if user:
+            if user.admin > 0:
+                log(3, 'Creating sessions table')
+                box = '<table class="navbox"><tr><th>|sessions|</th></tr>\n'
+                box = box + '<tr><td>\n'
+                keys = sessions.sort_by('username')
+                for key in keys:
+                    session = sessions[key]
+                    box = box + '<a href="user/' + str(session.username) + '">\n'
+                    user = lampadas.users[key]
+                    box = box + user.name + '</a><br>\n'
+                box = box + '</td></tr>\n'
+                box = box + '</table>\n'
+                return box
+        return ' '
 
 
 # PageFactory
@@ -484,8 +504,8 @@ class PageFactory:
 
     tablef  = TableFactory()
 
-    def __call__(self, key, lang):
-        return self.page(key, lang)
+#    def __call__(self, key, session_id):
+#        return self.page(key, session_id)
 
     def page_exists(self, key):
         uri = URI(key)
@@ -493,20 +513,27 @@ class PageFactory:
             return 1
         return
 
-    def page(self, key):
+    def page(self, key, session_id=''):
         uri = URI(key)
+        build_user = None
+        if session_id > '':
+            username = lampadas.users.find_session_user(session_id)
+            if username > '':
+                build_user = lampadas.users[username]
+                log(3, 'build_user: ' + build_user.username)
+
         log(3, 'Serving language ' + uri.language)
-        
+
         page = lampadasweb.pages[uri.filename]
         if page == None:
             page = lampadasweb.pages['404']
         assert not page == None
-        html = self.build_page(page, uri)
+        html = self.build_page(page, uri, build_user)
 
         return html
     
 
-    def build_page(self, page, uri):
+    def build_page(self, page, uri, build_user):
         template = lampadasweb.templates[page.template_code]
         assert not template == None
         html = template.template
@@ -522,12 +549,25 @@ class PageFactory:
                 oldstring = html[pos:pos2+1]
                 token = html[pos+1:pos2]
 
-                log(3, 'looking for token ' + token)
-            
                 newstring = ''
             
                 # Built-ins
                 # 
+                if token=='session_id':
+                    if build_user == None:
+                        newstring = ''
+                    else:
+                        newstring = build_user.session_id
+                if token=='session_username':
+                    if build_user == None:
+                        newstring = ''
+                    else:
+                        newstring = build_user.username
+                if token=='session_name':
+                    if build_user == None:
+                        newstring = ''
+                    else:
+                        newstring = build_user.name
                 if token=='title':
                     newstring = page.i18n[uri.language].title
                 if token=='body':
@@ -561,7 +601,7 @@ class PageFactory:
                 # Tables
                 # 
                 if token=='tablogin':
-                    newstring = self.tablef.login(uri.language)
+                    newstring = self.tablef.login(build_user, uri.language)
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri.language)
                 if token=='tabeditdoc':
@@ -576,10 +616,12 @@ class PageFactory:
                     newstring = self.tablef.topics(uri.language)
                 if token=='tabsubtopics':
                     newstring = self.tablef.subtopics(uri.code, uri.language)
+                if token=='tabsubtopic':
+                    newstring = self.tablef.subtopic(uri.code, uri.language)
                 if token=='tabclasses':
                     newstring = self.tablef.classes(uri.language)
                 if token=='tabsessions':
-                    newstring = self.tablef.sessions(uri.language)
+                    newstring = self.tablef.sessions(build_user, uri.language)
             
                 # Blocks and Strings
                 # 

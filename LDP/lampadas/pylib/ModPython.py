@@ -5,6 +5,7 @@ from HTML import page_factory
 from Config import config
 from URLParse import URI
 from mod_python import apache
+import Cookie
 import os
 import string
 
@@ -24,10 +25,23 @@ def handler(req):
         send_File(req, filename)
     else:
         log(3, 'Sending dynamic page: ' + req.uri)
-        send_HTML(req, page_factory.page(req.uri))
+        cookie = get_cookie(req.headers_in, 'lampadas')
+        if cookie:
+            session_id = str(cookie)
+        else:
+            session_id = ''
+        send_HTML(req, page_factory.page(req.uri, session_id))
     return apache.OK
 
 
+def get_cookie(headers_in, key):
+    if headers_in.has_key('Cookie'):
+        cookie = Cookie.SmartCookie(headers_in['Cookie'])
+        cookie.load(headers_in['Cookie'])
+        if cookie.has_key(key):
+            return cookie[key].value
+    return None
+    
 def send_HTML(req, HTML):
     """
     Send the passed HTML page.

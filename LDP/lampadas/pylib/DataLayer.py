@@ -86,9 +86,9 @@ class Classes(LampadasCollection):
     
     def Load(self):
         sql = "SELECT class_id, sort_order FROM class"
-        self.cursor = db.select(sql)
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newClass = Class()
             newClass.Load(row)
@@ -860,7 +860,7 @@ class Subtopics(LampadasCollection):
             row = cursor.fetchone()
             if row == None: break
             newSubtopic = Subtopic()
-            newSubtopic.Load(row)
+            newSubtopic.load(row)
             self.data[newSubtopic.code] = newSubtopic
 
 class Subtopic:
@@ -870,17 +870,19 @@ class Subtopic:
     to help them find a document on the subject in which they are interested.
     """
 
-    def __init__(self, SubtopicCode=None, SubtopicNum=None, TopicCode=None):
+    def __init__(self, subtopic_code=None, subtopic_num=None, topic_code=None):
         self.i18n = LampadasCollection()
-        if SubtopicCode==None: return
-        self.code       = SubtopicCode
-        self.num        = SubtopicNum
-        self.topic_code = SubtopicCode
+        if subtopic_code==None: return
+        self.code       = subtopic_code
+        self.num        = subtopic_num
+        self.topic_code = subtopic_code
+        self.docs       = SubtopicDocs(subtopic_code)
 
-    def Load(self, row):
+    def load(self, row):
         self.code       = trim(row[0])
         self.num        = safeint(row[1])
         self.topic_code = trim(row[2])
+        self.docs       = SubtopicDocs(self.code)
         sql = "SELECT lang, subtopic_name, subtopic_desc FROM subtopic_i18n WHERE subtopic_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -897,7 +899,29 @@ class SubtopicI18n:
         self.name        = trim(row[1])
         self.description = trim(row[2])
 
+
+# SubtopicDocs
+
+class SubtopicDocs(LampadasCollection):
+
+    def __init__(self, subtopic_code):
+        self.data = {}
+        sql = 'SELECT doc_id FROM document_topic WHERE subtopic_code=' + wsq(subtopic_code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSubtopicDoc = SubtopicDoc()
+            newSubtopicDoc.subtopic_code = subtopic_code
+            newSubtopicDoc.doc_id = row[0]
+            self.data[newSubtopicDoc.doc_id] = newSubtopicDoc
+
+class SubtopicDoc:
+
+    def __init__(self):
+        pass
     
+        
 # Users
 
 class Users:
@@ -924,6 +948,18 @@ class Users:
     def is_email_taken(self, email):
         value = db.read_value('SELECT COUNT(*) FROM username WHERE email=' + wsq(email))
         return value
+
+    def find_session_user(self, session_id):
+        log(3, 'looking for user session: ' + session_id)
+        if session_id > '':
+            sql = 'SELECT username FROM username WHERE session_id=' + wsq(session_id)
+            cursor = db.select(sql)
+            row = cursor.fetchone()
+            if row:
+                log(3, 'found user session: ' + row[0])
+                return trim(row[0])
+        return ''
+
 
 class User:
     """
@@ -964,6 +1000,11 @@ class User:
         self.name           = trim(trim(self.first_name + ' ' + self.middle_name) + ' ' + self.surname)
 
         self.docs = UserDocs(self.username)
+
+    def save(self):
+        sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ', stylesheet=' + wsq(self.stylesheet) + ' WHERE username=' + wsq(self.username)
+        db.runsql(sql)
+        db.commit()
 
 
 # UserDocs

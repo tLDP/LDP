@@ -25,6 +25,8 @@ from Sessions import sessions
 from HTML import page_factory
 from Log import log
 from mod_python import apache
+import whrandom
+import string
 
 def login(req, username, password):
 
@@ -32,13 +34,37 @@ def login(req, username, password):
     if user.username == username:
         if user.password == password:
             if sessions[username] == None:
-                sessions.add(user)
-                req.headers_out['location'] = '/home'
-                req.status = apache.HTTP_MOVED_TEMPORARILY
-                return
-            else:
-                return "Already logged in."
+                sessions.add(username)
+    
+            # establish random 20 character session_id.
+            # 
+            chars = string.letters + string.digits
+            session_id = ''
+            for x in range(20):
+                session_id += whrandom.choice(chars)
+            user = lampadas.users[username]
+            user.session_id = session_id
+            user.save()
+                    
+            log(3, 'setting cookie')
+            req.headers_out['Set-Cookie']='lampadas=' + session_id + '; path=/; expires=Wed, 09-Nov-2030 23:59:00 GMT'
+            return page_factory.page('logged_in')
         else:
             return "Wrong password"
     else:
         return "User not found"
+
+def logout(req, username):
+    sessions.delete(username)
+
+    user = lampadas.users[username]
+    user.session_id = ''
+    user.save()
+
+    log(3, 'clearing cookie')
+    req.headers_out['Set-Cookie']='lampadas=foo; path=/; expires=Wed, 09-Nov-1980 23:59:00 GMT'
+    return page_factory.page('logged_out')
+
+#    req.headers_out['location'] = '/home'
+#    req.status = apache.HTTP_MOVED_TEMPORARILY
+

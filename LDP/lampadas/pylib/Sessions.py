@@ -40,15 +40,45 @@ from Log import log
 
 class Sessions(LampadasCollection):
     """
-    A collection object of all users with currently active sessions.
+    All users with currently active sessions.
     """
 
     def __init__(self):
         self.data = {}
+        self.load()
 
-    def add(self, user):
-        self.data[user.username] = user
+    def load(self):
+        sql = 'SELECT username FROM session'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSession = Session(trim(row[0]))
+            self.data[newSession.username] = newSession
+    
+    def add(self, username):
+        sql = 'INSERT INTO session(username) VALUES (' + wsq(username) + ')'
+        db.runsql(sql)
+        db.commit()
+        newSession = Session(username)
+        self.data[username] = newSession
 
+    def delete(self, username):
+        sql = 'DELETE FROM session WHERE username=' + wsq(username)
+        db.runsql(sql)
+
+        db.commit()
+        del self.data[username]
+
+    def count(self):
+        return db.read_value('SELECT COUNT(*) FROM session')
+
+
+class Session:
+
+    def __init__(self, username):
+        self.username = username
+   
 
 sessions = Sessions()
 

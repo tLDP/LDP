@@ -104,7 +104,7 @@ class URI:
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-            elif temp[0] == 'topic':
+            elif temp[0] == 'topic' or temp[0] == 'subtopic':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:

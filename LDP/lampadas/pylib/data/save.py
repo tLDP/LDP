@@ -58,16 +58,24 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, class_id,
     referer = req.headers_in['referer']
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY
-    return
 
-def user(req, username, email, first_name, middle_name, surname):
+def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]
     if not user == None:
-        user.email = email
         user.first_name = first_name
         user.middle_name = middle_name
         user.surname = surname
+        user.email = email
+        user.stylesheet = stylesheet
+        if password > '':
+            user.password = password
+        user.admin = int(admin)
+        user.sysadmin = int(sysadmin)
+        user.notes = notes
         user.save()
+    referer = req.headers_in['referer']
+    req.headers_out['location'] = referer
+    req.status = apache.HTTP_MOVED_TEMPORARILY
 
 def newuser(req, username, email, first_name, middle_name, surname):
     
