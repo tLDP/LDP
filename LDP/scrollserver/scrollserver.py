@@ -14,8 +14,7 @@ import scrollkeeper
 
 
 					# Defaults
-dbxslfile = "stylesheets/db144/html/docbook.xsl"
-#dbxslfile = "stylesheets/docbook/docbook.xsl"
+dbxslfile = "stylesheets/docbook/html/docbook.xsl"
 htmlbase  = "/var/cache/scrollserver/"	# This is the cache directory
 caching   = 1 				# set to 1 to enable caching
 xsltparam = "--timing"			# parameters to pass in all xsltproc calls
