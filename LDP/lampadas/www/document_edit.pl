@@ -99,7 +99,8 @@ print "<input type=hidden name=doc_id value='$doc_id'>\n";
 
 print "<table>\n";
 print "<tr><th colspan=6>Document Details</th></tr>\n";
-print "<tr><td align=right>Title:</td><td colspan=5><input type=text name=title size=60 value='$title'></td></tr>\n";
+print "<tr><td align=right>Title:</td><td colspan=4><input type=text name=title size=60 value='$title'></td>\n";
+print "<td><a href='document_wiki.pl?doc_id=$doc_id'>Edit (test)</a></td></tr>\n";
 print "<tr><td align=right>Filename:</td><td colspan=5><input type=text name=filename size=60 value='$filename'></td></tr>\n";
 
 print "<tr>";
