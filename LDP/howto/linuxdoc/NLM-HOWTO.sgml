@@ -1,0 +1,538 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+<title>NetWare Loadable Module Programming HOWTO
+<author>Martin Hinner, &lt;<htmlurl url="mailto:mhi@penguin.cz"
+name="mhi@penguin.cz">&gt;
+<date>Version 0.2, 04 August 2000
+<abstract>
+This document describes how to develop NetWare Loadable Modules under Linux,
+using GNU CC and nlmconv(1) from GNU binutils. This is not an official Novell
+document; I wrote it without any help or cooperation from 
+<htmlurl url="http://www.novell.com/" name="Novell, Inc.">
+<toc>
+
+<sect>Introduction<p>
+NetWare Loadable Modules (NLMs) are programs which run on Novell NetWare
+server. NLMs become part of the NetWare OS. You can load and unload NLMs while
+the server is running. <p>
+
+"Official" compilers for NLMs are:
+
+<itemize>
+<item> Watcom C/C++
+<item> Metrowerks Codewarrior for NetWare (see <url url="http://www.metrowerks.com/">)
+<item> EPC C/C++ (see <url url="http://www.epc.com">)
+<item> Novell NLMLINK.EXE
+</itemize>
+
+(On a side note, NetWare 5 can also load 32bit DLLs, which can be built using Microsoft Visual
+C++, Borland C++ and other Windows compilers. For more information see
+<url url="http://developer.novell.com/ndk/dllcomp.htm">)
+<p>
+
+This document describes how to get started with NLM development under Linux (and
+possibly other Unixes). Please note that this project is in very early
+stages of development, so a lot of things may not work as you'd expect.
+<p>
+
+This document assumes that you are familiar with Novell NetWare, and that you
+have at least basic knowledge of writing NLMs. For more information about
+writing NLMs, see Novell's developer site,
+<url url="http://developer.novell.com/">. You should also have experience
+with Unix and C/C++ programming with GNU CC. You can find a lot of information
+about this topic at <url url="http://www.linuxdoc.org/">.
+
+<sect1>C++ Development<p>
+As far as I know, C++ development with gcc is currently impossible,
+till somebody ports at least the libstdc++ and libgcc
+libraries from the gcc package.
+
+<sect1>Related Documentation<p>
+
+Other documents that might be useful are:
+
+<itemize>
+<item>The <bf>IPX-HOWTO</bf>, which describes the details of configuring IPX
+protocol on Linux.
+<item>The <bf>Linux GCC HOWTO</bf>, which covers how to set up the GNU C compiler and
+development libraries under Linux, and gives an overview of compiling,
+linking, running and debugging programs under it.
+<item>The <bf>Assembly HOWTO</bf>, which describes how to
+program in assembly language using FREE programming tools, focusing on
+development for or from the Linux Operating System on the i386 platforms.
+<item>The <bf>Creating NLMs on Linux x86</bf>,
+   <url url="http://home.sch.bme.hu/~keresztg/novell/howto/NLM-Linux-HOWTO.html">, by Gabor Keresztvalvi
+   &lt;keresztg@mail.com&gt;. His page describes the same thing as my HOWTO.
+   I found Gabor's page ten days after releasing version 0.1 of this document :( .
+</itemize>
+
+<sect1>Copying<p>
+Copyright (c) 2000 Martin Hinner, &lt;<htmlurl url="mailto:mhi@penguin.cz"
+name="mhi@penguin.cz">&gt;.<p>
+
+This HOWTO is Free documentation; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+<p>
+This document is distributed in the hope that it will be useful,
+but without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose. See the GNU
+General Public License for more details.
+<p>
+You can obtain a copy of the GNU General Public License by writing
+to the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
+02139, USA.
+<p>
+
+<sect>Setting Up Your Linux Box and NetWare Server<p>
+You need to install and configure these things for NLM development:
+
+<itemize>
+<item> Linux box with configured IPX and NCPFS
+<item> GNU C compiler (gcc) for elf-i386 
+(nearly all i386 Linux Distributions include it)
+<item> GNU binutils with nlmconv(1) program
+<item> My nlm-kit package
+<item> Novell Developer Kit - NDK (include files and documentation)
+<item> DOSemu (with rconsole) or X11 server for running NetWare Xconsole.
+<item> ... and, finally, NetWare server :-)
+</itemize>
+
+You might also want to download the nlm-examples package from my FTP site:
+<url url="ftp://ftp.penguin.cz/pub/users/mhi/nlm/"> or 
+<url url="ftp://ftp.funet.fi/pub/mirrors/ftp.penguin.cz/pub/users/mhi/nlm/">.
+
+<sect1>Novell NetWare Server<p>
+Let's start with the NetWare server. You can use NetWare versions 3.X, 4.X
+or 5.X.
+NetWare 5 (or 5.1) three user "demo" version can be ordered from
+Novell Inc. for a few dollars. Don't be confused with word "demo", it's fully
+functional NetWare, except that it is limited to three users. By the way, this license can
+be upgraded online, at no cost, to five users. You might also try asking your
+local Novell partner for demo CDs (they may be free).
+
+<sect1>Linux Box With IPX/NCPFS<p>
+You need to recompile your kernel with "The IPX protocol" and
+"NCP file system support" options enabled. Don't forget to say YES to
+"NDS authentication support" if you are using the NDS. Then you must
+configure the IPX protocol and mount your NetWare server volumes.
+Make sure that you
+have installed the ncpfs package! I use this script:
+
+<code>
+#!/bin/sh
+
+ipx_interface delall   
+ipx_interface add -p eth0 802.2 120 # Frame Ethernet_802.2, ipx net num 120
+insmod ncpfs                        # I have NCPfs compiled as module
+ncpmount -U admin -S elf -P XYZ /nw # mount all ELF's volumes as /nw
+</code>
+
+For more information about configuring IPX and NCPFS, see the IPX-HOWTO.
+
+<sect1>GNU C Compiler<p>
+I think that all modern Linuxes for the Intel x86 include gcc, which generates
+ELF32/i386 object files. If you have an older Linux distribution, it may
+use the a.out format instead of ELF. If your Linux doesn't use ELF, get and
+install a newer gcc.
+
+<sect1>nlmconv(1) from GNU binutils<p>
+The nlmconv(1) utility links object files to the NLM format. It is a standard
+part of GNU binutils, but unfortunately it is not included in current distributions (RedHat,
+SuSE, Debian, ...). Get the binutils sources from ftp.gnu.org, and compile them, or
+simply use the pre-compiled nlmconv from my nlm-kit package.
+<p>
+
+<sect1>The nlm-kit Package<p>
+My nlm-kit package is avaliable from
+<url url="ftp://ftp.penguin.cz/pub/users/mhi/nlm/">. It contains necessary
+files for NLM development. Extract it and run <tt>"make all"</tt> and
+<tt>"make install"</tt>.
+It will create the directory <tt>/usr/nwsdk/</tt> and install all import files,
+object files and the nlmimp(1) utility.
+
+<sect1>Include Files and Documentation from the NDK<p>
+
+Getting the NDK is easy:
+<itemize>
+  <item> Download it from <url url="http://developer.novell.com/ndk/">.
+  <item> Order two NDK CDs from Novell.
+  <item> Get these CDs at no cost at BrainShare, Novell Developer Workshop
+         or at other Novell Developer events.
+</itemize>
+<p>
+
+You need these files from the NDK (all are available online at
+<url url="http://developer.novell.com/ndk/clib.htm">:
+<itemize>
+<item> C language header and import files (cdrom:\files\download\clib.exe)
+<item> C language API documentation (cdrom:\files\download\clib_doc.exe)
+<item> C language samples (optional) (cdrom:\files\download\clib_sample.exe)
+</itemize>
+
+It's a pity that all the files mentioned above are InstallShield Win32 executables.
+You must find some Windows machine to extract them and then copy the include files
+to <tt>/usr/nwsdk/include/</tt> and documentation/samples to anywhere you want.
+The Novell License doesn't allow me to distribute include files or documentation
+with the nlm-kit.<p>
+
+Because the NDK include files don't work under Linux, you need to patch
+them manually by typing "make install-include" in the nlm-kit-X.Y/
+directory.
+
+<sect1>Access to the NetWare Server (Xconsole or rconsole)<p>
+You can access the NetWare server console directly (keyboard and monitor),
+using rconsole.exe (from dosemu), or using telnetd.nlm/Xconsole (you need
+X server for this).
+
+<sect>First Step: Hello world<p>
+As usual, we will start with the famous "Hello world" program. The source
+code for hello.nlm is available in the nlm-samples package. You can download
+it from <url url="ftp://ftp.penguin.cz/pub/users/mhi/nlm/">.
+
+<sect1>hello.c - Source File<p>
+<code>
+#define N_PLAT_NLM                                /* Define dest. platform */
+
+#include <nwconio.h>                              /* ConsolePrintf */
+
+int
+main (int argc, char **argv)
+{
+  int i;
+
+  ConsolePrintf ("\rHello world!\n\n");           /* print on system console */
+
+  ConsolePrintf("Arguments:\n");                  /* all arguments */
+  for (i=0;i<argc;i++)
+   ConsolePrintf("argv[%u]=\"%s\"\n",i, argv[i]);
+
+  return 0;                                       /* exit NLM */
+}
+</code>
+
+<sect1>hello.def - NLM header file<p>
+<code>
+#
+# hello.def - NLM Header definition file for nlmconv(1)
+# Copyright (c) 2000 Martin Hinner <mhi@penguin.cz>
+#
+
+# define startup object files
+INPUT   hello.o
+INPUT   /usr/nwsdk/lib/prelude.o            # clib startup code
+
+# all imported functions and import lists
+IMPORT @/usr/nwsdk/imports/clib.imp         # Functions in CLIB.NLM
+IMPORT @/usr/nwsdk/imports/threads.imp      # Functions in THREADS.NLM
+
+# NLM header...
+OUTPUT  hello.nlm                           # output file
+TYPE 0                                      # Ordinary NLM
+VERSION 1,0,0                               # Version 1.0
+COPYRIGHT "Copyright (c) 2000 Martin Hinner <mhi@penguin.cz>" # (c) ...
+DESCRIPTION "Simple 'Hello world' NLM module." # title of nlm
+SCREENNAME "System Console"                 # Default screen name
+
+MODULE CLIB,THREADS                         # req'd modules
+</code>
+
+<sect1>Makefile<p>
+<code>
+# makefile for "hello world" NLM
+
+CC = gcc
+CFLAGS = -Wall -O2 -g -I/usr/nwsdk/include/ -nostdinc -fno-builtin -fpack-struct
+
+hello.nlm:      hello.o hello.def
+        nlmconv --output-target=nlm32-i386 -T hello.def
+
+hello.o:        hello.c
+        $(CC) $(CFLAGS) -c hello.c
+</code>
+
+<sect1>GCC problems<p>
+You must pass these arguments to the gcc:
+
+<itemize>
+ <item> <bf>-fno-builtin</bf>:
+        GCC's fast builtin functions sometimes cause server to abend,
+        so we don't want to use them.
+ <item> <bf>-nostdinc</bf>:
+        Only include files in /usr/nwsdk/include are valid for NLMs (don't
+        forget to use also -I/usr/nwsdk/include).
+ <item> <bf>-fpack-struct</bf>:
+        GCC's struct packing method is not valid for Novell NetWare, so we
+        won't use it. Thanks to Gabor Keresztvalvi for this information.
+</itemize> 
+
+<sect1>Testing the Module<p>
+Copy hello.nlm to the SYS:\SYSTEM directory on your NetWare server. Then, on
+the system console, type "load hello.nlm". If everything went fine, you should
+see NLM version information, a copyright message and "Hello world".
+
+<sect>NLM Header file<p>
+The NLM header file contains information for <em>nlmconv(1)</em>. Each
+line contains one option or directive; everything after "#" is comment.
+This chapter describes all options and directives.
+<p>
+
+This chapter is not yet finished, sorry.
+
+<sect1>AUTOUNLOAD<p>
+<em>Syntax</em>:<p>
+<bf>AUTOUNLOAD</bf><p>
+
+<sect1>CHECK<p>
+<em>Syntax</em>:<p>
+<bf>CHECK &lt;check procedure name&gt;</bf><p>
+
+This directive specifies the function to be
+executed when the NLM is unloaded using the <em>UNLOAD</em> Server console 
+command. If this function returns zero, the NLM can be unloaded, else
+the NLM is not ready to be unloaded. 
+<p>
+
+<em>Example</em>:
+<code>
+CHECK CheckUnload
+</code>
+
+<sect1>CODESTART<p>
+<em>Syntax</em>:<p>
+<bf>CODESTART &lt;map file code start offset&gt;</bf><p>
+Map file start offset may be decimal or Xhex.
+
+<sect1>COPYRIGHT<p>
+<em>Syntax</em>:<p>
+<bf>COPYRIGHT ["Copyright string"]</bf>
+<p>
+The copyright string is displayed on the server console screen when the
+NLM is loaded. If this option is not used, no copyright information is
+displayed.
+<p>
+
+<em>Example</em>:
+<code>
+COPYRIGHT "Copyright (c) 1998 ABC Inc."
+</code>
+
+
+<sect1>CUSTOM<p>
+<em>Syntax</em>:<p>
+<bf>CUSTOM &lt;custom data file path&gt;</bf><p>
+<sect1>DATASTART<p>
+<em>Syntax</em>:<p>
+<bf>DATASTART &lt;map file data start offset&gt;</bf><p>
+Map file data start offset may be decimal or Xhex.
+
+<sect1>DATE<p>
+<em>Syntax</em>:<p>
+<bf>DATE &lt;month, day, year&gt;</bf><p>
+
+<sect1>DEBUG<p>
+<em>Syntax</em>:<p>
+<bf>DEBUG</bf><p>
+
+This directive tells the nlmconv(1) to include debugging information in 
+the NLM file.
+
+<em>Example</em>:
+<code>DEBUG</code>
+
+<sect1>DESCRIPTION<p>
+<em>Syntax</em>:<p>
+<bf>DESCRIPTION "NLM Description String"</bf><p>
+
+<sect1>EXIT<p>
+<em>Syntax</em>:<p>
+<bf>EXIT &lt;exit procedure name&gt;</bf><p>
+
+<sect1>EXPORT<p>
+<em>Syntax</em>:<p>
+<bf>EXPORT &lt;symbol list&gt;</bf><p>
+<bf>EXPORT @&lt;symbol list file&gt;</bf><p>
+
+<sect1>FLAG_OFF<p>
+<em>Syntax</em>:<p>
+<bf>FLAG_OFF &lt;decimal number&gt;</bf><p>
+
+<sect1>FLAG_ON<p>
+<em>Syntax</em>:<p>
+<bf>FLAG_ON &lt;decimal number&gt;</bf><p>
+
+<sect1>HELP<p>
+<em>Syntax</em>:<p>
+<bf>HELP &lt;help file path&gt;</bf><p>
+
+<sect1>IMPORT<p>
+<em>Syntax</em>:<p>
+<bf>IMPORT &lt;symbol list&gt; </bf><p>
+<bf>IMPORT @&lt;symbol list file&gt;</bf><p>
+
+<sect1>INPUT<p>
+<em>Syntax</em>:<p>
+<bf>INPUT &lt;object file&gt; [, &lt;object file&gt; [, ...] ]</bf><p>
+<bf>INPUT @&lt;object list file&gt;</bf><p>
+
+This directive lists the input ELF (.o) object files that are to be linked.
+You can also list the object files in the list file, each object file on
+one line.
+<p>
+
+<em>Example</em>:<p>
+<code>
+INPUT @objectfiles.txt
+INPUT main.o
+INPUT /usr/nwsdk/lib/prelude.o
+</code>
+
+<sect1>MAP<p>
+<em>Syntax</em>:<p>
+<bf>MAP [map file name]</bf><p>
+
+<sect1>MESSAGES<p>
+<em>Syntax</em>:<p>
+<bf>MESSAGES &lt;message file path&gt;</bf><p>
+
+<sect1>MODULE<p>
+<em>Syntax</em>:<p>
+<bf>MODULE &lt;autoload NLM list&gt;</bf><p>
+
+<sect1>MULTIPLE<p>
+<em>Syntax</em>:<p>
+<bf>MULTIPLE</bf><p>
+
+<sect1>NAMELEN<p>
+<em>Syntax</em>:<p>
+<bf>NAMELEN &lt;decimal number&gt;</bf><p>
+Default is 31. Zero is no limit.<p>
+
+<sect1>OS_DOMAIN<p>
+<em>Syntax</em>:<p>
+<bf>OS_DOMAIN</bf><p>
+
+<sect1>OUTPUT<p>
+<em>Syntax</em>:<p>
+<bf>OUTPUT &lt;target file name&gt;</bf><p>
+
+<sect1>PATH<p>
+<em>Syntax</em>:<p>
+<bf>PATH  [search path;...]</bf><p>
+
+for following CUSTOM, HELP, INPUT, MESSAGES, SHARELIB, STAMPEDDATA and XDCDATA.
+
+<sect1>PSEUDOPREEMPTION<p>
+<em>Syntax</em>:<p>
+<bf>PSEUDOPREEMPTION</bf><p>
+
+<sect1>REENTRANT<p>
+<em>Syntax</em>:<p>
+<bf>REENTRANT</bf><p>
+
+<sect1>SCREENNAME<p>
+<em>Syntax</em>:<p>
+<bf>SCREENNAME "Initial Screen Name (CLIB)"</bf><p>
+
+<sect1>SHARELIB<p>
+<em>Syntax</em>:<p>
+<bf>SHARELIB &lt;shared library path&gt;</bf><p>
+
+<sect1>STACK<p>
+<em>Syntax</em>:<p>
+<bf>STACK &lt;stack size&gt;</bf><p>
+
+<sect1>STACKSIZE<p>
+<em>Syntax</em>:<p>
+<bf>STACKSIZE &lt;stack size&gt;</bf><p>
+
+<sect1>STAMPEDDATA<p>
+<em>Syntax</em>:<p>
+<bf>STAMPEDDATA "Stamp" &lt;data file path&gt;</bf><p>
+
+Stamp is 8 char max.
+
+<sect1>START<p>
+<em>Syntax</em>:<p>
+<bf>START &lt;start procedure name&gt;</bf><p><p>
+Default is _Prelude.
+
+<sect1>SYNCHRONIZE<p>
+<em>Syntax</em>:<p>
+<bf>SYNCHRONIZE</bf><p>
+
+<sect1>THREADNAME<p>
+<em>Syntax</em>:<p>
+<bf>THREADNAME "Initial Process Name (CLIB)"</bf><p>
+
+<sect1>TYPE<p>
+<em>Syntax</em>:<p>
+<bf> TYPE &lt;version&gt;</bf><p>
+
+This directive specifies the format (NLM, LAN, DSK, NAM) of
+the NLM file to be generated. Valid values are:
+
+<itemize>
+<item> 0 - NLM
+<item> 1 - LAN
+<item> 2 - DSK
+<item> 3 - NAM
+</itemize>
+<p>
+
+<em>Example</em>:<p>
+<code>
+TYPE 0
+</code>
+
+<sect1>VERSION<p>
+<em>Syntax</em>:<p>
+
+<bf>VERSION &lt;major version&gt;, &lt;minor version&gt;
+[, &lt;revision&gt;]</bf><p>
+
+The version information is displayed on the server system console when the NLM
+loads. The major and minor version numbers can be 0 - 99. The revision 
+can be 0 - 26 ("a" - "z") and is optional. <bf>The version directive is
+required.</bf>
+
+<em>Example</em>:<p>
+<code>
+VERSION 1,5
+</code>
+
+<sect1>XDCDATA<p>
+<em>Syntax</em>:<p>
+<bf>XDCDATA &lt;XDC data file path&gt;</bf><p>
+
+<sect>Message files<p>
+A message file contains (as you guess) text messages generated by the NLM. You can create it
+using DOS programs MSGLIB.EXE and MSGMAKE.EXE. I don't know any similar utility
+for Unix. Sorry, you'll have to use dosemu or DOS machine :-(
+
+<sect>Help Files<p>
+Help files contain help for use with the NWSNUT user interface library.
+There is no known Linux utility for creating help files. You must use
+the DOS program HELPLIB.EXE, which is available from Novell developer site.
+
+<sect>XDC Data Files<p>
+XDC files are used by NetWare 5 (or SMP NetWare 4.x), and store information
+about symmetric multiprocessing (SMP). You will probably not need them. At least
+not now :-) Again, there is no Unix utility for creating XDC files,
+you will have to use the MPKXDC.EXE program (also available on the Novell 
+developer site).<p>
+
+<sect>Header Files (.h)<p>
+(todo)
+
+<sect>Import Files (.imp)<p>
+(todo)
+
+<sect1>Generating Import Files Using nlmimp(1)<p>
+Program nlmimp(1) is part of my nlm-kit package. (todo)
+
+</article>
