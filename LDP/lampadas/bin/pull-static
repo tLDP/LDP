@@ -4,101 +4,148 @@
 # in all supported languages, starting in the current
 # directory.
 # 
+from Globals import *
 from DataLayer import lampadas
 from WebLayer import lampadasweb
 from HTML import page_factory
 from URLParse import URI
 import os
 import sys
+import fpformat
 
-def write_url(page, url):
-    print 'generating ' + url
-    uri = URI(url)
-    html = page_factory.build_page(page, uri)
-    fh = open(url, 'w')
-    fh.write(html)
-    fh.close()
+class StaticWriter:
 
-# Tell the page factory we're building a static site.
-page_factory.command_line = 1
-page_factory.tablef.command_line = 1
+    def __init__(self):
+        self.total_time = 0
+        self.page_count = 0
+        self.average_time = 0
 
-page_codes = lampadasweb.pages.keys()
-language_codes = lampadas.languages.keys()
+    def write_url(self, page, url):
+        uri = URI(url)
+        page_html = page_factory.build_page(page, uri)
+                    
+        self.total_time = self.total_time + page_factory.elapsed_time
+        self.page_count = self.page_count + 1
+        self.average_time = self.total_time / self.page_count
 
-# Write index.html file
-html = '''
-<html>
-  <body>
-    <table width="100%" height="100%">
-    <tr><td align="center">
-'''
+        print 'It took ' + fpformat.fix(page_factory.elapsed_time, 4) + ' to generate ' + url
+        fh = open(url, 'w')
+        fh.write(page_html)
+        fh.close()
 
-for language_code in language_codes:
-    language = lampadas.languages[language_code]
-    if language.supported > 0:
-        html += '<a href="home.' + language_code.lower() + '.html">' + language.name[language_code] + '</a><br>'
+    def write_site(self):
+        # Tell the page factory we're building a static site.
+        command_line = 1
 
-html += '''
-    </td></tr>
-    </table>
-  </body
-</html>
-'''
-fh = open('index.html', 'w')
-fh.write(html)
-fh.close()
+        page_codes = lampadasweb.pages.keys()
+        language_codes = lampadas.languages.keys()
 
-for language_code in language_codes:
-    language = lampadas.languages[language_code]
-    if language.supported > 0:
-        lang_ext = '.' + language_code.lower()
-        for page_code in page_codes:
-            page = lampadasweb.pages[page_code]
-            if page.only_registered + page.only_admin + page.only_sysadmin > 0:
-                continue
+        # Write index.html file
+        page_html = '''
+        <html>
+          <body>
+            <table width="100%" height="100%">
+            <tr><td align="center">
+        '''
 
-            # Do not render pages that require privileges
-            if page.only_registered==1 or page.only_admin==1 or page.only_sysadmin==1:
-                continue
+        for language_code in language_codes:
+            language = lampadas.languages[language_code]
+            if language.supported > 0:
+                page_html += '<a href="home.' + language_code.lower() + '.html">' + language.name[language_code] + '</a><br>'
 
-            # Write topic pages
-            elif page_code=='topic':
-                if os.access('topic', os.F_OK)==0:
-                    os.mkdir('topic')
+        page_html += '''
+            </td></tr>
+            </table>
+          </body>
+        </html>
+        '''
+        fh = open('index.html', 'w')
+        fh.write(page_html)
+        fh.close()
 
-                topic_codes = lampadas.topics.keys()
-                for topic_code in topic_codes:
-                    topic = lampadas.topics[topic_code]
-                    url = 'topic/' + topic_code + lang_ext + '.html'
-                    write_url(page, url)
+        for language_code in language_codes:
+            language = lampadas.languages[language_code]
+            if language.supported > 0:
+                lang_ext = '.' + language_code.lower()
+                for page_code in page_codes:
+                    page = lampadasweb.pages[page_code]
 
-            # Write subtopic pages
-            elif page_code=='subtopic':
-                if os.access('subtopic', os.F_OK)==0:
-                    os.mkdir('subtopic')
+                    # Do not render pages that require privileges
+                    if page.only_registered==1 or page.only_admin==1 or page.only_sysadmin==1:
+                        continue
 
-                subtopic_codes = lampadas.subtopics.keys()
-                for subtopic_code in subtopic_codes:
-                    lampadas.subtopics[subtopic_code]
-                    url = 'subtopic/' + subtopic_code + lang_ext + '.html'
-                    write_url(page, url)
+                    # Write topic pages
+                    if page_code=='topic':
+                        if os.access('topic', os.F_OK)==0:
+                            os.mkdir('topic')
 
-            # Write type pages
-            elif page_code=='type':
-                if os.access('type', os.F_OK)==0:
-                    os.mkdir('type')
+                        topic_codes = lampadas.topics.keys()
+                        for topic_code in topic_codes:
+                            topic = lampadas.topics[topic_code]
+                            url = 'topic/' + topic_code + lang_ext + '.html'
+                            self.write_url(page, url)
 
-                type_codes = lampadas.types.keys()
-                for type_code in type_codes:
-                    lampadas.types[type_code]
-                    url = 'type/' + type_code + lang_ext + '.html'
-                    write_url(page, url)
+                    # Write subtopic pages
+                    elif page_code=='subtopic':
+                        if os.access('subtopic', os.F_OK)==0:
+                            os.mkdir('subtopic')
 
-            # Do not generate pages that are not listed in menus.
-            elif page.section_code=='':
-                continue
-                
-            else:
-                url = page_code + lang_ext + '.html'
-                write_url(page, url)
+                        subtopic_codes = lampadas.subtopics.keys()
+                        for subtopic_code in subtopic_codes:
+                            lampadas.subtopics[subtopic_code]
+                            url = 'subtopic/' + subtopic_code + lang_ext + '.html'
+                            self.write_url(page, url)
+
+                    # Write type pages
+                    elif page_code=='type':
+                        if os.access('type', os.F_OK)==0:
+                            os.mkdir('type')
+
+                        type_codes = lampadas.types.keys()
+                        for type_code in type_codes:
+                            lampadas.types[type_code]
+                            url = 'type/' + type_code + lang_ext + '.html'
+                            self.write_url(page, url)
+
+                    # Do not generate pages that are not listed in menus.
+                    elif page.section_code=='':
+                        continue
+                        
+                    else:
+                        url = page_code + lang_ext + '.html'
+                        self.write_url(page, url)
+        print 'Total:   ' + fpformat.fix(self.total_time, 4)
+        print 'Average: ' + fpformat.fix(self.average_time, 4)
+
+staticwriter = StaticWriter()
+
+def benchmark_run():
+    staticwriter.write_site()
+
+def benchmark(reps):
+    for x in range(0, reps):
+        benchmark_run()
+
+def profile_suite():
+    import sys
+    import profile
+    import pstats
+    
+    profile_reps = 100
+    
+    if len(sys.argv[1:]):
+        for arg in sys.argv[1:]:
+            profile_reps = int(arg)
+
+    print 'Profiling, ' + str(profile_reps) + ' repetitions...'
+    profile.run('benchmark(' + str(profile_reps) + ')', 'profile_stats')
+    p = pstats.Stats('profile_stats')
+    p.sort_stats('time').print_stats(30)
+
+def main():
+    staticwriter.write_site()
+#    profile_suite()
+
+if __name__=="__main__":
+    lampadasweb.static = 1
+    main()

@@ -36,6 +36,9 @@ class LampadasCollection:
     def __init__(self):
         self.data = {}
 
+    def __len__(self):
+        return len(self.data)
+
     def __getitem__(self, key):
         try:
             item = self.data[key]

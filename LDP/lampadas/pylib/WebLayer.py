@@ -285,6 +285,7 @@ class LampadasWeb:
         self.templates    = Templates()
         self.news         = NewsItems()
         self.file_reports = FileReports()
+        self.static       = 0
 
 
 lampadasweb = LampadasWeb()

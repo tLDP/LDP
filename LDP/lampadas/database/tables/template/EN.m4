@@ -4,7 +4,7 @@ insert(default,
 	<html>
 	  <head>
 	    <title>|title|</title>
-	    <link rel="stylesheet" href="/css/|stylesheet|.css" type="text/css">
+	    <link rel="stylesheet" href="|uri.base|css/|stylesheet|.css" type="text/css">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
 	  <body>
@@ -45,7 +45,7 @@ insert(index,
 	<html>
 	  <head>
 	    <title>|title|</title>
-	    <link rel="stylesheet" href="/css/|stylesheet|.css" type="text/css">
+	    <link rel="stylesheet" href="|uri.base|css/|stylesheet|.css" type="text/css">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	  </head>
 	  <body>

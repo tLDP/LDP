@@ -466,7 +466,7 @@ class DocErrs(LampadasCollection):
             self.data[doc_err.err_id] = doc_err
 
     def count(self):
-        return db.count('document_error','doc_id=' + str(self.doc_id))
+        return len(self)
         
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico

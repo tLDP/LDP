@@ -174,7 +174,7 @@ class FileErrs(LampadasCollection):
         self.data = {}
 
     def count(self):
-        return db.count('file_error','filename=' + wsq(self.filename))
+        return len(self)
         
 # FIXME: Try instantiating a FileErr object, then adding it to the *document*
 # rather than passing all these parameters here. --nico

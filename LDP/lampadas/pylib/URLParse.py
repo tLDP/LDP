@@ -42,6 +42,7 @@ class URI:
     def __init__(self, uri):
 
         log(3, "parsing URI: " + uri)
+        self.base = ''
         self.protocol = ""
         self.server = ""
         self.port = ""
@@ -70,7 +71,9 @@ class URI:
         self.data = []
 
         self.uri = uri
-        self.base = uri
+
+        for i in range(self.uri.count('/')):
+            self.base = self.base = '../'
         
         protocol, host, path, params, query, fragment = urlparse.urlparse(uri)
 
