@@ -3,7 +3,7 @@
 from BaseClasses import LampadasCollection
 from base import Persistence
 
-from Globals import STATIC, WOStringIO, state
+from Globals import WOStringIO, state
 
 class Section(Persistence):
 
@@ -23,7 +23,7 @@ class Section(Persistence):
         elif attribute=='nonsysadmin_count':
             return self.pages.count([['only_sysadmin', '=', 0]])
         elif attribute=='i18n':
-            self.i18n = self.dms.section_i18n.get_by_keys([['section_code', '=', self.code]])
+            self.i18n = self.dms.section_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='name':
             name = LampadasCollection()
@@ -44,7 +44,7 @@ class SectionNavBox:
                          '<tr><td>' % self.section.name[uri.lang])
         for key in self.section.pages.sort_by('sort_order'):
             page = self.section.pages[key]
-            if STATIC and page.only_dynamic:
+            if state.static and page.only_dynamic:
                 continue
             if page.only_registered and state.user==None:
                 continue

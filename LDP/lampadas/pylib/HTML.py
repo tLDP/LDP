@@ -74,7 +74,6 @@ class PageFactory:
         template = page.template
         html = template.template
 
-        dms.block.synch()
         self.blocks = dms.block.get_all()
 
         html = self.replace_tokens(page, uri, html)
@@ -269,13 +268,17 @@ class PageFactory:
                 elif token=='tabtopic':
                     newstring = tables.tabtopic(uri)
                 elif token=='tabmaint_wanted':
-                    newstring = tables.doctable(uri, maintainer_wanted='1', lang=uri.lang)
+                    docs = dms.document.get_by_keys([['maintainer_wanted', '=', 1]])
+                    newstring = tables.doctable2(docs)
                 elif token=='tabunmaintained':
-                    newstring = tables.doctable(uri, maintained='0', lang=uri.lang)
+                    docs = dms.document.get_by_keys([['maintained', '=', 0]])
+                    newstring = tables.doctable2(docs)
                 elif token=='tabpending':
-                    newstring = tables.doctable(uri, pub_status_code='P', lang=uri.lang)
+                    docs = dms.document.get_by_keys([['pub_status_code', '=', 'P']])
+                    newstring = tables.doctable2(docs)
                 elif token=='tabwishlist':
-                    newstring = tables.doctable(uri, pub_status_code='W', lang=uri.lang)
+                    docs = dms.document.get_by_keys([['pub_status_code', '=', 'W']])
+                    newstring = tables.doctable2(docs)
                 elif token=='tabdocfileerrors':
                     newstring = tables.docfileerrors(uri)
                 elif token=='tabfile_reports':
@@ -322,9 +325,11 @@ class PageFactory:
                 elif token=='tabuser':
                     newstring = tables.user(uri)
                 elif token=='tabtypedocs':
-                    newstring = tables.doctable(uri, type_code=uri.code, lang=uri.lang)
+                    docs = dms.document.get_by_keys([['type_code', '=', uri.code]])
+                    newstring = tables.doctable2(docs)
                 elif token=='tabtopicdocs':
-                    newstring = tables.doctable(uri, topic_code=uri.code, lang=uri.lang)
+                    topic = dms.topic.get_by_id(uri.code)
+                    newstring = tables.doctable2(topic.documents)
                 elif token=='tabsitemap':
                     newstring = tables.sitemap(uri)
                 elif token=='tabsessions':

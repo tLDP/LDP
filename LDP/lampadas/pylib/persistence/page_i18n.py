@@ -3,5 +3,6 @@
 from base import Persistence
 
 class PageI18n(Persistence):
-    pass
 
+    def __str__(self):
+        return 'persistence.PageI18n: %s/%s' % (self.code, self.lang)

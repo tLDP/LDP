@@ -78,7 +78,7 @@ VIEW_ICON_SM    = 'View'
 VIEW_ICON       = 'View'
 VIEW_ICON_BIG   = 'View'
 
-from persistence.document_html import DocumentView, DocumentEdit 
+from html import DocumentView, DocumentEdit 
 
 class Tables(LampadasCollection):
 
@@ -610,13 +610,12 @@ class Tables(LampadasCollection):
             return '|blknotfound|'
 
         log(3, 'Creating doctranslations table')
-        return self.doctable(uri, sk_seriesid=doc.sk_seriesid,
-                             columns={'|strlanguage|':  'lang',
-                                      '|strversion|':   'version',
-                                      '|strupdated|':   'last_update',
-                                      '|strpub_date|':  'pub_date',
-                                     },
-                             show_search=0)
+        docs = dms.document.get_by_keys([['sk_seriesid', '=', doc.sk_seriesid]])
+        return self.doctable2(docs, 
+                              columns={'|strlanguage|':  'lang',
+                                       '|strversion|':   'version',
+                                       '|strupdated|':   'last_update',
+                                       '|strpub_date|':  'pub_date'})
 
     def errors(self, uri):
         """
@@ -868,253 +867,6 @@ class Tables(LampadasCollection):
                   % (widgets.notes(user.notes), widgets.save()))
         return box.get_value()
         
-    def doctable(self, uri,
-                 title='',
-                 short_title='',
-                 pub_status_code='',
-                 type_code='',
-                 topic_code='',
-                 username='',
-                 maintained='',
-                 maintainer_wanted='',
-                 lang='',
-                 review_status_code='',
-                 tech_review_status_code='',
-                 pub_date='',
-                 last_update='',
-                 tickle_date='',
-                 isbn='',
-                 encoding='',
-                 rating='',
-                 format_code='',
-                 dtd_code='',
-                 license_code='',
-                 copyright_holder='',
-                 sk_seriesid='',
-                 abstract='',
-                 short_desc='',
-                 collection_code='',
-                 columns={},
-                 layout='compact',
-                 show_search=0
-                ):
-        """
-        Creates a listing of all documents which fit the parameters passed in.
-
-        You can select a layout from "compact" or "expanded". Compact is one line
-        per document; expanded is a table per document. The expanded layout does
-        not accept additional columns to be requested, and ignores the columns{}
-        parameter.
-
-        The DocTable includes its own search form, although the search form
-        can also stand alone.
-        """
-
-        log(3, "Creating doctable")
-
-        # Table header for compact layout
-        if layout=='compact':
-            colspan = ICON_CELLS_COUNT + len(columns) + 1
-            box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
-                             '<tr><th class="collabel" colspan="%s" align="center">|strtitle|</th>'
-                             % (colspan, ICON_CELLS_COUNT + 1))
-            for column in columns.keys():
-                box.write('<th class="collabel">%s</td>' % column)
-            box.write('</tr>\n')
-        elif layout=='expanded':
-            box = WOStringIO('')
-
-        docs = dms.document.get_all()
-        keys = docs.sort_by("title")
-        odd_even = OddEven()
-        for key in keys:
-            doc = docs[key]
-
-            # Don't include unpublished documents
-            # except for admins and owners, unless config says otherwise
-            if doc.pub_time=='':
-                if state.session==None:
-                    if config.world_can_see_unpublished==0:
-                        continue
-
-            # Filter documents according to parameters passed in
-            # by the calling routine.
-            if username > '':
-                if username not in doc.users.keys('username'):
-                    continue
-            if lang > '':
-                if doc.lang <> lang:
-                    continue
-            if pub_status_code > '':
-                if doc.pub_status_code <> pub_status_code:
-                    continue
-            
-            # If any other parameters were specified, limit the documents
-            # to those which match the requirements.
-            if type_code > '':
-                if doc.type_code <> type_code:
-                    continue
-            if topic_code > '':
-                if doc.topics.has_key(topic_code, 'topic_code')==0:
-                    continue
-            if maintained > '':
-                if doc.maintained <> int(maintained):
-                    continue
-            if maintainer_wanted > '':
-                if doc.maintainer_wanted <> int(maintainer_wanted):
-                    continue
-            if title > '':
-                if doc.title.upper().find(title.upper())==-1:
-                    continue
-            if short_desc > '':
-                if doc.short_title.upper().find(short_title.upper())==-1:
-                    continue
-            if review_status_code > '':
-                if doc.review_status_code <> review_status_code:
-                    continue
-            if review_status_code > '':
-                if doc.review_status_code <> review_status_code:
-                    continue
-            if tech_review_status_code > '':
-                if doc.tech_review_status_code <> tech_review_status_code:
-                    continue
-            if pub_date > '':
-                if doc.pub_date <> pub_date:
-                    continue
-            if last_update > '':
-                if doc.last_update <> last_update:
-                    continue
-            if tickle_date > '':
-                if doc.tickle_date <> tickle_date:
-                    continue
-            if isbn > '':
-                if doc.isbn <> isbn:
-                    continue
-            if encoding > '':
-                if doc.encoding <> encoding:
-                    continue
-            if rating > '':
-                if doc.rating <> int(rating):
-                    continue
-            if format_code > '':
-                if doc.format_code <> format_code:
-                    continue
-            if dtd_code > '':
-                if doc.dtd_code <> dtd_code:
-                    continue
-            if license_code > '':
-                if doc.license_code <> license_code:
-                    continue
-            if copyright_holder > '':
-                if doc.copyright_holder.upper().find(copyright_holder.upper())==-1:
-                    continue
-            if sk_seriesid > '':
-                if doc.sk_seriesid.find(sk_seriesid)==-1:
-                    continue
-            if abstract > '':
-                if doc.abstract.upper().find(abstract.upper())==-1:
-                    continue
-            if short_desc > '':
-                if doc.short_desc.upper().find(short_desc.upper())==-1:
-                    continue
-            if collection_code > '':
-                if collection_code not in doc.collections.keys('collection_code'):
-                    continue
-
-            # Doc passed all filters, so include it in the table.
-            if layout=='compact':
-                box.write('<tr class="%s">\n' % odd_even.get_next())
-               
-                box.write(self.document_icon_cells(doc.id, 'td'))
-
-                # Format the title differently to flag its status
-                display_title = html_encode(widgets.title_compressed(doc.title))
-
-                if doc.pub_time > '':
-                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
-                              % (str(doc.id), display_title))
-                elif doc.errors.count() > 0 or doc.file_error_count > 0:
-                    box.write('<td style="width:100%%" class="error">%s</td>\n' % display_title)
-                else:
-                    box.write('<td style="width:100%%">%s</td>\n' % display_title)
-
-                # Now any custom columns.
-                for column in columns.keys():
-                    box.write('<td>%s</td>\n' % getattr(doc, columns[column]))
-                box.write('</tr>\n')
-
-            # This is a blocky extended listing, complete with abstracts.
-            elif layout=='expanded':
-
-                # Link to the online output.
-                if doc.pub_time > '':
-                    block_indexlink = '<td width=32><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + HTML_ICON + '</a></td>'
-                else:
-                    block_indexlink = '<td width=32></td>'
-                
-                # Folder icon
-                if doc.pub_time > '':
-                    block_dllink = '<td width=32><a href="|uri.base|docdownloads/' + str(doc.id) + '/">' + FOLDER_ICON + '</a></td>'
-                else:
-                    block_dllink = ('<td width=32></td>')
-
-                # Edit icon
-                block_editlink = '<td width=32><a href="|uri.base|document_main/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>'
-
-                # Format the title based on the presence of errors.
-                if doc.errors.count() > 0 or doc.file_error_count > 0:
-                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
-                else:
-                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
-
-                # Finally, pull in the abstract.
-                block_abstract = '<td>' + html_encode(doc.abstract) + '</td>'
-
-                box.write('<table class="box nontabular" width="100%%">\n'
-                          '  <tr>%s</tr>\n'
-                          '  <tr>%s\n'
-                          '      %s\n'
-                          '      %s\n'
-                          '      %s\n'
-                          '  </tr>'
-                          '</table>\n'
-                          % (block_title, block_indexlink, block_dllink, block_editlink, block_abstract))
-
-        if layout=='compact':
-            box.write('</table>\n')
-
-        # The DocTable can carry along its own search form that stays in sync
-        # for filtering the data. Insert it here if show_search was passed in.
-        if show_search==1 and STATIC==0:
-            box.write(self.tabsearch(uri, title=title,
-                                          short_title=short_title,
-                                          pub_status_code=pub_status_code,
-                                          type_code=type_code,
-                                          topic_code=topic_code,
-                                          username=username,
-                                          maintained=maintained,
-                                          maintainer_wanted=maintainer_wanted,
-                                          lang=lang,
-                                          review_status_code=review_status_code,
-                                          tech_review_status_code=tech_review_status_code,
-                                          pub_date=pub_date,
-                                          last_update=last_update,
-                                          tickle_date=tickle_date,
-                                          isbn=isbn,
-                                          encoding=encoding,
-                                          rating=rating,
-                                          format_code=format_code,
-                                          dtd_code=dtd_code,
-                                          license_code=license_code,
-                                          copyright_holder=copyright_holder,
-                                          sk_seriesid=sk_seriesid,
-                                          abstract=abstract,
-                                          short_desc=short_desc,
-                                          collection_code=collection_code,
-                                          layout=layout))
-
-        return box.get_value()
-
     def tabdocument_icon_box(self, uri):
         """Returns a navigation box of document icons."""
 
@@ -1258,7 +1010,7 @@ class Tables(LampadasCollection):
         menu_separator = ''
         for key in sections.sort_by('sort_order'):
             section = sections[key]
-            if STATIC and section.static_count==0:
+            if state.static and section.static_count==0:
                 continue
             if section.nonregistered_count==0 and (state.session==None):
                 continue
@@ -1276,7 +1028,7 @@ class Tables(LampadasCollection):
         sections = dms.section.get_all()
         for key in sections.sort_by('sort_order'):
             section = sections[key]
-            if section.static_count==0 and STATIC:
+            if section.static_count==0 and state.static:
                 continue
             if section.nonregistered_count==0 and state.session==None:
                 continue
@@ -1290,7 +1042,7 @@ class Tables(LampadasCollection):
                       % section.name[uri.lang])
             for pagekey in section.pages.sort_by('sort_order'):
                 page = section.pages[pagekey]
-                if page.only_dynamic and STATIC:
+                if page.only_dynamic and state.static:
                     continue
                 if page.only_registered or page.only_admin or page.only_sysadmin > 0:
                     if state.session==None: continue
@@ -1392,10 +1144,11 @@ class Tables(LampadasCollection):
 
     def tabcollection(self, uri):
         log(3, 'Creating collection table')
-        return self.doctable(uri, collection_code=uri.code)
+        collection = dms.collection.get_by_id(uri.code)
+        return self.doctable2(collection.documents.documents)
 
     def navlogin(self, uri):
-        if STATIC==1:
+        if state.static==1:
             return ''
         if state.session:
             log(3, 'Creating active user box')
@@ -1688,7 +1441,7 @@ class DocTable(Table):
         Table.__init__(self, 'doctable', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='compact')
+        return tables.doctable2(dms.document.get_all())
 
 class DocTableExpanded(Table):
 
@@ -1696,7 +1449,7 @@ class DocTableExpanded(Table):
         Table.__init__(self, 'doctableexpanded', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='expanded')
+        return tables.doctable2(dms.document.get_all(), layout='expanded')
 
 class DocAdmin(Table):
     

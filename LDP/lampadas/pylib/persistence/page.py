@@ -5,6 +5,9 @@ from base import Persistence
 
 class Page(Persistence):
 
+    def __str__(self):
+        return 'persistence.Page: %s' % (self.code)
+
     def __getattr__(self, attribute):
         if attribute=='untranslated_lang_keys':
             untranslated = []
@@ -18,7 +21,7 @@ class Page(Persistence):
         elif attribute=='section':  
             return self.dms.section.get_by_id(self.section_code)
         elif attribute=='i18n':
-            self.i18n = self.dms.page_i18n.get_by_keys([['page_code', '=', self.code]])
+            self.i18n = self.dms.page_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='title':
             title = LampadasCollection()

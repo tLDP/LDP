@@ -9,7 +9,7 @@ class Role(Persistence):
         if attribute=='users':
             return dms.document_user.get_by_keys([['role_code', '=', self.code]])
         elif attribute=='i18n':
-            self.i18n = self.dms.role_i18n.get_by_keys([['role_code', '=', self.code]])
+            self.i18n = self.dms.role_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='name':
             name = LampadasCollection()

@@ -5,11 +5,14 @@ from base import Persistence
 
 class Language(Persistence):
 
+    def __str__(self):
+        return 'persistence.Language: %s' % (self.code)
+
     def __getattr__(self, attribute):
         if attribute=='documents':
             return self.dms.document.get_by_keys([['lang', '=', self.code]])
         elif attribute=='i18n':
-            self.i18n = self.dms.language_i18n.get_by_keys([['lang_code', '=', self.code]])
+            self.i18n = self.dms.language_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='name':
             name = LampadasCollection()

@@ -14,7 +14,7 @@ class WebString(Persistence):
                     untranslated.append(key)
             return untranslated
         elif attribute=='i18n':
-            self.i18n = self.dms.string_i18n.get_by_keys([['string_code', '=', self.code]])
+            self.i18n = self.dms.string_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='version':
             version = LampadasCollection()

@@ -118,7 +118,9 @@ class DataManagers(LampadasCollection):
         self['string_i18n']         = WebStringI18n()
 
         # Point each data manager back here. The data managers will in turn
-        # point all objects they create back here.:w
+        # point all objects they create back here.
+        # Also assign each data manager a type of DataSet to generate for
+        # requests for multiple objects.
         for key in self.keys():
             self[key].dms = self
 
@@ -135,7 +137,7 @@ class DataManagers(LampadasCollection):
         self['collection'].object_class          = persistence.Collection
         self['collection_i18n'].object_class     = persistence.CollectionI18n
         self['document'].object_class            = persistence.Document
-        self['document_collection'].object_class = persistence.DocumentError
+        self['document_collection'].object_class = persistence.DocumentCollection
         self['document_error'].object_class      = persistence.DocumentError
         self['document_file'].object_class       = persistence.DocumentFile
         self['document_note'].object_class       = persistence.DocumentNote
@@ -183,6 +185,67 @@ class DataManagers(LampadasCollection):
         self['string'].object_class              = persistence.WebString
         self['string_i18n'].object_class         = persistence.WebStringI18n
 
+    def set_datasets(self, dataset):
+        """
+        Tells the datamanagers in this collection what classes to use when
+        instantiating new sets of objects.
+
+        It expects to be passed a reference to the DataSet class, or
+        some subclass of it.
+        """
+        
+        self['block'].set_dataset_class(dataset.DataSet)
+        self['collection'].set_dataset_class(dataset.DataSet)
+        self['collection_i18n'].set_dataset_class(dataset.DataSet)
+        self['document'].set_dataset_class(dataset.DataSet)
+        self['document_collection'].set_dataset_class(dataset.DocumentCollection)
+        self['document_error'].set_dataset_class(dataset.DataSet)
+        self['document_file'].set_dataset_class(dataset.DataSet)
+        self['document_note'].set_dataset_class(dataset.DataSet)
+        self['document_rating'].set_dataset_class(dataset.DataSet)
+        self['document_rev'].set_dataset_class(dataset.DataSet)
+        self['document_topic'].set_dataset_class(dataset.DataSet)
+        self['document_user'].set_dataset_class(dataset.DataSet)
+        self['dtd'].set_dataset_class(dataset.DataSet)
+        self['dtd_i18n'].set_dataset_class(dataset.DataSet)
+        self['encoding'].set_dataset_class(dataset.DataSet)
+        self['error'].set_dataset_class(dataset.DataSet)
+        self['error_i18n'].set_dataset_class(dataset.DataSet)
+        self['error_type'].set_dataset_class(dataset.DataSet)
+        self['error_type_i18n'].set_dataset_class(dataset.DataSet)
+        self['file_error'].set_dataset_class(dataset.DataSet)
+        self['file_report'].set_dataset_class(dataset.DataSet)
+        self['file_report_i18n'].set_dataset_class(dataset.DataSet)
+        self['format'].set_dataset_class(dataset.DataSet)
+        self['format_i18n'].set_dataset_class(dataset.DataSet)
+        self['language'].set_dataset_class(dataset.DataSet)
+        self['language_i18n'].set_dataset_class(dataset.DataSet)
+        self['license'].set_dataset_class(dataset.DataSet)
+        self['license_i18n'].set_dataset_class(dataset.DataSet)
+        self['log'].set_dataset_class(dataset.DataSet)
+        self['news'].set_dataset_class(dataset.DataSet)
+        self['news_i18n'].set_dataset_class(dataset.DataSet)
+        self['page'].set_dataset_class(dataset.DataSet)
+        self['page_i18n'].set_dataset_class(dataset.DataSet)
+        self['pub_status'].set_dataset_class(dataset.DataSet)
+        self['pub_status_i18n'].set_dataset_class(dataset.DataSet)
+        self['review_status'].set_dataset_class(dataset.DataSet)
+        self['review_status_i18n'].set_dataset_class(dataset.DataSet)
+        self['role'].set_dataset_class(dataset.DataSet)
+        self['role_i18n'].set_dataset_class(dataset.DataSet)
+        self['section'].set_dataset_class(dataset.DataSet)
+        self['section_i18n'].set_dataset_class(dataset.DataSet)
+        self['session'].set_dataset_class(dataset.DataSet)
+        self['sourcefile'].set_dataset_class(dataset.DataSet)
+        self['template'].set_dataset_class(dataset.DataSet)
+        self['topic'].set_dataset_class(dataset.DataSet)
+        self['topic_i18n'].set_dataset_class(dataset.DataSet)
+        self['type'].set_dataset_class(dataset.DataSet)
+        self['type_i18n'].set_dataset_class(dataset.DataSet)
+        self['username'].set_dataset_class(dataset.DataSet)
+        self['string'].set_dataset_class(dataset.DataSet)
+        self['string_i18n'].set_dataset_class(dataset.DataSet)
+
     def __getattr__(self, attribute):
         """
         Overrides attribute requests, and maps attribute names to collection keys.
@@ -192,6 +255,11 @@ class DataManagers(LampadasCollection):
         return self[attribute]
 
     def preload(self):
+        """
+        Asks each data manager to preload its data from the database.
+
+        Each data manager decides how or whether to act on the request.
+        """
         for key in self.keys():
-            if key.find('_i18n') < 0:
-                self[key].preload()
+#            if key.find('_i18n') < 0:
+            self[key].preload()

@@ -9,7 +9,7 @@ class ErrorType(Persistence):
         if attribute=='errors':
             return self.dms.error.get_by_keys([['err_type_code', '=', self.code]])
         elif attribute=='i18n':
-            self.i18n = self.dms.error_type_i18n.get_by_keys([['err_type_code', '=', self.code]])
+            self.i18n = self.dms.error_type_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='name':
             name = LampadasCollection()

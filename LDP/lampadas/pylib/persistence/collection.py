@@ -8,10 +8,11 @@ class Collection(Persistence):
     Base class for persistent collections.
     """
     def __getattr__(self, attribute):
-        if attribute=='documents':
-            return self.dms.document_collection.get_by_keys([['collection_code', '=', self.code]])
+        if attribute=='documents':  
+            self.documents = self.dms.document_collection.get_by_keys([['collection_code', '=', self.code]])
+            return self.documents
         elif attribute=='i18n':
-            self.i18n = self.dms.collection_i18n.get_by_keys([['collection_code', '=', self.code]])
+            self.i18n = self.dms.collection_i18n.get_by_keys([['code', '=', self.code]])
             return self.i18n
         elif attribute=='name':
             name = LampadasCollection()

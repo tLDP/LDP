@@ -13,6 +13,11 @@ import string
 
 # FIXME: use sqlgen ?
 
+class UnknownField(Exception) :
+    """
+    Exception raised when unknown field is used with TableField.
+    """
+
 class UnknownFieldType(Exception) :
     """
     Exception raised when unknown type is used with TableField.
@@ -93,6 +98,14 @@ class TableField:
                                    'data= %s invalid type=%s' 
                                    % (key,self.data_type))
 
+class TableFields(LampadasCollection):
+
+    def find_attribute(self, attribute):
+        for key in self.keys():
+            field = self[key]
+            if field.attribute==attribute:
+                return field
+
 class DataTable(LampadasCollection):
     """
     This class defines a table in the RDBMS back end.
@@ -101,7 +114,7 @@ class DataTable(LampadasCollection):
     def __init__(self, table_name, field_dictionary):
         LampadasCollection.__init__(self)
         self.name   = table_name
-        self.fields = LampadasCollection()
+        self.fields = TableFields()
         
         self.key_list   = []
         self.field_list = []
@@ -116,6 +129,10 @@ class DataTable(LampadasCollection):
             data_field.nullable     = field['nullable']
             data_field.i18n         = field['i18n']
             data_field.foreign_key  = field['foreign_key']
+            if field.has_key('foreign_attr'):
+                data_field.foreign_attr = field['foreign_attr']
+            else:
+                data_field.foreign_attr = ''
             if field.has_key('attribute'):
                 data_field.attribute = field['attribute']
             else:
@@ -170,44 +187,78 @@ class DataTable(LampadasCollection):
                     newkey = trim(newkey + ' ' + str(value))
         return newkey
 
-
 class DataManager(DataTable):
     """
     This class provides high level access to a database table.
-
-    It loads and saves data from the table into an object or a DataSet, which is
-    a dictionary of objects. You can request a single object (row), or you can
-    specify a set of criteria, which are then translated into a WHERE clause.
+    
+    It loads and saves data from the table into an object or a DataSet,
+    or a subclass thereof. The class of objects and data sets that
+    are returned can be set using the set_object() and set_dataset()
+    functions.
+    
+    You can request a single object (row), or you can specify a set of criteria,
+    which are then translated into a WHERE clause.
     """
 
     def __init__(self, table_name, field_dictionary):
         DataTable.__init__(self, table_name, field_dictionary)
-        self.table        = DataTable(table_name, field_dictionary)
+        self.table   = DataTable(table_name, field_dictionary)
         self.reset_cache()
 
     def reset_cache(self):
+        """
+        Initialize this data manager's object cache.
+
+        Any contents in the cache are discarded.
+        """
         self.cache        = Cache()
         self.all_cached   = 0
         self.last_synched = ''
-        self.preloaded    = 0
     
     def preload(self):
-        if self.preloaded==1:
+        """
+        Handles a client request to preload all objects from the database,
+        fully populating the local cache and preparing for subsequent
+        client requests.
+
+        Preloading can result in significant performance benefits,
+        because data managers who have preloaded their cache can
+        fill more client requests from cache, avoiding expensive
+        database accesses.
+
+        Not all requests for preloading are honored. To be preloaded,
+        a datamanager's cache size must be set to CACHE_UNLIMITED.
+        Also, only one call is honored. Subsequent calls are
+        silently ignored. This makes it safe and efficient for
+        clients to request preloading, without needing to know
+        whether or not the data manager has already been preloaded.
+        """
+        if self.all_cached==1:
             return
+
+        # FIXME: Also try to preload caches that are not unlimited,
+        # but are large enough to hold all existing objects.
+        # Use a SQL COUNT(*) function to make this determination,
+        # so we don't waste lots of time attempting to preload
+        # a cache that cannot be preloaded.
         if self.cache.size <> CACHE_UNLIMITED:
             return
         #print 'Preloading ' + self.table.name
         self.get_all()
-        i18n_table = self.table.name + '_i18n'
-        if self.dms.has_key(i18n_table):
-            i18n_dm = self.dms[i18n_table]
-            i18n_dm.preload()
+        #i18n_table = self.table.name + '_i18n'
+        #if self.dms.has_key(i18n_table):
+        #    i18n_dm = self.dms[i18n_table]
+        #    i18n_dm.preload()
         
     def get_by_id(self, id):
         """
-        Returns the object that was requested.
+        Returns an individual object whose primary key field matches
+        the specified id.
 
-        If the object is in the cache, that object is returned.
+        If the object is in the cache, the cached object is returned.
+        Objects which have more than one primary key field cannot be
+        reliably retrieved using this function. In this event, only the
+        first matching object will be returned.
         """
         
         object = self.cache.get_by_key(id)
@@ -224,10 +275,6 @@ class DataManager(DataTable):
         """
         Returns all objects which match the supplied filters.
         """
-        # FIXME: Use keys based on attributes, not field names.
-        # Clients shouldn't have to know field names, and it also would make
-        # searching the cache easier.
-
         if self.cache.filled==1:
             self.all_cached = 0
         if self.all_cached==1:
@@ -237,49 +284,93 @@ class DataManager(DataTable):
             return self.get_sql(sql)
 
     def get_cached_by_keys(self, filters):
+        """
+        This private function fills keyed requests directly from the
+        object cache.
+        
+        No checking is performed to determine whether the cache contains
+        all objects which fit the request. Therefore, this function
+        should only be called by data managers whose caches are preloaded.
+        See the preload() function for more information on preloading.
+        """
         sql = self.filters_to_sql(filters)
-        set = DataSet(self, sql)
-        for key in self.cache.keys():
-            object = self.cache[key]
-            match = 1
-            for filter in filters:
-                field_name, operator, value = filter
-                data_field = self.table.fields[field_name]
-                obj_value = getattr(object, data_field.attribute)
-                if operator.upper()=='LIKE':
-                    if len(value) > len(obj_value): continue
-                    if value.upper() <> obj_value.upper()[:len(value)]:
-                        match = 0
-                elif operator=='=':
-                    if obj_value<>value: match = 0
-                elif operator=='<':
-                    if obj_value >= value: match = 0
-                elif operator=='<=':
-                    if obj_value > value: match = 0
-                elif operator=='>':
-                    if obj_value <= value: match = 0
-                elif operator=='>=':
-                    if obj_value < value:  match = 0
-                else:
-                    raise UnknownOperator('Unrecognized operator: %s' %(data_field.operator))
-                if match==0: break
-            if match==1:
-                set[object.key] = object
-        return set
+        function_text = self.filters_to_function(filters)
+        print 'Function text: '
+        print function_text
+        code = compile(function_text, '<string>', 'exec')
+        print 'Code: ' + str(code)
+        print 'Code has %s arguments.' % code.co_argcount
 
+        self.test_object_filters.im_func.func_code = code
+        #print 'Method code: ' + str(self.test_object_filters.im_func.func_code)
+        good_keys = filter(self.test_object_filters, self.cache.keys())
+        print 'Good keys: ' + str(good_keys)
+        dataset = self.new_dataset()
+        for key in good_keys:
+            dataset[key] = self.cache[key]
+        return dataset
+
+    def test_object_filters(self, key):
+        return 1
+    
+    def filters_to_function(self, filters):
+        """
+        Converts a list of filters into a Python function which tests
+        an object to see if it matches the filters.
+
+        Precompiling filter tests speeds up key filtering enormously.
+        
+        The generated function accepts a single parameter, "key".
+        It retrieves the object with that key in the object
+        cache and tests for a match. If the object matches all
+        the filters, the generated function returns 1.
+        Otherwise, it returns 0.
+        """
+        code = WOStringIO()
+        code.write('def test_cached_object(key):\n')
+        code.write('    object = self.cache[key]\n')
+        for filter in filters:
+            attribute, operator, value = filter
+            test_value = repr(value)
+            code.write('    obj_value = object.%s\n' % (attribute))
+            if operator.upper()=='LIKE':
+                code.write('    if %s > len(%s): return 0\n' % (len(value), obj_value))
+                code.write('    return (%s <> obj_value.upper()[:%s])\n' % (test_value.upper(), len(value)))
+            elif operator in ['<>', '<', '<=', '=', '>=', '>']:
+                if operator=='=':
+                    operator = '=='
+                code.write('    return (object.%s %s %s)\n' % (attribute, operator, repr(value)))
+            else:
+                raise UnknownOperator('Unrecognized operator: %s' % (operator))
+
+        return code.get_value()
+            
     def filters_to_sql(self, filters):
+        """
+        Converts a list of filters into the SQL statement which will
+        retrieve matching records from the database.
+        """
         wheres = []
         for filter in filters:
-            field_name, operator, value = filter
-            data_field = self.table.fields[field_name]
+            attribute, operator, value = filter
+            field = self.table.fields.find_attribute(attribute)
             if operator.upper()=='LIKE':
-                wheres.append('upper(' + field_name + ') LIKE ' + data_field.attr_to_field(value.upper() + '%'))
+                wheres.append('upper(' + field_name + ') LIKE ' + field.attr_to_field(value.upper() + '%'))
             else:
-                wheres.append(field_name + operator + data_field.attr_to_field(value))
+                wheres.append(field.field_name + operator + field.attr_to_field(value))
         where = ' WHERE ' + string.join(wheres, ' AND ')
         return self.table.select + where
 
     def get_all(self):
+        """
+        Returns a set of all objects managed by this data manager.
+
+        If the data manager's cache proves sufficient to cache all objects,
+        the cache will subsequently be considered preloaded, i.e.,
+        subsequent calls to get_by_keys() will be served directly from the
+        cache, bypassing expensive database accesses. See the preload()
+        function for more information on preloading.
+        """
         if self.cache.filled==1:
             self.all_cached = 0
         if self.all_cached==0:
@@ -291,6 +382,15 @@ class DataManager(DataTable):
         return self.get_cached()
 
     def synch(self):
+        """
+        Synchronize objects in the object cache with the database.
+
+        Objects which have been deleted in the database are removed
+        from the object cache.
+        
+        Objects which are out of synch with their database record
+        have their attribute set to match the data in the database.
+        """
         #print 'Synchronizing ' + self.table.name + ' with database'
         last_synched = self.last_synched        # Remember this, because we're about to overwrite it.
         self.last_synched = now_string()
@@ -301,15 +401,25 @@ class DataManager(DataTable):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            for key in self.table.field_list:
-                field = self.fields[key]
-                if field.key_field==1:
-                    value = field.field_to_attr(row[0])
-                    break
-            object = self.new()
-            object.key = value
+            
+            # Load keys for the deleted object
+            object = self.new_object()
+            if len(self.table.key_list)==1:
+                field = self.table.fields[self.table.key_list[0]]
+                value = field.field_to_attr(row[0])
+                setattr(object, field.attribute, value)
+            else:
+                values = row[0].split()
+                for key in self.table.key_list:
+                    field = self.table.fields[key]
+                    value = field.field_to_attr(values[field.index])
+                    setattr(object, field.attribute, value)
+            object.key = self.table.get_key(object)
+
             #print 'Deleting from ' + self.table.name + ' cache: ' + str(value)
             self.cache.delete(object)
+
+            # FIXME: Delete the object from all data sets which contain it!
 
         # Update any newly updated objects.
         sql = self.table.select + ' WHERE updated >= ' + wsq(last_synched)
@@ -327,31 +437,41 @@ class DataManager(DataTable):
                 self.cache.add(object)
                 #print 'Adding in ' + self.table.name + ' cache: ' + str(object.key)
 
+                # FIXME: Add the object to all data sets whose filters it matches.
+
     def get_cached(self):
+        """
+        Returns a dataset containing all objects in the object cache.
+        """
         #print 'Pulling ' + self.table.name + ' from cache.'
-        set = DataSet(self, self.table.select)
+        dataset = self.new_dataset()
         for key in self.cache.keys():
-            set[key] = self.cache[key]
-        return set
+            dataset[key] = self.cache[key]
+        return dataset
         
     def get_sql(self, sql):
         """
-        Returns a set of objects.
-        
-        Does not read from the cache, but writes into it.
+        Accepts a SQL statement, instantiates the corresponding objects from the
+        database, and stores those objects in the data cache if possible.
         """
         #print 'Cache miss, loading: ' + self.table.name
-        set = DataSet(self, sql)
+        dataset = self.new_dataset()
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             object = self.row_to_object(row)
-            set[object.key] = object
+            dataset[object.key] = object
             self.cache.add(object)
-        return set
+        return dataset
 
-    def new(self):
+    def set_object_class(self, object_class):
+        self.object_class = object_class
+        
+    def set_dataset_class(self, dataset_class):
+        self.dataset_class = dataset_class
+
+    def new_object(self):
         object = self.object_class(self.dms, self)
         for key in self.table.fields.keys():
             field = self.table.fields[key]
@@ -360,8 +480,11 @@ class DataManager(DataTable):
         object.in_database = 0
         return object
 
+    def new_dataset(self):
+        return self.dataset_class(self)
+    
     def row_to_object(self, row):
-        object = self.new()
+        object = self.new_object()
         self.table.load_row(object, row)
         return object
 
@@ -426,133 +549,11 @@ class DataManager(DataTable):
         db.commit()
 
     def delete_by_keys(self, filters):
-        set = self.get_by_keys(filters)
-        for key in set.keys():
-            object = set[key]
+        dataset = self.get_by_keys(filters)
+        for key in dataset.keys():
+            object = dataset[key]
             self.delete(object)
     
-    def clear(self, set):
-        for key in set.keys():
-            self.delete(set[key])
-
-class DataSet(LampadasCollection):
-
-    def __init__(self, dms, sql):
-        super(DataSet, self).__init__()
-        self.dms = dms
-        self.sql = sql
-
-    def average(self, attribute):
-        """Returns the average of the requested attribute."""
-
-        if self.count()==0:
-            return 0
-            
-        total = 0
-        for key in self.keys():
-            object = self[key]
-            value = getattr(object, attribute)
-            total = total + value
-        return total / self.count()
-
-    def max(self, attribute):
-        """
-        Returns the maximum value of the requested attribute.
-        
-        This method only supports numeric attributes.
-        Returns 0 if there are no objects in the set.
-        """
-
-        maximum = 0
-        for key in self.keys():
-            object = self[key]
-            value = getattr(object, attribute)
-            maximum = max(maximum, value)
-        return maximum
-
-    def min(self, attribute):
-        """
-        Returns the maximum value of the requested attribute.
-        
-        This method only supports numeric attributes.
-        Returns 0 if there are no objects in the set.
-        """
-
-        minimum = 0
-        for key in self.keys():
-            object = self[key]
-            value = getattr(object, attribute)
-            minimum = min(minimum, value)
-        return minimum
-
-    def new(self):
-        return self.dms.new()
-
-    def save(self):
-        for key in self.keys():
-            self[key].save()
-
-    def add(self, object):  
-        self.dms.save(object)
-        self[object.key] = object
-
-    def delete(self, object):
-        if object.in_database==0:
-            return
-        self.dms.delete(object)
-        if self.has_key(object.key):
-            del self[object.key]
-
-    def delete_by_keys(self, filters):
-        subset = self.get_subset(filters)
-        for key in subset.keys():
-            object = self[key]
-            self.delete(object)
-    
-    def clear(self):
-        for key in self.keys():
-            object = self[key]
-            self.delete(object)
-
-    def get_subset(self, filters):
-        subset = DataSet(self.dms, self.sql)
-        for key in self.keys():
-            object = self[key]
-            passes = 1
-            for filter in filters:
-                attribute, operator, value = filter
-                my_value = getattr(object, attribute)
-                if operator=='=': match = (my_value==value)
-                elif operator=='>': match = (my_value > value)
-                elif operator=='<': match = (my_value < value)
-                else:
-                    raise AttributeError('No such operator: ' + operator)
-                if match==0:
-                    passes = 0
-                    break
-            if passes:
-                subset[object.key] = object
-        return subset
-
-    def count(self, filters=None):
-        if filters:
-            i = 0
-            for key in self.keys():
-                object = self[key]
-                passes = 1
-                for filter in filters:
-                    attribute, operator, value = filter
-                    my_value = getattr(object, attribute)
-                    if operator=='=': match = (my_value==value)
-                    elif operator=='>': match = (my_value > value)
-                    elif operator=='<': match = (my_value < value)
-                    else:
-                        raise AttributeError('No such operator: ' + operator)
-                    if match==0:
-                        passes = 0
-                        break
-                if passes:
-                    i += 1
-            return i
-        else:
-            return super(DataSet, self).count()
+    def clear(self, dataset):
+        for key in dataset.keys():
+            self.delete(dataset[key])

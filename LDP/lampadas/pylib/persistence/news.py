@@ -14,7 +14,7 @@ class News(Persistence):
                     untranslated.append(key)
             return untranslated
         elif attribute=='i18n':
-            self.i18n = self.dms.news_i18n.get_by_keys([['news_id', '=', self.id]])
+            self.i18n = self.dms.news_i18n.get_by_keys([['id', '=', self.id]])
             return self.i18n
         elif attribute=='headline':
             headline = LampadasCollection()

@@ -32,12 +32,10 @@ import htmlentitydefs
 
 # Globals
 
-VERSION = '0.9.6'
+VERSION = '0.9.6-cvs'
 
 YES = 1
 NO  = 0
-
-STATIC = 0
 
 # How many items to clear from a cache when it is full
 # and we're adding another object to it.
@@ -356,6 +354,8 @@ class State:
     def __init__(self):
         self.session = None
         self.user = None
+        self.static = 0
+
 
 state = State()
 
