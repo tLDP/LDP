@@ -1,0 +1,128 @@
+#
+# fix_print_html.lib
+#
+#   Dan Scott  / <dan.scott (at) acm.org>
+#   Ferg       / <gferg (at) sgi.com>
+#
+#   Used to prepare single-file HTML variant for PDF/Postscript creation
+#   thru htmldoc.
+#
+# log:
+#     16Oct2000 - initial entry <gferg (at) sgi.com>
+#
+#
+
+sub fix_print_html {
+
+   my($in,$out,$ttl) = @_;
+
+   open(IN_FILE, "< $in") || do {
+        print "fix_print_html: cannot open $in: $!\n";
+        return 0;
+   };
+
+   my($buf,$ttl_buf) = '';
+   my($indx) = -1;
+   my($is_article) = 0;
+   while(<IN_FILE>) {
+
+         if( $indx == 1 ) {
+
+             # ignore everything until we see the chapter or sect
+             #
+             if( $_ =~ /CLASS="CHAP/ ) {
+
+                 $buf .= $_;
+                 $indx++;
+
+             } elsif( $_ =~ /CLASS="SECT/ || $_ =~ /CLASS="sect/ )  {
+
+                 $buf .= $_;
+                 $indx++;
+                 $is_article = 1;
+
+             } else {
+                 next;
+             }
+
+         } elsif( $indx == 0 ) {
+
+             # write out the title page file
+             #
+             if( $_ =~ /CLASS="TOC"/ ) {
+
+                 $ttl_buf .= "></DIV>\n</BODY>\n</HTML>\n"; 
+                 $ttl_buf =~ s/<\/H1\n/<\/H1\n><P><BR><BR\n/ms;
+                 
+                 open(TOC_FILE, "> $ttl") || do {
+                      print "fix_print_html: cannot open $ttl: $!\n";
+                      close(IN_FILE);
+                      return 0;
+                 };
+                 print TOC_FILE $ttl_buf;
+                 close(TOC_FILE);
+                 $ttl_buf = '';
+                 $indx++;
+
+             } else {
+                $ttl_buf .= $_;
+             }
+
+         } elsif( $indx < 0 ) {
+
+             # up to this point, both buffers get the line
+             #
+             if( $_ =~ /CLASS="TITLEPAGE"/ ) {
+
+                 $ttl_buf .= $_ . ">\n<P>\n<BR><BR><BR><BR>\n<\/P\n";
+                 $indx++;
+
+             } else {
+                 $buf .= $_;
+                 $ttl_buf .= $_;
+             }
+
+         } else {
+
+             $buf .= $_;
+         }
+   }
+   close(IN_FILE);
+
+   open(OUT_FILE, "> $out") || do {
+        print "fix_print_html: cannot open $out: $!\n";
+        return 0;
+   };
+
+
+   # make these corrections and write out the file
+   #
+
+   $buf =~ s/(\n><LI\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   $buf =~ s/(\n><LI\n><DIV\nCLASS="FORMALPARA"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   $buf =~ s/(\n><LI\nSTYLE="[^\"]+"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   if( $is_article == 0 ) {
+       $buf =~ s/(\nCLASS="SECT[TION\d]+"\n>)<H1\n(.*?)<\/H1/$1<H2\n$2<\/H2/gms;
+       $buf =~ s/(\nCLASS="SECT[TION\d]+"\n><HR>)<H1\n(.*?)<\/H1/$1<H2\n$2<\/H2/gms;
+   }
+   $buf =~ s/<H1(\nCLASS="INDEXDIV"\n)(.*?)<\/H1/<H2$1$2<\/H2/gms;
+   if( ($indx = rindex($buf, "<H1\n><A\nNAME=\"DOC-INDEX\"")) > -1 ) {
+       $buf = substr($buf, 0, $indx);
+       $buf .= "\n<\/BODY>\n<\/HTML>\n\n";
+   }
+   $buf =~ s/\&\#60;/\&lt;/g;
+   $buf =~ s/\&\#62;/\&gt;/g;
+   $buf =~ s/\&\#8211;/\-/g;
+   $buf =~ s/><[\/]*TBODY//g;
+
+   print OUT_FILE $buf;
+   close(OUT_FILE);
+
+   return 1;
+}
+
+
+# Return true from package include
+#
+1;
+
