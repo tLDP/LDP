@@ -6,7 +6,7 @@
 
 <title>Chroot-BIND HOWTO
 <author>Scott Wunsch, <tt>scott at wunsch.org</>
-<date>v1.4, 1 July 2001
+<date>v1.5, 1 December 2001
 <abstract>
 This document describes installing the BIND 9 nameserver to run in a chroot
 jail and as a non-root user, to provide added security and minimise the
@@ -87,12 +87,12 @@ url="http://www.linux.or.jp/JF/JFdocs/Chroot-BIND-HOWTO.html">.
 
 BIND is available from <url url="http://www.isc.org/" name="the Internet
 Software Consortium"> at <url url="http://www.isc.org/bind.html">.  As of this
-writing, the current version of BIND 9 is 9.1.2.  BIND 9 has been out for some
-time now, and many people are using it in production.  Nevertheless, if you
-are the conservative sort, you may prefer to remain with BIND 8.  If this is
-the case, please see my Chroot-BIND8 HOWTO (available from the same loation)
-for details on chrooting it.  Be warned that BIND 8 is much messier to chroot
-though.
+writing, the current version of BIND 9 is 9.2.0.  BIND 9 has been out for some
+time now, and many people are using it in production.  Nevertheless, some more
+conservative sorts still prefer to remain with BIND 8.  If you are such a
+person, please see my Chroot-BIND8 HOWTO (available from the same location)
+for details on chrooting it, but be warned that BIND 8 is much messier to
+chroot.
 
 Keep in mind that there are <bf>known</> security holes in many earlier
 versions of BIND, so make very sure that you're running the latest version!
@@ -124,7 +124,9 @@ was the first way that I tried that worked, so I wrote it down.
 My BIND experience to date has been installing on Linux servers.  However, most
 of the instructions in this document should be easily applicable to other
 flavours of UNIX as well, and I shall try to point out differences of which I am
-aware.
+aware.  I've also received suggestions from people using other distributions
+and other platforms, and I've tried to incorporate their comments where
+possible.
 
 If you run Linux, you need to make sure that you're running a 2.4 kernel before
 attempting this.  The <tt>-u</> switch (to run as a non-root user) requires
@@ -174,6 +176,15 @@ structure:
             +-- run
 </verb></tscreen>
 
+If you use GNU <tt>mkdir</> (such as on a Linux system), you can create this
+directory structure like this:
+
+<tscreen><verb>
+# mkdir -p /chroot/named
+# cd /chroot/named
+# mkdir -p dev etc/namedb/slave var/run
+</verb></tscreen>
+
 <sect1>Placing the BIND Data
 
 <p>
@@ -216,10 +227,20 @@ although not nearly as many as BIND 8 did.
 One file that BIND will need inside its jail is good ol' <tt>/dev/null</>.
 Note that the exact command necessary to create this device node may vary from
 system to system; check your <tt>/dev/MAKEDEV</> script to be sure.  Some
-systems may also require <tt>/dev/zero</>, which can created similarly.  For
-most Linux systems, we can use the following command:
+systems may also require <tt>/dev/zero</>, which can created similarly.  It's
+reported that the BIND 9.2.0 release candidates now require <tt>/dev/random</>
+as well.  For most Linux systems, we can use the following commands:
 <tscreen><verb>
 # mknod /chroot/named/dev/null c 1 3
+# mknod /chroot/named/dev/random c 1 8
+# chmod 666 /chroot/named/dev/{null,random}
+</verb></tscreen>
+
+For FreeBSD 4.3, this is:
+<tscreen><verb>
+# mknod /chroot/named/dev/null c 2 2
+# mknod /chroot/named/dev/random c 2 3
+# chmod 666 /chroot/named/dev/{null,random}
 </verb></tscreen>
 
 You also need another file in the <tt>/etc</> directory inside the jail.  You
@@ -261,6 +282,10 @@ to
 daemon syslogd -m 0 -a /chroot/named/dev/log
 </verb></tscreen>
 
+Interestingly, as of Red Hat 7.2, Red Hat has apparently made this process
+even easier.  There is now a file called <tt>/etc/sysconfig/syslog</> in which
+extra parameters for syslogd can be defined.
+
 On Caldera OpenLinux systems, they use a daemon launcher called <tt>ssd</>,
 which reads configuration from <tt>/etc/sysconfig/daemons/syslog</>.  You
 simply need to modify the options line to look like this:
@@ -278,6 +303,14 @@ to read
 SYSLOGD_PARAMS="-a /chroot/named/dev/log"
 </verb></tscreen>
 should do the trick.
+
+And, last but not least, for FreeBSD 4.3 you can apparently just edit the
+<tt>rc.conf</> file and put in the following:
+<tscreen><verb>
+syslogd_flags="-s -l /chroot/named/dev/log"
+</verb></tscreen>
+The <tt>-s</> is for security reasons, and is part of the default settings.
+The <tt>-l</> is a local path on which to put another logging node.
 
 Once you've figured out how to make this change for your system, simply
 restart <tt>syslogd</>, either by killing it and launching it again (with
@@ -332,6 +365,13 @@ directories immutable, using the <tt>chattr</> tool on ext2 filesystems.
 <tscreen><verb>
 # cd /chroot/named
 # chattr +i etc etc/localtime var
+</verb></tscreen>
+
+Equivalently, on FreeBSD 4.3, you want to look into <tt>chflags</> if you
+wish to make things immutable.  As an example, the following should change
+everything in the <tt>/chroot/named/etc</> directory to immutable:
+<tscreen><verb>
+# chflags schg /chroot/named/etc/*(*).
 </verb></tscreen>
 
 It would be nice to do this for the <tt>dev</> directory too, but unfortunately
@@ -466,12 +506,26 @@ esac
 exit 0
 </code></tscreen>
 
+As with syslogd, as of Red Hat 7.2 this process is now even easier.  There is
+a file called <tt>/etc/sysconfig/named</> in which extra parameters for syslogd
+can be defined.  The default <tt>/etc/rc.d/init.d/named</> on Red Hat 7.2,
+however, will check for the existance of <tt>/etc/named.conf</> before
+starting.  You will need to correct this path.
+
 On Caldera OpenLinux systems, you simply need to modify the variables defined
 at the top, and it will apparently take care of the rest for you:
 <tscreen><verb>
 NAME=named
 DAEMON=/usr/local/sbin/$NAME
 OPTIONS="-t /chroot/named -u named -c /etc/named.conf"
+</verb></tscreen>
+
+And for FreeBSD 4.3, you can edit the <tt>rc.conf</> file and put in the
+following:
+<tscreen><verb>
+named_enable="YES"
+named_program="chroot/named/bin/named"
+named_flags="-u named -t /chroot/named -c /etc/namedb/named.conf"
 </verb></tscreen>
 
 <sect1>Configuration Changes
@@ -543,6 +597,16 @@ better.
 <item>Erik Wallin <tt>&lt;erikw at sec.se&gt;</> and Brian Cervenka
 <tt>&lt;brian at zerobelow.org&gt;</> for providing good suggestions for
 further tightening the jail.
+
+<item>Robert Dalton <tt>&lt;support at accesswest.com&gt;</> for suggesting
+a couple more example commands, and pointing out BIND 9.2.0's need of
+<tt>/dev/random</>.
+
+<item>Eric McCormick <tt>&lt;hostmaster at cybertime.net&gt;</> for the FreeBSD
+4.3 information.
+
+<item>Tan Zheng Da <tt>&lt;tzd at pobox.com&gt;</> for the details about the
+changes in Red Hat 7.2 that make this a little easier.
 
 </itemize>
 
