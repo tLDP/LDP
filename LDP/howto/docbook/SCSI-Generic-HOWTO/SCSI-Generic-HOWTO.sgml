@@ -15,9 +15,17 @@
     </affiliation>
    </author>
   </authorgroup>
-  <pubdate>2002-01-26</pubdate>
+  <pubdate>2002-05-03</pubdate>
 
   <revhistory>
+     <revision>
+       <revnumber>1.2</revnumber>
+       <date>2002-05-03</date>                
+       <authorinitials>dpg</authorinitials>
+       <revremark>
+             ENOMEM, EPERM; DRIVER_SENSE->CHECK_CONDITION
+       </revremark>
+     </revision>
      <revision>
        <revnumber>1.1</revnumber>
        <date>2002-01-26</date>                
@@ -130,7 +138,7 @@ part can be found in the
 <literal>SCSI-2.4-HOWTO</literal></ulink>.
 </para>
 <para>
-This document was last modified on 26th January 2002.
+This document was last modified on 3rd May 2002.
 </para>
 </chapter>
 		
@@ -215,7 +223,7 @@ given by the SG_GET_VERSION_NUM ioctl() is calculated by
 (x * 10000 + y * 100 + z). The sg driver discussed here will yield a
 number greater than or equal to 30000 from SG_GET_VERSION_NUM. The version
 number can also be seen using <command>cat /proc/scsi/sg/version</command>
-in the new driver. This document describes sg version 3.1.22 for the
+in the new driver. This document describes sg version 3.1.24 for the
 lk 2.4 series. Where some facility has been added during the lk 2.4
 series (e.g. mmap-ed IO) and hence is not available in all versions
 of the lk 2.4 series, this is noted.
@@ -249,6 +257,10 @@ it by third parties over the next 6 release kernel versions.]
 </para></listitem>
 <listitem><para>
 lk 2.4.17 : sg version 3.1.22 
+</para></listitem>
+<listitem><para>
+lk 2.4.19 : sg version 3.1.24 [lk 2.4.19 hasn't been released at the time
+of writing. It will most likely contains sg version 3.1.24 .]
 </para></listitem>
 </itemizedlist>
 </para>
@@ -775,6 +787,12 @@ The type of usr_ptr is void * .
     Further note that this 'status' data does _not_ match the definitions in
     &lt;scsi/scsi.h> (e.g. CHECK_CONDITION). The following 'masked_status'
     does match those definitions.
+<footnote><para>
+Some lower level drivers (e.g. ide-scsi) clear this status field
+even when a CHECK_CONDITION or COMMAND_TERMINATED status has
+occurred. However they do set DRIVER_SENSE in driver_status field.
+Also a (sb_len_wr > 0) indicates there is a sense buffer.
+</para></footnote>
 The type of status is unsigned char .
 </para>
 </sect1>
@@ -820,6 +838,12 @@ N.B. 1 bit offset from usual SCSI status values
 </para>
 <para>
     Note that SCSI 3 defines some additional status codes.
+<footnote><para>
+Some lower level drivers (e.g. ide-scsi) clear this masked_status field
+even when a CHECK_CONDITION or COMMAND_TERMINATED status has
+occurred. However they do set DRIVER_SENSE in driver_status field.
+Also a (sb_len_wr > 0) indicates there is a sense buffer.
+</para></footnote>
 The type of masked_status is unsigned char .
 </para>
 </sect1>
@@ -1450,9 +1474,9 @@ generate them and the meaning of the error. A write() call is indicated by
 <programlisting>
 errno    which_calls    Meaning
 -----    -----------    ----------------------------------------------
-EACCES    o, w,r,SG_IO  User does not have permissions to do this. They will
-          &lt;some ioctls> need read,write permissions currently. This has
-                        been relaxed for certain SCSI commands via SG_IO.
+EACCES    &lt;some ioctls> Root permission (more precisely CAP_SYS_ADMIN
+                        or CAP_SYS_RAWIO) required. Also may occur during
+                        an attempted write to /proc/scsi/sg files.
 EAGAIN    r             The file descriptor is non-blocking and the request
                         has not been completed yet.
 EAGAIN    w,SG_IO       SCSI sub-system has (temporarily) run out of 
@@ -1498,12 +1522,17 @@ ENOMEM    w,SG_IO       Kernel unable to find memory for internal buffers.
                         This is usually associated with indirect IO.
 			For mmap-ed IO 'dxfer_len' greater than reserved
 			buffer size.
+			Lower level (adapter) driver does not support enough
+			scatter gather elements for requested data transfer.
 ENOSYS    w,SG_IO       'interface_id' of a sg_io_hdr_t object was _not_ 'S'.
 ENXIO     o             "remove-single-device" may have removed this device.
 ENXIO     o, w,r,SG_IO  Internal error (including SCSI sub-system busy doing
                         error processing - e.g. SCSI bus reset). When a
 			SCSI device is offline, this is the response. This 
 			can be bypassed by opening O_NONBLOCK.
+EPERM     o             Can't use O_EXCL when open()ing with O_RDONLY
+EPERM     w,SG_IO       File descriptor open()-ed O_RDONLY but O_RDWR
+          &lt;some ioctls> access mode needed for this operation.
 </programlisting>
 </para>
 </sect1>
@@ -1569,6 +1598,9 @@ file descriptor was opened O_RDONLY:
 TEST UNIT READY
 </para></listitem>
 <listitem><para>
+REQUEST SENSE
+</para></listitem>
+<listitem><para>
 INQUIRY
 </para></listitem>
 <listitem><para>
@@ -1581,11 +1613,14 @@ READ BUFFER
 READ(6) (10) and (12)
 </para></listitem>
 <listitem><para>
-MODE_SENSE(6) and (10)
+MODE SENSE(6) and (10)
+</para></listitem>
+<listitem><para>
+LOG SENSE
 </para></listitem>
 </itemizedlist>
 All commands to SCSI device type SCANNER are accepted. Other cases 
-yield an EACCES error. Note
+yield an EPERM error. Note
 that the write() read() interface must have the sg file descriptor
 open()-ed with O_RDWR as write permission is required by Linux to execute
 a write() system call.
@@ -2715,7 +2750,7 @@ showing the error processing does not cloud what is being illustrated.
    sg_io_hdr interface of the SCSI generic (sg) driver.
 
 *  Copyright (C) 2001 D. Gilbert
-*  This program is free software.   Version 1.00 (20011204)
+*  This program is free software.   Version 1.01 (20020226)
 */
 
 #define INQ_REPLY_LEN 96
@@ -2739,6 +2774,7 @@ int main(int argc, char * argv[])
         return 1;
     }
     if ((sg_fd = open(argv[1], O_RDONLY)) &lt; 0) {
+    	/* Note that most SCSI commands require the O_RDWR flag to be set */
         perror("error opening given file name");
         return 1;
     }
