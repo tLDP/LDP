@@ -11,7 +11,7 @@ then
   echo "Usage: $0 input-file output-file"
   exit $E_FILE_ACCESS
 fi                   #  Will exit with same error
-                     #+ even if input file ($1) not specified.
+                     #+ even if input file ($1) not specified (why?).
 
 if [ -z "$2" ]
 then

@@ -16,6 +16,7 @@ AWKSCRIPT=' { printf( "%3.7f\n", sqrt($1*$1 + $2*$2) ) } '
 #            command(s) / parameters passed to awk
 
 
+# Now, pipe the parameters to awk.
 echo -n "Hypotenuse of $1 and $2 = "
 echo $1 $2 | awk "$AWKSCRIPT"
 

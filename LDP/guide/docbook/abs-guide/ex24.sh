@@ -1,4 +1,5 @@
 #!/bin/bash
+# Faxing (must have 'fax' installed).
 
 EXPECTED_ARGS=2
 E_BADARGS=65

@@ -1,60 +1,55 @@
-#! /bin/sh
+#!/bin/bash
 # letter-count.sh: Counting letter occurrences in a text file.
-#
-# Script by nyal (nyal@voila.fr).
-# Used with permission.
-# Recommented by document author.
+# Written by Stefano Palmeri.
+# Used in ABS Guide with permission.
+# Slightly modified by document author.
+
+MINARGS=2          # Script requires at least two arguments.
+E_BADARGS=65
+FILE=$1
+
+let LETTERS=$#-1   # How many letters specified (as command-line args).
+                   # (Subtract 1 from number of command line args.)
 
 
-INIT_TAB_AWK=""
-# Parameter to initialize awk script.
-count_case=0
-FILE_PARSE=$1
-
-E_PARAMERR=65
-
-usage()
-{
-    echo "Usage: letter-count.sh file letters" 2>&1
-    # For example:   ./letter-count.sh filename.txt a b c
-    exit $E_PARAMERR  # Not enough arguments passed to script.
+show_help(){
+	   echo
+           echo Usage: `basename $0` file letters  
+           echo Note: `basename $0` arguments are case sensitive.
+           echo Example: `basename $0` foobar.txt G n U L i N U x.
+	   echo
 }
 
-if [ ! -f "$1" ] ; then
-    echo "$1: No such file." 2>&1
-    usage                 # Print usage message and exit.
-fi 
+# Checks number of arguments.
+if [ $# -lt $MINARGS ]; then
+   echo
+   echo "Not enough arguments."
+   echo
+   show_help
+   exit $E_BADARGS
+fi  
 
-if [ -z "$2" ] ; then
-    echo "$2: No letters specified." 2>&1
-    usage
-fi 
 
-shift                      # Letters specified.
-for letter in `echo $@`    # For each one . . .
-  do
-  INIT_TAB_AWK="$INIT_TAB_AWK tab_search[${count_case}] = \"$letter\"; final_tab[${count_case}] = 0; " 
-  # Pass as parameter to awk script below.
-  count_case=`expr $count_case + 1`
+# Checks if file exists.
+if [ ! -f $FILE ]; then
+    echo "File \"$FILE\" does not exist."
+    exit $E_BADARGS
+fi
+
+
+
+# Counts letter occurrences .
+for n in `seq $LETTERS`; do
+      shift
+      if [[ `echo -n "$1" | wc -c` -eq 1 ]]; then             #  Checks arg.
+             echo "$1" -\> `cat $FILE | tr -cd  "$1" | wc -c` #  Counting.
+      else
+             echo "$1 is not a  single char."
+      fi  
 done
 
-# DEBUG:
-# echo $INIT_TAB_AWK;
-
-cat $FILE_PARSE |
-# Pipe the target file to the following awk script.
-
-# --------------------------------------------------------------------------------
-awk -v tab_search=0 -v final_tab=0 -v tab=0 -v nb_letter=0 -v chara=0 -v chara2=0 \
-"BEGIN { $INIT_TAB_AWK } \
-{ split(\$0, tab, \"\"); \
-for (chara in tab) \
-{ for (chara2 in tab_search) \
-{ if (tab_search[chara2] == tab[chara]) { final_tab[chara2]++ } } } } \
-END { for (chara in final_tab) \
-{ print tab_search[chara] \" => \" final_tab[chara] } }"
-# --------------------------------------------------------------------------------
-#  Nothing all that complicated, just . . .
-#+ for-loops, if-tests, and a couple of specialized functions.
-
 exit $?
+
+#  This script has exactly the same functionality as letter-count2.sh,
+#+ but executes faster.
+#  Why?

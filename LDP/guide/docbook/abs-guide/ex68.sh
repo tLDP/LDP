@@ -9,14 +9,14 @@
 
 LOWER_LIMIT=1       # Starting with 1.
 UPPER_LIMIT=1000    # Up to 1000.
-# (You may set this higher...  if you have time on your hands.)
+# (You may set this higher . . . if you have time on your hands.)
 
 PRIME=1
 NON_PRIME=0
 
 let SPLIT=UPPER_LIMIT/2
 # Optimization:
-# Need to test numbers only halfway to upper limit.
+# Need to test numbers only halfway to upper limit (why?).
 
 
 declare -a Primes
@@ -104,8 +104,8 @@ exit 0
 
 
 
-# ----------------------------------------------- #
-# Code below line will not execute.
+# -------------------------------------------------------- #
+# Code below line will not execute, because of 'exit.'
 
 #  This improved version of the Sieve, by Stephane Chazelas,
 #+ executes somewhat faster.

@@ -1,6 +1,5 @@
 #!/bin/bash
 # badname.sh
-
 # Delete filenames in current directory containing bad characters.
 
 for filename in *

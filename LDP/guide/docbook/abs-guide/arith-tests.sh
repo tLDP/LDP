@@ -27,6 +27,7 @@ echo "Exit status of \"(( 1 / 2 ))\" is $?."     # Rounded off to 0.
                                                  # 1
 
 (( 1 / 0 )) 2>/dev/null                          # Illegal division by 0.
+#           ^^^^^^^^^^^
 echo "Exit status of \"(( 1 / 0 ))\" is $?."     # 1
 
 # What effect does the "2>/dev/null" have?

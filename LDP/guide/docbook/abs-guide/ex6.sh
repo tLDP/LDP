@@ -36,7 +36,7 @@ echo
 #+ then the script terminates with an error message.
 
 # You can specify the error message.
-# : ${ZZXy23AB?"ZZXy23AB has not been set."}
+# : ${variablename?"ERROR MESSAGE"}
 
 
 # Same result with:    dummy_variable=${ZZXy23AB?}
@@ -53,3 +53,5 @@ echo "You will not see this message, because script already terminated."
 
 HERE=0
 exit $HERE   # Will NOT exit here.
+
+# In fact, this script will return an exit status (echo $?) of 1.

@@ -21,7 +21,7 @@
 #                       ^^^^^^^^^^^
 # Or the domain.name(s) from any e-mail address:
 # Really_Good_Offer@spammer.biz
-#                   ^^^^^^^^^^^
+#
 # as the only argument to this script.
 #(PS: have your Inet connection running)
 #

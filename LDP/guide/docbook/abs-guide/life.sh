@@ -61,7 +61,7 @@ FALSE=1
 ALIVE=0
 DEAD=1
 
-avar=                   #  Global; holds current generation.
+avar=                   # Global; holds current generation.
 generation=0            # Initialize generation count.
 
 # =================================================================
@@ -276,7 +276,7 @@ done
 avar=`echo ${array[@]}`   # Convert array back to string variable.
 display "$avar"           # Display it.
 echo; echo
-echo "Generation $generation -- $alive alive"
+echo "Generation $generation  -  $alive alive"
 
 if [ "$alive" -eq 0 ]
 then
@@ -312,7 +312,7 @@ echo "======================="
 Gen0=`echo ${initial[@]}`
 display "$Gen0"           # Display only.
 echo; echo
-echo "Generation $generation -- $alive alive"
+echo "Generation $generation  -  $alive alive"
 # -------------------------------------------
 
 

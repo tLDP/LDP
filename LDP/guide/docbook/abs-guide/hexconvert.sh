@@ -1,6 +1,7 @@
 #!/bin/bash
 # hexconvert.sh: Convert a decimal number to hexadecimal.
 
+E_NOARGS=65 # Command-line arg missing.
 BASE=16     # Hexadecimal.
 
 if [ -z "$1" ]

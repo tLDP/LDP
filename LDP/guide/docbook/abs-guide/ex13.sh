@@ -9,7 +9,7 @@ b=5
 
 #  Bash permits integer operations and comparisons on variables
 #+ whose value consists of all-integer characters.
-#  Caution advised.
+#  Caution advised, however.
 
 echo
 

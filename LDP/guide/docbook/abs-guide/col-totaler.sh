@@ -17,7 +17,7 @@ column_number=$2
 # Passing shell variables to the awk part of the script is a bit tricky.
 # See the awk documentation for more details.
 
-# A multi-line awk script is invoked by   awk ' ..... '
+# A multi-line awk script is invoked by:  awk ' ..... '
 
 
 # Begin awk script.
@@ -36,7 +36,7 @@ END {
 
 
 #   It may not be safe to pass shell variables to an embedded awk script,
-#   so Stephane Chazelas proposes the following alternative:
+#+  so Stephane Chazelas proposes the following alternative:
 #   ---------------------------------------
 #   awk -v column_number="$column_number" '
 #   { total += $column_number

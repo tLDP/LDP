@@ -23,6 +23,7 @@
 # =======================================================================
 # changelog:
 
+# 07/02/2005.  Fixups by Little Monster.
 # 02/02/2005.  Minor additions by Little Monster.
 #              (See after # +++++++++++ )
 # 29/01/2005.  Minor stylistic edits and cleanups by author of ABS Guide.
@@ -236,50 +237,53 @@ list_func() #  Gives the user the option to use the -i option to wget,
             #+ and a list of URLs.
 {
 while [ 1 ]; do
-   echo "Enter the name of the file containing URL's (press q to change your mind)."
+   echo "Enter the name of the file containing URL's (press q to change your 
+mind)."
    read urlfile
-   if [ ! -e $urlfile ] && [ $urlfile != q ]; then
+   if [ ! -e "$urlfile" ] && [ "$urlfile" != q ]; then
        # Look for a file, or the quit option.
        echo "That file does not exist!"
-   elif [ $urlfile = q ]; then   # Check quit option.
-       echo "Not using a URL list."
+   elif [ "$urlfile" = q ]; then # Check quit option.
+       echo "Not using a url list."
        return
    else
-      echo "Using $urlfile."
-      echo "If you gave me URL's on the command line, I'll use those first."
+      echo "using $urlfile."
+      echo "If you gave me url's on the command line, I'll use those first."
                             # Report wget standard behaviour to the user.
-      lister=" -i $urlfile" # This is what we will pass to wget.
+      lister=" -i $urlfile" # This is what we want to pass to wget.
       return
    fi
 done
 }
 
 
-cookie_func()  # Give the user the option to use a different cookie file.
+cookie_func() # Give the user the option to use a different cookie file.
 {
 while [ 1 ]; do
-   echo "Change the cookies file. Press return if you don't want to change it."
+   echo "Change the cookies file. Press return if you don't want to change 
+it."
    read Cookies
    # NB: this is not the same as Cookie, earlier.
    # There is an 's' on the end.
    # Bit like chocolate chips.
-   if [ -z $Cookies ]; then                   # Escape clause for wusses.
+   if [ -z "$Cookies" ]; then                 # Escape clause for wusses.
       return
-   elif [ ! -e $Cookies ]; then
-      echo "File does not exist.  Try again." # Keep 'em going . . .
+   elif [ ! -e "$Cookies" ]; then
+      echo "File does not exist.  Try again." # Keep em going . . .
    else
-       CookiesON=" --load-cookies $Cookies"   # File is good. Let's use it!
+       CookiesON=" --load-cookies $Cookies"   # File is good -- let's use it!
        return
    fi
 done
 }
+
 
 
 run_func()
 {
 if [ -z "$OPTARG" ]; then
 # Test to see if we used the in-line option or the query one.
-   if [ ! -d "$savePath" ]; then  # In case directory doesn't exist . . .
+   if [ ! -d "$savePath" ]; then      # In case directory doesn't exist . . .
       echo "$savePath does not appear to exist."
       echo "Please supply path and filename of saved wget commands:"
       read newFile
@@ -288,6 +292,7 @@ if [ -z "$OPTARG" ]; then
             # Try really hard to get something.
             read newFile
          done
+
 
 # -------------------------------------------------------------------------
 #         if [ -z ( grep wget ${newfile} ) ]; then
@@ -300,6 +305,7 @@ if [ -z "$OPTARG" ]; then
 # It doesn't actually work.
 # If anyone wants to fix it, feel free!
 # -------------------------------------------------------------------------
+
 
       filePath="${newFile}"
    else
@@ -358,7 +364,7 @@ done
 shift $((OPTIND - 1))     # Do funky magic stuff with $#.
 
 
-if [ -z "$1" ] && [ ! -z $lister ]; then 
+if [ -z "$1" ] && [ -z "$lister" ]; then
                           #  We should be left with at least one URL
                           #+ on the command line, unless a list is 
 			  #+ being used -- catch empty CL's.

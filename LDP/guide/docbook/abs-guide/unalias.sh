@@ -1,4 +1,5 @@
 #!/bin/bash
+# unalias.sh
 
 shopt -s expand_aliases  # Enables alias expansion.
 

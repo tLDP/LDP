@@ -11,7 +11,7 @@ $killppp                  # This variable is now a command.
 
 # The following operations must be done as root user.
 
-chmod 666 /dev/ttyS3      # Must be read+write permissions, or else what?
+chmod 666 /dev/ttyS3      # Restore read+write permissions, or else what?
 #  Since doing a SIGKILL on ppp changed the permissions on the serial port,
 #+ we restore permissions to previous state.
 
@@ -24,3 +24,5 @@ exit 0
 # 1) Have script check whether root user is invoking it.
 # 2) Do a check on whether the process to be killed
 #+   is actually running before attempting to kill it.   
+# 3) Write an alternate version of this script based on 'fuser':
+#+      if [ fuser -s /dev/modem ]; then . . .

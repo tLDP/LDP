@@ -1,13 +1,14 @@
 #!/bin/bash
+# zmore
 
-#View gzipped files with 'most'
+#View gzipped files with 'more'
 
 NOARGS=65
 NOTFOUND=66
 NOTGZIP=67
 
 if [ $# -eq 0 ] # same effect as:  if [ -z "$1" ]
-# $1 can exist, but be empty:  zmost "" arg2 arg3
+# $1 can exist, but be empty:  zmore "" arg2 arg3
 then
   echo "Usage: `basename $0` filename" >&2
   # Error message to stderr.
@@ -31,11 +32,10 @@ then
   exit $NOTGZIP
 fi  
 
-zcat $1 | most
+zcat $1 | more
 
-# Uses the file viewer 'most' (similar to 'less').
-# Later versions of 'most' have file decompression capabilities.
-# May substitute 'more' or 'less', if desired.
+# Uses the filter 'more.'
+# May substitute 'less', if desired.
 
 
 exit $?   # Script returns exit status of pipe.

@@ -101,7 +101,7 @@ echo $newestVar
 
 #  Why in the world?
 #  Setting the contents of a string variable containing character
-#+ sequences that have a meaning to Bash is a general problem in
+#+ sequences that have a meaning in Bash is a general problem in
 #+ script programming.
 #
 #  This problem is now solved in eight lines of code

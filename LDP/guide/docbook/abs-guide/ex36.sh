@@ -1,4 +1,5 @@
 #!/bin/bash
+# "Reading" variables.
 
 echo -n "Enter the value of variable 'var1': "
 # The -n option to echo suppresses newline.

@@ -49,7 +49,7 @@ self.show_birthdate      #   Sat Mar 17 20:13:33 MST 1973
 
 echo
 
-# typeset -f
-# to see the created functions (careful, it scrolls off the page).
+#  typeset -f
+#+ to see the created functions (careful, it scrolls off the page).
 
 exit 0

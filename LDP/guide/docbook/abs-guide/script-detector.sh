@@ -18,3 +18,13 @@ do
 done
   
 exit 0
+
+#  Exercises:
+#  ---------
+#  1) Modify this script to take as an optional argument
+#+    the directory to scan for scripts
+#+    (rather than just the current working directory).
+#
+#  2) As it stands, this script gives "false positives" for
+#+    Perl, awk, and other scripting language scripts.
+#     Correct this.

@@ -13,9 +13,9 @@ echo
 printf "Pi to 9 decimal places = %1.9f" $PI  # It even rounds off correctly.
 
 printf "\n"                                  # Prints a line feed,
-                                             # equivalent to 'echo'.
+                                             # Equivalent to 'echo' . . .
 
-printf "Constant = \t%d\n" $DecimalConstant  # Inserts tab (\t)
+printf "Constant = \t%d\n" $DecimalConstant  # Inserts tab (\t).
 
 printf "%s %s \n" $Message1 $Message2
 
@@ -34,6 +34,7 @@ Msg=`printf "%s %s \n" $Message1 $Message2`
 echo $Msg; echo $Msg
 
 #  As it happens, the 'sprintf' function can now be accessed
-#+ as a loadable module to Bash, but this is not portable.
+#+ as a loadable module to Bash,
+#+ but this is not portable.
 
 exit 0

@@ -1,9 +1,10 @@
 #!/bin/bash
+# line-number.sh
 
 # This script echoes itself twice to stdout with its lines numbered.
 
-# 'nl' sees this as line 3 since it does not number blank lines.
-# 'cat -n' sees the above line as number 5.
+# 'nl' sees this as line 4 since it does not number blank lines.
+# 'cat -n' sees the above line as number 6.
 
 nl `basename $0`
 

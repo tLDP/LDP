@@ -24,9 +24,9 @@ echo "username2 = ${username2:-`whoami`}"
 # Compare to first instance, above.
 
 
-# =============================================================
+#
 
-# Reiterating:
+# Once again:
 
 variable=
 # variable has been declared, but is set to null.

@@ -20,4 +20,7 @@ echo "Temp filename = "$temp_filename""
 # sh tempfile-name.sh
 # Temp filename = temp.e19ea
 
+#  Compare this method of generating "unique" filenames
+#+ with the 'date' method in ex51.sh.
+
 exit 0

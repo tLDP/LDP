@@ -5,6 +5,7 @@
 # ==>
 # ==> Newer Linux distros (2004 or later) autodetect
 # ==> and install USB pen drives, and therefore don't need this script.
+# ==> But, it's still instructive.
  
 #  This code is free software covered by GNU GPL license version 2 or above.
 #  Please refer to http://www.gnu.org/ for the full license text.

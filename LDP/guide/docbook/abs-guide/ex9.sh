@@ -7,11 +7,14 @@ hello=$a
 
 #-------------------------------------------------------------------------
 # No space permitted on either side of = sign when initializing variables.
+# What happens if there is a space?
 
 #  If "VARIABLE =value",
+#              ^
 #+ script tries to run "VARIABLE" command with one argument, "=value".
 
 #  If "VARIABLE= value",
+#               ^
 #+ script tries to run "value" command with
 #+ the environmental variable "VARIABLE" set to "".
 #-------------------------------------------------------------------------
@@ -31,11 +34,13 @@ hello="A B  C   D"
 echo $hello   # A B C D
 echo "$hello" # A B  C   D
 # As you see, echo $hello   and   echo "$hello"   give different results.
+#                                      ^      ^
 # Quoting a variable preserves whitespace.
 
 echo
 
 echo '$hello'  # $hello
+#    ^      ^
 #  Variable referencing disabled by single quotes,
 #+ which causes the "$" to be interpreted literally.
 
@@ -64,16 +69,18 @@ echo "var1=$var1   var2=$var2  var3=$var3"
 echo; echo
 
 numbers="one two three"
+#           ^   ^
 other_numbers="1 2 3"
-# If whitespace within a variable, then quotes necessary.
+#               ^ ^
+# If there is whitespace within a variable, then quotes are necessary.
 echo "numbers = $numbers"
 echo "other_numbers = $other_numbers"   # other_numbers = 1 2 3
 echo
 
 echo "uninitialized_variable = $uninitialized_variable"
 # Uninitialized variable has null value (no value at all).
-uninitialized_variable=   #  Declaring, but not initializing it
-                          #+ (same as setting it to a null value, as above).
+uninitialized_variable=   #  Declaring, but not initializing it --
+                          #+ same as setting it to a null value, as above.
 echo "uninitialized_variable = $uninitialized_variable"
                           # It still has a null value.
 
@@ -81,7 +88,6 @@ uninitialized_variable=23       # Set it.
 unset uninitialized_variable    # Unset it.
 echo "uninitialized_variable = $uninitialized_variable"
                                 # It still has a null value.
-
 echo
 
 exit 0

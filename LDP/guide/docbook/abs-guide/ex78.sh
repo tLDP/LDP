@@ -22,6 +22,7 @@ echo "Value of t changed to ${!t}"    # 387
 
 #  This is useful for referencing members of an array or table,
 #+ or for simulating a multi-dimensional array.
-#  An indexing option would have been nice (sigh).
+#  An indexing option (analogous to pointer arithmetic)
+#+ would have been nice. Sigh.
 
 exit 0

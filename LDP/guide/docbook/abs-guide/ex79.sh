@@ -1,5 +1,4 @@
 #!/bin/bash
-# May need to be invoked with  #!/bin/bash2  on older machines.
 
 # Cards:
 # Deals four random hands from a deck of cards.
@@ -17,7 +16,7 @@ CARDS=52
 declare -a Deck
 declare -a Suits
 declare -a Cards
-#  It would have been easier and more intuitive
+#  It would have been easier to implement and more intuitive
 #+ with a single, 3-dimensional array.
 #  Perhaps a future version of Bash will support multidimensional arrays.
 
@@ -77,6 +76,8 @@ seed_random ()  # Seed random number generator.
 seed=`eval date +%s`
 let "seed %= 32766"
 RANDOM=$seed
+#  What are some other methods
+#+ of seeding the random number generator?
 }
 
 deal_cards ()

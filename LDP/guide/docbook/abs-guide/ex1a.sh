@@ -6,7 +6,7 @@
 # Run as root, of course.
 # Insert code here to print error message and exit if not root.
 
-LOG_DIR=var/log
+LOG_DIR=/var/log
 # Variables are better than hard-coded values.
 cd $LOG_DIR
 

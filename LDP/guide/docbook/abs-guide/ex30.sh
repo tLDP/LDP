@@ -40,7 +40,7 @@ case "$person" in
   echo "(212) 533-2814"
   echo "(212) 533-9972 fax"
   echo "milliej@loisaida.com"
-  echo "Girlfriend"
+  echo "Ex-girlfriend"
   echo "Birthday: Feb. 11"
   ;;
 
@@ -59,7 +59,7 @@ echo
 
 #  Exercise:
 #  --------
-#  Change the script so it accepts continuous input,
+#  Change the script so it accepts multiple inputs,
 #+ instead of terminating after displaying just one address.
 
 exit 0

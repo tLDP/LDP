@@ -76,7 +76,8 @@ exit 0
 
 #  The file cannot not be "undeleted" or retrieved by normal methods.
 #  However . . .
-#+ this simple method would *not* likely withstand forensic analysis.
+#+ this simple method would *not* likely withstand
+#+ sophisticated forensic analysis.
 
 #  This script may not play well with a journaled file system.
 #  Exercise: Fix it so it does.
@@ -90,4 +91,4 @@ exit 0
 #  For an in-depth analysis on the topic of file deletion and security,
 #+ see Peter Gutmann's paper,
 #+     "Secure Deletion of Data From Magnetic and Solid-State Memory".
-#         http://www.cs.auckland.ac.nz/~pgut001/pubs/secure_del.html
+#       http://www.cs.auckland.ac.nz/~pgut001/pubs/secure_del.html

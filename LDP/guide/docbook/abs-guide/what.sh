@@ -11,6 +11,7 @@ do
 done
 
 exit 0
+
 # You may wish to redirect output of this script, like so:
 # ./what.sh >>whatis.db
 # or view it a page at a time on stdout,

@@ -4,7 +4,7 @@
 #  Written by Rick Boivie.
 #  Used with permission.
 #  This is a revised and simplified version of a script
-#  by Jordi Sanfeliu (and patched by Ian Kjos).
+#+ by Jordi Sanfeliu (and patched by Ian Kjos).
 #  This script replaces the earlier version used in
 #+ previous releases of the Advanced Bash Scripting Guide.
 
@@ -35,8 +35,8 @@ do
       echo "+---$dir"       # ==> Display horizontal connector symbol...
       # ==> and print directory name.
       numdirs=`expr $numdirs + 1` # ==> Increment directory count.
-      if cd "$dir" ; then # ==> If can move to subdirectory...
-        search `expr $1 + 1` # with recursion ;-)
+      if cd "$dir" ; then         # ==> If can move to subdirectory...
+        search `expr $1 + 1`      # with recursion ;-)
         # ==> Function calls itself.
         cd ..
       fi

@@ -8,9 +8,9 @@ echo "$var"      # '(]\{}$"     Doesn't make a difference.
 echo
 
 IFS='\'
-echo $var        # '(] {}$"     \ converted to space.
+echo $var        # '(] {}$"     \ converted to space. Why?
 echo "$var"      # '(]\{}$"
 
-# Examples above supplied by S.C.
+# Examples above supplied by Stephane Chazelas.
 
 exit 0

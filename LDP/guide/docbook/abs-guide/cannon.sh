@@ -1,26 +1,26 @@
 #!/bin/bash
 # cannon.sh: Approximating PI by firing cannonballs.
 
-# This is a very simple instance of a "Monte Carlo" simulation,
+# This is a very simple instance of a "Monte Carlo" simulation:
 #+ a mathematical model of a real-life event,
 #+ using pseudorandom numbers to emulate random chance.
 
 #  Consider a perfectly square plot of land, 10000 units on a side.
 #  This land has a perfectly circular lake in its center,
 #+ with a diameter of 10000 units.
-#  The plot is actually all water, except for the four corners.
+#  The plot is actually mostly water, except for land in the four corners.
 #  (Think of it as a square with an inscribed circle.)
 #
-#  Let us fire iron cannonballs from an old-style cannon
-#+ at the square of land.
-#  All the shots impact somewhere on the plot of land,
+#  We will fire iron cannonballs from an old-style cannon
+#+ at the square.
+#  All the shots impact somewhere on the square,
 #+ either in the lake or on the dry corners.
-#  Since the lake takes up most of the land area,
+#  Since the lake takes up most of the area,
 #+ most of the shots will SPLASH! into the water.
 #  Just a few shots will THUD! into solid ground
-#+ in the four corners of the land.
+#+ in the four corners of the square.
 #
-#  If we take enough random, unaimed shots at the plot of land,
+#  If we take enough random, unaimed shots at the square,
 #+ Then the ratio of SPLASHES to total shots will approximate
 #+ the value of PI/4.
 #
@@ -32,10 +32,10 @@
 #  Theoretically, the more shots taken, the better the fit.
 #  However, a shell script, as opposed to a compiled language
 #+ with floating-point math built in, requires a few compromises.
-#  This tends to lower the accuracy of the simulation, unfortunately.
+#  This tends to lower the accuracy of the simulation, of course.
 
 
-DIMENSION=10000  # Length of each side of the plot of land.
+DIMENSION=10000  # Length of each side of the plot.
                  # Also sets ceiling for random integers generated.
 
 MAXSHOTS=1000    # Fire this many shots.
@@ -86,8 +86,8 @@ do
   printf "Xc = %4d  " $xCoord
   printf "Yc = %4d  " $yCoord
   printf "Distance = %5d  " $distance         #  Distance from 
-                                              #+ center of lake,
-                                              #  the "origin,"
+                                              #+ center of lake --
+                                              #  the "origin" --
                                               #+ coordinate (0,0).
 
   if [ "$distance" -le "$DIMENSION" ]

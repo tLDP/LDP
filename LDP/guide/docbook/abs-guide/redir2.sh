@@ -1,4 +1,5 @@
 #!/bin/bash
+# redir2.sh
 
 if [ -z "$1" ]
 then
@@ -23,12 +24,24 @@ done <"$Filename"           # Redirects stdin to file $Filename.
 
 echo; echo "$count names read"; echo
 
+exit 0
+
 #  Note that in some older shell scripting languages,
 #+ the redirected loop would run as a subshell.
-# Therefore, $count would return 0, the initialized value outside the loop.
-#  Bash and ksh avoid starting a subshell whenever possible,
-# +so that this script, for example, runs correctly.
-#
-# Thanks to Heiner Steven for pointing this out.
+#  Therefore, $count would return 0, the initialized value outside the loop.
+#  Bash and ksh avoid starting a subshell *whenever possible*,
+#+ so that this script, for example, runs correctly.
+#  (Thanks to Heiner Steven for pointing this out.)
 
-exit 0
+# However . . .
+# Bash *can* sometimes start a subshell in a *redirected* "while" loop.
+
+abc=hi
+echo -e "1\n2\n3" | while read l
+     do abc="$l"
+        echo $abc
+     done
+echo $abc
+
+# (Thanks, Bruno de Oliveira Schneider, for demonstrating this
+#+ with the above snippet of code.)
