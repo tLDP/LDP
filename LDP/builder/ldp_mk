@@ -56,12 +56,10 @@ if( !(-e "$fname") ) {
       exit(0);
 }
 
-if( $txt_filter eq '' ) {
-    $txt_filter = 'lynx';
-}
 if( $style eq '' ) {
     $style = "$_toolroot/dsssl/docbook/html/ldp.dsl#html";
 }
+
 
 # determine DTD 
 #
@@ -80,6 +78,10 @@ if( $s =~ /linuxdoc/i ) {
 
     $linuxdoc = 1;
     print "\nldp_mk: $fname is LinuxDoc SGML\n";
+
+    if( $txt_filter eq '' ) {
+        $txt_filter = 'lynx';
+    }
 
 } else {
 
@@ -109,6 +111,10 @@ if( $s =~ /linuxdoc/i ) {
 
     $linuxdoc = 0;
     print "\nldp_mk: $fname is DocBook (vers. $db_v) $dtd\n";
+
+    if( $txt_filter eq '' ) {
+        $txt_filter = 'w3m';
+    }
 }
 
 
@@ -230,16 +236,32 @@ if( -e "$fname_wo_ext.txt" ) {
 #
 print "\nldp_mk: creating PDF from $fname...\n";
 
+my($print_str) = '';
+
 if( $linuxdoc == 1 ) {
+
+    # patch the linuxdoc-source single HTML file
+    #
     system("$_toolroot/sgml_ld_1html $fname");
+    $print_str = "00_${fname_wo_ext}.html";
+
+} else {
+
+    # create new files from DocBook-source single HTML file to use for print
+    #
+    require "$_toolroot/lib/fix_print_html.lib";
+    &fix_print_html("00_${fname_wo_ext}.html", 'body.html', 'title.html');
+
+    $print_str = "--titlefile title.html body.html";
 }
+
 
 if( -e "00_$fname_wo_ext.html" ) {
 
     $cmd = "$_toolroot/htmldoc/bin/htmldoc --size universal -t pdf -f " .
-           "$fname_wo_ext.pdf 00_" . "$fname_wo_ext.html; " .
+           "$fname_wo_ext.pdf $print_str; " .
            "$_toolroot/htmldoc/bin/htmldoc --size universal -t ps -f " .
-           "$fname_wo_ext.ps  00_" . "$fname_wo_ext.html";
+           "$fname_wo_ext.ps  $print_str";
     system($cmd);
 
     if( !(-e "$fname_wo_ext.pdf") ) {
@@ -321,7 +343,7 @@ sub usage {
 
   print "\n\n",
         "usage: ldp_mk ",
-        "-style <stylesheet> -txt <txt_filter> -no_index <file>.sgml\n\n";
+        "-style <stylesheet> -txt <txt_filter> -no_index <file>.sgml\n\n",
         " where:\n",
         "       <stylesheet> - fullpath to a DSSSL stylesheet\n",
         "       <txt_filter> - one of the following: lynx, w3m, html2text\n";
