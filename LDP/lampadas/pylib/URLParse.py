@@ -90,6 +90,10 @@ class URI:
 
         # this is where we load ids and codes for pages which
         # contain an object and display its attributes.
+
+        # FIXME: let info about which items are embedded in the page
+        # be specified in the page table, so this code doesn't have to
+        # be updated to add new pages!
         if not path : return
         print path[0]
         if path[0]=='editdoc' or path[0]=='cvslog':

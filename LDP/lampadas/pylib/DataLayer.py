@@ -102,6 +102,17 @@ class Roles(LampadasCollection):
             role = Role()
             role.load_row(row)
             self.data[role.code] = role
+        sql = "SELECT role_code, lang, role_name, role_desc FROM role_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            role_code = trim(row[0])
+            role = self[role_code]
+            lang = row[1]
+            role.name[lang] = trim(row[2])
+            role.description[lang] = trim(row[3])
+
 
 class Role:
     """
@@ -117,15 +128,6 @@ class Role:
 
     def load_row(self, row):
         self.code       = trim(row[0])
-
-        sql = "SELECT lang, role_name, role_desc FROM role_i18n WHERE role_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Types
@@ -144,6 +146,18 @@ class Types(LampadasCollection):
             type = Type()
             type.load_row(row)
             self.data[type.code] = type
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            type_code = trim(row[0])
+            type = self[type_code]
+            lang = row[1]
+            type.name[lang] = trim(row[2])
+            type.description[lang] = trim(row[3])
+
 
 class Type:
     """
@@ -160,16 +174,6 @@ class Type:
     def load_row(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
-
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, type_name, type_desc FROM type_i18n WHERE type_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Documents
@@ -928,7 +932,18 @@ class Licenses(LampadasCollection):
             newLicense = License()
             newLicense.load_row(row)
             self.data[newLicense.license_code] = newLicense
-
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = 'SELECT license_code, lang, license_short_name, license_name, license_desc FROM license_i18n'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            license_code = trim(row[0])
+            license = self[license_code]
+            lang = row[1]
+            license.short_name[lang]  = trim(row[2])
+            license.name[lang]        = trim(row[3])
+            license.description[lang] = trim(row[4])
 
 class License:
     """
@@ -947,17 +962,6 @@ class License:
         self.license_code = trim(row[0])
         self.free         = tf2bool(row[1])
         self.sort_order   = row[2]
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT lang, license_short_name, license_name, license_desc FROM license_i18n WHERE license_code=' + wsq(self.license_code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.short_name[lang]  = trim(row[1])
-            self.name[lang]        = trim(row[2])
-            self.description[lang] = trim(row[3])
-
 
 # DTDs
 
@@ -1012,6 +1016,17 @@ class Errors(LampadasCollection):
             err = Error()
             err.load_row(row)
             self.data[err.id] = err
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT err_id, lang, err_name, err_desc FROM error_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            err_id                 = row[0]
+            err = self[err_id]
+            lang                   = row[1]
+            err.name[lang]         = trim(row[2])
+            err.description[lang]  = trim(row[3])
 
 class Error:
     """
@@ -1024,15 +1039,6 @@ class Error:
 
     def load_row(self, row):
         self.id = row[0]
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + str(self.id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang                   = row[0]
-            self.name[lang]        = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Formats
@@ -1054,6 +1060,17 @@ class Formats(LampadasCollection):
             format = Format()
             format.load_row(row)
             self.data[format.code] = format
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT format_code, lang, format_name, format_desc FROM format_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            format_code = trim(row[0])
+            format = self[format_code]
+            lang                   = row[1]
+            format.name[lang]        = trim(row[2])
+            format.description[lang] = trim(row[3])
 
 class Format:
     """
@@ -1066,15 +1083,6 @@ class Format:
 
     def load_row(self, row):
         self.code = trim(row[0])
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang                   = row[0]
-            self.name[lang]        = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Languages
@@ -1097,6 +1105,16 @@ class Languages(LampadasCollection):
             language = Language()
             language.load_row(row)
             self.data[language.code] = language
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT lang_code, lang, lang_name FROM language_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang_code = trim(row[0])
+            language = self[lang_code]
+            lang          = trim(row[1])
+            language.name[lang] = trim(row[2])
 
 class Language:
     """
@@ -1110,14 +1128,6 @@ class Language:
     def load_row(self, row):
         self.code      = trim(row[0])
         self.supported = tf2bool(row[1])
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, lang_name FROM language_i18n WHERE lang_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
 
 
 # PubStatuses
@@ -1139,6 +1149,17 @@ class PubStatuses(LampadasCollection):
             newPubStatus = PubStatus()
             newPubStatus.load(row)
             self.data[newPubStatus.code] = newPubStatus
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT pub_status, lang, pub_status_name, pub_status_desc FROM pub_status_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            pub_status_code = trim(row[0])
+            pub_status = self[pub_status_code]
+            lang = row[1]
+            pub_status.name[lang] = trim(row[2])
+            pub_status.description[lang] = trim(row[3])
 
 class PubStatus:
     """
@@ -1155,15 +1176,6 @@ class PubStatus:
     def load(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # ReviewStatuses
@@ -1185,6 +1197,17 @@ class ReviewStatuses(LampadasCollection):
             review_status = ReviewStatus()
             review_status.load(row)
             self.data[review_status.code] = review_status
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT review_status, lang, review_status_name, review_status_desc FROM review_status_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            review_status_code = trim(row[0])
+            review_status = self[review_status_code]
+            lang = row[1]
+            review_status.name[lang] = trim(row[2])
+            review_status.description[lang] = trim(row[3])
 
 class ReviewStatus:
     """
@@ -1201,15 +1224,6 @@ class ReviewStatus:
     def load(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Topics
@@ -1231,6 +1245,17 @@ class Topics(LampadasCollection):
             newTopic = Topic()
             newTopic.load(row)
             self.data[newTopic.code] = newTopic
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            topic_code = trim(row[0])
+            topic = self[topic_code]
+            lang = row[1]
+            topic.name[lang] = trim(row[2])
+            topic.description[lang] = trim(row[3])
 
 class Topic:
     """
@@ -1249,15 +1274,6 @@ class Topic:
     def load(self, row):
         self.code = trim(row[0])
         self.num  = safeint(row[1])
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, topic_name, topic_desc FROM topic_i18n WHERE topic_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # Subtopics
@@ -1277,8 +1293,19 @@ class Subtopics(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newSubtopic = Subtopic()
-            newSubtopic.load(row)
+            newSubtopic.load_row(row)
             self.data[newSubtopic.code] = newSubtopic
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT subtopic_code, lang, subtopic_name, subtopic_desc FROM subtopic_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            subtopic_code = trim(row[0])
+            subtopic = self[subtopic_code]
+            lang = row[1]
+            subtopic.name[lang] = trim(row[2])
+            subtopic.description[lang] = trim(row[3])
 
 class Subtopic:
     """
@@ -1296,20 +1323,11 @@ class Subtopic:
         self.topic_code = subtopic_code
         self.docs       = SubtopicDocs(subtopic_code)
 
-    def load(self, row):
+    def load_row(self, row):
         self.code       = trim(row[0])
         self.num        = safeint(row[1])
         self.topic_code = trim(row[2])
         self.docs       = SubtopicDocs(self.code)
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, subtopic_name, subtopic_desc FROM subtopic_i18n WHERE subtopic_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[0]
-            self.name[lang] = trim(row[1])
-            self.description[lang] = trim(row[2])
 
 
 # SubtopicDocs
