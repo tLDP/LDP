@@ -35,7 +35,7 @@ class LampadasList:
 
     def __len__(self):
         return len(self.list)
-
+        
     def __getitem__(self, key):
         return self.list[key]
 
@@ -84,6 +84,19 @@ class LampadasCollection:
     def keys(self):
         return self.data.keys()
 
+    def items(self):
+        return self.data.items()
+
     def count(self):
         return len(self.data)
+
+    def sort_by(self, attribute):
+        result = []
+        for key, item in self.items():
+            value = getattr(item, attribute)
+            result.append((value, key))
+        result.sort()
+        for i in xrange(len(result)):
+            result[i] = result[i][1]
+        return result
 

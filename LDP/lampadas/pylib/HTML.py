@@ -145,9 +145,9 @@ class ComboFactory:
 
     def Page(self, value, lang):
         combo = "<select name='page_code'>\n"
-        keys = lampadasweb.Pages.keys()
+        keys = lampadasweb.pages.keys()
         for key in keys:
-            page = lampadasweb.Pages[key]
+            page = lampadasweb.pages[key]
             assert not page == None
             combo = combo + "<option "
             if Page.Code == value:
@@ -209,122 +209,148 @@ class ComboFactory:
 class BoxFactory:
 
     def main_menu(self, lang):
-        self.box = ''
-        self.box = self.box + '<table class="navbox"><tr><th>|mmtitle|</th></tr>'
-        self.box = self.box + '<tr><td>'
-        self.box = self.box + '<a href="home">|home|</a><br>'
-        self.box = self.box + '<a href="doctable">|doctable|</a><br>'
-        self.box = self.box + '<a href="downloads">Downloads</a>'
-        self.box = self.box + '</td></tr>'
-        self.box = self.box + '</table>'
-        return self.box
+        box = ''
+        box = box + '<table class="navbox"><tr><th>|mmtitle|</th></tr>'
+        box = box + '<tr><td>'
+        box = box + '<a href="home">|home|</a><br>'
+        box = box + '<a href="doctable">|doctable|</a><br>'
+        box = box + '<a href="downloads">Downloads</a>'
+        box = box + '</td></tr>'
+        box = box + '</table>'
+        return box
+
+    def section_menu(self, section_code, lang):
+        log(3, "Creating section menu: " + section_code)
+        section = lampadasweb.sections[section_code]
+        assert not section == None
+        box = ''
+        box = box + '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>'
+        box = box + '<tr><td>'
+        keys = lampadasweb.pages.keys()
+        for key in keys:
+            page = lampadasweb.pages[key]
+            if page.section_code == section_code:
+                box = box + '<a href="/' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>'
+        box = box + '</td></tr></table>'
+        log(3, "section menu complete")
+        return box
 
 
 class TableFactory:
 
     combof = ComboFactory()
+    boxf = BoxFactory()
 
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
     def doc(self, DocID, lang):
-        self.box = ''
-        self.box = self.box + '<table class="box" style="width:100%"><tr><th colspan="6">|docdetails|</th></tr>'
+        box = ''
+        box = box + '<table class="box" style="width:100%"><tr><th colspan="6">|docdetails|</th></tr>'
         if DocID:
             doc = lampadas.Docs[DocID]
-            self.box = self.box + '<form method=POST action="data/save/document" name="document">'
+            box = box + '<form method=POST action="data/save/document" name="document">'
         else:
             doc = Doc()
-            self.box = self.box + '<form method=POST action="docadd" name="document">'
+            box = box + '<form method=POST action="docadd" name="document">'
             
-        self.box = self.box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
-        self.box = self.box + '<tr>\n'
-        self.box = self.box + '<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
-        self.box = self.box + '</tr>\n'
-        self.box = self.box + '<tr>\n'
-        self.box = self.box + '<th align=right>'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
+        box = box + '<tr>\n'
+        box = box + '<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
+        box = box + '</tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th align=right>'
         if doc.URL:
-            self.box = self.box + '<a href="' + doc.URL + '">URL</a>'
+            box = box + '<a href="' + doc.URL + '">URL</a>'
         else:
-            self.box = self.box + 'URL'
-        self.box = self.box + '</th><td colspan=5><input type=text name=url size=60 style="width:100%" value="' + doc.URL + '"></td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>'
+            box = box + 'URL'
+        box = box + '</th><td colspan=5><input type=text name=url size=60 style="width:100%" value="' + doc.URL + '"></td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>'
 
         if doc.HomeURL:
-            self.box = self.box + '<a href="' + doc.HomeURL + '">Home URL</a>'
+            box = box + '<a href="' + doc.HomeURL + '">Home URL</a>'
         else:
-            self.box = self.box + 'Home URL'
-        self.box = self.box + '</th><td colspan=5><input type=text name=ref_url size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Status</th><td>'
-        self.box = self.box + self.combof.PubStatus(doc.PubStatusCode, lang)
-        self.box = self.box + '</td>\n'
-        self.box = self.box + '<th align=right>Class</th><td>\n'
-        self.box = self.box + self.combof.Class(doc.ClassID, lang)
-        self.box = self.box + '</td>\n'
-        self.box = self.box + '<th align=right>Maint</th><td>\n'
+            box = box + 'Home URL'
+        box = box + '</th><td colspan=5><input type=text name=ref_url size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Status</th><td>'
+        box = box + self.combof.PubStatus(doc.PubStatusCode, lang)
+        box = box + '</td>\n'
+        box = box + '<th align=right>Class</th><td>\n'
+        box = box + self.combof.Class(doc.ClassID, lang)
+        box = box + '</td>\n'
+        box = box + '<th align=right>Maint</th><td>\n'
         if doc.Maintained:
-            self.box = self.box + "Yes"
+            box = box + "Yes"
         else:
-            self.box = self.box + "No"
-        self.box = self.box + '</td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Writing</th><td>'
-        self.box = self.box + self.combof.ReviewStatus(doc.ReviewStatusCode, lang)
-        self.box = self.box + '</td>\n'
-        self.box = self.box + '<th align=right>Accuracy</th><td>'
-        self.box = self.box + self.combof.TechReviewStatus(doc.TechReviewStatusCode, lang)
-        self.box = self.box + '</td>\n'
-        self.box = self.box + '<th align=right>License</th><td>'
-        self.box = self.box + self.combof.License(doc.License, lang)
-        self.box = self.box + '</td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Pub Date</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
-        self.box = self.box + '<th align=right>Updated</th><td><input type=text name=last_update size=10 value="' + doc.LastUpdate + '"></td>'
-        self.box = self.box + '<th align=right>Version</th><td><input type=text name=version size=10 value="' + doc.Version + '"></td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value="' + doc.TickleDate + '"></td>'
-        self.box = self.box + '<th align=right>ISBN</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
-        self.box = self.box + '<th align=right>Rating</th>\n'
-        self.box = self.box + '<td>'
-        self.box = self.box + self.bar_graph(doc.Rating, 10, lang)
-        self.box = self.box + '</td>\n'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Format</th><td>'
-        self.box = self.box + lampadas.Formats[doc.FormatID].I18n[lang].Name
-        self.box = self.box + '</td>'
-        self.box = self.box + '<th align=right>DTD</th><td>'
-        self.box = self.box + doc.DTD + ' ' + doc.DTDVersion
-        self.box = self.box + '</td>'
-        self.box = self.box + '<th align=right>Lang</th><td>'
-        self.box = self.box + self.combof.Language(doc.Lang, lang)
-        self.box = self.box + '</td>'
-        self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Abstract</th>'
-        self.box = self.box + '<td colspan=5><textarea name=abstract rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
-        self.box = self.box + '</tr>\n'
-        self.box = self.box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
-        self.box = self.box + '</form>\n'
-        self.box = self.box + '</table>\n'
+            box = box + "No"
+        box = box + '</td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Writing</th><td>'
+        box = box + self.combof.ReviewStatus(doc.ReviewStatusCode, lang)
+        box = box + '</td>\n'
+        box = box + '<th align=right>Accuracy</th><td>'
+        box = box + self.combof.TechReviewStatus(doc.TechReviewStatusCode, lang)
+        box = box + '</td>\n'
+        box = box + '<th align=right>License</th><td>'
+        box = box + self.combof.License(doc.License, lang)
+        box = box + '</td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Pub Date</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
+        box = box + '<th align=right>Updated</th><td><input type=text name=last_update size=10 value="' + doc.LastUpdate + '"></td>'
+        box = box + '<th align=right>Version</th><td><input type=text name=version size=10 value="' + doc.Version + '"></td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value="' + doc.TickleDate + '"></td>'
+        box = box + '<th align=right>ISBN</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
+        box = box + '<th align=right>Rating</th>\n'
+        box = box + '<td>'
+        box = box + self.bar_graph(doc.Rating, 10, lang)
+        box = box + '</td>\n'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Format</th><td>'
+        box = box + lampadas.Formats[doc.FormatID].I18n[lang].Name
+        box = box + '</td>'
+        box = box + '<th align=right>DTD</th><td>'
+        box = box + doc.DTD + ' ' + doc.DTDVersion
+        box = box + '</td>'
+        box = box + '<th align=right>Lang</th><td>'
+        box = box + self.combof.Language(doc.Lang, lang)
+        box = box + '</td>'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th align=right>Abstract</th>'
+        box = box + '<td colspan=5><textarea name=abstract rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
+        box = box + '</tr>\n'
+        box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
+        box = box + '</form>\n'
+        box = box + '</table>\n'
 
-        return self.box
+        return box
 
     def docs(self, lang):
         log(3, "Creating doctable")
-        self.box = ''
-        self.box = self.box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
+        box = ''
+        box = box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
         keys = lampadas.Docs.keys()
         for key in keys:
             doc = lampadas.Docs[key]
             if doc.Lang == lang:
-                self.box = self.box + '<tr>'
-                self.box = self.box + '<td><a href="/editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
-                self.box = self.box + '<td><a href="/doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
-                self.box = self.box + '</tr>\n'
-        self.box = self.box + '</table>'
+                box = box + '<tr>'
+                box = box + '<td><a href="/editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
+                box = box + '<td><a href="/doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                box = box + '</tr>\n'
+        box = box + '</table>'
         log(3, "doctable complete")
-        return self.box
+        return box
+
+    def menus(self, lang):
+        log(3, "Creating all section menus:")
+        box = ''
+        keys = lampadasweb.sections.sort_by("sort_order")
+        for key in keys:
+            box = box + self.boxf.section_menu(key, lang)
+        log(3, "all section menus complete")
+        return box
 
 
 # PageFactory
@@ -399,7 +425,7 @@ class PageFactory:
                 # 
                 if token=='boxmainmenu':
                     newstring = self.boxf.main_menu(uri.language)
-            
+
                 # Tables
                 # 
                 if token=='tabdocstable':
@@ -407,6 +433,12 @@ class PageFactory:
             
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri.id, uri.language)
+
+                if token=='version':
+                    newstring = VERSION
+            
+                if token=='tabmenus':
+                    newstring = self.tablef.menus(uri.language)
             
                 # Blocks and Strings
                 # 
@@ -438,9 +470,15 @@ class PageFactory:
 
 page_factory = PageFactory()
 
+def profile():
+    import profile
+
+    profile.run('page_factory.page("home")')
+    
 def main():
-    for arg in sys.argv[1:]:
-        print page_factory.page(arg)
+    profile()
+#    for arg in sys.argv[1:]:
+#        print page_factory.page(arg)
 
 
 if __name__ == "__main__":

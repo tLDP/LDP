@@ -82,7 +82,7 @@ class Sections(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT section_code FROM section"
+        sql = "SELECT section_code, sort_order FROM section"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -98,6 +98,7 @@ class Section:
 
     def load(self, row):
         self.code		= trim(row[0])
+        self.sort_order = safeint(row[1])
         sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -138,7 +139,7 @@ class Page:
         self.code		= trim(row[0])
         self.section_code	= trim(row[1])
         self.template_code	= trim(row[2])
-        sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.code)
+        sql = "SELECT lang, title, menu_name, page FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -150,9 +151,10 @@ class Page:
 class PageI18n:
 
     def load(self, row):
-        self.lang	= row[0]
-        self.title	= row[1]
-        self.page	= row[2]
+        self.lang       = row[0]
+        self.title      = trim(row[1])
+        self.menu_name	= trim(row[2])
+        self.page       = trim(row[3])
 
 
 # Strings
