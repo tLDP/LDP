@@ -124,24 +124,23 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def sk_seriesid(self, value, lang):
+    def sk_seriesid(self, value):
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
         keys = lampadas.docs.sort_by('title')
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
-            if doc.lang==lang or lang==None:
-                if doc.sk_seriesid > '':
-                    combo.write("<option ")
-                    if doc.sk_seriesid==value:
-                        combo.write("selected ")
-                    if doc.short_title > '':
-                        combo.write("value='%s'>%s</option>\n"
-                                    % (str(doc.sk_seriesid),doc.short_title))
-                    else:
-                        combo.write("value='%s'>%s</option>\n"
-                                    % (str(doc.sk_seriesid),doc.title[:40]))
+            if doc.sk_seriesid > '':
+                combo.write("<option ")
+                if doc.sk_seriesid==value:
+                    combo.write("selected ")
+                if doc.short_title > '':
+                    combo.write("value='%s'>%s</option>\n"
+                                % (str(doc.sk_seriesid),doc.short_title))
+                else:
+                    combo.write("value='%s'>%s</option>\n"
+                                % (str(doc.sk_seriesid),doc.title[:40]))
         combo.write("</select>\n")
         return combo.get_value()
 

@@ -384,38 +384,51 @@ insert([document], [Alle Metadaten des Dokuments ändern], [],
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
+    <p>|tabdoctranslations|
 ], 2)
 
 insert([document_main], [Metadaten des Dokuments ändern], [],
 [
+    |blkdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
 insert([document_files], [Dateien des Dokuments ändern], [],
 [
+    |blkdocument_tabs|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
 insert([document_users], [Benutzer des Dokuments ändern], [],
 [
+    |blkdocument_tabs|
     |tabdocusers|
 ])
 
 insert([document_revs], [Versionierung des Dokuments ändern], [],
 [
+    |blkdocument_tabs|
     |tabdocversions|
 ])
 
 insert([document_topics], [Themen Dokuments ändern], [],
 [
+    |blkdocument_tabs|
     |tabdoctopics|
 ])
 
 insert([document_notes], [Anmerkungen zum Dokument], [],
 [
+    |blkdocument_tabs|
     |tabdocnotes|
+])
+
+insert([document_translation], [Document Translations], [],
+[
+    |blkdocument_tabs|
+    |tabdoctranslations|
 ])
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,

@@ -188,11 +188,13 @@ class Docs(LampadasCollection):
     def load(self):
         sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
+        self.languages = LampadasCollection()
         while (1):
             row = cursor.fetchone()
             if row==None: break
             doc = Doc()
             doc.load_row(row)
+            self.adjust_lang_count(doc.lang, 1)
             doc.errors.doc_id = doc.id
             doc.files.doc_id = doc.id
             doc.users.doc_id = doc.id
@@ -298,6 +300,13 @@ class Docs(LampadasCollection):
             docnote.load_row(row)
             doc.notes[docnote.id] = docnote
 
+    def adjust_lang_count(self, lang_code, delta):
+        """
+        Increment or decrement the document count for a language.
+        """
+        if self.languages[lang_code]==None:
+            self.languages[lang_code] = 0
+        self.languages[lang_code] = self.languages[lang_code] + delta
 
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters. --nico
@@ -310,6 +319,7 @@ class Docs(LampadasCollection):
         db.commit()
         doc = Doc(id)
         self[id] = doc
+        self.adjust_lang_count(doc.lang, 1)
         return doc
     
     def delete(self, id):
@@ -327,6 +337,7 @@ class Docs(LampadasCollection):
         doc.ratings.clear()
         doc.topics.clear()
         doc.notes.clear()
+        self.adjust_lang_count(doc.lang, -1)
 
         sql = ('DELETE from document WHERE doc_id=' + str(id))
         assert db.runsql(sql)==1

@@ -388,6 +388,7 @@ insert([document], [Edit All Document Meta-data], [],
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
+    <p>|tabdoctranslations|
 ], 2)
 
 insert([document_main], [Edit Document Meta-data], [],
@@ -426,6 +427,12 @@ insert([document_notes], [Document Notes], [],
 [
     |blkdocument_tabs|
     |tabdocnotes|
+])
+
+insert([document_translation], [Document Translations], [],
+[
+    |blkdocument_tabs|
+    |tabdoctranslations|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,

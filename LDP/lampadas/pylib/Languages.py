@@ -34,6 +34,7 @@ class Languages(LampadasCollection):
 
     def __init__(self):
         self.data = {}
+        self.supported = []
 
     def load(self):
         sql = "SELECT lang_code, supported FROM language"
@@ -56,11 +57,12 @@ class Languages(LampadasCollection):
             language.name[lang] = trim(row[2])
 
     def supported_keys(self):
-        keys = []
-        for key in self.keys():
-            if self[key].supported==1:
-                keys = keys + [key]
-        return keys
+        if len(self.supported)==0:
+            self.supported = []
+            for key in self.keys():
+                if self[key].supported==1:
+                    self.supported = self.supported + [key]
+        return self.supported
 
 class Language:
     """

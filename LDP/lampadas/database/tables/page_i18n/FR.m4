@@ -285,38 +285,51 @@ insert([document], [Méta-données du doc], [Méta-données du doc],
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
+    <p>|tabdoctranslations|
 ], 2])
 
 insert([document_main], [Edit Document Meta-data], [],
 [
+    |blkdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
 insert([document_files], [Edit Document Files], [],
 [
+    |blkdocument_tabs|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
 insert([document_users], [Edit Document Users], [],
 [
+    |blkdocument_tabs|
     |tabdocusers|
 ])
 
 insert([document_revs], [Edit Document Versions], [],
 [
+    |blkdocument_tabs|
     |tabdocversions|
 ])
 
 insert([document_topics], [Edit Document Topics], [],
 [
+    |blkdocument_tabs|
     |tabdoctopics|
 ])
 
 insert([document_notes], [Document Notes], [],
 [
+    |blkdocument_tabs|
     |tabdocnotes|
+])
+
+insert([document_translation], [Document Translations], [],
+[
+    |blkdocument_tabs|
+    |tabdoctranslations|
 ])
 
 insert([404], [Introuvable], [Introuvable],

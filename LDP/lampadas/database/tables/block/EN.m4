@@ -84,6 +84,7 @@ insert([blkdocument_tabs],
             <td><a href="|uri.base|document_topics/|uri.id||uri.lang_ext|">|strtopics|</a></td>
             <td><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></td>
             <td><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></td>
+            <td><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></td>
             <td><a href="|uri.base|document/|uri.id||uri.lang_ext|">|strall|</a></td>
         </tr>
     </table>

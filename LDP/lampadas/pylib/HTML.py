@@ -266,6 +266,8 @@ class PageFactory:
                     newstring = tables.docfileerrors(uri)
                 elif token=='tabdocnotes':
                     newstring = tables.docnotes(uri)
+                elif token=='tabdoctranslations':
+                    newstring = tables.doctranslations(uri)
                 elif token=='tabcvslog':
                     newstring = tables.cvslog(uri)
                 elif token=='tabletters':

@@ -106,7 +106,7 @@ class Tables(LampadasCollection):
         box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
         box.write('<td class="label">|strcopyright_holder|</td><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<td class="label">|strtrans_master|</td><td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strtrans_master|</td><td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid) + '</td>\n')
         box.write('''
         </tr>
         <tr>
@@ -383,6 +383,15 @@ class Tables(LampadasCollection):
         box = box + '</table>\n'
         return box
 
+
+    def doctranslations(self, uri):
+        """
+        Builds a table of all available translations of a document.
+        Based on the DocTable.
+        """
+        log(3, 'Creating doctranslations table')
+        doc = lampadas.docs[uri.id]
+        return self.doctable(uri, sk_seriesid=doc.sk_seriesid)
 
     def errors(self, uri):
         """
@@ -758,7 +767,6 @@ class Tables(LampadasCollection):
 
             # Build the table for any documents that passed the filters
             box.write('<tr><td>')
-
             if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                 box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
             box.write('</td>\n')
@@ -1103,7 +1111,7 @@ class Tables(LampadasCollection):
                widgets.dtd_code(''),
                widgets.license_code('', uri.lang),
                widgets.copyright_holder(''),
-               widgets.sk_seriesid('', uri.lang),
+               widgets.sk_seriesid(''),
                widgets.abstract(''),
                widgets.short_desc('')
                ))

@@ -103,4 +103,5 @@ insert(strdetails,          [Details])
 insert(strfiles,            [Files])
 insert(strversions,         [Versions])
 insert(strnotes,            [Notes])
+insert(strtranslations,     [Translations]) m4_dnl FIXME
 insert(strall,              [All])
