@@ -1853,11 +1853,11 @@ sub DocFilesTable {
 	foreach $filename (sort keys %docfiles) {
 		$table .= "<tr>\n";
 		$table .= "<td>\n";
-		$table .= "<a href='file_edit.pl?filename=$filename'>" . EditImage() . "</a>";
+		$table .= "<a href='file_edit.pl?filename=$filename&doc_id=$doc_id'>" . EditImage() . "</a>";
 		$table .= "</td>\n";
 		$table .= "<td>\n";
 		$table .= "<form method=POST action='document_file_save.pl'>";
-		$table .= "<input type=hidden name=doc_id value=$doc_id>";
+		$table .= "<input type=hidden name=doc_id value='$doc_id'>";
 		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
 		$table .= "<input type=text name='filename' size=40 style='width:100%' value='$filename'></input>\n";
 		$table .= "</td>\n";

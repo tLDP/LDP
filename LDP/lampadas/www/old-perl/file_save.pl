@@ -4,6 +4,7 @@ use FileHandle;
 use Lampadas;
 $L = new Lampadas;
 
+$doc_id		= $L->Param('doc_id');
 $filename	= $L->Param('filename');
 $file		= $L->Param('file');
 
@@ -23,6 +24,8 @@ open $fh, ">$cvsroot$filename";
 print $fh $file;
 close $fh;
 
-$L->StartPage("Saving $filename");
-print "Saved.";
-$L->EndPage();
+$L->Redirect("document_edit.pl?doc_id=$doc_id");
+
+#$L->StartPage("Saving $filename");
+#print "Saved.";
+#$L->EndPage();
