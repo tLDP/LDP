@@ -288,7 +288,6 @@ class DataManager(DataTable):
             if self.cache.filled==0:
                 self.all_cached = 1
             return set
-        self.synch()
         return self.get_cached()
 
     def synch(self):

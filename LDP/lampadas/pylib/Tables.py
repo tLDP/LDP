@@ -24,7 +24,7 @@ from Log import log
 from BaseClasses import *
 from Widgets import widgets
 from Sessions import sessions
-from Lintadas import lintadas
+#from Lintadas import lintadas
 from Stats import stats, Stat
 from OMF import OMF
 import os
@@ -78,18 +78,20 @@ VIEW_ICON_SM    = 'View'
 VIEW_ICON       = 'View'
 VIEW_ICON_BIG   = 'View'
 
+from persistence.document_html import DocumentView, DocumentEdit 
 
 class Tables(LampadasCollection):
 
-    def bar_graph(self, value, max, lang):
-        return str(value) + '/' + str(max)
-
     def viewdoc(self, uri):
         doc = dms.document.get_by_id(uri.id)
+        docview = DocumentView(doc)
+        return docview.get_html(uri)
+
+        # OLD CODE
         if doc==None:
             return '|blknotfound|'
 
-        lintadas.check_doc(uri.id)
+        #lintadas.check_doc(uri.id)
 
         box = WOStringIO('<table class="box" width="100%%">' 
                          '<tr><th colspan="6">|strdocdetails|</th></tr>'
@@ -150,6 +152,17 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def editdoc(self, uri):
+        if uri.id > 0:
+            #lintadas.check_doc(uri.id)
+            doc = dms.document.get_by_id(uri.id)
+        else:
+            # Create a new document
+            doc = dms.document.new()
+        docedit = DocumentEdit(doc)
+        return docedit.get_html(uri)
+       
+
+        # OLD CODE
         if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
@@ -157,7 +170,7 @@ class Tables(LampadasCollection):
                          '<tr><th colspan="6">|strdocdetails|</th></tr>')
                 
         if uri.id > 0:
-            lintadas.check_doc(uri.id)
+            #lintadas.check_doc(uri.id)
             doc = dms.document.get_by_id(uri.id)
             delete_widget = widgets.delete() + '|strdelete| '
             box.write('<form method="GET" action="|uri.base|data/save/document" '
@@ -313,7 +326,7 @@ class Tables(LampadasCollection):
                          % ('|strdocfiles|'))
         for key in doc.files.sort_by('filename'):
             docfile = doc.files[key]
-            lintadas.check_file(docfile.filename)
+            #lintadas.check_file(docfile.filename)
             sourcefile = docfile.sourcefile
             if sourcefile.errors.count() > 0:
                 css_class = ' error'
@@ -351,7 +364,7 @@ class Tables(LampadasCollection):
         doc = dms.document.get_by_id(uri.id)
         for key in doc.files.sort_by('filename'):
             docfile = doc.files[key]
-            lintadas.check_file(docfile.filename)
+            #lintadas.check_file(docfile.filename)
             sourcefile = docfile.sourcefile
             if sourcefile.errors.count() > 0:
                 css_class = ' error'
@@ -1153,13 +1166,94 @@ class Tables(LampadasCollection):
         if state.user.can_edit(username=username)==0:
             return '|nopermission|'
         if username > '':
-            return self.doctable(uri, username=username, show_search=0)
+            user = dms.username.get_by_id(username)
         else:
-            return self.doctable(uri, username=state.user.username, show_search=0)
+            user = state.user
+        userdocs = user.documents
+        
+        return self.doctable2(user.documents)
 
+    def doctable2(self, docs, layout='compact', columns={}):
+        if layout=='compact':
+            colspan = ICON_CELLS_COUNT + len(columns) + 1
+            box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
+                             '<tr><th class="collabel" colspan="%s" align="center">|strtitle|</th>'
+                             % (colspan, ICON_CELLS_COUNT + 1))
+            for column in columns.keys():
+                box.write('<th class="collabel">%s</td>' % column)
+            box.write('</tr>\n')
+        elif layout=='expanded':
+            box = WOStringIO('')
+
+        odd_even = OddEven()
+        for key in docs.sort_by('title'):
+            doc = docs[key]
+            if layout=='compact':
+                box.write('<tr class="%s">\n' % odd_even.get_next())
+                box.write(self.document_icon_cells(doc.id, 'td'))
+
+                # Format the title differently to flag its status
+                display_title = html_encode(widgets.title_compressed(doc.title))
+
+                if doc.pub_time > '':
+                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
+                              % (str(doc.id), display_title))
+                elif doc.errors.count() > 0 or doc.file_error_count > 0:
+                    box.write('<td style="width:100%%" class="error">%s</td>\n' % display_title)
+                else:
+                    box.write('<td style="width:100%%">%s</td>\n' % display_title)
+
+                # Now any custom columns.
+                for column in columns.keys():
+                    box.write('<td>%s</td>\n' % getattr(doc, columns[column]))
+                box.write('</tr>\n')
+
+            # This is a blocky extended listing, complete with abstracts.
+            elif layout=='expanded':
+
+                # Link to the online output.
+                if doc.pub_time > '':
+                    block_indexlink = '<td width=32><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + HTML_ICON + '</a></td>'
+                else:
+                    block_indexlink = '<td width=32></td>'
+                
+                # Folder icon
+                if doc.pub_time > '':
+                    block_dllink = '<td width=32><a href="|uri.base|docdownloads/' + str(doc.id) + '/">' + FOLDER_ICON + '</a></td>'
+                else:
+                    block_dllink = ('<td width=32></td>')
+
+                # Edit icon
+                block_editlink = '<td width=32><a href="|uri.base|document_main/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>'
+
+                # Format the title based on the presence of errors.
+                if doc.errors.count() > 0 or doc.file_error_count > 0:
+                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
+                else:
+                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
+
+                # Finally, pull in the abstract.
+                block_abstract = '<td>' + html_encode(doc.abstract) + '</td>'
+
+                box.write('<table class="box nontabular" width="100%%">\n'
+                          '  <tr>%s</tr>\n'
+                          '  <tr>%s\n'
+                          '      %s\n'
+                          '      %s\n'
+                          '      %s\n'
+                          '  </tr>'
+                          '</table>\n'
+                          % (block_title, block_indexlink, block_dllink, block_editlink, block_abstract))
+
+        if layout=='compact':
+            box.write('</table>\n')
+
+        return box.get_value()
+            
     def section_menus(self, uri):
         log(3, "Creating all section menus")
         box = WOStringIO('')
+        dms.section.synch()
         sections = dms.section.get_all()
         menu_separator = ''
         for key in sections.sort_by('sort_order'):

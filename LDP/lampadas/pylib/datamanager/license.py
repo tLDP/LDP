@@ -19,6 +19,7 @@ class License(DataManager):
         super(License, self).synch()
 
         # Synchronize with i18n cache.
+        self.dms.license_i18n.synch()
         i18ns = self.dms.license_i18n.get_by_keys([['updated', '>=', last_synched]])
         for key in i18ns.keys():
             i18n = i18ns[key]

@@ -28,6 +28,18 @@ class Document(Persistence):
             return self.dms.language.get_by_id(self.lang)
         elif attribute=='license':
             return self.dms.license.get_by_id(self.license_code)
+        elif attribute=='type':
+            return self.dms.type.get_by_id(self.type_code)
+        elif attribute=='format':
+            return self.dms.format.get_by_id(self.format_code)
+        elif attribute=='dtd':
+            return self.dms.dtd.get_by_id(self.dtd_code)
+        elif attribute=='pub_status':
+            return self.dms.pub_status.get_by_id(self.pub_status_code)
+        elif attribute=='review_status':
+            return self.dms.review_status.get_by_id(self.review_status_code)
+        elif attribute=='tech_review_status':
+            return self.dms.review_status.get_by_id(self.tech_review_status_code)
         elif attribute=='top_file':
             top_file = self.dms.document_file.get_by_keys([['doc_id', '=', self.id], ['top', '=', 1]])
             if top_file.count()==1:
@@ -67,3 +79,4 @@ class Document(Persistence):
             if self.pub_date=='':    self.pub_date    = topfile.pub_date
             if self.isbn=='':        self.isbn        = topfile.isbn
             if self.encoding=='':    self.encoding    = topfile.encoding
+

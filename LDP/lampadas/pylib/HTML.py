@@ -74,6 +74,9 @@ class PageFactory:
         template = page.template
         html = template.template
 
+        dms.block.synch()
+        self.blocks = dms.block.get_all()
+
         html = self.replace_tokens(page, uri, html)
 
         end_time = time.time()
@@ -119,18 +122,18 @@ class PageFactory:
                     if state.session:
                         newstring = tables.userdocs(uri, username=state.session.username)
                     else:
-                        newstring = '|nopermission|'
+                        newstring = self.blocks['blknopermission'].block
 
                 # Page Meta-data
                 elif token=='title':
                     newstring = page.title[uri.lang]
                 elif token=='body':
                     if page.only_registered==1 and state.session==None:
-                        newstring = '|blknopermission|'
+                        newstring = self.blocks['blknopermission'].block
                     elif page.only_admin==1 and (state.session==None or state.user.admin==0):
-                        newstring = '|blknopermission|'
+                        newstring = self.blocks['blknopermission'].block
                     elif page.only_sysadmin==1 and (state.session==None or state.user.sysadmin==0):
-                        newstring = '|blknopermission|'
+                        newstring = self.blocks['blknopermission'].block
                     else:
                         newstring = page.page[uri.lang]
                 elif token=='base':
@@ -186,7 +189,7 @@ class PageFactory:
                 elif token=='type.name':
                     type = dms.type.get_by_id(uri.code)
                     if not type:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = type.name[uri.lang]
 
@@ -194,13 +197,13 @@ class PageFactory:
                 elif token=='topic.name':
                     topic = dms.topic.get_by_id(uri.code)
                     if not topic:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = topic.name[uri.lang]
                 elif token=='topic.description':
                     topic = dms.topic.get_by_id(uri.code)
                     if not topic:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = topic.description[uri.lang]
 
@@ -208,13 +211,13 @@ class PageFactory:
                 elif token=='collection.name':
                     collection = dms.collection.get_by_id(uri.code)
                     if not collection:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = collection.name[uri.lang]
                 elif token=='collection.description':
                     collection = dms.collection.get_by_id(uri.code)
                     if not collection:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = collection.description[uri.lang]
 
@@ -222,7 +225,7 @@ class PageFactory:
                 elif token=='doc.title':
                     doc = dms.document.get_by_id(uri.id)
                     if doc==None:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = doc.title
                         if newstring=='':
@@ -232,7 +235,7 @@ class PageFactory:
                 elif token=='doc.abstract':
                     doc = dms.document.get_by_id(uri.id)
                     if doc==None:
-                        newstring = '|blknotfound|'
+                        newstring = self.blocks['blknotfound'].block
                     else:
                         newstring = doc.abstract
                         if newstring=='':

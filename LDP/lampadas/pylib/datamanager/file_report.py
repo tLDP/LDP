@@ -16,6 +16,7 @@ class FileReport(DataManager):
         super(FileReport, self).synch()
 
         # Synchronize with i18n cache.
+        self.dms.file_report_i18n.synch()
         i18ns = self.dms.file_report_i18n.get_by_keys([['updated', '>=', last_synched]])
         for key in i18ns.keys():
             i18n = i18ns[key]

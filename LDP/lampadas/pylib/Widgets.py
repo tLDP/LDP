@@ -38,6 +38,9 @@ class Widgets:
     standard formats for some text items.
     """
 
+    def bar_graph(self, value, max, lang):
+        return str(value) + '/' + str(max)
+
     def format_code(self, value, lang, view=0):
         if view==1:
             format = dms.format.get_by_id(value)
