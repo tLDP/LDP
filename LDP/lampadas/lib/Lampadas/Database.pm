@@ -19,7 +19,7 @@ $conn;
 $debug = 0;
 
 sub _initialize {
-	$conn=Pg::connectdb("dbname=ldp");
+	$conn=Pg::connectdb("dbname=lampadas");
 }
 
 sub new {
