@@ -57,7 +57,7 @@ $from_email = "$login <$login\@tldp.org>";
 
 # Mail all reports to this address.
 #$dest_email = 'elinks-cvs@v.or.cz, pasky@pasky.ji.cz, fonseca@diku.dk, zas@norz.org';
-$dest_email = 'cvs-commit@en.tldp.org';
+$dest_email = 'cvs-commits@en.tldp.org';
 #for testing, sometimes useful:
 #$dest_email = 'ser@metalab.unc.edu';
 
