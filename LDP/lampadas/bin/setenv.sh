@@ -29,6 +29,9 @@ export LAMPADAS_SPOOL=/tmp
 # database name to connect to. see psql(1)
 export LAMPADAS_DB=lampadas
 
+# account running the http server
+export LAMPADAS_WWW_USER="www-data"
+
 # used by bin/lampadasweb to find the file lampadas.conf
 export LAMPADAS_ETC="$LAMPADAS_ROOT/conf"
 
