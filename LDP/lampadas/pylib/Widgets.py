@@ -229,22 +229,24 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def lang(self, value, lang):
+    def lang(self, value, lang, allow_null=1, allow_unsupported=1):
         combo = WOStringIO("<select name='lang'>\n")
-        if value=='':
-            combo.write('<option selected></option>')
-        else:
-            combo.write('<option></option>')
+        if allow_null==1:
+            if value=='':
+                combo.write('<option selected></option>')
+            else:
+                combo.write('<option></option>')
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
             language = languages[key]
             assert not language==None
-            combo.write("<option ")
-            if language.code==value:
-                combo.write("selected ")
-            combo.write("value='" + language.code + "'>")
-            combo.write(language.name[lang])
-            combo.write("</option>\n")
+            if allow_unsupported==1 or language.supported==1:
+                combo.write("<option ")
+                if language.code==value:
+                    combo.write("selected ")
+                combo.write("value='" + language.code + "'>")
+                combo.write(language.name[lang])
+                combo.write("</option>\n")
         combo.write("</select>")
         return combo.get_value()
 

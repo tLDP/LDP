@@ -11,8 +11,10 @@ insert(adduser,              default,    admin,      2,  [],                 t, 
 insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)
 insert(errors,               default,    admin,      4,  [],                 t,  f,  t,  f)
 insert(adddocument,          default,    admin,      5,  [],                 t,  t,  t,  f)
+insert(news,                 default,    admin,      6,  [],                 f,  f,  t,  f)
+insert(addnews,              default,    admin,      7,  [],                 f,  f,  t,  f)
                              
-insert(news,                 default,    news,       1,  [],                 f,  f,  f,  f)
+insert(recentnews,           default,    news,       1,  [],                 f,  f,  f,  f)
 insert(stats,                default,    news,       2,  [],                 f,  f,  f,  f)
                                                                                  
 insert(staff,                default,    volunteer,  1,  [],                 f,  f,  f,  f)
@@ -42,6 +44,7 @@ insert(document_topics,      default,    [],         0,  [doc],              t, 
 insert(document_notes,       default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_translation, default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_admin,       default,    [],         0,  [doc],              t,  t,  f,  f)
+insert(news_edit,            default,    [],         0,  [news],             f,  f,  t,  f)
 insert(404,                  default,    [],         0,  [],                 t,  f,  f,  f)
 insert(user_exists,          default,    [],         0,  [],                 t,  f,  f,  f)
 insert(username_required,    default,    [],         0,  [],                 t,  f,  f,  f)

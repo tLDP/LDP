@@ -138,7 +138,7 @@ class URI:
         for item in page.data:
             if len(data)==0:
                 break
-            if item in ('doc',):
+            if item in ('doc', 'news'):
                 self.id = int(data[0])
                 data = data[1:]
             elif item in ('collection', 'topic', 'type', 'report'):

@@ -75,7 +75,7 @@ insert([search], [Suche], [],
     |tabsearch|
 ], 1)
 
-insert([news], [Neuigkeiten], [],
+insert([recentnews], [Neuigkeiten], [],
 [
     |tabrecentnews|
 ], 1)
@@ -449,6 +449,11 @@ insert([document_admin], [|doc.title|], [],
     |tabdocadmin|
 ])
 
+insert([news_edit], [Edit News], [],
+[
+    |tabnewsitem|
+])
+
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
 [
     <p>Die angeforderte Seite existiert leider nicht.
@@ -539,4 +544,14 @@ insert([errors], [Liste der Fehler], [],
 insert([collection], [|collection.name|], [],
 [
     |tabcollection|
+], 1)
+
+insert([news], [|strnews|], [],
+[
+    |tabnews|
+], 1)
+
+insert([addnews], [|stradd_news|], [],
+[
+    |tabnewsitem|
 ], 1)

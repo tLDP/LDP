@@ -218,9 +218,21 @@ class NewsItems(LampadasCollection):
             news.load_row(row)
             self.data[news.id] = news
 
+    def add(self, pub_date=now_string()):
+        news = NewsItem()
+        news.id = db.next_id('news', 'news_id')
+        news.pub_date = pub_date
+        self[news.id] = news
+        sql = 'INSERT INTO news(news_id, pub_date) VALUES (' + str(news.id) + ', ' + wsq(news.pub_date) + ')'
+        db.runsql(sql)
+        db.commit()
+        return news
+    
 class NewsItem:
 
-    def __init__(self):
+    def __init__(self, id=0, pub_date=now_string()):
+        self.id       = id
+        self.pub_date = pub_date
         self.news = LampadasCollection()
 
     def load_row(self, row):
@@ -234,8 +246,23 @@ class NewsItem:
             lang            = row[0]
             self.news[lang] = trim(row[1])
 
+    def add_lang(self, lang, news):
+        self.news[lang] = news
+        sql = 'INSERT INTO news_i18n(news_id, lang, news) VALUES(' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(news) + ')'
+        db.runsql(sql)
+        db.commit()
 
-# NewsItems
+    def save(self):
+        sql = 'UPDATE news SET pub_date=' + wsq(self.pub_date) + ' WHERE news_id=' + str(self.id)
+        db.runsql(sql)
+        db.commit()
+        for lang in self.news.keys():
+            sql = 'UPDATE news_i18n SET news=' + wsq(self.news[lang]) + ' WHERE news_id=' + str(self.id) + ' AND lang=' + wsq(lang)
+            db.runsql(sql)
+            db.commit()
+        
+
+# FileReports
 
 class FileReports(LampadasCollection):
 

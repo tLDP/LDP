@@ -23,6 +23,7 @@ from Globals import *
 from globals import *
 from Config import config
 from DataLayer import lampadas
+from WebLayer import lampadasweb
 from Log import log
 from mod_python import apache
 import os
@@ -229,7 +230,25 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
         user.sysadmin = int(sysadmin)
         user.notes = notes
         user.save()
-    referer = req.headers_in['referer']
-    req.headers_out['location'] = referer
-    req.status = apache.HTTP_MOVED_TEMPORARILY
+    go_back(req)
 
+def newnews(req, pub_date):
+    newsitem = lampadasweb.news.add(pub_date)
+    redirect(req, '../../news/' + str(newsitem.id) + referer_lang_ext(req))
+
+def news(req, news_id, pub_date):
+    newsitem = lampadasweb.news[int(news_id)]
+    newsitem.pub_date = pub_date
+    newsitem.save()
+    go_back(req)
+
+def news_lang(req, news_id, lang, news):
+    newsitem = lampadasweb.news[int(news_id)]
+    newsitem.news[lang] = news
+    newsitem.save()
+    go_back(req)
+
+def newnews_lang(req, news_id, lang, news):
+    newsitem = lampadasweb.news[int(news_id)]
+    newsitem.add_lang(lang, news)
+    go_back(req)

@@ -184,6 +184,9 @@ def time2str(time):
     else:
         return ''
 
+def today_string():
+    return time.strftime('%Y-%m-%d')
+
 def now_string():
     return time.strftime('%Y-%m-%d %H:%M:%S')
 

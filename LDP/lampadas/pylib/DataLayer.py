@@ -1600,7 +1600,8 @@ class User:
         db.runsql(sql)
         db.commit()
 
-    def can_edit(self, doc_id=None, username=None):
+    # News is handled only by admins, so just let that part handle them.
+    def can_edit(self, doc_id=None, username=None, news_id=None):
         if self.admin > 0 or self.sysadmin > 0:
             return 1
         if not doc_id==None:

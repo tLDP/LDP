@@ -26,7 +26,7 @@ from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
-from WebLayer import lampadasweb
+from WebLayer import lampadasweb, NewsItem
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
@@ -94,7 +94,7 @@ class Tables(LampadasCollection):
             lintadas.check_doc(uri.id)
             lintadas.import_doc_metadata(uri.id)
             doc = lampadas.docs[uri.id]
-            box.write('<form method=GET action="/data/save/document" '\
+            box.write('<form method=GET action="|uri.base|data/save/document" '\
                       'name="document">')
         else:
 
@@ -104,7 +104,7 @@ class Tables(LampadasCollection):
             doc.pub_status_code = 'P'
             doc.review_status_code = 'U'
             doc.tech_review_status_code = 'U'
-            box.write('<form method=GET action="/data/save/newdocument" '\
+            box.write('<form method=GET action="|uri.base|data/save/newdocument" '\
                       'name="document">')
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
@@ -194,7 +194,7 @@ class Tables(LampadasCollection):
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
-            box.write('<form method=GET action="/data/save/document_version" name="document_version">')
+            box.write('<form method=GET action="|uri.base|data/save/document_version" name="document_version">')
             box.write('<input name="rev_id" type=hidden value=' + str(version.id) + '>\n')
             box.write('<input name="doc_id" type=hidden value=' + str(version.doc_id) + '>\n')
             box.write('<tr class="%s">\n' % odd_even.get_next())
@@ -206,7 +206,7 @@ class Tables(LampadasCollection):
             box.write('<td><input type=submit name="action" value="|strsave|"></td>\n')
             box.write('</tr>\n')
             box.write('</form>\n')
-        box.write('<form method=GET action="/data/save/newdocument_version" name="document_version">')
+        box.write('<form method=GET action="|uri.base|data/save/newdocument_version" name="document_version">')
         box.write('<input name="doc_id" type=hidden value="%s">\n' % str(doc.id))
         box.write('''
         <tr class="%s">
@@ -240,7 +240,7 @@ class Tables(LampadasCollection):
             lintadas.check_file(key)
             docfile = doc.files[key]
             sourcefile = sourcefiles[key]
-            box.write('<form method=GET action="/data/save/document_file" name="document_file">')
+            box.write('<form method=GET action="|uri.base|data/save/document_file" name="document_file">')
             box.write('<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n')
             box.write('<input type=hidden name="filename" size="30" style="width:100%" value="' + docfile.filename + '">\n')
             box.write('<tr>\n')
@@ -290,7 +290,7 @@ class Tables(LampadasCollection):
         
         # Add a new docfile
         box.write('<tr>\n')
-        box.write('<form method=GET action="/data/save/newdocument_file" name="document_file">')
+        box.write('<form method=GET action="|uri.base|data/save/newdocument_file" name="document_file">')
         box.write('<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n')
         box.write('<td colspan="6"><input type="text" name="filename" size="30" style="width:100%"></td>\n')
         box.write('</tr>\n')
@@ -333,7 +333,7 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for key in keys:
             docuser = doc.users[key]
-            box = box + '<form method=GET action="/data/save/document_user" name="document_user">'
+            box = box + '<form method=GET action="|uri.base|data/save/document_user" name="document_user">'
             box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
             box = box + '<tr class="' + odd_even.get_next() + '">\n'
@@ -351,7 +351,7 @@ class Tables(LampadasCollection):
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
-        box = box + '<form method=GET action="/data/save/newdocument_user" name="document_user">'
+        box = box + '<form method=GET action="|uri.base|data/save/newdocument_user" name="document_user">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + '<input type="text" name="username"></td>\n'
@@ -387,7 +387,7 @@ class Tables(LampadasCollection):
             doctopic = doc.topics[topic_code]
             if doctopic:
                 topic = lampadas.topics[topic_code]
-                box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
+                box = box + '<form method=GET action="|uri.base|data/save/deldocument_topic" name="document_topic">'
                 box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
                 box = box + '<input type=hidden name="topic_code" value=' + topic_code + '>\n'
                 box = box + '<tr class="' + odd_even.get_next() + '"><td><a href="|uri.base|topic/' + topic_code + '|uri.lang_ext|">' + topic.title[uri.lang] + '</a>'
@@ -395,7 +395,7 @@ class Tables(LampadasCollection):
                 box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
                 box = box + '</tr>\n'
                 box = box + '</form>\n'
-        box = box + '<form method=GET action="/data/save/newdocument_topic" name="document_topic">'
+        box = box + '<form method=GET action="|uri.base|data/save/newdocument_topic" name="document_topic">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + widgets.topic_code('', uri.lang) + '</td>\n'
@@ -434,7 +434,7 @@ class Tables(LampadasCollection):
             box = box + '<td>' + note.notes + '</td>\n'
             box = box + '<td></td>\n'
             box = box + '</tr>\n'
-        box = box + '<form method=GET action="/data/save/newdocument_note" name="document_note">'
+        box = box + '<form method=GET action="|uri.base|data/save/newdocument_note" name="document_note">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<input name="creator" type=hidden value=' + sessions.session.username + '>\n'
         box = box + '<tr><td></td><td></td>\n'
@@ -712,7 +712,7 @@ class Tables(LampadasCollection):
             user = lampadas.users[uri.username]
             if user==None:
                 return '|blknotfound|'
-            box = '<form method=GET action="/data/save/user" name="user">\n'
+            box = '<form method=GET action="|uri.base|data/save/user" name="user">\n'
         else:
             user = User()
             box = '<form method=GET action="/data/save/newuser" name="user">\n'
@@ -1130,28 +1130,6 @@ class Tables(LampadasCollection):
             box.write('</table>\n')
         return box.get_value()
 
-# FIXME WOStringIO implemented below --nico
-
-    def recent_news(self, uri):
-        log(3, 'Creating recent news')
-        box = WOStringIO('''<table class="box" width="100%%">
-        <tr><th colspan="2">|strrecentnews|</th></tr>
-        <tr><th class="collabel">|strdate|</th><th class="collabel">|strnews|</th></tr>\n''')
-        keys = lampadasweb.news.sort_by_desc('pub_date')
-        odd_even = OddEven()
-        for key in keys:
-            news = lampadasweb.news[key]
-            if not news.news[uri.lang]==None:
-
-# FIXME: This neat little class, "nontabular" gives an expanded format of table,
-# instead of a compact list of rows. There are a lot of places that would benefit
-# from having this tag applied.
-
-                box.write('''<tr class="%s"><td class="label">%s:</td><td class="nontabular">%s</td></tr>\n'''
-                          % (odd_even.get_next(), news.pub_date, news.news[uri.lang]))
-        box.write('</table>\n')
-        return box.get_value()
-
     def navtopics(self, uri):
         if self['navtopics']==None:
             self['navtopics'] = LampadasCollection()
@@ -1249,7 +1227,7 @@ class Tables(LampadasCollection):
             log(3, 'Creating active user box')
             box = '''<table class="navbox">
             <tr><th>|stractive_user|</th></tr>
-            <form name="logout" action="/data/session/logout">
+            <form name="logout" action="|uri.base|data/session/logout">
             <input name="username" type="hidden" value="%s">
             <tr><td align="center">
             <a href="|uri.base|user/|session_username||uri.lang_ext|">|session_name|</a>
@@ -1263,7 +1241,7 @@ class Tables(LampadasCollection):
             log(3, 'Creating login box')
             box = '''<table class="navbox">
             <tr><th colspan="2">|strlogin|</th></tr>
-            <form name="login" action="/data/session/login" method="GET">
+            <form name="login" action="|uri.base|data/session/login" method="GET">
             <tr>
               <td class="label">|strusername|</td>
               <td><input type="text" name="username" size="12"></td>
@@ -1365,7 +1343,7 @@ class Tables(LampadasCollection):
         box = WOStringIO()
         box.write('''
             <table class="box">\n
-            <form name="search" action="/data/search/document">
+            <form name="search" action="|uri.base|data/search/document">
             <tr><th colspan="2">|strsearch|</th></tr>\n
             <tr><td class="label">|strtitle|</td><td>%s</td></tr>
             <tr><td class="label">|strshort_title|</td><td>%s</td></tr>
@@ -1640,7 +1618,7 @@ class Tables(LampadasCollection):
         
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
-        box = '''<form name="mailpass" action="/data/save/mailpass">
+        box = '''<form name="mailpass" action="|uri.base|data/save/mailpass">
         <table class="box" width="100%">
         <tr><th colspan="2">|strmail_passwd|</th></tr>
         <tr>
@@ -1723,6 +1701,15 @@ class Tables(LampadasCollection):
         box.write('</tr></table>\n')
         return box.get_value()
 
+# Eventually these will be user-editable, and expandable by writing your own
+# classes to be loaded into this collection. I'm gradually moving the above routines
+# into classes here. Later, I'll put each of these in their own file, all in a separate
+# directory, then load them dynamically into the interpreter.
+
+# We might use a templating engine (Cheetah?) to generate these from more easily
+# editable templates at some point. Could just use m4 though.
+
+# When moving a routine into a class, you have to remove it from the HTML.py module.
 
 class Table:
 
@@ -1757,6 +1744,106 @@ class DocAdmin(Table):
     def method(self, uri):
         return tables.tabdocadmin(uri)
 
+# The off-by-one error is intentional. If 0 is passed in items, we never
+# stop processing items, but list them all intead.
+
+class TabNews(Table):
+
+    def __init__(self, items=0):
+        Table.__init__(self, 'news', self.method)
+        self.items = items
+
+    def method(self, uri):
+        log(3, 'Creating recent news')
+        box = WOStringIO('''<table class="box" width="100%%">
+        <tr><th colspan="2">|strrecentnews|</th></tr>
+        <tr><th class="collabel">|strdate|</th><th class="collabel">|strnews|</th></tr>\n''')
+        keys = lampadasweb.news.sort_by_desc('pub_date')
+        odd_even = OddEven()
+        items = 0
+        for key in keys:
+            news = lampadasweb.news[key]
+            if not news.news[uri.lang]==None:
+                if sessions.session and sessions.session.user.can_edit(news_id=uri.id)==1:
+                    edit_icon = '<a href="|uri.base|news_edit/' + str(news.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>\n'
+                else:
+                    edit_icon = ''
+
+# FIXME: This neat little CSS class, "nontabular" gives an expanded format of table,
+# instead of a compact list of rows. There are a lot of places that would benefit
+# from having this tag applied.
+
+                box.write('''<tr class="%s"><td class="label">%s:</td><td class="nontabular">%s</td></tr>\n'''
+                          % (odd_even.get_next(), edit_icon + news.pub_date, news.news[uri.lang]))
+            items = items + 1
+            if items==self.items:
+                break
+        box.write('</table>\n')
+        return box.get_value()
+
+class TabNewsItem(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'news', self.method)
+
+    def method(self, uri):
+        if not sessions.session:
+            return '|blknopermission|'
+        elif sessions.session.user.can_edit(news_id=uri.id)==0:
+            return '|blknopermission|'
+
+        if uri.id > 0:
+            news = lampadasweb.news[uri.id]
+
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
+                             '<table class="box"><tr><th colspan="5">|strnews|</th></tr>\n' \
+                             '<input type=hidden name="news_id" value="%s">\n' \
+                             '<tr><td class="label">|strpub_date|</td>\n' \
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (news.id, news.pub_date))
+
+            # List the available translations
+            box.write('<table class="box"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
+                      '<tr><th class="collabel">|strlanguage|</td>\n' \
+                      '    <th class="collabel" colspan="2">|strnews|</td>' \
+                      '</tr>')
+
+            for lang in languages.supported_keys():
+                if not news.news[lang]==None:
+                    box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
+                              '<input type=hidden name="news_id" value="%s">\n' \
+                              '<input type=hidden name="lang" value="%s">\n' \
+                              '<tr><td class="label">%s:</td>' \
+                              '    <td><textarea name="news" rows="6" cols="40" style="width:100%%">%s</textarea></td>' \
+                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                              '</tr></form>'
+                              % (news.id, lang, languages[lang].name[uri.lang], news.news[lang]))
+
+            # Add a new translation
+            box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
+                      '<input type=hidden name="news_id" value="%s">\n' \
+                      '<tr><td>%s:</td>' \
+                      '    <td><textarea name="news" rows="6" cols="40" style="width:100%%"></textarea></td>' \
+                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '</tr></form>'
+                      % (news.id, widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+            box.write('</table>')
+        else:
+            news = NewsItem()
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
+                             '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
+                             '<tr><td class="label">|strpub_date|</td>\n' \
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (news.pub_date))
+            
+        return box.get_value()
+        
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -1764,6 +1851,9 @@ class TableMap(LampadasCollection):
         self['tabdocs'] = DocTable()
         self['tabdocs_expanded'] = DocTableExpanded()
         self['tabdocadmin'] = DocAdmin()
+        self['tabrecentnews'] = TabNews(items=10)
+        self['tabnews'] = TabNews()
+        self['tabnewsitem'] = TabNewsItem()
 
 tables = Tables()
 tablemap = TableMap()

@@ -303,8 +303,6 @@ class PageFactory:
                     newstring = tables.users(uri)
                 elif token=='tabuser':
                     newstring = tables.user(uri)
-                elif token=='tabrecentnews':
-                    newstring = tables.recent_news(uri)
                 elif token=='tabtypedocs':
                     newstring = tables.doctable(uri, type_code=uri.code, lang=uri.lang)
                 elif token=='tabtopicdocs':

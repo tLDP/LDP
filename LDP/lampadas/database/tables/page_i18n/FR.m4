@@ -66,7 +66,7 @@ insert([search], [Search], [],
     |tabsearch|
 ], 0)
 
-insert([news], [|strproject| News], [|strprojectshort| News],
+insert([recentnews], [|strproject| News], [|strprojectshort| News],
 [
 	|tabrecentnews|
 ], 1)
@@ -350,6 +350,11 @@ insert([document_admin], [|doc.title|], [],
     |tabdocadmin|
 ])
 
+insert([news_edit], [Edit News], [],
+[
+    |tabnewsitem|
+])
+
 insert([404], [Introuvable], [Introuvable],
 [
 	Introuvable
@@ -429,4 +434,14 @@ insert([errors], [Error List], [],
 insert([collection], [|collection.name|], [],
 [
     |tabcollection|
+], 1)
+
+insert([news], [|strnews|], [],
+[
+    |tabnews|
+], 1)
+
+insert([addnews], [|stradd_news|], [],
+[
+    |tabnewsitem|
 ], 1)
