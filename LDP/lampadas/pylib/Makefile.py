@@ -197,6 +197,9 @@ class Project:
             return
 
         docfile = self.doc.find_top_file()
+        if docfile==None:
+            return
+
         sourcefile = sourcefiles[docfile.filename]
         metadata = self.doc.metadata()
         
@@ -281,6 +284,7 @@ class Project:
             self.targets.add('xml',             [],                     [])
         else:
             log(1, 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code + '. Lampadas cannot build this document.')
+            return
         
         ##############################
         # IT'S ALL DOCBOOK XML HERE! #

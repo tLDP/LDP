@@ -276,6 +276,7 @@ class SourceFile:
                 # Look for DocBook declaration
                 m = re.search('DOCBOOK(.*)', doctype, flags)
                 if m:
+                    dtd_code = 'docbook'
                     m = re.search('.*?(V.*?)\/\/', doctype, flags)
                     if m: dtd_version = trim(m.group(1))
                 else:
@@ -283,9 +284,14 @@ class SourceFile:
                     # Look for LinuxDoc declaration
                     m = re.search('LINUXDOC(.*)', doctype, flags)
                     if m:
-                        doctype = m.group(1)
-                        m = re.search('.*?LINUXDOC\s*?(.*?)\/\/', doctype, flags)
+                        dtd_code = 'linuxdoc'
+                        doctype = trim(m.group(1))
+                        m = re.search('(.*?)\/\/', doctype, flags)
                         if m: dtd_version = trim(m.group(1))
+                        else:
+                            m = re.search('(.*?)\[', doctype, flags)
+                            if m: dtd_version = m.group(1)
+                            else: dtd_version = trim(doctype)
 
             m = re.search('<TITLE>(.*?)</TITLE>', header, flags)
             if m:
@@ -319,6 +325,16 @@ class SourceFile:
                 if m:
                     encoding = m.group(1)
                 
+            #print 'header=' + header
+            #print 'dtd_code=' + dtd_code
+            #print 'dtd_version=' + dtd_version
+            #print 'title=' + title
+            #print 'abstract=' + abstract
+            #print 'version=' + version
+            #print 'pub_date=' + pub_date
+            #print 'isbn=' + isbn
+            #print 'encoding=' + encoding
+
         # Decide whether we need to save this data
         if format_code  <> self.format_code or \
            dtd_code     <> self.dtd_code or \
@@ -345,6 +361,7 @@ class SourceFile:
 
         if updated==1:
             self.save()
+
 
 # FileErrs
 
