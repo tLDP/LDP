@@ -82,18 +82,14 @@ sub proc_txt {
 
 		# blank lines
 		if ($line eq '') {
-			&closepara;
-			&closelist;
-			&closeorderedlist;
+			&closenonsect;
 			next;
 		}
 
 		# pass DocBook right on through
 		#
 		if ($line =~ /^</) {
-			&closepara;
-			$closelist;
-			&closeorderedlist;
+			&closenonsect;
 
 			$tag = $line;
 			$tag =~ s/^.*<//;
@@ -238,6 +234,12 @@ sub close3 {
 		$buf .= "</sect3>\n";
 		$level3 = 0;
 	}
+}
+
+sub closenonsect {
+	&closepara;
+	&closeorderedlist;
+	&closelist;
 }
 
 sub closeorderedlist {
