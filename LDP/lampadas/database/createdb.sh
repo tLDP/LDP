@@ -17,9 +17,11 @@ psql lampadas -qf dtd.sql
 psql lampadas -qf format.sql
 psql lampadas -qf format_i18n.sql
 psql lampadas -qf language.sql
+psql lampadas -qf language_i18n.sql
 psql lampadas -qf license.sql
 psql lampadas -qf notes.sql
 psql lampadas -qf pub_status.sql
+psql lampadas -qf pub_status_i18n.sql
 psql lampadas -qf review_status.sql
 psql lampadas -qf role.sql
 psql lampadas -qf stats.sql

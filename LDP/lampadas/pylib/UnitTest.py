@@ -203,10 +203,21 @@ class testFormats(unittest.TestCase):
 class testLanguages(unittest.TestCase):
 
 	def testLanguages(self):
-		assert L.Languages['EN'].Name == 'English'
-		assert L.Languages['FR'].Name == 'French'
+		assert L.Languages['EN'].I18n['EN'].Name == 'English'
+		assert L.Languages['FR'].I18n['EN'].Name == 'French'
 		assert L.Languages.Count() == 136
 
+class testPubStatuses(unittest.TestCase):
+
+	def testPubStatuses(self):
+		assert not L.PubStatuses == None
+		assert L.PubStatuses.Count() > 0
+		assert not L.PubStatuses['A'] == None
+		assert not L.PubStatuses['A'].I18n == None
+		assert not L.PubStatuses['A'].I18n['EN'] == None
+		assert L.PubStatuses['A'].I18n['EN'].Name > ''
+		assert L.PubStatuses['A'].I18n['EN'].Description > ''
+		
 class testStrings(unittest.TestCase):
 
 	def testStrings(self):
@@ -264,7 +275,6 @@ class testUserDocs(unittest.TestCase):
 			assert not UserDoc.DocID == None
 			assert UserDoc.DocID > 0
 			assert UserDoc.Active == 1 or UserDoc.Active == 0
-
 
 
 if __name__ == "__main__":

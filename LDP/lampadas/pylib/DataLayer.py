@@ -108,18 +108,19 @@ class Lampadas:
 	"""
 	
 	def __init__(self):
-		self.Classes	= Classes()
+		self.Classes		= Classes()
 		self.Classes.Load()
-		self.Config	= Config()
+		self.Config		= Config()
 		self.Config.Load()
-		self.Docs	= Docs()
+		self.Docs		= Docs()
 		self.Docs.Load()
-		self.DTDs	= DTDs()
-		self.Formats	= Formats()
-		self.Languages	= Languages()
-		self.Strings	= Strings()
-		self.Topics	= Topics()
-		self.Users	= Users()
+		self.DTDs		= DTDs()
+		self.Formats		= Formats()
+		self.Languages		= Languages()
+		self.PubStatuses	= PubStatuses()
+		self.Strings		= Strings()
+		self.Topics		= Topics()
+		self.Users		= Users()
 
 	def User(self, UserID):
 		return User(UserID)
@@ -564,15 +565,77 @@ class Languages(LampadasCollection):
 class Language:
 
 	def __init__(self, LanguageCode=None):
+		self.I18n = {}
 		if LanguageCode == None: return
 		self.Code = LanguageCode
-		self.sql = "SELECT isocode, language_name FROM language WHERE isocode= " + wsq(LanguageCode)
+		self.sql = "SELECT isocode FROM language WHERE isocode= " + wsq(LanguageCode)
 		self.cursor = DB.Select(self.sql)
 		self.Load(self.sql)
 
 	def Load(self, row):
 		self.Code = trim(row[0])
-		self.Name = trim(row[1])
+		self.sql = "SELECT lang, language_name FROM language_i18n WHERE isocode=" + wsq(self.Code)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newLanguageI18n = LanguageI18n()
+			newLanguageI18n.Load(self.row)
+			self.I18n[newLanguageI18n.Lang] = newLanguageI18n
+
+# LanguageI18n
+
+class LanguageI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+
+
+# PubStatuses
+
+class PubStatuses(LampadasCollection):
+	"""
+	A collection object of all publication statuses.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT pub_status FROM pub_status"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newPubStatus = PubStatus()
+			newPubStatus.Load(row)
+			self.data[newPubStatus.PubStatus] = newPubStatus
+
+class PubStatus:
+
+	def __init__(self, PubStatus=None):
+		self.I18n = {}
+		if PubStatus==None: return
+		self.PubStatus = PubStatus
+
+	def Load(self, row):
+		self.PubStatus = trim(row[0])
+		self.sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.PubStatus)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newPubStatusI18n = PubStatusI18n()
+			newPubStatusI18n.Load(self.row)
+			self.I18n[newPubStatusI18n.Lang] = newPubStatusI18n
+
+# PubStatusI18n
+
+class PubStatusI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+		self.Description	= trim(row[2])
 
 
 # Strings
