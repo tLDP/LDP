@@ -1,0 +1,183 @@
+<chapter id="apps">
+  <title>Application Tuning</title>
+  <para>
+    Here I would think we would discuss the various requirements of
+    different applications.  See Squid and Sendmail for examples.
+  </para>
+
+  <section id="appssquid">
+    <title>Squid Proxy Server</title>
+    <para>
+      Squid proxy server has two common uses.  The first is as a proxy 
+      cache for internal clients access the external web.  The second is
+      as a reverse proxy, caching content from internal web servers.
+    </para>
+    <section id="appssquidcache">
+      <title>Squid as a proxy cache</title>
+      <para>
+        Squid as a proxy cache stores large numbers of web pages, enabling
+	them to be sent to clients upon request instead of requiring
+	another internet fetch.  Squid uses large amounts of disk space
+	for the cache, but by nature doesn't access any one that much more
+	frequently than any other.
+      </para>
+      <para>
+        The first thing to avoid is a disk bottleneck.  In a high-usage
+	environment, you will definitely want to distribute the cache file
+	across as many spindles as is practical.  Since the cache data is
+	relatively worthless, in that it is flushed out as a matter of
+	course, the additional overhead of a RAID 5 or other relatively
+	fail-safe multi-spindle system is not necessary.  RAID 0 striping
+	will provide the fastest access with no fail-safe requirements.
+      </para>
+      <para>
+        The next thing to avoid is a memory bottleneck.  There should
+	ABSOLUTELY be no OS paging with Squid, Squid will page enough on
+	its own.  This is a case where Squid has in effect its own virtual
+	memory system, with thousands of pages on disk and tens or
+	hundreds in memory.  If the OS is paging to provide the tens or
+	hundreds in memory, your performance will be horrible.
+      </para>
+      <para>
+        Network performance will probably not be a big deal.  If your
+	byte hit rate is 25%, and you are maxing out a T1, you are still
+	only putting around 2Mbps out your Ethernet connection.
+      </para>
+    </section> <!-- appssquidcache -->
+    <section> <!-- appssquidproxy -->
+      <title>Squid as a reverse proxy</title>
+      <para>
+        As a reverse proxy, the total set of web pages that Squid is
+	proxying is reduced greatly.  It must store only the limited
+	number of pages behind it on your web servers, as opposed to
+	the entire internet.  Since disk storage requirements are down
+	by an order of magnitude, so are memory requirements.
+      </para>
+      <para>
+	However, one approach to this situation would be to build up
+	real memory until the entire working set of pages could be
+	stored, with no paging required.
+      </para>
+      <para>
+        In this case we're trading large store/infrequent access for a
+	smaller store/frequent access.  We want to optimize the byte
+	hit rate in Squid with real memory to reduce disk operations.
+	Again, there should be NO OS PAGING.  If any DNS lookups are
+	required, it might be a good idea to run a DNS cache locally.
+	Otherwise, this shouldn't be too difficult to tune to get
+	good performance.
+      </para>
+    </section> <!-- appssquidproxy -->
+  </section> <!-- appssquid -->
+
+  <section id="appsmail">
+    <title>SMTP and Mail Delivery</title>
+    <para>
+      While this section addresses sendmail directly, most of the
+      concepts should apply to any mail delivery system.
+    </para>
+    
+    <section id="appsmailsendmail">
+      <title>Sendmail</title>
+      <para>
+        A sendmail system will probably be the most likely to be
+	network bottlenecked, but that bottleneck will also
+	most likely be outside the system itself.  There are no
+	special tricks since a typical sendmail system will be
+	fairly balanced against typical hardware.  Depending
+	on the size of the mail store, some type of RAID
+	system may be implemented, but the mail store data
+	is very valuable so use a RAID 5 or other fault-tolerant
+	option.  If the store does get very large, you might
+	also investigate the benefits of multiple caching
+	layers down to the card.
+      </para> 
+      <para>
+        Sendmail itself is very dependent on DNS lookups for its
+	operation, and may be doing ident lookups as well.  As such,
+	some tricks on the network can really help.  Linux 2.4 kernels
+	offer a lot of QoS features, these can be used to prioritize
+	DNS and ident lookups over bulk traffic, preventing blocking
+	of POP, IMAP, and SMTP waiting on a DNS lookup.  I would
+	also strongly suggest implementing a DNS cache locally,
+	maybe even on the sendmail server itself.
+      </para>
+    </section> <!-- appsmailsendmail -->
+    <section id="appsmaildelivery">
+      <title>Mail Delivery (POP and IMAP)</title>
+        <para>
+	  Memory and processor requirements will depend on the number
+	  of usersand whether you are providing POP or IMAP services,
+	  or only SMTP.  POP and IMAP require logins, and each login
+	  will spawn another POP or IMAP process.  If concurrent usage
+	  of these services is high, watch for OS paging.
+	</para>
+	<para>
+	  Using POP for delivery has a very low memory and hard drive
+	  footprint.  In POP, e-mail is typically downloaded from the
+	  server to the client.  The POP server merely handles authentication
+	  and moving the data to the client.  When a mail message is sent
+	  to the client, it is removed from the server.
+	</para>
+	<para>
+	  Using IMAP puts much more stress on the system.  IMAP will copy
+	  an entire mailbox into memory, and perform sorting and other
+	  functions on the mailbox.  When a client requests a message, the
+	  message is sent to the client, but is not removed from the server.
+	  So all mail messages remain on the server until the client explicitly
+	  deletes it.  The advantage to this is a user can have IMAP clients
+	  on multiple machines and still be able to access all the messages.
+	  Since most of the processing is offloaded to the server, this makes
+	  IMAP a great mechanism for light clients or wireless devices
+	  that do not have much memory or processing power.
+	</para>
+	<para>
+	  Since the data on a POP or IMAP server are critical, you should
+	  be using RAID-5 or RAID-1 to protect the data and keep
+	  the server running.  POP has low memory requirements, while
+	  IMAP has very high memory and disk requirements, and both
+	  will likely increase as more users are introduced to the system
+	  and they start working with mailboxes in the thousands of messages.
+	</para>
+	<para>
+	  In either case, using SSL on top of POP or IMAP will also
+	  increase the CPU load of the protocols, but will have minimal
+	  affect on disk or memory usage.
+	</para>
+	<para>
+	  While many shops offer local mail delivery, it is not advisable
+	  to put a shell account on the same machine as one running IMAP
+	  or POP, due to the CPU and memory used by these protocols.
+	  Nor is it advisable to use NFS to export a mailbox to a shell
+	  machine, as NFS locks can cause corruption of a mailbox
+	  if sendmail tries to deliver a message and the user is deleting
+	  another message from the same mailbox.
+	</para>
+    </section> <!-- appsmaildelivery -->
+  </section> <!-- appsmail -->
+
+  <section id="appsdatabase">
+    <title>MySQL, PostgresSQL, other databases</title>
+      <para></para>
+  </section> <!-- appsdatabase -->
+
+  <section id="appsfirewall">
+    <title>Routers and firewalls</title>
+      <para></para>
+  </section> <!-- appsfirewall -->
+
+  <section id="appsapache">
+    <title>Apache web server</title>
+      <para></para>
+  </section> <!-- appsapache -->
+
+  <section id="appssamba">
+    <title>Samba File Sharing</title>
+      <para></para>
+  </section> <!-- appssamba -->
+
+  <section id="appsnfs">
+    <title>Network File System</title>
+      <para></para>
+  </section> <!-- appsnfs -->
+</chapter> <!-- apps -->

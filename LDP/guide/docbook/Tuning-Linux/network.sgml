@@ -1,0 +1,765 @@
+<chapter id="network">
+<title>Network Tuning</title>
+  <section id="networkintro">
+    <title>Introduction to network tuning</title>
+    <para>
+      Mosix, Beowulf, and other clustering technologies for Linux
+      all depend on an effective network layer.  Any delays in getting
+      data from the application to the physical layer would cause
+      even greater delays in the time to complete the task.  Much work
+      has been done to the Linux network stack to reduce this time,
+      known as latency, and increase the amount of data that can
+      be sent over a period of time, known as bandwidth.
+    </para>
+    <para>
+      Latency is important as under high loads, the delay of getting
+      data through the network layer will slow down the number of requests
+      that can be handled at once.  Bandwidth is important since you want
+      services like NFS to be able to saturate its network link with data.
+      This means that should all the services of a file server be needed,
+      it can be provided to as many clients as request it.
+    </para>
+    <para>
+      This chapter will start with an explination of the available networking
+      technologies, then get into how some of these technologies can be
+      tuned for both latency and bandwidth improvements.  We will then
+      take a look at some of the standard TCP/IP applications and some
+      tuning hints or gotchas.
+    </para>
+  </section> <!-- networkintro -->
+  <section id="networkoverview">
+    <title>Network Technologies Overview</title>
+    <para>
+      As is the case in every other section of this book, the faster
+      or better the technology, the more expensive it is.  But this
+      should not stop you from cobbling together older technology to
+      make it a bit better than it is at face value.
+    </para>
+    <para>
+      The first example of this is Beowulf.  The original design goal
+      of Beowulf was to take existing, low cost technology and create
+      a supercomputer out of it.  To do this, machines were networked
+      together using Ethernet running at 10 megabit.  Since this is
+      too slow to have good communication between the nodes, the team
+      did something different - bonded two 10 megabit cards together
+      to create one 20 megabit connection.  This can be done in software, and
+      doubled the performance of a system that would have cost too much
+      to upgrade to 100 megabit connection per machine.
+    </para>
+    <para>
+      These days, 100 megabit connections are standard for most machines,
+      with the cost of these cards being under $75US per card.  Much like
+      the cards of a few years ago had faster counterparts, so do today's
+      cards.  Gigabit Ethernet over copper or fiber is available for those
+      who want to spend a few hundred dollars.  If you want to get really
+      outrageous and spend a few thousand dollars, you can get a proprietary,
+      high speed (2GB), low latency network technology called Myrinet.
+      Myrinet is really designed for clusters, mostly due to the high cost
+      per server, and dropping down from this networking technology to
+      standard Ethernet would lose many of the Myrinet advantages.
+    </para>
+    <para>
+      Standard Ethernet works with a card, a hub, switch or router, and a
+      cable to connect it all together.  The card acts as an interface
+      between the system and the Ethernet bus, and there are a variety of 
+      cards available, each with varying interface chips, memory, boot roms,
+      and prices.  To explain the difference between hubs, switches, and
+      routers, we have to take a look at Ethernet, TCP/IP, and layering.
+    </para>
+    <para>
+      When a packet of data leaves a web server to talk to the web browser,
+      it is a TCP/IP packet.  That TCP/IP packet is encapsulated within
+      an Ethernet packet.  An Ethernet packet is destined only for the local
+      network, and the TCP/IP packet will be re-encapsulated if it has
+      to go on another network.  The TCP/IP packet contains the source
+      and destination TCP/IP addresses for the packet, while the Ethernet
+      packet contains the source and destination addresses for only the
+      local network.
+    </para>
+    <para>
+      A hub is an unintelligent device in that if one port of the hub
+      gets a packet, all other ports on the hub will receive that 
+      packet.  Due to this, most hubs are very inexpensive, but have
+      poor performance, especially as the load increases.
+      A switch, on the other hand, knows what Ethernet devices
+      exist on each port and can quickly route Ethernet traffic between
+      ports.  If a packet comes in on port one, and the switch knows the
+      packet is destined to a machine on port twelve, the switch will
+      send the packet only to port twelve.  None of the other ports
+      will see the packet.  As a result, the cost for a switch is higher,
+      but allows greater bandwidth for devices connected to the switch.
+    </para>
+    <para>
+      Both hubs and switches work on the Ethernet layer, so they only
+      look at the Ethernet wrapper for the packet and work only on
+      packets that are in the local network.  When you want to connect two
+      networks together, or connect to the Internet, you require a router.
+      The router opens the Ethernet envelope, then takes a look at the
+      source and destination of the TCP/IP packet and sends the packet to
+      the appropriate interface.  The nice thing about routers is that
+      the interfaces on it does not have to be Ethernet.  Many routers
+      combine an Ethernet port and T1 CSU/DSU, or Ethernet and Fiber,
+      and so on.  The router re-addresses the TCP/IP packet to go from
+      one phyical media to another.  Routers usually have to have a good
+      bit of brains in them to handle the packet re-writing, dynamic
+      routing, and also requires things like SNMP management and
+      some interface for the user to talk to it.  Thus, routers will be
+      more expensive than hubs or switches.  Linux can act as a router
+      as well, also tying in technologies like IP Masquerading
+      and packet filtering.  In some cases, a dedicated Linux box can
+      perform routing less expensively than a standalone router, since
+      most of the <quote>brains</quote> of being a router is already in Linux.
+    </para>
+  </section> <!-- networkoverview -->
+  <section id="networkethernet">
+    <title>Networking with Ethernet</title>
+    <para>
+      Ethernet is the standard networking environment for Linux.  It
+      was one of the first to be implemented in Linux, the other being
+      AX.25 (Ham Radio networking).  Ethernet has been a standard
+      for over twenty years, and the protocol is fairly easy to implement,
+      interface cards are inexpensive, cabling is easy to do, and the
+      other glue (hubs and switches) that holds the network together
+      is also inexpensive.
+    </para>
+    <para>
+      Linux can run a number of protocols natively over Ethernet,
+      including SMB, TCP/IP, AppleTalk, and DECnet.  By far the most popular is
+      TCP/IP, since that is the standard protocol for UNIX machines and
+      the Internet.
+    </para>
+    <para>
+      Tuning Ethernet to work with your particular hardware, as always,
+      depends on the interface cards, cabling options, and switching gear
+      you use.  Many of the tools that Linux uses are standard across most
+      networking equipment.  Most cards available today for Linux are
+      PCI-based, so configuration of cards through setting IRQ and base
+      addresses is not required - the driver will probe and use the
+      configuration set by the motherboard.  If you do need to force IRQ or io
+      settings, you can do that when loading the module or booting the system
+      by passing the arguments irq=x and io=y.
+    </para>
+    <para>
+      Most of tuning Ethernet for Linux is to get the best physical connection
+      between the interface card and the switching gear.  Best performance
+      comes from a switch, and switches have a few extra tricks up their
+      sleeve.  One of these is full and half duplexing.  In a half-duplex
+      setup, the card talks to the switch, then the switch talks to the card,
+      and so on.  Only one of the two ends can be talking at the same time.
+      In full duplex mode, both card and switch can have data on the wire at
+      the same time.  Since there's different lines for transmit and receive
+      in Ethernet, there's less congestion on the wire.  This is a great
+      solution for high bandwidth devices that have a lot of data coming
+      in and out, such as a file server, since it can be sending files while
+      receiving requests.
+    </para>
+    <para>
+      Normally, the Ethernet card and switching gear negotiate a connection
+      speed and duplex option using MII, the Media Independent Interface.
+      Forcing a change can be used for debugging
+      issues, or for getting higher performance.  The
+      <command>mii-tool</command> utility can show or set the speed and
+      duplexing options for your Ethernet links.
+    </para>
+    <cmdsynopsis>
+      <command>mii-tool</command>
+      <arg>-v, --verbose</arg>
+      <arg>-V, --version</arg>
+      <arg>-R, --reset</arg>
+      <arg>-r, --restart</arg>
+      <arg>-w, --watch</arg>
+      <arg>-l, --log</arg>
+      <arg>-A, --advertise=<replaceable>media</replaceable></arg>
+      <arg>-F, --force=<replaceable>media</replaceable></arg>
+      <arg><replaceable>interface</replaceable></arg>
+    </cmdsynopsis>
+
+    <table id="networkethernetmii">
+      <title><command>mii-tool</command> Media Types</title>
+      <tgroup cols="5">
+        <thead>
+	  <row>
+	    <entry>
+	      <replaceable>media</replaceable>
+	    </entry>
+	    <entry>
+	      100Mbit
+	    </entry>
+	    <entry>
+	      10Mbit
+	    </entry>
+	    <entry>
+	      Full Duplex
+	    </entry>
+	    <entry>
+	      Half Duplex
+	    </entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry>
+	      100baseTx-HD
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	    </entry>
+	    <entry>
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	  </row>
+	  <row>
+	    <entry>
+	      100baseTx-FD
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	    </entry>
+	  </row>
+	  <row>
+	    <entry>
+	      10baseT-HD
+	    </entry>
+	    <entry>
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	    </entry>
+            <entry>
+	      X
+	    </entry>
+	  </row>
+	  <row>
+	    <entry>
+	      10baseT-FD
+	    </entry>
+	    <entry>
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	      X
+	    </entry>
+	    <entry>
+	    </entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+    <note>
+      <para>
+        Also available is <quote>100baseT4</quote>, which is an earlier
+	form of 100Mbit that uses four pairs of wires whereas
+	100BaseTx uses two pairs of wires.
+	This protocol is not available for most modern Ethernet cards.
+      </para>
+    </note>
+
+
+    <para>
+      The most common use of <command>mii-tool</command> is to change the
+      setting of the media interface from half to full duplex.  Most
+      non-intelligent hubs and switches will try to negotiate half duplex
+      by default, and intelligent switches can be set to negotiate full duplex
+      through some configuration options.
+    </para>
+    <para>
+      To set an already-existing connection to 100 Mbit, full duplex:
+    </para>
+<screen>
+# mii-tool -F 100baseTx-FD eth0
+# mii-tool eth0
+eth0: 100 Mbit, full duplex, link ok
+#
+</screen>
+    <para>
+      Another way of doing this is to advertise 100 Mbit, full duplex and
+      100 Mbit, half duplex:
+    </para>
+<screen>
+# mii-tool -A 100baseTx-FD,100baseTx-HD eth0
+restarting autonegotiation...
+#
+</screen>
+    <para>
+      Using autonegotiation will not work with many non-intelligent devices
+      and will cause you to drop back to 100baseTx-HD (half duplex).  Use
+      force when the gear you are talking to is not managed, and use
+      autonegotiate if the gear is managed.
+    </para>
+  </section> <!-- networkethernet -->
+  <section id="networktcpip">
+    <title>Tuning TCP/IP performance</title>
+    <para>
+      Setting the Maximum Transmission Unit (<acronym>MTU</acronym>) of a
+      network interface can be used to tune performance over a TCP/IP link.  The
+      MTU is used to set the maximum size of a packet that goes out on
+      the wire.  If data is set to go out that is larger than the MTU, the
+      packet is broken up into smaller packets.  This can take up some
+      processing time to create the Ethernet packets, and decreases bandwidth.
+      Ethernet has a set number of bytes it adds on to a packet, no matter
+      the size.  Larger packets will have a smaller percentage of overhead
+      used up by the Ethernet header.  On the other hand, smaller packets
+      is better for latency, since TCP/IP will wait for the MTU to be filled,
+      or a timeout to occur before sending a packet of data.  In the event
+      of an interactive TCP/IP connection (such as telnet or ssh), the
+      user does not want to wait long for their packet to make it from
+      their machine to the remote machine.  Smaller MTUs make sure
+      the packet size is met earlier and the packet goes out quickly.
+    </para>
+    <para>
+      In addition, MTUs also have to fit into the size of the medium the
+      packet is running over.  Ethernet has a maximum packet size of
+      ??WHATISIT??, counting the Ethernet header packets.  Asynchronous
+      Transfer Mode, or <acronym>ATM</acronym>, has a very small MTU,
+      on the order of a few bytes.  By default, Ethernet TCP/IP connections
+      have a MTU of 1500 bytes.  The MTU can be set using
+      <command>ifconfig</command>:
+    </para>
+<screen>
+# ifconfig eth0 mtu 1500
+</screen>
+    <para>
+      It is recommended to leave the MTU at the maximum number, since almost
+      all non-interactive TCP/IP applications will transfer more than 1500
+      bytes per session, and a bit of latency for interactive applications
+      is more an annoyance than an actual performance bottleneck.
+    </para>
+    <para>
+      When using Domain Name Servers (<acronym>DNS</acronym>), you may
+      run into cases where DNS resolution is a performance bottleneck.  We
+      will get into this more in <xref linkend="appsapache"/>, but
+      some applications recommend for best performance to log and use only the
+      raw TCP/IP addresses that come in and do not try to resolve it to
+      a name.  For security reasons, you may want to change this so you can
+      quickly find out what machine is trying to break into your web server.
+      This decision is left to you, the administrator, as part of the
+      never-ending balance between performance and security.  A potential fix
+      for this is to run a caching name server locally to store often-used
+      TCP/IP addresses and name, and leave the real DNS serving to another
+      machine.
+    </para>
+    <para>
+      Applications like <command>ping</command> will sometimes appear to fail
+      if DNS is not configured properly, even if you try to ping a TCP/IP
+      address instead of using the name.  The solution to this and
+      other TCP/IP management applications, is to find the option that
+      prevents resolution of names or TCP/IP addresses.  For
+      <command>ping</command>, this is to give the -n option.
+    </para>
+<screen>
+# ping -n 192.168.1.50
+</screen>
+  </section> <!-- networktcpip -->
+  <section id="networkdialup">
+    <title>Tuning Linux dialup</title>
+    <para>
+      If your connection to the rest of the world is through a dialup link,
+      don't worry.  <xref linkend="networktcpip"> covers many of
+      the issues that you will see for dialup.  The MTU for PPP is
+      recommended at 1500, but slower links may want an MTU of 296
+      to have improved latency.
+    </para>
+    <para>
+      Modems in Linux should be full fledged modems, not ones labeled
+      WinModem or Soft Modems.  Each of these styles of modem pass much
+      of the processing work off to the CPU.  This makes the cards very
+      inexpensive, but increases the load on the CPU.  Modems can be
+      internal or external, but internal modems include their own port
+      settings that may be easier to use than with external modems,
+      since the modem and serial port are in the same card.  If you use
+      external modems, set the data link between the serial port and the modem
+      to be the highest the modem supports, which is usually 115,200bps
+      or 230,400bps.  This ensures that the modem can talk as fast as it needs
+      to with the machine.  You should also ensure that you are using RTS/CTS
+      handshaking, also known as hardware, or out-of-band flow control.  This
+      allows a modem to immediately tell Linux to stop sending data to the
+      modem, preventing loss of data.
+    </para>
+    <para>
+      Controlling the Linux serial port is used with the
+      <command>setserial</command> command.  You can find the available
+      serial ports at bootup, or by looking at
+      <filename>/proc/tty/driver/serial</filename>.  Entries in that
+      file that have a UART listed exist in Linux.  Remember that COM1
+      or Serial 1 listed on your box will be listed as
+      <filename>/dev/ttyS0</filename>, and COM2 is
+      <filename>/dev/ttyS1</filename>.  Most modern applications can
+      comprehend speeds greater than 38,400bps, but some older ones do not.
+      To compensate for this, Linux has made 38,400bps (or 38.4kbps) a
+      <quote>magic</quote> speed, and if an application asks for 38.4kbps,
+      Linux will translate this to another speed.  Currently, this can be
+      as high as 460kbps.  To use this, the <command>setserial</command>
+      command is used.
+    </para>
+<screen>
+# setserial /dev/ttyS0
+/dev/ttyS0, UART: 16550A, Port: 0x03f8, IRQ: 4
+# setserial /dev/ttyS0 spd_vhi
+# setserial /dev/ttyS0
+/dev/ttyS0, UART: 16550A, Port: 0x03f8, IRQ: 4, Flags: spd_vhi
+</screen>
+    <para>
+      Speeds are listed as codes for setserial, and these codes are listed
+      in <xref linkend="networkspeed">.  These values can be set by
+      non-root users.
+    </para>
+    <table id="networkspeed">
+      <title>Settings for <command>setserial</command></title>
+      <tgroup cols="2">
+      <thead>
+        <row>
+	  <entry>Code</entry>
+	  <entry>Speed</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry>spd_normal</entry>
+	  <entry>38.4kbps</entry>
+	</row>
+        <row>
+	  <entry>spd_hi</entry>
+	  <entry>57.6kbps</entry>
+	</row>
+	<row>
+	  <entry>spd_vhi</entry>
+	  <entry>115.2kbps</entry>
+	</row>
+	<row>
+	  <entry>spd_shi</entry>
+	  <entry>230.4kbps</entry>
+	</row>
+	<row>
+	  <entry>spd_warp</entry>
+	  <entry>460.8kbps</entry>
+	</row>
+      </tbody>
+    </table>
+    <para>
+      There is also a spd_cust entry that can use a custom speed instead
+      of 38.4kbps.  The resulting speed becomes the value of baud_base
+      divided by the value of divisor.
+    </para>
+
+    <para>
+      If both sides have it available, compression using Deflate or BSD
+      is available and can increse throughput.  Even though many newer
+      modem protocols provide compression, it isn't very strong.  By using
+      Deflate or BSD, greater compression at little loss of CPU or memory
+      space can be attained.  The down side is that both sides need to have
+      either Deflate or BSD compression available built into the PPP software.
+      BSD compression can be activated by using the <option>bsdcomp</option>
+      option passed to <command>pppd</command> followed by a compression
+      level between 9 and 15.  Higher numbers indicate higher compression.
+      Deflate compression can be used with the <option>deflate</option>
+      option followed by a number in the range of 8 to 15.  Deflate
+      is preferred by the pppd used by Linux.
+    </para>
+  </section> <!-- networkdialup -->
+  <section id="networkwireless">
+    <title>Wireless Ethernet</title>
+    <para>
+      Wireless Ethernet, also known as IEEE 802.11b, is becoming more 
+      popular as the cost to implement decreases and availability of
+      more products increase.  The Apple AirPort and Lucent Orinoco cards
+      have brought wireless into the home market, allowing a person to
+      have Ethernet access anywhere in their house, and schools
+      are deploying Wireless Ethernet across the campus.  It's now available
+      at airports, schools, many high tech companies, and soon upscale
+      coffee shops.
+    </para>
+    <para>
+      Given that 802.11b is most popular for laptops, since they are portable,
+      tuning for performance is not as great importance as tuning for power
+      usage.  Using 802.11b is often very power-consuming and can quickly
+      drain the batteries.  Some cards (such as the Lucent Orinoco card)
+      have the ability to only turn its antenna on and off at regular
+      intervals.  Instead of the antenna being on all the time, it turns
+      on a few times a second.  With the transmitter being turned off
+      now more than half the time, the battery usage is decreased.  There is
+      an increase of latency and decrease in data rate.
+    </para>
+    <para>
+      To set the power management of the card, you will need to have the
+      wireless tools, available with many distributions.  This package contains
+      three commands for managing your wireless card: iwconfig, iwspy, and
+      iwpriv.
+    </para>
+    <para>
+      The <command>iwconfig</command> is an extension of
+      <command>ifconfig</command>.  Run without any options, it will check all
+      available interfaces and checks for wireless extensions.  If there are
+      any, it will report similar to the following:
+    </para>
+<screen>
+wvlan0    IEEE 802.11-DS  ESSID:"default"  Nickname:"HERMES I"
+          Frequency:2.437GHz  Sensitivity:1/3  Mode:Managed  
+          Access Point: 00:90:4B:08:13:1C
+          Bit Rate:2Mb/s   RTS thr:off   Fragment thr:off   
+          Power Management:off
+          Link quality:8/92  Signal level:-88 dBm  Noise level:-96 dBm
+          Rx invalid nwid:0  invalid crypt:0 invalid misc:599
+</screen>
+    <para>
+      As you can see, the output tells you a variety of statistics on the link.
+      My current bit rate is 2Mb/s, probably because my link quality is so low.
+      The link quality is 8 out of 92, indicating that I should either move my
+      laptop, move my base statiopn, or throw out my 2.4Ghz phone.
+    </para>
+    <para>
+      You can also see that power management is currently off.  Since my
+      laptop is plugged into the wall, this is not a concern to me.  If
+      I did want to activate the power management, I would use:
+    </para>
+<screen>
+# iwconfig wvlan0 power 1
+# iwconfig
+iwconfig
+lo        no wireless extensions.
+
+wvlan0    IEEE 802.11-DS  ESSID:"default"  Nickname:"HERMES I"
+          Frequency:2.437GHz  Sensitivity:1/3  Mode:Managed  
+          Access Point: 00:90:4B:08:13:1C
+          Bit Rate:2Mb/s   RTS thr:off   Fragment thr:off   
+          Encryption key:off
+          Power Management period:1s   mode:All packets received
+          Link quality:11/92  Signal level:-84 dBm  Noise level:-95 dBm
+          Rx invalid nwid:0  invalid crypt:0  invalid misc:0
+#
+</screen>
+    <para>
+      The power management is now set to turn the transmitter on
+      only once per second.  By default, the time is in seconds, but
+      but appending m or u to the end of the number will make it milliseconds
+      or microseconds.
+    </para>
+    <para>
+      All that being said, here are a few ways in improve the link quality
+      of your system.  Any combination of these will work, so do not expect
+      one method alone to work.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+	  Check the infrastructure and building materials.  Thick wood or metal
+	  walls will cause a lot of interference.
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Some base stations support external antennas.  They will greatly
+	  improve the range and quality of the link.
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Move the base station around.  Line of sight is best, but not
+	  required.
+	</para>
+      </listitem>
+      <listitem>
+        <para>
+	  Turn off other devices that use 2.4Ghz.  Some phones and other
+	  wireless gadgets use the same frequency, and if not built properly,
+	  will cause interference.
+	</para>
+      </listitem>
+    </itemizedlist>
+  </section> <!-- networkwireless -->
+  <section id="networkmonitoring">
+    <title>Monitoring Network Performance</title>
+    <para>
+      The best way to make sure your network is not the bottleneck
+      is to monitor how much traffic is flowing.  Because of collision
+      detection and avoidance in Ethernet, once the load gets above
+      about 50% to 60% of its maximum, you will start to see degrading 
+      performance
+      if using hubs.  This number if higher for switches, but still exists
+      since the silicon on the switch needs to analyze and move the data
+      around.
+    </para>
+    <para>
+      To make best use of your networking equipment, you will want to
+      monitor the amount of traffic that is flowing through the network.
+      The easiest way to do this is to use <acronym>SNMP</acronym>,
+      or Simple Network Management Protocol.  SNMP was designed to manage
+      and monitor machines via the network, be it servers, desktops, or
+      other network devices such as switches or network storage.  As you
+      would guess, there are SNMP clients and servers avilable for Linux
+      to monitor the statistics and usage of network interfaces.
+    </para>
+    <para>
+      SNMP uses an <acronym>MIB</acronym> or Management Information 
+      Base to keep track of the features of an SNMP device.  While
+      a Linux box can have things like monitoring the number of
+      users logged in, a Cisco router will not need these functions.
+      So the MIBs are used to identify devices and their particular
+      features.
+    </para>
+    <para>
+      The SNMP daemon for Linux is net-snmp, formerly known as usd-snmp,
+      and based on the cmu SNMP package.  Your distribution should 
+      be mostly configured.  The only thing you need to do is set
+      the community name, which is really just the password to access
+      the snmpd server.  By default, the community name is
+      <quote>private</quote>, but should be changed to something else.
+      You will also want to change the security such that you have readonly
+      access to <application>snmpd</application>.
+    </para>
+<screen>
+#        sec.name  source          community
+com2sec  paranoid  default         public
+#com2sec readonly  default         public
+#com2sec readwrite default         private
+</screen>
+    <para>
+      Change the <quote>paranoid</quote> above to read <quote>readonly</quote>
+      and restart <application>snmpd</application>.
+    </para>
+    <note>
+      <para>
+        This setting will give readonly access to the entire world to your
+	SNMP server.  While a malicious intruder will not be able to change
+	data on your machine, it can give them plenty of information about
+	your box to find a weakness and exploit it.  You can change the
+	<quote>source</quote> entry to a machine name, a network address.
+	Default means any machine can access <application>snmpd</application>.
+      </para>
+    </note>
+    <para>
+      You can test that <application>snmpd</application> is working
+      properly by using <command>snmpwalk</command> to
+      query <command>snmpd</command>.
+    </para>
+    <cmdsynopsis>
+      <command>snmpwalk</command>
+      <arg choice=req><replaceable>host</replaceable></arg>
+      <arg choice=req><replaceable>community</replaceable></arg>
+      <arg><replaceable>start point</replaceable></arg>
+    </cmdsynopsis>
+<screen>
+$ snmpwalk 192.168.1.175 public system.sysDescr.0
+system.sysDescr.0 = Linux clint 2.2.18 #1 Mon Dec 18 11:23:05 EST 2000 i686
+$
+</screen>
+    <para>
+      Since this example uses system.sysDescr.0 as its start point, there is
+      only one entry that gets listed, that of the output of
+      <command>uname</command>.
+    </para>
+    <section id="networkmonitoringmrtg">
+      <title>Network Monitoring with MRTG</title>
+      <para>
+        The most popular application for monitoring network traffic is <ulink
+        url="http://www.mrtg.org/">MRTG</ulink>, the Multi Router Traffic
+	Grapher.
+        MRTG tracks and graphs network usage in graphs ranging from the last 24
+        hours to a year, all on a web page.  MRTG uses SNMP to fetch information
+        from routers.  You can also track individual servers for ingoing and
+        outgoing traffic.
+      </para>
+      <note>
+        <para>
+          The process of monitoring a server using SNMP will consume a small
+          portion of network, memory, and CPU.
+        </para>
+      </note>
+      <para>
+        MRTG is available for Red Hat and Debian distributions.  You can also
+        download the source from the MRTG home page.  Once installed, you
+        will need to configure MRTG to point to the servers or routers you wish
+        to monitor.  You can do this with <command>cfgmaker</command>.
+        The options to cfgmaker have to include the machine and community name
+	that you want to monitor.
+      </para>
+<screen>
+mkomarinski@clint:~$ cfgmaker public@localhost
+--base: Get Device Info on public@localhost
+--base: Vendor Id: 
+--base: Populating confcache
+--base: Get Interface Info
+--base: Walking ifIndex
+--base: Walking ifType
+--base: Walking ifSpeed
+--base: Walking ifAdminStatus
+--base: Walking ifOperStatus
+# Created by 
+# /usr/bin/cfgmaker public@localhost
+
+
+### Global Config Options
+
+#  for Debian
+WorkDir: /var/www/mrtg
+
+#  or for NT
+# WorkDir: c:\mrtgdata
+
+### Global Defaults
+
+#  to get bits instead of bytes and graphs growing to the right
+# Options[_]: growright, bits
+
+
+######################################################################
+# System: clint
+# Description: Linux clint 2.2.18 #1 Mon Dec 18 11:23:05 EST 2000 i686
+# Contact: mkomarinski@valinux.com
+# Location: Laptop (various locations)
+######################################################################
+### Interface 3 &gt;&gt; Descr: 'wvlan0' | Name: '' | Ip: '192.168.1.175' | Eth:
+'00-02-2d-08-ae-c1' ###
+
+Target[localhost_3]: 3:public@localhost
+MaxBytes[localhost_3]: 1250000
+Title[localhost_3]: Traffic Analysis for 3 -- clint
+PageTop[localhost_3]: &lt;H1&gt;Traffic Analysis for 3 -- clint&lt;/H1&gt;
+ &lt;TABLE&gt;
+   &lt;TR&gt;&lt;TD&gt;System:&lt;/TD&gt;     &lt;TD&gt;clint in Laptop (various
+locations)&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;Maintainer:&lt;/TD&gt;
+&lt;TD&gt;mkomarinski@valinux.com&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;Description:&lt;/TD&gt;&lt;TD&gt;wvlan0
+&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;ifType:&lt;/TD&gt;     &lt;TD&gt;ethernetCsmacd
+(6)&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;ifName:&lt;TD&gt;     &lt;TD&gt;&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;Max Speed:&lt;/TD&gt;  &lt;TD&gt;1250.0
+kBytes/s&lt;/TD&gt;&lt;/TR&gt;
+   &lt;TR&gt;&lt;TD&gt;Ip:&lt;/TD&gt;         &lt;TD&gt;192.168.1.175
+()&lt;/TD&gt;&lt;/TR&gt;
+ &lt;/TABLE&gt;
+</screen>
+      <para>
+        All the configuration information has been pulled from
+	<application>snmpd</application>.  You can pipe the output
+	of <command>cfgmaker</command> into
+	<filename>/etc/mrtg.cfg</filename>.
+      </para>
+      <para>
+        Most installations of <application>mrtg</application> will
+	include a <application>cron</application> process to run
+	<command>mrtg</command> if <filename>/etc/mrtg.cfg</filename>
+	exists every five minutes.  Within five minutes,
+	you will see data on your web site.
+      </para>
+
+    </section> <!-- networkmonitoringmrtg -->
+  </section> <!-- networkmonitoring -->
+
+</chapter> <!-- network -->
