@@ -10,7 +10,7 @@
 <author><firstname>David A.</firstname> <surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>version 0.91, 14 September 2001</pubdate>
+<pubdate>version 1.00, 22 March 2002</pubdate>
 <abstract>
 <para>
 This HOWTO for programmers
@@ -510,8 +510,9 @@ should not be unduly affected by the environment variables set.
 <para>
 Creating a shared library is easy.
 First, create the object files that will go into the shared
-library using the gcc -fPIC flag (this enables the ``position independent
-code'' generation, a requirement for shared libraries).
+library using the gcc -fPIC or -fpic flag.
+The -fPIC and -fpic options enable ``position independent code'' generation,
+a requirement for shared libraries; see below for the differences.
 Then create the shared library using this format:
 </para>
 
@@ -526,7 +527,7 @@ creates a shared library that contains both of them.
 Note that this compilation includes debugging information (-g) and
 will generate warnings (-Wall), which aren't required for shared libraries
 but are recommended.
-The compilation generates object files (using -c), and obviously includes
+The compilation generates object files (using -c), and includes
 the required -fPIC option:
 </para>
 
@@ -545,9 +546,18 @@ compiler option -fomit-frame-pointer unless you really have to.
 The resulting library will work, but these actions make debuggers
 mostly useless.</para>
 </listitem>
-<listitem><para>Use -fPIC to generate code,
-not -fpic (the latter may not work, because if branches need large
-displacements -fpic may not generate fully position-independent code).</para>
+<listitem><para>Use -fPIC or -fpic to generate code.
+Whether to use -fPIC or -fpic to generate code is target-dependent.
+The -fPIC choice always works, but may produce larger code than -fpic
+(mnenomic to remember this is that PIC is in a larger case,
+so it may produce larger amounts of code).
+Using -fpic option usually generates
+smaller and faster code, but will have platform-dependent
+limitations, such as the number of globally visible symbols or
+the size of the code.  The linker will tell you whether it fits
+when you create the shared library.
+When in doubt, I choose -fPIC, because it always works.
+</para>
 </listitem>
 <listitem><para>
 In some cases, the call to gcc to create the object file
@@ -556,7 +566,7 @@ Normally, the dynamic symbol
 table contains only symbols which are used by a dynamic object.
 This option (when creating an ELF file) adds all symbols to the
 dynamic symbol table (see ld(1) for more information).
-You use this option when there are 'reverse dependencies', i.e.,
+You need to use this option when there are 'reverse dependencies', i.e.,
 a DL library has unresolved symbols that by convention must be defined
 in the programs that intend to load these libraries.
 For ``reverse dependencies'' to work, the master program must make its
@@ -576,7 +586,7 @@ that's also used by many other programs -- and you don't want the
 other programs to use the ``developmental''library, only a particular
 application that you're testing against it.
 One link option you might use is ld's ``rpath'' option, which specifies
-where the runtime library search path of that particular program
+the runtime library search path of that particular program
 being compiled.
 From gcc, you can invoke the rpath option by specifying it this way:
 <programlisting>
@@ -610,10 +620,19 @@ a version at all).  The simplest approach is to run:
 </para>
 
 <para>
+Finally, when you compile your programs, you'll need to tell the
+linker about any static and shared libraries that you're using.
+Use the -l and -L options for this.
+</para>
+
+<para>
 If you can't or don't want to install a library in a standard place
-(e.g., you don't have the right to modify
-/usr/lib),
+(e.g., you don't have the right to modify /usr/lib),
 then you'll need to change your approach.
+In that case, you'll need to install it somewhere, and then
+give your program enough information so the program can find the library...
+and there are several ways to do that.
+You can use gcc's -L flag in simple cases.
 You can use the ``rpath'' approach (described above), particularly if
 you only have a specific program to use the library being placed in
 a ``non-standard'' place.
@@ -638,6 +657,8 @@ those functions (leaving others as they were).
 <para>
 Usually you can update libraries without concern; if there was an API
 change, the library creator is supposed to change the soname.
+That way, multiple libraries can be on a single system, and the right
+one is selected for each program.
 However, if a program breaks on an update to a library that kept the
 same soname, you can force it to use the older library version by
 copying the old library back somewhere,
@@ -656,7 +677,9 @@ The wrapper script could look something like this:
 </programlisting>
 Please don't depend on this when you write your own programs; try to
 make sure that your libraries are either backwards-compatible or that
-you've incremented the version number in the soname.
+you've incremented the version number in the soname every time
+you make an incompatible change.
+This is just an ``emergency'' approach to deal with worst-case problems.
 </para>
 
 <para>
