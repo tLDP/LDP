@@ -90,12 +90,10 @@ class Document:
 			sgmlfile = urllib.urlretrieve(self.SourceFile)	
 
 			sgmlfile = sgmlfile[0]
-			xsl_stylesheet = "/usr/share/sgml/docbook/xsl-stylesheets-1.29/html/docbook.xsl"
-                        xsl_stylesheet = "/home/david/scrollserver/stylesheets/docbook/docbook.xsl"
+                        xsl_stylesheet = "stylesheets/docbook/docbook.xsl"
 
-			cmd = "cd /var/cache/scrollserver; mkdir " + self.ID + "; cd " + self.ID + "; xsltproc --docbook --timing " + xsl_stylesheet + " " + sgmlfile + " > index.html"
+			cmd = "mkdir /var/cache/scrollserver/" + self.ID + "; xsltproc --docbook --timing " + xsl_stylesheet + " " + sgmlfile + " > /var/cache/scrollserver/" + self.ID + "/index.html"
 
-			#print cmd
 			os.system(cmd)
 
 	def URL(self):
