@@ -10,10 +10,5 @@ $surname	= $L->Param('surname');
 $email		= $L->Param('email');
 $admin		= $L->Param('admin');
 
-unless ($L->Admin) {
-	print $query->redirect("../wrongpermission.html");
-	exit;
-}
-
-%newuser = $L->NewUser($username, $first_name, $middle_name, $surname, $email, $admin, '');
+%newuser = $L->AddUser($username, $first_name, $middle_name, $surname, $email, $admin, '');
 $L->Redirect("user_edit.pl?user_id" . $newuser{id});

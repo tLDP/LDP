@@ -74,6 +74,7 @@ use Exporter;
 
 	UsersTable,
 	UserTable,
+	NewUserTable,
 	UserDocsTable,
 	UserNotesTable,
 	DocsTable,
@@ -830,6 +831,48 @@ sub UserTable {
 	$table .= "<tr><td></td><td><input type=submit value=Save></td></tr>";
 	$table .= "</form>";
 	$table .= "</table>";
+	return $table;
+}
+
+sub NewUserTable {
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th>New User</th></tr>\n";
+	$table .= "<tr><td>\n";
+	$table .= "Welcome to the " . Config($foo, 'owner') . " Lampadas system.\n";
+
+	$table .= "<p>To create a new user account, fill out this form.\n";
+
+	$table .= "<p><form name='newuser' action='user_add.pl' method='POST'>\n";
+	$table .= "<table>\n";
+	$table .= "<tr>\n";
+	$table .= "<td align=right>*Username</td>\n";
+	$table .= "<td><input type=text name=username size=20></input></td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr>\n";
+	$table .= "<td align=right>*Enter your email address.<br>Your password will be mailed to this address, so it must be valid.</td>\n";
+	$table .= "<td><input type=text name=email size=20></input></td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr>\n";
+	$table .= "<td align=right>First Name</td>\n";
+	$table .= "<td><input type=text name=first_name size=20></input></td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr>\n";
+	$table .= "<td align=right>Middle Name</td>\n";
+	$table .= "<td><input type=text name=middle_name size=20></input></td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr>\n";
+	$table .= "<td align=right>Surname</td>\n";
+	$table .= "<td><input type=text name=surname size=20></input></td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr>\n";
+	$table .= "<td></td><td><input type=submit value='Create Account!'></td>\n";
+	$table .= "</tr>\n";
+	$table .= "</table\n";
+	$table .= "</form>\n";
+
+	$table .= "<p>*Required Fields\n";
+	$table .= "</td></tr></table>\n";
 	return $table;
 }
 
@@ -1854,7 +1897,7 @@ sub Login {
 				my $sessiongen = new String::Random;
 				$sessiongen->{A} = ['A'..'Z', 'a'..'z'];
 				$session_id = $sessiongen->randpattern('AAAAAAAAAAAAAAAAAAAA');
-				$DB->Exec("UPDATE username SET session_id='$session_id' WHERE username='$username'");
+				$DB->Exec("UPDATE username SET session_id='$session_id' WHERE user_id='$currentuser_id'");
 			}
 
 			my $cookie_domain = Config($foo, 'cookie_domain');
@@ -1889,20 +1932,59 @@ sub Logout {
 
 sub AddUser {
 	use String::Random;
-	my $self = shift;
-	my ($username, $first_name, $middle_name, $surname, $email, $admin, $password) = @_;
-	unless ($password) {
-		my $pwgen = new String::Random;
-		$pwgen->{A} = ['A'..'Z', 'a'..'z'];
-		$password = $pwgen->randpattern('AAAAAAAA');
-		Mail($foo, $email, 'Lampadas Password', "Your Lampadas password is $password");
+	my ($self, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes) = @_;
+
+	if ($username and $email) {
+		$count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
+		if ($count) {
+			StartPage($foo, 'Duplicate Account');
+			print "<p>The username you requested, '$username', is already taken.\n";
+		} else {
+			$count = $DB->Value("SELECT COUNT(*) FROM username WHERE email='$email'");
+			if ($count) {
+				StartPage($foo, 'Duplicate Account');
+				print "<p>There is already an account using your email address.\n";
+			} else {
+				unless ($password) {
+					my $pwgen = new String::Random;
+					$pwgen->{A} = ['A'..'Z', 'a'..'z'];
+					$password = $pwgen->randpattern('AAAAAAAA');
+				}
+				my $user_id = $DB->Value("SELECT MAX(user_id) FROM username");
+				$user_id++;
+				$DB->Exec("INSERT INTO username(user_id, username, first_name, middle_name, surname, email, admin, password, notes) VALUES ($user_id, " . wsq($username) . ", " . wsq($first_name) . ", " . wsq($middle_name) . ", " . wsq($surname) . ", " . wsq($email) . ", " . wsq($admin) . ", " . wsq($password) . ", " . wsq($notes) . ")");
+				%newuser = User($foo, $user_id);
+				if ($newuser{username} eq $username) {
+					StartPage($foo, 'Account Created');
+					Mail($foo, $email, 'Lampadas Password', "Your Lampadas password is $password");
+					print "<p>Your account has been created.\n";
+					print "<p>Your password has been mailed to your email address,\n";
+					print "and you can use it to log in.\n";
+					print "Once you log in for the first time,\n";
+					print "you can change your password.\n";
+				} else {
+					StartPage($foo, 'Error Creating Account');
+					print "<p>There was an error creating your account.\n";
+					print "Please try again, and if the problem persists, notify the webmaster.\n";
+				}
+			}
+		}
+	} else {
+		StartPage($foo, 'Missing Information');
+		print "<p>You didn't fill out all of the fields in the form.\n";
 	}
-	my @row = $DB->Row("SELECT MAX(user_id) FROM username");
-	my $user_id=  $row[0];
-	$user_id++;
-	$DB->Exec("INSERT INTO username(user_id, username, first_name, middle_name, surname, email, admin, password) VALUES ($user_id, '$username', '$first_name', '$middle_name', '$surname', '$email', '$admin', '$password')");
-	%newuser = User($foo, $user_id);
-	return %newuser;
+
+	EndPage();
+
+}
+
+sub SaveUser {
+	my ($self, $user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes) = @_;
+	$admin = 'f' unless ($admin eq 't');
+	$DB->Exec("UPDATE username SET username=" . wsq($username) . ", first_name=" . wsq($first_name) . ", middle_name=" . wsq($middle_name) . ", surname=" . wsq($surname) . ", email=" . wsq($email) . ", admin=" . wsq($admin) . ", notes=" . wsq($notes) . " WHERE user_id=$user_id");
+	if ($password) {
+		$DB->Exec("UPDATE username SET password=" . wsq($password) . " WHERE user_id=$user_id");
+	}
 }
 
 sub AddError {
@@ -1965,12 +2047,11 @@ sub bool2yn {
 
 sub wsq {
 	my $temp = shift;
-	$temp =~ s/'/''/g;
+	$temp =~ s/\'/\'\'/g;
 	if ($temp) {
 		return "'$temp'";
 	} else {
 		return 'NULL';
 	}
 }
-
 1;
