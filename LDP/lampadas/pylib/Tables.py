@@ -1907,7 +1907,6 @@ class TabPage(Table):
             box = WOStringIO('<form method=GET action="|uri.base|data/save/page">\n' \
                              '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n' \
                              '<input type=hidden name="page_code" value="%s">\n' \
-                             '<input type=hidden name="sort_order" value="%s">\n' \
                              '<tr><td class="label">|strsection|</td>\n' \
                              '    <td>%s</td>\n' \
                              '    <td></td>\n' \
@@ -1947,7 +1946,6 @@ class TabPage(Table):
                              '</table>\n' \
                              '</form>\n' % (escape_tokens(page.code),
                                             page.code,
-                                            page.sort_order,
                                             widgets.section_code(page.section_code, uri.lang),
                                             widgets.template_code(page.template_code),
                                             widgets.tf('only_dynamic', page.only_dynamic),
@@ -2031,10 +2029,6 @@ class TabPage(Table):
                              '    <td><input type=text name="page_code"></td>\n' \
                              '    <td></td>\n' \
                              '</tr>\n' \
-                             '<tr><td class="label">|strsort_order|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
                              '<tr><td class="label">|strsection|</td>\n' \
                              '    <td>%s</td>\n' \
                              '    <td></td>\n' \
@@ -2066,8 +2060,7 @@ class TabPage(Table):
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
-                             '</form>\n' % (widgets.sort_order(page.sort_order),
-                                            widgets.section_code(page.section_code, uri.lang),
+                             '</form>\n' % (widgets.section_code(page.section_code, uri.lang),
                                             widgets.template_code(page.template_code),
                                             widgets.tf('only_dynamic', page.only_dynamic),
                                             widgets.tf('only_registered', page.only_registered),

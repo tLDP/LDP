@@ -255,15 +255,14 @@ def newnews_lang(req, news_id, lang, news):
     newsitem.add_lang(lang, news)
     go_back(req)
 
-def newpage(req, page_code, sort_order, section_code, template_code,
+def newpage(req, page_code, section_code, template_code,
             only_dynamic, only_registered, only_admin, only_sysadmin, data):
-    page = lampadasweb.pages.add(page_code, int(sort_order), section_code, template_code, int(only_dynamic), int(only_registered), int(only_admin), int(only_sysadmin), string.split(data, ' '))
+    page = lampadasweb.pages.add(page_code, section_code, template_code, int(only_dynamic), int(only_registered), int(only_admin), int(only_sysadmin), string.split(data, ' '))
     redirect(req, '../../page_edit/' + str(page.code) + referer_lang_ext(req))
 
-def page(req, page_code, sort_order, section_code, template_code,
+def page(req, page_code, section_code, template_code,
             only_dynamic, only_registered, only_admin, only_sysadmin, data, adjust_sort_order):
     page = lampadasweb.pages[page_code]
-    page.sort_order   = int(sort_order)
     page.section_code = section_code
     page.template_code = template_code
     page.only_dynamic = int(only_dynamic)

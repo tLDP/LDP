@@ -115,7 +115,12 @@ class Pages(LampadasCollection):
             page.load_row(row)
             self.data[page.code] = page
 
-    def add(self, page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data):
+    def add(self, page_code, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data):
+        if section_code=='':
+            sort_order = 0
+        else:
+            sort_order = self.max_sort_order(section_code) + 1
+            
         sql = 'INSERT INTO page(page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data) '
         sql += 'VALUES (' + wsq(page_code) + ', ' + str(sort_order) + ', ' + wsq(section_code) + ', ' + wsq(template_code) + ', ' + wsq(bool2tf(only_dynamic)) + ', ' + wsq(bool2tf(only_registered)) + ', ' + wsq(bool2tf(only_admin)) + ', ' + wsq(bool2tf(only_sysadmin)) + ', ' + wsq(string.join(data)) + ')'
         db.runsql(sql)
@@ -124,46 +129,70 @@ class Pages(LampadasCollection):
         self.data[page.code] = page
         return page
 
+    def normalize_all_sort_orders(self):
+        section_codes = []
+        for page_code in self.keys():
+            page = self[page_code]
+            if page.section_code=='':
+                if page.sort_order <> 0:
+                    page.sort_order = 0
+                    page.save()
+            else:
+                if page.section_code not in section_codes:
+                    section_codes = section_codes + [page.section_code]
+        for section_code in section_codes:
+            self.normalize_sort_order(section_code)
+    
+    def normalize_sort_order(self, section_code):
+        section_pages = LampadasCollection()
+        for page_code in self.keys():
+            page = self[page_code]
+            if page.section_code==section_code:
+                section_pages[page.code] = page
+        i = 0
+        for page_code in section_pages.sort_by('sort_order'):
+            i = i + 1
+            page = section_pages[page_code]
+            page.sort_order = i
+            page.save()
+        
+    def max_sort_order(self, section_code):
+        max = 0
+        for page_code in self.keys():
+            page = self[page_code]
+            if page.section_code==section_code and page.sort_order > max:
+                max_sort_order = page.sort_order
+        return max
+
     def adjust_sort_order(self, page_code, adjust_by):
         """
         Bump a page up or down an arbitrary number of positions in the sort order.
-        If the sort_order reaches the top or bottom (0), it stops.
+        If the sort_order reaches the top or bottom, it stops.
+        Therefore, there can never exist a gap between the sort_order values
+        unless it is introduced elsewhere.
         """
 
         page = self[page_code]
-
-        # You cannot adjust if the page is not in a section!
         if page.section_code=='':
+            page.sort_order = 0
+            page.save()
             return
-
-        # Determine whether to raise or lower sort_order
+        self.normalize_sort_order(page.section_code)
         if adjust_by > 0:
             adjust_tick = 1
         else:
             adjust_tick = -1
-            
         adjustments = 0
         while adjustments <> adjust_by:
-
-            # Find the document with which we will be switching.
-            # Abort if there is no such creature.
             page_to_switch = self.find_by_sort_order(page.section_code, page.sort_order + adjust_tick)
             if page_to_switch==None:
                 break
-
-            # Put the other page in our place, and save it.
             page_to_switch.sort_order = page_to_switch.sort_order - adjust_tick
             page_to_switch.save()
-            
-            # Put ourselves in its place, and remember it.
             page.sort_order = page.sort_order + adjust_tick
             adjustments = adjustments + adjust_tick
-            
-            # Stop if we raach 0
             if page.sort_order==0:
                 break
-
-        # If we made any adjustments, save them.
         if adjustments <> 0:
             page.save()
 
