@@ -63,12 +63,18 @@
   ;; If true, a Table of Contents will be generated for each 'Article'.
   #t)
 
+(define %generate-part-toc%
+  #t)
+
+(define %generate-article-titlepage%
+  #t)
+
+(define (chunk-skip-first-element-list)
+  '())
+
 (define %root-filename%
   ;; The filename of the root HTML document (e.g, "index").
   "index")
-
-(define %generate-part-toc%
-  #t)
 
 (define %shade-verbatim%
   #t)
