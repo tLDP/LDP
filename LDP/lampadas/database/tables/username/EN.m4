@@ -10,8 +10,7 @@ insert(sysadmin, [], Site, [], Administrator,
 	Please change the password before your Lampadas server goes live!],
 	[default])
 
-insert(david, [], David, [C.], Merrill,
-	[david@lupercalia.net], t, t, password,
-	[This is a test account for David.
-	It should be deleted before release!],
+insert(user, [], John, [Q.], User,
+	[david@lupercalia.net], f, f, password,
+	[This is a test account. It should be deleted before release!],
 	[default])

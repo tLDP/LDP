@@ -456,6 +456,7 @@ class TableFactory:
         log(3, 'Creating subtopic table')
         subtopic = lampadas.subtopics[uri.code]
         box = '<table class="navbox"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
+        box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = subtopic.docs.sort_by('Title')
         for key in keys:

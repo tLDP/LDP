@@ -1,5 +1,5 @@
-insert(strproject,      [Le Linux Documentation Project])
-insert(strprojectshort, [Le LDP])
+insert(strproject,      [PROJECT])
+insert(strprojectshort, [PROJ])
 insert(strhome,         [Racine])
 insert(strdoctable,     [Table des documents])
 insert(strdocdetails,   [D&eacute;tails du Document])
