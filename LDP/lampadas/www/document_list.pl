@@ -113,10 +113,14 @@ print "<h1>Document List</h1>\n";
 
 #print "<p>Welcome, " . $query->remote_user();
 
-print "<p><a href='../index.html'>Index</a> ";
-print "<a href='topic_list.pl'>Topics</a>\n";
-print "<a href='maintainer_list.pl'>Maintainers</a>\n";
-print "<a href='editor_list.pl'>Editors</a>\n";
+
+print "<p><a href='/index.html'>Index</a> ";
+print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
+print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
+print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
+print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
+print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
+print "<a href='/help/'>Help</a> ";
 
 print "<p><form action='document_edit.pl' method=POST>\n";
 print "<p>Jump to a document by ID: <input type=text size=5 name=doc_id>\n";

@@ -84,11 +84,13 @@ print "<body>";
 
 print "<h1>$title</h1>\n";
 
-print "<p><a href='../index.html'>Index</a> ";
-print "<a href='topic_list.pl'>Topics</a> ";
-print "<a href='document_list.pl'>Documents</a> ";
-print "<a href='maintainer_list.pl'>Maintainers</a> ";
-print "<a href='editor_list.pl'>Editors</a> ";
+print "<p><a href='/index.html'>Index</a> ";
+print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
+print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
+print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
+print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
+print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
+print "<a href='/help/'>Help</a> ";
 
 print "<p>ID: $doc_id";
 
@@ -157,13 +159,15 @@ print "<select name=license>";
 if ( $license eq "" )  { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $license eq "GFDL" )  { print '<option selected>GFDL</option>'; } else { print '<option>GFDL</option>' }
 if ( $license eq "LDPL" ) { print '<option selected>LDPL</option>'; } else { print '<option>LDPL</option>' }
-if ( $license eq "LDPLFREE" ) { print '<option selected>LDPLFREE</option>'; } else { print '<option>LDPLFREE</option>' }
+if ( $license eq "LDPCL" ) { print '<option selected>LDPCL</option>'; } else { print '<option>LDPLCL</option>' }
+if ( $license eq "HOWTOL" ) { print '<option selected>HOWTOL</option>'; } else { print '<option>HOWTOL</option>' }
+if ( $license eq "BOILERPLATE" ) { print '<option selected>BOILERPLATE</option>'; } else { print '<option>BOILERPLATE</option>' }
 if ( $license eq "OPL" )  { print '<option selected>OPL</option>'; } else { print '<option>OPL</option>' }
 if ( $license eq "GPL" )  { print '<option selected>GPL</option>'; } else { print '<option>GPL</option>' }
 if ( $license eq "NONE" )  { print '<option selected>NONE</option>'; } else { print '<option>NONE</option>' }
 if ( $license eq "PD" )  { print '<option selected>PD</option>'; } else { print '<option>PD</option>' }
 if ( $license eq "OTHER" )  { print '<option selected>OTHER</option>'; } else { print '<option>OTHER</option>' }
-print "</select></td>";
+print "</select><a href='/help/license.html'>?</a></td>";
 
 print "</tr>\n<tr>\n";
 

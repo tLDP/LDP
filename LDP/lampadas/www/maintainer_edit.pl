@@ -35,10 +35,14 @@ print "<body>";
 
 print "<h1>$maintainer_name</h1>\n";
 
-print "<p><a href='../index.html'>Index</a> \n";
-print "<a href='document_list.pl'>Documents</a> \n";
-print "<a href='maintainer_list.pl'>Maintainers</a> \n";
-print "<a href='editor_list.pl'>Editors</a> \n";
+
+print "<p><a href='/index.html'>Index</a> ";
+print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
+print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
+print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
+print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
+print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
+print "<a href='/help/'>Help</a> ";
 
 print "<p>ID: $maintainer_id";
 print "<form name=edit method=POST action='maintainer_save.pl'>";
