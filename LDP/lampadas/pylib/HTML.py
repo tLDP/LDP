@@ -44,7 +44,6 @@ import sys
 import os
 import time
 import fpformat
-import re
 
 # Globals
 

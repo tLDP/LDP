@@ -94,7 +94,6 @@ class Tables(LampadasCollection):
                 
         if uri.id > 0:
             lintadas.check_doc(uri.id)
-            lintadas.import_doc_metadata(uri.id)
             doc = lampadas.docs[uri.id]
             box.write('<form method=GET action="|uri.base|data/save/document" '\
                       'name="document">')
@@ -2198,6 +2197,34 @@ class TabOMF(Table):
         box.write('</omf>\n')
         return box.get_value()
 
+class TabFileMetadata(Table):
+    
+    def __init__(self):
+        Table.__init__(self, 'file_metadata', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating file_metadata table')
+        sourcefile = sourcefiles[uri.filename]
+        box = WOStringIO('<table class="box"><tr><th colspan="2">%s |strmetadata|</th></tr>\n'
+                         '<tr><td class="label">|strformat|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strdtd|:</td><td>%s %s</td></tr>\n'
+                         '<tr><td class="label">|strtitle|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strabstract|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strversion|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strpub_date|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strisbn|:</td><td>%s</td></tr>\n'
+                         '</table>\n'
+                         % (sourcefile.filename,
+                            sourcefile.format_code,
+                            sourcefile.dtd_code,
+                            sourcefile.dtd_version,
+                            sourcefile.title,
+                            sourcefile.abstract,
+                            sourcefile.version,
+                            sourcefile.pub_date,
+                            sourcefile.isbn))
+        return box.get_value()
+
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -2213,6 +2240,7 @@ class TableMap(LampadasCollection):
         self['tabstrings'] = TabStrings()
         self['tabstring'] = TabString()
         self['tabomf'] = TabOMF()
+        self['tabfile_metadata'] = TabFileMetadata()
 
 tables = Tables()
 tablemap = TableMap()

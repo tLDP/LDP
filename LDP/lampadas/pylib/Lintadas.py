@@ -60,17 +60,6 @@ class Lintadas:
     # FIXME: These should be loaded from a configuration file so they
     # are easily configurable by the administrator.
 
-    # This is a list of file extensions and the file types
-    # they represent.
-    extensions = {
-        'sgml': 'sgml',
-        'xml':  'xml',
-        'wt':   'wikitext',
-        'txt':  'text',
-        'texi': 'texinfo',
-        'sh':   'shell',
-    }
-
     def check_files(self, doc_id=None):
         """Checks files for errors. Checks all files by default, but you can
         also check the files belonging to a single document."""
@@ -123,65 +112,11 @@ class Lintadas:
         sourcefile.filemode = filestat[stat.ST_MODE]
         sourcefile.modified = time.ctime(filestat[stat.ST_MTIME])
 
-        # Determine file format.
-        file_extension = string.lower(string.split(filename, '.')[-1])
-        if self.extensions.has_key(file_extension) > 0:
-            sourcefile.format_code = self.extensions[file_extension]
-        
         # If we were able to read format code, post it to the document,
         if sourcefile.format_code=='':
             sourcefile.errors.add(ERR_FILE_FORMAT_UNKNOWN)
 
-        # Determine DTD for SGML and XML files
-        if sourcefile.format_code=='xml' or sourcefile.format_code=='sgml':
-            sourcefile.dtd_code, sourcefile.dtd_version = self.read_file_dtd(filename)
-        else:
-            sourcefile.dtd_code = 'none'
-            sourcefile.dtd_version = ''
-        
         sourcefile.save()
-
-    def read_file_dtd(self, filename):
-        """
-        Determines a file's DTD and DTD version if possible.
-        Returns a tuple, (DTD, VERSION).
-        """
-
-        dtd_code, dtd_version = '', ''
-        try:
-            fh = open(filename, 'r', 1)
-            while (1):
-                line = fh.readline()
-                if line=='':
-                    break
-                line = line.upper()
-                pos = line.find('DOCTYPE')
-                if pos > 0:
-                    pos = line.find('DOCBOOK')
-                    if pos > 0:
-                        dtd_code = 'docbook'
-                        line = trim(line[pos + 7:])
-                        if line[:3]=='XML':
-                            line = trim(line[3:])
-                        if line[0]=='V':
-                            line = line[1:]
-                            pos = line.find('//')
-                            if pos > 0:
-                                dtd_version = line[:pos]
-                                break
-                    else:
-                        pos = line.find('LINUXDOC')
-                        if pos > 0:
-                            dtd_code = 'linuxdoc'
-                            line = trim(line[pos + 8:])
-                        else:
-                            continue
-            fh.close()
-
-        except IOError:
-            pass
-            
-        return dtd_code, dtd_version
 
     def check_doc(self, doc_id):
         """
@@ -229,23 +164,6 @@ class Lintadas:
         doc.save()
         log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 
-    def import_docs_metadata(self):
-        doc_ids = lampadas.docs.keys()
-        for doc_id in doc_ids:
-            self.import_doc_metadata(doc_id)
-
-    def import_doc_metadata(self, doc_id):
-        doc = lampadas.docs[doc_id]
-        filenames = doc.files.keys()
-        for filename in filenames:
-            docfile = doc.files[filename]
-            if docfile.top==1:
-                sourcefile      = sourcefiles[filename]
-                doc.format_code = sourcefile.format_code
-                doc.dtd_code    = sourcefile.dtd_code
-                doc.dtd_version = sourcefile.dtd_version
-                doc.save()
-
 
 lintadas = Lintadas()
 
@@ -265,8 +183,6 @@ def main():
         lintadas.check_docs()
         print 'Checking all source files for errors...'
         lintadas.check_files()
-        print 'Updating Meta-data on all documents...'
-        lintadas.import_docs_metadata()
     else:
         for doc_id in docs:
             print 'Checking document ' + str(doc_id) + ' for errors...'
