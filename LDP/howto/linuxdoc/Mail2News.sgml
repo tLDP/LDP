@@ -1,0 +1,231 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+
+<title>Mail2News Mini-Howto
+
+<author>Bek Oberin
+<tt/bekj@netizen.com.au/
+<date>v1.1, August 2000
+
+<abstract>
+This document describes how to set up your news server and the
+mail2news software to link mailing lists to local news groups.
+</abstract>
+
+<sect>Copyright and such
+
+<!-- Copyright 2000, Bek Oberin -->
+
+<p>
+The copyright of this document is retained by the author. Permission
+is granted to distribute the document by electronic means and on CDs
+provided that it is kept entirely in its original format. Permission
+is also granted to print a copy of this document for personal use.
+
+<p>
+The republishing of this document in part or in whole without the
+permission of the copyright holder by any means other than as noted
+above is prohibited.
+
+<sect>Introduction
+
+<p>
+Why would you want to post mailing list traffic to local news groups?
+
+<p>
+Should more than one user subscribe to the same mailing list, there is
+going to be traffic duplication.  By subscribing the site to a list
+(if this is allowed by the list owner) and 'gating' the email traffic
+to the local news server, it is possible to make mailing lists
+accessible to all site users, or, using the security features of
+'innd', to limit the access to certain users.  Such a site
+subscription (particularly if there are a number of high traffic
+lists) can make worthwhile savings in bandwidth usage.
+
+<p>
+Also, reading list traffic via a newsreader offers the advantages of
+threading and scoring/killfiles which tend not to be available in all
+mailreaders.  And, of course, it keeps your inbox free free for
+possibly more urgent, personal email.
+
+<p>
+This mini-HOWTO describes setting up the 'mail2news' script to
+accomplish this.
+
+<sect1>Finding mail2news
+
+<p>
+You can download the mail2news package including the script and
+this HOWTO and other documentation from
+
+<code>
+http://www.netizen.com.au/~bekj/code/mail2news/
+</code>
+
+<sect>Overview of the system
+
+<p>
+It is probably easiest to understand how this system works by tracking
+a message from the mailing list to the newsgroup and then a message
+posted to the local newsgroup (and gated to the mailing list) and see
+how they are handled.
+
+<sect1>Mail from the mailing list
+
+<p>
+When mail from the mailing list arrives at the local machine, procmail
+figures out what newsgroup it belongs in, and pipes the incoming
+message to mail2news. 
+
+<p>
+The mail2news script processes the message, applying news headers
+and then uses rnews or inews to post the message to the newsgroup.
+
+<sect1>Messages posted to the local newsgroup
+
+<p>
+The local newsgroup is set up as a moderated group, as this allows us
+to take advantage of the email capabilities of innd. Any messages
+posted to a moderated group are not immediately submitted to the
+group. Instead, messages are emailed to the moderator of the group.
+
+<p>
+By declaring the moderator of the local newsgroup to be mailing list
+address, all locally posted messages to the newsgroup are
+automatically mailed out to the mailing list by innd and only appear
+once they have been received back through mail2news which adds the
+necessary 'approved' line to the messages and are thus acceptable to
+innd for posting to the newsgroup.
+
+<sect>Setting up mail2news
+
+<p>
+Put the mail2news script in a suitable location. I favour
+/usr/local/bin, but the location is up to you.
+
+<p>
+You will need to edit script as follows:-
+
+<itemize>
+<item>At the top of the script, make sure you are pointing at the
+local Perl binary.  You can probably find out where Perl is by typing
+'whereis perl' or 'which perl' at a command prompt.  If you can't find
+it, /usr/bin/perl is the safest bet:
+
+<code>
+#!/usr/bin/perl
+# point at the correct location of perl
+</code>
+
+
+<item>Edit the following lines to point at the posting program (I use
+rnews, inews will work too) and your news host:
+
+<code>
+# $inews = "/usr/bin/inews";
+# $iopts = "-h -o \"mail2news gateway\"";
+$inews = "/usr/bin/rnews";
+$iopts = "";
+$postinghost = "your.news.server";   # points at your news server
+</code>
+
+<item>Make sure that the script is exectuable:
+
+<code>
+chmod 755 /usr/local/bin/mail2news
+</code>
+</itemize>
+
+<sect>Procmail
+
+<p>
+The procmail config file is at ~/.procmailrc.  If you don't already
+have a procmailrc file, just create one.
+
+<p>
+Make an entry for each mailing list that is to be gated to your local
+news server.  Something like this will do the trick for most cases,
+but might fail for mail Bcc'd to the mailing list.
+
+<p>
+For example if your mailing list is 'jokes@netizen.com.au' and you
+want the newsgroup to be called 'lists.jokes' your entry would look
+like this:
+
+<code>
+:0
+* TOjokes@netizen.com.au
+|/usr/local/bin/mail2news lists.jokes
+</code>
+
+<p>
+Note there's no space between the 'TO' and the list address on the
+second line.
+
+<p>
+You need to put a blank line between the lines for each group.  Put as
+many entries as you want, using the same 3 lines for each group, but
+changing the list address and newsgroup.
+
+
+<sect>Setting up the news groups and news server (innd)
+
+<p>
+Using ctlinnd, create the newsgroups on your news server. Remember,
+these are to be local news groups, so start them with a distinctive
+name so you can filter them out from your news distributions (in your
+newsfeeds file).
+
+<p>
+You also need to tell innd that the group is moderated (by using
+ctlinnd). Remember, innd is very sensitive to file ownership and
+permissions, so you need to interct at this level with innd as the
+news user. Indicating a moderated group is done by specifying m to the
+newgroup command.
+
+<code>
+ctlinnd newgroup lists.jokes m
+</code>
+
+<p>
+The m tells innd that the group is moderated.
+
+<p>
+Edit your newsfeeds file to make sure that these local groups are not
+distributed (unless you specificaly wish this to occur).
+
+<p>
+For example, if your mailing list is called local.site.group, then you
+would probably want to add !local* to the second field of your up (and
+possibly your down) stream news sites in your newsfeeds file.
+
+<p>
+Now, in order to ensure that user messages are sent to the list
+automatically by innd, edit /etc/news/moderators to include a line
+declaring the mailing list email address as the moderator.
+
+<code>
+lists.jokes:jokes@netizen.com.au
+</code>
+
+<sect>If it doesn't work...
+
+<p>
+If things don't work, you need to track through the path the messages
+are taking to see exactly where things are breaking down. Useful tools
+here are the mail and news logs.
+
+<sect>The Future
+
+<p>
+One problem with messages posted this way is they'll have a
+Newsgroups: header in them, and some other junk that the newsserver
+introduces.  This isn't a major problem, but it makes the messages
+"messy".  It'd be nice if some program could intercept them and
+re-write the headers before sending them on.
+
+</article>
+
