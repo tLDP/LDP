@@ -412,25 +412,25 @@ insert([account_created], [Account Created], [],
 insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
-, 1])
+], 1)
 
 insert([logged_in], [Logged In], [],
 [
     <p>You have been logged into the system.
-, 1])
+], 1)
 
 insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
-, 1])
+], 1)
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-, 1])
+], 1)
 
 insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
-, 1])
+], 1)
 
