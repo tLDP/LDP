@@ -1,2 +1,181 @@
-<SECT1 ID="ssl"><TITLE>SSL and SSL wrappers for ldap</TITLE>
-<PARA></PARA></SECT1>
+<SECT1 ID="ssl"><TITLE>SSL/TLS and SSL/TLS wrappers for LDAP</TITLE>
+
+<SECT2><TITLE>A Brief description of SSL</TITLE>
+
+
+<PARA>The Secure Socket Layer (SSL) is an application layer protocol that
+provides a secure transmission channel between parties. It stands between
+TCP/IP and application level protocols, such as HTTP, LDAP, SMTP etc... It is
+based on public key cryptography systems (various ciphers can be used) and on
+X.509 certificates.</PARA> 
+
+<PARA>SSL was initially a Netscape protocol, then it has gone trough a
+standardization process and now is called TLS (Transmission Layer Security).
+It is commonly referred as SSL/TLS.</PARA>
+
+<PARA>The SSL/TLS protocol provides: </PARA>
+
+<itemizedlist> 
+
+<listitem><PARA>Data encryption: Client/server session is
+encrypted</PARA></listitem>
+
+<listitem><PARA>Server authentication: Client can verify the server
+identity</PARA></listitem>
+
+<listitem><PARA>Message integrity: Data is not modified during transmission;
+this prevents "man in the middle" attacks.</PARA></listitem>
+
+<listitem><PARA>Client authentication: Server can verify the client
+identity</PARA></listitem>
+
+</itemizedlist> 
+
+</SECT2>
+
+<SECT2><TITLE>SSL/TLS availability for OpenLDAP </TITLE>
+
+<PARA> Since OpenLDAP 2.0.x, that is an LDAP V3 toolkit, SSL/TLS is provided by
+the server. OpenLDAP 2.0.x needs to be compiled using the OpenSSL library to
+add SSL/TLS. It also has Start-TLS support.</PARA>
+
+<NOTE><PARA>Start-TLS allows to enable TLS if the client requests it. This way
+it is possible to use only an LDAP port for both secure and insecure
+connections.</PARA></NOTE>
+
+<PARA>OpenLDAP 1.2.x, instead, is an LDAP V2 protocol implementation and does
+not provide SSL/TLS.</PARA>
+
+<PARA>Valuable information on SSL/TLS on OpenLDAP 2.0.x can be found on the
+OpenLDAP web site, here we will focus how to use an SSL tunnel to secure LDAP
+parties that are not SSL/TLS aware</PARA>
+
+</SECT2>
+
+
+<SECT2><TITLE>How to use stunnel to provide SSL/TLS to an LDAP V2
+server</TITLE>
+
+<PARA>If you use OpenLDAP 1.2.x you need a general purpose SSL wrapper to add
+SSL capabilities to the server. Stunnel (www.stunnel.org) has been found to be
+stable and suitable for this application. </PARA>
+
+
+<PARA>Installing it is quite simple, but first you have to install OpenSSL
+(www.OpenSSL.org) to have the required library and tools. </PARA>
+
+<PARA>OpenSSL, is an open source implementation of the SSL protocol that
+provides the SSL library and a set of cryptography tools.</PARA>
+
+<PARA>To install OpenSSL you have to type the following commands:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+$ ./config
+$ make
+$ make test
+# make install
+</PROGRAMLISTING></PARA>
+
+<PARA>usually, everything will be installed in
+<FILENAME>/usr/local/ssl</FILENAME>.</PARA>
+
+<PARA>If OpenSSL is correctly installed the only command needed to compile and
+install stunnel are:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+$ ./configure
+$ make
+# make install
+</PROGRAMLISTING></PARA>
+
+<PARA>Stunnel uses a server certificate for SSL, this can be a self signed
+certificate, or, better, a certificate signed by your own Certification
+Authority (the SSL client has to trust the CA too).</PARA>
+
+<PARA>A commonly used place used to store such certificate is:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+/usr/local/ssl/certs/stunnel.pem
+</PROGRAMLISTING></PARA>
+
+<PARA>If having a Certification Authority is not a concern, a self signed
+certificate can be produced using the tools provided by the OpenSSL
+suite.</PARA>
+
+<PARA>In the stunnel directory (to use the configuration file
+<FILENAME>stunnel.cnf</FILENAME>) type the following commands:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+$ openssl req -new -x509 -days 365 -nodes -config stunnel.cnf \
+            -out stunnel.pem -keyout stunnel.pem
+$ openssl gendh 512 >> stunnel.pem
+</PROGRAMLISTING></PARA>
+
+<PARA>This will produce a self signed certificate, valid for a year, in the file 
+<FILENAME>stunnel.pem</FILENAME>.</PARA>
+
+<PARA>Once stunnel is installed, you can start up first the LDAP server on port
+389 (the default): </PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+#/usr/local/libexec/slapd
+</PROGRAMLISTING></PARA>
+
+<PARA>Then stunnel on port 636 (the port used by LDAPS client): </PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+# /usr/local/sbin/stunnel  -r ldap  -d 636 \
+ -p /usr/local/ssl/certs/stunnel.pem
+</PROGRAMLISTING></PARA>
+
+<PARA>For debugging you can start <FILENAME>stunnel</FILENAME> in foreground
+with the following syntax:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+# /usr/local/sbin/stunnel  -r ldap  -d 636 \
+ -D 7 -f -p /usr/local/ssl/certs/stunnel.pem
+</PROGRAMLISTING></PARA>
+
+</SECT2>
+
+<SECT2><TITLE>How to use stunnel to provide SSL to LDAP clients </TITLE>
+
+<PARA>Many LDAP client are not SSL aware, anyway, it is possible using stunnel
+in client mode, to provide SSL to these clients.</PARA>  
+
+<PARA>This is quite simple. You can start stunnel on the client host, using the
+LDAPS port, and forward requests to this port to the actual LDAP server:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+# stunnel -c -d 636 -r  ldapserver.xxx.zzz:636
+</PROGRAMLISTING></PARA>
+
+<PARA>Now LDAP clients must be configured using
+<FILENAME>localhost:636</FILENAME> as the LDAPS server to use.</PARA>
+
+</SECT2>
+
+<SECT2><TITLE>How to use stunnel to provide SSL for slurpd replication</TITLE>
+
+<PARA>At the moment slurpd (slapd replication daemon) hasn't SSL capabilities,
+anyway you can use stunnel in client mode to have this job done.</PARA>
+
+<PARA>Using stunnel in client mode on the master, you can forward a local  
+port to a remote port:</PARA> 
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+# stunnel -c -d 9999 -r  ldapreplica.xxx.zzz:636
+</PROGRAMLISTING></PARA>
+                          
+<PARA>and have on the master LDAP server in <FILENAME>slapd.conf</FILENAME></PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+replica host=localhost:9999
+</PROGRAMLISTING></PARA>
+
+
+<PARA> This has been reported to work, still to be tested! </PARA>
+
+</SECT2>
+
+</SECT1>
