@@ -1,12 +1,14 @@
 
 This is Lampadas, a set of CMF Content objects which will help you
 build a website to manage and publish documentation.
-
 It works by providing a set of CMFTypes that provide the specific
 functionality. These types support complete OMF meta-data.
 
-The Lampadas Document class is derived from the example DDocument
-class in the CMFTypes code.
+The types are:
+
+Lampadas Document -- a folder that understands how to process its contents.
+Its contents are a set of files from the CVS tree, a rendering script, and
+various outputs of the rendering script.
 
 REQUIRES:
 	Plone 1.0a4+

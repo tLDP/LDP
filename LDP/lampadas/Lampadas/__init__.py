@@ -10,6 +10,8 @@ import os, os.path
 ADD_CONTENT_PERMISSION = 'Add portal content'
 PROJECT_NAME = 'Lampadas'
 
+types_globals = globals()
+
 _types = {}
 
 def registerType(type):
@@ -27,12 +29,14 @@ def initialize(context):
     print 'dir(cmf_types) is ', dir(cmf_types)
     
     homedir = package_home(globals())
-    #edit_dir = view_dir = os.path.join(homedir, 'skins', 'project_views')
-    #script_dir = os.path.join(homedir, 'skins', 'project_scripts')
+    edit_dir = view_dir = os.path.join(homedir, 'skins', 'lampadas_templates')
+    script_dir = os.path.join(homedir, 'skins', 'lampadas_scripts')
     
     content_types, constructors, ftis = process_types(listTypes(),
                                                       "Lampadas",
-                                                      metadatatype=ExtensibleMetadata)
+                                                      edit_dir=edit_dir,
+                                                      view_dir=view_dir,
+                                                      script_dir=script_dir)
     ContentInit(
         PROJECT_NAME + ' Content',
         content_types = content_types,

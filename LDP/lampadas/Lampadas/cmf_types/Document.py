@@ -1,23 +1,22 @@
 from AccessControl import ClassSecurityInfo
 from Products.Lampadas import registerType
-from Products.CMFTypes.BaseContent import BaseContent
+from Products.CMFTypes.BaseFolder import BaseFolder
 from Products.CMFTypes.ExtensibleMetadata import ExtensibleMetadata
 from Products.CMFTypes.Field       import *
 from Products.CMFTypes.Form        import *
 from Products.CMFTypes.debug import log
 
-
 def addLampadasDocument(self, id, **kwargs):
     o = LampadasDocument(id, **kwargs)
     self._setObject(id, o)
 
-class LampadasDocument(BaseContent):
+class LampadasDocument(BaseFolder):
     """A Lampadas-enabled CMF Document type."""
 
     portal_type = "Lampadas Document"
     meta_type = "LampadasDocument"
-    
-    type       = BaseContent.type + FieldList((
+
+    type       = BaseFolder.type + FieldList((
         Field('abstract',
               searchable=1,
               form_info=TextAreaInfo(description="A textual description of the content of the resource (e.g., an abstract, contents note).",

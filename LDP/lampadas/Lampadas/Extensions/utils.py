@@ -3,11 +3,13 @@ from Products.CMFCore.DirectoryView import addDirectoryViews, registerDirectory,
 from Products.CMFCore.utils import getToolByName
 from Products.CMFTypes.debug import log, log_exc
 from Products.CMFTypes.utils import findDict
-from Products.CMFTypes import types_globals
+from Products.Lampadas import types_globals
+from Globals import package_home
+
 import sys, traceback
 
 PRODUCT_NAME = 'Lampadas'
-SKIN_NAME = "cmft"
+SKIN_DIRS = ['lampadas_templates', 'lampadas_scripts']
 
 def install_tool(self, out):
     if not hasattr(self, "content_tool"):
@@ -38,20 +40,32 @@ def install_tool(self, out):
         pass
     
 
-def install_subskin(self, out, skin_name=SKIN_NAME, globals=types_globals):
+def install_subskin(self, out, skin_name, globals=types_globals):
+    homedir=package_home(globals)
+    log('Skins are in the %s subdirectory of %s' % (skin_name, homedir))
     skinstool=getToolByName(self, 'portal_skins')
     if skin_name not in skinstool.objectIds():
-        addDirectoryViews(skinstool, 'skins', globals)
+        registerDirectory(skin_name, homedir)
+        try:
+            addDirectoryViews(skinstool, skin_name, homedir)
+        except:
+            pass
 
     for skinName in skinstool.getSkinSelections():
         path = skinstool.getSkinPath(skinName) 
         path = [i.strip() for i in  path.split(',')]
-        try:
-            if skin_name not in path:
-                path.insert(path.index('custom') +1, skin_name)
-        except ValueError:
-            if skin_name not in path:
-                path.append(skin_name)  
+
+        # Delete it if it already exists, so it only exists once.
+        for skin_dir in SKIN_DIRS:
+            if skin_dir in path:
+                path.remove(skin_dir)
+
+            try:
+                if skin_dir not in path:
+                    path.insert(path.index('custom') +1, skin_dir)
+            except ValueError:
+                if skin_dir not in path:
+                    path.append(skin_dir)  
 
         path = ','.join(path)
         skinstool.addSkinSelection( skinName, path)
@@ -117,6 +131,7 @@ def install_navigation(self, out, types, metadatatype):
     nav_tool.addTransitionFor('default', 'reference_edit', 'failure', 'url:reference_edit')
 
 def install_actions(self, out, types, metadatatype=None):
+    print >> out, 'Installing actions...'
     typesTool = getToolByName(self, 'portal_types')
     for type in types:
         typeInfo = getattr(typesTool, type.__name__)
@@ -134,15 +149,19 @@ def install_actions(self, out, types, metadatatype=None):
             typeInfo._actions = tuple(new)
 
         if hasattr(type,'factory_type_information'):
+            print >> out, 'factory_type_information for ', type
+            print >> out, type.factory_type_information
             typeInfo.__dict__.update(type.factory_type_information)
             typeInfo._p_changed = 1
+        else:
+            print >> out, 'type ', type, ' has no factory_type_information.'
 
 
 def installTypes(self, out, types, package_name, metadatatype=None):
     """Use this for your site with your types"""
-    print 'Installing types: %s', types, ' into ', package_name
+    print >> out, 'Installing types: %s', types, ' into ', package_name
     install_tool(self, out)
-    install_subskin(self, out)
+    install_subskin(self, out, 'skins')
     install_types(self, out, types, package_name)
     install_validation(self, out, types, metadatatype)
     install_navigation(self, out, types, metadatatype)

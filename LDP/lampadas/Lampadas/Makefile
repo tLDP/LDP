@@ -9,9 +9,9 @@ all:	build
 build:	
 
 install: all
-	rm -rf $(mod)
 	$(INSTALLDIR) $(mod)
 	cp -rp * $(mod)
+	chown -R www-data.www-data $(mod)
 
 uninstall:
 	rm -rf $(mod)
