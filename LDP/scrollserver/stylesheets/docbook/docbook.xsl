@@ -109,7 +109,7 @@
     <xsl:apply-templates select="$node" mode="title.ref">
       <xsl:with-param name="text-only" select="'1'"/>
     </xsl:apply-templates>
-    <link rel="stylesheet" href="default.css" type="text/css"/>
+    <link rel="stylesheet" href="stylesheets/css/default.css" type="text/css"/>
   </title>
 
   <xsl:if test="$html.stylesheet">

@@ -101,6 +101,9 @@ class RequestHandler(BaseClass):
 			return self.send_ContentsList()
 		elif self.path =="/documents.html":
 			return self.send_DocList()
+		elif self.path == "/reload.html":
+			os.system("rm -rf " + htmlbase + "*")
+			return self.send_Text("The cache has been reset.")
 		else:
 			uri = URI(self.path)
 		
@@ -125,13 +128,16 @@ class RequestHandler(BaseClass):
 
 	def send_DocumentByID(self, docid):
 		document = ScrollKeeper.DocumentByID(docid)
+#		if not document:
+#			text = "Error: ScrollServer couldn't find document number " + docid
+#			return self.send_Text(text)
 		
 		xmlfile = document.SourceFile
 		xmlpath =  os.path.dirname(xmlfile)
 		htmlpath = htmlbase + docid
 		htmlfile = htmlpath + "/index.html"
 
-#	Uncomment to debug file and path problems
+#		Uncomment to debug file and path problems
 #		print "xmlpath:" + xmlpath
 #		print "htmlpath:" + htmlpath
 #		print "htmlfile:" + htmlfile
@@ -148,8 +154,9 @@ class RequestHandler(BaseClass):
 
 	def send_URI(self, uri):
 
-		if os.path.isfile(uri.Filename):
-			return self.send_File(uri.Filename)
+		filename = uri.Path + "/" + uri.Filename
+		if os.path.isfile(filename):
+			return self.send_File(filename)
 			
 		referer = self.headers.getheader("Referer")
 		refuri = URI(referer)
@@ -189,7 +196,7 @@ class RequestHandler(BaseClass):
 		elif fileext == "css":
 			mimetype = "text/css"
 		else:
-			mimetype = ""
+			mimetype = "text/plain"
 
 		if os.path.isfile(filename):
 			self.send_response(200)

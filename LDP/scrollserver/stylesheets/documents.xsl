@@ -24,7 +24,7 @@
   <html>
   <head>
     <title>ScrollServer Document List</title>  
-    <link rel="stylesheet" href="default.css" type="text/css"/>
+    <link rel="stylesheet" href="stylesheets/css/default.css" type="text/css"/>
   </head>
   <body>
     <xsl:call-template name="header"/>

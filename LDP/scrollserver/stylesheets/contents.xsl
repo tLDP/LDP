@@ -49,7 +49,7 @@
   <html>
   <head>
     <title>ScrollServer Contents List</title>
-    <link rel="stylesheet" href="default.css" type="text/css"/>
+    <link rel="stylesheet" href="stylesheets/css/default.css" type="text/css"/>
   </head>
   <body>
     <xsl:call-template name="header"/>

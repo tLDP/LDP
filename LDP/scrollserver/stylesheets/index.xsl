@@ -8,7 +8,7 @@
   <html>
   <head>
     <title>ScrollServer</title>
-    <link rel="stylesheet" href="default.css" type="text/css"/>
+    <link rel="stylesheet" href="stylesheets/css/default.css" type="text/css"/>
   </head>
   <body>
 

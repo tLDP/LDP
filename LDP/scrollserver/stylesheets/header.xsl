@@ -5,10 +5,10 @@
 <xsl:template name="header">
   <a href="/">Home</a> |
   <a href="/contents.html">Contents</a> |
-  <a href="/documents.html">Documents</a>
+  <a href="/documents.html">Documents</a> |
+  <a href="/reload.html">Reset Cache</a>
+
   <br/><hr/>
 </xsl:template>
-
-<!-- ==================================================================== -->
 
 </xsl:stylesheet>
