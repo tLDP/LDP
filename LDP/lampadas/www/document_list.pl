@@ -267,6 +267,7 @@ print "<option value='O'>Offsite</option>\n";
 print "<option value='P'>Pending</option>\n";
 print "<option value='R'>Replaced</option>\n";
 print "<option value='W'>Wishlist</option>\n";
+print "<option value='C'>Cancelled</option>\n";
 print "</select>\n";
 print "</td></tr>\n";
 

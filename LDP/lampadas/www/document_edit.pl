@@ -112,6 +112,7 @@ if ( $pub_status eq "O" ) { print '<option selected value="O">Offsite</option>';
 if ( $pub_status eq "P" ) { print '<option selected value="P">Pending</option>'; } else { print '<option value="P">Pending</option>' }
 if ( $pub_status eq "R" ) { print '<option selected value="R">Replaced</option>'; } else { print '<option value="R">Replaced</option>' }
 if ( $pub_status eq "W" ) { print '<option selected value="W">Wishlist</option>'; } else { print '<option value="W">Wishlist</option>' }
+if ( $pub_status eq "C" ) { print '<option selected value="C">Cancelled</option>'; } else { print '<option value="C">Cancelled</option>' }
 print "</select></td>";
 
 print "<td align=right>Class:</td><td>\n";
