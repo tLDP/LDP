@@ -34,149 +34,187 @@ class ConfigFileReadErrorException(Exception) :
     
 class Config:
     """
-    Basic configuration options (db_name, db_type), used to know where we
-    can find the database.
+    Object that stores configuration parameters
     """
 
-    config_file = ''
-    project_name = ''
-    project_short = ''
-    db_type = ''
-    db_name = ''
-    db_host = ''
-    log_file = ''
-    log_level = 0
-    log_sql = ''
-    log_console = 0
-    interface = ''
-    port = ''
-    hostname = ''
-    root_dir = ''
-    file_dir = ''
-    theme = ''
-    cvs_root = ''
-    cache_dir = ''
-    xslt_html = ''
-    xslt_chunk = ''
-    xslt_print = ''
-    smtp_server = ''
-    admin_email = ''
-    db2omf = ''
-    wt2db = ''
-    world_can_see_unpublished = 0
-    user_can_see_unpublished = 0
-    user_can_add_doc = 0
-    admin_can_add_page = 0
-    admin_can_edit_page = 0
-    admin_can_add_string = 0
-    admin_can_edit_string = 0
-    admin_can_add_user = 0
-    admin_can_edit_user = 0
+    def __init__(self) :
+        """
+        Default values
+        """
+        self.config_file = ''
+        # main
+        self.project_name = ''
+        self.project_short = ''
+        # db
+        self.db_type = ''
+        self.db_name = ''
+        self.db_host = ''
+        # log
+        self.log_file = ''
+        self.log_level = 0
+        self.log_sql = ''
+        self.log_console = 0
+        # webserver
+        self.interface = ''
+        self.port = ''
+        self.hostname = ''
+        self.root_dir = ''
+        self.file_dir = ''
+        self.theme = ''
+        # cvs
+        self.cvs_root = ''
+        self.cache_dir = ''
+        # xslt
+        self.xslt_html = ''
+        self.xslt_chunk = ''
+        self.xslt_print = ''
+        # mail
+        self.smtp_server = ''
+        self.admin_email = ''
+        # make
+        self.db2omf = ''
+        self.wt2db = ''
+        # permissions
+        self.world_can_see_unpublished = 0
+        self.user_can_see_unpublished = 0
+        self.user_can_add_doc = 0
+        self.admin_can_add_page = 0
+        self.admin_can_edit_page = 0
+        self.admin_can_add_string = 0
+        self.admin_can_edit_string = 0
+        self.admin_can_add_user = 0
+        self.admin_can_edit_user = 0
 
+    def __repr__(self):
+        text = ['[MAIN]',
+                'config_file=' + self.config_file, 
+                'project_name=' + self.project_name ,
+                'project_short=' + self.project_short ,
+                '[DB]',
+                'db_type=' + self.db_type ,
+                'db_name=' + self.db_name ,
+                'db_host=' + self.db_host ,
+                '[LOG]',
+                'log_file=' + self.log_file ,
+                'log_level=' + str(self.log_level) ,
+                'log_sql=' + str(self.log_sql) ,
+                'log_console=' + str(self.log_console) ,
+                '[WEBSERVER]',
+                'interface=' + self.interface ,
+                'port=' + self.port ,
+                'hostname=' + self.hostname ,
+                'root_dir=' + self.root_dir ,
+                'file_dir=' + self.file_dir ,
+                'theme=' + self.theme ,
+                '[CVS]',
+                'cvs_root=' + self.cvs_root ,
+                'cache_dir=' + self.cache_dir ,
+                '[XSLT]',
+                'xslt_html=' + self.xslt_html ,
+                'xslt_chunk=' + self.xslt_chunk ,
+                'xslt_print=' + self.xslt_print ,
+                '[MAIL]',
+                'smtp_server=' + self.smtp_server ,
+                'admin_email=' + self.admin_email ,
+                '[MAKE]',
+                'db2omf=' + self.db2omf ,
+                'wt2db=' + self.wt2db ,
+                '[PERMISSIONS]',
+                'world_can_see_unpublished=' + str(self.world_can_see_unpublished) ,
+                'user_can_see_unpublished=' + str(self.user_can_see_unpublished) ,
+                'user_can_add_doc=' + str(self.user_can_add_doc) ,
+                'admin_can_add_page=' + str(self.admin_can_add_page) ,
+                'admin_can_edit_page=' + str(self.admin_can_edit_page) ,
+                'admin_can_add_string=' + str(self.admin_can_add_string) ,
+                'admin_can_edit_string=' + str(self.admin_can_edit_string) ,
+                'admin_can_add_user=' + str(self.admin_can_add_user) ,
+                'admin_can_edit_user=' + str(self.admin_can_edit_user) ,
+                ]
+        return '\n'.join(text)
+
+def get_config_filepath() :
+    """
+    Returns filepath of config file. Respects LAMPADAS_ETC env variable.
+    """
+    import os
+
+    msg = ''
+    filename = os.getenv('LAMPADAS_ETC')
+    if filename==None:
+        filename = '/etc/lampadas'
+        msg = 'Environment variable LAMPADAS_ETC is undefined.\n'
+    filename += '/lampadas.conf'
+    if not os.access(filename, os.F_OK):
+        raise ConfigFileReadErrorException(msg + filename + " not found.")
+    return filename
+
+class ConfigReader :
+    
     def __init__(self) :
         import ConfigParser
-        import os
+        self.parser = ConfigParser.ConfigParser()
 
-    	msg = ''
-        self.config = ConfigParser.ConfigParser()
-        self.config_file = os.getenv('LAMPADAS_ETC')
-        if self.config_file==None:
-            self.config_file = '/etc/lampadas'
-	    msg = 'Environment variable LAMPADAS_ETC is undefined.\n'
-        self.config_file = self.config_file + '/lampadas.conf'
-        if not os.access(self.config_file, os.F_OK):
-            raise msg + self.config_file + " not found."
+    def read_config(self,file):
+        """
+        Read config parameters from open file passed in argument and
+        return a Config instance.
+        """
+        c = Config()
+        self.parser.readfp(file)
+        r = self.read_var
+        c.project_name              = r('MAIN', 'project_name')
+        c.project_short             = r('MAIN', 'project_short')
+        c.db_type                   = r('DB', 'db_type')
+        c.db_name                   = r('DB', 'db_name')
+        c.db_host                   = r('DB', 'db_host')
+        c.log_file                  = r('LOG', 'log_file')
+        c.log_level                 = int(r('LOG', 'log_level'))
+        c.log_sql                   = int(r('LOG', 'log_sql'))
+        c.log_console               = int(r('LOG', 'log_console'))
+        c.interface                 = r('WEBSERVER', 'interface')
+        c.port                      = r('WEBSERVER', 'port')
+        c.hostname                  = r('WEBSERVER', 'hostname')
+        c.root_dir                  = r('WEBSERVER', 'root_dir')
+        c.file_dir                  = r('WEBSERVER', 'file_dir')
+        c.theme                     = r('WEBSERVER', 'theme')
+        c.cvs_root                  = r('CVS', 'cvs_root')
+        c.cache_dir                 = r('MIRROR', 'cache_dir')
+        c.xslt_html                 = r('XSLT', 'xslt_html')
+        c.xslt_chunk                = r('XSLT', 'xslt_chunk')
+        c.xslt_print                = r('XSLT', 'xslt_print')
+        c.smtp_server               = r('MAIL', 'smtp_server')
+        c.admin_email               = r('MAIL', 'admin_email')
+        c.db2omf                    = r('MAKE', 'db2omf')
+        c.wt2db                     = r('MAKE', 'wt2db')
+        c.world_can_see_unpublished = int(r('PERMISSIONS', 'world_can_see_unpublished'))
+        c.user_can_see_unpublished  = int(r('PERMISSIONS', 'user_can_see_unpublished'))
+        c.user_can_add_doc          = int(r('PERMISSIONS', 'user_can_add_doc'))
+        c.admin_can_add_page        = int(r('PERMISSIONS', 'admin_can_add_page'))
+        c.admin_can_edit_page       = int(r('PERMISSIONS', 'admin_can_edit_page'))
+        c.admin_can_add_string      = int(r('PERMISSIONS', 'admin_can_add_string'))
+        c.admin_can_edit_string     = int(r('PERMISSIONS', 'admin_can_edit_string'))
+        c.admin_can_add_user        = int(r('PERMISSIONS', 'admin_can_add_user'))
+        c.admin_can_edit_user       = int(r('PERMISSIONS', 'admin_can_edit_user'))
+        return c
 
-        self.config.readfp(open(self.config_file))
+    def _read_var(self, section, name):
+        if not self.parser.has_section(section) :
+            raise ConfigFileReadErrorException("File '%s' is missing or does not"
+                                               " contain a '%s' section"
+                                               % (self.config_file,section))
 
-        self.project_name              = self.read_var('MAIN', 'project_name')
-        self.project_short             = self.read_var('MAIN', 'project_short')
-        self.db_type                   = self.read_var('DB', 'dbtype')
-        self.db_name                   = self.read_var('DB', 'dbname')
-        self.db_host                   = self.read_var('DB', 'dbhost')
-        self.log_file                  = self.read_var('LOG', 'logfile')
-        self.log_level                 = int(self.read_var('LOG', 'loglevel'))
-        self.log_sql                   = int(self.read_var('LOG', 'logsql'))
-        self.log_console               = int(self.read_var('LOG', 'logcon'))
-        self.interface                 = self.read_var('WEBSERVER', 'interface')
-        self.port                      = self.read_var('WEBSERVER', 'port')
-        self.hostname                  = self.read_var('WEBSERVER', 'hostname')
-        self.root_dir                  = self.read_var('WEBSERVER', 'rootdir')
-        self.file_dir                  = self.read_var('WEBSERVER', 'filedir')
-        self.theme                     = self.read_var('WEBSERVER', 'theme')
-        self.cvs_root                  = self.read_var('CVS', 'cvsroot')
-        self.cache_dir                 = self.read_var('MIRROR', 'cachedir')
-        self.xslt_html                 = self.read_var('XSLT', 'xslt_html')
-        self.xslt_chunk                = self.read_var('XSLT', 'xslt_chunk')
-        self.xslt_print                = self.read_var('XSLT', 'xslt_print')
-        self.smtp_server               = self.read_var('MAIL', 'smtp_server')
-        self.admin_email               = self.read_var('MAIL', 'admin_email')
-        self.db2omf                    = self.read_var('MAKE', 'db2omf')
-        self.wt2db                     = self.read_var('MAKE', 'wt2db')
-        self.world_can_see_unpublished = int(self.read_var('PERMISSIONS', 'world_can_see_unpublished'))
-        self.user_can_see_unpublished  = int(self.read_var('PERMISSIONS', 'user_can_see_unpublished'))
-        self.user_can_add_doc          = int(self.read_var('PERMISSIONS', 'user_can_add_doc'))
-        self.admin_can_add_page        = int(self.read_var('PERMISSIONS', 'admin_can_add_page'))
-        self.admin_can_edit_page       = int(self.read_var('PERMISSIONS', 'admin_can_edit_page'))
-        self.admin_can_add_string      = int(self.read_var('PERMISSIONS', 'admin_can_add_string'))
-        self.admin_can_edit_string     = int(self.read_var('PERMISSIONS', 'admin_can_edit_string'))
-        self.admin_can_add_user        = int(self.read_var('PERMISSIONS', 'admin_can_add_user'))
-        self.admin_can_edit_user       = int(self.read_var('PERMISSIONS', 'admin_can_edit_user'))
-
-    def read_var(self, section, name):
-        if not self.config.has_section(section) :
-            raise ConfigFileReadErrorException("File '" + self.config_file + "' is missing or does not contain a '" + section + "' section")
-
-        if not self.config.has_option(section, name):
-            raise ConfigFileReadErrorException("Can't read option '" + name + "' from " + self.config_file)
-
-        return self.config.get(section, name)
-
-    def debug(self):
-        text = 'config_file=' + self.config_file + '\n'
-        text += 'project_name=' + self.project_name + '\n'
-        text += 'project_short=' + self.project_short + '\n'
-        text += 'db_type=' + self.db_type + '\n'
-        text += 'db_name=' + self.db_name + '\n'
-        text += 'db_host=' + self.db_host + '\n'
-        text += 'log_file=' + self.log_file + '\n'
-        text += 'log_level=' + str(self.log_level) + '\n'
-        text += 'log_sql=' + str(self.log_sql) + '\n'
-        text += 'log_console=' + str(self.log_console) + '\n'
-        text += 'interface=' + self.interface + '\n'
-        text += 'port=' + self.port + '\n'
-        text += 'hostname=' + self.hostname + '\n'
-        text += 'root_dir=' + self.root_dir + '\n'
-        text += 'cvs_root=' + self.cvs_root + '\n'
-        text += 'file_dir=' + self.file_dir + '\n'
-        text += 'theme=' + self.theme + '\n'
-        text += 'cache_dir=' + self.cache_dir + '\n'
-        text += 'xslt_html=' + self.xslt_html + '\n'
-        text += 'xslt_chunk=' + self.xslt_chunk + '\n'
-        text += 'xslt_print=' + self.xslt_print + '\n'
-        text += 'smtp_server=' + self.smtp_server + '\n'
-        text += 'admin_email=' + self.admin_email + '\n'
-        text += 'db2omf=' + self.db2omf + '\n'
-        text += 'wt2db=' + self.wt2db + '\n'
-        text += 'world_can_see_unpublished=' + str(self.world_can_see_unpublished) + '\n'
-        text += 'user_can_see_unpublished=' + str(self.user_can_see_unpublished) + '\n'
-        text += 'user_can_add_doc=' + str(self.user_can_add_doc) + '\n'
-        text += 'admin_can_add_page=' + str(self.admin_can_add_page) + '\n'
-        text += 'admin_can_edit_page=' + str(self.admin_can_edit_page) + '\n'
-        text += 'admin_can_add_string=' + str(self.admin_can_add_string) + '\n'
-        text += 'admin_can_edit_string=' + str(self.admin_can_edit_string) + '\n'
-        text += 'admin_can_add_user=' + str(self.admin_can_add_user) + '\n'
-        text += 'admin_can_edit_user=' + str(self.admin_can_edit_user) + '\n'
-        return text
-
-    def print_debug(self):
-        print self.debug()
+        if not self.parser.has_option(section, name):
+            raise ConfigFileReadErrorException("Can't read option '%s' from %s"
+                                               % (name,self.config_file))
+        return self.parser.get(section, name)
 
 
 ## exports ##
 
-config = Config()
-        
+config_file = get_config_filepath()
+config = ConfigReader().read_config(open(config_file))
+config.config_file = config_file
+
 # main
 if __name__=='__main__' :
     print "Running unit tests..."
