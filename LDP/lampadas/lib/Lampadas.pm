@@ -1376,6 +1376,7 @@ sub DocsTable {
 			$pub_statusok = 0;
 			if ($docs{$doc_id}{pub_status} eq $mypub_status) {
 				$pub_statusok = 1;
+				last;
 			}
 		}
 		next unless ($pub_statusok);
