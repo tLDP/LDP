@@ -1,0 +1,430 @@
+<!-- start of file -->
+
+<!-- This .xml file is part of the Traffic-Control-HOWTO document -->
+
+<!-- $Id$ -->
+
+<!--
+
+   The article was authored by Martin A. Brown <mabrown@securepipe.com>
+   for the linux community, and has been released under the GNU Free
+   Documentation License (GFDL) through The Linux Documentation
+   Project (TLDP).
+
+   This HOWTO is likely available at the following address:
+
+     http://tldp.org/HOWTO/Traffic-Control-HOWTO/
+     
+  -->
+
+<!-- conventions used in this documentation....
+
+   - each section is a separate file
+
+  -->
+
+<section id="classful-qdiscs">
+
+  <title>Classful Queuing Disciplines (&linux-qdisc;s)</title>
+  <para>
+    The flexibility and control of Linux traffic control can be unleashed
+    through the agency of the classful qdiscs.  Remember that the classful
+    queuing disciplines can have filters attached to them, allowing packets to
+    be directed to particular classes and subqueues.
+  </para>
+  <para>
+    There are several common terms to describe classes directly attached to
+    the &root-qdisc; and terminal classes.  Classess attached to the
+    &root-qdisc; are known as root classes, and more generically inner
+    classes.  Any terminal class in a particular queuing discipline is known
+    as a leaf class by analogy to the tree structure of the classes.  Besides
+    the use of figurative language depicting the structure as a tree, the
+    language of family relationships is also quite common.
+  </para>
+
+  <section id="qc-htb">
+    <title>HTB, Hierarchical Token Bucket</title>
+    <para>
+      &sch_htb; uses the concepts of tokens and buckets
+      along with the class-based system and &linux-filter;s to allow for
+      complex and granular control over traffic.  With a complex
+      &link-htb-borrowing;, &sch_htb; can perform a variety of sophisticated
+      traffic control techniques.  One of the easiest ways to use &sch_htb;
+      immediately is that of &link-htb-shaping;.
+    </para>
+    <para>
+      By understanding &concepts-tokens; and &concepts-buckets; or by grasping
+      the function of &link-sch_tbf;, &sch_htb; should be merely a logical
+      step.  This queuing discipline allows the user to define the
+      characteristics of the tokens and bucket used and allows the user to
+      nest these buckets in an arbitrary fashion.  When coupled with a
+      &elements-classifying; scheme, traffic can be controlled in a very
+      granular fashion.
+    </para>
+    <para>
+    </para>
+    <para>
+      Below is example output of the syntax for &sch_htb; on the command line
+      with the &link-tc; tool.  Although the syntax for &link-tcng; is a
+      language of its own, the rules for &sch_htb; are the same.
+    </para>
+    <example id="ex-qc-htb-usage">
+      <title>&tc; usage for &sch_htb;</title>
+      <programlisting>
+Usage: ... qdisc add ... htb [default N] [r2q N]
+ default  minor id of class to which unclassified packets are sent {0}
+ r2q      DRR quantums are computed as rate in Bps/r2q {10}
+ debug    string of 16 numbers each 0-3 {0}
+
+... class add ... htb rate R1 burst B1 [prio P] [slot S] [pslot PS]
+                      [ceil R2] [cburst B2] [mtu MTU] [quantum Q]
+ rate     rate allocated to this class (class can still borrow)
+ burst    max bytes burst which can be accumulated during idle period {computed}
+ ceil     definite upper class rate (no borrows) {rate}
+ cburst   burst but for ceil {computed}
+ mtu      max packet size we create rate map for {1600}
+ prio     priority of leaf; lower are served first {0}
+ quantum  how much bytes to serve from leaf at once {use r2q}
+
+TC HTB version 3.3
+      </programlisting>
+    </example>
+    <para>
+    </para>
+    <section id="qc-htb-shaping">
+      <title>Shaping</title>
+      <para>
+        One of the most common applications of &sch_htb; involves shaping
+        (rate-limiting, capping bandwidth, throttling) transmitted traffic to
+        a specific rate.
+      </para>
+      <para>
+        All shaping occurs in leaf classes.  No shaping occurs in inner or
+        root classes as they only exist to suggest how the
+        &link-htb-borrowing; should distribute available tokens.
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+    </section>
+    <section id="qc-htb-borrowing">
+      <title>Borrowing</title>
+      <para>
+        A fundamental part of the &sch_htb; qdisc is the borrowing mechanism.
+        Children classes borrow tokens from their parents once they have
+        exceeded &link-htb-param-rate;.  A child class will continue to
+        attempt to borrow until it reaches &link-htb-param-ceil;, at which
+        point it will begin to queue packets for transmission until more
+        tokens/ctokens are available.  As there are only two primary types of
+        classes which can be created with &sch_htb; the following table and
+        diagram identify the various possible states and the behaviour of the
+        borrowing mechanisms.
+      </para>
+      <para>
+      </para>
+      <table id="tb-qc-htb-borrowing">
+        <title>&sch_htb; class states and potential actions taken</title>
+        <tgroup cols="4" align="left" colsep="1" rowsep="1">
+          <thead>
+            <row>
+              <entry>type of class</entry>
+              <entry>class state</entry>
+              <entry>&sch_htb; internal state</entry>
+              <entry>action taken</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>leaf</entry>
+              <entry>&lt; &param-rate;</entry>
+              <entry><parameter>HTB_CAN_SEND</parameter></entry>
+              <entry>
+                Leaf class will dequeue queued bytes up
+                to available tokens (no more than burst packets)
+              </entry>
+            </row>
+            <row>
+              <entry>leaf</entry>
+              <entry>&gt; &param-rate;, &lt; &param-ceil;</entry>
+              <entry><parameter>HTB_MAY_BORROW</parameter></entry>
+              <entry>
+                Leaf class will attempt to borrow tokens/ctokens from
+                parent class.  If tokens are available, they will be lent in
+                &param-quantum; increments and the leaf class will dequeue up
+                to &param-cburst; bytes
+              </entry>
+            </row>
+            <row>
+              <entry>leaf</entry>
+              <entry>&gt; &param-ceil;</entry>
+              <entry><parameter>HTB_CANT_SEND</parameter></entry>
+              <entry>
+                No packets will be dequeued.  This will cause packet
+                delay and will increase latency to meet the desired
+                rate.
+              </entry>
+            </row>
+            <row>
+              <entry>inner</entry>
+              <entry>&lt; &param-rate;</entry>
+              <entry><parameter>HTB_CAN_SEND</parameter></entry>
+              <entry>
+                Inner class will lend tokens to children.
+              </entry>
+            </row>
+            <row>
+              <entry>inner</entry>
+              <entry>&gt; &param-rate;, &lt; &param-ceil;</entry>
+              <entry><parameter>HTB_MAY_BORROW</parameter></entry>
+              <entry>
+                Inner class will attempt to borrow tokens/ctokens from
+                parent class, lending them to competing children in
+                &param-quantum; increments per request.
+              </entry>
+            </row>
+            <row>
+              <entry>inner</entry>
+              <entry>&gt; &param-ceil;</entry>
+              <entry><parameter>HTB_CANT_SEND</parameter></entry>
+              <entry>
+                Inner class will not attempt to borrow from its parent
+                and will not lend tokens/ctokens to children classes.
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <para>
+        This diagram identifies the flow of borrowed tokens and the manner in
+        which tokens are charged to parent classes.  In order for the
+        borrowing model to work, each class must have an accurate count of the
+        number of tokens used by itself and all of its children.  For this
+        reason, any token used in a child or leaf class is charged to each
+        parent class until the root class is reached.
+      </para>
+      <para>
+        Any child class which wishes to borrow a token will request a token
+        from its parent class, which if it is also over its &param-rate; will
+        request to borrow from its parent class until either a token is
+        located or the root class is reached.  So the borrowing of tokens
+        flows toward the leaf classes and the charging of the usage of tokens
+        flows toward the root class.
+      </para>
+      <mediaobject id="img-qc-htb-borrow">
+        <imageobject>
+          <imagedata fileref="images/htb-borrow.eps" format="EPS"/>
+        </imageobject>
+        <imageobject>
+          <imagedata fileref="images/htb-borrow.png" format="PNG"/>
+        </imageobject>
+        <imageobject>
+          <imagedata fileref="images/htb-borrow.jpg" format="JPG"/>
+        </imageobject>
+      </mediaobject>
+      <para>
+        Note in this diagram that there are several &sch_htb; root classes.
+        Each of these root classes can simulate a virtual circuit.
+      </para>
+    </section>
+    <section id="qc-htb-params">
+      <title>Parameters</title>
+      <para>
+      </para>
+      <variablelist id="vl-qc-htb-params">
+        <varlistentry id="vl-qc-htb-params-default">
+          <term>&param-default;</term>
+          <listitem>
+            <para>
+              An optional parameter with every &sch_htb; &linux-qdisc; object,
+              the default &param-default; is 0, which cause any unclassified
+              traffic to be dequeued at hardware speed, completely bypassing
+              any of the classes attached to the &root-qdisc;.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-rate">
+          <term>&param-rate;</term>
+          <listitem>
+            <para>
+              Used to set the minimum desired speed to which to limit
+              transmitted traffic.  This can be considered the equivalent of a
+              committed information rate (<acronym>CIR</acronym>), or the
+              guaranteed bandwidth for a given leaf class.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-ceil">
+          <term>&param-ceil;</term>
+          <listitem>
+            <para>
+              Used to set the maximum desired speed to which to limit the
+              transmitted traffic.  The borrowing model should illustrate how
+              this parameter is used.  This can be considered the equivalent
+              of <quote>burstable bandwidth</quote>.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-burst">
+          <term>&param-burst;</term>
+          <listitem>
+            <para>
+              This is the size of the &link-htb-param-rate; bucket (see
+              <xref linkend="o-buckets"/>).  &sch_htb; will dequeue
+              &param-burst; bytes before awaiting the arrival of more
+              tokens.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-cburst">
+          <term>&param-cburst;</term>
+          <listitem>
+            <para>
+              This is the size of the &link-htb-param-ceil; bucket (see
+              <xref linkend="o-buckets"/>).  &sch_htb; will dequeue
+              &param-cburst; bytes before awaiting the arrival of more
+              ctokens.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-quantum">
+          <term>&param-quantum;</term>
+          <listitem>
+            <para>
+              This is a key parameter used by &sch_htb; to control borrowing.
+              Normally, the correct &param-quantum; is calculated by
+              &sch_htb;, not specified by the user.  Tweaking this parameter
+              can have tremendous effects on borrowing and shaping under
+              contention, because it is used both to split traffic between
+              children classes over &link-htb-param-rate; (but below
+              &link-htb-param-ceil;) and to transmit packets from these same
+              classes.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="vl-qc-htb-params-r2q">
+          <term>&param-r2q;</term>
+          <listitem>
+            <para>
+              Also, usually calculated for the user, &param-r2q; is a hint to
+              &sch_htb; to help determine the optimal &link-htb-param-quantum;
+              for a particular class.
+            </para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+      <para>
+      </para>
+    </section>
+    <section id="qc-htb-rules">
+      <title>Rules</title>
+      <para>
+        Below are some general guidelines to using &sch_htb; culled from
+        &url-docum.org; and the &url-lartc-mailinglist;.  These rules are
+        simply a recommendation for beginners to maximize the benefit of
+        &sch_htb; until gaining a better understanding of the practical
+        application of &sch_htb;.
+      </para>
+      <para>
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            Shaping with &sch_htb; occurs only in leaf classes.  See also
+            <xref linkend="qc-htb-shaping"/>.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Because &sch_htb; does not shape in any class except the leaf
+            class, the sum of the &param-rate;s of leaf classes should not
+            exceed the &param-ceil; of a parent class.  Ideally, the sum of
+            the &param-rate;s of the children classes would match the
+            &param-rate; of the parent class, allowing the parent class to
+            distribute leftover bandwidth (&param-ceil; - &param-rate;) among
+            the children classes.
+          </para>
+          <para>
+            This key concept in employing &sch_htb; bears repeating.  Only
+            leaf classes actually shape packets; packets are only delayed in
+            these leaf classes.  The inner classes (all the way up to the root
+            class) exist to define how borrowing/lending occurs (see also
+            <xref linkend="qc-htb-borrowing"/>).
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The &param-quantum; should be set at MTU or higher.  &sch_htb;
+            will dequeue a single packet at least per service opportunity even
+            if &param-quantum; is too small.  In such a case, it will not be
+            able to calculate accurately the real bandwidth consumed
+            <footnote>
+              <para>
+                &sch_htb; will report bandwidth usage in this scenario
+                incorrectly.  It will calculate the bandwidth used by
+                &param-quantum; instead of the real dequeued packet size.
+                This can squeue results quickly.
+              </para>
+            </footnote>.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            For maximum granularity and most instantaneously evenly
+            distributed bandwidth, &param-quantum; should be as low as
+            possible while still no less than MTU.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The &param-quantum; is only  only used when a class is over
+            &param-rate; but below &param-ceil;.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            A distinction between tokens and ctokens is only meaningful in a
+            leaf class, because non-leaf classes only lend tokens to child
+            classes.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            &sch_htb; borrowing could more accurately be described as
+            <quote>using</quote>.
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+      </para>
+    </section>
+  </section>
+
+  <section id="qc-prio">
+    <title>&sch_prio;, priority scheduler</title>
+    <para>
+      The &sch_prio; classful qdisc works on a very simple precept.  When it
+      is ready to dequeue a packet, the first class is checked for a packet.
+      If there's a packet, it gets dequeued.  If there's no packet, then the
+      next class is checked, until the queuing mechanism has no more classes
+      to check.
+    </para>
+    <para>
+      This section will be completed at a later date.
+    </para>
+  </section>
+
+  <section id="qc-cbq">
+    <title>&sch_cbq;, Class Based Queuing</title>
+    <para>
+      CBQ is the classic implementation (also called venerable) of a traffic
+      control system.  This section will be completed at a later date.
+    </para>
+    <para>
+    </para>
+  </section>
+
+</section>
+
+
+<!-- end of file -->

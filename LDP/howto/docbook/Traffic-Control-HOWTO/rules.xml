@@ -1,0 +1,208 @@
+<!-- start of file -->
+
+<!-- This .xml file is part of the Traffic-Control-HOWTO document -->
+
+<!-- $Id$ -->
+
+<!--
+
+   The article was authored by Martin A. Brown <mabrown@securepipe.com>
+   for the linux community, and has been released under the GNU Free
+   Documentation License (GFDL) through The Linux Documentation
+   Project (TLDP).
+
+   This HOWTO is likely available at the following address:
+
+     http://tldp.org/HOWTO/Traffic-Control-HOWTO/
+     
+  -->
+
+<!-- conventions used in this documentation....
+
+   - each section is a separate file
+
+  -->
+
+<section id="rules">
+
+  <title>Rules, Guidelines and Approaches</title>
+  <para>
+  </para>
+
+  <section id="r-general">
+    <title>General Rules of Linux Traffic Control</title>
+    <para>
+      There are a few general rules which ease the study of Linux traffic
+      control.
+      Traffic control structures under Linux are the same whether the initial
+      configuration has been done with &link-tcng; or with &link-tc;.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          Any device performing a shaping function should be the bottleneck on
+          the link, and should be shaping slightly below the maximum available
+          link bandwidth.  This prevents queues from forming in other routers,
+          affording maximum control of packet latency/deferral to the shaping
+          device.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          A device can only shape traffic it transmits
+          <footnote>
+            <para>
+              In fact, the
+              <link linkend="s-imq">Intermediate Queuing Device
+              (IMQ)</link> simulates an output device onto which traffic
+              control structures can be attached.  This clever solution allows
+              a networking device to shape ingress traffic in the same fashion
+              as egress traffic.  Despite the apparent contradiction of the
+              rule, IMQ appears as a device to the kernel.  Thus, there has
+              been no violation of the rule, but rather a sneaky
+              reinterpretation of that rule.
+            </para>
+          </footnote>.  Because the traffic has already been received on an
+          input interface, the traffic cannot be shaped.  A traditional
+          solution to this problem is an ingress policer.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Every interface must have a &linux-qdisc;.  The default qdisc
+          (the &link-sch_pfifo_fast; qdisc) is used when another qdisc is not
+          explicitly attached to the interface.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          One of the &classful-qdiscs; added to an interface with no children
+          classes typically only consumes CPU for no benefit.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Any newly created class contains a &link-sch_fifo;.
+          This qdisc can be replaced explicitly with any other qdisc.  The
+          &sch_fifo; qdisc will be removed implicitly if a child class is
+          attached to this class.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Classes directly attached to the &root-qdisc; can be used to
+          simulate virtual circuits.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          A &linux-filter; can be attached to classes or one of the
+          &classful-qdiscs;.
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <!--
+  <section id="r-classes">
+    <title>Rules for Classes</title>
+    <para>
+    </para>
+  </section>
+    -->
+
+  <section id="r-known-bandwidth">
+    <title>Handling a link with a known bandwidth</title>
+    <para>
+      &sch_htb; is an ideal &linux-qdisc; to use on a link with a known
+      bandwidth, because the innermost (root-most) class can be set to the
+      maximum bandwidth available on a given link.  Flows can be further
+      subdivided into children classes, allowing either guaranteed bandwidth
+      to particular classes of traffic or allowing preference to specific
+      kinds of traffic.
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="r-unknown-bandwidth">
+    <title>Handling a link with a variable (or unknown) bandwidth</title>
+    <para>
+      In theory, the &sch_prio; scheduler is an ideal match for links with
+      variable bandwidth, because it is a work-conserving &linux-qdisc; (which
+      means that it provides no &elements-shaping;).  In the case of a link
+      with an unknown or fluctuating bandwidth, the &sch_prio; scheduler
+      simply prefers to dequeue any available packet in the highest priority
+      band first, then falling to the lower priority queues.
+    </para>
+    <!--
+    
+         FIXME:
+
+           it seems like a PRIO qdisc would always be dequeuing
+           packets as quickly as it got them, so is really only useful
+           inside a shaping class, since (in most situations), the
+           hardware is ready to dequeue a packet before there is a
+           backlog in the class.  Without a shaping class around this
+           PRIO qdisc, I'd expect that packets would end up queuing in
+           an upstream device (a modem or router).
+
+      -->
+    <para>
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="r-sharing-flows">
+    <title>Sharing/splitting bandwidth based on flows</title>
+    <para>
+      Of the many types of contention for network bandwidth, this is one of
+      the easier types of contention to address in general.  By using the
+      &sch_sfq; qdisc, traffic in a particular queue can be separated into
+      flows, each of which will be serviced fairly (inside that queue).
+      Well-behaved applications (and users) will find that using &sch_sfq; and
+      &sch_esfq; are sufficient for most sharing needs.
+    </para>
+    <para>
+      The Achilles heel of these fair queuing algorithms is a misbehaving user
+      or application which opens many connections simultaneously (e.g., eMule,
+      eDonkey, Kazaa).  By creating a large number of individual flows, the
+      application can dominate slots in the fair queuing algorithm.  Restated,
+      the fair queuing algorithm has no idea that a single application is
+      generating the majority of the flows, and cannot penalize the user.
+      Other methods <!-- FIXME; link here --> are called for.
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="r-sharing-ips">
+    <title>Sharing/splitting bandwidth based on IP</title>
+    <para>
+      For many administrators this is the ideal method of dividing bandwidth
+      amongst their users.  Unfortunately, there is no easy solution, and it
+      becomes increasingly complex with the number of machine sharing a
+      network link.
+    </para>
+    <para>
+      To divide bandwidth equitably between <parameter>N</parameter> IP
+      addresses, there must be <parameter>N</parameter> classes.
+    </para>
+    <para>
+    </para>
+  </section>
+
+</section>
+
+<!-- end of file -->

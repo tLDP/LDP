@@ -1,0 +1,322 @@
+<!-- start of file -->
+
+<!-- This .xml file is part of the Traffic-Control-HOWTO document -->
+
+<!-- $Id$ -->
+
+<!--
+
+   The article was authored by Martin A. Brown <mabrown@securepipe.com>
+   for the linux community, and has been released under the GNU Free
+   Documentation License (GFDL) through The Linux Documentation
+   Project (TLDP).
+
+   This HOWTO is likely available at the following address:
+
+     http://tldp.org/HOWTO/Traffic-Control-HOWTO/
+     
+  -->
+
+<!-- conventions used in this documentation....
+
+   - each section is a separate file
+
+  -->
+
+<section id="components">
+
+  <title>Components of Linux Traffic Control</title>
+  <para>
+  </para>
+  <para>
+  </para>
+  <para>
+  </para>
+  <table id="tb-c-components-correlation">
+    <title>Correlation between traffic control elements and Linux
+      components</title>
+    <tgroup cols="2" align="left" colsep="1" rowsep="1">
+      <colspec colwidth='1*' colname="elem"/>
+      <colspec colwidth='3*' colname="comp"/>
+      <thead>
+        <row>
+          <entry>traditional element</entry>
+          <entry>Linux component</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry colname="elem">&elements-shaping;</entry>
+          <entry colname="comp">The &linux-class; offers shaping capabilities.</entry>
+        </row>
+        <row>
+          <entry colname="elem">&elements-scheduling;</entry>
+          <entry colname="comp">A &linux-qdisc; is a scheduler.  Schedulers
+                                can be simple such as the &sch_fifo; or
+                                complex, containing classes and other
+                                qdiscs, such as &sch_htb;.</entry>
+        </row>
+        <row>
+          <entry colname="elem">&elements-classifying;</entry>
+          <entry colname="comp">The &linux-filter; object performs the
+                                classification through the agency of a
+                                &linux-classifier; object.  Strictly speaking,
+                                Linux classifiers cannot exist outside
+                                of a filter.</entry>
+        </row>
+        <row>
+          <entry colname="elem">&elements-policing;</entry>
+          <entry colname="comp">A &linux-policer; exists in the Linux traffic
+                                control implementation only as part of a
+                                &linux-filter;.</entry>
+        </row>
+        <row>
+          <entry colname="elem">&elements-dropping;</entry>
+          <entry colname="comp">To &linux-drop; traffic requires a
+                                &linux-filter; with a &linux-policer; which
+                                uses <quote>drop</quote> as an action.</entry>
+        </row>
+        <row>
+          <entry colname="elem">&elements-marking;</entry>
+          <entry colname="comp">The &linux-dsmark; &linux-qdisc; is used for
+                                marking.</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <section id="c-qdisc">
+    <title><constant>qdisc</constant></title>
+    <para>
+      Simply put, a qdisc is a scheduler
+      (<xref linkend="e-scheduling"/>).  Every output interface needs a
+      scheduler of some kind, and the default scheduler is a &sch_fifo;.
+      Other qdiscs available under Linux will rearrange the packets entering
+      the scheduler's queue in accordance with that scheduler's rules.
+    </para>
+    <para>
+      The qdisc is the major building block on which all of Linux traffic
+      control is built, and is also called a queuing discipline.
+    </para>
+    <para>
+      The &classful-qdiscs; can contain &linux-class;es, and provide a handle
+      to which to attach &linux-filter;s.  There is no prohibition on using a
+      classful qdisc without child classes, although this will usually consume
+      cycles and other system resources for no benefit.
+    </para>
+    <para>
+      The &classless-qdiscs; can contain no classes, nor is it possible to
+      attach filter to a classless qdisc.  Because a it contains no children
+      of any kind, the utility &elements-classifying; is pointless.
+    </para>
+    <para>
+      Every interface has two qdiscs.  The primary and more common qdisc
+      is the egress qdisc, known as the &root-qdisc;.  The overwhelming
+      majority of documentation applies to the &root-qdisc; and its children.
+      Traffic transmitted on an interface traverses the egress or
+      &root-qdisc;.
+    </para>
+    <para>
+      For traffic accepted on an interface, the &ingress-qdisc; is traversed.
+      This qdisc has limited utility, allows no child &linux-class; to be
+      created, and only exists as an object onto which a &linux-filter; can be
+      attached.  For practical purposes, the &ingress-qdisc; is merely a
+      convenient object onto which to attach a &linux-policer; to limit the
+      amount of traffic accepted into a network.
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="c-class">
+    <title><constant>class</constant></title>
+    <para>
+      Classes only exist inside a classful &linux-qdisc; (&eg;, &link-sch_htb;
+      and &link-sch_cbq;).  Classes are immensely flexible and can always
+      contain either multiple children classes or a single child qdisc
+      <footnote>
+        <para>
+          A classful qdisc can only have children classes of its type.  For
+          example, an HTB qdisc can only have HTB classes as children.  A CBQ
+          qdisc cannot have HTB classes as children.
+        </para>
+      </footnote>.
+      There is no prohibition against a class containing a classful qdisc
+      itself, which facilitates tremendously complex traffic control
+      scenarios.
+    </para>
+    <para>
+      Any class can also have multiple &linux-filter;s attached to it, which
+      allows the selection of a child class or the use of a filter to
+      reclassify or drop traffic entering a particular class.
+    </para>
+  </section>
+
+  <section id="c-filter">
+    <title><constant>filter</constant></title>
+    <para>
+      The filter is one of the most complex elements in the Linux
+      traffic control system.  The filter provides a convenient mechanism for
+      gluing together several of the key elements of traffic control.  The
+      simplest and most obvious role of the filter is to classify
+      (see <xref linkend="e-classifying"/>) packets.  Linux filters allow the
+      user to classify packets into an output queue with either several
+      different filters or a single filter.
+    </para>
+    <para>
+      Filters can be attached either to &linux-qdisc;s or to &linux-class;es,
+      however the enqueued packet always enters the root qdisc first.
+      After the filter attached to the root qdisc has been traversed,
+      the packet may be directed to any subclasses (which can have their own
+      filters) where the packet may continue its classification process.
+    </para>
+    <!-- FIXME; discussion not complete here -->
+    <para>
+    </para>
+  </section>
+
+  <section id="c-classifier">
+    <title>classifier</title>
+    <para>
+      Filter objects, which can be manipulated using &link-tc;, can use several
+      different classifying mechanisms, the most common of which is the
+      &cls_u32; classifier.  The &cls_u32; classifier allows the user to
+      select packets based on attributes of the packet.
+    </para>
+    <para>
+      The classifiers are tools which can be used as part of a &linux-filter;
+      to identify characteristics of a packet or a packet's metadata.
+    </para>
+  </section>
+
+  <section id="c-police">
+    <title>policer</title>
+    <para>
+      This elemental mechanism is only used in Linux traffic control as part
+      of a &linux-filter;.  A policer calls one action above and another
+      action below the specified rate.  This can be used to set up a set of
+      cascading policers to simulate a three-color meter.
+    </para>
+    <para>
+      Although both &elements-policing; and &elements-shaping; are basic
+      elements of traffic control for limiting bandwidth usage a policer will
+      never delay traffic.  It can only perform an action based on specified
+      criteria.
+    </para>
+
+    <!--
+    <example id="ex-c-police-action">
+      <title>Example of a policer</title>
+      <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc filter add dev ppp0 parent 1:0 protocol all prio 4 \</userinput>
+<prompt>&gt; </prompt>                <userinput>u32 match u32 0x0 0x0 at 0 classid 1:7 \</userinput>
+<prompt>&gt; </prompt>                <userinput>police index 3 rate 32000bps burst 10240 mpu 0 action drop/continue</userinput>
+      </programlisting>
+    </example>
+     -->
+
+    <para>
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="c-drop">
+    <title><constant>drop</constant></title>
+    <para>
+      This basic traffic control mechanism is only used in Linux traffic
+      control as part of a &linux-policer;.  Any policer attached to
+      any &linux-filter; could have a &linux-drop; action.
+    </para>
+    <note>
+      The only place in the Linux traffic control system where a packet can be
+      explicitly dropped is a policer.  A policer can limit packets enqueued
+      at a specific rate, or it can be configured to drop all traffic matching
+      a particular pattern
+      <footnote>
+        <para>
+          In this case, you'll have a &linux-filter; which uses a
+          &linux-classifier; to select the packets you wish to drop.  Then
+          you'll use a &linux-policer; with a with a drop action like this
+          <command>police rate 1bps burst 1 action drop/drop</command>.
+        </para>
+      </footnote>.
+    </note>
+    <para>
+      There are, however, places within the traffic control system where a
+      packet may be dropped as a side effect.  For example, a packet will be
+      dropped if the scheduler employed uses this methood to control flows as
+      the &link-sch_gred; does.
+    </para>
+    <para>
+      A shaper or scheduler which runs out of its allocated buffer space may
+      have to drop a packet during a particularly bursty or overloaded period.
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="c-handle">
+    <title><constant>handle</constant></title>
+    <para>
+      Every &linux-class; and classful &linux-qdisc; (see also
+      <xref linkend="classful-qdiscs"/>) requires a unique identifier within
+      the traffic control structure.  Note that &classless-qdiscs; do not
+      require a handle.  This unique identifier is known as a
+      handle and has two constituent members, a major number and a minor
+      number.  These numbers can be assigned arbitrarily by the user in
+      accordance with the following rules
+      <footnote>
+        <para>
+          I do not know the range nor base of these numbers.  I believe they
+          are u32 hexadecimal, but need to confirm this.
+        </para>
+      </footnote>.
+    </para>
+    <para>
+    <variablelist>
+      <title>Rules for numbering handles for classes and qdiscs</title>
+      <varlistentry>
+        <term><parameter>major</parameter></term>
+        <listitem>
+          <para>
+            This parameter is completely free of meaning to the kernel.  The
+            user may use an arbitrary numbering scheme, however all objects in
+            the traffic control structure with the same parent must share a
+            <parameter>major</parameter> handle number.  Conventional
+            numbering schemes start at 1 for devices attached to the
+            &root-qdisc;.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><parameter>minor</parameter></term>
+        <listitem>
+          <para>
+            This parameter unambigously identifies the object as a qdisc (if
+            <parameter>minor</parameter> is 0.  Any other value identifies the
+            object as a class.  All classes sharing a parent must have unique
+            <parameter>minor</parameter> numbers.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    </para>
+    <para>
+      The special handle ffff:0 is reserved for the &ingress-qdisc;.
+    </para>
+  </section>
+
+  <!--
+  <section id="c-dsmark">
+    <title><constant>dsmark</constant></title>
+    <para>
+    </para>
+    <para>
+    </para>
+  </section>
+    -->
+
+</section>
+
+<!-- end of file -->

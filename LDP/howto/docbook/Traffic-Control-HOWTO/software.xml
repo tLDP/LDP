@@ -1,0 +1,430 @@
+<!-- start of file -->
+
+<!-- This .xml file is part of the Traffic-Control-HOWTO document -->
+
+<!-- $Id$ -->
+
+<!--
+
+   The article was authored by Martin A. Brown <mabrown@securepipe.com>
+   for the linux community, and has been released under the GNU Free
+   Documentation License (GFDL) through The Linux Documentation
+   Project (TLDP).
+
+   This HOWTO is likely available at the following address:
+
+     http://tldp.org/HOWTO/Traffic-Control-HOWTO/
+     
+  -->
+
+<!-- conventions used in this documentation....
+
+   - each section is a separate file
+
+  -->
+
+<section id="software">
+
+  <title>Software and Tools</title>
+  <para>
+  </para>
+
+  <section id="s-kernel">
+    <title>Kernel requirements</title>
+    <para>
+      Many distributions provide kernels with modular or monolithic support
+      for traffic control (Quality of Service).  Custom kernels may not
+      already provide support (modular or not) for the required features.  If
+      not, this is a very brief listing of the required kernel options.
+    </para>
+    <para>
+      The user who has little or no experience compiling a kernel is
+      recommended to &url-kernel-howto;.  Experienced kernel compilers should
+      be able to determine which of the below options apply to the desired
+      configuration, after reading a bit more about traffic control and
+      planning.
+    </para>
+    <example id="ex-s-kernel-options">
+      <title>Kernel compilation options
+        <footnote>
+          <para>
+            The options listed in this example are taken from a 2.4.20 kernel
+            source tree.  The exact options may differ slightly from kernel
+            release to kernel release depending on patches and new schedulers
+            and classifiers.
+          </para>
+        </footnote>
+      </title>
+      <programlisting>
+#
+# QoS and/or fair queueing
+#
+CONFIG_NET_SCHED=y
+CONFIG_NET_SCH_CBQ=m
+CONFIG_NET_SCH_HTB=m
+CONFIG_NET_SCH_CSZ=m
+CONFIG_NET_SCH_PRIO=m
+CONFIG_NET_SCH_RED=m
+CONFIG_NET_SCH_SFQ=m
+CONFIG_NET_SCH_TEQL=m
+CONFIG_NET_SCH_TBF=m
+CONFIG_NET_SCH_GRED=m
+CONFIG_NET_SCH_DSMARK=m
+CONFIG_NET_SCH_INGRESS=m
+CONFIG_NET_QOS=y
+CONFIG_NET_ESTIMATOR=y
+CONFIG_NET_CLS=y
+CONFIG_NET_CLS_TCINDEX=m
+CONFIG_NET_CLS_ROUTE4=m
+CONFIG_NET_CLS_ROUTE=y
+CONFIG_NET_CLS_FW=m
+CONFIG_NET_CLS_U32=m
+CONFIG_NET_CLS_RSVP=m
+CONFIG_NET_CLS_RSVP6=m
+CONFIG_NET_CLS_POLICE=y
+      </programlisting>
+    </example>
+    <para>
+      A kernel compiled with the above set of options will provide modular
+      support for almost everything discussed in this documentation.  The user
+      may need to <command>modprobe
+      <replaceable>module</replaceable></command> before using a given
+      feature.  Again, the confused user is recommended to the
+      &url-kernel-howto;, as this document cannot adequately address questions
+      about the use of the Linux kernel.
+    </para>
+  </section>
+
+  <section id="s-iproute2">
+    <title>&iproute2; tools (&tc;)</title>
+    <para>
+      &iproute2; is a suite of command line utilities which
+      manipulate kernel structures for IP networking
+      configuration on a machine.  For technical documentation on these tools,
+      see the &url-iproute2-docs; and for a more expository discussion, the
+      documentation at &url-linux-ip.net;.  Of the tools in the &iproute2;
+      package, the binary &tc; is the only one used for traffic control.  This
+      HOWTO will ignore the other tools in the suite.
+    </para>
+    <anchor id="s-iproute2-tc"/>
+    <para>
+      Because it interacts with the kernel to direct the creation, deletion
+      and modification of traffic control structures, the &tc; binary needs to
+      be compiled with support for all of the &linux-qdisc;s you wish to use.
+      In particular, the &sch_htb; qdisc is not supported yet in the upstream
+      &iproute2; package.  See
+      <xref linkend="qc-htb"/> for more information.
+    </para>
+    <para>
+      The &tc; tool performs all of the configuration of the kernel structures
+      required to support traffic control.  As a result of its many uses, the
+      command syntax can be described (at best) as arcane.  The utility takes
+      as its first non-option argument one of three Linux traffic control
+      components, &linux-qdisc;, &linux-class; or &linux-filter;.
+    </para>
+    <example id="ex-s-iproute2-tc">
+      <title>&tc; command usage</title>
+      <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc</userinput>
+<computeroutput>Usage: tc [ OPTIONS ] OBJECT { COMMAND | help }
+where  OBJECT := { qdisc | class | filter }
+       OPTIONS := { -s[tatistics] | -d[etails] | -r[aw] }</computeroutput>
+      </programlisting>
+    </example>
+    <para>
+      Each object accepts further and different options, and will be
+      incompletely described and documented below.  The hints in the examples
+      below are designed to introduce the vagaries of &tc; command line
+      syntax.  For more examples, consult the &url-lartc-howto;.  For even
+      better understanding, consult the kernel and &iproute2; code.
+    </para>
+    <example id="ex-s-iproute2-tc-qdisc">
+      <title>&tc; &linux-qdisc;</title>
+      <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc qdisc add    \</userinput> <co id="ex-s-itcq-tc" linkends="ex-s-itcq-tc-text"/>
+<prompt>&gt; </prompt><userinput>                 dev eth0     \</userinput> <co id="ex-s-itcq-dev" linkends="ex-s-itcq-dev-text"/>
+<prompt>&gt; </prompt><userinput>                 root         \</userinput> <co id="ex-s-itcq-root" linkends="ex-s-itcq-root-text"/>
+<prompt>&gt; </prompt><userinput>                 handle 1:0   \</userinput> <co id="ex-s-itcq-handle" linkends="ex-s-itcq-handle-text"/>
+<prompt>&gt; </prompt><userinput>                 htb</userinput>            <co id="ex-s-itcq-qdisc" linkends="ex-s-itcq-qdisc-text"/>
+      </programlisting>
+      <calloutlist>
+        <callout
+          arearefs="ex-s-itcq-tc"
+          id="ex-s-itcq-tc-text">
+          <para>
+            Add a queuing discipline.  The verb could also be
+            <constant>del</constant>.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcq-dev"
+          id="ex-s-itcq-dev-text">
+          <para>
+            Specify the device onto which we are attaching the new queuing
+            discipline.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcq-root"
+          id="ex-s-itcq-root-text">
+          <para>
+            This means <quote>egress</quote> to &tc;.  The word
+            <constant>root</constant> must be used, however.  Another
+            qdisc with limited functionality, the &ingress-qdisc; can be
+            attached to the same device.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcq-handle"
+          id="ex-s-itcq-handle-text">
+          <para>
+            The &linux-handle; is a user-specified number of the form
+            <replaceable>major</replaceable>:<replaceable>minor</replaceable>.
+            The minor number for any queueing discipline handle must always be
+            zero (0).
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcq-qdisc"
+          id="ex-s-itcq-qdisc-text">
+          <para>
+            This is the queuing discipline to attach, &sch_htb; in this
+            example.  Queuing discipline specific parameters will follow this.
+          </para>
+        </callout>
+      </calloutlist>
+    </example>
+    <para>
+      Above was the simplest use of the &tc; utility for adding a queuing
+      discipline to a device.  Here's an example of the use of &tc; to add a
+      class to an existing parent class.
+    </para>
+    <example id="ex-s-iproute2-tc-class">
+      <title>&tc; &linux-class;</title>
+      <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc class add    \</userinput> <co id="ex-s-itcc-tc" linkends="ex-s-itcc-tc-text"/>
+<prompt>&gt; </prompt><userinput>                 dev eth0     \</userinput> <co id="ex-s-itcc-dev" linkends="ex-s-itcc-dev-text"/>
+<prompt>&gt; </prompt><userinput>                 parent 1:1   \</userinput> <co id="ex-s-itcc-parent" linkends="ex-s-itcc-parent-text"/>
+<prompt>&gt; </prompt><userinput>                 classid 1:6  \</userinput> <co id="ex-s-itcc-classid" linkends="ex-s-itcc-classid-text"/>
+<prompt>&gt; </prompt><userinput>                 htb          \</userinput> <co id="ex-s-itcc-classtype" linkends="ex-s-itcc-classtype-text"/>
+<prompt>&gt; </prompt><userinput>                 rate 256kbit \</userinput> <co id="ex-s-itcc-htb-rate" linkends="ex-s-itcc-htb-only-text"/>
+<prompt>&gt; </prompt><userinput>                 ceil 512kbit</userinput>   <co id="ex-s-itcc-htb-ceil" linkends="ex-s-itcc-htb-only-text"/>
+      </programlisting>
+      <calloutlist>
+        <callout
+          arearefs="ex-s-itcc-tc"
+          id="ex-s-itcc-tc-text">
+          <para>
+             Add a class. The verb could also be <constant>del</constant>.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcc-dev"
+          id="ex-s-itcc-dev-text">
+          <para>
+            Specify the device onto which we are attaching the new class.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcc-parent"
+          id="ex-s-itcc-parent-text">
+          <para>
+            Specify the parent &linux-handle; to which we are attaching the new class.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcc-classid"
+          id="ex-s-itcc-classid-text">
+          <para>
+            This is a unique &linux-handle;
+            (<replaceable>major</replaceable>:<replaceable>minor</replaceable>)
+            identifying this class.  The minor number must be any non-zero (0)
+            number.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcc-classtype"
+          id="ex-s-itcc-classtype-text">
+          <para>
+            Both of the &classful-qdiscs; require that any children classes be
+            classes of the same type as the parent.  Thus an &sch_htb; qdisc
+            will contain HTB classes.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcc-htb-rate ex-s-itcc-htb-ceil"
+          id="ex-s-itcc-htb-only-text">
+          <para>
+            This is a class specific parameter.  Consult
+            <xref linkend="qc-htb"/> for more detail on this parameter.
+          </para>
+        </callout>
+      </calloutlist>
+    </example>
+    <para>
+    </para>
+    <example id="ex-s-iproute2-tc-filter">
+      <title>&tc; &linux-filter;</title>
+      <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc filter add               \</userinput> <co id="ex-s-itcf-tc" linkends="ex-s-itcf-tc-text"/>
+<prompt>&gt; </prompt><userinput>                 dev eth0                 \</userinput> <co id="ex-s-itcf-dev" linkends="ex-s-itcf-dev-text"/>
+<prompt>&gt; </prompt><userinput>                 parent 1:0               \</userinput> <co id="ex-s-itcf-parent" linkends="ex-s-itcf-parent-text"/>
+<prompt>&gt; </prompt><userinput>                 protocol ip              \</userinput> <co id="ex-s-itcf-protocol" linkends="ex-s-itcf-protocol-text"/>
+<prompt>&gt; </prompt><userinput>                 prio 5                   \</userinput> <co id="ex-s-itcf-prio" linkends="ex-s-itcf-prio-text"/>
+<prompt>&gt; </prompt><userinput>                 u32                      \</userinput> <co id="ex-s-itcf-classifier" linkends="ex-s-itcf-classifier-text"/>
+<prompt>&gt; </prompt><userinput>                 match ip port 22 0xffff  \</userinput> <co id="ex-s-itcf-match-port" linkends="ex-s-itcf-match-text"/>
+<prompt>&gt; </prompt><userinput>                 match ip tos 0x10 0xff   \</userinput> <co id="ex-s-itcf-match-tos" linkends="ex-s-itcf-match-text"/>
+<prompt>&gt; </prompt><userinput>                 flowid 1:6               \</userinput> <co id="ex-s-itcf-flowid" linkends="ex-s-itcf-flowid-text"/>
+<prompt>&gt; </prompt><userinput>                 police                   \</userinput> <co id="ex-s-itcf-police" linkends="ex-s-itcf-police-text"/>
+<prompt>&gt; </prompt><userinput>                 rate 32000bps            \</userinput> <co id="ex-s-itcf-prate" linkends="ex-s-itcf-prate-text"/>
+<prompt>&gt; </prompt><userinput>                 burst 10240              \</userinput> <co id="ex-s-itcf-burst" linkends="ex-s-itcf-burst-text"/>
+<prompt>&gt; </prompt><userinput>                 mpu 0                    \</userinput> <co id="ex-s-itcf-mpu" linkends="ex-s-itcf-mpu-text"/>
+<prompt>&gt; </prompt><userinput>                 action drop/continue</userinput>       <co id="ex-s-itcf-action" linkends="ex-s-itcf-action-text"/>
+      </programlisting>
+      <calloutlist>
+        <callout
+          arearefs="ex-s-itcf-tc"
+          id="ex-s-itcf-tc-text">
+          <para>
+            Add a filter.  The verb could also be <constant>del</constant>.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-dev"
+          id="ex-s-itcf-dev-text">
+          <para>
+            Specify the device onto which we are attaching the new filter.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-parent"
+          id="ex-s-itcf-parent-text">
+          <para>
+            Specify the parent handle to which we are attaching the new
+            filter.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-protocol"
+          id="ex-s-itcf-protocol-text">
+          <para>
+            This parameter is required.  It's use should be obvious, although
+            I don't know more.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-prio"
+          id="ex-s-itcf-prio-text">
+          <para>
+            The <parameter>prio</parameter> parameter allows a given filter to
+            be preferred above another.  The <parameter>pref</parameter> is a
+            synonym.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-classifier"
+          id="ex-s-itcf-classifier-text">
+          <para>
+            This is a &linux-classifier;.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-match-port ex-s-itcf-match-tos"
+          id="ex-s-itcf-match-text">
+          <para>
+            These are parameters to the classifier.  In this case, packets
+            with a type of service flag (indicating interactive usage) and
+            matching port 22 will be selected by this statement.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-flowid"
+          id="ex-s-itcf-flowid-text">
+          <para>
+            The <parameter>flowid</parameter> specifies the &linux-handle; of
+            the target class (or qdisc) to which a matching filter should send
+            its selected packets.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-police"
+          id="ex-s-itcf-police-text">
+          <para>
+            This is the &linux-policer;.
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-prate"
+          id="ex-s-itcf-prate-text">
+          <para>
+            The policer will perform one action above this rate, and another
+            action below (see
+            <xref linkend="ex-s-itcf-action-text"/>).
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-burst"
+          id="ex-s-itcf-burst-text">
+          <para>
+            The &param-burst; is an exact analog to &param-burst; in
+            &link-sch_htb; (the burst concept is a &concepts-buckets; concept).
+          </para>
+        </callout>
+        <callout
+          arearefs="ex-s-itcf-mpu"
+          id="ex-s-itcf-mpu-text">
+          <para>
+            The minimum policed unit.
+          </para>
+        </callout>
+        <callout xreflabel="action parameter"
+          arearefs="ex-s-itcf-action"
+          id="ex-s-itcf-action-text">
+          <para>
+            The &param-action; indicates what should be done if
+            the &param-rate; based on the attributes of the policer.  The
+            first word specifies the action to take if the policer has been
+            exceeded.  The second word specifies action to take otherwise.
+          </para>
+        </callout>
+      </calloutlist>
+    </example>
+    <para>
+      As evidenced above, the &tc; command line utility has an arcane and
+      complex syntax, even for simple operations such as these examples show.
+      It should come as no surprised to the reader that there exists an easier
+      way to configure Linux traffic control.  See the next section,
+      <xref linkend="s-tcng"/>.
+    </para>
+  </section>
+
+  <section id="s-tcng">
+    <title>&tcng;, Traffic Control Next Generation</title>
+    <para>
+      FIXME; sing the praises of tcng.  See also &url-tcng-htb-howto; and
+      &url-tcng-docs;.
+    </para>
+    <para>
+      Traffic control next generation (hereafter, &tcng;) provides all of the
+      power of traffic control under Linux with twenty percent of the
+      headache.
+    </para>
+    <para>
+    </para>
+  </section>
+
+  <section id="s-imq">
+    <title>IMQ, Intermediate Queuing device</title>
+    <para>
+    </para>
+    <para>
+      FIXME; must discuss IMQ.  See also Patrick McHardy's website on 
+      &url-imq;.
+    </para>
+    <para>
+    </para>
+  </section>
+
+</section>
+
+<!-- end of file -->
