@@ -20,6 +20,7 @@ my($dtd)          = 'SGML';
 my($dcl)          = '';
 my($linuxdoc)     = 1;
 my($create_index) = 1;
+my($html_only)    = 0;
 my($cmd, $fname, $fname_wo_ext, $txt_filter, $style, $s, $db_v, $x) = '';
 my(@flines)       = ();
 
@@ -36,6 +37,9 @@ while(1) {
      } elsif ($ARGV[0] eq "-no_index") {
          shift(@ARGV);
          $create_index = 0;
+     } elsif ($ARGV[0] eq "-html_only") {
+         shift(@ARGV);
+         $html_only = 1;
      } else {
          last;
      }
@@ -143,7 +147,8 @@ print "\nldp_mk: creating HTML from $fname...\n";
 
 if( $linuxdoc == 1 ) {
 
-    $cmd = "sgml2html -c latin $fname";
+    ## $cmd = "sgml2html -c latin $fname";
+    $cmd = "sgml2html -c ascii $fname";
 
 } else {
 
@@ -159,6 +164,11 @@ if( ($linuxdoc == 1 && !(-e "$fname_wo_ext.html"))
     ||
     ($linuxdoc == 0 && !(-e "$fname_wo_ext/index.html")) ) {
    print "\nldp_mk: WARNING - could not create HTML: $fname_wo_ext\n";
+}
+
+if( $html_only == 1 ) {
+    system("rm -f index.sgml index.xml");
+    exit(0);
 }
 
 
@@ -258,7 +268,7 @@ if( -e "$fname_wo_ext.txt" ) {
 #
 # Note that we use the single-page HTML variant
 #
-print "\nldp_mk: creating PDF from $fname...\n";
+print "\nldp_mk: creating PDF/PS from $fname...\n";
 
 my($print_str) = '';
 
@@ -269,38 +279,34 @@ if( $linuxdoc == 1 ) {
     system("$_toolroot/sgml_ld_1html $fname");
     $print_str = "00_${fname_wo_ext}.html";
 
-} else {
-
-    # create new files from DocBook-source single HTML file to use for print
-    #
-    require "$_toolroot/lib/fix_print_html.lib";
-    &fix_print_html("00_${fname_wo_ext}.html", 'body.html', 'title.html');
-
-    $print_str = "--titlefile title.html body.html";
-}
-
-
-if( -e "00_$fname_wo_ext.html" ) {
-
     $cmd = "$_toolroot/htmldoc/bin/htmldoc --size universal -t pdf " .
            "--firstpage p1 -f $fname_wo_ext.pdf $print_str; " .
            "$_toolroot/htmldoc/bin/htmldoc --size universal -t ps  " .
            "--firstpage p1 -f $fname_wo_ext.ps  $print_str";
+
+    if( -e "00_$fname_wo_ext.html" ) {
+        system($cmd);
+    }
+
+} elsif( -e "00_$fname_wo_ext.html" ) {
+
+    # create new files from DocBook-source single HTML file to use for print
+    #
+    $cmd = "$_toolroot/ldp_print/ldp_print --toolroot ${_toolroot}/htmldoc/bin " .
+           "--postscript 00_${fname_wo_ext}.html";
     system($cmd);
+    system("mv -f 00_${fname_wo_ext}.pdf ${fname_wo_ext}.pdf");
+    system("mv -f 00_${fname_wo_ext}.ps  ${fname_wo_ext}.ps");
+}
 
-    if( !(-e "$fname_wo_ext.pdf") ) {
-          print "\nldp_mk: WARNING - could not create $fname_wo_ext.pdf\n";
-    }
-    if( !(-e "$fname_wo_ext.ps") ) {
-          print "\nldp_mk: WARNING - could not create $fname_wo_ext.ps\n";
-    } else {
-          $cmd = "gzip -f $fname_wo_ext.ps";
-          system($cmd);
-    }
-
+if( !(-e "$fname_wo_ext.pdf") ) {
+      print "\nldp_mk: WARNING - could not create $fname_wo_ext.pdf\n";
+}
+if( !(-e "$fname_wo_ext.ps") ) {
+      print "\nldp_mk: WARNING - could not create $fname_wo_ext.ps\n";
 } else {
-    print "\nldp_mk: WARNING - HTML file 00_$fname_wo_ext.html not found; ",
-          "skipping PDF/PS creation\n";
+      $cmd = "gzip -f $fname_wo_ext.ps";
+      system($cmd);
 }
 
 
@@ -357,6 +363,12 @@ if( $linuxdoc == 1 ) {
 
 # cleanup
 system("rm -f index.sgml index.xml body.html title.html");
+
+if( $linuxdoc == 1 ) {
+    system("mk_pluckerdb ${fname_wo_ext} ${fname_wo_ext}.html");
+} else {
+    system("cd ${fname_wo_ext} ; mk_pluckerdb ${fname_wo_ext} index.html");
+}
 
 print "\nldp_mk: completed...\n";
 
