@@ -655,9 +655,9 @@ class TableFactory:
         box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
         box = box + '<tr><th class="label">'
         if user.username=='':
-            box = box + '|strnewpassword|'
-        else:
             box = box + '|strpassword|'
+        else:
+            box = box + '|strnewpassword|'
         box = box + '</th><td><input type=text name=password size="12"></td></tr>\n'
         if build_user and build_user.admin > 0 or build_user.sysadmin > 0:
             box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
