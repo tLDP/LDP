@@ -60,7 +60,7 @@ insert([home], [|strproject|], [Home],
     Link "Benutzerkonto anlegen").
 ], 1)
 
-insert([doctable], [Documentenliste], [],
+insert([doctable], [Liste der Dokumente], [],
 [
     |tabdocs|
 ], 1)
@@ -136,7 +136,7 @@ insert([maint_wanted], [Instandhalter gesucht], [],
     |tabmaint_wanted|
 ], 1)
 
-insert([wishlist], [Dokumentwunschliste], [],
+insert([wishlist], [Wunschliste], [],
 [
     |tabwishlist|
 ], 1)
@@ -149,8 +149,13 @@ insert([pending], [Dokumente in Arbeit], [],
 insert([resources], [Andere Hilfsmittel], [],
 [
     <ul>
-        m4_dnl holy penguin droppings, it's a meta command!
-        <li>Insert some resources for German authors.
+	<li><a href="http://www.tu-harburg.de/dlhp/"
+	  >Deutschen Linux HOWTO Projekt</a></li>
+        <li><a href="http://www.leo.org/">Link Everything Online</a></li>
+	<li><a href="http://www.ids-mannheim.de/grammis/reform/inhalt.html"
+	  >Deutsche Rechtschreibung: Regeln und Wörterverzeichnis</a></li>
+        <li><a href="http://home.t-online.de/home/lerch/neolog.htm"
+	  >Deutsche Wörter sind schön!</a></li>
     </ul>
 ], 1)
 
