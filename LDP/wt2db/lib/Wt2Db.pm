@@ -19,36 +19,42 @@ use Exporter;
 	Reset
 	);
 
-# These keep track of which constructs we're in the middle of
-#
-$level1 = 0;
-$level2 = 0;
-$level3 = 0;
-$orderedlist = 0;
-$listitem = 0;
-$itemizedlist = 0;
-$para = 0;
-$qandaset = 0;
-$qandaentry = 0;
-$answer = 0;
+&Reset;
 
-# These are passed in by the caller
-#
-$txtfile = '';
-$dbfile = '';
-$verbose = 0;
+# Call this before rerunning ProcessLine to clear state.
+# 
+sub Reset {
+	$level1 = 0;
+	$level2 = 0;
+	$level3 = 0;
+	$orderedlist = 0;
+	$listitem = 0;
+	$itemizedlist = 0;
+	$para = 0;
+	$qandaset = 0;
+	$qandaentry = 0;
+	$answer = 0;
 
-# These maintain state
-#
-$line = '';
-$linenumber = 0;
-$id = '';
-$title = '';
-$buf = '';
+	# These are passed in by the caller
+	#
+	$txtfile = '';
+	$dbfile = '';
+	$verbose = 0;
+	$doctype = 0;
+	$nonet = 0;
 
-$noparatag = 0;
-$noparadepth = 0;
-$noparaline = 0;
+	# These maintain state
+	#
+	$line = '';
+	$linenumber = 0;
+	$id = '';
+	$title = '';
+	$buf = '';
+
+	$noparatag = 0;
+	$noparadepth = 0;
+	$noparaline = 0;
+}
 
 
 # -----------------------------------------------------------
@@ -62,7 +68,7 @@ sub new {
 }
 
 sub ProcessFile {
-	($self, $txtfile, $dbfile, $verbose, $doctype) = @_;
+	($self, $txtfile, $dbfile, $verbose, $doctype, $nonet, $encoding) = @_;
 
 	# Read from STDIN if no input file given
 	# 
@@ -87,9 +93,10 @@ sub ProcessFile {
 
 	# wrap article if requested
 	#
+    $encoding = 'ISO-8859-1' unless ($encoding);
 	if ($doctype eq 'XML') {
 		print "Adding XML DOCTYPE and article tags." if ($verbose);
-		$buf = '<?xml version="1.0" standalone="no"?>' . "\n";
+		$buf = '<?xml version="1.0" encoding="' . $encoding . '" standalone="no"?>' . "\n";
 		$buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"' . "\n";
      		$buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"';
 		$buf .= "\[\]\>\n";
@@ -153,8 +160,8 @@ sub ProcessLine {
 		
 	# inline docbook
 	#
-	# ulink
-	# 
+	# parse all links, internal and external
+	#
 	while ($line =~ /\[\[/) {
 		unless ($line =~ /\]\]/) {
 			$buf .= "ERROR unterminated '[[' tag on line $linenumber.\n";
@@ -174,15 +181,22 @@ sub ProcessLine {
 			$linkname = $link;
 		}
 
-		# kill quotes, they mess us up
+		# kill quotes inside links, they mess us up because
+		# we have to wrap this string with quotes.
+		# perhaps it should be encoding the entire URL?
 		# 
 		$link =~ s/'/%27/g;
 
 		# namespaces are handled differently
 		#
 		print "$link\n" if ($verbose);
-		if ($link =~ /^http:/) {
+
+		if ($link =~ /^http:\/\//) {
 			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+		} elsif ($link =~ /^link:/) {
+			$link =~ s/^link://;
+			$linkname =~ s/^link://;
+			$line =~ s/\[\[.*?\]\]/<xref linkend='$link' endterm='$link'\>\<\/xref\>/;
 		} elsif ($link =~ /^mailto:/) {
 			$linkname =~ s/^mailto://;
 			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
@@ -194,28 +208,41 @@ sub ProcessLine {
 		} elsif ($link =~ /^ldp:/) {
 			$linkname =~ s/^ldp://;
 			$link =~ s/^ldp://;
-			$tempfile = "/tmp/wt2db-" . $rand;
-			$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
-			system("$cmd");
-			open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
-			$link = "";
-			while ($url_line = <URL>) {
-				$url_line =~ s/\n//;
-				if ($url_line =~ /identifier/) {
-					$link .= $url_line;
+			if ($nonet) {
+				$line =~ s/\[\[.*?\]\]/<citetitle>$link<\/citetitle>/;
+			} else {
+				$tempfile = "/tmp/wt2db-" . $rand;
+				$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
+				print "$cmd\n" if ($verbose > 1);
+				$return = system("$cmd");
+				unless ($return) {
+					open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
+					$link = '';
+					while ($url_line = <URL>) {
+						$url_line =~ s/\n//;
+						if ($url_line =~ /identifier/) {
+							$link .= $url_line;
+						}
+					}
+					close(URL);
+					unlink $tempfile;
 				}
+				$link =~ s/^.*?<identifier>//;
+				$link =~ s/<\/identifier>.*?$//;
+				if ($link eq '') {
+					$linkname = "ERROR: LDP namespace resolution failure on $linkname";
+				}
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			}
-			close(URL);
-			unlink $tempfile;
-			$link =~ s/^.*?<identifier>//;
-			$link =~ s/<\/identifier>.*?$//;
-			if ($link eq '') {
-				$linkname = "ERROR: LDP namespace resolution failure on $linkname";
-			}
-			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		} elsif ($link =~ /^file:/) {
 			$linkname =~ s/^file://;
 			$line =~ s/\[\[.*?\]\]/<filename>$linkname<\/filename>/;
+		} elsif ($link =~ /^dir:/) {
+
+# FIXME: need to check attribute on filename element
+# 
+			$linkname =~ s/^dir://;
+			$line =~ s/\[\[.*?\]\]/<filename type='directory'>$linkname<\/filename>/;
 		} else {
 			$line =~ s/\[\[.*?\]\]/<filename>$linkname<\/filename>/;
 		}
@@ -238,7 +265,8 @@ sub ProcessLine {
 	#	<programlisting>
 	#	<literallayout>
 	
-	# forget about nopara
+	# forget about being in nopara state if we're no longer in one
+	# 
 	if ($noparadepth == 0) {
 		$noparatag = "";
 	}
@@ -248,6 +276,8 @@ sub ProcessLine {
 	if ((($line =~ /^<para>/) or
 	     ($line =~ /^<sect/) or
 	     ($line =~ /^<screen>/) or
+	     ($line =~ /^<screen>/) or
+	     ($line =~ /^<blockquote>/) or
 	     ($line =~ /^<literallayout>/) or
 	     ($line =~ /^<articleinfo>/) or
 	     ($line =~ /^<programlisting>/)) and
@@ -257,9 +287,12 @@ sub ProcessLine {
 		$noparatag =~ s/^.*?<//;
 		$noparatag =~ s/>.*?$//;
 		$noparaline = $linenumber;
+
+		# screen sections don't embed para tags, but are wrapped in them
+		#
 		if ($line =~ /^<screen>/) {
 			unless ($para) {
-				$line = "<para>" . $line;
+				$buf .= "<para>";
 				$para = 1;
 			}
 		}
@@ -289,9 +322,29 @@ sub ProcessLine {
 		}
 
 		# recover original line -- no whitespace modifiers
+		# allow nonencoded text in unparsed lines, when in a literal block
 		#
 		$line = $originalline;
 		chomp($line);
+		if ($line =~ /^<$noparatag>/ ) {
+			$starttag = "<$noparatag>";
+		} else {
+			$starttag = '';
+		}
+		if ($line =~ /<\/$noparatag>/ ) {
+			$endtag = "<\/$noparatag>";
+		} else {
+			$endtag = '';
+		}
+
+		$line =~ s/<$noparatag>//;
+		$line =~ s/<\/$noparatag>//;
+	    if (($noparatag eq 'screen') or
+	        ($noparatag eq 'literallayout') or
+	        ($noparatag eq 'programlisting')) {
+    		encode_entities($line);
+        }
+		$line = "$starttag$line$endtag";
 
 	# sect3
 	#
@@ -376,9 +429,9 @@ sub ProcessLine {
 		&trimline;
 		&splittitle;
 		if ($id eq '') {
-			$line = "<question><para>" . $title . "</para></question>";
+			$line = "<question><para>$title</para></question>";
 		} else {
-			$line = "<question id='$id'><para>" . $title . "</para></question>";
+			$line = "<question id='$id'><para>$title</para></question>";
 		}
 		unless ($qandaentry) {
 			$line = "<qandaentry>\n" . $line;
@@ -428,42 +481,6 @@ sub ProcessEnd {
 
 sub Buffer {
 	return $buf;
-}
-
-# Basically a cut-and-paste of the original declarations,
-# to make sure all variables are completely cleared.
-#
-# Call this before rerunning ProcessLine to clear state.
-# 
-sub Reset {
-	$level1 = 0;
-	$level2 = 0;
-	$level3 = 0;
-	$orderedlist = 0;
-	$listitem = 0;
-	$itemizedlist = 0;
-	$para = 0;
-	$qandaset = 0;
-	$qandaentry = 0;
-	$answer = 0;
-
-	# These are passed in by the caller
-	#
-	$txtfile = '';
-	$dbfile = '';
-	$verbose = 0;
-
-	# These maintain state
-	#
-	$line = '';
-	$linenumber = 0;
-	$id = '';
-	$title = '';
-	$buf = '';
-
-	$noparatag = 0;
-	$noparadepth = 0;
-	$noparaline = 0;
 }
 
 sub close1 {
@@ -570,15 +587,78 @@ sub splittitle {
 	$line =~ s/^=+//;
 	$line =~ s/=+$//;
 	$title = $line;
-	$id = "";
 	if ($line =~ /\|/) {
 		$title =~ s/\|.+//;
 		$id = $line;
 		$id =~ s/^.+\|//;
+	} else {
+		$id = &anchorfix($title);
 	}
 	$title =~ s/\s+$//;
 	$title =~ s/^\s+//;
 	$id =~ s/\s+$//;
 	$id =~ s/^\s+//;
+}
+
+sub anchorfix {
+	my $anchor = $_[0];
+	$anchor = lc(&trim($anchor));
+	$anchor = decode_entities($anchor);
+	$anchor =~ s/-/-dash-/g;
+	$anchor =~ s/&/-and-/g;
+	$anchor =~ s/;//g;
+	$anchor = encode_entities($anchor);
+	$anchor =~ s/&(\w)grave/\1/g;
+	$anchor =~ s/&(\w)acute/\1/g;
+	$anchor =~ s/&(\w)circ/\1/g;
+	$anchor =~ s/&(\w)uml/\1/g;
+	$anchor =~ s/&(\w)tilde/\1/g;
+	$anchor =~ s/&(\w)cedil/\1/g;
+	$anchor =~ s/&/-and-/g;
+	$anchor =~ s/;//g;
+	$anchor =~ s/\//-slash-/g;
+	$anchor =~ s/\\/-bslash-/g;
+	$anchor =~ s/\s+/-/g;
+	$anchor =~ s/'//g;
+	$anchor =~ s/`//g;
+	$anchor =~ s/,/-comma-/g;
+	$anchor =~ s/\./-dot-/g;
+	$anchor =~ s/!/-bang-/g;
+	$anchor =~ s/\?/-question-/g;
+	$anchor =~ s/\+/-plus-/g;
+	$anchor =~ s/\*/-x-/g;
+	$anchor =~ s/\(/-op-/g;
+	$anchor =~ s/\)/-cp-/g;
+	$anchor =~ s/\@/-at-/g;
+	$anchor =~ s/dcm_at/-at-/gi;
+	$anchor =~ s/\^/-hat-/g;
+	$anchor =~ s/=/-eq-/g;
+	$anchor =~ s/\$/S/;
+	$anchor =~ s/~/-tilde-/g;
+	$anchor =~ s/0/-zero-/g;
+	$anchor =~ s/1/-one-/g;
+	$anchor =~ s/2/-two-/g;
+	$anchor =~ s/3/-three-/g;
+	$anchor =~ s/4/-four-/g;
+	$anchor =~ s/5/-five-/g;
+	$anchor =~ s/6/-six-/g;
+	$anchor =~ s/7/-seven-/g;
+	$anchor =~ s/8/-eight-/g;
+	$anchor =~ s/9/-nine-/g;
+	$anchor =~ s/\|/-pipe-/g;
+	$anchor =~ s/\[/-lsqb-/g;
+	$anchor =~ s/\]/-rsqb-/g;
+	$anchor =~ s/^-+//;
+	$anchor =~ s/-+$//;
+	$anchor =~ s/--/-/g;	# get rid of double, initial and trailing hyphens
+	return &trim($anchor);
+}
+
+sub trim {
+	my $temp = $_[0];
+
+	$temp =~ s/^\s+//g;
+	$temp =~ s/\s+$//g;
+	return $temp;
 }
 1;

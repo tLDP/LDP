@@ -20,7 +20,7 @@ WriteMakefile(
     PREREQ_PM       => { 
                          'File::Basename'	=> 0,
 		         'HTML::Entities'	=> 0,
-		         'FileHandle'	=> 0,
+		         'FileHandle'		=> 0,
                        },
     MAN1PODS        => {
                          "doc/wt2db.pod"  => 'blib/man1/wt2db.1',
