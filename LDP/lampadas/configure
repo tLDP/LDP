@@ -52,6 +52,20 @@ check_which()
 }
 
 #
+# check_www_user
+#
+check_www_user()
+{
+  WWW_USER=$1
+  echo -n "Checking for user ${WWW_USER} in /etc/passwd ... "
+  grep "^${WWW_USER}:" /etc/passwd > /dev/null && echo "Ok." && return 0
+  echo "No."
+  echo "Is apache installed?"
+  CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
+  return 1
+}
+
+#
 # identify_dist
 #
 identify_dist()
@@ -102,6 +116,8 @@ check_dist_redhat()
 
   HTML_DOCBOOK=${dir}/docbook.xsl
   check_file ${mode} ${HTML_DOCBOOK} "${error}"
+
+  check_www_user apache
 }
 
 #
@@ -127,6 +143,8 @@ check_dist_debian()
 
   HTML_DOCBOOK=${dir}/docbook.xsl
   check_file ${mode} ${HTML_DOCBOOK} "${error}"
+
+  check_www_user www-data
 }
 
 #
@@ -158,10 +176,12 @@ check_dist_suse()
 
   HTML_DOCBOOK=${dir}/docbook.xsl
   check_file ${mode} ${HTML_DOCBOOK} "${error}"
+
+  check_www_user wwwrun
 }
 
 #
-#
+# check_perl_module
 #
 check_perl_module()
 {
@@ -197,6 +217,22 @@ check_html_parser()
   esac
   [ -n "${pkg}" ] && error="The package is called '${pkg}'."
   return 1
+}
+
+#
+# check_postgres
+#
+check_postgres()
+{
+  check_which count psql "Can't find package 'postgresql'"
+  if ! check_which count pg_config; then
+    case ${DIST_NAME} in
+      debian) pkg=postgresql-dev ;;
+      redhat) pkg=postgresql-devel ;;
+      suse) pkg=postgresql-devel ;;
+    esac
+    [ -n "${pkg}" ] && error="The package is called '${pkg}'."
+  fi
 }
 
 #
@@ -256,7 +292,6 @@ check_python()
 #
 check_python_import()
 {
-  PYTHON=python
   for module in "$@"; do
     echo -n "Checking python module ${module} ... "
     ${PYTHON} -c "import ${module}" 2> /dev/null
@@ -300,6 +335,7 @@ patch_setenv()
   echo -n "Patching ${file} ... "
   sed	-e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
   	-e "s|\(${prefix}XML_ISO_NUM=\).*|\1\"${XML_ISO_NUM}\"|" \
+  	-e "s|\(${prefix}WWW_USER=\).*|\1\"${WWW_USER}\"|" \
   	${file} > ${file}.tmp
   if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
     echo "No."
@@ -317,9 +353,12 @@ echo "Identified this installation as '${DIST_NAME}'."
 cat ${DIST_FILE}
 check_dist_${DIST_NAME} "count"
 
-for app in iconv m4 make perl psql sed tar; do
+for app in iconv m4 make perl sed tar; do
   check_which count ${app}
 done
+
+check_postgres
+
 check_xsltproc
 check_html_parser
 check_which count wt2db
@@ -334,4 +373,7 @@ fi
 echo "No errors."
 patch_xsl || exit -1
 patch_setenv bin/setenv.sh || exit -1
-sed -e 's/^export/setenv/' -e 's/=/ /' bin/setenv.sh > bin/setenv.csh
+echo -e "Creating bin/setenv.csh ... "
+sed -e 's/^export/setenv/' -e 's/=/ /' bin/setenv.sh \
+> bin/setenv.csh \
+&& echo "Ok."
