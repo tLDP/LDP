@@ -50,7 +50,9 @@ def login(req, username, password):
                     
             log(3, 'setting cookie')
             req.headers_out['Set-Cookie']='lampadas=' + session_id + '; path=/; expires=Wed, 09-Nov-2030 23:59:00 GMT'
-            return page_factory.page(URI('logged_in'))
+            uri = URI('logged_in')
+            uri.base = '../../'
+            return page_factory.page(uri)
         else:
             return "Wrong password"
     else:
@@ -65,4 +67,6 @@ def logout(req, username):
 
     log(3, 'clearing cookie')
     req.headers_out['Set-Cookie']='lampadas=foo; path=/; expires=Wed, 09-Nov-1980 23:59:00 GMT'
-    return page_factory.page(URI('logged_out'))
+    uri = URI('logged_out')
+    uri.base = '../../'
+    return page_factory.page(uri)
