@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# Backs up all files in current directory
-# modified within last 24 hours
-# in a tarred and gzipped file.
+# Backs up all files in current directory modified within last 24 hours
+# in a "tarball" (tarred and gzipped file).
 
-if [ $# = 0 ]
+NOARGS=0
+E_BADARGS=65
+
+if [ $# = $NOARGS ]
 then
   echo "Usage: `basename $0` filename"
-  exit 65
+  exit $E_BADARGS
 fi  
 
 tar cvf - `find . -mtime -1 -type f -print` > $1.tar

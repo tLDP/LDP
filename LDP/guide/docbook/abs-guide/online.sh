@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# logon.sh
-# A quick 'n dirty script to check whether you are on-line yet.
+# logon.sh: A quick 'n dirty script to check whether you are on-line yet.
 
 
 TRUE=1
@@ -10,7 +8,8 @@ LOGFILE=/var/log/messages
 TEMPFILE=temp.$$
 # Create a "unique" temp file name, using process id of the script.
 KEYWORD=address
-# At logon, the line "remote IP address xxx.xxx.xxx.xxx" appended to /var/log/messages.
+# At logon, the line "remote IP address xxx.xxx.xxx.xxx"
+#                     appended to /var/log/messages.
 ONLINE=22
 USER_INTERRUPT=13
 
@@ -30,11 +29,11 @@ do
   if [ ! -z "$search" ] # Quotes necessary because of possible spaces.
   then
      echo "On-line"
-     rm -f $TEMPFILE  # Clean up temp file.
+     rm -f $TEMPFILE    # Clean up temp file.
      exit $ONLINE
   else
-     echo -n "." # -n option to echo suppresses newline,
-                 # so you get continuous rows of dots.
+     echo -n "."        # -n option to echo suppresses newline,
+                        # so you get continuous rows of dots.
   fi
 
   sleep 1  
@@ -73,3 +72,6 @@ do echo -n .
    sleep $CHECK_INTERVAL
 done
 echo "On-line"
+
+# Exercise: Consider the strengths and weaknesses
+#           of each of these approaches.

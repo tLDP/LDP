@@ -6,8 +6,8 @@ then
 else
   Filename=$1
 fi  
-# Filename=${1:-names.data}  can replace the above test.
-# (parameter substitution)
+# Filename=${1:-names.data}
+# can replace the above test (parameter substitution).
 
 count=0
 
@@ -15,10 +15,10 @@ echo
 
 while [ "$name" != Smith ]  # Why is variable $name in quotes?
 do
-  read name         # Reads from $Filename, rather than stdin.
+  read name                 # Reads from $Filename, rather than stdin.
   echo $name
   let "count += 1"
-done <"$Filename"   # Redirects stdin to file $Filename. 
+done <"$Filename"           # Redirects stdin to file $Filename. 
 
 echo; echo "$count names read"; echo
 

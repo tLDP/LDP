@@ -1,6 +1,5 @@
 #!/bin/bash
-# Process id identifier:
-# gives complete path name to process associated with pid.
+# pid-identifier.sh: Gives complete path name to process associated with pid.
 
 ARGNO=1  # Number of arguments the script expects.
 E_WRONGARGS=65

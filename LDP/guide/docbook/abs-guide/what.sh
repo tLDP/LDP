@@ -7,8 +7,7 @@ DIRECTORY="/usr/X11R6/bin"
 
 for file in $DIRECTORY/*
 do
-  whatis `basename $file`
-  # Echoes info about the binary.
+  whatis `basename $file`   # Echoes info about the binary.
 done
 
 exit 0

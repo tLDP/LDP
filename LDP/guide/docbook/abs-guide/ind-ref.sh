@@ -1,7 +1,5 @@
 #!/bin/bash
-
 # Indirect variable referencing.
-
 
 a=letter_of_alphabet
 letter_of_alphabet=z
@@ -25,7 +23,7 @@ table_cell_3=24
 echo "\"table_cell_3\" = $table_cell_3"
 echo -n "dereferenced \"t\" = "; eval echo \$$t
 # In this simple case,
-# eval t=\$$t; echo "\"t\" = $t"
+#   eval t=\$$t; echo "\"t\" = $t"
 # also works (why?).
 
 echo

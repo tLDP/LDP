@@ -24,7 +24,7 @@ echo; echo "IFS=:"
 echo "-----"
 
 IFS=:
-var=":a::b:c:::"  # Same as above, but substitute ":" for " ".
+var=":a::b:c:::"               # Same as above, but substitute ":" for " ".
 output_args_one_per_line $var
 #
 # []

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 func2 () {
-   if [ -z "$1" ]
-   # Checks if parameter #1 is zero length.
+   if [ -z "$1" ]                    # Checks if parameter #1 is zero length.
    then
      echo "-Parameter #1 is zero length.-"  # Also if no parameter is passed.
    else
@@ -36,7 +35,7 @@ echo "One parameter passed."
 func2 first           # Called with one param
 echo
 
-echo "Two parameter passed."   
+echo "Two parameters passed."   
 func2 first second    # Called with two params
 echo
 

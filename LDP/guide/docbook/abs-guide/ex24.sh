@@ -1,9 +1,9 @@
 #!/bin/bash
 
-ARGS=2
+EXPECTED_ARGS=2
 E_BADARGS=65
 
-if [ $# -ne $ARGS ]
+if [ $# -ne $EXPECTED_ARGS ]
 # Check for proper no. of command line args.
 then
    echo "Usage: `basename $0` phone# text-file"
@@ -18,22 +18,19 @@ then
 fi
   
 
-# Create fax formatted files from text files.
-fax make $2
+fax make $2              # Create fax formatted files from text files.
 
-for file in $(ls $2.0*)
-# Concatenate the converted files.
-# Uses wild card in variable list.
+for file in $(ls $2.0*)  # Concatenate the converted files.
+                         # Uses wild card in variable list.
 do
   fil="$fil $file"
 done  
 
-# Do the work.
-efax -d /dev/ttyS3 -o1 -t "T$1" $fil
+efax -d /dev/ttyS3 -o1 -t "T$1" $fil   # Do the work.
 
 
 # As S.C. points out, the for-loop can be eliminated with
 #    efax -d /dev/ttyS3 -o1 -t "T$1" $2.0*
-# but it's not as instructive [grin].
+# but it's not quite as instructive [grin].
 
 exit 0

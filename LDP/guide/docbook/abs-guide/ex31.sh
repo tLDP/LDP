@@ -1,7 +1,6 @@
 #!/bin/bash
 
-PS3='Choose your favorite vegetable: '
-# Sets the prompt string.
+PS3='Choose your favorite vegetable: ' # Sets the prompt string.
 
 echo
 
@@ -11,8 +10,7 @@ do
   echo "Your favorite veggie is $vegetable."
   echo "Yuck!"
   echo
-  break
-  # if no 'break' here, keeps looping forever.
+  break  # if no 'break' here, keeps looping forever.
 done
 
 exit 0

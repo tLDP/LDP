@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Let's check some of the system's environmental variables.
+# Check some of the system's environmental variables.
 # If, for example, $USER, the name of the person at the console, is not set,
 # the machine will not recognize you.
 

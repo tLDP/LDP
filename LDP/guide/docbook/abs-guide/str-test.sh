@@ -1,15 +1,14 @@
 #!/bin/bash
-# Testing null strings and unquoted strings.
-# But not strings and sealing wax, not to mention cabbages and kings...
+# str-test.sh: Testing null strings and unquoted strings,
+# but not strings and sealing wax, not to mention cabbages and kings...
 
 # Using   if [ ... ]
-
 
 
 # If a string has not been initialized, it has no defined value.
 # This state is called "null" (not the same as zero).
 
-if [ -n $string1 ]   # $string1 has not been declared or initialized.
+if [ -n $string1 ]    # $string1 has not been declared or initialized.
 then
   echo "String \"string1\" is not null."
 else  
@@ -35,7 +34,7 @@ fi      # Quote strings within test brackets!
 echo
 
 
-if [ $string1 ]  # This time, $string1 stands naked.
+if [ $string1 ]       # This time, $string1 stands naked.
 then
   echo "String \"string1\" is not null."
 else  
@@ -57,7 +56,7 @@ echo
 
 string1=initialized
 
-if [ $string1 ]  # Again, $string1 stands naked.
+if [ $string1 ]       # Again, $string1 stands naked.
 then
   echo "String \"string1\" is not null."
 else  
@@ -69,7 +68,7 @@ fi
 
 string1="a = b"
 
-if [ $string1 ]  # Again, $string1 stands naked.
+if [ $string1 ]       # Again, $string1 stands naked.
 then
   echo "String \"string1\" is not null."
 else  
@@ -78,5 +77,4 @@ fi
 # Not quoting "$string1" now gives wrong result!
 
 exit 0
-
 # Also, thank you, Florian Wisser, for the "heads-up".

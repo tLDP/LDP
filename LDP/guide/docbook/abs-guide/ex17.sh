@@ -8,14 +8,13 @@ echo
 echo "The name of this script is \"$0\"."
 # Adds ./ for current directory
 echo "The name of this script is \"`basename $0`\"."
-# Strip out path name info (see 'basename')
+# Strips out path name info (see 'basename')
 
 echo
 
-if [ -n "$1" ]  # Tested variable is quoted.
+if [ -n "$1" ]              # Tested variable is quoted.
 then
- echo "Parameter #1 is $1"
- # Need quotes to escape #
+ echo "Parameter #1 is $1"  # Need quotes to escape #
 fi 
 
 if [ -n "$2" ]

@@ -1,5 +1,5 @@
 #!/bin/bash
-# findstring.sh: find a particular string in binaries in a specified directory.
+# findstring.sh: Find a particular string in binaries in a specified directory.
 
 directory=/usr/bin/
 fstring="Free Software Foundation"  # See which files come from the FSF.

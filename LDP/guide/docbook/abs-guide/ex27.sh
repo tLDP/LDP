@@ -1,7 +1,6 @@
 #!/bin/bash
 
-until [ "$var1" = end ]
-# Tests condition at top of loop.
+until [ "$var1" = end ] # Tests condition here, at top of loop.
 do
   echo "Input variable #1 "
   echo "(end to exit)"

@@ -3,8 +3,7 @@
 echo
 
 echo "Testing \"0\""
-if [ 0 ]
-#zero
+if [ 0 ]      # zero
 then
   echo "0 is true."
 else
@@ -14,8 +13,7 @@ fi
 echo
 
 echo "Testing \"NULL\""
-if [ ]
-#NULL (empty condition)
+if [ ]        # NULL (empty condition)
 then
   echo "NULL is true."
 else
@@ -25,8 +23,7 @@ fi
 echo
 
 echo "Testing \"xyz\""
-if [ xyz ]
-#string
+if [ xyz ]    # string
 then
   echo "Random string is true."
 else
@@ -36,8 +33,8 @@ fi
 echo
 
 echo "Testing \"\$xyz\""
-if [ $xyz ]  # Tests if $xyz is null, but...
-#string
+if [ $xyz ]   # Tests if $xyz is null, but...
+              # it's only an uninitialized variable.
 then
   echo "Uninitialized variable is true."
 else
@@ -47,8 +44,7 @@ fi
 echo
 
 echo "Testing \"-n \$xyz\""
-if [ -n "$xyz" ]  # ...this is better.
-#string
+if [ -n "$xyz" ]            # More pedantically correct.
 then
   echo "Uninitialized variable is true."
 else
@@ -56,6 +52,7 @@ else
 fi
 
 echo
+
 
 # When is "false" true?
 

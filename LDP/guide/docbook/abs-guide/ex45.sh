@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Demonstrating some of the uses of 'expr'
-# +++++++++++++++++++++++++++++++++++++++
+# =======================================
 
 echo
 
@@ -82,10 +82,12 @@ echo "Substring of \"$a\", starting at position 2, and 6 chars long is \"$b\"."
 b=`expr length $a`
 echo "Length of \"$a\" is $b."
 
+
 # 'match' operations similarly to 'grep'
+#      uses Regular expressions
 b=`expr match "$a" '[0-9]*'`
 echo Number of digits at the beginning of \"$a\" is $b.
-b=`expr match "$a" '\([0-9]*\)'`
+b=`expr match "$a" '\([0-9]*\)'`                    # Note escaped parentheses.
 echo "The digits at the beginning of \"$a\" are \"$b\"."
 
 echo

@@ -1,19 +1,16 @@
 #!/bin/bash
+# Using 'shift' to step through all the positional parameters.
 
-# Name this script something like shift000,
+# Name this script something like shft,
 # and invoke it with some parameters, for example
-# ./shift000 a b c def 23 skidoo
+# ./shft a b c def 23 skidoo
 
-# Demo of using 'shift'
-# to step through all the positional parameters.
-
-until [ -z "$1" ]
+until [ -z "$1" ]  # Until all parameters used up...
 do
   echo -n "$1 "
   shift
 done
 
-echo
-# Extra line feed.
+echo   # Extra line feed.
 
 exit 0

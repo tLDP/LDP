@@ -11,7 +11,8 @@ do
     if [ "$inner" -eq 7 ]
     then
       continue 2  # Continue at loop on 2nd level, that is "outer loop".
-      # Replace above line with a simple "continue" to see normal loop behavior.
+                  # Replace above line with a simple "continue"
+                  # to see normal loop behavior.
     fi  
 
     echo -n "$inner "  # 8 9 10 will never echo.

@@ -4,10 +4,9 @@
 
 b=`ls /usr/local/bin`
 
-# ...40 columns wide.
-echo $b | fmt -w 40
+echo $b | fmt -w 40   # ...40 columns wide.
 
 # Could also have been done by
-# echo $b | fold - -s -w 40
+#  echo $b | fold - -s -w 40
  
 exit 0

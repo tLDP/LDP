@@ -6,8 +6,8 @@
 Rows=5
 Columns=5
 
-declare -a alpha   # char alpha [Rows] [Columns];
-# Unnecessary declaration.
+declare -a alpha     # char alpha [Rows] [Columns];
+                     # Unnecessary declaration.
 
 load_alpha ()
 {
@@ -20,7 +20,7 @@ do
   local row=`expr $rc / $Columns`
   local column=`expr $rc % $Rows`
   let "index = $row * $Rows + $column"
-  alpha[$index]=$i              # alpha[$row][$column]
+  alpha[$index]=$i   # alpha[$row][$column]
   let "rc += 1"
 done  
 
@@ -37,8 +37,8 @@ local index
 echo
 
 while [ "$row" -lt "$Rows" ]   # Print out in "row major" order -
-do                             # columns vary while row (outer loop) remains the same.
-
+do                             # columns vary
+                               # while row (outer loop) remains the same.
   local column=0
   
   while [ "$column" -lt "$Columns" ]
@@ -59,7 +59,7 @@ done
 echo
 }
 
-filter ()  # Filter out negative array indices.
+filter ()     # Filter out negative array indices.
 {
 
 echo -n "  "  # Provides the tilt.
@@ -76,8 +76,8 @@ fi
 
 
 
-rotate ()  # Rotate the array 45 degrees ("balance" it on its lower lefthand corner).
-{
+rotate ()  # Rotate the array 45 degrees
+{          # ("balance" it on its lower lefthand corner).
 local row
 local column
 

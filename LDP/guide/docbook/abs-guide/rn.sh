@@ -8,7 +8,7 @@
 
 ARGS=2
 E_BADARGS=65
-ONE=1  # For getting singular/plural right (see below).
+ONE=1                     # For getting singular/plural right (see below).
 
 if [ $# -ne "$ARGS" ]
 then
@@ -17,10 +17,10 @@ then
   exit $E_BADARGS
 fi
 
-number=0    # Keeps track of how many files actually renamed.
+number=0                  # Keeps track of how many files actually renamed.
 
 
-for filename in *$1*  #Traverse all matching files in directory.
+for filename in *$1*      #Traverse all matching files in directory.
 do
    if [ -f "$filename" ]  # If finds match...
    then
@@ -31,7 +31,7 @@ do
    fi
 done   
 
-if [ "$number" -eq "$ONE" ]   # For correct grammar.
+if [ "$number" -eq "$ONE" ]                # For correct grammar.
 then
  echo "$number file renamed."
 else 

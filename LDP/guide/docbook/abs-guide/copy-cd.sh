@@ -9,24 +9,24 @@ SPEED=2                                    # May use higher speed if supported.
 
 echo; echo "Insert source CD, but do *not* mount it."
 echo "Press ENTER when ready. "
-read ready     # Wait for input, $ready not used.
+read ready                                 # Wait for input, $ready not used.
 
 echo; echo "Copying the source CD to $OF."
 echo "This may take a while. Please be patient."
 
-dd if=$CDROM of=$OF bs=$BLOCKSIZE    # Raw device copy.
+dd if=$CDROM of=$OF bs=$BLOCKSIZE          # Raw device copy.
 
 
 echo; echo "Remove data CD."
 echo "Insert blank CDR."
 echo "Press ENTER when ready. "
-read ready     # Wait for input, $ready not used.
+read ready                                 # Wait for input, $ready not used.
 
 echo "Copying $OF to CDR."
 
 cdrecord -v -isosize speed=$SPEED dev=0,0 $OF
 # Uses Joerg Schilling's "cdrecord" package (see its docs).
-# (http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html)
+# http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html
 
 
 echo; echo "Done copying $OF to CDR on device $CDROM."

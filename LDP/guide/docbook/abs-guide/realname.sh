@@ -3,7 +3,7 @@
 # From username, gets "real name" from /etc/passwd.
 
 ARGCOUNT=1  # Expect one arg.
-WRONGARGS=65
+E_WRONGARGS=65
 
 file=/etc/passwd
 pattern=$1
@@ -11,7 +11,7 @@ pattern=$1
 if [ $# -ne "$ARGCOUNT" ]
 then
   echo "Usage: `basename $0` USERNAME"
-  exit $WRONGARGS
+  exit $E_WRONGARGS
 fi  
 
 file_excerpt ()  # Scan file for pattern, the print relevant portion of line.

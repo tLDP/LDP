@@ -1,5 +1,6 @@
 #!/bin/bash
-# Classic rot13 algorithm, encryption that might fool a 3-year old.
+# rot13.sh: Classic rot13 algorithm, encryption that might fool a 3-year old.
+
 # Usage: ./rot13.sh filename
 # or     ./rot13.sh &lt;filename
 # or     ./rot13.sh and supply keyboard input (stdin)

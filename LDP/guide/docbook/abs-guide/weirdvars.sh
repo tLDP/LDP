@@ -1,13 +1,14 @@
 #!/bin/bash
-# Echoing weird variables.
+# weirdvars.sh: Echoing weird variables.
 
 var="'(]\\{}\$\""
 echo $var        # '(]\{}$"
 echo "$var"      # '(]\{}$"     Doesn't make a difference.
 
 IFS='\'
-echo $var        # '(]\{}$"
-echo "$var"      # '(] {}$"     \ converted to space.
+echo $var        # '(]\{}$"     \ converted to space.
+echo "$var"      # '(] {}$"
 
-# Examples above supplied by Stephane Chazelas.
+# Examples above supplied by S.C.
+
 exit 0

@@ -3,6 +3,7 @@
 echo
 
 # When is a variable "naked", i.e., lacking the '$' in front?
+# When it is being assigned, rather than referenced.
 
 # Assignment
 a=879
@@ -24,7 +25,7 @@ done
 echo
 echo
 
-# In a 'read' statement
+# In a 'read' statement (also a type of assignment)
 echo -n "Enter \"a\" "
 read a
 echo "The value of \"a\" is now $a"

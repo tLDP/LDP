@@ -4,14 +4,14 @@
 # Written by Stephane Chazelas,
 # and modified by the document author.
 
-INTERVAL=5  # timeout interval
+INTERVAL=5                # timeout interval
 
 timedout_read() {
   timeout=$1
   varname=$2
   old_tty_settings=`stty -g`
   stty -icanon min 0 time ${timeout}0
-  eval read $varname     # or just    read $varname
+  eval read $varname      # or just    read $varname
   stty "$old_tty_settings"
   # See man page for "stty".
 }
@@ -34,7 +34,7 @@ fi
 
 echo
 
-# This script behaves slightly different than the previous "timed input" example.
+# The behavior of this script differs somewhat from "timed-input.sh".
 # At each keystroke, the counter resets.
 
 exit 0

@@ -1,6 +1,5 @@
 #!/bin/bash
-
-# Bubble sort, of sorts.
+# bubble.sh: Bubble sort, of sorts.
 
 # Recall the algorithm for a bubble sort. In this particular version...
 
@@ -26,9 +25,9 @@ exchange()
 declare -a Countries  # Declare array, optional here since it's initialized below.
 
 Countries=(Netherlands Ukraine Zaire Turkey Russia Yemen Syria Brazil Argentina Nicaragua Japan Mexico Venezuela Greece England Israel Peru Canada Oman Denmark Wales France Kenya Qatar Liechtenstein Hungary)
-# Couldn't think of one starting with X (darn).
+# Couldn't think of one starting with X (darn!).
 
-clear  # Clear the screen to start with. 
+clear                      # Clear the screen to start with. 
 
 echo "0: ${Countries[*]}"  # List entire array at pass 0.
 
@@ -37,16 +36,19 @@ let "comparisons = $number_of_elements - 1"
 
 count=1 # Pass number.
 
-while [ $comparisons -gt 0 ]   # Beginning of outer loop
+while [ "$comparisons" -gt 0 ]          # Beginning of outer loop
 do
 
   index=0  # Reset index to start of array after each pass.
 
-  while [ $index -lt $comparisons ] # Beginning of inner loop
+  while [ "$index" -lt "$comparisons" ] # Beginning of inner loop
   do
     if [ ${Countries[$index]} \> ${Countries[`expr $index + 1`]} ]
     # If out of order...
     # Recalling that \> is ASCII comparison operator.
+
+    # if [[ ${Countries[$index]} > ${Countries[`expr $index + 1`]} ]]
+    # also works.
     then
       exchange $index `expr $index + 1`  # Swap.
     fi  
@@ -54,16 +56,15 @@ do
   done # End of inner loop
   
 
-let "comparisons -= 1"
-# Since "heaviest" element bubbles to bottom, we need do one less comparison each pass.
+let "comparisons -= 1" # Since "heaviest" element bubbles to bottom,
+                       # we need do one less comparison each pass.
 
 echo
-echo "$count: ${Countries[@]}"
-# Print resultant array at end of each pass.
+echo "$count: ${Countries[@]}"  # Print resultant array at end of each pass.
 echo
-let "count += 1"   # Increment pass count.
+let "count += 1"                # Increment pass count.
 
-done  # End of outer loop
+done                            # End of outer loop
 
 # All done.
 

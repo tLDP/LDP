@@ -1,6 +1,6 @@
 #!/bin/bash
+# allprofs.sh: print all user profiles
 
-# allprofs - print all user profiles
 # This script written by Heiner Steven, and modified by the document author.
 
 FILE=.bashrc  # File containing user profile,

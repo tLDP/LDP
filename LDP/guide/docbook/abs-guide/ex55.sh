@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# --> Comments added by the author of this document marked by "-->".
+# --> Comments added by the author of this document marked by "# -->".
 
 # --> This is part of the 'rc' script package
 # --> by Miquel van Smoorenburg, &lt;miquels@drinkel.nl.mugnet.org>

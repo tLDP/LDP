@@ -1,7 +1,7 @@
 #!/bin/bash
-# Seeding the RANDOM variable.
+# seeding-random.sh: Seeding the RANDOM variable.
 
-MAXCOUNT=25   # How many numbers to generate.
+MAXCOUNT=25       # How many numbers to generate.
 
 random_numbers ()
 {
@@ -16,7 +16,7 @@ done
 
 echo; echo
 
-RANDOM=1   # Setting RANDOM seeds the random number generator.
+RANDOM=1          # Setting RANDOM seeds the random number generator.
 random_numbers
 
 echo; echo

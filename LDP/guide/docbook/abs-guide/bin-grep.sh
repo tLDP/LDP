@@ -1,11 +1,11 @@
 #!/bin/bash
-# Locates matching strings in a binary file.
+# bin-grep.sh: Locates matching strings in a binary file.
 
 # A "grep" replacement for binary files.
 # Similar effect to "grep -a"
 
 E_BADARGS=65
-NOFILE=66
+E_NOFILE=66
 
 if [ $# -ne 2 ]
 then
@@ -16,13 +16,13 @@ fi
 if [ ! -f "$2" ]
 then
   echo "File \"$2\" does not exist."
-  exit $NOFILE
+  exit $E_NOFILE
 fi  
 
 
 for word in $( strings "$2" | grep "$1" )
-# The "strings" command lists strings in binary files,
-# then piped to "grep", which tests for desired string.
+# The "strings" command lists strings in binary files.
+# Output then piped to "grep", which tests for desired string.
 do
   echo $word
 done

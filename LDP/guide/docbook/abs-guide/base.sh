@@ -15,7 +15,8 @@
 # ==> Used in this document with the script author's permission.
 # ==> Comments added by document author.
 
-PN=`basename "$0"`			# Program name
+NOARGS=65
+PN=`basename "$0"`			       # Program name
 VER=`echo '$Revision$' | cut -d' ' -f2`  # ==> VER=1.2
 
 Usage () {
@@ -28,8 +29,8 @@ A number may be
     octal (base 8)		starting with 0  (i.e. 014)
     hexadecimal (base 16)	starting with 0x (i.e. 0xc)
     decimal			otherwise (i.e. 12)" >&2
-    exit 65
-}
+    exit $NOARGS 
+}   # ==> Function to print usage message.
 
 Msg () {
     for i   # ==> in [list] missing.
@@ -81,7 +82,7 @@ while [ $# -gt 0 ]
 do
     case "$1" in
 	--)	shift; break;;
-	-h)	Usage;;  # ==> Help message.
+	-h)	Usage;;                 # ==> Help message.
 	-*)	Usage;;
 	*)	break;;			# first number
     esac   # ==> More error checking for illegal input would be useful.

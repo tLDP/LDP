@@ -2,13 +2,11 @@
 
 funky ()
 {
-  echo This is a funky function.
-  echo Now exiting funky function.
-}
+  echo "This is a funky function."
+  echo "Now exiting funky function."
+} # Function declaration must precede call.
 
-# Note: function must precede call.
-
-# Now, call the function.
+  # Now, call the function.
 
 funky
 

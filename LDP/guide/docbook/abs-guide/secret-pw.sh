@@ -9,7 +9,7 @@ echo "your password would have been compromised."
 
 echo && echo  # Two line-feeds in an "and list".
 
-stty -echo   # Turns off screen echo.
+stty -echo    # Turns off screen echo.
 
 echo -n "Enter password again "
 read passwd
@@ -17,6 +17,6 @@ echo
 echo "password is $passwd"
 echo
 
-stty echo   # Restores screen echo.
+stty echo     # Restores screen echo.
 
 exit 0

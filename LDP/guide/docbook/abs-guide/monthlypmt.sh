@@ -22,7 +22,7 @@ read term
 
 
  interest_r=$(echo "scale=9; $interest_r/100.0" | bc) # Convert to decimal.
- # "scale" determines how many decimal places.
+                 # "scale" determines how many decimal places.
   
 
  interest_rate=$(echo "scale=9; $interest_r/12 + 1.0" | bc)
@@ -40,7 +40,7 @@ read term
 #  bottom = $(($bottom + $bot"))
  done
 
-# let "payment = $top/$bottom"
+ # let "payment = $top/$bottom"
  payment=$(echo "scale=2; $top/$bottom" | bc)
  # Use two decimal places for dollars and cents.
  

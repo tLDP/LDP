@@ -3,13 +3,12 @@
 # Adds up a specified column (of numbers) in the target file.
 
 ARGS=2
-WRONGARGS=65
+E_WRONGARGS=65
 
-if [ $# -ne "$ARGS" ]
-# Check for proper no. of command line args.
+if [ $# -ne "$ARGS" ] # Check for proper no. of command line args.
 then
    echo "Usage: `basename $0` filename column-number"
-   exit $WRONGARGS
+   exit $E_WRONGARGS
 fi
 
 filename=$1

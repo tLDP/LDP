@@ -1,22 +1,21 @@
 #!/bin/bash
 
-# Example 3-71 modified to use encrypted password.
+# Example "ex72.sh" modified to use encrypted password.
+
+E_BADARGS=65
 
 if [ -z "$1" ]
 then
   echo "Usage: `basename $0` filename"
-  exit 65
+  exit $E_BADARGS
 fi  
 
-Username=bozo
-# Change to suit.
+Username=bozo           # Change to suit.
 
-Filename=`basename $1`
-# Strips pathname out of file name
+Filename=`basename $1`  # Strips pathname out of file name
 
 Server="XXX"
-Directory="YYY"
-# Change above to actual server name & directory.
+Directory="YYY"         # Change above to actual server name & directory.
 
 
 password=`cruft &lt;pword`
@@ -29,15 +28,14 @@ password=`cruft &lt;pword`
 
 
 ftp -n $Server &lt;&lt;End-Of-Session
-# -n option disables auto-logon
-
 user $Username $Password
 binary
 bell
-# Ring 'bell' after each file transfer
 cd $Directory
 put $Filename
 bye
 End-Of-Session
+# -n option to "ftp" disables auto-logon.
+# "bell" rings 'bell' after each file transfer.
 
 exit 0

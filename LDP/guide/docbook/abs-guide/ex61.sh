@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Arabic number to Roman numeral conversion
-# Range 0 - 200
+# Range: 0 - 200
 # It's crude, but it works.
 
 # Extending the range and otherwise improving the script
@@ -9,23 +9,24 @@
 
 # Usage: roman number-to-convert
 
-ARG_ERR=65
 LIMIT=200
+E_ARG_ERR=65
+E_OUT_OF_RANGE=66
 
 if [ -z "$1" ]
 then
   echo "Usage: `basename $0` number-to-convert"
-  exit $ARG_ERR
+  exit $E_ARG_ERR
 fi  
 
 num=$1
 if [ "$num" -gt $LIMIT ]
 then
   echo "Out of range!"
-  exit $OUT_OF_RANGE
+  exit $E_OUT_OF_RANGE
 fi  
 
-to_roman ()
+to_roman ()   # Must declare function before first call to it.
 {
 number=$1
 factor=$2
@@ -39,10 +40,11 @@ do
 done  
 
 return $number
+       # Exercise for the reader:
+       # Explain how this function works.
+       # Hint: division by successive subtraction.
 }
-
-# Note: must declare function
-#       before first call to it.
+   
 
 to_roman $num 100 C
 num=$?

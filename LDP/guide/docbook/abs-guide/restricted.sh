@@ -1,5 +1,6 @@
 #!/bin/bash
-# Starting the script with "#!/bin/bash -r" runs entire script in restricted mode.
+# Starting the script with "#!/bin/bash -r"
+# runs entire script in restricted mode.
 
 echo
 
@@ -38,8 +39,7 @@ echo
 
 echo "Attempting to redirect output in restricted mode."
 ls -l /usr/bin > bin.files
-# Try to list attempted file creation effort.
-ls -l bin.files
+ls -l bin.files    # Try to list attempted file creation effort.
 
 echo
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # String expansion.
-# Introduced in version 2 of bash.
+# Introduced with version 2 of Bash.
 
 # Strings of the form $'xxx'
 # have the standard escaped characters interpreted. 

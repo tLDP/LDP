@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pattern matching using the # ## % %% parameter substitution operators.
+# Pattern matching  using the # ## % %% parameter substitution operators.
 
 var1=abcd12345abc6789
 pattern1=a*c  # * (wild card) matches everything between a - c.
@@ -34,7 +34,7 @@ echo '${var1%%pattern2} =' "${var1%%$pattern2}"    #     a
 #                                    ^^^^                 |-------------|
 
 # Remember, # and ## work from the left end of string,
-#           % and %% work from the right end of string.
+#           % and %% work from the right end.
 
 echo
 

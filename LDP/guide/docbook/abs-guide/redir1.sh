@@ -2,12 +2,12 @@
 # Redirecting stdin using 'exec'.
 
 
-exec 6<&0   # Link file descriptor #6 with stdin.
+exec 6<&0          # Link file descriptor #6 with stdin.
 
 exec < data-file   # stdin replaced by file "data-file"
 
-read a1   # Reads first line of file "data-file".
-read a2   # Reads second line of file "data-file."
+read a1            # Reads first line of file "data-file".
+read a2            # Reads second line of file "data-file."
 
 echo
 echo "Following lines read from file."
@@ -30,4 +30,4 @@ echo "b1 = $b1"
 
 echo
 
-exit
+exit 0

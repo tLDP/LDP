@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # $RANDOM returns a different random integer at each invocation.
-# Nominal range: 0 - 32767 (signed integer).
+# Nominal range: 0 - 32767 (signed 16-bit integer).
 
 MAXCOUNT=10
 count=1
@@ -17,7 +17,7 @@ do
 done
 echo "-----------------"
 
-# If you need a random int within a certain range, then use the 'modulo' operator.
+# If you need a random int within a certain range, use the 'modulo' operator.
 # This returns the remainder of a division operation.
 
 RANGE=500
@@ -26,7 +26,7 @@ echo
 
 number=$RANDOM
 let "number %= $RANGE"
-echo "Random number less than $RANGE  -->  $number"
+echo "Random number less than $RANGE  ---  $number"
 
 echo
 
@@ -40,7 +40,7 @@ while [ "$number" -le $FLOOR ]
 do
   number=$RANDOM
 done
-echo "Random number greater than $FLOOR -->  $number"
+echo "Random number greater than $FLOOR ---  $number"
 echo
 
 
@@ -51,11 +51,11 @@ do
   number=$RANDOM
   let "number %= $RANGE"  # Scales $number down within $RANGE.
 done
-echo "Random number between $FLOOR and $RANGE -->  $number"
+echo "Random number between $FLOOR and $RANGE ---  $number"
 echo
 
 
-# May generate binary choice, that is, "true" or "false" value.
+# Generate binary choice, that is, "true" or "false" value.
 BINARY=2
 number=$RANDOM
 T=1
@@ -74,7 +74,7 @@ echo
 
 
 # May generate toss of the dice.
-SPOTS=7
+SPOTS=7   # Modulo 7 gives range 0 - 6.
 DICE=2
 ZERO=0
 die1=0
@@ -82,14 +82,14 @@ die2=0
 
 # Tosses each die separately, and so gives correct odds.
 
-  while [ "$die1" -eq $ZERO ]   #Can't have a zero come up.
+  while [ "$die1" -eq $ZERO ]     # Can't have a zero come up.
   do
-    let "die1 = $RANDOM % $SPOTS"
+    let "die1 = $RANDOM % $SPOTS" # Roll first one.
   done  
 
   while [ "$die2" -eq $ZERO ]
   do
-    let "die2 = $RANDOM % $SPOTS"
+    let "die2 = $RANDOM % $SPOTS" # Roll second one.
   done  
 
 let "throw = $die1 + $die2"

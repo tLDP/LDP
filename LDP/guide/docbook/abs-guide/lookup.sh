@@ -1,6 +1,5 @@
 #!/bin/bash
-# lookup:
-# Does a dictionary lookup on each word in a data file.
+# lookup: Does a dictionary lookup on each word in a data file.
 
 file=words.data  # Data file from which to read words to test.
 
@@ -8,9 +7,9 @@ echo
 
 while [ "$word" != end ]  # Last word in data file.
 do
-  read word   # From data file, because of redirection at end of loop.
+  read word      # From data file, because of redirection at end of loop.
   look $word > /dev/null  # Don't want to display lines in dictionary file.
-  lookup=$?   # Exit status of 'look' command.
+  lookup=$?      # Exit status of 'look' command.
 
   if [ "$lookup" -eq 0 ]
   then
@@ -19,14 +18,14 @@ do
     echo "\"$word\" is invalid."
   fi  
 
-done <"$file"  # Redirects stdin to $file, so "reads" come from there.
+done <"$file"    # Redirects stdin to $file, so "reads" come from there.
 
 echo
 
 exit 0
 
-# ----------------------------------------------------------------------
-# Code below this line will not execute because of "exit" command above.
+# ----------------------------------------------------------------
+# Code below line will not execute because of "exit" command above.
 
 
 # Stephane Chazelas proposes the following, more concise alternative:

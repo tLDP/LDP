@@ -1,7 +1,7 @@
 #!/bin/bash
-# Test RANDOM for randomness.
+# How random is RANDOM?
 
-RANDOM=$$       # Reseed the random number generator using process ID.
+RANDOM=$$       # Reseed the random number generator using script process ID.
 
 PIPS=6          # A die has 6 pips.
 MAXTHROWS=600   # Increase this, if you have nothing better to do with your time.

@@ -5,9 +5,8 @@
 for filename in *
 do
 badname=`echo "$filename" | sed -n /[\+\{\;\"\\\=\?~\(\)\<\>\&\*\|\$]/p`
-# Files containing those nasties:   + { ; " \ = ? ~ ( ) < > & * | $
-rm $badname 2>/dev/null
-#           So error messages deep-sixed.
+# Files containing those nasties:     + { ; " \ = ? ~ ( ) < > & * | $
+rm $badname 2>/dev/null    # So error messages deep-sixed.
 done
 
 # Now, take care of files containing all manner of whitespace.
@@ -24,4 +23,3 @@ exit 0
 find . -name '*[+{;"\\=?~()&lt;&gt;&*|$ ]*' -exec rm -f '{}' \;
 exit 0
 # (Thanks, S.C.)
-

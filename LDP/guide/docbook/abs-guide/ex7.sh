@@ -5,9 +5,9 @@ echo "var1 = $var1"
 
 t=${var1#*-*}
 echo "var1 (with everything, up to and including first - stripped out) = $t"
-# t=${var1#*-}  works just the same,
-# since # matches the shortest string,
-# and * matches everything preceding, including an empty string.
+#  t=${var1#*-}  works just the same,
+#+ since # matches the shortest string,
+#+ and * matches everything preceding, including an empty string.
 # (Thanks, S. C. for pointing this out.)
 
 t=${var1##*-*}
@@ -19,23 +19,26 @@ echo "var1 (with everything from the last - on stripped out) = $t"
 
 echo
 
+# -------------------------------------------
 path_name=/home/bozo/ideas/thoughts.for.today
+# -------------------------------------------
 echo "path_name = $path_name"
 t=${path_name##/*/}
 echo "path_name, stripped of prefixes = $t"
 # Same effect as   t=`basename $path_name` in this particular case.
-# t=${path_name%/}; t=${t##*/}   is a more general solution, but still fails sometimes.
-# If $path_name ends with a newline, then `basename $path_name` will not work,
-#    but the above expression will.
-# (Thanks Stephane Chazelas.)
+#  t=${path_name%/}; t=${t##*/}   is a more general solution,
+#+ but still fails sometimes.
+#  If $path_name ends with a newline, then `basename $path_name` will not work,
+#+ but the above expression will.
+# (Thanks, S.C.)
 
 t=${path_name%/*.*}
 # Same effect as   t=`dirname $path_name`
 echo "path_name, stripped of suffixes = $t"
 # These will fail in some cases, such as "../", "/foo////", # "foo/", "/".
-# Removing suffixes, especially when the basename has no suffix,
-# but the dirname does, also complicates matters.
-# (Thanks, Stephane Chazelas.)
+#  Removing suffixes, especially when the basename has no suffix,
+#+ but the dirname does, also complicates matters.
+# (Thanks, S.C.)
 
 echo
 

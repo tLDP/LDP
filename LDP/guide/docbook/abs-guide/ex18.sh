@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Does a 'whois domain-name' lookup
-# on any of 3 alternate servers:
-# ripe.net, cw.net, radb.net
+# Does a 'whois domain-name' lookup on any of 3 alternate servers:
+#                    ripe.net, cw.net, radb.net
 
 # Place this script, named 'wh' in /usr/local/bin
 
@@ -25,6 +24,6 @@ case `basename $0` in
     "wh-radb") whois $1@whois.radb.net;;
     "wh-cw"  ) whois $1@whois.cw.net;;
     *        ) echo "Usage: `basename $0` [domain-name]";;
-esac    
+esac 
 
 exit 0

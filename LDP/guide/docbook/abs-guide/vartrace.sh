@@ -3,7 +3,6 @@
 trap 'echo "VARIABLE-TRACE> \$variable = \"$variable\""' DEBUG
 # Echoes the value of $variable after every command.
 
-
 variable=29
 
 echo "Just initialized \"\$variable\" to $variable."

@@ -13,9 +13,8 @@ echo "Command-line argument #3 = $3"
 
 echo
 
-set `uname -a`
-# Sets the positional parameters to the output
-# of the command `uname -a`
+set `uname -a` # Sets the positional parameters to the output
+               # of the command `uname -a`
 
 echo "Positional parameters after  set \`uname -a\` :"
 # $1, $2, $3, etc. reinitialized to result of `uname -a`

@@ -5,13 +5,12 @@
 # This uses the environment to pass a script variable to 'awk'.
 
 ARGS=2
-WRONGARGS=65
+E_WRONGARGS=65
 
-if [ $# -ne "$ARGS" ]
-# Check for proper no. of command line args.
+if [ $# -ne "$ARGS" ] # Check for proper no. of command line args.
 then
    echo "Usage: `basename $0` filename column-number"
-   exit $WRONGARGS
+   exit $E_WRONGARGS
 fi
 
 filename=$1

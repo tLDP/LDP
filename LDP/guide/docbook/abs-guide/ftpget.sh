@@ -25,23 +25,23 @@
 # commands are executed by ftp in corresponding order
 #
 # Mark Moraes (moraes@csri.toronto.edu), Feb 1, 1989 
-# --> Angle brackets changed to parens, so Docbook won't get indigestion.
+# ==> Angle brackets changed to parens, so Docbook won't get indigestion.
 #
 
 
-# --> These comments added by author of this document.
+# ==> These comments added by author of this document.
 
 # PATH=/local/bin:/usr/ucb:/usr/bin:/bin
 # export PATH
-# --> Above 2 lines from original script probably superfluous.
+# ==> Above 2 lines from original script probably superfluous.
 
 TMPFILE=/tmp/ftp.$$
-# --> Creates temp file, using process id of script ($$)
-# --> to construct filename.
+# ==> Creates temp file, using process id of script ($$)
+# ==> to construct filename.
 
 SITE=`domainname`.toronto.edu
-# --> 'domainname' similar to 'hostname'
-# --> May rewrite this to parameterize this for general use.
+# ==> 'domainname' similar to 'hostname'
+# ==> May rewrite this to parameterize this for general use.
 
 usage="Usage: $0 [-h remotehost] [-d remotedirectory]... [-f remfile:localfile]... \
 		[-c localdirectory] [-m filepattern] [-v]"
@@ -56,10 +56,9 @@ fi
 shift
 trap 'rm -f ${TMPFILE} ; exit' 0 1 2 3 15
 echo "user anonymous ${USER-gnu}@${SITE} > ${TMPFILE}"
-# --> Added quotes (recommended in complex echoes).
+# ==> Added quotes (recommended in complex echoes).
 echo binary >> ${TMPFILE}
-for i in $*
-# --> Parse command line args.
+for i in $*   # ==> Parse command line args.
 do
 	case $i in
 	-v) verbflag=-v; echo hash >> ${TMPFILE}; shift;;
@@ -78,25 +77,25 @@ do
 done
 if [ $# -ne 0 ]; then
 	echo $usage
-	exit 65   # --> Changed from "exit 2" to conform with standard.
+	exit 65   # ==> Changed from "exit 2" to conform with standard.
 fi
 if [ x${verbflag} != x ]; then
 	ftpflags="${ftpflags} -v"
 fi
 if [ x${remhost} = x ]; then
 	remhost=prep.ai.mit.edu
-	# --> Rewrite to match your favorite ftp site.
+	# ==> Rewrite to match your favorite ftp site.
 fi
 echo quit >> ${TMPFILE}
-# --> All commands saved in tempfile.
+# ==> All commands saved in tempfile.
 
 ftp ${ftpflags} ${remhost} < ${TMPFILE}
-# --> Now, tempfile batch processed by ftp.
+# ==> Now, tempfile batch processed by ftp.
 
 rm -f ${TMPFILE}
-# --> Finally, tempfile deleted (you may wish to copy it to a logfile).
+# ==> Finally, tempfile deleted (you may wish to copy it to a logfile).
 
 
-# --> Exercises for reader:
-# --> 1) Add error checking.
-# --> 2) Add bells & whistles.
+# ==> Exercises for reader:
+# ==> 1) Add error checking.
+# ==> 2) Add bells & whistles.

@@ -1,15 +1,14 @@
 #!/bin/bash
+# strip-comment.sh: Strips out the comments (/* COMMENT */) in a C program.
 
-# Strips out the comments (/* comment */) in a C program.
+E_NOARGS=65
+E_ARGERROR=66
+E_WRONG_FILE_TYPE=67
 
-NOARGS=0
-ARGERROR=65
-WRONG_FILE_TYPE=66
-
-if [ $# -eq "$NOARGS" ]
+if [ $# -eq "$E_NOARGS" ]
 then
   echo "Usage: `basename $0` C-program-file" >&2 # Error message to stderr.
-  exit $ARGERROR
+  exit $E_ARGERROR
 fi  
 
 # Test for correct file type.
@@ -24,7 +23,7 @@ then
   echo
   echo "This script works on C program files only."
   echo
-  exit $WRONG_FILE_TYPE
+  exit $E_WRONG_FILE_TYPE
 fi  
 
 

@@ -11,9 +11,8 @@ done
 
 echo; echo
 
-# Yes, "seq" may also take a replaceable parameter.
 
-COUNT=80
+COUNT=80  # Yes, 'seq' may also take a replaceable parameter.
 
 for a in `seq $COUNT`  # or   for a in $( seq $COUNT )
 do

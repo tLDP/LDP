@@ -17,7 +17,7 @@ echo 'IFS unchanged, using "$*"'
 c=0
 for i in "$*"               # quoted
 do echo "$((c+=1)): [$i]"   # This line remains the same in every instance.
-# Echo args.
+                            # Echo args.
 done
 echo ---
 

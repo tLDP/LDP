@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Invoke both with and without arguments,
-# and see what happens.
+# Invoke both with and without arguments, and see what happens.
 
 for a
 do
- echo $a
+ echo -n "$a "
 done
 
-# 'in list' missing, therefore operates on '$@'
-# (command-line argument list, including white space)
+# The 'in list' missing, therefore the loop operates on '$@'
+# (command-line argument list, including whitespace).
+
+echo
 
 exit 0

@@ -6,7 +6,7 @@ FAILURE=-1
 
 isalpha ()  # Tests whether *first character* of input string is alphabetic.
 {
-if [ -z "$1" ]  # No argument passed?
+if [ -z "$1" ]                # No argument passed?
 then
   return $FAILURE
 fi
@@ -15,10 +15,10 @@ case "$1" in
 [a-zA-Z]*) return $SUCCESS;;  # Begins with a letter?
 *        ) return $FAILURE;;
 esac
-}  # Compare this with "isalpha ()" function in C.
+}             # Compare this with "isalpha ()" function in C.
 
 
-isalpha2 ()  # Tests whether *entire string* is alphabetic.
+isalpha2 ()   # Tests whether *entire string* is alphabetic.
 {
   [ $# -eq 1 ] || return $FAILURE
 
@@ -43,13 +43,13 @@ fi
 a=23skidoo
 b=H3llo
 c=-What?
-d=`echo $b`  # Command substitution.
+d=`echo $b`   # Command substitution.
 
 check_var $a
 check_var $b
 check_var $c
 check_var $d
-check_var # No argument passed, so what happens?
+check_var     # No argument passed, so what happens?
 
 
 # Script improved by S.C.

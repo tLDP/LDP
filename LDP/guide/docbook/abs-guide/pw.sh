@@ -21,21 +21,26 @@ do
 
 	# ==> Starting from the innermost nesting...
 	# ==> ${#MATRIX} returns length of array MATRIX.
-	# ==> $RANDOM%${#MATRIX} returns random number between 1 and length of MATRIX - 1.
+
+	# ==> $RANDOM%${#MATRIX} returns random number between 1
+	# ==> and length of MATRIX - 1.
 
 	# ==> ${MATRIX:$(($RANDOM%${#MATRIX})):1}
 	# ==> returns expansion of MATRIX at random position, by length 1. 
-	# ==> See {var:pos:len} parameter substitution in Section 3.3.1 and following examples.
+	# ==> See {var:pos:len} parameter substitution in Section 3.3.1
+	# ==> and following examples.
 
 	# ==> PASS=... simply pastes this result onto previous PASS (concatenation).
 
 	# ==> To visualize this more clearly, uncomment the following line
 	# ==>             echo "$PASS"
-	# ==> to see PASS being built up, one character at a time, each iteration of the loop.
+	# ==> to see PASS being built up,
+	# ==> one character at a time, each iteration of the loop.
 
 	let n+=1
 	# ==> Increment 'n' for next pass.
 done
 
-echo "$PASS"
-#== Or, redirect to file, as desired.
+echo "$PASS"      # ==> Or, redirect to file, as desired.
+
+exit 0

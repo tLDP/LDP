@@ -1,29 +1,28 @@
 #!/bin/bash
+# rpm-check.sh
 
-#                rpm-check
-#                ---------
 # Queries an rpm file for description, listing, and whether it can be installed.
 # Saves output to a file.
 # 
 # This script illustrates using a code block.
 
-NOARGS=1
+E_NOARGS=65
 
 if [ -z "$1" ]
 then
   echo "Usage: `basename $0` rpm-file"
-  exit $NOARGS
+  exit $E_NOARGS
 fi  
 
 { 
   echo
   echo "Archive Description:"
-  rpm -qpi $1  #Query description.
+  rpm -qpi $1       # Query description.
   echo
   echo "Archive Listing:"
-  rpm -qpl $1  #Query listing.
+  rpm -qpl $1       # Query listing.
   echo
-  rpm -i --test $1  #Query whether rpm file can be installed.
+  rpm -i --test $1  # Query whether rpm file can be installed.
   if [ ! $? ]
   then
     echo "$1 can be installed."
@@ -31,7 +30,7 @@ fi
     echo "$1 cannot be installed."
   fi  
   echo
-} > "$1.test"  # Redirects output of everything in block to file.
+} > "$1.test"       # Redirects output of everything in block to file.
 
 echo "Results of rpm test in file $1.test"
 

@@ -18,9 +18,8 @@ declare -a Deck
 declare -a Suits
 declare -a Cards
 # It would have been easier and more intuitive
-# with a single, 3-dimensional array. Maybe 
-# a future version of bash will support
-# multidimensional arrays.
+# with a single, 3-dimensional array.
+# Perhaps a future version of Bash will support multidimensional arrays.
 
 
 initialize_Deck ()
@@ -28,10 +27,9 @@ initialize_Deck ()
 i=$LOWER_LIMIT
 until [ "$i" -gt $UPPER_LIMIT ]
 do
-  Deck[i]=$UNPICKED
+  Deck[i]=$UNPICKED   # Set each card of "Deck" as unpicked.
   let "i += 1"
 done
-# Set each card of "Deck" as unpicked.
 echo
 }
 
@@ -46,7 +44,7 @@ Suits[3]=S #Spades
 initialize_Cards ()
 {
 Cards=(2 3 4 5 6 7 8 9 10 J Q K A)
-# Alternate method of initializing array.
+# Alternate method of initializing an array.
 }
 
 pick_a_card ()
@@ -74,9 +72,8 @@ printf %-4s $Card
 # Print cards in neat columns.
 }
 
-seed_random ()
+seed_random ()  # Seed random number generator.
 {
-# Seed random number generator.
 seed=`eval date +%s`
 let "seed %= 32766"
 RANDOM=$seed

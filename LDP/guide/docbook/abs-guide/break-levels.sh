@@ -1,5 +1,5 @@
 #!/bin/bash
-# Breaking out of loops.
+# break-levels.sh: Breaking out of loops.
 
 # "break N" breaks out of N level loops.
 
@@ -13,11 +13,9 @@ do
 
     if [ "$innerloop" -eq 3 ]
     then
-      break
-      # Replace the line above with     break 2
-      # to see what happens ("breaks" out of both inner and outer loops.)
+      break  # Try   break 2   to see what happens.
+             # ("Breaks" out of both inner and outer loops.)
     fi
-
   done
 
   echo

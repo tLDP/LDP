@@ -4,12 +4,22 @@
 # Event logging to a file.
 # Must be run as root (for write access in /var/log).
 
+ROOT_UID=0     # Only users with $UID 0 have root privileges.
+E_NOTROOT=67   # Non-root exit error.
+
+
+if [ "$UID" -ne "$ROOT_UID" ]
+then
+  echo "Must be root to run this script."
+  exit $E_NOTROOT
+fi  
+
 
 FD_DEBUG1=3
 FD_DEBUG2=4
 FD_DEBUG3=5
 
-# Uncomment a line below to activate script.
+# Uncomment one of the two lines below to activate script.
 # LOG_EVENTS=1
 # LOG_VARS=1
 
@@ -41,17 +51,15 @@ then
   # then exec 7 &gt;(exec gawk '{print strftime(), $0}' &gt;&gt; /var/log/event.log)
   # Above line will not work in Bash, version 2.04.
   exec 7&gt;&gt; /var/log/event.log        # Append to "event.log".
-  log                                # Write time and date.
-else exec 7&gt; /dev/null               # Bury output.
+  log                                      # Write time and date.
+else exec 7&gt; /dev/null                  # Bury output.
 fi
 
 echo "DEBUG3: beginning" &gt;&${FD_DEBUG3}
 
-#command1 &gt;&5 2&gt;&4
-ls -l &gt;&5 2&gt;&4
+ls -l &gt;&5 2&gt;&4                       # command1 &gt;&5 2&gt;&4
 
-#command2 
-echo "Done"
+echo "Done"                                # command2 
 
 echo "sending mail" &gt;&${FD_LOGEVENTS}   # Writes "sending mail" to fd #7.
 

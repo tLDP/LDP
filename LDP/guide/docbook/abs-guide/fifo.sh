@@ -4,16 +4,14 @@
 # ==> Comments added by author of this document.
 
   
-  HERE=`uname -n`
-  # ==> hostname
+  HERE=`uname -n`    # ==> hostname
   THERE=bilbo
   echo "starting remote backup to $THERE at `date +%r`"
   # ==> `date +%r` returns time in 12-hour format, i.e. "08:08:34 PM".
   
   # make sure /pipe really is a pipe and not a plain file
   rm -rf /pipe
-  mkfifo /pipe
-  # ==> Create a "named pipe", named "/pipe".
+  mkfifo /pipe       # ==> Create a "named pipe", named "/pipe".
   
   # ==> 'su xyz' runs commands as user "xyz".
   # ==> 'ssh' invokes secure shell (remote login client).

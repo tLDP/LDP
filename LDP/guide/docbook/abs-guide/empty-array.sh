@@ -23,6 +23,4 @@ echo "Number of elements in array2 = ${#array2[*]}"  # 0
 
 echo
 
-# Thanks, S.C.
-
-exit 0
+exit 0  # Thanks, S.C.

@@ -10,7 +10,7 @@
 
 if [ -z "$1" ]
 then
-  Filename=names.data  # Default, if no filename specified.
+  Filename=names.data     # Default, if no filename specified.
 else
   Filename=$1
 fi  
@@ -25,14 +25,14 @@ echo
 
 while [ "$name" != Smith ]
 do
-  read name         # Reads from redirected stdin ($Filename).
+  read name               # Reads from redirected stdin ($Filename).
   echo $name
   let "count += 1"
-done <"$Filename"   # Loop reads from file $Filename. 
+done <"$Filename"         # Loop reads from file $Filename. 
 
 
-exec 0<&3               # Restore old stdin.
-exec 3<&-               # Close temporary fd 3.
+exec 0<&3                 # Restore old stdin.
+exec 3<&-                 # Close temporary fd 3.
 
 echo; echo "$count names read"; echo
 

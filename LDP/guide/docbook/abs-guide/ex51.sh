@@ -1,12 +1,9 @@
 #!/bin/bash
-
-#Using the 'date' command
-
-# Needs a leading '+' to invoke formatting.
+# Exercising the 'date' command
 
 echo "The number of days since the year's beginning is `date +%j`."
+# Needs a leading '+' to invoke formatting.
 # %j gives day of year.
-
 
 echo "The number of seconds elapsed since 01/01/1970 is `date +%s`."
 # %s yields number of seconds since "UNIX epoch" began,
@@ -22,3 +19,4 @@ echo $filename
 # Read the 'date' man page for more formatting options.
 
 exit 0
+# Note that the "+%s" option to 'date' is GNU-specific.

@@ -1,22 +1,23 @@
 #!/bin/bash
 # Manipulating a variable, C-style, using the ((...)) construct.
 
+
 echo
 
 (( a = 23 ))  # Setting a value, C-style, with spaces on both sides of the "=".
 echo "a (initial value) = $a"
 
-(( a++ ))  # Post-increment 'a', C-style.
+(( a++ ))     # Post-increment 'a', C-style.
 echo "a (after a++) = $a"
 
-(( a-- ))  # Post-decrement 'a', C-style.
+(( a-- ))     # Post-decrement 'a', C-style.
 echo "a (after a--) = $a"
 
 
-(( ++a ))  # Pre-increment 'a', C-style.
+(( ++a ))     # Pre-increment 'a', C-style.
 echo "a (after ++a) = $a"
 
-(( --a ))  # Pre-decrement 'a', C-style.
+(( --a ))     # Pre-decrement 'a', C-style.
 echo "a (after --a) = $a"
 
 echo
@@ -37,7 +38,6 @@ echo
 
 # See also "for" and "while" loops using the ((...)) construct.
 
-# Note: these may not work with early versions of Bash,
-#       or on other platforms besides Linux.
+# These work only with Bash, version 2.04 or later.
 
 exit 0

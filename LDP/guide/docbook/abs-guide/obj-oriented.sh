@@ -1,6 +1,5 @@
 #!/bin/bash
-# Object-oriented programming in a shell script.
-
+# obj-oriented.sh: Object-oriented programming in a shell script.
 # Script by Stephane Chazelas.
 
 

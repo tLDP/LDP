@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Crude rolodex-type database
+# Crude address database
 
-clear
-# Clear the screen.
+clear # Clear the screen.
 
 echo "          Contact List"
 echo "          ------- ----"
@@ -50,13 +49,17 @@ case "$person" in
 
           * )
    # Default option.	  
+   # Empty input (hitting RETURN) fits here, too.
    echo
    echo "Not yet in database."
-  ;;   
-
+  ;;
 
 esac
 
 echo
+
+# Exercise for the reader:
+# Change the script so it accepts continuous input,
+# instead of terminating after displaying just one address.
 
 exit 0

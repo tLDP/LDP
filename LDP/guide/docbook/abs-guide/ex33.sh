@@ -3,9 +3,6 @@
 # 'getopts' processes command line arguments to script.
 # The arguments are parsed as "options" (flags) and associated arguments.
 
-# Usage: scriptname -options
-# Note: dash (-) necessary
-
 # Try invoking this script with
 # 'scriptname -mn'
 # 'scriptname -oq qOption' (qOption can be some arbitrary string.)
@@ -24,6 +21,9 @@ then
   echo "Usage: `basename $0` options (-mnopqrs)"
   exit $OPTERROR          # Exit and explain usage, if no argument(s) given.
 fi  
+# Usage: scriptname -options
+# Note: dash (-) necessary
+
 
 while getopts ":mnopq:rs" Option
 do
@@ -40,7 +40,6 @@ do
 done
 
 shift $(($OPTIND - 1))
-# Decrements the argument pointer
-# so it points to next argument.
+# Decrements the argument pointer so it points to next argument.
 
 exit 0

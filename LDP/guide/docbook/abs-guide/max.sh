@@ -1,13 +1,14 @@
 #!/bin/bash
+# max.sh: Maximum of two integers.
 
-PARAM_ERR=-198  # If less than 2 params passed to function.
-EQUAL=-199      # Return value if both params equal.
+E_PARAM_ERR=-198    # If less than 2 params passed to function.
+EQUAL=-199          # Return value if both params equal.
 
-max2 ()  # Returns larger of two numbers.
-{
+max2 ()             # Returns larger of two numbers.
+{                   # Note: numbers compared must be less than 257.
 if [ -z "$2" ]
 then
-  return $PARAM_ERR
+  return $E_PARAM_ERR
 fi
 
 if [ "$1" -eq "$2" ]
@@ -26,7 +27,7 @@ fi
 max2 33 34
 return_val=$?
 
-if [ "$return_val" -eq $PARAM_ERR ]
+if [ "$return_val" -eq $E_PARAM_ERR ]
 then
   echo "Need to pass two parameters to the function."
 elif [ "$return_val" -eq $EQUAL ]

@@ -9,4 +9,4 @@ b=36
 
 exit 0
 # Note that commenting out the 'exit' command makes no difference,
-# since the script exits anyhow after running out of commands.
+# since the script exits in any case after running out of commands.

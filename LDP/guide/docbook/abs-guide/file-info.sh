@@ -7,17 +7,17 @@ FILES="/usr/sbin/privatepw
 /usr/bin/fakefile
 /sbin/mkreiserfs
 /sbin/ypbind"     # List of files you are curious about.
-# Threw in a dummy file, /usr/bin/fakefile.
+                  # Threw in a dummy file, /usr/bin/fakefile.
 
 echo
 
 for file in $FILES
 do
 
-  if [ ! -e "$file" ]  # Check if file exists.
+  if [ ! -e "$file" ]       # Check if file exists.
   then
     echo "$file does not exist."; echo
-    continue  # On to next.
+    continue                # On to next.
    fi
 
   ls -l $file | awk '{ print $9 "         file size: " $5 }'  # Print 2 fields.

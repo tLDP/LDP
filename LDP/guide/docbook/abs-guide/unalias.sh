@@ -7,7 +7,7 @@ llm
 
 echo
 
-unalias llm    # Unset alias.
+unalias llm              # Unset alias.
 llm
 # Error message results, since 'llm' no longer recognized.
 

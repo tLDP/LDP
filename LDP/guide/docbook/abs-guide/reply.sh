@@ -1,13 +1,12 @@
 #!/bin/bash
 
-
 echo
 echo -n "What is your favorite vegetable? "
 read
 
 echo "Your favorite vegetable is $REPLY."
-# REPLY holds the value of last "read" if and only if no variable supplied.
-
+# REPLY holds the value of last "read" if and only if
+# no variable supplied.
 
 echo
 echo -n "What is your favorite fruit? "

@@ -8,8 +8,7 @@ ARGS=3
 E_BADARGS=65   # Wrong number of arguments passed to script.
 
 if [ $# -ne "$ARGS" ]
-# Test number of arguments to script
-# (always a good idea).
+# Test number of arguments to script (always a good idea).
 then
   echo "Usage: `basename $0` old-pattern new-pattern filename"
   exit $E_BADARGS
@@ -32,8 +31,6 @@ sed -e "s/$old_pattern/$new_pattern/g" $file_name
 # and /pattern/ invokes address matching.
 # The "g", or global flag causes substitution for *every*
 # occurence of $old_pattern on each line, not just the first.
-# Read the literature on 'sed' for a more
-# in-depth explanation.
+# Read the literature on 'sed' for a more in-depth explanation.
 
-exit 0
-# Successful invocation of the script returns 0.
+exit 0    # Successful invocation of the script returns 0.

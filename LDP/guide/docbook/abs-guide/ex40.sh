@@ -16,7 +16,7 @@ DEFAULTDIR=/opt
 if [ -z "$1" ]
 then
   IMAGE_DIRECTORY=$DEFAULTDIR
-# Default directory, if not specified on command line.
+  # Default directory, if not specified on command line.
 else
     IMAGE_DIRECTORY=$1
 fi
@@ -24,7 +24,7 @@ fi
 ls -lRF $IMAGE_DIRECTORY > $IMAGE_DIRECTORY/$CONTENTSFILE
 # The "l" option gives a "long" file listing.
 # The "R" option makes the listing recursive.
-# The "F" option marks the file types (directories suffixed by a /).
+# The "F" option marks the file types (directories get a trailing /).
 echo "Creating table of contents."
 
 mkisofs -r -o $IMAGFILE $IMAGE_DIRECTORY

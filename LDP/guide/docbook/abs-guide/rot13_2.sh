@@ -1,5 +1,6 @@
 #!/bin/bash
-# A version of "rot13" using 'eval' (see also "rot13.sh" example)
+# A version of "rot13" using 'eval'.
+# Compare to "rot13.sh" example.
 
 setvar_rot_13()              # "rot13" scrambling
 {

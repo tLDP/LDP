@@ -1,26 +1,22 @@
 #!/bin/bash
-
 # sieve.sh
+
 # Sieve of Erastosthenes
 # Ancient algorithm for finding prime numbers.
 
 # This runs a couple of orders of magnitude
-# slower than equivalent C program.
+# slower than the equivalent C program.
 
-LOWER_LIMIT=1
-# Starting with 1.
-UPPER_LIMIT=1000
-# Up to 1000.
-# (You may set this higher...
-#  if you have time on your hands.)
+LOWER_LIMIT=1       # Starting with 1.
+UPPER_LIMIT=1000    # Up to 1000.
+# (You may set this higher...  if you have time on your hands.)
 
 PRIME=1
 NON_PRIME=0
 
 let SPLIT=UPPER_LIMIT/2
 # Optimization:
-# Need to test numbers only
-# halfway to upper limit.
+# Need to test numbers only halfway to upper limit.
 
 
 declare -a Primes
@@ -43,8 +39,7 @@ done
 
 print_primes ()
 {
-# Print out the members of the Primes[] array
-# tagged as prime.
+# Print out the members of the Primes[] array tagged as prime.
 
 i=$LOWER_LIMIT
 
@@ -54,8 +49,7 @@ do
   if [ "${Primes[i]}" -eq "$PRIME" ]
   then
     printf "%8d" $i
-    # 8 spaces per number
-    # gives nice, even columns.
+    # 8 spaces per number gives nice, even columns.
   fi
   
   let "i += 1"
@@ -64,20 +58,17 @@ done
 
 }
 
-sift ()
+sift () # Sift out the non-primes.
 {
-# Sift out the non-primes.
 
 let i=$LOWER_LIMIT+1
-# We know 1 is prime, so
-# let's start with 2.
+# We know 1 is prime, so let's start with 2.
 
 until [ "$i" -gt "$UPPER_LIMIT" ]
 do
 
 if [ "${Primes[i]}" -eq "$PRIME" ]
-# Don't bother sieving numbers
-# already sieved (tagged as non-prime).
+# Don't bother sieving numbers already sieved (tagged as non-prime).
 then
 
   t=$i
@@ -86,8 +77,7 @@ then
   do
     let "t += $i "
     Primes[t]=$NON_PRIME
-    # Tag as non-prime
-    # all multiples.
+    # Tag as non-prime all multiples.
   done
 
 fi  
@@ -103,8 +93,9 @@ done
 initialize
 sift
 print_primes
-echo
 # This is what they call structured programming.
+
+echo
 
 exit 0
 
@@ -118,8 +109,8 @@ exit 0
 
 # Must invoke with command-line argument (limit of primes).
 
-UPPER_LIMIT=$1           # From command line.
-let SPLIT=UPPER_LIMIT/2  # Halfway to max number.
+UPPER_LIMIT=$1                  # From command line.
+let SPLIT=UPPER_LIMIT/2         # Halfway to max number.
 
 Primes=( '' $(seq $UPPER_LIMIT) )
 
@@ -136,3 +127,5 @@ do
   fi  
 done  
 echo ${Primes[*]}
+
+exit 0

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Count to 10 in a "while" loop.
+# wh-loopc.sh: Count to 10 in a "while" loop.
 
 LIMIT=10
 a=1
@@ -8,7 +8,7 @@ while [ "$a" -le $LIMIT ]
 do
   echo -n "$a "
   let "a+=1"
-done  # No surprises, so far.
+done           # No surprises, so far.
 
 echo; echo
 
@@ -16,7 +16,7 @@ echo; echo
 
 # Now, repeat with C-like syntax.
 
-((a = 1)) # a=1
+((a = 1))      # a=1
 # Double parentheses permit space when setting a variable, as in C.
 
 while (( a <= LIMIT ))   # Double parentheses, and no "$" preceding variables.

@@ -27,9 +27,9 @@ else
 fi
 
 
-# The -a and -o options provide
-# an alternative compound condition test.
-# Thanks to Patrick Callahan for pointing this out.
+#  The -a and -o options provide
+#+ an alternative compound condition test.
+#  Thanks to Patrick Callahan for pointing this out.
 
 
 if [ "$a" -eq 24 -a "$b" -eq 47 ]

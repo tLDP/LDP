@@ -7,7 +7,7 @@ NOTFOUND=66
 NOTGZIP=67
 
 if [ $# -eq 0 ] # same effect as:  if [ -z "$1" ]
-# $1 can be empty but present:  zmost "" arg2 arg3
+# $1 can exist, but be empty:  zmost "" arg2 arg3
 then
   echo "Usage: `basename $0` filename" >&2
   # Error message to stderr.

@@ -1,14 +1,14 @@
 #!/bin/bash
 # Nested "for" loops.
 
+outer=1             # Set outer loop counter.
 
-outer=1  # Set outer loop counter.
-
-for a in 1 2 3 4 5  # Beginning of outer loop.
+# Beginning of outer loop.
+for a in 1 2 3 4 5
 do
   echo "Pass $outer in outer loop."
   echo "---------------------"
-  inner=1  # Reset inner loop counter.
+  inner=1           # Reset inner loop counter.
 
   # Beginning of inner loop.
   for b in 1 2 3 4 5
@@ -18,8 +18,9 @@ do
   done
   # End of inner loop.
 
-  let "outer+=1"  # Increment outer loop counter. 
-  echo  # Space between output in pass of outer loop.
-done   # End of outer loop.
+  let "outer+=1"    # Increment outer loop counter. 
+  echo              # Space between output in pass of outer loop.
+done               
+# End of outer loop.
 
 exit 0

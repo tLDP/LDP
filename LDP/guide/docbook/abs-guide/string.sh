@@ -26,7 +26,7 @@
 #
 #:end docstring:
 
-###;;;autoload
+###;;;autoload   ==> Autoloading of function commented out.
 function strcat ()
 {
     local s1_val s2_val

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ARGS=1  # Number of arguments expected.
+ARGS=1        # Number of arguments expected.
 E_BADARGS=65  # Exit value if incorrect number of args passed.
 
 test $# -ne $ARGS && echo "Usage: `basename $0` $ARGS argument(s)" && exit $E_BADARGS

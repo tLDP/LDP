@@ -3,7 +3,7 @@
 # If $IFS set, but empty,
 # then "$*" and "$@" do not echo positional params as expected.
 
-mecho ()  # Echo pos params.
+mecho ()       # Echo positional parameters.
 {
 echo "$1,$2,$3";
 }
