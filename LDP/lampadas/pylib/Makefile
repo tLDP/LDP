@@ -14,4 +14,5 @@ install: all
 
 clean:
 	rm -f *.pyc
+	rm -f profile_stats
 
