@@ -27,7 +27,7 @@ fi
                                      #+ to sort. Changed from original script.
 
 cat $* |                             # Contents of specified files to stdout.
-        tr A-Z a-z |                 # Convert to uppercase.
+        tr A-Z a-z |                 # Convert to lowercase.
         tr ' ' '\012' |              # New: change spaces to newlines.
 #       tr -cd '\012[a-z][0-9]' |    #  Get rid of everything non-alphanumeric
                                      #+ (original script).

@@ -22,8 +22,11 @@
 #
 #  If we take enough random, unaimed shots at the plot of land,
 #+ Then the ratio of SPLASHES to total shots will approximate
-#+ the value of PI/4
-#  Exercise: Explain why.
+#+ the value of PI/4.
+#
+#  The reason for this is that the cannon is actually shooting
+#+ only at the upper right-hand quadrant of the square.
+#  (The previous explanation was a simplification.)
 #
 #  Theoretically, the more shots taken, the better the fit.
 #  However, a shell script, as opposed to a compiled language
@@ -43,7 +46,7 @@ get_random ()
 SEED=$(head -1 /dev/urandom | od -N 1 | awk '{ print $2 }')
 RANDOM=$SEED                                  #  From "seeding-random.sh"
                                               #+ example script.
-let "rnum = $RANDOM % $DIMENSION"             # Range less than 10000.
+let "rnum = $RANDOM % $DIMENSION"             #  Range less than 10000.
 echo $rnum
 }
 
@@ -81,8 +84,9 @@ do
   printf "#%4d   " $shots
   printf "Xc = %4d  " $xCoord
   printf "Yc = %4d  " $yCoord
-  printf "Distance = %5d  " $distance         #  Distance from center
-                                              #+ of lake.
+  printf "Distance = %5d  " $distance         #  Distance from 
+                                              #+ center of lake,
+                                              #+ coordinate (0,0).
 
   if [ "$distance" -le "$DIMENSION" ]
   then

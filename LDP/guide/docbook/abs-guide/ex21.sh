@@ -75,7 +75,6 @@ echo
 
 # May generate toss of the dice.
 SPOTS=7   # Modulo 7 gives range 0 - 6.
-DICE=2
 ZERO=0
 die1=0
 die2=0

@@ -2,8 +2,8 @@
 # monthlypmt.sh: Calculates monthly payment on a mortgage.
 
 
-# This is a modification of code in the "mcalc" (mortgage calculator) package,
-# by Jeff Schmidt and Mendel Cooper (yours truly, the author of this document).
+#  This is a modification of code in the "mcalc" (mortgage calculator) package,
+#+ by Jeff Schmidt and Mendel Cooper (yours truly, the author of this document).
 #   http://www.ibiblio.org/pub/Linux/apps/financial/mcalc-1.6.tar.gz  [15k]
 
 echo

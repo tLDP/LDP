@@ -38,7 +38,7 @@ do   # Q[n] = Q[n - Q[n-1]] + Q[n - Q[n-2]]  for n&gt;2
   T0=${Q[t0]}              # Q[n - Q[n-1]]
   T1=${Q[t1]}              # Q[n - Q[n-2]]
 
-Q[n]=`expr $T0 + $T1`      # Q[n - Q[n-1]] + Q[n - ![n-2]]
+Q[n]=`expr $T0 + $T1`      # Q[n - Q[n-1]] + Q[n - Q[n-2]]
 echo -n "${Q[n]} "
 
 if [ `expr $n % $LINEWIDTH` -eq 0 ]    # Format output.

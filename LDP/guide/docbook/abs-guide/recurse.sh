@@ -3,7 +3,7 @@
 
 #  Can a script recursively call itself?
 #  Yes, but is this of any practical use?
-#  (See the following script.)
+#  (See the following.)
 
 RANGE=10
 MAXVAL=9
