@@ -172,9 +172,27 @@ class testDocRatings(unittest.TestCase):
 		assert Doc.Ratings.Count() == 0
 		assert Doc.Ratings.Average == 0
 		assert Doc.Rating == 0
+		
 
-		
-		
+class testDocVersions(unittest.TestCase):
+
+	def testDocVersions(self):
+		keys = L.Docs.keys()
+		found = 0
+		for key in keys:
+			Doc = L.Docs[key]
+			assert not Doc == None
+			if Doc.Versions.Count() > 0:
+				found = 1
+				vkeys = Doc.Versions.keys()
+				for vkey in vkeys:
+					Version = Doc.Versions[vkey]
+					assert not Version == None
+					assert Version.PubDate > ''
+					assert Version.Initials > ''
+		assert found == 1
+			
+
 class testStrings(unittest.TestCase):
 
 	def testStrings(self):
