@@ -3,9 +3,9 @@
                 version='1.0'>
 
 <xsl:template name="header">
-  <a href="index.html">Home</a> |
-  <a href="contents.html">Contents</a> |
-  <a href="documents.html">Documents</a>
+  <a href="/">Home</a> |
+  <a href="/contents.html">Contents</a> |
+  <a href="/documents.html">Documents</a>
   <br/><hr/>
 </xsl:template>
 
