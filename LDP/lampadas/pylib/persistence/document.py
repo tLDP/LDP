@@ -9,7 +9,7 @@ class Document(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='collections':
-            self.collections = self.dms.collection.get_by_keys([['doc_id', '=', self.id]])
+            self.collections = self.dms.document_collection.get_by_keys([['doc_id', '=', self.id]])
             return self.collections
         elif attribute=='errors':
             self.errors = self.dms.document_error.get_by_keys([['doc_id', '=', self.id]])
@@ -32,9 +32,27 @@ class Document(Persistence):
         elif attribute=='users':
             self.users = self.dms.document_user.get_by_keys([['doc_id', '=', self.id]])
             return self.users
+        elif attribute=='language':
+            self.language = self.dms.language.get_by_id(self.lang)
+            return self.language
+        elif attribute=='license':
+            self.license = self.dms.license.get_by_id(self.lang)
+            return self.license
         elif attribute=='top_file':
-            self.top_file = self.dms.document_file.get_by_keys([['doc_id', '=', self.id], ['top', '=', 1]])
+            top_file = self.dms.document_file.get_by_keys([['doc_id', '=', self.id], ['top', '=', 1]])
+            if top_file.count()==1:
+                self.top_file = top_file[top_file.keys()[0]].sourcefile
+            else:
+                self.top_file = None
             return self.top_file
+        elif attribute=='file_error_count':
+            count = 0
+            for key in self.files.keys():
+                docfile = self.files[key]
+                sourcefile = docfile.sourcefile
+                count = count + sourcefile.errors.count()
+            self.file_error_count = count
+            return self.file_error_count
         else:
             raise AttributeError('No such attribute %s' % attribute)
 

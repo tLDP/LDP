@@ -24,21 +24,14 @@ Lampadas Session Manager Module
 This module tracks users who have active sessions.
 """
 
-# Modules
-
-# FIXME import * is considered evil for you can pollute your namespace if
-# the imported module changes or makes a mistake
-
 from Globals import *
 from BaseClasses import *
-from Users import users
 from Config import config
 from Database import db
 from Log import log
 import Cookie
 
-
-# Sessions
+from CoreDM import dms
 
 # WARNING: Whenever the sessions.session property is set, which identifies the
 # currently logged-on user's session, the sessions.session.user attribute
@@ -53,6 +46,7 @@ class Sessions(LampadasCollection):
     def __init__(self):
         self.session = None
         self.load()
+        self.update_global()
 
     def load(self):
         self.data = {}
@@ -73,8 +67,9 @@ class Sessions(LampadasCollection):
         db.runsql(sql)
         db.commit()
         self.session = Session(username)
-        self.session.user = users[username]
+        self.session.user = dms.username.get_by_id(username)
         self.data[username] = self.session
+        self.update_global()
 
     def delete(self, username):
         sql = 'DELETE FROM session WHERE username=' + wsq(username)
@@ -82,6 +77,7 @@ class Sessions(LampadasCollection):
         db.commit()
         del self[username]
         self.session = None
+        self.update_global()
 
     def count(self):
         return db.read_value('SELECT COUNT(*) FROM session')
@@ -91,15 +87,19 @@ class Sessions(LampadasCollection):
         cookie = self.get_cookie(req.headers_in, 'lampadas')
         if cookie:
             session_id = str(cookie)
-            username = users.find_session_user(session_id)
-            if username > '':
+            sql = 'SELECT username FROM username WHERE session_id=' + wsq(session_id)
+            cursor = db.select(sql)
+            row = cursor.fetchone()
+            if not row==None:
+                username = trim(row[0])
                 self.load()
                 self.session = sessions[username]
                 if self.session:
                     self.session.refresh(req.connection.remote_addr[0], req.uri)
                 else:
                     self.add(username, req.connection.remote_addr[0], req.uri)
-                self.session.user = users[username]
+                self.session.user = dms.username.get_by_id(username)
+        self.update_global()
 
     def get_cookie(self, headers_in, key):
         if headers_in.has_key('Cookie'):
@@ -108,14 +108,17 @@ class Sessions(LampadasCollection):
             if cookie.has_key(key):
                 return cookie[key].value
         return None
-    
+
+    def update_global(self):
+        global current_session
+        current_session = self.session
 
 class Session:
 
     def __init__(self, username=None):
         self.user = None
         if username:
-            self.user = users[username]
+            self.user = dms.username.get_by_id(username)
             sql = 'SELECT username, ip_address, uri, created FROM session WHERE username=' + wsq(username)
             cursor = db.select(sql)
             row = cursor.fetchone()

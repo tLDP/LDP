@@ -10,16 +10,16 @@ class Format(Persistence):
             self.documents = self.dms.document.get_by_keys([['format_code', '=', self.code]])
             return self.documents
         elif attribute in ('name', 'description'):
-            self.name = LampadasCollection()
-            self.description = LampadasCollection()
+            name = LampadasCollection()
+            description = LampadasCollection()
             i18ns = self.dms.format_i18n.get_by_keys([['format_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
-                self.name[i18n.lang] = i18n.format_name
-                self.description[i18n.lang] = i18n.format_desc
+                name[i18n.lang] = i18n.format_name
+                description[i18n.lang] = i18n.format_desc
             if attribute=='name':
-                return self.name
+                return name
             else:
-                return self.description
+                return description
         else:
             raise AttributeError('No such attribute %s' % attribute)

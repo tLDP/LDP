@@ -1,42 +1,14 @@
 #!/usr/bin/python
 # 
-# This file is part of the Lampadas Documentation System.
-# 
-# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# 
 """
 Lampadas Makefile Module
 
 This module writes out a Makefile for every document in the cache.
 """
 
-# Constants
-
-XSLTPROC_PARAMS = ''
-
-
-# Modules ##################################################################
 
 from BaseClasses import *
 from Globals import *
-from Docs import docs
-from DocErrs import docerrs, DocErr
-from SourceFiles import sourcefiles
-from Languages import languages
 from Config import config
 from Lintadas import lintadas
 from Log import log
@@ -46,7 +18,10 @@ import stat
 import time
 from types import *
 
-# Commands
+from CoreDM import dms
+
+XSLTPROC_PARAMS = ''
+
 
 class Commands(LampadasCollection):
 
@@ -111,6 +86,7 @@ class Projects(LampadasCollection):
 
     def __init__(self):
         self.data = {}
+        docs = dms.document.get_all()
         for key in docs.sort_by('id'):
             project = Project(key)
             self.data[key] = project
@@ -118,7 +94,7 @@ class Projects(LampadasCollection):
     def make(self, name='all'):
         log(3, 'Running project Makefile target: ' + name)
         for doc_id in self.sort_by('doc_id'):
-            doc = docs[doc_id]
+            doc = dms.document.get_by_id(doc_id)
             if doc.pub_status_code<>'N':
                 continue
             log(3, 'Making document: ' + str(doc_id))
@@ -143,28 +119,29 @@ class Projects(LampadasCollection):
         omfmake = ''
 
         makeneeded = 0
-        for docid in docs.keys():
-            doc = docs[docid]
+        docs = dms.document.get_all()
+        for key in docs.keys():
+            doc = docs[key]
             if doc.pub_time=='':
                 continue
 
             # Make each individual file
-            for file in doc.files.keys():
-                docfile = doc.files[file]
-                sourcefile = sourcefiles[file]
+            for keys in doc.files.keys():
+                docfile = doc.files[key]
+                sourcefile = docfile.sourcefile
                 if docfile.top==1:
                     makeneeded = 1
-                    republishmake = "\tcd " + str(docid) + "/work; $(MAKE) republish 2>>log/republish.log\n" + republishmake       
-                    publishmake   = "\tcd " + str(docid) + "/work; $(MAKE) publish 2>>log/publish.log\n"     + publishmake       
-                    unpublishmake = "\tcd " + str(docid) + "/work; $(MAKE) unpublish 2>>log/unpublish.log\n" + unpublishmake       
-                    rebuildmake   = "\tcd " + str(docid) + "/work; $(MAKE) rebuild 2>>log/make.log\n"        + rebuildmake   
-                    buildmake     = "\tcd " + str(docid) + "/work; $(MAKE) all 2>>log/make.log\n"            + buildmake     
-                    cleanmake     = "\tcd " + str(docid) + "/work; $(MAKE) clean 2>>log/make.log\n"          + cleanmake     
-                    tidyxmlmake   = "\tcd " + str(docid) + "/work; $(MAKE) tidyxml 2>>log/make.log\n"        + tidyxmlmake   
-                    htmlmake      = "\tcd " + str(docid) + "/work; $(MAKE) html 2>>log/make.log\n"           + htmlmake      
-                    indexmake     = "\tcd " + str(docid) + "/work; $(MAKE) index 2>>log/make.log\n"          + indexmake     
-                    txtmake       = "\tcd " + str(docid) + "/work; $(MAKE) txt 2>>log/make.log\n"            + txtmake      
-                    omfmake       = "\tcd " + str(docid) + "/work; $(MAKE) omf 2>>log/db2omf.log\n"          + omfmake       
+                    republishmake = "\tcd " + str(doc.id) + "/work; $(MAKE) republish 2>>log/republish.log\n" + republishmake       
+                    publishmake   = "\tcd " + str(doc.id) + "/work; $(MAKE) publish 2>>log/publish.log\n"     + publishmake       
+                    unpublishmake = "\tcd " + str(doc.id) + "/work; $(MAKE) unpublish 2>>log/unpublish.log\n" + unpublishmake       
+                    rebuildmake   = "\tcd " + str(doc.id) + "/work; $(MAKE) rebuild 2>>log/make.log\n"        + rebuildmake   
+                    buildmake     = "\tcd " + str(doc.id) + "/work; $(MAKE) all 2>>log/make.log\n"            + buildmake     
+                    cleanmake     = "\tcd " + str(doc.id) + "/work; $(MAKE) clean 2>>log/make.log\n"          + cleanmake     
+                    tidyxmlmake   = "\tcd " + str(doc.id) + "/work; $(MAKE) tidyxml 2>>log/make.log\n"        + tidyxmlmake   
+                    htmlmake      = "\tcd " + str(doc.id) + "/work; $(MAKE) html 2>>log/make.log\n"           + htmlmake      
+                    indexmake     = "\tcd " + str(doc.id) + "/work; $(MAKE) index 2>>log/make.log\n"          + indexmake     
+                    txtmake       = "\tcd " + str(doc.id) + "/work; $(MAKE) txt 2>>log/make.log\n"            + txtmake      
+                    omfmake       = "\tcd " + str(doc.id) + "/work; $(MAKE) omf 2>>log/db2omf.log\n"          + omfmake       
 
         if makeneeded:
             Makefile = "all:\tbuild\n\n"
@@ -187,7 +164,7 @@ class Project:
 
     def __init__(self, doc_id):
         self.doc_id = int(doc_id)
-        self.doc = docs[self.doc_id]
+        self.doc = dms.document.get_by_id(self.doc_id)
         self.workdir = config.cache_dir + str(self.doc_id) + '/work/'
         self.filename = ''
         self.targets  = Targets()
@@ -197,14 +174,10 @@ class Project:
         if self.doc.pub_status_code<>'N'  or self.doc.mirror_time=='':
             return
 
-        docfile = self.doc.find_top_file()
-        if docfile==None:
+        sourcefile = self.doc.top_file
+        if sourcefile==None:
             return
 
-        sourcefile = sourcefiles[docfile.filename]
-        metadata = self.doc.metadata()
-        
-        
         dbsgmlfile      = sourcefile.dbsgmlfile
         xmlfile         = sourcefile.xmlfile
         utfxmlfile      = sourcefile.utfxmlfile
@@ -246,7 +219,7 @@ class Project:
 
         # The default embedded DocBook in WikiText is XML
         if sourcefile.format_code=='wikitext':
-            if metadata.format_code=='sgml':
+            if self.doc.format_code=='sgml':
                 self.targets.add(dbsgmlfile,    [sourcefile.file_only], [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
                 self.targets.add('dbsgml',      [dbsgmlfile],           [])
                 self.targets.add(xmlfile,       [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
@@ -291,9 +264,11 @@ class Project:
         # IT'S ALL DOCBOOK XML HERE! #
         ##############################
         
-        encoding = metadata.encoding
+        encoding = self.doc.encoding
         if encoding=='':
-            encoding = languages[self.doc.lang].encoding
+            language = self.doc.language
+            if language:
+                encoding = language.encoding
 
         # Everybody gets encoded into UTF-8 here
         if encoding in ('UTF-8', ''):
@@ -340,7 +315,7 @@ class Project:
             return
 
         # Clear any make errors.
-        self.doc.errors.clear('make')
+        self.doc.errors.delete_by_keys([['err_type_code', '=', 'make']])
 
         # Build the requested target.
         target = self.targets[name]
@@ -397,7 +372,7 @@ class Project:
 
                     # Abort if the command returns an exit code.
                     if exit_status<>0:
-                        docerr = DocErr(docerrs)
+                        docerr = self.doc.errors.new()
                         docerr.doc_id = self.doc.id
                         docerr.err_id = ERR_MAKE_EXIT_STATUS
                         docerr.notes = str(exit_status) + ': ' + cmd_split
@@ -410,7 +385,7 @@ class Project:
                         err_text = fh.read()
                         fh.close()
                         if err_text > '':
-                            docerr = DocErr(docerrs)
+                            docerr = self.doc.errors.new()
                             docerr.doc_id = self.doc.id
                             docerr.err_id = ERR_MAKE_STDERR
                             docerr.notes = cmd_split + '\n\n' + err_text
@@ -423,7 +398,7 @@ class Project:
                     filestat = os.stat(self.workdir + command.output_to)
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
-                        docerr = DocErr(docerrs)
+                        docerr = self.doc.errors.new()
                         docerr.doc_id = self.doc.id
                         docerr.err_id = ERR_MAKE_ZERO_LENGTH
                         docerr.notes = cmd_split

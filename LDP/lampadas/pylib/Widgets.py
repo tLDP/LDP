@@ -38,14 +38,14 @@ class Widgets:
     standard formats for some text items.
     """
 
-    def format_code(self, value, lang, css_class='', view=0):
+    def format_code(self, value, lang, view=0):
         if view==1:
             format = dms.format.get_by_id(value)
             if format:
                 return format.name[lang]
             return ''
 
-        combo = WOStringIO('<select name="format_code"%s>\n' % css_class)
+        combo = WOStringIO('<select name="format_code">\n')
         combo.write('<option></option>')
         formats = dms.format.get_all()
         for key in formats.sort_by_lang('name', lang):
@@ -59,14 +59,14 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def dtd_code(self, value, lang, css_class='', view=0):
+    def dtd_code(self, value, lang, view=0):
         if view==1:
             dtd = dms.dtd.get_by_id(value)
             if dtd:
                 return dtd.name[lang]
             return ''
 
-        combo = WOStringIO('<select name="dtd_code"%s>\n' % css_class)
+        combo = WOStringIO('<select name="dtd_code">\n')
         if value=='':
             combo.write('<option selected></option>')
         else:
@@ -83,15 +83,15 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def dtd_version(self, value, css_class='', view=0):
-        input = WOStringIO('<input type="text" name="dtd_version" size="8" maxlenth="20" value="%s"%s>' % (value, css_class))
+    def dtd_version(self, value, view=0):
+        input = WOStringIO('<input type="text" name="dtd_version" size="8" maxlenth="20" value="%s">' % (value))
         return input.get_value()
 
-    def title(self, value, css_class='', view=0):
-        return '<input type=text name="title" style="width:100%%" value="%s"%s>' % (escape_tokens(value), css_class)
+    def title(self, value, view=0):
+        return '<input type=text name="title" style="width:100%%" value="%s">' % (escape_tokens(value))
 
-    def abstract(self, value, css_class='', view=0):
-        return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, html_encode(value))
+    def abstract(self, value, view=0):
+        return '<textarea name="abstract" rows="6" cols="20" style="width:100%%">%s</textarea>' % (html_encode(value))
 
     def news(self, value, view=0):
         return '<textarea name="news" rows="6" cols="20" style="width:100%%">%s</textarea>' % (value)
@@ -99,23 +99,23 @@ class Widgets:
     def page(self, value):
         return '<textarea name="page" rows="20" cols="20" style="width:100%%">%s</textarea>' % (value)
 
-    def version(self, value, css_class='', view=0):
-        return '<input type="text" name="version" size="10" maxlength="10" value="%s"%s>' % (value, css_class)
+    def version(self, value, view=0):
+        return '<input type="text" name="version" size="10" maxlength="10" value="%s">' % (value)
 
-    def pub_date(self, value, css_class='', view=0):
-        return '<input type=text name="pub_date" size="11" maxlength="10" value="%s"%s>' % (value, css_class)
+    def pub_date(self, value, view=0):
+        return '<input type=text name="pub_date" size="11" maxlength="10" value="%s">' % (value)
 
-    def isbn(self, value, css_class='', view=0):
-        return '<input type=text name="isbn" size="13" maxlength="13" value="%s"%s>' % (value, css_class)
+    def isbn(self, value, view=0):
+        return '<input type=text name="isbn" size="13" maxlength="13" value="%s">' % (value)
 
-    def encoding(self, value, css_class='', view=0):
+    def encoding(self, value, view=0):
         if view==1:
             encoding = dms.encoding.get_by_id(value)
             if encoding:
                 return encoding.encoding
             return ''
             
-        combo = WOStringIO('<select name="encoding"%s>\n' % css_class)
+        combo = WOStringIO('<select name="encoding">\n')
         combo.write('<option></option>')
         encodings = dms.encoding.get_all()
         for key in encodings.sort_by('encoding'):
@@ -310,7 +310,7 @@ class Widgets:
             else:
                 title = doc.title
                 if title=='':
-                    topfile = document.top_file
+                    topfile = doc.top_file
                     if topfile:
                         title = topfile.title
                 combo.write('value="%s">%s</option>\n'
@@ -325,7 +325,7 @@ class Widgets:
             if doc:
                 title = doc.title
                 if title=='':
-                    topfile = document.top_file
+                    topfile = doc.top_file
                     if topfile:
                         title = topfile.title
                 return title
@@ -344,7 +344,7 @@ class Widgets:
             else:
                 title = doc.title
                 if title=='':
-                    topfile = document.top_file
+                    topfile = doc.top_file
                     if topfile:
                         title = topfile.title
                 combo.write("value='%s'>%s</option>\n"

@@ -361,6 +361,27 @@ class testDocVersions(unittest.TestCase):
         log(3, 'testing DocVersions done')
 
 
+class testDocUsers(unittest.TestCase):
+
+    def testDocUsers(self):
+        log(3, 'testing DocUsers')
+
+        found = 0
+        for key in docs.keys():
+            doc = docs[key]
+            assert not doc==None
+            if doc.users.count() > 0:
+                found = 1
+                for ukey in doc.users.keys():
+                    docuser = doc.users[ukey]
+                    assert not docuser==None
+                    assert docuser.username > ''
+                    assert not docuser.user==None
+                    assert docuser.username==docuser.user.username
+        assert found==1
+        log(3, 'testing DocUsers done')
+
+
 class testLicenses(unittest.TestCase):
 
     def testLicenses(self):

@@ -22,8 +22,6 @@ from Globals import *
 from Config import config
 from Log import log
 from BaseClasses import *
-from Docs import docs, Doc
-from Users import users, User
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
@@ -90,12 +88,11 @@ class Tables(LampadasCollection):
         return str(value) + '/' + str(max)
 
     def viewdoc(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
         lintadas.check_doc(uri.id)
-        metadata = doc.metadata()
 
         box = WOStringIO('<table class="box" width="100%%">' 
                          '<tr><th colspan="6">|strdocdetails|</th></tr>'
@@ -127,23 +124,23 @@ class Tables(LampadasCollection):
                          '<tr><td class="label">|strisbn|</td><td>%s</td>\n'
                          '    <td class="label">|strencoding|</td><td>%s</td></tr>\n'
                          '</table>'
-                         % (metadata.title,
+                         % (doc.title,
                             doc.short_desc,
-                            metadata.abstract,
+                            doc.abstract,
                             widgets.pub_status_code(doc.pub_status_code, uri.lang, view=1),
                             widgets.type_code(doc.type_code, uri.lang, view=1),
-                            metadata.version,
+                            doc.version,
                             doc.short_title,
                             widgets.review_status_code(doc.review_status_code, uri.lang, view=1), 
                             widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang, view=1),
-                            metadata.pub_date, doc.last_update,
+                            doc.pub_date, doc.last_update,
                             doc.lint_time, doc.mirror_time, doc.pub_time,
                             doc.tickle_date,
                             bool2yesno(doc.maintained),
                             self.bar_graph(doc.rating, 10, uri.lang),
-                            widgets.format_code(metadata.format_code, uri.lang, view=1),
-                            widgets.dtd_code(metadata.dtd_code, uri.lang, view=1),
-                            metadata.dtd_version,
+                            widgets.format_code(doc.format_code, uri.lang, view=1),
+                            widgets.dtd_code(doc.dtd_code, uri.lang, view=1),
+                            doc.dtd_version,
                             widgets.lang(doc.lang, uri.lang, view=1),
                             widgets.tf('maintainer_wanted', doc.maintainer_wanted, view=1),
                             widgets.license_code(doc.license_code, uri.lang, view=1),
@@ -151,8 +148,8 @@ class Tables(LampadasCollection):
                             doc.copyright_holder,
                             widgets.sk_seriesid(doc.sk_seriesid, view=1),
                             widgets.replaced_by_id(doc.replaced_by_id, view=1),
-                            metadata.isbn,
-                            metadata.encoding))
+                            doc.isbn,
+                            doc.encoding))
         return box.get_value()
 
     def editdoc(self, uri):
@@ -164,14 +161,14 @@ class Tables(LampadasCollection):
                 
         if uri.id > 0:
             lintadas.check_doc(uri.id)
-            doc = docs[uri.id]
+            doc = dms.document.get_by_id(uri.id)
             delete_widget = widgets.delete() + '|strdelete| '
             box.write('<form method="GET" action="|uri.base|data/save/document" '
                       'name="document">')
         else:
 
             # Create a new document
-            doc = Doc(docs)
+            doc = dms.document.new()
             doc.lang = uri.lang
             doc.pub_status_code = 'P'
             doc.review_status_code = 'U'
@@ -180,37 +177,6 @@ class Tables(LampadasCollection):
             box.write('<form method="GET" action="|uri.base|data/save/newdocument" '
                       'name="document">')
 
-        metadata = doc.metadata()
-
-        # Set CSS class for defaulted data.
-        format_code_class = ''
-        dtd_code_class    = ''
-        dtd_version_class = ''
-        title_class       = ''
-        abstract_class    = ''
-        version_class     = ''
-        pub_date_class    = ''
-        isbn_class        = ''
-        encoding_class    = ''
-        if doc.format_code=='' and metadata.format_code > '':
-            format_code_class = ' class="defaulted"'
-        if doc.dtd_code=='' and metadata.dtd_code > '':
-            dtd_code_class = ' class="defaulted"'
-        if doc.dtd_version=='' and metadata.dtd_version > '':
-            dtd_version_class = ' class="defaulted"'
-        if doc.title=='' and metadata.title > '':
-            title_class = ' class="defaulted"'
-        if doc.abstract=='' and metadata.abstract > '':
-            abstract_class = ' class="defaulted"'
-        if doc.version=='' and metadata.version > '':
-            version_class = ' class="defaulted"'
-        if doc.pub_date=='' and metadata.pub_date > '':
-            pub_date_class = ' class="defaulted"'
-        if doc.isbn=='' and metadata.isbn > '':
-            isbn_class = ' class="defaulted"'
-        if doc.encoding=='' and metadata.encoding > '':
-            encoding_class = ' class="defaulted"'
-            
         box.write('<input name="username" type="hidden" value="%s">\n'
                   '<input name="doc_id" type="hidden" value="%s">\n'
                   '<tr><td class="label">|strtitle|</td><td colspan="5">%s</td></tr>\n'
@@ -243,23 +209,23 @@ class Tables(LampadasCollection):
                   '<tr><td></td><td>%s%s</td></tr>'
                   '</table></form>'
                   % (sessions.session.username, doc.id,
-                     widgets.title(metadata.title, css_class=title_class),
+                     widgets.title(doc.title),
                      widgets.short_desc(doc.short_desc),
-                     widgets.abstract(metadata.abstract, css_class=abstract_class),
+                     widgets.abstract(doc.abstract),
                      widgets.pub_status_code(doc.pub_status_code, uri.lang),
                      widgets.type_code(doc.type_code, uri.lang),
-                     widgets.version(metadata.version, css_class=version_class),
+                     widgets.version(doc.version),
                      widgets.short_title(doc.short_title),
                      widgets.review_status_code(doc.review_status_code, uri.lang), 
                      widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang),
-                     widgets.pub_date(metadata.pub_date, css_class=pub_date_class), widgets.last_update(doc.last_update),
+                     widgets.pub_date(doc.pub_date), widgets.last_update(doc.last_update),
                      widgets.lint_time(doc.lint_time), widgets.mirror_time(doc.mirror_time), widgets.pub_time(doc.pub_time),
                      widgets.tickle_date(doc.tickle_date),
                      bool2yesno(doc.maintained),
                      self.bar_graph(doc.rating, 10, uri.lang),
-                     widgets.format_code(metadata.format_code, uri.lang, css_class=format_code_class),
-                     widgets.dtd_code(metadata.dtd_code, uri.lang, css_class=dtd_code_class),
-                     widgets.dtd_version(metadata.dtd_version, css_class=dtd_version_class),
+                     widgets.format_code(doc.format_code, uri.lang),
+                     widgets.dtd_code(doc.dtd_code, uri.lang),
+                     widgets.dtd_version(doc.dtd_version),
                      widgets.lang(doc.lang, uri.lang),
                      widgets.tf('maintainer_wanted', doc.maintainer_wanted),
                      widgets.license_code(doc.license_code, uri.lang),
@@ -267,19 +233,17 @@ class Tables(LampadasCollection):
                      widgets.copyright_holder(doc.copyright_holder),
                      widgets.sk_seriesid(doc.sk_seriesid),
                      widgets.replaced_by_id(doc.replaced_by_id),
-                     widgets.isbn(metadata.isbn, css_class=isbn_class),
-                     widgets.encoding(metadata.encoding, css_class=encoding_class),
+                     widgets.isbn(doc.isbn),
+                     widgets.encoding(doc.encoding),
                      delete_widget, widgets.save()))
         return box.get_value()
 
     def viewdocversions(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
         log(3, 'Creating viewdocversions table')
-        doc = docs[uri.id]
-        metadata = doc.metadata()
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th colspan="4">|strdocversions|</th></tr>\n'
                          '<tr><th class="collabel">|strversion|</th>\n'
@@ -287,8 +251,7 @@ class Tables(LampadasCollection):
                          '    <th class="collabel">|strinitials|</th>\n'
                          '    <th class="collabel">|strcomments|</th></tr>\n')
         odd_even = OddEven()
-        keys = doc.versions.sort_by('pub_date')
-        for key in keys:
+        for key in doc.versions.sort_by('pub_date'):
             version = doc.versions[key]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td>'
                       '<td style="width:100%%">%s</td></tr>\n'
@@ -302,8 +265,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocversions table')
-        doc = docs[uri.id]
-        metadata = doc.metadata()
+        doc = dms.document.get_by_id(uri.id)
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th colspan="6">|strdocversions|</th></tr>\n'
                          '<tr><th class="collabel">|strversion|</th>\n'
@@ -445,7 +407,7 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def viewdocusers(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
@@ -456,9 +418,8 @@ class Tables(LampadasCollection):
                          '    <th class="collabel">|stractive|</th>'
                          '    <th class="collabel">|strrole|</th>'
                          '    <th class="collabel">|stremail|</th></tr>')
-        keys = doc.users.sort_by('username')
         odd_even = OddEven()
-        for key in keys:
+        for key in doc.users.sort_by('username'):
             docuser = doc.users[key]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n'
                       % (odd_even.get_next(),
@@ -475,7 +436,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocusers table')
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="6">|strdocusers|</th></tr>'
                          '<tr><th class="collabel">|strusername|</th>'
@@ -483,9 +444,8 @@ class Tables(LampadasCollection):
                          '    <th class="collabel">|strrole|</th>'
                          '    <th class="collabel">|stremail|</th>'
                          '    <th class="collabel" colspan="2">|straction|</th></tr>')
-        keys = doc.users.sort_by('username')
         odd_even = OddEven()
-        for key in keys:
+        for key in doc.users.sort_by('username'):
             docuser = doc.users[key]
             box.write('<form method="GET" name="document_user"'
                       ' action="|uri.base|data/save/document_user">'
@@ -522,21 +482,18 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def viewdoctopics(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
         log(3, 'Creating viewdoctopics table')
-        #doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th>|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th></tr>\n')
-        #topics.calc_titles()
-        doc = dms.document.get_by_id(uri.id)
+        
         doctopics = doc.topics
-        keys = doctopics.sort_by('sort_order')
         odd_even = OddEven()
-        for key in keys:
+        for key in doctopics.sort_by('sort_order'):
             doctopic = doctopics[key]
             box.write('<tr class="%s"><td>'
                       '<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a>'
@@ -554,7 +511,6 @@ class Tables(LampadasCollection):
                          '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th>\n'
                          '    <th class="collabel">|straction|</th></tr>\n')
-        #topics.calc_titles()
         odd_even = OddEven()
         doc = dms.document.get_by_id(uri.id)
         doctopics = doc.topics
@@ -583,7 +539,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def viewdocnotes(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
@@ -597,10 +553,9 @@ class Tables(LampadasCollection):
                          ' <th class="collabel">|strusername|</th>'
                          ' <th class="collabel">|strcomments|</th>'
                          '</tr>\n')
-        note_ids = doc.notes.sort_by('created')
         odd_even = OddEven()
-        for note_id in note_ids:
-            note = doc.notes[note_id]
+        for key in doc.notes.sort_by('created'):
+            note = doc.notes[key]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td></tr>\n'
                       % (odd_even.get_next(), note.created, note.creator, note.notes))
         box.write('</table>\n')
@@ -611,17 +566,16 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocnotes table')
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
                          '<tr><th class="collabel">|strdate_time|</th>\n'
                          '    <th class="collabel">|strusername|</th>\n'
                          '    <th class="collabel">|strcomments|</th>\n'
                          '    <th class="collabel">|straction|</th></tr>\n')
-        note_ids = doc.notes.sort_by('created')
         odd_even = OddEven()
-        for note_id in note_ids:
-            note = doc.notes[note_id]
+        for key in doc.notes.sort_by('created'):
+            note = doc.notes[key]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td></td></tr>\n'
                       % (odd_even.get_next(), note.created, note.creator, note.notes))
         box.write('<form method="GET" action="|uri.base|data/save/newdocument_note" name="document_note">'
@@ -641,7 +595,7 @@ class Tables(LampadasCollection):
         Based on the DocTable.
         """
         
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
@@ -665,22 +619,21 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating errors table')
-        doc_ids = docs.sort_by('title')
         box = WOStringIO('')
-        for doc_id in doc_ids:
-            doc = docs[doc_id]
-            metadata = doc.metadata()
+        docs = dms.document.get_all()
+        for key in docs.sort_by('title'):
+            doc = docs[key]
 
             # Only display docs the user has rights to.
-            if sessions.session.user.can_edit(doc_id=doc_id)==0:
+            if sessions.session.user.can_edit(doc_id=doc.id)==0:
                 continue
             if doc.lang==uri.lang:
-                uri.id = doc_id
+                uri.id = doc.id
                 doctable = self.docerrors(uri)
                 filestable = self.docfileerrors(uri)
                 if doctable > '' or filestable > '':
                     box.write('<h1><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>%s</h1>'
-                              % (str(doc.id), EDIT_ICON, metadata.title))
+                              % (str(doc.id), EDIT_ICON, doc.title))
                 if doctable > '':
                     box.write('<p>' + doctable)
                 if filestable > '':
@@ -688,7 +641,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def docerrors(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
@@ -706,7 +659,7 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for err_id in err_ids:
             docerror = doc.errors[err_id]
-            error = dms.error.get_by_id(err_id)
+            error = docerror.error
             errtype = error.error_type
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s<br><pre>%s</pre></td></tr>'
                       % (odd_even.get_next(),
@@ -719,11 +672,11 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def docfileerrors(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
-        if doc.files.error_count()==0:
+        if doc.file_error_count==0:
             return ''
 
         log(3, 'Creating docfileerrors table')
@@ -732,12 +685,12 @@ class Tables(LampadasCollection):
                          '<tr>\n<th class="collabel">|strid|</th>\n'
                          '<th class="collabel">|strerror|</th>\n'
                          '<th class="collabel">|strfilename|</th>\n</tr>\n')
-        filenames = doc.files.sort_by('filename')
         odd_even = OddEven()
-        for filename in filenames:
-            sourcefile = dms.sourcefile.get_by_id(filename)
-            for keys in sourcefile.errors.keys('created'):
-                fileerror = sourcefile.errors[err_id]
+        for key in doc.files.sort_by('filename'):
+            docfile = doc.files[key]
+            sourcefile = docfile.sourcefile
+            for ekey in sourcefile.errors.sort_by('created'):
+                fileerror = sourcefile.errors[ekey]
                 error = fileerror.error
                 box.write('<tr class="%s">\n<td>%s</td>\n<td>%s</td>\n<td><a href="|uri.base|sourcefile/%s|uri.lang_ext|">%s</a></td>\n</tr>\n'
                           % (odd_even.get_next(), fileerror.err_id, error.name[uri.lang],
@@ -855,12 +808,12 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         if uri.username > '':
-            user = users[uri.username]
+            user = dms.username.get_by_id(uri.username)
             if user==None:
                 return '|blknotfound|'
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/user" name="user">\n')
         else:
-            user = User()
+            user = dms.username.new()
             box = WOStringIO('<form method="GET" action="/data/save/newuser" name="user">\n')
         box.write('<table class="box" width="100%">\n'
                   '<tr><th colspan="2">|struserdetails|</th></tr>\n'
@@ -961,12 +914,11 @@ class Tables(LampadasCollection):
         elif layout=='expanded':
             box = WOStringIO('')
 
-        #docs.reload()
+        docs = dms.document.get_all()
         keys = docs.sort_by("title")
         odd_even = OddEven()
         for key in keys:
             doc = docs[key]
-            metadata = doc.metadata()
 
             # Don't include unpublished documents
             # except for admins and owners, unless config says otherwise
@@ -1002,7 +954,7 @@ class Tables(LampadasCollection):
                 if doc.maintainer_wanted <> int(maintainer_wanted):
                     continue
             if title > '':
-                if metadata.title.upper().find(title.upper())==-1:
+                if doc.title.upper().find(title.upper())==-1:
                     continue
             if short_desc > '':
                 if doc.short_title.upper().find(short_title.upper())==-1:
@@ -1017,7 +969,7 @@ class Tables(LampadasCollection):
                 if doc.tech_review_status_code <> tech_review_status_code:
                     continue
             if pub_date > '':
-                if metadata.pub_date <> pub_date:
+                if doc.pub_date <> pub_date:
                     continue
             if last_update > '':
                 if doc.last_update <> last_update:
@@ -1026,10 +978,10 @@ class Tables(LampadasCollection):
                 if doc.tickle_date <> tickle_date:
                     continue
             if isbn > '':
-                if metadata.isbn <> isbn:
+                if doc.isbn <> isbn:
                     continue
             if encoding > '':
-                if metadata.encoding <> encoding:
+                if doc.encoding <> encoding:
                     continue
             if rating > '':
                 if doc.rating <> int(rating):
@@ -1038,7 +990,7 @@ class Tables(LampadasCollection):
                 if doc.format_code <> format_code:
                     continue
             if dtd_code > '':
-                if metadata.dtd_code <> dtd_code:
+                if doc.dtd_code <> dtd_code:
                     continue
             if license_code > '':
                 if doc.license_code <> license_code:
@@ -1050,13 +1002,13 @@ class Tables(LampadasCollection):
                 if doc.sk_seriesid.find(sk_seriesid)==-1:
                     continue
             if abstract > '':
-                if metadata.abstract.upper().find(abstract.upper())==-1:
+                if doc.abstract.upper().find(abstract.upper())==-1:
                     continue
             if short_desc > '':
                 if doc.short_desc.upper().find(short_desc.upper())==-1:
                     continue
             if collection_code > '':
-                if collection_code not in doc.collections.keys():
+                if collection_code not in doc.collections.keys('collection_code'):
                     continue
 
             # Doc passed all filters, so include it in the table.
@@ -1066,12 +1018,12 @@ class Tables(LampadasCollection):
                 box.write(self.document_icon_cells(doc.id, 'td'))
 
                 # Format the title differently to flag its status
-                display_title = html_encode(widgets.title_compressed(metadata.title))
+                display_title = html_encode(widgets.title_compressed(doc.title))
 
                 if doc.pub_time > '':
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
                               % (str(doc.id), display_title))
-                elif doc.errors.count() > 0 or doc.files.error_count() > 0:
+                elif doc.errors.count() > 0 or doc.file_error_count > 0:
                     box.write('<td style="width:100%%" class="error">%s</td>\n' % display_title)
                 else:
                     box.write('<td style="width:100%%">%s</td>\n' % display_title)
@@ -1100,13 +1052,13 @@ class Tables(LampadasCollection):
                 block_editlink = '<td width=32><a href="|uri.base|document_main/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>'
 
                 # Format the title based on the presence of errors.
-                if doc.errors.count() > 0 or doc.files.error_count() > 0:
-                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
+                if doc.errors.count() > 0 or doc.file_error_count > 0:
+                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
                 else:
-                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
+                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
 
                 # Finally, pull in the abstract.
-                block_abstract = '<td>' + html_encode(metadata.abstract) + '</td>'
+                block_abstract = '<td>' + html_encode(doc.abstract) + '</td>'
 
                 box.write('<table class="box nontabular" width="100%%">\n'
                           '  <tr>%s</tr>\n'
@@ -1163,7 +1115,7 @@ class Tables(LampadasCollection):
     def document_icon_cells(self, doc_id, cell_type='td'):
         """Returns a series of cells populated with icons for the document."""
 
-        doc = docs[doc_id]
+        doc = dms.document.get_by_id(doc_id)
 
         # Link to the online output
         if doc.pub_time > '':
@@ -1213,7 +1165,7 @@ class Tables(LampadasCollection):
         section = dms.section.get_by_id(section_code)
         box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n'
                          '<tr><td>' % section.name[uri.lang])
-        for key in section.pages.keys():
+        for key in section.pages.sort_by('sort_order'):
             page = section.pages[key]
             if STATIC and page.only_dynamic:
                 continue
@@ -1304,18 +1256,17 @@ class Tables(LampadasCollection):
         log(3, 'Creating tabtopics table')
         #topics.calc_titles()
         #topic = topics[uri.code]
-        topics = dms.topic.get_all()
         topic = dms.topic.get_by_id(uri.code)
+        children = topic.children
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><th class="collabel">|topic.description|</th></tr>
         ''' % topic.title[uri.lang])
         odd_even = OddEven()
-        for key in topics.sort_by('sort_order'):
-            topic = topics[key]
-            if topic.parent_code==uri.code:
-                box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>\n'
-                          % (odd_even.get_next(), topic.code, topic.name[uri.lang]))
+        for key in children.sort_by('sort_order'):
+            child = children[key]
+            box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>\n'
+                      % (odd_even.get_next(), child.code, child.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
@@ -1589,7 +1540,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def tabdocument_tabs(self, uri):
-        document = docs[uri.id]
+        document = dms.document.get_by_id(uri.id)
         box = WOStringIO('<table class="tab"><tr>\n')
        
         # Determine which tab is selected and establish classes.
@@ -1634,7 +1585,7 @@ class Tables(LampadasCollection):
         box.write('<th%s><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>\n' % (users_selected))
         box.write('<th%s><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>\n' % (notes_selected))
         box.write('<th%s><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></th>\n' % (translations_selected))
-        if document.errors.count() > 0 or document.files.error_count() > 0:
+        if document.errors.count() > 0 or document.file_error_count > 0:
             box.write('<th class="error%s"><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected1))
         else:
             box.write('<th%s><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected2))
@@ -1689,7 +1640,7 @@ class DocAdmin(Table):
         # FIXME: Only 'N'ormal documents should be publishable!
 
         if sessions.session and sessions.session.user.can_edit(uri.id)==1:
-            doc = docs[uri.id]
+            doc = dms.document.get_by_id(uri.id)
             box = WOStringIO('<table class="box nontabular" width="100%%">\n'
                              '<tr>'
                              ' <th colspan="4">|strdoc_admin|</th>'
@@ -1961,9 +1912,9 @@ class TabPage(Table):
                       '<tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
-            languages = dms.language.get_by_keys([['supported', '=', 1]])
-            for key in languages.keys():
-                language = languages[key]
+            supported_languages = dms.language.get_by_keys([['supported', '=', 1]])
+            for key in supported_languages.keys():
+                language = supported_languages[key]
                 if not page.page[language.code]==None:
                     box.write('<form method="GET" action="|uri.base|data/save/page_lang">\n'
                               '<input type=hidden name="page_code" value="%s">\n'
@@ -2000,7 +1951,6 @@ class TabPage(Table):
                                  odd_even.get_last(), widgets.page(escape_tokens(page.page[language.code])),
                                  widgets.save()))
 
-            # Add a new translation if there are untranslated languages.
             if len(page.untranslated_lang_keys(uri.lang)) > 0:
                 box.write('<form method="GET" action="|uri.base|data/save/newpage_lang">\n'
                       '<input type=hidden name="page_code" value="%s">\n'
@@ -2135,8 +2085,8 @@ class TabString(Table):
                               '</form>'
                               % (webstring.code, language.code,
                                  odd_even.get_next(), language.name[uri.lang],
-                                 odd_even.get_last(), widgets.version(webstring.version[lang]),
-                                 odd_even.get_last(), widgets.string(webstring.string[lang]),
+                                 odd_even.get_last(), widgets.version(webstring.version[language.code]),
+                                 odd_even.get_last(), widgets.string(webstring.string[language.code]),
                                  widgets.save()))
 
             # Add a new translation if there are untranslated languages.
@@ -2198,10 +2148,11 @@ class TabOMF(Table):
         if uri.id > 0:
             box.write(OMF(uri.id).omf)
         else:
-            for doc_id in docs.sort_by('id'):
-                doc = docs[doc_id]
+            docs = dms.document.get_all()
+            for key in docs.sort_by('id'):
+                doc = docs[key]
                 if doc.pub_status_code=='N':
-                    box.write(OMF(doc_id).omf + '\n')
+                    box.write(OMF(doc.id).omf + '\n')
         box.write('</omf>\n')
         return box.get_value()
 
@@ -2602,6 +2553,7 @@ class TabDocLangStats(Table):
             stat = stattable[language.code]
             if stat==None:
                 stat = Stat()
+            if stat.value==0: continue
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
                           '<td align="right">%s</td>\n'

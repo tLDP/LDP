@@ -10,20 +10,20 @@ class License(Persistence):
             self.documents = self.dms.document.get_by_keys([['license_code', '=', self.code]])
             return self.documents
         elif attribute in ('short_name', 'name', 'description'):
-            self.short_name = LampadasCollection()
-            self.name = LampadasCollection()
-            self.description = LampadasCollection()
+            short_name = LampadasCollection()
+            name = LampadasCollection()
+            description = LampadasCollection()
             i18ns = self.dms.license_i18n.get_by_keys([['license_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
-                self.short_name[i18n.lang] = i18n.license_short_name
-                self.name[i18n.lang] = i18n.license_name
-                self.description[i18n.lang] = i18n.license_desc
+                short_name[i18n.lang] = i18n.license_short_name
+                name[i18n.lang] = i18n.license_name
+                description[i18n.lang] = i18n.license_desc
             if attribute=='short_name':
-                return self.short_name
+                return short_name
             elif attribute=='name':
-                return self.name
+                return name
             else:
-                return self.description
+                return description
         else:
             raise AttributeError('No such attribute %s' % attribute)

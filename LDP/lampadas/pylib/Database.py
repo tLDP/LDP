@@ -112,9 +112,13 @@ class Database:
 
     def log(self, level, message, username='', doc_id='NULL'):
         if config.log_level >= level:
-            sql = 'INSERT INTO log(level, username, doc_id, message) VALUES (%s, %s, %s, %s)' % (level, wsq(username), doc_id, wsq(message))
+            log_level = config.log_level
+            config.log_level = 0
+            new_id = self.next_id('log', 'log_id')
+            sql = 'INSERT INTO log(log_id, level, username, doc_id, message) VALUES (%s, %s, %s, %s, %s)' % (new_id, level, wsq(username), doc_id, wsq(message))
             db.runsql(sql, log=0)
             db.commit()
+            config.log_level = log_level
 
     def commit(self):
         if AUTOCOMMIT==0:

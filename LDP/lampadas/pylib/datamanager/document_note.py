@@ -9,4 +9,5 @@ class DocumentNote(DataManager):
              'doc_id':              {'key_field': NO,  'data_type': 'int',      'nullable': NO,  'i18n': NO,  'foreign_key': 'document.doc_id'},
              'notes':               {'key_field': NO,  'data_type': 'string',   'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'created':             {'key_field': NO,  'data_type': 'created',  'nullable': NO,  'i18n': NO,  'foreign_key': ''},
+             'creator':             {'key_field': NO,  'data_type': 'creator',  'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'updated':             {'key_field': NO,  'data_type': 'updated',  'nullable': NO,  'i18n': NO,  'foreign_key': ''}})

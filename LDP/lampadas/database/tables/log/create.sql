@@ -1,10 +1,13 @@
 CREATE TABLE log
 (
+	log_id			INT4		NOT NULL,
 	level			INT4		NOT NULL,
 	username		CHAR(40),
 	message			TEXT		NOT NULL,
 	doc_id			INT4,
-	created			TIMESTAMP	NOT NULL	DEFAULT now()
+	created			TIMESTAMP	NOT NULL	DEFAULT now(),
+
+	PRIMARY KEY (log_id)
 );
 
 CREATE INDEX log_ctd_idx ON log (created);

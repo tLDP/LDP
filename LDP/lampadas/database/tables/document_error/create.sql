@@ -9,7 +9,7 @@ CREATE TABLE document_error
 	PRIMARY KEY (doc_id, err_id)
 );
 
-CREATE INDEX document_error_doc_idx ON document_error (doc_id)
-CREATE INDEX errument_error_err_idx ON errument_error (err_id)
+CREATE INDEX document_error_doc_idx ON document_error (doc_id);
+CREATE INDEX document_error_err_idx ON document_error (err_id);
 CREATE INDEX document_error_upd_idx ON document_error (updated);
 CREATE INDEX document_error_ctd_idx ON document_error (created);

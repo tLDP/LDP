@@ -63,11 +63,7 @@ class Mirror:
             os.mkdir(logdir)
 
         # Do not attempt to mirror a document which has document or file errors.
-        file_errors = 0
-        for key in doc.files.keys():
-            docfile = doc.files[key]
-            file_errors = file_errors + docfile.sourcefile.errors.count()
-        if doc.errors.count([['err_type_code', '=', 'doc']]) > 0 or file_errors > 0:
+        if doc.errors.count([['err_type_code', '=', 'doc']]) > 0 or doc.file_error_count > 0:
             print 'Not mirroring document ' + str(doc.id) + '; it has errors.'
             return
 
@@ -137,11 +133,7 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
-        file_errors = 0
-        for key in doc.files.keys():
-            docfile = doc.files[key]
-            file_errors = file_errors + docfile.sourcefile.errors.count()
-        if doc.errors.count([['err_type_code', '=', 'mirror']])==0 and file_errors==0:
+        if doc.errors.count([['err_type_code', '=', 'mirror']])==0 and doc.file_error_count==0:
             doc.mirror_time = now_string()
         doc.files.save()
         doc.save()

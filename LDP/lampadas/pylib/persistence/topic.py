@@ -12,6 +12,9 @@ class Topic(Persistence):
         elif attribute=='parent':
             self.parent = self.dms.topic.get_by_id(self.parent_code)
             return self.parent
+        elif attribute=='children':
+            self.children = self.dms.topic.get_by_keys([['parent_code', '=', self.code]])
+            return self.children
         elif attribute=='title':
             parent = self.parent
             if parent:
@@ -25,16 +28,16 @@ class Topic(Persistence):
             self.title = title
             return self.title
         elif attribute in ('name', 'description'):
-            self.name = LampadasCollection()
-            self.description = LampadasCollection()
+            name = LampadasCollection()
+            description = LampadasCollection()
             i18ns = self.dms.topic_i18n.get_by_keys([['topic_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
-                self.name[i18n.lang] = i18n.topic_name
-                self.description[i18n.lang] = i18n.topic_desc
+                name[i18n.lang] = i18n.topic_name
+                description[i18n.lang] = i18n.topic_desc
             if attribute=='name':
-                return self.name
+                return name
             else:
-                return self.description
+                return description
         else:
             raise AttributeError('No such attribute %s' % attribute)

@@ -38,6 +38,7 @@ YES = 1
 NO  = 0
 
 STATIC = 0
+current_session = None
 
 # How many items to clear from a cache when it is full
 # and we're adding another object to it.

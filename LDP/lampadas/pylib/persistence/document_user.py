@@ -9,7 +9,7 @@ class DocumentUser(Persistence):
             self.document = self.dms.document.get_by_id(self.doc_id)
             return self.document
         elif attribute=='user':
-            self.user = self.dms.username.get_by_id(self.doc_id)
+            self.user = self.dms.username.get_by_id(self.username)
             return self.user
         else:
             raise AttributeError('No such attribute %s' % attribute)

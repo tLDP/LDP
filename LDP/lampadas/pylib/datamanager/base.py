@@ -18,6 +18,11 @@ class UnknownFieldType(Exception) :
     Exception raised when unknown type is used with TableField.
     """
 
+class UnknownOperator(Exception):
+    """
+    Exception if a filter has an unrecognized operator.
+    """
+    
 class TableField:
     """
     This class defines a field in a database table, i.e., a column.
@@ -27,6 +32,7 @@ class TableField:
         self.table = table
 
     def get_default(self):
+        global current_session
         if self.data_type in ('sequence', 'int', 'float'): return 0
         elif self.data_type in ('string', ''): return ''
         elif self.data_type=='list':           return []
@@ -35,8 +41,16 @@ class TableField:
         elif self.data_type=='bool':           return 0
         elif self.data_type=='created':        return now_string()
         elif self.data_type=='updated':        return now_string()
-        elif self.data_type=='creator':        return ''
-        elif self.data_type=='updater':        return ''
+        elif self.data_type=='creator':
+            if current_session:
+                return current_session.user.username
+            else:
+                return ''
+        elif self.data_type=='updater':
+            if current_session:
+                return current_session.user.username
+            else:
+                return ''
         else:
             raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
         
@@ -56,6 +70,7 @@ class TableField:
             raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
 
     def attr_to_field(self, value):
+        global current_session
         if self.data_type in ('sequence', 'int', 'float'):
             if self.nullable==1 and value==0:
                 return 'NULL'
@@ -69,7 +84,11 @@ class TableField:
         elif self.data_type=='created': return wsq(str(value))
         elif self.data_type=='updated': return wsq(now_string())
         elif self.data_type=='creator': return wsq(value)
-        elif self.data_type=='updater': return wsq(value)
+        elif self.data_type=='updater':
+            if current_session:
+                return wsq(current_session.user.username)
+            else:
+                return wsq('')
         else :
             raise UnknownFieldType('Unrecognized data type definition '
                                    'data= %s invalid type=%s' 
@@ -151,13 +170,14 @@ class DataManager(DataTable):
 
     def __init__(self, table_name, field_dictionary):
         DataTable.__init__(self, table_name, field_dictionary)
-        
-        # FIXME: Look at these when saving!
-        self.in_database = 0
-        self.changed     = 0
-        self.table       = DataTable(table_name, field_dictionary)
-        self.cache       = Cache()
+        self.table        = DataTable(table_name, field_dictionary)
+        self.reset_cache()
 
+    def reset_cache(self):
+        self.cache        = Cache()
+        self.all_cached   = 0
+        self.last_synched = ''
+        
     def get_by_id(self, id):
         """
         Returns the object that was requested.
@@ -179,6 +199,46 @@ class DataManager(DataTable):
         """
         Returns all objects which match the supplied filters.
         """
+        # FIXME: Use keys based on attributes, not field names.
+        # Clients shouldn't have to know field names, and it also would make
+        # searching the cache easier.
+
+        if self.cache.filled==1:
+            self.all_cached = 0
+        if self.all_cached==1:
+            return self.get_cached_by_keys(filters)
+        else:
+            sql = self.filters_to_sql(filters)
+            return self.get_sql(sql)
+
+    def get_cached_by_keys(self, filters):
+        sql = self.filters_to_sql(filters)
+        set = DataSet(self, sql)
+        for key in self.cache.keys():
+            object = self.cache[key]
+            for filter in filters:
+                field_name, operator, value = filter
+                data_field = self.table.fields[field_name]
+                obj_value = getattr(object, data_field.attribute)
+                if operator.upper()=='LIKE':
+                    if len(value) > len(obj_value): continue
+                    if value.upper()==obj_value.upper()[:len(value)]:
+                        set[object.key] = object
+                elif operator=='=':
+                    if obj_value==value: set[object.key] = object
+                elif operator=='<':
+                    if obj_value < value: set[object.key] = object
+                elif operator=='<=':
+                    if obj_value <= value: set[object.key] = object
+                elif operator=='>':
+                    if obj_value > value: set[object.key] = object
+                elif operator=='>=':
+                    if obj_value >= value: set[object.key] = object
+                else:
+                    raise UnknownOperator('Unrecognized operator: %s' %(data_field.operator))
+        return set
+
+    def filters_to_sql(self, filters):
         wheres = []
         for filter in filters:
             field_name, operator, value = filter
@@ -188,10 +248,52 @@ class DataManager(DataTable):
             else:
                 wheres.append(field_name + operator + data_field.attr_to_field(value))
         where = ' WHERE ' + string.join(wheres, ' AND ')
-        return self.get_sql(self.table.select + where)
+        return self.table.select + where
 
     def get_all(self):
-        return self.get_sql(self.table.select)
+        if self.cache.filled==1:
+            self.all_cached = 0
+        if self.all_cached==0:
+            #print 'Loading all of ' + self.table.name + ' into cache.'
+            set = self.get_sql(self.table.select)
+            if self.cache.filled==0:
+                self.all_cached = 1
+                self.last_synched = now_string()
+            return set
+        self.synch()
+        return self.get_cached()
+
+    def synch(self):
+        last_synched = self.last_synched        # Remember this, because we're about to overwrite it.
+        self.last_synched = now_string()
+        sql = 'SELECT identifier FROM deleted WHERE table_name=' + wsq(self.table.name) + ' AND deleted >= ' + wsq(last_synched)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            for key in self.table.field_list:
+                field = self.fields[key]
+                if field.key_field==1:
+                    value = field.field_to_attr(row[1])
+                    break
+            object = self.new()
+            object.key = value
+            #print 'Asking cache to delete ' + self.table.name + ': ' + str(value)
+            self.cache.delete(object)
+        sql = self.table.select + ' WHERE updated >= ' + wsq(self.last_synched)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            object = self.row_to_object(row)
+            self.cache.add(object)
+
+    def get_cached(self):
+        #print 'Pulling ' + self.table.name + ' from cache.'
+        set = DataSet(self, self.table.select)
+        for key in self.cache.keys():
+            set[key] = self.cache[key]
+        return set
         
     def get_sql(self, sql):
         """
@@ -221,6 +323,9 @@ class DataManager(DataTable):
         object = self.new()
         self.table.load_row(object, row)
         return object
+
+    def add(self, object):
+        self.save(object)
 
     def save(self, object):
         if object.changed==0:
@@ -256,6 +361,7 @@ class DataManager(DataTable):
                     where_list.append(field.field_name + '=' + value)
             sql = 'UPDATE %s SET %s WHERE %s' % (self.table.name, string.join(update_list, ', '), string.join(where_list, ' AND '))
         db.runsql(sql)
+        db.commit()
         self.cache.add(object)
         object.in_database = 1
         object.changed = 0
@@ -272,6 +378,10 @@ class DataManager(DataTable):
         where = ' WHERE ' + string.join(wheres, ' AND ')
         sql = 'DELETE FROM %s %s' % (self.table.name, where)
         db.runsql(sql)
+        db.commit()
+        sql = 'INSERT INTO deleted (table_name, identifier) VALUES (%s, %s)' % (wsq(self.table.name), wsq(str(object.key)))
+        db.runsql(sql)
+        db.commit()
 
     def delete_by_keys(self, filters):
         set = self.get_by_keys(filters)

@@ -72,7 +72,8 @@ class Stats(LampadasCollection):
             self['pub_status'].inc(doc.pub_status_code)
             self['doc_format'].inc(format_code)
             self['doc_dtd'].inc(dtd_code)
-            self['doc_lang'].inc(doc.lang)
+            if doc.lang > '':
+                self['doc_lang'].inc(doc.lang)
             
             # Increment error counts
             for key in doc.errors.keys('err_id'):

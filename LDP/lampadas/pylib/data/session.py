@@ -22,7 +22,6 @@
 from Config import config
 from globals import *
 from URLParse import URI
-from Users import users
 from Sessions import sessions
 from HTML import page_factory
 from Log import log
@@ -30,9 +29,11 @@ from mod_python import apache
 import whrandom
 import string
 
+from CoreDM import dms
+
 def login(req, username, password):
 
-    user = users[username]
+    user = dms.username.get_by_id(username)
     if user and user.username==username:
         if user.password == password:
             
@@ -45,7 +46,6 @@ def login(req, username, password):
             session_id = ''
             for x in range(20):
                 session_id += whrandom.choice(chars)
-            user = users[username]
             user.session_id = session_id
             user.save()
                     
@@ -62,7 +62,7 @@ def login(req, username, password):
 def logout(req, username):
     sessions.delete(username)
 
-    user = users[username]
+    user = dms.username.get_by_id(username)
     user.session_id = ''
     user.save()
 

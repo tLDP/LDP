@@ -23,16 +23,16 @@ from globals import *
 from Config import config
 from mod_python import apache
 from Lintadas import lintadas
-from Languages import languages
 from Mirror import mirror
-from Docs import docs
 import os
+
+from CoreDM import dms
 
 def show_config(req):
     return error(config.debug())
 
 def run_lintadas(req, doc_id):
-    doc = docs[int(doc_id)]
+    doc = dms.document.get_by_id(int(doc_id))
     if doc==None:
         return error("Cannot find document " + doc_id)
 
@@ -41,7 +41,7 @@ def run_lintadas(req, doc_id):
     go_back(req)
 
 def run_mirror(req, doc_id):
-    doc = docs[int(doc_id)]
+    doc = dms.document.get_by_id(int(doc_id))
     if doc==None:
         return error("Cannot find document " + str(doc_id))
 
@@ -57,7 +57,7 @@ def run_mirror(req, doc_id):
     go_back(req)
 
 def run_publish(req, doc_id):
-    doc = docs[int(doc_id)]
+    doc = dms.document.get_by_id(int(doc_id))
     if doc==None:
         return error("Cannot find document " + doc_id)
 

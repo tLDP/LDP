@@ -112,7 +112,7 @@ class PageFactory:
                         newstring = ''
                 elif token=='session_name':
                     if sessions.session:
-                        newstring = sessions.session.user.name()
+                        newstring = sessions.session.user.name
                     else:
                         newstring = ''
                 elif token=='session_user_docs':

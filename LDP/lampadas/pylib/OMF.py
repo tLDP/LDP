@@ -32,12 +32,13 @@ from Licenses import licenses
 from WebLayer import lampadasweb    # FIXME: Obviously strings are not just used
                                     # for the web! Move them out of WebLayer.
 
+from CoreDM import dms
+
 class OMF:
 
     def __init__(self, doc_id):
         self.id = doc_id
-        self.doc = docs[doc_id]
-        self.metadata = self.doc.metadata()
+        self.doc = dms.document.get_by_id(doc_id)
         omf = WOStringIO('<resource id="%s">\n'
                          '%s'
                          '%s'
@@ -80,7 +81,7 @@ class OMF:
         omf = WOStringIO()
         for key in self.doc.users.keys():
             docuser = self.doc.users[key]
-            user = User(docuser.username)
+            user = docuser.user
             if docuser.role_code=='author':
                 omf.write('<creator>%s' % user.email)
                 if user.name > '':
@@ -92,7 +93,7 @@ class OMF:
         omf = WOStringIO()
         for key in self.doc.users.keys():
             docuser = self.doc.users[key]
-            user = User(docuser.username)
+            user = docuser.user
             if docuser.role_code=='maintainer':
                 omf.write('<maintainer>%s' % user.email)
                 if user.name > '':
@@ -104,7 +105,7 @@ class OMF:
         omf = WOStringIO()
         for key in self.doc.users.keys():
             docuser = self.doc.users[key]
-            user = User(docuser.username)
+            user = docuser.user
             if docuser.role_code <> 'author' and docuser.role_code <> 'maintainer':
                 omf.write('<contributor>%s' % user.email)
                 if user.name > '':
@@ -117,10 +118,10 @@ class OMF:
         if self.doc.format_code=='xml':
             omf.write('<format dtd="%s" mime="text/xml"/>' % self.metadata.dtd_code)
         elif self.doc.format_code=='sgml':
-            if self.metadata.dtd_code=='html':
-                omf.write('<format dtd="%s" mime="text/html"/>' % self.metadata.dtd_code)
+            if self.doc.dtd_code=='html':
+                omf.write('<format dtd="%s" mime="text/html"/>' % self.doc.dtd_code)
             else:
-                omf.write('<format dtd="%s" mime="text/sgml"/>' % self.metadata.dtd_code)
+                omf.write('<format dtd="%s" mime="text/sgml"/>' % self.doc.dtd_code)
         elif self.doc.format_code=='text':
             omf.write('<format mime="text/plain"/>')
         elif self.doc.format_code=='latex':
@@ -128,15 +129,15 @@ class OMF:
         return omf.get_value()
 
     def description(self):
-        if self.metadata.abstract > '':
-            return '<description>%s</description>' % self.metadata.abstract
+        if self.doc.abstract > '':
+            return '<description>%s</description>' % self.doc.abstract
         else:
             return ''
 
     def rights(self):
         if self.doc.license_code=='':
             return ''
-        license = licenses[self.doc.license_code]
+        license = self.doc.license
         if license.url=='':
             return '<rights><type>%s</type></rights>\n' % license.code
         else:
@@ -146,7 +147,9 @@ class OMF:
 if __name__=='__main__':
     print '<xml version="1.0" encoding="UTF-8"?>'
     print '<omf>'
-    for doc_id in docs.sort_by('id'):
-        print OMF(doc_id).omf
+    docs = dms.document.get_all()
+    for key in docs.sort_by('id'):
+        doc = docs[key]
+        print OMF(doc.id).omf
     print '</omf>'
 

@@ -21,9 +21,9 @@
 
 from URLParse import URI
 from Config import config
-from Users import users
 from mod_python import apache
 import smtplib
+from CoreDM import dms
 
 def referer_lang_ext(req):
     try:
@@ -58,7 +58,8 @@ def send_mail(email, message):
     server.quit()
 
 def mailpass(req, email):
-    user = users.find_email_user(email)
+    users = dms.username.get_by_keys([['email', '=', email]])
+    user = users[users.keys()[0]]
     if user:
         send_mail(email, 'Your password for Lampadas is: ' + user.password)
         redirect(req, '../../password_mailed' + referer_lang_ext(req))

@@ -12,17 +12,17 @@ class Collection(Persistence):
             self.documents = self.dms.document_collection.get_by_keys([['collection_code', '=', self.code]])
             return self.documents
         elif attribute in ('name', 'description'):
-            self.name = LampadasCollection()
-            self.description = LampadasCollection()
+            name = LampadasCollection()
+            description = LampadasCollection()
             i18ns = self.dms.collection_i18n.get_by_keys([['collection_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
-                self.name[i18n.lang] = i18n.collection_name
-                self.description[i18n.lang] = i18n.collection_desc
+                name[i18n.lang] = i18n.collection_name
+                description[i18n.lang] = i18n.collection_desc
             if attribute=='name':
-                return self.name
+                return name
             elif attribute=='description':
-                return self.description
+                return description
         else:
             raise AttributeError('No such attribute %s' % attribute)
 

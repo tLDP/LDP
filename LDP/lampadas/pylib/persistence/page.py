@@ -13,28 +13,35 @@ class Page(Persistence):
             self.section = self.dms.section.get_by_id(self.section_code)
             return self.section
         elif attribute in ('title', 'menu_name', 'page', 'version'):
-            self.title     = LampadasCollection()
-            self.menu_name = LampadasCollection()
-            self.page      = LampadasCollection()
-            self.version   = LampadasCollection()
+            title     = LampadasCollection()
+            menu_name = LampadasCollection()
+            page      = LampadasCollection()
+            version   = LampadasCollection()
             i18ns = self.dms.page_i18n.get_by_keys([['page_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
-                self.title[i18n.lang] = i18n.title
+                title[i18n.lang] = i18n.title
                 if i18n.menu_name=='':
-                    self.menu_name[i18n.lang] = i18n.title
+                    menu_name[i18n.lang] = i18n.title
                 else:
-                    self.menu_name[i18n.lang] = i18n.menu_name
-                self.page[i18n.lang] = i18n.page
-                self.version[i18n.lang] = i18n.version
+                    menu_name[i18n.lang] = i18n.menu_name
+                page[i18n.lang] = i18n.page
+                version[i18n.lang] = i18n.version
             if attribute=='title':
-                return self.title
+                return title
             elif attribute=='menu_name':
-                return self.menu_name
+                return menu_name
             elif attribute=='page':
-                return self.page
+                return page
             else:
-                return self.version
+                return version
         else:
             raise AttributeError('No such attribute %s' % attribute)
 
+    def untranslated_lang_keys(self, lang):
+        untranslated = []
+        supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
+        for key in supported_langs.keys():
+            if key not in self.title.keys():
+                untranslated.append(key)
+        return untranslated

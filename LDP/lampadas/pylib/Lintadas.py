@@ -101,12 +101,18 @@ class Lintadas:
         
         # If file the is missing, flag error and stop.
         if os.access(filename, os.F_OK)==0:
-            sourcefile.errors.add(ERR_FILE_NOT_FOUND)
+            err = dms.file_error.new()
+            err.err_id = ERR_FILE_NOT_FOUND
+            err.filename = sourcefile.filename
+            sourcefile.errors.add(err)
             return
 
         # If file is not readable, flag error and top.
         if os.access(filename, os.R_OK)==0:
-            sourcefile.errors.add(ERR_FILE_NOT_READABLE)
+            err = dms.file_error.new()
+            err.err_id = ERR_FILE_NOT_READABLE
+            err.filename = sourcefile.filename
+            sourcefile.errors.add(err)
             return
 
         # Read file information
@@ -120,7 +126,10 @@ class Lintadas:
 
         # If we were able to read format code, post it to the document,
         if sourcefile.format_code=='':
-            sourcefile.errors.add(ERR_FILE_FORMAT_UNKNOWN)
+            err = dms.file_error.new()
+            err.err_id = ERR_FILE_FORMAT_UNKNOWN
+            err.filename = sourcefile.filename
+            sourcefile.errors.add(err)
 
         sourcefile.save()
 
