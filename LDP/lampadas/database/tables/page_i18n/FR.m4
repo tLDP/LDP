@@ -112,6 +112,11 @@ insert([topic], [View Topic], [View Topic],
     |tabsubtopics|
 ])
 
+insert([subtopic], [View Subtopic], [],
+[
+    |tabsubtopic|
+])
+
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|
@@ -122,3 +127,42 @@ insert([404], [Introuvable], [Introuvable],
 	Introuvable
 ])
 
+insert([user_exists], [User Exists], [],
+[
+    <p>That username is already taken. Please select another username and try again.
+])
+
+insert([username_required], [Username Required] [],
+[
+    <p>Username is a required field. Please enter a username and try again.
+])
+
+insert([email_exists], [Email Exists], [],
+[
+    <p>That email address is already in the database.
+    If you already have an account but have forgotten your password,
+    you can have it <a href="mailpass">mailed</a> to you.
+])
+
+insert([account_created], [Account Created], [],
+[
+    <p>Your account has been created, and your password has been mailed to you.
+    Please check your email.
+])
+
+insert([user], [|user_name|], [],
+[
+    <p>This is the page for a user:
+
+    |tabuser|
+])
+
+insert([logged_in], [Logged In], [],
+[
+    <p>You have been logged into the system.
+])
+
+insert([logged_out], [Logged Out], [],
+[
+    <p>You have been logged out of the system.
+])

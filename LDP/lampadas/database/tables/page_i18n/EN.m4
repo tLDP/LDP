@@ -216,6 +216,11 @@ insert([topic], [View Topic], [],
     |tabsubtopics|
 ])
 
+insert([subtopic], [View Subtopic], [],
+[
+    |tabsubtopic|
+])
+
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
@@ -245,8 +250,8 @@ insert([username_required], [Username Required] [],
 insert([email_exists], [Email Exists], [],
 [
     <p>That email address is already in the database.
-    If you already have an account, you can have it
-    <a href="mailpass">mailed</a> to you.
+    If you already have an account but have forgotten your password,
+    you can have it <a href="mailpass">mailed</a> to you.
 ])
 
 insert([account_created], [Account Created], [],
@@ -260,4 +265,14 @@ insert([user], [|user_name|], [],
     <p>This is the page for a user:
 
     |tabuser|
+])
+
+insert([logged_in], [Logged In], [],
+[
+    <p>You have been logged into the system.
+])
+
+insert([logged_out], [Logged Out], [],
+[
+    <p>You have been logged out of the system.
 ])
