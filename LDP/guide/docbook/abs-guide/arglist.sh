@@ -1,4 +1,5 @@
 #!/bin/bash
+# arglist.sh
 # Invoke this script with several arguments, such as "one two three".
 
 E_BADARGS=65
@@ -34,5 +35,13 @@ done             # $@ sees arguments as separate words.
 echo "Arg list seen as separate words."
 
 echo
+
+echo "Listing args with \$* (unquoted):"
+for arg in $*
+do
+  echo "Arg #$index = $arg"
+  let "index+=1"
+done             # Unquoted $* sees arguments as separate words. 
+echo "Arg list seen as separate words."
 
 exit 0

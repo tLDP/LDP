@@ -1,7 +1,9 @@
 #!/bin/bash
-# t-out.sh (per a suggestion by "syngin seven)
+# t-out.sh
+# Inspired by a suggestion from "syngin seven" (thanks).
 
-TIMELIMIT=4        # 4 seconds
+
+TIMELIMIT=4         # 4 seconds
 
 read -t $TIMELIMIT variable <&1
 
@@ -15,3 +17,8 @@ else
 fi  
 
 exit 0
+
+# Exercise for the reader:
+# -----------------------
+# Why is the redirection (<&1) necessary in line 8?
+# What happens if it is omitted?
