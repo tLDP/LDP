@@ -38,7 +38,10 @@ use vars qw ($project $repository $from_email $dest_email $reply_email
 ### Configuration
 
 # Project name.
-$project = 'ELinks';
+$project = 'TLDP';
+
+# X-mailer for better identification
+$x_mailer = '$Id$';
 
 # The path to the repository.  If your platform or CVS implementation doesn't
 # pass the full path to the cvslog script in $0 (or if your cvslog script
@@ -262,6 +265,7 @@ To: $dest_email
 Reply-To: $reply_email
 Mail-Followup-To: $reply_email
 X-CVS: $user\@$project:$module
+X-Mailer: $x_mailer
 $subj
 
 $help_msg
