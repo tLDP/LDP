@@ -50,9 +50,13 @@ class Log:
     def write(self, level, message):
         if config.log_level >= level:
             logmessage = time.ctime(time.time()) + ' ' + message
-            log_file = open(config.log_file, 'a+')
-            log_file.write(logmessage + "\n")
-            log_file.close
+            try:
+                log_file = open(config.log_file, 'a+')
+                log_file.write(logmessage + "\n")
+                log_file.close
+            except IOError:
+                pass
+
             if config.log_console > 0:
                 print logmessage
 
