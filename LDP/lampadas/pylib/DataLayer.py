@@ -1156,21 +1156,31 @@ class License:
 
 class DTDs(LampadasCollection):
     """
-    A collection object of all DTDs.
+    A collection object of Document Type Definitions.
     """
     
     def __init__(self):
         self.data = {}
 
     def load(self):
-        sql = "SELECT dtd_code from dtd"
+        sql = 'SELECT dtd_code from dtd'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newDTD = DTD()
-            newDTD.load_row(row)
-            self.data[newDTD.code] = newDTD
+            dtd = DTD()
+            dtd.load_row(row)
+            self.data[dtd.code] = dtd
+        sql = 'SELECT dtd_code, lang, dtd_name, dtd_desc FROM dtd_i18n'
+        cursor = db.select(sql)
+        while(1):
+            row = cursor.fetchone()
+            if row==None: break
+            dtd_code = trim(row[0])
+            dtd      = self[dtd_code]
+            lang     = row[1]
+            dtd.name[lang]        = trim(row[2])
+            dtd.description[lang] = trim(row[3])
 
 class DTD:
     """
@@ -1179,6 +1189,8 @@ class DTD:
 
     def __init__(self, dtd_code=''):
         self.code = dtd_code
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if dtd_code=='': return
         self.load()
 
@@ -1188,6 +1200,13 @@ class DTD:
         row = cursor.fetchone()
         if row==None: return
         self.load_row(row)
+        sql = 'SELECT dtd_code, lang, dtd_name, dtd_desc FROM dtd_i18n WHERE dtd_code=' + wsq(dtd_code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        lang = row[1]
+        self.name[lang]        = trim(row[2])
+        self.description[lang] = trim(row[3])
 
     def load_row(self, row):
         self.code = trim(row[0])

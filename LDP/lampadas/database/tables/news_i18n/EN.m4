@@ -1,4 +1,4 @@
-insert(1,
+insert(1, [Feature Freeze Approaching],
 [
 <p>We\'re nearing a feature freeze in the Lampadas GUI. The Makefile
 system is now correctly notifying the rest of the system when a document is 

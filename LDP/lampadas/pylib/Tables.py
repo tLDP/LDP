@@ -37,42 +37,42 @@ import string
 
 
 # MimeType icons for downloadable formats. Not all are used yet.
-ASCII_ICON_SM   = '<img src="|uri.base|images/icons/ascii22x22.png"   alt="Text">'
-ASCII_ICON      = '<img src="|uri.base|images/icons/ascii32x32.png"   alt="Text">'
-ASCII_ICON_BIG  = '<img src="|uri.base|images/icons/ascii48x48.png"   alt="Text">'
-CSS_ICON_SM     = '<img src="|uri.base|images/icons/css22x22.png"     alt="CSS">'
-CSS_ICON        = '<img src="|uri.base|images/icons/css32x32.png"     alt="CSS">'
-CSS_ICON_BIG    = '<img src="|uri.base|images/icons/css48x48.png"     alt="CSS">'
-EDIT_ICON_SM    = '<img src="|uri.base|images/icons/edit22x22.png"    alt="Edit">'
-EDIT_ICON       = '<img src="|uri.base|images/icons/edit32x32.png"    alt="Edit">'
-EDIT_ICON_BIG   = '<img src="|uri.base|images/icons/edit48x48.png"    alt="Edit">'
-FOLDER_ICON_SM  = '<img src="|uri.base|images/icons/folder22x22.png"  alt="Folder">'
-FOLDER_ICON     = '<img src="|uri.base|images/icons/folder32x32.png"  alt="Folder">'
-FOLDER_ICON_BIG = '<img src="|uri.base|images/icons/folder48x48.png"  alt="Folder">'
-HTML_ICON_SM    = '<img src="|uri.base|images/icons/html22x22.png"    alt="HTML">'
-HTML_ICON       = '<img src="|uri.base|images/icons/html32x32.png"    alt="HTML">'
-HTML_ICON_BIG   = '<img src="|uri.base|images/icons/html48x48.png"    alt="HTML">'
-INFO_ICON_SM    = '<img src="|uri.base|images/icons/info22x22.png"    alt="Info">'
-INFO_ICON       = '<img src="|uri.base|images/icons/info32x32.png"    alt="Info">'
-INFO_ICON_BIG   = '<img src="|uri.base|images/icons/info48x48.png"    alt="Info">'
-LOG_ICON_SM     = '<img src="|uri.base|images/icons/log22x22.png"     alt="Log">'
-LOG_ICON        = '<img src="|uri.base|images/icons/log32x32.png"     alt="Log">'
-LOG_ICON_BIG    = '<img src="|uri.base|images/icons/log48x48.png"     alt="Log">'
-MULTI_ICON_SM   = '<img src="|uri.base|images/icons/multi22x22.png"   alt="Multi">'
-MULTI_ICON      = '<img src="|uri.base|images/icons/multi32x32.png"   alt="Multi">'
-MULTI_ICON_BIG  = '<img src="|uri.base|images/icons/multi48x48.png"   alt="Multi">'
-PDF_ICON_SM     = '<img src="|uri.base|images/icons/pdf22x22.png"     alt="PDF">'
-PDF_ICON        = '<img src="|uri.base|images/icons/pdf32x32.png"     alt="PDF">'
-PDF_ICON_BIG    = '<img src="|uri.base|images/icons/pdf48x48.png"     alt="PDF">'
-PS_ICON_SM      = '<img src="|uri.base|images/icons/ps22x22.png"      alt="PS">'
-PS_ICON         = '<img src="|uri.base|images/icons/ps32x32.png"      alt="PS">'
-PS_ICON_BIG     = '<img src="|uri.base|images/icons/ps48x48.png"      alt="PS">'
-TGZ_ICON_SM     = '<img src="|uri.base|images/icons/tgz22x22.png"     alt="TGZ">'
-TGZ_ICON        = '<img src="|uri.base|images/icons/tgz32x32.png"     alt="TGZ">'
-TGZ_ICON_BIG    = '<img src="|uri.base|images/icons/tgz48x48.png"     alt="TGZ">'
-UNK_ICON_SM     = '<img src="|uri.base|images/icons/unknown22x22.png" alt="?">'
-UNK_ICON        = '<img src="|uri.base|images/icons/unknown32x32.png" alt="?">'
-UNK_ICON_BIG    = '<img src="|uri.base|images/icons/unknown48x48.png" alt="?">'
+ASCII_ICON_SM   = '<img src="|uri.base|images/icons/ascii22x22.png"   alt="Text"   align="middle">'
+ASCII_ICON      = '<img src="|uri.base|images/icons/ascii32x32.png"   alt="Text"   align="middle">'
+ASCII_ICON_BIG  = '<img src="|uri.base|images/icons/ascii48x48.png"   alt="Text"   align="middle">'
+CSS_ICON_SM     = '<img src="|uri.base|images/icons/css22x22.png"     alt="CSS"    align="middle">'
+CSS_ICON        = '<img src="|uri.base|images/icons/css32x32.png"     alt="CSS"    align="middle">'
+CSS_ICON_BIG    = '<img src="|uri.base|images/icons/css48x48.png"     alt="CSS"    align="middle">'
+EDIT_ICON_SM    = '<img src="|uri.base|images/icons/edit22x22.png"    alt="Edit"   align="middle">'
+EDIT_ICON       = '<img src="|uri.base|images/icons/edit32x32.png"    alt="Edit"   align="middle">'
+EDIT_ICON_BIG   = '<img src="|uri.base|images/icons/edit48x48.png"    alt="Edit"   align="middle">'
+FOLDER_ICON_SM  = '<img src="|uri.base|images/icons/folder22x22.png"  alt="Folder" align="middle">'
+FOLDER_ICON     = '<img src="|uri.base|images/icons/folder32x32.png"  alt="Folder" align="middle">'
+FOLDER_ICON_BIG = '<img src="|uri.base|images/icons/folder48x48.png"  alt="Folder" align="middle">'
+HTML_ICON_SM    = '<img src="|uri.base|images/icons/html22x22.png"    alt="HTML"   align="middle">'
+HTML_ICON       = '<img src="|uri.base|images/icons/html32x32.png"    alt="HTML"   align="middle">'
+HTML_ICON_BIG   = '<img src="|uri.base|images/icons/html48x48.png"    alt="HTML"   align="middle">'
+INFO_ICON_SM    = '<img src="|uri.base|images/icons/info22x22.png"    alt="Info"   align="middle">'
+INFO_ICON       = '<img src="|uri.base|images/icons/info32x32.png"    alt="Info"   align="middle">'
+INFO_ICON_BIG   = '<img src="|uri.base|images/icons/info48x48.png"    alt="Info"   align="middle">'
+LOG_ICON_SM     = '<img src="|uri.base|images/icons/log22x22.png"     alt="Log"    align="middle">'
+LOG_ICON        = '<img src="|uri.base|images/icons/log32x32.png"     alt="Log"    align="middle">'
+LOG_ICON_BIG    = '<img src="|uri.base|images/icons/log48x48.png"     alt="Log"    align="middle">'
+MULTI_ICON_SM   = '<img src="|uri.base|images/icons/multi22x22.png"   alt="Multi"  align="middle">'
+MULTI_ICON      = '<img src="|uri.base|images/icons/multi32x32.png"   alt="Multi"  align="middle">'
+MULTI_ICON_BIG  = '<img src="|uri.base|images/icons/multi48x48.png"   alt="Multi"  align="middle">'
+PDF_ICON_SM     = '<img src="|uri.base|images/icons/pdf22x22.png"     alt="PDF"    align="middle">'
+PDF_ICON        = '<img src="|uri.base|images/icons/pdf32x32.png"     alt="PDF"    align="middle">'
+PDF_ICON_BIG    = '<img src="|uri.base|images/icons/pdf48x48.png"     alt="PDF"    align="middle">'
+PS_ICON_SM      = '<img src="|uri.base|images/icons/ps22x22.png"      alt="PS"     align="middle">'
+PS_ICON         = '<img src="|uri.base|images/icons/ps32x32.png"      alt="PS"     align="middle">'
+PS_ICON_BIG     = '<img src="|uri.base|images/icons/ps48x48.png"      alt="PS"     align="middle">'
+TGZ_ICON_SM     = '<img src="|uri.base|images/icons/tgz22x22.png"     alt="TGZ"    align="middle">'
+TGZ_ICON        = '<img src="|uri.base|images/icons/tgz32x32.png"     alt="TGZ"    align="middle">'
+TGZ_ICON_BIG    = '<img src="|uri.base|images/icons/tgz48x48.png"     alt="TGZ"    align="middle">'
+UNK_ICON_SM     = '<img src="|uri.base|images/icons/unknown22x22.png" alt="?"      align="middle">'
+UNK_ICON        = '<img src="|uri.base|images/icons/unknown32x32.png" alt="?"      align="middle">'
+UNK_ICON_BIG    = '<img src="|uri.base|images/icons/unknown48x48.png" alt="?"      align="middle">'
 
 class Tables(LampadasCollection):
 
@@ -241,16 +241,17 @@ class Tables(LampadasCollection):
             lintadas.check_file(key)
             docfile = doc.files[key]
             sourcefile = sourcefiles[key]
+            display_filename = widgets.filename_compressed(sourcefile.filename)
             box.write('<form method=GET action="|uri.base|data/save/document_file" name="document_file">')
             box.write('<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n')
-            box.write('<input type=hidden name="filename" size="30" style="width:100%" value="' + docfile.filename + '">\n')
+            box.write('<input type=hidden name="filename" value="' + docfile.filename + '">\n')
             box.write('<tr>\n')
             if sourcefile.errors.count() > 0:
                 box.write('<td class="sectionlabel error" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td>\n'
-                    % (uri.base, docfile.filename, uri.lang_ext, docfile.filename))
+                    % (uri.base, docfile.filename, uri.lang_ext, display_filename))
             else:
                 box.write('<td class="sectionlabel" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td>\n'
-                    % (uri.base, docfile.filename, uri.lang_ext, docfile.filename))
+                    % (uri.base, docfile.filename, uri.lang_ext, display_filename))
             box.write('</tr>\n')
             box.write('<tr>\n')
             box.write('<td class="label">|strprimary|</td>')
@@ -271,7 +272,7 @@ class Tables(LampadasCollection):
                 box.write('<td>|strunknown|</td>\n')
             box.write('<td class="label">|strdtd|</td>')
             if sourcefile.dtd_code > '':
-                box.write('<td>'  + sourcefile.dtd_code + '</td>\n')
+                box.write('<td>'  + lampadas.dtds[sourcefile.dtd_code].name[uri.lang] + '</td>\n')
             else:
                 box.write('<td>|strunknown|</td>\n')
             box.write('<td class="label">|strfilemode|</td>')
@@ -567,11 +568,12 @@ class Tables(LampadasCollection):
 
         log(3, 'Creating filereports table')
         sourcefile = sourcefiles[uri.filename]
+        display_filename = widgets.filename_compressed(sourcefile.filename)
 
         box = ''
         box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
-        box = box + '<tr><th colspan="2" class="sectionlabel">|uri.filename|</th></tr>\n'
+        box = box + '<tr><th colspan="2" class="sectionlabel">' + display_filename + '</th></tr>\n'
         report_codes = lampadasweb.file_reports.sort_by_lang('name', uri.lang)
         odd_even = OddEven()
         for report_code in report_codes:
@@ -661,7 +663,7 @@ class Tables(LampadasCollection):
                 box = box + '<tr class="' + odd_even.get_next() + '">\n'
                 box = box + '<td>' + str(fileerror.err_id) + '</td>\n'
                 box = box + '<td>' + error.name[uri.lang] + '</td>\n'
-                box = box + '<td>' + sourcefile.filename + '</td>\n'
+                box = box + '<td>' + widgets.filename_compressed(sourcefile.filename) + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
@@ -696,7 +698,7 @@ class Tables(LampadasCollection):
             for username in usernames:
                 user = lampadas.users[username]
                 box = box + '<tr class="' + odd_even.get_next() + '">\n'
-                box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>\n'
+                box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a></td>\n'
                 box = box + '<td>' + username + '</td>\n'
                 box = box + '<td>' + user.name + '</a></td>\n'
                 box = box + '</tr>\n'
@@ -913,14 +915,16 @@ class Tables(LampadasCollection):
                 box.write(self.document_icon_cells(doc.id, 'td'))
 
                 # Format the title differently to flag its status
+                display_title = html_encode(widgets.title_compressed(doc.title))
+
                 if doc.pub_time > '':
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
-                              % (str(doc.id), html_encode(widgets.title_compressed(doc.title))))
+                              % (str(doc.id), display_title))
                 elif sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                     if doc.errors.count() > 0 or doc.files.error_count > 0:
-                        box.write('<td style="width:100%%" class="error">%s</td>\n' % doc.title)
+                        box.write('<td style="width:100%%" class="error">%s</td>\n' % display_title)
                     else:
-                        box.write('<td style="width:100%%">%s</td>\n' % doc.title)
+                        box.write('<td style="width:100%%">%s</td>\n' % display_title)
 
                 # Now any custom columns.
                 for column in columns.keys():
@@ -972,7 +976,7 @@ class Tables(LampadasCollection):
 
         # The DocTable can carry along its own search form that stays in sync
         # for filtering the data. Insert it here if show_search was passed in.
-        if show_search==1:
+        if show_search==1 and lampadasweb.static==0:
             box.write(self.tabsearch(uri, title=title,
                                           short_title=short_title,
                                           pub_status_code=pub_status_code,
@@ -1756,9 +1760,8 @@ class TabNews(Table):
 
     def method(self, uri):
         log(3, 'Creating recent news')
-        box = WOStringIO('''<table class="box" width="100%%">
-        <tr><th colspan="2">|strrecentnews|</th></tr>
-        <tr><th class="collabel">|strdate|</th><th class="collabel">|strnews|</th></tr>\n''')
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="2">|strnews|</th></tr>')
         keys = lampadasweb.news.sort_by_desc('pub_date')
         odd_even = OddEven()
         items = 0
@@ -1766,7 +1769,7 @@ class TabNews(Table):
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
                 if sessions.session and sessions.session.user.can_edit(news_id=news.id)==1:
-                    edit_icon = '<a href="|uri.base|news_edit/' + str(news.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>\n'
+                    edit_icon = '<a href="|uri.base|news_edit/' + str(news.id) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
                 else:
                     edit_icon = ''
 
@@ -1774,8 +1777,15 @@ class TabNews(Table):
 # instead of a compact list of rows. There are a lot of places that would benefit
 # from having this tag applied.
 
-                box.write('<tr class="%s"><td class="label">%s:</td><td class="nontabular">%s</td></tr>\n'
-                          % (odd_even.get_next(), edit_icon + news.pub_date, news.news[uri.lang]))
+                box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
+                          '<tr class="%s"><td class="label nontabular" align="top">%s</td>\n'
+                          '               <td class="nontabular">%s</td>\n'
+                          '</tr>\n'
+                          % (edit_icon,
+                             news.headline[uri.lang],
+                             odd_even.get_next(),
+                             news.pub_date,
+                             news.news[uri.lang]))
             items = items + 1
             if items==self.items:
                 break

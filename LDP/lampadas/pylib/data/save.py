@@ -244,8 +244,9 @@ def news(req, news_id, pub_date):
     newsitem.save()
     go_back(req)
 
-def news_lang(req, news_id, lang, news):
+def news_lang(req, news_id, lang, headline, news):
     newsitem = lampadasweb.news[int(news_id)]
+    newsitem.headline[lang] = headline
     newsitem.news[lang] = news
     newsitem.save()
     go_back(req)

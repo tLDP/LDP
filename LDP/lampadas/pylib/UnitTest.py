@@ -70,7 +70,7 @@ class testDocs(unittest.TestCase):
                                 'Test Doc',
                                 'howto',
                                 'xml',
-                                'DocBook',
+                                'docbook',
                                 '4.1.2',
                                 '1.0',
                                 '2002-04-04',
@@ -98,7 +98,7 @@ class testDocs(unittest.TestCase):
         assert doc.short_title=='Test Doc'
         assert doc.type_code=='howto'
         assert doc.format_code=='xml'
-        assert doc.dtd_code=='DocBook'
+        assert doc.dtd_code=='docbook'
         
         title = doc.title
         doc.title = 'Foo'
@@ -232,7 +232,7 @@ class test_dtds(unittest.TestCase):
     def test_dtds(self):
         log(3, 'testing DTDs')
         assert lampadas.dtds.count() > 0
-        assert not lampadas.dtds['DocBook']==None
+        assert not lampadas.dtds['docbook']==None
         log(3, 'testing DTDs done')
 
 

@@ -387,21 +387,23 @@ class NewsItem:
             self.pub_date = now_string()
         else:
             self.pub_date = pub_date
+        self.headline = LampadasCollection()
         self.news = LampadasCollection()
 
     def load_row(self, row):
         self.id       = row[0]
         self.pub_date = date2str(row[1])
-        sql = "SELECT lang, news FROM news_i18n WHERE news_id=" + str(self.id)
+        sql = "SELECT lang, headline, news FROM news_i18n WHERE news_id=" + str(self.id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            lang            = row[0]
-            self.news[lang] = trim(row[1])
+            lang                = row[0]
+            self.headline[lang] = trim(row[1])
+            self.news[lang]     = trim(row[2])
 
-    def add_lang(self, lang, news):
-        sql = 'INSERT INTO news_i18n(news_id, lang, news) VALUES (' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(news) + ')'
+    def add_lang(self, lang, headline, news):
+        sql = 'INSERT INTO news_i18n(news_id, lang, headline, news) VALUES (' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(headline) + ', ' + wsq(news) + ')'
         db.runsql(sql)
         db.commit()
         self.news[lang] = news
@@ -411,7 +413,7 @@ class NewsItem:
         db.runsql(sql)
         db.commit()
         for lang in self.news.keys():
-            sql = 'UPDATE news_i18n SET news=' + wsq(self.news[lang]) + ' WHERE news_id=' + str(self.id) + ' AND lang=' + wsq(lang)
+            sql = 'UPDATE news_i18n SET headline=' + wsq(self.headline[lang]) + ', news=' + wsq(self.news[lang]) + ' WHERE news_id=' + str(self.id) + ' AND lang=' + wsq(lang)
             db.runsql(sql)
             db.commit()
         

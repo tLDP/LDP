@@ -136,7 +136,7 @@ class Lintadas:
         if sourcefile.format_code=='xml' or sourcefile.format_code=='sgml':
             sourcefile.dtd_code, sourcefile.dtd_version = self.read_file_dtd(filename)
         else:
-            sourcefile.dtd_code = 'N/A'
+            sourcefile.dtd_code = 'none'
             sourcefile.dtd_version = ''
         
         sourcefile.save()
@@ -159,7 +159,7 @@ class Lintadas:
                 if pos > 0:
                     pos = line.find('DOCBOOK')
                     if pos > 0:
-                        dtd_code = 'DocBook'
+                        dtd_code = 'docbook'
                         line = trim(line[pos + 7:])
                         if line[:3]=='XML':
                             line = trim(line[3:])
@@ -172,7 +172,7 @@ class Lintadas:
                     else:
                         pos = line.find('LINUXDOC')
                         if pos > 0:
-                            dtd_code = 'LinuxDoc'
+                            dtd_code = 'linuxdoc'
                             line = trim(line[pos + 8:])
                         else:
                             continue

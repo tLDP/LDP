@@ -430,4 +430,16 @@ class Widgets:
     def adjust_sort_order(self):
         return '<input type=text name="adjust_sort_order" width="5" maxlength="5" value="0">'
 
+    def filename_compressed(self, value):
+        """
+        Compress the filename so it will display well in 80 characters.
+        Just add spaces around all / slashes, which lets the filename wrap.
+        """
+        
+        parts = value.split('/')
+        text = string.join(parts, '/ ')
+        text = text.replace('/ /', '//')
+        text = text.replace('/ /', '//')
+        return text
+        
 widgets = Widgets()
