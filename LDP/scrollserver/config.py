@@ -150,7 +150,7 @@ def showHelp():
 # refers to, so we put it here at the end of this module.
 configOptions = {
 	'scrollserver': {
-		'cache-dir': (str, '/var/cache/scrollserver',
+		'cache-dir': (str, '/var/cache/scrollserver/',
 		              'The directory where files will be cached.'),
 		'cache-size': (cacheSize, 10485760, # 10 megabytes
 		               'The size of the cache (k, m and g suffixes '
