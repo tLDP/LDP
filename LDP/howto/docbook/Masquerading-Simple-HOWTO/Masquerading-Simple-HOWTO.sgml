@@ -1,0 +1,612 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article>
+
+<!-- Header -->
+
+ <artheader>
+
+  <!-- title of HOWTO, include the word HOWTO -->
+
+  <title>Masquerading Made Simple HOWTO</title>
+
+  <author>
+     <firstname>John</firstname>
+     <surname>Tapsell</surname>
+     <affiliation>
+        <address>
+           <email>tapselj0@cs.man.ac.uk</email>
+        </address>
+     </affiliation>
+  </author>
+
+  <author>
+     <firstname>Thomas</firstname>
+     <surname>Spellman</surname>
+     <affiliation>
+        <address>
+           <email>thomas@resonance.org</email>
+        </address>
+     </affiliation>
+  </author>
+
+  <author>
+     <firstname>Matthias</firstname>
+     <surname>Grimm</surname>
+     <affiliation>
+        <address>
+           <email>DeadBull@gmx.net</email>
+        </address>
+     </affiliation>
+  </author>
+
+   <revhistory>
+      <revision>
+         <revnumber>0.04</revnumber>
+         <date>2001-09-01</date>
+         <authorinitials>jpt</authorinitials>
+      </revision>
+      <revision>
+         <revnumber>0.03</revnumber>
+         <date>2001-07-06</date>
+         <authorinitials>jpt</authorinitials>
+      </revision>
+
+      <!-- Additional (*earlier*) revision histories go here -->
+   </revhistory>
+
+  <abstract>
+    <indexterm>
+      <primary>Abstract</primary>
+    </indexterm>
+     <para>
+      All of the authors are available on #debian on irc.opensource.net
+     </para><para>
+      John Tapsell (JohnFlux) is the official maintainer.
+     </para><para>
+      Email me (John Tapsell) for any query, flame, feedback, a date, etc.
+     </para><para>
+      Shamelessly stealing from David Ranch's work - <email>dranch@trinnet.net</email>.
+     </para><para>
+      This is NOT a replacement for the IP-Masquerading HOWTO - it is to
+      complement it, and the two should be read side by side.  I do not include
+      things in here that are covered by the the other HOWTO, nor do I explain
+      what it all means, or what it is all about.  See
+      <ulink url="http://ipmasq.cjb.net">http://ipmasq.cjb.net</ulink>
+      and the standard Masq-HOWTO for a much better guides.
+     </para><para>
+      This document describes how to enable the Linux IP Masquerade feature
+      on a given Linux host.  IP Masq is a form of Network Address 
+      Translation or NAT that allows internally networked computers that do not
+      have one or more registered Internet IP addresses to have the ability
+      to communicate to the Internet via your Linux boxes single Internet IP
+      address.
+     </para>
+     <para>
+      This is all under the GNU Free Documentation License
+     </para><para>
+      <ulink url="http://www.gnu.org/copyleft/fdl.html">
+      http://www.gnu.org/copyleft/fdl.html
+      </ulink>
+     </para>
+  </abstract>
+
+ </artheader>
+
+<!-- Section1: intro -->
+
+ <sect1 id="intro">
+   <title>Introduction</title>
+
+   <indexterm>
+    <primary>Introduction</primary>
+   </indexterm>
+
+  <para>
+  This is intentionally short and to the point.
+  </para><para>
+  If you have a network, that you want to attach to the outside:
+  </para><para>
+  <literallayout>
+   _____________
+  /             \	external IP	_________   internal IP
+ |   Internet    |	123.12.23.43   | linux   |  192.168.0.1
+ |   google.com  | <----[outside card]-| machine |-[internal card]
+  \_____________/                       ---------          |
+                                                           |
+                          _____________              ______|_______
+                         | 192.168.0.2 |            /              \
+                         |  internal   |-----------|  192.168.0.0   |
+                         |  machine    |           |    Intranet    |
+                          -------------             \______________/ 
+
+  </literallayout>
+  </para>
+ </sect1>
+
+
+
+<!-- Section1: summary  -->
+
+ <sect1 id="summary">
+  <title>Summary: (I like doing summaries first)</title>
+
+  <para>
+   Assuming external internet card is eth0, and external IP is 123.12.23.43
+   and the internal network card is eth1, then:
+  </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>modprobe ipt_MASQUERADE</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -F; iptables -t nat -F; iptables -t mangle -F</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -A POSTROUTING -o ppp0 -j SNAT --to 123.12.23.43</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>echo 1 > /proc/sys/net/ipv4/ip_forward</command></screen>
+   <para>
+   Or for a dial-up connection:
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>modprobe ipt_MASQUERADE</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -F; iptables -t nat -F; iptables -t mangle -F</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -A POSTROUTING -o ppp0 -j MASQUERADE</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>echo 1 > /proc/sys/net/ipv4/ip_forward</command></screen>
+   <para>
+   Then to secure it:
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state NEW -i ! eth0 -j ACCEPT</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -P INPUT DROP</command>   #only if the first two are succesful
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A FORWARD -i ! eth1 -j REJECT</command></screen>
+   <para>
+   Or for a dial-up connection (with eth0 as the internal network card):
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state NEW -i ! ppp0 -j ACCEPT</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -P INPUT DROP</command>   #only if the first two are succesful
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A FORWARD -i ! eth0 -j REJECT</command></screen>
+   <para>
+   And thats it!  To view the rules do "<command>iptables -t nat -L</command>"
+   </para>
+  </sect1>
+  
+<!-- Section1: indepth -->
+
+  <sect1 id="indepth">
+   <title>Bitmore indepth version</title>
+   <para>
+    Compiling the kernel: (Use a 2.4.x kernel or greater)
+   </para>
+   <para>
+    You need the following support in the kernel:
+   </para>
+   <itemizedlist>
+    <listitem>
+     <para>
+      Under Networking Options
+     </para>
+     <itemizedlist>
+      <listitem>
+       <para>
+        Network packet filtering  (CONFIG_NETFILTER)
+       </para>
+      </listitem>
+     </itemizedlist>
+    </listitem>
+    <listitem>
+     <para>
+      Under Networking Options->Netfilter Configuration
+     </para>
+     <itemizedlist>
+      <listitem>
+       <para>
+        Connection tracking (CONFIG_IP_NF_CONNTRACK)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        FTP Protocol support (CONFIG_IP_NF_FTP)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        IP tables support (CONFIG_IP_NF_IPTABLES)
+       </para>
+      </listitem>
+      <listitem>
+       <para>	
+        Connection state match support (CONFIG_IP_NF_MATCH_STATE)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Packet filtering (CONFIG_IP_NF_FILTER)
+       </para>
+       <itemizedlist>
+        <listitem>
+         <para>
+	  REJECT target support (CONFIG_IP_NF_TARGET_REJECT)
+         </para>
+	</listitem>
+       </itemizedlist>
+      </listitem>
+      <listitem>
+       <para>
+        Full NAT (CONFIG_IP_NF_NAT)
+       </para>
+       <itemizedlist>
+        <listitem>
+         <para>
+          MASQUERADE target support (CONFIG_IP_NF_TARGET_MASQUERADE)
+         </para>
+	</listitem>
+        <listitem>
+         <para>
+          REDIRECT target support (CONFIG_IP_NF_TARGET_REDIRECT)
+         </para>
+        </listitem>
+       </itemizedlist>
+      </listitem>
+      <listitem>
+       <para>
+        Packet mangling (CONFIG_IP_NF_MANGLE)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        LOG target support (CONFIG_IP_NF_TARGET_LOG)
+       </para>
+      </listitem>
+     </itemizedlist>
+    </listitem>
+   </itemizedlist>
+   <para>
+    First, if the iptable and masq modules are not compiled into the kernel and
+    not installed, but do exist as modules, we need to install them.
+    If you insmod ipt_MASQUERADE it will load ip_tables, ip_conntrack and
+    iptable_nat.
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>modprobe ipt_MASQERADE</command></screen>
+   <para>
+    Now either your Intranet is large, or you're just trying to get two or three
+    machines to work on the internet - it doesn't make much difference either way.
+   </para><para>
+    Okay, I'm assuming that you have no other rules, so do:
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -F; iptables -t nat -F; iptables -t mangle -F</command></screen>
+   <para>
+    If you get an error saying can't find iptables, go find it and install it. 
+    If it says no such table 'nat', recompile the kernel with nat support.  If
+    it says no such table as 'mangle', don't worry about it, it's not necessary
+    for MASQ'ing.  If it says iptables is incompatible with your kernel, go get > 2.4
+    and compile that with iptables support.
+   </para><para>
+    Then if you have a static ip do (e.g. network card not using DHCP):
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to 123.12.23.43</command></screen>
+   <para>
+    or for dynamic (e.g. a modem - you have to call a number first):
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -A POSTROUTING -o ppp0 -j MASQUERADE</command></screen>
+   <para>
+    Then finally to tell the kernel yes, you really do want to start forwarding
+    packets:  (This only needs to be done once per reboot - but dosen't hurt to
+    do it lots)
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>echo 1 > /proc/sys/net/ipv4/ip_forward</command></screen>
+   <para>
+    Once you have checked this all works (See under Post-install) only allow
+    masquerading from the internal network - you don't want to allow people on
+    the internet to use it after all :)   
+   </para>
+   <para>
+    First, allow any existing connections, or anything related (e.g. ftp server
+    connecting back to you)
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT</command></screen>
+   <para>
+    If this gives an error, then you most likely don't have state tracking in
+    the kernel - go recompile. Then allow new connections only from our 
+    intranet (local/internal network). Replace the ppp0 with eth0 or 
+    whatever your <emphasis>external</emphasis> device is. (The ! means anything but)
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT -m state --state NEW -i ! ppp0 -j ACCEPT</command></screen>
+   <para>
+    And now deny everything else:
+   </para>
+   <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -P INPUT DROP</command>   #only if the first two are succesful</screen>
+   <para>
+    If either of the first two rules failed, then this last rule with prevent
+    the masquerading from working at all.  To undo this rule do 
+    "<command>iptables -P INPUT ACCEPT</command>".
+   </para>   
+  </sect1>
+
+<!-- Section1: Post-install -->
+
+  <sect1 id="post-install">   
+   <title>Post-install Instructions</title>
+    <para>
+     And it should all work now.  Don't forget to:
+    </para>
+     <itemizedlist>
+      <listitem>
+       <para>
+        Setup all the clients on the internal network to point to the Linux
+        internal IP address as their gateway.
+        (In windows right-click network neighbourhood->properties->gateway
+        then change it to the Linux gateway internal ip.)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Setup all the clients to use your ISP's HTTP proxy if they have one,
+        use a transparent proxy (WARNING - I've heard reports of transparent
+        proxying to be very slow on very big networks), or run squid on your
+        new linux gateway.  (This is optional, but preferrable for large networks)
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Now you should start securing it!  First turn off forwarding in general:
+        "<command>iptables -P FORWARD DROP</command>", and then learn how to use
+        iptables and <filename>/etc/hosts.allow</filename> and 
+        <filename>/etc/hosts.deny</filename> to secure your system.  WARNING 
+        - Don't try this mentioned iptables rule until you have the masquerading
+        working.  You have to explicitely allow every packet through that you want
+        if you are going to set the last rule to be DENY. 
+        (Undo with "<command>iptables -P FORWARD ACCEPT</command>")
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Allow through any services you do want the internet to see.
+       </para>
+       <para>
+        For an example, to allow access to your web server do:
+       </para>
+       <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT --protocol tcp --dport 80 -j ACCEPT</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT --protocol tcp --dport 443 -j ACCEPT</command></screen>
+       <para>
+        To allow ident (For connecting to irc etc) do
+       </para>
+       <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -A INPUT --protocol tcp --dport 113 -j ACCEPT</command></screen>
+      </listitem>
+     </itemizedlist>
+
+    <para>
+     To test it:
+    </para>
+
+     <itemizedlist>
+     <listitem>
+      <para>
+       Try connecting from a client to the web using an IP.  Google's IP is
+       216.239.33.100 (well that's one of them) and you should be able to get a
+       reply from that.  e.g. "<command>ping 216.239.33.100</command>"
+       "<command>lynx 216.239.33.100</command>".
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Try a full out connection by name. e.g. "<command>ping google.com</command>" 
+       "<command>lynx google.com</command>" or from Internet Explorer / netscape.
+      </para>
+     </listitem>
+     </itemizedlist>
+
+    <para>
+     Where eth0 is the external Internet card, and 123.12.23.43 is the external
+     ip of that machine.
+    </para>
+
+  </sect1>
+
+<!-- Section1: FAQ -->
+
+  <sect1 id="FAQ">
+   <title>FAQ's - Frequently Asked Compla^H^H^H^H^H^H Questions</title>
+   <itemizedlist>
+    <listitem>
+     <para>
+      How do I list the rules I've got so far?
+     </para><para>
+      - Try
+      <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -L</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -L</command></screen>
+     </para>
+    </listitem>
+    <listitem>   
+     <para>    
+      It don't work!  It doesn't like iptables / NAT / SNAT / MASQ
+     </para><para>
+      - Go get the latest kernel, and compile with iptables and full NAT support.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      It don't work!  The masquerading doesn't work at all! Die scum!
+     </para><para>
+      - Try <command>echo 1 > /proc/sys/net/ipv4/ip_forward</command>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      It don't work!  I can't use the network at all and I hate you!
+     </para><para>
+      - Try 
+      <screen format="linespecific">
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -F</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t nat -F</command>
+<prompt moreinfo="none">$&gt;</prompt> <command>iptables -t mangle -F</command></screen>
+     </para><para>
+     (all rules went bye-bye) then rerun the other iptables rules.
+     </para>
+     <para>
+      - Try <command>iptables -P FORWARD ACCEPT</command>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      It still don't work!
+     </para><para>
+      - Hmm, does "<command>dmesg | tail</command>"  give any errors? 
+        or "<command>cat /var/log/messages | tail</command>" ?  Like I care tho...
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      I don't get, it just ain't working!
+     </para><para>
+      - I dunno.. but you should be able to:
+     </para><screen format="linespecific">
+        1) From the gateway machine, ping the outside
+        2) From the gateway ping your internal machines
+        3) From the internal machines ping the gateway</screen>
+     <para>
+      And this is <emphasis>before</emphasis> you play with masq'ing   
+     </para> 
+    </listitem>
+    <listitem>
+     <para>
+      Where do I put this stuff?
+     </para>
+     <para>
+      - In the <filename>/etc/network/interfaces</filename> file, or 
+        firewall.rc.  If you put it in the interfaces file, then put
+	it as a pre-up to the external interface, and have 
+	"<command>iptables -t nat -F</command>" as the post-down.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      How do I get it to only bring the ppp up on demand?
+     </para><para>
+      - Assuming your ISP gateway IP is say 23.43.12.43 for arguments sake, then
+        append a line like this:
+     </para><para> 
+        <command>:23.43.12.43</command>
+     </para><para>
+        to <filename>/etc/ppp/peers/provider</filename> at the end.
+        (this is for dynamic IP - static IP would be 
+        my.<command>external.ip.number:23.43.12.43</command> )
+     </para><para>
+        Then at the end of that file add on a newline:
+     </para><para>
+        <command>demand</command>
+     </para><para>
+        Pppd will remain in the background to redial the connection on demand
+        if it's dropped until you do an "<command>ifdown ppp0</command>" or 
+        a "<command>poff</command>", unless you add
+        a "<command>nopersist</command>" option, in which case pppd will exit after the connection
+        is up. You can also add on a new line "<command>idle 600</command>" to disconnect after 10
+        mins of idleness.
+     </para><para>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      The connection keeps dropping!
+      </para><para>
+      - First, do you have demand dialing?  Is it just doing what it is supposed
+        to?
+        Check <filename>/etc/ppp/peers/provider</filename>, and make sure your dial up works fine
+        before attempting masq'ing.
+      </para><para>
+      - Secondly, if not, then perhaps, like me, something is going weird, and
+        you need to fall back to Linux 2.4.3 and see if that works instead.. dunno
+        why.
+      </para>      
+    </listitem>
+    <listitem>
+     <para>
+      I hate doing this myself!  I want a pre-made script and GUI and stuff.
+     </para><para>
+      - Sure:  <ulink url="http://shorewall.sourceforge.net/">
+        http://shorewall.sourceforge.net/</ulink>
+     </para><para>
+      Eat your heart out!
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Do I count Cable modems as static or dynamic IP's?
+     </para><para>
+      - Good question.. might as well make it dynamic.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      Do I count DHCP network cards as static or dynamic IP's?
+     </para><para>
+      - They are dynamic.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      How do I handle incomming services?
+     </para><para>
+      - Try forwarding or redirecting the IP ports - again make
+        sure you firewall this if needed.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      From the clients, I can ping the linux gateway's external IP
+      address, but can't access the internet.
+     </para><para>
+      - Okay, try doing "<command>rmmod iptable_filter</command>" - more
+        info on this as I get it.
+     </para><para>
+      - Make sure your not running <emphasis>routed</emphasis> or 
+        <emphasis>gated</emphasis> - to check run
+	"<command>ps aux | grep -e routed -e gated</command>".
+     </para><para>
+      - Look at <ulink url="http://ipmasq.cjb.net">http://ipmasq.cjb.net</ulink>
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      How can I view the connections establish? Something like netstat..
+     </para><para>
+      - Try cat /proc/net/ip_conntrack
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      I need more squid info and routing and stuff!
+     </para><para>
+      - Try the Advanced Routing HOWTO
+        http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html
+     </para>
+    <listitem>
+     <para>
+      This howto is crap!  How do I yell at the guys who wrote this?
+     </para><para>
+      - Go to #debian on irc.opensource.net and find and locate JohnFlux.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+      This howto is crap!  How can I see better versions?
+     </para><para>
+      - Try <ulink url="http://ipmasq.cjb.net">http://ipmasq.cjb.net</ulink>
+     </para><para>
+      - Consult the LDP Masq-HOWTO.
+     </para>
+    </listitem>    
+   </itemizedlist>
+
+  </sect1>
+</article>
+
