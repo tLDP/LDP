@@ -1,3 +1,4 @@
+
 <!doctype linuxdoc system>
 
 <!-- $Id$
@@ -8,11 +9,13 @@
 <!-- Title information -->
 
 <title>Linux 2.4 Advanced Routing HOWTO
-<author>bert hubert &lt;ahu@ds9a.nl&gt; &nl;
+<author>Netherlabs BV (bert hubert &lt;bert.hubert@netherlabs.nl&gt;)&nl;
 Gregory Maxwell &lt;greg@linuxpower.cx&gt; &nl;
+Remco van Mook &lt;remco@virtu.nl&gt; &nl;
 Martijn van Oosterhout &lt;kleptog@cupid.suninternet.com&gt; &nl;
+Paul B Schroeder  &lt;paulsch@us.ibm.com&gt; &nl;
 howto@ds9a.nl
-<date>v0.0.3 $Date$
+<date>v0.1.0 $Date$
 <abstract>
 A very hands-on approach to iproute2, traffic shaping and a bit of netfilter
 </abstract>
@@ -193,12 +196,261 @@ name="Rusty's Remarkably Unreliable Guides">
 
 We will be focusing mostly on what is possible by combining netfilter and
 iproute2.
+<sect>Introduction to iproute2
+<sect1>Why iproute2?
+<p>
+Most Linux distributions, and most UNIX's, currently use the 
+venerable 'arp', 'ifconfig' and 'route' commands. While these tools work,
+they show some unexpected behaviour under Linux 2.2 and up. For example, GRE
+tunnels are an integral part of routing these days, but require completely
+different tools.
+
+With iproute2, tunnels are an integral part of the tool set
+
+The 2.2 and above Linux kernels include a completely redesigned network
+subsystem. This new networking code brings Linux performance and a feature
+set with little competition in the general OS arena. In fact, the new
+routing filtering, and classifying code is more featureful then that
+provided by many dedicated routers and firewalls and traffic shaping
+products.
+
+As new networking concepts have been invented, people have found ways to
+plaster them on top of the existing framework in existing OSes. This
+constant layering of cruft has lead to networking code that is filled with
+strange behaviour, much like most human languages. In the past, Linux
+emulated SunOS's handling of many of these things, which was not ideal.  
+
+This new framework has made it possible to clearly express features
+previously not possible.
+
+<sect1>Iproute2 tour
+<p>
+Linux has a sophisticated system for bandwidth provisioning called Traffic
+Control. This system supports various method for classifying, prioritising,
+sharing, and limiting both inbound and outbound traffic.
+
+
+We'll start off with a tiny tour of iproute2 possibilities.
+<sect1>Prerequisites
+<p>
+You should make sure that you have the userland tools installed. This
+package is called 'iproute' on both RedHat and Debian, and may otherwise be
+found at <tt>ftp://ftp.inr.ac.ru/ip-routing/iproute2-2.2.4-now-ss??????.tar.gz"</tt>. 
+Some parts of iproute require you to have certain kernel options enabled.
+
+FIXME: We should mention <url url="ftp://ftp.inr.ac.ru/ip-routing/iproute2-current.tar.gz"> 
+is always the latest
+
+<sect1>Exploring your current configuration
+<p>
+This may come as a surprise, but iproute2 is already configured! The current
+commands <tt>ifconfig</tt> and <tt>route</tt> are already using the advanced
+syscalls, but mostly with very default (ie, boring) settings.
+
+The <tt>ip</tt> tool is central, and we'll ask it do display our interfaces
+for us.
+<sect2><tt>ip</tt> shows us our links
+<p>
+<tscreen><verb>
+[ahu@home ahu]$ ip link list
+1: lo: <LOOPBACK,UP> mtu 3924 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: dummy: <BROADCAST,NOARP> mtu 1500 qdisc noop 
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+3: eth0: <BROADCAST,MULTICAST,PROMISC,UP> mtu 1400 qdisc pfifo_fast qlen 100
+    link/ether 48:54:e8:2a:47:16 brd ff:ff:ff:ff:ff:ff
+4: eth1: <BROADCAST,MULTICAST,PROMISC,UP> mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:e0:4c:39:24:78 brd ff:ff:ff:ff:ff:ff
+3764: ppp0: <POINTOPOINT,MULTICAST,NOARP,UP> mtu 1492 qdisc pfifo_fast qlen 10
+    link/ppp 
+
+</verb></tscreen>
+<p>Your mileage may vary, but this is what it shows on my NAT router at
+home. I'll only explain part of the output as not everything is directly
+relevant.
+
+We first see the loopback interface. While your computer may function
+somewhat without one, I'd advise against it. The mtu size (maximum transfer
+unit) is 3924 octects, and it is not supposed to queue. Which makes sense
+because the loopback interface is a figment of your kernels imagination.
+
+I'll skip the dummy interface for now, and it may not be present on your
+computer. Then there are my two network interfaces, one at the side of my
+cable modem, the other serves my home ethernet segment. Furthermore, we see
+a ppp0 interface.
+
+Note the absence of IP addresses. Iproute disconnects the concept of 'links'
+and 'IP addresses'. With IP aliasing, the concept of 'the' IP address had
+become quite irrelevant anyhow. 
+
+It does show us the MAC addresses though, the hardware identifier of our
+ethernet interfaces.
+<sect2><tt>ip</tt> shows us our IP addresses
+<p>
+<tscreen><verb>
+[ahu@home ahu]$ ip address show        
+1: lo: <LOOPBACK,UP> mtu 3924 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo
+2: dummy: <BROADCAST,NOARP> mtu 1500 qdisc noop 
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+3: eth0: <BROADCAST,MULTICAST,PROMISC,UP> mtu 1400 qdisc pfifo_fast qlen 100
+    link/ether 48:54:e8:2a:47:16 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.0.1/8 brd 10.255.255.255 scope global eth0
+4: eth1: <BROADCAST,MULTICAST,PROMISC,UP> mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:e0:4c:39:24:78 brd ff:ff:ff:ff:ff:ff
+3764: ppp0: <POINTOPOINT,MULTICAST,NOARP,UP> mtu 1492 qdisc pfifo_fast qlen 10
+    link/ppp 
+    inet 212.64.94.251 peer 212.64.94.1/32 scope global ppp0
+</verb></tscreen>
+<p>
+This contains more information. It shows all our addresses, and to which
+cards they belong. 'inet' stands for Internet. There are lots of other
+address families, but these don't concern us right now.
+
+Lets examine eth0 somewhat closer. It says that it is related to the inet
+address '10.0.0.1/8'. What does this mean? The /8 stands for the number of
+bits that are in the Network Address. There are 32 bits, so we have 24 bits
+left that are part of our network. The first 8 bits of 10.0.0.1 correspond
+to 10.0.0.0, our Network Address, and our netmask is 255.0.0.0.
+
+The other bits are connected to this interface, so 10.250.3.13 is directly
+available on eth0, as is 10.0.0.1 for example. 
+
+With ppp0, the same concept goes, though the numbers are different. It's
+address is 212.64.94.251, without a subnet mask. This means that we have a
+point-to-point connection and that every address, with the exception of
+212.64.94.251, is remote. There is more information however, it tells us
+that on the other side of the link is yet again only one address,
+212.64.94.1. The /32 tells us that there are no 'network bits'.
+
+It is absolutely vital that you grasp these concepts. Refer to the
+documentation mentioned at the beginning of this HOWTO if you have trouble.
+
+You may also note 'qdisc', which stands for Queueing Discipline. This will
+become vital later on. 
+
+<sect2><tt>ip</tt> shows us our routes
+<p>
+Well, we now know how to find 10.x.y.z addresses, and we are able to reach
+212.64.94.1. This is not enough however, so we need instructions on how to
+reach the world. The internet is available via our ppp connection, and it
+appears that 212.64.94.1 is willing to spread our packets around the
+world, and deliver results back to us.
+
+<tscreen><verb>
+[ahu@home ahu]$ ip route show
+212.64.94.1 dev ppp0  proto kernel  scope link  src 212.64.94.251 
+10.0.0.0/8 dev eth0  proto kernel  scope link  src 10.0.0.1 
+127.0.0.0/8 dev lo  scope link 
+default via 212.64.94.1 dev ppp0 
+</verb></tscreen>
+
+This is pretty much self explanatory. The first 4 lines of output explicitly
+state what was already implied by <tt>ip address show</tt>, the last line
+tells us that the rest of the world can be found via 212.64.94.1, our
+default gateway. We can see that it is a gateway because of the word
+via, which tells us that we need to send packets to 212.64.94.1, and that it
+will take care of things.
+
+For reference, this is what the old 'route' utility shows us:
+<tscreen><verb>
+[ahu@home ahu]$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use
+Iface
+212.64.94.1     0.0.0.0         255.255.255.255 UH    0      0        0 ppp0
+10.0.0.0        0.0.0.0         255.0.0.0       U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         212.64.94.1     0.0.0.0         UG    0      0        0 ppp0
+</verb></tscreen>
+
+<sect1>ARP
+<p>
+ARP is the Address Resolution Protocol as described in
+<url url="http://www.faqs.org/rfcs/rfc826.html" name="RFC 826">.
+ARP is used by a networked machine to resolve the hardware location/address of
+another machine on the same
+local network.  Machines on the Internet are generally known by their names
+which resolve to IP
+addresses.  This is how a machine on the foo.com network is able to communicate
+with another machine which is on the bar.net network.  An IP address, though,
+cannot tell you the physical location of a machine.  This is where ARP comes
+into the picture.
+
+Let's take a very simple example.  Suppose I have a network composed of several
+machines.  Two of the machines which are currently on my network are foo
+with an IP address of 10.0.0.1 and bar with an IP address of 10.0.0.2.
+Now foo wants to ping bar to see that he is alive, but alas, foo has no idea
+where bar is.  So when foo decides to ping bar he will need to send
+out an ARP request.
+This ARP request is akin to foo shouting out on the network "Bar (10.0.0.2)!
+Where are you?"  As a result of this every machine on the network will hear
+foo shouting, but only bar (10.0.0.2) will respond.  Bar will then send an
+ARP reply directly back to foo which is akin
+bar saying,
+"Foo (10.0.0.1) I am here at 00:60:94:E9:08:12."  After this simple transaction
+used to locate his friend on the network foo is able to communicate with bar
+until he (his arp cache) forgets where bar is.
+
+Now let's see how this works.
+You can view your machines current arp/neighbor cache/table like so:
+<tscreen><verb>
+[root@espa041 /home/src/iputils]# ip neigh show
+9.3.76.42 dev eth0 lladdr 00:60:08:3f:e9:f9 nud reachable
+9.3.76.1 dev eth0 lladdr 00:06:29:21:73:c8 nud reachable
+</verb></tscreen>
+
+As you can see my machine espa041 (9.3.76.41) knows where to find espa042 
+(9.3.76.42) and
+espagate (9.3.76.1).  Now let's add another machine to the arp cache.
+
+<tscreen><verb>
+[root@espa041 /home/paulsch/.gnome-desktop]# ping -c 1 espa043
+PING espa043.austin.ibm.com (9.3.76.43) from 9.3.76.41 : 56(84) bytes of data.
+64 bytes from 9.3.76.43: icmp_seq=0 ttl=255 time=0.9 ms
+
+--- espa043.austin.ibm.com ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max = 0.9/0.9/0.9 ms
+
+[root@espa041 /home/src/iputils]# ip neigh show
+9.3.76.43 dev eth0 lladdr 00:06:29:21:80:20 nud reachable
+9.3.76.42 dev eth0 lladdr 00:60:08:3f:e9:f9 nud reachable
+9.3.76.1 dev eth0 lladdr 00:06:29:21:73:c8 nud reachable
+</verb></tscreen>
+
+As a result of espa041 trying to contact espa043, espa043's hardware
+address/location has now been added to the arp/nieghbor cache.
+So until the entry for
+espa043 times out (as a result of no communication between the two) espa041
+knows where to find espa043 and has no need to send an ARP request.
+
+Now let's delete espa043 from our arp cache:
+
+<tscreen><verb>
+[root@espa041 /home/src/iputils]# ip neigh delete 9.3.76.43 dev eth0
+[root@espa041 /home/src/iputils]# ip neigh show
+9.3.76.43 dev eth0  nud failed
+9.3.76.42 dev eth0 lladdr 00:60:08:3f:e9:f9 nud reachable
+9.3.76.1 dev eth0 lladdr 00:06:29:21:73:c8 nud stale
+</verb></tscreen>
+
+Now espa041 has again forgotten where to find espa043 and will need to send
+another ARP request the next time he needs to communicate with espa043.
+You can also see from the above output that espagate (9.3.76.1) has been
+changed to the "stale" state.  This means that the location shown is still
+valid, but it will have to be confirmed at the first transaction to that
+machine.
 
 <sect>Rules - routing policy database
 <p>
 If you have a large router, you may well cater for the needs of different
 people, who should be served differently. The routing policy database allows
 you to do this by having multiple sets of routing tables. 
+
+If you want to use this feature, make sure that your kernel is compiled with
+the "IP: policy routing" feature.
 
 When the kernel needs to make a routing decision, it finds out which table
 needs to be consulted. By default, there are three tables. The old 'route'
@@ -212,7 +464,7 @@ The default rules:
 32767:	from all lookup default
 </verb></tscreen>
 
-This lists the priority of a rules. We see that all rules apply to all
+This lists the priority of all rules. We see that all rules apply to all
 packets ('from all'). We've seen the 'main' table before, it's output by
 <tt>ip route ls</tt>, but the 'local' and 'default' table are new.
 
@@ -285,7 +537,185 @@ And we are done. It is left as an exercise for the reader to implement this
 in ip-up.
 <sect>GRE and other tunnels
 <p>
-FIXME: waiting for our feature tunnel editor to finish his stuff
+There are 3 kinds of tunnels in Linux. There's IP in IP tunneling, GRE tunneling and tunnels that live outside the kernel (like, for example PPTP). 
+<sect1>A few general remarks about tunnels:
+<p>
+Tunnels can be used to do some very unusual and very cool stuff. They can also make things go horribly wrong when you don't configure them right. Don't point your default route to a tunnel device unless you know _exactly_ what you are doing :-). Furthermore, tunneling increases overhead, because it needs an extra set of IP headers. Typically this is 20 bytes per packet, so if the normal packet size (MTU) on a network is 1500 bytes, a packet that is sent through a tunnel can only be 1480 bytes big. This is not necessarily a problem, but be sure to read up on IP packet fragmentation/reassembly when you plan to connect large networks with tunnels. Oh, and of course, the fastest way to dig a tunnel is to dig at both sides.
+<p>
+<sect1>IP in IP tunneling
+<p>
+This kind of tunneling has been available in Linux for a long time. It requires 2 kernel modules,
+ipip.o and new_tunnel.o.
+
+Let's say you have 3 networks: Internal networks A and B, and intermediate network C (or let's say, Internet). 
+So we have network A:
+
+<tscreen><verb>
+network 10.0.1.0
+netmask 255.255.255.0
+router  10.0.1.1
+</verb></tscreen>
+The router has address 172.16.17.18 on network C.
+
+and network B:
+<tscreen><verb>
+network 10.0.2.0
+netmask 255.255.255.0
+router  10.0.2.1
+</verb></tscreen>
+The router has address 172.19.20.21 on network C.
+
+As far as network C is concerned, we assume that it will pass any packet sent
+from A to B and vice versa. You might even use the Internet for this.
+
+Here's what you do:
+
+First, make sure the modules are installed:
+
+<tscreen><verb>
+insmod ipip.o
+insmod new_tunnel.o
+</verb></tscreen>
+Then, on the router of network A, you do the following:
+<tscreen><verb>
+ifconfig tunl0 10.0.1.1 pointopoint 172.19.20.21
+route add -net 10.0.2.0 netmask 255.255.255.0 dev tunl0
+</verb></tscreen>
+And on the router of network B:
+<tscreen><verb>
+ifconfig tunl0 10.0.2.1 pointopoint 172.16.17.18
+route add -net 10.0.1.0 netmask 255.255.255.0 dev tunl0
+</verb></tscreen>
+And if you're finished with your tunnel:
+<tscreen><verb>
+ifconfig tunl0 down
+</verb></tscreen>
+Presto, you're done. You can't forward broadcast or IPv6 traffic through
+an IP-in-IP tunnel, though. You just connect 2 IPv4 networks that normally wouldn't be able to talk to each other, that's all. As far as compatibility goes, this code has been around a long time, so it's compatible all the way back to 1.3 kernels. Linux IP-in-IP tunneling doesn't work with other Operating Systems or routers, as far as I know. It's simple, it works. Use it if you have to, otherwise use GRE.
+
+<sect1>GRE tunneling
+<p>
+GRE is a tunneling protocol that was originally developed by Cisco, and it
+can do a few more things than IP-in-IP tunneling. For example, you can also
+transport multicast traffic and IPv6 through a GRE tunnel.
+
+In Linux, you'll need the ip_gre module.
+
+<sect2>IPv4 Tunneling
+<p>
+Let's do IPv4 tunneling first:
+
+Let's say you have 3 networks: Internal networks A and B, and intermediate network C (or let's say, Internet). 
+
+So we have network A:
+<tscreen><verb>
+network 10.0.1.0
+netmask 255.255.255.0
+router  10.0.1.1
+</verb></tscreen>
+The router has address 172.16.17.18 on network C.
+Let's call this network neta (ok, hardly original)
+
+and network B:
+<tscreen><verb>
+network 10.0.2.0
+netmask 255.255.255.0
+router  10.0.2.1
+</verb></tscreen>
+The router has address 172.19.20.21 on network C.
+Let's call this network netb (still not original)
+
+As far as network C is concerned, we assume that it will pass any packet sent
+from A to B and vice versa. How and why, we do not care.
+<p>
+On the router of network A, you do the following:
+<tscreen><verb>
+ip tunnel add netb mode gre remote 172.19.20.21 local 172.16.17.18 ttl 255
+ip addr add 10.0.1.1 dev netb
+ip route add 10.0.2.0/24 dev netb
+</verb></tscreen>
+
+Let's discuss this for a bit. In line 1, we added a tunnel device, and
+called it netb (which is kind of obvious because that's where we want it to
+go). Furthermore we told it to use the GRE protocol (mode gre), that the
+remote address is 172.19.20.21 (the router at the other end), that our
+tunneling packets should originate from 172.16.17.18 (which allows your
+router to have several IP addresses on network C and let you decide which
+one to use for tunneling) and that the TTL field of the packet should be set
+to 255 (ttl 255).
+
+In the second line we gave the newly born interface netb the address
+10.0.1.1. This is OK for smaller networks, but when you're starting up a
+mining expedition (LOTS of tunnels), you might want to consider using
+another IP range for tunneling interfaces (in this example, you could use
+10.0.3.0).
+
+<p>In the third line we set the route for network B. Note the different notation for the netmask. If you're not familiar with this notation, here's how it works: you write out the netmask in binary form, and you count all the ones. If you don't know how to do that, just remember that 255.0.0.0 is /8, 255.255.0.0 is /16 and 255.255.255.0 is /24. Oh, and 255.255.254.0 is /23, in case you were wondering.
+<p>
+But enough about this, let's go on with the router of network B.
+<tscreen><verb>
+ip tunnel add neta mode gre remote 172.16.17.18 local 172.19.20.21 ttl 255
+ip addr add 10.0.2.1 dev neta
+ip route add 10.0.1.0/24 dev neta
+</verb></tscreen>
+And when you want to remove the tunnelon router A:
+<tscreen><verb>
+ip link set netb down
+ip tunnel del netb
+</verb></tscreen>
+Of course, you can replace netb with neta for router B.
+
+<sect2>IPv6 Tunneling
+<p>
+
+BIG FAT WARNING !! 
+
+The following is untested and might therefore be
+completely and utter BOLLOCKS. Proceed at your own risk. Don't say I didn't
+warn you.
+
+FIXME: check &amp; try all this
+
+<p>
+A short bit about IPv6 addresses:<p>
+IPv6 addresses are, compared to IPv4 addresses, monstrously big. An example:
+<verb>3ffe:2502:200:40:281:48fe:dcfe:d9bc</verb>
+So, to make writing them down easier, there are a few rules:
+<itemize>
+<item>Don't use leading zeroes. Same as in IPv4.
+<item>Use colons to separate every 16 bits or two bytes.
+<item>When you have lots of consecutive zeroes, you can write this down as ::. You can only do this once in an address and only for quantities of 16 bits, though.
+</itemize>
+Using these rules, the address 3ffe:0000:0000:0000:0000:0020:34A1:F32C can be written down as 3ffe::20:34A1:F32C, which is a lot shorter. 
+<p>
+On with the tunnels.
+
+Let's assume that you have the following IPv6 network, and you want to connect it to 6bone, or a friend.
+
+<tscreen><verb>
+Network 3ffe:406:5:1:5:a:2:1/96
+</verb></tscreen>
+Your IPv4 address is 172.16.17.18, and the 6bone router has IPv4 address 172.22.23.24. 
+<p>
+<tscreen><verb>
+ip tunnel add sixbone mode sit remote 172.22.23.24 local 172.16.17.18 ttl 255
+ip link set sixbone up
+ip addr add 3ffe:406:5:1:5:a:2:1/96 dev sixbone
+ip route add 3ffe::/15 dev sixbone 
+</verb></tscreen>
+
+Let's discuss this. In the first line, we created a tunnel device called sixbone. We gave it mode sit (which is IPv6 in IPv4 tunneling) and told it where to go to (remote) and where to come from (local). TTL is set to maximum, 255. Next, we made the device active (up). After that, we added our own network address, and set a route for 3ffe::/15 (which is currently all of 6bone) through the tunnel.
+<p>
+GRE tunnels are currently the preferred type of tunneling. It's a standard that's also widely adopted outside the Linux community and therefore a Good Thing.
+<p>
+<sect1>Userland tunnels
+<p>
+There are literally dozens of implementations of tunneling outside the kernel. Best known are of course PPP and PPTP, but there are lots more (some proprietary, some secure, some that don't even use IP) and that is really beyond the scope of this HOWTO.
+
+<sect>IPsec: secure IP over the internet
+<p>
+FIXME: Waiting for our feature editor Stefan to finish his stuf
+
 <sect>Multicast routing
 <p>
 FIXME: Editor Vacancy!
@@ -566,6 +996,10 @@ We now need to create two new classes, within our Office class:
 
 FIXME: Finish this example!
 
+<sect1>Loadsharing over multiple interfaces
+<p>
+FIXME: document TEQL
+
 <sect>More queueing disciplines
 <p>
 The Linux kernel offers us lots of queueing disciplines. By far the most
@@ -588,26 +1022,66 @@ SFQ, as said earlier, is not quite deterministic, but works (on average).
 Its main benefits are that it requires little CPU and memory. 'Real' fair
 queueing requires that the kernel keep track of all running sessions.
 
-This is far too much work so SFQ keeps track of only a number of sessions by
-tracking things based on a hash. Two different sessions might end up in the
-same hash, which isn't very bad but should not be a permanent situation.
-Therefore the kernel perturbs the hash with a certain frequency, which can
-be specified on the <tt>tc</tt> command line.
+Stochastic Fairness Queueing (SFQ) is a simple implementation
+of fair queueing algorithms family. It's less accurate than
+others, but it also requires less calculations while being
+almost perfectly fair.
+
+The key word in SFQ is conversation (or flow), being a sequence
+of data packets having enough common parameters to distinguish
+it from other conversations. The parameters used in case of
+IP packets are source and destination address, and the protocol
+number.
+
+SFQ consists of dynamically allocated number of FIFO queues,
+one queue for one conversation. The discipline runs in round-robin,
+sending one packet from each FIFO in one turn, and this is why
+it's called fair. The main advantage of SFQ is that it allows
+fair sharing the link between several applications and prevent
+bandwidth take-over by one client. SFQ however cannot determine
+interactive flows from bulk ones -- one usually needs to do
+the selection with CBQ before, and then direct the bulk traffic
+into SFQ.
+
+
 <sect1>Token Bucket Filter
 <p>
-This queue is very straightforward. Imagine a bucket, which holds a number
-of tokens. Tokens are added with a certain frequency, until the bucket fills
-up. By then, the bucket contains 'b' tokens.
+The Token Bucket Filter (TBF) is a simple queue, that only passes packets
+arriving at rate in bounds of some administratively set limit, with
+possibility to buffer short bursts.
 
-Whenever packets arrive, they are stored. If there are more tokens than
-packets, these packets are sent out ('dequeued') immediately in a burst
-transfer.
+The TBF implementation consists of a buffer (bucket), constatly filled by
+some virtual pieces of information called tokens, at specific rate (token
+rate). The most important parameter of the bucket is its size, that is
+number of tokens it can store.
 
-If there are more packets then tokens, all packets for which there is a
-token are sent off, the rest have to wait for new tokens to arrive. So, if
-the size of a token is, say, 1000 octets, and we add 8 tokens per second,
-our eventual data rate is 64kilobit per second, excluding a 
-certain 'burstiness' that we allow.
+Each arriving token lets one incoming data packet of out the queue and is
+then deleted from the bucket. Associating this algorithm with the two flows
+-- token and data, gives us three possible scenarios:
+
+<itemize>
+
+<item> The data arrives into TBF at rate <em>equal</em> the rate of incoming
+tokens. In this case each incoming packet has its matching token and passes
+the queue without delay.
+
+<item> The data arrives into TBF at rate <em>smaller</em> than the token rate.
+Only some tokens are deleted at output of each data packet sent out the
+queue, so the tokens accumulate, up to the bucket size. The saved tokens can
+be then used to send data over the token rate, if short data burst occurs.
+
+<item> The data arrives into TBF at rate <em>bigger</em> than the token rate. In
+this case filter overrun occurs -- incoming data can be only sent out
+without loss until all accumulated tokens are used. After that, overlimit
+packets are dropped.
+
+</itemize>
+
+<p> The last scenario is very important, because it allows to
+administratively shape the bandwidth available to data, passing the filter.
+The accumulation of tokens allows short burst of overlimit data to be still
+passed without loss, but any lasting overload will cause packets to be
+constantly dropped.
 
 The Linux kernel seems to go beyond this specification, and also allows us
 to limit the speed of the burst transmission. However, Alexey warns us:
@@ -684,7 +1158,9 @@ how this works.
 So far we've seen how iproute works, and netfilter was mentioned a few
 times. This would be a good time to browse through <url name="Rusty's Remarkably
 Unreliable guides"
-url="http://netfilter.kernelnotes.org/unreliable-guides/">.
+url="http://netfilter.kernelnotes.org/unreliable-guides/">. Netfilter itself
+can be found <url name="here"
+url="http://antarctica.penguincomputing.com/~netfilter/">.
 
 Netfilter allows us to filter packets, or mangle their headers. One special
 feature is that we can mark a packet with a number. This is done with the
@@ -799,8 +1275,6 @@ is 1:1.
 <p>  The "fw" classifier relies on the firewall tagging the packets to be shaped. So,
   first we will setup the firewall to tag them:
 
-FIXME: Equivalent iptables command?
-
 <tscreen><verb>
 # iptables -I PREROUTING -t mangle -p tcp -d HostA \
  -j MARK --set-mark 1
@@ -827,25 +1301,202 @@ FIXME: Equivalent iptables command?
 
 <sect1>The "u32" classifier
 <p>
-  The "u32" classifier is a filter that filters directly based on the
-  contents of the packet. Thus it can filter based on source or destination
-  addresses or ports. It can filter based on the TOS and other truly bizarre
-  fields. It does this by taking a specification of the form
-  [offset/mask/value] and applying that to all the packets. Fortunately you
-  can use symbolic names much as with tcpdump.
+The U32 filter is the most advanced filter available in the current
+implementation. It entirely based on hashing tables, which make it
+robust when there are many filter rules.
+
+In its simplest form the U32 filter is a list of records, each
+consisting of two fields: a selector and an action. The selectors,
+described below, are compared with the currently processed IP packet
+until the first match and the associated action is performed. The
+simplest type of action would be directing the packet into defined
+CBQ class.
+
+The commandline of <tt>tc filter</tt> program, used to configure the filter,
+consists of three parts: filter specification, a selector and an action.
+The filter specification can be defined as:
 
 <tscreen><verb>
-# tc filter add dev eth1 parent 1:0 protocol ip prio 1 u32 match ip dst HostA flowid 1:1
+tc filter add dev IF [ protocol PROTO ]
+                     [ (preference|priority) PRIO ]
+                     [ parent CBQ ]
 </verb></tscreen>
 
-FIXME: What are the other possibilities?
+The <tt>protocol</tt> field describes protocol that the filter will be
+applied to. We will only discuss case of <tt>ip</tt> protocol. The
+<tt>preference</tt> field (<tt>priority</tt> can be used alternatively)
+sets the priority of currently defined filter. This is important, since
+you can have several filters (lists of rules) with different priorities.
+Each list will be passed in the order the rules were added, then list with
+lower priority (higher preference number) will be processed. The <tt>parent</tt>
+field defines the CBQ tree top (e.g. 1:0), the filter should be attached
+to.
 
-  That all there is to it.
+The options decribed apply to all filters, not only U32.
+
+<sect2>U32 selector
+
+<p>
+The U32 selector contains definition of the pattern, that will be matched
+to the currently processed packet. Precisely, it defines which bits are
+to be matched in the packet header and nothing more, but this simple
+method is very powerful. Let's take a look at the following examplesm
+taken directly from a pretty complex, real-world filter:
+
+<tscreen><verb>
+# filter parent 1: protocol ip pref 10 u32 fh 800::800 order 2048 key ht 800 bkt 0 flowid 1:3 \
+  match 00100000/00ff0000 at 0
+</verb></tscreen>
+
+<p>
+For now, leave the first line alone - all these parameters describe
+the filter's hash tables. Focus on the selector line, containing
+<tt>match</tt> keyword. This selector will match to IP headers, whose
+second byte will be 0x10 (0010). As you can guess, the 00ff number is
+the match mask, telling the filter exactly which bits to match. Here
+it's 0xff, so the byte will match if it's exactly 0x10. The <tt>at</tt>
+keyword means that the match is to be started at specified offset (in
+bytes) -- in this case it's beginning of the packet.  Translating all
+that to human language, the packet will match if its Type of Service
+field will have ,,low delay'' bits set. Let's analyze another rule:
+
+<tscreen><verb>
+# filter parent 1: protocol ip pref 10 u32 fh 800::803 order 2051 key ht 800 bkt 0 flowid 1:3 \
+  match 00000016/0000ffff at nexthdr+0
+</verb></tscreen>
+
+<p>
+The <tt>nexthdr</tt> option means next header encapsulated in the IP packet,
+i.e. header of upper-layer protocol. The match will also start here
+at the beginning of the next header. The match should occur in the
+second, 32-bit word of the header. In TCP and UDP protocols this field
+contains packet's destination port. The number is given in big-endian
+format, i.e. older bits first, so we simply read 0x0016 as 22 decimal,
+which stands for SSH service if this was TCP. As you guess, this match
+is ambigous without a context, and we will discuss this later.
+
+<p>
+Having understood all the above, we will find the following selector
+quite easy to read: <tt>match c0a80100/ffffff00 at 16</tt>. What we
+got here is a three byte match at 17-th byte, counting from the IP
+header start. This will match for packets with destination address
+anywhere in 192.168.1/24 network. After analyzing the examples, we
+can summarize what we have learnt.
+
+<sect2>General selectors
+
+<p>
+General selectors define the pattern, mask and offset the pattern
+will be matched to the packet contents. Using the general selectors
+you can match virtually any single bit in the IP (or upper layer)
+header. They are more difficult to write and read, though, than
+specific selectors that described below. The general selector syntax
+is:
+
+<tscreen><verb>
+match [ u32 | u16 | u8 ] PATTERN MASK [ at OFFSET | nexthdr+OFFSET]
+</verb></tscreen>
+
+<p>
+One of the keywords <tt>u32</tt>, <tt>u16</tt> or <tt>u8</tt> specifies
+length of the pattern in bits. PATTERN and MASK should follow, of length
+defined by the previous keyword. The OFFSET parameter is the offset,
+in bytes, to start matching. If <tt>nexthdr+</tt> keyword is given,
+the offset is relative to start of the upper layer header.
+
+<p>
+Some examples:
+
+<tscreen><verb>
+# tc filter add dev ppp14 parent 1:0 prio 10 u32 \
+     match u8 64 0xff at 8 \
+     flowid 1:4
+</verb></tscreen>
+
+<p>
+Packet will match to this rule, if its time to live (TTL) is 64.
+TTL is the field starting just after 8-th byte of the IP header.
+
+<tscreen><verb>
+# tc filter add dev ppp14 parent 1:0 prio 10 u32 \
+     match u8 0x10 0xff at nexthdr+13 \
+     protocol tcp \
+     flowid 1:3 \
+</verb></tscreen>
+
+<p>
+This rule will only match TCP packets with ACK bit set. Here we can see
+an example of using two selectors, the final result will be logical AND
+of their results. If we take a look at TCP header diagram, we can see
+that the ACK bit is second older bit (0x10) in the 14-th byte of the TCP
+header (<tt>at nexthdr+13</tt>).  As for the second selector, if we'd like
+to make our life harder, we could write <tt>match u8 0x06 0xff at 9</tt>
+instead if using the specific selector <tt>protocol tcp</tt>, because
+6 is the number of TCP protocol, present in 10-th byte of the IP header.
+On the other hand, in this example we couldn't use any specific selector
+for the first match - simply because there's no specific selector to match
+TCP ACK bits.
+
+<sect2>Specific selectors
+<p>
+The following table contains a list of all specific selectors 
+the author of this section has found in the <tt>tc</tt> program
+source code. They simply make your life easier and increase readability
+of your filter's configuration.
+
+FIXME: table placeholder - the table is in separate file ,,selector.html''
+
+FIXME: it's also still in Polish :-(
+
+FIXME: must be sgml'ized
+
+Some examples:
+
+<tscreen><verb>
+# tc filter add dev ppp0 parent 1:0 prio 10 u32 \
+     match ip tos 0x10 0xff \
+     flowid 1:4
+</verb></tscreen>
+
+The above rule will match packets, which have the TOS field set to 0x10.
+The TOS field starts at second byte of the packet and is one byte big,
+so we coul write an equivalent general selector: <tt>match u8 0x10 0xff
+at 1</tt>. This gives us hint to the internals of U32 filter -- the
+specific rules are always translated to general ones, and in this
+form they are stored in the kernel memory. This leads to another conclusion
+-- the <tt>tcp</tt> and <tt>udp</tt> selectors are exactly the same
+and this is why you can't use single <tt>match tcp dst 53 0xffff</tt>
+selector to match TCP packets sent to given port -- they will also
+match UDP packets sent to this port. You must remember to also specify
+the protocol and end up with the following rule:
+
+<tscreen><verb>
+# tc filter add dev ppp0 parent 1:0 prio 10 u32 \
+        match tcp dst 53 0xffff \
+        match ip protocol 0x6 0xff \
+        flowid 1:2
+</verb></tscreen>
+
+<!--
+TODO:
+
+describe more options
+
+match
+offset
+hashkey
+classid | flowid
+divisor
+order
+link
+ht
+sample
+police
+
+-->
 
 <sect1>The "route" classifier
 <p>
-
-  FIXME: Doesn't work
 
   This classifier filters based on the results of the routing tables. When a
   packet that is traversing through the classes reaches one that is marked
@@ -862,16 +1513,45 @@ FIXME: What are the other possibilities?
   send it to the given class and give it a priority of 100. Then, to finally
   kick it into action, you add the appropriate routing entry:
 
+  The trick here is to define 'realm' based on either destination or source. 
+  The way to do it is like this:
+
 <tscreen><verb>
-# ip route add HostA via Gateway flow 1:1
+# ip route add Host/Network via Gateway dev Device realm RealmNumber
+</verb></tscreen>
+  
+  For instance, we can define our destination network 192.168.10.0 with a realm
+  number 10:
+  
+<tscreen><verb>
+# ip route add 192.168.10.0/24 via 192.168.10.1 dev eth1 realm 10
+</verb></tscreen>  
+
+  When adding route filters, we can use realm numbers to represent the
+  networks or hosts and specify how the routes match the filters.
+
+<tscreen><verb>
+# tc filter add dev eth1 parent 1:0 protocol ip prio 100 \
+  route to 10 classid 1:10
+</verb></tscreen>  
+
+  The above rule says packets going to the network 192.168.10.0 match class id
+  1:10.
+  
+  Route filter can also be used to match source routes. For example, there is 
+  a subnetwork attached to the Linux router on eth2.
+
+<tscreen><verb>
+# ip route add 192.168.2.0/24 dev eth2 realm 2
+# tc filter add dev eth1 parent 1:0 protocol ip prio 100 \
+  route from 2 classid 1:2
 </verb></tscreen>
 
-  [Strangely, though I think I've done everything in the example, this doesn't
-  seem to work for me. I get an error that goes:
+  Here the filter specifies that packets from the subnetwork 192.168.2.0
+  (realm 2) will match class id 1:2.
 
-  Error: either "to" is duplicate, or "flow" is a garbage.
-
-  Someone who knows will have to comment on this.]
+  
+  
 
 <sect1>The "rsvp" classifier
 <p>FIXME: Fill me in
@@ -1294,6 +1974,8 @@ We then create classes for our customers:
 Then we add filters for our two classes:
 <tscreen><verb>
 ##FIXME: Why this line, what does it do?, what is a divisor?:
+##FIXME: A divisor has something to do with a hash table, and the number of
+##       buckets - ahu
 # tc filter add dev eth0 parent 1:0 protocol ip prio 5 handle 1: u32 divisor 1
 # tc filter add dev eth0 parent 1:0 prio 5 u32 match ip src 188.177.166.1
   flowid 1:1
@@ -1488,6 +2170,28 @@ will be quite complex and really not intended for normal users. You have
 been warned.
 
 FIXME: Decide what really need to go in here.
+<sect1>How does packet queueing really work?
+<p>This is the low-down on how the packet queueing system really works.
+
+Lists the steps the kernel takes to classify a packet, etc...
+
+FIXME: Write this.
+
+<sect1>Advanced uses of the packet queueing system
+<p>Go through Alexeys extremely tricky example involving the unused bits
+in the TOS field.
+
+FIXME: Write this.
+
+<sect1>Other packet shaping systems
+<p>I'd like to include a brief description of other packet shaping systems
+in other operating systems and how they compare to the Linux one. Since Linux
+is one of the few OSes that has a completely original (non-BSD derived) TCP/IP
+stack, I think it would be useful to see how other people do it.
+
+Unfortunately I have no experiene with other systems so cannot write this.
+
+FIXME: Anyone? - Martijn
 
 <sect>Dynamic routing - OSPF and BGP
 <p>
@@ -1574,7 +2278,7 @@ less. We may include a section on this at a later date.
 url="http://www.cisco.com/univercd/cc/td/doc/product/software/ios111/cc111/car.htm"
 name="IOS Committed Access Rate"></tag>
 <label id="CAR">
-From the helpful folks of Cisco who have the laudable habit of putting
+>From the helpful folks of Cisco who have the laudable habit of putting
 their documentation online. Cisco syntax is different but the concepts are
 the same, except that we can do more and do it without routers the price of
 cars :-)
@@ -1594,8 +2298,13 @@ helping.
 <itemize>
 <item>Jamal Hadi &lt;hadi%cyberus.ca&gt;
 <item>Nadeem Hasan &lt;nhasan@usa.net&gt;
+<item>Jason Lunz &lt;j@cc.gatech.edu&gt;
 <item>Alexey Mahotkin &lt;alexm@formulabez.ru&gt;
+<item>Pawel Krawczyk &lt;kravietz%alfa.ceti.pl&gt;
+<item>Wim van der Most 
 <item>Glen Turner &lt;glen.turner%aarnet.edu.au&gt;
+<item>Song Wang &lt;wsong@ece.uci.edu&gt;
 </itemize>
 
 </article>
+
