@@ -6,7 +6,7 @@
 
 <TITLE>From Power Up To Bash Prompt
 <AUTHOR>Greg O'Keefe, <tt>gcokeefe@postoffice.utas.edu.au</tt>
-<DATE>v0.8, September 2000
+<DATE>v0.9, November 2000
 
 <ABSTRACT>
 This is a brief description of what happens in a Linux system, from the time
@@ -577,6 +577,14 @@ file system (VFS). I won't go into any detail on this though. There is a
 discussion of it in ``The Linux Kernel'' 
 (see section <REF ID="Kernel" NAME="The Linux Kernel"> for a url)
 
+<P>
+A completely different kind of filesystem gets mounted on <TT>/proc</TT>.
+It is really a representation of things in the kernel. There is a 
+directory there for each process running on the system, with the process
+number as the directory name. There are also files such as <TT>interrupts</TT>,
+and <TT>meminfo</TT> which tell you about how the hardware is being used.
+You can learn a lot by exploring <TT>/proc</TT>.
+
 <SECT1>Configuration
 <P>
 There are parameters to the command <TT>mke2fs</TT> which creates ext2
@@ -610,7 +618,10 @@ Check out the ext2 filesystem code in the Kernel.
 	to it in 
 	<URL URL="http://www.netspace.net.au/~gok/power2bash" 
 	NAME="Building a Minimal Linux System from Source Code"> 
-<ITEM>man pages for <TT>mount</TT>, <TT>fstab</TT>, <TT>fsck</TT> and <TT>mke2fs</TT>
+<ITEM>man pages for <TT>mount</TT>, <TT>fstab</TT>, <TT>fsck</TT>, <TT>mke2fs</TT>
+	and <TT>proc</TT>
+<ITEM>The file <TT>Documentation/proc.txt</TT> in the Linux source code explains
+	the <TT>/proc</TT> filesystem.
 <ITEM>EXT2 File System Utilities
 	<URL URL="http://web.mit.edu/tytso/www/linux/e2fsprogs.html"
 	NAME="ext2fsprogs"> home page
@@ -633,10 +644,6 @@ Check out the ext2 filesystem code in the Kernel.
 
 <SECT>Kernel Daemons
 <P>
-Unfortunately, this section contains more conjectures and questions than facts.
-Perhaps you can help?
-
-<P>
 If you issue the <TT>ps aux</TT> command, you will see something like the following:
 
 <P>
@@ -656,79 +663,93 @@ root        70  0.0 10.6  1472   708   1 R   Sep 11   0:01 ps aux
 </VERB>
 
 <P>
-This is a list of the processes running on the system. Note that <TT>init</TT>
+This is a list of the processes running on the system. The information comes
+from the <TT>/proc</TT> filesystem that I mentioned in the previous section.
+Note that <TT>init</TT>
 is process number one. Processes 2, 3, 4 and 5 are kflushd, kupdate, kpiod and
 kswapd. There is something strange here though: notice that in both the virtual
 storage size (SIZE) and the Real Storage Size (RSS) columns, these processes
-have zeroes. How can a process use no memory? These processes are really part
-of the kernel. The kernel does not show up on process lists at all, and you can
+have zeroes. How can a process use no memory? 
+
+<P>
+These processes are the kernel daemons. Most of the kernel 
+does not show up on process lists at all, and you can
 only work out what memory it is using by subtracting the memory available from
-the amount on your system. The brackets around the command name could signify
-that these are kernel processes(?)
+the amount on your system. The kernel daemons are started after init,
+so they get process numbers like normal processes do. But their code and
+data lives in the kernel's part of the memory. 
 
 <P>
-<TT>kswapd</TT> moves parts of programs that are not currently being used
-from real storage (ie RAM) to the swap space (ie hard disk). <TT>kflushd</TT>
-writes data from buffers to disk. This allows things to run faster. What
+There are brackets around the entries in the command column
+because the <TT>/proc</TT> filesystem does not contain command line information
+for these processes.
+
+<P>
+So what are these kernel daemons for?
+Previous versions of this document had a plea for help,
+as I didn't know much about the kernel daemons.
+The following partial story has been patched together
+from various replies to that plea, for which I am most grateful. 
+Further clues, references and corrections are most welcome!
+
+<P>
+Input and output is done via <em>buffers</em> in memory. 
+This allows things to run faster. What
 programs write can be kept in memory, in a buffer, then written to disk in
-larger more efficient chunks. I don't know what <TT>kupdate</TT> and
-<TT>kpiod</TT> are for. 
+larger more efficient chunks. The daemons <TT>kflushd</TT> and <TT>kupdate</TT>
+handle this work:
+<TT>kupdate</TT> runs periodically (5 seconds?) 
+to check whether there are any dirty buffers. If there are, it gets
+<TT>kflushd</TT> to flush them to disk.
 
 <P>
-This is where my knowledge ends. What do these last two daemons do? Why do 
-kernel daemons get explicit process numbers rather than just being anonymous
-bits of kernel code? Does init actually start them, or are they already running
-when init arrives on the scene?
+Processes often have nothing to do, and ones that are running often
+don't need all of their code and data in memory. This means we can
+make better use of our memory, by shifting unused parts of running programs
+out to the swap partition(s) of the hard disk.
+Moving this data in and out of memory as needed is done by
+<TT>kpiod</TT> and <TT>kswapd</TT>. Every second or so, <TT>kswapd</TT>
+wakes up to check out the memory situation, and if something out on
+the disk is needed in memory, or there is not enough free memory,
+<TT>kpiod</TT> is called in.
 
 <P>
-I put a script to mount <TT>/proc</TT> and do a <TT>ps aux</TT> in <TT>/sbin/init</TT>. Process 1 was the script itself, and processess 2, 3, 4 and 5 were the kernel daemons just as under the real init. The kernel must put these processes there, because my script certainly didn't!
-
-<P>
-The following ramblings were contributed by David Leadbeater:
-
-<P>
-These processes seem to take care of disk reads and writes, they seem to be
-started by the kernel but after it runs the init process, it seems that being
-run as kernel processes rather than seperate processess they are protected from
-being killed (kill -9 dosen't stop them), I am not sure why they are run as
-seperate threads (it seems to be something with disk access)
-
-<p><em>kflushd and kupdate</em>
-These two processes are started to flush dirty (changed) buffers back to disk.
-kflushd is run when the buffers are full and kupdate runs periodically (5
-seconds?) to sync the disk and the buffers in memory.
-
-<p><em>kpiod and kswapd</em>
-These deal with paging out pages (sections) of memory into the swap file so
-main memory never gets exhausted, these are similar to kflushd and kupdate in
-that one is run when needed kpiod and the other kswapd is run peridically (1
-second intervals)
-
-<p><em>Other Kernel Daemons</em>
-On a default install of RH6 kupdate is missing but update is running as a user
-space daemon so it seems it needs to be run! Also another daemon mdrecoveryd is there, this seems to be dealing with software RAID, looking at the kernel source it seems that some SCSI drivers also start seperate processes.
-
-<p>
-I am still unsure of the meaning of the brackets but it seems that they appear
-when the RSS of a process is 0 meaning it isn't using any memory?
-
-<p>
-(end of ramble, thanks David)
+There might also be a <TT>kapmd</TT> daemon running on your system if you
+have configured automatic power management into your kernel.
 
 <P>
 <SECT1>Configuration
 <P>
-I don't know of any configuration for these kernel daemons.
+The program <TT>update</TT> allows you to configure <TT>kflushd</TT> and <TT>kswapd</TT>.
+Try <TT>update -h</TT> for some information. 
+
+<P>
+Swap space is turned on by <TT>swapon</TT> and off by <TT>swapoff</TT>.
+The init script (<TT>/etc/rc.sysinit</TT> or <TT>/etc/rc.d/rc.sysinit</TT>)
+usually calls <TT>swapon</TT> as the system is coming up.
+I'm told that <TT>swapoff</TT> is handy for saving power on laptops.
 
 <SECT1>Exercises
 <P>
-Find out what these processes are for, how they work, and write a new ``Kernel Daemons'' section for this document and send it to me!
+Do an <TT>update -d</TT>, note the blatherings on the
+last line about ``threshold for buffer fratricide''.
+Now there's an intriguing concept, go investigate!
+
+<P>
+Change directory to <TT>/proc/sys/vm</TT> and <TT>cat</TT> the
+files there. See what you can work out.
 
 <SECT1>More Information
 <P>
 The Linux Documentation Project's ``The Linux Kernel'' 
-(see section <REF ID="Kernel" NAME="The Linux Kernel"> for a url), 
-and the kernel source code are all I can think of.
+(see section <REF ID="Kernel" NAME="The Linux Kernel"> for a url) 
+
+<P>
+The Linux kernel source code, if you are brave enough!
+The <TT>kswapd</TT> code is in <TT>linux/mm/vmscan.c</TT>, 
+and <TT>kflushd</TT> and <TT>kupdate</TT>
+are in <TT>linux/fs/buffer.c</TT>.
+
 
 
 <SECT>System Logger
@@ -897,6 +918,7 @@ It has a full and up to date list of the packages that go into a Linux system
 as well as instructions on how to build them.
 
 
+<SECT>Conclusion
 <P>
 One of the best things about Linux, in my humble opinion, is that you can get
 inside it and really find out how it all works. I hope that you enjoy this as
@@ -922,6 +944,9 @@ as does its companion ``Building a Minimal Linux System from Source Code''.
 There is a French translation at
 <URL URL="http://www.freenix.fr/unix/linux/HOWTO/From-PowerUp-To-Bash-Prompt-HOWTO.html"
 	NAME="From Powerup To Bash Prompt"> thanks to Dominique van den Broeck.
+A Japanese by Yuji Senda is coming soon, if it's not at 
+<URL URL="http://www.linux.or.jp/JF" NAME="Japanese Documentation and FAQ Project">
+already.
 	
 
 
@@ -962,13 +987,30 @@ For correcting my hexidecimal arithmetic.
 For pointing out some typos.
 <TAG>David Leadbeater</TAG>
 For contributing some ``ramblings'' about the kernel deamons.
-<TAG> Dominique van den Broeck </TAG>
+<TAG>Dominique van den Broeck </TAG>
 For translating this doc into French.
+<TAG>Matthieu Peeters </TAG>
+For some good information about kernel deamons.
+<TAG>John Fremlin</TAG>
+For some good information about kernel deamons.
+<TAG>Yuji Senda</TAG>
+For the Japanese translation.
+<TAG>Antonius de Rozari</TAG>
+For contributing a GNU assembler version of UNIOS
+(see resources section on the home page) 
 </DESCRIP>
 
 <SECT1>Change History
 
-<SECT2>0.7 -> 0.8
+<SECT2>0.8 -> 0.9 (November 2000)
+<P>
+<ITEMIZE>
+<ITEM>Incorporated some information from Matthieu Peeters
+	and John Fremlin on
+	kernel deamons and the <TT>/proc</TT> filesystem.
+</ITEMIZE>
+
+<SECT2>0.7 -> 0.8 (September 2000)
 <P>
 <ITEMIZE>
 <ITEM> Removed instructions on how to build a system, placing them in a 
