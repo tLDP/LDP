@@ -7,6 +7,7 @@ GRANT SELECT ON doc_vote TO root;
 GRANT ALL ON	document TO "www-data";
 GRANT SELECT ON document TO root;
 GRANT ALL ON	document_audience TO "www-data";
+GRANT ALL ON	document_error TO "www-data";
 GRANT ALL ON	document_rev TO "www-data";
 GRANT SELECT on document_rev to root;
 GRANT ALL ON	document_topic TO "www-data";
@@ -28,13 +29,3 @@ GRANT SELECT ON subtopic TO "www-data";
 GRANT SELECT ON topic TO "www-data";
 GRANT ALL ON	username TO "www-data";
 GRANT SELECT ON username TO root;
-
-GRANT ALL ON	document_editor TO "www-data";
-GRANT ALL ON	document_maintainer TO "www-data";
-GRANT SELECT ON document_maintainer to root;
-GRANT ALL ON	editor TO "www-data";
-GRANT SELECT ON editor_role TO "www-data";
-GRANT ALL ON	maintainer TO "www-data";
-GRANT SELECT ON maintainer TO root;
-GRANT ALL ON	maintainer_notes TO "www-data";
-

@@ -17,6 +17,7 @@ unless ($L->Admin()) {
 $L->StartPage("$doc{title} ($doc_id)");
 print $L->DocTable($doc_id);
 print $L->DocFilesTable($doc_id);
+print $L->DocErrorsTable($doc_id);
 print $L->DocVersionsTable($doc_id);
 print $L->DocUsersTable($doc_id);
 print $L->DocTopicsTable($doc_id);

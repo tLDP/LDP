@@ -33,8 +33,11 @@ use Exporter;
 	Docs,
 	Doc,
 	AddDoc,
+	SaveDoc,
+	Lintadas,
 
 	DocFiles,
+	DocErrors,
 	DocUsers,
 	DocTopics,
 	DocNotes,
@@ -85,6 +88,7 @@ use Exporter;
 	DocsTable,
 	DocTable,
 	DocVersionsTable,
+	DocFilesTable,
 	DocUsersTable,
 	DocTopicsTable,
 	DocRatingTable,
@@ -364,6 +368,30 @@ sub SaveDoc {
 	$DB->Exec($sql);
 }
 
+sub Lintadas {
+	$DB->Exec("DELETE from document_error");
+	my %docs = Docs();
+	my $cvsroot = Config($foo, 'cvs_root');
+	foreach $doc_id (keys %docs) {
+		my %docfiles = DocFiles($foo, $doc_id);
+		foreach $key (keys %docfiles) {
+			$filename = $cvsroot . $key;
+			if (-e $filename) {
+				if (-r $filename) {
+					if (-w $filename) {
+					} else {
+						$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
+					}
+				} else {
+					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
+				}
+			} else {
+				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
+			}
+		}
+	}
+}
+
 sub DocFiles {
 	my ($self, $doc_id) = @_;
 	my %docfiles = ();
@@ -403,6 +431,19 @@ sub DelDocFile {
 	my ($self, $doc_id, $oldfilename) = @_;
 	my $sql = "DELETE FROM document_file WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
 	$DB->Exec($sql);
+}
+
+sub DocErrors {
+	my ($self, $doc_id) = @_;
+	my %docerrors = ();
+	my $sql = "SELECT error FROM document_error WHERE doc_id=$doc_id";
+	my $recordset = $DB->Recordset($sql);
+	my $count = 0;
+	while (@row = $recordset->fetchrow) {
+		$count++;
+		$docerrors{$count}{error} = &trim($row[0]);
+	}
+	return %docerrors;
 }
 
 sub DocUsers {
@@ -1714,6 +1755,19 @@ sub DocVersionsTable {
 	return $table;
 }
 
+sub DocErrorsTable {
+	my ($self, $doc_id) = @_;
+	my %docerrors = DocErrors($foo, $doc_id);
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th>Document Errors</th></tr>\n";
+	foreach $key (keys %docerrors) {
+		$table .= "<tr><td>$docerrors{$key}{error}</td></tr>\n";
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
 sub DocFilesTable {
 	my ($self, $doc_id) = @_;
 	my %docfiles = DocFiles($foo, $doc_id);
@@ -2136,7 +2190,8 @@ sub AdminBox {
 	return unless Admin();
 	print "<p><table class='navbox'>\n";
 	print "<tr><th>Admin Tools</th></tr>\n";
-	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></t></tr>\n";
+	print "<tr><td><a href='lintadas.pl'>Run Lintadas</a></td></tr>\n";
+	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
 }

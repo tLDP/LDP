@@ -54,7 +54,9 @@ $DB = new Lampadas::Database;
 #DocCountByPubStatus("'N'");
 #PubStatusStatsTable();
 #MiscStatsTable();
-TopicDocsTable();
+#TopicDocsTable();
+#Lintadas();
+DocErrorsTable(1);
 
 sub Topic {
 	my $topic_num = shift;
@@ -422,4 +424,13 @@ sub DocsTable {
 
 sub TopicDocsTable {
 	print $L->TopicDocsTable();
+}
+
+sub Lintadas {
+	$L->Lintadas();
+}
+
+sub DocErrorsTable {
+	my $doc_id = shift;
+	print $L->DocErrorsTable($doc_id);
 }
