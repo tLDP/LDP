@@ -345,7 +345,6 @@ class PageFactory:
 
     def page(self, key):
         uri = URI(key)
-        uri.printdebug()
         log(3, 'Serving language ' + uri.language)
         
         page = lampadasweb.pages[uri.filename]
@@ -442,10 +441,6 @@ page_factory = PageFactory()
 def main():
     for arg in sys.argv[1:]:
         print page_factory.page(arg)
-
-
-def usage():
-    print "HTMlampadas.py version " + VERSION
 
 
 if __name__ == "__main__":

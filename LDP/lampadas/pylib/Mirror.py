@@ -112,7 +112,7 @@ class Mirror:
             if self.unpack(self.cachedir, self.file_only):
                 for file in self.os.listdir(self.cachedir):
                     if file[-5:] <> '.html':
-                        self.Doc.Files.Add(self.Doc.ID, file)
+                        self.Doc.Files.add(self.Doc.ID, file)
 
         log(3, 'Mirroring document ' + str(DocID) + ' complete.')
         
