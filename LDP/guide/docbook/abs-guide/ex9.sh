@@ -25,9 +25,15 @@ echo ${hello} #Identical to above.
 echo "$hello"
 echo "${hello}"
 
-# hello="A B  C   D"
+echo
+
+hello="A B  C   D"
+echo $hello
+echo "$hello"
 # Now,   echo $hello   and   echo "$hello"   give different results.
-# Quoting variable preserves whitespace.
+# Quoting a variable preserves whitespace.
+
+echo
 
 echo '$hello'
 #  Variable referencing disabled by single quotes,

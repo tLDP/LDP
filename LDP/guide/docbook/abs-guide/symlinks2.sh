@@ -13,10 +13,10 @@ fi
 
 echo "symbolic links in directory \"$directory\""
 
-for file in $( find $directory -type l )   # -type l = symbolic links
+for file in "$( find $directory -type l )"   # -type l = symbolic links
 do
   echo "$file"
-done | sort > "$OUTFILE"                   # stdout of loop
-#           ^^^^^^^^^^^^                     redirected to save file.
+done | sort > "$OUTFILE"                     # stdout of loop
+#           ^^^^^^^^^^^^                       redirected to save file.
 
 exit 0

@@ -12,10 +12,10 @@ fi
 
 echo "symbolic links in directory \"$directory\""
 
-for file in $( find $directory -type l )   # -type l = symbolic links
+for file in "$( find $directory -type l )"   # -type l = symbolic links
 do
   echo "$file"
-done | sort                                # Otherwise file list is unsorted.
+done | sort                                  # Otherwise file list is unsorted.
 
 #  As Dominik 'Aeneas' Schnitzer points out,
 #+ failing to quote  $( find $directory -type l )

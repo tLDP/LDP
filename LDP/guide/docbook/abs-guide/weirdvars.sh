@@ -5,9 +5,11 @@ var="'(]\\{}\$\""
 echo $var        # '(]\{}$"
 echo "$var"      # '(]\{}$"     Doesn't make a difference.
 
+echo
+
 IFS='\'
-echo $var        # '(]\{}$"     \ converted to space.
-echo "$var"      # '(] {}$"
+echo $var        # '(] {}$"     \ converted to space.
+echo "$var"      # '(]\{}$"
 
 # Examples above supplied by S.C.
 
