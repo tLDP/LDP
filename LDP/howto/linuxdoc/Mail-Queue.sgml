@@ -1,0 +1,429 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+
+<title>Linux Mail-Queue mini-HOWTO
+<author>Leif Erlingsson, <tt/leif@lege.com/, Jan P Tietze, <tt/jptietze@mail.hh.provi.de/
+<date>v2.02, 3 September 1997, sendmail 8.8.7
+<abstract>
+Queue Remote Mail + Deliver Local Mail
+
+The Configuration Changes Neccessary to Make Sendmail Deliver Local Mail
+***Now*** While Stashing Remote Mail in The Queue Until &dquot;I Say So&dquot;.
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>
+<!-- 1 -->
+	Introduction
+
+<p>
+The document is written by two authors. The NON dial-on-demand solutions
+part (oldest part) is written by Leif Erlingsson &lt;leif@lege.com&gt;, and the
+newer dial-on-demand solutions part is written by
+Jan P Tietze &lt;jptietze@mail.hh.provi.de&gt;.
+
+
+<sect>
+<!-- 2  -->
+	NON dial-on-demand solutions PART
+
+<p>
+	Written by Leif Erlingsson &lt;leif@lege.com&gt;.
+
+	The original version of this part contained a lot of unnecessary
+	stuff.	This is all it takes, really...
+
+<sect1>
+<!-- 2.1 -->
+	Starting sendmail
+
+<p>
+	Slackware et al:	/etc/rc.d/rc.M:
+
+<tscreen><verb>
+echo &dquot;Starting sendmail daemon (/usr/sbin/sendmail -bd -os) [queue only mode]...&dquot;
+/usr/sbin/sendmail -bd -os	&num; NOT &dquot;-bd -q 15m&dquot;, the &dquot;standard&dquot; flags!
+</verb></tscreen>
+
+
+	RedHat et al:		/etc/rc.d/init.d/sendmail.init:
+
+<tscreen><verb>
+echo -n &dquot;Starting sendmail: [queue only mode]&dquot;
+daemon sendmail -bd -os		&num; NOT daemon sendmail -bd -q1h
+</verb></tscreen>
+
+
+	The -os is not really essential, all it does is this:
+
+<tscreen><verb>
+SuperSafe [s] Be super-safe when running things, i.e.,
+	always instantiate the queue file,  even  if
+	you are going to attempt immediate delivery.
+	Sendmail always instantiates the queue	file
+	before	returning  control  the client under
+	any  circumstances.   This   should   really
+	always be set.
+</verb></tscreen>
+
+
+	This should already be configured in the default sendmail.cf anyway.
+
+<sect1>
+<!-- 2.2  -->
+	Configuring sendmail
+
+<p>
+	Serious sendmail users use the m4 source for this. I recommend
+	this solution if you ever plan on upgrading sendmail and also
+	make anything but trivial changes to sendmail.cf.
+
+	If you never intend to fix sendmail so envelope return headers
+	et al works even though you might be on dynamic dial in IP or
+	something, then you may not need to get the m4 source.
+
+<sect2>
+<!-- 2.2.1 -->
+	Configuring sendmail.cf directly, for trivial configurations
+
+<p>
+	This way of doing things is extremeley version dependent vs.
+	sendmail.cf versions. The following solution is *only* valid
+	for sendmail-8.8.x.
+
+	Edit /etc/sendmail.cf:
+
+<tscreen><verb>
+&num; avoid connecting to &dquot;expensive&dquot; mailers on initial submission?
+O HoldExpensive=True
+</verb></tscreen>
+
+	... later ...
+
+<tscreen><verb>
+&num;&num;&num;&num;&num;  @(&num;)smtp.m4	8.33 (Berkeley) 7/9/96	&num;&num;&num;&num;&num;
+
+Msmtp,		P=[IPC], F=mDFMuXe, S=11/31, R=21, E=\r\n, L=990,
+		T=DNS/RFC822/SMTP,
+		A=IPC $h
+Mesmtp,		P=[IPC], F=mDFMuXae, S=11/31, R=21, E=\r\n, L=990,
+		T=DNS/RFC822/SMTP,
+		A=IPC $h
+Msmtp8,		P=[IPC], F=mDFMuX8e, S=11/31, R=21, E=\r\n, L=990,
+		T=DNS/RFC822/SMTP,
+		A=IPC $h
+Mrelay,		P=[IPC], F=mDFMuXa8e, S=11/31, R=61, E=\r\n, L=2040,
+		T=DNS/RFC822/SMTP,
+		A=IPC $h
+</verb></tscreen>
+
+
+	The important flag above is ``e''. Don't fuss if the other flags
+	look different in your file. Keep your flags as-is, only add ``e''
+	to your flags according to the above examples, unless it's there
+	already. ``e'' marks the mailers as ``expensive''.
+
+<sect2>
+<!-- 2.2.2 -->
+	Configuring sendmail.cf using m4 source
+
+<p>
+	In the following I will, for simplicity, assume that the sendmail
+	version is 8.8.7. If you have a different version, replace 8.8.7
+	with that version number below! Also, the instructions will not
+	work for older versions of sendmail. Get the latest sendmail!
+
+<p>
+	Download the sendmail source.
+	Try ``http://WWW.Sendmail.ORG'' or possibly ``ftp.sendmail.org''.
+
+<p>
+	I also recommend that you obtain my patch for allowing envelope
+	sender reverse aliasing and other nice stuff to really make you
+	take control over your mail environment.
+
+	Write to ``Sendmail Patch &lt;sendmail@lege.com&gt;'',
+	Subject: ``sendmail-8.8.7'', if 8.8.7 is your sendmail version.
+
+	They are also available from ``http://www.lege.com'', as is
+	the sgml source of this mini-HOWTO!
+
+	You don't have to get my patches in order to get ``Queue Remote
+	Mail + Deliver Local Mail'' to work. My patches solve other
+	things. But I just thought this would be a nice place to mention
+	them, as many Linux users will find them extremely useful.
+	(They will even give you properly working virtual domains, if you
+	like. The virtual domains don't have to be ``local''. They will
+	give you ``xaliases'', or in other words ``reverse aliasing''.)
+
+	Unpack the sendmail source. You may get /usr/src/sendmail-8.8.7/.
+	cd /usr/src/sendmail-8.8.7/cf
+
+	Now overlay my patch, if you want it, otherwise skip this step:
+	If you don't want to use procmail as Local Delivery Agent, save
+	away your /usr/src/sendmail-8.8.7/cf/ostype/linux.m4 before
+	doing this...
+	Save my patch to ``/tmp/sendmail-8.8.7-cf-cpio-idcmu.gz'', then...
+<tscreen><verb>
+cd /usr/src/sendmail-8.8.7/cf
+gzip -dc &lt; /tmp/sendmail-8.8.7-cf-cpio-idcmu.gz | cpio -idcmu
+</verb></tscreen>
+	If you didn't want to use procmail, write back the saved copy of
+	/usr/src/sendmail-8.8.7/cf/ostype/linux.m4 again.
+
+	And regardless of if you applied my patch or not, you must make
+	sure these lines or very similar ones are added to
+	/usr/src/sendmail-8.8.7/cf/cf/yourhostname.smtp.mc
+	(but if you applied my patch you may want to investigate filenames
+	containing the word ``elijah'', under /usr/src/sendmail-8.8.7/cf):
+
+<tscreen><verb>
+dnl &num; Defer Delivery to &dquot;expensive&dquot; mailers until next time the
+dnl &num; queue is processed using &dquot;O HoldExpensive=True&dquot; and make
+dnl &num; sure smtp mailers are &dquot;expensive&dquot;.
+dnl &num; (See original &dquot;sendmail&dquot; book Chapter 30: Options,
+dnl &num; &dquot;Oc - Don't connect to expensive mailers&dquot;, or
+dnl &num; 2nd Edition &dquot;sendmail&dquot; book Chapter 34.8.29,
+dnl &num; &dquot;HoldExpensive (c), Queue for expensive mailers&dquot;.)
+dnl &num;				/ Leif Erlingsson &lt;leif@lege.com&gt;
+define(`confCON_EXPENSIVE', `True')
+define(SMTP_MAILER_FLAGS, e)
+MAILER(local)dnl
+MAILER(smtp)dnl
+</verb></tscreen>
+
+<sect1>
+<!-- 2.3 -->
+	Menu support suggestions
+
+<p>
+	The 1.x versions of this document contained Menu support
+	suggestions for /var/X11R6/lib/fvwm/system.fvwmrc. I have
+	dropped those in the current version, but they are available on
+	request:
+
+<p>
+	Write to ``Menu support suggestions &lt;fvwmrc@lege.com&gt;'',
+	Subject: ``Menu support suggestions''
+
+
+<sect>
+<!-- 3  -->
+	Dial-on-demand solutions PART
+
+<p>
+	Written by Jan P Tietze &lt;jptietze@mail.hh.provi.de&gt;.
+
+	Many Linux users access the Internet through a dialup line, and many
+	have decided to implement dial-on-demand facilities on their system.
+	That is, whenever an IP packet of some sort has to leave the local
+	network or the local host, the link to an Internet Service Provider
+	(ISP) will automatically be established. The link will be dropped
+	after some period of time that no packet has travelled across.
+
+	Although this is very comfortable and cost effective, there is one
+	special case in which this is neither comfortable (as the time to
+	bring up a &dquot;traditional&dquot; modem dialup is very noticeable) nor cost
+	effective, and this is sending e-mail. E-Mail is commonly sent by
+	SMTP, either delivered by your own system or through a SMTP host on
+	the Internet that usually resides in your ISP's network.
+
+	With dialup lines, every time you send a message the link will have
+	to be brought up. This is quite okay if you send only one message,
+	but if you happen to create and send multiple messages, bringing up
+	the line more than once can be tedious and cost ineffective. Also,
+	if your ISP imposes limits as to what times you are allowed to
+	login, this would also restrict you to postpone messages at certain
+	times of the day, and you would have to manually send them later.
+
+	Section 1 of this document will solve the situation, however in
+	situations where an external DNS lookup would cause the link up, the
+	link will still be established even if e-mail is just being queued.
+	The reason is that sendmail wishes to &dquot;canonify&dquot; host names.
+
+	The solution to this problem is twofold: First, we'll have to
+	moderately change sendmail.cf. And then we have to define the
+	process of actual mail delivery. Personally, I prefer to have cron
+	do the job for me and describe the necessary changes below.
+
+<sect1>
+<!-- 3.1 -->
+	Configuring sendmail.cf
+
+<p>
+	For the reasons stated in [1.2], I recommend modifying the m4
+	sources instead of editing sendmail.cf directly. It will actually
+	save you a lot of hassle and make configuration changes more
+	verbose.
+
+	First, perform all the changes described in the first part of this
+	document. Then go through the dial-on-demand specific stuff.
+
+<sect2>
+<!-- 3.1.1 -->
+	Configuring sendmail.cf directly, for trivial configurations
+
+<p>
+	Configuring directly is highly impractical and anything but verbose,
+	but obviously, this is your decision.
+
+	Close to very bottom of your sendmail.cf should be a line that
+	reads:
+
+<tscreen><verb>
+R$* &lt; @ $* $&tilde;P &gt; $*		$: $1 &lt; @ $[ $2 $3 $] &gt; $4
+</verb></tscreen>
+
+	Precede that line with a &dquot;&num;&dquot; so that it reads
+
+<tscreen><verb>
+&num;R$* &lt; @ $* $&tilde;P &gt; $*		$: $1 &lt; @ $[ $2 $3 $] &gt; $4
+</verb></tscreen>
+
+<sect2>
+<!-- 3.1.2 -->
+	Configuring sendmail.cf using the m4 source.
+
+<p>
+	Add the following line to
+	/usr/src/sendmail-8.8.7/cf/cf/yourhostname.smtp.mc:
+
+<tscreen><verb>
+FEATURE(nocanonify)dnl
+</verb></tscreen>
+
+	Your final sendmail.cf can then be built by issuing the following
+	commands. Remember to always back up your old /etc/sendmail.cf
+	before installing the new one:
+
+<tscreen><verb>
+cp /etc/sendmail.cf /etc/sendmail.cf.bak
+cd /usr/src/sendmail-8.8.7/cf/cf
+m4 yourhostname.smtp.mc &gt; /etc/sendmail.cf
+</verb></tscreen>
+
+<sect1>
+<!-- 3.2 -->
+	Adding dial delay
+
+<p>
+	It is oftentimes useful, especially when using modem lines, to have
+	a dial delay installed. This means that if sendmail tries to
+	initiate a connection in an attempt to send an e-mail (and this
+	causes the line to go up) but the link actually takes more time to
+	get established than what sendmail thinks should be a reasonable
+	timeout, sendmail will simply wait some seconds and then retry.
+
+<sect2>
+<!-- 3.2.1 -->
+	Configuring sendmail.cf directly
+
+<p>
+	Somewhere in your sendmail.cf could be a line that would read:
+
+<tscreen><verb>
+&num;O DialDelay=10s
+</verb></tscreen>
+
+	(or very similar). Delete the ``&num;''. If there's no ``&num;'' at the
+	beginning of the line, things should be considered okay (it just
+	means this had already been enabled before).
+
+	If there is no such line in your sendmail.cf, add one (it is a wise
+	thing to do to add this in the &dquot;options&dquot; part of the file):
+
+<tscreen><verb>
+O DialDelay=10s
+</verb></tscreen>
+
+	Now change the ``10s'' part to the number of seconds you deem
+	suitable.
+
+<sect2>
+<!-- 3.2.2 -->
+	Configuring sendmail.cf using m4 source
+
+<p>
+	Add the following line to
+	/usr/src/sendmail-8.8.7/cf/cf/yourhostname.smtp.mc:
+
+<tscreen><verb>
+define(`confDIAL_DELAY',`10s')
+</verb></tscreen>
+
+	Now change the ``10s'' part to the number of seconds you deem
+	suitable.
+
+	Your final sendmail.cf can then be built by issuing the following
+	commands. Remember to always back up your old /etc/sendmail.cf
+	before installing the new one:
+
+<tscreen><verb>
+cp /etc/sendmail.cf /etc/sendmail.cf.bak
+cd /usr/src/sendmail-8.8.7/cf/cf
+m4 yourhostname.smtp.mc &gt; /etc/sendmail.cf
+</verb></tscreen>
+
+<sect>
+<!-- 3 -->
+	Delivering e-mail
+
+<p>
+	E-Mail delivery can be invoked by issuing the command &dquot;sendmail -q&dquot;.
+	For those who are interested in what sendmail actually does,
+	&dquot;sendmail -q -v&dquot; will give a more verbose version of the delivery
+	process.
+
+	It is very convenient to automate the process of e-mail delivery. A
+	tool commonly used for this process is cron.
+
+<sect1>
+<!-- 3.1 -->
+	How to have e-mail delivered at special times.
+
+<p>
+	Edit your crontab:
+
+<tscreen><verb>
+crontab -e
+</verb></tscreen>
+
+	Add lines of the form:
+
+<tscreen><verb>
+05 18-23,0-7	* * Mon,Tue,Wed,Thu,Fri	/usr/sbin/sendmail -q
+05 *		* * Sat,Sun		/usr/sbin/sendmail -q
+</verb></tscreen>
+
+	Please refer to the crontab man page (available through &dquot;man 5 \
+	crontab&dquot;) for further information. I think the format is pretty
+	obvious. The example crontab entries shown above send e-mail (if,
+	and only if, e-mail is available from the queue) 5 minutes after an
+	hour on weekdays, starting at 6:05 pm, and stopping at 7:05 am.  On
+	weekends, e-mail is delivered 5 minutes after an hour, starting at
+	12:05 pm on Saturday, and stopping 11:05 pm on Sunday.
+
+	As a dial-on-demand user, it is sometimes desirable to have your
+	system collect your e-mail via the POP3 protocol at certain times of
+	the day. You could therefore add an entry similar to the following
+	to your crontab:
+
+<tscreen><verb>
+0 21		* * * popclient -3 -u &lt;your pop3 user name
+goes here&gt; -p &lt;put your password here&gt; -o /var/spool/mail/&lt;the user
+on your system that should receive the collected e-mail&gt;
+&lt;mailhost.somedomain.com&gt;
+</verb></tscreen>
+
+	Of course, this should all go on a single line.
+
+	Then, save the file and leave the editor. The crontab should now be
+	installed.
+</article>

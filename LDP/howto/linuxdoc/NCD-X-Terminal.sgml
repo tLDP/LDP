@@ -1,0 +1,578 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title> NCD X terminal mini HOWTO</title>
+<author>Ian Hodge, <tt>ian at permedia.ca</tt> </author>
+<date>v1.09, March 27, 2000</date>
+
+
+<abstract>
+This document describes how to connect
+an NCD X terminal to a UNIX host
+</abstract>
+
+<toc>
+
+<sect>Copyright
+
+<p>
+The NCD X terminal mini HOWTO is copyright(c) 1998 by Ian Hodge. Linux
+HOWTO documents may be reproduced and distributed in whole or in part, in
+any medium physical or electronic, as long as this copyright notice is
+retained on all copies.
+
+<sect>Introduction
+
+<p>
+This document describes how an X terminal manufactured by NCD (Network
+Computing Devices) can be connected to and booted from a UNIX host using
+BootP (boot protocol). Many terminals are also capable of booting with
+RARP, NFS or locally from a PCMCIA card or over a serial link (either
+directly or with a modem).
+
+Although the material in this document was prepared based on experience
+with a single model of X terminal, much of the information applies to other
+models and other X terminals generally. There is also an Linux X terminal
+mini HOWTO document (declared obsolete by HOWTO maintainers at the time of
+writing and therefore possibly not available in all Linux distributions)
+which overlaps material from this document. That document covers X terminal
+information more generally.
+
+<sect1>Summary of steps
+
+<p>
+The process of connecting an X terminal to a UNIX network can be summarized
+in the following steps:
+
+<itemize>
+<item>Physically connect the X terminal to the network.
+<item>Configure the UNIX host you are going to boot from.
+<item>Configure the X terminal boot procedure.
+<item>Boot the X terminal.
+<item>Log in to the network.
+</itemize>
+
+
+<sect>Requirements
+
+<sect1>The X terminal
+
+<p>
+An X terminal is a device which communicates and displays over a network
+using a distributed network window system known as X. Typically, the
+terminal's X software, known as the X server, is retrieved from the network
+at boot time. Programs other then the X server software (X client programs)
+are not run locally on the X terminal (with some exceptions); instead, the
+X terminal displays programs running on other hosts on the network. The X
+terminal, therefore, is a type of network computer which uses the X
+protocol to access network resources.
+
+<sect1> Physical Connection
+
+<p> The NCD X terminal (model Xncd19r was used in preparation of this
+document) has an RJ-45 (twisted pair) connector for use with 10baseT
+Ethernet. A hub is required to link more than two Ethernet devices using
+twisted pair. If the X terminal and its host are the only devices in the
+network, they may be connected with a 'null' cable which is described in
+the Linux Ethernet HOWTO document.
+
+<sect1>NCD X server software
+
+<p>
+The terminal's X server software file is available from the manufacturer
+and presumably is provided with the terminal upon initial purchase. This
+file will reside on the boot host where it can be accessed by the X
+terminal when it boots. This file is specific to the terminal type but
+independent of boot host. The terminal can boot from any host which
+supports the boot communication protocol (explained later). In addition to
+X server, the X software may also include applications, like a window
+manager, which can run locally on the X terminal itself.
+
+<sect>Configuring the UNIX Host
+
+<P>
+At boot time, the X terminal retrieves files (including its X server
+software) from a remote host on the network. After the terminal boots, the
+X server software will control input, display, local clients and X protocol
+communication. The X server software is executed on the X terminal and
+therefore does not have to be software compatible with the host on which it
+resides.
+
+<sect1>TFTP and BootP
+
+<P>
+Together, tftp (trivial file transfer protocol) and BootP (boot protocol
+server) are used on the remote host to allow the X terminal to retrieve its
+X server software and configuration files over the network. Both services
+are typically started by inetd (Internet Daemon).
+
+<p>
+After the X terminal is powered up, if it is configured to boot from the
+network, it will send out a broadcast message using BootP (TCP/IP bootstrap
+protocol). This boot message will contain the X terminal's hardware
+(Ethernet) address which is used by the boot host to respond to the boot
+request.
+
+<P>
+When a boot request is received by the remote host, inetd
+(listening on a port designated in /etc/services) starts the BootP daemon
+specified in /etc/inetd.conf.
+
+<P>
+In file inetd.conf, create or uncomment lines that refer to TFTP and
+BootP. The final argument of the tftpd entry in the example below is the
+path of the directory containing the files required by the X
+terminal. Although directory names are not mandatory, for security reasons
+they should always be present as tftp access will then be restricted to
+files in specified directories.
+
+<P>
+From a sample file /etc/inetd.conf:
+<verb>
+# tftp service is provided primarily for booting.  Most sites
+# run this only on machines acting as "boot servers".
+tftp   dgram udp wait root /usr/sbin/tcpd /usr/sbin/in.tftpd /usr/X11/lib/X11/ncd/
+bootps dgram udp wait root /usr/sbin/tcpd /usr/sbin/in.bootpd
+</verb>
+
+<p>Upon activation, the BootP server daemon on the host will then read its
+database file /etc/bootptab. An entry for the X terminal must be placed in
+this file. Each entry contains a set of tags separated with ':'
+characters. The host name must be the very first tag in an entry.
+
+Useful bootptab tags:
+<descrip>
+<tag><bf>hd</bf></tag>Bootfile home directory (eg /usr/X11/lib/X11/ncd/).
+<tag><bf>ip</bf></tag>Address of the X terminal (eg 10.0.0.1).
+
+<tag><bf>sm</bf></tag>Subnet mask (eg 255.0.0.0). To understand the use of
+the subnet mask and other IP networking principles, consult the Linux NET-3
+(networking) HOWTO document.
+
+<tag><bf>gw</bf></tag>IP Address of gateway (eg 10.0.0.1).
+<tag><bf>ht</bf></tag>Hardware type - Ethernet in this example.
+<tag><bf>ha</bf></tag>Hardware address of X terminal (6 byte Ethernet address)
+
+According to the bootptab UNIX man page, the 'ha' tag must be preceded by
+the 'ht' tag. The X terminal's Ethernet address is displayed when the
+terminal is first powered on. The address appears as a series of 6
+double digit hex numbers separated by colons (e.g. 00:00:A7:12:26:19).
+
+<tag><bf>tc</bf></tag>Table continuation or label of another entry in the
+BootP database. See the example below.
+
+<tag><bf>ds</bf></tag>IP address of domain name server (eg 10.0.0.3). Not
+required if DNS is not used for hostname resolution.
+
+<tag><bf>bf</bf></tag>Name of X terminal boot file (Usually the terminal
+model is used as the X server file name eg Xncd19r).
+</descrip>
+
+<P> The following is an example of the Boot protocol server database file,
+/etc/bootptab. The character '\' is used to escape the end-of-line 
+character.
+
+<verb>
+# This is an entry (here given the name default)
+# with information common to all BootP clients
+default:hd=/usr/X11/lib/X11/ncd/:\
+	ds=10.0.0.3:\
+	sm=255.0.0.0:\
+	gw=10.0.0.1:
+
+# X terminal entry with hostname myxterm
+# Notice the tc tag reference to the entry default
+myxterm:ht=ethernet:\
+	ha=0x0000a7122619:\
+	ip=10.0.0.2:\
+	tc=default:\
+	bf=Xncd19r:
+</verb>
+
+<P>
+When a matching entry for the hardware address in the boot request is found
+in the bootptab file, a response is sent by bootpd with the corresponding
+IP address from the matching entry. File transfer can then take place over
+IP using TFTP.
+
+A hostname can be assigned to the X terminal by creating an entry on
+the boot host in the file /etc/hosts. This file is used to map hostnames to
+IP addresses. In the this example, the X terminal (address 10.0.0.2) has
+been assigned the hostname 'myxterm'.
+
+<verb>
+10.0.0.1	linuxhost	# The boot host
+10.0.0.2	myxterm         # X terminal
+</verb>
+
+<sect> Configuring the NCD X terminal Boot Process
+
+<p>
+After being powered up, the X terminal attempts to boot. This is the
+process where the X software is loaded into memory and executed. If the X
+terminal cannot boot, the Boot Monitor prompt '>' will appear. The Boot
+Monitor is firmware found in terminal PROMs (programmable read-only
+memory). With the basic Boot Monitor interface, it is possible to configure
+the terminal to boot and retrieve its X server software from the host. Use
+'?' for a list of Boot Monitor commands.
+
+<p>
+Configuration parameters set with the boot monitor are stored in NVRAM
+(Non-volatile Random-Access Memory) and are retained when the terminal is
+powered down.
+
+<p>
+From the boot monitor, the 'bt' command or a menu system can be used to
+boot the terminal. Functionality of the two methods largely overlaps but
+the menu provides control over more boot parameters.
+
+<sect1>Boot Monitor command syntax
+
+<p>
+<tt>
+>bt file terminal_IP host_IP gateway_IP subnet_mask
+</tt>
+
+<p>
+<descrip>
+<tag/<bf>file</bf>/The name of the file retrieved from the remote host
+containing the X server software used by the X terminal to boot (eg
+"Xncd19r"). Check that this file name is the same as the file name is found
+in the X terminal entry in the bootptab file on the host (explained in the
+previous section).
+
+<tag/<bf>terminal_IP</bf>/The IP address assigned to the X terminal (eg
+10.0.0.2). Again, this IP address should be the same as the address assigned
+in the X terminal entry of the bootptab file on the host.
+
+<tag/<bf>host_IP</bf>/The IP address of the boot host (eg 10.0.0.1).
+
+<tag/<bf>gateway</bf>/The IP address of the subnet gateway (eg 10.0.0.1)
+
+<tag/<bf>subnet_mask</bf>/The subnet mask, specified as a decimal IP
+address or as a hexadecimal number (eg 255.0.0.0 or ff000000).
+</descrip>
+
+<sect1>Boot Monitor Setup Menu
+<p>
+The setup menus are accessed by pressing the 'Setup' key or
+typing 'se' from the boot monitor '>' prompt. 
+
+<descrip>
+<tag/<bf>Get IP Addresses From</bf>/The IP address of the X terminal should
+be obtained from boot monitor configuration stored in NVRAM. Only select
+'Network' if you are using RARP (reverse ARP) to retrieve the X terminal's
+IP address from the remote host.
+
+<tag/<bf>Terminal IP Address</bf>/The IP address assigned to the X terminal
+(eg 10.0.0.2). This is the same as 'terminal_IP' parameter above.
+
+<tag/<bf>First Boot Host IP Address</bf>/The IP address of the boot host
+(eg 10.0.0.1). This is the same as 'host_IP' parameter above.
+
+<tag/<bf>Gateway IP Address</bf>/The IP address of the subnet gateway. This
+is the same as 'gateway' parameter above.
+
+<tag/<bf>Subnet Mask</bf>/The subnet mask, specified as a decimal IP
+address. This is the same as the 'subnet_mask' parameter above.
+
+<tag/<bf>Broadcast IP Address</bf>/The IP address used to broadcast to the
+subnet. (eg 10.255.255.255)
+
+<tag/<bf>Boot File</bf>/The name of the file retrieved from the remote
+host containing the X server software used by the X terminal to boot (eg
+"Xncd19r"). This is the same as 'file' parameter described above.
+
+<tag/<bf>TFTP Boot Directory</bf>/The name of the directory on the host
+which contains the boot file (eg "/usr/X11/lib/X11/ncd/" or "/tftpboot/").
+
+<tag/<bf>Config file</bf>/
+The name of the X terminal configuration file on the remote host
+(See below).
+
+<tag/<bf>UNIX Config Directory</bf>/
+Name of the directory containing X terminal configuration files 
+(eg "/usr/X11/lib/X11/ncd/").
+
+<tag/<bf>TFTP Order, NFS Order, Local Order</bf>/
+Assign '1' to the preferred method for booting. Assign '1' to TFTP
+when booting from a host using BootP.
+</descrip>
+
+<sect1>X Terminal Configuration Files
+
+<p>
+During the boot process, the X terminal will attempt to transfer and load
+files from the boot host. These files are not required for the
+X terminal to boot successfully. If a file is not found, the terminal
+will use default settings. 
+
+Configuration Files transferred to the X terminal at boot time:
+<itemize>
+<item>X terminal configuration file (eg ncd.conf) used 
+to retain terminal settings.
+<item>Color file (eg rgb.txt).
+<item>X key symbol database (eg XKeysymDB).
+<item>Font directory files (eg font.dir, font.alias).
+</itemize>
+
+<p>
+After a successful boot, the X terminal console window with a
+menu bar should appear. The terminal setup key toggles display of this
+console window. From the console window 'setup' pull-down menu, terminal
+characteristics can be viewed, altered and saved on the boot host in the
+configuration file which can be used in future sessions.
+
+If TFTP is being used to transfer files from the boot host, then file
+permission must be world readable. Similarly, to save a configuration file
+to the boot host, the file must already exist and with world write
+permission enabled. If secure TFTP is used (this is recommended for
+security reasons), then file access is possible only through specified
+directories.
+
+<bf>Note:</bf> The terminal may fail to boot if it was previously
+configured to work with other hosts or with different configuration
+parameters. Resetting the NVRAM to remove stored settings may solve the
+problem. 
+
+<P>
+To reset NVRAM, from the boot monitor, type the 'nv' command. From this
+sub-menu, select 'l' to load defaults, 's' to save and finally 'q' to
+quit. Resume the boot procedure described above.
+
+<sect1>Logging on to the host
+
+<p>
+From the X terminal console window menu bar, select the 'terminals'
+pull-down menu and choose 'New Telnet...'. When the telnet window appears,
+insert the address of a network host in the service entry and click
+'OK'. The host log in prompt should appear. After logging in, X programs,
+including a window manager, can be started from the telnet window.
+
+<sect>Fonts and the X terminal
+
+<p>
+The X terminal comes with a small set of fonts. In the X terminal setup
+menus and configuration files, these fonts are referred to as
+'built-ins'. The terminal can be operated with these fonts alone but more
+fonts are desirable. Fonts can be added by specifying font paths in
+X terminal console setup menus, configuration files or by using the xset
+command.
+
+<P>
+Once the X server software is running on the X terminal, the font path can
+modified or queried with the command xset.
+
+To query the X server:
+<verb>
+xset -q
+</verb>
+To add a font entry:
+<verb>
+xset +fp <path>
+</verb>
+To remove a font entry:
+<verb>
+xset -fp <path>
+</verb>
+
+<sect1>The font server
+
+<p>
+The font server (xfs) runs on a network host and retrieves fonts for the X
+terminal and other network clients. Use of the font server allows the use
+of a wide variety of fonts as the X server software is otherwise
+restricted to bitmap fonts. During retrieval, the font server can
+uncompress, scale and convert fonts for the X server and can help
+simplify the management of fonts for groups of terminals and network
+clients. Font server software is part of many Linux distributions and has
+been incorporated into X consortium software available from 
+<url url="ftp://ftp.x.org" name="ftp.x.org">.
+
+To indicate the use of a font server, a tcp service entry is used instead
+of a font path in the X terminal's host resident configuration file or
+console setup menu.
+
+Format of tcp service entry:
+<verb>
+tcp/<IP address of font server>:<port used by font server>
+</verb>
+<p>
+Example:
+<verb>
+tcp/10.0.0.1:7100
+</verb>
+
+<P>
+An example of an entry in the X terminal configuration file found on the
+boot host:
+
+<verb>
+xserver-default-font-path = {
+        { "tcp/10.0.0.1:7100" }
+        { "built-ins" }
+}
+</verb>
+
+The xset command with the tcp service entry can used to add the font server
+to the path:
+
+<verb>
+xset +fp tcp/10.0.0.1:7100
+</verb>
+
+<P>
+WARNING: Certain versions of NCDware require the font server entry to be
+listed first before X terminal 'built-in' fonts. This is contrary to the
+NCD documentation "System Administrator's Guide for UNIX Systems". 
+Experiment with the order of the font path and verify it with the
+'xset q' command.
+
+<p>
+On the font server host, the server is started at boot time from the
+rc.local startup script. The font server (xfs) is started with the
+following command:
+
+<verb>
+xfs -config <config file path> -port <font server port number>
+</verb>
+
+The standard font server port is 7100.
+
+Example:
+
+<verb>
+xfs -config /usr/X11/lib/X11/fs/config -port 7100
+</verb>
+
+<P>
+Example font server configuration file:
+
+<verb>
+   # font server configuration file
+
+   # allow a max of 10 clients to connect to this font server
+   client-limit = 10
+
+   # when a font server reaches its client limit, start up a new one
+   clone-self = on
+
+   # use the UNIX syslog utility to log errors.
+   use-syslog = on
+
+   # list of font directories
+   catalogue = /usr/X11R6/lib/X11/fonts/misc/,
+      /usr/X11R6/lib/X11/fonts/Speedo/,
+      /usr/X11R6/lib/X11/fonts/Type1/,
+      /usr/X11R6/lib/X11/fonts/75dpi/,
+      /usr/X11R6/lib/X11/fonts/100dpi/
+
+   # file used to log errors if syslog is not used.
+   error-file = /usr/X11R6/lib/X11/fs/fs-errors
+
+   # 12 point in decipoints
+   default-point-size = 120
+
+   # 100 x 100 and 75 x 75
+   default-resolutions = 75,75,100,100
+</verb>
+
+<sect>Miscellaneous
+
+<sect1>Supported Terminals
+<p>
+I have been told that this procedures in this document work (more or less)
+with the following terminals: <bf>NCD 19r, NCD 19c, NCD19m?, NCD 15b, NCD MCX</bf>
+
+<sect1>Reference
+<p>
+Unix man pages:
+bootpd(8), tftpd(8), bootptab(5), xdm(1x), xfs(1), fsinfo(1), xset(1), 
+inetd(8)
+
+Linux Ethernet HOWTO document,
+Linux Net-3 (Networking) HOWTO document
+
+<P>
+NCDware System Administrator's Guide for UNIX Systems (print version)
+
+<url url="ftp://ftp.ncd.com/pub/ncd/Archive/NCD-Articles/index.html" 
+name="NCD Techtips Archive">
+
+Now available for download in the NCD Techtips Archive is the 
+<url url="ftp://ftp.ncd.com/pub/ncd/Archive/Documentation/NCDware/index.html"
+name="NCDware Reference Manual"> which covers almost every X terminal
+configuration issue in detail.
+
+The searchable 
+<url url="http://www.ncd.com/support/kbsearch/kbase.html"
+name="NCD knowledge base"> addresses some frequently asked questions
+as well as bug reports.
+
+<P>Note that the above links are subject to change. Since the first
+version of this mini-HOWTO was published, the NCD web site has been
+extensively reorganized.
+
+<sect1>Equipment used in the preparation of this document
+
+<P>
+X terminal: NCD model NCD19r with 19 monochrome monitor 1280x1024 8M RAM
+
+X server software: NCDware V3.2.CV 19r_s
+
+Remote Host: IBM Cyrix 686 P150+ running Slackware 
+(Linux kernel version 2.0.31)
+
+Remote Host: IBM Cyrix M2 200 MMX running Red Hat 5.0
+(Linux kernel version 2.0.32)
+
+Network Card: 10 base T Ethernet card (ne 2000 clone) and 8 port hub
+
+Font server version 2 release number 6300
+
+<sect1>Acknowledgments
+
+<P>
+I would like to thank Michael de Lind van Wijngaarden, Jamal Hadi-Salim and
+Dwight Hodge for assistance in the preparation of this document.
+</P>
+
+<sect1>Outstanding Issues
+<p>
+<itemize>
+<item>Is it possible or wise to start the font server using inetd?
+
+<item>If the remote host running the font server is powered down but later
+comes up again, with the font server active, the X terminal may fail to
+retrieve its fonts. The font path entry has to be re-entered with the
+console menu or xset. Why?
+
+<item>Are the procedures for other models of X terminals roughly similar?
+
+<item>What is the procedure to boot the X terminal using NFS (Network File
+System) or RARP (Reverse Address Resolution Protocol)?
+
+<item>The following messages appear in the X terminal Console. I am
+suspicious that they come from xfree86 extensions to X which are not part
+of the X terminal server. Can someone confirm or deny this?
+<verb>
+%XSERVER-I-NEWCLIENT, host "localhost" connected with blank authorization
+%XSERVER-W-NOEXTENSION, client attempted to use non-existent extension "BIG-REQUESTS"
+%XSERVER-W-NOEXTENSION, client attempted to use non-existent extension "XKEYBOARD"
+%XSERVER-W-NOEXTENSION, client attempted to use non-existent extension "XFree86-Misc"
+</verb>
+
+<item>Could Linux be ported to an X terminal? This is almost a joke
+question but Linux is already on some unlikely platforms.
+
+</itemize>
+
+<sect1>Feedback
+
+<p>
+Please write to <tt>ian</tt> at <tt>permedia.ca</tt> 
+with any comments, questions, corrections, suggestions or contributions.
+Many thanks to all who have written with feedback and additional information.
+
+</article>

@@ -1,0 +1,512 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>The Linux+FreeBSD mini-HOWTO
+<author>Niels Kristian Bech Jensen <tt/nkbj@image.dk/
+<date>v1.11, 30 March 2000
+
+<abstract>
+<nidx>dual booting!Linux, FreeBSD (see FreeBSD dualboot)</nidx>
+<nidx>Linux!FreeBSD dualboot with (see FreeBSD dualboot)</nidx>
+<nidx>FreeBSD!Linux dualboot with (see FreeBSD dualboot)</nidx>
+This document describes how to use Linux and FreeBSD on the same system. It
+introduces FreeBSD and discusses how the two operating systems can cooperate,
+e.g. by sharing swap space. You should probably have some experience with
+Linux or FreeBSD and hard drive partitioning (<tt/fdisk/) before you read this
+document. The tips herein are tested using FreeBSD 2.2.2, but they should be
+valid for newer versions as well. Do not hesitate to mail me if you have
+comments, questions or suggestions about this document. I would also like to
+hear from people who have experience using Linux together with NetBSD or
+OpenBSD.
+</abstract>
+
+<toc>
+
+<sect>What is FreeBSD?
+<nidx>FreeBSD dualboot!Freebsd overview</nidx>
+
+<p>
+<url url="http://www.freebsd.org/" name="FreeBSD"> is a free Unix-like
+operating system much like Linux. The main difference is that, while the
+Linux kernel has been written from scratch, FreeBSD is based on the freely
+redistributable parts of 4.4BSD (Berkeley Software Distribution) known as
+4.4BSD-lite. This fact might lead some people to suggest that FreeBSD is
+closer to being ``real'' UNIX&reg; than Linux. FreeBSD runs only on the
+Intel PC platform (i386 and higher); ports to the DEC Alpha and Sun Sparc
+platforms are being worked on at the moment. <url url="http://www.netbsd.org/"
+name="NetBSD"> and <url url="http://www.openbsd.org/" name="OpenBSD"> are
+similar to FreeBSD, and both run on several platforms. Hardware requirements
+for all these *BSD systems are similar to those for Linux.
+
+The development of FreeBSD is managed in a different way than the Linux
+development. A core team of developers serve as arbitrators and provide
+leadership for the project. Big changes are discussed in advance on the
+mailing lists. The FreeBSD project has two development trees (just like
+Linux): <bf/``-CURRENT''/ and <bf/``-STABLE''/. The ``-CURRENT'' development
+tree is where the development of new features happens. Development to the
+``-STABLE'' tree are restricted to bug fixes and some thoroughly tested new
+features.
+
+FreeBSD can be used and (re-)distributed freely just as Linux. Most parts of
+the system are released under the BSD copyright; the rest is under the GNU GPL
+or other <url url="http://www.opensource.org/" name="open-source"> licences.
+
+<sect>The FreeBSD way of labelling hard drives
+<nidx>FreeBSD dualboot!disk drive labelling</nidx>
+
+<p>
+Linux and FreeBSD label hard drives and partitions after two differents
+schemes. This section explains the main differences between the two schemes.
+In fact the FreeBSD labelling scheme is an adaption of the traditional BSD
+labelling style ported to live within the PC's fdisk partitions. Thus it is
+very similar to other BSD-based Unix systems such as NetBSD, OpenBSD, Ultrix,
+Digital Unix, SunOS, and Solaris.
+
+<sect1>FreeBSD ``slices'' and ``partitions''
+<nidx>FreeBSD dualboot!disk drive partitions</nidx>
+<nidx>FreeBSD dualboot!disk drive slices</nidx>
+
+<p>
+FreeBSD needs one of the four entries in the partition table on your PC's
+hard drive. This primary partition is called a <bf/``slice''/ in FreeBSD
+terminology. It then uses the <tt/disklabel/ program to make up to eight
+partitions in this primary partition. These logical partitions are called
+<bf/``partitions''/ in FreeBSD terminology. This concept is similar to the way
+Linux (and DOS) handles logical partitions in an extended partition. You
+cannot install FreeBSD in an extended partition made by Linux (or DOS). Note
+that the Linux <tt/fdisk/ program doesn't display the BSD partitions in a
+FreeBSD slice from the main menu, but it can display BSD disklabel information
+if you give the command `b'. The output is something like this
+(<tt>/dev/hda4</tt> is the FreeBSD slice):
+<verb>
+bash# fdisk /dev/hda
+
+Command (m for help): p
+
+Disk /dev/hda: 64 heads, 63 sectors, 621 cylinders
+Units = cylinders of 4032 * 512 bytes
+
+   Device Boot   Begin    Start      End   Blocks   Id  System
+/dev/hda1   *        1        1       27    54400+  83  Linux native
+/dev/hda2           28       28       55    56448   83  Linux native
+/dev/hda3           56       56      403   701568   83  Linux native
+/dev/hda4          404      404      621   439488   a5  BSD/386
+
+Command (m for help): b
+Reading disklabel of /dev/hda4 at sector 1624897.
+
+BSD disklabel command (m for help): p
+
+8 partitions:
+#        size   offset    fstype   [fsize bsize   cpg]
+  a:    64512  1624896    4.2BSD        0     0     0   # (Cyl.  404 - 419)
+  b:   104832  1689408      swap                        # (Cyl.  420 - 445)
+  c:   878976  1624896    unused        0     0         # (Cyl.  404 - 621)
+  e:    64512  1794240    4.2BSD        0     0     0   # (Cyl.  446 - 461)
+  f:   645120  1858752    4.2BSD        0     0     0   # (Cyl.  462 - 621)
+
+BSD disklabel command (m for help): q
+bash#
+</verb>
+
+The letters `a'...`f' in the first column are the same labels as shown below
+in the example for a FreeBSD slice. There are three special partitions in BSD
+parlace. The letter `a' designates the root partition, `b' designates the swap
+partition, while `c' designates the whole slice. See the FreeBSD documentation
+for more information on the ``standard'' way of assigning these letters to
+different partition types.
+
+<sect1>Drive and partition labelling in Linux and FreeBSD
+<nidx>FreeBSD dualboot!disk drive labelling!compared with Linux</nidx>
+<nidx>FreeBSD dualboot!disk drive partitions!compared with Linux</nidx>
+
+<p>
+The hard drives are labelled in the following way in Linux and FreeBSD:
+<verb>
+			Linux		FreeBSD
+First IDE drive		/dev/hda	/dev/wd0
+Second IDE drive	/dev/hdb	/dev/wd1
+First SCSI drive	/dev/sda	/dev/sd0
+Second SCSI drive	/dev/sdb	/dev/sd1
+</verb>
+
+The partitions (FreeBSD slices) on an IDE drive are labelled in the following
+way (<tt>/dev/hda</tt> is used as an example):
+<verb>
+				Linux		FreeBSD
+First primary partition		/dev/hda1	/dev/wd0s1
+Second primary partition	/dev/hda2	/dev/wd0s2
+Third primary partition		/dev/hda3	/dev/wd0s3
+Fourth primary partition	/dev/hda4	/dev/wd0s4
+</verb>
+
+The partitions in my FreeBSD slice is labelled in the following way. It is the
+labelling you get by default. It is possible to change the labelling if you do
+a custom installation of FreeBSD (<tt>/dev/hda4</tt> is the FreeBSD slice in
+the example):
+<verb>
+Linux label	FreeBSD label	FreeBSD mount point 
+/dev/hda5	/dev/wd0s4a	/
+/dev/hda6	/dev/wd0s4b	swap
+/dev/hda7	/dev/wd0s4e	/var
+/dev/hda8	/dev/wd0s4f	/usr
+</verb>
+
+If you run <tt/dmesg/ in Linux you will see this as (The linux kernel must be
+build with <bf/UFS filesystem support/ for this to work. See section <ref
+id="installlinux" name="Installing and preparing Linux">):
+<verb>
+Partition check:
+ hda: hda1 hda2 hda3 hda4 < hda5 hda6 hda7 hda8 >
+</verb>
+
+If you have installed FreeBSD in the <tt>/dev/sd1s3</tt> slice
+(<tt>/dev/sdb3</tt> in Linux parlace), and <tt>/dev/sdb2</tt> is a Linux
+extended partition containing two logical partitions (<tt>/dev/sdb5</tt> and
+<tt>/dev/sdb6</tt>), the previous example would look like this:
+<verb>
+Linux label	FreeBSD label	FreeBSD mount point 
+/dev/sdb7	/dev/sd1s3a	/
+/dev/sdb8	/dev/sd1s3b	swap
+/dev/sdb9	/dev/sd1s3e	/var
+/dev/sdb10	/dev/sd1s3f	/usr
+</verb>
+
+This will be shown as
+<verb>
+Partition check:
+ sdb: sdb1 sdb2 < sdb5 sdb6 > sdb3 < sdb7 sdb8 sdb9 sdb10 >
+</verb>
+in the output from <tt/dmesg/.
+
+If you have a Linux extended partition <em/after/ your FreeBSD slice you're in
+for trouble, because most Linux kernels installation floppies are build
+without UFS support, they will not recognise the FreeBSD partitions inside the
+slice. What should have have been seen as (<tt>/dev/hda3</tt> is the FreeBSD
+slice and <tt>/dev/hda4</tt> is the Linux extended partition)
+<verb>
+Partition check:
+ hda: hda1 hda2 hda3 < hda5 hda6 hda7 hda8 > hda4 < hda9 hda10 >
+</verb>
+is seen as:
+<verb>
+Partition check:
+ hda: hda1 hda2 hda3 hda4 < hda5 hda6 >
+</verb>
+
+This can give you the wrong device assignment and cause the loss of data. My
+advice is to <em/always put your FreeBSD slice after any Linux extended
+partitions, and do not change any logical partitions in your Linux extended
+partitions after installing FreeBSD!/
+
+<sect>Sharing swap space between Linux and FreeBSD
+<nidx>FreeBSD dualboot!swap space, sharing</nidx>
+
+<p>
+This section describes how I got Linux and FreeBSD to share a swap partition.
+There may be other ways to get the same result. You can install FreeBSD before
+Linux if you want to, just pay attention to the order of the partitions in the
+FreeBSD slice.
+
+<sect1>Installing and preparing Linux<label id="installlinux">
+<nidx>FreeBSD dualboot!Linux, installing</nidx>
+
+<p>
+The first step is to install Linux as normal. You have to leave space for the
+FreeBSD slice at your hard drive. You don't have to make a Linux swap
+partition, but if you want one, put it in the space you want to allocate for
+FreeBSD. That way you can delete the Linux swap partition later and use the
+space for FreeBSD.
+
+When you have installed Linux you have to build a new kernel. Read <bf/The
+Linux Kernel HOWTO/ if this is new to you. You <em/have/ to include both
+<bf/UFS filesystem support (read only)/ and <bf/BSD disklabel (FreeBSD
+partition tables) support/:
+<verb>
+UFS filesystem support (read only) (CONFIG_UFS_FS) [N/y/m/?] y
+BSD disklabel (FreeBSD partition tables) support (CONFIG_BSD_DISKLABEL) [N/y/?]
+(NEW) y
+</verb>
+
+Install the new kernel and reboot. Remove any line including the word <em/swap/
+from your <tt>/etc/fstab</tt> file if you have made a Linux swap partition.
+<em/Make sure you have a working Linux boot floppy with the new kernel./ Now
+you are ready to install FreeBSD.
+
+<sect1>Installing FreeBSD
+<nidx>FreeBSD dualboot!FreeBSD, installing</nidx>
+
+<p>
+Install FreeBSD as described in the FreeBSD documentation. Remove the Linux
+swap partition if you have made one (you can use the FreeBSD <tt/fdisk/
+program.) Pay attention to the order of the partitions in the FreeBSD
+slice. If you use the default labelling the second partition will be the swap
+partition. Complete the installation of FreeBSD and reboot into Linux
+<em/using the new Linux boot floppy/.
+
+<sect1>Setting up the FreeBSD swap partition in Linux
+<nidx>FreeBSD dualboot!FreeBSD swap partition configuration</nidx>
+
+<p>
+Run <tt/dmesg/ when you have booted into Linux. In the output you should see
+something like this:
+<verb>
+Partition check:
+ hda: hda1 hda2 hda3 hda4 < hda5 hda6 hda7 hda8 >
+</verb>
+
+This means that <tt>/dev/hda4</tt> is your FreeBSD slice, while
+<tt>/dev/hda5</tt>, <tt>/dev/hda6</tt>, <tt>/dev/hda7</tt> and
+<tt>/dev/hda8</tt> are the FreeBSD partitions. If your swap partition is
+the second partition in the slice, it will be <tt>/dev/hda6</tt>.
+
+You have to put the following line into your Linux <tt>/etc/fstab</tt> file to
+enable the swap partition:
+<verb>
+/dev/hda6	none		swap		sw		0	0
+</verb>
+
+While FreeBSD can use any type of partition as swap space, Linux needs a
+special signature in the swap partition. This signature is made by <tt/mkswap/.
+FreeBSD ruins this signature when it uses the shared swap partition, so you
+will have to run <tt/mkswap/ each time you boot into Linux. To do this
+automagically you have to find the script that runs <tt/swapon/ at boot time.
+In Red Hat Linux it is <tt>/etc/rc.d/rc.sysinit</tt>. Put the following line
+into that file just <em/before/ <tt/swapon -a/:
+<verb>
+awk -- '/swap/ && ($1 !~ /#/) { system("mkswap "$1"") }' /etc/fstab
+</verb>
+
+This will run <tt/mkswap/ on any swap partitions in <tt>/etc/fstab</tt> every
+time you boot except if they are commented out (having ``&num;'' as the first
+character in the line.)
+
+Run <tt/free/ to check out the size of the swap space when you have rebooted
+into Linux. You should also reboot into FreeBSD to make sure everything works
+as expected. If it does not, you have probably used the wrong partition
+as swap partition. The only solution to that problem is to reinstall FreeBSD
+and try again. Experience is a great teacher. :-)
+
+<sect>Booting FreeBSD using LILO
+<nidx>FreeBSD dualboot!FreeBSD, booting with LILO</nidx>
+
+<p>
+You can easily boot FreeBSD with LILO. Do not install the FreeBSD boot selector
+(<tt/Booteasy/) if you want to use LILO. Append the following lines to your
+<tt>/etc/lilo.conf</tt> file and run <tt/lilo/ (assuming the FreeBSD slice is
+<tt>/dev/hda4</tt>):
+<verb>
+other=/dev/hda4
+	table=/dev/hda
+	label=FreeBSD
+</verb>
+
+If you have installed FreeBSD on the second SCSI drive, use something like
+this (the FreeBSD slice being <tt>/dev/sdb2</tt>):
+<verb>
+other=/dev/sdb2
+	table=/dev/sdb
+	loader=/boot/chain.b
+	label=FreeBSD
+</verb>
+
+<sect>Mounting filesystems
+<nidx>FreeBSD dualboot!filesystems, mounting</nidx>
+<nidx>FreeBSD dualboot!mounting filesystems</nidx>
+
+<sect1>Mounting UFS filesystems under Linux
+<nidx>FreeBSD dualboot!mounting filesystems!UFS, in Linux</nidx>
+
+<p>
+Unfortunately the UFS driver in the Linux 2.0.xx kernels do not include
+support for FreeBSD. When you try to mount a FreeBSD filesystem, you just
+get some error messages (the filesystem actually gets mounted, but you
+cannot do anything with it.) This problem has been solved in the newer
+Linux kernels (version 2.1.87 and higher.)
+
+There is another version of the UFS driver for Linux 2.0.xx kernels (xx <= 30)
+on <url url="ftp://metalab.unc.edu/pub/Linux/ALPHA/ufs/"
+name="metalab.unc.edu (the former sunsite.unc.edu)">. It is called <bf/U2FS/
+and the current version is <tt/u2fs-0.4.3.tar.gz/. A version of U2FS
+(<tt/ufs-0.4.4.tar.gz/) for Linux 2.0.31 and higher (2.0.xx; not 2.1.xx) can
+be found at <url
+url="http://www.mathi.uni-heidelberg.de/~flight/projects/u2fs/"
+name="this site"> along with further information about U2FS (and UFS.)
+
+Now you have to build a new kernel with support for the U2FS filesystem
+and BSD disklabels. See section <ref id="installlinux"
+name="Installing and preparing Linux"> for more information on this. You can
+leave out <bf/UFS filesystem support/ from the kernel when you use U2FS.
+
+When you have installed the new kernel, you can mount your UFS filesystems
+(all the partitions in the FreeBSD slice except the swap partition) with a
+command like this:
+<verb>
+mount -t u2fs /dev/hda8 /mnt
+</verb>
+
+You should use a command like
+<verb>
+mount -t ufs /dev/hda8 /mnt
+</verb>
+if you use a Linux kernel version 2.1.87 or higher. From Linux kernel
+version 2.1.112 you must add <tt/-o ufstype=44bsd/ to the command like this:
+<verb>
+mount -t ufs -o ufstype=44bsd /dev/hda8 /mnt
+</verb>
+
+The UFS (and U2FS) driver is read-only. That is; you can read from the UFS
+filesystems but you cannot write to them. An experimental read-write UFS
+driver has replaced the read-only driver in Linux kernels version 2.1.112 and
+higher; writing to FreeBSD partitions is supported from version 2.1.127.
+
+<sect1>Mounting ext2fs filesystems under FreeBSD<label id="ext2fs">
+<nidx>FreeBSD dualboot!mounting filesystems!ext2fs, in FreeBSD</nidx>
+
+<p>
+To mount ext2fs filesystems under FreeBSD, you first have to build a new
+kernel with ext2fs support. Read <url url="http://www.freebsd.org/handbook/"
+name="the FreeBSD handbook"> to learn how to do that. Put the line
+<verb>
+options		"EXT2FS"
+</verb>
+in your kernel configuration file for the new kernel.
+
+When you have booted with the new kernel, you can mount an ext2fs filesystem
+by giving a command like:
+<verb>
+mount -t ext2fs /dev/wd0s3 /mnt
+</verb>
+
+Due to a bug in FreeBSD 2.2.8 and earlier you will have to unmount all ext2fs
+filesystems <em/before/ you shut down FreeBSD if you are using these any of
+these versions. If you shut down FreeBSD with an ext2fs filesystem mounted,
+FreeBSD cannot sync the UFS filesystems. This results in <tt/fsck/ being run
+the next time FreeBSD is booted. You can work around this bug by putting the
+line:
+<verb>
+umount -a -t ext2fs
+</verb>
+in the <tt>/etc/rc.shutdown</tt> file. The bug has been fixed in FreeBSD 3.x.
+
+<sect>Running foreign binaries
+<nidx>FreeBSD dualboot!foreign binaries</nidx>
+
+<sect1>Running FreeBSD binaries under Linux
+<nidx>FreeBSD dualboot!foreign binaries!FreeBSD in Linux</nidx>
+
+<p>
+The <tt/iBCS/ package has support for running FreeBSD binaries under Linux;
+but it's old and unmaintained. I cannot get it to work. Please let me know if
+you have had better luck with this.
+
+<sect1>Running Linux binaries under FreeBSD
+<nidx>FreeBSD dualboot!foreign binaries!Linux in FreeBSD</nidx>
+
+<p>
+FreeBSD has the ability to run Linux binaries, both in a.out and ELF formats.
+To do this you have to take the following three steps:
+
+<enum>
+
+<item>You have to enable Linux compatibility. To do this (in FreeBSD 2.2.2 ---
+details may vary in other versions) you have to edit your <tt>/etc/rc.conf</tt>
+file and change
+<verb>
+linux_enable="NO"
+</verb>
+to
+<verb>
+linux_enable="YES"
+</verb>
+and reboot. Another way to load the Linux binary support is to execute the
+command <tt>/usr/bin/linux</tt>. This way you don't have to reboot, and you
+don't always have the Linux binary support loaded (i.e. you save memory.)
+Remember to add the line
+<verb>
+options		COMPAT_LINUX
+</verb>
+to the FreeBSD kernel config file if you build a new FreeBSD kernel.
+
+<item>You have to install the Linux shared libraries if your Linux binaries are
+dynamically linked. The libraries are included in FreeBSD 2.2.&lcub;2,5,6&rcub;
+as the package <tt/linux&lowbar;lib-2.4.tgz/ (newer versions might be
+available.)
+Run the following command to install the package:
+<verb>
+pkg_add <path_to_package>/linux_lib-2.4.tgz
+</verb>
+&lt;path&lowbar;to&lowbar;package&gt; is the directory where the package
+is stored. You may also load it off the net by:
+<verb>
+pkg_add ftp://ftp.freebsd.org/pub/FreeBSD/packages-stable/All/linux_lib-2.4.tgz
+</verb>
+or by re-running <tt>/stand/sysinstall</tt>. Enter ``Configure'', ``Packages''
+and use the menus. You should execute the following command if you are running
+statically linked Linux binaries:
+<verb>
+brandelf -t Linux <name_of_statically_linked_linux_binary>
+</verb>
+
+<item>Install the Linux program(s) you want to run. The program(s) can be
+installed on either UFS or ext2fs filesystems. See section <ref id="ext2fs"
+name="Mounting ext2fs filesystems under FreeBSD"> for more information about
+using ext2fs filesystems under FreeBSD.
+
+</enum>
+
+I have successfully run the Linux versions of Applixware 4.3 and Netscape 3.01 
+(both ELF format) under FreeBSD 2.2.2 using this method (yes, I know there is
+a native FreeBSD version of Netscape 4.) The Linux versions of acroread and
+StarOffice 3 and 4 also work well under FreeBSD. StarOffice 5 depends on
+native Linux threads and currently do not work under FreeBSD.  Read the FreeBSD
+documentation for more information on this topic.
+
+<sect>Information resources
+<nidx>FreeBSD dualboot!information resources</nidx>
+
+<p>
+The latest version of this mini-HOWTO can be downloaded from <url
+url="http://www.image.dk/~nkbj/" name="this site"> in several formats
+(including SGML and PostScript.) The document has been translated into
+Japanese by Mr. Teruyoshi Fujiwara as part of <url
+url="ftp://jf.linux.or.jp/pub/JF/other-formats/" name="the JF project">.
+
+You can find some articles about the difference between Linux and FreeBSD
+<url url="http://www.futuresouth.com/~fullermd/freebsd/bsdvlin.html"
+name="here">.
+
+You can find more informations about FreeBSD (and download the whole system)
+at <url url="http://www.freebsd.org/" name="this site">. You can also buy
+the system on CDROMs from <url url="http://www.cdrom.com"
+name="Walnut Creek CDROM"> (their servers are running FreeBSD.)
+
+The Linux Kernel HOWTO (and this mini-HOWTO) is released as part of <url
+url="http://www.linuxdoc.org/" name="The Linux Documentation Project">.
+
+<sect>Credits and legal stuff
+<nidx>FreeBSD dualboot!credits and legal stuff</nidx>
+
+<p>
+Thanks to the members of the <url url="http://www.bsd-dk.dk/"
+name="*BSD user group in Denmark"> for answering the questions of a
+FreeBSD newbie, to Mr. Takeshi Okazaki for bringing the existence of U2FS
+to my attention, and to Mr. David O'Brien for valuable suggestions.
+
+<sect1>Legal stuff
+
+<p>
+Trademarks are owned by their owners.
+
+Although the information given in this document is believed to be correct,
+the author will accept no liability for the content of this document. Use
+the tips and examples given herein at your own risk.
+
+Copyright &copy; 1997-2000 by Niels Kristian Bech Jensen. This document
+may be distributed only subject to the terms and conditions set forth in the
+LDP License at <url url="http://www.linuxdoc.org/COPYRIGHT.html"
+name="http://www.linuxdoc.org/COPYRIGHT.html">.
+
+</article>
+

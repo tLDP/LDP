@@ -1,0 +1,227 @@
+<!doctype linuxdoc system>
+
+<!-- Visual bell howto  -->
+
+<article>
+
+<!-- Title information -->
+
+<title>Visible bell mini-Howto
+<author>Alessandro Rubini, <tt/rubini@linux.it/
+<date>v2.2, 11 November 1997
+<abstract>
+This document explains how to use termcap to configure a visual bell
+on one's system and describes how to disable audible bells on demand.
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>Introduction
+<p>
+The Linux console driver beeps the audible bell whenever a BEL char is
+output (ASCII code 7).  Though this is a right choice for the default
+behaviour, many users don't like their computer to beep. This
+mini-Howto is meant to explain how to tell applications not to output
+the BEL code. It also explain how to instruct the kernel and the X
+Window System to avoid beeping when a BEL is output. Note that most of
+this document refers to the text console, as configuring the X server
+is an easy catch-all for any user who works in a graphic environment.
+<p>
+In my opinion the best way to face a fussy computer is fixing the
+hardware, and my own computer doesn't even carry a loudspeaker.
+
+<sect>Spekearectomy
+<p>
+Speakerectomy is by far the most brilliant solution to the audible bell
+problem. As its name implies, it consists in removing the beeps by removing
+the beeper. The operation is straightforward and you don't
+even need any anesthetic, but if you want there's room for refinement.
+<p>
+PC's are usually equipped with a silly switch to lower CPU clock.  The
+switch is never used when you work in a multitasking environment, as
+you don't even need to slow the computer down to run games based on
+software loops. Unfortunately we can't use the switch to increase
+processor speed, but we can use it to enable/disable the
+loudspeaker. Sometimes the speaker is useful even if you enjoy a
+silent number cruncher, for example to signal the end of a lenghty
+compilation.  To modify the switch functionality, just detatch it from
+the main board and connect its wires in series with the
+loudspeaker.
+<p>
+Owners of laptop boxes, unfortunately, don't have easy access to the
+loudspeaker, and neither they have a spare switch to turn to a
+different task.  The preferred solution for such users is configuring
+their software to avoid beeping, as described below.
+
+<sect>Per-console Beep Configuration
+<p>
+As of Linux 1.3.43, Martin Mares added the ability to configure the
+pitch and duration of the beep, by modifying <tt/console.c/. Each
+console can be configured to feature a different duration and/or pitch
+of the bell sound; the task is accomplished by using escape sequences
+to the console device.  You can configure your own <tt>~/.profile</tt>
+or <tt>~/.login</tt> file to select a different beep sound associated
+to each console (or no beep at all, if needed).
+<p>
+The escape sequences work as follow:
+<itemize>
+<item>ESC-<tt/[10;/xx<tt/]/ selects the bell frequency in Hertz. The value
+should be in the range 21-32766, otherwise the result is undefined.
+If the `xx' argument is missing, the default value (750Hz) will apply,
+as in `ESC-<tt/[10]/.
+<item>ESC-<tt/[11;/xx<tt/]/ selects the bell duration, in milli-seconds.
+If you specify more than 2 seconds, the default applies (125ms). Once
+again, if the `xx' argument is missing (ESC-<tt/[11]/) the default value
+will be used.
+</itemize>
+<p>
+To select, for example, a 50Hz pitch for one-second duration, you can
+"<tt/echo -e "\\33[10;50]\\33[11;1000]"/" with <tt/bash/ (where "-e"
+means `understand Escape sequences'. If you use <tt/tcsh/ the same
+command spells "<tt/echo "\\033[10;50]\\033[11;1000]"/".
+<p>
+Although I don't know of any version of the <tt/setterm/ command that
+supports such configuration, a future version of the command might
+well support a command-line option to configure the bell sound.
+<p>
+If you run Linux-1.3.43 or newer, you may be satisfied with the escape
+sequences and avoid reading further. If you run an older kernel, or if
+you want the visual bell, you'll enjoy the rest of this document.
+
+<sect>Basic Concepts About Termcap and Terminfo
+<p>
+The file <tt>/etc/termcap</tt> is a text file that lists the
+<tt/term/inal <tt/cap/abilities. Several applications use the
+<tt/termcap/ information to move the cursor around the screen and do
+other screen-oriented tasks.  <tt/tcsh/, <tt/bash/, <tt/vi/ and all
+the <tt/curses/-based applications use the <tt/termcap/ database.
+<p>
+The database describes several terminal types. The 
+<tt/TERM/ environment variable selects the right behaviour
+at run-time, by naming a <tt/termcap/ entry to be used by
+applications.
+<P>
+Within the database, each capability of the terminal appears as a
+two-letter code and a representation of the actual escape sequence
+used to get the desired effect.  The separator character between
+different capabilities is the colon (":").  As an example, the audible
+bell, with code "bl", usually appears as "<tt/bl=^G/". This sequence
+tells that the bell sound is obtained by printing the control-G
+character, the ASCII BEL.
+<p>
+In addition to the <tt/bl/ capability, the <tt/vb/ capability is
+recognized. It is used to represent the "visible bell". <tt/vb/ is
+usually missing in the <tt/linux/ entry of the <tt>termcap</tt>
+file.
+<p>
+Most modern applications and libraries use the <tt/terminfo/ database
+instead of <tt/termcap/. This database uses one file per terminal-type
+and lives in <tt>/usr/lib/terminfo</tt>; to avoid using huge
+directories, the description of each terminal type is stored in a
+directory named after its first letter; the <tt/linux/ entry,
+therefore, is <tt>/usr/lib/terminfo/l/linux</tt>. To build a
+<tt/terminfo/ entry you'll ``compile'' the <tt/termcap/ description;
+refer to the <tt/tic/ program and its manual page.
+
+<sect>Defining a Visible Bell
+<p>
+You can add the entry for the <tt/vb/ capability in your own termcap
+file, if it doesn't already define one.  Dennis Henriksen
+(duke@diku.dk) suggested to insert the following line in the
+<tt/termcap/ entry for <tt/linux/ (note that the entry is called
+<tt/console/ in old distributions):
+<tscreen><verb>
+:vb=\E7\E[?5h\E[?5l\E[?5h\E[?5l\E[?5h\E[?5l\E[?5h\E[?5l\E8:\
+</verb></tscreen>
+The trailing backslash is used to escape the newline in the database.
+Dennis' code does the following (his own words):
+<itemize>
+<item>Save the cursor position (uust a safety precaution).
+<item>Change the background color several times between normal and reverse.
+<item>Restore the cursor position.
+</itemize>
+
+<sect>Disabling the Audible Bell on the Text Console
+<p>
+If you want to force the visible bell on your console you can use the
+"<tt/bl/" entry in <tt/termcap/ and define it with the same string
+suggested for "<tt/vb/" above.  This approach is handy if you don't
+want to customize each application (which is described below, anyway).
+I use this option on all the machines where I can run Linux and I
+can't detach the speaker.
+
+<sect>Telling Applications to Avoid Beeping
+<p>
+This is an incomplete list of applications that can be instrued
+to use the <tt/vb/ entry for the current terminal type (using either
+the <tt/termcap/ information or the <tt/terminfo/ one):
+
+<itemize>
+
+<item>The X server: use the "<tt/xset b/" command to select
+	the bell's behaviour. The command takes three numeric
+	arguments: volume, pitch and duration. "<tt/xset -b/" disables
+	the bell altogether. Configuring the X server affects all
+	the applications running on the display.
+
+<item><tt/xterm/: xterm can convert each bell to either a visible or
+	audible signal. If you use the audible bell, the settings of
+	"<tt/xset/" will apply. The bell in <tt/xterm/ defualts to be
+	audible, but you can use the "<tt/-vb/" command line option
+	and the "<tt/xterm*visualBell: true/" resource to turn it to a
+	visible flash. You can toggle visible/audible signaling at
+	run-time by using the menu invoked by
+	control--left-mouse-button.  If you run X you most likely
+	won't need the following information.
+
+
+<item><tt/tcsh/ (6.04 and later): "<tt/set visiblebell/".  The
+	instruction can be placed in <tt/.cshrc/ or can be issued
+	interactively. To reset the audible bell just "<tt/unset
+	visiblebell/". To disable any notification issue use "<tt/set
+	nobeep/" instead.
+
+<item><tt/bash/ (any bash, as fas as I know): put "<tt/set bell-style
+	visible/" in your <tt>~/.bashrc</tt>. Possible bell-style's
+	are also "none" or "audible".
+
+<item><tt/bash/ (with <tt/readline/, as well as other <tt/readline/
+	based applications): put "<tt/set prefer-visible-bell/" in
+	<tt>~/.inputrc</tt>.
+
+<item><tt/nvi/ and <tt/elvis/: put "<tt/set flash/" in
+	<tt>~/.exrc</tt> or tell "<tt/:set flash/" interactively (note
+	the colon).  To disable the visible bell use <tt/noflash/ in
+	place of <tt/flash/.
+
+<item><tt/emacs/: put "<tt/(setq visible-bell t)/" in your
+	<tt>~/.emacs</tt>.  It is disabled by "<tt/(setq visible-bell
+	nil)/".
+
+<item><tt/less/: use "<tt/-q/" on command line to use the visual bell,
+	use "<tt/-Q/" to disable any reporting. Default options can be
+	put in your environment variable "<tt/LESS/".
+
+<item><tt/screen/: issue the CtrlA-CtrlG command. It changes the
+	behaviour of all the virtual screens. Refer to the man page
+	under "CUSTOMIZATION" for setting the default.
+
+</itemize>
+
+<sect>The Dark Side of the Problem
+<p>
+The bad news is that not every application uses <tt/termcap/ or
+<tt/terminfo/. Most small programs feature 'backslash-a' (alarm)
+characters in the C source code.  The "alarm" code becomes a literal
+ASCII BEL in the strings as stored in the executable binary.  Real
+application don't usually fall in this category, but be careful of C
+newcomers who give you their own programs. Students of computer science
+are the worst of all, granted.
+<p>
+The only way to make these programs silent applications is
+spekearectomy, or using the escape sequences by Martin Mares.
+
+</article>

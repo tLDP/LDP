@@ -1,0 +1,138 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Linux ADSM Mini-Howto
+<author>by Thomas K&ouml;nig, <tt/Thomas.Koenig@ciw.uni-karlsruhe.de/
+<date>v, 15 January 1997
+
+<abstract> This document describes how to install and use a client
+for the commercial ADSM backup system for Linux/i386.
+<toc>
+<sect>Introduction
+<p>
+ADSM is a network-based backup system, sold by IBM, in use at
+many organizations.  There are clients for a large variety of systems
+(different UNIX brands, Windows, Novell, Mac, Windows NT).
+Unfortunately, at the time of this writing, there is no native Linux version.
+<p>
+You will have to use the SCO binary, and install the iBCS2-emulator
+for running ADSM.  This description is for ADSM v2r1.
+<p>
+At the time if this writing, I am only aware of a version which works
+with the i386 version of Linux.
+<sect>Installing the iBCS module
+<p>
+The iBCS2 module is available from
+<htmlurl name="ftp://tsx-11.mit.edu/pub/linux/BETA/ibcs2"
+url="ftp://tsx-11.mit.edu/pub/linux/BETA/ibcs2">.  If you are
+running kernel version 1.2.13, get 
+<tt/ibcs-1.2-950721.tar.gz/, unpac it and apply the patches
+<tt/ibcs-1.2-950808.patch1/ and <tt/ibcs-1.2-950828.patch2/.
+You can then type &dquot;<tt/make/&dquot; and
+install the iBCS modlue with &dquot;<tt/insmod/&dquot;.
+<p>
+For a 2.0 kernel version, get <tt/ibcs-2.0-960610.tar.gz/, unpack it
+in a suitable place, chdir into that directory,
+and apply the following patch:
+<verb>
+
+--- iBCSemul/ipc.c.orig	Wed Jan 15 21:32:15 1997
++++ iBCSemul/ipc.c	Wed Jan 15 21:32:31 1997
+@@ -212,7 +212,7 @@
+ 	switch (command) {
+ 		case U_SEMCTL:
+ 			cmd = ibcs_sem_trans(arg3);
+-			arg4 = (union semun *)get_syscall_parameter (regs, 4);
++			arg4 = (union semun *)(((unsigned long *) regs->esp) + (5));
+ 			is_p = (struct ibcs_semid_ds *)get_fs_long(arg4->buf);
+ #ifdef IBCS_TRACE
+ 			if ((ibcs_trace & TRACE_API) || ibcs_func_p->trace)
+</verb>
+Then, copy <tt/CONFIG.i386/ to <tt/CONFIG/, and type <tt/make/.
+<p>
+If you don't have them already, create the needed device files by
+executing
+<verb>
+# cd /dev
+# ln -s null XOR
+# ln -s null X0R
+# mknod socksys c 30 0
+# mknod spx c 30 1
+</verb>
+<sect>Installing the ADSM client
+<p>
+The SCO binary is supplied as three tar files, or disks.  Change to
+the root directory, set your umask according to your policies, and
+unpack them from there (as root).  In your Directory /tmp, you will
+find an installation script; execute that.
+<p>
+You will then have to hand-edit <tt>/usr/adsm/dsm.sys</tt> and
+<tt>/usr/adsm/dsm.opt</tt>.
+In <tt/dsm.sys/, important lines to specify are:
+<descrip>
+<tag/Servername/The name of the server
+<tag/TCPServeraddress/The fully qualified host name of the server
+<tag/NODename/Your own hostname
+</descrip>
+In <tt/dsm.opt/, you will have to specify
+<descrip>
+<tag/Server/As before
+<tag/Followsymbolic/Wether or not to follow symbolic links (not a good idea, in general)
+<tag/SUbdir/Wether to back up subdirectories (you usually want that)
+<tag/domain/The file systems to back up
+</descrip>
+<p>
+You will then have to create a SCO-compatible <tt>/etc/mnttab</tt>
+from your <tt>/etc/fstab</tt>.  You can use the following Perl script,
+<tt/fstab2mnttab/, for this.
+<tscreen>
+<code>
+#!/usr/bin/perl
+
+$mnttab_struct = "a32 a32 I L";
+
+open(MTAB, "/etc/mtab") || die "Cannot open /etc/mtab: $!\n";
+open(MNTTAB, ">/etc/mnttab") || die "Cannot open /etc/mnttab: $!\n";
+
+while(<MTAB>) {
+    next if /pid/;
+    chop;
+    /^(\S*)\s(\S*)\s(\S*)\s.*$/;
+    $device = $1;
+    $mountpt = $2;
+    $fstype = $3;
+    if($fstype ne "nfs" && $fstype ne "proc") {
+        $mnttab_rec =
+            pack($mnttab_struct, $device, $mountpt, 0x9d2f, time());
+        syswrite(MNTTAB, $mnttab_rec, 72);
+        print "Made entry for: $device $mountpt $fstype\n";
+    }
+}
+
+close(MNTTAB);
+exit 0;
+</code>
+</tscreen>
+You do not need to install any shared libraries for these clients;
+everything is linked statically.
+<sect>Running the client
+<p>
+There are two clients, <tt/dsm/, which is an X11 interface, and
+<tt/dsmc/, a command-line interface.  Your computer centre will tell
+you how to run it.  Some startup script at boot, for example
+<verb>
+dsmc schedule -quiet 2>&amp;1 >/dev/null &amp;
+</verb>
+will probably be required.
+<sect>Known Problems
+<p>
+Unfortunately, SCO can only deal with hostnames no longer than eight
+characters.  If your hostname is longer, or fully qualified, you may
+need to specify your hostname on the <tt/NODename/ line in
+<tt>/usr/adsm/dsm.sys</tt>.
+<p>
+If you use the DISPLAY variable, you will have to supply the fully
+qualified host name (i.e. <tt/DISPLAY=host.full.do.main:0/ instead of
+<tt/DISPLAY=host:0/).
+</article>

@@ -1,0 +1,345 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>The LBX Mini-HOWTO
+<author>Paul D. Smith, <tt><htmlurl url="mailto:psmith@baynetworks.com"
+name="psmith@baynetworks.com"></TT>
+<date>v1.04, 11 December 1997
+<abstract>
+LBX (Low Bandwidth X) is an X server extension which performs
+compression on the X protocol.  It is meant to be used in conjunction
+with X applications and an X server which are separated by a slow
+network connection, to improve display and response time.
+</abstract>
+
+<toc>
+
+<sect>Introduction
+<p>
+<em/Low-Bandwidth X/ (LBX) attempts to recognize that in this day
+and age, not everyone will be a fast LAN hop or two away from the system
+that they are running their applications on.
+
+The X protocol can generate an extraordinary amount of traffic,
+especially for simple-seeming things such as creating new windows.  As
+anyone who has tried to use X over a dial-in modem at 28.8 or even
+higher can attest, creating new X windows can involve an excruciating
+wait.
+
+LBX is fundamentally a compression and caching scheme designed to
+minimize the amount of X traffic generated between two systems.
+
+
+<sect>What's The Status Of LBX?
+<p>
+As of the X Consortium's release of X11R6.3 in December, 1996, LBX
+is a full extension to the X protocol.  For XFree86 folks, that's
+XFree86 version 3.3.
+
+
+<sect>Who Can Benefit From LBX?
+<p>
+If you use a modem to dial into a service provider, then run X
+applications on remote machines with their DISPLAYs set to your local
+machine (or vice versa), LBX will speed up that connection.  Also if you
+set DISPLAYs from systems across WANs (other countries, for example) or
+other slow links, LBX can help.
+
+
+<sect>Who Doesn't Need LBX?
+<p>
+LBX is useless, of course, if you're only running applications
+locally, or if you're not running X at all.
+
+Also, if you're running on a fast LAN, LBX won't be much help.  Some
+people say "if LBX cuts down on network traffic, wouldn't it be good to
+use even on fast LANs?"  It might be, if your goal is to reduce network
+traffic.  But if your goal is to get better response time LBX probably
+isn't what you want.  Although it does introduce caching and
+compression, that comes at a cost on both ends (extra memory for
+caching, and extra CPU for decompression).  If your link is fairly
+speedy LBX will probably result in an overall slowdown.
+
+
+<sect>How Does LBX Work?
+<p>
+LBX works by introducing a <em/proxy server/ at the client side,
+which performs caching and compression.  The X server knows that the
+client is using a proxy server, and decompresses accordingly.
+
+Here's a normal setup for remote X clients.  In our discussion,
+LOCAL is always the workstation sitting in front of you, whose monitor
+you're looking at, and REMOTE is the remote workstation, where the
+actual application is running.
+
+<tscreen><code>
+     REMOTE                               LOCAL
+ +-----+                                             +-----+
+ | APP |-\          Network            +----------+  |     |\
+ +-----+  \--------------------------->| X SERVER |=>|     ||
+ +-----+  /       (X Protocol)         +----------+  +-----+\
+ | APP |-/                                          /_____//
+ +-----+
+</code></tscreen>
+
+When using LBX, a proxy server (<tt/lbxproxy/) is introduced on the
+remote side, and the applications talk to that process instead of
+directly to the LOCAL server.  That process then performs the caching
+and compression of X requests and forwards them.  It looks like this:
+
+<tscreen><code>
+     REMOTE                                         LOCAL
+                                                               +-----+
+ +-----+  +-------+           Network            +----------+  |     |\
+ | APP |->| PROXY |----------------------------->| X SERVER |=>|     ||
+ +-----+  +-------+       (LBX/X Protocol)       +----------+  +-----+\
+ +-----+   /                                                  /_____//
+ | APP |--/
+ +-----+
+</code></tscreen>
+
+Details on exactly what caching and compression LBX does is beyond
+the scope of this document.
+
+
+<sect>What Do I Need To Use LBX?
+<p>
+You need an X server on your LOCAL system which has the LBX
+extension compiled in.  Unless you explicitly told it not to when
+building it, X11R6.3 servers automatically enable LBX.  Also, all
+XFree86 3.3 servers have LBX enabled by default.
+
+You can use the <tt/xdpyinfo/ command to see if your server has the LBX
+extension: run <tt/xdpyinfo/ and look at the list just under "number of
+extensions"; you should see "LBX" listed there.
+
+Next, you need to get an <tt/lbxproxy/ program compiled for the REMOTE
+system.  This is the tricky part.  If the remote system is not the same
+type as your local system, the <tt/lbxproxy/ on your local system will
+do you no good, of course.
+
+There is unfortunately no "broken out" distribution of <tt/lbxproxy/, so
+you will have to either (a) get and build most, if not all, of X11R6.3
+for the remote system, or (b) find someplace to get a pre-compiled
+<tt/lbxproxy/ binary for your system.  The latter is much simpler of
+course.
+
+The <tt/lbxproxy/ is simply a single executable.  There are no
+configuration files, resource files, etc. associated with it.
+
+
+<sect>What Don't I Need To Use LBX?
+<p>
+The REMOTE system <bf/does not/ need a new X server (as always, the
+REMOTE system doesn't need <em/any/ X server running).
+
+The application you want to run <bf/does not/ need to be linked with any
+special version of X, or any special libraries; I regularly use
+commercial X11R5 apps over LBX with no trouble.
+
+You <bf/do not/ need root or other privileged access on the REMOTE
+system; the <tt/lbxproxy/ process runs under your normal access
+permissions.  Further, you can run it right from your home directory: it
+does not have to be installed anywhere.
+
+
+<sect>How Do I Start LBX?
+<p>
+OK, here it is... after all that it's actually quite simple.
+Replace LOCAL and REMOTE below with the hostnames of your local
+workstation and remote system, respectively (don't get them mixed up!)
+
+On LOCAL:
+
+<enum>
+<item> Start your X server.
+
+<item> Tell your X server that the remote system is allowed access.
+Using the host-list method, type <tt/xhost +REMOTE/.  If you use
+<tt/xauth/ you may need to do more than this; see the <em/xauth(1)/ man
+page for more information.
+
+You should consult the <url
+url="http://www.xs4all.nl/~zweije/xauth.html" name="Remote X Apps
+Mini-HOWTO"> if you're not familiar with remote X access permission
+setup.
+</enum>
+
+On REMOTE:
+
+<enum>
+<item> Start <tt/lbxproxy/ and tell it to forward to the LOCAL X server,
+like this:
+
+<tscreen><verb>
+  $ lbxproxy -display LOCAL:0 :1 &ero;
+</verb></tscreen>
+
+This tells <tt/lbxproxy/ to use display <tt/:1/ on
+the REMOTE system; if that system has &gt;1 display already you can use
+<tt/:2/ or whatever instead.
+
+<item> Set your DISPLAY environment variable to point to the display
+that <tt/lbxproxy/ is providing, instead of the normal display:
+
+<tscreen><verb>
+  $ DISPLAY=:1
+  $ export DISPLAY
+</verb></tscreen>
+
+Or, if you use csh or clones:
+
+<tscreen><verb>
+  % setenv DISPLAY :1
+</verb></tscreen>
+
+<item> If you're using <tt/xauth/ you will need to ensure that your
+cookie is available locally.  See the <url
+url="http://www.xs4all.nl/~zweije/xauth.html" name="Remote X Apps
+Mini-HOWTO"> for more information on this.
+
+<item> Start your X applications!
+</enum>
+
+That's it; all X apps that are started up pointing to <tt/:1/ will use
+LBX.  Of course, there's no reason you couldn't also start X apps
+pointing to <tt/LOCAL:0/ and have both running at the same time.
+
+
+<sect>Problems
+<p>
+Here are some common problems:
+
+<descrip>
+<tag/Q)/ <tt/lbxproxy/ exits with an "access denied" error.
+
+<tag/A)/ This means the LOCAL system isn't accepting connections from
+the REMOTE system due to permissions errors.  See the <url
+url="http://www.xs4all.nl/~zweije/xauth.html" name="Remote X Apps
+Mini-HOWTO"> for details on these issues.
+
+As a simple trouble-shooting measure, try running a simple X app
+like <tt/xclock/ on REMOTE and have it display on the local
+system without using <tt/lbxproxy/:
+
+<tscreen><verb>
+  $ xclock -display LOCAL:0
+</verb></tscreen>
+
+If that doesn't work, it's <tt/xhost/ or some other basic X
+problem, not LBX.
+</descrip>
+
+<sect>Documentation
+<p>
+The only documentation available in a standard X distribution may be
+the <em/lbxproxy(1)/ man page.
+
+If you have access to the X source tree, then very interesting
+information on LBX is available there:
+
+<itemize>
+<item><tt>xc/doc/specs/Xext/lbx.mif</tt> (Framemaker MIF)
+<item><tt>xc/doc/hardcopy/Xext/lbx.PS.Z</tt> (Compressed Postscript)
+<item><tt>xc/doc/hardcopy/Xext/lbxTOC.html</tt> (HTML)
+</itemize>
+
+More detailed discussion of specific LBX algorithms is available here:
+
+<itemize>
+<item><tt>xc/doc/specs/Xext/lbxalg.mif</tt> (Framemaker MIF)
+<item><tt>xc/doc/specs/Xext/lbxalg.PS.Z</tt> (Compressed Postscript)
+</itemize>
+
+If you don't have access to the X11 source, you can obtain these
+files from <url url="ftp://ftp.x.org/pub/R6.3/xc/doc/" name="the X
+Consortium's FTP site">.
+
+
+<sect>Alternatives
+<p>
+If you don't like <tt/lbxproxy/ for some reason: you're not
+satisfied with the performance, it doesn't work for you, you don't want
+to hassle with creating an lbxproxy for the remote host, or you simply
+are interested in trying other options, there is at least one other
+package for X protocol compression (anyone have others?)
+
+<sect1>dxpc - The Differential X Protocol Compressor
+<p>
+<itemize>
+<item>Original Author: <htmlurl url="mailto:brianp@cnet.com" name="Brian Pane &lt;brianp@cnet.com&gt;">
+<item>Current Maintainer: <htmlurl url="mailto:lightborn@mail.utexas.edu" name="Zachary Vonler &lt;lightborn@mail.utexas.edu&gt;">
+</itemize>
+
+<tt><url url="http://ccwf.cc.utexas.edu/~zvonler/dxpc/"
+name="dxpc"></tt> works in essentially the same way as LBX.  However, to
+avoid having to implement an X extension and modify the X server code,
+<tt/dxpc/ uses <bf/two/ proxies: one that runs on the REMOTE host, like
+<tt/lbxproxy/, and one that runs on the LOCAL host.
+
+The REMOTE host proxy communicates between the X clients and the
+LOCAL host proxy, and the LOCAL host proxy communicates between
+the X server and the REMOTE host proxy.
+
+So, to <em/both/ the X clients and the X server, it looks like X
+protocol as usual.
+
+<sect2>Advantages
+<p>
+<itemize>
+<item> Since it's a completely separate application that does not
+     require any X internals, it's <em/much/ simpler to compile and
+     install.
+
+<item> It's maintained separately, so you don't have to wait for the
+     OSF to release new X versions for enhancements or fixes.
+
+<item> It provides more and better compression information and
+     statistics than <tt/lbxproxy/.
+</itemize>
+
+<sect2>Disadvantages
+<p>
+<itemize>
+<item> It is not a standard part of X; you must obtain and build it
+     separately.
+
+<item> It is slightly more complex to set up, since it requires a
+     LOCAL-side proxy as well as the REMOTE proxy.
+</itemize>
+
+<sect2>Where Can I Get dxpc?
+<p>
+The source for dxpc is available at <url
+url="ftp://ftp.x.org/contrib/utilities/" name="ftp.x.org">.
+
+There is a WWW homepage for dxpc that gives a lot of good
+information, including pointers to the dxpc mailing list, access to the
+source code, and a number of pre-built binaries for various platforms:
+
+<url url="http://ccwf.cc.utexas.edu/~zvonler/dxpc/">
+
+<sect1>Ssh (Secure Shell)
+<p>
+<htmlurl url="mailto:lbxhowto@sizone.org" name="Ken Chase &lt;lbxhowto@sizone.org&gt;">
+notes that <tt><url url="http://www.cs.hut.fi/ssh/" name="ssh"></tt> can
+be used for compression.  Although its main purpose is to provide
+security, it also compresses the data it sends.
+
+Thus, if you run X over a <tt/ssh/ link you will automatically obtain
+some amount of compression.
+
+<sect1>Which Is Better?
+<p>
+I don't know.  Both LBX and <tt/dxpc/ are certainly better at raw
+compression than <tt/ssh/.  Of course, <tt/ssh/ provides the added
+advantage of security.  And of course, there's no reason you can't use
+both <tt/ssh/ and one of the other two, to get good compression and
+security.
+
+It shouldn't be hard to run some benchmarking against these options
+and get both subjective and statistical measurings of performance.  But
+I haven't done this, and I don't know of anyone who has.
+
+</article>

@@ -1,0 +1,2925 @@
+<!doctype linuxdoc system>
+
+<article>
+<title>Linux Remote-Boot mini-HOWTO: 
+	Configuring Remote-Boot Workstations 
+        with Linux, DOS, Windows 95/98 and Windows NT
+<author>Marc Vuilleumier St&uuml;ckelberg, David Clerc
+<date>v3.19, February 1999
+
+<abstract>
+This document describes how to set up a very robust and secure server-based
+configuration for a cluster of PCs, allowing each client to choose
+at boot-time which operating system to run. The key of this configuration
+is a bootprom based program, which let the user choose at boot time 
+one of several boot images. This configuration is applicable using
+InCom TCP/IP Bootprom (add-on for most network cards) or any 
+PXE-compliant Boot ROM (ready-to-use in most recent PC with built-in
+network cards).
+The most up-to-date version of this document, with hypertext links to
+downloadable software and other related materials, can be found at the
+address <tt><htmlurl
+url="http://cuiwww.unige.ch/info/pc/remote-boot/howto.html"
+name="http://cuiwww.unige.ch/info/pc/remote-boot/howto.html"></tt>.
+<htmlurl url="howto.sgml" name="Linuxdoc-SGML">,
+<htmlurl url="howto.dvi" name="DVI"> and
+<htmlurl url="howto.ps" name="PostScript">
+versions are available in the same directory.
+
+If you are interested in getting info on further developpments, send
+an E-mail to <tt><htmlurl url="mailto:David.Clerc@cui.unige.ch"
+name="David.Clerc@cui.unige.ch"></tt>.
+</abstract>
+
+<toc>
+
+<sect>Disclaimer and Copyrights
+<p>
+This document and the related software are provided as is to the
+Linux and Internet community, with no form of warranty. Please
+note that <bf/some operations related in this document may
+destroy the content of your hard-disk/. We assume no liability
+for any use, correct or not, of this document and of the related
+software. 
+
+You are free to do anything you want with the remote-boot tools as long as
+you do not make money by selling them or by distributing them
+with a commercial product. If you want to commercialize
+a product derived from these tools, please contact the authors
+first to make a commercial agreement. These remote-boot tools
+will remain available for free forever, but we may authorize
+derived commercial tools.
+
+These provisions shall be interpreted under and in accordance
+with the laws of Switzerland, canton of Geneva. All disputes, defenses,
+controversies or claims arrising in conncetion with this document and
+the related software, shall be subject to the exclusive
+juridiction of the courts of the canton of Geneva, Switzerland.
+
+If you like this program, you can send us a Postcard and/or make
+a gift to the <htmlurl url="http://www.icrc.org"
+name="International Committee of the Red Cross (ICRC)"> or to the
+<htmlurl url="http://www.unicef.org" name = "UNICEF">.
+
+<sect>What has changed...
+<p>
+<sect1>...since version 2.x ?
+<p>
+To say it frankly, almost everything. The underlying concepts are the same, but
+the software part has been completly redesigned to overcome the limitations
+of previous versions and to make it easier to use. An highlight of the new
+features :
+<itemize>
+<item>All functions (bpmenu, bpclean, bpunzip) are encompassed in a single
+	program.
+<item>The program can run not only from the boot rom, but also under DOS,
+	Windows 95 and Linux.
+<item>The program can now restore images of FAT16, FAT32 and EXT2FS
+	partitions. If someone want to write NTFS support, let me know...
+	For now, NT users still have to stick to FAT16.
+<item>The program can not only restore disk images but also add and patch
+ individual files in order to customize the client behaviour.
+<item>Disk images are not any more bound to 87 MB. They are now 
+	file-system independant archives.
+<item>We provide a mean for automatically downloading a disk image to
+	an arbitrary big number of clients at the same time (broadcast).
+<item>You can now write your own secure boot script, that will determine
+	the behaviour of the machine before the real boot.
+<item>You can now boot any Linux kernel, without 
+	applying any patch. Its is also possible to provide a 
+	command line and a ramdisk image.
+<item>You can authenticate users at boot time using a Unix, NT or Radius
+	server and deny them any access to the machine.
+<item>Full national language support is included.
+<item>And many, many other new features...
+</itemize>
+<descrip>
+<tag/Is there a program for converting old archives to the new format ?/
+No, because the internal format is radically different. But you can easily
+do the conversion by yourself: <enum>
+<item>Boot an old image (unzip it to your disk)
+<item>Remove calls to the old <tt/unzipreg/ utility and replace them
+	by the adequate <tt/patch/ commands (it is very easy, see
+	the detailed instructions below)
+<item>Run the new <tt/mrzip/ program to create a new-style disk image
+</enum>
+</descrip>
+<sect1>...since version 3.0 ?
+<p>
+Version 3.0 was the beta-release. A dozen of sites around the world have
+tested it during a month and given much of their time to help us finding
+bugs and to suggest enhancements. Thanks to all of them for their patience, 
+and in particular to Maciek Uhlig, Dick Velders and Jeff Teeters.
+
+A few minor features have been added since 3.01, such as support for diskless
+Linux boot (by disabling the cache).
+
+Version 3.10 introduced compatibility with Intel's <em/Wired for Management
+1.1a/ NetPC standard. The tools now work with any PXE-compliant boot ROM 
+(as are most on-board boot ROMs) available today. Thanks to 
+<htmlurl url="http://www.incom.de/" name="InCom GmbH"> for giving us the PXE
+bootprom that permitted this developpment. We also succesfully tested
+the tools with the PXE Boot ROM that I found incidentally in my Dell
+computer with onboard network card (called LanDesk Service Agent).
+
+Version 3.11 to 3.12 added UNIX server-side tools (a PXE Proxy DHCP server
+for Solaris and Linux, and an enhanced TFTP server for Linux), as well as
+detailled informations on server-side setup and the PXE booting process.
+
+Version 3.13 added Advanced Power Management support (PowerOff command).
+
+Version 3.14 added minor enhancements and some corrections. We fixed a problem
+with the terminal under RedHat 5.1, and another problem in the syntax of
+the "if" command. We added some features suggested by the Laboratori de
+Càlcul de la Facultat d'Informàtica de Barcelona (LCFIB) :
+<itemize>
+<item>A new APM variable let you know if your system support the Advanced
+Power Management (i.e it supports the poweroff command).
+<item>A "beep" command.
+<item>A new parameter to DrawWindow, to include a title at the window
+creation. You can now do DrawWindow 200 200 400 200 "Title".
+</itemize>
+
+Version 3.15 added full VESA support. BpBatch now support several video modes,
+to accomodate old computers not being able to display 800x600 graphics. A new
+parameter has been added to InitGraph to specify the video mode, and a list
+of detected video mode can be retrieved from the new VESA-Modes variable.
+
+Version 3.16 fixes the following bugs:
+<itemize>
+<item>"Malloc failed" during the Fullunzip process of a multiple fragments
+  image.
+  Many thanks to Christian Meyer for his collaboration.
+<item>A bug which prevented the linux version of MrBatch to properly
+  fullunzip images. This bug was located in the low-level functions of
+  MrBatch, so it may fix other problems encountered in the <em/linux/ version
+  of MrBatch.
+  Many thanks to Jeff Teeters for his collaboration.
+<item>An error in the codepage translation tables. This bug was found by
+  the Laboratori de Càlcul de la Facultat d'Informàtica de Barcelona (LCFIB). 
+  You can find the bug report in the BpBatch forum.
+</itemize>
+
+Version 3.17 adds some minor features and fixes bugs:
+<itemize>
+<item>Fullunzip was turning Extended Memory off
+<item>Booting on the RedHat boot disk now works 
+<item>When extracting images with a large number of directories, the 
+  resulting FAT file system was corrupted.
+<item>We added retries to text TFTP transfers. BpBatch will now retry 
+  three times before saying "Could not transfer the file".
+<item>Timestamps are now correctly updated in FAT. (thank to Francis Chan)
+</itemize>
+
+Version 3.18 fixes a bug with the IncrUnzip function. Thanks to
+Gary Pike for its collaboration.
+
+Version 3.19 fixed a bug in the error handling of the <tt/delete/ command
+on ext2fs, as well as the inappropriate handling of names starting with
+A: under Linux. The following new features were also added:
+<itemize>
+<item>A new <tt>if valid disk:partition</tt> syntax can be used to check
+if a partition has been formatted
+<item>FAT32 disk images are now fully functional (they now boot properly)
+<item>Linux EXT2 partitions bigger than 2 GB are now supported
+<item>Linux Swap partitions bigger than 128 MB are now supported (this
+        feature needs a recent kernel, at least 2.1.x)
+<item>FullUnzip is now also possible without a cache partition, by
+        setting <tt>CacheNever</tt> to <tt>"ON"</tt>. This might be
+        usefull for a unique installation, but is not recommended in
+        general is it results in a high network load.
+</itemize>
+Thanks to Ruben Schattevoy for its help and contributions to this release.
+
+<sect>Introduction
+<p>
+The configuration described here was developped since Summer 1996 at the
+CUI, University of Geneva. The Computer Science Department uses several
+servers and a number of PCs, which fall into two classes:
+<itemize>
+<item>computers devoted to students
+<item>computers devoted to research and teaching assistants
+</itemize>
+We developped the current configuration with the following aims:
+<itemize>
+<item>Every computer should be able to run under Linux, DOS, Windows 3.1, 
+	Windows 95 or Windows NT. One should be able to choose the desired 
+	operating system for each session.
+<item>All softwares, including operating systems, should be take from the 
+	server, in order to facilitate the installations and upgrades.
+<item>Clients computers should be able to run without any write-access on 
+	the server (for security reasons), except for their home directory.
+<item>Client-side configuration should be reduced to its very minimum.
+	Clients should automatically get their IP configuration parameters
+	from the server, and this information should be located in 
+	a single file, used for all operating systems.
+<item>Since almost every computer now has a hard-disk,
+	clients should be able to take profit of it for reducing network
+	load and as temporary storage space for the user.
+<item>Users <em/must/ have a login to be able to use
+	any of the computers.
+<item>The login should be the same
+	for all operating system and should let the user access its
+	unique home directory, common to all operating systems.
+<item>Student (and secretary :-) computers should be fully cleaned up 
+	at each start. That is,
+	the PC should always look like if it were just installed.
+<item>Every computer has to be protected from virus attacks.
+</itemize>
+These constraints lead us to base our configuration on bootprom
+tools. We first developped new tools for the excellent
+<htmlurl url="http://www.incom.de/products_en.shtml" name="TCP/IP Bootprom">
+from <htmlurl url="http://www.incom.de" name="InCom GmbH">.
+Now that a standard for preboot execution environments as finally emerged,
+we ported the tools so that it now also works for any PXE-compliant
+bootprom. PXE boot roms, also called LanDesk Service Agent, are now 
+distributed with almost all on-board network adapter.
+For more info on PXE and Intel <em>Wired for Management</em> standard
+in general, read from <tt><htmlurl url="http://www.intel.com/managedpc"
+name="http://www.intel.com/managedpc"></tt>. 
+
+<sect1>Boot ROM and Hard-disk
+<p>
+Bootproms exist for quite a long time, but until recently, they were
+solely used with diskless computers. Since 1996, this How-to has been 
+claiming that bootproms are even more interesting 
+for computers which have a local harddisk, since they allow to take profit
+of both sides:
+<itemize>
+<item>A boot rom make the configurations more robust, since it ensure
+	that the computer will always boot the same way, no matter
+	any virus or partition table crash. It can be used, as
+	we did, to cleanup the harddisk even before the operating system
+	is loaded.
+<item>A local harddisk make the configuration more efficient, since
+	it can reduce the network trafic through caching, and allows
+	for efficient swap.
+</itemize>
+Today, we have the pleasure to see that all computer manufacturers have
+come to the same point and provide boot roms as part of new computer
+standards.
+
+Note that you can still use the tools described below in an <em/old
+fashioned/ way, that is as a simple kernel/ramdisk loader, even for
+diskless computers. However, we do not encourage this use.
+
+<sect1>The Network
+<p>
+The University of Geneva owns a class B domain, subdivided into several
+subnets. The CUI uses four subnets, among them one is dedicated to students.
+
+Originally, our PCs were concerned about two network protocols: IPX and IP.
+On the IPX side, we used a single Novell Netware 3 server for sharing software
+and users files for DOS and Windows. On the IP side, we used a SUN server
+for sharing software and users partitions for Linux, with NFS.
+
+In our latest configuration, we do not any more use IPX. There is a single
+Unix server (which could be Linux as well as a SUN), sharing software
+and user files using NFS for Linux clients and using SMB (NetBIOS) over
+TCP/IP for Dos and Windows clients. In this way, we have a single
+home directory used by all operating systems.
+
+<sect1>How it Works
+<p>
+<enum>
+<item>When a client PC is turned on, it first performs the traditional system 
+	checks before the TCP/IP Bootprom or PXE Boot ROM takes the control.
+<item>The bootprom issues a BOOTP/DHCP request in order to get its IP 
+	configuration parameters.
+<item>If the server knows the PC issuing the request, it will send
+	back a BOOTP/DHCP reply with informations such as the client's IP
+	address, the default gateway, and which bootdisk image to use.
+<item>In case of a PXE boot ROM, there might be some more exchanges between
+	the client and the server to determine installation parameters.
+<item>The bootprom then downloads the boot image from the
+	server using the TFTP protocol. The boot image happens to be
+	a small program called <tt/bpbatch/, our boot-time batch
+	file interpreter.
+<item>The batch interpreter is started. At this time, it is almost
+	alone in the computer memory. There is no operating system loaded,
+	except the preboot execution environment (offered by the Boot ROM).
+<item>The batch interpreter look in the BOOTP/DHCP reply for command-line
+	options, and in particular for the name of the batch to execute.
+<item>According to the instructions in the batch file, it will for
+	instance:
+	<enum>
+	<item>Load a national keyboard mapping
+	<item>Authenticate the user according to a remote server
+		(Unix, Radius or Windows NT)
+	<item>Let the user choose between the available operating systems
+	<item>According to the operating system choosen, repartition
+		the hard-disk and quick-format some partitions
+	<item>Check if an up-to-date compressed image of the selected OS
+		is present at the end of the disk. If not, it download
+		it using TFTP
+	<item>Uncompress the selected OS to the main partition
+	<item>If the selected OS is Linux, load a kernel and start it
+	<item>If the selected OS is DOS or Windows, simply let the computer
+		boot on its fresh new hard-disk
+	</enum>
+	For <bf/DOS and Windows 3.1/, we use the
+	freely available Microsoft LanManager for DOS (search the
+	network for the mirror nearest to you; the distribution
+	consists of three files named <tt/disk1/ to <tt/disk4/)
+	as SMB client. Microsoft LanManager supports dynamic
+	configuration using DHCP. After logging in, the user 
+	is faced to DOS, and can start Windows 3.1 by typing 
+	the traditional <tt/win/ command. Note that at this point,
+	DOS and Windows 3.1 appear to be installed locally.
+
+	For <bf/Windows 95 and Windows NT/, we also use Microsoft SMB client 
+	(called <it/Client for the Microsoft Network/), that supports
+	dynamic configuration using DHCP. We reduce network load using
+	<htmlurl url="http://www.lancache.com" name="Shared LAN Cache">,
+	a nice and powerful network-to-disk cache program.
+</enum>
+Students computers can be turned off <em/the hard way/ at any time
+without risks, since the hard disk is reinitialized at each start.
+
+For "safe" computers (ie. for assistants computers), 
+once the computer has been booted once using the above described system,
+the boot script simply redirect the boot to the local hard-disk,
+without cleaning it again. This allow users to leave
+data on their local hard disk. But whenever the configuration gets corrupted,
+the user can simply choose from the boot menu in order to have
+a fresh installation.
+
+<sect1>Related non-commercial documentations
+<p>
+This configuration has been successfully reproduced at several places
+around the world. A few people have written some hints and tricks that
+complement this How-To. If you did so and that your page is not
+already referenced in this documentation, please send
+an e-mail to <tt/Marc.VuilleumierStuckelberg@cui.unige.ch/.
+And if you experience problems while reproducing this configuration,
+have a look at these pages !
+<itemize>
+<item><tt>
+<htmlurl url="http://www.br.fgov.be/RESEARCH/INFORMATICS/info/bootp.html"
+	name="http://www.br.fgov.be/RESEARCH/INFORMATICS/info/bootp.html"></tt>,
+	by Alain Empain of the Belgium National Botanic Garden.
+	Many useful sample scripts, and a nice PERL program to
+	automatically generate graphic menus and corresponding HTML
+	documentation from a higher level description.
+<item><tt><htmlurl url="http://www.katedral.se/system/elevsyst"
+	name="http://www.katedral.se/system/elevsyst"></tt>,
+	by Johan Carlstedt of The Cathedral School of Uppsala, Sweden.
+	<em/At this day, the configuration described at this place
+	is still based on the previous version of the remote-boot
+	tools. However, almost everything remains applicable, given
+	a few changes/.
+<item><tt><htmlurl url="http://vitoria.upf.tche.br/~fred/"
+	name="http://vitoria.upf.tche.br/&tilde;fred/"></tt>,
+	in portuguese, by Frederico Goldschmidt of the Passo Fundo
+	University, Brasil.
+<item><tt><htmlurl url="http://www.etse.urv.es/~larinyo" 
+	name="http://www.etse.urv.es/~larinyo"></tt>, in spanish,
+	by  Lluis Arino, of the Escola Tecnica Superio d'Enginyeria,
+	Spain.
+</itemize>
+
+You can also send me your BpBatch script if you want me to include it
+in the <htmlurl url="soft/sample-scripts" name="sample scripts collection">.
+
+<sect>The Configuration How-To
+<p>
+First, arrange to have the following two machines within arm's reach:
+<itemize>
+<item>the <bf/server/, usually a Unix or Windows NT machine
+<item>the <bf/client/, a PC with a bootprom enabled, and nothing
+	valuable on the hard disk. 
+</itemize>
+If you want to test the configuration but you do not yet have a 
+bootprom, you can download the TCP/IP BootProm demo diskette 
+from InCom GmbH at
+<tt><htmlurl url="http://www.incom.de" name="http://www.incom.de"></tt>.
+This diskette will make your computer behave like if it had a TCP/IP
+Bootprom plugged in.
+
+If you already have a Boot ROM, you need to enable it. If you are using Incom
+TCP/IP Bootprom, you can do that using a special program from your 
+network card manufacturer. If you have a PXE Bootprom, you can do it
+simply from BIOS setup, by changing the default boot device.
+
+For student computers, we configured the boot on network
+first, and disabled hard-disk and floppy-disk boot. For assistant
+computers, we also configured network-boot first,
+but we allow hard-disk and floppy-disk boot.
+
+<sect1>Server-side configuration
+<p>
+On the server, you will need the following services:
+<enum>
+<item>A BOOTP/DHCP server
+<item>May be a Proxy DHCP server
+<item>A TFTP server
+</enum>
+<bf/Note for PXE Boot ROM users:/ We found after severals hours of tedious
+search that PXE Boot ROMs with version before 0.99
+do not follow the IP protocol and
+discard all packets that have the <em/Don't Fragment/ (DF) flag set.
+That means, you will have to disable <em/Path MTU Discovery/ on the server,
+or the Boot ROM will not see any of its packets. On Solaris, use 
+<tt>ndd /dev/ip ip_path_mtu_discovery</tt> to see if you have it enabled
+and <tt>ndd -set /dev/ip ip_path_mtu_discovery 0</tt> to disable it.
+However, this fix only works for non-broadcast packets (ask SUN why...).
+That means, it will work for TFTP but not for DHCP :-(. Intel has recently 
+fixed this bug, and if you bought your computer after June 1998, you surely
+have a corrected PXE implementation.
+
+<sect2>Setting up DHCP
+<p>
+The role of the DHCP server is to give to the client an IP
+address and to make it load the
+file named <tt/bpbatch.P/ from the TFTP server.
+DHCP is a superprotocol over BOOTP. If you are using InCom
+TCP/IP Bootprom, you may live without DHCP (using an old BOOTP server).
+
+On Windows NT, you will probably use the native DHCP server.
+If you are using InCom TCP/IP Bootprom, you will have to use
+a special trick to specify the boot file name (get more info
+from InCom WWW site). If you are using a PXE Bootrom, you will
+need a Proxy DHCP server, but no other trick is needed as
+the boot file name will be provided by the Proxy DHCP server.
+
+On Linux, the best choice is the standard DHCP server from the
+Internet Software Consortium. If you are
+using a PXE Bootrom, in addition to the usual options, you will need
+to add the following ones:
+<itemize>
+<item><tt>option dhcp-class-identifier "PXEClient"</tt>
+<item><tt>option vendor-encapsulated-options ff;</tt>
+</itemize>
+
+On Solaris, you can either use the Internet Software Consortium
+DHCP server
+(available on the Web), or use Solaris DHCP server (available
+since Solaris 2.5). However, as Solaris DHCP server does not seems
+to be able to insert a client class identifier in its DHCP offer,
+you must install a Proxy DHCP server. Morever, this Proxy DHCP server
+must reside on another computer since Solaris DHCP server locks
+the DHCP port.
+
+We suggest giving infinite lease time for remote-boot clients.
+Don't forget that BOOTP/DHCP requests are bounded by subnets. If the client
+and the server do not reside on the same subnet, you should install
+a BOOTP/DHCP Relay agent on any computer between the two. 
+For now, just assume that both machines are on the same subnet.
+
+<sect2>Setting up a Proxy DHCP
+<p>
+The role of the Proxy DHCP server is to overcome limitions of some DHCP
+servers and to provide PXE specific extensions. A proxy DHCP server
+only makes sense for a PXE Boot rom.
+
+As BpBatch itself is quite powerfull, 
+you wont need to use any PXE specific DHCP extension (menus, etc.).
+However, if your DHCP server is not able to show minimal PXE compliance,
+you will need a Proxy DHCP server or your PXE Boot ROM will not accept
+to go further.
+
+On Windows NT, you can try to use Intel WfM PDK (available from their
+web site), but it is not very easy to use. We rather suggest having
+a Linux machine on the subnet and using our small Proxy DHCP.
+The major advantage of our Proxy DHCP Server for BpBatch is that
+our server will let you specify an option 155 vendor tag that will
+be interpreted by BpBatch as a command line.
+
+On Linux and Solaris, you can run our Proxy DHCP program, that simply
+takes as argument the TFTP server IP address, boot file name and
+optional arguments, and does everything for you.
+If the DHCP port on the server is already requested by another daemon,
+the proxy DHCP server will run on port 4011. In this case, it is
+necessary that the other daemon on DHCP port answer a DHCP offer with
+client class <tt/PXEClient/ so that the PXE client knows that it must
+try on port 4011.
+
+If you want to understand better PXE extensions to DHCP, there is
+an extensive description available on Intel WWW site. However, be warned
+that the documents are quite confusing, as the protocol has been
+extended to a number of optional stages, in order to allow for a
+maximal flexibility. The key to understand it is that all what a PXE
+client needs is a complete <em/enhanced DHCP answer/. If it receives
+only a standard DHCP offer, it will look further until it gets
+<enum>
+<item>a client class (T60) set to <tt/PXEClient/
+<item>vendor encapsulated options (T43) (possibly empty, ie. hex <tt/ff/)
+<item>a non-empty boot filename
+</enum>
+The PXE specific negociation ends as soon as all these infos are received,
+but can lead to a very complex process (install server discovery, etc.)
+if some are missing.
+
+<sect2>Setting up TFTP
+<p>
+The TFTP server is a very simple file server. In its basic version,
+TFTP use 512 bytes data blocks, which are quite inefficients.
+InCom TCP/IP Bootprom and PXE Boot ROMs allow to use larger
+blocks (1408 bytes), which speeds up transfers a lot. However,
+this can only work with an enhanced TFTP server.
+
+On Windows NT, we suggest using InCom enhanced TFTP server, available
+on their web site.
+
+On Linux, you can use our enhanced TFTP server, available at
+<tt><htmlurl url="soft/etftpd.tar.gz" 
+name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/etftpd.tar.gz"></tt>.
+
+On Solaris, you should use InCom enhanced TFTP serer, available
+on the utility disk provided with the TCP/IP Bootprom.
+
+<bf>If you prefer using a standard TFTP daemon, remove
+the <tt/P/ in all boot image name extensions, in order to tell the
+Bootprom to use only the standard TFTP port (This trick was introduced
+by InCom GmbH for the TCP/IP Bootprom. We still use it as an easy way
+to select the default TFTP port with PXE bootproms).</bf>
+
+<sect1>Client-side configuration
+<p>
+First, we will do set up the part common to all operating systems, ie.
+the batch-file interpreter.
+Then, for each operating system, we will go through the following steps:
+<enum>
+<item>Setup a stand-alone client
+<item>Save its configuration on the server
+<item>Test it as a remote-boot client
+<item>Adapt it so that it works for any similar client machine
+</enum>
+Once this is done, you will be able to setup any supplemental 
+client just by plugging a Boot ROM in it (or buying a Wired for Management
+ready computer...) and adding one line
+in the DHCP configuration file.
+
+Our examples assume that you have a hard disk of 1.4 Gb or more.
+If you have less, reduce the sizes of the partitions, but remember
+the you need to leave a few hundreds megabytes unallocated (that is,
+the last partition must not take up to the last cylinder) to leave
+free room for the special cache partition. Moreover, as the cache always
+starts at the cylinder following the last allocated cylinder, if you
+do not use the same total size for all your tests, you will have to
+download several times the same files (the cache will be automatically
+cleared).
+
+Never despair. If you can't get it to work, first look in the 
+<em/Troubleshooting/ section if your problem is not already solved
+(get the latest version from the Web). 
+Then, take a look in the BpBatch forum. Perhaps someone else had the
+same troubles as you have, and the answer can be found in the forum.
+Forum's URL :
+<tt><htmlurl url="forum/" 
+name="http://cuiwww.unige.ch/info/pc/remote-boot/forum/"></tt>.
+If it still does not work, think about monitoring network traffic
+for network related problems (use <tt/tcpdump/ on Linux or
+<tt/snoop/ on Solaris). If you really cannot get it to work,
+you can send an E-mail to <tt/David.Clerc@cui.unige.ch/ or
+<tt/Marc.VuilleumierStuckelberg@cui.unige.ch/.
+If your problem is strictly related with the remote-boot configuration
+and if we are not overflowed, we will try to solve your problem.
+
+<sect1>Setting Up the Boot Process
+<p>
+Get the <tt/BpBatch/ software, either as <tt/.zip/ or as <tt/.tar.gz/.
+The executables are available at
+<itemize>
+<item><tt><htmlurl url="soft/bpb-exe.zip"
+   name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/bpb-exe.zip"></tt>
+<item><tt><htmlurl url="soft/bpb-exe.tar.gz"
+   name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/bpb-exe.tar.gz"></tt>
+</itemize>
+The source code (Assembler and C) is also available on request.
+
+In the server <tt>/tftpboot</tt> directory, put the following three special
+boot images, which together make our pre-boot batch file interpreter:
+<itemize>
+<item><tt>bpbatch.P</tt>, the dynamic loader (respect the uppercase !)
+<item><tt>bpbatch.ovl</tt>, the relocated interpreter
+<item><tt>bpbatch.hlp</tt>, the on-line help file
+</itemize>
+Then add an entry in the DHCP configuration file for your client, with
+the boot file set to <tt/"bpbatch.P"/. Define a vendor option tag 155
+(decimal) with the value <tt/"-i"/
+(on the standard DHCP server, this is done by the following
+command: <tt/option option-155 "-i";/). It is interpreted by <tt/bpbatch/
+as the command line, and <tt/-i/ stands for "interactive".
+
+Boot the client computer. You might shortly see
+<itemize>
+<item>The Boot ROM copyright
+<item>The string <tt/DHCP/ while the client waits for a DHCP reply
+<item>The string <tt/TFTP/ while the client waits for the first TFTP packet
+<item>The string <tt/Loading BpBatch/ while the loader download the
+	interpreter
+<item>And finaly our banner, followed by a nice <it/greather-than/ prompt
+</itemize>
+Congratulations ! You have started the batch interpreter...
+If you are curious about what you can do with it, continue reading
+the next section. If you are on a hurry, skip it and go directly
+install the operating system of your choice. If you have any doubt
+about a command within the interpreter, type <tt/help/.
+
+Note that you can run the same interpreter within DOS and Linux by
+running the <tt/MrBatch/ program. There are a only very few differences
+(the Linux version do not have graphics support and the DOS version
+can only send BOOTP and TFTP requests if the BootProm is not hidden
+by the operating system).
+
+It may be a good idea to read now the section about the
+<em/Syntax Rules/ of <tt/BpBatch/, and in particular the paragraphs
+on <em/File References/ and on <em/The Cache Filesystem/.
+This will help you understand the examples.
+
+Once all operating systems will be set up, you will have to make a
+menu to let the user choose the one he wants. You should be able
+to discover by yourself how to make such a menu. All
+necessary commands are documented at the end of this document.
+
+<sect2>Discovering BpBatch
+<p>
+Try to type <tt/LogVars/. You should get about thirty variables
+listed. Roughly, the first are BpBatch settings, then come
+all parameters extracted from the BOOTP/DHCP reply, and the last
+variable is a list of disks sizes, in Megabytes.
+
+Type <tt/GetPartitions part/, then <tt/LogVars/ again. There should be
+one more variable containing the list of defined partitions on your
+first hard-drive. Assuming that the first partition is either
+BIGDOS, FAT32 or LINUX-EXT2, try <tt/LogDir "{:1}"/ to get the
+content of the root directory, then <tt>LogDir "{:1}/usr"</tt> if
+there is an <tt/usr/ directory. You can even try 
+<tt>LogTree "{:1}/etc"</tt> to get a directory tree.
+
+Put a GIF file (format GIF-87a, interlaced or not, but NOT GIF-89a)
+on your TFTP server. We will suppose that the file is named <tt/image.gif/.
+You can copy it wherever you want with the following command:
+<tt>Copy "image.gif" "{:1}/temp/image.gif"</tt>. Or you can use it
+directly from the server. Now type <tt/Logvars "V*"/ and look at
+the value of the <tt/VESA/ variable. If it is <tt/On/, which is most
+probable, that means you have a VESA-compliant video adapter. You can list
+the available video modes using <tt/Echo "&dollar;VESA-Modes"/. To display your 
+image try the following command: <tt>DrawGif "image.gif"</tt>. 
+The image should be on the upper
+left corner of the screen. You can draw it on another place by specifying
+X and Y coordinates after the image name. You can also draw text
+with <tt/DrawText 200 200 "Hello world" yellow/. Or draw an empty
+window with <tt/DrawWindow 200 200 300 150/. To insert a title when you
+create a new window, try <tt/DrawWindow 200 200 300 150 "My Window"/.
+When you are tired of graphic mode, simply type <tt/CloseGraph/.
+
+Note on graphics : by default, all graphical routines work in the 800x600
+VESA mode (with 256 colors), which is the first field of the <tt/VESA-Modes/
+variable. If you want to use a different video mode, change the variable in
+order to have the requested video mode as the first field of the list.
+
+Now take a text editor, and create a file named <tt/test.bpb/
+in the <tt/tftpboot/ directory with the following content:
+<tscreen><code>
+:again
+DrawWindow 150 200 400 160 "Identity check"
+TextAttr Black LightGray
+At 15,20 Print "Username : "
+Input username 8
+At 17,20 Print "Password : "
+Getpasswd userpass 8
+if "$username" != "smith" goto again
+if not "$userpass" match-passwd "BpR8oiIlRR9bo" goto again
+#
+clear
+DrawWindow 200 200 150 100 green blue "Congratulations"
+DrawText 220 250 "You got it !" yellow
+WaitForKey 3
+CloseGraph
+interact
+</code></tscreen>
+In your BOOTP/DHCP configuration, change the option-155 from <tt/"-i"/
+to <tt/"test"/, and reboot the client computer. The small script
+should run automatically, and ask you for a username and password.
+If you do not type <tt/smith/ and <tt/justdoit/, you wont be able to
+boot the computer. Later you will learn how to use a Unix, NT or Radius
+server to check valid user names.
+
+<sect1>Setting Up Linux
+<p>
+In order to set up Linux, you will need to boot the floppy disk
+provided with the RedHat Linux distribution. BpBatch includes a
+command that can redirect the boot to the floppy: <tt/FloppyBoot/.
+<p>
+Set up <htmlurl url="http://www.redhat.com"
+name="RedHat Linux"> on your client, with network support,
+and any packages you may want. You may want to recompile the
+kernel to better fit your hardware, but it is not necessary.
+
+<sect2>Configuring the Client
+<p>
+It is probably a good idea to include BOOTP support to the kernel, so
+that you do not have to customize the client IP address manually.
+
+In order to reduce network load, you might also want to setup the
+<tt/filecache/ for caching on the hard disk files that are
+loaded by NFS. 
+Roughly, the principle of the filecache
+is that whenever a symbolic link from the <tt/cache/ subdirectory
+is followed, it is replaced by its target. If the target is itself a
+subdirectory, each entry of the subdirectory becomes a symbolic link
+to the original entry of the foreign filesystem.
+The filecache has been written by Unifix GmbH, and is part of 
+Unifix Linux 2.0. It is freely distributable, and you can get the
+necessary files from <tt><htmlurl url="soft/filecache.tar.gz"
+name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/filecache.tar.gz"></tt>.
+In order to use the filecache, you have to
+<itemize>
+<item>apply a patch to the kernel (file <tt/patch-filecache/),
+	enable filecache support through <tt/make config/ or whatever
+	you prefer, and recompile the kernel
+<item>copy the filecache binary file to <tt>/sbin</tt>
+<item>create a mount point called <tt>/mnt/nfs</tt> (using <tt/mkdir/)
+<item>copy <tt>filecache.conf</tt> to <tt>/etc</tt>. This file contains
+	the following lines:
+<verb>
+Max 100 MB 50 % #
+Cache /mnt/nfs/usr /usr
+Cache /mnt/nfs/opt /opt
+</verb>
+<item>copy the content of <tt>/usr</tt> and <tt>/opt</tt> to the server, 
+	export them read-only
+	with <tt/anon=0/ (for allowing root access) and mount them under
+	<tt>/mnt/nfs</tt> (add a line for that in <tt>/etc/fstab</tt>)
+<item>rename <tt>/usr</tt> as <tt>/usr.orig</tt>
+<item>link <tt>/usr</tt> to <tt>/mnt/nfs/usr</tt>
+<item>rename <tt>/opt</tt> as <tt>/opt.orig</tt>
+<item>link <tt>/opt</tt> to <tt>/mnt/nfs/opt</tt>
+<item>ensure that <tt>/usr</tt> and <tt>/opt</tt> are not empty and contains
+	the correct directories
+<item>recursively remove <tt>/usr.orig</tt> and <tt>/opt.orig</tt>
+<item>copy <tt/filecache.init/ to <tt>/etc/rc.d/init.d</tt>
+<item>And finally link <tt>/etc/rc.d/rc3.d/S35filecache</tt> to <tt>/etc/rc.d/init.d/filecache.init</tt>
+</itemize>
+If you successfully followed each of these steps, you should have the
+filecache working next time you boot, as long as you do not forget to
+use your patched kernel.
+
+<sect2>Testing the Configuration
+<p>
+Copy your compressed kernel image (<tt/zImage/, <tt/bzImage/, <tt/vmlinuz/
+or whatever you call it) to the 
+server <tt>/tftpboot</tt> directory as <tt/linux.krn/. If you had to unplug
+the bootprom from the PC, you can now plug it again. When <tt/BpBatch/
+starts, type <tt>LinuxBoot "linux.krn" "root=/dev/hda1 BOOT_IMAGE=linux"</tt>
+(assuming
+that the root ext2 filesystem is on the first partition). Alternatively,
+if you did setup your configuration on a computer without bootprom,
+just boot let it boot using the loader you installed (lilo, ...). But
+in the later case, if you want the filecache to work, you should have
+explicitely installed your kernel with filecache support at the right place.
+
+Wait until the system comes up.
+If you installed the filecache, you can check that <tt>/usr</tt> has
+exploded into a directory with some symlinks and some already-exploded
+directories. Now start the programs that the end-users will use most of 
+the time, in order to load them once for all to the hard disk.
+
+You can still make adjustements to your configuration, like on
+any stand-alone linux station.
+
+<sect2>Building the Disk Image
+<p>
+When you are happy with your configuration, login as <tt/root/,
+go to the <tt>/tmp</tt> directory and
+run our <tt/mrzip/ program.
+<tt/MrZip/ is a command interpreter like <tt/BpBatch/, but it can
+understand more commands than <tt/BpBatch/ does. In particular, it
+can understand the following commands:
+<tscreen><code>
+showlog
+filter -"tmp/*"
+filter -"var/log/*"
+fullzip "/" "/tmp/linux.imz"
+</code></tscreen>
+This will create a disk image in <tt>/tmp/linux.imz</tt>. Move it to
+the server <tt>/tftpboot</tt> directory. Then copy the following
+batch file to <tt>/tftpboot/linux.bpb</tt>:
+<tscreen><code>
+hidelog
+setpartitions "linux-ext2:992 linux-swap:32"
+fullunzip "linux.imz" 1
+clean 2
+linuxboot "linux.krn" "root=/dev/hda1 BOOT_IMAGE=linux"
+</code></tscreen>
+
+The <tt/BOOT_IMAGE/ argument is to stay compatible with <tt/lilo/ for
+RedHat 5.1 and later <tt/rc.sysinit/.
+
+Your remote-boot linux configuration is ready ! You can now either
+set the BOOTP-option-155 to <tt/"linux"/, or type <tt/include "linux.bpb"/
+from within BpBatch to test it.
+
+<sect2>System Maintenance and Upgrades
+<p>
+If you want later to upgrade software, install bug fixes and 
+security fixes, proceed as follow:
+<itemize>
+<item>Remote-boot a client computer to get a fresh linux install
+<item>Make your changes
+<item>Redo the disk image
+<item>Copy the new image in place of the old one on the server
+</itemize>
+That means, you can upgrade software on your server-based configuration
+as if it were a purely local install.
+
+<sect1>Setting up DOS 6 and Windows 3.1
+<p>
+On the client computer, boot on your favorite dos floppy disk (either
+remove the bootprom or type <tt/FloppyBoot/ within BpBatch).
+Format the dos partition of your hard-drive with the <tt>/S</tt> 
+option, in order to put the operating system on it.
+The size of the partition is not important, as disk archives created
+with <tt/MrZip/ 
+Create a <tt/DOS/ subdirectory, copy DOS in it. Install your
+favorite network client (for instance Microsoft LanManager),
+Windows 3.1, and so on. If you use Microsoft LanManager,
+do not use DHCP for the IP configuration as it is a very poor
+implementation that will almost surely fail with reasonable
+network load. To do that, add the following lines in your <tt/protocol.ref/
+file, in the section that loads <tt/tcptsr/ (of course, replaces the <tt/xxx/
+by your true IP parameters):
+<verb>
+        IPADDRESS0 = xxx xxx xxx xxx
+        SUBNETMASK0 = 255 255 xxx xxx
+        DEFAULTGATEWAY0 = xxx xxx xxx xxx
+        DISABLEDHCP = 1
+</verb>
+
+Do not be afraid to use EMM386 to optimize the memory usage, and
+even to include the area where you put your network adapter ROM,
+since it is not used anymore at this time. But carefully exclude
+the network adapter RAM, or you will not be able to connect to your
+server. Use the <tt/NOEMS/ parameter.
+
+If you want to ensure that the client machine cannot be used without
+a valid login name, download our <tt/nobreak/
+pseudo-device driver (available at <tt><htmlurl url="soft/nobreak.zip"
+name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/nobreak.zip"></tt>)
+and run it at the beginning of your
+<tt/config.sys/. Then add something like this to your <tt/autoexec.bat/:
+<tscreen><code>
+rem -- we use the dummy file c:\logged as a flag
+del c:\logged >nul
+:loginneeded
+cls
+echo Please type in your login name and password
+echo.
+net logon *
+rem -- the login script should have created c:\logged
+if not exist c:\logged goto loginneeded
+del c:\logged
+rem -- now enable break again
+echo Yes >NOBRK
+</code></tscreen>
+
+Ensure that your client boot well
+by rebooting the client and evaluating the following commands
+within <tt/BpBatch/ interactive mode:
+<verb>
+        HideBootprom
+        HdBoot
+</verb>
+
+<sect2>Building the Disk Image
+<p>
+On the server, make a share called <tt/admin/ for instance, on
+which you will put some stuff for the system administrator.
+If the server is a Unix machine, it is a good opportunity to put
+in <tt/admin/ a softlink to the <tt>/tftpboot</tt> subdirectory,
+so that you can put images in it directly from the client.
+Within <tt/admin/, create a <tt>/utils</tt> subdirectory
+and put the following files in it:
+<itemize>
+<item><tt>mrbatch.exe</tt>,
+	the DOS version of <tt/BpBatch/
+<item><tt>mrzip.exe</tt>,
+	the DOS version of the program for building disk images
+<item><tt>bpbatch.hlp</tt>,
+	the on-line help file
+</itemize>
+You might also like to put in the same directory a simple MrZip script 
+named <tt/zipdos.mrz/
+file that contains the commands needed for building a DOS image, like this
+one:
+<tscreen><code>
+showlog
+filter -"lanman.dos/lmuser.ini"
+filter -"temp/*"
+filter -"*.swp"
+fullzip "c:/" "L:/tftpboot/dos.imz"
+</code></tscreen>
+
+Now go back to your client, mount the <tt/admin/ volume on drive
+<tt/L:/, go to your <tt/utils/ directory and type the following command:
+<verb>
+        mrzip -b zipdos
+</verb>
+
+One minute later, you will have a new file in the server
+<tt>/tftpboot</tt> subdirectory called <tt/dos.imz/, which is a
+compressed image of your hard disk. Copy the following
+batch file to <tt>/tftpboot/dos.bpb</tt>:
+<tscreen><code>
+hidelog
+setpartitions "bigdos:1024"
+setbootpart 1
+fullunzip "dos.imz" 1
+hidebootprom
+hdboot :1
+</code></tscreen>
+
+Your remote-boot DOS configuration is ready ! You can now either
+set the BOOTP-option-155 to <tt/"dos"/, or type <tt/include "dos.bpb"/
+from within BpBatch to test it.
+
+<sect2>Adapting the configuration for other machines
+<p>
+If you want to customize some settings according to the machine,
+typically the IP settings since Micro&dollar;oft DHCP is buggy,
+you can setup <tt/BpBatch/ to change some files before booting.
+Firsti go to the <tt/lanman.dos/ directory and do
+<verb>
+        copy *.ini *.ref
+</verb>
+Then edit the <tt/.ref/ files and replace all fixed parameters with
+BOOTP variable names as in the following examples:
+<verb>
+        computername = ${BOOTP-Host-Name}
+        ipaddress0 = ${MS-IPAddress}
+        subnetmask0 = ${MS-IPSubnet}
+        defaultgateway = ${MS-IPRouter}
+</verb>
+Then rebuild the disk image as previously.
+Note that for IP parameters, we do not use the BOOTP variables directly
+because LanManager needs then as space-separated numbers instead of
+dot-separated numbers. Change <tt/dos.bpb/ to the following:
+<tscreen><code>
+hidelog
+setpartitions "bigdos:1024"
+setbootpart 1
+fullunzip "dos.imz" 1
+set MS-IPAddress="$BOOTP-Your-IP"/.= /
+set MS-IPSubnet="$BOOTP-Subnet-Mask"/.= /
+set MS-IPRouter="$BOOTP-Routers"/.= /
+patch "{:1}lanman.dos/protocol.ref" "{:1}lanman.dos/protocol.ini"
+patch "{:1}lanman.dos/tcpputils.ref" "{:1}lanman.dos/tcputils.ini"
+patch "{:1}lanman.dos/lanman.ref" "{:1}lanman.dos/lanman.ini"
+hidebootprom
+hdboot :1
+</code></tscreen>
+If you prefer, you can also put the <tt/.ref/ files in the server
+<tt>/tftpboot</tt> directory instead of in the disk image.
+
+We like to be able to easily change the computers configuration
+without rebuilding the image. To do that, copy your <tt/autoexec.bat/
+and <tt/config.sys/ as <tt/autoexec.ref/ and <tt/config.ref/ to the
+server <tt>/tftpboot</tt>
+and add the following two lines to the batch file above:
+<verb>
+        patch "autoexec.ref" "{:1}autoexec.bat"
+        patch "config.ref" "{:1}config.sys"
+</verb>
+You can then freely change the files and even customize them
+with machine-dependant values obtained from BOOTP.
+
+After making any change to the client machine configuration,
+do not forget to rebuild the disk image using <tt/mrzip/
+if you want to preserve your changes.
+
+<sect2>System Maintenance and Upgrades
+<p>
+If you want later to add new software or change anything else,
+proceed as follow:
+<itemize>
+<item>Remote-boot a client computer to get a fresh install
+<item>Make your changes
+<item>Redo the disk image
+<item>Copy the new image in place of the old one on the server
+</itemize>
+That means, you can upgrade software on your server-based configuration
+as if it were a purely local install.
+
+<sect1>Setting up Windows 95
+<p>
+In previous versions of this document, we used
+the Microsoft server-based installation of Windows 95, but it
+was really too much pain and not much worth:
+<itemize>
+<item>It is very, very bogus
+<item>Many software package do not support it and their install will fail. 
+	Among them, Microsoft Internet Explorer, OnNet 32, Novell's
+	Protected-mode client (which is MUCH more secure than Microsoft
+	Client for Netware).
+<item>It cannot be used with the Microsoft Network client over TCP/IP,
+	since Microsoft provides no real-mode driver for TCP/IP
+	compatibe with Windows 95. That means, it cannot be used
+	with Samba
+<item>It makes software upgrades almost impossible since every client
+	turned on will lock many DLLs on the server, and thus produce
+	<em/sharing violations/ if you try to upgrade them.
+</itemize>
+Consequently, we throwed away of this document all the informations
+and bug-workaround collected during months (you can still find
+them as a HTML document at <htmlurl url="win95old/win95old.html" 
+name="http://cuiwww.unige.ch/info/pc/remote-boot/win95old/win95old.html">)
+and turned to our new disk-based remote-boot concept.
+Basically, the configuration for Windows 95 is now almost as easy
+the configuration for DOS.
+
+<sect2>Setting up a Stand-Alone Client
+<p>
+Setup a regular Windows 95 client, either starting from scratch
+as explained in the configuration of a DOS client, starting from
+the DOS client and installing over the network (that is what we did).
+You can also start with a preconfigured Windows machine, but you
+will probably have less knowledge of what stuff is on the hard disk.
+
+Proceed as described above for a DOS client. It is usually NOT necessary
+to use EMM386 with Windows 95.
+If you are using Windows 95 OSR2 (alias MSWIN 4.1, alias Windows 95 
+service pack 1, alias Windows 95 with Internet Explorer), you should
+add the following line in the <tt/&lsqb;Options&rsqb;/ section of
+<tt/MSDOS.SYS/ (yes, it is a text file):
+<tscreen><code>
+AUTOSCAN=0
+</code></tscreen>
+This will let Windows know that you do not want ScanDisk to be runned
+automatically at boot time.
+
+If you want to reduce network and server load (which will improve your system
+performances) while keeping all softwares on the server, you should
+consider installing the excellent Shared LAN Cache, from Measurement
+Techniques, Inc (see
+<htmlurl url="http://www.lancache.com" name="http://www.lancache.com">). 
+This software runs on each client computer, and caches to the local
+hard disk every data obtained from the network. Even MS-Office starts
+much faster the second time you run it... You need one license
+per client computer, but 
+it is not very expensive, and the firm make special prices for universities
+and colleges. The best thing to do is to go to their Web site and
+download the free evaluation copy.
+
+<sect2>Building the Disk Image
+<p>
+Your MrZip script will be named <tt/zipwin95.mrz/ and contain:
+<tscreen><code>
+showlog
+filter -"temp/*"
+filter -"*.swp"
+fullzip "c:/" "L:/tftpboot/win95.imz"
+</code></tscreen>
+
+To build the image, mount the <tt/admin/ volume on drive
+<tt/L:/, go to your <tt/utils/ directory and type the following command:
+<verb>
+        mrzip -b zipwin95
+</verb>
+
+A few minutes later, you will have a new file if the server
+<tt>/tftpboot</tt> subdirectory called <tt/win95.imz/, which is a
+compressed image of your hard disk. If your compressed image was bigger 
+than 87 MB, it has probably been splitted in two or more fragments.
+These fragments will automatically loaded one after the other when
+needed. Note that an image bigger than 87 MB will usually take
+More than one minute to uncompress and may irritate your users.
+Our Windows 95 image is only 70 MB big, because most software (except
+Office and Explorer) completely reside on the server. Only 45 seconds
+are needed to uncompress the image and restore the full disk.
+
+Copy the following batch file to <tt>/tftpboot/win95.bpb</tt>:
+<tscreen><code>
+hidelog
+setpartitions "bigdos:1024"
+setbootpart 1
+fullunzip "win95.imz" 1
+hidebootprom
+hdboot :1
+</code></tscreen>
+
+Your remote-boot Windows 95 configuration is ready ! You can now either
+set the BOOTP-option-155 to <tt/"win95"/, or type <tt/include "win95.bpb"/
+from within BpBatch to test it.
+
+<sect2>Adapting the configuration for other Machines
+<p>
+The big difference between Windows 3.1 and Windows 95 is that the
+later includes code for Plug-and-play , ie. automatic detection
+of your hardware. This not a bad thing in itself, but the trouble is
+that it is often too sensible, and that it sometimes fails.
+
+If you try to start another client with exactly the same boot image,
+you will probably get several messages during startup telling that
+Windows has detected new hardware: a new sound card, a new hard-disk,
+a new network card, and even a new mouse... There can be two reasons
+for that:
+<itemize>
+<item>the devices may not use the same ressources (for instance the mouse
+	is not connected on the same port, or the sound card is not
+	connected in the same slot - yes, that is detected)
+<item>the devices may tell to Windows 95 their personal serial number
+	(for instance, every Windows 95 differenciate every network
+	card on the basis of its world-wide unique ethernet address)
+</itemize>
+The fact that Windows 95 discover that the hardware has changed may not
+be a problem if the plug-and-play works as-is, but it become a problem
+when the plug-and-play does not work. For instance, Windows 95 
+plug-and-play for our Logitech PS2/aux mouse does not work, and result
+in no mouse at all. To solve such kind of problems, arrange to have
+all computers as similar as possible, or make different images for
+different hardware. Later, you will discover that you can simply use
+the same image and just have several copies of the registery, that
+you can copy after having restoring the disk image but before booting.
+
+The thing you cannot avoid to differ between computers is the network
+card. PCI cards usually do not mind, but ISA Plug and Play do.
+Bad luck for us, the plug-and-play code for our SMC EtherEZ card
+hangs the computer. The only solution is to let Windows 95 believe
+that it already know the network card, and that it is not necessary
+to trigger plug-and-play. The trick for doing that is to automatically
+insert an entry for the network card in Windows 95 registery, before
+starting it.
+Note that this trick is not any more needed with most PCI cards.
+
+Move the <tt/autoexec.bat/ to the server as described above for DOS.
+Edit it (on the server) and add the following lines:
+<verb>
+rem --- Patch Windows registery in order to avoid plug-and-play detection
+regedit /L:c:\windows\system.dat /R:c:\windows\user.dat c:\temp\patch.reg
+</verb>
+<tt/regedit/ is a standard Windows 95 program that let you browse
+the registery if you start it from within Windows 95, or do simple
+operations on the registery if you call it from DOS.
+Run <tt/regedit/ under Windows 95, search for your network card,
+usually under
+<verb>
+        HKEY_LOCAL_MACHINE\Enum\ISAPNP
+</verb>
+and export the branch using the <em/File/ menu. This will create a text
+file, that you should same as <tt/patch.ref/ in the server <tt>/tftpboot</tt>
+diretory. Edit this file and find out where the card ethernet address
+is stored (do that on two different machines and compare the files
+if you can't find it by yourself). Replace it by a pettern in the
+form <tt>&dollar;{MACID}</tt>.
+Then add lines to the <tt/win95.bpb/ script like this:
+<verb>
+        set macid = "$BOOTP-Client-ID"
+        patch "patch.ref" "{:1}temp/patch.reg"
+</verb>
+(do any necessary string manipulation for setting <tt/MACID/ if it is
+not exactly the client Ethernet address).
+That's all, your clients should not any more try to autodect the network
+card.
+
+Once again, this whole trick is not necessary when using PCI network
+adapters.
+Incidentally, we can use the same mechanism for automatically 
+configuring the hostname, which Windows 95 does not seem to take 
+into account when configuring through DHCP. We just add the
+following line to our <tt/patch.ref/ file:
+<tscreen><code>
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\VxD\VNETSUP]
+"ComputerName"="${BOOTP-Host-Name}"
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\VxD\MSTCP]
+"HostName"="${BOOTP-Host-Name}"
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\control\ComputerName\ComputerName]
+"ComputerName"="${BOOTP-Host-Name}"
+</code></tscreen>
+
+Using this small registery trick, your configuration should normally be
+portable for all machines with similar configurations. If you cannot avoid
+that Windows detect some hardware as new on one machine, try to rebuild
+the disk image from this machine. This will include the registery
+configuration specific to this machine into the image, and hopefully
+supress the problem.
+
+<sect2>System Maintenance and Upgrades
+<p>
+If you want later to upgrade software, install bug fixes and 
+security fixes, proceed as follow:
+<itemize>
+<item>Remote-boot a client computer to get a fresh install
+<item>Make your changes
+<item>Redo the disk image
+<item>Copy the new image in place of the old one on the server
+</itemize>
+That means, you can upgrade software on your server-based configuration
+as if it were a purely local install.
+
+<sect1>Setting up Windows NT
+<p>
+We do not use Windows NT for remote-boot client computers but we
+have tested our system to ensure that it work as well. And it works.
+
+As our utilities currently have no support for NTFS (we neither
+have the documentation nor the time to do that, but I would be
+happy to help anyone who is interested in doing it), you will have to
+install NT on FAT16 (simply do not convert your partitions to NTFS
+during the setup).
+
+Copy your <tt/win95.bpb/ boot script to <tt/winnt.bpb/.
+Change the <tt/setpartitions/ line in <tt/winnt.bpb/ to the following:
+<verb>
+        setpartitions "BIGDOS:512 BIGDOS:512"
+</verb>
+Then boot Windows 95 using this script, and install
+your NT client on drive C. Do not worry about the second partition for now. 
+Do not install too much stuff, or you will
+get a really large and slow-to-uncompress image.
+Remove Windows 95 from the disk disk C, you do not need it
+in a Windows NT image (the boot menu is handled by the bootprom,
+not by NT boot loader).
+
+Reboot your computer in without overwriting the hard disk, ie. do not
+execute the <tt/winnt/ script but just
+<verb>
+        hidebootprom
+        hdboot
+</verb>
+Your NT station should start-up correctly. Make any 
+necessary customization.
+
+<sect2>Building the Disk Image
+<p>
+The trouble with Windows NT is that direct disk access is prohibed
+by the kernel. That means, <tt/MrZip/ will not even be able to read the
+boot sectors. The best way to do an image is then to boot Windows 95
+and to run <tt/MrZip/ from a DOS window. To do that, change the
+<tt/winnt.bpb/ script so that the Windows 95 image is not restored
+on the first but on the second partition:
+<tscreen><code>
+hidelog
+setpartitions "BIGDOS:512 BIGDOS:512"
+setbootpart 2
+fullunzip "win95.imz" 2
+hidebootprom
+hdboot :2
+</code></tscreen>
+(if you have any supplementary patch, change the <tt>"{:1}"</tt> to
+<tt>"{:2}"</tt>). Boot with this script; you should have Windows
+95 running, but a new drive <tt/D:/ should be available, with 
+Windows NT inside.
+
+Make your disk image as usual (but on <tt/D:/, of course), and
+save it as <tt/winnt.imz/ on the server <tt>/tftpboot</tt> directory.
+Edit one last time the <tt/winnt.bpb/ script like this:
+<tscreen><code>
+hidelog
+setpartitions "BIGDOS:512 BIGDOS:512"
+setbootpart 1
+fullunzip "winnt.imz" 1
+clean 2
+#fullunzip "win95.imz" 2
+hidebootprom
+hdboot :1
+</code></tscreen>
+Your Windows NT remote-boot configuration is ready. Of course, if you do
+not like to have two partitions, you can setup a single partition
+instead. But when you have to rebuild the image, you will have to setup
+the second partition again for booting Windows 95.
+
+<sect2>System Maintenance and Upgrades
+<p>
+If you want later to upgrade software, install bug fixes and 
+security fixes, proceed as follow:
+<itemize>
+<item>Remote-boot a client computer to get a fresh install
+<item>Make your changes
+<item>Edit <tt/winnt.bpb/: comment the <tt/clean/ and winnt <tt/fullunzip/, 
+	uncomment win95 <tt/fullunzip/
+<item>Redo the disk image
+<item>Copy the new image in place of the old one on the server
+</itemize>
+That's all, folks !
+
+<sect1>Troubleshooting (FAQ)
+<p>
+This section lists most frequently encountered problems.
+<descrip>
+<tag>The image download never ends</tag>
+You are probably using a standard TFTP server, and it cannot handle more
+than 65535 packets of 512 bytes (or even 32767 packets for the Solaris
+server). That is, your image must be fragmented in pieces of no more
+than 30 MB (or 15 MB for Solaris). See under <em/CopyArchive/ for
+instructions on fragmenting an existing image. But you should seriously
+thing about using InCom's extended TFTP server, as it is much more
+efficient (it uses packets of 1408 bytes instead of 512 bytes).
+<tag>The archive decompression fails immediately</tag>
+There are three possibilities. Either the image is really corrupted on the
+server (try use MrZip to see if it is the case), or the file transfer
+has failed because of TFTP timeout, or because of incompatible protocol.
+
+TFTP timeout occurs when the network
+is too heavily loaded (for instance if you try to download a huge image
+with more than four clients at a time). In this case, <tt/BpBatch/
+does not retry indefinitely because it would not help. Shut down
+a few computers and retry with no more than four computers (or maybe
+even three).
+If you often need to download images for a lot of computers, you can
+try our special Broadcast TFTP server (see the section dedicated to it).
+
+Incompatible protocol is caused by using a standard TFTP server
+(typically the one built-in in your UNIX server) while asking
+BpBatch to work with enhanced TFTP. If you use a standard TFTP
+server, <bf/you should remove the .P extension/ (see the explanation
+in the next question).
+
+<tag>The computer hangs instead of downloading/unzipping (1)</tag>
+If you are using Incom's TFTP server, try to add -s 1408 59 to the command
+line. If you are not using an enhanced TFTP server, remove the <tt/.P/
+extension from BpBatch filename on the server and in <tt/bootptab/.
+
+Detailed explanation :
+this problem occurs if you did not setup an extended TFTP server but
+you used <tt/bpbatch.P/ as the bootfilename DHCP/BOOTP tag. BpBatch will 
+indeed try to connect to an extended TFTP server when the bootfilename 
+ends with
+a <tt/.P/ extension. To solve this problem, you can either remove the <tt/.P/
+extension at the end of the bootfilename (it will tell BpBatch to use standard
+TFTP) or install an extended TFTP server.
+The only supported extended TFTP server today is the
+one provided by Incom. You can find compiled binaries on their web site, or
+on our distribution directory. For Incom's TFTP server to properly work with
+the extended TFTP feature, you must add <tt/-s 1408 59/ to the command line.
+<tag>The computer hangs instead of downloading/unzipping (2)</tag>
+May be your computer has a bad VESA support. Try giving the <tt/-v/
+command-line argument or setting the VESA variable to <tt/"OFF"/.
+<tag>VESA scrolling is broken</tag>
+We use a VESA 1.1 function for scrolling. If your video adapter does not
+support VESA 1.1, forget it. If the scrolling works for one page, but
+then produces a strange strippled pattern, do not worry. This is a known
+bug, I will fix it as soon as I have time for it (VESA scrolling is not
+really essential...)
+<tag>There is a corrupted file in the cache</tag>
+When a file in the cache is corrupted by an external program,
+it is automatically removed from the cache. When a file in the cache
+is not fully written (because the computer is turned off during the
+file transfer), it is also automatically removed. But if the server
+transmits a corrupted file or if the transfer aborts from the server
+side, it is possible that this file stays in the cache. You can clean-up
+the cache simply by holding both shift down while <tt/BpBatch/ access
+it for the first time. Alternatively, you can evaluate <tt/clean -1/
+in interactive mode.
+<tag>The EXIT command does not work in a batch file</tag>
+This is not a bug. Exit is not a command.
+There is no exit or quit command because it does not make any sense
+to exit from a boot script without booting. And MrBatch is
+really the same program as BpBatch.
+What you can do instead is calling HdBoot. This makes sense, and the
+DOS version will cleanly exit instead of rebooting.
+Note that you can exit from the DOS version at any time by
+pressing Ctrl-Break. This will restore all hooked interrupts
+before leaving.
+<tag>The Print command does not print</tag>
+If you try to print something and immediately enter interactive mode,
+you may not see your text. This is because your text was written
+on the <em/runtime/ screen and the <tt/Interact/ command has
+switched the display to the <em/Log/ screen. Just put a <tt/GetKey/
+after the print commands and you will see the text output.
+<tag>MrZip says <tt/Malloc failed/</tag>
+MrZip needs a lot of conventional memory to run. 
+If you encounter this problem, first ensure that you have unloaded
+the bootprom either using <tt/HideBootprom/ or using InCom's <tt/bputil/.
+If you run MrZip from
+bare MS-DOS (not within Windows 95 DOS box), you should use EMM386
+to load the network drivers high in order to get as much conventional
+memory as possible. From a Windows 95 DOS box, there is usually no
+problem (as long as you have not left your old 16-bit stuff in
+your <tt/autoexec.bat/ when you installed Windows 95).
+<tag>MrZip aborts while reading directories</tag>
+This bug has already been fixed once. Get the latest release of
+<tt/MrZip/. If the problem persists,
+try to build your image with <tt/Trace/ set to <tt/"ON"/ (and usually
+<tt/PauseLog/ set to <tt/"OFF"/); this will let you discover which
+file causes the problem. Send a detailled bug report.
+<tag>MrZip cannot access some file</tag>
+MrZip is probably trying to read a locked, open or special file, 
+such as Windows swap
+file. Such files should usually not be included in
+the image and should be filtered out (using the <tt/filter/ command).
+It is also possible that the operating system is playing you a trick. 
+If MrZip does not tell you what file causes the problem,
+try to build your image with <tt/Trace/ set to <tt/"ON"/ (and usually
+<tt/PauseLog/ set to <tt/"OFF"/).
+You can also try to use direct
+disk access (that is, do not refer the source partition as
+<tt/"C:"/ or <tt>"/"</tt> but as <tt>"{:1}"</tt> or 
+whatever partition it is). Using
+direct disk access is usually slower because we have less buffers than
+the operating system, but it may be sometimes more reliable.
+<tag>Disk images are always reloaded from the server</tag>
+Disk images are stored in the special cache area and should not be
+reloaded if they have not changed on the server. However, as the cache
+area always starts after the last used partition, changing the total
+size of partitions will move the location of the cache and thus destroy
+its content. Another possible reason for a file disappearing from the
+cache is that the previous file has grown more than one-and-an-half
+times its initial size. The file would then have been overwritten and
+need to be downloaded once again. This should almost never occurs.
+A third possible reason is a too small cache area. If the free space
+left outside the partitions is less than one-and-an-half times the sum
+of all compressed image sizes, only the most recently used images will
+be present in the cache and the other will have to be reloaded on demand.
+<tag>Red Hat Linux 5.1 does not boot properly</tag>
+This distribution assumes Linux was booted using <tt/lilo/ and checks
+for the <tt/BOOT_IMAGE/ command line argument (in 
+<tt>/etc/rc.d/rc.sysinit</tt>). Simply add it in the <tt/linuxboot/
+call, or change your <tt/rc.sysinit/.
+<tag>The broadcast TFTP ramdisk hangs (<em/Got in bound state/)</tag>
+Linux dhcp client is a program that dynamically changes the
+IP address of the client according to DHCP offers. If the address
+is offered forever (infinite lease time), the DHCP client just 
+set the address and returns (this is what we expect). 
+However, if the lease time is
+limited, the DHCP client must remain loaded and ask for new
+addresses every few minutes. And if the
+DHCP client does not return, MrBatch will never be loaded...
+The solution is to give an infinite lease time (sometimes
+encoded as -1).
+<tag>File access hangs under BpBatch, but not under MrBatch</tag>
+This problem occured on an AMI BIOS dated 94/07/25. We investigated
+a little bit, and found no solution. It seems that this problem is
+due to a bug in this BIOS (some register or memory location must
+be destroyed).
+<tag>Unzip of a fragmented archive fails (Malloc failed)</tag>
+This problem was introduced with PXE compatibility, but has now been
+fixed. Please get the latest version.
+<tag>MrBatch and MrZip complain about the terminal under RedHat 5.x</tag>
+This problem has been fixed in the 9th of August version of MrBatch/MrZip.
+There was a problem with a new version of ncurses which has been released
+with RedHat 5.1. 
+<tag>"libncurses.so.3.0: cannot open shared object file" under Linux</tag>
+MrZip has been linked to the version 3.0 of libncurses. You can use other
+versions of libncurses only if they are newer than version 3.0. To use a 
+newer libncurses, all you have to do is to create a soft link from 
+libncurses.so.3.0 to your libncurses.so.xx file.
+With RedHat 5.1, you can use the following command :
+<tt>cd /usr/lib ; ln -s libncurses.4.2 libncurses.3.0</tt>
+You can also download a version recent version of mrzip/mrbatch. Starting
+from the 10/25/98, mrbatch is now compiled under RedHat 5.1.
+<tag>MrBatch and MrZip do not start under Linux (file not found)</tag>
+This problem is the reverse of the previous one. Now that the distribution
+is libc6 ready, it cannot be used any more with libc5. If you encounter
+this problem, simply upgrade your Linux box (Well, if we hear too
+much complaints, we might try to keep two distributions...).
+<tag>I can not access other mode than the default 800x600 VESA mode</tag>
+You should first display the contents of the <tt/VESA-Modes/ variable, to
+see if your hardware support the mode you would like to use.
+Then, try one of the two ways to select a special VESA mode :
+<itemize>
+<item><tt/InitGraph "mode"/: Try InitGraph "1024x768", and then run the
+graphical primitive you are interested in (e.g <tt/DrawGif/).
+<item><tt/VESA-Modes/: The first field of the <tt/VESA-Modes/ variable is
+the name of the default mode. If you change the VESA-Modes variable, all
+graphical primitive will use the mode you specified.
+</itemize>
+<tag>BpBatch prints a "Malloc failed" message when restoring multiple fragments images</tag>
+We corrected a bug in the memory allocation functions of BpBatch. You should make sure that you have a version of BpBatch which has been released after september the 22nd 1998.
+<tag>Fullunzip using the Linux version of MrBatch always fails</tag>
+We corrected this problem in the 09/22/1998 release.
+<tag>Scandisk says my disk is corrupted</tag>
+The 10/25/98 release did correct a problem with large images. Try to download a recent version of BpBatch.
+<tag>My RedHat boot floppydisk does not work with FloppyBoot</tag>
+This bug has been corrected in the 10/25/98 release.
+<tag>My FAT32 disk image does not boot properly</tag>
+This bug has been corrected in the 02/09/99 release.
+</descrip>
+
+<sect>Remote-Boot Tools Reference Manual
+<p>
+This section provides detailled informations on the use of the tools
+we developped at the CUI, University of Geneva for this remote-boot
+configuration.
+
+<sect1>BpBatch, MrBatch and MrZip
+<p>
+These three names stand for three variants of the same program,
+with the following characteristics:
+<itemize>
+<item><tt/BpBatch/ is a special program that can be started from the
+	BootProm before the operating system is loaded. It is made
+	of two parts: <tt/bpbatch.P/, the dynamic loader, and
+	<tt/bpbatch.ovl/, the program itself. <tt/BpBatch/ has
+	full disk I/O capabilities through our own implementation
+	of FAT16, FAT32 and Ext2fs, as well as remote network I/O
+	capabilities through the BootProm TFTP API.
+	<tt/BpBatch/ was compiled under DOS using 
+	Borland C 5.0 and Turbo Assembler 3.2.
+<item><tt/MrBatch/ is the DOS/Linux version of <tt/BpBatch/.
+	All commands recognized by <tt/BpBatch/ are recognized by
+	<tt/MrBatch/ and vice versa. This is very usefull if you
+	want to test your batch scripts from a DOS/Linux session.
+	Under DOS, <tt/MrBatch/ emulates remote I/O by OS-based file
+	access if the bootprom is not available. Under Linux,
+	the bootprom cannot be seen anymore but <tt/MrBatch/
+	can emulate it using Linux IP support, or use OS-based file
+	access.
+	<tt/MrBatch/ was compiled under Linux using GCC 2.7.2.1
+	and under DOS using Borland C 5.0 and Turbo Assembler 3.2.
+<item><tt/MrZip/ is an interpreter that recognizes a superset of
+	<tt/MrBatch/ language, and that serves to build disk images.
+	In <tt/MrZip/, the limited remote file I/O is replaced by a 
+	full-featured OS-based file access. <tt/MrZip/ does not
+	include VESA support.
+	<tt/MrZip/ was compiled under Linux using GCC 2.7.2.1
+	and under DOS using Borland C 5.0 and Turbo Assembler 3.2.
+</itemize>
+
+<sect2>Command Line Arguments
+<p>
+All programs accept the same syntax of arguments. <tt/MrBatch/ and
+<tt/MrZip/ take them from the command line, while <tt/BpBatch/
+look for them in the BOOTP option 155 (decimal). Here is the
+syntax of the arguments:
+<verb>
+        [-x] [-l] [-b] [-v] [-w] [-i] [script-basename]
+</verb>
+where:
+<itemize>
+<item><tt/-x/ disable the use of extended memory
+<item><tt/-l/ disable the use of ISO-latin-8859-1 as default character
+	set
+<item><tt/-b/ cancel the bootprom detection (which cause a floppy
+	seek under DOS)
+<item><tt/-v/ cancel the VESA detection (which cause a switch to full
+	screen under Windows 95)
+<item><tt/-w/ enable direct disk write access (disabled by default
+	under DOS and Linux)
+<item><tt/-i/ enable interactive mode even if a script name is provided
+</itemize>
+The <tt/script-basename/ is optional. If provided, <tt/MrBatch/ and
+<tt/BpBatch/ load the file with the <tt/.bpb/ extension, and <tt/MrZip/
+loads the file with the <tt/.mrz/ extension. If not provided,
+<tt/MrBatch/ and <tt/MrZip/ run in interactive mode while <tt/BpBatch/
+loads the file with the same basename as the BOOTP Boot file and
+a <tt/.bpb/ extension.
+
+<sect2>Syntax rules
+<p>
+The following rules apply when <tt/BpBatch/ parses an input line.
+<itemize>
+<item>Commands are parsed line by line. Lines are separated by CR and/or LF.
+<item>The maximal line length is currently 255 characters.
+<item>Keywords and variable names are case-insensitive.
+<item>" is interpreted as the special string delimiter
+<item>When &dollar;{variable} or &dollar;variable is encountred, it is substituted by 
+  the value
+  of the variable, or by an empty string if the variable is undefined.
+  The substitution also occurs within a string. Moreover, the resulting
+  substituted value must be explicitely enclosed between double quotes
+  if used as a string value (ie. one should merely speak of macro expansion
+  than of a variables).
+<item><itemize>
+  <item><tt>&bsol;a</tt> is substituted by the audible-bell character (ASCII 7)
+  <item><tt>&bsol;b</tt> is substituted by the backspace character (ASCII 8)
+  <item><tt>&bsol;n</tt> is substituted by the newline character (ASCII 10)
+  <item><tt>&bsol;r</tt> is substituted by the return character (ASCII 13)
+  <item><tt>&bsol;t</tt> is substituted by the tabulation character (ASCII 9)
+  <item><tt>&bsol;v</tt> is substituted by the vertical-tab character (ASCII ...)
+  <item><tt>&bsol;nnn</tt> where n is a 3-digit octal number between 000 and 377
+     is substituted by the character with ascii code specified
+  <item><tt>&bsol;X</tt> where X is any other character not listed above
+     is substituted by X itself. In particular,
+     <itemize>
+     <item><tt>&bsol;"</tt> is substituted by a regular double-quote (not a string-delimiter)
+     <item><tt>&bsol;&dollar;</tt> is substituted by a regular dollar sign (not variable substitution)
+     <item><tt>&bsol;&bsol;</tt> is substituted by a regular backslash (not a special character)
+     </itemize>
+  </itemize>
+<item>The character "end of string" (ASCII code 0) CANNOT be used anywhere
+  as it is used internally as end-of-string delimiter
+<item>The character "floating diaeresis" (ASCII code dec 249, hex F9, 
+  octal 371)
+  CANNOT be used in any string as it is used internally as string delimiter
+  in the input parsing routine.
+<item>The character "block space" (ASCII code dec 255, hex FF, octal 377)
+  CANNOT be used in any variable value as it is used internally as
+  variable delimiter.
+</itemize>
+
+Empty lines are ignored.
+Lines starting with a sharp (<tt>&num;</tt>) are treated as comments and are 
+not interpreted.
+Lines starting with a column (<tt>:</tt>) are treated as labels and are 
+not interpreted.
+
+<descrip>
+<tag/String expressions/
+Strings are delimited by opening and closing double-quotes:
+<verb>
+        "Hello world"
+</verb>
+To include double-quotes within a string, quote them using a backslash:
+<verb>
+        "I said: &bsol;"Hello world&bsol;""
+</verb>
+Strings can be postfixed with a few operators.
+<itemize>
+<item>The character substitution operator:
+<verb>
+        "Hello world"/o=u/      ==      "Hellu wurld"
+        "198.76.54.32"/.= /     ==      "198 76 54 32"
+</verb>
+<item>The word selection operator (zero-based):
+<verb>
+        "Hello world"{0}        ==      "Hello"
+        "198 76 54 32"{1-3}     ==      "76 54 32"
+</verb>
+<item>The substring selection operator (zero-based):
+<verb>
+        "Hello world"[4]        ==      "o"
+        "Hello world"[4-7]      ==      "o wo"
+</verb>
+</itemize>
+Operators can be chained by postfixing one after the other.
+For informations about the string length and word count operators,
+see under "Numerical expressions".
+
+<tag/Numerical expressions/
+Numerical expressions work on 32-bits integer numbers
+(from -2,147,483,646 to 2,147,483,647). Hexadecimal octal and
+binary numbers are not understood.
+Whenever a numerical expression is expected, the following
+are recognized:
+<itemize>
+<item>A positive or negative integer number
+<item>An expression in the form (<em/expr1 op expr2/) 
+where <em/op/ can be 
+either +, -, * (multiply), / (divide) or <tt>%</tt> (modulo)
+    and <tt/expr/ is a numerical expression.
+  Note that EACH operation MUST be enclosed between parenthesis :
+<verb>
+        ((3 * 5)+2)             == 17
+</verb>
+<item>The string-length operator (@), followed by a string :
+<verb>
+        @"Hello world"          == 11
+</verb>
+<item>The word-count operator (&num;) followed by a string :
+<verb>
+        &num;"Hello world"          == 2
+</verb>
+</itemize>
+
+<tag/Durations/
+A few commands expect durations as arguments. Durations are measured
+in seconds, with a precision of up to a tenth of second:
+<verb>
+        Delay 3                 waits for 3 seconds
+        Delay 0.3               waits for 3/10 seconds
+</verb>
+
+<tag/Colors/
+Whenever a color is expected, you can either use the numeric value
+of the color or its symbolic name (case-insensitive).
+The following colors are recognized
+<verb>
+        Black           0
+        Blue            1
+        Green           2
+        Cyan            3
+        Red             4
+        Magenta         5
+        Brown           6
+        LightGray       7
+        DarkGray        8
+        LightBlue       9
+        LightGreen     10
+        LightCyan      11
+        LightRed       12
+        LightMagenta   13
+        Yellow         14
+        White          15
+</verb>
+
+<tag/File References/
+File names are strings. They must therefore always be enclosed between
+double-quotes. File names are case-sensitive on case-sensitive
+filesystems, case-insensitive on case-insensitive filesystems.
+Slash and backslash can be freely used one in place of the other.
+Do not forget to double backslash since a single backslash
+is an escape character.
+
+There are two kinds of file references:
+<itemize>
+<item>Direct disk files
+<item>Foreign files
+</itemize>
+
+Direct disk files are referenced using the following notation:
+<verb>
+        "{disk:partition}/absolute/filename"
+</verb>
+The disk number can be omitted and defaults to zero.
+For instance, <tt>"{:1}/usr/bin"</tt> points to <tt>/usr/bin</tt> 
+assuming there is
+such a directory on the first partition. Direct file I/O is
+solely based on our own file access routines (we do not use the
+operating system).
+
+There are two <em/special/ partitions. Partition zero corresponds to
+the hard disk master boot record (MBR) and has a pseudo file-system
+which let you access the boot code. Partition minus-one (-1) corresponds
+to the cache filesystem (see below).
+
+Under BpBatch/MrBatch, foreign files correspond to remote files on the
+TFTP server when the BootProm is available:
+<verb>
+        "help.bpb"           is the file help.bpb in the /tftpboot directory
+        "gifs/MyImage.gif"   is a file in /tftpboot/gifs
+</verb>
+Other TFTP servers can be referenced :
+<verb>
+        "198.76.54.32:help.bpb" 
+</verb>
+If the other server is behind a gateway :
+<verb>
+        "198.70.0.1/198.76.54.31:help.bpb"
+</verb>
+One can also specify a specific port for the TFTP connection :
+<verb>
+        "198.76.54.32@89:getpasswd/smith"
+</verb>
+There can be only one open remote file at a time.
+If the BootProm is not available, remote files are emulated using
+the operating system file I/O, but the same restriction apply.
+
+Under MrZip, foreign files correspond to files as seen by the operating
+system. There is no limitation, and foreign files can be used wherever
+direct disk files can be. Foreign files are usually faster than direct
+disk files, because the operating system has more buffers. Foreign
+files can refer to network files if supported by the operating system.
+<verb>
+        "C:&bsol;&bsol;autoexec.bat"
+        "C:/config.sys"
+        "/mnt/net/usr"
+</verb>
+</descrip>
+
+<sect2>The Cache Filesystem
+<p>
+In order to reduce network load and to fasten the boot process,
+disk archives, linux kernels and possibly other files are cached
+on the hard disk. This disk cache is located at the end of the
+hard disk, between the last cylinder allocated in the partition
+table and the last physical cylinder of the disk (out of any
+allocated partition). There MUST be room between the last partition
+and the end of the disk if you want the cache filesystem to work.
+The cache filesystem MUST work if you want to restore a disk image.
+
+The disk cache is organised in a volatile, CRC-validated filesystem :
+Each directory entry and each 32 KB data block is validated by a
+32-bits CRC. Whenever a directory entry or a data block unexpectedly
+changes, the file is automatically removed from the cache and
+downloaded again upon the next request.
+
+You can freely access the cache filesystem from within BpBatch, MrBatch
+and MrZip using direct disk access on the special partition 
+<tt>"{:-1}"</tt>.
+To see the content of the cache, just type :
+<verb>
+        logdir "{:-1}"
+</verb>
+If the cache ever gets corrupted and is not automatically cleaned (which
+should never occurs), you can either type : 
+<verb>
+        clean -1
+</verb>
+(in interactive mode) or hold both shifts down when BpBatch access
+the cache for the first time.
+
+<sect2>Special variables
+<p>
+Some variable are initially set and/or have special meanings.
+Some of them exist within all programs, other are only available
+under MrZip and other are only available when a BOOTP/DHCP
+reply has been received.
+
+<descrip>
+<tag/General variables/
+<p>
+<itemize>
+<item><tt>&dollar;Program</tt> is set to "BpBatch" within BpBatch, "MrBatch" within
+        MrBatch and "MrZip" within MrZip
+<item><tt>&dollar;Basename</tt> is set to the basename of the script on which the
+        batch interpreter was started
+<item><tt>&dollar;HelpFile</tt> is the name of the file loaded when
+	<tt/Help/ is invoked. 
+        Default: <tt>"&dollar;{Basename}.hlp"</tt>
+<item><tt>&dollar;BOOTP-...</tt> are variables set from the BOOTP/DHCP reply (see the
+        paragraph on BOOTP/DHCP variables for more details)
+<item><tt>&dollar;DHCP-...</tt> are variables set from the DHCP reply (see the
+        paragraph on BOOTP/DHCP variables for more details)
+<item><tt>&dollar;Disks</tt> is set to the space-separated list of sizes for each disk.
+        That means, <tt>&num;"&dollar;Disks"</tt> represent the number of disks
+        and <tt>"&dollar;Disks"{0}</tt> is the size of the first disk
+<item><tt>&dollar;Keypressed</tt> is set to the next ready-to-read key available in the
+        keyboard buffer (if available)
+<item><tt>&dollar;LBA</tt>    controls the use of LBA to access disks > 2Gb.
+        Default: "ON"
+<item><tt>&dollar;FDA</tt>    controls the use of fast disk access (write accross cylinders).
+        Default: "ON"
+<item><tt>&dollar;VESA</tt>   controls the use of VESA graphics.
+        Default: "ON" if available
+<item><tt>&dollar;VESA-Modes</tt> gives the list of all available VESA modes. 
+        The first entry of the list is the default mode, which is used
+        when no parameter is given to InitGraph.
+        Note: if VESA="OFF", this variable is blank
+<item><tt>&dollar;APM</tt>    is set to "ON" if your computer supports Avanced Power
+        Management. If &dollar;APM is "ON", you can use the command PowerOff
+        to turn your computer off.
+        Default: depends on your hardware
+<item><tt>&dollar;Trace</tt> controls the display of each command before execution. It also controls the display of file names when creating new archives.
+        Default: "OFF"
+<item><tt>&dollar;AutoShowLog</tt> controls the automatic switch to the text log whenever
+        the ESC key is pressed.
+        Default: "ON"
+<item><tt>&dollar;PauseLog</tt> controls the pause between each page of log when the log
+        is visible.
+        Default: "ON"
+<item><tt>&dollar;CacheDisk</tt> is set to the disk used for caching remote files.
+        Default: empty == 0, the first hard disk
+<item><tt>&dollar;CacheAlways</tt> controls the automatic caching of remote files copied,
+        patched or drawn as GIF.
+        Default: "OFF"
+<item><tt>&dollar;CacheNever</tt> prevents any file from being cached.
+	Turn this variable on for diskless Linux boot.
+        Default: "OFF"
+<item><tt>&dollar;CacheReserve</tt> controls the preventive allocation
+	of 25 percent more space than necessary in the cache partition,
+	to let the files grow. Turn this variable off if you are short
+	of disk space.
+        Default: "ON"
+<item><tt>&dollar;ExtMemory</tt> controls the use of Extended Memory (or XMS).
+        Once deactivated, extended memory cannot be reactivated.
+        Default: "ON" if available
+<item><tt>&dollar;IsoLatin</tt> controls the interpretation of upper ASCII codes in
+        included and patched files. The IsoLatin settings are
+        processed at the time the file is loaded, not at the
+        time the file is processed.
+        Default: "ON"
+<item><tt>&dollar;ProgressX</tt> and <tt>&dollar;ProgressY</tt> controls the position of the progress
+        window displayed in VESA graphics during archive download
+        and decompression.
+        Default: 200 200
+<item><tt>&dollar;EXT2-Backup</tt> controls the update of superblock backups in Linux
+        ext2 filesystem. Superblock backups take a few seconds to
+        do and are never used by current kernels (only by e2fsck).
+<item><tt>&dollar;Security-Gateway</tt> controls the gateway-server used for user
+        authentication. Our special authentication gateway must be running
+        on the target computer.
+        Default: <tt>"&dollar;{BOOTP-Server-IP}@89"</tt>
+	 (ie. the TFTP server, on port 89)
+<item><tt>&dollar;Security-Check</tt> contains the answer of the security server for the last
+        check performed, either PASSED or FAILED.
+        Default: "FAILED"
+<item><tt>&dollar;Security-Passwd, &dollar;HelpTopic, &dollar;OnExit, &dollar;OnKey-...</tt>  
+	are used internally.
+</itemize>
+
+See also BOOTP variables and MrZip-specific variables.
+
+<tag/MrZip-specific variables/
+The following variables are only used within MrZip.
+<itemize>
+<item><tt>&dollar;TempPath</tt> controls the directory where temporary files will be stored.
+        Default: &lt;empty&gt; == current directory
+<item><tt>&dollar;DumpFormat</tt> controls the way archives are dumped to the log when requested.
+        It is a string containing
+	<itemize>
+        <item>"h"/"H" to display the archive header
+        <item>"b"/"B" to summarize/dump boot sectors
+        <item>"s"/"S" to display a short/long allocation summary
+        <item>"d"/"D" to display a short/long directory listing
+        <item>"f"/"F" to summarize/dump files
+	</itemize>
+        Default: "hbD"
+<item><tt>&dollar;FragmentSize</tt> controls the size of archive pieces. 
+ If you do not use InCom's extended TFTP server, you should
+ set this to "30 MB".
+ Default: "87 MB"
+<item><tt>&dollar;SourceArchive, &dollar;DestArchive, &dollar;Filter...</tt> are used internally.
+</itemize>
+
+<tag/BOOTP variables/
+The following BOOTP-... and DHCP-... variables are recognized, as long
+as a BOOTP/DHCP reply has been received (TCP/IP Bootprom must be reported
+as detected):
+<verb>
+	$BOOTP-Client-ID
+	$BOOTP-Your-IP
+	$BOOTP-Server-IP
+	$BOOTP-Gateway-IP
+	$BOOTP-Bootfile
+	$BOOTP-Server-Name
+        $BOOTP-Subnet-Mask
+        $BOOTP-Time-Offset
+        $BOOTP-Routers
+        $BOOTP-Time-Servers
+        $BOOTP-Name-Servers
+        $BOOTP-Domain-name-Servers
+        $BOOTP-BOOTP-Log-Servers
+        $BOOTP-Cookie-Servers
+        $BOOTP-Lpr-Servers
+        $BOOTP-Impress-Servers
+        $BOOTP-Resource-Location-Servers
+        $BOOTP-Host-Name
+        $BOOTP-Boot-Size
+        $BOOTP-Merit-Dump
+        $BOOTP-Domain-Name
+        $BOOTP-Swap-Servers
+        $BOOTP-Root-Path
+        $BOOTP-Extensions-Path
+        $BOOTP-IP-Forwarding
+        $BOOTP-Interface-MTU
+        $BOOTP-All-Subnets-Are-Local
+        $BOOTP-Broadcast-Address
+        $BOOTP-NIS-Domain
+        $BOOTP-NIS-Servers
+        $BOOTP-NTP-Servers
+        $BOOTP-Font-Servers
+        $BOOTP-X-Display-Manager
+        $DHCP-IP-Address-Lease-Time
+        $DHCP-Message-Type
+        $DHCP-Server-Identifier
+        $DHCP-Message
+        $DHCP-Renewal-Time
+        $DHCP-Rebinding-Time
+        $BOOTP-NIS+-Domain
+        $BOOTP-NIS+-Servers
+        $BOOTP-Server-Name
+        $BOOTP-Bootfile
+        $BOOTP-Mobile-IP-Agent
+        $BOOTP-SMTP-Servers
+        $BOOTP-POP3-Servers
+        $BOOTP-NNTP-Servers
+        $BOOTP-WWW-Servers
+        $BOOTP-Finger-Servers
+        $BOOTP-IRC-Servers
+        $BOOTP-StreetTalk-Servers
+        $BOOTP-STDA-Servers
+</verb>
+
+Other BOOTP/DHCP parameters can be used under the name
+<verb>
+        $BOOTP-Option-n
+</verb>
+where n is the decimal representation of the BOOTP option number.
+
+Do not mix-up <tt/BOOTP-Gateway-IP/, which is the gateway to use for TFTP
+and should be 0.0.0.0 if the TFTP server is in the same subnet, and 
+<tt/BOOTP-Routers/, which contains the default IP gateway(s). The
+TCP/IP Bootprom sometimes seems to set the value of <tt/BOOTP-Gateway-IP/
+from the value in <tt/BOOTP-Routers/, causing each TFTP ack packet to
+be sent to the router first. To avoid such behaviour, if your TFTP server
+is in the same subnet as the client, force <tt/BOOTP-Gateway-IP/ to
+<tt/0.0.0.0/ (thanks to Maciek Uhlig for having pointed out this problem).
+</descrip>
+
+<sect2>Monitoring commands
+<p>
+This section lists commands for monitoring the system state.
+Optional arguments are listed between parenthesis (I would have prefered
+square brackets, but LaTeX do not like them at this place...)
+<descrip>
+<tag/Interact/
+Show the log and turn to interactive mode until QUIT or EXIT is entered.
+Type HideLog before quitting if you want to avoid disturbing log messages
+during batch execution.
+
+<tag/Help (topic)/
+Load the on-line help file (<tt>bpbatch.hlp</tt>) and display the description
+of the given topic. If no topic is provided, or if the topic is unknown,
+display the help index.
+
+<tag/Log "text"/
+Display the string on the log. No return/linefeed is implicitely added.
+
+<tag/Echo "text"/
+Display the string on the log and go to the next line.
+Equivalent to 
+<verb>
+        Log "text\r\n".
+</verb>
+
+<tag/LogVars ("pattern")/
+Log (ie. display on the log) all variables matching the given pattern.
+The pattern can contain wildcards (? and *).
+<verb>
+Example: LogVars "BOOTP-*"              list all BootP variables
+</verb>
+<tag>LogDir "path/pattern"</tag>
+Log (ie. display on the log) all files from the given path that
+match the pattern. The pattern can contain wildcards (? and *).
+<verb>
+Example: LogDir "/usr/g*p"              list files names like g...p
+</verb>
+<tag/LogTree "path"/
+Log the directory tree starting with the given path as root.
+
+<tag/LogFile "filename"/
+Log the content of the file. The file must be no more than 64 KB big.
+
+<tag/ShowLog/
+Make the log visible if it was hidden.
+Automatically performed when ESC is pressed with "&dollar;AutoShowLog" == "ON"
+and when entering interactive mode.
+
+<tag/HideLog/
+Prevent log messages to appear on the screen. Default state when BpBatch,
+MrBatch and MrZip are started on a script file.
+
+<tag/CaptureLog/
+Record all log output to a 64 KB buffer until EndCapture is issued.
+Wrap around buffer if the log output is more than 64 KB big.
+This command can be used to create a text file with an arbitrary content.
+The EndCapture MUST occurs within the same batch file.
+
+<tag/EndCapture ("filename")/
+End up the capture of the log. If a filename is given, store the
+captured text to a file. Otherwise, discard it.
+
+<tag/Beep/
+Make a sound. This command is equivalent to Echo "&bsol;007".
+</descrip>
+
+<sect2>Control commands
+<p>
+This section lists commands that control the batch execution.
+Optional arguments are listed between parenthesis.
+<descrip>
+<tag/Include "filename"/
+Load the given file and start up the parser on it. Go back to
+the current point when the include file processing is done.
+The interpretation of characters above ASCII 127 within the
+include file depends on the value of &dollar;IsoLatin at the time
+the file is included.
+
+<tag/OnExit <em>command</em>/
+Setup an exit-handler that will automatically be evaluated at the
+end of current batch file.
+
+<tag/Goto <em>label</em>/
+Move the execution cursor to the given label (ie. the line starting with
+:<em>label</em>)
+
+<tag/Eval "command"/
+Perform all substitutions on the "command" and run the parser on it.
+
+<tag/If .../
+<verb>
+  If (not) <expr1> (==|!=|<|>|>=|<=|=>|=<|<>) <expr2> <command>
+  If (not) (ci) "str1" (==|!=|<|>|>=|<=|=>|=<|<>) "str2" <command>
+  If (not) (ci) "str1" Match-Expr "pattern" <command>
+  If (not) (ci) "str1" Match-Passwd "unix-passwd" <command>
+  If (not) (ci) "str1" in "wordlist" <command>
+  If (not) (ci) "str1" in-file "filename" <command>
+  If (not) exist "filename" <command>
+  If (not) valid <disk>:<partition> <command>
+</verb>
+
+These commands execute <em>command;</em> if the test succeeds.
+The 1st form compares two numerical expressions.
+The 2nd form compares two strings, optionally case-insensitive.
+The 3rd form tests if "str1" matches the given pattern (wildcards allowed).
+The 4th form tests if the clear password "str1" matches the Unix-crypted
+password.
+The 5th form tests if "str1" is included in the word list.
+The 6th form tests if "str1" is included in the word file.
+The 7th form tests if the given file exists.
+The 8th form tests if the given partition is valid (i.e. formatted). This
+form is only supported by BpBatch versions after February 1999.
+
+<tag/Set .../
+<verb>
+  Set variable = "string-value"
+  Set variable = <expr>
+</verb>
+
+Setup a value for the given variable. If the given value is a numerical
+expresison, it will be implicitely converted to a string.
+A variable can be used anywhere by refering it as &dollar;variable or 
+&dollar;{variable}.
+If the resulting reference is to be interpreted as a string, it
+should be enclosed between double quotes: "&dollar;variable" or "&dollar;{variable}".
+
+<tag/Delay <em>duration</em>/
+Waits until the specified duration (expressed in seconds) expired.
+See also the paragraph on the format of durations.
+
+<tag/GetTime <em>variable</em>, GetDate <em>variable</em>/
+
+Get the CMOS time and store it into <em>variable</em>in the form HH:MM:SS.
+Get the CMOS date and store it into <em>variable</em>in the form YY/MM/DD.
+This can be used to customize the behavior of your boot scripts
+depending on the time of day or on the date.
+
+<tag>SetTime "HH:MM:SS", SetDate "YY/MM/DD"</tag>
+
+Set the computer CMOS time or date to the given value. 
+If you have a security gateway (our special TFTP server) running, you
+can automatically adjust the CMOS time and date of the client computers
+at each boot by evaluating the following command:
+<verb>
+        include "$Security-Gateway:gettime"
+</verb>
+If you want to understand what this command does, just type:
+<verb>
+        logfile "$Security-Gateway:gettime"
+</verb>
+
+<tag>Poweroff</tag>
+
+Turn off the computer.
+This command only works if the computer is Advanced Power Management (APM)
+compatible.
+</descrip>
+
+<sect2>Keyboard-related commands
+<p>
+This section lists commands that let you monitor the keyboard input.
+Optional arguments are listed between parenthesis. 
+See also under <em/National Language Support/.
+<descrip>
+<tag/GetKey (<em>variable</em>)/
+Indefinitely wait until a key is pressed and store it in the <em>variable</em>.
+
+<tag/WaitForKey <em>duration</em> (<em>command</em>)/
+Wait until a key is pressed for no more than <em>duration</em> seconds.
+If no key has been pressed after the given time, evaluate the <em>command</em>.
+Otherwise, leave the key in the keyboard buffer.
+See also the paragraph on the format of durations.
+
+<tag/Input (<em>variable</em> (<em>max-length</em>))/
+Read a return-terminated string from the keyboard and store the result
+string in <em>variable</em> (without the terminating return). If <em>max-length</em>
+is given, do not allow the user to enter more than this number
+of characters.
+
+See also <tt/GetPasswd/ under <em/Security-related commands/.
+
+<tag/OnKey "c" <em>command</em>/
+
+Setup a key handler that will automatically evaluate the given <em>command</em>
+when the key "c" is pressed (except is explicitely waited by a GetChar
+or an Input command). If the string <tt/"default"/ is used instead of
+a single character, the command is executed if any other key is pressed.
+</descrip>
+
+<sect2>Text output commands
+<p>
+This section lists commands used to perform regular text output.
+All these commands can be used in graphic mode also, with
+the same behaviour (except that text mode provides 80x25 characters
+while graphic mode provides 100x37, because graphic mode
+characters are of size 8x16).
+Optional arguments are listed between parenthesis.
+See also under <em/National Language Support/.
+<descrip>
+<tag>Print <em>"text"/expr</em></tag>
+
+Print the specified string/expression at current cursor position
+and using current text attributes, then move the cursor.
+Add "&bsol;r&bsol;n" to the end of the string to go to the next line.
+
+<tag/TextAttr <em>fg-color</em> <em>bg-color</em>/
+
+Setup the text attributes. One can also put a single numeric value
+representing both colors and defined as 16*<em>bg-color</em>+<em>fg-color</em>.
+
+If you need more fantasy, you can use <tt/LoadFont/. See under
+<em/National Language Support/.
+
+<tag/At <em>line</em>,<em>col</em> (<em>command</em>)/
+Move the cursor position to the specified position and evaluate
+the command if provided.
+<verb>
+Example: At 10,20 Print "Gnats and rats !"
+</verb>
+<tag/Clear (<em>color</em> (<em>pattern-char</em> (<em>top</em>,<em>left</em>,<em>bottom</em>,<em>right</em>)))/
+Fill the given text area with the given <em>pattern-char</em> (either a string
+or the decimal ascii code). The area defaults to the full screen,
+the pattern char defaults to the full block (ASCII dec 219) and the
+color defaults to black (clear screen). Move the cursor to the upper left
+corner of the cleared area.
+<tag/BpMenu backward compatibility commands/
+<verb>
+  .ATT (<attribute>)
+  .CLS (<attribute>)
+  .DEF <key> (<timeout_val>)
+  .KEY <key> <filename>
+  .POS ((<x>) <y>)
+  .PWD <key> <cpasswd>
+  .WLN (<text>)
+  .WRT <text>
+</verb>
+
+See InCom's manual for more infos. We wrote some time ago a <htmlurl
+url="soft/menuedit.zip" name="program"> program for editing menu files
+using this syntax, but it is preferable to make your menus using the
+new explicit syntax.
+Note that the .PWD command is not implemented because we do not now the
+password crypting algorithm used by InCom GmbH.
+</descrip>
+
+<sect2>Graphics output commands
+<p>
+This section lists commands used to perform graphic-mode output.
+For the functions listed in this section, coordinates are given
+in pixels. You can also use all text output commands (see above)
+in graphic mode.
+Optional arguments are listed between parenthesis.
+
+Note that the graphic mode is automatically turned on whenever a graphic
+command is used, unless the variable <tt/VESA/ is set to <tt/"OFF"/.
+<descrip>
+<tag/InitGraph ("mode")/
+Turn on VESA graphics.
+The origin is on the upper-left corner of the screen (0 0).
+VESA graphics may hang some computers under Windows 95. Run MrBatch
+with the -v option to avoid such problems.
+
+You can request a specific video mode if you use the parameter "mode"
+This parameter is optional: if you do not specify any value, the video
+mode will be taken from the first field of the VESA-Modes variable.
+
+Valid modes are :
+<itemize>
+<item>640x480    =>  640 by 480 pixels, 256 colors
+<item>800x600    =>  800 by 600 pixels, 256 colors (default mode)
+<item>1024x768   =>  1024 by 768 pixels, 256 colors
+<item>1280x1024  =>  1280 by 1024 pixels, 256 colors
+</itemize>
+
+The VESA-Modes variable lists the video modes supported by your hardware.
+
+Example: <tt/InitGraph "640x480"/
+
+<tag/CloseGraph/
+Close VESA graphic mode and go back to text mode.
+
+<tag/DrawBar <em>x-pos</em> <em>y-pos</em> <em>width</em> <em>height</em> <em>color</em>/
+VESA graphics. Draw a filled bar of the given size and colors.
+
+<tag/DrawWindow <em>x-pos</em> <em>y-pos</em> <em>width</em> <em>height</em> (<em>bg-color</em> (<em>bar-color</em>)) ("title" (<em>title-color</em>))/
+VESA graphics. Draw a window of the given size and colors. The background
+color defaults to LightGray and the title-bar color defaults to Blue.
+If you include a title string and a color, this text will be displayed in
+the title bar.
+
+<tag/Drawtext <em>x-pos</em> <em>y-pos</em> "text" (<em>fg-color</em>)/
+VESA graphics. Draw the text string at the given position with a
+transparent background. The color defaults to text foreground color.
+
+<tag/DrawGif "gif-filename" (<em>x-pos</em> <em>y-pos</em> (<em>color-strategy</em>))/
+VESA graphics. Load the given GIF-87a file and draw it on the screen.
+The file can be interlaced, but must be in GIF-87a (not GIF-89a).
+The image size should fit in the selected video mode. You cannot load a 
+1024x768 GIF file when you selected a 640x480 mode.
+The GIF position defaults to the top left corner of the screen (0 0).
+
+The <em>color-strategy</em> defines the allocation of colors in the palette
+when more than 256 colors are needed (for instance when two 256 colors
+GIF files are displayed simultaneously):
+<itemize>
+<item><tt/Best-Colors/  use best possible colors for the most recent GIF
+<item><tt/Spare-Colors/ try to avoid allocating colors, change existing colors
+<item><tt/Share-Colors/ try to avoid allocating colors, use existing colors
+<item><tt/Reuse-Colors/ allocate no new color, only use existing colors
+</itemize>
+The default strategy is <tt/Best-Colors/.
+</descrip>
+
+<sect2>Security-related commands
+<p>
+This section lists commands that help you authenticate a user.
+Optional arguments are listed between parenthesis.
+
+Some of these functions cooperate with a <em/Security gateway/,
+that you should first install. See the section on <em/Special
+TFTP servers/ for more infos.
+<descrip>
+<tag/GetPasswd (<em>variable</em> (<em>max-length</em>))/
+Same as Input, but echo stars instead of the typed characters.
+
+<tag/Crypt "text" "salt" <em>variable</em>/
+Apply the Unix crypt function to the given 8-chars text and store the
+resulting crypted string into <em>variable</em>. The "salt" is usually a
+two-character string that will be found as the first two characters
+of the crypted string.
+
+Note that Unix crypt is a one-way function. It is not possible to
+decode the crypted string. One can only try to crypt another string
+with the same salt and compre the resulting crypted string.
+
+<tag/DESCrypt "text" "key" <em>variable</em>/
+Crypt the given text using the given 8-chars key and store the result
+as an hexadecimal string in <em>variable</em>.
+
+<tag/DESDecrypt "hexcode" "key" <em>variable</em>/
+Decrypt the given hexadecimal string using the given 8-chars key and
+store the result in <em>variable</em>.
+
+<tag/MD5 "text" <em>variable</em>/
+Compute the MD5 checksum of the given text and store it as an hexadecimal
+string in <em>variable</em>. Can be used as an alternative to the Unix crypt
+function to check for passwords bigger than 8 characters.
+
+<tag/CheckUser "user" "password" "domain"/
+Connect to the &dollar;Security-Gateway and check if the given user exist
+in the given radius domain and uses the specified password.
+If the domain is <tt/"Unix"/, use the Unix user/password definition
+on the security gateway. For any other domain, use the security
+gateway domain definition file to determine the real Radius or NT
+domain to check.
+
+Set the value of &dollar;Security-Check to "PASSED" or "FAILED".
+The password do not transit in clear on the network.
+</descrip>
+
+<sect2>Disk-related commands
+<p>
+This section lists commands for preparing the hard-disk.
+Optional arguments are listed between parenthesis.
+<descrip>
+<tag/GetPartitions <em>variable</em> (<em>disk</em>)/
+Read the partition table(s) for the given disk and store it as a
+string into the given <em>variable</em>. The result string is a space-separated
+list of <em>Type:Size</em>, where
+<itemize>
+<item>  <em>Type</em> is FAT16, EXT, BIGDOS, NTFS, FAT32, FAT32-LBA,
+                  BIGDOS-LBA, EXT-LBA, LINUX-SWAP, LINUX-EXT2
+                  or the decimal filesystem id for unknown types.
+<item>  <em>Size</em> is the size of the partition in megabytes.
+</itemize>
+See SetPartitions for more informations about partitions.
+
+<tag/SetPartitions "partitions" (<em>disk</em>)/
+Setup the partition table(s) to the content of the string. The format
+used is the same that for GetPartitions. This command also
+reset all boot flags (hint: use SetBootPart).
+
+The main partition table in the master boot record (MBR)
+has only four entries. Moreover, DOS and Windows accept
+only ONE FAT partition (called the Primary partition, C:)
+in the main partition table. Any supplemental FAT partition
+should be nested in an extended partition (and is thus
+called a Logical partition). If we give numbers 1-4 to
+the partitions described in the MBR partition table
+and numbers 5-8 to the partitions described in the
+first extended partition, the definition of two
+FAT partitions would work by defining partition 1
+as FAT, partition 2 as EXT and partition 5 as
+FAT. Partitions 3,4,6,7 and 8 should be marked
+as UNUSED. The same scheme can be used recursively
+to define more than two FAT partitions: nesting
+another extended partition in partition 6 and
+adding a logical FAT partition in partition 9.
+
+In the most strict interpretation of DOS specifications,
+that means that entries 3 and 4 of the partition tables
+are never used. In practice, some versions of DOS and
+some other OS are able to use more than two partitions
+per partition table, but there is no clear rule.
+On this side, BpBatch is rather flexible in its
+interpretation of partition tables, it can often
+understands things that OSes cannot.
+
+One universal rule is that there should never be more
+than one extended partition per partition table, otherwise
+the partition numbering scheme breaks down.
+
+If you want to try funny configurations, make your own
+experiments, but don't complain if the OS does not
+recognize your partitions. The only way it is guarantee
+to work is to use the primary partition to store the
+OS boot partition, and to nest all other partitions,
+one at a time, in extended partitions.
+
+Example of extended partitions :
+<verb>
+        SetPartitions "BIGDOS:100 EXT:400 EMPTY EMPTY BIGDOS:400"
+</verb>
+
+<tag/GetBootPart <em>variable</em> (<em>disk</em>)/
+Get the partition number with the boot flag turned on (DOS says:
+the activated primary partition) and store it to the <em>variable</em>.
+The first partition is numbered 1.
+If no partitions has the boot flag turned on, answers zero.
+
+<tag/SetBootPart <em>partition</em> (<em>disk</em>)/
+Set the boot flag to the given partition. The boot flag let the
+master boot record (MBR) choose which partition to boot on.
+The first partition is numbered 1.
+
+<tag/Blank <em>partition</em> (<em>disk</em>)/
+Fill the given partitions with zeroes. Can take quite a lot of time
+for big partitions. Do not format the partition for any operating
+system. See also <tt/Clean/.
+
+<tag/Clean <em>partitions</em> (<em>disk</em>) ("label")/
+Fast-format the given partition(s) according to the type declared
+in the partition table. If a label is given and the filesystem
+supports it, setup the partition label. For a paranoiac full format,
+call <tt/Blank/ on the partition first.
+
+Clean is supported for (FAT16) BIGDOS, FAT32, EXT, LINUX-EXT2 and LINUX-SWAP
+partitions. To clean the master boot record (MBR), use <tt/Clean 0/.
+
+Clean should be used on data partitions and on MBR/EXT partitions.
+It is totally useless to clean a partition before unzipping a filesystem
+on it using <tt/FullUnzip/.
+
+<tag/FullUnzip "full-archive" <em>partition</em> (<em>disk</em>)/
+Decompress a full disk archive to the given partition, overwriting
+any existing file (clean-up on the fly).
+
+FullUnzip is supported for (FAT16) BIGDOS, FAT32 and LINUX-EXT2.
+
+This commands turn on VESA graphics to display a progress banner,
+unless <tt/VESA/ has been turned <tt/OFF/.
+
+<tag/IncrUnzip "incr-archive" "destpath"/
+Decompress an incremental disk archive to the given path. Files
+in the archive replace those with the same name on the target path,
+but other files are not deleted.
+
+IncrUnzip is supported for (FAT16) BIGDOS, FAT32 and LINUX-EXT2.
+This command is far less efficient than FullUnzip since the existing
+filesystem structure must be preserved. However, it avoids
+multiplying the number of different disk images by storing
+the differences only.
+
+<tag/FileUnzip "source-filename" "dest-filename"/
+Uncompress a file previously compressed with <tt/MrZip/ FileZip command.
+The file is validated by a 32-bits CRC.
+
+<tag/Copy "source-filename" "dest-filename"/
+Copy the source file to the destinaton file, byte-to-byte.
+Can be used after a FullUnzip for instance to update configuration
+files from the server without rebuilding the image.
+Better to use <tt/FileUnzip/ for big and easy-to-compress files.
+
+<tag/Append "src-filename-1" "src-filename-2" "dest-filename"/
+Copy the first, then the second file to the destination file, byte-to-byte.
+Can be used on arbitrary large files.
+The destination file cannot be one of the two source files.
+
+<tag/Patch "source-filename" "dest-filename" ("prefix" ("postfix"))/
+Read the source file and perform variable substitution before writing
+it to the destination file. The interpretation of characters above ASCII
+127 depends on the value of &dollar;IsoLatin.
+
+By default, variables are recognized when prefixed by "&dollar;{" and
+postfixed by "}". This can be changed to any other non-empty string.
+remember that if you want to use a dollar sign within the prefix or
+suffix, you must escape it or it will get macro-evaluated. For instance,
+if you want to explicitely use the default prefix and postfix, use:
+<verb>
+        Patch "source-file" "dest-file" "\${" "}"
+</verb>
+
+<tag/MkDir "path"/
+Recursively create directories from the root to the given full path.
+If the path already exists, this command has no effect.
+
+<tag/Delete "filename", Del "filaname"/
+
+Remove the given file. The file must exist.
+
+<tag/DelTree "path"/
+Recursively remove all files and directories under the given path,
+and remove the directory itself.
+</descrip>
+
+<sect2>Boot commands
+<p>
+This section lists commands for continuing the boot process.
+Optional arguments are listed between parenthesis.
+<descrip>
+<tag/HideBootProm/
+Restore the memory and the interrupt vectors allocated by the bootprom.
+All attempts to make TFTP transfers will fail after calling this command.
+It is usually a good idea to call this command before HdBoot, or you
+might run short of memory under DOS/Windows. This command is
+implicitely called by FloppyBoot.
+
+Note that although this function restore all vectors "officially" 
+rerouted by the BootProm, it does not seems to restore everything.
+But it works well enough for DOS and Windows.
+
+<tag/LoadRamDisk "ramdisk-filename"/
+Load a floppy disk image into the extended memory and redirect
+the BIOS Disk Services to make floppy disk calls use this image
+instead. This command implicitely calls <tt/HideBootProm/. Call
+<tt/FloppyBoot/ to boot on the ramdisk you just loaded.
+
+This kind of ramdisk may not be as robust as what you get when
+you use the TFTPBoot command. The only advantage is that it only
+steals a few hundred bytes of conventional memory instead of the
+&gt;64 KB reserved by the TCP/IP BootPROM. Warning, nothing secures the
+extended memory in which the ramdisk resides.
+There is no way to uninstall such a ramdisk.
+
+<tag/LoadZRamDisk "ramdisk-filename"/
+Do the same as <tt/LoadRamDisk/, but for an image that has been
+compressed using <tt/MrZip/ FileZip command. Compressed ramdisks are
+protected against data corruption (and uncomplete download) by a
+byte count and a 32-bits CRC.
+
+<tag/TFTPBoot "remote-bootfile"/
+Chain to another boot file (for instance a floppy image made with
+InCom's BpShell program). See the file referencing conventions
+for accessing a file on another TFTP server.
+
+<tag/FloppyBoot/
+Hide the Boot ROM, load the floppy disk boot sector and boot on it.
+
+<tag/HdBoot (<em>disk</em>)(:<em>partition</em>)/
+Load the given boot sector and boot from it. The disk default to zero,
+the first hard disk, and the partition defaults to zero, ie. the
+master boot record. You can boot from any partition, but be warned that
+Windows 95 may not let you boot a partition that has not been
+set as the boot partition (hint: use SetBootPart).
+
+This command does not implicitely call HideBootProm, so you might
+want to call it before.
+
+<tag/LinuxBoot "kernelfile" ("command-line" ("ramdisk-file"))/
+Load the given kernel and ramdisk into the high memory,
+setup the command line and boot the kernel. It is a good idea
+to put at least a minimal command line with the location of the
+root filesystem (like <tt/"root=/dev/hda1"/). If you are using a linux
+system that heavily relies on <tt/lilo/ (like RedHat Linux 5.1), 
+it may be necessary to add to the command line something like 
+<tt/BOOT_IMAGE=linux/. Note that the kernel
+can be loaded by TFTP (automatically cached on the hard disk)
+or directly from the target root partition.
+
+This command works for small and big kernels (<tt/zImage/ and <tt/bzImage/).
+</descrip>
+
+<sect2>National language support
+<p>
+This section lists commands related not national language support.
+Optional arguments are listed between parenthesis.
+<descrip>
+<tag/RemapKeys "original-keys" "remapped-keys"/
+National keyboard support. Remap given keys to other characters.
+For instance, to swap the Y and Z keys, use
+<verb>
+        Remapkeys "yzYZ" "zyZY"
+</verb>
+It is a good idea to use the quoted octal notation when using characters
+not included in the minimal ASCII character set, in order to avoid a
+dependency to the iso-latin modal settings.
+
+For international keyboards, there are two keys that produce a backslash
+in non-remapped (US) mode. Each of them can be independantly remapped,
+thanks to the fact that <tt/BpBatch/ sees one of them as a key answering
+ASCII code 252 (octal) or ASCII code 335 (octal) when shifted.
+
+If you send me a sample script that does keyboard mapping for
+your national keyboard, I will make it available under <tt>
+<htmlurl url="soft/sample-scripts" 
+         name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/sample-scripts">
+</tt>
+To help you make your own keyboard mapping, I suggest pressing all <em/special/
+keys without remapping the keyboard and writing down the character they produce. 
+These will be the <tt/original-keys/. The <tt/remapped-keys/ simply are
+the key you would have liked to see, in the same order. If some keys (either
+original or remapped) produce characters above ASCII dec 127, use the quoted
+octal notation. You can easily get the octal code for any given character by
+looking in the ASCII table of HelpPC for instance (HelpPC is a shareware
+hypertext on-line help program by David Jurgens).
+
+<tag/RemapAltkeys "original-keys" "remapped-keys"/
+National keyboard support. Remap the given keys when ALT is depressed
+For instance, to map Alt-2 to the ampersand sign, use
+<verb>
+        RemapAltKeys "2" "@"
+</verb>
+Note that dead keys are not supported.
+
+<tag/LoadCodePage "cpxxx.bin"/
+Load and activate the given binary Codepage file.
+Codepages are used for the translation of Unicode characters
+(present on VFAT valumes for instance) into 8-bits characters.
+If you do not have the right Codepage loaded, you will get FAT warnings
+while accessing the filesystem when special characters are encountred.
+
+All binary codepage files are available at <tt>
+<htmlurl url="soft/codepage.zip"
+name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/codepage.zip"></tt>
+
+The default codepage is 850, a reordered superset of ISO-Latin-1.
+If you load a more exotic codepage, you should usually turn the variable
+<tt/&dollar;IsoLatin/ to <tt/"off"/ or you might get meaningless
+implicit conversions. Moreover, if you want to display exotic characters,
+you should also load the proper screen font (use <tt/"LoadFont"/).
+
+<tag/LoadFont "fontfile"/
+Load and activate a VGA/VESA font, both in text and graphic mode.
+The font file must be a binary file of 16 bztes/characters
+(8x16 bitmap). This command can be used for National Language Support
+as well as for Fantasy support.
+
+An archive with several fantasy fonts is available at <tt>
+<htmlurl url="soft/fonts.zip"
+name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/fonts.zip"></tt>.
+This archive also contains a program to extract fonts for your codepage
+from the DOS <tt/.CPI/ file.
+</descrip>
+
+<sect2>Commands specific to MrZip
+<p>
+<descrip>
+<tag/Source.../
+<verb>
+  Source (i)archive "filename"
+  Source path "path"
+</verb>
+
+Set the source for the archive manipulation to the given (incremental)
+archive file or disk path.
+
+<tag/Dest.../
+<verb>
+  Dest (i)archive "filename"
+  Dest (i)dump
+  Dest path "path"
+</verb>
+
+Set the destination for the archive manipulation to the given (incremental)
+archive file, dump or disk path. To control the quantity of data
+displayed during dump, use the &dollar;DumpFormat special variable.
+
+<tag/FileZip "source-filename" "dest-filename"/
+Compress a file for further decompression with FileUnzip or for
+using as ZRamDisk. The file is validated by a 32-bits CRC.
+
+<tag/Filter.../
+<verb>
+  Filter -"pattern"
+  Filter +"pattern"
+</verb>
+
+Avoid/allow files and directories matching the given pattern (wildcards
+allowed) to be included in the archive. The pattern is matched agains the
+full pathname. By default, all files are included in the image.
+You only need to explicitely allow files that where cancelled by a filter.
+Each negative filter has its own positive filter (allowed) sublist.
+
+For DOS/Windows images, you will typically use 
+<verb>
+        Filter -"*.swp"
+        Filter -"temp/*"
+</verb>
+and for Unix images, you will typically use
+<verb>
+        Filter -"var/log/*"
+        Filter -"tmp/*"
+</verb>
+
+<tag/CopyArchive/
+Start the archive manipulation operation, according to source, destination
+and filter settings. Except in a few circumstances, you will probably use
+the shortcut below instead of explicitely calling <tt/CopyArchive/.
+One circumstance in which you will use <tt/CopyArchive/ explicitely is
+when you want to change the fragmentation of an image, as follow:
+<verb>
+        set FragmentSize="30 MB"
+        Source archive "original.imz"
+        Dest archive "refragmented.imz"
+        CopyArchive
+</verb>
+
+<tag/FullZip "path" "full-archive"/
+Shortcut for
+<verb>
+                Source path "path"
+                Dest archive "full-archive"
+                CopyArchive
+</verb>
+You should usually first setup filters.
+
+<tag/IncrZip "path" "incr-archive"/
+Shortcut for    
+<verb>
+                Source path "path"
+                Dest iarchive "incr-archive"
+                CopyArchive
+</verb>
+
+<tag/FullDump "full-archive"/
+Shortcut for    
+<verb>
+                Source archive "full-archive"
+                Dest dump
+                CopyArchive
+</verb>
+
+<tag/IncrDump "incr-archive"/
+Shortcut for   
+<verb>
+                Source iarchive "incr-archive"
+                Dest dump
+                CopyArchive
+</verb>
+
+<tag/XCopy "srcpath" "dstpath"/
+Shortcut for  
+<verb>
+                Source path "srcpath"
+                Dest path "dstpath"
+                CopyArchive
+</verb>
+</descrip>
+
+<sect1>NoBreak.sys
+<p>
+<tt/Nobreak.sys/ is a very small (about 350 bytes only) driver that
+you include at the beginning of your <tt/config.sys/. Its goal is
+to secure the boot process, until the user is logged in.
+DOS provides a setting for this (namely <tt/BREAK=OFF/), but it is not
+drastic enough, and has almost no effect in the <tt/autoexec.bat/.
+Our driver works by modifying the scan-code of the key
+pressed when a break is requested, directly at the BIOS level.
+This way, no program at all can receive a break until break is
+enabled again.
+
+The driver must be loaded from the <tt/config.sys/ (or using the <tt/devlod/
+program from <em/Undocumented DOS/). Afterwards, break can be
+enabled by sending <tt/Yes/ to the <tt/NOBRK/ pseudo-device,
+and disabled again by sending <tt/No/ (in fact, only the first
+character, <tt/Y/ or <tt/N/ is significant).
+
+As this driver relies on the BIOS, it does only work for DOS and Windows 3.1.
+Windows 95 has its own low-level keyboard handling routines.
+
+Assembler source code is <htmlurl url="soft/nobreak.zip"
+name="available">.
+
+<sect>Special TFTP Servers
+<p>
+As the only network support available in the TCP/IP BootPROM is TFTP, there
+is a special interest in enhancing TFTP servers for providing new
+capabilities.
+
+<sect1>Incom Enhanced TFTP Server
+<p>
+InCom GmbH distributes with the TCP/IP BootPROM an enhanced TFTP server that
+can send packets of up to 1408 bytes instead of the standard 512 bytes.
+This is a great enhancement that you should use. This server is available
+on the TCP/IP Bootprom Utility disk for Solaris, Windows and as Netware NLM.
+
+<sect1>Linux Enhanced TFTP Server
+<p>
+We built a modified version of Linux TFTP server that acts as InCom 
+enhanced TFTP server. Basically, we simply changed the packet size from
+512 to 1408 bytes and the port from 69 to 59.
+It is available from <tt><htmlurl url="soft/etftpd.tar.gz"
+  name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/etdtpd.tar.gz"></tt>.
+
+<sect1>The Security Gateway
+<p>
+We wrote a special TFTP server that serves as security gateway for
+authenticating users. This server runs under Linux or Solaris,
+and can authenticate users according to a Unix password database
+(NIS and shadow passwords are supported), a Windows NT (or Samba)
+server or a Radius server. 
+It is available from <tt><htmlurl url="soft/stftpd.tar.gz"
+  name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/stdtpd.tar.gz"></tt>,
+with source and precompiled binaries. 
+The precompiled binaries do not
+include NT password encryption as we cannot distribute <tt/libdes/
+but compilation is straightforward.
+
+In order to use the security gateway, you just have to setup a trivial
+<em/security domains/ configuration file that describes to which
+authentication server each logical security domains maps (the <tt/Unix/
+domain implicitely maps to the server Unix password database). This is
+a sample configuration file:
+<tscreen><code>
+#
+# STFTPD configuration file
+#  
+# This file specify the server of the "security domains". Two types of 
+# authentication servers are supported : radius or winnt (winnt includes
+# NT Server and Samba)
+#
+# Format of radius servers 
+# radius        <domain>        <serveraddress>         <secret>
+#
+# secret is the secret word as specified in your /etc/raddb/clients file
+#
+# Format of SMB servers
+# winnt         <domain>        <serveraddress>         <netbiosname>
+#
+# netbiosname is the NETBIOS name of your server 
+#
+# Examples
+radius         sec-dom-rad     radiusserver    testing123
+winnt          sec-dom-nt1     192.168.1.1     NTSERVER1
+winnt          sec-dom-smb     samba           SAMBA1
+</code></tscreen>
+Note that if you are using Samba, you must set <tt/security = user/.
+
+You can also provide to the security server a file containing a list of 
+users which are not allowed to log on (for which the check will fail anyways).
+
+<sect1>The Broadcast TFTP Server
+<p>
+We wrote a special TFTP server that implements a home-made Broadcast
+variant of TFTP. Using this server, we were able to download
+images to 25 clients on a heavily loaded 10 Mb ethernet network 
+at 6 Mb/s (it is more efficient than the regular TFTP because
+it does not need to acknowledge each packets). 
+This server runs under Linux or Solaris.
+It is available from <tt><htmlurl url="soft/btftpd.tar.gz"
+  name="http://cuiwww.unige.ch/info/pc/remote-boot/soft/btdtpd.tar.gz"></tt>,
+with source and precompiled binaries. 
+
+As the TCP/IP bootprom
+does not support this protocol, our solution consist in booting
+a tiny ramdisk-based linux system using the tools described in this document,
+and running the Linux version of MrBatch which has built-in support
+for Broadcast TFTP. A simple batch file can the download all files
+to the cache in a few minutes, simultaneously on all client computers.
+You do not need to install Linux yourself to use this package, except
+if you have exotic hardware and cannot directly use the kernel provided
+in the package.
+
+The process works as follow. First, you startup the broadcast server
+manually, giving the number of expected client computers as argument
+(remember, this procedure is not to be used every day but only when
+you changed an image and want to ensure it is immediately uploaded
+to all your client computers). Then, you turn on all client computers,
+which will run the following BpBatch script:
+<tscreen><code>
+#
+# This batch is run by bpbatch to launch a mini-linux using an initial 
+# ramdisk, which will then run mrbatch under linux.
+#
+# The broadcast TFTP protocol only works with the Linux implementation of
+# mrbatch, because of the lack of broadcast support in the bootprom itself.
+#
+# 1. Setup a tiny partition, to let a lot of space for the cache
+setpartitions "BIGDOS:50"
+# 2. Clean the MBR
+clean 0
+# 3. Run a Linux Kernel with initrd (Initial Ramdisk) supprt, and use 
+#    bcastrd.gz as the initial ramdisk (will be mounted root and then
+#    executed via /linuxrc). See initrd.txt for more details about
+#    initial ramdisks. You don't have to specify a root device (second
+#    parameter is null) to the kernel, it will use the initial ramdisk.
+linuxboot "linux.krn" "" "bcastrd.gz"
+# 4. The initial ramdisk will run dhcpcd to setup networking using DHCP.
+#    It will then run mrbatch -w bcastlx
+</code></tscreen>
+The initial ramdisk contains:
+<itemize>
+<item><tt/dhcpcd/, a DHCP client used to setup networking
+<item><tt/mrbatch/
+<item><tt/linuxrc/, a little wrapper automatically started by initrd and
+	that starts <tt/dhcpcd/ then <tt/mrbatch/.
+<item><tt>usr/lib/terminfo/l/linux</tt>, used by MrBatch
+<item><tt>dev/*</tt>, devices needed to run Linux and mrbatch
+</itemize>
+All programs are statically linked and stripped, to avoid <tt/libc.so/
+which is really huge. The resulting ramdisk is Gzipped and takes
+less than 300 KB. The kernel itself takes 450 KB (with many network
+cards and initrd support).
+When Linux is up and running, MrBatch is called with the following script
+(that you should edit for your needs):
+<tscreen><code>
+# This file is executed when mrbatch is launched by the initial ramdisk
+# bcastrd.gz
+# It's main purpose is to "broacast copy" files to the cache
+#
+# 1. Be verbose
+showlog
+# 2. Don't want a "press a key"
+set pauselog="OFF"
+# 3. Set partitions at their final values. 
+#    Important: Since you will copy files into the cache to be used in future
+#    boot, you need to specify the same partitions as in the future boots.
+setpartitions "BIGDOS:1024"
+# 4. Clean the CACHE partition
+clean -1
+# 5. And the copy files into the cache, using the Broadcast TFTP protocol
+#    (port 99)
+#
+# You can use the script "as is", but you surely need to modify the following
+# line ! In our example, we download the file mblinux.imz, which is the image
+# file for our installation of Linux.
+copy "$BOOTP-Server-IP@99:mblinux.imz" "{:-1}mblinux.imz"
+</code></tscreen>
+When the transfer is done, you can simply turn off all client computers
+and change their initial boot script to your favorite menu.
+
+</article>

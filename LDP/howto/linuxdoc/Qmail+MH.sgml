@@ -1,0 +1,699 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+
+<title>mini-HOWTO install qmail with MH
+<author>Christopher Richardson (rdn@tara.n.eunet.de)
+<date>v1.4, 5 March 1998
+
+<abstract>
+
+I am just documenting my installation experiences to offer some help to
+other users who wish to use the above combination for their email.
+
+v1.4 - I have finally got a new Linux box running so I decided to
+update this mini-howto
+
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>Introduction
+
+
+<p> 
+
+My thanks to all netizens who have helped me, especially Tony Nugent
+(tony@trishul.sci.gu.edu.au), David Summers (david@summersoft.fay.ar.us)
+and S.u.S.E ( Linux distribution) who has made installing Linux so much easier,
+and the authors of the above excellent programs.
+
+What is qmail and why should I use it?  Here is the author´s (Dan Bernstein)
+blurb:
+
+qmail is a secure, reliable, efficient, simple message transfer agent.
+It is meant as a replacement for the entire sendmail-binmail system on
+typical Internet-connected UNIX hosts.
+
+Secure: Security isn't just a goal, but an absolute requirement. Mail
+delivery is critical for users; it cannot be turned off, so it must be
+completely secure. (This is why I started writing qmail: I was sick of
+the security holes in sendmail and other MTAs.)
+
+Reliable: qmail's straight-paper-path philosophy guarantees that a
+message, once accepted into the system, will never be lost. qmail also
+supports maildir, a new, super-reliable user mailbox format. Maildirs,
+unlike mbox files and mh folders, won't be corrupted if the system
+crashes during delivery. Even better, not only can a user safely read
+his mail over NFS, but any number of NFS clients can deliver mail to him
+at the same time.
+
+Efficient: On a Pentium under BSD/OS, qmail can easily sustain 200000
+local messages per day---that's separate messages injected and delivered
+to mailboxes in a real test! Although remote deliveries are inherently
+limited by the slowness of DNS and SMTP, qmail overlaps 20 simultaneous
+deliveries by default, so it zooms quickly through mailing lists. (This
+is why I finished qmail: I had to get a big mailing list set up.)
+
+Simple: qmail is vastly smaller than any other Internet MTA. Some
+reasons why: (1) Other MTAs have separate forwarding, aliasing, and
+mailing list mechanisms. qmail has one simple forwarding mechanism that
+lets users handle their own mailing lists. (2) Other MTAs offer a
+spectrum of delivery modes, from fast+unsafe to slow+queued. qmail-send
+is instantly triggered by new items in the queue, so the qmail system
+has just one delivery mode: fast+queued. (3) Other MTAs include, in
+effect, a specialized version of inetd that watches the load average.
+qmail's design inherently limits the machine load, so qmail-smtpd can
+safely run from your system's inetd.
+
+Replacement for sendmail: qmail supports host and user masquerading,
+full host hiding, virtual domains, null clients, list-owner rewriting,
+relay control, double-bounce recording, arbitrary RFC 822 address lists,
+cross-host mailing list loop detection, per-recipient checkpointing,
+downed host backoffs, independent message retry schedules, etc. In
+short, it's up to speed on modern MTA features. qmail also includes a
+drop-in ``sendmail'' wrapper so that it will be used transparently by
+your current UAs.
+
+
+<sect>My System Details
+
+<p>
+
+SuSE Linux Distribution 5.1 with 2.0.33 kernal.
+
+
+PPP link to ISP
+
+
+<sect>Qmail Installation
+
+<p>
+
+Follow the INSTALL instructions exactly. 
+
+
+Notes:
+
+
+
+Please take the time to read the Fine documentation  completely.
+The numerals refer to the installation steps in the above INSTALL doc.
+<itemize>
+
+<item> 2  - I had to set up the groups and users manually as per INSTALL.ids
+
+<item> 7  - ./qmail-makectl did not work on my system. I added my domain name (mickey.n.eunet.de) manually in /var/qmail/control/me
+
+<item> 23 - Make sure qmail-smtpd is spelt correctly in the inetd-conf file.
+        (I spelt it incorrectly i.e. qmail-smptd, which took me two days to find:( )
+        smtp  stream  tcp     nowait  qmaild   /var/qmail/bin/tcp-env tcp-env  
+        /var/qmail/bin/qmail-smtpd 
+
+</itemize>
+
+<sect1>Maildir2smtp
+
+<p>
+
+Dan Bernstein has provided a package for sending queued email to an ISP
+via dial-in. This package is available as serialmailxxx from his site.
+
+Install this package as described in the man page (Thanks Rupert Mazzucco 
+(maz@pap.univie.ac.at), it works out of the box!
+
+<tscreen><verb>
+
+
+       maildir2smtp - blast a maildir across SMTP
+
+       maildir2smtp is designed to pass messages along a SLIP  or
+       PPP  link.  To set this up on the disconnected end, create
+       a new maildir in alias:
+
+          # maildirmake ~alias/pppdir
+          # chown -R alias ~alias/pppdir
+
+       Put
+
+          :alias-ppp
+
+       into control/virtualdomains and
+
+          ./pppdir/
+
+       into ~alias/.qmail-ppp-default.  Don't  forget  the  extra
+       slash in pppdir/.  Then, in the PPP startup script, do
+
+          maildir2smtp ~alias/pppdir alias-ppp- $IP `hostname`
+
+       replacing  $IP with the remote IP address.
+
+
+</verb></tscreen>
+
+Notes:
+
+<itemize>
+
+<item>Please read the Fine manual page completely.
+
+<item>Maildir2smtp requires the dotted IP address of your mail server. If you do not have this then ping YourMail.host.country which will return the IP.
+
+<item>This command can be included in your login script to flush all queued mail after logging in to your ISP.
+
+
+</itemize>
+
+<sect>MH Installation
+
+ 
+<p>
+In addition to this, I also replaced /mh-6.8.4/mts/sendmail/smail.c with 
+Dan Bernstein´s mh-qmail-smail.c
+
+This is what my mh-6.8.4/conf/MH looks like:
+
+<tscreen><code>
+
+
+bin	/usr/bin/mh
+etc	/usr/lib/mh
+#mail	
+#mandir	/usr/man
+#manuals	standard
+chown	/bin/chown
+#cp	cp
+#ln	ln
+#remove	mv -f
+cc	gcc
+ccoptions -traditional -O2 -m486 -D_NFILE='getdtablesize()' 
+          -DSIGEMT=SIGUSR1
+curses	-lncurses
+#ldoptions	-s
+#ldoptlibs
+lex	flex
+#oldload	off
+#ranlib	on
+mts	sendmail
+#mf	off
+#bboards	off
+#bbdelivery	off
+#bbhome	/usr/spool/bboards
+pop	on
+popdir	/usr/lib/mh
+sharedlib	sys5
+slflags	-fPIC
+slibdir	/usr/lib
+mailgroup	mail
+signal	void
+sprintf	int
+#editor	prompter
+#debug	off
+#regtest	off
+options	ATHENA
+options	BIND
+options	DPOP
+options	DUMB
+options	FCNTL
+options	MHE
+options	MHRC
+options	MIME
+options	MORE='"/usr/bin/less"'
+options	OVERHEAD
+options	POP2
+options	POPSERVICE='"pop3"'
+options	RENAME
+options	RPATHS
+options	RPOP
+options	SOCKETS
+options	SVR4
+options	SYS5
+options	SYS5DIR
+options	TERMINFO
+options	UNISTD
+options	VSPRINTF
+
+
+</code></tscreen>
+
+
+Notes:
+<itemize>
+<item>I have only compiled ``mts sendmail'' - read in comp.mail.mh somewhere that /smtp can cause problems. Dominic Mitchell (hdm@demon.net) wrote in comp.mail.mh (13 June 1997):
+
+``Not quite. With this option MH still talks SMTP, just over a pipe
+and not over a network. You *really* need a line in your ~/.mh_profile
+which says:
+
+postproc: /usr/local/nmh/lib/spost
+
+Or whever it's kept on your system. This will pass the message
+directly to sendmail in the traditional manner. You're using
+qmail of course, so sendmail will be qmail's wrapper script, but that's
+just fine.'' Thanks Dominic.
+
+
+<item>I have remmed out ``mail'' because I want to control it via mtstailor
+</itemize>
+
+<sect1>mtstailor
+<p>
+
+As qmail delivers mail to the home directory (&tilde;/Mailbox). I added the
+following to my mtstailor
+
+<tscreen><verb>
+
+localname:	mickey
+localdomain:	n.eunet.de
+mmdfldir:	
+mmdflfil:	Mailbox		
+uucpldir:	
+uucplfil:	
+mmdelim1:	\001\001\001\001\n
+mmdelim2:	\001\001\001\001\n
+mmailid:	0
+umincproc:
+lockldir:
+sendmail:	/usr/lib/sendmail
+
+</verb></tscreen>
+
+
+
+Notes:
+<itemize>
+<item>sendmail: /usr/lib/sendmail is a link to the qmail sendmail wrapper in
+   /var/qmail/bin
+
+<item>MH does not like the tilde notation (&tilde;/) use /home instead or leave blank which according to the docs defaults to &dollar;HOME.
+<item>I recently installed MH and qmail on my office machine which is connect via ethernet. I added the following line to mtstailor:
+
+servers: mailserver.company.country
+
+</itemize>
+
+<sect1>mh_profile
+<p>
+
+Here is my .mh_profile
+
+<tscreen><verb>
+
+Path: Mail
+draft-folder: drafts
+unseen-sequence: unseen
+AliasFile: /home/rdn/.mh_aliases
+send: -msgid
+comp: -form /home/rdn/.mymh-components
+MailDrop: /home/rdn/Mailbox
+
+</verb></tscreen>
+
+Notes:
+<itemize>
+<item>I put in the MailDrop line to be ``sure to be sure''.
+</itemize>
+
+
+
+<sect>Fetchmail
+<p>
+I decided to use fetchmail because I have a multiuser (my family :).
+Linux and fetchmail delivers mail to the smtp port where qmail takes over.
+
+
+Installation was no problem, multidrop works with the following .fetchmailrc :
+
+<tscreen><verb>
+
+poll PersonalMail.Germany.EU.net
+protocol pop3
+username myname
+password mypassword
+# the next two lines do the trick for multidrop
+localdomains mydomain.de
+is * here
+# T2 of the fetchmail FAQ states that qmail needs this
+forcecr
+
+</verb></tscreen>
+
+<sect>Exmh
+<p>
+This is my mailer by choice. I love it. 
+
+There is one problem - most pre-compiled TCL/TK packages have the security 
+option compiled in. 
+The following script .xserverrc.secure which came with SuSE solves this.
+
+<tscreen><code>
+
+#!/bin/sh
+
+#
+# move this file to ~/.xserverrc, if you don't want to allow everybody to
+# get access to your X-Server
+#
+if [ -x /usr/bin/keygen ]; then
+    if [ ! -x /usr/bin/hostname -a ! -x /bin/hostname \
+	 -a ! -x /usr/bsd/hostname ];
+    then
+        echo "startx: can't get my hostname - exiting"
+	exit 1
+    else
+	host=`hostname`
+    fi
+
+    xauth add $host:0 . `/usr/bin/keygen`
+    sleep 2
+    xauth add $host/"unix":0 . `/usr/bin/keygen`
+    exec X :0 -auth .Xauthority $*
+else
+    exec X :0 $*
+fi
+
+</code></tscreen>
+
+
+
+<sect>Procmail
+<p>
+
+The qmail FAQ gives this command:
+
+In ~/.qmail add the line 
+
+<tscreen><verb>
+| preline procmail
+</verb></tscreen>
+
+
+
+Version 3.11pre7 has changed the default mail box variable. It used to
+be in config.h. It is now in src/authenticate.c:
+
+<tscreen><verb>
+
+#define MAILSPOOLHOME "/Mailbox"	/* watch the leading / */
+				        /* delivers to $HOME/Mailbox */
+
+</verb></tscreen>
+
+I have culled from comp.mail.mh ans comp.mail.misc some hints on a .procmailrc file. Thanks to everyone!
+
+<tscreen><verb>
+
+# A SAMPLE .PROCMAILRC FILE FOR NOVICES
+# Written by Catherine Hampton <ariel@best.com>
+# Version 1.1
+# Updated 1/25/98
+#
+# Released to the Public Domain.
+#
+#
+# SET VARIABLES
+
+# Internal Variables
+# the following have be modified by rdn 19980303
+
+# Everyone says that the SHELL environment is essential
+SHELL=/bin/sh               #Shell used to run procmail.  Be sure this points to
+                            #your system's copy of sh.  DO NOT substitute a
+                            #different shell unless you really know UNIX
+
+LINEBUF=4096                #Needed to keep Procmail from choking on long
+                            #"recipes", or instructions on what to do with
+                            #particular kinds of email.
+
+PATH=$HOME/bin:/bin:/usr/bin:/usr/local/bin:/usr/bin/mh:/usr/lib/mh:
+                            #Path for your programs -- this is probably best
+                            #left alone.
+
+VERBOSE=off                 #Change this to "on" when you try a new recipe
+                            #so that Procmail will log literally every step
+                            #it takes.  DO NOT LEAVE IT ON, though, because
+                            #it creates huge logfiles.
+
+# Default Program & file locations
+
+MAILDIR=$HOME/Mail          #you'd better make sure this directory exists
+
+DEFAULT=$HOME/Mailbox         #default incoming mailbox for shell2-5 users
+                            #on Best Internet.  Substitute the correct
+                            #setting for your system.
+
+
+LOGFILE=$MAILDIR/procmail.log #Logs message disposition.  Recommended -- otherwise
+                            #errors are emailed to you. :/
+
+FORMAIL=/usr/bin/formail	#useful for autoreply recipes.  If you
+				#are not on Best Internet, modify this to
+				#your system's copy of formail.
+
+SENDMAIL=/usr/sbin/sendmail    #useful for autoreply recipes.  If you are
+                               #not on Best Internet, modify this to point
+                               #to your system's copy of sendmail.
+
+</verb></tscreen>
+
+Procmail is an excellently documented program. Read the man pages for examples
+on how to set up your .procmailrc file. 
+
+<sect> ISDN
+<p>
+
+I am including this although this has nothing to do with qmail or
+mh. But without a PPP line to your ISP there is no email at all. I had
+quite a bit of bother to get my ISDN working. The SusE distribution
+includes a configuration for ISDN, but I wanted something simpler. The
+stuff here was adapted from Bernhard Hailer's scripts. (Vielen, vielen
+dank!)
+
+The following rc.config loads the necessary modules during
+initialisation:
+
+<tscreen><verb>
+#!/bin/bash
+# This is adapted Bernhard Hailer's old script
+
+LOCAL_NUMBER="91311234"        # tel no. 091311234
+REMOTE_NUMBER="0911123456"     # ISP tel no.
+LOCAL_IP="192.168.0.99"	       # I have dynamic IP so this will do
+REMOTE_IP="195.112.123.11"     # your ISP's gateway
+DEVICE="ippp0"
+
+SYSPATH="/sbin"
+ISDNCTRL="$SYSPATH/isdnctrl"
+
+case "$1" in
+start)
+	# turn on isdn
+	insmod /lib/modules/2.0.33/net/slhc.o
+	insmod /lib/modules/2.0.33/misc/isdn.o
+	sleep 1
+	# load the hisax module
+	insmod /lib/modules/2.0.33/misc/hisax.o 
+                                   id=Tel0 type=5 protocol=2 irq=10 io=0x300 
+	echo "starting isdn4linux"
+	# global
+	$ISDNCTRL verbose 0
+
+	$ISDNCTRL addif $DEVICE		# create new interface
+	$ISDNCTRL addphone $DEVICE in $REMOTE_NUMBER
+	$ISDNCTRL addphone $DEVICE out $REMOTE_NUMBER
+	$ISDNCTRL eaz $DEVICE $LOCAL_NUMBER
+	$ISDNCTRL l2_prot $DEVICE hdlc
+	$ISDNCTRL l3_prot $DEVICE trans
+	$ISDNCTRL encap $DEVICE syncppp
+	$ISDNCTRL huptimeout $DEVICE 300 
+	$ISDNCTRL chargehup  $DEVICE off
+	$ISDNCTRL secure $DEVICE on
+
+	$SYSPATH/ifconfig $DEVICE $LOCAL_IP pointopoint $REMOTE_IP metric 1
+	$SYSPATH/route add default $DEVICE
+	$SYSPATH/ipppd /dev/ippp0 file /etc/ppp/options.ipppd &
+	$SYSPATH/route del default
+        
+	;;
+stop)
+	#turn off isdn
+	rmmod hisax.o  
+	sleep 1
+	rmmod isdn.o
+	rmmod slhc.o
+	echo "Shutting down isdn4linux"
+	$ISDNCTRL delif ippp0
+	;;
+*)
+	echo "Usage: $0 (start|stop)"
+	exit 1
+	;;
+esac
+</verb></tscreen>
+
+I use the following script to dial out, it is called simply isdn on|off
+
+<tscreen><verb>
+
+#!/bin/bash
+# This is based on an old script from Bernhard Hailer
+
+IP_ADDRESS="195.112.123.11"
+
+case "$1" in
+on)
+	
+        
+	echo "Calling ippp0"
+	/sbin/isdnctrl dial ippp0
+# the sleep is important as it gives the PPP time to settle down
+	echo "Sleep for 8s for PPP handshake"
+	sleep 8s
+	/sbin/route add default ippp0
+	echo "line open - checking...."
+      
+# check whether PPP negotiation was successful:
+	set `ping -qc3 -i1 $IP_ADDRESS 2>/dev/null | grep transmitted`
+	if [ $4 -gt 0 ];
+	then
+		echo "succeeded."
+		echo "Starting fetchmail daemon"
+		/usr/bin/fetchmail -d 600 -k -v -a -L /var/log/fetchmail
+		echo "Flushing mail queue...."
+		/usr/local/bin/serialmail/maildir2smtp 
+		            ~alias/pppdir alias-ppp- mail.server.ip.no `hostname`
+	else
+		echo "failed!"
+		/sbin/isdnctrl hangup ippp0
+	fi
+        
+;;
+
+off)
+		echo -n "Shutting down fetchmail daemon"
+		/usr/bin/fetchmail --quit
+		
+		/sbin/isdnctrl hangup ippp0
+		/sbin/route del default		# and delete route
+		echo "You're off line"
+;;
+
+*)
+	echo -e "\aUsage:"
+	echo "isdn on"
+	echo "isdn off"
+;;
+
+esac
+
+</verb></tscreen>
+The next lot is the ipppd options file /etc/ppp/options.ipppd
+
+<tscreen><verb>
+# Based on:
+# Klaus Franken, kfr@suse.de
+# Version: 27.08.97 (5.1)
+# 
+# This file is copy by YaST from /etc/ppp/ioptions.YaST 
+#   to options.<device>
+
+user "myuserid"
+
+# my system name (only for CHAP!)
+# name my_system_name
+
+# accept IP addresses from peer
+# use with dynamic IP
+ipcp-accept-local
+ipcp-accept-remote
+noipdefault
+
+# try to get IP address from interface
+# option specific to ipppd (as opposed to pppd)
+# use only with static IP
+#useifip
+
+# disable all header-compression
+-vj
+-vjccomp
+-ac
+-pc
+-bsdcomp
+
+# sometimes you need this:
+#noccp
+
+# max receive unit
+mru 1524
+# max transmit unit
+mtu 1500
+
+# If this machine is a server, force authentication by uncommenting one
+# of the following. However, if this machine is a client, doing this will
+# prevent a succesful connection! (message "peer refused to authenticate").
+# So, only uncomment on a server.
+# "+pap" / "+chap" NUR AKTIVIEREN, WENN DIES EIN SERVER IST!!!
+#+pap
+#+chap
+
+# if you have problems with handshaking (no response for first
+# lcp-package) try to decrease the retry-cycle. Default is 3 sec,
+# try for example 2 sec:
+# lcp-restart 2
+
+</verb></tscreen>
+
+
+<sect>Sources
+<p>
+
+Required Packages:
+
+
+The net is so dynamic that it is pretty pointless to give sources.
+but for what it's worth:
+<itemize>
+
+<item>Find Qmail, setserial on
+      http://www.qmail.org/
+
+
+<item>Find MH on
+      http://www.ics.uci.edu/&tilde;mh/
+
+<item>Find glimpse on
+      http://glimpse.cs.arizona.edu/
+
+<item>Find Fetchmail on
+      http://sagan.earthspace.net/&tilde;esr/fetchmail
+
+
+<item>Find Exmh
+      http://www.beedub.com/exmh
+
+<item>Find Procmail
+      ftp.informatik.rwth-aachen.de/pub/packages/promail
+
+</itemize>
+
+
+<sect>Disclaimers
+<p>
+The usual no guarantees, no money back, use at your own risk.
+
+<sect> Postscript
+<p>
+
+Has anyone got mh working with Maildir? I have not tried - the
+principle of not fixing a running system. If you have got it working
+please mail me your instruction for inclusion in the next revision
+
+
+</article>
