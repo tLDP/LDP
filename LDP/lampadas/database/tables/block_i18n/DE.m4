@@ -6,7 +6,7 @@ insert([header],
           LOGO
         </td>
         <td>
-          <h1>|project| Lampadas-System</h1>
+          <h1>|project|</h1>
           <h2>|title|</h2>
         </td>
       </tr>

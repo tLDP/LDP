@@ -1,4 +1,4 @@
-insert([home], [Lampadas], [Home], 
+insert([home], [|project|], [Home], 
 [
     <p>Welcome to |project|.
 
@@ -6,17 +6,17 @@ insert([home], [Lampadas], [Home],
     from <a href="http://www.tldp.org">The Linux Documentation Project</a>
 ])
 
-insert([doctable], [DocTable], DocTable,
+insert([doctable], [DocTable], [],
 [
     |tabdocs|
 ])
 
-insert([news], [|project| News], [|projectshort| News],
+insert([news], [Latest News], [],
 [
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |project|], [Contributing],
+insert([contribute], [Contributing to |project|], [Contributing to |projectshort|],
 [
     As a member of this Lampadas community, you can collaborate with
     hundreds or even thousands of others to produce documentation,
@@ -79,7 +79,7 @@ insert([about], [About |project|], [About |projectshort|],
     Replace this text with information about your project.
 ])
 
-insert([lampadas], [About Lampadas], About Lampadas,
+insert([lampadas], [About Lampadas], [],
 [
     <p>This website is based on version |version| of the Lampadas Documentation Management System,
     a Free Software (GPL) platform developed by
@@ -116,7 +116,7 @@ insert([lampadas], [About Lampadas], About Lampadas,
     from many people and many sources, and disseminating it widely to others.
 ])
 
-insert([copyright], [Copyright], [Copyright],
+insert([copyright], [Copyright Statment], [],
 [
     <p>Lampadas is Copyright 2000, 2001, 2002 by David C. Merrill.
 
@@ -156,7 +156,7 @@ insert([copyright], [Copyright], [Copyright],
     documentation regardless of the document\'s license.
 ])
 
-insert([privacy], [Privacy Policy], [Privacy],
+insert([privacy], [Privacy Policy], [],
 [
     <p>We are committed to helping you maintain your privacy while online.
     You can use this site without divulging any personal information.
@@ -172,12 +172,12 @@ insert([privacy], [Privacy Policy], [Privacy],
     <p>We will not spam you or add you to any mailing lists without your consent.
 ])
 
-insert([topic], [View Topic], [View Topic],
+insert([topic], [View Topic], [],
 [
     |tabsubtopics|
 ])
 
-insert([editdoc], [Edit Document Meta-data], [Edit Document],
+insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
 ])
