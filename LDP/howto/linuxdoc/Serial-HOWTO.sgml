@@ -4,9 +4,10 @@
 <author>David S.Lawyer
   <tt><htmlurl url="mailto:dave@lafn.org" name="dave@lafn.org"></tt>
   original by Greg Hankins
-<date> v2.21 November 2003 
+<date> v2.22 December 2003 
 
 <!--  Change log:
+v2.22 Dec. 2003: revised Complex Flow Control Example, more on devfs
 v2.21 Nov. 2003: Kernel compile USB options for serial ports, revised setserial 
 v2.20 Oct. 2003: MAKEDEV is often only in /sbin and not in /dev.
 v2.19 Sept. 2003: linux-serial email now at kernel.org, new
@@ -66,15 +67,20 @@ v1.0: June 1993: was called Serial FAQ, by Greg Hankins
 <sect>Introduction
 
 <p> This HOWTO covers basic info on the Serial Port and multiport
-serial cards.  It's the original serial port which uses a UART chip
+serial cards.  It contains much more information in it than most
+people need to know and most people are able to use it without reading
+this HOWTO.  But if you're having problems or just want to understand
+how it works, this is one place to find out about it.  
+
+This HOWTO is about the original serial port which uses a UART chip
 and is sometimes called a "UART serial port" to differentiate it from
-the newer Universal Serial Bus, Information specific to modems and
-text-terminals is found in Modem-HOWTO and Text-Terminal-HOWTO.
-Info on getty (the program that runs the login process or the like)
-has been also moved to these HOWTOs since mgetty and uugetty are best
-for modems while agetty is best for text-terminals.  If you are
-dealing with a modem, text terminal, or printer, then you may not need
-to consult this HOWTO.  But if you are using the serial port for some
+the newer Universal Serial Bus.  Information specific to modems and
+text-terminals is found in Modem-HOWTO and Text-Terminal-HOWTO.  Info
+on getty (the program that runs the login process or the like) has
+been also moved to these HOWTOs since mgetty and uugetty are best for
+modems while agetty is best for text-terminals.  If you are dealing
+with a modem, text terminal, or printer, then you may not need to
+consult this HOWTO.  But if you are using the serial port for some
 other device, using a multiport serial card, trouble-shooting the
 serial port itself, or want to understand more technical details of
 the serial port, then you may want to use this HOWTO as well as some
@@ -141,7 +147,7 @@ sites see: <url url="http://www.tldp.org/mirrors.html">.
 Various formats are available.  If you only want to quickly check the
 date of the latest version look at <url
 url="http://www.tldp.org/HOWTO/Serial-HOWTO.html"> and compare
-it to this version: v2.21 November 2003 .
+it to this version: v2.22 December 2003 .
 
 <sect1>New in Recent Versions
 <p> For a full revision history going back to the time I started
@@ -150,6 +156,7 @@ maintaining this HOWTO, see the source file (in linuxdoc format) at
 url="http://www.ibiblio.org/pub/linux/docs/HOWTO/other-formats/sgml/Serial-HOWTO.sgml.gz">.
 
 <itemize>
+<item>v2.22 Dec. 2003: revised Complex Flow Control Example, more on devfs
 <item>v2.21 Nov. 2003 Kernel compile USB options for serial ports, revised setserial 
 <item>v2.20 Oct. 2003: MAKEDEV is often only in /sbin and not in /dev.
 <item>v2.19 September 2003: linux-serial email now at kernel.org, new
@@ -190,10 +197,17 @@ via email at <tt><url url="mailto:dave@lafn.org"></tt>.
 
 <sect1> What is a Serial Port?
 <p> The conventional serial port (not the newer USB port, or HSSI
-port) is a very old I/O port.  Almost all PC's have them.  But Macs
-(Apple Computer) after mid-1998 only have the USB port.  It's
-possible, however, to put a conventional serial port device on the
-USB but the ports are expensive.
+port) is a very old I/O port.  Almost all PC's have them.  Macs (Apple
+Computer) after mid-1998 only have the USB port.  However, it's
+possible, to put a conventional serial port device on the USB.
+
+Each serial port has a "file" associated with it in the /dev
+directory.  It isn't really a file but it seems like one.  For newer
+versions of Linux which use the Device File System (devfs) an ordinary
+serial port is for example: /dev/tts/0.  Formerly (before the devfs)
+this port was called /dev/ttyS0.  Other serial ports are /dev/tts/1,
+/dev/tts/2, etc.  But ports on the USB bus, multiport cards, etc. have
+different names.
 
 The common specification for the conventional serial port is RS-232
 (or EIA-232).  The connector for the serial port is often seen as one
@@ -362,7 +376,7 @@ transmit buffer in main memory and puts them into the small 16-byte
 transmit buffer in the hardware.
 
 <sect> Serial Port Basics <label id="basics_">
-<!-- basics.H  begin   <sect> Serial Port and Modem Basics
+<!-- basics.D  begin   <sect> Serial Port and Modem Basics
  or <sect> Serial Port Basics  In SS and MM -->
 <!-- Change log:
 Nov. '99: 2 serial drivers concurrently NG
@@ -758,28 +772,65 @@ it's own buffer (in main memory) used to process characters.
 <sect1> Complex Flow Control Example
 <p> For many situations, there is a transmit path involving several
 links, each with its own flow control.  For example, I type at a
-text-terminal connected to a PC with a modem to access a BBS (Bulletin
-Board System).  For this I use the application program "minicom" which
-deals with 2 serial ports: one connected to a modem and another
-connected to the text-terminal.  What I type at the text terminal goes
-into the first serial port to minicom, then from minicom out the
-second serial port to the modem, and then onto the telephone line to
-the BBS.  The text-terminal has a limit to the speed at which bytes
-can be displayed on its screen and issues a flow control "stop" from
-time to time to slow down the flow.  What happens when such a "stop"
-is issued?  Let's consider a case where the "stop" is long enough to
-get thru to the BBS and stop the program at the BBS which is sending
+text-terminal connected to a PC and the PC (under my control) dials
+out to another computer using a modem.  Today, a "text-terminal" is
+likely to be just another PC emulating a text-terminal.  The main
+(server) PC, in addition to serving my text-terminal, could also have
+someone else sitting at it doing something else.  Note that calling
+this PC a "server" is not technically correct but it does serve the
+terminal.
+
+The text-terminal uses a command-line interface with no graphical
+display.  Every letter I type at the text-terminal goes over the
+serial cable to my main PC and then over the phone line to the
+computer that I've dialed out to.  To dial out, I've used the
+communication software: "minicom" which runs on my PC.
+
+This sounds like a simple data path.  I hit a key and the byte that
+key generates flows over just two cables (besides the keyboard cable):
+1. the cable from my text-terminal to my PC and 2. the telephone line
+cable to some other computer.  Of course, the telephone cable is
+actually a number of telephone system cables and includes switches
+and electronics so that a single physical cable can transmit many
+phone calls.  But I can think of it like one cable (or one link).
+
+Now, let's count the number and type of electronic devices each
+keystroke-byte has to pass thru.  The terminal-to-PC cable has a
+serial port at each end.  The telephone cable has both a serial port
+and a modem at each end.  This adds up to 4 serial ports and 2 modems.
+Since each serial port has 2 buffers, and each modem one buffer, that
+adds up to 10 buffers.  And that's just for one direction of flow.
+Each byte also must pass thru the minicom software as well.
+
+While there's just 2 cables in the above scenario, if external modems
+were used there would be an additional cable between each modem and
+it's serial port.  This makes 4 cables in all.  Even with internal
+modems it's like there is a "virtual cable" between the modem and its
+serial port.  On all these 4 links (or cables), flow control takes
+place.
+
+Now lets consider an example of the operation of flow control.
+Consider the flow of bytes from the remote computer at the other end
+of the phone line to the screen on the text-terminal that I'm sitting
+at.  A real text-terminal has a limit to the speed at which bytes can
+be displayed on its screen and issues a flow control "stop" from time
+to time to slow down the flow.  This "stop" propagates in a direction
+opposite to the flow of bytes it controls.  What happens when such a
+"stop" is issued?  Let's consider a case where the "stop" waits long
+enough before canceling it with a "start", so that it gets thru to
+the remote computer at the other end of the phone line.  When it gets
+there it will stop the program at the remote computer which is sending
 out the bytes.
 
 Let's trace out the flow of this "stop" (which may be "hardware" on
 some links and "software" on others).  First, suppose I'm "capturing"
-a long file from the BBS which is being sent simultaneously to both my
-text-terminal and a to file on my hard-disk.  The bytes are coming in
-faster than the terminal can handle them so it sends a "stop" out its
-serial port to the first serial port on my PC.  The device driver
-detects it and stops sending bytes from the 8k serial buffer (in main
-memory) to the terminal.  Now minicom still keeps sending out bytes for
-the terminal into this 8k buffer.
+a long file from the remote computer which is being sent
+simultaneously to both my text-terminal and a to file on my hard-disk.
+The bytes are coming in faster than the terminal can handle them so it
+sends a "stop" out its serial port to a serial port on my PC.  The
+device driver detects it and stops sending bytes from the 8k PC serial
+buffer (in main memory) to the terminal.  But minicom still keeps
+sending out bytes for the terminal into this 8k buffer.
 
 When this 8k transmit buffer (on the first serial port) is full,
 minicom must stop writing to it.  Minicom stops and waits.  But this
@@ -788,50 +839,57 @@ also causes minicom to stop reading from the 8k receive buffer on the
 until this 8k buffer too fills up and sends a different "stop" to the
 modem.  Now the modem's buffer ceases to send to the serial port and
 also fills up.  The modem (assuming error correction is enabled) sends
-a "stop signal" to the other modem at the BBS.  This modem stops
-sending bytes out of its buffer and when its buffer gets fill, another
-stop signal is sent to the serial port of the BBS.  At the BBS, the
-8-k (or whatever) buffer fills up and the program at the BBS can't
-write to it anymore and thus temporarily halts.
+a "stop signal" to the other modem at the remote computer.  This modem
+stops sending bytes out of its buffer and when its buffer gets fill,
+another stop signal is sent to the serial port of the remote computer.
+At the remote computer, the 8-k (or whatever) buffer fills up and the
+program at the remote computer can't write to it anymore and thus
+temporarily halts.
 
-Thus a stop signal from a text terminal has halted a program on a BBS
-computer.  What a complex sequence of events!  Note that the stop
-signal passed thru 4 serial ports, 2 modems, and one application
-program (minicom).  Each serial port has 2 buffers (in one direction
-of flow): the 8k one and the hardware 16-byte one.  The application
-program may have a buffer in its C_code.  This adds up to 11 different
-buffers the data is passing thru.  Note that the small serial hardware
-buffers do not participate directly in flow control.
+Thus a stop signal from a text terminal has halted a program on a
+remote computer computer.  What a long sequence of events!  Note
+that the stop signal passed thru 4 serial ports, 2 modems, and one
+application program (minicom).  Each serial port has 2 buffers (in one
+direction of flow): the 8k one and the hardware 16-byte one.  The
+application program may have a buffer in its C_code.  This adds up to
+11 different buffers the data is passing thru.  Note that the small
+serial hardware buffers do not participate directly in flow control.
+Also note that the two buffers associated with the text-terminal's
+serial port are going to be dumping their contents to the screen
+during this flow control halt.  This leaves 9 other buffers that may
+be getting filled up during the flow control halt.
 
 If the terminal speed limitation is the bottleneck in the flow from
-the BBS to the terminal, then its flow control "stop" is actually
-stopping the program that is sending from the BBS as explained above.
-But you may ask: How can a "stop" last so long that 11 buffers (some
-of them large) all get filled up?   It can actually happen this way if
-all the buffers were near their upper limits when the terminal sent
-out the "stop".
+the remote computer to the terminal, then its flow control "stop" is
+actually stopping the program that is sending from the remote computer
+as explained above.  But you may ask: How can a "stop" last so long
+that 9 buffers (some of them large) all get filled up?   It seldom
+happens, but it can actually happen this way if all the buffers were
+near their upper limits when the terminal sent out the "stop".
 
-But if you were to run a simulation on it you would discover that it's
+But if you were to run a simulation on this you would discover that it's
 usually more complicated than this.  At an instant of time some links
 are flowing and others are stopped (due to flow control).  A "stop"
-from the terminal seldom propagates back to the BBS neatly as
+from the terminal seldom propagates back to the remote computer neatly as
 described above.  It may take a few "stops" from the terminal to
-result in one "stop" at the BBS.  To understand what is going on you
-really need to observe a simulation which can be done for a simple
-case with coins on a table.  Use only a few buffers and set the upper
-level for each buffer at only a few coins.
+result in one "stop" at the remote computer, etc.  To understand what
+is going on you really need to observe a simulation which can be done
+for a simple case with coins on a table.  Use only a few buffers and
+set the upper level for each buffer at only a few coins.
 
 Does one really need to understand all this?  Well, understanding this
-explained to me why capturing text from a BBS was loosing text.  The
-situation was exactly the above example but modem-to-modem flow
-control was disabled.  Chunks of captured text that were supposed to
-also get to my hard-disk never got there because of an overflow at my
-modem buffer due to flow control "stops" from the terminal.  Even
-though the BBS had a flow path to the hard-disk without bottlenecks,
-the overflow due to the terminal happened on this path and chunks of
-text were lost and never even made it to the hard-disk.  Note that the
-flow to the hard-disk passed thru my modem and since the overflow
-happened there, bytes intended for the hard-disk were lost.
+explained to me why capturing text from a remote computer was loosing
+text.  The situation was exactly the above example but modem-to-modem
+flow control was disabled.  Chunks of captured text that were supposed
+to also get to my hard-disk never got there because of an overflow at
+my modem buffer due to flow control "stops" from the terminal.  Even
+though the remote computer had a flow path to the hard-disk without
+bottlenecks, the same flow also went to a terminal which issued flow
+control "stops" with disastrous results for the branch of the flow
+going to a file on the hard-disk.  The flow to the hard-disk passed
+thru my modem and since the overflow happened at the modem, bytes
+intended for the hard-disk were lost.
+
 <!-- ifdef SERIAL_ end -->
 
 <sect1> Serial Driver Module
@@ -857,7 +915,7 @@ to the first but with the correct IRQ, etc.  See
 See <ref id="set_serial" name="What is Setserial"> for more info on
 <tt/setserial/.
 
-<!-- basics.H end  -->
+<!-- basics.D end  -->
 
 
 <sect> Is the Serial Port Obsolete?
@@ -904,9 +962,9 @@ transmission was apparently not recognized.
 an address so that the computer can write to it and read from it.  For
 this purpose many I/O devices (such as serial ports) use a special
 type of address known as an I/O addresses (sometimes called an I/O
-port).   It's actually a range of addresses and the lower address in
-this range is the base address.  If someone only says (or writes)
-"address" it likely really means "base address"
+port).   The I/O address of a certain device (such as ttys/2) will be
+a range of addresses.  The lower address in this range is the base
+address.  "address" usually means just the "base address".
 
 Instead of using I/O addresses, some I/O devices read and write
 directly from/to main memory.  This provides more bandwidth since the
@@ -972,8 +1030,9 @@ most all the work servicing them.  They usually have a system of
 sharing a single interrupt for all the ports.  This doesn't decrease
 the load on the CPU since the single interrupt will be sent to the CPU
 each time any one port needs servicing.  Such devices usually require
-special drivers that you must put into the kernel or activate by
-putting a #define in the source code (or the like).
+special drivers that you must either compile into the kernel or use as
+a module.  In rare cases thy activate by putting a #define into the
+source code (or the like).
 
 Smart boards may use ordinary UARTs but handle most interrupts from
 the UARTs internally within the board.  This frees the CPU from the
@@ -991,15 +1050,15 @@ This driver may either be built into the kernel source code or
 supplied as a module.  Support for dumb boards is likely to the built
 into the kernel while smart boards usually need a module.
 
-<sect2> Driver is built into the kernel (mostly dumb boards)
-<p>A pre-compiled kernel is not likely to have multiport support built
-in.  So you probably need to compile it yourself.  In kernel 2.4 you
-should select "CONFIG_SERIAL_EXTENDED when configuring the kernel
+<sect2> If you need driver built into the kernel (mostly dumb boards)
+<p>A pre-compiled kernel may not have multiport support built
+in.  So you may need to compile it yourself.  In kernel 2.4 you
+should select "CONFIG_SERIAL_EXTENDED" when configuring the kernel
 (just before you compile).  If you select this there will be still
 more choices presented to you.  Even after you do this you may need to
 edit the resulting source code a little (depending on the card).
 
-<sect2> Modules (mostly for smart boards) <label id="modules_">
+<sect2> If you use a module (mostly for smart boards) <label id="modules_">
 <p>A pre-compiled kernel may come with a pre-compiled module for the
 board so that you don't need to recompile the kernel.  This module
 must be loaded in order to use it, but the kernel may automatically do
@@ -1022,73 +1081,69 @@ are also kernel documentation files for certain boards including
 computone, hayes-esp, moxa-smartio, riscom8, specialix, stallion, and
 sx (specialix).
 
-<sect1>Making multiport devices in the /dev directory <label id="make_multi">
+<sect1> Multiport Devices in the /dev Directory,
 <p>
-The serial ports your multiport board uses depends on what kind of board
-you have.  Some have their own device names like /dev/ttyE27 or
-/dev/ttyD2, etc.  Ones that use the standard names like /dev/ttyS14
-may be listed in detail in <tt>rc.serial</tt> or in
-<tt>0setserial</tt>.  These files may be included in a setserial or
-serial package.  You may need to create these devices (unless an
-installation script does it for you).  Either use the <tt/mknod/
-command, or the <tt/MAKEDEV/ script.  Devices (in the /dev directory)
-for ttyS type serial ports are made by adding ``64 + port number''.
-So, if you wanted to create devices for <tt>ttyS17</tt> using
-<tt/mknod/, you would type:
+The serial ports your multiport board uses depends on what kind of
+board you have.  Some have their own device names like /dev/ttyE27
+(Stallion) or /dev/ttyD2 (Digiboard), etc.  For various other brands,
+see see devices.txt in the kernel documentation.  Some use the
+standard names like /dev/ttyS14 (/dev/tts/14) and may be found in
+configuration files that used as arguments to <tt>setserial</tt>.
+Such files may be included in a setserial or serial package.
 
-<tscreen><verb>
-linux# mknod -m 666 /dev/ttyS17 c 4 81
-</verb></tscreen>
+For the device file system (devfs), for example, /dev/ttyF9 becomes
+/dev/ttf/9, or in a later version /dev/tts/F9.  Substitute for F (or
+f) whatever letter(s) you multiport board uses for this purpose.  Your
+multiport driver is supposed to create a devfs name similar to the
+above and put it into the /dev directory
 
-Note the "major" number is always 4 for ttyS devices (and 5 for the
-obsolete cua devices).  Also ``64 + 17 = 81''.  Using the <tt/MAKEDEV/
-script, you would first become the superuser (root) and type either:
+<sect1> Making Legacy Multiport Devices in the /dev Directory
+<label id="make_multi">
+<p>If you're using the device file system (devfs), then the device
+driver should create the device name and put it in the /dev directory.
+Otherwise for a legacy (non-devfs), an installation script may do this
+for you.  But if not, here's some examples of how to create a device
+name in the /dev directory.
+
+For the legacy names and numbers of other types of serial ports other
+than ttyS.. See devices.txt in the kernel documentation.  Either use
+the <tt/mknod/ command, or the <tt/MAKEDEV/ script.  Typing "man
+makedev" may show instructions on using it.
+
+Using the <tt/MAKEDEV/ script, you would first become the superuser
+(root) and type (for example) either:
 
 <tscreen><verb>
 linux# MAKEDEV ttyS17
 </verb></tscreen>
 
-or if the above doesn't work type:
+Or if the above doesn't work cd to /dev before giving the above
+command>.  Substitute whatever your port is for ttyS17.
+
+Using <tt/mknod/ is a more complicated option since you need to know
+the major and minor device numbers.  These numbers are in the
+"devices" file in the kernel documentation.  For ttyS serial ports the
+minor number is: 64 + port number (=81 for the example below).  Note
+the "major" number is always 4 for ttyS devices (and 5 for the
+obsolete cua devices).  So, if you wanted to create a device for
+<tt>ttyS17</tt> using <tt/mknod/, you would type:
 
 <tscreen><verb>
-linux# cd /dev
-linux# ./MAKEDEV ttyS17
+linux# mknod -m 666 /dev/ttyS17 c 4 81
 </verb></tscreen>
 
-For the names and numbers of other types of serial ports other than
-ttyS.. see devices.txt in the kernel documentation.  Besides the
-listing of various brands of multiports found in this HOWTO there is
-<url url="http://eupedia.org/serialcards.html" name="Gary's
-Encyclopedia - Serial Cards">.  It's not as complete, but may have
-some different links.
-
 <sect1>Standard PC Serial Cards
 
-<p> In olden days PCs came with a serial card installed.  Later on the
-serial function was put on the hard-drive interface card.  Today, one
-or two serial ports are usually built into the motherboard.  Most of
-them (as of 2001) use a 16550 but some use 16650 (32-byte FIFOs).
-
-linux# cd /dev
-For the names and numbers of other types of serial ports other than
-ttyS.. see devices.txt in the kernel documentation.  Besides the
-listing of various brands of multiports found in this HOWTO there is
-<url url="http://eupedia.org/serialcards.html" name="Gary's
-Encyclopedia - Serial Cards">.  It's not as complete, but may have
-some different links.
-
-<sect1>Standard PC Serial Cards
-
-<p> In olden days PCs came with a serial card installed.  Later on the
-serial function was put on the hard-drive interface card.  Today, one
-or two serial ports are usually built into the motherboard.  Most of
-them (as of 2001) use a 16550 but some use 16650 (32-byte FIFOs).
-But one may still buy the old PC serial cards if they need 1-4 more
-serial ports.  These are for ttyS0-ttyS3 (COM1 - COM4).  They can be
-used to connect external serial devices (modems, serial mice, etc...).
-Only a tiny percentage of retail computer stores carry such cards.
-But one can purchase them on the Internet.  Before getting a PCI one,
-make sure Linux supports it.
+<p> In olden days, PCs came with a serial card installed.  Later on,
+the serial function was put on the hard-drive interface card.  Today,
+one or two serial ports are usually built into the motherboard.  Most
+of them (as of 2002) use a 16550 but some use 16650 (32-byte FIFOs).
+But one may still buy the individual PC serial cards if they need 1-4
+more serial ports.  These are for tts/0-tts/3 (COM1 - COM4).  They can
+be used to connect external serial devices (modems, serial mice,
+etc...).  Only a tiny percentage of retail computer stores carry such
+cards.  But one can purchase them on the Internet.  Before getting a
+PCI one, make sure Linux supports it.
 
 Here's a list of a few popular brands:
 <itemize>
@@ -1166,7 +1221,7 @@ COM8=0x268.
 <p>
 Make sure that a Linux-compatible driver is available and read the
 information that comes with it.  These boards use special devices (in
-the /dev directory), and not the standard ttyS ones.  This information
+the /dev directory), and not the standard tts ones.  This information
 varies depending on your hardware.  If you have updated info which
 should be shown here please email it to me.
 
@@ -1362,6 +1417,11 @@ http://www.linuxjournal.com/article.php?sid=1097">
 
 name="http://www.ssc.com/lj/issue14"></tt>.
 
+Besides the listing of various brands of multiports found above in
+this HOWTO there is <url url="http://eupedia.org/serialcards.html"
+name="Gary's Encyclopedia - Serial Cards">.  It's not as complete, but
+may have some different links.
+
 <sect1> Unsupported Multiport Boards
 <p> The following boards don't mention any Linux support as of 1 Jan.
 2000.  Let me know if this changes.
@@ -1399,20 +1459,27 @@ Text-Terminal-HOWTO.  For networked terminal servers (not serial port)
 see <url url="http://www.ltsp.org/index.php" name="Linux Terminal
 Server Project (LTSP)">
 
-(To-do: Discuss other types serial servers, but the author knows
+(To-do: Discuss other types of serial servers, but the author knows
 little about them.)
 
 <sect>Configuring Overview
-<p> The first part (locating the hardware or low-level configuring) is
+<p> Configuring of the serial port should be done automatically,
+both the serial driver software and by your application software.  But
+sometimes it isn't and you thus need to do it yourself.  Or perhaps
+you need to configure it in a special way, etc.  This HOWTO only
+covers configuration of the serial port itself and not the configuring
+of any devices attached to the port (such as a modem).
+
+The first part (locating the hardware or low-level configuring) is
 assigning each port an IO address, IRQ, and name (such as ttyS2).  This
 IO-IRQ pair must be set in both the hardware and told to the serial
 driver.  We might just call this "io-irq" configuring for short.  The
 "setserial" program is sometimes used to tell the driver.  PnP
-methods, jumpers, etc, are used to set the hardware.  Details will be
-supplied later.  If you need to configure but don't understand certain
-details it's easy to get into trouble.
-See <ref id="locate_port" name="Locating the Serial Port: IO address
-IRQs"> <ref id="set_serial" name="What is Setserial">
+methods, jumpers, etc, are used to set the I0 and IRQ in the hardware.
+Details will be supplied later.  If you need to configure but don't
+understand certain details it's easy to get into trouble.  See <ref
+id="locate_port" name="Locating the Serial Port: IO address IRQs">
+<ref id="set_serial" name="What is Setserial">
 
 The second part (high-level configuring) is assigning it a speed (such
 as 115.2k bits/sec), selecting flow control, etc.  This is often done
@@ -1420,12 +1487,12 @@ by communication programs such as PPP, minicom, or by getty (which you
 may run on the port so that others may log into your computer).
 However you will need to tell these programs what speed you want, etc.
 by using a menu or a configuration file.  This high-level configuring
-may also be done with the <tt/stty/ program.  <tt/stty/ is also useful
-to view the current status if you're having problems.
-See the section <ref id="stty_" name="Stty">
+may also be done manually with the <tt/stty/ program.  <tt/stty/ is
+also useful to view the current status if you're having problems.  See
+the section <ref id="stty_" name="Stty">
 
 <sect>Locating the Serial Port: IO address, IRQs <label id="locate_port">
-<!-- locate.H begin (in MM, SS)
+<!-- locate.D begin (in MM, SS)
 <sect>Configuring the Serial Port
 Change-log:
 Aug. 2001: removed mention of patch to convert Linux to a PnP OS;
@@ -1433,30 +1500,34 @@ better explanation of PCI
 July 2001: Improve PCI part.  Remove "card" since serial ports are
 often built into the motherboard.
 Feb. 2003: Removed request to send info to Ted Tso.
+Dec. 2003: May need to create /dev/ttyS4 even if its auto detected
 -->
 
 <sect1> IO & IRQ Overview
 <p> For a serial port to work properly, it must have both an IRQ and
 an IO address.  Without an IO address, it can't be located and will not
 work at all.  Without an IRQ it will need to use inefficient polling
-methods for which one must set the IRQ to 0.  So every serial port
-needs an IO address and IRQ.  In olden days this was set by jumpers on
-a serial port card.  Today it's set by digital signals sent to the
-hardware and this is part of "Plug-and-Play (PnP).  
+methods for which one must set the IRQ to 0 in the serial driver.  So
+every serial port needs an IO address and IRQ.  In olden days this was
+set by jumpers on a serial port card.  Today it's set by digital
+signals sent to the hardware and this is part of "Plug-and-Play (PnP).
+It all should get configured automatically so that you only need to
+read this if you're having problems or if you want to understand how
+it works.
 
 The driver must also know both the IO address and IRQ so that it can
-locate the port chip.   Modern serial port drivers (kernel 2.4) try to
-determine this by PnP methods so one doesn't need to tell them (by
-using "setserial").   Such a driver might also set an IO address or
-enable the hardware.  But unfortunately, there is some PCI serial port
-hardware that the driver doesn't recognize so you may need to enable
-the port yourself.  See <ref id="pci_enabled" name="PCI: Enabling a
-disabled port">
+talk to the port chip.   Modern serial port drivers (kernel 2.4) try to
+determine this by PnP methods so one doesn't normally need to tell the driver
+(by using "setserial").   The modern driver might also enable the serial
+port and set an IO address or IRQ in the hardware.  But unfortunately,
+there is some PCI serial port hardware that the driver doesn't
+recognize so you might need to enable the port yourself.  See <ref
+id="pci_enabled" name="PCI: Enabling a disabled port">
 
-The driver also probes possible ISA serial port addresses to see if
+The driver also probes likely ISA serial port addresses to see if
 there are any serial ports there.  This works for the case of jumpers
-and sometimes works for a PnP port when the driver doesn't do PnP
-(prior to kernel 2.4).
+and sometimes works for a ISA PnP port when the driver doesn't do ISA
+PnP (prior to kernel 2.4).
 
 Locating the serial port by giving it an IRQ and IO address is
 low-level configuring.  It's often automatically done by the serial
@@ -1464,19 +1535,21 @@ driver but sometimes you have to do it yourself.  What follows repeats
 what was said above but in more detail.
 
 The low-level configuring consists of assigning an IO address, IRQ,
-and name (such as ttyS2).  This IO-IRQ pair must be set in both the
-hardware and told to the serial driver.  Only the driver needs to know
-the name.We could call this "io-irq" configuring for short.  The
-"setserial" program is one way to tell the driver.  The other way is
-for the driver to use PnP methods to determine/set the IO/IRQ and then
-remember what it did.  For jumpers you must always use "setserial".
-If you need to configure but don't understand certain details it's
-easy to get into trouble.
+and name (such as ttyS2 = tts/2).  This IO-IRQ pair must be set in both the
+hardware and told to the serial driver.  And the driver needs to call
+this pair a name (such as ttyS2).  We could call this "io-irq"
+configuring for short.  The "setserial" program is one way to tell the
+driver.  The other way is for the driver to use PnP methods to
+determine/set the IO/IRQ and then remember what it did.  For jumpers
+there is no PnP but the driver might detect the port if the jumpers
+are set to the usual I0/IRQ.  If you need to configure but don't
+understand certain details it's easy to get into trouble.
 
 When Linux starts, some effort is made to detect and configure
-(low-level) a few serial ports.  Exactly what happens depends on your
-BIOS, hardware, Linux distribution, etc.  If the serial ports work OK,
-there may be no need for you to do any more low-level configuring.
+(low-level) serial ports.  Exactly what happens depends on your BIOS,
+hardware, Linux distribution, kernel version, etc.  If the serial
+ports work OK, there may be no need for you to do any more low-level
+configuring.
 
 If you're having problems with the serial ports, then you may need to
 do low-level configuring.  If you have kernel 2.2 or lower, 
@@ -1499,15 +1572,16 @@ cause people more trouble than the high-level stuff, although for many
 it's fully automatic and there is no configuring to be done.  Until
 the serial driver knows the correct IRQ and IO address, the port will
 not usually not work at all.  Also, PnP ports can be disabled so that
-they can't be found (except with PnP tools such as lspci).
-Applications, and utilities such as "setserial" and "scanport" (Debian
-only ??) don't use PnP tools and thus can't detect
+they don't have any IO address and thus can't be used.  However PnP
+tools such as lspci should be able to find them.  Applications, and
+utilities such as "setserial" and "scanport" (Debian only ??) only
+probe I0 addresses,  don't use PnP tools, and thus can't detect
 disabled ports. 
 
-Even if an ISA port can be found by the probing of the serial driver
-it may work extremely slow if the IRQ is wrong.  See <ref id="slow_"
-name="Extremely Slow: Text appears on the screen slowly after long
-delays">.  PCI ports are less likely to get the IRQ wrong.
+Even if an ISA port can be found by the probing done by the serial
+driver it may work extremely slow if the IRQ is wrong.  See <ref
+id="slow_" name="Extremely Slow: Text appears on the screen slowly
+after long delays">.  PCI ports are less likely to get the IRQ wrong.
 
 In the Wintel world, the IO address and IRQ are called "resources" and
 we are thus configuring certain resources.  But there are many other
@@ -1517,9 +1591,9 @@ name (ttyS2 for example) and putting two values (an IRQ number and IO
 address) into two places:
 
 <enum>
-<item> the device driver (often by running "<tt/setserial/" at
- boot-time)
+<item> the device driver (done by PnP or "<tt/setserial/")
 <item> configuration registers of the serial port hardware itself
+(done by PnP or jumpers)
 </enum>
 
 You may watch the start-up (= boot-time) messages.  They are usually
@@ -1538,11 +1612,23 @@ If you have kernel 2.4, then there should be support for PnP (either
 built-in or by modules).  Some PCI serial ports can be automatically
 detected and low-level configured by the serial driver.  Others may
 not be.  
-Kernel 2.2 had no support for PCI serial ports (although some people
-got them working anyway).  The 2.4 serial driver will read the id
-number digitally stored in the serial hardware to determine how to
-support it (if it knows how).  It should assign an I/O address to it,
-determine it's IRQ, etc.  So you don't need to use "setserial" for it.
+
+While kernel 2.2 supported PCI in general, it had no support for PCI
+serial ports (although some people got them working anyway).  The 2.4
+serial driver will read the id number digitally stored in the serial
+hardware to determine how to support it (if it knows how).  It should
+assign an I/O address to it, determine it's IRQ, etc.  So you don't
+need to use "setserial" for it.  
+
+There is a possible problem if you don't use the device filesystem.
+The driver may assign the port to say "<tt/ttyS04" per a boot-time
+message (use <tt/dmesg/ to see it).  But if you don't have a "file" /dev/ttyS4
+then the port will not work.  So you will then need to create it,
+using<newline>
+<tt>cd /dev</tt> and then <tt>./MAKEDEV ttyS4</tt><newline>
+For the device filesystem, the driver should create the device
+<tt>tts/1</tt>
+
 <!--
 <sect2> Requesting that future drivers support your serial port
 <p>If you have a
@@ -2021,18 +2107,15 @@ you want to let a PnP BIOS do such configuring.  Not all PnP BIOS can
 do this.  The BIOS usually has a CMOS menu for setting up the first
 two serial ports.  This menu may be hard to find.  For an "Award"
 BIOS it was found under "chipset features setup"  There is often
-little to choose from.  Unless otherwise indicated in a menu, these
-first two ports normally get set at the standard IO addresses and
-IRQs.  See <ref id="dev_nos" name="Serial Port Device Names &
-Numbers">
+little to choose from.  For ISA serial ports, the first two ports
+normally get set at the standard IO addresses and IRQs.  See <ref
+id="dev_nos" name="More on Serial Port Names">
 
-Whether you like it or not, when you start up a PC a PnP BIOS starts
+Whether you like it or not, when you start up a PC, a PnP BIOS starts
 to do PnP (io-irq) configuring of hardware devices.  It may do the job
 partially and turn the rest over to a PnP OS (which Linux is in some
 sense) or if thinks you don't have a PnP OS it may fully configure all
-the PnP devices but not configure the device drivers.  This is what
-you want but it's not always easy to figure out exactly what the PnP
-BIOS has done.
+the PnP devices but not configure the device drivers.
 
 If you tell the BIOS that you don't have a PnP OS, then the PnP BIOS
 should do the configuring of all PnP serial ports --not just the first
@@ -2063,7 +2146,7 @@ it shows you may not be clear to a novice.
 for it to be done by PnP) you also need to insure that the "setserial"
 command is run each time you start Linux.  See the subsection <ref
 id="sets_boot_time" name="Boot-time Configuration">
-<!-- configure.H end-->
+<!-- configure.D end-->
 
 
 <sect> Configuring the Serial Driver (high-level) "stty"
@@ -2109,36 +2192,64 @@ stty -F /dev/ttyS2 crtscts
 the serial port for hardware flow control.  Note that RTS+CTS almost
 spells: <tt/crtscts/.
 
-<sect> Serial Port Devices /dev/ttyS2, etc. <label id="ttySN_">
-<!-- device_dir.H begin
+<sect> Serial Port Devices /dev/tts/2 = /dev/ttyS2, etc. <label id="ttySN_">
+<!-- dev_names.D begin
 in Modem and Serial HOWTOs
+Nov. 2003: rewrite
 <sect> Serial Port Devices /dev/ttyS2, etc. -->
 
-<p> For creating devices in the device directory see:
+<sect1>Serial Port Names: ttyS2, tts/1, etc.
+<p>Once upon a time the names of the serial ports were simple.  Except
+for some multiport serial cards they were named /dev/ttyS0,
+/dev/ttyS1, etc.  Then around the year 2000 came the USB bus with
+names like /dev/ttyUSB0 and /dev/ttyACM1 (for the ACM modem on the USB
+bus). A little later with kernel 2.4 came the "device file system"
+(devfs) with a whole new set of names for everything.  ttyS1 is now
+tts/1, ttyUSB1 is now /usb/tts/1, and ttyACM1 is now /usb/acm/1.
+Note that the the number 1 above is just an example.  It could be
+replaced by 0, 2, 3, etc.  The use of the device file system is
+optional and many are still using the legacy system.  Others use devfs
+but have the old legacy names linked (via symlinks) to the new names.
+So they use the new system with the old names but may also use some of
+the new names for some devices.  It's even possible ?? to use
+the new names for the old (non-devfs) system.
 
-<ref id="create_dev" name="Creating Devices In the /dev directory">
+<sect1>Devfs (The Device File System)
+<p>Starting with kernel 2.4, a new system of device naming was
+created.  It makes it easy to deal with a huge number of devices.  But
+there's an option to continue using the old names.  However, a new
+device may not have an old-style name so then one must use the new
+devfs.   For a detailed description of it see: <url
+url="http://www.atnf.csiro.au/~rgooch/linux/docs/devfs.html"> Also see
+the kernel documentation tree: filesystems/devfs.
 
-<sect1> Devfs (The new Device File System)
-<p> This is a new type of device interface to Linux.  It's optional
-starting with kernel 2.4.  It's more efficient than the conventional
-interface and makes it easy to deal with a huge number of devices.
-The device names have all changed as well.  But there's an option to
-continue using the old names.  For a detailed description of it see:
-<url url="http://www.atnf.csiro.au/~rgooch/linux/docs/devfs.html">
-Also see the kernel documentation tree: filesystems/devfs.
-
-The name changes (if used) are: ttyS2 becomes tts/2 (Serial port),
-tty3 becomes vc/3 (Virtual Console), ptyp1 becomes pty/m1 (PTY
+Some more examples of name changes are: ttyS2 becomes tts/2 (Serial
+port), tty3 becomes vc/3 (Virtual Console), ptyp1 becomes pty/m1 (PTY
 master), ttyp2 becomes pty/s2 (PTY slave).  "tts" looks like a
 directory which contains devices "files": 0, 1, 2, etc.  All of these
 new names should still be in the /dev directory although optionally
 one may put them elsewhere.
 
-<sect1>Serial Port Device Names & Numbers <label id="dev_nos">
-<p> Devices in Linux have major and minor numbers (unless you use the
-new devfs).  The serial port ttySx (x=0,1,2, etc.) has major number 4.
-You may see this (and the minor numbers too) by typing: "ls -l ttyS*"
-in the /dev directory.
+Device names in the /dev directory are created automatically by the
+corresponding driver.  Thus, if serial support comes from a module and
+that module isn't loaded yet, there will not be any serial devices in
+the /dev directory.  This can be confusing: you physically have serial
+ports but don't see them in the /dev directory.  However, if a device
+name is told to a communication program and the serial module isn't
+loaded, the kernel is supposed to try to find a driver for it and
+create a name for it in the /dev directory.
+
+This is works OK if it finds a driver.  But suppose there is no driver
+found for it.  For example, if you try to use "setserial" to configure
+a port that the driver failed to detect, it claims there is no such
+port.  How does one create a devfs port in this case?
+
+<sect1>Legacy Serial Port Device Names & Numbers 
+<p> Before the device file system, devices in Linux had major and
+minor numbers.  The serial port ttySx (x=0,1,2, etc.) was major number
+4.  You could see this (and the minor numbers too) by typing: "ls -l
+ttyS*" in the /dev directory.  To find the old device names for various
+devices, see the "devices" file in the kernel documentation.
 
 There formerly was a "cua" name for each serial port and it behaved
 just a little differently.  For example, ttyS2 would correspond to
@@ -2147,28 +2258,40 @@ minor numbers started at 64.  You may still have the cua devices in
 your /dev directory but they are now deprecated.  For details see
 Modem-HOWTO, section: cua Device Obsolete.
 
-Dos/Windows use the COM name while the <tt/setserial/ program uses
-tty00, tty01, etc.  Don't confuse these with dev/tty0, dev/tty1, etc.
-which are used for the console (your PC monitor) but are not serial
-ports.  The table below is for the "standard" case (but yours could be
-different).  The major/minor numbers don't exist with the devfs.  For
-the PCI bus the IO addresses are different.
+For creating the old devices in the device directory see:
+
+<ref id="create_dev" name="Creating Devices In the /dev directory">
+
+<sect1>More on Serial Port Names <label id="dev_nos">
+<p>Dos/Windows use the COM name while the messages from the serial driver
+use ttyS00, ttyS01, etc.  Older serial drivers (2001 ?) used just
+tty00, tty01, etc.  
+
+<p>The tables below shows some examples of serial device names.  The
+IO addresses are the default addresses for the old ISA bus (not for
+the newer PCI and USB buses).  The major/minor numbers aren't needed
+for the devfs, but they often exist anyway just in case the devfs
+method of locating drivers can't be used.  
 
 <verb>
-       			    ISA IO                              devfs usb
- dos		major minor address  devfs       devfs usb      acm modem
-COM1  /dev/ttyS0  4,  64;   3F8   /dev/tts/0  /dev/usb/tts/0 /dev/usb/acm/0
-COM2  /dev/ttyS1  4,  65;   2F8   /dev/tts/1  /dev/usb/tts/1 /dev/usb/acm/1
-COM3  /dev/ttyS2  4,  66;   3E8   /dev/tts/2  /dev/usb/tts/2 /dev/usb/acm/2
-COM4  /dev/ttyS3  4,  67;   2E8   /dev/tts/3  /dev/usb/tts/3 /dev/usb/acm/3
+       			     old   old	ISA IO
+ dos     devfs     old name major minor address 
+COM1  /dev/tts/0  /dev/ttyS0  4,  64;   3F8
+COM2  /dev/tts/1  /dev/ttyS1  4,  65;   2F8
+COM3  /dev/tts/2  /dev/ttyS2  4,  66;   3E8
+COM4  /dev/tts/3  /dev/ttyS3  4,  67;   2E8
+
+     DEVICES-ON-THE-USB-BUS (acm is a certain type of modem)
+     devfs       legacy name           devfs      legacy name
+/dev/usb/tts/0  /dev/ttyUSB0  |  /dev/usb/acm/0  /dev/ttyACM0
+/dev/usb/tts/1  /dev/ttyUSB1  |  /dev/usb/acm/1  /dev/ttyACM1
+/dev/usb/tts/2  /dev/ttyUSB2  |  /dev/usb/acm/2  /dev/ttyACM2
+/dev/usb/tts/3  /dev/ttyUSB3  |  /dev/usb/acm/3  /dev/ttyACM3
 </verb>
 
-<sect1> USB (Universal Serial Bus) Ports
-<p>The serial ports on the USB are: /dev/ttyUSB0, /dev/ttyUSB1, etc.
-The devfs names for these are: /dev/usb/tts/0, /dev/usb/tts/1, etc.
-For many modems they are /dev/usb/acm/0, etc. (in devfs notation).
-For more info see the usb subdirectory in the kernel documentation
-directory for files: acm and usb-serial.
+<sect1> USB (Universal Serial Bus) Serial Ports
+<p> For more info see the usb subdirectory in the kernel documentation
+directory for files: usb-serial, acm, etc.
 
 <sect1> Link ttySN to /dev/modem
 <p> On some installations, two extra devices will be created,
@@ -2178,12 +2301,12 @@ device in <tt>/dev</tt> which you specified during the installation
 Except if you have a bus mouse, then <tt>/dev/mouse</tt> will point to
 the bus mouse device).
 
-Formerly (in the 1990s) the use of <tt>/dev/modem</tt> was discouraged
-since lock files might not realize that it was really say
-<tt>/dev/ttyS2</tt>.  The newer lock file system doesn't fall into
-this trap so it's now OK to use such links.
+Historical note: Formerly (in the 1990s) the use of
+<tt>/dev/modem</tt> was discouraged since lock files might not realize
+that it was really say <tt>/dev/ttyS2</tt>.  The newer lock file
+system doesn't fall into this trap so it's now OK to use such links.
 
-<!-- device_dir.H end -->
+<!-- dev_names.D end -->
 
 
 <sect1> Which Connector on the Back of my PC is ttyS1, etc?
@@ -2198,7 +2321,7 @@ some are 25-pin (especially older PCs like 486s).  There may be one
 If you only have one serial port connector on the back of your PC,
 this may be easy.  If you also have an internal modem, a program like
 wvdial may be able to tell you what port it's on (unless it's a PnP
-that hasn't been PnP configured yet).  A report from setserial (at
+that hasn't been enabled yet).  A report from setserial (at
 boot-time or run by you from the command line) should help you
 identify the non-modem port.
 
@@ -2242,23 +2365,24 @@ forever (until you interrupt it by removing the jumper, etc.).	This
 may be a good way to test it as the repeating test messages halt when
 the jumper is removed.
 
-As a jumper you could use a mini (or micro) jumper cable and perhaps
-use a scrap of paper to prevent the mini clips from accidentally
-touching the metal of the connector.  Whatever you use as a jumper
-take care not to bend or excessively scratch the pins.  To receive
-something from a port, you can go to a virtual terminal (Alt-F2 for
-example) and type something like "cp /dev/ttyS2 /dev/tty".  Then at
-another virtual terminal you may send something to ttyS2 (or whatever)
-by "echo test_message > /dev/ttyS2".  Then go back to the receive
-virtual terminal and look for the test_message.  See
-<ref id="ser_elect_test" name="Serial Electrical Test Equipment"> for
-more info.
+As a jumper you could use a mini (or micro) jumper cable (sold in some
+electronic parts stores) with mini alligator clips.  A scrap of paper
+may be used to prevent the mini clips from accidentally touching the
+metal of the connector.  Metal paper clips can sometimes be bent to
+use as jumpers.  Whatever you use as a jumper take care not to bend or
+excessively scratch the pins.  To receive something from a port, you
+can go to a virtual terminal (Alt-F2 for example) and type something
+like "cp /dev/ttyS2 /dev/tty".  Then at another virtual terminal you
+may send something to ttyS2 (or whatever) by "echo test_message >
+/dev/ttyS2".  Then go back to the receive virtual terminal and look
+for the test_message.  See <ref id="ser_elect_test" name="Serial
+Electrical Test Equipment"> for more info.
 
 <sect2> Connect a device to the connector
 <p> Another way to try to identify a serial port is to connect some
 physical serial device to it and see if it works.  But a problem here
 is that it might not work because it's not configured right.  A serial
-mouse might get detected if connected.
+mouse might get detected at boot-time if connected.
 
 <sect2> Missing connectors
 <p> If the software shows that you have more serial ports than you
@@ -2266,16 +2390,18 @@ have connectors for (including an internal modem which counts as a
 serial port) then you may have a serial port that has no connector.
 Some motherboards come with a serial port with no cable or serial DB
 connector.  Someone may build a PC from this and omit the connector.
-There may be a "serial" label on the motherboard but no ribbon cable
-connects to the pins next to this label.  To use this port you must
-get a ribbon cable/connector.  I've seen different wiring arrangements
-for such ribbon cables so beware.
+There may be a "serial" connector and label on the motherboard but no
+ribbon cable connects to its pins.  To use this port you must get a
+ribbon cable and connector.  I've seen different wiring arrangements for
+such ribbon cables so beware.
 
 <sect1>Creating Devices In the /dev directory <label id="create_dev">
 <p>
-If you don't have a device "file" that you need, you will have to
-create it with the <tt/mknod/ command or with the MAKEDEV shell
-script.  Example, suppose you needed to create <tt/ttyS0/:
+If you don't use devfs (which automatically creates such devices) and
+don't have a device "file" that you need, you will have to create it.
+Use the <tt/mknod/ command or with the MAKEDEV shell script.
+Example, suppose you needed to create <tt/ttyS0/:
+
 <tscreen><verb>
 linux# mknod -m 666 /dev/ttyS0 c 4 64
 </verb></tscreen>
@@ -2304,7 +2430,8 @@ Text-Terminal-HOWTO.
 control lines and indicate if they are positive (1 or green) or
 negative (0 or red).
 <itemize>
-<item> The "file": /proc/tty/driver/serial lists those that are positive
+<item> The "file": /proc/tty/driver/serial lists those that are
+ asserted (positive voltage)
 <item> modemstat (Only works correctly on Linux PC consoles.  Status
  monitored in a tiny window.  Color-coded and compact.  Must kill
  it (a process) to quit.
@@ -2312,10 +2439,8 @@ negative (0 or red).
 <item> serialmon (Doesn't monitor RTS, CTS, DSR but logs other
   functions)
 </itemize>
-You may already have them.  If not, download them from <url url=
-"http://metalab.unc.edu/pub/Linux/system/serial/" name="Serial
-Software">.  As of June 1998, I know of no diagnostic program in Linux
-for the serial port.
+As of June 1998, I know of no diagnostic program in Linux for the
+serial port.
 
 <sect1> Changing Interrupt Priority
 <p>
@@ -2326,7 +2451,7 @@ for the serial port.
 </itemize>
 
 <sect1>What is Setserial ? <label id="set_serial">
-<!-- setserial.H  begin  (in MM TT SS)
+<!-- setserial.D  begin  (in MM TT SS)
 <sect1>What is Setserial ? <label id="set_serial">
 Change Log:
 May 2000: <sect2> IRQs near end ttyS0 -> ttyS1 + clarity
@@ -2334,7 +2459,7 @@ Nov. 2000: auto_irq may work on the 2nd try
 Dec. 2000: saving state of serial module
 June 2001 OK to use setserial with Laptops
 Nov. 2002 Debian's /var/lib/serial.conf
-Nov. 2003 Major revision, since today, plug-and-play dominates
+Nov. 2003 Major revision.  Plug-and-play dominates
  /var/lib/setserial/autoserial.conf
 -->
 <p> This part is in 3 HOWTOs: Modem, Serial, and Text-Terminal.  There
@@ -2761,11 +2886,11 @@ shouldn't save anything for PCMCIA cards (but Debian did until
 2.15-7).  Of course, it's always OK to use setserial to find out how
 the driver is configured for PCMCIA cards.
 
-<!-- setserial.H  end -->
+<!-- setserial.D  end -->
 
 
 <sect1> Stty <label id="stty_">
-<!-- stty.H begin <sect1> Stty <label id="stty_">
+<!-- stty.D begin <sect1> Stty <label id="stty_">
 In Serial and Text-Terminal -->
 <sect2> Introduction
 <p> <tt/stty/ does much of the configuration of the serial port but
@@ -2960,7 +3085,7 @@ so that the low level stuff is done first.  If you have directories in
 the /etc tree where every file in them is executed at boot-time
 (System V Init) then you could create a file named "stty" for this
 purpose.
-<!-- stty.H end -->
+<!-- stty.D end -->
 
 
 <sect1> What is isapnp ?
@@ -2987,8 +3112,8 @@ incorrectly calls it speed.  The speed is measured in bits/sec (or
 baud).  Speed is set using the "stty" command or by a program which
 uses the serial port.  See <ref id="stty_" name="Stty">
 
-<sect1> Can't Set a High Enough Speed
-<!-- high_speed.H begin  In Serial and Modem HOWTOs but some of the speed
+<sect1> Very High Speeds <label id="high_speed">
+<!-- high_speed.D begin  In Serial and Modem HOWTOs but some of the speed
 section is unique to each HOWTO.
 Feb. 2003, 
 -->
@@ -3058,15 +3183,15 @@ Normally, if you specify a speed of 115.2k (in your communication
 program or by stty) then the serial driver sets the port hardware to
 divisor 1 which sets the highest speed.
 
-Besides using a very high divisor to set high speed the conventional
+Besides using a very high divisor to set high speed, the conventional
 way to do it is as follows: If you happen to have hardware with a
-maximum speed of say 230.4k (and the 230.4k speed has been enabled),
-then specifying 115.2k will result in divisor 1.  For some hardware
-this will actually give you 230.4k.  This is double the speed that you
-set.  In fact, for any speed you set, the actual speed will be double.
-If you had hardware that could run at 460.8k then the actual speed
-would be quadruple what you set.  All the above assumes that you don't
-use "setserial" to modify things.
+maximum speed of say 230.4k (and the 230.4k speed has been enabled in
+the hardware), then specifying 115.2k will result in divisor 1.  For
+some hardware this will actually give you 230.4k.  This is double the
+speed that you set.  In fact, for any speed you set, the actual speed
+will be double.  If you had hardware that could run at 460.8k then the
+actual speed would be quadruple what you set.  All the above assumes
+that you don't use "setserial" to modify things.
 
 <sect2> Setting the divisor, speed accounting
 <p> To correct this accounting (but not always fix the problem) you
@@ -3075,11 +3200,12 @@ speed of your port such as 230.4k.  Then if you set the speed (by your
 application or by stty) to 230.4k, a divisor of 1 will be used and
 you'll get the same speed as you set.
 
-If you have old software which will not permit such a high speed (but
-your hardware has it enabled) then you might want to look into using
-the "spd_cust" parameter for setserial with "divisor 1".  Then when
-you tell the application that the speed it 38,400, it will use divisor
-1 and get the highest speed.  
+If you have very old software which will not allow you to tell it such
+a high speed (but your hardware has it enabled) then you might want to
+look into using the "spd_cust" parameter.  This allows you to tell the
+application that the speed is 38,400 but the actual speed for this
+case is determined by the value of "divisor" which has also been set
+in setserial.  I think it best to try to avoid using this kludge.
 
 There are some brands of UARTs that uses a very high divisor to set
 high speeds.  There isn't any satisfactory way to use "setserial" (say
@@ -3095,11 +3221,12 @@ speed of 115.2k.  The reason the crystal frequency needs to be higher
 is so that this high crystal speed can generate clock ticks to take a
 number of samples of each  bit to determine if it's a 1 or a 0.
 
-Actually, the 1.8432 MHz "crystal frequency" is obtained from a 18.432
-MHz crystal oscillator by dividing by 10 before being fed to the UART.
-Other schemes are also possible as long as the UART performs properly.
+Actually, the 1.8432 MHz "crystal frequency" may be obtained from a
+18.432 MHz crystal oscillator by dividing by 10 before being fed to
+the UART.  Other schemes are also possible as long as the UART
+performs properly.
 
-<!-- high_speed.H end  -->
+<!-- high_speed.D end  -->
 
 
 <sect1>Higher Serial Throughput <label id="higher_thruput">
@@ -3146,21 +3273,20 @@ is to:
 
 <sect1>Lock-Files <label id="lockfiles_">
 <p> If you use the new device-filesystem (devfs) then see the next
-section.
-A lock-file is simply a file created to mean that a particular device is
-in use.  They are kept in <tt>/var/lock</tt>.  Formerly they were in
-<tt>/usr/spool/uucp</tt>.  Linux lock-files are usually named
-<tt/LCK../<EM/name/, where <EM/name/ may be a device name, a process
-id number, a device's major and minor numbers, or a UUCP site name.
-Most processes (an exception is getty) create these locks so that they
-can have exclusive access to devices.  For instance if you dial out on
-your modem, some lockfiles will appear to tell other processes that
-someone else is using the modem.  In older versions (in the 1990s)
-there was usually only one lockfile per process.  Lock files contain
-the PID of the process that has locked the device.  Note that if a
-process insists on using a device that is locked, it may ignore the
-lockfile and use the device anyway.  This is useful in sending a
-message to a text-terminal, etc.
+section.  A lock-file is simply a file created to mean that a
+particular device is in use.  They are kept in <tt>/var/lock</tt>.
+Formerly they were in <tt>/usr/spool/uucp</tt>.  Linux lock-files are
+usually named <tt/LCK../<EM/name/, where <EM/name/ may be a device
+name, a process id number, a device's major and minor numbers, or a
+UUCP site name.  Most processes (an exception is getty) create these
+locks so that they can have exclusive access to devices.  For instance
+if you dial out on your modem, some lockfiles will appear to tell
+other processes that someone else is using the modem.  In older
+versions (in the 1990s) there was usually only one lockfile per
+process.  Lock files contain the PID of the process that has locked
+the device.  Note that if a process insists on using a device that is
+locked, it may ignore the lockfile and use the device anyway.  This is
+useful in sending a message to a text-terminal, etc.
 
 When a program wants to use a serial port but finds it locked with
 lock-files it should check to see if the lock-file's PID is still in
@@ -3193,9 +3319,9 @@ your terminal using the write or talk program.
 <sect1>Lock-Files and devfs Problems
 <p> The new device-filesystem (devfs) has the /dev directory with
 subdirectories.  As of late 2001, there were problems with lockfiles.
-For example, the lockfile mechanism considers /dev/usb/tts/0 and
+For example, the lockfile mechanism considered dev/usb/tts/0 and
 /dev/tts/0 to be the same device with name "0".  Ditto for all other
-devices that have the same "leaf" name.
+devices that had the same "leaf" name.
 
 Also, if some applications use the old name for a device and other
 applications use the new name (devfs) for the same  device, then the
@@ -3384,6 +3510,7 @@ modems.  For a Text-Terminal much of the info here will be of value as
 well as the troubleshooting info in Text-Terminal-HOWTO.
 
 <sect1> Serial Electrical Test Equipment <label id="ser_elect_test">
+<!-- begin ser_elect_test.D.  in Serial, Text-Terminal -->
 <sect2> Breakout Gadgets, etc.
 <p> While a multimeter (used as a voltmeter) may be all that you need
 for just a few serial ports, simple special test equipment has been
@@ -3441,7 +3568,7 @@ For the test for 12 V, Lick a finger and hold one test lead in it.
 Put the other test lead on your tongue.  If the lead on your tongue is
 positive, there will be a noticeable taste.  You might try this with
 flashlight batteries first so you will know what taste to expect.
-
+<!-- end ser_elect_test.D in Serial, Text-Terminal -->
 
 
 <sect1> Serial Monitoring/Diagnostics
@@ -3463,6 +3590,7 @@ Dec. '02: IO error may mean IRQ conflict or IO address conflict.
 Jan. '03: LSR safety check error 
 Feb. '03: Interrupts may be shared on PCI Bus
 June '03: Wvdial: busy message due to lockfile permissions
+Dec. '03: Scanport can also detect an enabled PnP port
 -->
 <sect1>(The following subsections are in both the Serial and Modem HOWTOs)
 
@@ -3473,17 +3601,16 @@ often because it's disabled and has no address (PnP hasn't enabled it)
 or that it is enabled but is not at the I/O address that setserial
 thinks it's at.  Thus it can't be found.
 
-First check BIOS messages at boot-time (and possible the BIOS menu for
-the serial port).  For the PCI bus use lspci or scanpci.  If it's an
-ISA bus PnP serial port, try "pnpdump --dumpregs" and/or see
+First check BIOS messages at boot-time (and possibly the BIOS menu for
+the serial port).  Then for the PCI bus use lspci or scanpci.  If it's
+an ISA bus PnP serial port, try "pnpdump --dumpregs" and/or see
 Plug-and-Play-HOWTO.  If the port happens to be enabled then the
 following two paragraphs may help find it:
 
-For a non-PnP ISA legacy port, using "scanport" (Debian only ??) will
-scan all bus ports and may discover an unknown port that could be a
-serial port (but it doesn't probe the port).  It could hang your PC.
-You may try probing with setserial.  See <ref id="probing_ss"
-name="Probing">.
+Using "scanport" (Debian only ??) will scan all enabled bus ports and
+may discover an unknown port that could be a serial port (but it
+doesn't probe the port).  It could hang your PC.  You may try probing
+with setserial.  See <ref id="probing_ss" name="Probing">.
 
 If nothing seems to get thru the port it may be accessible but have a
 bad interrupt.  See <ref id="slow_" name="Extremely Slow: Text appears
@@ -3763,16 +3890,25 @@ troubleshooting:
  and tty/driver/serial).
 </itemize>
 
-<!-- troubleshooting.H end -->
+<!-- troubleshooting.D end -->
 
 
 <sect1> Almost all characters are wrong; Many missing or many extras
 <p>Perhaps a baud mismatch.  If one port sends at twice the speed that
 the other port is set to receive, then every two characters sent will
-be received as one character.  The bits of this received character
-will be a sample of every other bit of the two characters sent, so it
-will be wrong.  Also, only half the characters sent seem to get
-received.  A worse mismatch will produce even worse results.
+be received as one character.  Each bit of this received character
+will be a sample of two bits of what is sent and will be wrong.  Also,
+only half the characters sent seem to get received.  For flow in the
+reverse direction, it's just the opposite.  Twice as many characters
+get received than were sent.  A worse mismatch will produce even worse
+results.
+
+A speed mismatch is not likely to happen with a modem since the modem
+autodetects the speed.  One cause of a mismatch may be due to serial
+port hardware that has been set to run at very fast speeds.  It may
+actually operate at a speed say 8 times that of which you (or an
+application) set it via software.  See <ref id="high_speed" name="Very
+High Speeds">
 
 <sect> Interrupt Problem Details <label id="irq_prob_details">
 <p> While the section <ref id="trouble_shoot" name="Troubleshooting">
@@ -4563,8 +4699,10 @@ serial port, although generic is also an option.  See the
 Configuration Help file in the kernel documentation.
 
 For documentation, see the USB directory in /usr/share/doc/kernel ...
-It would be nice to have a HOWTO on the USB.  See also <url
-url="http://www.linux-usb.org"> and/or <url
+and look at the file: usb-serial.txt.  The modules that support usb
+serial devices are found in the modules tree:
+kernel/drivers/usb/serial.  It would be nice to have a HOWTO on the
+USB.  See also <url url="http://www.linux-usb.org"> and/or <url
 url="http://.www.qbik.ch/usb/">.
 
 <sect1> Firewire
