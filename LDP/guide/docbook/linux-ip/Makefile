@@ -18,21 +18,23 @@ XMLDCL       = /docbook/dsssl/dtds/decls/xml.dcl
 #    output
 #
 BASE         = linux-ip
+BASEVER      = ${BASE}-0.4.4
 XSLCHUNK     = xsl/${BASE}-chunk.xsl
 XSLNOCHUNK   = xsl/${BASE}.xsl
 
 OUTPUT       = ${OUTDIR}/linux-ip
 HTMLOUTPUT   = ${OUTPUT}/html
+PUBDATE      = ${BASE}/PUBDATE
 
 .PHONY: all html html-nochunk images scripts print dvi distro \
-	fo tex aindex syntax
+	fo tex aindex syntax pubdate
 
 all: \
 	html \
 	images \
 	scripts
 
-html: aindex scripts images
+html: aindex scripts images pubdate
 	${XSLTPROC} -stringparam base.dir ${HTMLOUTPUT}/ ${XSLCHUNK} ${BASE}.xml
 
 html-nochunk:
@@ -52,7 +54,12 @@ print:  dvi
 	dvipdf ${OUTPUT}/${BASE}.dvi ${OUTPUT}/${BASE}.pdf
 	dvips -o ${OUTPUT}/${BASE}.ps ${OUTPUT}/${BASE}.dvi
 
-distro: aindex html html-nochunk print
+docbookball: pubdate
+	( cd .. ; ln -s ${BASE}/ ${BASEVER} ; \
+	  tar --create --compress --dereference --exclude \*CVS \
+          --verbose --file ${OUTPUT}/${BASEVER}-xml.tar.gz ${BASEVER}/ )
+
+distro: aindex html html-nochunk print pubdate
 	( cd .. ; tar --create --compress --dereference --exclude \*CVS \
           --verbose --file ${OUTPUT}/${BASE}-docbook.tar.gz ${BASE}/ )
 	( cd ${OUTPUT} ; tar --create --compress --verbose --exclude \*CVS \
@@ -69,6 +76,9 @@ distro: aindex html html-nochunk print
 tex:
 	openjade  -t tex -o ${OUTPUT}/${BASE}.tex \
 	-d ${PRINTDSSSL} ${XMLDCL} ${BASE}.xml
+
+pubdate:
+	date '+%Y-%m-%d' > PUBDATE
 
 syntax:
 	nsgmls -sv ${XMLDCL} ${BASE}.xml
