@@ -57,7 +57,7 @@ sub Reset {
     $txtfile = '';
     $dbfile = '';
     $verbose = 0;
-    $doctype = '';
+    $doctype = 0;
     $articleclass = '';
     $nonet = 0;
 
@@ -113,13 +113,11 @@ sub ProcessFile {
     #
     $encoding = 'ISO-8859-1' unless ($encoding);
     if ($doctype eq 'XML') {
-        print "Adding XML DOCTYPE and article tags." if ($verbose);
+        print "Adding XML DOCTYPE and article tags\n" if ($verbose);
         $buf = '<?xml version="1.0" encoding="' . $encoding . '" standalone="no"?>' . "\n";
         $buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"' . "\n";
         $buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"';
         $buf .= "\[\n";
-
- 
         $buf .= '<!ENTITY % ISOnum PUBLIC' . "\n";
         $buf .= '  "ISO 8879:1986//ENTITIES Numeric and Special Graphic//EN//XML"' . "\n";
         $buf .= '  "http://docbook.org/xml/4.1.2/ent/iso-num.ent">' . "\n";
@@ -127,12 +125,13 @@ sub ProcessFile {
         $buf .= "\]\>\n";
         $buf .= "\n";
         if ($articleclass) {
+		print "Setting article class to $articleclass\n" if ($verbose);
 		$buf .= "<article class='$articleclass'>\n";
 	} else {
 		$buf .= '<article>' . "\n";
 	}
     } elsif ($doctype eq 'SGML') {
-        print "Adding SGML DOCTYPE and article tags." if ($verbose);
+        print "Adding SGML DOCTYPE and article tags\n" if ($verbose);
         $buf = '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
         if ($articleclass) {
 		$buf .= "<article class='$articleclass'>\n";
@@ -144,7 +143,11 @@ sub ProcessFile {
     # read in the text file
     #
     while ($originalline = <$fh>) {
-        ProcessLine($foo, $originalline);
+    	chomp($originalline);
+    	$originalline =~ s/\x0a//g;;
+    	$originalline =~ s/\x0d//g;;
+	print "Read line $originalline\n" if ($verbose);
+	ProcessLine($foo, $originalline);
         print $outfh "$buf";
         $buf = '';
     }
@@ -222,7 +225,7 @@ sub ProcessLine {
 
         # namespaces are handled differently
         #
-        print "$link\n" if ($verbose);
+        print "Link to $link\n" if ($verbose);
 
         if ($link =~ /^http:\/\//) {
             $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
@@ -236,7 +239,7 @@ sub ProcessLine {
         } elsif ($link =~ /^wiki:/) {
             $linkname =~ s/^wiki://;
             $link =~ s/^wiki:/http:\/\/www\.wikipedia\.com\/wiki\.phtml\?title=/;
-            $link =~ s/\ /+/;
+            $link =~ s/\ /_/g;
             $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
         } elsif ($link =~ /^ldp:/) {
             $linkname =~ s/^ldp://;
@@ -246,7 +249,7 @@ sub ProcessLine {
             } else {
                 #$tempfile = "/tmp/wt2db-" . $rand;
                 #$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
-                #print "$cmd\n" if ($verbose > 1);
+                #print "Command $cmd\n" if ($verbose > 1);
                 #$return = system("$cmd");
                 #unless ($return) {
                 #    open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
@@ -319,8 +322,8 @@ sub ProcessLine {
             &closepara;
         $noparatag = $line;
         $noparatag =~ s/^.*?<//;
-        $noparatag =~ s/>.*?$//;
-        $noparaline = $linenumber;
+        $noparatag =~ s/>.*$//;
+	$noparaline = $linenumber;
 
         # screen sections don't embed para tags, but are wrapped in them
         #
@@ -337,11 +340,11 @@ sub ProcessLine {
     if ($noparatag ne '') {
         $temp = $line;
         while ($temp =~ /<$noparatag>/) {
-            $temp =~ s/<?$noparatag>//;
+            $temp =~ s/<$noparatag>//;
             $noparadepth ++;
         }
         while ($temp =~ /<\/$noparatag>/) {
-            $temp =~ s/<?\/$noparatag>//;
+            $temp =~ s/<\/$noparatag>//;
             $noparadepth --;
             if ($noparadepth == 0) {
                 $noparaline = 0;
@@ -379,7 +382,7 @@ sub ProcessLine {
             encode_entities($line);
         }
         $line = "$starttag$line$endtag";
-
+	chomp($line);
     # sect3
     #
     } elsif ($line =~ /^===/) {
@@ -492,7 +495,10 @@ sub ProcessLine {
             $qandaentry = 1;
         }
         if ($qandaset == 0) {
-            $line = "<qandaset defaultlabel='qanda'>\n<?dbhtml toc='1' ?>" . $line;
+            $line = "<qandaset defaultlabel='qanda'>\n" .
+	            "<?dbhtml toc='1' ?>\n" .
+#		    "<?dbhtml cell-spacing='1em' cell-padding='1em' ?>" .
+		    $line;
             $qandaset = 1;
         }
 
@@ -637,7 +643,6 @@ sub closepara {
 }
 
 sub trimline {
-    chomp($line);
     $line =~ s/\s+$//;
     $line =~ s/^\s+//;
 }
