@@ -26,6 +26,7 @@ import unittest
 from Config import config
 from Database import db
 from DataLayer import lampadas
+from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
 import commands
@@ -43,7 +44,7 @@ class testTypes(unittest.TestCase):
 
     def testTypes(self):
         log(3, 'testing types')
-        assert not lampadas.Types==None
+        assert not lampadas.types==None
         assert lampadas.types.count() > 0
         log(3, 'testing types done')
 
@@ -55,55 +56,38 @@ class testDocs(unittest.TestCase):
         assert not lampadas.docs==None
         assert lampadas.docs.count() > 0
 
-        db.runsql("DELETE FROM document where title='testharness'")
-        db.commit()
-    
-        old_id = db.read_value('SELECT max(doc_id) from document')
-        new_id = lampadas.docs.add('testharness',
-                                   'howto',
-                                   'xml',
-                                   'DocBook',
-                                   '4.1.2',
-                                   '1.0',
-                                   '2002-04-04',
-                                   'http://www.example.com/HOWTO.html',
-                                   'ISBN',
-                                   'N',
-                                   'N',
-                                   '2002-04-05',
-                                   '2002-04-10',
-                                   'http://www.home.com',
-                                   'N',
-                                   'gfdl',
-                                   'This is a document.',
-                                   'EN',
-                                   'fooseries')
-        assert new_id > 0
-        assert old_id + 1==Newid
+        doc = lampadas.docs.add('Test Document',
+                                'Test Doc',
+                                'howto',
+                                'xml',
+                                'DocBook',
+                                '4.1.2',
+                                '1.0',
+                                '2002-04-04',
+                                'ISBN',
+                                'N',
+                                'N',
+                                '2002-04-05',
+                                '2002-04-10',
+                                'N',
+                                'gfdl',
+                                '2.0',
+                                'Copyright Holder',
+                                'This is an abstract.',
+                                'This is a short description.',
+                                'EN',
+                                'fooseries')
 
-        doc = lampadas.docs[new_id]
         assert not doc==None
-        assert doc.id==Newid
-        assert doc.title=='testharness'
+        assert doc.title=='Test Document'
         assert doc.format_code=='xml'
         
         title = doc.title
         doc.title = 'Foo'
         assert doc.title=='Foo'
         doc.save()
-        doc2 = lampadas.docs[new_id]
-        assert doc2.title=='Foo'
         
-        doc.title = title
-        assert doc.title==title
-        doc.save()
-        assert doc.title==title
-        doc2 = lampadas.docs[new_id]
-        assert doc2.title==title
-        
-        lampadas.docs.delete(new_id)
-        new_id = db.read_value('SELECT MAX(doc_id) from document')
-        assert new_id==old_id
+        lampadas.docs.delete(doc.id)
 
         keys = lampadas.docs.keys()
         for key in keys:
@@ -121,12 +105,13 @@ class testDocErrs(unittest.TestCase):
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
-            if doc.errs.count() > 0:
-                log("found a doc with errors")
-                for err in doc.errs:
-                    assert not err==None
-                    assert err.doc_id==doc.id
-                    assert err.err_id > 1
+            if doc.errors.count() > 0:
+                log(3, "found a doc with errors")
+                for err_id in doc.errors.keys():
+                    error = doc.errors[err_id]
+                    assert not error==None
+                    assert error.doc_id==doc.id
+                    assert error.err_id > 1
         log(3, 'testing DocErrs done')
     
 
@@ -136,12 +121,15 @@ class testDocFiles(unittest.TestCase):
         log(3, 'testing DocFiles')
         keys = lampadas.docs.keys()
         for key in keys:
-            filekeys = doc.files.keys()
-            for filekey in filekeys:
-                file = Doc.files[filekey]
-                if file==None: break
-                assert file.doc_id==doc.id
-                assert file.filename > ''
+            doc = lampadas.docs[key]
+            docfilekeys = doc.files.keys()
+            for docfilekey in docfilekeys:
+                docfile = doc.files[docfilekey]
+                sourcefile = sourcefiles[docfilekey]
+                if docfile==None: break
+                assert docfile.doc_id==doc.id
+                assert docfile.filename > ''
+                assert docfile.filename==sourcefile.filename
         log(3, 'testing DocFiles done')
 
 
@@ -155,35 +143,36 @@ class testDocRatings(unittest.TestCase):
             doc = lampadas.docs[dockey]
             assert not doc==None
             doc.ratings.clear()
+            doc.calc_rating()
             assert doc.ratings.count()==0
             assert doc.rating==0
 
             # Add Userid: 1   Rating: 5   -- Avg: 5
 
-            doc.ratings.add(1, 5)
+            doc.ratings.add('david', 5)
+            doc.calc_rating()
             assert doc.ratings.count()==1
-            assert doc.ratings.average==5
             assert doc.rating==5
 
             # Add Userid: 2   Rating: 7   -- Avg: 6
             
-            doc.ratings.add(2, 7)
+            doc.ratings.add('admin', 7)
+            doc.calc_rating()
             assert doc.ratings.count()==2
-            assert doc.ratings.average==6
             assert doc.rating==6
 
             # Del Userid: 1
         
-            doc.ratings.delete(1)
+            doc.ratings.delete('david')
+            doc.calc_rating()
             assert doc.ratings.count()==1
-            assert doc.ratings.average==7
             assert doc.rating==7
 
             # Clear again
 
             doc.ratings.clear()
+            doc.calc_rating()
             assert doc.ratings.count()==0
-            assert doc.ratings.average==0
             assert doc.rating==0
         log(3, 'testing DocRatings done')
 
@@ -286,25 +275,17 @@ class testUsers(unittest.TestCase):
     def testUsers(self):
         log(3, 'testing Users')
         assert not lampadas.users==None
-        assert lampadas.users.count() > 0
 
-        db.runsql("DELETE FROM username where email='foo@example.com'")
-        db.commit()
-    
-        self.Oldid = db.read_value('SELECT MAX(user_id) from username')
-        self.Newid = lampadas.Users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
-        assert self.Newid > 0
-        assert self.Oldid + 1==self.Newid
+        count = lampadas.users.count()
+        assert count > 0
+
+        user = lampadas.users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
+        assert not user==None
+        assert user.username=='testuser'
+        assert user.email=='foo@example.com'
         
-        self.User = lampadas.User(self.Newid)
-        assert not self.User==None
-        assert self.User.id==self.Newid
-        assert self.User.Username=='testuser'
-        assert self.User.Email=='foo@example.com'
-        
-        lampadas.Users.Del(self.Newid)
-        self.Newid = db.read_value('SELECT MAX(user_id) from username')
-        assert self.Newid==self.Oldid
+        lampadas.users.delete(user.username)
+        assert lampadas.users.count()==count
         log(3, 'testing Users done')
 
 
@@ -312,32 +293,16 @@ class testUserDocs(unittest.TestCase):
 
     def testUserDocs(self):
         log(3, 'testing UserDocs')
-        self.User = lampadas.User(11)
-        assert len(self.User.Docs) > 0
-        assert self.User.Docs.count() > 0
-        assert not self.User.Docs==None
-        for UserDoc in self.User.Docs:
-            assert not UserDoc==None
-            assert not UserDoc.doc_id==None
-            assert UserDoc.doc_id > 0
-            assert UserDoc.Active==1 or UserDoc.Active==0
-        log(3, 'testing UserDocs done')
-
-
-class testUserDocs(unittest.TestCase):
-
-    def testUserDocs(self):
-        log(3, 'testing UserDocs')
-        self.User = lampadas.User(11)
-        assert len(self.User.Docs) > 0
-        assert self.User.Docs.count() > 0
-        assert not self.User.Docs==None
-        for UserDoc in self.User.Docs:
-            assert not UserDoc==None
-            assert not UserDoc.doc_id==None
-            assert UserDoc.doc_id > 0
-            assert UserDoc.Active==1 or UserDoc.Active==0
-            assert UserDoc.id==UserDoc.doc_id
+        user = lampadas.user('david')
+        assert len(user.docs) > 0
+        assert user.docs.count() > 0
+        assert not user.docs==None
+        for key in user.docs.keys():
+            userdoc = user.docs[key]
+            assert not userdoc==None
+            assert not userdoc.doc_id==None
+            assert userdoc.doc_id > 0
+            assert userdoc.active==1 or userdoc.active==0
         log(3, 'testing UserDocs done')
 
 
@@ -348,52 +313,42 @@ class testURLParse(unittest.TestCase):
 
     def check_uri(self, url, result) :
         uri = URI(url)
-        u = (uri.protocol, uri.server, uri.port, uri.path, uri.lang, uri.force_lang,
-             uri.id, uri.code, uri.filename, uri.parameter, uri.anchor)
+        u = (uri.protocol, uri.server, uri.port, uri.path, uri.lang_ext, 
+             uri.id, uri.code, uri.page_code, uri.parameter, uri.anchor)
         self.assertEqual( (url,u), (url,result) )
         
     def testURLParse(self):
         # uri protocol server port path language
         # forcelang id format filename parameter anchor
         self.check_uri('',
-                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
 
         self.check_uri('/',
-                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
 
-        self.check_uri('/home',
-                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+        self.check_uri('/home.html',
+                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
 
-        self.check_uri('FR',
-                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
+        self.check_uri('/home.fr.html',
+                       ('',     '',        '',    '/','.fr.html', 0, '', 'home',   '',''))
 
-        self.check_uri('FR/',
-                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
+        self.check_uri('/document_main/1.html',
+                       ('',     '',        '',    '/','.html',    1, '', 'document_main','',''))
 
-        self.check_uri('FR/home',
-                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
-
-        self.check_uri('/editdoc/1',
-                       ('',     '',        '',    '/','EN',0,1,'','editdoc','',''))
-
-        self.check_uri('ES/editdoc/1',
-                       ('',     '',        '',    '/','ES',1,1,'','editdoc','',''))
+        self.check_uri('/document_main/1.es.html',
+                       ('',     '',        '',    '/','.es.html', 1, '', 'document_main','',''))
 
         self.check_uri('http://localhost:8000',
-                       ('http','localhost','8000','/','EN',0,0,'','home',   '',''))
+                       ('http','localhost','8000','/','.html',    0, '', 'home',   '',''))
 
-        self.check_uri('http://localhost/editdoc/1',
-                       ('http','localhost','',    '/','EN',0,1,'','editdoc','',''))
+        self.check_uri('http://localhost/document_main/1.html',
+                       ('http','localhost','',    '/','.html',    1, '', 'document_main','',''))
 
-        self.check_uri('http://localhost/ES/editdoc/1',
-                       ('http','localhost','',    '/','ES',1,1,'','editdoc','',''))
+        self.check_uri('http://localhost/document_main/1.es.html',
+                       ('http','localhost','',    '/','.es.html', 1, '', 'document_main','',''))
 
-        self.check_uri('http://localhost:8000/ES/editdoc/1',
-                       ('http','localhost','8000','/','ES',1,1,'','editdoc','',''))
-
-        # FIXME: I added this one, is it ok? --nico
-        self.check_uri('/home/file',
-                       ('',     '',        '', 'home','EN',0,0,'','file',   '',''))
+        self.check_uri('http://localhost:8000/document_main/1.es.html',
+                       ('http','localhost','8000','/','.es.html', 1, '', 'document_main','',''))
 
 
 if __name__=="__main__":

@@ -52,8 +52,6 @@ class URI:
         self.parameter = ""
         self.anchor = ""
 
-        self.force_lang = 0
-              
         self.page_code = "home"
 
         # If the URL specifies a user, doc, etc., it is stored in one

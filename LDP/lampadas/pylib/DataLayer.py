@@ -429,9 +429,21 @@ class Doc:
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
+        # Always recalculate the rating when saving a document.
+        self.calc_rating()
         sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ", pub_status_code=" + wsq(self.pub_status_code) + ", review_status_code=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status_code=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
         db.runsql(sql)
         db.commit()
+
+    def calc_rating(self):
+        self.rating = 0
+        count = 0
+        if self.ratings.count() > 0:
+            keys = self.ratings.keys()
+            for key in keys:
+                self.rating = self.rating + self.ratings[key].rating
+                count = count + 1
+            self.rating = self.rating / count
 
 
 # DocErrs
@@ -676,7 +688,6 @@ class DocRatings(LampadasCollection):
     def __init__(self, doc_id=0):
         self.data = {}
         self.doc_id = doc_id
-        self.parent = None
         if doc_id > 0:
             self.load()
 
@@ -687,10 +698,10 @@ class DocRatings(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newDocRating = DocRating()
-            newDocRating.load_row(row)
-            self.data[newDocRating.username] = newDocRating
-        self.calc_average()
+            docrating = DocRating()
+            docrating.load_row(row)
+            self.doc_id = docrating.doc_id
+            self.data[docrating.username] = docrating
 
     def add(self, username, rating):
         docrating = DocRating()
@@ -700,7 +711,6 @@ class DocRatings(LampadasCollection):
         docrating.rating   = rating
         docrating.save()
         self.data[docrating.username] = docrating
-        self.calc_average()
 
     def delete(self, username):
         if self.data[username]==None: return
@@ -708,26 +718,12 @@ class DocRatings(LampadasCollection):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.doc_id) + ' AND username=' + wsq(username)
         db.runsql(sql)
-        self.calc_average()
         
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.doc_id)
         db.runsql(sql)
         self.data = {}
-        self.calc_average()
-
-    def calc_average(self):
-        self.average = 0
-        if self.count() > 0:
-            keys = self.data.keys()
-            for key in keys:
-                self.average = self.average + self.data[key].rating
-            self.average = self.average / self.count()
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "UPDATE document SET rating=" + str(self.average) + " WHERE doc_id=" + str(self.doc_id)
-        if not self.parent==None:
-            self.parent.pating = self.average
 
 class DocRating:
     """
@@ -1473,6 +1469,8 @@ class Users:
         sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ", " + wsq(stylesheet) + ")"
         assert db.runsql(sql)==1
         db.commit()
+        user = self[username]
+        return user
     
     def delete(self, username):
         # FIXME: use cursor.execute(sql,params) instead! --nico
