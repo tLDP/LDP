@@ -178,19 +178,20 @@ class Makefile:
         makeneeded = 0
         for docid in lampadas.docs.keys():
             doc = lampadas.docs[docid]
-            for file in doc.files.keys():
-                file = doc.files[file]
-                if file.top==1 and file.errors.count()==0:
-#                    if (file.format_code=='sgml' and doc.dtd_code=='DocBook') or (file.format_code=='sgml' and doc.dtd_code=='LinuxDoc') or file.format_code=='xml' or file.format_code=='wikitext' or file.format_code=='text':
-                    makeneeded = 1
-                    docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
-                    xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
-                    htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) -i html 2>>make.log\n"
-                    indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) -i index 2>>make.log\n"
-                    txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) -i txt 2>>make.log\n"
-                    omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) -i omf 2>>db2omf.log\n"
-                    cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) -i clean 2>>make.log\n"
-                    rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) -i rebuild 2>>make.log\n"
+            if doc.errors.count()==0 and doc.files.error_count()==0:
+                for file in doc.files.keys():
+                    file = doc.files[file]
+                    if file.top==1:
+    #                    if (file.format_code=='sgml' and doc.dtd_code=='DocBook') or (file.format_code=='sgml' and doc.dtd_code=='LinuxDoc') or file.format_code=='xml' or file.format_code=='wikitext' or file.format_code=='text':
+                        makeneeded = 1
+                        docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
+                        xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
+                        htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) -i html 2>>make.log\n"
+                        indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) -i index 2>>make.log\n"
+                        txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) -i txt 2>>make.log\n"
+                        omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) -i omf 2>>db2omf.log\n"
+                        cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) -i clean 2>>make.log\n"
+                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) -i rebuild 2>>make.log\n"
 
         if makeneeded:
             Makefile = "all:\tbuild\n\n"
@@ -213,5 +214,6 @@ makefile = Makefile()
 
 
 if __name__=="__main__":
+    print "Running Makefile on all documents..."
     makefile.write_all()
 

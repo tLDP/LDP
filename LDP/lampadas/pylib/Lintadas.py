@@ -204,11 +204,11 @@ def main():
     config.log_level = 3
     docs = sys.argv[1:]
     if len(docs)==0:
-        print "Running on all documents..."
+        print "Running Lintadas on all documents..."
         lintadas.check_all()
     else:
         for doc_id in docs:
-            print "Running on document " + str(doc_id)
+            print "Running Lintadas on document " + str(doc_id)
             lintadas.check(int(doc_id))
 
 def usage():

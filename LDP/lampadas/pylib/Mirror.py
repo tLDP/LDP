@@ -135,5 +135,6 @@ class Mirror:
 mirror = Mirror()
 
 if __name__=="__main__":
+    print "Running Mirror on all documents..."
     mirror.mirror_all()
 
