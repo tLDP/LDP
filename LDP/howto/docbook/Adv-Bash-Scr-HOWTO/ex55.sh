@@ -5,6 +5,8 @@
 # --> This is part of the 'rc' script package
 # --> by Miquel van Smoorenburg, &lt;miquels@drinkel.nl.mugnet.org>
 
+# --> This particular script seems to be Red Hat specific
+# --> (may not be present in other distributions).
 
 # Bring down all unneeded services that are still running (there shouldn't 
 # be any, so this is just a sanity check)

@@ -17,4 +17,7 @@ exit 143
 # To verify this, type $? after script terminates.
 
 # By convention, an 'exit 0' shows success,
-# while a non-zero exit value indicates an error.
+# while a non-zero exit value indicates an error or anomalous condition.
+
+# It is also appropriate for the script to use the exit status
+# to communicate with other processes, as when in a pipe with other scripts.

@@ -16,7 +16,10 @@ else
     IMAGE_DIRECTORY=$1
 fi
     
-ls -lR $IMAGE_DIRECTORY > $IMAGE_DIRECTORY/contents
+ls -lRF $IMAGE_DIRECTORY > $IMAGE_DIRECTORY/contents
+# The "l" option gives a "long" file listing.
+# The "R" option makes the listing recursive.
+# The "F" option marks the file types (directories suffixed by a /).
 echo "Creating table of contents."
 
 mkisofs -r -o cdimage.iso $IMAGE_DIRECTORY

@@ -60,6 +60,8 @@ fi
 echo
 echo
 
+
+
 # String Operators
 
 echo String Operators
@@ -67,15 +69,19 @@ echo
 
 a=1234zipper43231
 echo The string being operated upon is $a.
+
 # index: position of substring
 b=`expr index $a 23`
 echo Numerical position of first 23 in $a is $b.
+
 # substr: print substring, starting position & length specified
 b=`expr substr $a 2 6`
 echo Substring of $a, starting at position 2 and 6 chars long is $b.
+
 # length: length of string
 b=`expr length $a`
 echo Length of $a is $b.
+
 # 'match' operations similarly to 'grep'
 b=`expr match $a [0-9]*`
 echo Number of digits at the beginning of $a is $b.

@@ -11,15 +11,25 @@ read -a colors
 
 echo
 
-element_count=${#colors[@]}
-# Special syntax to extract number of elements in array.
+  element_count=${#colors[@]} # Special syntax to extract number of elements in array.
+# element_count=${#colors[*]} works also.
 index=0
 
+# List all the elements in the array.
 while [ $index -lt $element_count ]
 do
   echo ${colors[$index]}
   let "index = $index + 1"
 done
+# Each array element listed on a separate line.
+# If this is not desired, use  echo -n "${colors[$index]} "
+
+echo
+
+# Again, list all the elements in the array, but using a more elegant method.
+  echo ${colors[@]}
+# echo ${colors[*]} works also.
+
 
 echo
 

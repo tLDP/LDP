@@ -12,6 +12,7 @@ echo "a = $a"
 
 # Indirect reference.
 echo "Now a = ${!a}"
+# The ${!variable} notation is greatly superior to the old "eval var1=\$$var2"
 
 echo
 

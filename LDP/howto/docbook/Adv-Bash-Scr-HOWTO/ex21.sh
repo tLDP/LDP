@@ -1,9 +1,94 @@
 #!/bin/bash
 
-# Prints different random integer
-# at each invocation.
+# $RANDOM returns a different random integer at each invocation.
+# Nominal range: 0 - 32767 (signed integer).
 
-a=$RANDOM
-echo $a
+MAXCOUNT=10
+count=1
+
+echo
+echo "$MAXCOUNT random numbers:"
+echo "-----------------"
+while [ $count -le $MAXCOUNT ]      # Generate 10 ($MAXCOUNT) random integers.
+do
+  number=$RANDOM
+  echo $number
+  let "count += 1"  # Increment count.
+done
+echo "-----------------"
+
+# If you need a random int within a certain range, then use the 'modulo' operator.
+
+RANGE=500
+
+echo
+
+number=$RANDOM
+let "number %= $RANGE"
+echo "Random number less than $RANGE  -->  $number"
+
+echo
+
+# If you need a random int greater than a lower bound,
+# then set up a test to discard all numbers below that.
+
+FLOOR=200
+
+number=0   #initialize
+while [ $number -le $FLOOR ]
+do
+  number=$RANDOM
+done
+echo "Random number greater than $FLOOR -->  $number"
+echo
+
+
+# May combine above two techniques to retrieve random number between two limits.
+number=0   #initialize
+while [ $number -le $FLOOR ]
+do
+  number=$RANDOM
+  let "number %= $RANGE"
+done
+echo "Random number between $FLOOR and $RANGE -->  $number"
+echo
+
+
+# May generate binary choice, that is, "true" or "false" value.
+BINARY=2
+number=$RANDOM
+let "number %= $BINARY"
+if [ $number -eq 1 ]
+then
+  echo "TRUE"
+else
+  echo "FALSE"
+fi  
+
+echo
+
+
+# May generate toss of the dice.
+SPOTS=7
+DICE=2
+die1=0
+die2=0
+
+# Tosses each die separately, and so gives correct odds.
+
+  while [ $die1 -eq 0 ]   #Can't have a zero come up.
+  do
+    let "die1 = $RANDOM % $SPOTS"
+  done  
+
+  while [ $die2 -eq 0 ]
+  do
+    let "die2 = $RANDOM % $SPOTS"
+  done  
+
+let "throw = $die1 + $die2"
+echo "Throw of the dice = $throw"
+echo
+
 
 exit 0
