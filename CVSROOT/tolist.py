@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # CVSROOT/users ---> ezmlm list extra allow subscribers
-# (c) sergiusz paw³owicz 2001 <ser@pld.org.pl>
+# (c) sergiusz paw³owicz 2001 <ser@pld.org.pl> - BSD License
 #   [- forgive me, it`s almost my first python program]
 # 
 # $Id$
