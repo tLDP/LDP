@@ -8,6 +8,11 @@ insert([admin], [Admin Page], [],
     <p>Admin tools.
 ])
 
+insert([users], [User List], [],
+[
+    |tabusers|
+])
+
 insert([sysadmin], [Sysadmin Page], [],
 [
     <p>Sysadmin tools.
@@ -37,6 +42,11 @@ insert([doctable], [Table des docs], [Table des docs],
 insert([news], [|strproject| News], [|strprojectshort| News],
 [
 	|tabrecentnews|
+])
+
+insert([staff], [Staff], [],
+[
+    List the members of your project\'s staff here.
 ])
 
 insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampadas],
@@ -80,6 +90,28 @@ insert([unmaintained], [Unmaintained Documents], [],
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
     |tabmaint_wanted|
+])
+
+insert([pending], [Pending Documents], [],
+[
+    |tabpending|
+])
+
+insert([wishlist], [Wishlist Documents], [],
+[
+    |tabwishlist|
+])
+
+insert([resources], [Other Resources], [],
+[
+    <ul>
+        <li>Insert some resources for French authors.
+    </ul>
+])
+
+insert([maillists], [Mailing Lists], [],
+[
+    List your project\'s mailing lists here.
 ])
 
 insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],

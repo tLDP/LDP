@@ -8,6 +8,11 @@ insert([admin], [Admin Page], [],
     <p>Admin tools.
 ])
 
+insert([users], [User List], [],
+[
+    |tabusers|
+])
+
 insert([sysadmin], [Sysadmin Page], [],
 [
     <p>Sysadmin tools.
@@ -41,8 +46,12 @@ insert([news], [Latest News], [],
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |strproject|],
-    [Contributing to |strprojectshort|],
+insert([staff], [Staff], [],
+[
+    List the members of your project\'s staff here.
+])
+
+insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
 [
     As a member of this Lampadas community, you can collaborate with
     hundreds or even thousands of others to produce documentation,
@@ -102,12 +111,61 @@ insert([contribute], [Contributing to |strproject|],
 
 insert([unmaintained], [Unmaintained Documents], [],
 [
+    <p>If you wish to become the maintainer for one of these unmaintained
+    documents, please follow these steps:
+
+    <ul>
+        <li>Contact the original author. If not listed, consult the document.
+        Make sure the author no longer wishes to maintain the document in question.
+
+        <li>Determine if a more up-to-date copy of the document exists, outside
+        of what is available here. The best way to do this is through the
+        former maintainer. If you can, secure a copy of the most recent
+        version and submit it here.
+
+        <li>Inform the site administrator that you would like to maintain the
+        document. The administrator will assign you the necessary rights so
+        you can begin maintaining it.
+
+        <li>Update the document, adding yourself as the current maintainer.
+        Be sure that you continue to credit all former maintainers.
+    </ul>
+
+    <p>It is possible that a document could be listed here erroneously.
+    If you find an error, please notify the site administrator right away
+    so we can correct the problem.
+    
     |tabunmaintained|
 ])
 
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
     |tabmaint_wanted|
+])
+
+insert([pending], [Pending Documents], [],
+[
+    |tabpending|
+])
+
+insert([wishlist], [Wishlist Documents], [],
+[
+    |tabwishlist|
+])
+
+insert([resources], [Other Resources], [],
+[
+    <ul>
+        <li><a href="http://www.dictionary.com">Dictionary.com</a>, an online dictionary.
+        <li><a href="http://www.thesaurus.com">Thesaurus.com</a>, an online thesaurus.
+        <li><a href="http://www.webopedia.com">Webopedia.com</a>, an online dictionary
+            and search engine for computer and internet technology.
+    </ul>
+])
+
+insert([maillists], [Mailing Lists], [],
+[
+    List your project\'s mailing lists here.
 ])
 
 insert([about], [About |strproject|], [About |strprojectshort|],

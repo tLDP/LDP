@@ -8,6 +8,11 @@ insert([admin], [Administration], [],
     <p>Werkzeuge für Administratoren.
 ])
 
+insert([users], [User List], [],
+[
+    |tabusers|
+])
+
 insert([sysadmin], [System-Administration], [],
 [
     <p>Werkzeuge für System-Administratoren.
@@ -40,6 +45,11 @@ insert([doctable], [DocTable], [],
 insert([news], [Neuigkeiten], [],
 [
     |tabrecentnews|
+])
+
+insert([staff], [Staff], [],
+[
+    List the members of your project\'s staff here.
 ])
 
 insert([contribute], [Mitarbeit bei |strproject|],
@@ -107,6 +117,28 @@ insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
 insert([maint_wanted], [Instandhalter gesucht], [],
 [
     |tabmaint_wanted|
+])
+
+insert([wishlist], [Wishlist Documents], [],
+[
+    |tabwishlist|
+])
+
+insert([pending], [Pending Documents], [],
+[
+    |tabpending|
+])
+
+insert([resources], [Other Resources], [],
+[
+    <ul>
+        <li>Insert some resources for German authors.
+    </ul>
+])
+
+insert([maillists], [Mailing Lists], [],
+[
+    List your project\'s mailing lists here.
 ])
 
 insert([about], [Über |strproject|], [Über |strprojectshort|],

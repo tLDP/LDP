@@ -36,7 +36,7 @@ from WebLayer import lampadasweb
 from Sessions import sessions
 
 import commands
-from string import split
+import string
 import sys
 import os
 
@@ -521,6 +521,20 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
+    def users(self, uri, build_user):
+        log(3, 'Creating users table')
+        box = ''
+        if uri.letter > '':
+            box = "List of users goes here."
+            # FIXME: finish this. Must handle other character sets as well.
+        else:
+            box += '<ul>\n'
+            for letter in string.uppercase:
+                box = box + '<li><a href="' + uri.base + '/' + letter + '">' + letter + '</a>\n'
+            box += '</ul>\n'
+        return box
+    
+
     def user(self, uri, build_user):
         box = '<table class="box">\n'
         if uri.username > '':
@@ -550,7 +564,7 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
-    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None):
+    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
@@ -582,6 +596,11 @@ class TableFactory:
             elif not maintainer_wanted==None:
                 if doc.maintainer_wanted <> maintainer_wanted:
                     ok = 0
+            elif not pub_status_code==None:
+                if doc.pub_status_code <> pub_status_code:
+                    ok = 0
+
+            # Build the table for any documents that passed the filters
             if ok > 0:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
@@ -898,6 +917,10 @@ class PageFactory:
                     newstring = self.tablef.doctable(uri, build_user, maintainer_wanted=1)
                 if token=='tabunmaintained':
                     newstring = self.tablef.doctable(uri, build_user, maintained=0)
+                if token=='tabpending':
+                    newstring = self.tablef.doctable(uri, build_user, pub_status_code='P')
+                if token=='tabwishlist':
+                    newstring = self.tablef.doctable(uri, build_user, pub_status_code='W')
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri, build_user)
                 if token=='tabdocfiles':
@@ -910,6 +933,8 @@ class PageFactory:
                     newstring = self.tablef.doctopics(uri)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
+                if token=='tabusers':
+                    newstring = self.tablef.users(uri, build_user)
                 if token=='tabuser':
                     newstring = self.tablef.user(uri, build_user)
                 if token=='tabmenus':

@@ -45,12 +45,13 @@ class URI:
         self.lang = "EN"
         self.force_lang = 0
         self.path = "/"
-        self.format = ""
+        self.parameter = ""
+        self.anchor = ""
+        
         self.filename = "home"
         self.id = 0
         self.code = ''
-        self.parameter = ""
-        self.anchor = ""
+        self.letter = ''
 
         self.uri = uri
         
@@ -86,21 +87,27 @@ class URI:
         # this is where we load ids and codes for pages which
         # contain an object and display its attributes.
         if not path : return
-        if path[0] in ('editdoc','cvslog'):
+        print path[0]
+        if path[0]=='editdoc' or path[0]=='cvslog':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.id = int(path[0])
-        elif path[0] in ('topic','subtopic','type'):
+        elif path[0]=='topic' or path[0]=='subtopic' or path[0]=='type':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.code = path[0]
-        elif path[0] in ('user',):
+        elif path[0]=='user':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.username = path[0]
+        elif path[0]=='users':
+            self.filename = path[0]
+            path = path[1:]
+            if path:
+                self.letter = path[0]
         else:
             if len(path)==1:
                 self.path = '/'
@@ -120,12 +127,12 @@ class URI:
         print "Path: [%s]"     % self.path
         print "Language: [%s]" % self.lang
         print "Forced Language: [%s]" % self.force_lang
-        print "ID: [%s]"       % self.id
-        print "Code [%s]"      % self.code
-        print "Format [%s]"    % self.format
-        print "Filename: [%s]" % self.filename
         print "Parameter: [%s]"% self.parameter
         print "Anchor: [%s]"   % self.anchor
+        print "ID: [%s]"       % self.id
+        print "Code [%s]"      % self.code
+        print "Filename: [%s]" % self.filename
+        print "Letter: [%s]"   % self.letter
 
 
 if __name__=='__main__':

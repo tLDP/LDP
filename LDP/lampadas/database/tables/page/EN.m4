@@ -1,6 +1,7 @@
 insert(newdocument,         default,    user,       1,  t,  f,  f)
 
 insert(admin,               default,    admin,      1,  f,  t,  f)
+insert(users,               default,    admin,      2,  f,  t,  f)
 
 insert(sysadmin,            default,    sysadmin,   1,  f,  f,  t)
 
@@ -10,9 +11,14 @@ insert(doctable,            default,    main,       3,  f,  f,  f)
 
 insert(news,                default,    news,       1,  f,  f,  f)
 
-insert(contribute,          default,    volunteer,  1,  f,  f,  f)
-insert(unmaintained,        default,    volunteer,  2,  f,  f,  f)
-insert(maint_wanted,        default,    volunteer,  3,  f,  f,  f)
+insert(staff,               default,    volunteer,  1,  f,  f,  f)
+insert(contribute,          default,    volunteer,  2,  f,  f,  f)
+insert(unmaintained,        default,    volunteer,  3,  f,  f,  f)
+insert(maint_wanted,        default,    volunteer,  4,  f,  f,  f)
+insert(pending,             default,    volunteer,  5,  f,  f,  f)
+insert(wishlist,            default,    volunteer,  6,  f,  f,  f)
+insert(resources,           default,    volunteer,  7,  f,  f,  f)
+insert(maillists,           default,    volunteer,  8,  f,  f,  f)
 
 insert(about,               default,    help,       1,  f,  f,  f)
 insert(lampadas,            default,    help,       2,  f,  f,  f)
