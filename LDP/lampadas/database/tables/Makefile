@@ -1,4 +1,6 @@
-tables =  audience block \
+tabs =	audience \
+	audience_i18n \
+	block \
 	block_i18n \
 	class \
 	class_i18n \
@@ -55,7 +57,7 @@ build:
 install: all
 	$(INSTALLDIR) $(sqlprefix)/lampadas
 	$(INSTALLDIR) $(sqlprefix)/lampadas/sql
-	for table in $(tables) ; do \
+	for table in $(tabs) ; do \
 		$(INSTALLDIR) $(sqlprefix)/lampadas/sql/$$table ; \
 		$(INSTALLSQL) $$table/*.sql $(sqlprefix)/lampadas/sql/$$table ; \
 		$(INSTALLSQL) $$table/*.m4 $(sqlprefix)/lampadas/sql/$$table ; \

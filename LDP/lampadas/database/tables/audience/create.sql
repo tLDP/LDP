@@ -1,7 +1,6 @@
 CREATE TABLE audience (
-	audience_code		CHAR(12)	NOT NULL,
-	audience_level		INT4		NOT NULL,
-	audience_description	TEXT,
+	audience_code	CHAR	NOT NULL,
+	sort_order	INT4	NOT NULL,
 
 	PRIMARY KEY (audience_code)
 );

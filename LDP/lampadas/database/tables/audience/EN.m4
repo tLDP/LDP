@@ -1,5 +1,5 @@
-insert(novice, 1, Novice)
-insert(beginner, 2, Beginner)
-insert(intermediate, 3, Intermediate)
-insert(advanced, 4, Advanced)
+insert(N, 1)
+insert(B, 2)
+insert(I, 3)
+insert(A, 4)
 
