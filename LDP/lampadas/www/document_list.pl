@@ -130,7 +130,7 @@ print "<a href='/help/'>Help</a> ";
 
 print "<p><form action='document_edit.pl' method=POST>\n";
 print "<p>Jump to a document by ID: <input type=text size=5 name=doc_id>\n";
-print "<input type=submit value=Jump>\n";
+print "<input type=submit value=Jump name=Jump>\n";
 
 print "</form>\n";
 

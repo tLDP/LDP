@@ -1,6 +1,8 @@
 #! /usr/bin/perl
 
 $workpath = "/tmp";
+$editcols = 80;
+$editrows = 25;
 
 use CGI qw(:standard);
 use Pg;
@@ -10,7 +12,16 @@ $dbmain = "ldp";
 @row;
 
 # Read parameters
-$doc_id       = param('doc_id');
+$doc_id		= param('doc_id');
+$wiki           = param('wiki');
+$notes          = param('notes');
+$revision	= param('revision');
+
+$save		= param('Save');
+$preview	= param('Preview');
+$docbook	= param('DocBook');
+
+$username       = $query->remote_user();
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
@@ -28,28 +39,26 @@ if ($username ne $row[0]) {
 	}
 }
 
-$save = param('Save');
-$preview = param('Preview');
-$docbook = param('DocBook');
-
-$wiki           = param('wiki');
-while ($wiki =~ /\'/) {
-	$wiki =~ s/\'/a1s2d3f4/;
-}
-while ($wiki =~ /a1s2d3f4/) {
-        $wiki =~ s/a1s2d3f4/\'\'/;
-}
-$notes          = param('notes');
-while ($notes =~ /\'/) {
-        $notes =~ s/\'/a1s2d3f4/;
-}
-while ($notes =~ /a1s2d3f4/) {
-        $notes =~ s/a1s2d3f4/\'\'/;
-}
-$revision	= param('revision');
-$username       = $query->remote_user();
-
 if ($save) {
+	while ($wiki =~ /&/) {
+		$wiki =~ s/&/a1s2d3f4/;
+	}
+	while ($wiki =~ /a1s2d3f4/) {
+	        $wiki =~ s/a1s2d3f4/&amp;/;
+	}
+	while ($wiki =~ /\'/) {
+		$wiki =~ s/\'/a1s2d3f4/;
+	}
+	while ($wiki =~ /a1s2d3f4/) {
+	        $wiki =~ s/a1s2d3f4/\'\'/;
+	}
+	while ($notes =~ /\'/) {
+	        $notes =~ s/\'/a1s2d3f4/;
+	}
+	while ($notes =~ /a1s2d3f4/) {
+	        $notes =~ s/a1s2d3f4/\'\'/;
+	}
+
 	#find out how many prior revisions there were
 	$result = $conn->exec("SELECT count(*) FROM document_wiki WHERE doc_id = $doc_id");
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
@@ -71,12 +80,14 @@ if ($save) {
 }
 
 #load document meta-data
-$result = $conn->exec("SELECT title, filename FROM document WHERE doc_id = $doc_id");
+$result = $conn->exec("SELECT title, filename, class FROM document WHERE doc_id = $doc_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 @row = $result->fetchrow;
 $title		= $row[0];
 $title		=~  s/\s+$//;
 $filename	= $row[1];
+$class		= $row[2];
+$class		=~  s/\s+$//;
 
 #find out how many prior revisions there were
 $result = $conn->exec("SELECT count(*) FROM document_wiki WHERE doc_id = $doc_id");
@@ -92,39 +103,44 @@ unless ($preview or $docbook) {
 	$revision	= $revisions + 1;
 	$wiki		= $row[0];
 	$wiki		=~  s/\s+$//;
+	while ($wiki =~ /</) {
+		$wiki =~ s/</&lt;/;
+	}
+	while ($wiki =~ />/) {
+		$wiki =~ s/>/&gt;/;
+	}
 
-&printheader;
-
-print "<form method=POST action='document_wiki.pl' name='edit'>\n";
-print "<input type=hidden name=doc_id value='$doc_id'>\n";
-print "<input type=hidden name=revision value=$revision>\n";
-
-print "<table>\n";
-print "<tr><th>Document Text</th></tr>\n";
-print "<tr><td><textarea name=wiki rows=25 cols=60 wrap>$wiki</textarea></td></tr>\n";
-print "<tr><td>Comments: <input type=text name=notes size=60></input></td></tr>\n";
-if ($revisions == 0) {
-	print "<tr><td>There are no previous versions of this document. Your changes will be saved as version $revision</td></tr>\n";
-} else {
-	print "<tr><td>You are editing version $revisions. Your changes will be saved as version $revision</td></tr>\n";
-}
-print "</table>\n";
-	
-print "<input type=submit value=Save name=Save>\n";
-print "<input type=submit value=Preview name=Preview>\n";
-print "<input type=submit value=DocBook name=DocBook>\n";
-print "</form>\n";
-
-print end_html;
-
+	&printheader;
+	print "<form method=POST action='document_wiki.pl' name='edit'>\n";
+	print "<input type=hidden name=doc_id value='$doc_id'>\n";
+	print "<input type=hidden name=revision value=$revision>\n";
+	print "<table width='100%'>\n";
+	print "<tr><th>Document Text</th></tr>\n";
+	print "<tr><td><textarea name=wiki rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";
+	print "<tr><td>Comments: <input type=text name=notes size=$editcols></input></td></tr>\n";
+	if ($revisions == 0) {
+		print "<tr><td>There are no previous versions of this document. Your changes will be saved as version $revision</td></tr>\n";
+	} else {
+		print "<tr><td>You are editing version $revisions. Your changes will be saved as version $revision</td></tr>\n";
+	}
+	print "</table>\n";
+	print "<input type=submit value=Save name=Save>\n";
+	print "<input type=submit value=Preview name=Preview>\n";
+	print "<input type=submit value=DocBook name=DocBook>\n";
+	print "</form>\n";
+	print end_html;
 }
 
 if ($preview or $docbook) {
-	$txtfile = "$workpath/foo.txt";
+	$txtfile = "$workpath/" . rand . ".txt";
 	$sgmlfile = $txtfile;
 	$sgmlfile =~ s/\.txt/\.sgml/;
 	$htmlfile = $txtfile;
 	$htmlfile =~ s/\.txt/\.html/;
+	$abstractfile = $txtfile;
+	$abstractfile =~ s/\./abs\./;
+	$abstractsgmlfile = $sgmlfile;
+	$abstractsgmlfile =~ s/\./abs\./;
 	system("rm $sgmlfile");
 
 	open(TXT, "> $txtfile");
@@ -135,7 +151,11 @@ if ($preview or $docbook) {
 	system($cmd);
 
 	$sgml  = '<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
-	$sgml .= "<article>\n";
+	if ($class eq 'FAQ') {
+		$sgml .= "<article class='FAQ'>\n";
+	} else {
+		$sgml .= "<article>\n";
+	}
 	$sgml .= "<articleinfo>\n";
 	
 	$result = $conn->exec("SELECT title, last_update, abstract FROM document WHERE doc_id = $doc_id");
@@ -143,11 +163,27 @@ if ($preview or $docbook) {
 	while (@row = $result->fetchrow) {
 		$title = $row[0];
 		$date  = $row[1];
+
+		#insert paragraphs in the abstract where appropriate.
 		$abstract = $row[2];
+		open(ABSTRACT, "> $abstractfile");
+		print ABSTRACT $abstract;
+		close(ABSTRACT);
+		
+		$cmd = "/usr/lib/cgi-bin/gldp.org/txt2db.pl -o $abstractsgmlfile $abstractfile";
+		system($cmd);
+
+		$abstract = "";
+		open(ABSTRACTSGML, $abstractsgmlfile);
+		while (<ABSTRACTSGML>) {
+			$abstract .= $_;
+		}
+
+		#build the document header.
 		$sgml .= "<title>$title</title>\n";
 		$sgml .= "<date>$date</date>\n";
 		$sgml .= "<pubdate>$date</pubdate>\n";
-		$sgml .= "<abstract><para>$abstract</para></abstract>\n";
+		$sgml .= "<abstract>$abstract</abstract>\n";
 	}
 	
 	$result = $conn->exec("SELECT m.maintainer_name, dm.email FROM document_maintainer dm, maintainer m WHERE doc_id = $doc_id AND dm.maintainer_id = m.maintainer_id AND active='t'");
