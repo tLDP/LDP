@@ -24,5 +24,5 @@ insert([footer],
         </td>
       </tr>
     </table>
-    <p><a href="http://www.python.org"><img src="images/PythonPowered.gif"></a>
+    <p><a href="http://www.python.org"><img src="images/PythonPowered.gif" alt="Python Powered!"></a>
 ])

@@ -87,6 +87,7 @@ class ComboFactory:
 
     def type(self, value, lang):
         combo = "<select name='type_code'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
@@ -118,6 +119,7 @@ class ComboFactory:
 
     def sk_seriesid(self, value, lang):
         combo = "<select name='sk_seriesid'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
             doc = lampadas.docs[key]
@@ -134,6 +136,7 @@ class ComboFactory:
 
     def dtd(self, value, lang):
         combo = "<select name='dtd'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.dtds.sort_by_lang('DTD', lang)
         for key in keys:
             dtd = lampadas.dtds[key]
@@ -148,15 +151,16 @@ class ComboFactory:
         return combo
     
     def format(self, value, lang):
-        combo = "<select name='format'>\n"
+        combo = '<select name="format_code">\n'
+        combo = combo + '<option></option>'
         keys = lampadas.formats.sort_by_lang('name', lang)
         for key in keys:
             format = lampadas.formats[key]
             assert not format==None
             combo = combo + "<option "
-            if format.id==value:
+            if format.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(format.id) + "'>"
+            combo = combo + "value='" + str(format.code) + "'>"
             combo = combo + format.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
@@ -179,6 +183,7 @@ class ComboFactory:
 
     def license(self, value, lang):
         combo = "<select name='license_code'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.licenses.sort_by('sort_order')
         for key in keys:
             license = lampadas.licenses[key]
@@ -209,6 +214,7 @@ class ComboFactory:
 
     def pub_status(self, value, lang):
         combo = "<select name='pub_status_code'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.pub_statuses.sort_by('sort_order')
         for key in keys:
             PubStatus = lampadas.pub_statuses[key]
@@ -224,6 +230,7 @@ class ComboFactory:
         
     def review_status(self, value, lang):
         combo = "<select name='review_status_code'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
             review_status = lampadas.review_statuses[key]
@@ -239,6 +246,7 @@ class ComboFactory:
 
     def tech_review_status(self, value, lang):
         combo = "<select name='tech_review_status_code'>\n"
+        combo = combo + '<option></option>'
         keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
             review_status = lampadas.review_statuses[key]
@@ -336,7 +344,8 @@ class TableFactory:
     def docversions(self, uri):
         log(3, 'Creating docversions table')
         doc = lampadas.docs[uri.id]
-        box = '<table class="box">'
+        box = ''
+        box = box + '<table class="box">'
         box = box + '<tr><th colspan="6">|strdocversions|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strversion|</th>\n'
@@ -345,21 +354,31 @@ class TableFactory:
         box = box + '<th class="collabel">|strcomments|</th>\n'
         box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
         box = box + '</tr>\n'
-        doc = lampadas.docs[uri.id]
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
             box = box + '<form method=GET action="data/save/document_version" name="document_version">'
-            box = box + '<tr>\n'
-            box = box + '<input name="ref_id" type=hidden value=' + str(version.id) + '>\n'
+            box = box + '<input name="rev_id" type=hidden value=' + str(version.id) + '>\n'
             box = box + '<input name="doc_id" type=hidden value=' + str(version.doc_id) + '>\n'
-            box = box + '<td><input type=text name=version value="' + version.version + '"></input></td>\n'
-            box = box + '<td><input type=text name=pub_date value="' + version.pub_date + '"></input></td>\n'
-            box = box + '<td><input type=text name=initials value="' + version.initials + '"></input></td>\n'
-            box = box + '<td rowspan=3 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + version.notes + '</textarea></td>\n'
-            box = box + '<td><input type=checkbox name=del>Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '<tr>\n'
+            box = box + '<td><input type=text name=version value="' + version.version + '"></td>\n'
+            box = box + '<td><input type=text name=pub_date value="' + version.pub_date + '"></td>\n'
+            box = box + '<td><input type=text name=initials value="' + version.initials + '"></td>\n'
+            box = box + '<td style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + version.notes + '</textarea></td>\n'
+            box = box + '<td><input type=checkbox name="delete">Del</td>\n'
+            box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
+        box = box + '<form method=GET action="data/save/newdocument_version" name="document_version">'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<tr>\n'
+        box = box + '<td><input type=text name=version</td>\n'
+        box = box + '<td><input type=text name=pub_date</td>\n'
+        box = box + '<td><input type=text name=initials</td>\n'
+        box = box + '<td style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%"></textarea></td>\n'
+        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>\n'
+        box = box + '</tr>\n'
+        box = box + '</form>\n'
         box = box + '</table>\n'
         return box
         
@@ -367,7 +386,8 @@ class TableFactory:
     def docfiles(self, uri):
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
-        box = '<table class="box">'
+        box = ''
+        box = box + '<table class="box">'
         box = box + '<tr><th colspan="5">|strdocfiles|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strfilename|</th>\n'
@@ -380,13 +400,26 @@ class TableFactory:
         for key in keys:
             file = doc.files[key]
             box = box + '<form method=GET action="data/save/document_file" name="document_file">'
-            box = box + '<tr>\n'
             box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-            box = box + '<td><input type=text name=filename size=30 style="width:100%" value="' + file.filename + '"></input></td>\n'
+            box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + file.filename + '">\n'
+            box = box + '<tr>\n'
+            box = box + '<td>' + file.filename + '</td>\n'
             box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
-            box = box + '<td><input type=checkbox name=del>Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '<td>'  + combo_factory.format(file.format_code, uri.lang) + '</td>\n'
+            box = box + '<td><input type=checkbox name="delete">|strdelete|</td>\n'
+            box = box + '<td><input type=submit name="action" value="|strsave|">'
+            box = box + '</td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
+        box = box + '<form method=GET action="data/save/newdocument_file" name="document_file">'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<tr>\n'
+        box = box + '<td><input type=text name="filename" size=30 style="width:100%"></td>\n'
+        box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
+        box = box + '<td>'  + combo_factory.format('', uri.lang) + '</td>\n'
+        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
+        box = box + '</tr>\n'
+        box = box + '</form>\n'
         box = box + '</table>\n'
         return box
         
@@ -394,12 +427,13 @@ class TableFactory:
     def docusers(self, uri):
         log(3, 'Creating docusers table')
         doc = lampadas.docs[uri.id]
-        box = '<table class="box">'
+        box = ''
+        box = box + '<table class="box">'
         box = box + '<tr><th colspan="6">|strdocusers|</th></tr>\n'
         box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strusername|</th>\n'
         box = box + '<th class="collabel">|stractive|</th>\n'
         box = box + '<th class="collabel">|strrole|</th>\n'
-        box = box + '<th class="collabel">|strusername|</th>\n'
         box = box + '<th class="collabel">|stremail|</th>\n'
         box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
         box = box + '</tr>\n'
@@ -408,15 +442,27 @@ class TableFactory:
         for key in keys:
             docuser = doc.users[key]
             box = box + '<form method=GET action="data/save/document_user" name="document_user">'
+            box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
+            box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
             box = box + '<tr>\n'
-            box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+            box = box + '<td>' + docuser.username + '</td>\n'
             box = box + '<td>' + combo_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
             box = box + '<td>' + combo_factory.role(docuser.role_code, uri.lang) + '</td>\n'
-            box = box + '<td><input type=text name=username value="' + docuser.username + '"></input></td>\n'
-            box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></input></td>\n'
-            box = box + '<td><input type=checkbox name="del">Del</td><td><input type=submit name="save" value="|strsave|"></td>\n'
+            box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></td>\n'
+            box = box + '<td><input type=checkbox name="delete">Del</td>\n'
+            box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
+        box = box + '<form method=GET action="data/save/newdocument_user" name="document_user">'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<tr>\n'
+        box = box + '<td>' + '<input type=text name="username"></td>\n'
+        box = box + '<td>' + combo_factory.tf('active', 1, uri.lang) + '</td>\n'
+        box = box + '<td>' + combo_factory.role('', uri.lang) + '</td>\n'
+        box = box + '<td><input type=text name=email size=15></td>\n'
+        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
+        box = box + '</tr>\n'
+        box = box + '</form>\n'
         box = box + '</table>\n'
         return box
         

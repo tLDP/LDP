@@ -57,35 +57,66 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
     doc.lang                    = lang
     doc.abstract                = abstract
     doc.save()
-    referer = req.headers_in['referer']
-    req.headers_out['location'] = referer
-    req.status = apache.HTTP_MOVED_TEMPORARILY
+    go_back(req)
 
-def docfiles(req, doc_id, filename, top, format_code):
-    doc = lampadas.docs[doc_id]
-    file = doc.files[filename]
-    file.top = int(top)
-    file.format_code = format_code
-    file.save()
-    
-def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
+def newdocument_user(req, doc_id, username, active, role_code, email, action):
     user = lampadas.users[username]
-    if not user==None:
-        user.first_name = first_name
-        user.middle_name = middle_name
-        user.surname = surname
-        user.email = email
-        user.stylesheet = stylesheet
-        if password > '':
-            user.password = password
-        user.admin = int(admin)
-        user.sysadmin = int(sysadmin)
-        user.notes = notes
-        user.save()
-    referer = req.headers_in['referer']
-    req.headers_out['location'] = referer
-    req.status = apache.HTTP_MOVED_TEMPORARILY
-
+    if user==None or user.username<>username:
+        return error('User not found.')
+    else:
+        doc = lampadas.docs[int(doc_id)]
+        doc.users.add(username, role_code, email, int(active))
+        go_back(req)
+    
+def document_user(req, doc_id, username, active, role_code, email, action, delete=''):
+    doc = lampadas.docs[int(doc_id)]
+    if delete=='on':
+        doc.users.delete(username)
+        go_back(req)
+    else:
+        docuser = doc.users[username]
+        docuser.active = int(active)
+        docuser.role_code = role_code
+        docuser.email = email
+        docuser.save()
+        go_back(req)
+    
+def newdocument_file(req, doc_id, filename, top, format_code, action):
+    doc = lampadas.docs[int(doc_id)]
+    doc.files.add(doc_id, filename, int(top), format_code)
+    go_back(req)
+    
+def document_file(req, doc_id, filename, top, format_code, action, delete=''):
+    doc = lampadas.docs[int(doc_id)]
+    if delete=='on':
+        doc.files.delete(filename)
+        go_back(req)
+    else:
+        file = doc.files[filename]
+        file.top = int(top)
+        file.format_code = format_code
+        file.save()
+        go_back(req)
+    
+def newdocument_version(req, doc_id, version, pub_date, initials, notes, action):
+    doc = lampadas.docs[int(doc_id)]
+    doc.versions.add(doc_id, versionname, int(top), format_code)
+    go_back(req)
+    
+def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, action, delete=''):
+    doc = lampadas.docs[int(doc_id)]
+    if delete=='on':
+        doc.versions.delete(int(rev_id))
+        go_back(req)
+    else:
+        docversion = doc.versions[int(rev_id)]
+        docversion.version = version
+        docversion.pub_date = pub_date
+        docversion.initials = initials
+        docversion.notes = notes
+        docversion.save()
+        go_back(req)
+    
 def newuser(req, username, email, first_name, middle_name, surname):
     
     if username=='':
@@ -114,6 +145,29 @@ def newuser(req, username, email, first_name, middle_name, surname):
     server.quit()
     return page_factory.page('account_created')
 
+def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
+    user = lampadas.users[username]
+    if not user==None:
+        user.first_name = first_name
+        user.middle_name = middle_name
+        user.surname = surname
+        user.email = email
+        user.stylesheet = stylesheet
+        if password > '':
+            user.password = password
+        user.admin = int(admin)
+        user.sysadmin = int(sysadmin)
+        user.notes = notes
+        user.save()
+    referer = req.headers_in['referer']
+    req.headers_out['location'] = referer
+    req.status = apache.HTTP_MOVED_TEMPORARILY
+
 def error(message):
     return message
+
+def go_back(req):
+    referer = req.headers_in['referer']
+    req.headers_out['location'] = referer
+    req.status = apache.HTTP_MOVED_TEMPORARILY
 

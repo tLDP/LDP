@@ -1,5 +1,6 @@
 insert(default,
 [
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 	<html>
 	  <head>
 	    <title>|title|</title>
@@ -40,6 +41,7 @@ insert(default,
 
 insert(index,
 [
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 	<html>
 	  <head>
 	    <title>|title|</title>

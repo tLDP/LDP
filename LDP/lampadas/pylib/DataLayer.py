@@ -342,6 +342,14 @@ class DocFiles(LampadasCollection):
         file.filename = filename
         file.top = top
         file.format_code = format_code
+        file.save()
+        self.data[file.filename] = file
+        
+    def delete(self, filename):
+        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id) + " AND filename=" + wsq(filename)
+        db.runsql(sql)
+        db.commit()
+        del self.data[filename]
         
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -374,11 +382,6 @@ class DocFile:
         db.runsql(sql)
         db.commit()
 
-    def delete(self):
-        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id) + " AND filename=" + wsq(self.filename)
-        db.runsql(sql)
-        db.commit()
-
 
 # DocUsers
 
@@ -389,27 +392,33 @@ class DocUsers(LampadasCollection):
 
     def __init__(self, doc_id):
         self.data = {}
-        assert not doc_id==None
         self.doc_id = doc_id
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newDocUser = DocUser()
-            newDocUser.load_row(row)
-            self.data[newDocUser.username] = newDocUser
+            docuser = DocUser()
+            docuser.load_row(row)
+            self.data[docuser.username] = docuser
 
-    def add(self, doc_id, username, role_code, email, active):
-        sql = 'INSERT INTO document_user (doc_id, username, role_code, email, active) VALUES (' + str(doc_id) + ', ' + wsq(username) + ', ' + wsq(role_code) + ', ' + wsq(email) + ', ' + wsq(bool2tf(active)) + ')'
-        assert db.runsql(sql)==1
+    def add(self, username, role_code, email, active):
+        sql = 'INSERT INTO document_user (doc_id, username, role_code, email, active) VALUES (' + str(self.doc_id) + ', ' + wsq(username) + ', ' + wsq(role_code) + ', ' + wsq(email) + ', ' + wsq(bool2tf(active)) + ')'
+        db.runsql(sql)
         db.commit()
         docuser = DocUser()
-        docuser.doc_id = doc_id
+        docuser.doc_id = self.doc_id
         docuser.username = username
         docuser.role_code = role_code
         docuser.email = email
         docuser.active = active
+        self.data[docuser.username] = docuser
+
+    def delete(self, username):
+        sql = 'DELETE FROM document_user WHERE doc_id=' + str(self.doc_id) + ' AND username=' + wsq(username)
+        db.runsql(sql)
+        db.commit()
+        del self.data[username]
         
 class DocUser:
     """
@@ -537,9 +546,29 @@ class DocVersions(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            doc_version = DocVersion()
-            doc_version.load_row(row)
-            self.data[doc_version.id] = doc_version
+            docversion = DocVersion()
+            docversion.load_row(row)
+            self.data[docversion.id] = docversion
+
+    def add(self, version, pub_date, initials, notes):
+        newrev_id = db.read_value('SELECT MAX(rev_id) FROM document_rev')
+        newrev_id = newrev_id + 1
+        sql = 'INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials) VALUES (' + self.doc_id + ', ' + newrev_id + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes)
+        db.runsql(sql)
+        db.commit()
+        docversion = DocVersion()
+        docversion.id = newrev_id
+        docversion.doc_id = self.doc_id
+        docversion.version = version
+        docversion.pub_date = pub_date
+        docversion.initials = initials
+        docversion.notes = notes
+
+    def delete(self, rev_id):
+        sql = 'DELETE FROM document_rev WHERE rev_id=' + str(rev_id)
+        db.runsql(sql)
+        db.commit()
+        del self.data[rev_id]
 
 class DocVersion:
     """
@@ -558,7 +587,7 @@ class DocVersion:
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
-        sql = "UPDATE document_rev SET version=" + wsq(self.version) + ", pub_date=" + wsq(self.pub_date) + ", initials=" + wsq(self.initials) + ", notes=" + wsq(self.notes) + "WHERE doc_id=" + str(self.doc_id) + " AND rev_id" + wsq(self.id)
+        sql = "UPDATE document_rev SET version=" + wsq(self.version) + ", pub_date=" + wsq(self.pub_date) + ", initials=" + wsq(self.initials) + ", notes=" + wsq(self.notes) + "WHERE doc_id=" + str(self.doc_id) + " AND rev_id=" + str(self.id)
         assert db.runsql(sql)==1
         db.commit()
 
@@ -1004,7 +1033,7 @@ class UserDocs(LampadasCollection):
             if row==None: break
             newUserDoc = UserDoc()
             newUserDoc.load(row)
-            self.data[newUserDoc.id] = newUserDoc
+            self.data[newUserDoc.doc_id] = newUserDoc
 
 
     def add(self, doc_id, role_code, email, active):
