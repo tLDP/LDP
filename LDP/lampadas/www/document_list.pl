@@ -1,14 +1,10 @@
 #!/usr/bin/perl
 
-use CGI qw(:standard);
-use Pg;
 use Lampadas;
+use Lampadas::Database;
 
 $L = new Lampadas;
-
-$dbmain='ldp';
-@row;
-$count = 0;
+$DB = new Lampadas::Database;
 
 # Read parameters
 #
@@ -39,7 +35,7 @@ $chkFILENAME     = $L->Param('chkFILENAME');
 $chkRATING       = $L->Param('chkRATING');
 
 $SORT	= $L->Param('strSORT');
-$SORT	= "Title" unless ($SORT);
+$SORT	= "title" unless ($SORT);
 
 $strSTATUS = $L->Param('strSTATUS');
 
@@ -188,17 +184,18 @@ if ($L->Maintainer()) {
 	print "</select>\n";
 	print "</td>\n";
 }
-
-print "</tr></table>\n";
+print "</tr>\n";
+print "<tr><td colspan=4>\n";
 print "<input type=submit name=Reload value=Reload>\n";
-
 if ($L->Maintainer()) {
 	print "<input type=submit value='MyDocuments' name=MyDocuments>\n";
 }
-
+print "</td></tr>\n";
 print "</form>\n";
+print "</table>\n";
 
-print "<p><table>\n";
+
+print "<table class='box'>\n";
 print "<tr><th>Title</th>";
 if ( $STATUS ) { print "<th>Status</th>"; }
 if ( $REVIEWSTATUS ) { print "<th>Review Status</th>"; }
@@ -235,16 +232,12 @@ $sql .= " AND document.review_status = lr.review_status";
 $sql .= " AND document.tech_review_status = tr.review_status";
 $sql .= " AND url > ''" unless ($L->Maintainer());
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
-$sql = $sql . " ORDER BY $SORT";
-#print "<tr><td colspan=20>$sql</td></tr>";
+$sql = $sql . " ORDER BY UPPER($SORT)";
 
-# connect to the database
-$conn=Pg::connectdb("dbname=$dbmain");
+$count = 0;
 
-$result=$conn->exec("$sql");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-
-while (@row = $result->fetchrow) {
+$recordset=$DB->Recordset($sql);
+while (@row = $recordset->fetchrow) {
 	$doc_id                  = $row[0];
 	$title                   = $row[1];
 	$pub_status_name         = $row[2];
@@ -267,7 +260,7 @@ while (@row = $result->fetchrow) {
 	print "<tr>";
 	if ($L->Maintainer()) {
 		print "<td>\n";
-		print a({href=>"document_edit.pl?doc_id=$doc_id"},"$title");
+		print "<a href='document_edit.pl?doc_id=$doc_id'>$title</a>";
 		print "&nbsp;&nbsp;&nbsp;<a href='$url'>Go!</a>" if ($url);
 		print "</td>\n";
 	} elsif ($url) {

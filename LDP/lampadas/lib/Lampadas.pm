@@ -84,14 +84,23 @@ use Exporter;
 	DocNotesTable,
 	TopicsTable,
 
+	PubStatusStatsTable,
+	LicenseStatsTable,
+	FreeNonfreeStatsTable,
+	ClassStatsTable,
+	FormatStatsTable,
+	DTDStatsTable,
+	FormatDTDStatsTable,
+	DetailedStatsTable,
+	MiscStatsTable,
+	
 	BarGraphTable,
 
 	NavBox,
+	TopicsBox,
 	TitleBox,
 	LoginBox,
 	AdminBox,
-
-	TopicsList,
 
 	Login,
 	Logout,
@@ -593,6 +602,7 @@ sub StartPage {
 	LoginBox() unless ($currentuser_id);
 	AdminBox() if (Maintainer());
 	NavBox();
+	TopicsBox();
 	print "</td><td valign=top>\n";
 }
 
@@ -896,7 +906,13 @@ sub DocTable {
 	$doctable .= "<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr>\n";
-	$doctable .= "<th align=right>Filename</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
+	$doctable .= "<th align=right>\n";
+	if ($doc_id) {
+		$doctable .= "<a href='document_wiki.pl?doc_id=$doc_id'>Filename</a>\n";
+	} else {
+		$doctable .= "Filename";
+	}
+	$doctable .= "</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right><a href='$url'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
@@ -950,23 +966,232 @@ sub DocTable {
 	$doctable .= "<th align=right>Abstract</th>";
 	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
 	$doctable .= "</tr>\n";
-	if ($doc_id) {
-		$doctable .= "<tr>\n";
-		$doctable .= "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
-		$doctable .= "<td colspan=4>I am working on ways to provide easy online collaborative editing,
-		and always for new ways to make writing for the LDP easier.
-
-		<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
-		WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
-		WikiText-style editing format that can be converted into DocBook.
-
-		<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
-		$doctable .= "</tr>\n";
-	}
 	$doctable .= "<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n";
 	$doctable .= "</form>\n";
 	$doctable .= "</table>\n";
 	return $doctable;
+}
+
+sub PubStatusStatsTable{
+	my $document_total = DocCount();
+	my $sql = "SELECT pub_status_name, COUNT(*) FROM pub_status, document WHERE pub_status.pub_status = document.pub_status GROUP BY pub_status_name";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>Publication Status Statistics</th></tr>\n";
+	$table .= "<tr><th>Status</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$table .= "<tr>\n";
+		$table .= "<th>" . $row[0] . "</th>\n";
+		$table .= "<td align=right>" . $row[1] . "</td>\n";
+		$pct = sprintf( '%3.2f', $row[1] / $document_total * 100 );
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $row[1];
+	}
+	$table .= "<tr><th>Total</th><td align=right>$total</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub LicenseStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT license, COUNT(*) FROM document WHERE pub_status = 'N' GROUP BY license";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>License Statistics</th></tr>\n";
+	$table .= "<tr><th>License</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$license = $row[0];
+		$license =~ s/\s+$//;
+		$count   = $row[1];
+		$table .= "<tr>\n";
+		$table .= "<th>$license</th>\n";
+		$table .= "<td align=right>$count</td>\n";
+		$pct = sprintf( '%3.2f', $count / $active_count * 100 );
+		$table .= "<td align=right>$pct%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $count;
+	}
+	$table .= "<tr><th>Total</th><td align=right>$total</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub FreeNonfreeStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT l.free, COUNT(*) FROM document d, license l WHERE d.license = l.license GROUP BY free";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		if ($row[0] eq 't') {
+			$free_count = $row[1];
+		} else {
+			$nonfree_count = $row[1];
+		}
+	}
+	my $unknown_count = $DB->Value("SELECT COUNT(*) FROM document WHERE license IS NULL OR license=''");
+	my $free_pct = sprintf( '%3.2f', $free_count / $active_count * 100 );
+	my $nonfree_pct = sprintf( '%3.2f', $nonfree_count / $active_count * 100 );
+	my $unknown_pct = sprintf( '%3.2f', $unknown_count / $active_count * 100 );
+	
+	my $table = "<table classi'box'>\n";
+	$table .= "<tr><th colspan=3>Free/NonFree Statistics</th></tr>\n";
+	$table .= "<tr><th>Type</th><th align=right>Count</th><th align=right>Percent</th></tr>\n";
+	$table .= "<tr><th>Free*</th><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
+	$table .= "<tr><th>Non-Free</th><td align=right>$nonfree_count</td><td align=right>$nonfree_pct</td></tr>\n";
+	$table .= "<tr><th>Unknown</th><td align=right>$unknown_count</td><td align=right>$unknown_pct</td></tr>\n";
+	$table .= "<tr><th>Total</th><td align=right>$active_count</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub ClassStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT class_name, count(*) FROM class, document WHERE pub_status = 'N' and class.class = document.class group by class_name";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>Classes</th></tr>\n";
+	$table .= "<tr><th>Class</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$table .= "<tr>\n";
+		$table .= "<th>" . $row[0] . "</th>\n";
+		$table .= "<td align=right>" . $row[1] . "</td>\n";
+		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $row[1];
+	}
+	$table .= "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub FormatStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT format, count(*) FROM document WHERE pub_status = 'N' group by format";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>Format Statistics</th></tr>\n";
+	$table .= "<tr><th>Format</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$table .= "<tr>\n";
+		$table .= "<th>" . $row[0] . "</th>\n";
+		$table .= "<td align=right>" . $row[1] . "</td>\n";
+		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $row[1];
+	}
+	$table .= "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub DTDStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT dtd, count(*) FROM document WHERE pub_status = 'N' group by dtd";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>DTD Statistics</th></tr>\n";
+	$table .= "<tr><th>DTD</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$table .= "<tr>\n";
+		$table .= "<th>" . $row[0] . "</th>\n";
+		$table .= "<td align=right>" . $row[1] . "</td>\n";
+		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $row[1];
+	}
+	$table .= "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub FormatDTDStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT format, dtd, count(*) FROM document WHERE pub_status = 'N' group by format, dtd";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=4>Format and DTD Statistics</th></tr>\n";
+	$table .= "<tr><th>Format</th><th>DTD</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$format = $row[0];
+		$dtd    = $row[1];
+		$count  = $row[2];
+		$pct = sprintf( '%3.2f', $count / $active_count * 100 );
+		$table .= "<tr>\n";
+		$table .= "<th>$format</th>\n";
+		$table .= "<th>$dtd</th>\n";
+		$table .= "<td align=right>$count</td>\n";
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $count;
+	}
+	$table .= "<tr><th>Total</th><td></td><td align=right>" . $total . "</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub DetailedStatsTable {
+	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $sql = "SELECT class, dtd, format, count(*) FROM document WHERE pub_status = 'N' group by class, dtd, format";
+	my $recordset = $DB->Recordset($sql);
+	my $total = 0;
+	my $table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=4>Detailed Statistics</th></tr>\n";
+	$table .= "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
+	while (@row = $recordset->fetchrow) {
+		$table .= "<tr>\n";
+		$table .= "<th>" . $row[0] . "</th>\n";
+		$table .= "<th>" . $row[1] . "</th>\n";
+		$table .= "<th>" . $row[2] . "</th>\n";
+		$table .= "<td align=right>" . $row[3] . "</td>\n";
+		$pct = sprintf( '%3.2f', $row[3] / $active_count * 100 );
+		$table .= "<td align=right>" . $pct . "%</td>\n";
+		$table .= "</tr>\n";
+		$total = $total + $row[3];
+	}
+	$table .= "<tr><th>Total</th><td></td><td></td><td align=right>" . $total . "</td></tr>";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub MiscStatsTable {
+	use Date::Calc qw(:all);
+	my $sql = "SELECT last_update FROM document WHERE pub_status='N'";
+	my $recordset = $DB->Recordset($sql);
+	my $count = 0;
+	my $avg_age   = 0;
+	my ($year2, $month2, $day2) = Today();
+	while (@row = $recordset->fetchrow) {
+		my $last_update = $row[0];
+		if (($last_update) && ($last_update ne "1970-01-01" )) {
+			my $year1 = substr($last_update,0,4);
+			my $month1 = substr($last_update,5,2);
+			my $day1 = substr($last_update,8,2);
+			my $age = Delta_Days($year1, $month1, $day1, $year2, $month2, $day2);
+			if ($count) {
+				$avg_age = (($avg_age * ($count - 1)) + $age) / $count;
+			} else {
+				$avg_age = $age;
+			}
+			$count++;
+		}
+	}
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=2>Miscellaneous Statistics</th></tr>";
+	$table .= "<tr><th>Statistic</th><th>Value</th></tr>";
+	$table .= "<tr><th>Average Age Since Last Update</th><td>&nbsp;";
+	$table .= sprintf("%i", $avg_age);
+	$table .= " days</td></tr>";
+	$table .= "</table>\n";
+	return $table;
 }
 
 sub BarGraphTable {
@@ -1238,8 +1463,25 @@ sub NavBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Menu</th></tr>\n";
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
-	print "<tr><td>" . TopicsList() . "</td></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
+	print "</table>\n";
+}
+
+sub TopicsBox {
+	my %topics = Topics();
+	my %subtopics = Subtopics();
+	print "<table class='navbox'>\n";
+	print "<tr><th>Topics</th></tr>\n";
+	print "<tr><td>\n";
+	foreach $topic_num (sort { $a <=> $b } keys %topics) {
+		print "<a href='topic_doc_list.pl?topic_num=$topic_num'>$topics{$topic_num}{name}</a><br>\n";
+		foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
+			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
+				print "&nbsp;&nbsp;&nbsp;&nbsp;<a href='subtopic_doc_list.pl?subtopic_num=$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
+			}
+		}
+	}
+	print "</td></tr>\n";
 	print "</table>\n";
 }
 
@@ -1293,23 +1535,8 @@ sub AdminBox {
 	print "<tr><th>Admin Tools</th></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Users</a></t></tr>\n";
 	print "<tr><td><a href='document_new.pl'>New Document</a></td></tr>\n";
+	print "<tr><td><a href='topic_list.pl'>Edit Topics</a></td></tr>\n";
 	print "</td></tr></table>\n";
-}
-
-sub TopicsList {
-	my $self = shift;
-	my %topics = Topics();
-	my %subtopics = Subtopics();
-	$list .= "<a href='topic_list.pl'>Topics</a><br>\n";
-	foreach $topic_num (sort { $a <=> $b } keys %topics) {
-		$list .= "&nbsp;&nbsp;$topics{$topic_num}{name}<br>\n";
-		foreach $subtopic_num (sort { $a <=> $b } keys %subtopics) {
-			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
-				$list .= "&nbsp;&nbsp;&nbsp;&nbsp;$subtopics{$subtopic_num}{name}<br>\n";
-			}
-		}
-	}
-	return $list;
 }
 
 sub Login {

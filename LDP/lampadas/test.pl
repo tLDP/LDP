@@ -9,7 +9,7 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
-&Topic(1);
+#&Topic(1);
 #&UserDocs(11);
 #&Doc(473);
 #&DocUsers(473);
@@ -53,6 +53,9 @@ $DB = new Lampadas::Database;
 #&DocCount();
 #&DocCountByClass("'HOWTO'");
 #&DocCountByPubStatus("'N'");
+&PubStatusStatsTable();
+
+&MiscStatsTable();
 
 sub Topic {
 	my $topic_num = shift;
@@ -402,3 +405,10 @@ sub DocCountByPubStatus {
 	print "Document Count by Pub Status: " . $L->DocCountByPubStatus($pub_status) . "\n\n";
 }
 
+sub PubStatusStatsTable{
+	print $L->PubStatusStatsTable();
+}
+
+sub MiscStatsTable {
+	print $L->MiscStatsTable();
+}
