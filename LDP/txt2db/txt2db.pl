@@ -238,6 +238,13 @@ sub proc_txt {
 				}
 			}
 
+			# runon protection
+			#
+			if ($linenumber >= ($noparaline + 100)) {
+				$buf .= "ERROR: runon block starting on line $noparaline\n";
+				last;
+			}
+
 			# recover original line -- no whitespace modifiers
 			#
 			$line = $originalline;
@@ -252,7 +259,7 @@ sub proc_txt {
 			if ($id eq '') {
 				$line = "<sect3><title>$title</title>\n";
 			} else {
-				$line = "<sect3 id='$id'><title>$title</title>\n";
+				$line = "<sect3 id='$id'><title id='$id-title'>$title</title>\n";
 			}
 			$level3 = 1;
 
@@ -264,7 +271,7 @@ sub proc_txt {
 			if ($id eq '') {
 				$line = "<sect2><title>$title</title>\n";
 			} else {
-				$line = "<sect2 id='$id'><title>$title</title>\n";
+				$line = "<sect2 id='$id'><title id='$id-title'>$title</title>\n";
 			}
 			$level2 = 1;
 
@@ -276,7 +283,7 @@ sub proc_txt {
 			if ($id eq '') {
 				$line = "<sect1><title>$title</title>\n";
 			} else {
-				$line = "<sect1 id='$id'><title>$title</title>\n";
+				$line = "<sect1 id='$id'><title id='$id-title'>$title</title>\n";
 			}
 			$level1 = 1;
 
