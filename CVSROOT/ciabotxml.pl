@@ -46,7 +46,7 @@ $dest_email = 'cia@pld-linux.org';
 # Path to your sendmail binary. If you have it at a different place (and
 # outside of $PATH), add your location at the start of this list. By all means
 # keep the trailing empty string in the array.
-@sendmail = ('sendmail', '/usr/lib/sendmail', '/usr/sbin/sendmail', '');
+@sendmail = ('sendmail', '/usr/lib/sendmail', '/var/qmail/bin/sendmail', '');
 
 # Number of seconds to wait for possible concurrent instances. CVS calls up
 # this script for each involved directory separately and this is the sync
