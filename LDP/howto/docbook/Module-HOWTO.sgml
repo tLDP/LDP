@@ -17,16 +17,29 @@
 
 </author>
 
-<pubdate>18 August 2001</pubdate>
+<pubdate>21 May 2002</pubdate>
 
 <revhistory>
+   <revision>
+        <revnumber>v1.02</revnumber>
+        <date>2002-05-21</date>
+        <authorinitials>bjh</authorinitials>
+        <revremark>
+            Correct explanation of symbol versioning.
+            Correct author of Linux Device Drivers.
+            Add info about memory allocation penalty of LKM vs bound-in.
+            Add LKM-to-LKM symbol matching requirement.
+            Add open source licensing issue in LKM symbol resolution.
+            Add SMP symbol versioning info.
+            </revremark>
+        </revision>
    <revision>
         <revnumber>v1.01</revnumber>
         <date>2001-08-18</date>
         <authorinitials>bjh</authorinitials>
         <revremark>
             Add material on various features created in the last few
-            years:  kernel module loader, ksymoops symbols,
+            years:  kernel module loader, ksymoops symbols, 
             kernel-version-dependent LKM file location.
             </revremark>
         </revision>
@@ -125,13 +138,21 @@ kernel.
 </orderedlist>
 </para>
 <para>
-Only the first of these is likely to cause some confusion when talking
-about LKMs.  Is an LKM part of Linux or not?  Though an LKM is always
-part of the kernel, it is part of Linux if it is distributed in the
-Linux kernel package, and not otherwise.  Thus, if you have a device
-driver LKM that came with your device loaded into your kernel, you
-can't, strictly speaking, say that your kernel is Linux.  Rather, it's
-a slight extension of Linux.
+Only the first of these is really useful in discussing LKMs.  But even
+choosing this definition, people are often confused when it comes to
+LKMs.  Is an LKM part of Linux or not?  Though an LKM is always part
+of the kernel, it is part of Linux if it is distributed in the Linux
+kernel package, and not otherwise.  Thus, if you have loaded into your
+kenel a device driver LKM that came with your device, you can't,
+strictly speaking, say that your kernel is Linux.  Rather, it's a
+slight extension of Linux.
+
+As you might expect, it is commonplace to use the name &quot;Linux&quot;
+approximately -- Lots of variations on Linux are in use and are widely
+distributed, and referred to as &quot;Linux.&quot;  In this document, 
+though, we will stick to the strictest definition in the interest of 
+clarity.
+
 </para>
 
 </sect2>
@@ -199,6 +220,8 @@ without waiting for a boot.
 <para>
 LKMs are not slower, by the way, than base kernel modules.  Calling
 either one is simply a branch to the memory location where it resides.
+<footnote><para>For the pedantic, see <xref linkend="memalloc">.
+</para></footnote>
 </para>
 <para>
 Sometimes you <emphasis>have</emphasis> to build something into the
@@ -600,7 +623,7 @@ didn't find it is that the file isn't an LKM.  See
 </sect2> 
 
 
-<sect2>
+<sect2 id="intelligent">
 <title>
 Intelligent Loading Of LKMs - Modprobe
 </title>
@@ -746,7 +769,7 @@ creates a user process (owned by the superuser, though) that executes
 <command>modprobe</command> to load the LKM, then exits.  By default,
 it finds <command>modprobe</command> as
 <filename>/sbin/modprobe</filename>, but you can set up any program
-you like as <command>modprobe</command> by writing it's file name to
+you like as <command>modprobe</command> by writing its file name to
 <filename>/proc/sys/kernel/modprobe</filename>.  For example:
 <screen>
 $ echo &quot;sbin/mymodprobe&quot; &gt;/proc/sys/kernel/modprobe
@@ -800,7 +823,7 @@ Automatic Unloading - Autoclean
 The Autoclean Flag
 </title>
 <para>
-Each loaded LKM has a an autoclean flag which can be set or unset.
+Each loaded LKM has an autoclean flag which can be set or unset.
 You control this flag with parameters to the
 <literal>init_module</literal> system call.  Assuming you do that via
 <command>insmod</command>, you use the <literal>--autoclean</literal>
@@ -880,7 +903,7 @@ unload.
 <para>
 There is an exception to the above description of the use count.  You
 may see -1 in the use count column.  What that means is that this LKM
-rdoes not use use counts to determine when it is OK to unload.
+does not use use counts to determine when it is OK to unload.
 Instead, the LKM has registered a subroutine that the module manager
 can call that will return an indication of whether or not it is OK to
 unload the LKM.  In this case, the LKM ought to provide you with some
@@ -909,9 +932,17 @@ The subdirectory name is the value you get from the <command>uname
 <xref linkend=multiplekernels> tells how you control that value.
 </para>
 <para>
-A standard <command>make modules</command> and <command>make
-modules_install</command> should install all the LKMs that are part
-of Linux in the proper release subdirectory.
+When you build Linux, a standard <command>make modules</command> and
+<command>make modules_install</command> should install all the LKMs
+that are part of Linux in the proper release subdirectory.
+</para>
+<para>
+If you build a lot of kernels, another organization may be more
+helpful:  keep the LKMs together with the base kernel and other kernel-related
+files in a subdirectory of /boot.  The only drawback of this is that you 
+cannot have /boot reside on a tiny disk partition.  In some systems, /boot
+is on a special tiny &quot;boot partition&quot; and contains only enough files
+to get the system up to the point that it can mount other filesystems.
 </para>
 
 </sect2>
@@ -920,8 +951,32 @@ of Linux in the proper release subdirectory.
 
 <sect1 id=basekerncompat>
 <Title>
-LKM - Base Kernel Compatibility
+Unresolved Symbols
 </Title>
+The most common and most frustrating failure in loading an LKM is a bunch
+of error messages about unresolved symbols, like this:
+<screen>
+  msdos.o: unresolved symbol fat_date_unix2dos
+  msdos.o: unresolved symbol fat_add_cluster1
+  msdos.o: unresolved symbol fat_put_super
+  ...
+</screen>
+There are actually a bunch of different problems that result in this
+symptom.  In any case, you can get closer to the problem by looking at
+<file>/proc/ksyms</file> and confirming that the symbols in the
+message are indeed not in the list.
+
+<sect2>
+<title>
+Some LKMs Prerequire Other LKMs
+</title>
+On reason you get this is because you have not loaded another
+LKM that contains instructions or data that your LKM needs to access.
+A primary purpose of <command>modprobe</command> is to avoid this
+failure.  See <xref linkend="intelligent">.
+</sect2>
+
+
 <sect2>
 <title>
 An LKM Must Match The Base Kernel
@@ -979,11 +1034,13 @@ optional, and you select it when you configure the kernel via the
 When you build a base kernel or LKM with symbol versioning, the
 various symbols exported for use by LKMs get defined as macros.  The
 definition of the macro is the same symbol name plus a hexadecimal
-checksum of the actual source code for the subroutine named by the
-symbol.  So let's look at the <function>register_chrdev</function>
-subroutine.  <function>register_chrdev</function> is a subroutine in
-the base kernel that device driver LKMs often call.  With symbol
-versioning, there is a C macro definition like
+hash value of the parameter and return value types for the subroutine
+named by the symbol (based on an analysis by the program
+<command>genksyms</command> of the source code for the subroutine).
+So let's look at the <function>register_chrdev</function> subroutine.
+<function>register_chrdev</function> is a subroutine in the base
+kernel that device driver LKMs often call.  With symbol versioning,
+there is a C macro definition like
 </para>
 <programlisting>
   #define register_chrdev register_chrdev_Rc8dc8350
@@ -997,12 +1054,13 @@ the C preprocessor knows that the function is really called
 <function>register_chrdev_Rc8dc8350</function>.
 </para>
 <para>
-What is the meaning of that garbage suffix?  It is a checksum of the 
-actual C source code of the function in question.  I.e. if you change
-even one character of that source code, this suffix changes.
+What is the meaning of that garbage suffix?  It is a hash of the data
+types of the parameters and return value of
+<function>register_chrdev</function>.  No two combinations of
+parameter and return value types have the same hash value.
 </para>
 <para>
-So let's say someone changes the parameter list of
+So let's say someone adds a paramater to
 <function>register_chrdev</function> between Linux 1.2.1 and Linux
 1.2.2.  In 1.2.1, <literal>register_chrdev</literal> is a macro for
 <literal>register_chrdev_Rc8dc8350</literal>, but in 1.2.2, it is a
@@ -1020,18 +1078,19 @@ isn't one about mismatched kernel versions, but simply "unresolved
 symbol reference."
 </para>
 <para>
-As clever as this is, it actually works against you much more than it
-works for you.  Here's why: As a practical matter, kernel developers
-simply can't change the interfaces between LKMs and the rest of the
-kernel in ways that aren't backward compatible.  As much as they may
-try to reserve that privilege for themselves by declaring there to be
-no promise of forward compatibility, in the cold light of day, they
-would cause too much pain in the world by exercising it.  So they
-might do it sometimes when they feel they have no other choice, but it
-is extremely rare.  However, even a backward compatible change -- even
-a change to a comment -- changes the checksum in the symbol and
-prevents the LKM from being inserted.
+As clever as this is, it actually works against you sometimes.  The
+way <command>genksyms</command> works, it often generates different
+hash values for parameter lists that are essentially the same.
 </para>
+<para>
+And symbol versioning doesn't even guarantee compatibility.  It
+catches only a small subset of the kinds of changes in the definition
+of a function that can make it not backward compatible.  If the way
+<literal>register_chrdev</literal> interprets one of its parameters
+changes in a non-backward-compatible way, its version suffix won't
+change -- the parameter still has the same C type.
+</para>
+
 <para>
 And there's no way an option like <parameter>-f</parameter> on
 <command>insmod</command> can get around this.
@@ -1076,6 +1135,76 @@ name of the subdirectory in which <command>modprobe</command> looks,
 by editing the main kernel makefile when you build the kernel and
 setting the VERSION, PATCHLEVEL, SUBLEVEL, and EXTRAVERSION variables
 at the top.
+</para>
+</sect2>
+
+<sect2>
+<title>
+SMP symbols
+</title>
+Besides the checksum mentioned above, the symbol version prefix contains
+&quot;smp&quot; if the symbol is defined in or referenced by code that was
+built for symmetric multiprocessing (SMP) machines.  That means it was
+built for use on a system that may have more than one CPU.  You choose
+whether to build in SMP capability or not via the Linux kernel configuration
+process (<command>make config</command>, etc.), to wit with the
+CONFIG_SMP configuration option.
+
+So if you use symbol versioning, you will get unresolved symbols if the
+base kernel was built with SMP capability and the LKM you're inserting was
+not, or vice versa.
+
+If you don't use symbol versioning, never mind.
+
+Note that there's generally no reason to omit SMP capability from a
+kernel, even if you have only one CPU.  Just because the capability is
+there doesn't mean you have to have multiple CPUs.  However, there are
+some machines on which the SMP-capable kernel will not boot because it
+reaches the conclusion that there are zero CPUs!
+
+</sect2>
+
+<sect2>
+<title>
+You Are Not Licensed To Access The Symbol
+</title>
+The copyright owners of some kernel code license their programs to the
+public to make and use copies, but only in restricted ways.  For
+example, the license may say you may only call your copy of the
+program from a program which is similarly licensed to the public.
+
+(Is that confusing?  Here's an example:  Bob writes an LKM that provides
+data compression subroutines to other LKMs.  He licenses his program
+to the public under the GNU Public License (GPL).  According to some
+interpretations, that license says if you make a copy of Bob's LKM,
+you can't allow Mary's LKM to call its compression subroutines 
+if Mary does not supply her source code to the world too.  The idea is to
+encourage Mary to open up her source code).
+
+To support and enforce such a license, the licensor can cause his
+program to export symbols that contain the string &quot;GPLONLY&quot;.
+The Linux interface header files are set up so that they will not
+generate references to GPLONLY symbols unless the programmer who
+includes the header files puts something in his code to state
+explicitly that he licenses his program under the GPL (General Public
+License) or equivalent.
+
+You shouldn't ordinarily see this failure.  It means the LKM source code
+was written in a way that it will never load into any Linux kernel, so
+there would be no point in the author distributing it.
+
+</sect2>
+
+
+<sect2>
+<title>
+An LKM Must Match Prerequisite LKMs
+</title>
+<para>
+The same ways an LKM must be compatible with the base kernel, it must
+be compatible with any LKMs which it accesses (e.g. the first LKM calls a
+subroutine in the second).  The preceding sections limit their discussions
+to the base kernel just to keep it simple.
 </para>
 </sect2>
 
@@ -1143,11 +1272,12 @@ a bound-in module at boot time.
 </para>
 <para>
 Since there is only one string of kernel boot parameters, you need
-some way to identify which parameters go to which modules.  The rule
-for this is that if there is a module named <literal>xyz</literal>,
-then a kernel boot parameter named <parameter>xyz</parameter> is for
-that module.  The value of a kernel boot parameter is an arbitrary
-string that makes sense only to the module.
+some way within that string to identify which parameters go to which
+modules.  The rule for this is that if there is a module named
+<literal>xyz</literal>, then a kernel boot parameter named
+<parameter>xyz</parameter> is for that module.  The value of a kernel
+boot parameter is an arbitrary string that makes sense only to the
+module.
 </para>
 <para>
 This is why you sometimes see an LKM whose only parameter is its own
@@ -1466,6 +1596,65 @@ the persistent data.
 </para>
 
 </sect2>
+<sect2 id="memalloc">
+<title>
+Memory Allocation For Loading
+</title>
+<para>
+This section is about how Linux allocates memory in which to load an LKM.
+It is not about how an LKM dynamically allocates memory, which is the same
+as for any other part of the kernel.
+</para>
+<para>
+The memory where an LKM resides is a little different from that where
+the base kernel resides.  The base kernel is always loaded into one
+big contiguous area of real memory, whose real addresses are equal to
+is virtual addresses.  That's possible because the base kernel is the
+first thing ever to get loaded (besides the loader) -- it has a wide
+open empty space in which to load.  And since the Linux kernel is not
+pageable, it stays in it's homestead forever.
+</para>
+<para>
+By the time you load an LKM, real memory is all fragmented -- you
+can't simply add the LKM to the end of the base kernel.  But the LKM
+needs to be in contiguous virtual memory, so Linux uses
+<function>vmalloc</function> to allocate a contiguous area of virtual
+memory (in the kernel address space), which is probably not contiguous
+in real memory.  But <emphasis>the memory is still not
+pageable</emphasis>.  The LKM gets loaded into real page frames from
+the start, and stays in those real page frames until it gets unloaded.
+</para>
+<para>
+Some CPUs can take advantage of the properties of the base kernel to 
+effect faster access to base kernel memory.  For example, on one 
+machine, the entire base kernel is covered by one page table entry
+and consequently one entry in the translation lookaside buffer (TLB).
+Naturally, that TLB entry is virtually always present.  For LKMs on
+this machine, there is a page table entry for each memory page into
+which the LKM is loaded.  Much more often, the entry for a page is not
+in the TLB when the CPU goes to access it, which means a slower access.
+</para>
+<para>
+This effect is probably trivial.
+</para>
+<para>
+It is also said that PowerPC Linux does something with its address
+translation so that transferring between accessing base kernel memory
+to accessing LKM memory is costly.  I don't know anything solid about
+that.
+</para>
+<para>
+The base kernel contains within its prized contiguous domain a large
+expanse of reusable memory -- the kmalloc pool.  In Linux 2.4, at
+the end of 2001, there was a proposal to make the module loader try
+first to get contiguous memory from that pool into which to load an
+LKM and only if a large enough space was not available, go to the
+vmalloc space.  That function may be in some versions of Linux.
+</para>
+
+</sect2>
+
+
 <sect2>
 <title>
 Linux internals
@@ -1519,10 +1708,10 @@ causes it to generate a warning about an implicit declaration of
 <para>
 The program is also more complicated than it needs to be with current
 Linux and depends on your having kernel messaging set up a certain way
-on your system to see it work.  Finally, the program requires to to
+on your system to see it work.  Finally, the program requires you to
 include <parameter>-D</parameter> options on your compile command to
 work, because it does not define some macros in the source code, where
-the definition belongs.
+the definitions belong.
 </para>
 <para>
 Here is an improved version of <literal>hello.c</literal>.  Compile
@@ -1584,12 +1773,12 @@ void cleanup_module()
 
 <sect2>
 <title>
-Rubini: Linux Device Drivers
+Rubini &nbsp; Corbet: Linux Device Drivers
 </title>
 <para>
 The most popular book on writing device drivers is O'Reilly's
 <citetitle>Linux Device Drivers</citetitle> by Alessandro
-Rubini.
+Rubini and Jonathan Corbet.
 </para>
 <para>
 Even if you're writing an LKM that isn't a device driver, you can learn
@@ -1597,7 +1786,12 @@ a lot from this book that will help you.
 </para>
 <para>
 The first edition of this book covers Linux 2.0, with notes about
-differences in 2.2.  The second edition covers Linux 2.4.
+differences in 2.2.  The second edition (June 2001) covers Linux 2.4.
+</para>
+<para>
+This book is available under the FDL.  You can read it at
+<ulink URL="http://www.xml.com/ldd/chapter/book/">
+http://www.xml.com/ldd/chapter/book/</ulink>.
 </para>
 </sect2>
 
@@ -3059,27 +3253,6 @@ There are no module parameters.
 
 <sect3>
 <title>
-8390: General NS8390 Ethernet driver core
-</title>
-<para>
-This is driver code for the 8390 Ethernet chip on which many Ethernet
-adapters are based.  This is not a complete interface driver; the 
-routines in this module are used by drivers for particular Ethernet
-adapters, such as <command>ne</command> and <command>3c503</command>.
-</para>
-<para>
-Example:
-<screen> 
-modprobe 8390
-</screen>
-</para>
-<para>
-There are no module parameters.
-</para>
-</sect3>
-
-<sect3>
-<title>
 dummy: Dummy network interface driver
 </title>
 <para>
@@ -3438,7 +3611,6 @@ Parameters:
 </para>
 
 </sect3>
-
 <sect3>
 <title>
 wic: WIC Radio IP bridge driver
@@ -3460,7 +3632,7 @@ ports.
 </para>
 
 </sect3>
-
+    
 <sect3>
 <title>
 scc: Z8530 SCC kiss emulation driver
@@ -3479,6 +3651,156 @@ modprobe scc
 </para>
 <para>
 There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+8390: General NS8390 Ethernet driver core
+</title>
+<para>
+This is driver code for the 8390 Ethernet chip on which many Ethernet
+adapters are based.  This is not a complete interface driver; the 
+routines in this module are used by drivers for particular Ethernet
+adapters, such as <command>ne</command> and <command>3c503</command>.
+</para>
+<para>
+Example:
+<screen> 
+modprobe 8390
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ne: NE2000/NE1000 driver
+</title>
+<para>
+This is a driver for the venerable NE2000 Ethernet adapter, its
+NE1000 forerunner, and all the generic Ethernet adapters that emulate
+this de facto standard card.
+
+This is an ISA bus card.  For the PCI version, see the ne2k-pci module.
+
+</para>
+<para>
+Example:
+<screen>
+modprobe ne io=0x300 irq=11
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  This parameter is mandatory,
+            but you may specify 0x000 to have the driver autoprobe 0x300,
+            0x280, 0x320, 0x340, and 0x360.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  If you don't specify this, the
+            driver determines it by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>bad</term>
+        <listitem><para>
+            The value 0xBAD means to assume the card is poorly designed in
+            that it does not acknowledge a reset or does not have a valid
+            0x57,0x57 signature.  If you have such a card and do not specify
+            this option, the driver will not recognize it.
+            </para>
+            <para>
+            With any other value, the option has no effect.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+You can repeat the options to specify additional cards.  The
+<varname>n</varname>th occurence of an option applies to the
+<varname>n</varname>th card.
+</para>
+
+<para>
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ne2k-pci: NE2000 PCI Driver
+</title>
+<para>
+This is a driver for the PCI version of the venerable NE2000 Ethernet
+adapter, and all the generic Ethernet adapters that emulate this de
+facto standard card.
+</para>
+<para>
+Example:
+<screen>
+modprobe ne io=0x300 irq=11
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>debug</term>
+        <listitem><para>
+            Level of debug messages.  0 means no messages.  1 is the default.
+            Higher numbers mean more debugging messages.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>options</term>
+        <listitem><para>
+            The value of this option determines what options are set in the
+            network adapter.  Each bit of the value, expressed as a binary
+            number, controls one option.  The only option defined is full 
+            duplex, which is the 6th least significant bit.  It is much 
+            easier to use the <parameter>full_duplex</parameter> option 
+            instead.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>full_duplex</term>
+        <listitem><para>
+            A &quot;1&quot; value sets the adapter in full duplex mode.
+            A &quot;0&quot; value sets it in half duplex mode.  If you include
+            the full duplex flag in the flags you specify with the 
+            <parameter>options</parameter> parameter, the 
+            <parameter>full_duplex</parameter> has no effect.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+You may repeat the <parameter>options</parameter> and
+<parameter>full_duplex</parameter></para> parameters once per network
+adapter, for up to 8 network adapter.
+
+<para>
+This driver can drive the following chipsets:
+<itemizedlist>
+<listitem><para>RealTek RTL-8029</para></listitem>
+<listitem><para>Winbond 89C940</para></listitem>
+<listitem><para>Winbond W89C940F</para></listitem>
+<listitem><para>KTI ET32P2</para></listitem>
+<listitem><para>NetVin NV5000SC</para></listitem>
+<listitem><para>Via 86C926</para></listitem>
+<listitem><para>SureCom NE34</para></listitem>
+<listitem><para>Holtek HT80232</para></listitem>
+<listitem><para>Holtek HT80229</para></listitem>
+<listitem><para>Compex RL2000</para></listitem>
+</itemizedlist>
+</para>
+
+<para>
+This module depends on module <command>8390</command>.
 </para>
 </sect3>
 
@@ -4278,44 +4600,6 @@ Parameters:
             </para></listitem>
         </varlistentry>
     </variablelist>
-</para>
-</sect3>
-
-<sect3>
-<title>
-ne: NE2000/NE1000 driver
-</title>
-<para>
-This is a driver for the venerable NE2000 Ethernet adapter, its
-NE1000 forerunner, and all the generic Ethernet adapters that emulate
-this de facto standard card.
-</para>
-<para>
-Example:
-<screen>
-modprobe ne io=0x300 irq=11
-</screen>
-</para>
-<para>
-Parameters:
-<variablelist>
-    <varlistentry><term>io</term>
-        <listitem><para>
-            Address of I/O port on the card.  This parameter is mandatory,
-            but you may specify 0x000 to have the driver autoprobe 0x300,
-            0x280, 0x320, 0x340, and 0x360.
-            </para></listitem>
-        </varlistentry>
-    <varlistentry><term>irq</term>
-        <listitem><para>
-            IRQ the driver is to service.  If you don't specify this, the
-            driver determines it by autoIRQ probing.
-            </para></listitem>
-        </varlistentry>
-    </variablelist>
-</para>
-<para>
-This module depends on module <command>8390</command>.
 </para>
 </sect3>
 
@@ -6012,5 +6296,6 @@ Copyright <trademark class="copyright">2001</trademark>.
 
 </sect1>
 </Article>
+
 
 
