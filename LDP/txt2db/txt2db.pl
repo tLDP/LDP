@@ -2,6 +2,12 @@
 #
 #Converts txt files into docbook.
 #
+# Requirements:
+# 
+# If you use the "ldp:" namespace, you must have wget installed.
+# Wget is used to request a name-to-url conversion from the LDP
+# database, http://db.linuxdoc.org.
+# 
 my($txtfile, $dbfile) = '';
 
 #These keep track of which constructs we're in the middle of
@@ -296,7 +302,20 @@ sub proc_txt {
 			} else {
 				$linkname = $link;
 			}
-			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+
+			# LDP links
+			#
+			if ($link =~ /^ldp:/) {
+				$link =~ s/^ldp://;
+				$linkname =~ s/^ldp://;
+				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O /tmp/name-to-url.txt");
+				open(URL, "/tmp/name-to-url.txt") || die "txt2db: cannot open temporary file ($!)\n";
+				$ldp_url = <URL>;
+				$line =~ s/\[\[.*?\]\]/<ulink url='$ldp_url'><citetitle>$linkname<\/citetitle><\/ulink>/;
+				close(URL);
+			} else {
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			}
 		}
 
 		# emphasis
