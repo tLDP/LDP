@@ -269,7 +269,7 @@ class TableFactory:
         
         box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
-        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" size=60 style="width:100%" value="' + doc.title + '"></td>\n'
+        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" style="width:100%" value="' + doc.title + '"></td>\n'
         box = box + '</tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="label">'
@@ -277,62 +277,39 @@ class TableFactory:
             box = box + '<a href="' + doc.url + '">|strurl|</a>'
         else:
             box = box + '|strurl|'
-        box = box + '</th><td colspan=5><input type=text name="url" size=60 style="width:100%" value="' + doc.url + '"></td>'
+        box = box + '</th><td colspan=5><input type=text name="url" style="width:100%" value="' + doc.url + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">'
-
         if doc.home_url:
             box = box + '<a href="' + doc.home_url + '">|strhome_url|</a>'
         else:
             box = box + '|strhome_url|'
-        box = box + '</th><td colspan=5><input type=text name="ref_url" size=60 style="width:100%" value="' + doc.home_url + '"></td>'
+        box = box + '</th><td colspan=5><input type=text name="ref_url" style="width:100%" value="' + doc.home_url + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strstatus|</th><td>'
-        box = box + combo_factory.pub_status(doc.pub_status_code, uri.lang)
-        box = box + '</td>\n'
-        box = box + '<th class="label">|strtype|</th><td>\n'
-        box = box + combo_factory.type(doc.type_code, uri.lang)
-        box = box + '</td>\n'
-        box = box + '<th class="label">|strmaintained|</th><td>\n'
-        if doc.maintained:
-            box = box + '|stryes|'
-        else:
-            box = box + '|strno|'
-        box = box + '</td>'
+        box = box + '<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n'
+        box = box + '<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strwriting|</th><td>'
-        box = box + combo_factory.review_status(doc.review_status_code, uri.lang)
-        box = box + '</td>\n'
-        box = box + '<th class="label">|straccuracy|</th><td>'
-        box = box + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang)
-        box = box + '</td>\n'
-        box = box + '<th class="label">|strlicense|</th><td>'
-        box = box + combo_factory.license(doc.license_code, uri.lang)
-        box = box + '</td>'
+        box = box + '<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang) + '</td>\n'
+        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" size=10 value="' + doc.pub_date + '"></td>'
-        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" size=10 value="' + doc.last_update + '"></td>'
-        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" size=10 value="' + doc.version + '"></td>'
+        box = box + '<th class="label">|strwriting|</th><td>' + combo_factory.review_status(doc.review_status_code, uri.lang) + '</td>\n'
+        box = box + '<th class="label">|straccuracy|</th><td>' + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang) + '</td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" size=10 value="' + doc.tickle_date + '"></td>'
-        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" size=14 value="' + doc.isbn + '"></td>'
-        box = box + '<th class="label">|strrating|</th>\n'
-        box = box + '<td>'
-        box = box + self.bar_graph(doc.rating, 10, uri.lang)
-        box = box + '</td>\n'
+        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n'
+        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strformat|</th><td>'
-        box = box + lampadas.formats[doc.format_code].name[uri.lang]
-        box = box + '</td>'
-        box = box + '<th class="label">|strdtd|</th><td>'
-        box = box + doc.dtd_code + ' ' + doc.dtd_version
-        box = box + '</td>'
-        box = box + '<th class="label">|strlanguage|</th><td>'
-        box = box + combo_factory.language(doc.lang, uri.lang)
-        box = box + '</td>'
+        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>'
+        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" value="' + doc.isbn + '"></td>'
         box = box + '</tr>\n<tr>\n'
+        box = box + '<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n'
+        box = box + '<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th class="label">|strformat|</th><td>' + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n'
+        box = box + '<th class="label">|strdtd|</th><td>' + doc.dtd_code + ' ' + doc.dtd_version + '</td>\n'
+        box = box + '</tr>\n<tr>\n'
+        box = box + '<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n'
         box = box + '<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
-        box = box + '<td></td><td></td>'
+        box = box + '<td></td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strabstract|</th>'
         box = box + '<td colspan=5><textarea name="abstract" rows=6 cols=40 style="width:100%" wrap>' + doc.abstract + '</textarea></td>\n'
@@ -356,7 +333,7 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def user(self, uri):
+    def user(self, uri, build_user):
         box = '<table class="box">\n'
         if uri.username > '':
             user = lampadas.users[uri.username]
@@ -368,14 +345,18 @@ class TableFactory:
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
         box = box + '<tr><th class="label">|strusername|</th><td>' + uri.username + '</td>\n'
         box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
-        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name value="' + user.middle_name + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname value="' + user.surname + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email value="' + user.email + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet value="' + user.stylesheet + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password></input></td></tr>\n'
-        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
-        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name size="15" value="' + user.first_name + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname size="15" value="' + user.surname + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email size="15" value="' + user.email + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password size="12"></input></td></tr>\n'
+        if build_user and build_user.admin > 0 or build_user.sysadmin > 0:
+            box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
+            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+        else:
+            box = box + '<tr><th class="label">|stradmin|</th><td>' + bool2yesno(user.admin) + '</td></tr>\n'
+            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
         box = box + '</form>\n'
         box = box + '</table>\n'
@@ -531,8 +512,8 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><th class="label">|strusername|</td><td><input type=text size=12 name=username></input></td></tr>\n'
-            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password size=12 name=password></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strusername|</td><td><input type=text name=username></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password name=password></input></td></tr>\n'
             box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
             box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
             box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
@@ -718,7 +699,7 @@ class PageFactory:
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabuser':
-                    newstring = self.tablef.user(uri)
+                    newstring = self.tablef.user(uri, build_user)
                 if token=='tabmenus':
                     newstring = self.tablef.section_menus(uri, build_user)
                 if token=='tabrecentnews':
@@ -776,7 +757,6 @@ combo_factory = ComboFactory()
 def benchmark(url, reps):
     from DataLayer import Lampadas
     for x in range(0, reps):
-        lampadas = DataLayer.Lampadas()
         page = page_factory.page(url)
 
 def main():

@@ -72,6 +72,20 @@ def safeint(anint):
     else:
         return int(anint)
 
+def bool2yesno(bool):
+    """
+    Converts an integer value into a Yes/No string.
+
+    Uses |stryes| and |strno| for localization.
+
+    0 returns |strno|; all nonzero values return |strno|.
+    """
+
+    if bool==0:
+        return '|strno|'
+    else:
+        return '|stryes|'
+    
 def bool2tf(bool):
     """
     Converts an integer value into a t/f string value suitable
