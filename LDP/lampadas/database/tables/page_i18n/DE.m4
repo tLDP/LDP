@@ -1,18 +1,23 @@
+m4_dnl  These are the pages that are served by the CMS.
+m4_dnl  The last field is the version number. Please bump it
+m4_dnl  by one if you're the primary author, and synchronize
+m4_dnl  it in translations when the translation is up to date.
+
 insert([newdocument], [Dokument hinzufügen], [],
 [
     |tabeditdoc|
-])
+], 1)
 
 insert([users], [Liste der Benutzer], [],
 [
     |tabletters|
     <p>|tabusers|
-])
+], 1)
 
 insert([sessions], [Benutzersitzungen], [],
 [
     |tabsessions|
-])
+], 1)
 
 insert([my], [Meine Homepage], [],
 [
@@ -21,7 +26,7 @@ insert([my], [Meine Homepage], [],
     <p>Und dies sind die Dokumente an denen sie mitarbeiten:
 
     <p>|session_user_docs|
-])
+], 1)
 
 insert([home], [|strproject|], [Home], 
 [
@@ -50,22 +55,22 @@ insert([home], [|strproject|], [Home],
     Sie können einen dieser Namen ausprobieren oder auch ein 
     eigenes Benutzerkonto anlegen (oben, rechts, der 
     Link "Benutzerkonto anlegen").
-])
+], 1)
 
 insert([doctable], [Documentenliste], [],
 [
     |tabdocs|
-])
+], 1)
 
 insert([news], [Neuigkeiten], [],
 [
     |tabrecentnews|
-])
+], 1)
 
 insert([staff], [Projektteam], [],
 [
     Führen Sie hier die Mitglieder Ihres Projekteams an.
-])
+], 1)
 
 insert([contribute], [Mitarbeit bei |strproject|],
     [Mitarbeit bei |strprojectshort|],
@@ -116,27 +121,27 @@ insert([contribute], [Mitarbeit bei |strproject|],
     </li>
 
     </ul>
-])
+], 1)
 
 insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
 [
     |tabunmaintained|
-])
+], 1)
 
 insert([maint_wanted], [Instandhalter gesucht], [],
 [
     |tabmaint_wanted|
-])
+], 1)
 
 insert([wishlist], [Dokumentwunschliste], [],
 [
     |tabwishlist|
-])
+], 1)
 
 insert([pending], [Dokumente in Arbeit], [],
 [
     |tabpending|
-])
+], 1)
 
 insert([resources], [Andere Hilfsmittel], [],
 [
@@ -144,17 +149,17 @@ insert([resources], [Andere Hilfsmittel], [],
         m4_dnl holy penguin droppings, it's a meta command!
         <li>Insert some resources for German authors.
     </ul>
-])
+], 1)
 
 insert([maillists], [Mailing-Listen], [],
 [
     Führen Sie hier die Mailing-Listen Ihres Projekts an.
-])
+], 1)
 
 insert([about], [Über |strproject|], [Über |strprojectshort|],
 [
     Ersetzen Sie diesen Text mit Angaben über Ihr Projekt.
-])
+], 1)
 
 insert([lampadas], [Über Lampadas], [],
 [
@@ -196,7 +201,7 @@ insert([lampadas], [Über Lampadas], [],
     <p>In jeder dieser Bedeutungen ist Lampadas ein angemessener Name
     für ein Projekt, dass geschaffen wurde, um Informationen zwischen
     vielen Menschen auszutauschen und zu verbreiten.
-])
+], 1)
 
 insert([copyright], [Copyright], [],
 [
@@ -241,7 +246,7 @@ insert([copyright], [Copyright], [],
     Diese Bestimmung ermöglicht es den Autoren, ihre Kommentare
     unabhängig von den Lizenzbestimmungen des betreffenden Dokuments
     in die Dokumentation aufzunehmen.
-])
+], 1)
 
 insert([privacy], [Datenschutz], [],
 [
@@ -261,13 +266,13 @@ insert([privacy], [Datenschutz], [],
     
     <p>Ohne Ihre Zustimmung werden wir Ihnen weder unverlangten
     Werbe-E-Mails schicken ("spam") noch Sie bei E-Mailverteilern eintragen.
-])
+], 1)
 
 m4_dnl FIXME: there has to be German expression for it
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|
-])
+], 1)
 
 insert([newuser], [Neue Benutzer], [],
 [
@@ -306,24 +311,24 @@ insert([newuser], [Neue Benutzer], [],
     <p>*Unbedingt erforderlich
     <br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
     muss sie gültig sein.
-])
+], 1)
 
 insert([mailpass], [Kennwort schicken], [],
 [
     <p>Bitte geben Sie Benutzernamen oder E-Mailaddresse an.
     Wir schicken Ihnen anschließend Ihr Kennwort per E-Mail.
-])
+], 1)
 
 insert([topic], [Liste der Themen], [],
 [
     |tabsubtopics|
-])
+], 1)
 
 insert([subtopic], [Liste der Unterthemen], [],
 [
     |tabsubtopic|
     |tabsubtopicdocs|
-])
+], 1)
 
 insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
 [
@@ -334,7 +339,7 @@ insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
     |tabdoctopics|
     |tabdocnotes|
     |tabdocerrors|
-])
+], 1)
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
 [
@@ -347,19 +352,19 @@ insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
     kommen, haben Sie wahrscheinlich einen Software-Fehler gefunden.
     In diesem Fall schicken Sie bitte einen Fehlerbericht an die 
     Lampadas-Entwickler.
-])
+], 1)
 
 insert([user_exists], [Benutzername bereits vorhanden], [],
 [
     <p>Dieser Benutzername wird bereits verwendet. Wählen Sie bitte einen
     anderen Namen und probieren Sie es erneut.
-])
+], 1)
 
 insert([username_required], [Benutzername erforderlich] [],
 [
     <p>Das Feld "Benutzername" ist zwingend notwendig.
     Tragen Sie bitte einen Namen ein und probieren Sie es erneut.
-])
+], 1)
 
 insert([email_exists], [E-Mailadresse bereits vorhanden], [],
 [
@@ -367,35 +372,35 @@ insert([email_exists], [E-Mailadresse bereits vorhanden], [],
     Wenn Sie bereits über Benutzerkonto verfügen, aber Ihr Kennwort
     vergessen haben, können Sie es sich <a href="mailpass">schicken</a>
     lassen.
-])
+], 1)
 
 insert([account_created], [Benutzerkonto angelegt], [],
 [
     <p>Ihr Benutzerkonto wurde angelegt und das Kennwort per E-Mail
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
-])
+], 1)
 
 insert([user], [Benutzerdaten ändern], [Neuer Benutzer],
 [
     |tabuser|
-])
+], 1)
 
 insert([logged_in], [Angemeldet], [],
 [
     <p>Sie sind im System angemeldet.
-])
+], 1)
 
 insert([logged_out], [Abgemeldet], [],
 [
     <p>Sie sind im System abgemeldet.
-])
+], 1)
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-])
+], 1)
 
 insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
-])
+], 1)

@@ -1,18 +1,23 @@
+m4_dnl  These are the pages that are served by the CMS.
+m4_dnl  The last field is the version number. Please bump it
+m4_dnl  by one if you're the primary author, and synchronize
+m4_dnl  it in translations when the translation is up to date.
+
 insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|
-])
+], 1)
 
 insert([users], [User List], [],
 [
     |tabletters|
     <p>|tabusers|
-])
+], 1)
 
 insert([sessions], [User Sessions], [],
 [
     |tabsessions|
-])
+], 1)
 
 insert([my], [My Home], [],
 [
@@ -21,7 +26,7 @@ insert([my], [My Home], [],
     <p>This table lists documents you have volunteered to contribute to:
 
     <p>|session_user_docs|
-])
+], 1)
 
 insert([home], [|strproject|], [Home], 
 [
@@ -31,8 +36,18 @@ insert([home], [|strproject|], [Home],
     Lampadas Document Management System from
     <a href="http://www.tldp.org">The Linux Documentation Project</a>
 
-    <p>This demo site provides the following users. Log in as one of
-    them to see the site through their eyes!
+    <p>This is <i><b>alpha quality</b></i> code, updated from the cvs tree
+    very frequently, whenever there are significant features or
+    bugfixes available.
+    This happens at least once a day and sometimes
+    several times a day.
+    The system is fairly stable, although some half-
+    implemented features will cause bugs.
+    
+    <p>This demo site is populated with the following example users.
+    Log in as one of them to see the site through their eyes.
+    The pages change depending on your access level.
+    All passwords are "password".
 
     <ul>
         <li>sysadmin - the SUPERUSER, who manages the system.</li>
@@ -43,25 +58,30 @@ insert([home], [|strproject|], [Home],
         <li>korean - a Korean-speaking user.</li>
     </ul>
 
-    <p>All of these accounts use the password &quot;password&quot;.
-    Log in as one of them, and check it out, or create your own
-    account using the "Create Account" link to the right.
-])
+    <p>We greatly appreciate your comments, bug reports or questions.
+    You can reach David Merrill at
+    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
+    If you want to help build Lampadas, it is a really fun and exciting
+    project.
+    You can find out more about it by reading the
+    <a href="http://www.lupercalia.net/lampadas/">Lampadas Developer\'s
+    Guide</a>.
+], 1)
 
 insert([doctable], [DocTable], [],
 [
     |tabdocs|
-])
+], 1)
 
 insert([news], [Latest News], [],
 [
     |tabrecentnews|
-])
+], 1)
 
 insert([staff], [Staff], [],
 [
     List the members of your project\'s staff here.
-])
+], 1)
 
 insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
 [
@@ -112,7 +132,7 @@ insert([contribute], [Contributing to |strproject|], [Contributing to |strprojec
     languages.
     </li>
     </ul>
-])
+], 1)
 
 insert([unmaintained], [Unmaintained Documents], [],
 [
@@ -141,22 +161,22 @@ insert([unmaintained], [Unmaintained Documents], [],
     so we can correct the problem.
     
     |tabunmaintained|
-])
+], 1)
 
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
     |tabmaint_wanted|
-])
+], 1)
 
 insert([pending], [Pending Documents], [],
 [
     |tabpending|
-])
+], 1)
 
 insert([wishlist], [Wishlist Documents], [],
 [
     |tabwishlist|
-])
+], 1)
 
 insert([resources], [Other Resources], [],
 [
@@ -166,17 +186,17 @@ insert([resources], [Other Resources], [],
         <li><a href="http://www.webopedia.com">Webopedia.com</a>, an online dictionary
             and search engine for computer and internet technology.
     </ul>
-])
+], 1)
 
 insert([maillists], [Mailing Lists], [],
 [
     List your project\'s mailing lists here.
-])
+], 1)
 
 insert([about], [About |strproject|], [About |strprojectshort|],
 [
     Replace this text with information about your project.
-])
+], 1)
 
 m4_dnl There is a alt.fan.dune_Frequently_Asked_Questions_(FAQ)
 m4_dnl It provides some hints on translated version - at least it
@@ -223,7 +243,7 @@ insert([lampadas], [About Lampadas], [],
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
     from many people and many sources, and disseminating it widely to others.
-])
+], 1)
 
 insert([copyright], [Copyright Statment], [],
 [
@@ -263,7 +283,7 @@ insert([copyright], [Copyright Statment], [],
     agree to release it into the Public Domain.
     This is so authors are free to integrate your comments into their
     documentation regardless of the document\'s license.
-])
+], 1)
 
 insert([privacy], [Privacy Policy], [],
 [
@@ -282,12 +302,12 @@ insert([privacy], [Privacy Policy], [],
     
     <p>We will not spam you or add you to any mailing lists without
     your consent.
-])
+], 1)
 
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|
-])
+], 1)
 
 insert([newuser], [New User], [],
 [
@@ -324,24 +344,24 @@ insert([newuser], [New User], [],
         </table
     </form>
     <p>*Required Fields
-])
+], 1)
 
 insert([mailpass], [Mail Password], [],
 [
     <p>Please enter your username or email address to have your
     password mailed to you.
-])
+], 1)
 
 insert([topic], [View Topic], [],
 [
     |tabsubtopics|
-])
+], 1)
 
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
     <p>|tabsubtopicdocs|
-])
+], 1)
 
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
@@ -352,7 +372,7 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
     <p>|tabdoctopics|
     <p>|tabdocnotes|
     <p>|tabdocerrors|
-])
+], 1)
 
 insert([404], [Error 404, Page Not Found], Error,
 [
@@ -364,53 +384,53 @@ insert([404], [Error 404, Page Not Found], Error,
     you have probably found a bug.
     If you believe that to be the case, please file a bug report for
     the Lampadas developers.
-])
+], 1)
 
 insert([user_exists], [User Exists], [],
 [
     <p>That username is already taken. Please select another username and try again.
-])
+], 1)
 
 insert([username_required], [Username Required] [],
 [
     <p>Username is a required field. Please enter a username and try again.
-])
+], 1)
 
 insert([email_exists], [Email Exists], [],
 [
     <p>That email address is already in the database.
     If you already have an account but have forgotten your password,
     you can have it <a href="mailpass">mailed</a> to you.
-])
+], 1)
 
 insert([account_created], [Account Created], [],
 [
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
-])
+], 1)
 
 insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
-])
+, 1])
 
 insert([logged_in], [Logged In], [],
 [
     <p>You have been logged into the system.
-])
+, 1])
 
 insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
-])
+, 1])
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-])
+, 1])
 
 insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
-])
+, 1])
 

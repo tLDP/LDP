@@ -1,18 +1,23 @@
+m4_dnl  These are the pages that are served by the CMS.
+m4_dnl  The last field is the version number. Please bump it
+m4_dnl  by one if you're the primary author, and synchronize
+m4_dnl  it in translations when the translation is up to date.
+
 insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|
-])
+], 1])
 
 insert([users], [User List], [],
 [
     |tabletters|
     <p>|tabusers|
-])
+], 1])
 
 insert([sessions], [User Sessions], [],
 [
     |tabsessions|
-])
+], 1])
 
 insert([my], [My Home], [],
 [
@@ -21,7 +26,7 @@ insert([my], [My Home], [],
     <p>This table lists documents you have volunteered to contribute to:
 
     <p>|session_user_docs|
-])
+], 1])
 
 insert([home], [|strproject|], [Home],
 [
@@ -44,22 +49,22 @@ insert([home], [|strproject|], [Home],
     <p>All of these accounts use the password &quot;password&quot;.
     Log in as one of them, and check it out, or create your own
     account using the "Create Account" link to the right.
-])
+], 1])
 
 insert([doctable], [Table des docs], [Table des docs],
 [
 	|tabdocs|
-])
+], 1])
 
 insert([news], [|strproject| News], [|strprojectshort| News],
 [
 	|tabrecentnews|
-])
+], 1])
 
 insert([staff], [Staff], [],
 [
     List the members of your project\'s staff here.
-])
+], 1])
 
 insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampadas],
 [
@@ -93,44 +98,44 @@ insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampad
 	<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n\'h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 	</li>
 	</ul>
-])
+], 1])
 
 insert([unmaintained], [Unmaintained Documents], [],
 [
     |tabunmaintained|
-])
+], 1])
 
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
     |tabmaint_wanted|
-])
+], 1])
 
 insert([pending], [Pending Documents], [],
 [
     |tabpending|
-])
+], 1])
 
 insert([wishlist], [Wishlist Documents], [],
 [
     |tabwishlist|
-])
+], 1])
 
 insert([resources], [Other Resources], [],
 [
     <ul>
         <li>Insert some resources for French authors.
     </ul>
-])
+], 1])
 
 insert([maillists], [Mailing Lists], [],
 [
     List your project\'s mailing lists here.
-])
+], 1])
 
 insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
 [
 	Remplacez ce texte par la description de votre projet.
-])
+], 1])
 
 insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
 [
@@ -171,22 +176,22 @@ insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
     from many people and many sources, and disseminating it widely to others.
-])
+], 1])
 
 insert([copyright], [Le Copyright], [Le Copyright],
 [
 	Copyright 2002 David Merrill.
-])
+], 1])
 
 insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
 [
 	Confidentialit&eacute;
-])
+], 1])
 
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|
-])
+], 1])
 
 insert([newuser], [New User], [],
 [
@@ -220,18 +225,18 @@ insert([newuser], [New User], [],
         </table
     </form>
     <p>*Required Fields
-])
+], 1])
 
 insert([topic], [View Topic], [View Topic],
 [
     |tabsubtopics|
-])
+], 1])
 
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
     |tabsubtopicdocs|
-])
+], 1])
 
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
@@ -242,58 +247,58 @@ insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;
     |tabdoctopics|
     |tabdocnotes|
     |tabdocerrors|
-])
+], 1])
 
 insert([404], [Introuvable], [Introuvable],
 [
 	Introuvable
-])
+], 1])
 
 insert([user_exists], [User Exists], [],
 [
     <p>That username is already taken. Please select another username and try again.
-])
+], 1])
 
 insert([username_required], [Username Required] [],
 [
     <p>Username is a required field. Please enter a username and try again.
-])
+], 1])
 
 insert([email_exists], [Email Exists], [],
 [
     <p>That email address is already in the database.
     If you already have an account but have forgotten your password,
     you can have it <a href="mailpass">mailed</a> to you.
-])
+], 1])
 
 insert([account_created], [Account Created], [],
 [
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
-])
+], 1])
 
 insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
-])
+], 1])
 
 insert([logged_in], [Logged In], [],
 [
     <p>You have been logged into the system.
-])
+], 1])
 
 insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
-])
+], 1])
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-])
+], 1])
 
 insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
-])
+], 1])
 
