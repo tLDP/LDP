@@ -25,6 +25,8 @@ use Exporter;
 	Users,
 	User,
 	UserDocs,
+	UserNotes,
+	AddUserNote,
 
 	Docs,
 	Doc,
@@ -44,12 +46,19 @@ use Exporter;
 	ReviewStatuses,
 	Licenses,
 	Topics,
+	Topic,
 	Subtopics,
 	Formats,
 	DTDs,
 
+	DocCount,
+	DocCountByClass,
+	DocCountByPubStatus,
+
 	StartPage,
 	EndPage,
+
+	ErrorsTable,
 	NavBar,
 
 	RoleCombo,
@@ -66,22 +75,28 @@ use Exporter;
 	UsersTable,
 	UserTable,
 	UserDocsTable,
+	UserNotesTable,
 	DocTable,
-	NewDocTable,
-	BarGraphTable,
 	DocVersionsTable,
 	DocUsersTable,
 	DocTopicsTable,
 	DocRatingTable,
 	DocNotesTable,
-	
+	TopicsTable,
+
+	BarGraphTable,
+
 	NavBox,
 	TitleBox,
 	LoginBox,
 	AdminBox,
 
+	TopicsList,
+
 	Login,
 	Logout,
+	AddUser,
+	AddError,
 	Mail,
 );
 
@@ -199,6 +214,26 @@ sub UserDocs {
 	return %docs;
 }
 
+sub UserNotes {
+	my ($self, $user_id) = @_;
+	my $usernotes = ();
+	my $sql = "SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$date_entered	= &trim($row[0]);
+		$notes		= &trim($row[1]);
+		$username	= &trim($row[2]);
+		$usernotes{$date_entered}{notes}	= $notes;
+		$usernotes{$date_entered}{username}	= $username;
+	}
+	return %usernotes;
+}
+
+sub AddUserNote {
+	my ($self, $user_id, $notes) = @_;
+	my $sql = "INSERT INTO username (user_id, notes, creator_id) VALUES ($user_id, " . wsq($notes) . ", " . CurrentUserID() . ")";
+}
+
 sub Docs {
 	my $self = shift;
 	my %docs = ();
@@ -261,8 +296,14 @@ sub Doc {
 }
 
 sub AddDoc {
-	my ($self, $doc_id, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
-	$DB->Exec("INSERT INTO document(doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating) VALUES ($doc_id, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating)");
+	my ($self, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
+	my $doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
+	$doc_id++;
+	my $sql = "INSERT INTO document(doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
+	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($filename) . ", " . wsq($class) . ", " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
+	$DB->Exec($sql);
+	$doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
+	return $doc_id;
 }
 
 sub DocUsers {
@@ -292,7 +333,6 @@ sub DocTopics {
 	my ($self, $doc_id) = @_;
 	my %doctopics = ();
 	my $sql = "SELECT dt.topic_num, dt.subtopic_num, t.topic_name, s.subtopic_name FROM topic t, subtopic s, document_topic dt WHERE t.topic_num = s.topic_num AND dt.topic_num = s.topic_num AND dt.subtopic_num = s.subtopic_num AND dt.doc_id = $doc_id";
-	print "$sql\n";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$key = $row[0] . '.' . $row[1];
@@ -315,12 +355,8 @@ sub DocNotes {
 		$notes		=~ s/</&lt;/;
 		$notes		=~ s/>/&gt;/;
 		$username	= &trim($row[2]);
-#		print "date_entered $date_entered\n";
-#		print "notes: $notes\n";
-#		print "username: $username\n";
 		$docnotes{$date_entered}{notes}		= $notes;
 		$docnotes{$date_entered}{username}	= $username;
-#		print "read back: $docnotes{$date_entered}{notes}\n";
 	}
 	return %docnotes;
 }
@@ -427,7 +463,7 @@ sub Licenses {
 
 sub Topics {
 	my %topics = ();
-	my $sql = "select topic_num, topic_name, topic_description from topic";
+	my $sql = "SELECT topic_num, topic_name, topic_description FROM topic";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$topicnum	= &trim($row[0]);
@@ -440,12 +476,26 @@ sub Topics {
 	return %topics;
 }
 
+sub Topic {
+	my ($self, $topic_num) = @_;
+	my %topic = ();
+	my $sql = "SELECT topic_num, topic_name, topic_description FROM topic WHERE topic_num=$topic_num";
+	my $recordset = $DB->Recordset($sql);
+	my @row = $recordset->fetchrow;
+	$topicnum	= &trim($row[0]);
+	$topicname	= &trim($row[1]);
+	$topicdesc	= &trim($row[2]);
+	$topic{num}		= $topicnum;
+	$topic{name}		= $topicname;
+	$topic{description}	= $topicdesc;
+	return %topic;
+}
+
 sub Subtopics {
-	my $self = shift;
-	my $topic_num = shift;
+	my ($self, $topic_num) = @_;
 	my %subtopics = ();
-	my $sql = "select topic.topic_num, topic_name, topic_description, subtopic_num, subtopic_name, subtopic_description from subtopic, topic where subtopic.topic_num = topic.topic_num";
-	$sql .= " WHERE topic_num = $topic_num" if ($topic_num);
+	my $sql = "SELECT topic.topic_num, topic_name, topic_description, subtopic_num, subtopic_name, subtopic_description from subtopic, topic WHERE subtopic.topic_num = topic.topic_num";
+	$sql .= " AND topic.topic_num = $topic_num" if ($topic_num);
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$topicnum	= &trim($row[0]);
@@ -488,6 +538,20 @@ sub DTDs {
 	return %dtds;
 }
 
+sub DocCount {
+	return $DB->Value("SELECT COUNT(*) FROM document");
+}
+
+sub DocCountByClass {
+	my ($self, $class) = @_;
+	return $DB->Value("SELECT COUNT(*) FROM document WHERE class IN (" . $class . ")");
+}
+
+sub DocCountByPubStatus {
+	my ($self, $pub_status) = @_;
+	return $DB->Value("SELECT COUNT(*) FROM document WHERE pub_status in (" . $pub_status . ")");
+}
+
 sub ReadCookie {
 	$session_id = $CGI->cookie('lampadas_session');
 	$currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'");
@@ -519,9 +583,13 @@ sub StartPage {
 		push @errors, "UserName: " . $currentuser{username};
 	}
 	
+	print "<table style='width:100%' class='layout'>\n";
+	print "<tr><td colspan=2>\n";
 	TitleBox($title);
-	Errors();
-	print "<table width='100%'><tr><td valign=top width='180'>\n";
+	ErrorsTable();
+	print "</td><tr>\n";
+
+	print "<tr><td valign=top width='200'>\n";
 	LoginBox() unless ($currentuser_id);
 	AdminBox() if (Maintainer());
 	NavBox();
@@ -677,8 +745,7 @@ sub FormatCombo {
 	my $selected = shift;
 	my %formats = Formats();
 	my $formatcombo = "<select name='format'>\n";
-	$formatcombo .= "<option></option>\n";
-	foreach $format (sort { $formats{$a}{name} <=> $formats{$b}{name} } keys %formats) {
+	foreach $format (sort keys %formats) {
 		if ($selected eq $format) {
 			$formatcombo .= "<option selected>$format</option>\n";
 		} else {
@@ -694,8 +761,7 @@ sub DTDCombo {
 	my $selected = shift;
 	my %dtds = DTDs();
 	my $dtdcombo = "<select name='dtd'>\n";
-	$dtdcombo .= "<option></option>\n";
-	foreach $dtd (sort { $dtds{$a}{dtd} <=> $dtds{$b}{dtd} } keys %dtds) {
+	foreach $dtd (sort keys %dtds) {
 		if ($selected eq $dtd) {
 			$dtdcombo .= "<option selected>$dtd</option>\n";
 		} else {
@@ -709,12 +775,10 @@ sub DTDCombo {
 sub UsersTable {
 	my $table = "<table class='box'>\n";
 	my %users = Users();
-	$table .= "<tr><th>Username</th><th>First Name</th><th>Middle Name</th><th>Surname</th><th>Email</th><th>Admin</th></tr>\n";
+	$table .= "<tr><th>Username</th><th>Name</th><th>Email</th><th>Admin</th></tr>\n";
 	foreach $key (sort { uc($users{$a}{username}) cmp uc($users{$b}{username}) } keys %users) {
 		$table .= "<tr><td>" . a({href=>"user_edit.pl?user_id=$users{$key}{id}"},"$users{$key}{username}") . "</td>";
-		$table .= "<td>$users{$key}{first_name}</td>\n";
-		$table .= "<td>$users{$key}{middle_name}</td>\n";
-		$table .= "<td>$users{$key}{surname}</td>\n";
+		$table .= "<td>$users{$key}{name}</td>\n";
 		$table .= "<td>$users{$key}{email}</td>\n";
 		$table .= "<td>" . bool2yn($users{$key}{admin}) . "</td>\n";
 		$table .= "</tr>";
@@ -733,15 +797,15 @@ sub UserTable {
 	$table .= "<form name=edit method=POST action='user_save.pl'>";
 	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
 	$table .= "<tr><th colspan=2>User Details</th><th>Notes</th></tr>\n";
-	$table .= "<tr><th>Username:</th><td><input type=text name='username' size=30 value='$user{username}'></input></td>\n";
+	$table .= "<tr><th>Username</th><td><input type=text name='username' size=30 value='$user{username}'></input></td>\n";
 	$table .= "<td rowspan=5 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
 	$table .= "</tr>\n";
-	$table .= "<tr><th>First Name:</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Middle Name:</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Surname:</th><td><input type=text name='surname' size=30 value='$user{surname}'></input></td></tr>\n";
-	$table .= "<tr><th>Email:</th><td><input type=text name='email' size=30 value='$user{email}'></input></td></tr>\n";
+	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=30 value='$user{surname}'></input></td></tr>\n";
+	$table .= "<tr><th>Email</th><td><input type=text name='email' size=30 value='$user{email}'></input></td></tr>\n";
 	if (&Admin()) {
-		$table .= "<tr><th>Admin:</th><td><select name='admin'>\n";
+		$table .= "<tr><th>Admin</th><td><select name='admin'>\n";
 		if ($user{admin}) {
 			$table .= "<option selected value='t'>Yes</option>\n";
 			$table .= "<option value='f'>No</option>\n";
@@ -751,7 +815,7 @@ sub UserTable {
 		}
 		$table .= "</select></td></tr>\n";
 	}
-	$table .= "<tr><th>New Password:</th><td><input type=password name='password' size=12></input></td></tr>";
+	$table .= "<tr><th>New Password</th><td><input type=password name='password' size=12></input></td></tr>";
 	$table .= "<tr><td></td><td><input type=submit value=Save></td></tr>";
 	$table .= "</form>";
 	$table .= "</table>";
@@ -783,33 +847,68 @@ sub UserDocsTable {
 	return $table;
 }
 
+sub UserNotesTable {
+	my ($self, $user_id) = @_;
+	my %usernotes = UserNotes($foo, $user_id);
+	my $table = "<table class='box'>\n";
+	$table .= "<form name=notes method=POST action='user_note_add.pl'>\n";
+	$table .= "<tr><th colspan=3>User Notes</th></tr>\n";
+	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
+	foreach $date_entered (sort keys %usernotes) {
+		$table .= "<tr>\n";
+		$table .= "<td valign=top>$date_entered</td>\n";
+		$table .= "<td valign=top>$usernotes{$date_entered}{username}</td>\n";
+		$table .= "<td valign=top>$usernotes{$date_entered}{notes}</td>\n";
+		$table .= "</tr>\n";
+	}
+	$table .= "<tr><td colspan=2 align=right>To add a note, type the note, then click Save.</td>\n";
+	$table .= "<td><textarea name=notes rows=10 cols=40 wrap></textarea>\n";
+	$table .= "<input type=hidden name=user_id value=$user_id>\n";
+	$table .= "<input type=submit value='Save'></td>\n";
+	$table .= "</tr>";
+	$table .= "</table>\n";
+	$table .= "</form>";
+	return $table;
+}
+
 sub DocTable {
 	my $self = shift;
 	my $doc_id = shift;
-	my %doc = Doc($foo, $doc_id);
+	if ($doc_id) {
+		my %doc = Doc($foo, $doc_id);
+	} else {
+		my %doc = ();
+		$doc{dtd} = "DocBook";
+		$doc{format} = "XML";
+	}
 	my $doctable = '';
-	$doctable .= "<table class='box'>\n";
-	$doctable .= "<form method=POST action='document_save.pl' name='edit'>\n";
+	$doctable .= "<table style='width:100%' class='box'>\n";
+	if ($doc_id) {
+		$doctable .= "<form method=POST action='document_save.pl' name='document'>\n";
+	} else {
+		$doctable .= "<form method=POST action='document_add.pl' name='document'>\n";
+	}
+	$doctable .= "<input name='doc_id' type=hidden value=$doc_id>\n";
 	$doctable .= "<tr>\n";
 	$doctable .= "<th colspan=6>Document Details</th>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr>\n";
-	$doctable .= "<th align=right>Title:</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
+	$doctable .= "<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr>\n";
-	$doctable .= "<th align=right>Filename:</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
+	$doctable .= "<th align=right>Filename</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right><a href='$url'>URL</a>:</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
+	$doctable .= "<th align=right><a href='$url'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right><a href='$ref_url'>Home</a>:</th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
+	$doctable .= "<th align=right><a href='$ref_url'>Home</a></th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Status:</th><td>";
+	$doctable .= "<th align=right>Status</th><td>";
 	$doctable .= PubStatusCombo($foo, $doc{pub_status});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>Class:</th><td>\n";
+	$doctable .= "<th align=right>Class</th><td>\n";
 	$doctable .= ClassCombo($foo, $doc{class});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>Maintained:</th><td>\n";
+	$doctable .= "<th align=right>Maintained</th><td>\n";
 	if ($doc{maintained}) {
 		$doctable .= 'Yes';
 	} else {
@@ -817,32 +916,32 @@ sub DocTable {
 	}
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Review Status:</th><td>";
+	$doctable .= "<th align=right>Review Status</th><td>";
 	$doctable .= ReviewStatusCombo($foo, $doc{review_status});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>Tech Review:</th><td>";
+	$doctable .= "<th align=right>Tech Review</th><td>";
 	$doctable .= TechReviewStatusCombo($foo, $doc{tech_review_status});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right><a href='/help/license.html'>?</a>&nbsp;License:</th><td>";
+	$doctable .= "<th align=right>License</th><td>";
 	$doctable .= LicenseCombo($foo, $doc{license});
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Published:</th><td><input type=text name=pub_date size=10 value='$doc{pub_date}'></td>";
-	$doctable .= "<th align=right>Updated:</th><td><input type=text name=last_update size=10 value='$doc{last_update}'></td>";
-	$doctable .= "<th align=right>Version:</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
+	$doctable .= "<th align=right>Published</th><td><input type=text name=pub_date size=10 value='$doc{pub_date}'></td>";
+	$doctable .= "<th align=right>Updated</th><td><input type=text name=last_update size=10 value='$doc{last_update}'></td>";
+	$doctable .= "<th align=right>Version</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Format:</th><td>";
+	$doctable .= "<th align=right>Format</th><td>";
 	$doctable .= FormatCombo($foo, $doc{format});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD:</th><td>";
+	$doctable .= "<th align=right>DTD</th><td>";
 	$doctable .= DTDCombo($foo, $doc{dtd});
 	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD Version:</th><td>";
+	$doctable .= "<th align=right>DTD Version</th><td>";
 	$doctable .= "<input type=text name=dtd_version size=10 value='$doc{dtd_version}'>";
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$doc{tickle_date}'></td>";
-	$doctable .= "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$doc{isbn}'></td>";
+	$doctable .= "<th align=right>ISBN</th><td><input type=text name=isbn size=14 value='$doc{isbn}'></td>";
 	$doctable .= "<th align=right>Rating</th>\n";
 	$doctable .= "<td>";
 	$doctable .= BarGraphTable($foo, $doc{rating});
@@ -851,39 +950,23 @@ sub DocTable {
 	$doctable .= "<th align=right>Abstract</th>";
 	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
 	$doctable .= "</tr>\n";
-	$doctable .= "<tr>\n";
-	$doctable .= "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
-	$doctable .= "<td colspan=4>I am working on ways to provide easy online collaborative editing,
-	and always for new ways to make writing for the LDP easier.
+	if ($doc_id) {
+		$doctable .= "<tr>\n";
+		$doctable .= "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
+		$doctable .= "<td colspan=4>I am working on ways to provide easy online collaborative editing,
+		and always for new ways to make writing for the LDP easier.
 
-	<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
-	WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
-	WikiText-style editing format that can be converted into DocBook.
+		<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
+		WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
+		WikiText-style editing format that can be converted into DocBook.
 
-	<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
-
-	$doctable .= "<td align=right><input type=submit name=save value=Save> <input type=submit name=saveandexit value='Save/Exit'></td>\n";
-	$doctable .= "</tr>\n";
+		<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
+		$doctable .= "</tr>\n";
+	}
+	$doctable .= "<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n";
 	$doctable .= "</form>\n";
 	$doctable .= "</table>\n";
 	return $doctable;
-}
-
-sub NewDocTable {
-	my $newdoctable = '';
-	$newdoctable .= "<table class='box'>\n";
-	$newdoctable .= "<form method=POST action='document_add.pl'>\n";
-	$newdoctable .= "<input type=hidden name=caller value='document_list.pl'>\n";
-	$newdoctable .= "<tr><th colspan=2>New Document Details</th></tr>\n";
-	$newdoctable .= "<tr><th>Title:</th><td><input type=text name=title size=60 width=60></td></tr>\n";
-	$newdoctable .= "<tr><th>Status:</th><td>" . PubStatusCombo($foo, "N") . "</td></tr>\n";
-	$newdoctable .= "<tr><th>Class:</th><td>" . ClassCombo() . "</td></tr>\n";
-	$newdoctable .= "<tr><th>Format:</th><td>" . FormatCombo() . "</td></tr>\n";
-	$newdoctable .= "<tr><th>DTD:</th><td>" . DTDCombo() . "</td></tr>\n";
-	$newdoctable .= "<tr><td></td><td><input type=submit value=Add></td></tr>\n";
-	$newdoctable .= "</form>\n";
-	$newdoctable .=	"</table>\n";
-	return $newdoctable;
 }
 
 sub BarGraphTable {
@@ -959,10 +1042,10 @@ sub DocUsersTable {
 		$table .= "<form method=POST action='document_user_save.pl'>";
 		$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
 		$table .= "<input type=hidden name=doc_id value=$doc_id>";
-		$table .= "<input type=hidden name=user_id value=$docusers{id}>";
+		$table .= "<input type=hidden name=user_id value=$docusers{$key}{id}>";
 
 		$table .= '<td valign=top><select name="active">';
-		if ($docusers{active}) {
+		if ($docusers{$key}{active}) {
 			$table .= '<option selected value="t">Active</option>';
 			$table .= '<option value="f">Inactive</option>';
 		} else {
@@ -975,7 +1058,7 @@ sub DocUsersTable {
 		$table .= RoleCombo($foo, $docusers{$key}{role});
 		$table .= "</td>\n";
 
-		$table .= "<td valign=top><a href='user_edit.pl?user_id=$docusers{$key}{id}'>$name</a></td>\n";
+		$table .= "<td valign=top><a href='user_edit.pl?user_id=$docusers{$key}{id}'>$docusers{$key}{name}</a></td>\n";
 		$table .= "<td valign=top><input type=text name=email width=20 size=20 value='$docusers{$key}{email}'></input></td>\n";
 		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td valign=top><input type=submit value=Save></td>\n";
@@ -1083,6 +1166,7 @@ sub DocNotesTable {
 	my %docnotes = DocNotes($foo, $doc_id);
 	my $table = "<table class='box'>\n";
 	$table .= "<form name=notes method=POST action='document_note_add.pl'>\n";
+	$table .= "<tr><th colspan=3>Document Notes</th></tr>\n";
 	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
 	foreach $date_entered (sort keys %docnotes) {
 		$table .= "<tr>\n";
@@ -1101,6 +1185,47 @@ sub DocNotesTable {
 	return $table;
 }
 
+sub TopicsTable {
+	my $self = shift;
+	my %topics = Topics();
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>Topics</th></tr>\n";
+	foreach $topic_num (sort { $a <=> $b } keys %topics) {
+		$table .= "<tr><td align='right'>" . $topics{$topic_num}{num} . "</td>\n";
+		$table .= "<td><a href='subtopic_list.pl?topic_num=$topic_num'>$topics{$topic_num}{name}</a></td>\n";
+		$table .= "<td>$topics{$topic_num}{description}</td></tr>\n";
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub SubtopicsTable {
+	my ($self, $topic_num) = @_;
+	my %subtopics = Subtopics($foo, $topic_num);
+	my %topic = Topic($foo, $topic_num);
+	my $table = "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>$topic{name}</th></tr>\n";
+	foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
+		$table .= "<tr><td align='right'>" . $subtopics{$subtopic_num}{num} . '</td><td>' . $subtopics{$subtopic_num}{name} . "</td>\n";
+		$table .= "<td>$subtopics{$subtopic_num}{description}</td></tr>\n";
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub ErrorsTable {
+	my $message = '';
+	if (scalar @errors) {
+		print "<table><tr><td>\n";
+		while (scalar @errors) {
+			my $error = pop @errors;
+			$message = $error . "<p>" . $message;
+		}
+		print "<p>$message\n";
+		print "</td></tr></table>\n";
+	}
+}
+
 sub NavBar {
 	print "<table class='navbar'><tr>\n";
 	print "<th><a href='document_list.pl'>Documents</a></th>\n";
@@ -1112,8 +1237,9 @@ sub NavBar {
 sub NavBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Menu</th></tr>\n";
-	print "<tr><td><a href='document_list.pl'>Documents</a></td></tr>\n";
-	print "<tr><td><a href='topic_list.pl'>Topics</a></td></tr>\n";
+	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
+	print "<tr><td>" . TopicsList() . "</td></tr>\n";
+	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "</table>\n";
 }
 
@@ -1166,9 +1292,24 @@ sub AdminBox {
 	print "<p><table class='navbox'>\n";
 	print "<tr><th>Admin Tools</th></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Users</a></t></tr>\n";
-	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>New Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
+}
+
+sub TopicsList {
+	my $self = shift;
+	my %topics = Topics();
+	my %subtopics = Subtopics();
+	$list .= "<a href='topic_list.pl'>Topics</a><br>\n";
+	foreach $topic_num (sort { $a <=> $b } keys %topics) {
+		$list .= "&nbsp;&nbsp;$topics{$topic_num}{name}<br>\n";
+		foreach $subtopic_num (sort { $a <=> $b } keys %subtopics) {
+			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
+				$list .= "&nbsp;&nbsp;&nbsp;&nbsp;$subtopics{$subtopic_num}{name}<br>\n";
+			}
+		}
+	}
+	return $list;
 }
 
 sub Login {
@@ -1232,7 +1373,7 @@ sub Logout {
 	StartPage($foo, $title, $cookie);
 }
 
-sub NewUser {
+sub AddUser {
 	use String::Random;
 	my $self = shift;
 	my ($username, $first_name, $middle_name, $surname, $email, $admin, $password) = @_;
@@ -1250,17 +1391,9 @@ sub NewUser {
 	return %newuser;
 }
 
-sub Errors {
-	my $message = '';
-	if (scalar @errors) {
-		print "<table><tr><td>\n";
-		while (scalar @errors) {
-			my $error = pop @errors;
-			$message = $error . "<p>" . $message;
-		}
-		print "<p>$message\n";
-		print "</td></tr></table>\n";
-	}
+sub AddError {
+	my ($self, $error) = @_;
+	push @errors, $error;
 }
 
 sub Redirect {
@@ -1319,7 +1452,11 @@ sub bool2yn {
 sub wsq {
 	my $temp = shift;
 	$temp =~ s/'/''/g;
-	return "'$temp'";
+	if ($temp) {
+		return "'$temp'";
+	} else {
+		return 'NULL';
+	}
 }
 
 1;

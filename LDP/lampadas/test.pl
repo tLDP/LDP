@@ -9,11 +9,12 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
+&Topic(1);
 #&UserDocs(11);
 #&Doc(473);
 #&DocUsers(473);
 #&DocTopics(471);
-&DocNotes(471);
+#&DocNotes(471);
 #&User(11);
 #&Roles();
 #&Classes();
@@ -48,7 +49,16 @@ $DB = new Lampadas::Database;
 #&DocVersionsTable(471);
 #&DocUsersTable(471);
 #&DocTopicsTable(471);
-&DocNotesTable(471);
+#&DocNotesTable(471);
+#&DocCount();
+#&DocCountByClass("'HOWTO'");
+#&DocCountByPubStatus("'N'");
+
+sub Topic {
+	my $topic_num = shift;
+	%topic = $L->Topic($topic_num);
+	print "Topic: $topic{num}, $topic{name}, $topic{description}\n\n";
+}
 
 sub UserDocs {
 	my $user_id = shift;
@@ -378,4 +388,17 @@ sub DocNotesTable {
 	print "\n";
 }
 
+sub DocCount {
+	print "Document Count: " . $L->DocCount() . "\n\n";
+}
+
+sub DocCountByClass {
+	my $class = shift;
+	print "Document Count by Class: " . $L->DocCountByClass($class) . "\n\n";
+}
+
+sub DocCountByPubStatus {
+	my $pub_status = shift;
+	print "Document Count by Pub Status: " . $L->DocCountByPubStatus($pub_status) . "\n\n";
+}
 

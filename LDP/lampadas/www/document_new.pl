@@ -8,6 +8,6 @@ unless ($L->Admin()) {
 }
 
 $L->StartPage("New Document");
-print $L->NewDocTable();
+print $L->DocTable();
 $L->EndPage();
 

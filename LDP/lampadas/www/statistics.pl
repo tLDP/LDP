@@ -15,18 +15,8 @@ $conn=Pg::connectdb("dbname=$dbmain");
 
 $L->StartPage('Statistics');
 
-$sql = "select count(*) from document";
-$result=$conn->exec($sql);
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-@row = $result->fetchrow;
-$document_total = $row[0];
-
-
-$sql = "select count(*) from document where pub_status = 'N'";
-$result=$conn->exec($sql);
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-@row = $result->fetchrow;
-$document_count = $row[0];
+$document_total = $L->DocCount();
+$document_count = $L->DocCountByPubStatus("'N'");
 
 
 print "<h2>Status</h3>";

@@ -1,48 +1,21 @@
 #! /usr/bin/perl
 
-use CGI qw(:standard);
-use Pg;
+use Lampadas;
+use Lampadas::Database;
 
-$query = new CGI;
+$L = new Lampadas;
 
-$dbmain = "ldp";
-$conn=Pg::connectdb("dbname=$dbmain");
-@row;
-
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
+unless ($L->Admin()) {
+	print $query->redirect("wrongpermission.pl");
 	exit;
-} else {
-	$admin = $row[1];
-	if ($admin ne 't') {
-		print $query->redirect("../wrongpermission.html");
-		exit;
-	}
 }
+$title      = $L->Param('title');
+$class      = $L->Param('class');
+$format     = $L->Param('format');
+$dtd        = $L->Param('dtd');
+$pub_status = $L->Param('pub_status');
 
-$caller     = param('caller');
+$doc_id = $L->AddDoc($title, undef, $class, $format, $dtd, undef, undef, undef, undef, undef, $pub_status, 'U', undef, undef, undef,'U','t');
 
-$sql = "SELECT max(doc_id) from document";
-$result=$conn->exec($sql);
-@row = $result->fetchrow;
-$doc_id = $row[0] + 1;
-$title      = param('title');
-$title      =~ s/\'/\'\'/;
-$class      = param('class');
-$format     = param('format');
-$dtd        = param('dtd');
-
-$pub_status = param('pub_status');
-
-$sql = "INSERT INTO document(doc_id,   title,   filename, class,    format,    dtd,    dtd_version, version, last_update, url,  isbn, pub_status,    author_status,    review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained)";
-$sql =         "$sql VALUES ($doc_id, '$title', NULL,     '$class', '$format', '$dtd', NULL,        NULL,    NULL,        NULL, NULL, '$pub_status', '$author_status', 'U',           NULL,        NULL,     NULL,    'U',                't')";
-
-$conn->exec($sql);
-
-print $query->redirect("document_edit.pl?doc_id=$doc_id");
+$L->Redirect("document_edit.pl?doc_id=$doc_id");
 
