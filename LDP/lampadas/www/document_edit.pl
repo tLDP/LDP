@@ -99,7 +99,7 @@ print "<input type=hidden name=doc_id value='$doc_id'>\n";
 print "<table>\n";
 print "<tr><th colspan=6>Document Details</th></tr>\n";
 print "<tr><td align=right>Title:</td><td colspan=4><input type=text name=title size=60 value='$title'></td>\n";
-print "<td><a href='document_wiki.pl?doc_id=$doc_id'>Edit (test)</a></td></tr>\n";
+print "<td><a href='document_wiki_big.pl?doc_id=$doc_id'>Wiki Editing (beta)</a></td></tr>\n";
 print "<tr><td align=right>Filename:</td><td colspan=5><input type=text name=filename size=60 value='$filename'></td></tr>\n";
 
 print "<tr>";
@@ -185,6 +185,7 @@ if ( $format eq "XML" ) { print '<option selected>XML</option>'; } else { print 
 if ( $format eq "TEXT" ) { print '<option selected>TEXT</option>'; } else { print '<option>TEXT</option>' }
 if ( $format eq "LaTeX" ) { print '<option selected>LaTeX</option>'; } else { print '<option>LaTeX</option>' }
 if ( $format eq "PDF" ) { print '<option selected>PDF</option>'; } else { print '<option>PDF</option>' }
+if ( $format eq "WIKI" ) { print '<option selected>WIKI</option>'; } else { print '<option>WIKI</option>' }
 print "</select></td>";
 
 print "<td align=right>DTD:</td><td>";
@@ -244,6 +245,69 @@ print "<td colspan=5 align=right><input type=submit value=Save></td>";
 print "</tr></table>\n";
 print "</form>";
 
+
+
+
+
+
+$test = 'x';
+
+if ($test) {
+print "<p><hr>";
+
+
+
+
+print "<h2>Versions</h2>";
+
+$rev_result = $conn->exec("SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=$doc_id ORDER BY pub_date, version");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $rev_result->resultStatus;
+
+print "<p><table>\n";
+print "<tr><th>Version</th><th>Date</th><th>Who?</th><th>Notes</th></tr>";
+while (@row = $rev_result->fetchrow) {
+  $rev_id = $row[0];
+  $rev_version = $row[1];
+  $rev_version =~  s/\s+$//;
+  $rev_date = $row[2];
+  $rev_init = $row[3];
+  $rev_note = $row[4];
+  print "<tr>";
+  print "<form method=POST action='document_rev_save.pl'>";
+  print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+  print "<input type=hidden name=rev_id value=$rev_id>";
+  print "<input type=hidden name=doc_id value=$doc_id>";
+
+  print "<td valign=top><input type=text name=rev_version width=12 size=12 value='$rev_version'></input></td>\n";
+  print "<td valign=top><input type=text name=rev_date width=12 size=12 value='$rev_date'></input></td>\n";
+  print "<td valign=top><input type=text name=rev_init width=3 size=5 value='$rev_init'></input></td>\n";
+  print "<td><textarea name=rev_note rows=3 cols=40 wrap>$rev_note</textarea>\n";
+
+  print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
+  print "<td valign=top><input type=submit value=Save></td>\n";
+  print "</form>";
+  print "</tr>\n";
+}
+
+# For creating a new version
+#print "<tr><th colspan=6>New Version</th></tr>";
+print "<tr>";
+print "<form method=POST action='document_rev_add.pl'>";
+print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+print "<input type=hidden name=doc_id value=$doc_id>";
+
+print "<td valign=top><input type=text name=rev_version width=12 size=12></input></td>\n";
+print "<td valign=top><input type=text name=rev_date width=12 size=12></input></td>\n";
+print "<td valign=top><input type=text name=rev_init width=5 size=3></input></td>\n";
+print "<td><textarea name=rev_note rows=3 cols=40 wrap></textarea>\n";
+
+print "<td valign=top></td>\n";
+print "<td valign=top><input type=submit value=Add></td>\n";
+print "</form>";
+print "</tr>\n";
+
+print "</table>\n";
+}
 
 
 

@@ -49,9 +49,14 @@ if ($username ne $row[0]) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {
-	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
-		print $query->redirect("../wrongpermission.html");
-		exit;
+	if ($row[1] ne 't') {
+		$maintainer_id = $row[2];
+		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
+		@row = $result->fetchrow;
+		unless ($row[0]) {
+			print $query->redirect("../wrongpermission.html");
+			exit;
+		}
 	}
 }
 

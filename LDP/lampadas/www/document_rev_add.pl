@@ -10,10 +10,17 @@ $dbmain = "ldp";
 # Read parameters
 $caller        = param('caller');
 $doc_id        = param('doc_id');
-$maintainer_id = param('maintainer_id');
-$active        = param('active');
-$role          = param('role');
-$email         = param('email');
+$rev_version   = param('rev_version');
+$rev_date      = param('rev_date');
+$rev_init      = param('rev_init');
+$rev_note      = param('rev_note');
+
+while ($rev_note =~ /\'/) {
+	$rev_note =~ s/\'/a1s2d3f4/;
+}
+while ($rev_note =~ /a1s2d3f4/) {
+	$rev_note     =~ s/a1s2d3f4/\'\'/;
+}
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
@@ -35,25 +42,18 @@ if ($username ne $row[0]) {
 	}
 }
 
-#print header;
-#print start_html;
-$sql = "INSERT INTO document_maintainer(doc_id, maintainer_id, active, role, email) VALUES ($doc_id, $maintainer_id, '$active', '$role', '$email' )";
-$result=$conn->exec($sql);
-
-#update the maintained field in the document record
-$sql = "SELECT COUNT(*) as active_maintainers FROM document_maintainer WHERE doc_id=$doc_id AND (role='Author' OR role='Co-Author' OR role='Maintainer') AND active='t'";
+$sql = "SELECT max(rev_id) FROM document_rev WHERE doc_id = $doc_id";
 $result=$conn->exec($sql);
 @row = $result->fetchrow;
-$active_maintainers = $row[0];
-if ( $active_maintainers > 0 ) { $maintained = "t" } else { $maintained = "f" }
-$sql = "UPDATE document SET maintained='$maintained' WHERE doc_id=$doc_id";
+$rev_id = $row[0] + 1;
+
+$sql = "INSERT INTO document_rev(rev_id, doc_id, version, pub_date, initials, notes) VALUES ($rev_id, $doc_id, '$rev_version', '$rev_date', '$rev_init', '$rev_note')";
 $result=$conn->exec($sql);
 
-#print header;
-#print start_html;
-#print $sql;
-#print end_html;
-#exit;
+#print "Content-Type: text/plain\n\n";
+#print "$sql\n";
 
 print $query->redirect($caller)
+
+
 

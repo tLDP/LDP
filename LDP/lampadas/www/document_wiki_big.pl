@@ -1,6 +1,5 @@
 #! /usr/bin/perl
 
-$workpath = "/tmp";
 $editcols = 80;
 $editrows = 25;
 
@@ -10,18 +9,29 @@ use Pg;
 $query = new CGI;
 $dbmain = "ldp";
 @row;
+$section_max	= 25;
 
 # Read parameters
 $doc_id		= param('doc_id');
-$wiki           = param('wiki');
 $notes          = param('notes');
 $revision	= param('revision');
+
+$section = 0;
+while ($section <= $section_max) {
+	$section++;
+	$wiki_section = param("wiki$section");
+	if ($wiki_section) {
+		if ($wiki) {
+			$wiki .= "\n";
+		}
+		$wiki .= $wiki_section;
+	}
+}
+$section = 0;
 
 $save		= param('Save');
 $preview	= param('Preview');
 $docbook	= param('DocBook');
-
-$username       = $query->remote_user();
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
@@ -33,13 +43,24 @@ if ($username ne $row[0]) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {
-	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
-		print $query->redirect("../wrongpermission.html");
-		exit;
+	if ($row[1] ne 't') {
+		$maintainer_id = $row[2];
+		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
+		@row = $result->fetchrow;
+		unless ($row[0]) {
+			print $query->redirect("../wrongpermission.html");
+			exit;
+		}
 	}
 }
 
 if ($save) {
+	while ($wiki =~ /\\/) {
+		$wiki =~ s/\\/a1s2d3f4/;
+	}
+	while ($wiki =~ /a1s2d3f4/) {
+	        $wiki =~ s/a1s2d3f4/\\\\/;
+	}
 	while ($wiki =~ /&/) {
 		$wiki =~ s/&/a1s2d3f4/;
 	}
@@ -65,10 +86,19 @@ if ($save) {
 	@row = $result->fetchrow;
 	$revisions = $row[0];
 
+#	&printheader;
+#	print $wiki;
+#	print end_html;
+#	exit;
+
 	if ($revisions >= $revision ) {
 		&printheader;
 		print "<p>Edit conflict!\n";
 		print "<p>You were editing version $revisions, but trying to save to version $revision\n";
+		print end_html;
+	} elsif ($wiki eq '') {
+		&printheader;
+		print "<p>No content to save!\n";
 		print end_html;
 	} else {
 		$revision = $revisions + 1;
@@ -111,12 +141,35 @@ unless ($preview or $docbook) {
 	}
 
 	&printheader;
-	print "<form method=POST action='document_wiki.pl' name='edit'>\n";
+	print "<form method=POST action='document_wiki_big.pl' name='edit'>\n";
 	print "<input type=hidden name=doc_id value='$doc_id'>\n";
 	print "<input type=hidden name=revision value=$revision>\n";
 	print "<table width='100%'>\n";
 	print "<tr><th>Document Text</th></tr>\n";
-	print "<tr><td><textarea name=wiki rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";
+
+
+	$tempfile = "/tmp/document_wiki_big" . rand();
+	open (TMP, "> $tempfile");
+	print TMP $wiki;
+	close(TMP);
+
+	open (TMP, $tempfile);
+	$wiki = "";
+	$section = 0;
+	while ($line = <TMP>) {
+		if ($line =~ /^===/) {
+		} elsif ($line =~ /^==/) {
+		} elsif ($line =~ /^=/) {
+			&printwiki;
+		} else {
+		}
+		$wiki .= $line;
+	}
+	close TMP;
+	unlink $tempfile;
+	&printwiki;
+	$section++;
+	print "<tr><td><textarea name=wiki$section rows=$editrows cols=$editcols style='width:100%' wrap></textarea></td></tr>\n";
 	print "<tr><td>Comments: <input type=text name=notes size=$editcols></input></td></tr>\n";
 	if ($revisions == 0) {
 		print "<tr><td>There are no previous versions of this document. Your changes will be saved as version $revision</td></tr>\n";
@@ -132,7 +185,7 @@ unless ($preview or $docbook) {
 }
 
 if ($preview or $docbook) {
-	$txtfile = "$workpath/" . rand . ".txt";
+	$txtfile = "/tmp/" . rand() . ".txt";
 	$sgmlfile = $txtfile;
 	$sgmlfile =~ s/\.txt/\.sgml/;
 	$htmlfile = $txtfile;
@@ -230,16 +283,15 @@ if ($docbook) {
 
 	print "Content-Type: text/plain; charset=ISO-8859-1\n\n";
 
-	while ($sgml =~ /\</) {
-		$sgml =~ s/\</&lt;/;
-	}
-	while ($sgml =~ /\>/) {
-		$sgml =~ s/\>/&gt;/;
-	}
+#	while ($sgml =~ /</) {
+#		$sgml =~ s/</&lt;/;
+#	}
+#	while ($sgml =~ />/) {
+#		$sgml =~ s/>/&gt;/;
+#	}
 	print $sgml;
 #	print "</pre>\n";
 #	print "</html>\n";
-	
 }
 
 if ($preview) {
@@ -283,3 +335,21 @@ sub printheader {
 	print "&nbsp;|&nbsp;";
 	print "<a href='document_wiki_list.pl?doc_id=$doc_id'>Version History</a>\n";
 }
+
+sub printwiki {
+	if ($wiki) {
+		$section++;
+		print "<tr><td align='center'>Section $section</td></tr>\n";
+		print "<tr><td><textarea name=wiki$section rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";
+		
+#		print "Section: $section\n";
+#		print "$wiki\n\n";
+#		print "-----------------------------\n\n";
+		if ($section == $section_max) {
+			print "Aborting due to loop control.\n";
+			last;
+		}
+		$wiki = "";
+	}
+}
+

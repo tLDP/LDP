@@ -7,8 +7,16 @@ $dbmain='ldp';
 @row;
 $count = 0;
 
-# Connect and load the tuples
+$query = new CGI;
+
+# Connect to the database
 $conn=Pg::connectdb("dbname=$dbmain");
+
+$username = $query->remote_user();
+$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+@row = $result->fetchrow;
+$admin = $row[1];
+
 $result=$conn->exec("SELECT maintainer_id, maintainer_name, email FROM maintainer ORDER BY maintainer_name");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
@@ -48,17 +56,19 @@ print "</table>\n";
 
 print "<p>Count: $count";
 
-print "<p><hr>\n";
+if ($admin eq 't') {
+	print "<p><hr>\n";
 
-print "<h1>New Maintainer</h1>\n";
+	print "<h1>New Maintainer</h1>\n";
 
-print "<p><form method=POST action='maintainer_add.pl'>\n";
-print "<input type=hidden name=caller value='maintainer_list.pl'>\n";
-print "<table>\n";
-print "<tr><td align=right>Name:</td><td><input type=text name=maintainer_name width=20 size=20></td></tr>\n";
-print "<tr><td align=right>Email:</td><td><input type=text name=email width=20 size=20></td></tr>\n";
-print "<tr><td></td><td><input type=submit value=Save></td></tr>\n";
-print "</table></form>\n";
+	print "<p><form method=POST action='maintainer_add.pl'>\n";
+	print "<input type=hidden name=caller value='maintainer_list.pl'>\n";
+	print "<table>\n";
+	print "<tr><td align=right>Name:</td><td><input type=text name=maintainer_name width=20 size=20></td></tr>\n";
+	print "<tr><td align=right>Email:</td><td><input type=text name=email width=20 size=20></td></tr>\n";
+	print "<tr><td></td><td><input type=submit value=Save></td></tr>\n";
+	print "</table></form>\n";
+}
 
 print end_html;
 

@@ -22,7 +22,7 @@ if ($username ne $row[0]) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {
-	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
+	if ($row[1] ne 't') {
 		print $query->redirect("../wrongpermission.html");
 		exit;
 	}

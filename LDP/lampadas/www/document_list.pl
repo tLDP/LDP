@@ -51,6 +51,15 @@ if ( $SORT3 ) { $SORT3 = ", $SORT3"; }
 
 $strSTATUS = param('strSTATUS');
 
+$mydocuments = param("MyDocuments");
+$reload = param('Reload');
+
+# if we're not reloading, the default is to show only Active ('N') documents.
+unless (($reload eq 'Reload') or ($mydocuments eq 'MyDocuments')) {
+	$strSTATUS = 'N';
+}
+
+
 # Clear
 $BACKGROUNDER = "";
 $HOWTO = "";
@@ -106,6 +115,11 @@ if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
 
 # connect to the database
 $conn=Pg::connectdb("dbname=$dbmain");
+
+$username = $query->remote_user();
+$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+@row = $result->fetchrow;
+$admin = $row[1];
 
 # print the page
 print header(-expires=>'now');
@@ -200,7 +214,7 @@ print "</select>\n";
 print "</td>\n";
 
 print "</tr></table>\n";
-print "<input type=submit value=Reload>\n";
+print "<input type=submit name=Reload value=Reload>\n";
 $username=$query->remote_user();
 $result=$conn->exec("SELECT count(*) FROM username WHERE username='$username'");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
@@ -222,7 +236,7 @@ if ($row[0] > 0) {
 		}
 		$doc_id_sql .= ")";
 	}
-	print "<input type=submit value='My Documents' name=MyDocuments>\n";
+	print "<input type=submit value='MyDocuments' name=MyDocuments>\n";
 }
 
 
@@ -260,8 +274,7 @@ $sql .= " AND document.pub_status=pub_status.pub_status";
 $sql .= " AND document.review_status = lr.review_status";
 $sql .= " AND document.tech_review_status = tr.review_status";
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
-$MyDocuments = param("MyDocuments");
-if (($doc_id_sql) and ($MyDocuments)) { $sql .= " AND $doc_id_sql" }
+if (($doc_id_sql) and ($mydocuments)) { $sql .= " AND $doc_id_sql" }
 $sql = $sql . " ORDER BY $SORT1";
 #print "<tr><td colspan=20>$sql</td></tr>";
 
@@ -321,64 +334,67 @@ print "</table>\n";
 
 print "<p>Count: $count";
 
-print "<p><hr>";
+if ($admin eq 't') {
+	print "<p><hr>";
 
-print "<h1>New Document</h1>\n";
+	print "<h1>New Document</h1>\n";
 
-print "<p><form method=POST action='document_add.pl'>\n";
-print "<input type=hidden name=caller value='document_list.pl'>\n";
-print "<table>\n";
-print "<tr><td align=right>Title:</td><td><input type=text name=title size=60 width=60></td></tr>\n";
+	print "<p><form method=POST action='document_add.pl'>\n";
+	print "<input type=hidden name=caller value='document_list.pl'>\n";
+	print "<table>\n";
+	print "<tr><td align=right>Title:</td><td><input type=text name=title size=60 width=60></td></tr>\n";
 
-print "<tr><td align=right>Status:</td><td>";
-print "<select name=pub_status>\n";
-print "<option value='N'>Active</option>\n";
-print "<option value='?'>Unknown</option>\n";
-print "<option value='A'>Archived</option>\n";
-print "<option value='D'>Deleted</option>\n";
-print "<option value='O'>Offsite</option>\n";
-print "<option value='P'>Pending</option>\n";
-print "<option value='R'>Replaced</option>\n";
-print "<option value='W'>Wishlist</option>\n";
-print "<option value='C'>Cancelled</option>\n";
-print "</select>\n";
-print "</td></tr>\n";
+	print "<tr><td align=right>Status:</td><td>";
+	print "<select name=pub_status>\n";
+	print "<option value='N'>Active</option>\n";
+	print "<option value='?'>Unknown</option>\n";
+	print "<option value='A'>Archived</option>\n";
+	print "<option value='D'>Deleted</option>\n";
+	print "<option value='O'>Offsite</option>\n";
+	print "<option value='P'>Pending</option>\n";
+	print "<option value='R'>Replaced</option>\n";
+	print "<option value='W'>Wishlist</option>\n";
+	print "<option value='C'>Cancelled</option>\n";
+	print "</select>\n";
+	print "</td></tr>\n";
 
-print "<tr><td align=right>Class:</td><td>";
-print "<select name=class>\n";
-print "<option>BACKGROUNDER</option>\n";
-print "<option>HOWTO</option>\n";
-print "<option>MINI</option>\n";
-print "<option>FAQ</option>\n";
-print "<option>QUICK</option>\n";
-print "<option>GUIDE</option>\n";
-print "<option>TEMPLATE</option>\n";
-print "</select>\n";
-print "</td></tr>\n";
+	print "<tr><td align=right>Class:</td><td>";
+	print "<select name=class>\n";
+	print "<option>BACKGROUNDER</option>\n";
+	print "<option>HOWTO</option>\n";
+	print "<option>MINI</option>\n";
+	print "<option>FAQ</option>\n";
+	print "<option>QUICK</option>\n";
+	print "<option>GUIDE</option>\n";
+	print "<option>TEMPLATE</option>\n";
+	print "</select>\n";
+	print "</td></tr>\n";
 
-print "<tr><td align=right>Format:</td><td>";
-print "<select name=format>\n";
-print "<option></option>\n";
-print "<option>SGML</option>\n";
-print "<option>XML</option>\n";
-print "<option>TEXT</option>\n";
-print "<option>LaTeX</option>\n";
-print "<option>PDF</option>\n";
-print "</select>\n";
-print "</td></tr>\n";
+	print "<tr><td align=right>Format:</td><td>";
+	print "<select name=format>\n";
+	print "<option></option>\n";
+	print "<option>SGML</option>\n";
+	print "<option>XML</option>\n";
+	print "<option>TEXT</option>\n";
+	print "<option>LaTeX</option>\n";
+	print "<option>PDF</option>\n";
+	print "<option>WIKI</option>\n";
+	print "</select>\n";
+	print "</td></tr>\n";
 
-print "<tr><td align=right>DTD:</td><td>";
-print "<select name=dtd>\n";
-print "<option></option>\n";
-print "<option>N/A</option>\n";
-print "<option>HTML</option>\n";
-print "<option>DocBook</option>\n";
-print "<option>LinuxDoc</option>\n";
-print "</select>\n";
-print "</td></tr>\n";
-
-print "<tr><td></td><td><input type=submit value=Add></td></tr>\n";
-print "</table></form>\n";
+	print "<tr><td align=right>DTD:</td><td>";
+	print "<select name=dtd>\n";
+	print "<option></option>\n";
+	print "<option>N/A</option>\n";
+	print "<option>HTML</option>\n";
+	print "<option>DocBook</option>\n";
+	print "<option>LinuxDoc</option>\n";
+	print "</select>\n";
+	print "</td></tr>\n";
+	
+	print "<tr><td></td><td><input type=submit value=Add></td></tr>\n";
+	print "</table></form>\n";
+}
 
 print end_html;
 
