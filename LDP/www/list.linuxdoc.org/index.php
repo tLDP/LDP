@@ -94,8 +94,14 @@
         <p>'just testing' list - please ignore</p>
      </td>
   </tr>
-<td colspan="2">If you are list owner, you can <a href="/admin/">manage your lists</a>.</td>
-</tr><tr>
+<tr>
+	<td colspan="2"><a href="/old/">
+	Old archives to December 2000</a></td>
+</tr>
+<tr>
+	<td colspan="2">If you are list owner, you can 
+	<a href="/admin/">manage your lists</a>.</td>
+</tr>
 <td allign="top">
 <a href="http://ibiblio.org/"><img border="0" src="logo7.jpg"></a>
 </td>
