@@ -5,7 +5,13 @@
 
 # $Id$
 
-file_sgml="Linux+IPv6-HOWTO.sgml"
+if [ -z "$1" ]; then
+	file_sgml="Linux+IPv6-HOWTO.sgml"
+else
+	file_sgml="$1"
+fi
+
+echo "Used SGML file: $file_sgml"
 
 file_base="`basename $file_sgml .sgml`"
 
@@ -31,7 +37,7 @@ LDP_PDFPS="yes"
 
 # run sgmlfix
 if [ -e ./runsgmlfix.sh ]; then
-	./runsgmlfix.sh
+	./runsgmlfix.sh "$file_sgml"
 else
 	echo "WARN: cannot execute 'runsgmlfix.sh'"
 fi

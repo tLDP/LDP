@@ -8,9 +8,13 @@
 #
 # 20020119/PB: initial
 
+if [ -z "$1" ]; then
+	FILE_SGML="Linux+IPv6-HOWTO.sgml"
+else
+	FILE_SGML="$1"
+fi
 
-FILE_SGML="Linux+IPv6-HOWTO.sgml"
-FILE_LYX="Linux+IPv6-HOWTO.lyx"
+FILE_LYX="`basename $FILE_SGML .sgml`.lyx"
 FILE_TMP="tmp.sgml"
 
 PROG_FIX_TABLETAG="sgmllyxtabletagfix.pl"
