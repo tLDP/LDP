@@ -115,19 +115,27 @@ class Pages(LampadasCollection):
             page.load_row(row)
             self.data[page.code] = page
 
-    def add(self, page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_syasdmin, data):
-        sql = 'INSERT INTO page(page_code, sort_order, section_code, only_dynamic, only_registered, only_admin, only_syasdmin, data) '
+    def add(self, page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data):
+        sql = 'INSERT INTO page(page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data) '
         sql += 'VALUES (' + wsq(page_code) + ', ' + str(sort_order) + ', ' + wsq(section_code) + ', ' + wsq(template_code) + ', ' + wsq(bool2tf(only_dynamic)) + ', ' + wsq(bool2tf(only_registered)) + ', ' + wsq(bool2tf(only_admin)) + ', ' + wsq(bool2tf(only_sysadmin)) + ', ' + wsq(string.join(data)) + ')'
         db.runsql(sql)
         db.commit()
         page = Page(page_code)
         self.data[page.code] = page
-
+        return page
 
 class Page:
 
-    def __init__(self, page_code=''):
-        self.code = page_code
+    def __init__(self, page_code='', sort_order=0, section_code='', template_code='', only_dynamic=0, only_registered=0, only_admin=0, only_sysadmin=0, data=[]):
+        self.code            = page_code
+        self.sort_order      = sort_order
+        self.section_code    = section_code
+        self.template_code   = template_code
+        self.only_dynamic    = only_dynamic
+        self.only_registered = only_registered
+        self.only_admin      = only_admin
+        self.only_sysadmin   = only_sysadmin
+        self.data            = data
         self.title = LampadasCollection()
         self.menu_name = LampadasCollection()
         self.page = LampadasCollection()
@@ -138,6 +146,7 @@ class Page:
     def load(self):
         sql = 'SELECT page_code, section_code, sort_order, template_code, data, only_dynamic, only_registered, only_admin, only_sysadmin FROM page WHERE page_code=' + wsq(self.code)
         cursor = db.select(sql)
+        row = cursor.fetchone()
         if row==None: return
         self.load_row(row)
         

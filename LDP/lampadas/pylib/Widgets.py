@@ -421,6 +421,9 @@ class Widgets:
         return combo.get_value()
 
     def data(self, value):
-        return '<input type=text name="data" width="10"  maxlength="40" value="' + value + '">'
-        
+        return '<input type=text name="data" width="10"  maxlength="40" value="' + string.join(value) + '">'
+
+    def sort_order(self, value):
+        return '<input type=text name="sort_order" width="5" maxlength="5" value="' + str(value) + '">'
+
 widgets = Widgets()

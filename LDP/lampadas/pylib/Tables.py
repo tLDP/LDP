@@ -1854,8 +1854,8 @@ class TabPages(Table):
     def method(self, uri):
         log(3, 'Creating pages table')
         box = WOStringIO('<table class="box" width="100%%">\n' \
-                         '<tr><th colspan="4">|strpages|</th></tr>\n' \
-                         '<tr><th class="collabel">|strpage_code|</th>\n' \
+                         '<tr><th colspan="5">|strpages|</th></tr>\n' \
+                         '<tr><th class="collabel" colspan="2">|strpage_code|</th>\n' \
                          '    <th class="collabel">|strtemplate|</th>\n' \
                          '    <th class="collabel">|strsection|</th>\n' \
                          '    <th class="collabel">|strname|</th>\n' \
@@ -1865,28 +1865,29 @@ class TabPages(Table):
         items = 0
         for key in keys:
             page = lampadasweb.pages[key]
-            if not page.page[uri.lang]==None:
-                if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
-                    edit_icon = '<a href="|uri.base|page_edit/' + str(page.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
-                else:
-                    edit_icon = ''
-                if page.section_code > '':
-                    section_name = lampadasweb.sections[page.section_code].name[uri.lang]
-                else:
-                    section_name = ''
+            if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
+                edit_icon = '<a href="|uri.base|page_edit/' + str(page.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
+            else:
+                edit_icon = ''
+            if page.section_code > '':
+                section_name = lampadasweb.sections[page.section_code].name[uri.lang]
+            else:
+                section_name = ''
 
-                box.write('<tr class="%s">\n' \
-                          '  <td>%s</td>\n' \
-                          '  <td>%s</td>\n' \
-                          '  <td>%s</td>\n' \
-                          '  <td><i>%s</i></td>\n' \
-                          '</tr>\n' \
-                          % (odd_even.get_next(),
-                             edit_icon + page.code,
-                             page.template_code,
-                             section_name,
-                             escape_tokens(page.menu_name[uri.lang])
-                            ))
+            box.write('<tr class="%s">\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td>%s</td>\n' \
+                      '  <td><i>%s</i></td>\n' \
+                      '</tr>\n' \
+                      % (odd_even.get_next(),
+                         edit_icon,
+                         page.code,
+                         page.template_code,
+                         section_name,
+                         escape_tokens(safestr(page.menu_name[uri.lang]))
+                        ))
         box.write('</table>\n')
         return box.get_value()
 
@@ -1905,7 +1906,7 @@ class TabPage(Table):
             page = lampadasweb.pages[uri.code]
             
             box = WOStringIO('<form method=GET action="|uri.base|data/save/page">\n' \
-                             '<table class="box"><tr><th colspan="3">|strpage|: <i>%s</i></th></tr>\n' \
+                             '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n' \
                              '<input type=hidden name="page_code" value="%s">\n' \
                              '<input type=hidden name="sort_order" value="%s">\n' \
                              '<tr><td class="label">|strsection|</td>\n' \
@@ -1941,7 +1942,7 @@ class TabPage(Table):
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
-                             '</form>\n' % (escape_tokens(page.menu_name[uri.lang]),
+                             '</form>\n' % (escape_tokens(page.code),
                                             page.code,
                                             page.sort_order,
                                             widgets.section_code(page.section_code, uri.lang),
@@ -2027,7 +2028,7 @@ class TabPage(Table):
                              '    <td></td>\n' \
                              '</tr>\n' \
                              '<tr><td class="label">|strsort_order|</td>\n' \
-                             '    <td><input type=hidden name="sort_order"></td>\n' \
+                             '    <td>%s</td>\n' \
                              '    <td></td>\n' \
                              '</tr>\n' \
                              '<tr><td class="label">|strsection|</td>\n' \
@@ -2061,7 +2062,8 @@ class TabPage(Table):
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
-                             '</form>\n' % (widgets.section_code(page.section_code, uri.lang),
+                             '</form>\n' % (widgets.sort_order(page.sort_order),
+                                            widgets.section_code(page.section_code, uri.lang),
                                             widgets.template_code(page.template_code),
                                             widgets.tf('only_dynamic', page.only_dynamic),
                                             widgets.tf('only_registered', page.only_registered),

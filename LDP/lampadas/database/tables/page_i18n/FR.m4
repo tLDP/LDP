@@ -455,3 +455,8 @@ insert([pages], [Page List], [],
 [
     |tabpages|
 ], 1)
+
+insert([addpage], [Add Page], [],
+[
+    |tabpage|
+], 1)

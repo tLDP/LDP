@@ -14,6 +14,7 @@ insert(adddocument,          default,    admin,      5,  [],                 t, 
 insert(news,                 default,    admin,      6,  [],                 f,  f,  t,  f)
 insert(addnews,              default,    admin,      7,  [],                 f,  f,  t,  f)
 insert(pages,                default,    admin,      8,  [],                 f,  f,  t,  f)                             
+insert(addpage,              default,    admin,      9,  [],                 f,  f,  t,  f)
 
 insert(recentnews,           default,    news,       1,  [],                 f,  f,  f,  f)
 insert(stats,                default,    news,       2,  [],                 f,  f,  f,  f)

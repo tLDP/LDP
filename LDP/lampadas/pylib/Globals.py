@@ -118,6 +118,17 @@ def safeint(anint):
     else:
         return int(anint)
 
+def safestr(astring):
+    """
+    This routine converts the passed value into a string safely,
+    which means it handles None, which returns ''.
+    """
+    
+    if astring==None:
+        return '' 
+    else:
+        return str(astring)
+
 def bool2yesno(bool):
     """
     Converts an integer value into a Yes/No string.
