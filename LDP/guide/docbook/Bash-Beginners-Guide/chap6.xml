@@ -1,0 +1,396 @@
+<chapter id="chap_06">
+<title>The GNU awk programming language</title>
+<abstract>
+<para>In this chapter we will discuss:</para>
+<para><itemizedlist>
+<listitem><para>What is gawk?</para></listitem>
+<listitem><para>Using gawk commands on the command line</para></listitem>
+<listitem><para>How to format text with gawk</para></listitem>
+<listitem><para>How gawk uses regular expressions</para></listitem>
+<listitem><para>Gawk in scripts</para></listitem>
+<listitem><para>Gawk and variables</para></listitem>
+</itemizedlist></para>
+<para><note><title>To make it more fun</title>
+<para>As with <command>sed</command>, entire books have been written about various versions of <command>awk</command>.  This introduction is far from complete and is only intended for understanding examples in the following chapters.  For more information, best start with the documentation that comes with GNU awk: <quote>GAWK: Effective AWK Programming: A User's Guide for GNU Awk</quote>.</para></note></para>
+</abstract>
+
+<sect1 id="sect_06_01"><title>Getting started with gawk</title>
+<sect2 id="sect_06_01_01"><title>What is gawk?</title>
+<para>Gawk is the GNU version of the commonly available UNIX <command>awk</command> program, another popular stream editor.  Since the <command>awk</command> program is often just a link to <command>gawk</command>, we will refer to it as <command>awk</command>.</para>
+<para>The basic function of <command>awk</command> is to search files for lines or other text units containing one or more patterns.  When a line matches one of the patterns, special actions are performed on that line.</para>
+<para>Programs in <command>awk</command> are different from programs in most other languages, because <command>awk</command> programs are <quote>data-driven</quote>: you describe the data you want to work with and then what to do when you
+find it.  Most other languages are <quote>procedural.</quote>  You have to describe, in great detail, every step the program is to take.  When working with procedural languages, it is usually much harder to clearly describe the data your program will process.  For this reason, <command>awk</command> programs are often refreshingly easy to read and write.</para>
+</sect2>
+<sect2 id="sect_06_01_02"><title>Gawk commands</title>
+<para>When you run <command>awk</command>, you specify an <command>awk</command> <emphasis>program</emphasis> that tells <command>awk</command> what to do.  The program consists of a series of <emphasis>rules</emphasis>.  (It may also
+contain function definitions, loops, conditions and other programming constructs, advanced features that we will ignore for now.)  Each rule specifies one pattern to search for and one action to perform upon finding the pattern.</para>
+<para>There are several ways to run <command>awk</command>.  If the program is short, it is easiest to run it on the command line:</para>
+<cmdsynopsis><command>awk PROGRAM <filename>inputfile(s)</filename></command></cmdsynopsis>
+<para>If multiple changes have to be made, possibly regularly and on multiple files, it is easier to put the <command>awk</command> commands in a script.  This is read like this:</para>
+<cmdsynopsis><command>awk <option>-f</option> <filename>PROGRAM-FILE</filename> <filename>inputfile(s)</filename></command></cmdsynopsis>
+</sect2>
+
+</sect1>
+
+<sect1 id="sect_06_02"><title>The print program</title>
+<sect2 id="sect_06_02_01"><title>Printing selected fields</title>
+<para>The <command>print</command> command in <command>awk</command> outputs selected data from the input file.</para>
+<para>When <command>awk</command> reads a line of a file, it divides the line in fields based on the specified <emphasis>input field separator</emphasis>, <varname>FS</varname>, which is an <command>awk</command> variable (see <xref linkend="sect_06_03_02" />).  This variable is predefined to be one or more spaces or tabs.</para>
+<para>The variables <varname>$1</varname>, <varname>$2</varname>, <varname>$3</varname>, ..., <varname>$N</varname> hold the values of the first, second, third until the last field of an input line.  The variable <varname>$0</varname> (zero) holds the value of the entire line.  This is depicted in the image below, where we see six colums in the output of the <command>df</command> command:</para>
+<figure><title>Fields in awk</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/awk.eps" format="EPS"></imagedata>
+</imageobject>
+<imageobject>
+<imagedata fileref="images/awk.png" format="PNG"></imagedata>
+</imageobject>
+</mediaobject>
+</figure>
+<para>In the output of <command>ls <option>-l</option></command>, there are 9 columns.  The <command>print</command> statement uses these fields as follows:</para>
+<screen>
+kelly@octarine ~/test&gt; ls -l | awk '{ print $9 $5 }'
+160orig
+121script.sed
+120temp_file
+126test
+120twolines
+441txt2html.sh
+
+kelly@octarine ~/test&gt;
+</screen>
+<para>This command printed the fifth column of a long file listing, which contains the file size, and the last column, the name of the file.  This output is not very readable unless you use the official way of referring to columns, which is to separate the ones that you want to print with a comma.  In that case, the default output separater character, usually a space, will be put in between each output field.</para>
+
+</sect2>
+
+<sect2 id="sect_06_02_02"><title>Formatting fields</title>
+<para>Without formatting, using only the output separator, the output looks rather poor.  Inserting a couple of tabs and a string to indicate what output this is will make it look a lot better:</para>
+<screen>
+kelly@octarine ~/test&gt; ls -ldh * | grep -v total | \ 
+awk '{ print "Size is " $5 " bytes for " $9 }'
+Size is 160 bytes for orig
+Size is 121 bytes for script.sed
+Size is 120 bytes for temp_file
+Size is 126 bytes for test
+Size is 120 bytes for twolines
+Size is 441 bytes for txt2html.sh
+
+kelly@octarine ~/test&gt;
+</screen>
+<para>Note the use of the backslash, which makes long input continue on the next line without the shell interpreting this as a separate command.  While your command line input can be of virtually unlimited length, your monitor is not, and printed paper certainly isn't.  Using the backslash also allows for copying and pasting of the above lines into a terminal window.</para>
+<para>The <option>-h</option> option to <command>ls</command> is used for supplying humanly readable size formats for bigger files.  The output of a long listing displaying the total amount of blocks in the directory is given when a directory is the argument.  This line is useless to us, so we add an asterisk.  We also add the <option>-d</option> option for the same reason, in case asterisk expands to a directory.</para>
+<para>The backslash in this example marks the continuation of a line. See <xref linkend="sect_03_03_02" />.</para>
+<para>You can take out any number of columns and even reverse the order.  In the example below this is demonstrated for showing the most critical partitions:</para>
+<screen>
+kelly@octarine ~&gt; df -h | sort -rnk 5 | head -3 | \ 
+awk '{ print "Partition " $6 "\t: " $5 " full!" }'
+Partition /var  : 86% full!
+Partition /usr  : 85% full!
+Partition /home : 70% full!
+
+kelly@octarine ~&gt;
+</screen>
+<para>The table below gives an overview of special formatting characters:</para>
+
+<table id="tab_06_01" frame="all"><title>Formatting characters for gawk</title><tgroup cols="2" align="left" colsep="1" rowsep="1"><thead>
+<row><entry>Sequence</entry><entry>Meaning</entry></row>
+</thead>
+<tbody>
+<row><entry>\a</entry><entry>Bell character</entry></row>
+<row><entry>\n</entry><entry>Newline character</entry></row>
+<row><entry>\t</entry><entry>Tab</entry></row>
+</tbody>
+</tgroup>
+</table>
+<para>Quotes, dollar signs and other meta-characters should be escaped with a backslash.</para>
+</sect2>
+
+<sect2 id="sect_06_02_03"><title>The print command and regular expressions</title>
+<para>A regular expression can be used as a pattern by enclosing it in slashes.  The regular expression is then tested against the entire text of each record.  The syntax is as follows:</para>
+<cmdsynopsis><command>awk 'EXPRESSION  { PROGRAM }' <filename>file(s)</filename></command></cmdsynopsis>
+<para>The following example displays only local disk device information, networked file systems are not shown:</para>
+<screen>
+kelly is in ~&gt; df -h | awk '/dev\/hd/ { print $6 "\t: " $5 }'
+/       : 46%
+/boot   : 10%
+/opt    : 84%
+/usr    : 97%
+/var    : 73%
+/.vol1  : 8%
+
+kelly is in ~&gt;
+</screen>
+<para>Slashes need to be escaped, because they have a special meaning to the <command>awk</command> program.</para>
+
+<para>Below another example where we search the <filename>/etc</filename> directory for files ending in <quote>.conf</quote> and starting with either <quote>a</quote> or <quote>x</quote>:</para>
+<screen>
+kelly is in /etc&gt; ls -l | awk '/\&lt;[a|x].*\.conf$/ { print $9 }'
+amd.conf
+antivir.conf
+xcdroast.conf
+xinetd.conf
+
+kelly is in /etc&gt;
+</screen>
+<para>This example illustrates the special meaning of the dot in regular expressions: the first one indicates that we want to search for any character after the first search string, the second is escaped because it is part of a string to find (the end of the file name).</para>
+</sect2>
+<sect2 id="sect_06_02_04"><title>Special patterns</title>
+<para>In order to precede output with comments, use the <command>BEGIN</command> statement:</para>
+<screen>
+kelly is in /etc&gt; ls -l | \
+awk 'BEGIN { print "Files found:\n" } /\&lt;[a|x].*\.conf$/ { print $9 }'
+Files found:
+amd.conf
+antivir.conf
+xcdroast.conf
+xinetd.conf
+
+kelly is in /etc&gt;
+</screen>
+
+<para>The <command>END</command> statement can be added for inserting text after the entire input is processed:</para>
+<screen>
+kelly is in /etc&gt; ls -l | \
+awk '/\&lt;[a|x].*\.conf$/ { print $9 } END { print \
+"Can I do anything else for you, mistress?" }'
+amd.conf
+antivir.conf
+xcdroast.conf
+xinetd.conf
+Can I do anything else for you, mistress?
+
+kelly is in /etc&gt;
+</screen>
+
+
+</sect2>
+<sect2 id="sect_06_02_05"><title>Gawk scripts</title>
+<para>As commands tend to get a little longer, you might want to put them in a script, so they are reusable.  An <command>awk</command> script contains <command>awk</command> statements defining patterns and actions.</para>
+<para>As an illustration, we will build a report that displays our most loaded partitions.  See <xref linkend="sect_06_02_02" />.</para>
+<screen>
+kelly is in ~&gt; cat diskrep.awk
+BEGIN { print "*** WARNING WARNING WARNING ***" }
+/\&lt;[8|9][0-9]%/ { print "Partition " $6 "\t: " $5 " full!" }
+END { print "*** Give money for new disks URGENTLY! ***" }
+
+kelly is in ~&gt; df -h | awk -f diskrep.awk
+*** WARNING WARNING WARNING ***
+Partition /usr  : 97% full!
+*** Give money for new disks URGENTLY! ***
+
+kelly is in ~&gt;
+</screen>
+<para><command>awk</command> first prints a begin message, then formats all the lines that contain an eight or a nine at the beginning of a word, followed by one other number and a percentage sign.  An end message is added.</para>
+<note><title>Syntax highlighting</title>
+<para>Awk is a programming language.  Its syntax is recognized by most editors that can do syntax highlighting for other languages, such as C, Bash, HTML, etc.</para></note>
+</sect2>
+</sect1>
+<sect1 id="sect_06_03"><title>Gawk variables</title>
+<para>As <command>awk</command> is processing the input file, it uses several variables.  Some are editable, some are read-only.</para>
+<sect2 id="sect_06_03_01"><title>The input field separator</title>
+<para>The <emphasis>field separator</emphasis>, which is either a single character or a regular expression, controls the way <command>awk</command> splits up an input record into fields.  The input record is scanned for character sequences that match the separator definition; the fields themselves are the text between the matches.</para>
+<para>The field separator is represented by the built-in variable <varname>FS</varname>.  Note that this is something different from the <varname>IFS</varname> variable used by POSIX-compliant shells.</para>
+<para>The value of the field separator variable can be changed in the <command>awk</command> program with the assignment operator <command>=</command>.  Often the right time to do this is at the beginning of execution before any input has been processed, so that the very first record is read with the proper separator.  To do this, use the special <command>BEGIN</command> pattern.</para>
+<para>In the example below, we build a command that displays all the users on your system with a description:</para>
+<screen>
+kelly is in ~&gt; awk 'BEGIN { FS=":" } { print $1 "\t" $5 }' /etc/passwd
+--output omitted--
+kelly	Kelly Smith
+franky	Franky B.
+eddy	Eddy White
+willy	William Black
+cathy	Catherine the Great
+sandy	Sandy Li Wong
+
+kelly is in ~&gt;
+</screen>
+<para>In an <command>awk</command> script, it would look like this:</para>
+<screen>
+kelly is in ~&gt; cat printnames.awk
+BEGIN { FS=":" }
+{ print $1 "\t" $5 }
+
+kelly is in ~&gt; awk -f printnames.awk /etc/passwd
+--output omitted--
+</screen>
+<para>Choose input field separators carefully to prevent problems.  An example to illustrate this: say you get input in the form of lines that look like this:</para>
+<para><quote>Sandy L. Wong, 64 Zoo St., Antwerp, 2000X</quote></para>
+<para>You write a command line or a script, which prints out the name of the person in that record:</para>
+<cmdsynopsis><command>awk 'BEGIN { FS="," } { print $1, $2, $3 }' <filename>inputfile</filename></command></cmdsynopsis>
+<para>But a person might have a PhD, and it might be written like this:</para>
+<para><quote>Sandy L. Wong, PhD, 64 Zoo St., Antwerp, 2000X</quote></para>
+<para>Your <command>awk</command> will give the wrong output for this line.  If needed, use an extra <command>awk</command> or <command>sed</command> to uniform data input formats.</para>
+<para>The default input field separator is one or more whitespaces or tabs.</para>
+</sect2>
+<sect2 id="sect_06_03_02"><title>The output separators</title>
+<sect3 id="sect_06_03_02_01"><title>The output field separator</title>
+<para>Fields are normally separated by spaces in the output.  This becomes apparent when you use the correct syntax for the <command>print</command> command, where arguments are separated by commas:</para>
+<screen>
+kelly@octarine ~/test&gt; cat test
+record1         data1
+record2         data2
+
+kelly@octarine ~/test&gt; awk '{ print $1 $2}' test
+record1data1
+record2data2
+
+kelly@octarine ~/test&gt; awk '{ print $1, $2}' test
+record1 data1
+record2 data2
+
+kelly@octarine ~/test&gt;
+</screen>
+<para>If you don't put in the commas, <command>print</command> will treat the items to output as one argument, thus omitting the use of the default <emphasis>output separator</emphasis>, <varname>OFS</varname>.</para>
+<para>Any character string may be used as the output field separator by setting this built-in variable.</para>
+</sect3>
+<sect3 id="sect_06_03_02_02"><title>The output record separator</title>
+<para>The output from an entire <command>print</command> statement is called an <emphasis>output record</emphasis>.  Each <command>print</command> command results in one output record, and then outputs a string called the <emphasis>output record separator</emphasis>, <varname>ORS</varname>.  The default value for this variable is <quote>\n</quote>, a newline character.  Thus, each <command>print</command> statement generates a separate line.</para>
+<para>To change the way output fields and records are separated, assign new values to <varname>OFS</varname> and <varname>ORS</varname>:</para>
+<screen>
+kelly@octarine ~/test&gt; awk 'BEGIN { OFS=";" ; ORS="\n-->\n" } \
+{ print $1,$2}' test
+record1;data1
+-->
+record2;data2
+-->
+
+kelly@octarine ~/test&gt;
+</screen>
+<para>If the value of <varname>ORS</varname> does not contain a newline, the program's output is run together on a single line.</para>
+
+</sect3>
+</sect2>
+<sect2 id="sect_06_03_03"><title>The number of records</title>
+<para>The built-in <varname>NR</varname> holds the number of records that are processed.  It is incremented after reading a new input line.  You can use it at the end to count the total number of records, or in each output record:</para>
+<screen>
+kelly@octarine ~/test&gt; cat processed.awk
+BEGIN { OFS="-" ; ORS="\n--> done\n" }
+{ print "Record number " NR ":\t" $1,$2 }
+END { print "Number of records processed: " NR }
+
+kelly@octarine ~/test&gt; awk -f processed.awk test
+Record number 1:        record1-data1
+--> done
+Record number 2:        record2-data2
+--> done
+Number of records processed: 2
+--> done
+
+kelly@octarine ~/test&gt;
+</screen>
+</sect2>
+<sect2 id="sect_06_03_04"><title>User defined variables</title>
+<para>Apart from the built-in variables, you can define your own.  When <command>awk</command> encounters a reference to a variable which does not exist (which is not predefined), the variable is created and initialized to a null string.  For all subsequent references, the value of the variable is whatever value was assigned last.  Variables can be a string or a numeric value.  Content of input fields can also be assigned to variables.</para>
+<para>Values can be assigned directly using the <command>=</command> operator, or you can use the current value of the variable in combination with other operators:</para>
+<screen>
+kelly@octarine ~&gt; cat revenues
+20021009        20021013        consultancy     BigComp         2500
+20021015        20021020        training        EduComp         2000
+20021112        20021123        appdev          SmartComp       10000
+20021204        20021215        training        EduComp         5000
+
+kelly@octarine ~&gt; cat total.awk
+{ total=total + $5 }
+{ print "Send bill for " $5 " dollar to " $4 }
+END { print "---------------------------------\nTotal revenue: " total }
+
+kelly@octarine ~&gt; awk -f total.awk test
+Send bill for 2500 dollar to BigComp
+Send bill for 2000 dollar to EduComp
+Send bill for 10000 dollar to SmartComp
+Send bill for 5000 dollar to EduComp
+---------------------------------
+Total revenue: 19500
+
+kelly@octarine ~&gt;
+</screen>
+
+<para>C-like shorthands like <command><varname>VAR</varname>+= value</command> are also accepted.</para>
+</sect2>
+
+<sect2 id="sect_06_03_05"><title>More examples</title>
+<para>The example from <xref linkend="sect_05_03_02" /> becomes much easier when we use an <command>awk</command> script:</para>
+<screen>
+kelly@octarine ~/html&gt; cat make-html-from-text.awk
+BEGIN { print "&lt;html&gt;\n&lt;head&gt;&lt;title&gt;Awk-generated HTML&lt;/title&gt;&lt;/head&gt;\n&lt;body bgcolor=\"#ffffff\"&gt;\n&lt;pre&gt;" }
+{ print $0 }
+END { print "&lt;/pre&gt;\n&lt;/body&gt;\n&lt;/html&lt;" }
+</screen>
+<para>And the command to execute is also much more straightforward when using <command>awk</command> instead of <command>sed</command>:</para>
+<screen>
+kelly@octarine ~/html&gt; awk -f make-html-from-text.awk testfile &gt; file.html
+</screen>
+</sect2>
+<sect2 id="sect_06_03_06"><title>The printf program</title>
+<para>For more precise control over the output format than what is normally provided by <command>print</command>, use <command>printf</command>.  The <command>printf</command> can be used to specify the width to use for each item, as well as various formatting choices for numbers (such as what output base to use, whether to print an exponent, whether to print a sign, and how many digits to print after the decimal point).  This is done by supplying a string, called the <emphasis>format string</emphasis>, that controls how and where to print the other arguments.</para>
+<para>The syntax is the same as for the C-language <command>printf</command> statement; see your C introduction guide.  The <command>gawk</command> info pages contain full explanations.</para>
+</sect2>
+
+</sect1>
+<sect1 id="sect_06_04"><title>Summary</title>
+<para>The <command>gawk</command> utility interprets a special-purpose programming language, handling simple data-reformatting jobs with just a few lines of code.  It is the free version of the general UNIX <command>awk</command> command.</para>
+</sect1>
+<sect1 id="sect_06_05"><title>Exercises</title>
+
+<para>These are some practical examples where <command>awk</command> can be useful.</para>
+
+<orderedlist>
+<listitem><para>For the first exercise, your input is lines in the following form:</para>
+<screen>Username:Firstname:Lastname:Telephone number</screen>
+<para>Make an <command>awk</command> script that will convert such a line to an LDAP record in this format:</para>
+<screen>
+dn: uid=Username, dc=example, dc=com
+cn: Firstname Lastname
+sn: Lastname
+telephoneNumber: Telephone number
+</screen>
+<para>Create a file containing a couple of test records and check.</para>
+</listitem>
+<listitem><para>Create a Bash script using <command>awk</command> and standard UNIX commands that will show the top three users of disk space in the <filename>/home</filename> file system (if you don't have the directory holding the homes on a separate partition, make the script for the <filename>/</filename> partition; this is present on every UNIX system).  First, execute the commands from the command line.  Then put them in a script.  The script should create sensible output (sensible as in readable by the boss).  If everything proves to work, have the script email its results to you (use for instance <command>mail <option>-s</option> <parameter>Disk space usage</parameter> <email>you@your_comp</email> &lt; <filename>result</filename></command>).</para>
+<para>If the quota daemon is running, use that information; if not, use <command>find</command>.</para>
+</listitem>
+<listitem>
+<para>Create XML-style output from a <keycap>Tab</keycap>-separated list in the following form:</para>
+<screen>
+Meaning very long line with a lot of description
+ 
+meaning another long line
+ 
+othermeaning    more longline
+ 
+testmeaning     looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong line, but i mean really looooooooooooooooooooooooooooooooooooooooooooooooooong.
+ 
+</screen>
+<para>The output should read:</para>
+<screen>
+&lt;row&gt;
+&lt;entry&gt;Meaning&lt;/entry&gt;
+&lt;entry&gt;
+very long line
+&lt;/entry&gt;
+&lt;/row&gt;
+&lt;row&gt;
+&lt;entry&gt;meaning&lt;/entry&gt;
+&lt;entry&gt;
+long line
+&lt;/entry&gt;
+&lt;/row&gt;
+&lt;row&gt;
+&lt;entryothermeaning&lt;/entry&gt;
+&lt;entry&gt;
+more longline
+&lt;/entry&gt;
+&lt;/row&gt;
+&lt;row&gt;
+&lt;entrytestmeaning&lt;/entry&gt;
+&lt;entry&gt;
+looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong line, but i mean really looooooooooooooooooooooooooooooooooooooooooooooooooong.
+&lt;/entry&gt;
+&lt;/row&gt;
+</screen>
+<para>Additionally, if you know anything about XML, write a BEGIN and END script to complete the table.  Or do it in HTML.</para>
+</listitem>
+</orderedlist>
+
+</sect1>
+</chapter>

@@ -1,0 +1,158 @@
+<chapter id="chap_12">
+<title>Catching signals</title>
+<abstract>
+<para>In this chapter, we will discuss the following subjects:</para>
+<para>
+<itemizedlist>
+<listitem><para>Available signals</para></listitem>
+<listitem><para>Use of the signals</para></listitem>
+<listitem><para>Use of the <command>trap</command> statement</para></listitem>
+<listitem><para>How to prevent users from interrupting your programs</para></listitem>
+</itemizedlist>
+</para>
+</abstract>
+<sect1 id="sect_12_01"><title>Signals</title>
+<sect2 id="sect_12_01_01"><title>Introduction</title>
+<sect3 id="sect_12_01_01_01"><title>Finding the signal man page</title>
+<para>Your system contains a man page listing all the available signals, but depending on your operating system, it might be opened in a different way.  On most Linux systems, this will be <command>man <option>7</option> signal</command>.  When in doubt, locate the exact man page and section using commands like</para>
+<cmdsynopsis><command>man <option>-k</option> signal | grep <option>list</option></command></cmdsynopsis>
+<para>or</para>
+<cmdsynopsis><command>apropos signal | grep <option>list</option></command></cmdsynopsis>
+<para>Signal names can be found using <command>kill -l</command>.</para>
+</sect3>
+<sect3 id="sect_12_01_01_02"><title>Signals to your Bash shell</title>
+<para>In the absence of any traps, an interactive Bash shell ignores <emphasis>SIGTERM</emphasis> and <emphasis>SIGQUIT</emphasis>.  <emphasis>SIGINT</emphasis> is caught and handled, and if job control is active, <emphasis>SIGTTIN</emphasis>, <emphasis>SIGTTOU</emphasis> and <emphasis>SIGTSTP</emphasis> are also ignored.  Commands that are run as the result of a command substitution also ignore these signals, when keyboard generated.</para>
+<para><emphasis>SIGHUP</emphasis> by default exits a shell.  An interactive shell will send a <emphasis>SIGHUP</emphasis> to all jobs, running or stopped; see the documentation on the <command>disown</command> built-in if you want to disable this default behavior for a particular process.  Use the <option>huponexit</option> option for killing all jobs upon receiving a <emphasis>SIGHUP</emphasis> signal, using the <command>shopt</command> built-in.</para>
+</sect3>
+
+<sect3 id="sect_12_01_01_03"><title>Sending signals using the shell</title>
+<para>The following signals can be sent using the Bash shell:</para>
+
+<table id="tab_12_01" frame="all"><title>Control signals in Bash</title>
+<tgroup cols="2" align="left" colsep="1" rowsep="1">
+<thead>
+<row><entry>Standard key combination</entry><entry>Meaning</entry></row>
+</thead>
+<tbody>
+<row><entry><keycap>Ctrl</keycap>+<keycap>C</keycap></entry><entry>The interrupt signal.</entry></row>
+<row><entry><keycap>Ctrl</keycap>+<keycap>S</keycap></entry><entry>Suspend output (XOFF)</entry></row>
+<row><entry><keycap>Ctrl</keycap>+<keycap>Q</keycap></entry><entry>Resume output (XON)</entry></row>
+<row><entry><keycap>Ctrl</keycap>+<keycap>Y</keycap></entry><entry>The <emphasis>delayed suspend</emphasis> character.  Causes a running process to be stopped when it attempts to read input from the terminal.  Control is returned to the shell, the user can foreground, background or kill the process.</entry></row>
+<row><entry><keycap>Ctrl</keycap>+<keycap>Z</keycap></entry><entry>The <emphasis>suspend</emphasis> character.  Stops a running program and returns control to the shell.</entry></row>
+</tbody>
+</tgroup>
+</table>
+<note><title>Terminal settings</title>
+<para>Check your <command>stty</command> settings.  Suspend and resume of output is usually disabled if you are using <quote>modern</quote> terminal emulations.  The standard <command>xterm</command> supports <keycap>Ctrl</keycap>+<keycap>S</keycap> and <keycap>Ctrl</keycap>+<keycap>Q</keycap> by default.</para>
+</note>
+</sect3>
+
+</sect2>
+
+<sect2 id="sect_12_01_02"><title>Usage of signals with kill</title>
+<para>Most modern shells, Bash included, have a built-in <command>kill</command> function.  In Bash, both signal names and numbers are accepted as options, and arguments may be job or process IDs.  An exit status can be reported using the <option>-l</option> option: zero when at least one signal was successfully sent, non-zero if an error occurred.</para>
+<para>Using the <command>kill</command> command from <filename>/usr/bin</filename>, your system might enable extra options, such as the ability to kill processes from other than your own user ID and specifying processes by name, like with <command>pgrep</command> and <command>pkill</command>.</para>
+<para>Both <command>kill</command> commands send the <emphasis>TERM</emphasis> signal if none is given.</para>
+<para>This is a list of the most common signals:</para>
+
+<table id="tab_12_02" frame="all"><title>Common kill signals</title>
+<tgroup cols="2" align="left" colsep="1" rowsep="1">
+<thead>
+<row><entry>Signal name</entry><entry>Signal value</entry><entry>Effect</entry></row>
+</thead>
+<tbody>
+<row><entry>SIGHUP</entry><entry>1</entry><entry>Hangup</entry></row>
+<row><entry>SIGINT</entry><entry>2</entry><entry>Interrupt from keyboard</entry></row>
+<row><entry>SIGKILL</entry><entry>9</entry><entry>Kill signal</entry></row>
+<row><entry>SIGTERM</entry><entry>15</entry><entry>Termination signal</entry></row>
+<row><entry>SIGSTOP</entry><entry>17,19,23</entry><entry>Stop the process</entry></row>
+</tbody>
+</tgroup>
+</table>
+<note><title>SIGKILL and SIGSTOP</title>
+<para><emphasis>SIGKILL</emphasis> and <emphasis>SIGSTOP</emphasis> can not be caught, blocked or ignored.</para>
+</note>
+<para>When killing a process or series of processes, it is common sense to start trying with the least dangerous signal, <emphasis>SIGTERM</emphasis>.  If that does not work, use the <emphasis>INT</emphasis> or<emphasis>KILL</emphasis> signals.  For instance, when a process does not die using <keycap>Ctrl</keycap>+<keycap>C</keycap>, it is best to use the <command>kill <option>-9</option></command> on that process ID:</para>
+<screen>
+maud: ~&gt; ps -ef | grep stuck_process
+maud    5607   2214  0 20:05 pts/5    00:00:02 stuck_process
+
+maud: ~&gt; kill -9 5607
+
+maud: ~&gt; ps -ef | grep stuck_process
+maud    5614    2214 0 20:15 pts/5    00:00:00 grep stuck_process
+[1]+ Killed		stuck_process
+</screen>
+<para>When a process starts up several instances, <command>killall</command> might be easier.  It takes the same option as the <command>kill</command> command, but applies on all instances of a given process.  Test this command before using it in a production environment, since it might not work as expected on some of the commercial Unices.</para> 
+</sect2>
+
+</sect1>
+<sect1 id="sect_12_02"><title>Traps</title>
+<sect2 id="sect_12_02_01"><title>General</title>
+<para>There might be situations when you don't want users of your scripts to exit untimely using keyboard abort sequences, for example because input has to be provided or cleanup has to be done.  The <command>trap</command> statement catches these sequences and can be programmed to execute a list of commands upon catching those signals.</para>
+<para>The syntax for the <command>trap</command> statement is straightforward:</para>
+<cmdsynopsis><command>trap [COMMANDS] [SIGNALS]</command></cmdsynopsis>
+<para>This instructs the <command>trap</command> command to catch the listed <emphasis>SIGNALS</emphasis>, which may be signal names with or without the <emphasis>SIG</emphasis> prefix, or signal numbers.  If a signal is <emphasis>0</emphasis> or <emphasis>EXIT</emphasis>, the <command>COMMANDS</command> are executed when the shell exits.  If one of the signals is <emphasis>DEBUG</emphasis>, the list of <command>COMMANDS</command> is executed after every simple command.  A signal may also be specified as <emphasis>ERR</emphasis>; in that case <command>COMMANDS</command> are executed each time a simple command exits with a non-zero status.  Note that these commands will not be executed when the non-zero exit status comes from part of an <command>if</command> statement, or from a <command>while</command> or <command>until</command> loop.  Neither will they be executed if a logical <emphasis>AND</emphasis> (&amp;&amp;) or <emphasis>OR</emphasis> (||) result in a non-zero exit code, or when a command's return status is inverted using the <emphasis>!</emphasis> operator.</para>
+<para>The return status of the <command>trap</command> command itself is zero unless an invalid signal specification is encountered.  The <command>trap</command> command takes a couple of options, which are documented in the Bash info pages.</para>
+<para>Here is a very simple example, catching <keycap>Ctrl</keycap>+<keycap>C</keycap> from the user, upon which a message is printed.  When you try to kill this program without specifying the <emphasis>KILL</emphasis> signal, nothing will happen:</para>
+<screen>
+#!/bin/bash
+# traptest.sh
+
+trap "echo Booh!" SIGINT SIGTERM
+echo "pid is $$"
+
+while :			# This is the same as "while true".
+do
+        sleep 60	# This script is not really doing anything.
+done
+</screen>
+
+</sect2>
+<sect2 id="sect_12_02_02"><title>How Bash interprets traps</title>
+<para>When Bash receives a signal for which a trap has been set while waiting for a command to complete, the trap will not be executed until the command completes.  When Bash is waiting for an asynchronous command via the <command>wait</command> built-in, the reception of a signal for which a trap has been set will cause the <command>wait</command> built-in to return immediately with an exit status greater than 128, immediately after which the trap is executed.</para>
+</sect2>
+<sect2 id="sect_12_02_03"><title>More examples</title>
+<sect3 id="sect_12_02_03_01"><title>Detecting when a variable is used</title>
+<para>When debugging longer scripts, you might want to give a variable the <emphasis>trace</emphasis> attribute and trap <emphasis>DEBUG</emphasis> messages for that variable.  Normally you would just declare a variable using an assignment like <command><varname>VARIABLE</varname>=value</command>.  Replacing the declaration of the variable with the following lines might provide valuable information about what your script is doing:</para>
+<screen>
+declare -t VARIABLE=value
+
+trap "echo VARIABLE is being used here." DEBUG
+
+# rest of the script
+</screen>
+</sect3>
+<sect3 id="sect_12_02_03_02"><title>Removing rubbish upon exit</title>
+<para>The <command>whatis</command> command relies on a database which is regularly built using the <filename>makewhatis.cron</filename> script with cron:</para>
+<screen>
+#!/bin/bash
+
+LOCKFILE=/var/lock/makewhatis.lock
+
+# Previous makewhatis should execute successfully:
+
+[ -f $LOCKFILE ] &amp;&amp; exit 0
+
+# Upon exit, remove lockfile.
+
+trap "{ rm -f $LOCKFILE ; exit 255; }" EXIT
+
+touch $LOCKFILE
+makewhatis -u -w
+exit 0
+</screen>
+</sect3>
+</sect2>
+</sect1>
+<sect1 id="sect_12_03"><title>Summary</title>
+<para>Signals can be sent to your programs using the <command>kill</command> command or keyboard shortcuts.  These signals can be caught, upon which action can be performed, using the <command>trap</command> statement.</para>
+</sect1>
+<sect1 id="sect_12_04"><title>Exercises</title>
+<para>A couple of practical examples:</para>
+<orderedlist>
+<listitem><para>Create a script that writes a boot image to a diskette using the <command>dd</command> utility.  If the user tries to interrupt the script using <keycap>Ctrl</keycap>+<keycap>C</keycap>, display a message that this action will make the diskette unusable.</para></listitem>
+<listitem><para>Write a script that automates the installation of a third-party package of your choice.  The package must be downloaded from the Internet.  It must be decompressed, unarchived and compiled if these actions are appropriate.  Only the actual installation of the package should be uninterruptable.</para></listitem>
+</orderedlist>
+</sect1>
+</chapter>
