@@ -1,24 +1,28 @@
 #! /usr/bin/python
+# 
+# This file is part of the Lampadas Documentation System.
+# 
+# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
 #
-LDP_DB      = 'ldp'
-LAMPADAS_DB = 'scratch'
-
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# 
 from Globals import *
 from Database import get_database
 from BaseClasses import *
+import sys
 import string
-
-
-# Globals
-
-ldp = get_database('pgsql', LDP_DB)
-lampadas = get_database('pgsql', LAMPADAS_DB)
-
-# Doc ids in the ldp database are all bumped by this much to avoid
-# collissions with existing docs in the database. This lets us
-# load the LDP data on top of any existing data.
-# 
-doc_id_offset = lampadas.max_id('document', 'doc_id')
 
 
 class Name:
@@ -100,9 +104,6 @@ class OldEditors(LampadasCollection):
             editor.load_row(row)
             self[editor.id] = editor
 
-maintainers = OldMaintainers()
-maintainer_ids = maintainers.keys()
-
 
 class OldEditor:
 
@@ -116,9 +117,6 @@ class OldEditor:
         self.first_name  = name.first_name
         self.middle_name = name.middle_name
         self.surname     = name.surname
-        
-editors = OldEditors()
-editor_ids = editors.keys()
 
 
 class OldUsers(LampadasCollection):
@@ -144,9 +142,6 @@ class OldUser:
         self.admin         = tf2bool(row[4])
         self.maintainer_id = row[5]
         self.editor_id     = row[6]
-
-users = OldUsers()
-usernames = users.keys()
 
 
 class NewUsers(LampadasCollection):
@@ -202,9 +197,6 @@ class NewUser:
         sql += wsq(self.email) + ', ' + wsq(bool2tf(self.admin)) + ', ' + wsq(self.notes) + ', ' + wsq(self.password) + ')'
         lampadas.runsql(sql)
         lampadas.commit()
-
-newusers = NewUsers()
-newusernames = newusers.keys()
 
 
 ###################################################################3
@@ -406,16 +398,45 @@ def clear_old():
     lampadas.runsql('DELETE FROM username')
     lampadas.commit()
 
+def usage():
+    print """Usage: ldp-import [FROM] [TO]
 
-def main():
-#    clear_old()
-    copy_users()
-    copy_documents()
-    copy_document_users()
-    copy_document_topics()
-    copy_document_revs()
-    copy_document_files()
-    copy_notes()
+    FROM and TO are the names of two local databases.
+    FROM is an LDPDB database, and TO is a Lampadas database.
+    """
+    sys.exit()
 
 
-main()
+# Options passed on the command line
+if len(sys.argv) <> 3:
+    usage()
+ldp_db      = sys.argv[1]
+lampadas_db = sys.argv[2]
+
+# Databas objects,
+ldp = get_database('pgsql', ldp_db)
+lampadas = get_database('pgsql', lampadas_db)
+
+# Collection objects to store user data while merging.
+maintainers = OldMaintainers()
+maintainer_ids = maintainers.keys()
+editors = OldEditors()
+editor_ids = editors.keys()
+users = OldUsers()
+usernames = users.keys()
+newusers = NewUsers()
+newusernames = newusers.keys()
+
+# Doc ids in the ldp database are all bumped by this much to avoid
+# collissions with existing docs in the database. This lets us
+# load the LDP data on top of any existing data.
+doc_id_offset = lampadas.max_id('document', 'doc_id')
+
+# Main code
+copy_users()
+copy_documents()
+copy_document_users()
+copy_document_topics()
+copy_document_revs()
+copy_document_files()
+copy_notes()
