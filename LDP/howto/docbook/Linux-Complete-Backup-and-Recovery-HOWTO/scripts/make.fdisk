@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2001-12-13 15:41:24 ccurley make.fdisk>
+# Time-stamp: <2002-08-23 16:17:14 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -49,6 +49,12 @@
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
 # Changes:
+
+# 2002 07 25: Bad block checking is now a command line option (-c) at
+# the time the product script is run.
+
+# 2002 07 03: Corrected the mechanism for specifying the default
+# drive.
 
 # 2001 11 25: Changed the way mke2fs gets its bad block
 # list. badblocks does not guess at the block size, so you have to get
@@ -143,13 +149,16 @@ sub cut2fmt {
     return $template;
 }
 
+
+# Begin main line code.
+
+
+
 # Provide a default device.
 
-if ( $ARGV[0] == "" ) {
-    $device="/dev/hda";
-} else {
-    $device=$ARGV[0];
-}
+# print "\$ARGV[0] is $ARGV[0].\n";
+
+$device = defined ($ARGV[0]) ? $ARGV[0] : "/dev/hda";
 
 # print "Device is $device.\n";
 
@@ -231,14 +240,11 @@ while (<FDISK>) {
 		}
 
 		if ($labels{@_[$dev]}) { # do we have a label?
-                    # no bad block check
-#  		    $format .= "mke2fs @_[$dev] -L $labels{@_[$dev]}\n";
-		    $format .= "echo\necho formatting and checking @_[$dev]\n";
-		    $format .= "mke2fs -c -L $labels{@_[$dev]} @_[$dev]\n\n";
+		    $format .= "echo\necho formatting $checking@_[$dev]\n";
+		    $format .= "mke2fs \$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
 		} else {
-#  		    $format .= "mke2fs @_[$dev]\n";	# no bad block check
-		    $format .= "echo\necho formatting and checking @_[$dev]\n";
-		    $format .= "mke2fs -c @_[$dev]\n\n";
+		    $format .= "echo\necho formatting $checking@_[$dev]\n";
+		    $format .= "mke2fs \$blockcheck @_[$dev]\n\n";
 		}
 
 		# extended partition
@@ -255,7 +261,8 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 		print OUTPUT "t\n$partnumber\n82\n";
-		$format .= "mkswap -c @_[$dev]\n\n";
+		$format .= "echo Making @_[$dev] a swap partition.\n";
+		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
 		# primary mess-dos partition. We don't handle FAT32,
 		# which requires a command line switch for mkdosfs.
@@ -268,9 +275,8 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-#		$format .= "mkdosfs @_[$dev]\n";	# no bad block check
-		$format .= "echo\necho formatting and checking @_[$dev]\n";
-		$format .= "mkdosfs -c @_[$dev]\n";
+		$format .= "echo\necho formatting $checking@_[$dev]\n";
+		$format .= "mkdosfs \$blockcheck @_[$dev]\n";
 		$format .= "# restore FAT boot sector.\n";
 		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
@@ -292,14 +298,11 @@ while (<FDISK>) {
 		}
 
 		if ($labels{@_[$dev]}) { # do we have a label?
-		    # no bad block check
-#  		    $format .= "mke2fs @_[$dev] -L $labels{@_[$dev]}\n";
-		    $format .= "echo\necho formatting and checking @_[$dev]\n";
-		    $format .= "mke2fs -c -L $labels{@_[$dev]} @_[$dev]\n\n";
+		    $format .= "echo\necho formatting $checking@_[$dev]\n";
+		    $format .= "mke2fs \$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
 		} else {
-#  		    $format .= "mke2fs @_[$dev]\n";	# no bad block check
-		    $format .= "echo\necho formatting and checking @_[$dev]\n";
-		    $format .= "mke2fs -c @_[$dev]\n\n";
+		    $format .= "echo\necho formatting $checking@_[$dev]\n";
+		    $format .= "mke2fs \$blockcheck @_[$dev]\n\n";
 		}
 
 		# logical Linux swap partition
@@ -309,7 +312,8 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 		print OUTPUT "t\n$partnumber\n82\n";
-		$format .= "mkswap -c @_[$dev]\n\n";
+		$format .= "echo Making @_[$dev] a swap partition.\n";
+		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
 		# primary mess-dos partition. We don't handle FAT32,
 		# which requires a command line switch for mkdosfs.
@@ -322,9 +326,8 @@ while (<FDISK>) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-#		$format .= "mkdosfs @_[$dev]\n";	# no bad block check
-		$format .= "echo\necho formatting and checking @_[$dev]\n";
-		$format .= "mkdosfs -c @_[$dev]\n";
+		$format .= "echo\necho formatting $checking@_[$dev]\n";
+		$format .= "mkdosfs \$blockcheck @_[$dev]\n";
 		$format .= "# restore FAT boot sector.\n";
 		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
@@ -382,6 +385,15 @@ print OUTPUT <<FINIS;
 
 # For more information contact the author, Charles Curley, at
 # http://w3.trib.com/~ccurley/.
+
+export blockcheck=\$1;
+
+if [ "\$blockcheck" != "-c" ] && [ -n "\$blockcheck" ]
+then
+    echo "\${0}: automated restore with no human interaction."
+    echo "\${0}: -c: block check during file system making."
+    exit 1;
+fi
 
 FINIS
 
