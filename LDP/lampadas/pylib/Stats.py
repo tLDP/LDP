@@ -101,7 +101,6 @@ class StatTable(LampadasCollection):
         """Returns the requested value's percentage of the total."""
         
         if self[label]==None:
-            print 'ERROR: label ' + label + ' not found'
             return float(0)
         return float(self[label].value)/self.sum()
 
