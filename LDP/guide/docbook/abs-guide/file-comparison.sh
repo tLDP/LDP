@@ -17,6 +17,9 @@ then
 fi
 
 cmp $1 $2 &> /dev/null  # /dev/null buries the output of the "cmp" command.
+#   cmp -s $1 $2  has same result ("-s" silent flag to "cmp")
+#   Thank you  Anders Gustavsson for pointing this out.
+#
 # Also works with 'diff', i.e.,   diff $1 $2 &> /dev/null
 
 if [ $? -eq 0 ]         # Test exit status of "cmp" command.

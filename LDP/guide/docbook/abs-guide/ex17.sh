@@ -36,8 +36,12 @@ then
  echo "Parameter #10 is ${10}"
 fi 
 
+echo "-----------------------------------"
+echo "All the command-line parameters are: "$*""
+
 if [ $# -lt "$MINPARAMS" ]
 then
+  echo
   echo "Give me at least $MINPARAMS command-line arguments!"
 fi  
 

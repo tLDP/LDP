@@ -55,20 +55,19 @@ do
   alias rrr="ls -l"
   echo "Trying aliased \"rrr\" within \"while\" loop:"
   rrr /usr/X11R6/bin/mk*   #* Alias will not expand here either.
+                           #  alias.sh: line 57: rrr: command not found
   let count+=1
 done 
 
 echo; echo
 
-alias xyz="cat $1"   #  Try a positional parameter in an alias.
-xyz                  #  Assumes you invoke the script
-                     #+ with a filename as a parameter.
+alias xyz='cat $0'   # Script lists itself.
+                     # Note strong quotes.
+xyz
 #  This seems to work,
 #+ although the Bash documentation suggests that it shouldn't.
 #
 #  However, as Steve Jacobson points out,
-#+ the "$1" parameter expands immediately upon declaration of the alias,
-#+ so, in the strictest sense, this is not an example
-#+ of parameterizing an alias.
+#+ the "$0" parameter expands immediately upon declaration of the alias.
 
 exit 0

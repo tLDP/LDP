@@ -21,7 +21,6 @@ Cowardly refusing to delete a nonexistent file."
 
 [ ! -f "$file" ] || (rm -f $file; echo "File \"$file\" deleted.")
 # OR LIST, to delete file if present.
-# ( command1 ; command2 ) is, in effect, an AND LIST variant.
 
 # Note logic inversion above.
 # AND LIST executes on true, OR LIST on false.

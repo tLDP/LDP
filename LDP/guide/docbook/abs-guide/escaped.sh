@@ -26,8 +26,9 @@ echo "QUOTATION MARKS"
 echo $'\t \042 \t'   # Quote (") framed by tabs.
 
 # It also works with hexadecimal values, in an $'\xhhh' construct.
-echo $'\t \x022 \t'  # Quote (") framed by tabs.
+echo $'\t \x22 \t'  # Quote (") framed by tabs.
 # Thank you, Greg Keraunen, for pointing this out.
+# Earlier Bash versions allowed '\x022'.
 echo "==============="
 echo
 

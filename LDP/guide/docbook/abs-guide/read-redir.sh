@@ -37,4 +37,21 @@ done &lt;/etc/passwd   # I/O redirection.
 IFS=$OIFS              # Restore originial $IFS.
 # This code snippet also by Heiner Steven.
 
+
+
+#  Setting the $IFS variable within the loop itself
+#+ eliminates the need for storing the original $IFS
+#+ in a temporary variable.
+#  Thanks, Dim Segebart, for pointing this out.
+echo "------------------------------------------------"
+echo "List of all users:"
+
+while IFS=: read name passwd uid gid fullname ignore
+do
+  echo "$name ($fullname)"
+done &lt;/etc/passwd   # I/O redirection.
+
+echo
+echo "\$IFS still $IFS"
+
 exit 0
