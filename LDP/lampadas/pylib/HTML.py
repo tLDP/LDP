@@ -33,6 +33,7 @@ from Log import log
 from URLParse import URI
 from DataLayer import lampadas
 from WebLayer import lampadasweb
+from Sessions import sessions
 
 import commands
 from string import split
@@ -52,6 +53,24 @@ EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border
 
 class ComboFactory:
 
+    def tf(self, name, value, lang):
+        log(3, 'creating tf combo: ' + name + ', value is: ' + str(value))
+        combo = '<select name="' + name + '">\n'
+        if value==1:
+            combo = combo + '<option selected value="1">|stryes|</option>\n'
+            combo = combo + '<option value="0">|strno|</option>\n'
+        else:
+            combo = combo + '<option value="1">|stryes|</option>\n'
+            combo = combo + '<option selected value="0">|strno|</option>\n'
+        combo = combo + '</select>\n'
+        return combo
+
+    def stylesheet(self, value):
+        combo = '<select name="stylesheet">\n'
+#        keys = lampadasweb.stylesheets.sort_by('name')
+        combo = combo + '</select>\n'
+        return combo
+    
     def Class(self, value, lang):
         combo = "<select name='class_id'>\n"
         keys = lampadas.Classes.keys()
@@ -219,38 +238,13 @@ class ComboFactory:
         return combo
 
 
-# BoxFactory
-
-class BoxFactory:
-
-    def section_menu(self, section_code, lang):
-        log(3, "Creating section menu: " + section_code)
-        section = lampadasweb.sections[section_code]
-        assert not section == None
-        box = '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
-        box = box + '<tr><td>'
-        keys = lampadasweb.pages.sort_by('sort_order')
-        for key in keys:
-            page = lampadasweb.pages[key]
-            if page.section_code == section_code:
-                log(3, 'adding item: ' + page.code + ', citeref: ' + page.i18n[lang].menu_name)
-                box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
-        box = box + '</td></tr></table>\n'
-        log(3, "section menu complete")
-        return box
-
-
 class TableFactory:
-
-    combof = ComboFactory()
-    boxf = BoxFactory()
 
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
     def doc(self, DocID, lang):
-        box = ''
-        box = box + '<table class="box" style="width:100%"><tr><th colspan="6">|docdetails|</th></tr>'
+        box = '<table class="box"><tr><th colspan="6">|docdetails|</th></tr>'
         if DocID:
             doc = lampadas.Docs[DocID]
             box = box + '<form method=POST action="data/save/document" name="document">'
@@ -279,10 +273,10 @@ class TableFactory:
         box = box + '</th><td colspan=5><input type=text name=ref_url size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th align=right>Status</th><td>'
-        box = box + self.combof.PubStatus(doc.PubStatusCode, lang)
+        box = box + combo_factory.PubStatus(doc.PubStatusCode, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Class</th><td>\n'
-        box = box + self.combof.Class(doc.ClassID, lang)
+        box = box + combo_factory.Class(doc.ClassID, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Maint</th><td>\n'
         if doc.Maintained:
@@ -292,13 +286,13 @@ class TableFactory:
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th align=right>Writing</th><td>'
-        box = box + self.combof.ReviewStatus(doc.ReviewStatusCode, lang)
+        box = box + combo_factory.ReviewStatus(doc.ReviewStatusCode, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Accuracy</th><td>'
-        box = box + self.combof.TechReviewStatus(doc.TechReviewStatusCode, lang)
+        box = box + combo_factory.TechReviewStatus(doc.TechReviewStatusCode, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>License</th><td>'
-        box = box + self.combof.License(doc.License, lang)
+        box = box + combo_factory.License(doc.License, lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th align=right>Pub Date</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
@@ -319,7 +313,7 @@ class TableFactory:
         box = box + doc.DTD + ' ' + doc.DTDVersion
         box = box + '</td>'
         box = box + '<th align=right>Lang</th><td>'
-        box = box + self.combof.Language(doc.Lang, lang)
+        box = box + combo_factory.Language(doc.Lang, lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th align=right>Abstract</th>'
@@ -331,6 +325,32 @@ class TableFactory:
 
         return box
 
+    def user(self, username, lang):
+        box = '<table class="box">\n'
+        if username > '':
+            user = lampadas.users[username]
+            box = box + '<form method=POST action="data/save/user" name="user">\n'
+        else:
+            user = User()
+            box = box + '<form method=POST action="data/save/newuser" name="user">\n'
+        box = box + '<input name="username" type=hidden value=' + username + '>\n'
+        box = box + '<tr><th colspan=2>|userdetails|</th><th>|comments|</th></tr>\n'
+        box = box + '<tr><th class="label">|strusername|</th><td><input type=text name=username value="' + username + '"></input></td>\n'
+        box = box + '<td rowspan=10><textarea name="note"></textarea></td></tr>\n'
+        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td>\n'
+        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name value="' + user.middle_name + '"></input></td>\n'
+        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname value="' + user.surname + '"></input></td>\n'
+        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email value="' + user.email + '"></input></td>\n'
+        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td>\n'
+        box = box + '<tr><th class="label">|strpassword|</th><td><input type=text name=password value="' + user.password + '"></input></td>\n'
+        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, lang) + '</td>\n'
+        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('admin', user.sysadmin, lang) + '</td>\n'
+        
+        box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
+        box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+        
     def doctable(self, lang):
         log(3, "Creating doctable")
         box = ''
@@ -347,12 +367,28 @@ class TableFactory:
         log(3, "doctable complete")
         return box
 
-    def menus(self, lang):
+    def section_menu(self, section_code, lang):
+        log(3, "Creating section menu: " + section_code)
+        section = lampadasweb.sections[section_code]
+        assert not section == None
+        box = '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
+        box = box + '<tr><td>'
+        keys = lampadasweb.pages.sort_by('sort_order')
+        for key in keys:
+            page = lampadasweb.pages[key]
+            if page.section_code == section_code:
+                log(3, 'adding item: ' + page.code + ', citeref: ' + page.i18n[lang].menu_name)
+                box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
+        box = box + '</td></tr></table>\n'
+        log(3, "section menu complete")
+        return box
+
+    def section_menus(self, lang):
         log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
         for key in keys:
-            box = box + self.boxf.section_menu(key, lang)
+            box = box + self.section_menu(key, lang)
         log(3, "all section menus complete")
         return box
 
@@ -415,12 +451,37 @@ class TableFactory:
         log(3, "Classes table complete")
         return box
 
+    def login(self, lang):
+        log(3, 'Creating login box')
+        box = '<table class="navbox"><tr><th colspan="2">|login|</th></tr>\n'
+        box = box + '<form name="login" action="data/session/login" method=GET>\n'
+        box = box + '<tr><td align=right>|username|</td><td><input type=text size=12 name=username></input></td></tr>\n'
+        box = box + '<tr><td align=right>|password|</td><td><input type=password size=12 name=password></input></td></tr>\n'
+        box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="|login|"><br>\n'
+        box = box + '<a href="mailpass">|mail_password|</a><br>\n'
+        box = box + '<a href="newuser">|create_account|</a></td></tr>\n'
+        box = box + '</table>\n'
+        return box
+
+    def sessions(self, lang):
+        log(3, 'Creating sessions table')
+        box = '<table class="navbox"><tr><th>|sessions|</th></tr>\n'
+        box = box + '<tr><td>\n'
+        keys = sessions.sort_by('username')
+        for key in keys:
+            session = sessions[key]
+            box = box + '<a href="user/' + str(session.username) + '">\n'
+            box = box + session.name + '</a><br>\n'
+        box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        log(3, "sessiones table complete")
+        return box
+
 
 # PageFactory
 
 class PageFactory:
 
-    boxf    = BoxFactory()
     tablef  = TableFactory()
 
     def __call__(self, key, lang):
@@ -460,6 +521,8 @@ class PageFactory:
             else:
                 oldstring = html[pos:pos2+1]
                 token = html[pos+1:pos2]
+
+                log(3, 'looking for token ' + token)
             
                 newstring = ''
             
@@ -489,14 +552,24 @@ class PageFactory:
                 if token=='version':
                     newstring = VERSION
 
+                # special tokens, for when a page embeds an object
+                # 
+                if token=='user_name':
+                    user = lampadas.users[uri.username]
+                    newstring = user.name
+
                 # Tables
                 # 
+                if token=='tablogin':
+                    newstring = self.tablef.login(uri.language)
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri.language)
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri.id, uri.language)
+                if token=='tabuser':
+                    newstring = self.tablef.user(uri.username, uri.language)
                 if token=='tabmenus':
-                    newstring = self.tablef.menus(uri.language)
+                    newstring = self.tablef.section_menus(uri.language)
                 if token=='tabrecentnews':
                     newstring = self.tablef.recent_news(uri.language)
                 if token=='tabtopics':
@@ -505,6 +578,8 @@ class PageFactory:
                     newstring = self.tablef.subtopics(uri.code, uri.language)
                 if token=='tabclasses':
                     newstring = self.tablef.classes(uri.language)
+                if token=='tabsessions':
+                    newstring = self.tablef.sessions(uri.language)
             
                 # Blocks and Strings
                 # 
@@ -537,6 +612,7 @@ class PageFactory:
 
 
 page_factory = PageFactory()
+combo_factory = ComboFactory()
 
 def profile():
     import profile

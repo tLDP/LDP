@@ -172,6 +172,45 @@ insert([privacy], [Privacy Policy], [],
     <p>We will not spam you or add you to any mailing lists without your consent.
 ])
 
+insert([newuser], [New User], [],
+[
+    <p>To create a new user account, fill out this form.
+    <p>
+    <form name="newuser" action="data/save/newuser" method=GET>
+        <table class="form">
+            <tr>
+                <td align=right>*Username</td>
+                <td><input type=text name=username size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>*Enter your email address.<br>Your password will be mailed to this address, so it must be valid.</td>
+                <td><input type=text name=email size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>First Name</td>
+                <td><input type=text name=first_name size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>Middle Name</td>
+                <td><input type=text name=middle_name size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>Surname</td>
+                <td><input type=text name=surname size=20></input></td>
+            </tr>
+            <tr>
+                <td colspan=2 align=center><input type=submit value="Create Account!"></td>
+            </tr>
+        </table
+    </form>
+    <p>*Required Fields
+])
+
+insert([mailpass], [Mail Password], [],
+[
+    <p>Please enter your username or email address to have your password mailed to you.
+])
+
 insert([topic], [View Topic], [],
 [
     |tabsubtopics|
@@ -191,4 +230,34 @@ insert([404], [Error 404, Page Not Found], Error,
     <p>If you came here from another page on this Lampadas system,
     you have probably found a bug.
     If you believe that to be the case, please file a bug report for the Lampadas developers.
+])
+
+insert([user_exists], [User Exists], [],
+[
+    <p>That username is already taken. Please select another username and try again.
+])
+
+insert([username_required], [Username Required] [],
+[
+    <p>Username is a required field. Please enter a username and try again.
+])
+
+insert([email_exists], [Email Exists], [],
+[
+    <p>That email address is already in the database.
+    If you already have an account, you can have it
+    <a href="mailpass">mailed</a> to you.
+])
+
+insert([account_created], [Account Created], [],
+[
+    <p>Your account has been created, and your password has been mailed to you.
+    Please check your email.
+])
+
+insert([user], [|user_name|], [],
+[
+    <p>This is the page for a user:
+
+    |tabuser|
 ])

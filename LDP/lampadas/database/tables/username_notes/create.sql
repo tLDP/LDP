@@ -1,11 +1,9 @@
 CREATE TABLE username_notes
 (
-	user_id			INT4		NOT NULL
-				REFERENCES username(user_id),
+	username		CHAR(20)	NOT NULL	REFERENCES username(username),
 	date_entered		TIMESTAMP	NOT NULL DEFAULT now(),
 	notes			TEXT,
-	creator_id		INT4		NOT NULL
-				REFERENCES username(user_id),
+	creator			CHAR(20)	NOT NULL	REFERENCES username(username),
 
-	PRIMARY KEY (user_id, date_entered)
+	PRIMARY KEY (username, date_entered)
 );

@@ -68,10 +68,10 @@ class Lampadas:
         self.ReviewStatuses = ReviewStatuses()
         self.topics         = Topics()
         self.subtopics      = Subtopics()
-        self.Users          = Users()
+        self.users          = Users()
 
-    def User(self, UserID):
-        return User(UserID)
+    def user(self, username):
+        return User(username)
 
     def Doc(self, DocID):
         return Doc(DocID)
@@ -905,46 +905,65 @@ class Users:
     A collection object providing access to registered users.
     """
 
+    def __getitem__(self, username):
+        return User(username)
+
     def count(self):
         return db.read_value('SELECT count(*) from username')
 
-    def add(self, Username, FirstName, MiddleName, Surname, Email, IsAdmin, IsSysadmin, Password, Notes, Stylesheet):
-        self.id = db.read_value('SELECT max(user_id) from username') + 1
-        self.sql = "INSERT INTO username (user_id, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + str(self.id) + ", " + wsq(Username) + ", " + wsq(FirstName) + ", " + wsq(MiddleName) + ", " + wsq(Surname) + ", " + wsq(Email) + ", " + wsq(bool2tf(IsAdmin)) + ", " + wsq(bool2tf(IsSysadmin)) + ", " + wsq(Password) + ", " + wsq(Notes) + ", " + wsq(Stylesheet) + ")"
-        assert db.runsql(self.sql) == 1
+    def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet):
+        sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ", " + wsq(stylesheet) + ")"
+        assert db.runsql(sql) == 1
         db.commit()
-        return db.read_value('SELECT max(user_id) from username')
     
-    def Del(self, id):
-        self.sql = ('DELETE from username WHERE user_id=' + str(id))
-        assert db.runsql(self.sql) == 1
+    def delete(self, username):
+        sql = 'DELETE from username WHERE username=' + wsq(username)
+        assert db.runsql(sql) == 1
         db.commit()
+
+    def is_email_taken(self, email):
+        value = db.read_value('SELECT COUNT(*) FROM username WHERE email=' + wsq(email))
+        return value
 
 class User:
     """
-    A user is known by the system and can login to manipulate documents
+    A user who is known by the system can login to manipulate documents
     and act on the database according to his rights.
     """
 
-    def __init__(self, id) :
-        self.sql = 'SELECT user_id, username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE user_id=' + str(id)
-        self.cursor = db.select(self.sql)
-        row = self.cursor.fetchone()
-        self.ID		= row[0]
-        self.Username	= trim(row[1])
-        self.SessionID	= trim(row[2])
-        self.FirstName	= trim(row[3])
-        self.MiddleName	= trim(row[4])
-        self.Surname	= trim(row[5])
-        self.Email	= trim(row[6])
-        self.IsAdmin	= tf2bool(row[7])
-        self.IsSyadmin	= tf2bool(row[8])
-        self.Password	= trim(row[9])
-        self.Notes	= trim(row[10])
-        self.Stylesheet	= trim(row[11])
-        self.Name	= trim(trim(self.FirstName + ' ' + self.MiddleName) + ' ' + self.Surname)
+    def __init__(self, username) :
+        self.username       = ''
+        self.session_id     = ''
+        self.first_name     = ''
+        self.middle_name    = ''
+        self.surname        = ''
+        self.email          = ''
+        self.admin          = 0
+        self.sysadmin       = 0
+        self.password       = ''
+        self.notes          = ''
+        self.stylesheet     = ''
+        self.name           = ''
 
-        self.Docs = UserDocs(self.ID)
+        sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE username=' + wsq(username)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row == None:
+            return
+        self.username       = trim(row[0])
+        self.session_id     = trim(row[1])
+        self.first_name     = trim(row[2])
+        self.middle_name    = trim(row[3])
+        self.surname        = trim(row[4])
+        self.email          = trim(row[5])
+        self.admin          = tf2bool(row[6])
+        self.sysadmin       = tf2bool(row[7])
+        self.password       = trim(row[8])
+        self.notes          = trim(row[9])
+        self.stylesheet     = trim(row[10])
+        self.name           = trim(trim(self.first_name + ' ' + self.middle_name) + ' ' + self.surname)
+
+        self.docs = UserDocs(self.username)
 
 
 # UserDocs
@@ -954,12 +973,12 @@ class UserDocs(LampadasList):
     A collection object providing access to all user document associations.
     """
 
-    def __init__(self, UserID):
+    def __init__(self, username):
         #print "Loading user docs for user: " + str(UserID)
         LampadasList.__init__(self)
-        assert not UserID == None
-        self.UserID = UserID
-        sql = "SELECT doc_id, user_id, role, email, active FROM document_user WHERE user_id=" + str(self.UserID)
+        assert not username == None
+        self.username = username
+        sql = "SELECT doc_id, username, role, email, active FROM document_user WHERE username=" + wsq(username)
         cursor = db.select(sql)
         #print sql
         while (1):
@@ -967,16 +986,16 @@ class UserDocs(LampadasList):
             row = cursor.fetchone()
             if row == None: break
             #print "Loaded UserDocs row"
-            newUserDoc = UserDoc(row[0], UserID)
+            newUserDoc = UserDoc(row[0], username)
             self.list = self.list + [newUserDoc]
 
     def add(self, DocID, Role, Email, Active):
-        sql = "INSERT INTO document_user(doc_id, user_id, role, email, active) VALUES (" + str(DocID) + ", " + str(self.UserID) + ", " + wsq(Role) + ", " + wsq(Email) + ", " + wsq(bool2tf(Active)) +  " )"
+        sql = "INSERT INTO document_user(doc_id, username, role, email, active) VALUES (" + str(DocID) + ", " + wsq(self.username) + ", " + wsq(Role) + ", " + wsq(Email) + ", " + wsq(bool2tf(Active)) +  " )"
         assert db.runsql(sql) == 1
         db.commit()
     
     def Del(self, DocID):
-        sql = ('DELETE from document_user WHERE doc_id=' + str(DocID) + ' AND user_id=' + str(self.UserID))
+        sql = 'DELETE from document_user WHERE doc_id=' + str(DocID) + ' AND username=' + wsq(self.username)
         assert db.runsql(sql) == 1
         db.commit()
         del self.col[DocID]
@@ -987,26 +1006,26 @@ class UserDoc(Doc):
     which the user plays in the production of the document.
     """
 
-    def __init__(self, DocID=None, UserID=None):
+    def __init__(self, DocID=None, username=None):
         #print "initializing UserDoc, DocID: " + str(DocID) + ", UserID: " + str(UserID)
         Doc.__init__(self, DocID)
         self.DocID = DocID
-        self.UserID = UserID
+        self.username = username
         #print "UserDoc.UserID: " + str(UserID)
         if DocID == None: return
-        if UserID == None: return
+        if username == None: return
         #print "Calling UserDoc.load"
-        self.Load(DocID, UserID)
+        self.Load(DocID, username)
 
-    def Load(self, DocID=None, UserID=None):
+    def Load(self, DocID=None, username=None):
         #print "Loading UserDoc, DocID: " + str(DocID) + ", UserID: " + str(UserID)
         if not DocID == None:
             self.DocID = DocID
         assert not self.DocID == None
-        if not UserID == None:
-            self.UserID = UserID
-        assert not self.UserID == None
-        sql = "SELECT doc_id, user_id, role, email, active FROM document_user WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+        if not username == None:
+            self.username = username
+        assert not self.username == None
+        sql = "SELECT doc_id, username, role, email, active FROM document_user WHERE doc_id=" + str(self.DocID) + " AND user_id=" + wsq(self.username)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.LoadRow(row)
@@ -1015,13 +1034,13 @@ class UserDoc(Doc):
     def LoadRow(self, row):
         assert not row == None
         self.DocID		= row[0]
-        self.UserID		= row[1]
+        self.username	= trim(row[1])
         self.Role		= trim(row[2])
         self.Email		= trim(row[3])
         self.Active		= tf2bool(row[4])
 
     def Save(self):
-        sql = "UPDATE document_user SET role=" + wsq(self.Role) + ", email=" + wsq(self.Email) + ", active=" + wsq(bool2tf(self.Active)) + " WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+        sql = "UPDATE document_user SET role=" + wsq(self.Role) + ", email=" + wsq(self.Email) + ", active=" + wsq(bool2tf(self.Active)) + " WHERE doc_id=" + str(self.DocID) + " AND username=" + wsq(self.username)
         db.runsql(sql)
         db.commit()
         Doc.Save(self)

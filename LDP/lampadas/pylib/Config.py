@@ -55,6 +55,8 @@ class Config:
     xslt_html = ''
     xslt_chunk = ''
     xslt_print = ''
+    smtp_server = ''
+    admin_email = ''
 
     def __init__(self) :
         import ConfigParser
@@ -87,6 +89,8 @@ class Config:
         self.xslt_html      = self.read_var('XSLT', 'xslt_html')
         self.xslt_chunk     = self.read_var('XSLT', 'xslt_chunk')
         self.xslt_print     = self.read_var('XSLT', 'xslt_print')
+        self.smtp_server    = self.read_var('MAIL', 'smtp_server')
+        self.admin_email    = self.read_var('MAIL', 'admin_email')
 
     def read_var(self, section, name):
         if not self.config.has_section(section) :

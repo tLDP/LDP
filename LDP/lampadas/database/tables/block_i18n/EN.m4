@@ -27,4 +27,6 @@ insert([footer],
         </td>
       </tr>
     </table>
+    <p>
+    <img src="images/PythonPowered.gif">
 ])

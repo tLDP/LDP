@@ -19,9 +19,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
+from Config import config
 from DataLayer import lampadas
+from HTML import page_factory
 from Log import log
 from mod_python import apache
+import smtplib
+import string
+import whrandom
 
 def document(req, doc_id, title, url, ref_url, pub_status_code, class_id,
              review_status_code, tech_review_status_code, license, pub_date,
@@ -53,7 +58,44 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, class_id,
     referer = req.headers_in['referer']
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY
-    return "Document saved. You are being redirected to http://www.modpython.org/"
+    return
+
+def user(req, username, email, first_name, middle_name, surname):
+    user = lampadas.users[username]
+    if not user == None:
+        user.email = email
+        user.first_name = first_name
+        user.middle_name = middle_name
+        user.surname = surname
+        user.save()
+
+def newuser(req, username, email, first_name, middle_name, surname):
+    
+    if username == '':
+        return page_factory.page('username_required')
+
+    user = lampadas.users[username]
+    if user.username>'':
+        return page_factory.page('user_exists')
+    if lampadas.users.is_email_taken(email):
+        return page_factory.page('email_exists')
+
+    # establish random password, 10 characters
+    # 
+    chars = string.letters + string.digits
+    password = ''
+    for x in range(10):
+        password += whrandom.choice(chars)
+
+    lampadas.users.add(username, first_name, middle_name, surname, email, 'f', 'f', password, '', 'default')
+
+    # mail the password to the new user
+    # 
+    server = smtplib.SMTP(config.smtp_server)
+    server.set_debuglevel(1)
+    server.sendmail(config.admin_email, email, 'Your password is ' + password)
+    server.quit()
+    return page_factory.page('account_created')
 
 def error(message):
     return message

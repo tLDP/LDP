@@ -1,4 +1,4 @@
-insert([home], [Le Lampadas], [Le Lampadas],
+insert([home], [|project|], [Home],
 [
 	<p>Ce syst&egrave;me est en cours de d&eacute;veloppement. Son code est modifi&eacute; en permanence ce qui le rend instable.
 
@@ -71,6 +71,40 @@ insert([copyright], [Le Copyright], [Le Copyright],
 insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
 [
 	Confidentialit&eacute;
+])
+
+insert([newuser], [New User], [],
+[
+    <p>To create a new user account, fill out this form.
+    <p>
+    <form name="newuser" action="adduser" method=GET>
+        <table class="form">
+            <tr>
+                <td align=right>*Username</td>
+                <td><input type=text name=username size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>*Enter your email address.<br>Your password will be mailed to this address, so it must be valid.</td>
+                <td><input type=text name=email size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>First Name</td>
+                <td><input type=text name=first_name size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>Middle Name</td>
+                <td><input type=text name=middle_name size=20></input></td>
+            </tr>
+            <tr>
+                <td align=right>Surname</td>
+                <td><input type=text name=surname size=20></input></td>
+            </tr>
+            <tr>
+                <td colspan=2 align=center><input type=submit value="Create Account!"></td>
+            </tr>
+        </table
+    </form>
+    <p>*Required Fields
 ])
 
 insert([topic], [View Topic], [View Topic],

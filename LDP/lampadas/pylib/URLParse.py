@@ -95,8 +95,10 @@ class URI:
                 temp = temp[1:]
                 self.force_lang = 1
 
+        # this is where we load ids and codes for pages which
+        # contain an object and display its attributes.
+        # 
         if len(temp) > 0:
-            
             if temp[0] == 'editdoc':
                 self.filename = temp[0]
                 temp = temp[1:]
@@ -107,6 +109,11 @@ class URI:
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.code = temp[0]
+            elif temp[0] == 'user':
+                self.filename = temp[0]
+                temp = temp[1:]
+                if len(temp) > 0:
+                    self.username = temp[0]
             else:
                 if len(temp) == 1:
                     self.path = '/'

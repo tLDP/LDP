@@ -24,6 +24,8 @@ insert([footer],
           <p>
           <a href="/EN/|page|">Englisch</a> \\|
           <a href="/FR/|page|">Franz&ouml;sisch</a>
+          <p>
+          <img src="images/PythonPowered.gif">
         </td>
       </tr>
     </table>
