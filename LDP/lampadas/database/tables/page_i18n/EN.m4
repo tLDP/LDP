@@ -48,8 +48,8 @@ insert([home], [|strproject|], [Home],
     </ul>
 
     <p>All of these accounts use the password &quot;password&quot;.
-    Log in as one of them, and check it out, or apply for your own
-    account.
+    Log in as one of them, and check it out, or create your own
+    account using the "Create Account" link to the right.
 ])
 
 insert([doctable], [DocTable], [],
@@ -113,15 +113,8 @@ insert([contribute], [Contributing to |strproject|], [Contributing to |strprojec
 
     <p>The Lampadas System itself can be localized to display in several
     languages. Translators are needed to translate it into additional
-    languages. It is currently available in:
-
-    <ul>
-    <li>English</li>
-    <li>French</li>
-    <li>German</li>
-    </ul>
+    languages.
     </li>
-
     </ul>
 ])
 

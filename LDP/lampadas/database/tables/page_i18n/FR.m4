@@ -46,8 +46,8 @@ insert([home], [|strproject|], [Home],
     </ul>
 
     <p>All of these accounts use the password &quot;password&quot;.
-    Log in as one of them, and check it out, or apply for your own
-    account.
+    Log in as one of them, and check it out, or create your own
+    account using the "Create Account" link to the right.
 ])
 
 insert([doctable], [Table des docs], [Table des docs],
@@ -83,16 +83,17 @@ insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampad
 	</li>
 
 	<li>Traduire un document
-	<p>Les traducteurs sont toujours tr&egrave;s recherch&eacute;s, car notre but est d\'offrir notre documentation dans le plus grand nombre de langues possibles pour que tous puissent en profiter.
+	<p>Les traducteurs sont toujours tr&egrave;s recherch&eacute;s, car notre
+    but est d\'offrir notre documentation dans le plus grand nombre de langues
+    possibles pour que tous puissent en profiter.
 	</li>
+
 	<li>Tranduire Lampadas
-	<p>Le syst&egrave;me Lampadas peut &ecirc;tre localis&eacute; pour que chacun puisse l\'utiliser dans sa langue de pr&eacute;dilection. Il est actuellement disponible en:
-	<ul>
-	<li>Anglais</li>
-	<li>Fran&ccedil;ais</li>
-	</ul>
+	<p>Le syst&egrave;me Lampadas peut &ecirc;tre localis&eacute; pour que chacun
+    puisse l\'utiliser dans sa langue de pr&eacute;dilection.
 	</li>
-	<li>Ecrire un document
+	
+    <li>Ecrire un document
 	<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n\'h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 	</li>
 	</ul>

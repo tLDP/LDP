@@ -51,8 +51,8 @@ insert([home], [|strproject|], [Home],
     </ul>
 
     <p>Alle diese Konten benutzen das Kennwort &quot;password&quot;.
-    Log in as one of them, and check it out, or apply for your own
-    account.
+    Log in as one of them, and check it out, or create your own
+    account using the "Create Account" link to the right.
 ])
 
 insert([doctable], [Documentenliste], [],
@@ -115,13 +115,7 @@ insert([contribute], [Mitarbeit bei |strproject|],
 
     <p>Das Lampadas-Systems kann Meldungen in verschiedenen Sprachen
     anzeigen. Übersetzer für weitere Sprachen werden dringend
-    benötigt. Momentan ist Lampadas verfügbar in:
-
-    <ul>
-    <li>Englisch</li>
-    <li>Französisch</li>
-    <li>Deutsch</li>
-    </ul>
+    benötigt.
     </li>
 
     </ul>
