@@ -1,0 +1,153 @@
+<sect1 id="client">
+ <title>Setting up an NFS Client</title>
+ <sect2 id="remotemount">
+  <title>Mounting remote directories</title>
+  <para>
+    Before beginning, you should double-check to make sure your mount 
+    program is new enough (version 2.10m if you want to use Version 3 
+    NFS), and that the client machine supports NFS mounting, though most
+    standard distributions do.  If you are using a 2.2 or later kernel 
+    with the <filename>/proc</filename> filesystem you can check the latter by reading the 
+    file <filename>/proc/filesystems</filename> and making sure there is a line containing 
+    nfs.  If not, you will need to build (or download) a kernel that has 
+    NFS support built in.
+  </para>
+  <para>
+    To begin using machine as an NFS client, you will need the portmapper 
+    running on that machine, and to use NFS file locking, you will
+    also need <filename>rpc.statd</filename> and <filename>rpc.lockd</filename>
+    running on both the client and the server.  Most recent distributions 
+    start those services by default at boot time; if yours doesn't, see 
+    <xref linkend="config"> for information on how to start them up.
+  </para>
+  <para>
+    With portmapper, lockd, and statd running, you should now be able to 
+    mount the remote directory from your server just the way you mount 
+    a local hard drive, with the mount command.  Continuing our example 
+    from the previous section, suppose our server above is called 
+    <emphasis>master.foo.com</emphasis>,and we want to mount the <filename>/home</filename> directory on 
+    <emphasis>slave1.foo.com</emphasis>.  Then, all we have to do, from the root prompt on 
+    <emphasis>slave1.foo.com</emphasis>, is type:
+  <screen>
+   # mount master.foo.com:/home /mnt/home
+  </screen>
+  and the directory <filename>/home</filename> on master will appear as the directory 
+  <filename>/mnt/home</filename> on <emphasis>slave1</emphasis>.
+ </para>
+ <para>
+   If this does not work, see the Troubleshooting section (<xref linkend="troubleshooting">).
+ </para>
+ <para>
+   You can get rid of the file system by typing 
+  <screen>
+   # umount /mnt/home 
+  </screen>
+ just like you would for a local file system.
+ </para>
+</sect2>
+<sect2 id="boot-time-nfs">
+ <title>Getting NFS File Systems to Be Mounted at Boot Time</title>
+ <para>
+   NFS file systems can be added to your <filename>/etc/fstab</filename> file the same way
+   local file systems can, so that they mount when your system starts
+   up.  The only difference is that the file system type will be
+   set to <userinput>nfs</userinput> and the dump and fsck order (the last two entries) will
+   have to be set to zero.  So for our example above, the entry in
+   <filename>/etc/fstab</filename> would look like:
+  <programlisting>
+   # device       mountpoint     fs-type     options      dump fsckorder
+   ...
+   master.foo.com:/home  /mnt    nfs          rw            0    0
+   ...
+  </programlisting>
+ </para>
+ <para>
+   See the man pages for <filename>fstab</filename> if you are unfamiliar 
+   with the syntax of this file.  If you are using an automounter such as 
+   amd or autofs, the options in the corresponding fields of your mount 
+   listings should look very similar if not identical.
+ </para>
+ <para>
+   At this point you should have NFS working, though a few tweaks
+   may still be necessary to get it to work well.  You should also
+   read <xref linkend="security"> to be sure your setup is reasonably secure.
+ </para>
+</sect2>
+<sect2 id="Mountoptions">
+ <title>Mount options</title>
+ <sect3 id="soft-vs-hard">
+   <title>Soft vs. Hard Mounting</title>
+   <para>
+     There are some options you should consider adding at once.  They
+     govern the way the NFS client handles a server crash or network
+     outage.  One of the cool things about NFS is that it can handle this
+     gracefully.  If you set up the clients right.  There are two distinct
+     failure modes:
+   </para>
+  <para>
+  <glosslist>
+   <glossentry>
+   <glossterm>soft</glossterm>
+   <glossdef>
+   <para>
+   If a file request fails, the NFS client will report an 
+   error to the process on the client machine requesting the file 
+   access.  Some programs can handle this with composure, most 
+   won't.  We do not recommend using this setting; it is a recipe 
+   for corrupted files and lost data.  You should especially not 
+   use this for mail disks --- if you value your mail, that is.
+   </para>
+   </glossdef>
+   </glossentry>
+   <glossentry>
+   <glossterm>hard</glossterm>
+   <glossdef>
+    <para>
+     The program accessing a file on a NFS mounted file system
+     will hang when the server crashes.  The process cannot be 
+     interrupted or killed (except by a "sure kill") unless you also 
+     specify intr.  When the NFS server is back online the program will
+     continue undisturbed from where it was.  We recommend using hard,
+     intr on all NFS mounted file systems.
+    </para>
+   </glossdef>
+   </glossentry>
+  </glosslist>
+  </para>
+ <para>
+  Picking up the from previous example, the fstab entry would now 
+  look like:
+  <programlisting>
+   # device             mountpoint  fs-type    options    dump fsckord
+   ...
+   master.foo.com:/home  /mnt/home   nfs      rw,hard,intr  0     0
+   ...
+  </programlisting>
+ </para>
+</sect3>
+<sect3 id="blocksize">
+ <title>Setting Block Size to Optimize Transfer Speeds</title>
+ <para>
+   The <userinput>rsize</userinput> and <userinput>wsize</userinput> mount 
+   options specify the size of the chunks of data that the client and 
+   server pass back and forth to each other.
+ </para>
+ <para>
+  The defaults may be too big or to small; there is no size that works
+  well on all or most setups.  On the one hand, some combinations of 
+  Linux kernels and network cards (largely on older machines) cannot
+  handle blocks that large. On the other hand, if they can handle 
+  larger blocks, a bigger size might be faster.
+ </para>
+ <para>
+   Getting the block size right is an important factor in performance and
+   is a must if you are planning to use the NFS server in a production
+   environment.  See <xref linkend="performance"> for details.
+ </para>
+</sect3>
+</sect2>
+</sect1>
+
+
+
+

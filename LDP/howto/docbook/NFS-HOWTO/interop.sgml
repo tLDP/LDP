@@ -1,0 +1,268 @@
+<sect1 id="interop">
+ <title>Using Linux NFS with Other OSes</title>
+ <para>
+   Every operating system, Linux included, has quirks and deviations
+   in the behavior of its NFS implementation -- sometimes because
+   the protocols are vague, sometimes because they leave gaping
+   security holes.  Linux will work properly with all major vendors'
+   NFS implementations, as far as we know.  However, there may be
+   extra steps involved to make sure the two OSes are communicating
+   clearly with one another.  This section details those steps.
+ </para>
+ <para>
+   In general, it is highly ill-advised to attempt to use a Linux
+   machine with a kernel before 2.2.18 as an NFS server for non-Linux
+   clients.  Implementations with older kernels may work fine as 
+   clients; however if you are using one of these kernels and get
+   stuck, the first piece of advice we would give is to upgrade
+   your kernel and see if the problems go away.  The user-space NFS
+   implementations also do not work well with non-Linux clients.
+ </para>
+ <para>
+   Following is a list of known issues for using Linux together with
+   major operating systems.
+ </para>
+ <sect2 id="aix">
+  <title>AIX</title>
+   <sect3 id="aixserver">
+    <title>Linux Clients and AIX Servers</title>
+    <para>
+      The format for the <filename>/etc/exports</filename> file for our example in <xref linkend="server"> is:
+    <programlisting>
+  /usr   slave1.foo.com:slave2.foo.com,access=slave1.foo.com:slave2.foo.com
+  /home  slave1.foo.com:slave2.foo.com,rw=slave1.foo.com:slave2.foo.com
+    </programlisting>
+  </para>
+ </sect3>
+ <sect3 id="aixclients">
+   <title>AIX clients and Linux Servers</title>
+   <para>
+     AIX uses the file <filename>/etc/filesystems</filename> instead of <filename>/etc/fstab</filename>.
+     A sample entry, based on the example in <xref linkend="client">, looks like this:
+   <programlisting>
+/mnt/home:
+        dev             = "/home"
+        vfs             = nfs
+        nodename        = master.foo.com
+        mount           = true
+        options         = bg,hard,intr,rsize=1024,wsize=1024,vers=2,proto=udp
+        account         = false
+  </programlisting>
+  </para>
+  <para>
+   <orderedlist numeration="lowerroman">
+    <listitem>
+     <para>
+       Version 4.3.2 of AIX requires that file systems be exported with
+       the insecure option, which causes NFS to listen to requests from 
+       insecure ports (i.e., ports above 1024, to which non-root users can 
+       bind).  Older versions of AIX do not seem to require this.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+       AIX clients will default to mounting version 3 NFS over TCP.
+       If your Linux server does not support this, then you may need
+       to specify vers=2 and/or proto=udp in your mount options.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+       Using netmasks in <filename>/etc/exports</filename> seems to sometimes cause clients
+       to lose mounts when another client is reset.  This can be fixed
+       by listing out hosts explicitly.
+     </para>
+    </listitem>
+    <listitem>
+     <para>
+       Apparently automount in AIX 4.3.2 is rather broken.
+     </para>
+    </listitem>
+  </orderedlist>
+ </para>
+ </sect3>
+</sect2>
+
+ <sect2 id="bsd">
+  <title>BSD</title>
+   <sect3 id="bsdserver">
+    <title>BSD servers and Linux clients</title>
+     <para>
+       BSD kernels tend to work better with larger block sizes.
+     </para>
+   </sect3>
+   <sect3 id="bsdclient">
+    <title>Linux servers and BSD clients</title>
+     <para>
+       Some versions of BSD may make requests to the server from insecure ports,
+       in which case you will need to export your volumes with the insecure
+       option.  See the man page for <emphasis>exports(5)</emphasis> for more details.
+     </para> 
+    </sect3>
+  </sect2>
+  <sect2 id="tru64">
+   <title>Compaq Tru64 Unix</title>
+   <sect3 id="tru64server">
+    <title>Tru64 Unix Servers and Linux Clients</title>
+    <para>
+      In general, Tru64 Unix servers work quite smoothly with Linux clients.
+      The format for the <filename>/etc/exports</filename> file for our example in <xref linkend="server"> is:
+   <programlisting>
+     
+/usr         slave1.foo.com:slave2.foo.com \
+     -access=slave1.foo.com:slave2.foo.com \
+
+/home        slave1.foo.com:slave2.foo.com \
+         -rw=slave1.foo.com:slave2.foo.com \
+       -root=slave1.foo.com:slave2.foo.com 
+   </programlisting>
+   </para>
+   <para>
+     Tru64 checks the <filename>/etc/exports</filename> file every time there is a mount request
+     so you do not need to run the <command>exportfs</command> command; in fact on many
+     versions of Tru64 Unix the command does not exist.
+    </para>
+   </sect3>
+   <sect3 id="tru64client">
+    <title>Linux Servers and Tru64 Unix Clients</title>
+    <para>
+      There are two issues to watch out for here.  First, Tru64 Unix mounts
+      using Version 3 NFS by default.  You will see mount errors if your
+      Linux server does not support Version 3 NFS.  Second, in Tru64 Unix
+      4.x, NFS locking requests are made by daemon.  You will therefore
+      need to specify the <userinput>insecure_locks</userinput> option on all volumes you export
+      to a Tru64 Unix 4.x client; see the <command>exports</command> man pages for details.
+    </para>
+   </sect3>
+  </sect2>
+  <sect2 id="hpux">
+   <title>HP-UX</title>
+    <sect3 id="hpuxserver">
+     <title>HP-UX Servers and Linux Clients</title>
+     <para>
+       A sample <filename>/etc/exports</filename> entry on HP-UX looks like this:
+    <programlisting>
+/usr -ro,access=slave1.foo.com:slave2.foo.com
+/home -rw=slave1.foo.com:slave2.fo.com:root=slave1.foo.com:slave2.foo.com
+    </programlisting>
+       (The <userinput>root</userinput> option is listed in the last entry for informational
+       purposes only; its use is not recommended unless necessary.)
+     </para>
+  </sect3>
+  <sect3 id="hpuxclient">
+   <title>Linux Servers and HP-UX Clients</title>
+   <para>
+     HP-UX diskless clients will require at least a kernel version 2.2.19
+     (or patched 2.2.18) for device files to export correctly.
+   </para>
+  </sect3>
+ </sect2>
+ <sect2 id="irix">
+  <title>IRIX</title>
+  <sect3 id="irixserver">
+  <title>IRIX Servers and Linux Clients</title>
+  <para>
+    A sample <filename>/etc/exports</filename> entry on IRIX looks like this:
+  <programlisting>
+/usr -ro,access=slave1.foo.com:slave2.foo.com
+/home -rw=slave1.foo.com:slave2.fo.com:root=slave1.foo.com:slave2.foo.com
+  </programlisting>
+    (The <userinput>root</userinput> option is listed in the last entry for informational
+    purposes only; its use is not recommended unless necessary.)
+  </para>
+  <para>
+   There are reportedly problems when using the nohide option on
+   exports to linux 2.2-based systems.  This problem is fixed in the
+   2.4 kernel.  As a workaround, you can export and mount lower-down
+   file systems separately.
+  </para>
+ </sect3>
+ <sect3 id="irixclient">
+ <title>IRIX clients and Linux servers</title>
+  <para>
+   There are no known interoperability issues.
+  </para>
+ </sect3>
+ </sect2>
+ <sect2 id="solaris">
+  <title>Solaris</title>
+  <sect3 id="solarisserver">
+   <title>Solaris Servers</title>
+   <para>
+     Solaris has a slightly different format on the server end from
+     other operating systems.  Instead of <filename>/etc/exports</filename>, the configuration
+     file is <filename>/etc/dfs/dfstab</filename>.  Entries are of the form of a "share"
+     command, where the syntax for the example in <xref linkend="server"> would 
+     look like
+   <programlisting>
+share -o rw=slave1,slave2 -d "Master Usr" /usr
+   </programlisting>
+     and instead of running <command>exportfs</command> after editing, you run <command>shareall</command>.
+   </para>
+   <para>
+     Solaris servers are especially sensitive to packet size. If you
+     are using a Linux client with a Solaris server, be sure to set
+     <userinput>rsize</userinput> and <userinput>wsize</userinput> to 32768 at mount time.
+   </para>
+   <para>
+     Finally, there is an issue with root squashing on Solaris: root gets
+     mapped to the user <emphasis>noone</emphasis>, which is not the same as the user <emphasis>nobody</emphasis>.
+     If you are having trouble with file permissions as root on the client
+     machine, be sure to check that the mapping works as you expect.
+   </para>
+  </sect3>
+  <sect3 id="solarisclient">
+   <title>Solaris Clients</title>
+   <para>
+     Solaris clients will regularly produce the following message:
+    </para>
+  <screen>
+svc: unknown program 100227 (me 100003)
+  </screen>
+  <para>
+    This happens because Solaris clients, when they mount, try to obtain
+    ACL information - which linux obviously does not have. The messages
+    can safely be ignored. 
+  </para>
+  <para>
+    There are two known issues with diskless Solaris clients: First, a kernel
+    version of at least 2.2.19 is needed to get <filename>/dev/null</filename> to export 
+    correctly.  Second, the packet size may need to be set extremely
+    small (i.e., 1024) on diskless sparc clients because the clients
+    do not know how to assemble packets in reverse order.  This can be
+    done from <filename>/etc/bootparams</filename> on the clients.
+   </para>
+  </sect3>
+ </sect2>
+ <sect2 id="sunos">
+  <title>SunOS</title>
+  <para>
+    SunOS only has NFS Version 2 over UDP.
+  </para>
+  <sect3 id="sunosserver">
+   <title>SunOS Servers</title>
+   <para>
+     On the server end, SunOS uses the most traditional format for its 
+     <filename>/etc/exports</filename> file. The example in <xref linkend="server"> would look like:
+   <programlisting>
+/usr    -access=slave1.foo.com,slave2.foo.com
+/home   -rw=slave1.foo.com,slave2.foo.com, root=slave1.foo.com,slave2.foo.com
+   </programlisting>
+  </para>
+  </sect3>
+  <sect3 id="sunosclient">
+  <title>SunOS Clients</title>
+  <para>
+    Be advised that SunOS makes all NFS locking requests as daemon, and 
+    therefore you will need to add the <userinput>insecure_locks</userinput> option to any 
+    volumes you export to a SunOS machine.  See the <command>exports</command> man page
+    for details.
+  </para>
+ </sect3>
+</sect2>
+</sect1>
+
+
+
+
+

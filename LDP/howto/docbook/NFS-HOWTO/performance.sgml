@@ -1,0 +1,252 @@
+<sect1 id="performance">
+ <title>Optimizing NFS Performance</title>
+ <para>
+   Getting network settings right can improve NFS performance many times
+   over -- a tenfold increase in transfer speeds is not unheard of.
+   The most important things to get right are the <userinput>rsize</userinput>
+   and <userinput>wsize</userinput> <command>mount</command> options.  Other factors listed below 
+   may affect people with particular hardware setups.
+ </para>
+
+<sect2 id="blocksizes">
+ <title>Setting Block Size to Optimize Transfer Speeds</title>
+ <para>
+   The <userinput>rsize</userinput> and <userinput>wsize</userinput> 
+   <command>mount</command> options specify the size of the chunks of data 
+   that the client and server pass back and forth to each other. If no 
+   <userinput>rsize</userinput> and <userinput>wsize</userinput> options 
+   are specified, the default varies by which version of NFS we are using. 
+   4096 bytes is the most common default, although for TCP-based mounts
+   in 2.2 kernels, and for all mounts beginning with 2.4 kernels, the 
+   server specifies the default block size.
+ </para>
+ <para>
+   The defaults may be too big or too small.  On the one hand, some 
+   combinations of Linux kernels and network cards (largely on older
+   machines) cannot handle blocks that large.  On the other hand, if they
+   can handle larger blocks, a bigger size might be faster.
+ </para>
+ <para>
+   So we'll want to experiment and find an rsize and wsize that works 
+   and is as fast as possible.  You can test the speed of your options 
+   with some simple commands.  
+ </para>
+ <para>
+   The first of these commands transfers 16384 blocks of 16k each from 
+   the special file <filename>/dev/zero</filename> (which if you read it 
+   just spits out zeros _really_ fast) to the mounted partition.  We will 
+   time it to see how long it takes. So, from the client machine, type:
+ <screen>
+    # time dd if=/dev/zero of=/mnt/home/testfile bs=16k count=16384
+ </screen>
+ </para> 
+ <para>
+   This creates a 256Mb file of zeroed bytes.  In general, you should 
+   create a file that's at least twice as large as the system RAM
+   on the server, but make sure you have enough disk space!  Then read
+   back the file into the great black hole on the client machine 
+   (<filename>/dev/null</filename>) by typing the following:
+  <screen>
+    # time dd if=/mnt/home/testfile of=/dev/null bs=16k
+  </screen>
+ </para>
+ <para>
+   Repeat this a few times and average how long it takes.  Be sure to
+   unmount and remount the filesystem each time (both on the client and, 
+   if you are zealous, locally on the server as well), which should clear
+   out any caches.
+ </para>
+ <para>
+   Then unmount, and mount again with a larger and smaller block size.
+   They should probably be multiples of 1024, and not larger than 
+   8192 bytes since that's the maximum size in NFS version 2.  (Though
+   if you are using Version 3 you might want to try up to 32768.) 
+   Wisdom has it that the block size should be a power of two since most
+   of the parameters that would constrain it (such as file system block 
+   sizes and network packet size) are also powers of two.  However, some
+   users have reported better successes with block sizes that are not
+   powers of two but are still multiples of the file system block size
+   and the network packet size.
+ </para>
+ <para>
+   Directly after mounting with a larger size, cd into the mounted 
+   file system and do things like ls, explore the fs a bit to make 
+   sure everything is as it should.  If the rsize/wsize is too large 
+   the symptoms are very odd and not 100% obvious.  A typical symptom 
+   is incomplete file lists when doing 'ls', and no error  messages.  
+   Or reading files failing mysteriously with no error messages.  After
+   establishing that the given rsize/wsize works you can do the speed
+   tests again.  Different server platforms are likely to have different
+   optimal sizes.  SunOS and Solaris is reputedly a lot faster with 4096
+   byte blocks than with anything else.
+ </para>
+ <para>
+  <emphasis>Remember to edit <filename>/etc/fstab</filename> to reflect the rsize/wsize you found.</emphasis>
+ </para>
+</sect2>
+<sect2 id="packet-and-network">
+ <title>Packet Size and Network Drivers</title>
+ <para>
+   There are many shoddy network drivers available for Linux, 
+   including for some fairly standard cards.
+ </para>
+ <para>
+   Try pinging back and forth between the two machines with large
+   packets using the <option>-f</option> and <option>-s</option> 
+   options with <command>ping</command> (see <command>man ping</command>)
+   for more details and see if a lot of packets get or if they
+   take a long time for a reply.  If so, you may have a problem
+   with the performance of your network card.  
+ </para>
+ <para>
+   To correct such a problem, you may wish to reconfigure the packet 
+   size that your network card uses.  Very often there is a constraint 
+   somewhere else in the network (such as a router) that causes a 
+   smaller maximum packet size between two machines than what the 
+   network cards on the machines are actually capable of.  TCP should
+   autodiscover the appropriate packet size for a network, but UDP
+   will simply stay at a default value.  So determining the appropriate
+   packet size is especially important if you are using NFS over UDP. 
+ </para>
+ <para>
+   You can test for the network packet size using the tracepath command: 
+   From the client machine, just type <command>tracepath [server] 2049</command>
+   and the path MTU should be reported at the bottom.  You can then set the
+   MTU on your network card equal to the path MTU, by using the MTU option 
+   to <command>ifconfig</command>, and see if fewer packets get dropped.  
+   See the <command>ifconfig</command> man pages for details on how to reset the MTU.
+ </para>
+</sect2>
+<sect2 id="nfsd-instance">
+ <title>Number of Instances of NFSD</title>
+ <para>
+   Most startup scripts, Linux and otherwise, start 8 instances of nfsd.
+   In the early days of NFS, Sun decided on this number as a rule of thumb,
+   and everyone else copied.  There are no good measures of how many 
+   instances are optimal, but a more heavily-trafficked server may require 
+   more.  If you are using a 2.4 or higher kernel and you want to see how 
+   heavily each nfsd thread is being used, you can look at the file 
+   <filename>/proc/net/rpc/nfsd</filename>.  The last ten numbers on the 
+   <emphasis>th</emphasis> line in that file indicate the number of seconds 
+   that the thread usage was at that percentage of the maximum allowable.  
+   If you have a large number in the top three deciles, you may wish to 
+   increase the number of <command>nfsd</command> instances.  This is done 
+   upon starting <command>nfsd</command> using the number of instances as 
+   the command line option.  See the <command>nfsd</command> man page for 
+   more information.
+ </para>
+</sect2>
+<sect2 id="memlimits">
+ <title>Memory Limits on the Input Queue</title>
+ <para>
+   On 2.2 and 2.4 kernels, the socket input queue, where requests 
+   sit while they are currently being processed, has a small default 
+   size limit of 64k.  This means that if you are running 8 instances of
+   <command>nfsd</command>, each will only have 8k to store requests while it processes
+   them.  
+ </para>
+ <para>
+   You should consider increasing this number to at least 256k for <command>nfsd</command>.
+   This limit is set in the proc file system using the files 
+   <filename>/proc/sys/net/core/rmem_default</filename> and <filename>/proc/sys/net/core/rmem_max</filename>.
+   It can be increased in three steps; the following method is a bit of
+   a hack but should work and should not cause any problems:
+ </para>
+ <para>
+  <orderedlist Numeration="loweralpha">
+   <listitem>
+    <para>Increase the size listed in the file:
+    <programlisting>
+   echo 262144 > /proc/sys/net/core/rmem_default
+   echo 262144 > /proc/sys/net/core/rmem_max
+    </programlisting>
+   </para>
+   </listitem>
+   <listitem>
+    <para>  
+      Restart <command>nfsd</command>, e.g., type <command>/etc/rc.d/init.d/nfsd restart</command> on Red Hat
+    </para>
+   </listitem>
+   <listitem>
+    <para>
+      Return the size limits to their normal size in case other kernel systems depend on it:
+   <programlisting> 
+     echo 65536 > /proc/sys/net/core/rmem_default
+     echo 65536 > /proc/sys/net/core/rmem_max
+   </programlisting>
+   </para>
+   <para>
+    <emphasis>
+    Be sure to perform this last step because machines have been reported
+    to crash if these values are left changed for long periods of time.
+    </emphasis>
+   </para>
+  </listitem>
+ </orderedlist>
+</para>
+</sect2>
+
+<sect2 id="frag-overflow">
+ <title>Overflow of Fragmented Packets</title>
+ <para>
+   The NFS protocol uses fragmented UDP packets. The kernel has 
+   a limit of how many fragments of incomplete packets it can 
+   buffer before it starts throwing away packets.  With 2.2 kernels
+   that support the <filename>/proc</filename> filesystem, you can 
+   specify how many by editing the files 
+   <filename>/proc/sys/net/ipv4/ipfrag_high_thresh</filename> and 
+   <filename>/proc/sys/net/ipv4/ipfrag_low_thresh</filename>.
+ </para>
+ <para>
+   Once the number of unprocessed, fragmented packets reaches the
+   number specified by <userinput>ipfrag_high_thresh</userinput> (in bytes), the kernel
+   will simply start throwing away fragmented packets until the number 
+   of incomplete packets reaches the number specified 
+   by <userinput>ipfrag_low_thresh</userinput>.  (With 2.2 kernels, the default is usually 256K).
+   This will look like packet loss, and if the high threshold is
+   reached your server performance drops a lot. 
+ </para>
+ <para>
+   One way to monitor this is to look at the field IP: ReasmFails in the 
+   file <filename>/proc/net/snmp</filename>; if it goes up too quickly during heavy file
+   activity, you may have problem.  Good alternative values for
+   <userinput>ipfrag_high_thresh</userinput> and <userinput>ipfrag_low_thresh</userinput>
+   have not been reported; if you have a good experience with a 
+   particular value, please let the maintainers and development team know.
+ </para>
+</sect2>
+<sect2 id="autonegotiation">
+  <title>Turning Off Autonegotiation of NICs and Hubs</title>
+  <para>
+    Sometimes network cards will auto-negotiate badly with
+    hubs and switches and this can have strange effects.
+    Moreover, hubs may lose packets if they have different 
+    ports running at different speeds.  Try playing around 
+    with the network speed and duplex settings.
+  </para>
+</sect2>
+<sect2 id="non-nfs-performance">
+ <title>Non-NFS-Related Means of Enhancing Server Performance</title>
+  <para>
+    Offering general guidelines for setting up a well-functioning
+    file server is outside the scope of this document, but a few
+    hints may be worth mentioning: First, RAID 5 gives you good
+    read speeds but lousy write speeds; consider RAID 1/0 if both
+    write speed and redundancy are important.  Second, using a
+    journalling filesystem will drastically reduce your reboot
+    time in the event of a system crash; as of this writing, ext3
+   (<ulink url="ftp://ftp.uk.linux.org/pub/linux/sct/fs/jfs/">ftp://ftp.uk.linux.org/pub/linux/sct/fs/jfs/</ulink>) was the only 
+    journalling filesystem that worked correctly with 
+    NFS version 3, but no doubt that will change soon.  
+    In particular, it looks like <ulink url="http://www.namesys.com">Reiserfs</ulink>
+    should work with NFS version 3 on 2.4 kernels, though not yet 
+    on 2.2 kernels.  Finally, using an automounter (such as autofs
+    or amd) may prevent hangs if you cross-mount files 
+    on your machines (whether on purpose or by oversight) and one of those 
+    machines goes down. See the 
+    <ulink url="http://www.linuxdoc.org/HOWTO/mini/Automount.html">Automount Mini-HOWTO</ulink> 
+    for details.
+  </para>
+</sect2>
+</sect1>
+

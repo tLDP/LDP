@@ -1,0 +1,148 @@
+<sect1 id="intro">
+ <title>Introduction</title>
+  <sect2 id="what">
+   <title>What is NFS?</title>
+    <para>
+      The Network File System (NFS) was developed to allow machines 
+      to mount a disk partition on a remote machine as if it were on
+      a local hard drive.   This allows for fast, seamless sharing of 
+      files across a network.
+    </para>
+    <para>
+      It also gives the potential for unwanted people to access your 
+      hard drive over the network (and thereby possibly read your email 
+      and delete all  your files as well as break into your system) if 
+      you set it up incorrectly.  So please read the Security section of 
+      this document carefully if you intend to implement an NFS setup.
+    </para>
+    <para>
+      There are other systems that provide similar functionality to NFS.
+      Samba provides file services to Windows clients.  The Andrew File
+      System from IBM (<ulink url="http://www.transarc.com/Product/EFS/AFS/index.html">http://www.transarc.com/Product/EFS/AFS/index.html</ulink>), 
+      recently open-sourced, provides a file sharing mechanism with some 
+      additional security and performance features.  The Coda File System 
+      (<ulink url="http://www.coda.cs.cmu.edu/">http://www.coda.cs.cmu.edu/</ulink>) is still in development as of this writing
+      but is designed to work well with disconnected clients.  Many of the
+      features of the Andrew and Coda file systems are slated for inclusion
+      in the next version of NFS (Version 4) (<ulink url="http://www.nfsv4.org">http://www.nfsv4.org</ulink>).  The 
+      advantage of NFS today is that it is mature, standard, well understood, 
+      and supported robustly across a variety of platforms.
+     </para>
+  </sect2>
+  <sect2 id="scope">
+   <title>What is this HOWTO and what is it not?</title>
+   <para>
+     This HOWTO is intended as a complete, step-by-step guide to setting
+     up NFS correctly and effectively.  Setting up NFS involves two steps,
+     namely configuring the server and then configuring the client.  Each 
+     of these steps is dealt with in order.  The document then offers     
+     some tips for people with particular needs and hardware setups, as   
+     well as security and troubleshooting advice.  
+   </para>
+   <para>
+     This HOWTO is not a description of the guts and
+     underlying structure of NFS.  For that you may wish to read
+     <emphasis>Managing NFS and NIS</emphasis> by Hal Stern, published by O'Reilly &
+     Associates, Inc.  While that book is severely out of date, much
+     of the structure of NFS has not changed, and the book describes it
+     very articulately.  A much more advanced and up-to-date technical 
+     description of NFS is available in <emphasis>NFS Illustrated</emphasis> by Brent Callaghan.
+   </para>
+   <para>
+     This document is also not intended as a complete reference manual,
+     and does not contain an exhaustive list of the features of Linux
+     NFS.  For that, you can look at the man pages for <emphasis>nfs(5)</emphasis>, 
+     <emphasis>exports(5)</emphasis>, <emphasis>mount(8)</emphasis>, <emphasis>fstab(5)</emphasis>, 
+     <emphasis>nfsd(8)</emphasis>, <emphasis>lockd(8)</emphasis>, <emphasis>statd(8)</emphasis>, 
+     <emphasis>rquotad(8)</emphasis>, and <emphasis>mountd(8)</emphasis>.
+   </para>
+   <para>
+     It will also not cover PC-NFS, which is considered obsolete (users
+     are encouraged to use Samba to share files with PC's) or NFS 
+     Version 4, which is still in development.
+   </para>
+  </sect2>
+  <sect2 id="knowprereq">
+   <title>Knowledge Pre-Requisites</title>
+   <para>
+     You should know some basic things about TCP/IP networking before 
+     reading this HOWTO; if you are in doubt, read the 
+     <ulink url="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html">Networking-
+     Overview-HOWTO</ulink>.
+   </para>
+  </sect2>
+  <sect2 id="swprereq">
+   <title>Software Pre-Requisites: Kernel Version and nfs-utils</title>
+   <para>
+     The difference between Version 2 NFS and version 3 NFS will be 
+     explained later on; for now, you might simply take the suggestion 
+     that you will need NFS Version 3 if you are installing a dedicated
+     or high-volume file server.  NFS Version 2 should be fine for 
+     casual use.
+   </para>
+   <para>
+     NFS Version 2 has been around for quite some time now (at least 
+     since the 1.2 kernel series) however you will need a kernel version
+     of at least 2.2.18 if you wish to do any of the following:
+    <itemizedlist>
+     <listitem><para>Mix Linux NFS with other operating systems' NFS</para></listitem>
+     <listitem><para>Use file locking reliably over NFS</para></listitem>
+     <listitem><para>Use NFS Version 3.</para></listitem>
+    </itemizedlist>
+   </para>
+   <para>
+     There are also patches available for kernel versions above 2.2.14 
+     that provide the above functionality.  Some of them can be downloaded
+     from the Linux NFS homepage.  If your kernel version is 2.2.14-
+     2.2.17 and you have the source code on hand, you can tell if these 
+     patches have been added because NFS Version 3 server support will be 
+     a configuration option.  However, unless you have some particular
+     reason to use an older kernel, you should upgrade because many bugs
+     have been fixed along the way.
+   </para>
+   <para>
+     Version 3 functionality will also require the nfs-utils package of 
+     at least version 0.1.6, and mount version 2.10m or newer.  However 
+     because nfs-utils and mount are fully backwards compatible, and because 
+     newer versions have lots of security and bug fixes, there is no good 
+     reason not to install the newest nfs-utils and mount packages if you 
+     are beginning an NFS setup.
+   </para>
+   <para>
+     All 2.4 and higher kernels have full NFS Version 3 functionality.
+   </para>
+   <para>
+     All kernels after 2.2.18 support NFS over TCP on the client side.
+     As of this writing, server-side NFS over TCP only exists in the
+     later 2.2 series (but not yet in the 2.4 kernels), is considered 
+     experimental, and is somewhat buggy.
+   </para>
+   <para>
+     Because so many of the above functionalities were introduced in
+     kernel version 2.2.18, this document was written to be consistent
+     with kernels above this version (including 2.4.x).  If you have an
+     older kernel, this document may not describe your NFS system
+     correctly.
+   </para>
+   <para>
+     As we write this document, NFS version 4 is still in development 
+     as a protocol, and it will not be dealt with here.
+   </para>
+  </sect2>
+  <sect2 id="furtherhelp">
+  <title>Where to get help and further information</title>
+  <para>
+    As of November 2000, the Linux NFS homepage is at 
+    <ulink url="http://nfs.sourceforge.net">http://nfs.sourceforge.net</ulink>.  Please check there for NFS related 
+    mailing lists as well as the latest version of nfs-utils, NFS 
+    kernel patches, and other NFS related packages.
+   </para>
+  <para>
+    You may also wish to look at the man pages for  <emphasis>nfs(5)</emphasis>, 
+     <emphasis>exports(5)</emphasis>, <emphasis>mount(8)</emphasis>, <emphasis>fstab(5)</emphasis>, 
+     <emphasis>nfsd(8)</emphasis>, <emphasis>lockd(8)</emphasis>, <emphasis>statd(8)</emphasis>, 
+     <emphasis>rquotad(8)</emphasis>, and <emphasis>mountd(8)</emphasis>.
+  </para>
+ </sect2>
+</sect1>
+
