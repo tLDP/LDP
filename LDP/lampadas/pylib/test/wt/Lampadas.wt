@@ -1,0 +1,654 @@
+<articleinfo>
+  <title>Lampadas Developer's Guide</title>
+  <author>
+    <firstname>David</firstname>
+    <othername>C.</othername>
+    <surname>Merrill</surname>
+  </author>
+  <authorinitials>dcm</authorinitials>
+  
+  <revhistory>
+    <revision>
+      <revnumber>0.1</revnumber>
+      <date>2002-04-25</date>
+      <authorinitials>dcm</authorinitials>
+      <revremark>Initial release.</revremark>
+    </revision>
+  </revhistory>
+  
+  <abstract>
+    <para>
+      This document explains the Lampadas System architecture, design philosophy,
+      and other information for Lampadas developers.
+    </para>
+  </abstract>
+</articleinfo>
+
+=Introduction|intro=
+
+This document defines the architecture for the Lampadas Document Management System.
+It is intended for developers working on the Lampadas System.
+
+
+=Module List|module-list=
+
+The following modules comprise the system:
+
+*Globals
+
+The Globals module contains utility and convenience routines.
+
+*BaseClasses
+
+The BaseClasses module contains classes that are never instantiated, but only used
+as base classes upon which Lampadas objects are built.
+
+*Config
+
+This module parses the configuration file and provides those settings to the rest
+of the system. Can be used by any other module.
+
+*Log
+
+Writes to the system log file. Can be used by any other module.
+
+*Database
+
+Accesses the back-end RDBMS system, such as PostgreSQL or MySQL. This module is to be
+used only by DataLayer and WebLayer.
+
+*DataLayer
+
+This module provides an object hierarchy to access base Lampadas data stored in the
+database. This is the core module upon which almost all additional functionality is built.
+
+*Lintadas
+
+The Lintadas module is named after the Lintian system, which is used by Debian to
+automatically check packages for validity. Both names refer to the program Lint, which
+checks HTML for validity.
+
+Lintadas performs a series of checks on the source files which make up each document.
+It checks XML files to be sure they are valid XML, for example, and it checks to see
+if the document contains stale WWW links. Those error reports are then stored into
+the database and can be managed by system administrators and individual authors and
+editors.
+
+It also performs checks on the data in the DataLayer module, and therefore the data in
+the back-end RDBMS. For example, it identifies when referenced files do not exist in
+the filestore.
+
+*AutoMirror
+
+Lampadas automatically, selectively, mirrors articles in the Wikipedia and other
+external repositories. This is not the same as just mirroring a single article.
+The automirror system knows how to select the correct individual pages and parse them
+into one of the source formats the system knows how to convert.
+
+This is the module where any special-case processing should be implemented, for example
+parsing a Wiki binary file to extract the WikiText itself.
+
+It is anticipated that other types of source repositories will be supported in the
+future, but currently support is available only for Wiki articles.
+
+*Mirror
+
+The Mirror module knows how to download documents which reside in external repositories,
+like the GNU manuals, and store them in the local filesystem. It uses data in the
+database to know which documents to mirror, and updates the database so information
+about these mirrored files is available to the Converter module.
+
+Mirror only copies and stores documents. If more sophisticated types of processing
+are required, such as a Wiki article which must be parsed out of a binary data file,
+then the AutoMirror module handles it.
+
+Mirror is intended to download files via the HTTP or FTP protocols.
+
+*Converter
+
+The Converter module knows how to take documents in various formats and convert them
+into the Lampadas standard output format, DocBook XML.
+
+*WebLayer
+
+This module provides an object hierarchy to access web pages, templates, blocks and strings.
+
+*URLParse
+
+This module splits a URL into its component parts. It has a special purpose addition,
+which is that it recognizes a URL that contains a language specifier, and returns it as
+Language, and thereby stripping it from the path.
+
+Note: Lampadas lets you specify a language by adding /EN/, for example, to the
+beginning of the URL.
+
+*HTML
+
+The HTML module generates HTML primitives, such as comboboxes, that are used to
+make up the web pages. HTML generation methods require the caller to specify the
+desired language as a two-character ISO code.
+
+It also generates complete web pages for serving over HTTP to web browsers.
+The content of the pages themselves is held in the database, to support online editing of
+page content by system administrators, and also to support internationalization.
+
+There is a templating system for the web pages and their text strings, which is
+explained in the I18n section.
+
+*WebServer
+
+The WebServer module provides a web server for testing the system. It may be extended
+and continued as one way of running a Lampadas server. A mod_perl website is also
+planned, for running under the Apache web server.
+
+
+=Module Dependencies|module-depends=
+
+<programlisting>
+                       Converter-----+
+                                     |
+                       AutoMirror----+
+                                     |
+                       Mirror--------+
+                                     |
+WebServer-----HTML-----WebLayer------+
+                    |     |          |
+                    +--URLParse      |
+                                     |
+                       Lintadas---DataLayer-----Database
+</programlisting>
+
+The Globals, BaseClasses, Log and Config modules can be freely referenced and used by any other module,
+so to keep things simple they have been omitted from this diagram.
+The other modules, however, have distinct relationships that must be understood and
+followed.
+
+The highly modular structure of the system was carefully designed to isolate
+functionality. This makes the system much more easily extensible and much more
+flexible.
+
+This diagram shows the relationships between the core modules that make up Lampadas.
+As the diagram indicates, the DataLayer is the key module. It provides access to 
+the underlying database through an object hierarchy. Additional modules are built
+on top of the DataLayer which implement specific functionality. Each of these can
+be consider an "extension" of the system, and any number of them could be constructed.
+
+The WebLayer module is another key module. Because it instantiates data for use by
+a website and not core Lampadas data per se, it has been separated from the DataLayer.
+
+
+=Internationalization|i18n=
+
+Internationalization, or i18n for short, means support for multiple languages.
+Localization, or l10n for short, is the process of adding the translations for a particular
+language.
+
+Lampadas fully supports i18n by storing strings in the database in Unicode. The DataLayer
+module does not perform any localization, but returns in its data sets all possible
+translations and strings. Objects which have multiple translated strings will have a
+child object called I18n, which is a dictionary object. That dictionary contains an object
+for each translation that is available. Each of those objects has a property for each
+string the parent object needs. For example, for Class object has the following structure:
+
+<literallayout>
+Class['HOWTO'].I18n['EN'].Name = 'HOWTO'
+Class['HOWTO'].I18n['EN'].Description = 'HOWTO do something in Linux'
+</literallayout>
+
+I18n for the website is handled through localizing text "blocks", web "pages", and text "strings".
+These are accessed through the WebLayer module. Like DataLayer, it does not do the actual language
+selection. That is performed by the HTML module which is built upon it.
+
+The server reads the client browser's language settings, and attempts to serve pages
+in the requested language, if possible. If that is not possible, the pages will revert
+to English, as English is the <emphasis>lingua franca</emphasis> of the WWW.
+
+However, the browser can also request a specific translation by appending the two character
+ISO language code in front of the URL. So, to get the page
+<literal>http://www.lampadas.org/home</literal> in the German language, he would use the URL
+<literal>http://www.lampadas.org/DE/home</literal>.
+
+=How Web Pages Are Generated|page-generation=
+
+The page generation engine is based on Disk Files, Templates, Pages, Boxes, Tables,
+Blocks and Strings.
+
+Lampadas can send a static file to the client, or it can build a page dynamically.
+
+For dynamic pages, 
+a template defines the layout of the page, which is then built by assembling the specified
+boxes, tables, blocks and strings to make the page content. The entire process is a fairly
+complex one, so we'll walk through it step by step, with plenty of examples along the way.
+
+==Static and Dynamic Pages|static-and-dynamic==
+
+When a page is requested, the system first looks to see whether there is a file on disk
+that matches the requested page. It looks in the directory specified in the configuration
+variable, 'filedir'. This variable is available as the Config.FileDir property.
+If a file is found, whether it is an image, a css stylesheet, or a
+static web page, the file is sent to the client with the correct headers based on the
+file type and file length.
+
+If there is no static file to send, the system knows it must build the page dynamically,
+so it looks for a page of the right name. All of the information used to build the page
+starts with the page record.
+
+==Strings, Blocks, and Pages|strings==
+
+The string and string_i18n tables hold localized strings that are displayed on the web
+page and elsewhere. Each string is named with a short text mnemonic. Blocks and pages
+work basically the same way. Each has a mnemonic "name" by which it is referenced, as
+well as a language code and the actual localized text itself.
+
+These bits of localized text are only some of the primitives from which a dynamic page
+is built. They are the parts that are easily editable by the Lampadas administrator
+because they are held in the database, and can be edited through the Lampadas
+administrator interface.
+
+The other primitives are generated not from a database table, but inside the Lampadas
+code itself. But we will deal with them a bit later. For now, let's just look at the 
+text items and how they fit together.
+
+As stated above, each page is stored in the page table, and its content can be localized.
+But each page also specifies a template to be used. The page and template work together,
+but they are stored separately so that the template, which specifies page layout, can
+be reused easily, giving a consistent structure to the entire site.
+
+With that in mind, let's look at how these elements are
+assembled to create a page: the templating system.
+
+==Templating and Tokens|templating==
+
+When a page is requested, the system first determines what template that page is assigned
+to, and loads it. Each page has one and only one template. The page contents really are only
+the "body" part of the page, with no header, footer, or navigation controls. The template
+fills in the surrounding parts of the result page.
+
+You might think of it as the page being "embedded" into the template.
+That concept will help you along as we dig deeper into the system, because "embedding"
+of one bit of text inside another is the nature of how a page is built.
+This will make more sense as you learn the way the templating system works.
+
+Because each page can be assigned its own template,
+each page can have its own customized navigation and header/footer if desired.
+Normally, this is not necessary. However, in some cases you might want to have a page with
+no navigation panel on the left, because the document is very wide and you need all of the
+real estate. While Lampadas makes this easy through its templating system, it is
+recommended that you maintain consistency in page layout by adding modified templates
+only where necessary.
+
+The default Lampadas installation comes with two templates: "default", and "index".
+The "index" template is used for the home page, where we have extra navigation panels
+that are not used throughout.
+
+But to understand a template, we need to look at one.
+So let's look at an actual Lampadas template:
+
+<programlisting>
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;|title|&lt;/title&gt;
+    &lt;base href="|base|"&gt;
+    &lt;link rel="stylesheet" href="css/|stylesheet|.css" type="text/css"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;table class="layout" style="width:100%"&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;
+      |header|
+      &lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td width="200" valign="top"&gt;|boxmainmenu|&lt;/td&gt;
+        &lt;td valign="top"&gt;
+        |body|
+        &lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;
+      |footer|
+      &lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</programlisting>
+
+Here, you see that a template is the basic outline of a web page.
+However, there are big pieces of it that are missing, and instead the template has
+funny strings that are delimited by the pipe character, "|".
+These strings are called tokens. Each token is the name of some other object,
+whose contents are to be inserted in place of the token.
+
+You can see in this template that there is a token called "body", or "|body|".
+Every template must have a "body" token. It tells Lampadas where to insert the
+contents of the page. So, as noted above, the page really is "embedded" inside
+the template.
+
+There are several kinds of tokens:
+
+*Meta-data tokens
+*Block tokens
+*String tokens
+*Code tokens
+
+The "boxmainmenu" token is a "code" token. It is replaced by the output of a
+built-in Lampadas routine. Most of these routines produce either a "Box",
+which is a small table, such as a menu, or a "Table", which can be an edit
+form, or a list of documents, and so on. The example give here, "boxmainmenu",
+produces the Main Menu navigation box.
+
+A list of code tokens appears at the end of this section.
+
+Meta-data tokens represent some piece of meta-data about the page being built,
+or perhaps some configuration value. In the example, the tokens "title", "base"
+and "stylesheet" are meta-data tokens.
+The "title" token is replaced by the title of the page,
+appropriately localized. The "base" token is replaced by the website's base
+URL. The "stylesheet" token is replaced by the user's preferred css stylesheet.
+
+The meta-data tokens, like the code tokens, are written right into the Lampadas code.
+
+A list of meta-data tokens is at the end of this section.
+
+Unlike code and meta-data tokens, however, block and string tokens
+are the names of text blocks and text strings, which can be freely edited
+in the Lampadas database. This ability to define your own pages, blocks,
+and strings lets you build your Lampadas website the way you want it.
+The navigation controls, Boxes and Tables are written in code, because they are
+the base of the system, but upon that base you can build whatever you want.
+
+To understand how the whole thing works, though, let's take an example and work
+through how it would be processed by Lampadas.
+In the example template above, the "header" and "footer" tokens are both block tokens.
+Lampadas will search for a block named "header", and then replace the "header"
+token with the contents of that block. Now let's look at the contents of the
+"header" token:
+
+<programlisting>
+&lt;table class="header" style="width:100%"&gt;
+&lt;tr&gt;&lt;th&gt;|project| Lampadas System&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;table class="title"&gt;
+&lt;tr&gt;&lt;td&gt;&lt;h1&gt;|title|&lt;/h1&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+</programlisting>
+
+Again, This block just contains more HTML, and also some more tokens.
+In the header, we have the tokens: "project" and "title", again.
+The "title" token here is the same token we saw in the template,
+so in this example the page title, properly localized,
+appears both in the title bar of
+your browser and in a table at the top of the page.
+
+The "project" token is a string token. The engine would simply replace
+it with the value specified in the string table, properly localized.
+
+The "project" string token is a default token, that is, it comes
+preinstalled in a new Lampadas installation, although during system configuration,
+you should set it to hold the name of your project. However, the Lampadas
+administrator can add any tokens she needs, and refer to them in her
+templates, pages, blocks, and even other strings.
+
+Here is what the page would look like after the tokens have been replaced
+with their textual values, including the "header" token:
+
+<programlisting>
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;About Lampadas&lt;/title&gt;
+    &lt;base href="/&gt;
+    &lt;link rel="stylesheet" href="css/default.css" type="text/css"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;table class="layout" style="width:100%"&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;
+&lt;table class="header" style="width:100%"&gt;
+&lt;tr&gt;&lt;th&gt;Linux Documentation Project Lampadas System&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;table class="title"&gt;
+&lt;tr&gt;&lt;td&gt;&lt;h1&gt;About Lampadas&lt;/h1&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+      &lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td width="200" valign="top"&gt;
+&lt;table class="box"&gt;
+&lt;tr&gt;&lt;th&gt;Main Menu&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;a href="home"&gt;Home&lt;/a&gt;&lt;br&gt;
+...
+&lt;a href="help"&gt;Help&lt;/a&gt;&lt;br&gt;
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+	&lt;/td&gt;
+        &lt;td valign="top"&gt;
+This is Lampadas, the LDP document management system.
+...
+        &lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;|footer|&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</programlisting>
+
+The new, embedded portions are left aligned where possible, to make it easier
+for you to see them. But we still have not embedded the "footer" token, so let's
+take a look at it now:
+
+<programlisting>
+&lt;table class="footer" style="width:100%"&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;center&gt;
+&lt;a href="copyright"&gt;Copyright&lt;/a&gt; \|
+&lt;a href="privacy"&gt;Privacy&lt;/a&gt; \|
+&lt;a href="lampadas"&gt;About Lampadas&lt;/a&gt;
+&lt;p&gt;
+&lt;a href="/EN/|page|"&gt;English&lt;/a&gt; \|
+&lt;a href="/FR/|page|"&gt;French&lt;/a&gt;
+&lt;/center&gt;
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+</programlisting>
+
+You might have been wondering how one would enter a pipe character inside
+a page, since the pipe character is used as a delimiter. In this footer,
+we can see the answer. Pipe characters that are not delimiters must be
+"escaped" by using a backslash character. So, "\|" is a real pipe character,
+and will not be considered a delimiter.
+
+Moving on to the rest of the "footer",  we see that we have more HTML
+and more tokens.
+In this footer, we have two links that
+take you to translations in French and English. See the
+[[i18n|Internationalization]] section for an explanation of the
+<literal>/EN/</literal> and <literal>/FR/</literal> prefixes.
+
+And we see a new meta-data token, the "page" token. It is replaced by
+the name of the current page.
+
+After embedding the footer, and then embedding the values for its tokens,
+the page is complete. Here is how the example page would look when all tokens
+have been processed:
+
+<programlisting>
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;About Lampadas&lt;/title&gt;
+    &lt;base href="/&gt;
+    &lt;link rel="stylesheet" href="css/default.css" type="text/css"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;table class="layout" style="width:100%"&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;
+&lt;table class="header" style="width:100%"&gt;
+&lt;tr&gt;&lt;th&gt;Linux Documentation Project Lampadas System&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;table class="title"&gt;
+&lt;tr&gt;&lt;td&gt;&lt;h1&gt;About Lampadas&lt;/h1&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+      &lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td width="200" valign="top"&gt;
+&lt;table class="box"&gt;
+&lt;tr&gt;&lt;th&gt;Main Menu&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;a href="home"&gt;Home&lt;/a&gt;&lt;br&gt;
+...
+&lt;a href="help"&gt;Help&lt;/a&gt;&lt;br&gt;
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+	&lt;/td&gt;
+        &lt;td valign="top"&gt;
+This is Lampadas, the LDP document management system.
+...
+        &lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;&lt;td colspan=2&gt;
+&lt;table class="footer" style="width:100%"&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;center&gt;
+&lt;a href="copyright"&gt;Copyright&lt;/a&gt; |
+&lt;a href="privacy"&gt;Privacy&lt;/a&gt; |
+&lt;a href="lampadas"&gt;About Lampadas&lt;/a&gt;
+&lt;p&gt;
+&lt;a href="/EN/about"&gt;English&lt;/a&gt; |
+&lt;a href="/FR/about"&gt;French&lt;/a&gt;
+&lt;/center&gt;
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+      &lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</programlisting>
+
+Now that we've been through the entire set of elements from which a page is
+built, and walked through the process step by step, 
+you should understand conceptually the way a page is pieced together.
+Logically speaking, the template is the top of the embedding system.
+The page is embedded into the template, and blocks and strings are
+embedded into the page. But blocks and strings can be nested inside
+each other, as well. So, theoretically, you could have a block that
+contains a string token, that contains a block token, that contains
+another block token, etc., as deeply as you need to go. For obvious
+reasons, however, tokens cannot be nested circularly, or an error
+will result.
+
+There is one additional wrinkle that has not yet been addressed.
+Code token replacement text often contains block or string tokens.
+For example, the contents of the Main Menu are variable based on the
+current user's permissions, so it has to be generated by code, but the
+text strings it contains still have to be localized. To perform the localization,
+the Main Menu token ("boxmainmenu") embeds a series of strings.
+Then, the text that is actually presented to each user can be localized
+to their preferred language.
+
+==Lists of Tokens|token-list==
+
+===Code and Meta-data Tokens|codetokens===
+
+The following Code and meta-data tokens are available in the initial
+Lampadas install:
+
+*title: 
+The page title.
+
+*body: 
+The body of the page, always included in a template, but never elsewhere.
+
+*hostname: 
+The server's hostname, as defined in the configuration file.
+
+*rootdir:
+The root directory of Lampadas on your web server, from the configuration file.
+
+*port:
+The port on which Lampadas is being served, from the configuration file.
+
+*base:
+The base URL of the Lampadas section of your website. This is built from the
+hostname, the port, and the rootdir, all of which come from the configuration file.
+
+*page:
+The name of the page. This is its mnemonic name, not its title.
+
+*stylesheet:
+The user's preferred stylesheet, or the default.
+
+*boxmainmenu:
+The Main Menu navigation box.
+
+*tabdocstable:
+The list of documents in a browsable, sortable table.
+
+*tabeditdoc:
+The form in which one edits document meta-data.
+
+===Block and String Tokens|blocktokens==
+
+The following block and string tokens are available in the initial Lampadas install.
+You can, of course, add to or modify them. In fact, some of them should be modified
+during installation.
+
+*header: 
+The default page header.
+
+*footer: 
+The default page footer.
+
+*project: 
+The name of your project, e.g., "The Linux Documentation Project".
+
+*projectshort: 
+The short name of your project, e.g., "The LDP".
+
+*mmtitle: 
+The title of the Main Menu.
+
+*home: 
+The word "home", localized. Used in the Main Menu.
+
+*doctable: 
+The words "Doc Table", localized. Used in the Main Menu.
+
+*docdetails: 
+The words "Document Details", localized. Used in the document meta-data edit form.
+
+
+=Coding Conventions|codingstyle=
+
+The code generally follows Python coding style.
+
+*Constants are in all uppercase.
+
+*Class names are in TitleCase.
+
+*Attributes, properties and methods are in lower_case, with underscore separators.
+
+*Private variables are in lowercase.
+
+*Indentation is done using four spaces, not tabs.
+
+*Each class, method and property should have a docstring that describes its purpose.
+The docstrings are used to generate library documentation, so this is very important.
+Constructors, destructors, and other self-identifying routines do not necessarily need
+a docstring, unless their operation is somehow different from what one would expect.
+/*
+
+Here is an example. You can, of course, find many more right in the code.
+
+<programlisting>
+WILL_NOT_CHANGE = "(c) Copyright 3l33t h4x0r"
+
+class ClassName:
+    """This class does something"""
+    
+    color = None
+
+    def __init__(self) :
+        self.other_color = None
+
+    def my_method(self) :
+        """do something"""
+</programlisting>
+
