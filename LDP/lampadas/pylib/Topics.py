@@ -22,6 +22,7 @@
 from BaseClasses import *
 from Docs import docs
 from Languages import languages
+from DocTopics import doctopics, DocTopics
 
 # Topics
 
@@ -32,10 +33,10 @@ class Topics(DataCollection):
     
     def __init__(self):
         DataCollection.__init__(self, Topic,
-                                 'topic',
-                                 {'topic_code': 'code'},
-                                 ['sort_order', 'parent_code'],
-                                 {'topic_name': 'name', 'topic_desc': 'description'})
+                               'topic',
+                               {'topic_code': 'code'},
+                               ['sort_order', 'parent_code'],
+                               {'topic_name': 'name', 'topic_desc': 'description'})
         
 
     def load(self):
@@ -62,7 +63,7 @@ class Topic(DataObject):
 
     def load_row(self, row):
         DataObject.load_row(self, row)
-        self.docs = docs
+        self.docs = doctopics.apply_filter(DocTopics, Filter('topic_code', '=', self.code))
 
 topics = Topics()
 topics.load()

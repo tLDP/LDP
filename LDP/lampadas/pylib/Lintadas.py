@@ -155,7 +155,7 @@ class Lintadas:
 
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
-            doc.errors.add(ERR_NO_SOURCE_FILE)
+            doc.errors.add(doc.id, ERR_NO_SOURCE_FILE)
         else:
 
             # Count the number of top files. There muse be exactly one.
@@ -165,9 +165,9 @@ class Lintadas:
                 if doc.files[filename].top:
                     top = top + 1
             if top==0:
-                doc.errors.add(ERR_NO_PRIMARY_FILE)
+                doc.errors.add(doc.id, ERR_NO_PRIMARY_FILE)
             if top > 1:
-                doc.errors.add(ERR_TWO_PRIMARY_FILES)
+                doc.errors.add(doc.id, ERR_TWO_PRIMARY_FILES)
 
         doc.lint_time = now_string()
         doc.save()
@@ -186,14 +186,14 @@ def main():
 
     config.logcon = 1
     config.log_level = 3
-    docs = sys.argv[1:]
-    if len(docs)==0:
+    doc_ids = sys.argv[1:]
+    if len(doc_ids)==0:
         print 'Checking all documents for errors...'
         lintadas.check_docs()
         print 'Checking all source files for errors...'
         lintadas.check_files()
     else:
-        for doc_id in docs:
+        for doc_id in doc_ids:
             print 'Checking document ' + str(doc_id) + ' for errors...'
             lintadas.check_doc(int(doc_id))
     print 'Done.'

@@ -30,10 +30,10 @@ class Formats(DataCollection):
     
     def __init__(self):
         DataCollection.__init__(self, Format,
-                                 'format',
-                                 {'format_code': 'code'},
-                                 [],
-                                 {'format_name': 'name', 'format_desc': 'description'})
+                               'format',
+                               {'format_code': 'code'},
+                               [],
+                               {'format_name': 'name', 'format_desc': 'description'})
 
 class Format(DataObject):
     """

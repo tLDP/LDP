@@ -30,10 +30,10 @@ class DTDs(DataCollection):
     
     def __init__(self):
         DataCollection.__init__(self, DTD,
-                                 'dtd',
-                                 {'dtd_code': 'code'},
-                                 [],
-                                 {'dtd_name': 'name', 'dtd_desc': 'description'})
+                               'dtd',
+                               {'dtd_code': 'code'},
+                               [],
+                               {'dtd_name': 'name', 'dtd_desc': 'description'})
 
 class DTD(DataObject):
     """

@@ -28,29 +28,34 @@ from sqlgen import sqlgen
 
 # Documents
 
-class Docs(LampadasCollection):
+class Docs(DataCollection):
     """
     A collection object providing access to all documents.
     """
 
+    def __init__(self):
+        DataCollection.__init__(self, Doc,
+                               'document',
+                               {'doc_id': 'id'},
+                               ['title', 'short_title', 'type_code', 'format_code', 'dtd_code', 'dtd_version',
+                               'version', 'last_update', 'isbn', 'encoding', 'pub_status_code', 'review_status_code',
+                               'tickle_date', 'pub_date', 'tech_review_status_code', 'maintained', 'maintainer_wanted',
+                               'license_code', 'license_version', 'copyright_holder', 'abstract', 'short_desc', 'rating',
+                               'lang', 'sk_seriesid', 'replaced_by_id', 'lint_time', 'pub_time', 'mirror_time', 'first_pub_date'],
+                               [])
+                 
     def load(self):
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, encoding, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document"
-        cursor = db.select(sql)
+        DataCollection.load(self)
         self.languages = LampadasCollection()
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc = Doc()
-            doc.load_row(row)
+        for key in self.keys():
+            doc = self[key]
             self.adjust_lang_count(doc.lang, 1)
             doc.errors.doc_id   = doc.id
             doc.files.doc_id    = doc.id
             doc.users.doc_id    = doc.id
             doc.versions.doc_id = doc.id
             doc.ratings.doc_id  = doc.id
-            doc.topics.doc_id   = doc.id
             doc.notes.doc_id    = doc.id
-            self[doc.id]        = doc
         self.load_errors()
         self.load_users()
         self.load_docfiles()
@@ -171,8 +176,10 @@ class Docs(LampadasCollection):
         sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, encoding, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(encoding) + ', ' +  wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ', ' + str(replaced_by_id) + ', ' + wsq(lint_time) + ', ' + wsq(pub_time) + ', ' + wsq(mirror_time) + ', ' + wsq(first_pub_date) + ')'
         assert db.runsql(sql)==1
         db.commit()
-        doc = Doc(id)
-        self[id] = doc
+        doc = Doc()
+        doc.id = id
+        doc.load()
+        self[doc.id] = doc
         self.adjust_lang_count(doc.lang, 1)
         return doc
     
@@ -210,13 +217,14 @@ class Docs(LampadasCollection):
             result.append(k)
         return result
         
-class Doc:
+class Doc(DataObject):
     """
     A document in any format, whether local or remote.
     """
 
-    def __init__(self, id=0):
-        self.id                      = id
+    def __init__(self, parent):
+        DataObject.__init__(self, parent)
+        self.id                      = 0
         self.title                   = ''
         self.short_title             = ''
         self.type_code               = ''
@@ -262,16 +270,10 @@ class Doc:
         self.collections.doc_id      = self.id
         self.notes                   = DocNotes()
         self.notes.doc_id            = self.id
-        if id==0: return
-        self.load()
 
     def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, encoding, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document WHERE doc_id=" + str(self.id)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
+        DataObject.load(self)
+        self.topics                  = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', self.id))
         self.errors                  = DocErrs(self.id)
         self.files                   = DocFiles(self.id)
         self.users                   = DocUsers(self.id)
@@ -280,40 +282,6 @@ class Doc:
         self.ratings.parent          = self
         self.collections             = DocCollections(self.id)
         self.notes                   = DocNotes(self.id)
-
-    def load_row(self, row):
-        self.id                      = row[0]
-        self.title                   = trim(row[1])
-        self.short_title             = trim(row[2])
-        self.type_code               = trim(row[3])
-        self.format_code             = trim(row[4])
-        self.dtd_code                = trim(row[5])
-        self.dtd_version             = trim(row[6])
-        self.version                 = trim(row[7])
-        self.last_update             = date2str(row[8])
-        self.isbn                    = trim(row[9])
-        self.encoding                = trim(row[10])
-        self.pub_status_code         = trim(row[11])
-        self.review_status_code      = trim(row[12])
-        self.tickle_date             = date2str(row[13])
-        self.pub_date                = trim(row[14])
-        self.tech_review_status_code = trim(row[15])
-        self.maintained              = tf2bool(row[16])
-        self.maintainer_wanted       = tf2bool(row[17])
-        self.license_code            = trim(row[18])
-        self.license_version         = trim(row[19])
-        self.copyright_holder        = trim(row[20])
-        self.abstract                = trim(row[21])
-        self.short_desc              = trim(row[22])
-        self.rating                  = safeint(row[23])
-        self.lang                    = trim(row[24])
-        self.sk_seriesid             = trim(row[25])
-        self.replaced_by_id          = safeint(row[26])
-        self.lint_time               = time2str(row[27])
-        self.pub_time                = time2str(row[28])
-        self.mirror_time             = time2str(row[29])
-        self.first_pub_date          = trim(row[30])
-        self.topics                  = doctopics.apply_filter(DocTopics, Filter('doc_id', '=', self.id))
 
     def remove_duplicate_metadata(self):
         # FIXME: This is temporary code to get rid of redundant
@@ -502,12 +470,12 @@ class DocErrs(LampadasCollection):
 # FIXME: Try instantiating a DocErr object, then adding it to the *document*
 # rather than passing all these parameters here. --nico
 
-    def add(self, err_id, notes=''):
+    def add(self, doc_id, err_id, notes=''):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document_error(doc_id, err_id, notes) VALUES (" + str(self.doc_id) + ", " + str(err_id) + ', ' + wsq(notes) + ')'
+        sql = "INSERT INTO document_error(doc_id, err_id, notes) VALUES (" + str(doc_id) + ", " + str(err_id) + ', ' + wsq(notes) + ')'
         assert db.runsql(sql)==1
         doc_err = DocErr()
-        doc_err.doc_id = self.doc_id
+        doc_err.doc_id = doc_id
         doc_err.err_id = err_id
         doc_err.created = now_string()
         doc_err.notes = notes

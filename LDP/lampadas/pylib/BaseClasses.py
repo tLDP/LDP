@@ -72,8 +72,15 @@ class LampadasCollection:
             keys.append(value)
         return keys
 
-    def has_key(self, key):
-        return self.data.has_key(key)
+    def has_key(self, key, attribute=''):
+        if attribute=='':
+            return self.data.has_key(key)
+        for seek_key in self.keys():
+            object = self[seek_key]
+            value = getattr(object, attribute)
+            if value==key:
+                return 1
+        return 0
     
     def items(self):
         return self.data.items()
@@ -161,7 +168,6 @@ class DataCollection(LampadasCollection):
             return fields
 
     def load(self):
-        print 'Loading data from table ' + self.table
         LampadasCollection.__init__(self)
         self.load_table()
         if len(self.i18nfields) > 0:
@@ -253,14 +259,21 @@ class DataObject:
                 where = ' WHERE '
             else:
                 where = ' AND '
-            where = where + field + '=' + wsq(getattr(self, self.parent.map[field]))
+            where = where + field + '='
+            value = getattr(self, self.parent.map[field])
+            type_name = str(type(value))
+            if type_name=="<type 'string'>": where += wsq(value)
+            elif type_name=="<type 'int'>": where += str(value)
+            else: print 'Unrecognized type: ' + type_name
+            
         return where
 
     def load(self):
         # Build an identifier.
         # If there are multiple key fields, build a string representation instead.
         if len(self.parent.indexfields)==1:
-            identifier = getattr(self, self.parent.map[self.parent.indexfields[0]])
+            attribute = self.parent.map[self.parent.indexfields[0]]
+            identifier = getattr(self, attribute)
         else:
             identifier = ''
             for field in self.parent.indexfields:

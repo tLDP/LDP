@@ -70,8 +70,10 @@ FILEMODE_MASKS = ((0400, 'r'),
 
 def convert_field(value):
     type_name = str(type(value))
-    if type_name=="<type 'string'>":            return trim(value)
+    if type_name=="<type 'None'>":              return ''
+    elif type_name=="<type 'string'>":          return trim(value)
     elif type_name=="<type 'int'>":             return safeint(value)
+    elif type_name=="<type 'float'>":           return float(value)
     elif type_name=="<type 'DateTime'>":        return time2str(value)
     elif type_name=="<type 'libpq.PgBoolean'>": return tf2bool(value)
     else: print 'Unrecognized type: ' + type_name

@@ -970,8 +970,7 @@ class Tables(LampadasCollection):
                 if doc.type_code <> type_code:
                     continue
             if topic_code > '':
-                topic = topics[topic_code]
-                if topic.docs[doc.id]==None:
+                if doc.topics.has_key(topic_code, 'topic_code')==0:
                     continue
             if maintained > '':
                 if doc.maintained <> int(maintained):
