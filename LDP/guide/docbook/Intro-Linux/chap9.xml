@@ -14,20 +14,21 @@
 
 </abstract>
 
-<sect1><title>Introduction</title>
+<sect1 id="sect_09_01"><title>Introduction</title>
 <para>Although Linux is one of the safest operating systems in existence, and even if it is designed to keep on going, data can get lost.  Data loss is most often the consequence of user errors, but occasionally a system fault, such as a power failure, is the cause, so it's always a good idea to keep an extra copy of sensitive and/or important data.</para>
-<sect2><title>Preparing your data</title>
-<sect3><title>Compressing with <command>tar</command></title>
-<para>In some cases, you will want to compress your data so that they don't take up more space than usual.  In Linux, this is commonly done with the <command>tar</command> command.  <command>tar</command> was originally designed to archive tapes, but it can also make a <emphasis>tarball</emphasis>, a file containing other compressed files.</para>
-<para><command>tar</command> has many options, the most important ones cited below:</para>
+<sect2 id="sect_09_01_01"><title>Preparing your data</title>
+<sect3 id="sect_09_01_01_01"><title>Archiving with tar</title>
+<para>In most cases, we will first collect all the data to back up in a single archive file, which we will compress lateron.  The process of archiving involves concatenating all listed files and taking out unnecessary blanks.  In Linux, this is commonly done with the <command>tar</command> command.  <command>tar</command> was originally designed to archive data on tapes, but it can also make archives, know as <emphasis>tarballs</emphasis>.</para>
+<para><command>tar</command> has many options, the most important ones are cited below:</para>
 <itemizedlist>
-<listitem><para>v: verbose</para></listitem>
-<listitem><para>t: test, shows content of a tarball</para></listitem>
-<listitem><para>x: extract archive</para></listitem>
-<listitem><para>c: create archive</para></listitem>
+<listitem><para>-v: verbose</para></listitem>
+<listitem><para>-t: test, shows content of a tarball</para></listitem>
+<listitem><para>-x: extract archive</para></listitem>
+<listitem><para>-c: create archive</para></listitem>
 <listitem><para>-f <filename>archivedevice</filename>: use <filename>archivedevice</filename> as source/destination for the tarball, the device defaults to the first tape device (usually <filename>/dev/st0</filename> or something similar)</para></listitem>
+<listitem><para>-j: filter through <command>bzip2</command>, see <xref linkend="sect_09_01_01_02" /></para></listitem>
 </itemizedlist>
-<para>Refer to the <command>tar</command> man page for more information.</para>
+<para>It is common to leave out the dash-prefix with <command>tar</command> options, as you can see from the examples below.</para>
 <note><title>Use GNU tar for compatibility</title>
 <para>The archives made with a proprietary <command>tar</command> version on one system, may be incompatible with <command>tar</command> on another proprietary system.  This may cause much headaches, such as if the archive needs to be recovered on a system that doesn't exist anymore.  Use the GNU <command>tar</command> version on all systems to prevent your system admin from bursting into tears.  Linux always uses GNU tar.  When working on other UNIX machines, enter <command>tar --help</command> to find out which version you are using.  Contact your system admin if you don't see the word GNU somewhere.</para></note>
 <para>In the example below, an archive is created and unpacked.</para>
@@ -75,7 +76,64 @@ me+tux.jpg  nimf.jpg
 <para><command>tar cvf <filename>/dev/tape</filename> mail/</command></para>
 <para>The directory <filename>mail</filename> and all the files it contains are compressed into a file that is written on the tape immediately.  A content listing is displayed because we used the verbose option.</para>
 </sect3>
-<sect3><title>Compressing with <command>gzip</command> or <command>bzip2</command></title>
+<sect3 id="sect_09_01_01_02"><title>Incremental backups with tar</title>
+<para>The <command>tar</command> tool supports the creation of incremental backups, using the <option>-N</option> option.  With this option, you can specify a date, and <command>tar</command> will check modification time of all specified files against this date.  If files are changed more recent than date, they will be included in the backup.  The example below uses the timestamp on a previous archive as the date value.  First, the initial archive is created and the timestamp on the initial backup file is shown.  Then a new file is created, upon which we take a new backup, containing only this new file:</para>
+<screen>
+jimmy:~&gt; tar cvpf /var/tmp/javaproggies.tar java/*.java
+java/btw.java
+java/error.java
+java/hello.java
+java/income2.java
+java/income.java
+java/inputdevice.java
+java/input.java
+java/master.java
+java/method1.java
+java/mood.java
+java/moodywaitress.java
+java/test3.java
+java/TestOne.java
+java/TestTwo.java
+java/Vehicle.java
+
+jimmy:~&gt; ls -l /var/tmp/javaproggies.tar
+-rw-rw-r--    1 jimmy	jimmy 	10240 Jan 21 11:58 /var/tmp/javaproggies.tar
+
+jimmy:~&gt; touch java/newprog.java
+
+jimmy:~&gt; tar -N /var/tmp/javaproggies.tar \
+-cvp /var/tmp/incremental1-javaproggies.tar java/*.java 2&gt; /dev/null
+java/newprog.java
+
+jimmy:~&gt; cd /var/tmp/
+
+jimmy:~&gt; tar xvf incremental1-javaproggies.tar
+java/newprog.java
+</screen>
+<para>Standard errors are redirected to <filename>/dev/null</filename>.  If you don't do this, <command>tar</command> will print a message for each unchanged file, telling you it won't be dumped.</para> 
+<para>This way of working has the disadvantage that it looks at timestamps on files.  Say that you download an archive into the directory containing your backups, and the archive contains files that have been created two years ago.  When checking the timestamps of those files against the timestamp on the initial archive, the new files will actually seem old to <command>tar</command>, and will not be included in an incremental backup made using the <option>-N</option> option.</para>
+<para>A better choice would be the <option>-g</option> option, which will create a list of files to backup.  When making incremental backups, files are checked against this list.  This is how it works:</para>
+<screen>
+jimmy:~&gt; tar cvpf work-20030121.tar -g snapshot-20030121 work/
+work/
+work/file1
+work/file2
+work/file3
+
+jimmy:~&gt; file snapshot-20030121
+snapshot-20030121: ASCII text
+</screen>
+<para>The next day, user <emphasis>jimmy</emphasis> works on <filename>file3</filename> a bit more, and creates <filename>file4</filename>.  At the end of the day, he makes a new backup:</para>
+<screen>
+jimmy:~&gt; tar cvpf work-20030122.tar -g snapshot-20030121 work/
+work/
+work/file3
+work/file4
+</screen>
+<para>These are some very simple examples, but you could also use this kind of command in a cronjob (see <xref linkend="sect_04_04_04" />), which specifies for instance a snapshot file for the weekly backup and one for the daily backup.  Snapshot files should be replaced when taking full backups, in that case.</para>
+<para>More information can be found in the <command>tar</command> documentation.</para>
+</sect3>
+<sect3 id="sect_09_01_01_03"><title>Compressing and unpacking with <command>gzip</command> or <command>bzip2</command></title>
 <para>
 Data, including tarballs, can be compressed using zip tools.  The <command>gzip</command> command will add the suffix .gz to the file name and remove the original file.
 </para>
@@ -89,25 +147,37 @@ jimmy:~&gt;ls -la images-without-dir.tar.gz
 -rw-rw-r--    1 jimmy  jimmy	50562 Jun  6 14:08 images-without-dir.tar.gz
 </screen>
 <para>Uncompress gzipped files with the <command>-d</command> option.</para>
-<para><command>bzip</command> works in a similar way, but uses an improved compression algorithm, thus creating smaller files.</para>
+<para><command>bzip</command> works in a similar way, but uses an improved compression algorithm, thus creating smaller files.  See the <command>bzip2</command> info pages for more.</para>
 
 <para>Linux software packages are often distributed in a gzipped tarball.  The sensible thing to do after unpacking that kind of archives is find the <filename>README</filename> and read it.  It will generally contain guidelines to installing the package.</para>
 <para>The GNU <command>tar</command> command is aware of gzipped files.  Use the command</para>
-<para><cmdsynopsis><command>tar zxvf <filename>file.tar.gz</filename></command></cmdsynopsis></para>
-<para>for unzipping and untarring <filename>.tar.gz</filename> or <filename>.tgz</filename> files.</para> 
+<cmdsynopsis><command>tar zxvf <filename>file.tar.gz</filename></command></cmdsynopsis>
+<para>for unzipping and untarring <filename>.tar.gz</filename> or <filename>.tgz</filename> files.  Use</para>
+<cmdsynopsis><command>tar jxvf <filename>file.tar.bz2</filename></command></cmdsynopsis>
+<para>for unpacking <command>tar</command> archives that were compressed with <command>bzip2</command>.</para> 
 </sect3>
-<sect3><title>Transporting your data</title>
-<para>Saving copies of your data on another host is an accurate way of making backups.  See <xref linkend="chap_10" />, Communications, for more information.</para>
+<sect3 id="sect_09_01_01_04"><title>Java archives</title>
+<para>The GNU project provides us with the <command>jar</command> tool for creating Java archives.  It is a Java application that combines multiple files into a single JAR archive file.  While also being a general purpose archiving and compression tool, based on ZIP and the ZLIB compression format, <command>jar</command> was mainly designed to facilitate the packing of Java code, applets and/or applications in a single file.  When combined in a single archive, the components of a Java application, can be downloaded much faster.</para>
+<para>Unlike <command>tar</command>, <command>jar</command> compresses by default, independent from other tools - because it is basically the Java version of <command>zip</command>.  In addition, it allows individual entries in an archive to be signed by the author, so that origins can be authenticated.</para>
+<para>The syntax is almost identical as for the <command>tar</command> command, we refer to <command>info jar</command> for specific differences.</para>
+<note><title>tar, jar and symbolic links</title>
+<para>One noteworthy feature not really mentionned in the standard documentation is that <command>jar</command> will follow symbolic links.  Data to which these links are pointing will be included in the archive.  The default in <command>tar</command> is to only backup the symbolic link, but this behavior can be changed using the <option>-h</option> to <command>tar</command>.</para>
+</note>
+
+</sect3>
+<sect3 id="sect_09_01_01_05"><title>Transporting your data</title>
+<para>Saving copies of your data on another host is a simple but accurate way of making backups.  See <xref linkend="chap_10" />, Communications, for more information on <command>scp</command>, <command>ftp</command> and many more.</para>
+<para>In the next section we'll discuss local backup devices.</para>
 </sect3>
 </sect2>
 </sect1>
-<sect1>
+<sect1 id="sect_09_02">
 <title>Moving your data to a backup device</title>
-<sect2><title>Making a copy on a floppy disk</title>
-<sect3><title>Formatting the floppy</title>
+<sect2 id="sect_09_02_01"><title>Making a copy on a floppy disk</title>
+<sect3 id="sect_09_02_01_01"><title>Formatting the floppy</title>
 <para>On most Linux systems, users have access to the floppy disk device.  The name of the device may vary depending on the size and number of floppy drives, contact your system admin if you are unsure.  On sensibly administered systems, there will likely be a link <filename>/dev/floppy</filename> pointing to the right device, probably <filename>/dev/fd0</filename> (the auto-detecting floppy device) or <filename>/dev/fd0H1440</filename> (set for 1,44MB floppies).</para>
 <para>
-<command>fdformat</command> is the low-level floppy disk formatting tool.  It has the device name of the floppy disk as an option.  <command>fdformat</command> will display an error when the floppy is read-protected.
+<command>fdformat</command> is the low-level floppy disk formatting tool.  It has the device name of the floppy disk as an option.  <command>fdformat</command> will display an error when the floppy is write-protected.
 </para>
 <screen>
 emma:~&gt;fdformat /dev/fd0H1440
@@ -122,14 +192,14 @@ emma:~&gt;
 <mediaobject>
 <imageobject>
 <imagedata fileref="images/formatfloppy.eps" format="EPS"></imagedata></imageobject><imageobject>
-<imagedata fileref="images/formatfloppy.jpg" format="JPG"></imagedata>
+<imagedata fileref="images/formatfloppy.png" format="PNG"></imagedata>
 </imageobject>
 </mediaobject>
 </figure>
 <para>After the floppy is formatted, it can be mounted into the file system and accessed as a normal, be it small, directory, usually via the <filename>/mnt/floppy</filename> entry.</para>
 <para>Almost every Linux distribution provides the <command>mkbootdisk</command> utility, which makes a floppy from which the current system can boot.</para>
 </sect3>
-<sect3><title>Using the <command>dd</command> command to dump data</title>
+<sect3 id="sect_09_02_01_02"><title>Using the <command>dd</command> command to dump data</title>
 <para>The <command>dd</command> command can be used to put data on a disk, or get it off again, depending on the given input and output devices.  An example:</para>
 <screen>
 gaby:~&gt;dd if=images-without-dir.tar.gz of=/dev/fd0H1440
@@ -149,7 +219,7 @@ gaby:~&gt;ls /tmp/images*
 <para>The <command>dd</command> command can also be used to make a raw dump of an entire hard disk.</para></note>
 </sect3>
 </sect2>
-<sect2><title>Making a copy with a CD-writer</title>
+<sect2 id="sect_09_02_02"><title>Making a copy with a CD-writer</title>
 <para>On some systems users are allowed to use the CD-writer device.  Your data will need to be formatted first.  Use the <command>mkisofs</command> command to do this in the directory containing the files you want to backup.  Check with <command>df</command> that enough disk space is available, because a new file about the same size as the entire current directory will be created:</para>
 <screen>
 [rose@blob recordables] df -h .
@@ -209,7 +279,7 @@ Track 01: Total bytes read/written: 341540864/341540864 (166768 sectors).
 
 
 </sect2>
-<sect2><title>Backups on/from jazz drives, USB devices and such</title>
+<sect2 id="sect_09_02_03"><title>Backups on/from jazz drives, USB devices and such</title>
 <para>These devices are usually mounted into the file system.  After the mount procedure, they are accessed as normal directories, so you can use the standard commands for manipulating files.</para>
 <para>In the example below, images are copied from a USB camera to the hard disk:</para>
 <screen>
@@ -225,12 +295,12 @@ robin:~&gt;umount /mnt/camera
 <para>Likewise, a jazz drive may be mounted on <filename>/mnt/jazz</filename>.</para>
 <para>Appropriate lines should be added in <filename>/etc/modules.conf</filename> and <filename>/etc/fstab</filename> to make this work.  Refer to specific hardware HOWTOs for more information.</para> 
 </sect2>
-<sect2><title>Backing up data using a tape device</title>
+<sect2 id="sect_09_02_04"><title>Backing up data using a tape device</title>
 <para>This is done using <command>tar</command> (see above).  The <command>mt</command> tool is used for controlling the magnetic tape device, like <filename>/dev/st0</filename>.  Entire books have been written about tape backup, therefore, refer to our reading-list in <xref linkend="app2" /> for more information.  Keep in mind that databases might need other backup procedures because of their architecture.</para>
 <para>The appropriate backup commands are usually put in one of the <emphasis>cron</emphasis> directories in order to have them executed on a regular basis.  In larger environments, the freely available <ulink url="http://www.amanda.org">Amanda</ulink> backup suite or a commercial solution may be implemented to back up multiple machines.  Working with tapes, however, is a system administration task beyond the scope of this document.</para>
 </sect2>
 </sect1>
-<sect1><title>Summary</title>
+<sect1 id="sect_09_03"><title>Summary</title>
 <para>Here's a list of the commands involving file backup:</para>
 <table frame="all"><title>Backup commands</title>
 <tgroup cols="2" align="left" colsep="1" rowsep="1">
@@ -254,7 +324,7 @@ robin:~&gt;umount /mnt/camera
 </tgroup>
 </table>
 </sect1>
-<sect1><title>Exercises</title>
+<sect1 id="sect_09_04"><title>Exercises</title>
 <itemizedlist>
 <listitem><para>Make a backup copy of your home directory in <filename>/var/tmp</filename> using the <command>tar</command> command.  Then further compress the file using <command>gzip</command> or <command>bzip2</command>.  Make it a clean tarred file, one that doesn't make a mess when unpacking.</para></listitem>
 <listitem><para>Format a floppy and put some files from your home directory on it.  Switch floppies with another trainee and recover his/her floppy in your home directory.</para></listitem>
