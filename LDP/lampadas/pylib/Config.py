@@ -38,6 +38,8 @@ class Config:
 		self.DBType	= self.ReadVar('DB', 'dbtype')
 		self.DBName	= self.ReadVar('DB', 'dbname')
 		self.Logfile	= self.ReadVar('LOG', 'logfile')
+		self.Loglevel	= self.ReadVar('LOG', 'loglevel')
+		self.LogSQL	= self.ReadVar('LOG', 'logsql')
 
 
 	def ReadVar(self, section, name):

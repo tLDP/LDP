@@ -42,13 +42,15 @@ class Database:
 		return self.db.connection.cursor()
 
 	def Select(self, sql):
-		Log(sql)
+		if Config.LogSQL:
+			Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		return self.cursor
 
 	def Value(self, sql):
-		Log(sql)
+		if Config.LogSQL:
+			Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		self.value = self.cursor.fetchone()
@@ -56,7 +58,8 @@ class Database:
 		return self.value
 
 	def Exec(self, sql):
-		Log(sql)
+		if Config.LogSQL:
+			Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		return self.cursor.rowcount
