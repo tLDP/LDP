@@ -27,7 +27,7 @@
   </p>
 
   <p>You can find out more about ScrollServer on the
-    <a href="http://scrollserver.sourceforge.net">ScrollServer Home Page</a>.
+    <a href="http://www.scrollserver.org">ScrollServer Home Page</a>.
     Please report bugs, request features or find out how you can help develop
     ScrollServer by visiting the
     <a href="http://sourceforge.net/projects/scrollserver/">SourceForge Project Page</a>.
