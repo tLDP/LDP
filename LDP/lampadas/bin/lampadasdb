@@ -10,18 +10,21 @@ Usage: $SCRIPT_NAME { OPTION } ACTION [ DATABASE ]
 
 Where ACTION is one of:
 
-    create        Create new data tables.
-    defaults      Insert default values
-    drop          Drop all tables.
-    delete        Delete all data.
-    load          Load data from files in \$LAMPADAS_SPOOL.
-    save          Copy data to files in \$LAMPADAS_SPOOL.
+    create         Create new data tables.
+    insert         Insert default values (work on insert.m4)
+    update         Update default values (work on update.m4)
+    drop           Drop all tables.
+    delete         Delete all data.
+    load           Load data from files in \$LAMPADAS_SPOOL.
+    save           Copy data to files in \$LAMPADAS_SPOOL.
 
 Where OPTION can choosen from:
 
-    -h | --help   Write this message and exit.
-    -sql <dir>    Override value of LAMPADAS_SQL
-    -spool <dir>  Override value of LAMPADAS_SPOOL
+    -h | --help    Write this message and exit.
+    -sql <dir>     Override value of LAMPADAS_SQL
+    -spool <dir>   Override value of LAMPADAS_SPOOL
+    -lang <lang>   insert and update work only on <lang>.m4,
+                   not all languages found 
 
 LAMPADAS_SQL and LAMPADAS_SPOOL are typically set within setenv.sh.
 Read comments in that file for a description.
@@ -94,6 +97,7 @@ build_makefile()
 }
 
 #---------------------------------------------
+
 create()
 {
   echo "-- create.sql"
@@ -135,18 +139,21 @@ save()
   | sed -e "s#\(.*\)#copy \1 to '$LAMPADAS_SPOOL/\1';#"
 }
 
-defaults()
+m4script()
 {
+  echo "-- m4script $@"
+  echo ""
   make -f $TABLE_ORDER \
   | while read table
   do
-    find $LAMPADAS_SQL/$table -type f -name '[A-Z][A-Z].m4' \
+    [ -e $LAMPADAS_SQL/$table/$1.m4 ] || continue
+    find $LAMPADAS_SQL/$table -type f -name "$SQLLANG.m4" \
     | while read file
     do
       lang=${file%.m4}
       lang=${lang##*/}
       echo "-- $table/$lang --"
-      m4 -P -DI18N_lang_code=${lang} "$LAMPADAS_SQL/$table/insert.m4" $file
+      m4 -P -DI18N_lang_code=${lang} "$LAMPADAS_SQL/$table/$1.m4" $file
       echo ""
     done
   done
@@ -155,11 +162,17 @@ defaults()
 #---------------------------------------------
 # main()
 
+SQLLANG="[A-Z][A-Z]"
 while true; do
   case "${1}" in
       "" | -h | --help )
 	      usage
 	      exit 1
+	      ;;
+      "-lang" )
+	      shift
+	      SQLLANG=$1
+	      shift
 	      ;;
       "-sql" )
 	      shift
@@ -171,7 +184,12 @@ while true; do
 	      LAMPADAS_SQL_SPOOL=$1
 	      shift
 	      ;;
-      "create" | "drop" | "delete" | "load" | "save" | "defaults" )
+      "create" | "drop" | "delete" | "load" | "save" )
+              COMMAND=$1
+              break
+	      ;;
+      "insert" | "update" )
+              COMMAND=m4script
               break
 	      ;;
       *)      echo "Invalid command: $1"
@@ -205,7 +223,7 @@ if need_rebuild "$sql"; then
     echo "-- Created by $SCRIPT_NAME, do not edit"
     date "+-- %c"
     echo
-    "$@" 
+    $COMMAND "$@" 
   ) > $sql || exit -1
 fi
 echo "Executing $sql" \
