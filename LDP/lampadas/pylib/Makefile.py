@@ -184,8 +184,8 @@ class Projects(LampadasCollection):
 class Project:
 
     def __init__(self, doc_id):
-        self.doc_id = doc_id
-        self.doc = lampadas.docs[doc_id]
+        self.doc_id = int(doc_id)
+        self.doc = lampadas.docs[self.doc_id]
         self.workdir = config.cache_dir + str(self.doc_id) + '/work/'
         self.filename = ''
         self.targets  = Targets()
@@ -373,6 +373,14 @@ class Project:
                             if exit_status==0:
                                 exit_status = 1;
                             
+                    # Zero filesize indicates failure. Fail and erase file.
+                    filestat = os.stat(self.workdir + command.output_to)
+                    filesize = filestat[stat.ST_SIZE]
+                    if filesize==0:
+                        self.doc.errors.add(ERR_MAKE_ZERO_LENGTH)
+                        print 'ERROR: The command left a zero-length file. Removing.'
+                        os.remove(self.workdir + command.output_to)
+
                     if exit_status <> 0:
                         return(exit_status, timestamp)
 
@@ -406,6 +414,10 @@ class Project:
     def write(self):
         """Writes the contents of a regular Makefile to disk."""
         
+        # Do not publish any document which has not been mirrored.
+        if self.doc.mirror_time=='':
+            return
+
         contents = ''
         for key in self.targets.sort_by('sort_order'):
             target = self.targets[key]

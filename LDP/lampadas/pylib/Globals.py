@@ -56,6 +56,7 @@ ERR_MIRROR_URL_RETRIEVE = 202  # A error occurred retrieving a remote file.
 ERR_MAKE_NO_SOURCE      = 301  # A source file does not exist and has no target.
 ERR_MAKE_EXIT_STATUS    = 302  # A command returned a nonzero exit (failure) code.
 ERR_MAKE_STDERR         = 303  # Something was written to STDERR
+ERR_MAKE_ZERO_LENGTH    = 304  # Command produced a zero-length file.
 
 def random_string(length):
     """

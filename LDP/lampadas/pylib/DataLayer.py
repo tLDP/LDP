@@ -440,9 +440,8 @@ class Doc:
         self.sk_seriesid             = trim(row[24])
         self.replaced_by_id          = safeint(row[25])
         self.lint_time               = time2str(row[26])
-        self.pub_time                = time2str(row[26])
-        self.mirror_time             = time2str(row[27])
-
+        self.pub_time                = time2str(row[27])
+        self.mirror_time             = time2str(row[28])
     def save(self):
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
