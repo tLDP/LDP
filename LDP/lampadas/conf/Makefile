@@ -3,7 +3,7 @@ all:	build
 build:
 
 install: all
-	install.sh
+	./install.sh
 
 clean:
 
