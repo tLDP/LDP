@@ -34,10 +34,24 @@ class HTMLFactory:
 class PageFactory:
 
 	def __call__(self, key, lang):
-		page = L.Strings['template_default'].I18n[lang].Text
+		page = L.Strings['tpl-default'].I18n[lang].Text
 		page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
-		page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
 		page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
+		
+		
+		if key[:4] == 'doc/':
+			docid = int(key[4:])
+			print "DOC " + str(docid) + " requested"
+			Doc = L.Docs[docid]
+			assert not Doc == None
+			Files = Doc.Files
+			keys = Files.keys()
+			for key in keys:
+				File = Files[key]
+				print "filename: " + File.Filename
+				print "format: " + File.Format
+		else:
+			page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
 		return page
 
 
@@ -84,7 +98,10 @@ Factory = HTMLFactory()
 #output = Factory.Combo.Classes(2,'EN')
 #print output
 
-output = Factory.Page('pg_about', 'EN')
-print output
+#output = Factory.Page('pg-about', 'EN')
+#print output
+
+output = Factory.Page('doc/1', 'EN')
+#print output
 
 #if __name__ == "__main__":

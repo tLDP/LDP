@@ -273,10 +273,99 @@ class Doc:
 		self.LanguageCode	= trim(row[20])
 		self.SeriesID		= trim(row[21])
 
+		self.Files		= DocFiles(self.ID)
+		self.Errors		= DocErrors(self.ID)
+
 	def Save(self):
 		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + wsq(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
 		DB.Exec(self.sql)
 		DB.Commit()
+
+
+# DocFiles
+
+class DocFiles(LampadasCollection):
+	"""
+	A collection object providing access to all document source files.
+	"""
+
+	def __init__(self, DocID):
+		self.data = {}
+		assert not DocID == None
+		self.DocID = DocID
+		self.sql = "SELECT filename, format FROM document_file WHERE doc_id=" + str(DocID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDocFile = DocFile()
+			newDocFile.Load(DocID, row)
+			self.data[newDocFile.Filename] = newDocFile
+
+
+class DocFile:
+	"""
+	An association between a document and a file.
+	"""
+
+	def Load(self, DocID, row):
+		assert not DocID == None
+		assert not row == None
+		self.DocID	= DocID
+		self.Filename	= trim(row[0])
+		self.Format	= trim(row[1])
+
+	def Save(self):
+		self.sql = "UPDATE document_file SET format=" + wsq(self.Format) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+		
+
+
+# DocErrors
+
+class DocErrors(LampadasList):
+	"""
+	A collection object providing access to all document errors, as identified by the
+	Lintadas subsystem.
+	"""
+
+	def __init__(self, DocID):
+		assert not DocID == None
+		self.DocID = DocID
+		self.sql = "SELECT error FROM document_error WHERE doc_id=" + str(DocID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDocError = DocError()
+			newDocError.Load(DocID, row)
+			self.list = self.list + [newDocError]
+
+	def Clear(self):
+		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
+		DB.Exec(self.sql)
+		self.list = []
+
+	def Add(self, Error):
+		self.sql = "INSERT INTO document_error(doc_id, error) VALUES (" + str(self.DocID) + ", " + wsq(Error)
+		assert DB.Exec(self.sql) == 1
+		newDocError = DocError()
+		newDocError.DocID = self.DocID
+		newDocError.Error = Error
+		self.list = self.list + [newDocError]
+		
+
+class DocError:
+	"""
+	An error filed against a document by the Lintadas subsystem.
+	"""
+
+	def Load(self, DocID, row):
+		assert not DocID == None
+		assert not row == None
+		self.DocID	= DocID
+		self.Error	= trim(row[0])
 
 
 # String
