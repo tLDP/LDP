@@ -84,3 +84,1150 @@ e.g. AOL might be called a gateway to the Internet.
 </para>
 
 </sect1>
+
+<sect1 id="Routing">
+
+<title>Routing</title>
+
+12.3. Packets and routers
+
+What the browser wants to do is send a command to the Web server on
+www.tldp.org that looks like this:
+GET /LDP/HOWTO/Fundamentals.html HTTP/1.0                                    
+
+Here's how that happens. The command is made into a packet, a block of bits
+like a telegram that is wrapped with three important things; the source
+address (the IP address of your machine), the destination address
+(152.19.254.81), and a service number or port number (80, in this case) that
+indicates that it's a World Wide Web request.
+
+Your machine then ships the packet down the wire (your connection to your
+ISP, or local network) until it gets to a specialized machine called a
+router. The router has a map of the Internet in its memory ?? not always a
+complete one, but one that completely describes your network neighborhood and
+knows how to get to the routers for other neighborhoods on the Internet.
+
+Your packet may pass through several routers on the way to its destination.
+Routers are smart. They watch how long it takes for other routers to
+acknowledge having received a packet. They also use that information to
+direct traffic over fast links. They use it to notice when another router (or
+a cable) have dropped off the network, and compensate if possible by finding
+another route.
+
+There's an urban legend that the Internet was designed to survive nuclear
+war. This is not true, but the Internet's design is extremely good at getting
+reliable performance out of flaky hardware in an uncertain world. This is
+directly due to the fact that its intelligence is distributed through
+thousands of routers rather than concentrated in a few massive and vulnerable
+switches (like the phone network). This means that failures tend to be well
+localized and the network can route around them.
+
+Once your packet gets to its destination machine, that machine uses the
+service number to feed the packet to the web server. The web server can tell
+where to reply to by looking at the command packet's source IP address. When
+the web server returns this document, it will be broken up into a number of
+packets. The size of the packets will vary according to the transmission
+media in the network and the type of service.
+-----------------------------------------------------------------------------
+
+  8.1.  Router
+
+  The Linux kernel has built-in support for routing functions. A Linux
+  box can act either as an IP or IPX router for a fraction of the cost
+  of a commercial router. Recent kernels include special options for
+  machines acting primarily as routers:
+
+  ·  Multicasting:  Allows the Linux machine to act as a router for IP
+     packets that have several destination addresses. It is needed on
+     the MBONE, a high bandwidth network on top of the Internet which
+     carries audio and video broadcasts.
+
+  ·  IP policy routing:  Normally a router decides what to do with a
+     received packet based solely on the packet's final destination
+     address, but routing can also take into account the originating
+     address and the network device from which the packet reached it.
+
+  There are some related projects which include one aiming at building a
+  complete, running Linux router on a floppy disk: Linux router project
+  <http://www.linuxrouter.org>
+
+Linux Advanced Routing & Traffic Control HOWTO
+
+Linksys Blue Box Router HOWTO
+
+</sect1 ID="Routing">
+
+<sect1 id="Firewalling-and-Masquerading">
+
+  6.6.  IP Firewall (for Linux-2.0)
+
+  IP Firewall and Firewalling issues are covered in more depth in the
+  Firewall-HOWTO. IP Firewalling allows you to secure your machine
+  against unauthorized network access by filtering or allowing datagrams
+  from or to IP addresses that you nominate. There are three different
+  classes of rules, incoming filtering, outgoing filtering and
+  forwarding filtering. Incoming rules are applied to datagrams that are
+  received by a network device. Outgoing rules are applied to datagrams
+  that are to be transmitted by a network device. Forwarding rules are
+  applied to datagrams that are received and are not for this machine,
+  ie datagrams that would be routed.
+
+  Kernel Compile Options:
+
+
+               Networking options  --->
+                   [*] Network firewalls
+                   ....
+                   [*] IP: forwarding/gatewaying
+                   ....
+                   [*] IP: firewalling
+                   [ ] IP: firewall packet logging
+
+
+
+  Configuration of the IP firewall rules is performed using the ipfwadm
+  command. As I mentioned earlier, security is not something I am expert
+  at, so while I will present an example you can use, you should do your
+  own research and develop your own rules if security is important to
+  you.
+
+  Probably the most common use of IP firewall is when you are using your
+  linux machine as a router and firewall gateway to protect your local
+  network from unauthorized access from outside your network.
+
+
+  The following configuration is based on a contribution from Arnt
+  Gulbrandsen, <agulbra@troll.no>.
+
+  The example describes the configuration of the firewall rules on the
+  Linux firewall/router machine illustrated in this diagram:
+
+
+
+       -                                   -
+        \                                  | 172.16.37.0
+         \                                 |   /255.255.255.0
+          \                 ---------      |
+           |  172.16.174.30 | Linux |      |
+       NET =================|  f/w  |------|    ..37.19
+           |    PPP         | router|      |  --------
+          /                 ---------      |--| Mail |
+         /                                 |  | /DNS |
+        /                                  |  --------
+       -                                   -
+
+
+
+  The following commands would normally be placed in an rc file so that
+  they were automatically started each time the system boots. For
+  maximum security they would be performed after the network interfaces
+  are configured, but before the interfaces are actually brought up to
+  prevent anyone gaining access while the firewall machine is rebooting.
+
+
+
+          #!/bin/sh
+
+          # Flush the 'Forwarding' rules table
+          # Change the default policy to 'accept'
+          #
+          /sbin/ipfwadm -F -f
+          /sbin/ipfwadm -F -p accept
+          #
+          # .. and for 'Incoming'
+          #
+          /sbin/ipfwadm -I -f
+          /sbin/ipfwadm -I -p accept
+
+          # First off, seal off the PPP interface
+          # I'd love to use '-a deny' instead of '-a reject -y' but then it
+          # would be impossible to originate connections on that interface too.
+          # The -o causes all rejected datagrams to be logged. This trades
+          # disk space against knowledge of an attack of configuration error.
+          #
+          /sbin/ipfwadm -I -a reject -y -o -P tcp -S 0/0 -D 172.16.174.30
+
+          # Throw away certain kinds of obviously forged packets right away:
+          # Nothing should come from multicast/anycast/broadcast addresses
+          #
+          /sbin/ipfwadm -F -a deny -o -S 224.0/3 -D 172.16.37.0/24
+          #
+          # and nothing coming from the loopback network should ever be
+          # seen on a wire
+          #
+          /sbin/ipfwadm -F -a deny -o -S 127.0/8 -D 172.16.37.0/24
+
+          # accept incoming SMTP and DNS connections, but only
+          # to the Mail/Name Server
+          #
+          /sbin/ipfwadm -F -a accept -P tcp -S 0/0 -D 172.16.37.19 25 53
+          #
+          # DNS uses UDP as well as TCP, so allow that too
+          # for questions to our name server
+          #
+          /sbin/ipfwadm -F -a accept -P udp -S 0/0 -D 172.16.37.19 53
+          #
+          # but not "answers" coming to dangerous ports like NFS and
+          # Larry McVoy's NFS extension.  If you run squid, add its port here.
+          #
+          /sbin/ipfwadm -F -a deny -o -P udp -S 0/0 53 \
+                  -D 172.16.37.0/24 2049 2050
+
+          # answers to other user ports are okay
+          #
+          /sbin/ipfwadm -F -a accept -P udp -S 0/0 53 \
+                  -D 172.16.37.0/24 53 1024:65535
+
+          # Reject incoming connections to identd
+          # We use 'reject' here so that the connecting host is told
+          # straight away not to bother continuing, otherwise we'd experience
+          # delays while ident timed out.
+          #
+          /sbin/ipfwadm -F -a reject -o -P tcp -S 0/0 -D 172.16.37.0/24 113
+
+          # Accept some common service connections from the 192.168.64 and
+          # 192.168.65 networks, they are friends that we trust.
+          #
+          /sbin/ipfwadm -F -a accept -P tcp -S 192.168.64.0/23 \
+                  -D 172.16.37.0/24 20:23
+
+          # accept and pass through anything originating inside
+          #
+          /sbin/ipfwadm -F -a accept -P tcp -S 172.16.37.0/24 -D 0/0
+
+          # deny most other incoming TCP connections and log them
+          # (append 1:1023 if you have problems with ftp not working)
+          #
+          /sbin/ipfwadm -F -a deny -o -y -P tcp -S 0/0 -D 172.16.37.0/24
+
+          # ... for UDP too
+          #
+          /sbin/ipfwadm -F -a deny -o -P udp -S 0/0 -D 172.16.37.0/24
+
+
+
+  Good firewall configurations are a little tricky. This example should
+  be a reasonable starting point for you. The ipfwadm manual page offers
+  some assistance in how to use the tool. If you intend to configure a
+  firewall, be sure to ask around and get as much advice from sources
+  you consider reliable and get someone to test/sanity check your
+  configuration from the outside.
+
+  6.7.  IP Firewall (for Linux-2.2)
+
+  The new firewalling code is accessed via ``IP Firewall Chains''.  See
+  the IP chanins home page for more information.  Among other things,
+  you'll now need to use ipchains instead of ipfwadm to configure your
+  filters. (From Documentation/Changes in the latest kernel sources).
+
+  We are aware that this is a sorely out of date statement and we are
+  currently working on getting this section more current. You can expect
+  a newer version in August of 1999.
+
+	
+  8.7.  Firewall
+
+  A firewall is a device that protects a private network from the public
+  part (the internet as a whole). It is designed to control the flow of
+  packets based on the source, destination, port and packet type
+  information contained in each packet.
+
+  Different firewall toolkits exist for Linux as well as built-in
+  support in the kernel. Other firewalls are TIS and SOCKS. These
+  firewall toolkits are very complete and combined with other tools
+  allow blocking/redirection of all kinds of traffic and protocols.
+  Different policies can be implemented via configuration files or GUI
+  programs.
+
+
+  ·  TIS home page <http://www.tis.com>
+
+  ·  SOCKS <http://www.socks.nec.com/socksfaq.html>
+
+  ·  Firewall HOWTO <http://metalab.unc.edu/mdw/HOWTO/Firewall-
+     HOWTO.html>
+
+
+  8.8.  Port forwarding
+
+  An increasing number of web sites are becoming interactive by having
+  cgi-bins or Java applets that access some database or other service.
+  Since this access may pose a security problem, the machine containing
+  the database should not be directly connected to the Internet.
+
+  Port Forwarding can provide an almost ideal solution to this access
+  problem. On the firewall, IP packets that come in to a specific port
+  number can be re-written and forwarded to the internal server
+  providing the actual service. The reply packets from the internal
+  server are re-written to make it appear that they came from the
+  firewall.
+
+  Port forwarding information may be found here
+  <http://www.ox.compsoc.net/~steve/portforwarding.html>
+	
+  8.3.  IP Masquerade
+
+  IP Masquerade is a developing networking function in Linux. If a Linux
+  host is connected to the Internet with IP Masquerade enabled, then
+  computers connecting to it (either on the same LAN or connected with
+  modems) can reach the Internet as well, even though they have no
+  officially assigned IP addresses. This allows for reduction of costs,
+  since many people may be able to access the Internet using a single
+  modem connection as well as contributes to increased security (in some
+  way the machine is acting as a firewall, since unofficially assigned
+  addresses cannot be accessed outside of that network).
+
+  IP masquerade related pages and documents:
+
+  ·  http://ipmasq.home.ml.org/
+  ·  http://www.indyramp.com/masq/links.pfhtml
+  ·  http://metalab.unc.edu/mdw/HOWTO/IP-Masquerade-HOWTO.html
+	
+<title>Firewalling-and-Masquerading</title>
+
+<para>
+</para>
+
+Masquerading Made Simple HOWTO
+
+-----------------------------------------------------------------------------
+
+Chapter 8. Miscellaneous
+
+8.1. Useful Resources
+
+  * [http://ipmasq.webhop.net/] IP Masquerade Resource page Will have all the
+    current information for setting up IP Masquerade on 2.0.x, 2.2.x, and
+    even old 1.2 kernels!
+   
+  * [http://juanjox.kernelnotes.org] Juan Jose Ciarlante's WWW site who is
+    one of the current Linux IP Masquerade maintainers. A mirror can be fount
+    at [http://ipmasq.webhop.net/juanjox/] ipmasq.webhop.net/juanjox
+   
+  * IP Masquerade mailing list Archives contains the recent messages sent to
+    the mailing lists.
+   
+  * David Ranch's Linux page including the TrinityOS Linux document and
+    current versions of the IP-MASQ-HOWTO.. Topics such as IP MASQ, strong
+    IPFWADM/IPCHAINS rulesets, PPP, Diald, Cablemodems, DNS, Sendmail, Samba,
+    NFS, Security, etc. are covered.
+   
+  * The IP Masquerading Applications page: A comprehensive list of
+    applications that work or can be tuned to work through a Linux IP
+    masquerading server.
+   
+  * For users setting up IP Masq on MkLinux, email Taro Fukunaga at [mailto:
+    tarozax@earthlink.net] tarozax@earthlink.net for a copy of his short
+    MkLinux version of this HOWTO.
+   
+  * IP masquerade FAQ has some general information
+   
+  * Paul Russel's [http://www.netfilter.org/ipchains/] http://
+    www.netfilter.org/ipchains/ doc and its possibly older backup at Linux
+    IPCHAINS HOWTO. This HOWTO has lots of information for IPCHAINS usage, as
+    well as source and binaries for the ipchains tool. 
+   
+  * [http://www.xos.nl/linux/ipfwadm/] X/OS Ipfwadm page contains sources,
+    binaries, documentation, and other information about the ipfwadm package
+   
+  * Check out the GreatCircle's Firewall mailing list for a great resource
+    about strong firewall rulesets.
+   
+  * The LDP Network Administrator's Guide is a MUST for the beginner Linux
+    administrator trying to set up a network.
+   
+  * The [http://www.tldp.org/HOWTO/Net-HOWTO/index.html] Linux NET HOWTO is
+    also another comprehensive document on how to setup and configure Linux
+    networking.
+   
+  * Linux ISP Hookup HOWTO and [http://www.tldp.org/HOWTO/PPP-HOWTO/
+    index.html] Linux PPP HOWTO gives you information on how to connect your
+    Linux host to the Internet
+   
+  * Linux Ethernet-Howto is a good source of information about setting up a
+    LAN running over Ethernet.
+   
+  * Donald Becker's NIC drivers and Support Utils
+   
+  * You may also be interested in [http://www.tldp.org/HOWTO/
+    Firewall-HOWTO.html] Linux Firewalling and Proxy Server HOWTO
+   
+  * Linux Kernel HOWTO will guide you through the kernel compilation process
+   
+  * Other [http://www.tldp.org/HOWTO/HOWTO-INDEX/howtos.html] Linux HOWTOs
+    such as Kernel HOWTO
+   
+  * Posting to the USENET newsgroup: [news:comp.os.linux.networking]
+    comp.os.linux.networking
+ 
+-----------------------------------------------------------------------------
+
+8.2. Linux IP Masquerade Resource
+
+The [http://ipmasq.webhop.net/] Linux IP Masquerade Resource is a website
+dedicated to Linux IP Masquerade information also maintained by Ambrose Au.
+It has the latest information related to IP Masquerade and may have
+information that is not being included in the HOWTO.
+
+You may find the Linux IP Masquerade Resource at the following locations:
+
+  * [http://ipmasq.webhop.net/] http://ipmasq.webhop.net/, Primary Site,
+    redirected to [http://ipmasq.webhop.net/] http://ipmasq.webhop.net/
+   
+  * [http://ipmasq2.webhop.net/] http://ipmasq2.webhop.net/, Secondary Site,
+    redirected to [http://www.e-infomax.com/ipmasq/] http://www.e-infomax.com
+    /ipmasq
+   
+</sect1 id="Firewalling-and-Masquerading">
+
+<sect1 id="Bridges">
+
+<title>Bridges</title>
+
+<para>
+This section describes how to setup an ethernet bridge. What is an ethernet
+bridge? An ethernet bridge is a device that controls data packets within a
+subnet in an attempt to cut down the amount of traffic. A bridge is usually
+placed between two separate groups of computers that talk within themselves,
+but not so much with the computers in the other group. A good example of this
+is to consider a cluster of Macintoshes and a cluster of Unix machines. Both
+of these groups of machines tend to be quite chatty amongst themselves, and
+the traffic they produce on the network causes collisions for the other
+machines who are trying to speak to one another. A bridge would be placed
+between these groups of computers. The job of the bridge is then to examine
+the destination of the data packets one at a time and decide whether or not
+to pass the packets to the other side of the ethernet segment. The result is
+a faster, quieter network with less collisions.
+</para>
+
+<para>
+Several bridges can work together to create even larger networks of Ethernets
+using the IEEE 802.1 spanning tree algorithm. As this is a standard, Linux
+bridges will interoperate properly with other third party bridge products.
+Additional packages allow filtering based on IP, IPX or MAC addresses.
+</para>
+
+<para>
+The section immediately below provides a quick guide as on how to create
+a bridge.
+</para>
+
+1. Setup
+
+  * Get Bridge Config: [ftp://ftp.tux.org/people/alan-cox/BRCFG.tgz]
+    BRCFG.tgz
+   
+  * BRCFG may also be found at: [http://coledd.com/networking/bridge/] http:/
+    /coledd.com/networking/bridge
+   
+  * Enable multiple ethernet devices on your machine by adding this line to
+    your /etc/lilo.conf, and re-run lilo:
+    +---------------------------------------------------------------+
+    |append = "ether=0,0,eth1"                                      |
+    +---------------------------------------------------------------+
+   
+    If you have three interfaces on your bridge, use this line instead:
+    +---------------------------------------------------------------+
+    |append = "ether=0,0,eth1 ether=0,0,eth2"                       |
+    +---------------------------------------------------------------+
+   
+    More interfaces can be found by adding more ether statements. By default
+    a stock Linux kernel probes for a single ethercard, and once one is found
+    the probe ceases. The above append statement tells the kernel to keep
+    probing for more ethernet devices after the first one is found.
+    Alternatively, the boot parameter can be used instead:
+    +---------------------------------------------------------------+
+    |linux ether=0,0,eth1                                           |
+    +---------------------------------------------------------------+
+   
+    Or, with 3 interfaces, use:
+    +---------------------------------------------------------------+
+    |linux ether=0,0,eth1 ether=0,0,eth2                            |
+    +---------------------------------------------------------------+
+   
+  * Recompile the kernel with BRIDGING enabled.
+   
+  * A bridge should not have an IP address. It CAN, but a plain bridge
+    doesn't need one. To remove the IP address from your bridge, go to /etc/
+    sysconfig/network-scripts/ (for a RedHat system) and copy ifcfg-lo0 to
+    ifcfg-eth0 & ifcfg-eth1. In these two new files, change the line
+    containing DEVICE=lo to DEVICE=eth0 and DEVICE=eth1. Since other
+    distributions may deviate from this, you may need to refer to additional
+    documentation. If there are more than 2 interfaces to this bridge, be
+    sure to make the corresponding configurations to those, as well.
+   
+  * Reboot so you are running the new kernel with BRIDGING in it, and also to
+    make sure that an IP addresses are not bound to the network interfaces.
+   
+  * Once the system is backed up, put the ethernet cards into promiscuous
+    mode, so they will look at every packet that passes by its interface:
+
+<para>
+This section provide a guide on how to create an ethernet bridge and
+add a 'netfilter' system.
+</para>	
+
+  Setting up an ethernet bridge gives us the chance to integrate a sur­
+  veying and/or regulating instance transparently into an existing net­
+  work. This setup requires no changes to the logical network topology.
+  It is accomplished by plugging the ethernet bridge in the physical
+  network topology between the network itself and the routing instance
+  (that piece of hardware connected to the Internet).
+
+  1.  Introduction
+
+  Ethernet bridges connect two or more distinct ethernet segments
+  transparently.
+  An ethernet bridge distributes ethernet frames coming in on one port
+  to other ports associated to the bridge interface. This is
+  accomplished with brain: Whenever the bridge knows on which port the
+  MAC address to which the frame is to be delivered is located it
+  forwards this frame only to this only port instead of polluting all
+  ports together.
+  Ethernet interfaces can be added to an existing bridge interface and
+  become then (logical) ports of the bridge interface.
+  Putting a netfilter structure on top of a bridge interface renders the
+  bridge capable of servicing filtering mechanisms. This way, a
+  transparent filtering instance can be created. It even needs no IP
+  address assigned to work.  Of course, you can assign an IP address to
+  the bridge interface for maintenance purposes ( certainly, with ssh
+  only ;-).
+  The advantage of this system is evident. Transparency alleviates the
+  network administrator of the pain of restructuring the network
+  topology. And users may not notice the existence of the bridge but
+  their connection beeing blocked. Also, users are not disturbed while
+  working (think of a company where network connection loss pays alot).
+  The other common case is a client beeing connected to the global web
+  via a leased router. As the providers seldomly grant administration
+  privileges on their leasing hardware, the client cannot change the
+  interconnecting configuration.  But, of course, the client has a
+  network running, and wants to spend at least as possible, he does not
+  want to reconfigure his entire network. And he does not need to if he
+  uses a bridging device.
+
+  2.  Required software
+
+  This software setup is needed on the ethernet bridge computer.
+  According to our ``Testing grounds''.
+
+  2.1.  Featured Linux kernel
+
+  As of kernel version 2.4.18 there's already support for the Ethernet
+  Bridge capability built-in. No patches needed so far.
+  But if we intend to use netfilter capabilities, because we want to run
+  iptables on our new Linux router/fw box, we still need to apply a
+  patch.  Any patches needed can be found and downloaded on the
+  ``sourceforge Ethernet Bridge homepage''.
+
+  root@bridge:~> cd /usr/src/
+  root@bridge:~> wget -c http://bridge.sourceforge.net/devel/bridge-nf/bridge-nf-0.0.7-against-2.4.18.diff
+  root@bridge:~> cd /usr/src/linux/
+  root@bridge:~> patch -p1 -i ../bridge-nf/bridge-nf-0.0.7-against-2.4.18.diff
+
+  Supposedly we want netfilter support on our bridge interface and we
+  have already patched the vanillal kernel we may now activate some
+  necessary kernel configuration items. On how to build a private kernel
+  image see the CD-Net-Install-HOWTO, Toolbox <http://www.think-
+  future.de/DOCUMENTATION/CD-Net-Install-HOWTO/CD-Net-Install-
+  HOWTO-4.html#Kernel_Configuration>.  Oh, yeah, it's still in German
+  only. Hm, I have to fix this some time..
+
+  Nevertheless, we start by now: In
+
+  Code maturity level options
+
+  we activate
+
+    [*] Prompt for development and/or incomplete code/drivers
+
+  and in
+
+    Loadable module support
+
+      [*] Enable loadable module support
+      [*]   Set version information on all module symbols
+      [*]   Kernel module loader
+
+  Ok, so far so good.  Now, we go to
+
+               Networking options
+
+  and mark
+
+               [*] Network packet filtering (replaces ipchains)
+               [*]   Network packet filtering debugging
+
+  Furthermore, in
+
+                 IP: Netfilter Configuration  --->
+
+  we mark any item we need as module.  Now the long awaited item: acti­
+  vate
+
+               <M> 802.1d Ethernet Bridging
+
+  as well as
+
+               [*]   netfilter (firewalling) support
+
+  Note:
+  The above entry is available only if we successfully patched our
+  kernel!
+
+  Finally, we just need a successful
+
+    root@bridge:~> make dep clean bzImage modules modules_install
+
+  cycle and we're done.  Don't forget to edit /etc/lilo.conf and do
+
+    root@bridge:~> lilo -t
+    root@bridge:~> lilo
+    root@bridge:~> reboot
+
+  , though.
+
+  Hint:
+  Perhaps we might mark our new kernel as the bridge kernel? We vi
+  the toplevel Makefile in our kernel sources and edit the head
+  line called EXTRAVERSION =.  We may actually set it to, say
+  bridge? ;-)
+  After the modules_install we find the fresh modules in
+  /lib/modules/2.4.18bridge
+
+  2.2.  Userspace tool: brctl
+
+  Once our kernel has the capabilities needed to perform Ethernet Bridge
+  and netfilter actions, we prepare the user space tool brctl. brctl is
+  the configuration tool we use to ``set up'' anything to suit our
+  needs.
+
+  We ``download the source tarball'', unpack it and change directory
+  into it.
+
+  root@bridge:~> wget -c http://bridge.sourceforge.net/bridge-utils/bridge-utils-0.9.5.tar.gz
+  root@bridge:~> tar xvzf bridge-utils-0.9.5.tar.gz
+  root@bridge:~> cd bridge-utils-0.9.5
+
+  At this time, read the README and the files in the doc/ subdirectory.
+  Then do a simple make and copy the resulting brctl/brctl executable to
+  /sbin/.
+
+       root@bridge:~> make
+       root@bridge:~> cp -vi brctl/brctl /sbin/
+
+  This is it. Go for ``Setup'' now.
+
+  3.  Set Linux up to serve
+
+  3.1.  Setting up the bridge
+
+  We need Linux to know about the bridge. First tell it that we want one
+  virtual ethernet bridge interface: (this is to be executed on host
+  bridge, of course.  See ``Testing grounds'')
+
+       root@bridge:~> brctl addbr br0
+
+  Second, we do not need the STP (Spanning Tree Protocol). I.e. we do
+  only have one single router, so a loop is highly improbable. We may
+  then deactivate this feature.  (Results in less polluted networking
+  environment, too):
+
+       root@bridge:~> brctl stp br0 off
+
+  After these preparations, we now do finally some effective commands.
+  We add our two (or even more) physical ethernet interfaces. That
+  means, we attach them to the just born logical (virtual) bridge inter­
+  face br0.
+
+       root@bridge:~> brctl addif br0 eth0
+       root@bridge:~> brctl addif br0 eth1
+
+  Now, our two previously physical ethernet interfaces became a logical
+  bridge port each.  Erm, ok, there were and will be the physical
+  devices. They are still there, go have a look ;-) But now they became
+  part of the logical bridge device and therefore need no IP configura­
+  tion any longer. So release the IPs:
+
+       root@bridge:~> ifconfig eth0 down
+       root@bridge:~> ifconfig eth1 down
+       root@bridge:~> ifconfig eth0 0.0.0.0 up
+       root@bridge:~> ifconfig eth1 0.0.0.0 up
+
+  Great! We now have a box w/o any IP attached. So if you were configur­
+  ing your future fw/router via TP, go for your local console now ;-))
+  You have a serial console? Happy one :-)
+
+  Optional:
+  We tell Linux the new (logical) interface and associate one
+  single IP with it:
+
+          root@bridge:~> ifconfig br0 10.0.3.129 up
+
+  And we're done.
+  Read the ``Important Note''!
+
+  3.2.  Setting up the routing
+
+  In case we are configuring a gateway we enable the forwarding in the
+  linux kernel.
+
+       root@bridge:~> echo "1" > /proc/sys/net/ipv4/ip_forward
+
+  Our box already has an IP assigned but no default route. We solve this
+  now:
+
+       root@bridge:~> route add default gw 10.0.3.129
+
+  Finally, we should have a working net from, to and through the gate­
+  way.
+
+  4.  Test your new bridged environment!
+
+  4.1.  Testing Grounds
+
+  We imagine this scenario or similar:
+                                                                 /\
+                 Ethernet           Ethernet           ATM    /-/  \
+       ---------          ---------          ---------     /-/      |
+       |  Box  |----------|Bridge |----------|Router |-----| Inter-  \
+       ---------          ---------          ---------     \  net  ---|
+                ^        ^         ^        ^               \     /
+                |        |         |        |                \---/
+               eth0     eth0      eth1     if0                 ^
+                |        |         |        |                  |
+             10.0.3.2   none/10.0.3.1      195.137.15.7    anything else
+                         \         /
+                          \       /
+          ^                \-br0-/
+          |                                      ^             ^
+          |                   ^                  |             |
+          |                   |                  |             |
+         own                 own              foreign        hostile
+
+  Our administrative power includes only machines marked with own, the
+  Router is completely off-limits and so is the Internet, of course.
+  That means, if we want to control the flying bits'n'bytes on the eth­
+  ernet wire we can chose to integrate a common firewall or file in a
+  bridge.
+  Drawback of the standard way is you have to change the default gateway
+  route on every and any single host in your net. And this is really a
+  heavy weighting drawback, nobody wants to change more than 5 default
+  routes on 5 different hosts more than one time. Keep the time in mind,
+  this will consume, also! Not to forget, this is a error-prone way to
+  handle the more about security..
+  The other way is clean, less time-consuming, more secure and less
+  error-prone.  More secure in that we won't have the need to assign any
+  IP address. No IP, no danger.  So far the theory, we hope, our stacks
+  are safe. (Although this hope should better not relied on..) The over­
+  all advantage is, this bridge-setup is completely transparent, no IP,
+  MAC, .. changes at all.
+  So it's up to you to chose your preferred method. But we will handle
+  just the fancy one here ;-)
+
+  4.2.  Ping it, Jim!
+
+  We will configure the Box' eth0 as usual. The bridge's interfaces are
+  configured as described in ``Setup''.
+
+  If we are to use forwarding we might perhaps do this one: ;-)
+
+       root@bridge:~> echo "1" > /proc/sys/net/ipv4/ip_forward
+
+  Optionally, we set up a default route:
+
+       root@bridge:~> route add default gw 10.0.3.129
+
+  Then we set up some iptables rules on host bridge:
+
+       root@bridge:~> iptables -P FORWARD DROP
+       root@bridge:~> iptables -F FORWARD
+       root@bridge:~> iptables -I FORWARD -j ACCEPT
+       root@bridge:~> iptables -I FORWARD -j LOG
+       root@bridge:~> iptables -I FORWARD -j DROP
+       root@bridge:~> iptables -A FORWARD -j DROP
+       root@bridge:~> iptables -x -v --line-numbers -L FORWARD
+
+  The last line gives us the following output:
+
+       Chain FORWARD (policy DROP 0 packets, 0 bytes)
+       num      pkts      bytes target   prot opt in     out     source   destination
+       1           0        0 DROP       all  --  any    any     anywhere anywhere
+       2           0        0 LOG        all  --  any    any     anywhere anywhere      LOG level warning
+       3           0        0 ACCEPT     all  --  any    any     anywhere anywhere
+       4           0        0 DROP       all  --  any    any     anywhere anywhere
+
+  The LOG target logs every packet via syslogd. Beware, this is intended
+  for testing purposes only, remove in production environment. Else you
+  end up either with filled logs and harddisk partitions by you yourself
+  or anyone else does this Denial of Service to you. You've been warned.
+  Test this ruleset now. Ping the router interface's IP (195.137.15.7)
+  on host box:
+
+       root@box:~> ping -c 3 195.137.15.7
+       PING router.provider.net (195.137.15.7) from 10.0.3.2 : 56(84) bytes of data.
+       --- router.provider.net ping statistics ---
+       3 packets transmitted, 0 received, 100% loss, time 2020ms
+       ^C
+       root@box:~>
+
+  By default, we DROP everything. No response, no logged packet. This
+  netfilter setup is designed to DROP all packets unless we delete the
+  rule that drops every packet (rule no. 1 above) before the LOG target
+  matches:
+
+  root@bridge:~> iptables -D FORWARD 1
+  root@bridge:~> iptables -x -v --line-numbers -L FORWARD
+
+  Now, the rules are:
+
+       Chain FORWARD (policy DROP 0 packets, 0 bytes)
+       num      pkts      bytes target   prot opt in     out     source   destination
+       2           0        0 LOG        all  --  any    any     anywhere anywhere      LOG level warning
+       3           0        0 ACCEPT     all  --  any    any     anywhere anywhere
+       4           0        0 DROP       all  --  any    any     anywhere anywhere
+
+  And any packet may pass through. Test it with a ping on host box:
+
+       root@box:~> ping -c 3 195.137.15.7
+       PING router.provider.net (195.137.15.7) from 10.0.3.2 : 56(84) bytes of data.
+       64 bytes from router.provider.net (195.137.15.7): icmp_seq=1 ttl=255 time=0.103 ms
+       64 bytes from router.provider.net (195.137.15.7): icmp_seq=2 ttl=255 time=0.082 ms
+       64 bytes from router.provider.net (195.137.15.7): icmp_seq=3 ttl=255 time=0.083 ms
+
+       --- router.provider.net ping statistics ---
+       3 packets transmitted, 3 received, 0% loss, time 2002ms
+       rtt min/avg/max/mdev = 0.082/0.089/0.103/0.012 ms
+       root@box:~>
+
+  Yippeah! The router is alive, up and running. (Well it has been all
+  day long.. ;-)
+
+  Important Note:
+  When we just fired up the bridge interface it takes about
+  roughly 30 seconds until the bridge is fully operational. This
+  is due the 30-seconds-learning phase of the bridge interface.
+  During this phase, the bridge ports are learning what MAC
+  addresses exist on what port. The bridge author, Lennert, tells
+  us in his TODO file, the 30-seconds-learning phase is subjected
+  to some improvement in a timely manner some time.
+  During the test phase, no packet will we forwarded. No ping be
+  answered.  Remind this!
+
+  4.3.  Actual configuration
+
+  This section is intended to give you, dear reader, some hints about
+  how your system should look and feel after having processed this howto
+  successfully.
+
+  4.3.1.  Interface configuration
+
+  The output of your ifconfig command might look similar to this:
+
+       root@bridge:~> ifconfig
+       br0       Link encap:Ethernet  HWaddr 00:04:75:81:D2:1D
+                 inet addr:10.0.3.129  Bcast:195.30.198.255  Mask:255.255.255.128
+                 UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                 RX packets:826 errors:0 dropped:0 overruns:0 frame:0
+                 TX packets:737 errors:0 dropped:0 overruns:0 carrier:0
+                 collisions:0 txqueuelen:0
+                 RX bytes:161180 (157.4 Kb)  TX bytes:66708 (65.1 Kb)
+
+       eth0      Link encap:Ethernet  HWaddr 00:04:75:81:ED:B7
+                 UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                 RX packets:5729 errors:0 dropped:0 overruns:0 frame:0
+                 TX packets:3115 errors:0 dropped:0 overruns:0 carrier:656
+                 collisions:0 txqueuelen:100
+                 RX bytes:1922290 (1.8 Mb)  TX bytes:298837 (291.8 Kb)
+                 Interrupt:11 Base address:0xe400
+
+       eth1      Link encap:Ethernet  HWaddr 00:04:75:81:D2:1D
+                 UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                 RX packets:0 errors:0 dropped:0 overruns:1 frame:0
+                 TX packets:243 errors:0 dropped:0 overruns:0 carrier:0
+                 collisions:0 txqueuelen:100
+                 RX bytes:342 (342.0 b)  TX bytes:48379 (47.2 Kb)
+                 Interrupt:7 Base address:0xe800
+
+       lo        Link encap:Local Loopback
+                 inet addr:127.0.0.1  Mask:255.0.0.0
+                 UP LOOPBACK RUNNING  MTU:16436  Metric:1
+                 RX packets:1034 errors:0 dropped:0 overruns:0 frame:0
+                 TX packets:1034 errors:0 dropped:0 overruns:0 carrier:0
+                 collisions:0 txqueuelen:0
+                 RX bytes:82068 (80.1 Kb)  TX bytes:82068 (80.1 Kb)
+
+  4.3.2.  Routing configuration
+
+  The output of your route command might look similar to this:
+
+       root@bridge:~> route -n
+       Kernel IP routing table
+       Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+       10.0.3.129      0.0.0.0         255.255.255.128 U     0      0        0 br0
+       0.0.0.0         10.0.3.129      0.0.0.0         UG    0      0        0 br0
+       root@bridge:~>
+
+  4.3.3.  Iptables configuration
+
+  Please have a look at the ``Ping it, Jim!'' section.
+
+  4.4.  Note
+
+  Apparently, there must have been a bug in the br-nf code:
+
+       From: Bart De Schuymer <bart.de.schuymer_@_pandora.be>
+       Date: Sun, 1 Sep 2002 21:52:46 +0200
+       To: Nils Radtke <Nils.Radtke_@_Think-Future.de>
+       Subject: Re: Ethernet-Brigde-netfilter-HOWTO
+
+       Hello Nils,
+
+       [...]
+       Also, network packet filtering debugging is generally a bad idea with the
+       br-nf patch. It can gives a lot of false warnings (about bugs) in the logs.
+       [...]
+
+  Personally, I never had false positives in my log. Maybe, that bug has
+  been fixed. This mailed to Bart, he wrote:
+
+       From: Bart De Schuymer <bart.de.schuymer_@_pandora.be>
+       Date: Mon, 2 Sep 2002 18:30:25 +0200
+       To: Nils Radtke <Nils.Radtke_@_Think-Future.de>
+       Subject: Re: Ethernet-Brigde-netfilter-HOWTO
+
+       On Monday 02 September 2002 00:39, Nils Radtke wrote:
+       > Will the revision of the nf-debug code in br-nf be subject of improvement?
+
+       I must admit I haven't been running any kernel with netfilter debugging
+       lately. It sure used to give false positives a few months ago (the bridge
+       mailing list has posts about that), I've been lacking time to see why and if
+       it is still the case. It's on my todo list.
+       [...]
+
+  But (as of writing this 2002-09-19) I haven't found an official
+  announcement, this particular bug has been closed. So have a constant
+  look at this topic on the ``ethernet bridge mailinglist'' , if you are
+  interested in it's cure.
+
+  5.  Links
+
+  The Howto's author may be contacted via e-mail <mailto:Ethernet-
+  Bridge-netfilter-Howto_@_Think-Future.de>.
+  Howto Author's homepage <http://www.Think-Future.de/>.
+
+  5.1.  Ethernet-Bridge
+
+
+  ·   Ethernet Bridge Mailinglist
+     <http://www.math.leidenuniv.nl/pipermail/bridge/>
+
+  ·   User space utilities, patches, etc.: Home of Linux kernel Ethernet
+     Bridge <http://bridge.sourceforge.net>
+
+  ·   Bridge-STP-HOWTO <http://www.tldp.org/HOWTO/BRIDGE-STP-
+     HOWTO/index.html>
+
+  ·   Firewalling for Free, Shawn Grimes
+     <./additional_docs/Firewalling_for_Free.pdf>
+
+  5.2.  Related Topics
+
+  ·  Filtering on frame level, Ethernet-Bridging-Tables:
+     ebtables, sourceforge <http://sourceforge.net/projects/ebtables>
+     ebtables, homepage at pandora.be
+     <http://users.pandora.be/bart.de.schuymer/ebtables/>
+     ebtables, supported features
+     <http://users.pandora.be/bart.de.schuymer/ebtables/properties.html>
+     ebtables, examples: basic
+     <http://users.pandora.be/bart.de.schuymer/ebtables/examples.html>,
+     advanced
+     <http://users.pandora.be/bart.de.schuymer/ebtables/battlefield_examples.html>
+     ebtables, in-depth documentation
+     <http://users.pandora.be/bart.de.schuymer/ebtables/br_fw_ia/br_fw_ia.html>
+     ebtables, Hacking HOWTO
+     <http://users.pandora.be/bart.de.schuymer/ebtables/ebtables-
+     hacking/ebtables-hacking-HOWTO.html>
+
+  ·  IP mode, Linux Bridge extension: IP mode, LVS
+     <http://www.linuxvirtualserver.org/~julian/#bridging>
+
+  ·  Linux in High-Availability environments: High-Availability Linux
+     <http://www.linux-ha.org/>
+
+  ·  Linux Virtual Server: LVS <http://www.linuxvirtualserver.org/>
+
+<para>
+This section describes how to unite two separate ethernet LANs with an IP
+tunnel between them. It is short and designed for impatient people or those
+who lack time.
+</para>
+
+1. How does it work?
+
+You can transparently bridge traffic between 2 ethernet LANs to unite them,
+if both of them are connected to Internet.
+
+There is no way to do a "real" bridge, you can only bridge third level
+protocols, which linux knows how to route, but ethernet traffic with those
+protocols will seem bridged. You can make 2 ethernet bridges, to bridge IP
+and/or IPX traffic. You cannot transparently bridge any other third level
+protocols between distinct LANs. You should read the rest of this document to
+determine whether you can bridge any other protocol.
+-----------------------------------------------------------------------------
+
+1.1. Bridging IP over ethernet traffic between 2 LANs.
+
+If you have:
++---------------------------------------------------------------------------+
+|PC1   (192.168.0.1  /24)--|                                                |
+|PC3   (192.168.0.3  /24)--|                                                |
+|PC5   (192.168.0.5  /24)--|--[ eth0 - bridge_1 - eth1 (195.0.0.1) ]        |
+|                                                                           |
+|PC253 (192.168.0.253/24)--|                                                |
+|                                         | (192.168.0.2  /24) PC2          |
+|                                         | (192.168.0.4  /24) PC4          |
+|[ (192.0.0.1) eth1 - bridge_2 - eth0 ] --| (192.168.0.6  /24) PC6          |
+|                                                                           |
+|                                         | (192.168.0.254/24) PC254        |
++---------------------------------------------------------------------------+
+
+bridge_1 and bridge_2 are your Linux bridges and externally connected to the
+Internet interface eth1. So 195.0.0.1 and 192.0.0.1 can be any valid Internet
+addresses given to you by your ISP.
+
+So, you should:
+
+ 1. Get two linux computers with kernels 2.2 or 2.4. Kernels should be
+    compiled with PPP and Advanced Router. You also need the iproute2 package
+    properly installed. Information on iproute2 can be found in
+    Configure.help of your kernel in the comments under Advanced Router. You
+    also need the following utilities:
+   
+      + pppd (PPP daemon) - [ftp://cs.anu.edu.au/pub/software/ppp/] ftp://
+        cs.anu.edu.au/pub/software/ppp/
+       
+      + PopTop (PPTP server) - [http://poptop.lineo.com/] http://
+        poptop.lineo.com
+       
+      + PPTP (Linux PPTP Client, by C.S. Ananian) - [http://
+        www.pdos.lcs.mit.edu/~cananian/Projects/PPTP/] http://
+        www.pdos.lcs.mit.edu/~cananian/Projects/PPTP/
+       
+      + tarpd (a trivial proxy arp daemon) - [http://www.cs.hut.fi/~tricky/
+        utils/net/tarpd-1.6.tar.gz] htp://www.cs.hut.fi/~tricky/utils/net/
+        tarpd-1.6.tar.gz
+       
+   
+    You can also find them on [http://www.freshmeat.net] http://
+    www.freshmeat.net
+   
+    Please, keep in mind that you need special patches for pppd and the
+    kernel if you want to do MS Chap and MS Encryption (MPPE). Refer to the 
+    PoPTop manual for instructions on how to get and install these patches.
+   
+ 2. Connect your routers to Internet, or establish any other communication
+    between them with the exception of IP.
+   
+ 3. Make a PPTP tunnel between them. There are example configurations in the
+    PoPToP (server) and pptp (client) manuals.
+   
+ 4. Now you should have two bridges and an IP tunnel between then, possibly
+    encrypted (refer to the PPP manual). Let's configure bridging.
+   
+ 5. Remember that the bridge is really a router, so we need to run the
+    following commands on our bridges (this assumes bridge_1 and bridge_2 are
+    IP addresses, assigned to each end of the PPTP tunnel between bridges):
+
+    +---------------------------------------------------------------+
+    |     bridge_1$ip route add 192.168.0.2 via bridge_2            |
+    |     bridge_1$ip route add 192.168.0.4 via bridge_2            |
+    |     bridge_1$ip route add 192.168.0.6 via bridge_2            |
+    |                                                               |
+    |     bridge_1$ip route add 192.168.0.254 via bridge_2          |
+    |     bridge_1$ip route add 192.168.0.255 via bridge_2          |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    On the other side:
+    +---------------------------------------------------------------+
+    |     bridge_2$ip route add 192.168.0.1 via bridge_1            |
+    |     bridge_2$ip route add 192.168.0.3 via bridge_1            |
+    |     bridge_2$ip route add 192.168.0.5 via bridge_1            |
+    |                                                               |
+    |     bridge_2$ip route add 192.168.0.253 via bridge_1          |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    This will tell each of bridges which hosts are on the other side. You can
+    do the same with the old-style route command. It will look like:
+    +---------------------------------------------------------------+
+    |     bridge_1$route add -host 192.168.0.2 gw bridge_2          |
+    |     bridge_1$route add -host 192.168.0.4 gw bridge_2          |
+    |     bridge_1$route add -host 192.168.0.6 gw bridge_2          |
+    |                                                               |
+    |     bridge_1$route add -host 192.168.0.254 gw bridge_2        |
+    |     bridge_1$route add -host 192.168.0.255 gw bridge_2        |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    On the other side:
+    +---------------------------------------------------------------+
+    |     bridge_2$route add -host 192.168.0.1 gw bridge_1          |
+    |     bridge_2$route add -host 192.168.0.3 gw bridge_1          |
+    |     bridge_2$route add -host 192.168.0.5 gw bridge_1          |
+    |                                                               |
+    |     bridge_2$route add -host 192.168.0.253 gw bridge_1        |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    Please note once more that bridge_1 and bridge_2 are not IP addresses
+    given by your ISP, but IP addresses which you assigned to each end of the
+    PPTP tunnel.
+   
+ 6. Now you have two bridges and each of them knows where to find a
+    particular IP. But how do you tell those computers to send their traffic
+    for the remote network to the local bridge? You need tarpd.
+   
+    tarpd is a very simple daemon, which replies to arp requests for certain
+    IP addresses. You only need to run a tarpd on each bridge, and specify
+    the list of IP addresses found on the remote end.
+   
+    For example, for those two bridges you should run:
+    +---------------------------------------------------------------+
+    |     bridge_1$tarpd eth0 192.168.0.2 255.255.255.255  \        |
+    |                         192.168.0.4 255.255.255.255  \        |
+    |                                                               |
+    |                         192.168.0.254 255.255.255.255         |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    On the other side:
+    +---------------------------------------------------------------+
+    |     bridge_2$tarpd eth0 192.168.0.1 255.255.255.255  \        |
+    |                         192.168.0.3 255.255.255.255  \        |
+    |                                                               |
+    |                         192.168.0.253 255.255.255.255         |
+    |                                                               |
+    +---------------------------------------------------------------+
+   
+    You specify 128 remote pairs (IP/mask. Mask should be 255.255.255.255 in
+    order not to confuse tarpd!) on each bridge.
+   
+ 7. Enjoy your bridges!
+
+-----------------------------------------------------------------------------
+1.2. What about other protocols?
+
+Really, I can say nothing about other protocol routing. I never used them.
+But I suppose if you are familiar with other protocols, it should not be too
+difficult to bridge it this way.
+-----------------------------------------------------------------------------
+
+  Related HOWTOs:
+
+  ·  Bridge+Firewall
+     <http://metalab.unc.edu/mdw/HOWTO/mini/Bridge+Firewall.html>
+
+  ·  Bridge <http://metalab.unc.edu/mdw/HOWTO/mini/Bridge.html>
+
+</sect1 id="Bridges">
