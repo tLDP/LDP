@@ -43,7 +43,7 @@ insert(index,
           </td>
         </tr>
       </table>
-      <table class="layout" width="100%'>
+      <table class="layout" width="100%">
         <tr>
           <td>|blkfooter|</td>
         </tr>
@@ -73,7 +73,10 @@ insert(default,
             <p>|navtypes|
             <p>|navlanguages|
           </td>
-          <td class="center body" width="100%" valign="top">|body|</td>
+          <td class="center body" width="100%" valign="top">
+            |body|
+            |tabedit_this_page|
+          </td>
         </tr>
       </table>
       <table class="layout" width="100%">

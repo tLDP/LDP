@@ -52,7 +52,7 @@ class SourceFiles(LampadasCollection):
     """
     
     def load(self):
-        sql = 'SELECT filename, format_code, filesize, filemode, modified FROM sourcefile'
+        sql = 'SELECT filename, filesize, filemode, format_code, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, encoding, created, updated FROM sourcefile'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -62,18 +62,7 @@ class SourceFiles(LampadasCollection):
             sourcefile.errors = FileErrs(sourcefile.filename)
             self.data[sourcefile.filename] = sourcefile
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        self.load_file_metadata()
         self.load_file_errors()
-
-    def load_file_metadata(self):
-        sql = 'SELECT filename, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, updated FROM sourcefile_metadata'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            filename = trim(row[0])
-            sourcefile = self[filename]
-            sourcefile.load_metadata_row(row)
 
     def load_file_errors(self):
         sql = 'SELECT filename, err_id, date_entered FROM file_error'
@@ -86,8 +75,8 @@ class SourceFiles(LampadasCollection):
             fileerr.load_row(row)
             self[filename].errors[fileerr.err_id] = fileerr
 
-    def add(self, filename, format_code=''):
-        sql = 'INSERT INTO sourcefile(filename, format_code) VALUES (' + wsq(filename) + ', ' + wsq(format_code) + ')'
+    def add(self, filename, format_code='', dtd_code='', dtd_version='', title='', abstract='', version='', pub_date='', isbn='', encoding=''):
+        sql = 'INSERT INTO sourcefile(filename, format_code, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, encoding) VALUES (' + wsq(filename) + ', ' + wsq(format_code) + ', ' + wsq(dtd_code) + ', ' + wsq(dtd_version) + ', ' + wsq(title) + ', ' + wsq(abstract) + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(isbn) + ', ' + wsq(encoding) + ')'
         db.runsql(sql)
         sourcefile = SourceFile(filename)
         sourcefile.errors.filename = filename
@@ -111,10 +100,19 @@ class SourceFile:
 
     def __init__(self, filename=''):
         self.filename         = filename
-        self.format_code      = ''
         self.filesize         = 0
         self.filemode         = 0
-        self.modified         = ''
+        self.format_code      = ''
+        self.dtd_code         = ''
+        self.dtd_version      = ''
+        self.title            = ''
+        self.abstract         = ''
+        self.version          = ''
+        self.pub_date         = ''
+        self.isbn             = ''
+        self.encoding         = ''
+        self.created          = ''
+        self.updated          = ''
         self.basename         = ''
         self.dbsgmlfile       = ''
         self.xmlfile          = ''
@@ -128,64 +126,57 @@ class SourceFile:
         self.calc_filenames()
         self.errors = FileErrs()
         self.errors.filename = filename
-        self.reset_metadata()
-        self.metadata_updated = ''
         if filename > '':
             self.load()
 
     def load(self):
-        sql = 'SELECT filename, format_code, filesize, filemode, modified FROM sourcefile WHERE filename=' + wsq(self.filename)
+        sql = 'SELECT filename, filesize, filemode, format_code, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, encoding, created, updated FROM sourcefile WHERE filename=' + wsq(self.filename)
         cursor = db.select(sql)
         row = cursor.fetchone()
         if not row==None:
             self.load_row(row)
             self.errors = FileErrs(self.filename)
 
-        # Read meta-data for formats that support it.
-        if self.format_code in METADATA_FORMATS:
-            sql = 'SELECT filename, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, updated FROM sourcefile_metadata WHERE filename=' + wsq(self.filename)
-            row = cursor.fetchone()
-            if not row==None:
-                self.load_metadata_row(row)
-            
     def load_row(self, row):
         self.filename    = trim(row[0])
-        self.format_code = trim(row[1])
-        self.calc_filenames()
-        self.filesize    = safeint(row[2])
-        self.filemode    = safeint(row[3])
-        self.modified    = time2str(row[4])
+        self.filesize    = safeint(row[1])
+        self.filemode    = safeint(row[2])
+        self.format_code = trim(row[3])
+        self.dtd_code    = trim(row[4])
+        self.dtd_version = trim(row[5])
+        self.title       = trim(row[6])
+        self.abstract    = trim(row[7])
+        self.version     = trim(row[8])
+        self.pub_date    = trim(row[9])
+        self.isbn        = trim(row[10])
+        self.encoding    = trim(row[11])
+        self.created     = time2str(row[12])
+        self.updated     = time2str(row[13])
         self.errors.filename = self.filename
+        self.calc_filenames()
         
-        # Determine file format.
-        extension = string.lower(string.split(self.filename, '.')[-1])
-        if EXTENSIONS.has_key(extension) > 0:
-            self.format_code = EXTENSIONS[extension]
-
         # Always update the meta-data as soon as it is read.
         self.read_metadata()
 
-    def load_metadata_row(self, row):
-        self.dtd_code         = trim(row[1])
-        self.dtd_version      = trim(row[2])
-        self.title            = trim(row[3])
-        self.abstract         = trim(row[4])
-        self.version          = trim(row[5])
-        self.pub_date         = trim(row[6])
-        self.isbn             = trim(row[7])
-        self.metadata_updated = trim(row[8])
-        
     def save(self):
-        dict = {'format_code':self.format_code,
-                'filename':self.filename,
+        dict = {'filename':self.filename,
                 'filesize':999,             # FIXME: Actually write the value! (I'm getting an error.)
                 'filemode':self.filemode,
-                'modified':self.modified,
+                'format_code':self.format_code,
+                'dtd_code':self.dtd_code,
+                'dtd_version':self.dtd_version,
+                'title':self.title,
+                'abstract':self.abstract,
+                'version':self.version,
+                'pub_date':self.pub_date,
+                'isbn':self.isbn,
+                'encoding':self.encoding,
+                'created':self.created,
+                'updated':self.updated
                 }
         sql = sqlgen.update('sourcefile',dict,['filename'])
         db.execute(sql,dict)
         db.commit()
-        self.save_metadata()
 
     def calc_filenames(self):
         self.file_only	 = os.path.split(self.filename)[1]
@@ -212,63 +203,17 @@ class SourceFile:
         self.txtfile        = self.basename + '.txt'
         self.omffile        = self.basename + '.omf'
 
-    def reset_metadata(self):
-        self.dtd_code         = ''
-        self.dtd_version      = ''
-        self.title            = ''
-        self.abstract         = ''
-        self.version          = ''
-        self.pub_date         = ''
-        self.isbn             = ''
-        self.metadata_updated = ''
-
     def read_metadata(self):
         """
         Attempts to read meta-data from a source file.
-        Currently, it reads only DocBook and LinuxDoc files,
+        Currently, it reads DocBook, LinuxDoc and WikiText files,
         but it can be extended to read from Texinfo and
         possibly other formats as well.
         """
 
-        # FIXME: Use libxml2's Python bindings to do this,
-        # or at least use a Python library. This parsing
-        # is a cheap and dirty (not to mention ugly) kludge.
-
-        # Determine DTD for SGML and XML files
-        self.reset_metadata()
-        if self.format_code not in METADATA_FORMATS:
-            self.dtd_code = 'none'
-            return
-
-        if self.local==0:
-            return
-        
-        try:
-            fh = open(self.localname, 'r')
-        except IOError:
-            return
-            
-        flags = re.I | re.M | re.S
-
-        # Read the document header
-        header = WOStringIO()
-        while (1):
-            line = fh.readline()
-            header.write(line)
-            
-            # Stop at the end of the header or EOF.
-            if re.search('</ARTICLEINFO>', line, flags): break
-            if re.search('</ARTHEADER>', line, flags): break
-            if re.search('<SECT', line, flags): break
-            if line=='':
-                break
-        fh.close()
-
-        # Convert header into a regular string for searching
-        header = header.get_value()
-
-        # Use these to store the new data. We'll compare it later and
-        # save it only if it has changed.
+        # Use these to store the new values.
+        # We'll compare it later and save only if something has changed.
+        format_code = ''
         dtd_code    = ''
         dtd_version = ''
         title       = ''
@@ -276,67 +221,119 @@ class SourceFile:
         version     = ''
         pub_date    = ''
         isbn        = ''
+        encoding    = ''
       
-        # WikiText is *always* DocBook, whether or not it contains
-        # an explicit DocType declaration.
-        if self.format_code=='wikitext':
-            dtd_code    ='docbook'
+        # Determine file format.
+        extension = string.lower(string.split(self.filename, '.')[-1])
+        if EXTENSIONS.has_key(extension) > 0:
+            format_code = EXTENSIONS[extension]
+        else:
+            format_code = ''
 
-        # Look for DocType declaration
-        m = re.search('DOCTYPE(.*?)>', header, flags)
-        if m:
-            doctype = m.group(1)
+        # FIXME: Use libxml2's Python bindings to do this,
+        # or at least use a Python library. This parsing
+        # is a cheap and dirty (not to mention ugly) kludge.
 
-            # Look for DocBook declaration
-            m = re.search('DOCBOOK(.*)', doctype, flags)
+        # Determine DTD for SGML and XML files
+        if format_code not in METADATA_FORMATS:
+            dtd_code    = 'none'
+
+        elif self.local==1:
+        
+            try:
+                fh = open(self.localname, 'r')
+            except IOError:
+                return
+            
+            flags = re.I | re.M | re.S
+
+            # Read the document header
+            header = WOStringIO()
+            while (1):
+                line = fh.readline()
+                header.write(line)
+                
+                # Stop at the end of the header or EOF.
+                if re.search('</ARTICLEINFO>', line, flags): break
+                if re.search('</ARTHEADER>', line, flags): break
+                if re.search('<SECT', line, flags): break
+                if line=='':    break
+            fh.close()
+
+            # Convert header into a regular string for searching
+            header = header.get_value()
+
+            # WikiText is *always* DocBook, whether or not it contains
+            # an explicit DocType declaration.
+            if format_code=='wikitext':
+                dtd_code    ='docbook'
+
+            # Look for DocType declaration
+            m = re.search('DOCTYPE(.*?)>', header, flags)
             if m:
-                m = re.search('.*?(V.*?)\/\/', doctype, flags)
-                if m: dtd_version = trim(m.group(1))
-            else:
+                doctype = m.group(1)
 
-                # Look for LinuxDoc declaration
-                m = re.search('LINUXDOC(.*)', doctype, flags)
+                # Look for DocBook declaration
+                m = re.search('DOCBOOK(.*)', doctype, flags)
                 if m:
-                    doctype = m.group(1)
-                    m = re.search('.*?LINUXDOC\s*?(.*?)\/\/', doctype, flags)
+                    m = re.search('.*?(V.*?)\/\/', doctype, flags)
                     if m: dtd_version = trim(m.group(1))
+                else:
 
-        m = re.search('<TITLE>(.*?)</TITLE>', header, flags)
-        if m:
-            title = m.group(1)
+                    # Look for LinuxDoc declaration
+                    m = re.search('LINUXDOC(.*)', doctype, flags)
+                    if m:
+                        doctype = m.group(1)
+                        m = re.search('.*?LINUXDOC\s*?(.*?)\/\/', doctype, flags)
+                        if m: dtd_version = trim(m.group(1))
 
-        m = re.search('<ABSTRACT>(.*?)</ABSTRACT>', header, flags)
-        if m:
-            abstract = m.group(1)
+            m = re.search('<TITLE>(.*?)</TITLE>', header, flags)
+            if m:
+                title = m.group(1)
 
-        if dtd_code=='docbook':
-            m = re.search('<PUBDATE>(.*?)</PUBDATE>', header, flags)
+            m = re.search('<ABSTRACT>(.*?)</ABSTRACT>', header, flags)
             if m:
-                pub_date = m.group(1)
-        elif dtd_code=='linuxdoc':
-            m = re.search('<VERSION>(.*?)</VERSION>', header, flags)
+                abstract = m.group(1)
+
+            if dtd_code=='docbook':
+                m = re.search('<PUBDATE>(.*?)</PUBDATE>', header, flags)
+                if m:
+                    pub_date = m.group(1)
+            elif dtd_code=='linuxdoc':
+                m = re.search('<VERSION>(.*?)</VERSION>', header, flags)
+                if m:
+                    version = m.group(1)
+                m = re.search('<DATE>(.*?)</DATE>', header, flags)
+                if m:
+                    pub_date = m.group(1)
+            
+            m = re.search('<ISBN>(.*?)</ISBN>', header, flags)
             if m:
-                version = m.group(1)
-            m = re.search('<DATE>(.*?)</DATE>', header, flags)
+                isbn = m.group(1)
+
+            m = re.search("ENCODING='(.*?)'", header, flags)
             if m:
-                pub_date = m.group(1)
-        
-        m = re.search('<ISBN>(.*?)</ISBN>', header, flags)
-        if m:
-            isbn = m.group(1)
-        
+                encoding = m.group(1)
+            else:
+                m = re.search('ENCODING="(.*?)"', header, flags)
+                if m:
+                    encoding = m.group(1)
+                
         # Decide whether we need to save this data
-        if dtd_code    <> self.dtd_code or \
-           dtd_version <> self.dtd_version or \
-           title       <> self.title or \
-           abstract    <> self.abstract or \
-           version     <> self.version or \
-           pub_date    <> self.pub_date or \
-           isbn        <> self.isbn:
+        if format_code  <> self.format_code or \
+           dtd_code     <> self.dtd_code or \
+           dtd_version  <> self.dtd_version or \
+           title        <> self.title or \
+           abstract     <> self.abstract or \
+           version      <> self.version or \
+           pub_date     <> self.pub_date or \
+           isbn         <> self.isbn or \
+           encoding     <> self.encoding:
             updated = 1
         else:
             updated = 0
 
+        self.format_code = format_code
         self.dtd_code    = dtd_code
         self.dtd_version = dtd_version
         self.title       = title
@@ -344,59 +341,10 @@ class SourceFile:
         self.version     = version
         self.pub_date    = pub_date
         self.isbn        = isbn
+        self.encoding    = encoding
 
         if updated==1:
-            self.save_metadata()
-           
-    def save_metadata(self):
-        if self.format_code not in METADATA_FORMATS:
-            return
-
-        if db.count('sourcefile_metadata', 'filename=' + wsq(self.filename))==0:
-            sql = WOStringIO('INSERT INTO sourcefile_metadata(filename, dtd_code, dtd_version, title, abstract, version, pub_date, isbn, updated) '
-                             'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
-                             % (wsq(self.filename),
-                                wsq(self.dtd_code),
-                                wsq(self.dtd_version),
-                                wsq(self.title),
-                                wsq(self.abstract),
-                                wsq(self.version),
-                                wsq(self.pub_date),
-                                wsq(self.isbn),
-                                wsq(now_string()))).get_value()
-        else:
-            sql = WOStringIO('UPDATE sourcefile_metadata SET dtd_code=%s, dtd_version=%s, title=%s, abstract=%s, version=%s, pub_date=%s, isbn=%s, updated=%s WHERE filename=%s'
-                             % (wsq(self.dtd_code),
-                                wsq(self.dtd_version),
-                                wsq(self.title),
-                                wsq(self.abstract),
-                                wsq(self.version),
-                                wsq(self.pub_date),
-                                wsq(self.isbn),
-                                wsq(now_string()),
-                                wsq(self.filename))).get_value()
-        db.runsql(sql)
-        db.commit()
-
-    def print_debug(self):
-        debug = WOStringIO('Format      = %s\n'
-                           'DTD         = %s\n'
-                           'DTD Version = %s\n'
-                           'Title       = %s\n'
-                           'Abstract    = %s\n'
-                           'Version     = %s\n'
-                           'Pub Date    = %s\n'
-                           'ISBN        = %s\n'
-                           % (self.format_code,
-                              self.dtd_code,
-                              self.dtd_version,
-                              self.title,
-                              self.abstract,
-                              self.version,
-                              self.pub_date,
-                              self.isbn))
-        print debug.get_value()
-
+            self.save()
 
 # FileErrs
 

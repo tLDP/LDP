@@ -1950,42 +1950,14 @@ class TabPage(Table):
             box = WOStringIO('<form method=GET action="|uri.base|data/save/page">\n' \
                              '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n' \
                              '<input type=hidden name="page_code" value="%s">\n' \
-                             '<tr><td class="label">|strsection|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|strtemplate|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_dynamic|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_registered|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_admin|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_sysadmin|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|strurl_data|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stradjust_sort_order|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr>\n' \
-                             '    <td></td>\n' \
-                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                             '</tr>\n' \
+                             '<tr><td class="label">|strsection|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|strtemplate|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_dynamic|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_registered|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stradjust_sort_order|</td>\n<td>%s</td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (escape_tokens(page.code),
                                             page.code,
@@ -2008,22 +1980,11 @@ class TabPage(Table):
                               '<input type=hidden name="page_code" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
                               '<tr><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
-                              '<tr><td class="label">|strtitle|:</td>' \
-                              '    <td>%s</td>\n' \
-                              '    <td></td>' \
-                              '</tr>\n' \
-                              '<tr><td class="label">|strmenu_name|:</td>' \
-                              '    <td>%s</td>\n' \
-                              '    <td></td>' \
-                              '</tr>\n' \
-                              '<tr><td class="label">|strversion|:</td>' \
-                              '    <td>%s</td>\n' \
-                              '    <td></td>' \
-                              '</tr>\n' \
-                              '<tr><td class="label">|strpage|:</td>' \
-                              '    <td><textarea name="page" rows="20" cols="40" style="width:100%%">%s</textarea></td>\n' \
-                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                              '</tr></form>'
+                              '<tr><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
+                              '<tr><td class="label">|strpage|:</td><td><textarea name="page" rows="20" cols="40" style="width:100%%">%s</textarea></td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
+                              '</form>'
                               % (page.code,
                                  lang,
                                  languages[lang].name[uri.lang],
@@ -2037,72 +1998,32 @@ class TabPage(Table):
             if len(page.untranslated_lang_keys()) > 0:
                 box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
                       '<input type=hidden name="page_code" value="%s">\n' \
-                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
-                      '<tr><td class="label">|strlanguage|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strtitle|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strmenu_name|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strversion|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strpage|:</td>' \
-                      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
-                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
-                      '</tr></form>'
+                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
+                      '<tr><td class="label">|strlanguage|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
+                      '<tr><td class="label">|strpage|:</td><td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n<td><input type=submit name="save" value="|stradd|"></td>\n</tr>\n' \
+                      '</form>'
                       % (page.code,
                      widgets.new_page_lang(uri.code, uri.lang),
                      widgets.title(''),
                      widgets.menu_name(''),
                      widgets.version('')
                     ))
-                box.write('</table>')
+            box.write('</table>')
         else:
             page = Page()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newpage">\n' \
                              '<table class="box"><tr><th colspan="3">|stradd_page|</th></tr>\n' \
-                             '<tr><td class="label">|strpage_code|</td>\n' \
-                             '    <td><input type=text name="page_code"></td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|strsection|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|strtemplate|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_dynamic|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_registered|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_admin|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|stronly_sysadmin|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '<tr><td class="label">|strurl_data|</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '    <td></td>\n' \
-                             '</tr>\n' \
-                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                             '</tr>\n' \
+                             '<tr><td class="label">|strpage_code|</td>\n<td><input type=text name="page_code"></td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|strsection|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|strtemplate|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_dynamic|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_registered|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
+                             '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td></td>\n</tr>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (widgets.section_code(page.section_code, uri.lang),
                                             widgets.template_code(page.template_code),
@@ -2166,9 +2087,7 @@ class TabString(Table):
 
             box = WOStringIO('<form method=GET action="|uri.base|data/save/string">\n' \
                              '<table class="box"><tr><th colspan="2">|strstring|</th></tr>\n' \
-                             '<tr><td class="label">|strstring_code|:</td>\n' \
-                             '    <td>%s</td>\n' \
-                             '</tr>\n' \
+                             '<tr><td class="label">|strstring_code|:</td>\n<td>%s</td>\n</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (string.code))
 

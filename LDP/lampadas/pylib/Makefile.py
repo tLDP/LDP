@@ -93,8 +93,6 @@ class Target:
         cmd_text = ''
         for key in self.commands.sort_by('sort_order'):
             command = self.commands[key]
-#            if command.errors_to > '':
-#                cmd_text += '\trm -f ' + command.errors_to + '\n'
             cmd_text += '\t' 
             cmd_text += command.command
             if command.output_to > '':
@@ -198,124 +196,117 @@ class Project:
         if self.doc.pub_status_code<>'N'  or self.doc.mirror_time=='':
             return
 
-        for file in self.doc.files.keys():
-            docfile = self.doc.files[file]
-            sourcefile = sourcefiles[file]
-            
-            if docfile.top==1:
-                log(3, 'Found top file: ' + sourcefile.filename)
-                
-                dbsgmlfile      = sourcefile.dbsgmlfile
-                xmlfile         = sourcefile.xmlfile
-                utfxmlfile      = sourcefile.utfxmlfile
-                utftempxmlfile  = sourcefile.utftempxmlfile
-                tidyxmlfile     = sourcefile.tidyxmlfile
-                htmlfile        = sourcefile.htmlfile
-                indexfile       = sourcefile.indexfile
-                txtfile         = sourcefile.txtfile
-                omffile         = sourcefile.omffile
+        docfile = self.doc.find_top_file()
+        sourcefile = sourcefiles[docfile.filename]
+        metadata = self.doc.metadata()
+        
+        dbsgmlfile      = sourcefile.dbsgmlfile
+        xmlfile         = sourcefile.xmlfile
+        utfxmlfile      = sourcefile.utfxmlfile
+        utftempxmlfile  = sourcefile.utftempxmlfile
+        tidyxmlfile     = sourcefile.tidyxmlfile
+        htmlfile        = sourcefile.htmlfile
+        indexfile       = sourcefile.indexfile
+        txtfile         = sourcefile.txtfile
+        omffile         = sourcefile.omffile
 
-                # FIXME: Read this information from a configuration file,
-                # so admins can configure how makefiles are written,
-                # and create their own targets, that suit their project.
+        # FIXME: Read this information from a configuration file,
+        # so admins can configure how makefiles are written,
+        # and create their own targets, that suit their project.
 
-                self.filename = sourcefile.file_only
-                self.targets.add('all',             ['build'],          [])
-                self.targets.add('republish',       ['unpublish', 'clean', 'build', 'publish'], [])
-                self.targets.add('publish',         ['build', '../' + xmlfile, '../' + htmlfile, '../' + indexfile, '../' + txtfile, '../' + omffile], [])
-                self.targets.add('../' + xmlfile,   [tidyxmlfile],      [Command('cp ' + tidyxmlfile + ' ../' + xmlfile)])
-                self.targets.add('../' + htmlfile,  [htmlfile],         [Command('cp *.html ..')])
-                self.targets.add('../' + indexfile, [indexfile],        [Command('cp ' + indexfile + ' ..')])
-                self.targets.add('../' + txtfile,   [txtfile],          [Command('cp ' + txtfile   + ' ..')])
-                self.targets.add('../' + omffile,   [omffile],          [Command('cp ' + omffile   + ' ..')])
-                self.targets.add('unpublish',       [],                 [Command('rm -f ../*.html'), 
-                                                                         Command('rm -f ../' + xmlfile),
-                                                                         Command('rm -f ../' + txtfile),
-                                                                         Command('rm -f ../' + omffile)])
-                self.targets.add('rebuild',         ['clean', 'build'], [])
-                self.targets.add('build', ['dbsgml', 'xml', 'tidyxml', 'html', 'index', 'txt', 'omf'], [])
-                target = self.targets.add('clean', [],
-                                            [Command('rm -f log/*'),
-                                             Command('rm -f expanded.sgml'),
-                                             Command('rm -f normalized.sgml'),
-                                             Command('rm -f expanded.fot'),
-                                             Command('rm -f ' + dbsgmlfile),
-                                             Command('rm -f ' + xmlfile),
-                                             Command('rm -f ' + omffile),
-                                             Command('rm -f ' + txtfile)])
-                if sourcefile.format_code<>'txt':
-                    target.commands.add(Command('rm -f ' + txtfile))
-                if sourcefile.format_code<>'html':
-                    target.commands.add(Command('rm -f *.html'))
-                if sourcefile.format_code<>'xml':
-                    target.commands.add(Command('rm -f *.xml'))
-                if sourcefile.format_code<>'sgml':
-                    target.commands.add(Command('rm -f *.sgml'))
+        self.filename = sourcefile.file_only
+        self.targets.add('all',             ['build'],          [])
+        self.targets.add('republish',       ['unpublish', 'clean', 'build', 'publish'], [])
+        self.targets.add('publish',         ['build', '../' + xmlfile, '../' + htmlfile, '../' + indexfile, '../' + txtfile, '../' + omffile], [])
+        self.targets.add('../' + xmlfile,   [tidyxmlfile],      [Command('cp ' + tidyxmlfile + ' ../' + xmlfile)])
+        self.targets.add('../' + htmlfile,  [htmlfile],         [Command('cp *.html ..')])
+        self.targets.add('../' + indexfile, [indexfile],        [Command('cp ' + indexfile + ' ..')])
+        self.targets.add('../' + txtfile,   [txtfile],          [Command('cp ' + txtfile   + ' ..')])
+        self.targets.add('../' + omffile,   [omffile],          [Command('cp ' + omffile   + ' ..')])
+        self.targets.add('unpublish',       [],                 [Command('rm -f ../*')]) 
+        self.targets.add('rebuild',         ['clean', 'build'], [])
+        self.targets.add('build', ['dbsgml', 'xml', 'tidyxml', 'html', 'index', 'txt', 'omf'], [])
+        target = self.targets.add('clean', [],
+                                    [Command('rm -f log/*'),
+                                     Command('rm -f expanded.sgml'),
+                                     Command('rm -f normalized.sgml'),
+                                     Command('rm -f expanded.fot'),
+                                     Command('rm -f ' + dbsgmlfile),
+                                     Command('rm -f ' + omffile)])
 
-                # The default embedded DocBook in WikiText is XML
-                if sourcefile.format_code=='wikitext':
-                    if self.metadata.format_code=='sgml':
-                        self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                            [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                        self.targets.add(xmlfile,    [dbsgmlfile],
-                            [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                    else:
-                        self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                            [Command(config.wt2db + ' -n -x ' + sourcefile.file_only + ' -o ' + xmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                        self.targets.add(xmlfile,    [],
-                            [])
-                elif sourcefile.format_code=='text':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],
-                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                elif sourcefile.format_code=='texinfo':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [Command('texi2db -f ' + sourcefile.file_only, errors_to='texi2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],
-                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='linuxdoc':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [Command('sgmlnorm -d /usr/local/share/ld2db/docbook.dcl ' + sourcefile.file_only, output_to='expanded.sgml', errors_to='log/sgmlnorm.log', stderr_check=1),
-                         Command('jade -t sgml -c /usr/local/share/ld2db/catalog -d /usr/local/share/ld2db/ld2db.dsl\\#db expanded.sgml', output_to=dbsgmlfile, errors_to='log/jade.log', stderr_check=1),
-                         Command('sgmlnorm -d ' + dbsgmlfile, output_to='normalized.sgml', errors_to='log/sgmlnorm.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],
-                        [Command('xmllint --sgml normalized.sgml', output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='docbook':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [Command('sgmlnorm -d ' + sourcefile.file_only, output_to=dbsgmlfile, errors_to='log/sgmlnorm.log')])
-                    self.targets.add(xmlfile,    [dbsgmlfile],
-                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                elif sourcefile.format_code=='xml' and sourcefile.dtd_code=='docbook':
-                    self.targets.add(dbsgmlfile, [],
-                        [])
-                    self.targets.add(xmlfile,    [],
-                        [])
-                else:
-                    log(1, 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code + '. Lampadas cannot build this document.')
-                
-                # Everybody gets encoded into UTF-8 here
-                self.targets.add(utfxmlfile,     [xmlfile],              [Command('iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
-                                                                          Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
-                # Everybody gets xml tidied before processing further
-                self.targets.add(tidyxmlfile,    [utfxmlfile],           [Command('tidy -config /etc/lampadas/tidyrc -quiet ' + utfxmlfile, output_to=tidyxmlfile, errors_to='log/tidy.log', stderr_check=1)])
+        if sourcefile.format_code<>'txt':   target.commands.add(Command('rm -f *.txt'))
+        if sourcefile.format_code<>'html':  target.commands.add(Command('rm -f *.html'))
+        if sourcefile.format_code<>'xml':   target.commands.add(Command('rm -f *.xml'))
+        if sourcefile.format_code<>'sgml':  target.commands.add(Command('rm -f *.sgml'))
 
-                # Now we have good DocBook XML, generate all outputs
-                self.targets.add(htmlfile,       [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + tidyxmlfile, output_to=htmlfile, errors_to='log/xsltproc.log', stderr_check=1)])
-                self.targets.add(indexfile,      [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_chunk + ' ' + tidyxmlfile)])
-                self.targets.add(omffile,        [tidyxmlfile],          [Command(config.db2omf + ' ' + tidyxmlfile + ' -o ' + omffile, errors_to='log/db2omf.log', stderr_check=1)])
-                self.targets.add(txtfile,        [htmlfile],             [Command('lynx --dump --nolist ' + htmlfile, output_to=txtfile, errors_to='log/lynx.log', stderr_check=1)])
+        # The default embedded DocBook in WikiText is XML
+        if sourcefile.format_code=='wikitext':
+            if self.metadata.format_code=='sgml':
+                self.targets.add(dbsgmlfile,    [sourcefile.file_only], [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                self.targets.add('dbsgml',      [dbsgmlfile],           [])
+                self.targets.add(xmlfile,       [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                self.targets.add('xml',         [xmlfile],              [])
+            else:
+                self.targets.add(dbsgmlfile,    [sourcefile.file_only], [Command(config.wt2db + ' -n -x ' + sourcefile.file_only + ' -o ' + xmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                self.targets.add('dbsgml',      [dbsgmlfile],           [])
+                self.targets.add(xmlfile,       [],                     [])
+                self.targets.add('xml',         [xmlfile],              [])
+        elif sourcefile.format_code=='text':
+            self.targets.add(dbsgmlfile,        [sourcefile.file_only], [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+            self.targets.add('dbsgml',          [dbsgmlfile],           [])
+            self.targets.add(xmlfile,           [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+            self.targets.add('xml',             [xmlfile],              [])
+        elif sourcefile.format_code=='texinfo':
+            self.targets.add(dbsgmlfile,        [sourcefile.file_only],
+                [Command('texi2db -f ' + sourcefile.file_only, errors_to='texi2db.log', stderr_check=1)])
+            self.targets.add('dbsgml',          [dbsgmlfile],           [])
+            self.targets.add(xmlfile,           [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+            self.targets.add('xml',             [xmlfile],              [])
+        elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='linuxdoc':
+            self.targets.add(dbsgmlfile,        [sourcefile.file_only], [Command('sgmlnorm -d /usr/local/share/ld2db/docbook.dcl ' + sourcefile.file_only, output_to='expanded.sgml', errors_to='log/sgmlnorm.log', stderr_check=1),
+                 Command('jade -t sgml -c /usr/local/share/ld2db/catalog -d /usr/local/share/ld2db/ld2db.dsl\\#db expanded.sgml', output_to=dbsgmlfile, errors_to='log/jade.log', stderr_check=1),
+                 Command('sgmlnorm -d ' + dbsgmlfile, output_to='normalized.sgml', errors_to='log/sgmlnorm.log', stderr_check=1)])
+            self.targets.add('dbsgml',          [dbsgmlfile],           [])
+            self.targets.add(xmlfile,           [dbsgmlfile],           [Command('xmllint --sgml normalized.sgml', output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+            self.targets.add('xml',             [xmlfile],              [])
+        elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='docbook':
+            self.targets.add(dbsgmlfile,        [sourcefile.file_only], [Command('sgmlnorm -d ' + sourcefile.file_only, output_to=dbsgmlfile, errors_to='log/sgmlnorm.log')])
+            self.targets.add('dbsgml',          [dbsgmlfile],           [])
+            self.targets.add(xmlfile,           [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+            self.targets.add('xml',             [xmlfile],              [])
+        elif sourcefile.format_code=='xml' and sourcefile.dtd_code=='docbook':
+            self.targets.add(dbsgmlfile,        [],                     [])
+            self.targets.add('dbsgml',          [],                     [])
+            self.targets.add(xmlfile,           [],                     [])
+            self.targets.add('xml',             [],                     [])
+        else:
+            log(1, 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code + '. Lampadas cannot build this document.')
+        
+        ##############################
+        # IT'S ALL DOCBOOK XML HERE! #
+        ##############################
+        
+        # Everybody gets encoded into UTF-8 here
+        self.targets.add(utfxmlfile,            [xmlfile],              [Command('iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
+                                                                         Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+        self.targets.add('utfxml',              [utfxmlfile],           [])
+        
+        # Everybody gets xml tidied before processing further
+        self.targets.add(tidyxmlfile,           [utfxmlfile],           [Command('tidy -config /etc/lampadas/tidyrc -quiet ' + utfxmlfile, output_to=tidyxmlfile, errors_to='log/tidy.log', stderr_check=1)])
+        self.targets.add('tidyxml',             [tidyxmlfile],          [])
 
-                # Calculate pseudotargets last, so they will have the file's
-                # timestampe preloaded and available to them.
-                self.targets.add('dbsgml',       [dbsgmlfile],           [])
-                self.targets.add('xml',          [xmlfile],              [])
-                self.targets.add('utfxml',       [utfxmlfile],           [])
-                self.targets.add('tidyxml',      [tidyxmlfile],          [])
-                self.targets.add('html',         [htmlfile],             [])
-                self.targets.add('index',        [indexfile],            [])
-                self.targets.add('txt',          [txtfile],              [])
-                self.targets.add('omf',          [omffile],              [])
+        # Now we have good DocBook XML, generate all outputs
+        self.targets.add(htmlfile,              [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + tidyxmlfile, output_to=htmlfile, errors_to='log/xsltproc.log', stderr_check=1)])
+        self.targets.add('html',                [htmlfile],             [])
+        
+        self.targets.add(indexfile,             [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_chunk + ' ' + tidyxmlfile)])
+        self.targets.add('index',               [indexfile],            [])
+        
+        self.targets.add(omffile,               [tidyxmlfile],          [Command(config.db2omf + ' ' + tidyxmlfile + ' -o ' + omffile, errors_to='log/db2omf.log', stderr_check=1)])
+        self.targets.add('omf',                 [omffile],              [])
+        
+        self.targets.add(txtfile,               [htmlfile],             [Command('lynx --dump --nolist ' + htmlfile, output_to=txtfile, errors_to='log/lynx.log', stderr_check=1)])
+        self.targets.add('txt',                 [txtfile],              [])
 
     def make(self, name='all'):
         """
@@ -375,25 +366,24 @@ class Project:
                     command = target.commands[key]
                     
                     # Go to the work directory
-                    cmd_text = 'cd ' + self.workdir + '; '
+                    cmd_dir = 'cd ' + self.workdir
 
-                    # Erase the error log if it exists
-                    if command.errors_to > '':
-                        cmd_text += ' rm -f ' + command.errors_to + '; '
-
-                    # Run he command, piping output and errors appropriately
-                    cmd_text = cmd_text + command.command
+                    # Pipe output and errors appropriately
+                    cmd_output_to = ''
+                    cmd_errors_to = ''
                     if command.output_to > '':
-                        cmd_text += ' > ' + command.output_to
+                        cmd_output_to = '>' + command.output_to
                     if command.errors_to > '':
-                        cmd_text += ' 2>>' + command.errors_to
-                        
+                        cmd_errors_to = '2>' + command.errors_to
+                    
+                    cmd_text  = '%s; %s %s %s' % (cmd_dir, command.command, cmd_output_to, cmd_errors_to)
+                    cmd_split = '%s\n%s\n\t%s\n\t%s' % (cmd_dir, command.command, cmd_output_to, cmd_errors_to)
                     log(3, 'Running: ' + cmd_text)
                     exit_status = os.system(cmd_text)
 
                     # Abort if the command returns an exit code.
                     if exit_status<>0:
-                        self.doc.errors.add(ERR_MAKE_EXIT_STATUS, str(exit_status) + ': ' + cmd_text)
+                        self.doc.errors.add(ERR_MAKE_EXIT_STATUS, str(exit_status) + ': ' + cmd_split)
                         log(0, 'ERROR: The command returned error code ' + str(exit_status) + '.')
                     
                     # Abort if there is anything written to STDERR.
@@ -402,7 +392,7 @@ class Project:
                         err_text = fh.read()
                         fh.close()
                         if err_text > '':
-                            self.doc.errors.add(ERR_MAKE_STDERR, cmd_text + '\n\n' + err_text)
+                            self.doc.errors.add(ERR_MAKE_STDERR, cmd_split + '\n\n' + err_text)
                             log(0, 'ERROR: The command wrote to STDERR.')
                             if exit_status==0:
                                 exit_status = 1;
@@ -411,7 +401,7 @@ class Project:
                     filestat = os.stat(self.workdir + command.output_to)
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
-                        self.doc.errors.add(ERR_MAKE_ZERO_LENGTH, cmd_text)
+                        self.doc.errors.add(ERR_MAKE_ZERO_LENGTH, cmd_split)
                         log(0, 'ERROR: The command left a zero-length file. Removing.')
                         if exit_status==0:
                             exit_status = 2;

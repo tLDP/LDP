@@ -526,6 +526,9 @@ class Doc:
         if topfile:
             sourcefile = sourcefiles[topfile.filename]
             updated = 0
+            if self.format_code==sourcefile.format_code:
+                self.format_code = ''
+                updated = 1
             if self.dtd_code==sourcefile.dtd_code:
                 self.dtd_code = ''
                 updated = 1
@@ -559,6 +562,8 @@ class Doc:
         docfile = self.find_top_file()
         if docfile:
             sourcefile = sourcefiles[docfile.filename]
+            if self.format_code==sourcefile.format_code:
+                self.format_code = ''
             if self.dtd_code==sourcefile.dtd_code:
                 self.dtd_code = ''
             if self.dtd_version==sourcefile.dtd_version:
