@@ -342,7 +342,7 @@ class TableFactory:
         box = box + '<th class="collabel">|strversion|</th>\n'
         box = box + '<th class="collabel">|strdate|</th>\n'
         box = box + '<th class="collabel">|strinitials|</th>\n'
-        box = box + '<th class="collabel">|strnotes|</th>\n'
+        box = box + '<th class="collabel">|strcomments|</th>\n'
         box = box + '<th class="collabel" colspan=2>|straction|</th>\n'
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
@@ -353,6 +353,7 @@ class TableFactory:
             box = box + '<tr>\n'
             box = box + '<input name="ref_id" type=hidden value=' + str(version.id) + '>\n'
             box = box + '<input name="doc_id" type=hidden value=' + str(version.doc_id) + '>\n'
+            box = box + '<td><input type=text name=version value="' + version.version + '"></input></td>\n'
             box = box + '<td><input type=text name=pub_date value="' + version.pub_date + '"></input></td>\n'
             box = box + '<td><input type=text name=initials value="' + version.initials + '"></input></td>\n'
             box = box + '<td rowspan=3 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + version.notes + '</textarea></td>\n'
@@ -800,6 +801,8 @@ class PageFactory:
                     newstring = self.tablef.docfiles(uri)
                 if token=='tabdocusers':
                     newstring = self.tablef.docusers(uri)
+                if token=='tabdocversions':
+                    newstring = self.tablef.docversions(uri)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabuser':
