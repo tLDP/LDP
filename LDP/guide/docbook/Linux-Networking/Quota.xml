@@ -3,305 +3,449 @@
 <title>Quota</title>
 
 <para>
-  This section describes how to enable file system quota on a Linux
-  host, assigning quota for users and groups, as well as the usage of
-  miscellaneous quota commands. It is intended for users running kernel
-  2.x (recently tested on kernel 2.4.21).
-
-  1.  What is quota?
-
-  1.1.  What is quota for?
-
-  Quota allows you to specify limits on two aspects of disk storage: the
-  number of inodes a user or a group of users may possess; and the
-  number of disk blocks that may be allocated to a user or a group of
-  users.
-
-  The idea behind quota is that users are forced to stay under their
-  disk consumption limit, taking away their ability to consume unlimited
-  disk space on a system. Quota is handled on a per user, per file
-  system basis. If there is more than one file system which a user is
-  expected to create files, then quota must be set for each file system
-  separately. Various tools are available for you to administer and
-  automate quota policies on your system.
-
-  1.2.  Current Status of Quota on Linux
-
-  Currently, there are some major changes in the way quota works. There
-  are two different setups. The tools works the same, but there's a
-  difference in used files. This document describes the setup and
-  operation of the _new_ quota setup. As the new setup of quota is not
-  in the regular kernel source, this setup needs some patching. We will
-  describe this patching and installation of the linuxquota package. If
-  you already have the quota software installed on your system, you may
-  or may not have to install this patch and package. You can email me if
-  you have any questions about this. I'll try to include a overview of
-  Linux distro's and it's implications in a later version of this
-  document.
-
-  2.  Requirements for quota
-
-  2.1.  Kernel
-
-  The 2.x kernel source is available from http://www.kernel.org
-  <http://www.kernel.org/> Please use an available mirror close to your
-  location to save bandwidth. If you have a recent version of tar, you
-  can download the .bz2 compressed file.
-
-  Untar the kernel:
-  ______________________________________________________________________
-  cd /usr/src
-  tar jxvf /path/to/linux-2.4.21-tar.bz2      - for bzip2 kernel -
-  tar zxvf /path/to/linux-2.4.21-tar.gz       - for gzip kernel -
-  ln -s /usr/src/linux-2.4.21 /usr/src/linux
-  ______________________________________________________________________
-
-  2.2.  Quota software
-
-  Depending on the Linux distribution you have, you may, or may not have
-  the quota softwares installed on your system. The most recent version
-  of quota is available through SourceForge and is in active
-  development. You can reach the homepage of the quota-development at
-  http://www.sourceforge.net/projects/linuxquota
-  <http://www.sourceforge.net/project/linuxquota>.
-
-  3.  Quota setup: installation and configuration
-
-  3.1.  Patch the kernel
-
-  Download the patch for your kernel at:
-
-  ftp::/atrey.karlin.mff.cuni.cz/pub/local/jack/quota/
-  <ftp://atrey.karlin.mff.cuni.cz/pub/local/jack/quota/>.
-
-  Choose your kernel version and download the patch(es). Patch your
-  kernel with the 'patch' command. If there is more than 1 patch for
-  your kernel version, be sure to apply the patches in the correct
-  order.
-
-  You can use this script ( I assume the downloaded patches are in
-  /tmp/quota/ and the kernel has been untarred to /usr/src/linux) :
-
-  ______________________________________________________________________
-  #!/bin/sh
-
-  gunzip /tmp/quota/*.gz
-  cd /usr/src/linux
-  COUNT=`ls -1 /tmp/quota/*.diff | wc -l`
-  for I in `seq 1 $COUNT`
-  do
-     patch -p1 < /tmp/quota/quota-2.4.21-$I-*.diff
-  done
-  ______________________________________________________________________
-
-
-  3.2.  Reconfigure your kernel
-
-  Reconfigure your kernel and add quota support.
-
-  Via `make menuconfig` or `make xconfig` you can find the option to
-  support quota under the Filesystems-menu. You can specify extra
-  options if you need them, like 32-bit UID support.
-
-  Save the configuration and compile the kernel.  Make sure the new
-  kernel will be used when rebooting the system.
-
-  3.3.  Compile and install the quota softwares
-
-  To be able to use all the features of the new quota system, you'll
-  probably need to download the new quota-package. Download the new
-  quota software via the URL provided above.
-
-  When downloaded do:
-  ______________________________________________________________________
-  $ gzip -dc <downloaded file> | tar xvf
-  $ cd quota-tools  (or whatever directory the software is put in)
-  $ ./configure
-  $ make
-  $ su
-  # make install
-  ______________________________________________________________________
-
-
-  3.4.  time Modify your system init script to check quota and turn
-  quota on at boot
-
-  Here's an example:
-  ______________________________________________________________________
-  # Check quota and then turn quota on.
-  if [ -x /usr/sbin/quotacheck ]
-          then
-                 echo "Checking quotas. This may take some time."
-                 /usr/sbin/quotacheck -avug
-                 echo " Done."
-          fi
-           if [ -x /usr/sbin/quotaon ]
-          then
-                  echo "Turning on quota."
-                  /usr/sbin/quotaon -avug
-          fi
-  ______________________________________________________________________
-
-  The golden rule is that always turn quota on after your file systems
-  in /etc/fstab have been mounted, otherwise quota will fail to work. I
-  recommend turning quota on right after the part where file systems are
-  mounted in your system init script.
-
-  3.5.  Modify /etc/fstab
-
-  Partitions that you have not yet enabled quota normally look something
-  like:
-  ______________________________________________________________________
-  /dev/hda1       /       ext2    defaults        1       1
-  /dev/hda2       /usr    ext2    defaults        1       1
-  ______________________________________________________________________
-
-  To enable user quota support on a file system, add "usrquota" to the
-  fourth field containing the word "defaults" (man fstab for details).
-  ______________________________________________________________________
-  /dev/hda1       /       ext2    defaults        1       1
-  /dev/hda2       /usr    ext2    defaults,usrquota       1       1
-  ______________________________________________________________________
-
-  Replace "usrquota" with "grpquota", should you need group quota
-  support on a file system.
-  ______________________________________________________________________
-  /dev/hda1       /       ext2    defaults        1       1
-  /dev/hda2       /usr    ext2    defaults,grpquota       1       1
-  ______________________________________________________________________
-
-  Need both user quota and group quota support on a file system?
-  ______________________________________________________________________
-  /dev/hda1       /       ext2    defaults        1       1
-  /dev/hda2       /usr    ext2    defaults,usrquota,grpquota       1   1
-  ______________________________________________________________________
-
-  3.6.  Activate the quota system
-
-  To activate the quota software you have to reboot the system for the
-  changes you have made to take effect. The new kernel with quota
-  support will be loaded and the startup scripts you've just created
-  will be executed. At first run, quotacheck will generate the
-  appropiate files to maintain the quota databases.
-
-  3.7.  Add quotacheck to crontab
-
-  Although quota should work with periodical checks, it sometimes helps
-  to run quotacheck periodically, e.g. weekly. Add the following line to
-  your root's crontab:
-  ______________________________________________________________________
-  0 3 * * 0 /sbin/quotacheck -avug
-  ______________________________________________________________________
-
-  4.  Quota setup: tools
-
-  This operation is performed with the edquota command (`man edquota`
-  for details).
-
-  4.1.  Assigning quota for a particular user
-
-  Here's an example. I have a user with the login id bob on my system.
-  The command "edquota -u bob" takes me into vi (or editor specified in
-  my $EDITOR environment variable) to edit quota for user bob on each
-  partition that has quota enabled:
-  ______________________________________________________________________
-  Quotas for user bob:
-  /dev/hda3: blocks in use: 2594, limits (soft = 5000, hard = 6500)
-           inodes in use: 356, limits (soft = 1000, hard = 1500)
-  ______________________________________________________________________
-
-  "blocks in use" is the total number of blocks (in kilobytes) a user
-  has consumed on a partition.
-
-  "inodes in use" is the total number of inodes a user has consumed on a
-  partition.
-
-  4.2.  Assigning quota for a particular group
-
-  Now I have a group games on my system. "edquota -g games" takes me
-  into the vi editor again to edit quota for the group games:
-
-  ______________________________________________________________________
-          Quotas for group games:
-          /dev/hda4: blocks in use: 5799, limits (soft = 8000, hard = 10000)
-                  inodes in use: 1454, limits (soft = 3000, hard = 4000)
-  ______________________________________________________________________
-
-  4.3.  Assigning quota for a bunch of users with the same value
-
-  To rapidly set quotas for, say 100 users, on my system to the same
-  value as my user bob, I would first edit bob's quota information by
-  hand, then execute:
-  ______________________________________________________________________
-  edquota -p bob `awk -F: '$3 > 499 {print $1}' /etc/passwd`
-  ______________________________________________________________________
-
-  assuming that you are using csh, and that you assign your user UID's
-  starting with 500.
-
-  In addition to edquota, there are 3 terms which you should familiarize
-  yourself with: Soft Limit, Hard Limit, and Grace Period.
-
-  4.4.  Soft Limit
-
-  _Soft limit_ indicates the maximum amount of disk usage a quota user
-  has on a partition. When combined with grace period, it acts as the
-  border line, which a quota user is issued warnings about his impending
-  quota violation when passed.
-
-  4.5.  Hard Limit
-
-  Hard limit works only when grace period is set. It specifies the
-  absolute limit on the disk usage, which a quota user can't go beyond
-  his hard limit.
-
-  4.6.  Grace Period
-
-  Executed with the command "edquota -t", grace period is a time limit
-  before the soft limit is enforced for a file system with quota
-  enabled. Time units of sec(onds), min(utes), hour(s), day(s), week(s),
-  and month(s) can be used.  This is what you'll see with the command
-  "edquota -t":
-  ______________________________________________________________________
-  Time units may be: days, hours, minutes, or seconds
-  Grace period before enforcing soft limits for users:
-  /dev/hda2: block grace period: 0 days, file grace period: 0 days
-  ______________________________________________________________________
-
-  Change the 0 days part to any length of time you feel reasonable. I
-  personally would choose 7 days (or 1 week).
-
-  5.  Miscellaneous Quota Commands
-
-  5.1.  Quotacheck
-
-  Quotacheck is used to scan a file system for disk usages, and updates
-  the quota record file "aquota.user" to the most recent state. I
-  recommend running quotacheck at system bootup, and via cronjob
-  periodically (say, every week?).
-
-  5.2.  Repquota
-
-  Repquota produces a summarized quota information for a file system.
-  Here is a sample output repquota gives:
-  ______________________________________________________________________
-  # repquota -a
-                                  Block limits               File limits
-          User            used    soft    hard  grace    used  soft  hard  grace
-          root      --  175419       0       0          14679     0     0
-          bin       --   18000       0       0            735     0     0
-          uucp      --     729       0       0             23     0     0
-          man       --      57       0       0             10     0     0
-          user1     --   13046   15360   19200            806  1500  2250
-          user2     --    2838    5120    6400            377  1000  1500
-  ______________________________________________________________________
-
-  5.3.  Quotaon and Quotaoff
-
-
-  Quotaon is used to turn on quota accounting; quotaoff to turn it off.
-  Actually both files are similar. They are executed at system startup
-  and shutdown.
+This section describes how to enable file system quota on a Linux
+host, assigning quota for users and groups, as well as the usage of
+miscellaneous quota commands. It is intended for users running kernel
+2.x (recently tested on kernel 2.4.21).
+</para>
+
+1.  What is quota?
+
+1.1.  What is quota for?
+
+<para>
+Quota allows you to specify limits on two aspects of disk storage: the
+number of inodes a user or a group of users may possess; and the
+number of disk blocks that may be allocated to a user or a group of
+users.
+</para>
+
+<para>
+The idea behind quota is that users are forced to stay under their
+disk consumption limit, taking away their ability to consume unlimited
+disk space on a system. Quota is handled on a per user, per file
+system basis. If there is more than one file system which a user is
+expected to create files, then quota must be set for each file system
+separately. Various tools are available for you to administer and
+automate quota policies on your system.
+</para>
+
+1.2.  Current Status of Quota on Linux
+
+<para>
+Currently, there are some major changes in the way quota works. There
+are two different setups. The tools works the same, but there's a
+difference in used files. This document describes the setup and
+operation of the _new_ quota setup. As the new setup of quota is not
+in the regular kernel source, this setup needs some patching. We will
+describe this patching and installation of the linuxquota package. If
+you already have the quota software installed on your system, you may
+or may not have to install this patch and package. You can email me if
+you have any questions about this. I'll try to include a overview of
+Linux distro's and it's implications in a later version of this
+document.
+</para>
+
+2.  Requirements for quota
+
+2.1.  Kernel
+
+<para>
+The 2.x kernel source is available from http://www.kernel.org
+<http://www.kernel.org/> Please use an available mirror close to your
+location to save bandwidth. If you have a recent version of tar, you
+can download the .bz2 compressed file.
+</para>
+
+<para>
+Untar the kernel:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+cd /usr/src
+tar jxvf /path/to/linux-2.4.21-tar.bz2      - for bzip2 kernel -
+tar zxvf /path/to/linux-2.4.21-tar.gz       - for gzip kernel -
+ln -s /usr/src/linux-2.4.21 /usr/src/linux
+______________________________________________________________________
+</screen>
+</para>
+
+2.2.  Quota software
+
+<para>
+Depending on the Linux distribution you have, you may, or may not have
+the quota softwares installed on your system. The most recent version
+of quota is available through SourceForge and is in active
+development. You can reach the homepage of the quota-development at
+http://www.sourceforge.net/projects/linuxquota
+<http://www.sourceforge.net/project/linuxquota>.
+</para>
+
+3.  Quota setup: installation and configuration
+
+3.1.  Patch the kernel
+
+<para>
+Download the patch for your kernel at:
+</para>
+
+<para>
+ftp::/atrey.karlin.mff.cuni.cz/pub/local/jack/quota/
+<ftp://atrey.karlin.mff.cuni.cz/pub/local/jack/quota/>.
+</para>
+
+<para>
+Choose your kernel version and download the patch(es). Patch your
+kernel with the 'patch' command. If there is more than 1 patch for
+your kernel version, be sure to apply the patches in the correct
+order.
+</para>
+
+<para>
+You can use this script ( I assume the downloaded patches are in
+/tmp/quota/ and the kernel has been untarred to /usr/src/linux) :
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+#!/bin/sh
+
+gunzip /tmp/quota/*.gz
+cd /usr/src/linux
+COUNT=`ls -1 /tmp/quota/*.diff | wc -l`
+for I in `seq 1 $COUNT`
+do
+   patch -p1 < /tmp/quota/quota-2.4.21-$I-*.diff
+done
+______________________________________________________________________
+</screen>
+</para>
+
+3.2.  Reconfigure your kernel
+
+<para>
+Reconfigure your kernel and add quota support.
+</para>
+
+<para>
+Via `make menuconfig` or `make xconfig` you can find the option to
+support quota under the Filesystems-menu. You can specify extra
+options if you need them, like 32-bit UID support.
+</para>
+
+<para>
+Save the configuration and compile the kernel.  Make sure the new
+kernel will be used when rebooting the system.
+</para>
+
+3.3.  Compile and install the quota softwares
+
+<para>
+To be able to use all the features of the new quota system, you'll
+probably need to download the new quota-package. Download the new
+quota software via the URL provided above.
+</para>
+
+<para>
+When downloaded do:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+$ gzip -dc <downloaded file> | tar xvf
+$ cd quota-tools  (or whatever directory the software is put in)
+$ ./configure
+$ make
+$ su
+# make install
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+3.4.  time Modify your system init script to check quota and turn
+quota on at boot
+</para>
+
+<para>
+Here's an example:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+# Check quota and then turn quota on.
+if [ -x /usr/sbin/quotacheck ]
+        then
+               echo "Checking quotas. This may take some time."
+               /usr/sbin/quotacheck -avug
+               echo " Done."
+        fi
+         if [ -x /usr/sbin/quotaon ]
+        then
+                echo "Turning on quota."
+                /usr/sbin/quotaon -avug
+        fi
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+The golden rule is that always turn quota on after your file systems
+in /etc/fstab have been mounted, otherwise quota will fail to work. I
+recommend turning quota on right after the part where file systems are
+mounted in your system init script.
+</para>
+
+3.5.  Modify /etc/fstab
+
+<para>
+Partitions that you have not yet enabled quota normally look something
+like:
+</para>
+
+
+<para>
+<screen>
+______________________________________________________________________
+/dev/hda1       /       ext2    defaults        1       1
+/dev/hda2       /usr    ext2    defaults        1       1
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+To enable user quota support on a file system, add "usrquota" to the
+fourth field containing the word "defaults" (man fstab for details).
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+/dev/hda1       /       ext2    defaults        1       1
+/dev/hda2       /usr    ext2    defaults,usrquota       1       1
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+Replace "usrquota" with "grpquota", should you need group quota
+support on a file system.
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+/dev/hda1       /       ext2    defaults        1       1
+/dev/hda2       /usr    ext2    defaults,grpquota       1       1
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+Need both user quota and group quota support on a file system?
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+/dev/hda1       /       ext2    defaults        1       1
+/dev/hda2       /usr    ext2    defaults,usrquota,grpquota       1   1
+______________________________________________________________________
+</screen>
+</para>
+
+3.6.  Activate the quota system
+
+<para>
+To activate the quota software you have to reboot the system for the
+changes you have made to take effect. The new kernel with quota
+support will be loaded and the startup scripts you've just created
+will be executed. At first run, quotacheck will generate the
+appropiate files to maintain the quota databases.
+</para>
+
+3.7.  Add quotacheck to crontab
+
+<para>
+Although quota should work with periodical checks, it sometimes helps
+to run quotacheck periodically, e.g. weekly. Add the following line to
+your root's crontab:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+0 3 * * 0 /sbin/quotacheck -avug
+______________________________________________________________________
+</screen>
+</para>
+
+4.  Quota setup: tools
+
+<para>
+This operation is performed with the edquota command (`man edquota`
+for details).
+</para>
+
+4.1.  Assigning quota for a particular user
+
+<para>
+Here's an example. I have a user with the login id bob on my system.
+The command "edquota -u bob" takes me into vi (or editor specified in
+my $EDITOR environment variable) to edit quota for user bob on each
+partition that has quota enabled:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+Quotas for user bob:
+/dev/hda3: blocks in use: 2594, limits (soft = 5000, hard = 6500)
+         inodes in use: 356, limits (soft = 1000, hard = 1500)
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+"blocks in use" is the total number of blocks (in kilobytes) a user
+has consumed on a partition.
+</para>
+
+<para>
+"inodes in use" is the total number of inodes a user has consumed on a
+partition.
+</para>
+
+4.2.  Assigning quota for a particular group
+
+<para>
+Now I have a group games on my system. "edquota -g games" takes me
+into the vi editor again to edit quota for the group games:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+        Quotas for group games:
+        /dev/hda4: blocks in use: 5799, limits (soft = 8000, hard = 10000)
+                inodes in use: 1454, limits (soft = 3000, hard = 4000)
+______________________________________________________________________
+</screen>
+</para>
+
+4.3.  Assigning quota for a bunch of users with the same value
+
+<para>
+To rapidly set quotas for, say 100 users, on my system to the same
+value as my user bob, I would first edit bob's quota information by
+hand, then execute:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+edquota -p bob `awk -F: '$3 > 499 {print $1}' /etc/passwd`
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+assuming that you are using csh, and that you assign your user UID's
+starting with 500.
+</para>
+
+<para>
+In addition to edquota, there are 3 terms which you should familiarize
+yourself with: Soft Limit, Hard Limit, and Grace Period.
+</para>
+
+4.4.  Soft Limit
+
+<para>
+_Soft limit_ indicates the maximum amount of disk usage a quota user
+has on a partition. When combined with grace period, it acts as the
+border line, which a quota user is issued warnings about his impending
+quota violation when passed.
+</para>
+
+4.5.  Hard Limit
+
+<para>
+Hard limit works only when grace period is set. It specifies the
+absolute limit on the disk usage, which a quota user can't go beyond
+his hard limit.
+</para>
+
+4.6.  Grace Period
+
+<para>
+Executed with the command "edquota -t", grace period is a time limit
+before the soft limit is enforced for a file system with quota
+enabled. Time units of sec(onds), min(utes), hour(s), day(s), week(s),
+and month(s) can be used.  This is what you'll see with the command
+"edquota -t":
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+Time units may be: days, hours, minutes, or seconds
+Grace period before enforcing soft limits for users:
+/dev/hda2: block grace period: 0 days, file grace period: 0 days
+______________________________________________________________________
+</screen>
+</para>
+
+<para>
+Change the 0 days part to any length of time you feel reasonable. I
+personally would choose 7 days (or 1 week).
+</para>
+
+5.  Miscellaneous Quota Commands
+
+5.1.  Quotacheck
+
+<para>
+Quotacheck is used to scan a file system for disk usages, and updates
+the quota record file "aquota.user" to the most recent state. I
+recommend running quotacheck at system bootup, and via cronjob
+periodically (say, every week?).
+</para>
+
+5.2.  Repquota
+
+<para>
+Repquota produces a summarized quota information for a file system.
+Here is a sample output repquota gives:
+</para>
+
+<para>
+<screen>
+______________________________________________________________________
+# repquota -a
+                                Block limits               File limits
+        User            used    soft    hard  grace    used  soft  hard  grace
+        root      --  175419       0       0          14679     0     0
+        bin       --   18000       0       0            735     0     0
+        uucp      --     729       0       0             23     0     0
+        man       --      57       0       0             10     0     0
+        user1     --   13046   15360   19200            806  1500  2250
+        user2     --    2838    5120    6400            377  1000  1500
+______________________________________________________________________
+</screen>
+</para>
+
+5.3.  Quotaon and Quotaoff
+
+<para>
+Quotaon is used to turn on quota accounting; quotaoff to turn it off.
+Actually both files are similar. They are executed at system startup
+and shutdown.
 </para>
 
 </sect1>
