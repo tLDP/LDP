@@ -186,10 +186,10 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 			self.send_header("Content-length", filesize)
 			self.end_headers()
 			return fd
-		return self.send_Text("Unrecognized file: " + filename			
+		return self.send_Text("Unrecognized file: " + filename)
 
-					# Send a text message
-	def send_Text(self, text):
+	
+	def send_Text(self, text):	# Send a text message
 		self.send_response(200)
 		self.send_header("Content-type", "text/plain")
 		self.send_header("Content-length", len(text))
