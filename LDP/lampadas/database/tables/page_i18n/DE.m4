@@ -128,29 +128,34 @@ insert([contribute], [Mitarbeit bei |strproject|],
 
 insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
 [
-    <p>If you wish to become the maintainer for one of these unmaintained
-    documents, please follow these steps:
+    <p>Wenn Sie die Wartung eines dieser verwaisten Dokumente
+    übernehmen wollen, folgen Sie bitte diesem Ablauf:
 
     <ul>
-        <li>Contact the original author. If not listed, consult the document.
-        Make sure the author no longer wishes to maintain the document in question.
+        <li>Nehmen Sie mit dem ursprünglichen Autor Konkakt auf.
+	Informationen dazu sollte entweder hier oder im betroffenen
+	Dokument zu finden sein. Stellen Sie sicher, dass der Autor
+	das Dokument nicht mehr länger betreuen will.
 
-        <li>Determine if a more up-to-date copy of the document exists, outside
-        of what is available here. The best way to do this is through the
-        former maintainer. If you can, secure a copy of the most recent
-        version and submit it here.
+        <li>Stellen Sie bitte fest, ob von dem Dokument eine neuere
+	Version existiert. Die Daten an dieser Stelle können veraltet
+	sein.  Der einfachste Weg zu dieser Anwtort führt über den
+	Autor bzw. letzten Instandhalter des Dokuments. Wenn möglich
+	verschaffen Sie sich eine Kopie und veröffentlichen Sie hier.
 
-        <li>Inform the site administrator that you would like to maintain the
-        document. The administrator will assign you the necessary rights so
-        you can begin maintaining it.
+        <li>Informieren Sie bitte den Administrator dieser Web-Site,
+	dass Sie das Dokument übernehmen wollen. Der Administrator
+	wird Ihnen dann die nötigen Zugriffsrechte geben.
 
-        <li>Update the document, adding yourself as the current maintainer.
-        Be sure that you continue to credit all former maintainers.
+        <li>Bringen Sie das Dokument auf den letzten Stand.
+	Tragen Sie sich selbst als aktuellen Instandhalter ein.
+	Bitte bewahren Sie alle Information über frühere Autoren.
     </ul>
 
-    <p>It is possible that a document could be listed here erroneously.
-    If you find an error, please notify the site administrator right away
-    so we can correct the problem.
+    <p>Es ist durchaus möglich, dass ein Dokument irrtümlicherweise
+    hier aufgeführt wird. Bitte benachrichtigen Sie den Administrator
+    dieser Web-Site wenn Sie einen Fehler finden, damit wir das Problem
+    beheben können.
     
     <p>|tabunmaintained|
 ], 0)
@@ -340,8 +345,8 @@ insert([newuser], [Neue Benutzer], [],
             </tr>
         </table
     </form>
-    <p>*Unbedingt erforderlich
-    <br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
+    <p>* Unbedingt erforderlich
+    <br>** Da Ihr Kennwort zu dieser Adresse geschickt wird,
     muss sie gültig sein.
 ], 1)
 
