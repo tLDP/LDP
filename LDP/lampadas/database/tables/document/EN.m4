@@ -45,7 +45,7 @@ NULL, NULL)
 
 insert(6, [Lampadas Developer\'s Guide], [], [],
 [adminguide], [wikitext], [N/A], [],
-[gfdl], [The Developer\'s Guide for the Lampadas Documentation System],
+[gfdl], [The Developer\'s Guide for the Lampadas Documentation System.],
 [], [],
 [N], [U], [U],
 [2002-07-01], [2002-07-02], [2002-07-03],
