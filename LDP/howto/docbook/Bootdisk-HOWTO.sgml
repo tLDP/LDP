@@ -21,7 +21,7 @@
 
     <Legalnotice>
       <Para>
-      Copyright &copy; 1995,1996,1997,1998,1999,2000 by Tom Fawcett and
+      Copyright &copy; 1995,1996,1997,1998,1999,2000,2001 by Tom Fawcett and
       Graham Chapman.  This document may be distributed under the terms set
       forth in the <Ulink url="http://linuxdoc.org/copyright.html">Linux
       Documentation Project License</Ulink>.  Please contact the authors if
@@ -29,7 +29,7 @@
       </Para>
     </Legalnotice>
 
-    <Pubdate>v4.3, May 2001</Pubdate>
+    <Pubdate>v4.4, June 2001</Pubdate>
 
     <Abstract>
       <Para> This document describes how to design and build boot/root
@@ -88,16 +88,22 @@
 	  
 	  <Listitem>
 	    <Para>
-            Describe how to create bootable LS110 disks.
+            Create chapter on dealing with large bootdisk components, eg
+            <filename>libc.so</filename>, busybox, uClib, etc.
             </Para>
 	  </Listitem>
 
 	  <Listitem>
-	    <Para> Describe how to deal with the huge
-            <filename>libc.so</filename> shared libraries.  The options are
-            basically to get older, smaller libraries or to cut down
-            existing libraries.
+	    <Para>
+            Create chapter on dealing with large bootdisk components, eg
+            <filename>libc.so</filename>, busybox, uClib, etc.
             </Para>
+	  </Listitem>
+
+	  <Listitem>
+	    <Para> 
+            Mention user-mode-linux as a way of testing out bootdisks,
+            if I can ever get it to work.  </Para>
 	  </Listitem>
 
 	  <Listitem>
@@ -680,8 +686,8 @@ necessary.
 Next, create the filesystem.  The Linux kernel recognizes two file system
 types for root disks to be automatically copied to ramdisk.  These are minix
 and ext2, of which ext2 is preferred.  If using ext2, you may find it useful
-to use the <literal>-i</literal> option to specify more inodes than the
-default; <literal>-i 2000</literal> is suggested so that you don't run out of
+to use the <literal>-N</literal> option to specify more inodes than the
+default; <literal>-N 2000</literal> is suggested so that you don't run out of
 inodes.  Alternatively, you can save on inodes by removing lots of unnecessary
 <Filename>/dev</Filename> files.  <Command>mke2fs</Command> will by default
 create 360 inodes on a 1.44Mb diskette.  I find that 120 inodes is ample on my
@@ -694,7 +700,7 @@ of inodes.  </Para>
 <Para>
 So the command you use will look like:
 <Screen>
-        mke2fs -m 0 -i 2000 <Symbol>DEVICE</Symbol>
+        mke2fs -m 0 -N 2000 <Symbol>DEVICE</Symbol>
 </Screen>
 </Para>
 
@@ -810,14 +816,15 @@ special files, however, must be created in a special way, using the
 <Command>mknod</Command> command.
 </para>
 
-<para> There is a shortcut, though &mdash; copy your existing
-<filename>/dev</filename> directory contents, and delete the ones you don't
-want.  The only requirement is that you copy the device special files using
-<literal>-R</literal> option.  This will copy the directory without attempting
-to copy the contents of the files.  Be sure to use an <Emphasis>upper case
-<Option>R</Option></Emphasis>.  The command is:
+<para> There is a shortcut, though &mdash; copy devices files from your
+existing hard disk <filename>/dev</filename> directory.  The only requirement
+is that you copy the device special files using <literal>-R</literal> option.
+This will copy the directory without attempting to copy the contents of the
+files.  Be sure to use an <Emphasis>upper case <Option>R</Option></Emphasis>.
+For example:
 <Screen>
-        cp -dpR /dev /mnt
+        cp -dpR /dev/fd[01]* /mnt/dev
+        cp -dpR /dev/tty[0-6] /mnt/dev
 </Screen>
 assuming that the diskette is mounted at <filename>/mnt</filename>.  The
 <literal>dp</literal> switches ensure that symbolic links are copied as links,
@@ -831,28 +838,28 @@ major and minor device numbers for the devices you want, and create them on
 the diskette using <literal>mknod</literal>.
 </para>
 
-<para>
-However the devices are copied, it is worth checking that any special
-devices you need have been placed on the rescue diskette.  For example,
+<Para>However the devices files are created, check that any special devices
+you need have been placed on the rescue diskette.  For example,
 <literal>ftape</literal> uses tape devices, so you will need to copy all of
 these if you intend to access your floppy tape drive from the bootdisk.
-</para>
+</Para>
 
-<Para>
-Note that one inode is required for each device special file, and inodes can
-at times be a scarce resource, especially on diskette filesystems.  It
-therefore makes sense to remove any device special files that you don't need
-from the diskette <Filename>/dev</Filename> directory.  For example, if you do
-not have SCSI disks you can safely remove all the device files starting with
-<Literal>sd</Literal>.  Similarly, if you don't intend to use your serial port
-then all device files starting with <Literal>cua</Literal> can go.
-</para>
+<Para>Note that one inode is required for each device special file, and inodes
+can at times be a scarce resource, especially on diskette filesystems.  You'll
+need to be selective about the device files you include.  For example, if you
+do not have SCSI disks you can safely ignore <Literal>/dev/sd*</Literal>; if
+you don't intend to use serial ports you can ignore
+<Literal>/dev/ttyS*</Literal>.  </Para>
 
-<Important> <para> Be sure to include the following files from this directory:
+<Para>If, in building your root filesystem, you get the error <Literal>No
+space left on device</Literal> but a <Literal>df</Literal> command shows space
+still available, you have probably run out of inodes.  A <Literal>df
+-i</Literal> will display inode usage.
+</Para>
+
+<Important><Para>Be sure to include the following files from this directory:
 <Filename/console/, <Filename/kmem/, <Filename/mem/, <Filename/null/,
-<Filename/ram0/ and <Filename/tty1/.
-</para>
-</Important>
+<Filename/ram0/ and <Filename/tty1/.</para> </Important>
 
 </sect3>
 
@@ -1540,16 +1547,15 @@ the first disk is only used for the kernel anyway.  Call this number
 Put a floppy diskette in the drive (for simplicity we'll assume
 <filename>/dev/fd0</filename>) and create an ext2 kernel filesystem on it:
 <Screen width=50>
-        mke2fs -i 8192 -m 0 /dev/fd0 KERNEL&lowbar;BLOCKS
+        mke2fs -N 24 -m 0 /dev/fd0 KERNEL&lowbar;BLOCKS
 </Screen>
 
 <Indexterm><Primary>inodes</Primary><Secondary>allocation</Secondary></Indexterm>
 
-The ``<literal>-i 8192</literal>'' specifies one inode per 8192 bytes.  Next,
-mount the filesystem, remove the <filename>lost+found</filename> directory, and
-create <filename>dev</filename> and <filename>boot</filename> directories for
-LILO:
-<Screen>
+The ``<literal>-N 24</literal>'' specifies 24 inodes, which is all you should
+need for this filesystem.  Next, mount the filesystem, remove the
+<filename>lost+found</filename> directory, and create <filename>dev</filename>
+and <filename>boot</filename> directories for LILO: <Screen>
         mount /dev/fd0 /mnt
         rm -rf /mnt/lost+found
         mkdir /mnt/&lcub;boot,dev&rcub;
@@ -3756,4 +3762,3 @@ lrwxrwxrwx   1 root     root            5 Jul 29 21:35 vi &ndash;&#62; elvis
 </Para>
 </Appendix>
 </Article>
-
