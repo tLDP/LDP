@@ -161,27 +161,41 @@ check_dist_suse()
 }
 
 #
-# check_html_parser
 #
-check_html_parser()
+#
+check_perl_module()
 {
-  echo -n "Checking perl module HTML::Parser ... "
+  local module=$1
+  local error=$2
+
+  echo -n "Checking perl module ${module} ... "
   perl <<EOF 2> /dev/null
-    use HTML::Parser;
+    use ${module};
     use HTML::Entities;
     print "Ok.\n";
     exit 0
 EOF
   [ $? == 0 ] && return 0
   echo "No."
+  echo "ERROR: Missing perl module ${module}."
+  [ -z "${error}" ] && echo "ERROR: ${error}"
+  CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
+  return 1
+}
+
+#
+# check_html_parser
+#
+check_html_parser()
+{
+  check_perl_module "HTML::Entities" && return 0
   echo "ERROR: HTML-Parser is not installed (required for wt2db)."
   case ${DIST_NAME} in
     debian) pkg=libhtml-parser-perl ;;
     redhat) pkg=perl-HTML-Parser ;;
     suse) pkg=perl-HTML-Parser ;;
   esac
-  [ -n "${pkg}" ] && echo "The package is called '${pkg}'."
-  CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
+  [ -n "${pkg}" ] && error="The package is called '${pkg}'."
   return 1
 }
 
@@ -242,11 +256,13 @@ check_python()
 #
 check_python_import()
 {
+  PYTHON=python
   for module in "$@"; do
     echo -n "Checking python module ${module} ... "
     ${PYTHON} -c "import ${module}" 2> /dev/null
     [ $? == 0 ] && echo "Ok." && continue
     echo "No."
+    echo "ERROR: Missing python module ${module}."
     CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
   done
 }
@@ -301,8 +317,9 @@ echo "Identified this installation as '${DIST_NAME}'."
 cat ${DIST_FILE}
 check_dist_${DIST_NAME} "count"
 
-check_which count make
-check_which count perl
+for app in iconv m4 make perl psql sed tar; do
+  check_which count ${app}
+done
 check_xsltproc
 check_html_parser
 check_which count wt2db
