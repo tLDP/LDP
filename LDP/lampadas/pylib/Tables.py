@@ -106,7 +106,7 @@ class Tables(LampadasCollection):
         lintadas.check_doc(uri.id)
         metadata = doc.metadata()
 
-        box = WOStringIO('<table class="box" width="100%%">' \
+        box = WOStringIO('<table class="box" width="100%%">' 
                          '<tr><th colspan="6">|strdocdetails|</th></tr>'
                          '<tr><td class="label">|strtitle|</td><td colspan="5">%s</td></tr>\n'
                          '<tr><td class="label">|strshort_desc|</td><td colspan="5">%s</td></tr>\n'
@@ -168,14 +168,14 @@ class Tables(LampadasCollection):
         if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
-        box = WOStringIO('<table class="box" width="100%">' \
+        box = WOStringIO('<table class="box" width="100%">' 
                          '<tr><th colspan="6">|strdocdetails|</th></tr>')
                 
         if uri.id > 0:
             lintadas.check_doc(uri.id)
             doc = docs[uri.id]
             delete_widget = widgets.delete() + '|strdelete| '
-            box.write('<form method=GET action="|uri.base|data/save/document" '\
+            box.write('<form method="GET" action="|uri.base|data/save/document" '
                       'name="document">')
         else:
 
@@ -186,7 +186,7 @@ class Tables(LampadasCollection):
             doc.review_status_code = 'U'
             doc.tech_review_status_code = 'U'
             delete_widget = ''
-            box.write('<form method=GET action="|uri.base|data/save/newdocument" '\
+            box.write('<form method="GET" action="|uri.base|data/save/newdocument" '
                       'name="document">')
 
         metadata = doc.metadata()
@@ -299,8 +299,10 @@ class Tables(LampadasCollection):
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
-            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%%">%s</td></tr>\n'
-                      % (odd_even.get_next(), version.version, version.pub_date, version.initials, version.notes))
+            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td>'
+                      '<td style="width:100%%">%s</td></tr>\n'
+                      % (odd_even.get_next(), version.version, version.pub_date,
+                         version.initials, version.notes))
         box.write('</table>')
         return box.get_value()
         
@@ -322,10 +324,13 @@ class Tables(LampadasCollection):
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
-            box.write('<form method=GET action="|uri.base|data/save/document_version" name="document_version">'
+            box.write('<form method="GET" name="document_version"'
+                      ' action="|uri.base|data/save/document_version">'
                       '<input name="rev_id" type=hidden value="%s">\n'
                       '<input name="doc_id" type=hidden value="%s">\n'
-                      '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%%">%s</td><td>%s|strdelete|</td><td>%s</td></tr>\n'
+                      '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td>'
+                      '<td style="width:100%%">%s</td><td>%s|strdelete|</td>'
+                      '<td>%s</td></tr>\n'
                       '</form>\n'
                       % (version.id,
                       version.doc_id,
@@ -336,11 +341,15 @@ class Tables(LampadasCollection):
                       widgets.notes(version.notes),
                       widgets.delete(),
                       widgets.save()))
-        box.write('<form method=GET action="|uri.base|data/save/newdocument_version" name="document_version">'
+        box.write('<form method="GET" action="|uri.base|data/save/newdocument_version" '
+                  'name="document_version">'
                   '<input name="doc_id" type=hidden value="%s">\n'
-                  '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%%">%s</td><td></td><td>%s</td></tr>'
+                  '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td>'
+                  '<td style="width:100%%">%s</td><td></td><td>%s</td></tr>'
                   '</form></table>'
-                  % (doc.id, odd_even.get_next(), widgets.version(''), widgets.pub_date(''), widgets.initials(''), widgets.notes(''), widgets.add()))
+                  % (doc.id, odd_even.get_next(), widgets.version(''),
+                     widgets.pub_date(''), widgets.initials(''),
+                     widgets.notes(''), widgets.add()))
         return box.get_value()
 
     def viewdocfiles(self, uri):
@@ -361,7 +370,8 @@ class Tables(LampadasCollection):
                 css_class = ' error'
             else:
                 css_class = ''
-            box.write('<tr><td class="sectionlabel%s" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td></tr>\n'
+            box.write('<tr><td class="sectionlabel%s" colspan="6">'
+                      '<a href="%ssourcefile/%s%s">%s</a></td></tr>\n'
                       '<tr><td class="label">|strprimary|</td><td>%s</td>\n'
                       '    <td class="label">|strfilesize|</td><td>%s</td>\n'
                       '    <td class="label">|strupdated|</td><td>%s</td></tr>\n'
@@ -372,7 +382,8 @@ class Tables(LampadasCollection):
                       '    <td colspan="2"></td></tr>\n'
                       % (css_class, uri.base, docfile.filename, uri.lang_ext,
                          widgets.filename_compressed(sourcefile.filename),
-                         widgets.tf('top', docfile.top, view=1), sourcefile.filesize, sourcefile.updated,
+                         widgets.tf('top', docfile.top, view=1),
+                         sourcefile.filesize, sourcefile.updated,
                          widgets.format_code(sourcefile.format_code, uri.lang, view=1),
                          widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
                          widgets.filemode(sourcefile.filemode),
@@ -398,22 +409,26 @@ class Tables(LampadasCollection):
                 css_class = ' error'
             else:
                 css_class = ''
-            box.write('<form method=GET action="|uri.base|data/save/document_file" name="document_file">' \
-                      '<input type=hidden name="doc_id" value="%s">\n' \
-                      '<input type=hidden name="filename" value="%s">\n' \
-                      '<tr><td class="sectionlabel%s" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td></tr>\n' \
-                      '<tr><td class="label">|strprimary|</td><td>%s</td>\n' \
-                      '    <td class="label">|strfilesize|</td><td>%s</td>\n' \
+            box.write('<form method="GET" name="document_file"'
+                      ' action="|uri.base|data/save/document_file">' 
+                      '<input type=hidden name="doc_id" value="%s">\n' 
+                      '<input type=hidden name="filename" value="%s">\n' 
+                      '<tr><td class="sectionlabel%s" colspan="6">'
+                      '<a href="%ssourcefile/%s%s">%s</a></td></tr>\n' 
+                      '<tr><td class="label">|strprimary|</td><td>%s</td>\n' 
+                      '    <td class="label">|strfilesize|</td><td>%s</td>\n' 
                       '    <td class="label">|strupdated|</td><td>%s</td></tr>\n'
-                      '<tr><td class="label">|strformat|</td><td>%s</td>\n' \
-                      '    <td class="label">|strdtd|</td><td>%s</td>\n' \
-                      '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n' \
-                      '<tr><td class="label">|strencoding|</td><td>%s</td>\n' \
-                      '    <td colspan="3"></td><td>%s|strdelete|%s</td></tr>\n' \
+                      '<tr><td class="label">|strformat|</td><td>%s</td>\n' 
+                      '    <td class="label">|strdtd|</td><td>%s</td>\n' 
+                      '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n' 
+                      '<tr><td class="label">|strencoding|</td><td>%s</td>\n' 
+                      '    <td colspan="3"></td><td>%s|strdelete|%s</td></tr>\n' 
                       '</form>'
-                      % (doc.id, docfile.filename, css_class, uri.base, docfile.filename, uri.lang_ext,
+                      % (doc.id, docfile.filename, css_class, uri.base,
+                         docfile.filename, uri.lang_ext,
                          widgets.filename_compressed(sourcefile.filename),
-                         widgets.tf('top', docfile.top), sourcefile.filesize, sourcefile.updated,
+                         widgets.tf('top', docfile.top),
+                         sourcefile.filesize, sourcefile.updated,
                          widgets.format_code(sourcefile.format_code, uri.lang, view=1),
                          widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
                          widgets.filemode(sourcefile.filemode),
@@ -421,10 +436,16 @@ class Tables(LampadasCollection):
                          widgets.delete(), widgets.save()))
         
         # Add a new docfile
-        box.write('<tr><td class="sectionlabel" colspan="6">|stradd_docfile|</td></tr>'
-                  '<tr><form method=GET action="|uri.base|data/save/newdocument_file" name="document_file">\n'
+        box.write('<tr>'
+                  '  <td class="sectionlabel" colspan="6">|stradd_docfile|</td>'
+                  '</tr>\n'
+                  '<tr>\n'
+                  '<form method="GET" action="|uri.base|data/save/newdocument_file"'
+                  ' name="document_file">\n'
                   '<input name="doc_id" type="hidden" value="%s">\n'
-                  '<td colspan="6"><input type="text" name="filename" size="30" style="width:100%%"></td></tr>\n'
+                  '<td colspan="6">'
+                  '<input type="text" name="filename" size="30" style="width:100%%">'
+                  '</td></tr>\n'
                   '<tr><td class="label">|strprimary|</td><td colspan="4">%s</td>\n'
                   '<td>%s</td></tr>\n'
                   '</form>\n'
@@ -477,7 +498,8 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for key in keys:
             docuser = doc.users[key]
-            box.write('<form method=GET action="|uri.base|data/save/document_user" name="document_user">'
+            box.write('<form method="GET" name="document_user"'
+                      ' action="|uri.base|data/save/document_user">'
                       '<input type=hidden name="doc_id" value="%s">\n'
                       '<input type=hidden name="username" value="%s">\n'
                       '<tr class="%s">\n'
@@ -498,7 +520,7 @@ class Tables(LampadasCollection):
                          widgets.delete(),
                          widgets.save()))
 
-        box.write('<form method=GET action="|uri.base|data/save/newdocument_user" name="document_user">'
+        box.write('<form method="GET" action="|uri.base|data/save/newdocument_user" name="document_user">'
                   '<input name="doc_id" type=hidden value="%s">\n'
                   '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td></td><td>%s</td></tr>\n'
                   '</form></table>\n'
@@ -517,7 +539,7 @@ class Tables(LampadasCollection):
 
         log(3, 'Creating viewdoctopics table')
         doc = docs[uri.id]
-        box = WOStringIO('<table class="box" width="100%">'
+        box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th>|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th></tr>\n')
         topics.calc_titles()
@@ -525,9 +547,11 @@ class Tables(LampadasCollection):
         dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
         for key in keys:
-            if key in dtkeys:
+            if key in dtkeys: # XXXFIXME using key in both loops sounds like a bug !!!
                 topic = topics[key]
-                box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>'
+                box.write('<tr class="%s"><td>'
+                          '<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a>'
+                          '</td></tr>\n'
                           % (odd_even.get_next(), topic.code, topic.title[uri.lang]))
         box.write('</table>')
         return box.get_value()
@@ -547,18 +571,23 @@ class Tables(LampadasCollection):
         dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
         for key in keys:
-            if key in dtkeys:
+            if key in dtkeys:# XXXFIXME using key in both loops sounds like a bug !!!
                 topic = topics[key]
-                box.write('<form method=GET action="|uri.base|data/save/deldocument_topic" name="document_topic">\n'
+                box.write('<form method="GET" name="document_topic"'
+                          ' action="|uri.base|data/save/deldocument_topic">\n'
                           '<input type=hidden name="doc_id" value="%s">\n'
                           '<input type=hidden name="topic_code" value="%s">\n'
-                          '<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
-                          '               <td><input type=submit name="action" value="|strdelete|"></td></tr>\n'
+                          '<tr class="%s">'
+                          ' <td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
+                          ' <td><input type=submit name="action" value="|strdelete|"></td>'
+                          '</tr>\n'
                           '</form>\n'
-                          % (doc.id, topic.code, odd_even.get_next(), topic.code, topic.title[uri.lang]))
-        box.write('<form method=GET action="|uri.base|data/save/newdocument_topic" name="document_topic">\n'
+                          % (doc.id, topic.code, odd_even.get_next(),
+                             topic.code, topic.title[uri.lang]))
+        box.write('<form name="document_topic" method="GET"'
+                  ' action="|uri.base|data/save/newdocument_topic">\n'
                   '<input name="doc_id" type=hidden value="%s">\n'
-                  '<tr><td>%s</td><td>%s</td></tr>'
+                  '<tr><td>%s</td><td>%s</td></tr>\n'
                   '</form></table>\n'
                   % (doc.id,
                      widgets.topic_code('', uri.lang),
@@ -571,11 +600,15 @@ class Tables(LampadasCollection):
             return '|blknotfound|'
 
         log(3, 'Creating viewdocnotes table')
-        box = WOStringIO('<table class="box" width="100%">'
-                         '<tr><th colspan="3">|strdocnotes|</th></tr>\n'
-                         '<tr><th class="collabel">|strdate_time|</th>\n'
-                         '    <th class="collabel">|strusername|</th>\n'
-                         '    <th class="collabel">|strcomments|</th></tr>\n')
+        box = WOStringIO('<table class="box" width="100%">\n'
+                         '<tr>'
+                         ' <th colspan="3">|strdocnotes|</th>'
+                         '</tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strdate_time|</th>'
+                         ' <th class="collabel">|strusername|</th>'
+                         ' <th class="collabel">|strcomments|</th>'
+                         '</tr>\n')
         note_ids = doc.notes.sort_by('created')
         odd_even = OddEven()
         for note_id in note_ids:
@@ -603,7 +636,7 @@ class Tables(LampadasCollection):
             note = doc.notes[note_id]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td></td></tr>\n'
                       % (odd_even.get_next(), note.created, note.creator, note.notes))
-        box.write('<form method=GET action="|uri.base|data/save/newdocument_note" name="document_note">'
+        box.write('<form method="GET" action="|uri.base|data/save/newdocument_note" name="document_note">'
                   '<input name="doc_id" type=hidden value="%s">\n'
                   '<input name="creator" type=hidden value="%s">\n'
                   '<tr><td></td><td></td>\n'
@@ -838,10 +871,10 @@ class Tables(LampadasCollection):
             user = users[uri.username]
             if user==None:
                 return '|blknotfound|'
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/user" name="user">\n')
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/user" name="user">\n')
         else:
             user = User()
-            box = WOStringIO('<form method=GET action="/data/save/newuser" name="user">\n')
+            box = WOStringIO('<form method="GET" action="/data/save/newuser" name="user">\n')
         box.write('<table class="box" width="100%">\n'
                   '<tr><th colspan="2">|struserdetails|</th></tr>\n'
                   '<tr><td class="label">|strusername|</td>')
@@ -1088,13 +1121,13 @@ class Tables(LampadasCollection):
                 # Finally, pull in the abstract.
                 block_abstract = '<td>' + html_encode(metadata.abstract) + '</td>'
 
-                box.write('<table class="box nontabular" width="100%%">\n' \
-                          '  <tr>%s</tr>\n' \
-                          '  <tr>%s\n' \
-                          '      %s\n' \
-                          '      %s\n' \
-                          '      %s\n' \
-                          '  </tr>' \
+                box.write('<table class="box nontabular" width="100%%">\n'
+                          '  <tr>%s</tr>\n'
+                          '  <tr>%s\n'
+                          '      %s\n'
+                          '      %s\n'
+                          '      %s\n'
+                          '  </tr>'
                           '</table>\n'
                           % (block_title, block_indexlink, block_dllink, block_editlink, block_abstract))
 
@@ -1191,7 +1224,7 @@ class Tables(LampadasCollection):
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
-        box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n' \
+        box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n'
                          '<tr><td>' % section.name[uri.lang])
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
@@ -1351,8 +1384,8 @@ class Tables(LampadasCollection):
         keys = collections.sort_by('sort_order')
         for key in keys:
             collection = collections[key]
-            box.write('<tr><td><a href="|uri.base|collection/%s|uri.lang_ext|">%s</a></td>\n' \
-                      '    <td>%s</td>\n' \
+            box.write('<tr><td><a href="|uri.base|collection/%s|uri.lang_ext|">%s</a></td>\n'
+                      '    <td>%s</td>\n'
                       '</tr>'
                       % (collection.code, collection.name[uri.lang], collection.description[uri.lang]))
         box.write('</td></tr>\n</table>\n')
@@ -1564,7 +1597,7 @@ class Tables(LampadasCollection):
            Each element gets a unique identifier such as 'p1', so a css
            stylesheet can exercise fine control over placement."""
         log(3, 'Creating tabslashlanguages table')
-        box = WOStringIO('<p class="hide"><div class="map">\n' \
+        box = WOStringIO('<p class="hide"><div class="map">\n'
                          '<h1 id="p1">|strproject|</h1>\n')
         id = 1
         for key in languages.supported_keys():
@@ -1614,7 +1647,7 @@ class Tables(LampadasCollection):
             all_selected            = ' class="selected_tab"'
 
         # Write the tags, inserting the class on the erorrs tab.
-        box.write('<th%s"><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>\n' % (main_selected))
+        box.write('<th%s><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>\n' % (main_selected))
         box.write('<th%s><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>\n' % (files_selected))
         box.write('<th%s><a href="|uri.base|document_revs/|uri.id||uri.lang_ext|">|strversions|</a></th>\n' % (versions_selected))
         box.write('<th%s><a href="|uri.base|document_topics/|uri.id||uri.lang_ext|">|strtopics|</a></th>\n' % (topics_selected))
@@ -1677,61 +1710,76 @@ class DocAdmin(Table):
 
         if sessions.session and sessions.session.user.can_edit(uri.id)==1:
             doc = docs[uri.id]
-            box = WOStringIO('<table class="box nontabular" width="100%%"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
-                             '<tr><td class="label">|strdoc_check_errors|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strlint_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
-                             '<tr><td class="label">|strdoc_mirror|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_mirror?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strmirror_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
-                             '<tr><td class="label">|strdoc_publish|</td>\n' \
-                             '    <td><a href="|uri.base|data/admin/run_publish?doc_id=%s">|strrun|</a></td>\n' \
-                             '    <td class="label">|strpub_time|</td>\n' \
-                             '    <td>%s</td></tr>\n' \
+            box = WOStringIO('<table class="box nontabular" width="100%%">\n'
+                             '<tr>'
+                             ' <th colspan="4">|strdoc_admin|</th>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strdoc_check_errors|</td>'
+                             ' <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>'
+                             ' <td class="label">|strlint_time|</td>'
+                             ' <td>%s</td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strdoc_mirror|</td>'
+                             ' <td><a href="|uri.base|data/admin/run_mirror?doc_id=%s">|strrun|</a></td>'
+                             ' <td class="label">|strmirror_time|</td>'
+                             ' <td>%s</td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strdoc_publish|</td>'
+                             ' <td><a href="|uri.base|data/admin/run_publish?doc_id=%s">|strrun|</a></td>'
+                             ' <td class="label">|strpub_time|</td>'
+                             ' <td>%s</td>'
+                             '</tr>\n'
                              '</table>'
-                             % (doc.id, doc.lint_time, doc.id, doc.mirror_time, doc.id, doc.pub_time))
-
+                             % (doc.id, doc.lint_time, doc.id,
+                                doc.mirror_time, doc.id, doc.pub_time))
             return box.get_value()
         else:
             return '|blknopermission|'
 
 
-# The off-by-one error is intentional. If 0 is passed in items, we never
-# stop processing items, but list them all intead.
-
 class TabNews(Table):
 
     def __init__(self, items=0):
+        """
+        The off-by-one error is intentional. If 0 is passed in items, we never
+        stop processing items, but list them all instead.
+        """
+
         Table.__init__(self, 'news', self.method)
         self.items = items
 
     def method(self, uri):
         log(3, 'Creating recent news')
-        box = WOStringIO('<table class="box nontabular" width="100%">'
+        box = WOStringIO('<table class="box nontabular" width="100%">\n'
                          '<tr><th colspan="2">|strnews|</th></tr>')
+
+        # display first 'self.items' items only
         keys = lampadasweb.news.sort_by_desc('pub_date')
-        items = 0
+        if self.items > 0 :
+            keys = keys[:self.items]
         for key in keys:
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
                 if sessions.session and sessions.session.user.can_edit(news_id=news.id)==1:
-                    edit_icon = '<a href="|uri.base|news_edit/' + str(news.id) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
+                    edit_icon = '<a href="|uri.base|news_edit/%s|uri.lang_ext|">%s</a>\n' \
+                                % (str(news.id),EDIT_ICON_SM)
                 else:
                     edit_icon = ''
 
-                box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
-                          '<tr class="odd"><td class="label">%s</td>\n'
-                          '               <td>%s</td>\n'
+                box.write('<tr>'
+                          ' <th class="sectionlabel" colspan="2">%s %s</th>'
+                          '</tr>\n'
+                          '<tr class="odd">'
+                          ' <td class="label">%s</td>'
+                          ' <td>%s</td>'
                           '</tr>\n'
                           % (edit_icon,
                              news.headline[uri.lang],
                              news.pub_date,
                              news.news[uri.lang]))
-            items = items + 1
-            if items==self.items:
-                break
         box.write('</table>\n')
         return box.get_value()
 
@@ -1749,14 +1797,14 @@ class TabNewsItem(Table):
         if uri.id > 0:
             news = lampadasweb.news[uri.id]
 
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
-                             '<table class="box nontabular"><tr><th colspan="3">|strnews|</th></tr>\n' \
-                             '<input type=hidden name="news_id" value="%s">\n' \
-                             '<tr><td class="label">|strpub_date|</td>\n' \
-                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
-                             '</tr>\n' \
-                             '</table>\n' \
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/news">\n'
+                             '<table class="box nontabular"><tr><th colspan="3">|strnews|</th></tr>\n'
+                             '<input type=hidden name="news_id" value="%s">\n'
+                             '<tr><td class="label">|strpub_date|</td>\n'
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n'
+                             '    <td><input type=submit name="save" value="|strsave|"></td>\n'
+                             '</tr>\n'
+                             '</table>\n'
                              '</form>\n' % (news.id, news.pub_date))
 
             # List the available translations
@@ -1765,13 +1813,13 @@ class TabNewsItem(Table):
             odd_even = OddEven()
             for lang in languages.supported_keys(uri.lang):
                 if not news.news[lang]==None:
-                    box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
-                              '<input type=hidden name="news_id" value="%s">\n' \
-                              '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td><td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strnews|</td><td width="100%%">%s</td><td>%s</td></tr>' \
+                    box.write('<form method="GET" action="|uri.base|data/save/news_lang">\n'
+                              '<input type=hidden name="news_id" value="%s">\n'
+                              '<input type=hidden name="lang" value="%s">\n'
+                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n'
+                              '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n'
+                              '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td><td></td></tr>\n'
+                              '<tr class="%s"><td class="label">|strnews|</td><td width="100%%">%s</td><td>%s</td></tr>'
                               '</form>'
                               % (news.id, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],
@@ -1782,13 +1830,13 @@ class TabNewsItem(Table):
 
             # Add a new translation if there are untranslated languages.
             if len(news.untranslated_lang_keys(uri.lang)) > 0:
-                box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
-                          '<input type=hidden name="news_id" value="%s">\n' \
-                          '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
-                          '<tr class="%s"><td class="label">|strlanguage|</td><td>%s</td>\n<td></td></tr>\n' \
-                          '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n' \
-                          '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td></tr>\n' \
-                          '<tr class="%s"><td class="label">|strnews|</td><td>%s</td><td>%s</td></tr>' \
+                box.write('<form method="GET" action="|uri.base|data/save/newnews_lang">\n'
+                          '<input type=hidden name="news_id" value="%s">\n'
+                          '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>'
+                          '<tr class="%s"><td class="label">|strlanguage|</td><td>%s</td>\n<td></td></tr>\n'
+                          '<tr class="%s"><td class="label">|strversion|</td><td>%s</td>\n<td></td></tr>\n'
+                          '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td></tr>\n'
+                          '<tr class="%s"><td class="label">|strnews|</td><td>%s</td><td>%s</td></tr>'
                           '</form>'
                           % (news.id, odd_even.get_next(),
                              odd_even.get_last(), widgets.new_news_lang(news.id, uri.lang),
@@ -1799,13 +1847,13 @@ class TabNewsItem(Table):
             box.write('</table>')
         else:
             news = NewsItem()
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
-                             '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
-                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
-                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
-                             '</tr>\n' \
-                             '</table>\n' \
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/newnews">\n'
+                             '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n'
+                             '<tr class="odd"><td class="label">|strpub_date|</td>\n'
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n'
+                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n'
+                             '</tr>\n'
+                             '</table>\n'
                              '</form>\n' % (news.pub_date))
             
         return box.get_value()
@@ -1817,12 +1865,12 @@ class TabPages(Table):
 
     def method(self, uri):
         log(3, 'Creating pages table')
-        box = WOStringIO('<table class="box" width="100%%">\n' \
-                         '<tr><th colspan="5">|strpages|</th></tr>\n' \
-                         '<tr><th class="collabel" colspan="2">|strpage_code|</th>\n' \
-                         '    <th class="collabel">|strtemplate|</th>\n' \
-                         '    <th class="collabel">|strsection|</th>\n' \
-                         '    <th class="collabel">|strname|</th>\n' \
+        box = WOStringIO('<table class="box" width="100%%">\n'
+                         '<tr><th colspan="5">|strpages|</th></tr>\n'
+                         '<tr><th class="collabel" colspan="2">|strpage_code|</th>\n'
+                         '    <th class="collabel">|strtemplate|</th>\n'
+                         '    <th class="collabel">|strsection|</th>\n'
+                         '    <th class="collabel">|strname|</th>\n'
                          '</tr>\n')
         keys = lampadasweb.pages.sort_by('code')
         odd_even = OddEven()
@@ -1837,13 +1885,13 @@ class TabPages(Table):
             else:
                 section_name = ''
 
-            box.write('<tr class="%s">\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td><i>%s</i></td>\n' \
-                      '</tr>\n' \
+            box.write('<tr class="%s">\n'
+                      '  <td>%s</td>\n'
+                      '  <td>%s</td>\n'
+                      '  <td>%s</td>\n'
+                      '  <td>%s</td>\n'
+                      '  <td><i>%s</i></td>\n'
+                      '</tr>\n'
                       % (odd_even.get_next(),
                          edit_icon,
                          page.code,
@@ -1868,44 +1916,96 @@ class TabPage(Table):
         if uri.code > '':
             page = lampadasweb.pages[uri.code]
             
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/page">\n' \
-                             '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n' \
-                             '<input type=hidden name="page_code" value="%s">\n' \
-                             '<tr><td class="label">|strsection|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|strtemplate|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_dynamic|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_registered|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stradjust_sort_order|</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n' \
-                             '</table>\n' \
-                             '</form>\n' % (escape_tokens(page.code),
-                                            page.code,
-                                            widgets.section_code(page.section_code, uri.lang),
-                                            widgets.template_code(page.template_code),
-                                            widgets.tf('only_dynamic', page.only_dynamic),
-                                            widgets.tf('only_registered', page.only_registered),
-                                            widgets.tf('only_admin', page.only_admin),
-                                            widgets.tf('only_sysadmin', page.only_sysadmin),
-                                            widgets.data(page.data),
-                                            widgets.adjust_sort_order(),
-                                            widgets.save()))
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/page">\n'
+                             '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n'
+                             '<input type=hidden name="page_code" value="%s">\n'
+                             '<tr>'
+                             ' <td class="label">|strsection|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strtemplate|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|stronly_dynamic|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|stronly_registered|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|stronly_admin|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|stronly_sysadmin|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strurl_data|</td>'
+                             ' <td>%s</td>'
+                             ' <td></td>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|stradjust_sort_order|</td>'
+                             ' <td>%s</td>'
+                             ' <td>%s</td>'
+                             '</tr>\n'
+                             '</table>\n'
+                             '</form>\n'
+                             % (escape_tokens(page.code),
+                                page.code,
+                                widgets.section_code(page.section_code, uri.lang),
+                                widgets.template_code(page.template_code),
+                                widgets.tf('only_dynamic', page.only_dynamic),
+                                widgets.tf('only_registered', page.only_registered),
+                                widgets.tf('only_admin', page.only_admin),
+                                widgets.tf('only_sysadmin', page.only_sysadmin),
+                                widgets.data(page.data),
+                                widgets.adjust_sort_order(),
+                                widgets.save()))
 
             # List the available translations
-            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
+            box.write('<table class="box" style="width:100%">\n'
+                      '<tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
             for lang in languages.supported_keys(uri.lang):
                 if not page.page[lang]==None:
-                    box.write('<form method=GET action="|uri.base|data/save/page_lang">\n' \
-                              '<input type=hidden name="page_code" value="%s">\n' \
-                              '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strpage|:</td><td width="100%%">%s</td>\n<td>%s</td>\n</tr>\n' \
+                    box.write('<form method="GET" action="|uri.base|data/save/page_lang">\n'
+                              '<input type=hidden name="page_code" value="%s">\n'
+                              '<input type=hidden name="lang" value="%s">\n'
+                              '<tr class="%s">'
+                              ' <td class="sectionlabel" colspan="3">%s</td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strversion|:</td>'
+                              ' <td>%s</td>'
+                              ' <td></td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strtitle|:</td>'
+                              ' <td>%s</td>'
+                              ' <td></td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strmenu_name|:</td>'
+                              ' <td>%s</td>'
+                              ' <td></td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strpage|:</td>'
+                              ' <td width="100%%">%s</td>'
+                              ' <td>%s</td>'
+                              '</tr>\n'
                               '</form>'
                               % (page.code, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],
@@ -1917,14 +2017,14 @@ class TabPage(Table):
 
             # Add a new translation if there are untranslated languages.
             if len(page.untranslated_lang_keys(uri.lang)) > 0:
-                box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
-                      '<input type=hidden name="page_code" value="%s">\n' \
-                      '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
-                      '<tr class="%s"><td class="label">|strlanguage|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n' \
-                      '<tr class="%s"><td class="label">|strpage|:</td><td>%s</td>\n<td>%s</td>\n</tr>\n' \
+                box.write('<form method="GET" action="|uri.base|data/save/newpage_lang">\n'
+                      '<input type=hidden name="page_code" value="%s">\n'
+                      '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>'
+                      '<tr class="%s"><td class="label">|strlanguage|:</td><td>%s</td>\n<td></td></tr>\n'
+                      '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td>\n<td></td></tr>\n'
+                      '<tr class="%s"><td class="label">|strtitle|:</td><td>%s</td>\n<td></td></tr>\n'
+                      '<tr class="%s"><td class="label">|strmenu_name|:</td><td>%s</td>\n<td></td></tr>\n'
+                      '<tr class="%s"><td class="label">|strpage|:</td><td>%s</td>\n<td>%s</td>\n</tr>\n'
                       '</form>'
                       % (page.code,
                          odd_even.get_next(),
@@ -1937,17 +2037,17 @@ class TabPage(Table):
             box.write('</table>')
         else:
             page = Page()
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/newpage">\n' \
-                             '<table class="box"><tr><th colspan="3">|stradd_page|</th></tr>\n' \
-                             '<tr><td class="label">|strpage_code|</td>\n<td><input type=text name="page_code"></td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|strsection|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|strtemplate|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_dynamic|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_registered|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n' \
-                             '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n' \
-                             '</table>\n' \
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/newpage">\n'
+                             '<table class="box"><tr><th colspan="3">|stradd_page|</th></tr>\n'
+                             '<tr><td class="label">|strpage_code|</td>\n<td><input type=text name="page_code"></td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|strsection|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|strtemplate|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|stronly_dynamic|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|stronly_registered|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|stronly_admin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|stronly_sysadmin|</td>\n<td>%s</td>\n<td></td>\n</tr>\n'
+                             '<tr><td class="label">|strurl_data|</td>\n<td>%s</td>\n<td><input type=submit name="save" value="|strsave|"></td>\n</tr>\n'
+                             '</table>\n'
                              '</form>\n' % (widgets.section_code(page.section_code, uri.lang),
                                             widgets.template_code(page.template_code),
                                             widgets.tf('only_dynamic', page.only_dynamic),
@@ -1964,25 +2064,27 @@ class TabStrings(Table):
 
     def method(self, uri):
         log(3, 'Creating strings table')
-        box = WOStringIO('<table class="box" width="100%%">\n' \
-                         '<tr><th colspan="3">|strstrings|</th></tr>\n' \
-                         '<tr><th class="collabel" colspan="2">|strstring_code|</th>\n' \
-                         '    <th class="collabel">|strstring|</th>\n' \
+        box = WOStringIO('<table class="box" width="100%%">\n'
+                         '<tr><th colspan="3">|strstrings|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel" colspan="2">|strstring_code|</th>'
+                         ' <th class="collabel">|strstring|</th>'
                          '</tr>\n')
         keys = lampadasweb.strings.sort_by('code')
         odd_even = OddEven()
         for key in keys:
             string = lampadasweb.strings[key]
             if sessions.session and sessions.session.user.can_edit(string_code=string.code)==1:
-                edit_icon = '<a href="|uri.base|string_edit/' + str(string.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
+                edit_icon = '<a href="|uri.base|string_edit/%s|uri.lang_ext|">%s</a>\n' \
+                            % (str(string.code),EDIT_ICON_SM)
             else:
                 edit_icon = ''
 
-            box.write('<tr class="%s">\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td>%s</td>\n' \
-                      '  <td>%s</td>\n' \
-                      '</tr>\n' \
+            box.write('<tr class="%s">\n'
+                      '  <td>%s</td>\n'
+                      '  <td>%s</td>\n'
+                      '  <td>%s</td>\n'
+                      '</tr>\n'
                       % (odd_even.get_next(),
                          edit_icon,
                          string.code,
@@ -2005,24 +2107,44 @@ class TabString(Table):
         if uri.code > '':
             webstring = lampadasweb.strings[uri.code]
 
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/string">\n' \
-                             '<table class="box"><tr><th colspan="2">|strstring|</th></tr>\n' \
-                             '<tr><td class="label">|strstring_code|:</td>\n<td>%s</td>\n</tr>\n' \
-                             '</table>\n' \
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/string">\n'
+                             '<table class="box">'
+                             '<tr>'
+                             ' <th colspan="2">|strstring|</th>'
+                             '</tr>\n'
+                             '<tr>'
+                             ' <td class="label">|strstring_code|:</td>'
+                             ' <td>%s</td>'
+                             '</tr>\n'
+                             '</table>\n'
                              '</form>\n' % (webstring.code))
 
             # List the available translations
-            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
+            box.write('<table class="box" style="width:100%">\n'
+                      '<tr>'
+                      ' <th colspan="3">|strtranslations|</th>'
+                      '</tr>\n')
 
             odd_even = OddEven()
             for lang in languages.supported_keys(uri.lang):
                 if not webstring.string[lang]==None:
-                    box.write('<form method=GET action="|uri.base|data/save/string_lang">\n' \
-                              '<input type=hidden name="string_code" value="%s">\n' \
-                              '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="sectionlabel" colspan="3">%s</td><td></td></tr>\n' \
-                              '<tr class="%s"><td class="label">|strversion|</td><td>%s:</td><td></td>'
-                              '<tr class="%s"><td class="label">|strstring|</td><td width="100%%">%s:</td><td>%s</td>'
+                    box.write('<form method="GET" action="|uri.base|data/save/string_lang">\n'
+                              '<input type=hidden name="string_code" value="%s">\n'
+                              '<input type=hidden name="lang" value="%s">\n'
+                              '<tr class="%s">'
+                              ' <td class="sectionlabel" colspan="3">%s</td>'
+                              ' <td></td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strversion|</td>'
+                              ' <td>%s:</td>'
+                              ' <td></td>'
+                              '</tr>\n'
+                              '<tr class="%s">'
+                              ' <td class="label">|strstring|</td>'
+                              ' <td width="100%%">%s:</td>'
+                              ' <td>%s</td>'
+                              '</tr>\n'
                               '</form>'
                               % (webstring.code, lang,
                                  odd_even.get_next(), languages[lang].name[uri.lang],
@@ -2032,12 +2154,26 @@ class TabString(Table):
 
             # Add a new translation if there are untranslated languages.
             if len(webstring.untranslated_lang_keys(uri.lang)) > 0:
-                box.write('<form method=GET action="|uri.base|data/save/newstring_lang">\n' \
-                          '<input type=hidden name="string_code" value="%s">\n' \
-                          '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>' \
-                          '<tr class="%s"><td class="label">|strlanguage|:</td><td>%s</td><td></td></tr>' \
-                          '<tr class="%s"><td class="label">|strversion|:</td><td>%s</td><td></td></tr>' \
-                          '<tr class="%s"><td class="label">|strstring|:</td><td>%s</td><td>%s</td></tr>'
+                box.write('<form method="GET" action="|uri.base|data/save/newstring_lang">\n'
+                          '<input type=hidden name="string_code" value="%s">\n'
+                          '<tr class="%s">'
+                          ' <td class="sectionlabel" colspan="3">|stradd_translation|</td>'
+                          '</tr>\n'
+                          '<tr class="%s">'
+                          ' <td class="label">|strlanguage|:</td>'
+                          ' <td>%s</td>'
+                          ' <td></td>'
+                          '</tr>\n'
+                          '<tr class="%s">'
+                          ' <td class="label">|strversion|:</td>'
+                          ' <td>%s</td>'
+                          ' <td></td>'
+                          '</tr>\n'
+                          '<tr class="%s">'
+                          ' <td class="label">|strstring|:</td>'
+                          ' <td>%s</td>'
+                          ' <td>%s</td>'
+                          '</tr>\n'
                           '</form>'
                           % (webstring.code,
                              odd_even.get_next(),
@@ -2048,13 +2184,17 @@ class TabString(Table):
             box.write('</table>')
         else:
             webstring = String()
-            box = WOStringIO('<form method=GET action="|uri.base|data/save/newstring">\n' \
-                             '<table class="box"><tr><th colspan="3">|stradd_string|</th></tr>\n' \
-                             '<tr class="odd"><td class="label">|strstring_code|:</td>\n' \
-                             '    <td><input type=text name="string_code" value="%s"></td>\n' \
-                             '    <td colspan="2">%s</td>\n' \
-                             '</tr>\n' \
-                             '</table>\n' \
+            box = WOStringIO('<form method="GET" action="|uri.base|data/save/newstring">\n'
+                             '<table class="box">\n'
+                             '<tr>'
+                             ' <th colspan="3">|stradd_string|</th>'
+                             '</tr>\n'
+                             '<tr class="odd">'
+                             ' <td class="label">|strstring_code|:</td>'
+                             ' <td><input type=text name="string_code" value="%s"></td>'
+                             ' <td colspan="2">%s</td>'
+                             '</tr>\n'
+                             '</table>\n'
                              '</form>\n' % (webstring.code, widgets.add()))
             
         return box.get_value()
@@ -2152,24 +2292,29 @@ class TabLintTimeStats(Table):
 
     def method(self, uri):
         log(3, 'Creating lint_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strlint_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strlint_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strlint_time_stats|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strlint_time|</th>'
+                         ' <th class="collabel" align="right">|strcount|</th>'
+                         ' <th class="collabel" align="right">|strpct|</th>'
                          '</tr>\n')
         stattable = stats['lint_time']
         odd_even = OddEven()
         for key in stattable.sort_by('label'):
             stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s">'
+                      ' <td class="label">%s</td>'
+                      ' <td align="right">%s</td>'
+                      ' <td align="right">%s</td>'
                       '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
+                      % (odd_even.get_next(), stat.label, stat.value,
+                         fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s">'
+                  ' <td class="label">|strtotal|</td>'
+                  ' <td align="right">%s</td><td></td>'
+                  '</tr>\n'
+                  '</table>\n'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
       
@@ -2180,24 +2325,29 @@ class TabMirrorTimeStats(Table):
         
     def method(self, uri):
         log(3, 'Creating mirror_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strmirror_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strmirror_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strmirror_time_stats|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strmirror_time|</th>'
+                         ' <th class="collabel" align="right">|strcount|</th>'
+                         ' <th class="collabel" align="right">|strpct|</th>'
                          '</tr>\n')
         stattable = stats['mirror_time']
         odd_even = OddEven()
         for key in stattable.sort_by('label'):
             stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s">'
+                      ' <td class="label">%s</td>'
+                      ' <td align="right">%s</td>'
+                      ' <td align="right">%s</td>'
                       '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
+                      % (odd_even.get_next(), stat.label, stat.value,
+                         fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s">'
+                  ' <td class="label">|strtotal|</td>'
+                  ' <td align="right">%s</td><td></td>'
+                  '</tr>\n'
+                  '</table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
@@ -2208,24 +2358,29 @@ class TabPubTimeStats(Table):
         
     def method(self, uri):
         log(3, 'Creating pub_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strpub_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strpub_time_stats|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strpub_time|</th>'
+                         ' <th class="collabel" align="right">|strcount|</th>'
+                         ' <th class="collabel" align="right">|strpct|</th>'
                          '</tr>\n')
         stattable = stats['pub_time']
         odd_even = OddEven()
         for key in stattable.sort_by('label'):
             stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s">'
+                      ' <td class="label">%s</td>'
+                      ' <td align="right">%s</td>'
+                      ' <td align="right">%s</td>'
                       '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
+                      % (odd_even.get_next(), stat.label, stat.value,
+                         fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s">'
+                  ' <td class="label">|strtotal|</td>'
+                  ' <td align="right">%s</td><td></td>'
+                  '</tr>\n'
+                  '</table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
@@ -2236,11 +2391,12 @@ class TabPubStatusStats(Table):
         
     def method(self, uri):
         log(3, 'Creating pub_status_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_status_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strstatus|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strpub_status_stats|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strstatus|</th>\n'
+                         ' <th class="collabel" align="right">|strcount|</th>\n'
+                         ' <th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['pub_status']
         odd_even = OddEven()
@@ -2248,17 +2404,20 @@ class TabPubStatusStats(Table):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s">'
+                      ' <td class="label">%s</td>\n'
+                      ' <td align="right">%s</td>\n'
+                      ' <td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         pub_statuses[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
+        box.write('<tr class="%s">'
+                  ' <td class="label">|strtotal|</td>\n'
+                  ' <td align="right">%s</td><td></td>\n'
+                  '</tr>\n'
+                  '</table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
@@ -2269,12 +2428,12 @@ class TabDocErrorStats(Table):
         
     def method(self, uri):
         log(3, 'Creating doc_error_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strid|</th>\n' \
-                             '<th class="collabel">|strerror|</th>\n' \
-                             '<th class="collabel">|strtype|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strid|</th>\n'
+                             '<th class="collabel">|strerror|</th>\n'
+                             '<th class="collabel">|strtype|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
                          '</tr>\n')
         stattable = stats['doc_error']
         odd_even = OddEven()
@@ -2282,18 +2441,18 @@ class TabDocErrorStats(Table):
             stat = stattable[key]
             error = errors[key]
             errortype = errortypes[error.err_type_code]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td>%s</td>\n' \
-                          '<td>%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td>%s</td>\n'
+                          '<td>%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         stat.label, 
                         errortype.name[uri.lang],
                         error.name[uri.lang], 
                         stat.value))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td></td><td></td><td align="right">%s</td>\n' \
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td></td><td></td><td align="right">%s</td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2305,11 +2464,11 @@ class TabDocFormatStats(Table):
         
     def method(self, uri):
         log(3, 'Creating doc_format_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strdoc_format_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strformat|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strdoc_format_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strformat|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
+                             '<th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['doc_format']
         odd_even = OddEven()
@@ -2317,16 +2476,16 @@ class TabDocFormatStats(Table):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td align="right">%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         formats[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2338,11 +2497,11 @@ class TabPubDocFormatStats(Table):
         
     def method(self, uri):
         log(3, 'Creating pub_doc_format_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_doc_format_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strformat|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strpub_doc_format_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strformat|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
+                             '<th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['pub_doc_format']
         odd_even = OddEven()
@@ -2350,16 +2509,16 @@ class TabPubDocFormatStats(Table):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td align="right">%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         formats[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2371,11 +2530,11 @@ class TabDocDTDStats(Table):
         
     def method(self, uri):
         log(3, 'Creating doc_dtd_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strdoc_dtd_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strdtd|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strdoc_dtd_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strdtd|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
+                             '<th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['doc_dtd']
         odd_even = OddEven()
@@ -2383,16 +2542,16 @@ class TabDocDTDStats(Table):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td align="right">%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         dtds[key].code, 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2404,11 +2563,11 @@ class TabPubDocDTDStats(Table):
         
     def method(self, uri):
         log(3, 'Creating pub_doc_dtd_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_doc_dtd_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strdtd|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strpub_doc_dtd_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strdtd|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
+                             '<th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['pub_doc_dtd']
         odd_even = OddEven()
@@ -2416,16 +2575,16 @@ class TabPubDocDTDStats(Table):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td align="right">%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
                         dtds[key].code, 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2437,24 +2596,27 @@ class TabDocLangStats(Table):
 
     def method(self, uri):
         log(3, 'Creating doc_lang_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strdoc_lang_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strlanguage|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strdoc_lang_stats|</th></tr>\n'
+                         '<tr><th class="collabel">|strlanguage|</th>\n'
+                             '<th class="collabel" align="right">|strcount|</th>\n'
+                             '<th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['doc_lang']
         odd_even = OddEven()
         for key in languages.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None: continue
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s"><td class="label">%s</td>\n'
+                          '<td align="right">%s</td>\n'
+                          '<td align="right">%s</td>\n'
                       '</tr>\n'
-                      % (odd_even.get_next(), languages[stat.label].name[uri.lang], stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+                      % (odd_even.get_next(),
+                         languages[stat.label].name[uri.lang],
+                         stat.value,
+                         fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
+                      '<td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
@@ -2466,24 +2628,30 @@ class TabPubDocLangStats(Table):
 
     def method(self, uri):
         log(3, 'Creating pub_doc_lang_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_doc_lang_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strlanguage|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
+        box = WOStringIO('<table class="box">\n'
+                         '<tr><th colspan="3">|strpub_doc_lang_stats|</th></tr>\n'
+                         '<tr>'
+                         ' <th class="collabel">|strlanguage|</th>\n'
+                         ' <th class="collabel" align="right">|strcount|</th>\n'
+                         ' <th class="collabel" align="right">|strpct|</th>\n'
                          '</tr>\n')
         stattable = stats['pub_doc_lang']
         odd_even = OddEven()
         for key in languages.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None: continue
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+            box.write('<tr class="%s">'
+                      ' <td class="label">%s</td>\n'
+                      ' <td align="right">%s</td>\n'
+                      ' <td align="right">%s</td>\n'
                       '</tr>\n'
-                      % (odd_even.get_next(), languages[stat.label].name[uri.lang], stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+                      % (odd_even.get_next(),
+                         languages[stat.label].name[uri.lang],
+                         stat.value,
+                         fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s">'
+                  ' <td class="label">|strtotal|</td>\n'
+                  ' <td align="right">%s</td><td></td>\n'
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
