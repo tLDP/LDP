@@ -30,8 +30,9 @@
      that spaces *are* significant in the value, so you should have a
      space after the colon. -->
 
-<xsl:variable name="maintainer.label">Maintainer: </xsl:variable>
-<xsl:variable name="author.label">Author: </xsl:variable>
+<xsl:variable name="maintainerlabel">Maintainer: </xsl:variable>
+<xsl:variable name="authorlabel">Author: </xsl:variable>
+
 
 <!-- NOT IN LDP.DSL
      Creates header content in all generated HTML files -->
@@ -120,7 +121,7 @@
      also produce a bold item. -->
 <xsl:template match="emphasis">
   <xsl:choose>
-    <xsl:when test="@role='bold'|@role='strong'">
+    <xsl:when test="(@role='strong') or (@role='bold')">
       <xsl:call-template name="inline.boldseq"/>
     </xsl:when>
     <xsl:otherwise>
@@ -203,10 +204,10 @@
           assume it is an author. -->
   <xsl:choose>
     <xsl:when test="@role='maintainer'">
-        <i><xsl:value-of select="$maintainer.label"/></i>
+        <i><xsl:value-of select="$maintainerlabel"/></i>
     </xsl:when>
     <xsl:otherwise>
-        <i><xsl:value-of select="$author.label"/></i>
+        <i><xsl:value-of select="$authorlabel"/></i>
     </xsl:otherwise>
   </xsl:choose>
   <xsl:call-template name="person.name"/>
