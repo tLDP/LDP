@@ -820,7 +820,7 @@ class TableFactory:
             box = '<table class="navbox"><tr><th>|stractive_user|</th></tr>\n'
             box = box + '<form name="logout" action="data/session/logout">\n'
             box = box + '<input name=username type=hidden value="' + user.username + '">\n'
-            box = box + '<tr><td align=center>|session_name|</td></tr>\n'
+            box = box + '<tr><td align=center><a href="/user/|session_username|">|session_name|</a></td></tr>\n'
             box = box + '<tr><td align=center><input type=submit name=logout value="|strlog_out|"></td></tr>\n'
             box = box + '</form>\n'
             box = box + '</table>\n'

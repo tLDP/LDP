@@ -34,6 +34,22 @@ insert([home], [|strproject|], [Home],
     <p>This site is based on a development version of the
     Lampadas Document Management System from
     <a href="http://www.tldp.org">The Linux Documentation Project</a>
+
+    <p>This demo site provides the following users. Log in as one of
+    them to see the site through their eyes!
+
+    <ul>
+        <li>sysadmin - the SUPERUSER, who manages the system.</li>
+        <li>admin - the Site Administrator, who manages the content.</li>
+        <li>english - an English-speaking user.</li>
+        <li>french - a French-speaking user.</li>
+        <li>german - a German-speaking user.</li>
+        <li>korean - a Korean-speaking user.</li>
+    </ul>
+
+    <p>All of these accounts use the password &quot;password&quot;.
+    Log in as one of them, and check it out, or apply for your own
+    account.
 ])
 
 insert([doctable], [DocTable], [],
