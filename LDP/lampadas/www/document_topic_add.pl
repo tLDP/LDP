@@ -25,9 +25,5 @@ $subtopic_num = $topic_subtopic_num[1];
 
 $sql = "INSERT INTO document_topic (doc_id, topic_num, subtopic_num) VALUES ($doc_id, $topic_num, $subtopic_num)";
 $DB->Exec($sql);
-
-$L->StartPage("Saved");
-print "Saved";
-print "<p>$sql";
-$L->EndPage();
+$L->Redirect($caller);
 

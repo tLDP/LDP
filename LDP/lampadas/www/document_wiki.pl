@@ -76,12 +76,11 @@ if ($save) {
 }
 
 #load document meta-data
-$result = $DB->Recordset("SELECT title, filename, class FROM document WHERE doc_id=$doc_id");
+$result = $DB->Recordset("SELECT title, class FROM document WHERE doc_id=$doc_id");
 @row = $result->fetchrow;
 $title		= $row[0];
 $title		=~  s/\s+$//;
-$filename	= $row[1];
-$class		= $row[2];
+$class		= $row[1];
 $class		=~  s/\s+$//;
 
 #find out how many prior revisions there were
