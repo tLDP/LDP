@@ -29,7 +29,7 @@
 # $Id$
 
 use strict;
-use vars qw ($project $repository $from_email $dest_email $reply_email
+use vars qw ($x_mailer $project $repository $from_email $dest_email $reply_email
 		$CVS $diffstat $cvsweb_url $help_msg $sync_delay $max_diff_lines
 		$show_diffstat $show_diff $login $subj_files $subj_maxlength
 		$withthreading_email $messageid_email $mail_contenttype $mail_contenttransen);
