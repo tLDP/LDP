@@ -276,7 +276,7 @@ def main():
                 L.append(s)
         specs = L
     print 'Generating notification message...'
-    blast_mail(os.environ['CVS_USER'], PEOPLE, specs[1:], contextlines, module_name)
+    blast_mail(os.environ['CVS_USER']+"@"+addr_suffix, PEOPLE, specs[1:], contextlines, module_name)
     print 'Generating notification message... done.'
 
 
