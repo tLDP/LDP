@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<chapter id="considerations" xreflabel="Considerations">
+  <?dbhtml filename="considerations.html"?>
+  <title>Considerations</title>
+
+  <abstract>
+    <para>
+      Some specific considerations come into play as a result of
+      system-wide SMTP time filtering.  Here we cover some of those.
+    </para>
+  </abstract>
+
+  <section id="multimx" xreflabel="Multiple Incoming Mail Exchangers">
+    <?dbhtml filename="multimx.html"?>
+    <title>Multiple Incoming Mail Exchangers</title>
+
+    <para>
+      Most domains list more than one incoming <xref linkend="mx"/>s
+      (a.k.a. <quote>MX hosts</quote>).  If you do so, then bear in
+      mind that in order to have any effect, any SMTP time filtering
+      you incorporate on the primary MX has to be incorporated on all
+      the others as well.  Otherwise, the sending host would simply
+      sidestep filtering by retrying the mail delivery through your
+      backup server(s).
+    </para>
+
+    <para>
+      If the backup server(s) are not under your control, ask
+      yourself whether you need multiple MXs in the first place.  In
+      this situation, chances are that they serve only as
+      <emphasis>redundant</emphasis> mail servers, and that they in
+      turn forward the mail to your primary MX.  If so, you probably
+      don't need them.  If your host happens to be down for a little
+      while, that's OK -- well-behaved sender hosts will retry
+      deliveries for several days before giving up
+      <footnoteref linkend="noretrysenders"/>.
+    </para>
+
+    <para>
+      A situation where you <emphasis>may</emphasis> need multiple
+      MXs is to perform load balancing between several servers -
+      i.e. if you receive so much mail that one machine alone could
+      not handle it.  In this case, see if you could offload some
+      tasks (such as <link linkend="virusscanners">virus</link> and
+      <link linkend="spamscanners">spam</link> scanners) to other
+      machines, in order to reduce or eliminate this need.
+    </para>
+
+    <para>
+      Again, if you do decide to keep using several MXs, your backup
+      servers need to be (at least) as restrictive as the primary
+      server, lest filtering in the primary MX is useless.
+    </para>
+
+    <para>
+      See also the section on <xref linkend="greylisting"/> for
+      additional concerns related to multiple MX hosts.
+    </para>
+  </section>
+
+
+  <section id="otherservers" xreflabel="Blocking Access to Other SMTP Servers">
+    <?dbhtml filename="otherservers.html"?>
+    <title>Blocking Access to Other SMTP Servers</title>
+
+    <para>
+      Any SMTP server that is not listed as a public <xref
+      linkend="mx"/> in the DNS zone of your domain(s) should not
+      accept incoming connections from the internet.  All incoming
+      mail traffic should go through your incoming mail exchanger(s).
+    </para>
+
+    <para>
+      This consideration is not unique to SMTP servers.  If you have
+      machines that only serve an internal purpose within your site,
+      use a firewall to restrict access to these.
+    </para>
+
+    <para>
+      This is a rule, so therefore there must be exceptions.  However,
+      if you don't know what they are, then the above applies to you.
+    </para>
+  </section>
+
+
+
+  <section id="forwardedmail" xreflabel="Forwarded Mail">
+    <?dbhtml filename="forwardedmail.html"?>
+    <title>Forwarded Mail</title>
+
+    <para>
+      You should take care not to reject mail as a result of spam
+      filtering if it is forwarded from <quote>friendly</quote>
+      sources, such as:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  Your backup MX hosts, if any.  Supposedly, these have
+	  already filtered out most of the junk (see <xref
+	  linkend="multimx"/>).
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Mailing lists, to which you or your users subscribe. You may
+	  still filter such mail (it may not be as criticial if it
+	  ends up in a black hole). However, if you reject the mail,
+	  you may end up causing the list server to automatically
+	  unsubscribe the recipient.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Other accounts belonging to the recipient.  Again,
+	  rejections will generate collateral spam, and/or create
+	  problems for the host that forwards the mail.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      You may see a logistical issue with the last two of these
+      sources: They are specific to each recipient.  How to you allow
+      each user to specify which hosts they want to whitelist, and
+      then use such individual whitelists in a system-wide SMTP-time
+      filtering setup?  If the message is forwarded to several
+      recipients at your site (as may often be true in the case of
+      a mailing list), how do you decide whose whitelist to use?
+    </para>
+
+    <para>
+      There is no magic bullet here.  This is one of those situations
+      where we just have to do a bit of work.  You can decide to
+      accept all mails, regardless of spam classification, so long as
+      it is sent from a host in the whitelist of any one of the
+      recipients.  For instance, in response to each <command>RCPT
+      TO:</command> command, we can match the sending host against the
+      corresponding user's whitelist.  If found, set a flag that will
+      prevent a subsequent rejection.  Effectively, you are using an
+      <emphasis>aggregate</emphasis> of each recipient's whitelist.
+    </para>
+
+    <para>
+      The implementation appendices cover this in more detail.
+    </para>
+  </section>
+
+
+
+  <section id="usersettings" xreflabel="User Settings and Data">
+    <?dbhtml filename="usersettings.html"?>
+    <title>User Settings and Data</title>
+
+    <para>
+      There are other situations where you may want to support
+      settings and data for each user at site.  For instance, if you
+      scan incoming mail with SpamAssassin (see <xref
+      linkend="spamscanners"/>), you may want to allow for individual
+      spam thresholds, acceptable languages and character sets, and
+      Bayesian training/data.
+    </para>
+
+    <para>
+      A sticking point is that SMTP-time filtering of incoming mail is
+      done at the system level, before mail is being delivered to a
+      particular user, and as such, does not lend itself too well to
+      individual preferences.  A single message may have several
+      recipients; and unlike the case with <xref
+      linkend="forwardedmail"/>, using an aggregate of each
+      recipient's preferences is not a good option.  Consider a
+      scenario where you have users from different linguistic
+      backgrounds.
+    </para>
+
+    <para>
+      As it turns out, though, there is a modification to this truth.
+      The trick is to limit the number of recipients in incoming
+      messages to one, so that the message can be analyzed in
+      accordance with the settings and data that belongs to the
+      corresponding user.
+    </para>
+
+    <para>
+      To do this, you would accept the first <command>RCPT
+      TO:</command>, then issue a SMTP <command>451</command> (defer)
+      response to subsequent commands.  If the caller is a
+      well-behaved MTA, it will know how to interpret this response,
+      and try later.  (If it is confused, then, well, it is probably a
+      sender from which you don't want to receive mail in the first
+      place).
+    </para>
+
+    <para>
+      Obviously, this is a hack.  Every mail sent to several users at
+      your site will be slowed down by 30 minutes or more per
+      recipient.  Especially in corporate environments, where it is
+      common to see e-mail discussions involving several people on the
+      inside and several others on the outside, and where timelines of
+      mail deliveries are essential, this is probably not a good
+      solution at all.
+    </para>
+
+    <para>
+      Another issue that mainly pertains to corporate enterprises and
+      other large sites is that incoming mail is often forwarded to
+      internal machines for delivery, and that recipients don't
+      normally have accounts on the mail exchanger.  It may still be
+      possible to support user-specific settings and data in these
+      situations (e.g. via database lookups or LDAP queries), but you
+      may also want to consider whether it's worth the effort.
+    </para>
+
+    <para>
+      That said, if you are on a small site, and where you are not
+      afraid of delayed deliveries, this may be an acceptable way
+      to allow each user to fine tune their filtering criteria.
+    </para>
+  </section>
+</chapter>

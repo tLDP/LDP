@@ -1,0 +1,2083 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<chapter id="techniques" xreflabel="Techniques">
+  <?dbhtml filename="techniques.html"?>
+  <title>Techniques</title>
+
+  <abstract>
+    <para>
+      In this chapter, we look at various ways to weed out junk mail
+      during the SMTP transaction from remote hosts.  We will also try
+      to anticipate some of the side effects from deploying these
+      techniques.
+    </para>
+  </abstract>
+
+  <section id="smtpdelays" xreflabel="SMTP transaction delays">
+    <?dbhtml filename="smtpdelays.html"?>
+    <title>SMTP Transaction Delays</title>
+
+    <para>
+      As it turns out, one of the more effective ways of stopping spam
+      is by imposing transaction delays during an inbound SMTP
+      dialogue.  This is a primitive form of
+      <emphasis>teergrubing</emphasis>, see: <ulink
+      url="http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html"/>
+    </para>
+
+    <para>
+      Most spam and nearly all e-mail borne virii are delivered
+      directly to your server by way of specialized SMTP client
+      software, optimized for sending out large amounts of mail in a
+      very short time.  Such clients are commonly known as
+      <xref linkend="ratware"/>.
+    </para>
+
+    <para>
+      In order to accomplish this task, ratware authors commonly take
+      a few shortcuts that, ahem, <quote>diverge</quote> a bit
+      from the RFC 2821 specification.  One of the intrinsic traits of
+      ratware is that it is notoriously impatient, especially with
+      slow-responding mail servers.  They may issue the
+      <command>HELO</command> or <command>EHLO</command> command
+      before the server has presented the initial SMTP banner, and/or
+      try to pipeline several SMTP commands before the server has
+      advertised the <command>PIPELINING</command> capability.
+    </para>
+
+    <para>
+      Certain <xref linkend="mta" />s (such as Exim) automatically
+      treat such SMTP protocol violations as
+      <emphasis>synchronization errors</emphasis>, and immediately
+      drop the incoming connection.  If you happen to be using such an
+      MTA, you may already see a lot of entries to this effect in your
+      log files.  In fact, chances are that if you perform any
+      time-consuming checks (such as 
+      <xref linkend="dnschecks"/>) prior to presenting the initial
+      SMTP banner, such errors will occur frequently, as ratware
+      clients simply do not take the time to wait for your server to
+      come alive (Things to do, people to spam).
+    </para>
+
+    <para>
+      We can help along by imposing additional delays.  For instance,
+      you may decide to wait:
+    </para>
+    
+    <itemizedlist>
+      <listitem>
+	<para>
+	  20 seconds before presenting the initial SMTP banner,
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  20 seconds after the Hello (<command>EHLO</command> or
+	  <command>HELO</command>) greeting,
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  20 seconds, after the <command>MAIL FROM:</command>
+	  command, and
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  20 seconds after each <command>RCPT TO:</command> command.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+
+    <para>
+      Where did 20 seconds come from, you ask.  Why not a minute?  Or
+      several minutes?  After all, RFC 2821 mandates that the sending
+      host (client) should wait up to several minutes for every SMTP
+      response.  The issue is that some receiving hosts, particularly
+      those that use Exim, may perform <xref linkend="callback"/> in
+      response to incoming mail delivery attempts.  If you or one of
+      your users send mail to such a host, it will contact the <xref
+      linkend="mx"/> (MX host) for your domain and start an SMTP
+      dialogue in order to validate the sender address.  The default
+      timeout of such <xref linkend="callback"/>s is 30 seconds - if
+      you impose delays this long, the peer's sender callout
+      verification would fail, and in turn the original mail delivery
+      from you/your user might be rejected (usually with a temporary
+      failure, which means the message delivery will be retried for 5
+      days or so before the mail is finally returned to the sender).
+    </para>
+    
+    <para>
+      In other words, 20 seconds is about as long as you can stall
+      before you start interfering with legitimate mail deliveries.
+    </para>
+
+    <para>
+      If you do not like imposing such delays on every SMTP
+      transaction (say, you have a very busy site and are low on
+      machine resources), you may choose to use
+      <quote>selective</quote> transaction delays.  In this case, you
+      could impose the delay:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  If there is a problem with the peer's DNS information (see
+	  <xref linkend="dnschecks"/>).
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  After detecting some sign of trouble during the SMTP
+	  transaction (see <xref linkend="smtpchecks"/>).
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Only in the highest-numbered MX host in your DNS zone,
+	  i.e. the mail exchanger with the last priority.  Often,
+	  <xref linkend="ratware"/> specifically target these hosts,
+	  whereas legitimate MTAs will try the lower-numbered MX hosts
+	  first.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      In fact, selective transaction delays may be a good way to
+      incorporate some less conclusive checks that we will discuss in
+      the following sections.  You probably do not wish to reject the
+      mail outright based the results from e.g. the SPEWS <link
+      linkend="dnsbl">blacklist</link>, but on the other hand, it may
+      provide a strong enough indication of trouble that you can at
+      least impose transaction delays.  After all, legitimate mail
+      deliveries are not affected, other than being subjected to a
+      slight delay.
+    </para>
+
+    <para>
+      Conversely, if you find conclusive evidence of spamming (e.g. by
+      way of certain <xref linkend="smtpchecks"/>), and your server
+      can afford it, you may choose to impose an extended delay,
+      e.g. 15 minutes or so, before finally rejecting the delivery
+      <footnote>
+	<para>
+	  Beware that while you are holding up an incoming SMTP
+	  delivery, you are also holding up a TCP socket on your
+	  server, as well as memory and other server resources.  If
+	  your server is generally busy, imposing SMTP transaction
+	  delays will make you more vulnerable to Denial-of-Service
+	  attacks.  A more <quote>scalable</quote> option may be to
+	  drop the connection once you have conclusive evidence that
+	  the sender is a ratware client.
+	</para>
+      </footnote>.
+      This is for little or no benefit other than slowing down the
+      spammer a little bit in their quest to reach as many people as
+      possible before DNS blacklists and other collaborative network
+      checks catch up.  In other words, pure altruism on your
+      side. :-)
+    </para>
+
+
+    <para>
+      In my own case, selective transaction delays and the resulting
+      SMTP synchronization errors account for nearly 50% of rejected
+      incoming delivery attempts.  This roughly translates into saying
+      that nearly 50% of incoming junk mail is stopped by SMTP
+      transaction delays alone.
+    </para>
+
+    <para>
+      See also <link linkend="qanda-adapt"><emphasis>What happens when
+      spammers adapt...</emphasis></link>.
+    </para>
+  </section>
+
+  <section id="dnschecks" xreflabel="DNS checks">
+    <?dbhtml filename="dnschecks.html"?>
+    <title>DNS Checks</title>
+
+    <para>
+      Some indication of the integrity of a particular peer can be
+      gleaned directly from the <xref linkend="dns"/> (DNS), even
+      before SMTP commands are issued.  In particular, various DNS
+      blacklists can be consulted to find out if a particular IP
+      address is known to violate or fulfill certain criteria, and a
+      simple pair of forward/reverse (DNS/rDNS) lookups can be used as
+      a vague indicator of the host's general integrity.
+    </para>
+
+    <para>
+      Moreover, various data items presented during the SMTP dialogue
+      (such as the name presented in the Hello greeting) can be
+      subjected to DNS validation, once it becomes available.  For a
+      discussion on these items, see the section on <xref
+      linkend="smtpchecks"/>, below.
+    </para>
+
+    <para>
+      A word of caution, though.  DNS checks are not always conclusive
+      (e.g. a required DNS server may not be responding), and not
+      always indicative of spam.  Moreover, if you have a very busy
+      site, they can be expensive in terms of processing time per
+      message.  That said, they can provide useful information for
+      logging purposes, and/or as part of a more holistic integrity
+      check.
+    </para>
+
+
+    <section id="dnsbl" xreflabel="DNS Blacklists">
+      <title>DNS Blacklists</title>
+
+      <para>
+	DNS blacklists (DNSbl's, formerly called "Real-time Black-hole
+	Lists" after the original blacklist, "mail-abuse.org") make up
+	perhaps the most common tool to perform transaction-time spam
+	blocking.  The receiving server performs one or more rDNS
+	lookups of the peer's IP address within various DNSbl zones,
+	such as "dnsbl.sorbs.net", "opm.blitzed.org",
+	"lists.dsbl.org", and so forth.  If a matching DNS record is
+	found, a typical action is to reject the mail delivery.
+	<footnote>
+	  <para>
+	    Similar lists exist for different purposes.  For instance,
+	    <quote>bondedsender.org</quote> is a <emphasis>DNS
+	    whitelist</emphasis> (DNSwl), containing
+	    <quote>trusted</quote> IP addresses, whose owners have
+	    posted a financial bond that will be debited in the event
+	    that spam originates from that address.  Other lists
+	    contain IP addresses in use by specific countries,
+	    specific ISPs, etc.
+	  </para>
+	</footnote>
+      </para>
+
+      <para>
+	If in addition to the DNS address ("A" record) you look up the
+	"TXT" record of an entry, you will typically receive a
+	one-line description of the listing, suitable for inclusion in
+	a SMTP reject response.  To try this out, you can use the
+	"host" command provided on most Linux and UNIX systems:
+	<screen>host -t txt 2.0.0.127.dnsbl.sorbs.net</screen>
+      </para>
+
+      <para>
+	There are currently hundreds of these lists available, each
+	with different listing criteria, and with different
+	listing/unlisting policies. Some lists even combine several
+	listing criteria into the same DNSbl, and issue different data
+	in response to the rDNS lookup, depending on which criterion
+	affects the address provided.  For instance, a rDNS lookup
+	against <option>sbl-xbl.spamhaus.org</option> returns
+	127.0.0.2 for IP addresses that are believed by the SpamHaus
+	staff to directly belong to spammers and their providers,
+	127.0.0.4 response for <xref linkend="zombie"/>s, or a
+	127.0.0.6 response for <xref linkend="openproxy"/> servers.
+      </para>
+
+      <para>
+	Unfortunately, many of these lists contain large blocks of IP
+	addresses that are not directly responsible for the alleged
+	violations, don't have clear listing / delisting policies,
+	and/or post misleading information about which addresses are
+	listed<footnote>
+	<para>
+	  For instance, the outgoing mail exchangers (<quote>smart
+	  hosts</quote>) of the world's largest Internet Service
+	  Provider (ISP), comcast.net, is as of the time of this
+	  writing included in the SPEWS <emphasis>Level 1</emphasis>
+	  list.  Not wholly undeserved from the viewpoint that
+	  Comcast needs to more effectively enforce their own AUP,
+	  but this listing does affect 30% of all US internet users,
+	  mostly <quote>innocent</quote> subscribers such as myself.
+	</para>
+
+	<para>
+	  To make matters worse, information published in the <ulink
+	  url="http://spews.org/faq.html">SPEWS FAQ</ulink> states:
+	  <emphasis>
+	    The majority of the Level 1 list is made up of netblocks
+	    owned by the spammers or spam support operations
+	    themselves, with few or no other legitimate customers
+	    detected.
+	  </emphasis>
+	  Technically, this information is accurate if (a) you
+	  consider Comcast a <quote>spam support operation</quote>,
+	  and (b) pay attention to the word <quote>other</quote>.
+	  Word parsing aside, this information is clearly misleading.
+	</para>
+	</footnote>.
+
+	The blind trust in such lists often cause a large amount of
+	what is referred to as <xref linkend="coldamage"/> (not to be
+	confused with <xref linkend="colspam"/>).
+      </para>
+
+      <para>
+	For that reason, rather than rejecting mail deliveries
+	outright based on a single positive response from DNS
+	blacklists, many administrators prefer to use these lists in a
+	more nuanced fashion.  They may consult several lists, and
+	assign a "score" to each positive response.  If the total
+	score for a given IP address reaches a given threshold,
+	deliveries from that address are rejected.  This is how DNS
+	blacklists are used by filtering software such as
+	SpamAssassin (<xref linkend="spamscanners"/>).
+      </para>
+
+      <para>
+	One could also use such lists as one of several triggers for
+	SMTP transaction delays on incoming connections
+	(a.k.a. "teergrubing").  If a host is listed in a DNSbl, your
+	server would delay its response to every SMTP command issued
+	by the peer for, say, 20 seconds.  Several other criteria can
+	be used as triggers for such delays; see the section on 
+	<xref linkend="smtpdelays"/>.
+      </para>
+    </section>
+
+
+    <section id="rdns" xreflabel="DNS Integrity Check">
+      <title>DNS Integrity Check</title>
+
+      <para>
+	Another way to use DNS is to perform a reverse lookup of the
+	peer's IP address, then a forward lookup of the resulting
+	name.  If the original IP address is included in the result,
+	its DNS integrity has been validated.  Otherwise, the DNS
+	information for the connecting host is not valid.
+      </para>
+
+      <para>
+	Rejecting mails based on this criterion may be an option if
+	you are a militant member of the DNS police, setting up an
+	incoming MX for your own personal domain, and don't mind
+	rejecting legitimate mail as a way to impress upon the sender
+	that they need to ask their own system administrator to clean
+	up their DNS records.  For everyone else, the result of a DNS
+	integrity check should probably only be used as one data point
+	in a larger set of heuristics.  Alternatively, as above, using
+	SMTP transaction delays for misconfigured hosts may not be a
+	bad idea.
+      </para>
+    </section>
+  </section>
+
+
+  <section  id="smtpchecks" xreflabel="SMTP checks">
+    <?dbhtml filename="smtpchecks.html"?>
+    <title>SMTP checks</title>
+
+
+    <para>
+      Once the SMTP dialogue is underway, you can perform various
+      checks on the commands and arguments presented by the remote
+      host.  For instance, you will want to ensure that the name
+      presented in the Hello greeting is valid.
+    </para>
+
+    <para>
+      However, even if you decide to reject the delivery attempt early
+      in the SMTP transaction, you may not want to perform the actual
+      rejection right away.  Instead, you may stall the sender with
+      SMTP transaction delays until after the <command>RCPT
+      TO:</command>, then reject the mail at that point.
+    </para>
+
+    <para>
+      The reason is that some ratware does not understand rejections
+      early in the SMTP transaction; they keep trying.  On the other
+      hand, most of them give up if the <command>RCPT TO:</command>
+      fails.
+    </para>
+
+    <para>
+      Besides, this gives a nice opportunity to do a little
+      <emphasis>teergrubing</emphasis>.
+    </para>
+	  
+
+
+    <section id="helocheck" xreflabel="HELO/EHLO check">
+      <title>Hello (HELO/EHLO) checks</title>
+
+      <para>
+	Per RFC 2821, the first SMTP command issued by the client
+	should be EHLO (or if unsupported, HELO), followed by its
+	primary, <xref linkend="fqdn"/>.  This is known as the Hello
+	greeting.  If no meaningful FQDN is available, the client can
+	supply its IP address enclosed in square brackets:
+	"[1.2.3.4]".  This last form is known as an IPv4 address
+	"literal" notation.
+      </para>
+
+
+      <para>
+	Quite understandably, <xref linkend="ratware"/> rarely present
+	their own FQDN in the Hello greeting.  Rather, greetings from
+	ratware usually attempt to conceal the sending host's
+	identity, and/or to generate confusing and/or misleading
+	"Received:" trails in the message header.  Some examples of
+	such greetings are:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    Unqualified names (i.e. names without a period), such as
+	    the <quote>local part</quote> (username) of the
+	    recipient address.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    A plain IP address (i.e. not an IP literal); usually
+	    yours, but can be a random one.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Your domain name, or the FQDN of your server.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Third party domain names, such as
+	    <option>yahoo.com</option> and
+	    <option>hotmail.com</option>.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Non-existing domain names, or domain names with
+	    non-existing name servers.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    No greeting at all.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+
+      <section id="helosyntax" xreflabel="HELO/EHLO syntax check">
+	<title>Simple HELO/EHLO syntax checks</title>
+
+	<para>
+	  Some of these RFC 2821 violations are both easy to check
+	  against, and clear indications that the sending host is
+	  running some form of <xref linkend="ratware"/>.  You can
+	  reject such greetings -- either right away, or e.g. after
+	  the <command>RCPT TO:</command> command.
+	</para>
+
+	<para>
+	  First, feel free to reject plain IP addresses in the Hello
+	  greeting.  Even if you wish to generously allow everything
+	  RFC 2821 mandates, recommends, and suggests, you will note
+	  that IP addresses should always be enclosed in square
+	  brackets when presented in lieu of a name.
+	  <footnote>
+	    <para>
+	      Although this check is normally quite effective at
+	      weeding out junk, there are reports of buggy L-Soft
+	      <ulink url="http://www.lsoft.com/products/default.asp?item=listserv">listserv</ulink>
+	      installations that greet with the plain IP address of
+	      the list server.
+	    </para>
+	  </footnote>
+	</para>
+
+	<para>
+	  In particular, you may wish to issue a strongly worded
+	  rejection message to hosts that introduce themselves using
+	  <emphasis>your</emphasis> IP address - or for that matter,
+	  your host name.  They are plainly lying.  Perhaps you want
+	  to stall the sender with an exceedingly long SMTP
+	  transaction delay in response to such a greeting; say,
+	  hours.
+	</para>
+
+	<para>
+	  For that matter, my own experience indicates that
+	  <emphasis>no</emphasis> legitimate sites on the internet
+	  present themselves to other internet sites using an IP
+	  address literal (the [x.y.z.w] notation) either.  Nor should
+	  they; all hosts sending mail directly on the internet should
+	  use their valid <xref linkend="fqdn"/>.  The only use of use
+	  of IP literals I have come across is from mail user agents
+	  on my local area network, such as Ximian Evolution,
+	  configured to use my server as outgoing SMTP server
+	  (smarthost).  Indeed, I only accept literals from my own
+	  LAN.
+	</para>
+
+	<para>
+	  You may or may not also wish to reject unqualified host
+	  names (host names without a period).  I find that these are
+	  rarely (but not never - how's that for double negative
+	  negations) legitimate.
+	</para>
+
+	<para>
+	  Similarly, you can reject host names that contain invalid
+	  characters.  For internet domains, only alphanumeric letters
+	  and hyphen are valid characters; a hyphen is not allowed as
+	  the first character.  (You may also want to consider the
+	  underscore a valid character, because it is quite common to
+	  see this from misconfigured, but ultimately well-meaning,
+	  Windows clients).
+	</para>
+
+	<para>
+	  Finally, if you receive a <command>MAIL FROM:</command>
+	  command without first having received a Hello greeting,
+	  well, polite people greet first.
+	</para>
+
+	<para>
+	  On my servers, I reject greetings that fail any of these
+	  syntax checks.  However, the rejection does not actually
+	  take place until after the <command>RCPT TO:</command>
+	  command.  In the mean time, I impose a 20 second transaction
+	  delay after each SMTP command (<command>HELO/EHLO</command>,
+	  <command>MAIL FROM:</command>, <command>RCPT TO:</command>).
+	</para>
+      </section>
+
+
+      <section id="heloverify" xreflabel="HELO/EHLO verification via DNS">
+	<title>Verifying the Hello greeting via DNS</title>
+
+	<para>
+	  Hosts that make it this far have presented at least a
+	  superficially credible greeting.  Now it is time to verify
+	  the provided name via DNS.  You can:
+	</para>
+
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Perform a forward lookup of the provided name, and
+	      match the result against the peer's IP address
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      Perform a reverse lookup of the peer's IP address, and
+	      match it against name provided in the greeting.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	
+	<para>
+	  If either of these two checks succeeds, the name has been
+	  verified.
+	</para>
+
+	<para>
+	  Your MTA may have a built-in option to perform this check.
+	  For instance, in Exim (see <xref linkend="exim" />),
+	  you want to set "helo_try_verify_hosts = *", and create ACLs
+	  that take action based on the "verify = helo" condition.
+	</para>
+
+	<para>
+	  This check is a little more expensive in terms of processing
+	  time and network resources than the simple syntax checks.
+	  Moreover, unlike the syntax checks, a mismatch does not
+	  always indicate ratware; several large internet sites, such
+	  as hotmail.com, yahoo.com, and amazon.com, frequently
+	  present unverifiable Hello greetings.
+	</para>
+
+	<para>
+	  On my servers, I do a DNS validation of the Hello greeting
+	  if I am not already stalling the sender with transaction
+	  delays based on prior checks.  Then, if this check fails, I
+	  impose a 20 second delay on every SMTP command from this
+	  point forward.  I also prepare a
+	  <quote>X-HELO-Warning:</quote> header that I will later add
+	  to the message(s), and use to increase the <link
+	  linkend="spamassassin">SpamAssassin</link> score for
+	  possible rejection after the message data has been received.
+	</para>
+      </section>
+    </section>
+
+    <section id="senderchecks" xreflabel="Sender Address Checks">
+      <title>Sender Address Checks</title>
+
+      <para>
+	After the client has presented the
+	<command>MAIL FROM:</command> &lt;<parameter>address</parameter>&gt;
+	command, you can validate the supplied
+	<xref linkend="envfrom"/> address as follows.
+	<footnote>
+	  <para>
+	    A special case is the NULL envelope sender address
+	    (i.e. <command>MAIL FROM:</command> &lt;&gt;) used in
+	    <xref linkend="dsn"/>s and other automatically generated
+	    responses.  This address should always be accepted.
+	  </para>
+	</footnote>
+      </para>
+
+      <section id="sendersyntax" xreflabel="Sender Address Syntax Check">
+	<title>Sender Address Syntax Check</title>
+
+	<para>
+	  Does the supplied address conform to the format
+	  &lt;<parameter>localpart</parameter>@<parameter>domain</parameter>&gt;?
+	  Is the <parameter>domain</parameter> part a syntactically
+	  valid <xref linkend="fqdn" />?
+	</para>
+
+	<para>
+	  Often, your MTA performs these checks by default.
+	</para>
+      </section>
+      
+
+      <section id="impostor" xreflabel="Impostor Check">
+	<title>Impostor Check</title>
+	
+	<para>
+	  In the case where you and your users send all your outgoing
+	  mail only through a select few servers, you can reject
+	  messages from other hosts in which the <quote>domain</quote>
+	  of the sender address is your own.
+	</para>
+	
+	<para>
+	  A more general alternative to this check is
+	  <xref linkend="spf"/>.
+	</para>
+      </section>
+      
+
+      <section id="sendervalid" xreflabel="Simple Sender Address Validation">
+	<title>Simple Sender Address Validation</title>
+	
+	<para>
+	  If the address is local, is the <quote>local part</quote>
+	  (the part before the @ sign) a valid mailbox on your
+	  system?
+	</para>
+	
+	<para>
+	  If the address is remote, does the <quote>domain</quote>
+	  (the part after the @ sign) exist?
+	</para>
+      </section>
+      
+      
+      <section id="callback" xreflabel="Sender Callout Verification">
+	<title>Sender Callout Verification</title>
+	
+	<para>
+	  This is a mechanism that is offered by some MTAs, such as
+	  Exim and Postfix, to validate the <quote>local part</quote>
+	  of a remote sender address.  In Postfix terminology, it is
+	  called <quote>Sender Address Verification</quote>.
+	</para>
+	
+	<para>
+	  Your server contacts the MX for the
+	  <parameter>domain</parameter> provided in the sender
+	  address, attempting to initiate a secondary SMTP transaction
+	  as if delivering mail to this address.  It does not actually
+	  send any mail; rather, once the <command>RCPT TO:</command>
+	  command has been either accepted or rejected by the remote
+	  host, your server sends <command>QUIT</command>.
+	</para>
+	
+	<para>
+	  By default, Exim uses an empty envelope sender address for
+	  such callout verifications.  The goal is to determine if a
+	  <xref linkend="dsn"/> would be accepted if returned to the
+	  sender.
+	</para>
+
+	<para>
+	  Postfix, on the other hand, defaults to the sender address
+	  &lt;<option>postmaster@</option><parameter>domain</parameter>&gt;
+	  for address verification purposes
+	  (<parameter>domain</parameter> is taken from the
+	  <option>$myorigin</option> variable).  For this reason, you
+	  may wish to treat this sender address the same way that you
+	  treat the NULL envelope sender (for instance, avoid <xref
+	  linkend="smtpdelays"/> or <xref linkend="greylisting"/>, but
+	  require <xref linkend="signedsender"/>s in recipient
+	  addresses).  More on this in the implementation appendices.
+	</para>
+
+	<para>
+	  You may find that this check alone may not be suitable as a
+	  trigger to reject incoming mail.  Occasionally, legitimate
+	  mail, such as a recurring billing statement, is sent out
+	  from automated services with an invalid return address.
+	  Also, an unfortunate side effect of spam is that some users
+	  tend to mangle the return address in their outgoing mails
+	  (though this may affect the <quote>From:</quote> header in
+	  the message itself more often than the <xref
+	  linkend="envfrom"/>).
+	</para>
+
+	<para>
+	  Moreover, this check only verifies that an address is valid,
+	  not that it was authentic as the sender of this particular
+	  message (but see also <xref linkend="signedsender"/>).
+	</para>
+
+	<para>
+	  Finally, there are reports of sites, such as
+	  <quote>aol.com</quote>, that will unconditionally blacklist
+	  any system from which they discover sender callout requests.
+	  These sites may be frequent victims of <xref
+	  linkend="joejob"/>s, and as a result, receive storms of
+	  sender callout requests.  By taking part in these DDoS
+	  (Distributed Denial-of-Servcie) attacks, you are effectively
+	  turning yourself into a pawn in the hands of the spammer.
+	</para>
+      </section>
+    </section> <!-- Sender Address Checks -->
+
+    <section id="rcptchecks" xreflabel="Recipient Address Checks">
+      <title>Recipient Address Checks</title>
+
+      <para>
+	This should be simple, you say.  A recipient address is either
+	valid, in which case the mail is delivered, or invalid, in
+	which case your MTA takes care of the rejection by default.
+      </para>
+
+      <para>
+	Let us have a look, shall we?
+      </para>
+
+      <section id="relayprevent" xreflabel="Open Relay Prevention">
+	<title>Open Relay Prevention</title>
+
+	<para>
+	  <emphasis>Do not relay mail from remote hosts to remote
+	  addresses!</emphasis> (Unless the sender is authenticated).
+	</para>
+
+	<para>
+	  This may seem obvious to most of us, but apparently this is
+	  a frequently overlooked consideration.  Also, not everyone
+	  may have a full grasp of the various internet standards
+	  related to e-mail addresses and delivery paths (consider
+	  <quote>percent hack domains</quote>, <quote>bang (!) 
+	  paths</quote>, etc).
+	</para>
+
+	<para>
+	  If you are unsure whether your MTA acts as an an <xref
+	  linkend="openrelay" />, you can test it via
+	  <quote>relay-test.mail-abuse.org</quote>.
+	  At a shell prompt on your server, type:
+
+	  <screen>telnet relay-test.mail-abuse.org</screen>
+	</para>
+
+	<para>
+	  This is a service that will use various tests to see whether
+	  your SMTP server appears to forward mail to remote e-mail
+	  addresses, and/or any number of address <quote>hacks</quote>
+	  such as the ones mentioned above.
+	</para>
+
+	<para>
+	  Preventing your servers from acting as open relays is
+	  extremely important.  If your server is an open relay, and
+	  spammers find you, you will be listed in numerous DNS
+	  blacklists instantly.  If the maintainers of certain other
+	  DNS blacklists find you (by probing, and/or by acting on
+	  complaints), you will be listed in those for an extended
+	  period of time.
+	</para>
+      </section>
+
+
+
+      <section id="rcptvalid" xreflabel="Recipient Address Lookups">
+	<title>Recipient Address Lookups</title>
+
+	<para>
+	  This, too may seem banal to most of us.  It is not always so.
+	</para>
+
+	<para>
+	  If your users' mail accounts and mailboxes are stored
+	  directly on your incoming mail exchanger, you can simply
+	  check that the <quote>local part</quote> of the recipient
+	  address corresponds to a valid mailbox.  No problem here.
+	</para>
+
+	<para>
+	  There are two scenarios where verification of the recipient
+	  address is more cumbersome:
+	</para>
+
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      If your machine is a backup MX for the recipient
+	      domain.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      If your machine forwards all mail for your domain to
+	      another (presumably internal) server.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+
+	<para>
+	  The alternative to recipient address verification is to
+	  accept all recipient addresses within these respective
+	  domains, which in turn means that you or the destination
+	  server might have to generate a <xref linkend="dsn" /> for
+	  recipient addresses that later turn out to be invalid.
+	  Ultimately, this means that you would be generating
+	  collateral spam.
+	</para>
+
+	<para>
+	  With that in mind, let us see how we can verify the
+	  recipient in the scenarios listed above.
+	</para>
+
+
+	<section id="callforward" xreflabel="Recipient Callout Verification">
+	  <title>Recipient Callout Verification</title>
+
+	  <para>
+	    This is a mechanism that is offered by some MTAs, such as
+	    Exim and Postfix, to verify the <quote>local part</quote>
+	    of a remote recipient address (see <emphasis><xref
+	    linkend="callback"/></emphasis> for a description of how
+	    this works).  In Postfix terminology, this is called
+	    <quote>Recipient Address Verification</quote>.
+	  </para>
+
+	  <para>
+	    In this case, server attempts to contact the final
+	    destination host to validate each recipient address before
+	    you, in turn, accept the <command>RCPT TO:</command>
+	    command from your peer.
+	  </para>
+
+	  <para>
+	    This solution is simple and elegant.  It works with any
+	    MTA that might be running on the final destination host,
+	    and without access to any particular directory service.
+	    Moreover, if that MTA happens to perform a fuzzy match on
+	    the recipient address (this is the case with Lotus Domino
+	    servers), this check will accurately reflect whether the
+	    recipient address is eventually going to be accepted or
+	    not - something which may not be true for the mechanisms
+	    described below.
+	  </para>
+
+	  <para>
+	    Be sure to keep the original <xref linkend="envfrom"/>
+	    intact for the recipient callout, or the response from the
+	    destination host may not be accurate.  For instance, it
+	    may reject bounces (i.e. mail with no envelope sender) for
+	    system users and aliases, as described in <xref
+	    linkend="dsnrealuser"/>.
+	  </para>
+
+	  <para>
+	    Among major MTAs, Exim and Postfix support this mechanism.
+	  </para>
+	</section>
+
+
+	<section id="ldap" xreflabel="Directory Services">
+	  <title>Directory Services</title>
+
+	  <para>
+	    Another good solution would be a directory service
+	    (e.g. one or more LDAP servers) that can be queried by
+	    your MTA.  The most common MTAs all support LDAP, NIS,
+	    and/or various other backends that are commonly used to
+	    provide user account information.
+	  </para>
+
+	  <para>
+	    The main sticking point is that unless the final
+	    destination host of the e-mail already uses such a
+	    directory service to map user names to mailboxes, there
+	    may be some work involved in setting this up.
+	  </para>
+	</section>
+
+
+	<section id="replicdir" xreflabel="Replicated Mailbox Lists">
+	  <title>Replicated Mailbox Lists</title>
+
+	  <para>
+	    If none of the options above are viable, you could fall
+	    back to a <quote>poor man's directory service</quote>,
+	    where you would periodically copy a current list of
+	    mailboxes from the machine where they are located, to your
+	    MX host(s).  Your MTA would then consult this list to
+	    validate <command>RCPT TO:</command> commands in incoming
+	    mail.
+	  </para>
+
+	  <para>
+	    If the machine(s) that host(s) your mailboxes is/are
+	    running on some flavor of UNIX or Linux, you could write a
+	    script to first generate such a list, perhaps from the
+	    local <quote>/etc/passwd</quote> file, and then copy it to
+	    your MX host(s) using the <quote>scp</quote> command from
+	    the <ulink url="http://www.openssh.org/">OpenSSH</ulink>
+	    suite.  You could then set up a <quote>cron</quote> job
+	    (type <command>man cron</command> for details) to
+	    periodically run this script.
+	  </para>
+	</section> <!-- replicdir -->
+      </section> <!-- rcptvalid -->
+
+
+      <section id="rcptmisses" xreflabel="Dictionary Attach Prevention">
+	<title>Dictionary Attack Prevention</title>
+
+	<para>
+	  <emphasis>Dictionary Attack</emphasis> is a term used to
+	  describe SMTP transactions where the sending host keeps
+	  issuing <command>RCPT TO:</command> commands to probe for
+	  possible recipient addresses based on common names (often
+	  alphabetically starting with <quote>aaron</quote>, but
+	  sometimes starting later in the alphabet, and/or at random).
+	  If a particular address is accepted by your server, that
+	  address is added into the spammer's arsenal.
+	</para>
+
+	<para>
+	  Some sites, particularly larger ones, find that they are
+	  frequent targets of such attacks.  From the spammer's
+	  perspective, chances of finding a given username on a
+	  large site is better than on sites with only a few users.
+	</para>
+
+	<para>
+	  One effective way to combat dictionary attacks is to issue
+	  increasing transaction delays for each failed address.  For
+	  instance, the first non-existing recipient address can be
+	  rejected with a 20-second delay, the second address with a
+	  30-second delay, and so on.
+	</para>
+      </section>
+
+      <section id="dsnonercpt" xreflabel="Accept only one recipient for DSNs">
+	<title>Accept only one recipient for DSNs</title>
+
+	<para>
+	  Legitimate <xref linkend="dsn"/>s should be sent to only one
+	  recipient address - the originator of the original message
+	  that triggered the notification.  You can drop the
+	  connection if the <xref linkend="envfrom"/> address is
+	  empty, but there are more than one recipients.
+	</para>
+      </section>
+    </section>
+  </section>
+
+
+  <section id="greylisting" xreflabel="Greylisting">
+    <?dbhtml filename="greylisting.html"?>
+    <title>Greylisting</title>
+
+    <para>
+      The <emphasis>greylisting</emphasis> concept is presented by
+      Evan Harris in a whitepaper at:
+      <ulink url="http://projects.puremagic.com/greylisting/"/>.
+    </para>
+
+    <section id="greylisting-theory">
+      <title>How it works</title>
+
+      <para>
+	Like <xref linkend="smtpdelays"/>, greylisting is a simple but
+	highly effective mechanism to weed out messages that are being
+	delivered via <xref linkend="ratware"/>.  The idea is to
+	establish whether a prior relationship exists between the
+	sender and the receiver of a message.  For most legitimate
+	mail it does, and the delivery proceeds normally.
+      </para>
+
+      <para>
+	On the other hand, if no prior relationship exists, the
+	delivery is temporariliy rejected (with a
+	<command>451</command> SMTP response).  Legitimate MTAs will
+	treat this response accordingly, and retry the delivery in a
+	little while<footnote id="noretrysenders">
+	<para>
+	  Although rare, some <quote>legitimate</quote> bulk mail
+	  senders, such as <option>groups.yahoo.com</option>, will not
+	  retry temporarily failed deliveries.  Evan Harris has
+	  compiled a list of such senders, suitable for whitelisting
+	  purposes: 
+	  <ulink url="http://cvs.puremagic.com/viewcvs/greylisting/schema/whitelist_ip.txt?view=markup"/>.
+	</para>
+	</footnote>.  In contrast, ratware will either make repeated
+	delivery attempts right away, and/or simply give up and move
+	on to the next target in its address list.
+      </para>
+
+      <para>
+	Three pieces of information from a delivery attempt, referred
+	to a as a <emphasis>triplet</emphasis> are used to uniquely
+	identify the relationship between a sender and a receiver:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    The <xref linkend="envfrom" />.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    The sending host's IP address.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    The <xref linkend="envto" />.
+	  </para>
+	</listitem>
+      </itemizedlist>
+      
+      <para>
+	If a delivery attempt was temporarily rejected, this triplet
+	is cached.  It remains greylisted for a given amount of time
+	(nominally 1 hour), after which it is whitelisted, and new
+	delivery attempts would succeed.  If no new delivery attempts
+	occur prior to a given timeout (nominally 4 hours), then the
+	triplet expires from the cache.
+      </para>
+
+      <para>
+	If a whitelisted triplet has not been seen for an extended
+	duration (at minimum one month, to account for monthly billing
+	statements and the like), it is expired.  This prevents
+	unlimited growth of the list.
+      </para>
+
+      <para>
+	These timeouts are taken from Evan Harris' original
+	greylisting whitepaper (or should we say, ahem,
+	<quote>greypaper</quote>?)  Some people have found that a
+	larger timeout may be needed before greylisted triplets
+	expire, because certain ISPs (such as
+	<emphasis>earthlink.net</emphasis>) retry deliveries only
+	every 6 hours or similar.
+	<footnote>
+	  <para>
+	    Large sites often use multiple servers to handle outgoing
+	    mail.  For instance, one server or pool of servers may be
+	    used for immediate delivery.  If the first delivery
+	    attempt fails, the mail is handed off to a fallback server
+	    which has been tuned for large queues.  Hence, from such
+	    sites, the first two delivery attempts will fail. 
+	  </para>
+	</footnote>
+      </para>
+
+    </section>
+
+    <section id="greylisting-multimx">
+      <title>Greylisting in Multiple Mail Exchangers</title>
+
+      <para>
+	If you operate more than one incoming mail exchangers, and
+	each exchanger maintains its own greylisting cache, then:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    First-time deliveries from a given sender to one of your
+	    users may theoretically be delayed up to
+	    <parameter>N</parameter> times the initial 1-hour delay,
+	    where <parameter>N</parameter> is the number of mail
+	    exchangers.  This is because the message would likely be
+	    retried at a different server than the one that issued the
+	    <command>451</command> response to the initial delivery.
+	    In the worst case, the sender host may not get around to
+	    retrying the delivery to the first exchanger for 4 hours,
+	    or until after the greylist triplet has expired, thereby
+	    causing the delivery attempt to be rejected over and over
+	    again, until the sender gives up (usually after 4 days or
+	    so).
+	  </para>
+
+	  <para>
+	    In practice, this is unlikely.  If a delivery attempt
+	    temporarily fails, the sender host normally retries the
+	    delivery immediately, using a different MX.  Thus, after
+	    one hour, any of these MX hosts would accept the message.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Even after a triplet has been whitelisted in one of your
+	    MXs, the next message with the same triplet will be
+	    greylisted if it is delivered to a different MX.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	For these reasons, you may want to implement a solution where
+	the database of greylist triplets is shared between your
+	incoming mail exchangers.  However, since the machine that
+	hosts this database would become a single point of failure,
+	you would have to take a sensible action if that machine is
+	down (e.g. accept all deliveries). Or you could use database
+	replication techniques and have the SMTP server fall back to
+	one of the replicating servers for lookups.
+      </para>
+    </section>
+
+
+    <section id="greylisting-results">
+      <title>Results</title>
+
+      <para>
+	In my own experience, <emphasis>greylisting</emphasis> gets
+	rid of about 90% of unique junk mail deliveries,
+	<emphasis>after</emphasis> most of the <xref
+	linkend="smtpchecks"/> previously described are applied!  If
+	you used greylisting as a first defense, it would likely catch
+	an even higher percentage of incoming junk mail.
+      </para>
+
+      <para>
+	Conversely, there are virtually zero <xref linkend="falsepos"/>s
+	resulting from this technique.  All major <xref linkend="mta"/>s
+	perform delivery retries after a temporary failure, in a manner
+	that will eventually result in a successful delivery.
+      </para>
+
+      <para>
+	The downside to greylisting is a legitimate mail from people
+	who have not e-mailed a particular recipient in the past is
+	subject to a one-hour delay (or maybe several hours, if you
+	operate several MX hosts). 
+      </para>
+
+      <para>
+	See also <link linkend="qanda-adapt"><emphasis>What happens when
+	spammers adapt...</emphasis></link>.
+      </para>
+    </section>
+  </section>
+
+
+  <section id="senderauth" xreflabel="Sender Authorization Schemes">
+    <?dbhtml filename="senderauth.html"?>
+    <title>Sender Authorization Schemes</title>
+
+    <para>
+      Various schemes have been developed for sender verification
+      where not only the validity, but also the authenticity, of
+      the sender address is checked.  The owner of a internet
+      domain specifies certain criteria that must be fulfilled in
+      authentic deliveries from senders within that domain.
+    </para>
+
+    <para>
+      Two early proposed schemes of this kind were:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  <option>MAIL-FROM</option> MX records, conceived by Paul
+	  Vixie <email>paul (at) vix.com</email>
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Reverse Mail Exchanger (RMX) records as an addition to DNS
+	  itself, conceived and published by Hadmut Danisch
+	  <email>hadmut (at) danisch.de</email>.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      Under both of these schemes, all mails from
+      <email>user@domain.com</email> had to come from the hosts
+      specified in <email>domain.com</email>'s DNS zone.
+    </para>
+
+    <para>
+      These schemes have evolved.  Alas, they have also forked.
+    </para>
+
+
+    <section id="spf" xreflabel="Sender Policy Framework">
+      <title>Sender Policy Framework (SPF)</title>
+      
+      <para>
+	<quote>Server Policy Framework</quote> (previously
+	<quote>Sender Permitted From</quote>) is perhaps the most
+	well-known scheme for sender authorization.  It is loosely
+	based on the original schemes described above, but allows
+	for a bit more flexibility in the criteria that can be
+	posted by the domain holder.
+      </para>
+
+      <para>
+	SPF information is published as a <option>TXT</option>
+	record in a domain's top-level DNS zone.  This record can
+	specify:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    which hosts are allowed to send mail from that domain
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>
+	    the mandatory presence of a GPG (GNU Privacy Guard)
+	    signature in outgoing mail from the domain
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    other criteria; see
+	    <ulink url="http://spf.pobox.com/" /> for details.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	The structure of the <command>TXT</command> record is still
+	undergoing development, however basic features to accomplish
+	the above are in place.  It starts with the string
+	<option>v=spf1</option>, followed by such modifiers as:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    <option>a</option> - the IP address of
+	    the domain itself is a valid sender host
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <option>mx</option> - the incoming mail exchanger for
+	    that domain is also a valid sender
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <option>ptr</option> - if a rDNS lookup of the
+	    sending host's IP address yields a name within the
+	    domain portion of the sender address, it is a valid
+	    sender.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	Each of these modifiers may be prefixed with a plus sign (+),
+	minus sign (-), question mark (?), or tilde (~) to indicate
+	whether it specifies an authorative source, an non-authorative
+	source, a neutral stance, or a likely non-authorative source,
+	respectively.
+      </para>
+
+      <para>
+	Each modifier may also be extended with a colon, followed by
+	an alternate domain name.  For instance, if you are a Comcast
+	subscriber, your own DNS zone may include the string
+	<quote><option>-ptr:client.comcast.net
+	ptr:comcast.net</option></quote> to indicate that your
+	outgoing e-mail never comes from a host that resolves to
+	<parameter>anything</parameter>.client.comcast.net, but could
+	come from other hosts that resolve to
+	<parameter>anything</parameter><option>.comcast.net</option>.
+      </para>
+
+      <para>
+	SPF information is currently published for a number of
+	high-profile internet domains, such as aol.com,
+	altavista.com, dyndns.org, earthlink.net, and google.com.
+      </para>
+
+      <para>
+	Sender authorization schemes in general and SPF in particular
+	are not universally accepted.  In particular, one objection is
+	that domain holders may effectively establish a monopoly on
+	relaying outgoing mail from their users/customers.
+      </para>
+
+      <para>
+	Another objection is that SPF breaks traditional e-mail
+	forwarding - the forwarding host may not have the authority to
+	do so per the SPF information in the envelope sender domain.
+	This is partly addressed via <ulink
+	url="http://spf.pobox.com/srs.html">SRS</ulink>, or
+	<emphasis>Sender Rewriting Scheme</emphasis>, wherein the
+	forwarder of the mail will modify the <xref
+	linkend="envfrom"/> address to the format:
+	<screen><parameter>user</parameter>=<parameter>source.domain</parameter>@<parameter>forwarder.domain</parameter></screen>
+      </para>
+    </section> <!-- SPF -->
+
+
+    <section id="ms-cide" xreflabel="Microsoft Caller-ID for E-Mail">
+      <title>Microsoft Caller-ID for E-Mail</title>
+
+      <para>
+	Similar to SPF, in that acceptance criteria are posted
+	via a TXT record in the sending domain's DNS zone.
+	However, rather than relying on simple keywords, MS CIDE
+	information consists of fairly large structures encoded in
+	XML.  The XML schema is published under a license by
+	Microsoft.
+      </para>
+
+      <para>
+	While SPF would nominally be used to check the <xref
+	linkend="envfrom"/> address of an e-mail, MS CIDE is
+	mainly a tool to validate the RFC 2822 header of the
+	message itself.  Thus, the earliest point at which such a
+	check could be applied would be after the message data has
+	been delivered, before issuing the final
+	<command>250</command> response.
+      </para>
+
+      <para>
+	Quite frankly, dead on arrival.  Encumbered by patent issues
+	and sheer complexity.
+      </para>
+
+      <para>
+	That said, Recent SPF tools posted on <ulink
+	url="http://spf.pobox.com/"/> are capable of checking MS
+	Caller-ID information in addition to SPF.
+      </para>
+    </section> <!-- Microsoft Caller-ID for E-mail -->
+
+
+    <section id="rmxplus" xreflabel="RMX++">
+      <title>RMX++</title>
+
+      <para>
+	(part of <emphasis>Simple Caller Authorization Framework -
+	SCAF</emphasis>).  This scheme is developed by Hadmut Danisch,
+	who also conceived of the original RMX.
+      </para>
+
+      <para>
+	RMX++ allows for dynamic authorization by way of HTTP servers.
+	The domain owner publishes a server location via DNS, and the
+	receiving host contacts that server in order to obtain an
+	<emphasis>authorization record</emphasis> to verify the
+	authenticity of the caller.
+      </para>
+
+      <para>
+	This scheme allows the domain owner more fine-grained control
+	of criteria used to authenticate the sender address, without
+	having to publicly reveal the structure of their network (as
+	with SPF information in static TXT records).  For instance, an
+	example from Hadmut is an authorization server that allows no
+	more than five messages from a given address per day after
+	business hours, then issues an alert once the limit has been
+	reached.
+      </para>
+
+      <para>
+	Moreover, SCAF is not limited to e-mail, but can also be used
+	to provide caller authentication for other services such as
+	Voice over IP (VoIP).  
+      </para>
+
+      <para>
+	One possible downside with RMX++, as noted by Rick Stewart
+	<email>rick.stewart (at) theinternetco.net</email>, is its
+	impact on machine and network resources: Replies from HTTP
+	servers are not as widely cached as information obtained
+	directly via DNS, and it is signifcantly more expensive to
+	make an HTTP request than a DNS request.
+      </para>
+
+      <para>
+	Further, Rick notes that the dynamic nature of RMX++ makes
+	faults harder to track.  If there is a five-message-per-day
+	limit, as in the example above, and one message gets checked
+	five times, then the limit is hit with a single message.  It
+	makes re-checking a message impossible.
+      </para>
+      
+      <para>
+	For more information on RMX, RMX++, and SCAF, refer to: <ulink
+	url="http://www.danisch.de/work/security/antispam.html"/>.
+      </para>
+    </section> <!-- RMX+ -->
+  </section> <!-- Sender Address Verification Schemes -->
+
+
+  <section id="datachecks" xreflabel="Message Data Checks">
+    <?dbhtml filename="datachecks.html"?>
+    <title>Message data checks</title>
+
+    <para>
+      Time has come to look at the content of the message itself.
+      This is what conventional spam and virus scanners do, as they
+      normally operate on the message after it has been accepted.
+      However, in our case, we perform these checks
+      <emphasis>before</emphasis> issuing the final
+      <command>250</command> response, so that we have a chance to
+      reject the mail on the spot rather than later generating <xref
+      linkend="colspam"/>.
+    </para>
+
+    <para>
+      If your incoming mail exchangers are very busy (i.e. large site,
+      few machines), you may find that performing some or all of these
+      checks directly in the mail exchanger is too costly.  In
+      particular, running <xref linkend="virusscanners"/> and <xref
+      linkend="spamscanners"/> do take up a fair amount of CPU
+      bandwidth and time.
+    </para>
+
+    <para>
+      If so, you will want to set up dedicated machines for these
+      scanning operations.  Most server-side anti-spam and anti-virus
+      software can be invoked over the network, i.e. from your mail
+      exchanger.  More on this in the following chapters, where we
+      discuss implementation for the various MTAs.
+    </para>
+
+    <section id="headerchecks">
+      <title>Header checks</title>
+
+      <section id="headersmissing">
+	<title>Missing Header Lines</title>
+
+	<para>
+	  <ulink url="http://www.ietf.org/rfc/rfc2822.txt">RFC
+	  2822</ulink> mandates that a message
+	  <emphasis>should</emphasis> contain at least the following
+	  header lines:
+
+<screen>
+From: ...
+To: ...
+Subject: ...
+Message-ID: ...
+Date: ...
+</screen>
+	</para>
+
+	<para>
+	  The absence of any of these lines means that the message
+	  is not generated by a mainstream <xref linkend="mua"/>, and
+	  that it is probably junk
+	  <footnote>
+	    <para>
+	      Some specialized MTAs, such as certain mailing list
+	      servers, do not automatically generate a
+	      <option>Message-ID:</option> header for
+	      <quote>bounced</quote> messages (<xref
+	      linkend="dsn"/>s).  These messages are identified by an
+	      empty <xref linkend="envfrom"/>.
+	    </para>
+	  </footnote>.
+	</para>
+      </section>
+
+      <section id="headersyntax">
+	<title>Header Address Syntax Check</title>
+
+	<para>
+	  Addresses presented in the message header (i.e. the
+	  <command>To:</command>, <command>Cc:</command>,
+	  <command>From:</command> ... fields) should be syntactically
+	  valid.  Enough said.
+	</para>
+      </section>
+
+
+      <section id="headeraddress">
+	<title>Simple Header Address Validation</title>
+
+	<para>
+	  For each address in the message header:
+	</para>
+
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      If the address is local, is the <emphasis>local
+	      part</emphasis> (before the @ sign) a valid mailbox?
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      If the address is remote, does the <emphasis>domain
+	      part</emphasis> (after the @ sign) exist?
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </section>
+
+      <section id="headercallout">
+	<title>Header Address Callout Verification</title>
+
+	<para>
+	  This works similar to <xref linkend="callback"/> and <xref
+	  linkend="callforward"/>.  Each remote header address is
+	  verified by calling the primary MX for the corresponding
+	  domain to determine if a <xref linkend="dsn"/> would be
+	  accepted.
+	</para>
+      </section>
+    </section>
+
+
+    <section id="jmsr" xreflabel="Junk Mail Signature Repository">
+      <title>Junk Mail Signature Repositories</title>
+
+      <para>
+	One trait of junk mail is that it is sent to a large number of
+	addresses.  If 50 other recipients have already flagged a
+	particular message as spam, why couldn't you use this fact to
+	decide whether or not to accept the message when it is
+	delivered to you?  Better yet, why not set up <xref
+	linkend="spamtrap"/>s that feed a public pool of known spam?
+      </para>
+
+      <para>
+	I am glad you asked.  As it turns out, such pools do exist:
+      </para>
+      
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    <ulink url="http://razor.sf.net/">Razor</ulink>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <ulink url="http://pyzor.sf.net/">Pyzor</ulink>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <ulink
+	     url="http://rhyolite.com/anti-spam/dcc/">Distributed
+	    Checksum Clearinghouse (DCC)</ulink>
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	These tools have progressed beyond simple signature checks
+	that only trigger if you receive an identical copy of a
+	message that is known to be junk mail.  Rather, they evaluate
+	common patterns, to account for slight variations in the
+	message header and body.
+      </para>
+    </section>
+
+
+
+    <section id="garbagechars">
+      <title>Binary garbage checks</title>
+
+      <para>
+	Messages containing non-printable characters are rare.  When
+	they do show up, the message is nearly always a virus, or in 
+	some cases spam written in a non-western language, without the
+	appropriate MIME encoding.
+      </para>
+
+      <para>
+	One particular case is where the message contains NUL
+	characters (ordinal zero).  Even if you decide that figuring
+	out what a <emphasis>non-printable</emphasis> character means
+	is more complex than beneficial, you might consider checking
+	for this character.  That is because some <xref
+	linkend="mda"/>s, such as the <ulink
+	url="http://asg.web.cmu.edu/cyrus/">Cyrus Mail Suite</ulink>,
+	will ultimately reject mails that contain it.
+	<footnote>
+	  <para>
+	    The IMAP protocol does not allow for NUL characters to be
+	    transmitted to the mail user agent, so the Cyrus
+	    developers decided that the easiest way to deal with mails
+	    containing it was to reject them.
+	  </para>
+	</footnote>.
+
+	If you use such software, you should definitely consider
+	getting rid of NUL characters.
+      </para>
+
+      <para>
+	On the other hand, the (now obsolete) RFC 822 specification
+	did not explicitly prohibit NUL characters in the message.
+	For this reason, as an alternative to rejecting mails
+	containing it, you may choose to strip these characters from
+	the message before delivering it to Cyrus.
+      </para>
+    </section>
+
+
+    <section id="mimeerrors">
+      <title>MIME checks</title>
+
+      <para>
+	Similarly, it might be worthwhile to validate the MIME
+	structure of incoming message.  MIME decoding errors or
+	inconsistencies do not happen very often; but when they do,
+	the message is definitely junk.  Moreover, such errors may
+	indicate potential problems in subsequent checks, such as
+	<xref linkend="fileext"/>s, <xref linkend="virusscanners"/>,
+	or <xref linkend="spamscanners"/>.
+      </para>
+      
+      <para>
+	In other words, if the MIME encoding is illegal, reject the
+	message.
+      </para>
+    </section>
+
+
+    <section id="fileext" xreflabel="File Attachment Check">
+      <title>File Attachment Check</title>
+
+      <para>
+	When was the last time someone sent you a Windows screensaver
+	(<quote>.scr</quote> file) or Windows Program Information File
+	(<quote>.pif</quote>) that you actually wanted?
+      </para>
+
+      <para>
+	Consider blocking messages with <quote>Windows
+	executable</quote> file attachment(s) - i.e. file names that
+	end with a period followed by any of a number of three-letter
+	combinations such as the above.  This check consumes
+	significantly less resources on your server than <xref
+	linkend="virusscanners"/>, and may also catch new virii for
+	which a signature does not yet exist in your anti-virus
+	scanner.
+      </para>
+
+      <para>
+	For a more-or-less comprehensive list of such <quote>file name
+	extensions</quote>, please visit: <ulink
+	url="http://support.microsoft.com/default.aspx?scid=kb;EN-US;290497"/>.
+      </para>
+    </section>
+
+
+    <section id="virusscanners" xreflabel="Virus Scanners">
+      <title>Virus Scanners</title>
+
+      <para>
+	A number of different server-side virus scanners are
+	available.  To name a few:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    <ulink
+	    url="http://www.vanja.com/tools/sophie/">Sophie</ulink>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <ulink url="http://www.kapersky.com/">KAVDaemon</ulink>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <ulink url="http://clamav.elektrapro.com/">ClamAV</ulink>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <ulink url="http://www.sald.com/">DrWeb</ulink>
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	In situations where you are not willing to block all
+	potentially dangerous files based on their file names alone
+	(consider <quote>.zip</quote> files), such scanners are
+	helpful.  Also, they will be able to catch virii that are
+	not transmitted as file attachments, such as the
+	<quote>Bagle.R</quote> virus that arrived in March, 2004.
+      </para>
+
+      <para>
+	In most cases, the machine performing the virus scan does not
+	need to be your mail exchanger.  Most of these anti-virus
+	scanners can be invoked on a different host over a network
+	connection.
+      </para>
+
+      <para>
+	Anti-virus software mainly detect virii based on a set of
+	signatures for known virii, or <emphasis>virus
+	definitions</emphasis>.  These need to be updated regularly,
+	as new virii are developed.  Also, the software itself
+	should at any time be up to date for maximum accuracy.
+      </para>
+    </section>
+
+
+    <section id="spamscanners" xreflabel="Spam Scanners">
+      <title>Spam Scanners</title>
+
+
+      <para>
+	Similarly, anti-spam software can be used to classify messages
+	based on a large set of heuristics, including their content,
+	standards compliance, and various network checks such as <xref
+	linkend="dnsbl"/> and <xref linkend="jmsr"/>.  In the end,
+	such software typically assigns a composite
+	<quote>score</quote> to each message, indicating the
+	likelihood that the message is spam, and if the score is above
+	a certain threshold, would classify it as such.
+      </para>
+
+      <para>
+	Two of the most popular server-side heuristic anti-spam
+	filters are:
+
+	<itemizedlist>
+	  <listitem id="spamassassin">
+	    <para>
+	      <ulink url="http://www.spamassassin.org/">SpamAssassin</ulink>
+	    </para>
+	  </listitem>
+
+	  <listitem id="brightmail">
+	    <para>
+	      <ulink url="http://www.brightmail.com/">BrightMail</ulink>
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+
+      <para>
+	These tools undergo a constant evolution as spammers find ways
+	to circumvent their various checks.  For instance, consider
+	<quote>creative</quote> spelling, such as <quote>GR0W lO
+	1NCH35</quote>.  So, just like anti-virus software, if you use
+	anti-spam software, you should update it frequently for the
+	highest level of accuracy.
+      </para>
+
+      <para>
+	I use SpamAssassin, although to minimize impact on machine
+	resources, it is no longer my first line of defense.  Out of
+	approximately 500 junk mail delivery attempts to my personal
+	address per day, about 50 reach the point where they are being
+	checked by SpamAssassin (mainly because they are forwarded
+	from one of my other accounts, so the checks described above
+	are not effective).  Out of these 50 messages, one message
+	ends up in my inbox approximately every 2 or 3 days.
+      </para>
+    </section>
+  </section>
+
+
+
+  <section id="collateral" xreflabel="Blocking Collateral Spam">
+    <?dbhtml filename="collateral.html"?>
+    <title>Blocking Collateral Spam</title>
+
+    <para>
+      <xref linkend="colspam"/> is more difficult to block with the
+      techniques described so far, because it normally arrives from
+      legitimate sites using standard mail transport software (such as
+      Sendmail, Postfix, or Exim).  The challenge is to distinguish
+      these messages from valid <xref linkend="dsn"/>s returned in
+      response to mail sent from your own users.  Here are some
+      ways that people do this:
+    </para>
+
+
+    <section id="bogusviruswarning" xreflabel="Bogus Virus Warning Filter">
+      <title>Bogus Virus Warning Filter</title>
+
+      <para>
+	Most of the time, collateral spam is virus warnings generated
+	by anti-virus scanners<footnote><para>Why on earth the authors
+	of anti-virus software are stupid enough to trust the sender
+	address in an e-mail containing a virus is perhaps a topic for
+	a closer psychoanalytic study.</para></footnote>.  In turn,
+	the wording in the <option>Subject:</option> line of these
+	virus warnings, and/or other characteristics, is usually
+	provided by the anti-virus software itself.  As such, you
+	could create a list of the more common characteristics, and
+	filter out such bogus virus warnings.
+      </para>
+
+      <para>
+	Well, aren't you in luck - someone already did this for
+	you. :-)
+      </para>
+
+      <para>
+	Tim Jackson <email>tim (at) timj.co.uk</email> maintains a
+	list of bogus virus warnings for use with <link
+	linkend="spamassassin">SpamAssassin</link>.  This list is
+	available at:
+	<ulink url="http://www.timj.co.uk/linux/bogus-virus-warnings.cf"/>.
+      </para>
+    </section>
+
+
+    <section id="addspf" xreflabel="Publish SPF info for your domain">
+      <title>Publish SPF info for your domain</title>
+
+      <para>
+	The purpose of the <xref linkend="spf"/> is precisely to
+	protect against <xref linkend="joejob"/>s; i.e. to prevent
+	forgeries of valid e-mail addresses.
+      </para>
+
+      <para>
+	If you publish SPF records in the DNS zone for your domain,
+	then recipient hosts that incorporate SPF checks would not
+	have accepted the forged message in the first place.  As such,
+	they would not be sending a <xref linkend="dsn"/> to your
+	site.
+      </para>
+    </section>
+
+
+    <section id="signedsender" xreflabel="Envelope Sender Signature">
+      <title>Enveloper Sender Signature</title>
+
+      <para>
+	A different approach that I am currently experimenting with
+	myself is to add a signature in the local part of the <xref
+	linkend="envfrom"/> address in outgoing mail, then check for
+	this signature in the <xref linkend="envto"/> address before
+	accepting incoming <xref linkend="dsn"/>s.  For instance, the
+	generated sender address might be of the following format:
+	<screen><parameter>localpart</parameter>=<parameter>signature</parameter>@<parameter>domain</parameter></screen>
+      </para>
+
+      <para>
+	Normal message replies are unaffected.  These replies go to
+	the address in the <option>From:</option> or
+	<option>Reply-To:</option> field of the message, which are
+	left intact.
+      </para>
+
+      <para>
+	Sounds easy, doesn't it?  Unfortunately, generating a
+	signature that is suitable for this purpose is a bit more
+	complex than it sounds.  There are a couple of conflicting
+	considerations to take into account:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    To gain any benefit from this method, the signed envelope
+	    sender address that you generate should be useless in the
+	    hands of spammers.  Typically, this would imply that the
+	    signature incorporates a time stamp that would eventually
+	    expire:
+
+	    <screen><parameter>sender</parameter>=<parameter>timestamp</parameter>=<parameter>hash</parameter>@<parameter>domain</parameter></screen>
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    If you send mail to a site that incorporates <xref
+	    linkend="greylisting"/>, your envelope sender address
+	    should remain constant for that particular recipient.
+	    Otherwise, your mail will continuously be greylisted.
+	  </para>
+
+	  <para>
+	    With this in mind, you could generate a <xref
+	    linkend="envfrom"/> based on the <xref linkend="envto"/>
+	    address:
+
+	    <screen><parameter>sender</parameter>=<parameter>recipient</parameter>=<parameter>recipient.domain</parameter>=<parameter>hash</parameter>@<parameter>domain</parameter></screen>
+
+	    Although this address does not expire, if you start seeing
+	    junk mail to it, you will at least know the source of the
+	    leak - it is incorported in the recipient address.
+	    Moreover, you can easily block specific recipient address
+	    signatures, without affecting normal mail delivery to that
+	    same recipient.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Two more issues occur with mailing list servers.  Usually,
+	    replies to request mails (such as
+	    <quote>subscribe</quote>/<quote>unsubscribe</quote>) are
+	    sent with no envelope sender.
+	  </para>
+
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		The first issue pertains to servers that send
+		responses back to the <xref linkend="envfrom"/>
+		address of the request mail (as in the case of
+		<email>discuss@en.tldp.org</email>).  The problem is
+		that commands for the mailing list server (such as
+		<command>subscribe</command> or
+		<command>unsubscribe</command>) are typically sent to
+		one or more different addresses
+		(e.g. <email>discuss-subscribe@en.tldp.org</email> and
+		<email>discuss-unsubscribe@en.tldp.org</email>,
+		respectively) than the address used for list mail.
+		Hence, the subscriber address will be different from
+		the sender address in messages sent to the list itself
+		-- and in this example, also different from the
+		address that will be generated for unsubscription
+		requests.  As a result, you may not be able to post to
+		the list, or unsubscribe.
+	      </para>
+
+	      <para>
+		The compromise would be to incorporate only the
+		recipient <emphasis>domain</emphasis> in the sender
+		signature.  The sender address might then look like:
+		<screen><parameter>subscribername</parameter>=en.tldp.org=<parameter>hash</parameter>@<parameter>subscriber.domain</parameter></screen>
+	      </para>
+	    </listitem>
+
+	    <listitem>
+	      <para>
+		The second issue pertains to those that send responses
+		back to the reply address in the message header of the
+		request mail (such as
+		<email>spam-l-request@peach.ease.lsoft.com</email>).
+		Since this address is not signed, the response from
+		the list server would be blocked by your server.
+	      </para>
+
+	      <para>
+		There is not much you can do about this, other than to
+		<quote>whitelist</quote> these particular servers in
+		such a way that they are allowed to return mail to
+		unsigned recipient addresses.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</listitem>
+      </itemizedlist>
+
+
+      <para>
+	At this point, this approach starts losing some of its edge.
+	Moreover, even legitimate DSNs are rejected unless the
+	original mail has been sent via your server.  Thus, you should
+	only consider doing this if for those of your users that do
+	not roam, or otherwise send their outgoing mail via servers
+	outside your control.
+      </para>
+
+      <para>
+	That said, in situations where none of the above concerns
+	apply to you, this method gives you a good way to not only
+	eliminate collateral spam, but also a way to educate the
+	owners of the sites that (presumably unwittingly) generate it.
+	Moreover, as a side benefit, sites that perform <xref
+	linkend="callback"/> will only get a positive response from
+	you if the original mail was, indeed, sent from your site.  In
+	essence, you are reducing your exposure to sender address
+	forgeries by spammers.
+      </para>
+
+      <para>
+	You could perhaps allow your users to specify whether to sign
+	outgoing mails, and if so, specify which hosts should be
+	allowed to return mails to the unsigned version of their
+	address.  For instance, if they have system accounts on your
+	mail server, you could check for the existence and content,
+	respectively, of a given file in their home directory.
+      </para>
+    </section>
+
+
+    <section id="dsnrealuser"
+	     xreflabel="Accept Bounces Only for Real Users">
+      <title>Accept Bounces Only for Real Users</title>
+      
+      <para>
+	Even if you check for envelope sender signatures, there may be
+	a loophole that allows bogus bounces to be accepted.
+	Specifically, if your users have to opt in to the scheme, you
+	are probably not checking for this signature in mails sent to
+	system aliases, such as <option>postmaster</option> or
+	<option>mailer-daemon</option>.  Moreover, since these users
+	do not generate outgoing mail, they should not receive any
+	bounces.
+      </para>
+
+      <para>
+	You can reject mail if it is sent to such system aliases, or
+	alternatively, if there is no mailbox for the provided
+	recipient address.
+      </para>
+    </section>
+  </section>
+</chapter>
+

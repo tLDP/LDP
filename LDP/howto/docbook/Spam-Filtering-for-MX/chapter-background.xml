@@ -1,0 +1,606 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<chapter id="background" xreflabel="Background">
+  <?dbhtml filename="background.html"?>
+  <title>Background</title>
+
+
+  <abstract>
+    <para>
+      Here we cover the advantages of filtering mail during an
+      incoming SMTP transaction, rather than following the more
+      conventional approach of offloading this task to the mail
+      routing and delivery stage.  We also provide a brief
+      introduction to the SMTP transaction.
+    </para>
+  </abstract>
+
+  <section id="whysmtptime" >
+    <?dbhtml filename="whysmtptime.html"?>
+    <title>Why Filter Mail During the SMTP Transaction?</title>
+
+    <section id="statusquo">
+      <title>Status Quo</title>
+
+      <para>
+	If you receive spam, raise your hands.  Keep them up.
+      </para>
+
+      <para>
+	If you receive computer virii or other malware, raise your
+	hands too.
+      </para>
+
+      <para>
+	If you receive bogus <xref linkend="dsn"/>s (DSNs), such as
+	<quote>Message Undeliverable</quote>, <quote>Virus
+	found</quote>, <quote>Please confirm delivery</quote>, etc,
+	related to messages you never sent, raise your hands as well.
+	This is known as <xref linkend="colspam"/>.
+      </para>
+
+      <para>
+	This last form is particularly troublesome, because it is
+	harder to weed out than <quote>standard</quote> spam or
+	malware, and because such messages can be quite confusing to
+	recipients who do not possess godly skills in parsing message
+	headers.  In the case of virus warnings, this often causes
+	unnecessary concern on the recipient's end; more generally, a
+	common tendency will be to ignore all such messages, thereby
+	missing out on legitimate DSNs.
+      </para>
+
+      <para>
+	Finally, I want those of you who have lost legitimate mail into
+	a big black hole - due to misclassification by spam or virus
+	scanners - to lift your feet.
+      </para>
+
+      <para>
+	If you were standing before and are still standing, I suggest
+	that you may not be fully aware of what is happening to your
+	mail.  If you have been doing any type of spam filtering, even
+	by manually moving mails to the trash can in your mail reader,
+	let alone by experimenting with primitive filtering techniques
+	such as DNS blacklists (SpamHaus, SPEWS, SORBS...), chances
+	are that you have lost some valid mail.
+      </para>
+    </section>
+
+    <section id="cause">
+      <title>The Cause</title>
+
+      <para>
+	Spam, just like many other artifacts of greed, is a social
+	disease.  Call it affluenza, or whatever you like; lower life
+	forms seek to destroy a larger ecosystem, and if successful,
+	will actually end up ruining their own habitat in the end.
+      </para>
+
+      <para>
+	Larger social issues and philosophy aside: You - the mail system
+	administrator - face the very concrete and real life dilemma of
+	finding a way to deal with all this junk.
+      </para>
+
+      <para>
+	As it turns out, there are some limitations with the
+	conventional way that mail is being processed and delegated by
+	the various components of mail transport and delivery
+	software.  In a traditional setup, one or more <xref
+	linkend="mx"/>(s) accept most or all incoming mail deliveries
+	to addresses within a domain.  Often, they then forward the
+	mail to one or more internal machines for further processing,
+	and/or delivery to the user's mailboxes.  If any of these
+	servers discovers that it is unable to perform the requested
+	delivery or function, it generates and returns a DSN back to
+	the sender address in the original mail.
+      </para>
+
+      <para>
+	As organizations started deploying spam and virus scanners,
+	they often found that the path of least resistance was to work
+	these into the message delivery path, as mail is transferred
+	from the incoming <xref linkend="mx"/>(s) to internal delivery
+	hosts and/or software.  For instance, a common way filter out
+	spam is by <emphasis>routing</emphasis> the mail through
+	SpamAssassin or other software before it is delivered to a
+	user's mailbox, and/or rely on spam filtering capabilities in
+	the user's <xref linkend="mua" />.
+      </para>
+
+      <para>
+	Options for dealing with mail that is classified as spam or
+	virus at this point are limited:
+      </para>
+      
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    You can return a <xref linkend="dsn"/> back to the sender.
+	    The problem is that nearly all spam and e-mail borne
+	    virii are delivered with faked sender addresses.  If you
+	    return this mail, it will invariably go to innocent third
+	    parties -- perhaps warning a grandmother in Sweden, who
+	    uses Mac OS X and does not know much about computers, that
+	    she is infected by the Blaster worm.  In other words, you
+	    will be generating <xref linkend="colspam"/>.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    You can drop the message into the bit bucket, without
+	    sending any notification back to the sender.  This is an
+	    even bigger problem in the case of <xref
+	    linkend="falsepos"/>s, because neither the sender nor
+	    the receiver will ever know what happened to the message
+	    (or in the receiver's case, that it ever existed).
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    Depending on how your users access their mail (for
+	    instance, if they access it via the IMAP protocol or use a
+	    web-based mail reader, but not if they retreive it over
+	    POP-3), you may be able to file it into a separate junk
+	    folder for them -- perhaps as an option in their account
+	    settings.
+	  </para>
+
+	  <para>
+	    This may be the best of these three options.  Even so, the
+	    messages may remain unseen for some time, or simply
+	    overlooked as the receiver more-or-less periodically scans
+	    through and deletes mail in their <quote>Junk</quote>
+	    folder.
+	  </para>
+	</listitem>
+      </itemizedlist>
+    </section>
+
+
+    <section id="solution">
+      <title>The Solution</title>
+
+      <para>
+	As you would have guessed by now, the <emphasis>One
+	True</emphasis> solution to this problem is to do spam and
+	virus filtering during the SMTP dialogue from the remote host,
+	as the mail is being received by the inbound mail exchanger
+	for your domain.  This way, if the mail turns out to be
+	undesirable, you can issue a SMTP <emphasis>reject</emphasis>
+	response rather than face the dilemma described above.  As a
+	result:
+      </para>
+
+      <itemizedlist>
+	<listitem>
+	  <para>
+	    You will be able to stop the delivery of most junk mail
+	    early in the SMTP transaction, before the actual message
+	    data has been received, thus saving you both network
+	    bandwidth and CPU processing.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    You will be able to deploy some spam filtering techniques
+	    that are not possible later, such as
+	    <xref linkend="smtpdelays"/> and
+	    <xref linkend="greylisting"/>.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    You will be able to notify the sender in case of a
+	    delivery failure (e.g. due to an invalid recipient
+	    address) without directly generating <xref
+	    linkend="colspam"/>
+	  </para>
+
+	  <para>
+	    We will discuss how you can avoid causing collateral spam
+	    indirectly as a result of rejecting mail forwarded from
+	    trusted sources, such as mailing list servers or mail
+	    accounts on other sites
+	    <footnote>
+	      <para>
+		Untrusted third party hosts may still generate
+		collateral spam if you reject the mail.  However,
+		unless that host is an <xref linkend="openproxy"/> or
+		<xref linkend="openrelay"/>, it presumably delivers
+		mail only from legitimate senders, whose addresses are
+		valid.  If it <emphasis>is</emphasis> an Open Proxy or
+		SMTP Relay - well, it is better that you reject the
+		mail and let it freeze in <emphasis>their</emphasis>
+		outgoing mail queue than letting it freeze in yours.
+		Eventually, this ought to give the owners of that
+		server a clue.
+	      </para>
+	    </footnote>.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    You will be able to protect yourself against collateral
+	    spam from others (such as bogus <quote>You have a
+	    virus</quote> messages from anti-virus software).
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	OK, you can lower your hands now.  If you were standing, and
+	your feet disappeared from under you, you can now also stand up
+	again.
+      </para>
+    </section>
+  </section>
+
+
+
+  <section id="goodbadugly" xreflabel="The Good, The Bad, The Ugly">
+    <?dbhtml filename="goodbadugly.html"?>
+    <title>The Good, The Bad, The Ugly</title>
+    
+    <para>
+      Some filtering techniques are more suitable for use during the
+      SMTP transaction than others.  Some are simply better than
+      others.  Nearly all have their proponents and opponents.
+    </para>
+
+    <para>
+      Needless to say, these controversies extend to the methods
+      described here as well.  For instance:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  Some argue that <xref linkend="dnschecks"/> penalize
+	  individual mail senders purely based on their Internet
+	  Service Provider (ISP), not on the merits of their
+	  particular message.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Some point out that ratware traps like <xref
+	  linkend="smtpdelays"/> and <xref linkend="greylisting"/> are
+	  easily overcome and will be less effective over time, while
+	  continuing to degrade the Quality of Service for legitimate
+	  mail.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  Some find that <xref linkend="senderauth"/> like the <xref
+	  linkend="spf"/> give ISPs a way to lock their customers in,
+	  and do not adequately address users who roam between
+	  different networks or who forward their e-mail from one host
+	  to another.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      I will steer away from most of these controversies.  Instead, I
+      will try to provide a functional description of the various
+      techniques available, including their possible side effects, and
+      then talk a little about my own experiences using some of them.
+    </para>
+
+
+    <para>
+      That said, there are some filtering methods in use today that I
+      deliberately omit from this document:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+	<para>
+	  Challenge/response systems (like <ulink
+	  url="http://tmda.net/">TMDA</ulink>).  These are not
+	  suitable for SMTP time filtering, as they rely on first
+	  accepting the mail, then returning a confirmation request to
+	  the <xref linkend="envfrom"/>.  This technique is therefore
+	  outside the scope of this document.
+	  <footnote>
+	    <para>
+	      Personally I do not think challenge/response systems are
+	      a good idea in any case.  They generate <xref
+	      linkend="colspam"/>, they require special attention for
+	      mail sent from automated sources such as monthly bank
+	      statements, and they degrade the usability of e-mail as
+	      people need to jump through hoops to get in touch with
+	      each other.  Many times, senders of legitimate mail will
+	      not bother to or know that they need to follow up to the
+	      confirmation request, and the mail is lost.
+	    </para>
+	  </footnote>
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  <xref linkend="bayesian"/>.  These require training specific
+	  to a particular user, and/or a particular language.  As
+	  such, these too are not normally suitable for use during the
+	  SMTP transaction (But see <xref linkend="usersettings"/>).
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  <xref linkend="micropay"/> are not really suitable for
+	  weeding out junk mail until all the world's legitimate mail
+	  is sent with a virtual <emphasis>postage stamp</emphasis>.
+	  (Though in the mean time, they can be used for the opposite
+	  purpose - that is, to accept mail carrying the stamp that
+	  would otherwise be rejected).
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      Generally, I have attempted to offer techniques that are as
+      precise as possible, and to go to great lengths to avoid <xref
+      linkend="falsepos"/>s.  People's e-mail is important to them,
+      and they spend time and effort writing it.  In my view,
+      willfully using techniques or tools that reject large amounts of
+      legitimate mail is a show of disrespect, both to the people that
+      are directly affected and to the Internet as a whole.
+      <footnote>
+	<para>
+	  My view stands in sharp contrast to that of a large number
+	  of <quote>spam hacktivists</quote>, such as the maintainers
+	  of the <ulink url="http://www.spews.org/">SPEWS</ulink>
+	  <link linkend="dnsbl">blacklist</link>.  One of the stated
+	  aims of this list is precisely to inflict <xref
+	  linkend="coldamage"/> as a means of putting pressure on ISPs
+	  to react on abuse complaints.  Listing complaints are
+	  typically met with knee-jerk responses such as <quote>bother
+	  your ISP, not us</quote>, or <quote>get another ISP</quote>.
+	</para>
+
+	<para>
+	  Often, these are not viable options.  Consider developing
+	  countries.  For that matter, consider the fact that nearly
+	  everywhere, broadband providers are regulated monopolies.  I
+	  believe that these attitudes illustrate the exact crux of
+	  the problem with trusting these groups.
+	</para>
+
+	<para>
+	  Put plainly, there are much better and more accurate ways
+	  available to filter junk mail.
+	</para>
+      </footnote>
+
+      This is especially true for SMTP-time system wide filtering,
+      because end recipients usually have little or no control over
+      the criteria being used to filter their mail.
+    </para>
+  </section>
+
+
+
+  <section id="smtpintro" xreflabel="The SMTP Transaction">
+    <?dbhtml filename="smtpintro.html"?>
+    <title>The SMTP Transaction</title>
+
+    <para>
+      SMTP is the protocol that is used for mail delivery on the
+      Internet.  For a detailed description of the protocol, please
+      refer to <ulink url="http://www.ietf.org/rfc/rfc2821.txt">RFC
+      2821</ulink>, as well as Dave Crocker's introduction to
+      <ulink url="http://www.brandenburg.com/specifications/draft-crocker-mail-arch-00.htm">Internet Mail Architecture</ulink>.
+    </para>
+
+    <para>
+      Mail deliveries involve an SMTP transaction between the
+      connecting host (client) and the receiving host (server).  For
+      this discussion, the connecting host is the peer, and the
+      receiving host is your server.
+    </para>
+
+    <para>
+      In a typical SMTP transaction, the client issues SMTP commands
+      such as <command>EHLO</command>, <command>MAIL FROM:</command>,
+      <command>RCPT TO:</command>, and <command>DATA</command>.  Your
+      server responds to each command with a 3-digit numeric code
+      indicating whether the command was accepted
+      (<command>2<parameter>xx</parameter></command>), was subject to
+      a temporary failure or restriction
+      (<command>4<parameter>xx</parameter></command>), or failed
+      definitively/permanently
+      (<command>5<parameter>xx</parameter></command>), followed by
+      some human readable explanation.  A full description of these
+      codes is included in
+      <ulink url="http://www.ietf.org/rfc/rfc2821.txt">RFC 2821</ulink>.
+    </para>
+
+    <para>
+      A best case scenario SMTP transaction typically consists of the
+      following relevant steps:
+    </para>
+
+    <table id="smtpdialogue" frame="all">
+      <title>Simple SMTP dialogue</title>
+
+      <tgroup cols="2" align="left" colsep="1" rowsep="1">
+	<thead>
+	  <row>
+	    <entry>Client</entry>
+	    <entry>Server</entry>
+	  </row>
+	</thead>
+
+	<tbody>
+	  <row>
+	    <entry>
+	      <para>
+		Initiates a TCP connection to server.
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Presents an SMTP banner - that is, a greeting that
+		starts with the code <command>220</command> to indicate
+		that it is ready to speak SMTP (or usually ESMTP, a
+		superset of SMTP):
+
+		<screen>220 <parameter>your.f.q.d.n</parameter> ESTMP...</screen>
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		Introduces itself by way of an Hello command, either
+		<command>HELO</command> (now obsolete) or
+		<command>EHLO</command>, followed by its own <xref
+		linkend="fqdn" />:
+		<screen>EHLO <parameter>peers.f.q.d.n</parameter></screen>
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Accepts this greeting with a <command>250</command>
+		response.  If the client used the
+		<emphasis>extended</emphasis> version of the Hello
+		command (<command>EHLO</command>), your server knows
+		that it is capable of handling multi-line responses,
+		and so will normally send back several lines
+		indicating the capabilities offered by your server:
+
+<screen>
+250-<parameter>your.f.q.d.n</parameter> Hello ...
+250-SIZE 52428800
+250-8BITMIME
+250-PIPELINING
+250-STARTTLS
+250-AUTH
+250 HELP
+</screen>
+	      </para>
+
+	      <para>
+		If the <command>PIPELINING</command> capability is
+		included in this response, the client can from this point
+		forward issue several commands at once, without waiting
+		for the response to each one.
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		Starts a new mail transaction by specifying the
+		<xref linkend="envfrom" />:
+
+		<screen>MAIL FROM:&lt;<parameter>sender</parameter>@<parameter>address</parameter>&gt;
+		</screen>
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Issues a <command>250</command> response to indicate
+		that the sender is accepted.
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		Lists the <xref linkend="envto"/>s of the message, one
+		at a time, using the command:
+
+		<screen>RCPT TO:&lt;<parameter>receiver</parameter>@<parameter>address</parameter>&gt;</screen>
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Issues a response to each command
+		(<command>2<parameter>xx</parameter></command>,
+		<command>4<parameter>xx</parameter></command>, or
+		<command>5<parameter>xx</parameter></command>,
+		depending on whether delivery to this recipient was
+		accepted, subject to a temporary failure, or
+		rejected).
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		Issues a <command>DATA</command> command to indicate
+		that it is ready to send the message.
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Responds <command>354</command> to indicate that the
+		command has been provisionally accepted.
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		Transmits the message, starting with RFC 2822
+		compliant header lines (such as:
+		<option>From:</option>, <option>To:</option>,
+		<option>Subject:</option>, <option>Date:</option>,
+		<option>Message-ID:</option>).  The header and the
+		body are separated by an empty line.  To indicate the
+		end of the message, the client sends a single period
+		(".") on a separate line.
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Replies <command>250</command> to indicate that the
+		message has been accepted.
+	      </para>
+	    </entry>
+	  </row>
+
+	  <row>
+	    <entry>
+	      <para>
+		If there are more messages to be delivered, issues the
+		next <command>MAIL FROM:</command> command.
+		Otherwise, it says <command>QUIT</command>, or in rare
+		cases, simply disconnects.
+	      </para>
+	    </entry>
+
+	    <entry>
+	      <para>
+		Disconnects.
+	      </para>
+	    </entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+  </section>
+</chapter>
