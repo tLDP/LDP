@@ -1,0 +1,368 @@
+<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+
+<article id="ADSL-Bandwidth-Management-HOWTO">
+
+  <articleinfo>
+    <title>ADSL Bandwidth Management HOWTO</title>
+
+    <author>
+      <firstname>Dan</firstname>
+      <surname>Singletary</surname>
+      <affiliation>
+        <address><email>dvsing@sonicspike.net</email></address>
+      </affiliation>
+    </author>
+
+    <revhistory>
+      <revision>
+        <revnumber>0.1</revnumber>
+        <date>2001-08-06</date>
+        <authorinitials>ds</authorinitials>
+        <revremark>
+        </revremark>
+      </revision>
+    </revhistory>
+
+    <abstract>
+      <para>This document describes how to configure a linux router
+      to more effectively manage outbound traffic on an ADSL modem.
+      Emphasis is placed on lowering the latency for interactive
+      traffic even when the upstream bandwidth is fully saturated.</para>
+    </abstract>
+  </articleinfo>
+
+  <sect1 id="intro">
+    <title>Introduction</title>
+    <para>The purpose of this document is to suggest a way to manage outbound
+    traffic on an ADSL (or cable modem) connection to the Internet.  The problem
+    is that many ADSL lines are limited in the neighborhood of 128kbps for upstream
+    data transfer.  Aggravating this problem is the packet queue in the ADSL modem
+    which can take 2 to 3 seconds to empty when full.  Together this means that when
+    the upstream bandwidth is fully saturated it can take up to 3 seconds for
+    any other packets to get out to the Internet.  This can cripple interactive 
+    applications such as telnet and multiplayer games.</para>
+    <sect2>
+      <title>New Versions of This Document</title>
+      <para>You can always view the latest version of this document on the World
+      Wide Web at the
+      URL <ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+      <para>New versions of this document will also be uploaded to various Linux
+      WWW and FTP sites, including the LDP home page at
+      <ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+    </sect2>
+    <sect2>
+      <title>Disclaimer</title>
+      <para>Neither the author nor the distributors, or any other contributor of
+      this HOWTO are in any way responsible for physical, financial, moral or any
+      other type of damage incurred by following the suggestions in this text.</para>
+    </sect2>
+    <sect2 id="copyright">
+      <title>Copyright and License</title>
+      <para>This document is copyright 2001 by Dan Singletary, and is
+      released under the terms of the GNU Free Documentation License,
+      which is hereby incorporated by reference. </para>
+    </sect2>
+    <sect2>
+      <title>Feedback and corrections</title>
+      <para>If you have questions or comments about this document, please feel free
+      </para>
+    </sect2>
+  </sect1>
+  <sect1 id="background">
+    <title>Background</title>
+    <sect2>
+      <title>Prerequisites</title>
+      <para>The method outlined in this document may work in other Linux configurations
+      however it remains untested in any configuration but the following:</para>
+      <itemizedlist mark="bullet">
+        <listitem>
+          <para>586 or higher x86 PC</para>
+        </listitem>
+        <listitem>
+          <para>Redhat Linux 6.2</para>
+        </listitem>
+        <listitem>
+          <para>2.2.19 Kernel with QoS Support fully enabled (modules OK)</para>
+        </listitem>
+        <listitem>
+          <para>sch_fwprio module or 2.2.19 kernel patch.  You can get
+          these <ulink url="http://www.sonicspike.net/software">here</ulink>.</para>
+        </listitem>
+      </itemizedlist>
+    </sect2>
+    <sect2>
+      <title>Layout</title>
+      <para>In order to keep things simple, all references to network devices and 
+      configuration in this document will be with respect to the following
+      network layout diagram:</para>
+      <screen>
+               <-- 128kbit/s      --------------     <-- 10Mbit -->
+  Internet <--------------------> | ADSL Modem | <--------------------
+                1.5Mbit/s -->     --------------                     |
+                                                                     | eth0
+                                                                     V
+                                                         -----------------
+                                                         |               |
+                                                         | Linux Router  |
+                                                         |               |
+                                                         -----------------
+                                                          | .. | eth1..ethN
+                                                          |    |
+                                                          V    V
+                   
+                                                       Local Network
+      </screen>
+    </sect2>
+    <sect2>
+      <title>Packet Queues</title>
+      <para>Packet queues are buckets that hold data for a network device when it
+      can't be immediately sent.  Most packet queues use a FIFO (first in, first out)
+      discipline unless they've been specially configured to do otherwise.  What this
+      means is that when the packet queue for a device is completely full, the packet
+      most recently placed in the queue will be sent over the device only after all
+      the other packets in the queue at that time are sent.</para>
+      <para>With an ADSL modem, bandwidth is asymmetric with 1.5Mbit/s typical downstream
+      and 128kbit/sec typical upstream.  Although this is the line speed, the interface
+      to the router is typically at or above 10Mbit/s.  If the interface to the Local Network
+      is also 10Mbit/s, there will typically be NO QUEUING at the router when packets are sent from
+      the Local Network to the Internet.  Packets are sent out eth0 as fast
+      as they are received from the Local Network.  Instead, packets are queued at the ADSL
+      modem since they are arriving at 10Mbit/s and only being sent at 128kbit/s.  Eventually
+      the packet queue at the ADSL modem will become full and any more packets sent to it
+      will be silently dropped.  TCP is designed to handle this and will adjust it's transmit
+      window size accordingly to take full advantage of the available bandwidth.</para>
+      <para>While packet queues combined with TCP result in the most effective use of bandwidth,
+      large FIFO queues can increase the latency for interactive traffic.</para>
+      <para>Another type of queue that is somewhat like FIFO is an n-band priority queue.  However,
+      instead of having just one queue that packets line up in,  the n-band priority queue has
+      n FIFO queues which packets are placed in by their classification.  Each queue has a priority
+      and packets are always dequeued from the highest priority queue that contains packets.
+      Using this discipline FTP packets can be placed in a lower priority queue than telnet
+      packets so that even during an FTP upload, a single telnet packet will jump the queue and be
+      sent immediately.</para>
+    </sect2>
+  </sect1> 
+  <sect1 id="how-it-works">
+    <title>How it Works</title>
+    <para>There are two basic steps to optimize upstream bandwidth.  First we have to find a way to
+    prevent the ADSL modem from queuing packets since we have no control over how it handles
+    the queue.  In order to do this we will throttle the amount of data the router sends out eth0
+    to be slightly less than the total upstream bandwidth of the ADSL modem.  This will result
+    in the router having to queue packets that arrive from the Local Network faster than it is allowed
+    to send them.</para>
+    <para>The second step is to set up priority queuing discipline on the router.
+    We'll investigate a queue that can be configured to give priority to interactive
+    traffic such as telnet and multiplayer games.</para>
+    <para>The final step is to configure the firewall to prioritize packets by using fwmark.</para>
+    <sect2>
+      <title>Throttling Bandwidth with Linux CBQ</title>
+      <para>Although the connection between the router and the modem is at 10Mbit/s, the modem
+      is only able to send data at 128kbit/s.  Any data sent in excess of that rate will be queued
+      at the modem.  Thus, a ping packet sent from the router may go to the modem immediately, but
+      may take a few seconds to actually get sent out to the Internet if the queue in the modem
+      has any packets in it.  Unfortunately most ADSL modems provide no mechanism to specify how
+      packets are dequeued or how large the queue is, so our first objective is to move the place
+      where the outbound packets are queued to somewhere where we have more control over the queue.</para>
+      <para>We'll do this by using a simple implementation of CBQ (class-based queuing) to limit
+      the rate at which we send packets to the ADSL modem.  Even though our upstream bandwidth may be
+      128kbit/s we'll have to limit the rate at which we send packets to be slightly below that.  If
+      we want to lower the latency we have to be SURE that not a single packet is ever queued at the
+      modem.  Through experimentation I have found that limiting the oubound traffic to about 90kbit/s
+      with CBQ gives me almost 95% of the bandwidth I could achieve without CBQ.  With CBQ enabled at this
+      rate, we've prevented the ADSL modem from queuing packets.</para>
+    </sect2>
+    <sect2>
+      <title>N-Band Priority Queuing with sch_fwprio</title>
+      <para>At this point we still haven't realized any change in the performance.  We've merely moved the
+      FIFO queue from the ADSL modem to the router.  In fact, with linux configured to a default queue
+      size of 100 packets we've probably made our problem worse at this point!  But not for long...</para>
+      <para>Unfortunately, the priority queuing discipline included with linux traffic control was not
+      meant to be a queuing discipline of CBQ.  Although it can be used as a leaf queuing discipline,
+      there is no way to classify packets into bands.  I solved this problem by changing the way
+      the existing queue classifies packets.  The new queue classifies packets into queues based on their
+      fwmark.  The lowest fwmark (0x00) is the highest priority queue.  Higher fwmark'ed packets will be
+      placed into lower priority queues.  Packets fwmark'ed out of range will be placed as if their mark
+      was 0x00 (an incentive to not incorrectly mark packets!)  By using the modified queue 
+      (sch_fwprio.o) you can classify packets using ipchains (2.2.x) or netfilter (2.4.x) to 
+      set the fwmark.  The new module must be installed <emphasis>prior</emphasis> to using the prio queuing
+      discipline with tc.  This prevents the old priority queue from being loaded by the kernel.</para>
+    </sect2>
+    <sect2>
+      <title>Classifying Packets with ipchains</title>
+      <para>The final step in configuring your router to give priority to interactive traffic is
+      to set up the firewall to define how traffic should be classified.  This is done by setting the
+      packet's fwmark field.</para>
+      <para>Without getting into too much detail, here is a simplified description of how outbound packets
+      might be classified into a 4-band priority queue:</para>
+      <orderedlist>
+        <listitem>
+          <para>Mark ALL packets as 0x03.  This places all packets, by default, into the lowest priority queue.</para>
+        </listitem>
+        <listitem>
+          <para>Mark ICMP packets as 0x00.  We want ping to show the latency for the highest priority packets.</para>
+        </listitem>
+        <listitem>
+          <para>Mark all packets that have a destination port 1024 or less as 0x01.  This gives priority to system
+          services such as Telnet and SSH.  FTP's control port will also fall into this range however FTP data transfer
+          takes place on high ports and will remain in the 0x03 band.</para>
+        </listitem>
+        <listitem> 
+          <para>Mark all packets that have a destination port of 25 (SMTP) as 0x03.  If someone sends an email with
+          a large attachment we don't want it to swamp interactive traffic.</para>
+        </listitem>
+        <listitem>
+          <para>Mark all packets that are going to a multiplayer game server as 0x02.  This will give gamers low latency but
+          will keep them from swamping out the the system applications that require low latency</para>
+        </listitem>
+      </orderedlist>
+      <para>Obviously, this can be customized to fit your needs.</para>
+    </sect2>
+  </sect1>
+  <sect1 id="implementation">
+    <title>Implementation</title>
+    <para>Now with all of the explanation out of the way it's time to implement upstream bandwidth management with Linux.</para>
+    <sect2>
+      <title>Obtaining, Compiling and Installing sch_fwprio</title>
+      <para>If you haven't already, you'll need to obtain the sch_fwprio module or kernel patch.  You can download either
+      of these <ulink url="http://www.sonicspike.net/software">here</ulink>.</para>
+      <para>Note: It is not necessary to compile the sch_fwprio module AND apply the fwprio.diff patch!  Both
+      accomplish the same thing.</para>
+      <sect3>
+        <title>Using the sch_fwprio Module</title>
+        <para>After downloading the module, extract it into an appropriate directory:</para>
+        <screen># cd /usr/local/src
+# tar -xvzf sch_fwprio.tgz</screen>
+        <para>Now compile the module:</para>
+        <screen># cd /usr/local/src/fwprio
+# make</screen>
+        <para>You're done compiling sch_fwprio.  Go on to <link linkend="set-txq">Setting the Queue Length</link>.</para>
+      </sect3>
+      <sect3>
+        <title>Using the fwprio.diff Kernel Patch</title>
+        <para>You must have the kernel source package installed to apply the patch.  After downloading the
+        patch, apply it to the kernel source tree:</para>
+        <screen># cd /usr/src
+# patch -b -p0 fwprio.diff</screen>
+        <para>Now you'll need to re-compile and install the kernel modules:</para>
+        <screen># cd /usr/src/linux
+# make dep
+# make clean
+# make modules
+# make modules_install</screen>
+        <para>Now you're ready to set the queue length...</para> 
+      </sect3>
+    </sect2>
+    <sect2 id="set-txq">
+      <title>Setting the Queue Length</title>
+      <para>Even though we'll be placing traffic in different bands based on priority, we still want the 
+      queues we set up to empty in about two seconds.  This suggests a queue size of 20 packets
+      for our example:</para>
+      <screen>
+ip link set eth0 txqueuelen 20</screen>
+    </sect2>
+    <sect2 id="setup-cbq">
+      <title>Setting up CBQ</title>
+      <para>CBQ is poorly documented and can get very complicated, so I will attempt to keep things simple
+      and explain them as best I can.  Once again, the reason that we are using CBQ is to limit the rate
+      that we send data out eth0.  This will prevent the ADSL modem from queuing packets.  Also, we will
+      attach the sch_fwprio queue as a leaf queuing discipline.</para>
+      <para>All of the statements should be added to your rc.local file or another appropriate startup script.</para>
+      <para>First we tell Linux that we want CBQ to be the root queuing discipline on eth0:</para>
+      <screen>
+tc qdisc add dev eth0 root handle 128: cbq bandwidth 10Mbit avpkt 700</screen>
+      <para>With this line we've told Linux to use CBQ on eth0 and that the handle for this class
+      is 128:0, and the average packet is 700 bytes.  We've also specified the total bandwidth for
+      eth0 as 10Mbit/sec because this is the maximum speed at which our ethernet card can transmit
+      data.  This is NOT your upstream data rate!  We'll specify that in the next statement:</para>
+      <screen>
+tc class add dev eth0 parent 128:0 classid 128:1 cbq bandwidth 10Mbit \
+   rate 90Kbit allot 1514 weight 9Kbit prio 5 maxburst 1 avpkt 700 \
+   bounded</screen>
+      <para>This statement creates the class which will throttle outbound bandwidth on eth0 (in this
+      case, to 90kbit/s).  Since this document is not meant to explain the inner workings of CBQ, I'll
+      skip a detailed explanation.  The only important numbers up there are numbers following rate and weight.
+      The number following rate should be slightly lower than your upstream data rate.  I use 90kbit
+      which works well for my 128kbit/s upstream, giving me almost full use of my available
+      bandwidth.  Whatever you set your rate to, the weight should be about 1/10 of that value.  Also,
+      the number following allot sould be set to the mtu for eth0 (1514 works fine for ethernet).
+      Also important is the <emphasis>bounded</emphasis> keyword.  If this keyword is not specified,
+      then the class will attempt to borrow extra bandwidth from the parent class.</para>
+      <para>Now if you've decided NOT to patch your kernel, and instead have compiled the sch_fwprio
+      module, you'll need to load it BEFORE you use the prio queue.  Otherwise the stock sch_prio will
+      be loaded:</para>
+      <screen>
+insmod /usr/local/src/fwprio/sch_fwprio.o</screen>
+      <para>Now you have to attach the queue as a leaf discipline to the CBQ:</para>
+      <screen>
+tc qdisc add dev eth0 parent 128:1 prio bands 4 priomap 0 1 2 3 3 3 3 3 3 3 3 3 3 3 3 3
+
+tc filter add dev eth0 parent 128:0 protocol ip prio 5 u32 match ip src \
+   1.2.3.4/32 flowid 128:1</screen>
+      <para>With these statements we've created a prio queue of 4 bands
+      (which is really using our new sch_fwprio code)
+      and then we've used a filter to mark all of the packets
+      to be handled by the 128:1 classid of our CBQ, which the
+      prio filter is attached to.  The priomap keyword, although unused by sch_fwprio, is still
+      necessary to initialize the individual bands.  You MUST specify each band number at least
+      once in the 16-field priomap (in the above example I've initialized 4 bands, 0..3).  You
+      must start at zero and end with the number of bands minus one.  You must specify 16 fields
+      so it's okay to repeat the last band like I've done above.  All of this garbage is to
+      satisfy the requirements of the old sch_prio code.</para>
+    </sect2>
+    <sect2>
+      <title>Setting up Packet Classification</title>
+      <para>Here's where you get to specify how packets are classified into different priority bands
+      in the queue.  This is completely up to you, but here is a good place to start:</para>
+      <para>Create a new chain called qos-out.  Create a new rule as the first rule in the output
+      chain that sends all packets to the qos-out chain (we'll send them back at the end of the
+      qos-out chain):</para>
+      <screen>
+ipchains -N qos-out
+ipchains -I output -i eth0 -j qos-out</screen>
+      <para>Now we'll set up a few packet classification rules (don't forget to RETURN packets back to
+      the output chain if you have other rules there that need to be checked):</para>
+      <screen>
+ipchains -A qos-out -m 3
+ipchains -A qos-out -p icmp -m 0
+ipchains -A qos-out -p tcp -s 0.0.0.0/0 0:1024 -m 1 
+ipchains -A qos-out -p tcp -d 0.0.0.0/0 0:1024 -m 1
+ipchains -A qos-out -p tcp -d 0.0.0.0/0 25 -m 2
+ipchains -A qos-out -j RETURN
+</screen>
+      <para>The first rule here marks all packets into the lowest priority band by default.  The next rule
+      puts ICMP packets in the highest priority band, since we will be using ping to test latency we want
+      it to return an accurate result.  The next two rules place packets to or from system ports (0-1024)
+      in band 1.  Although not as high as the ICMP band, this is the band we'll use for 'interactive' traffic
+      such as web requests and telnet.  Note that we place port 25 outbound (SMTP) into band 2.  This is
+      because we don't want someone sending a file attachment in an email to swamp a telnet session.  The
+      final rule sends packets back to the output chain now that we're done classifying them.</para>
+      <para>Use this only as a starting point.  Your qos-out chain will undoubtedly become quite complex
+      as you decide how you want to prioritize traffic.  You may find that you need more than 4 bands. 
+      You will probably find that giving DNS requests high priority works well, although I haven't
+      included this in the example above.</para>
+    </sect2>
+  </sect1>
+  <sect1 id="testing">
+    <title>Testing the New Queue</title>
+    <para>The easiest way to test your new setup is to saturate the upstream with low-priority traffic.
+    This depends how you have your priorities set up.  For the sake of example, let's say you've placed
+    telnet traffic and ping traffic at a higher priority (lower fwmark) than other high ports (that are
+    used for FTP transfers, etc).  If you initiate an FTP upload to saturate upstream bandwidth, you
+    should only notice your ping times to the gateway (on the other side of the DSL line) increasing by
+    a small amount compared to what it would increase to with no priority queuing.  Ping times under 100ms
+    are typical depending on how you've got things set up.  Ping times greater than one or two seconds
+    probably mean that things aren't working right.</para>
+  </sect1>
+  <sect1 id="onward">
+    <title>OK It Works!! Now What?</title>
+    <para>Now that you've successfully started to manage your upstream bandwidth, you should start thinking
+    of ways to use it.  After all, you're probably paying for it!</para>
+    <itemizedlist mark="bullet">
+    <listitem><para>Use a Gnutella client and SHARE YOUR FILES without adversely
+    affecting your network performance</para></listitem>
+    <listitem><para>Run a web server without having web page hits slow you down in Quake</para></listitem>
+    </itemizedlist>
+  </sect1>
+</article>
+
+
