@@ -8,7 +8,7 @@ for the Lampadas system. All access to the underlying database should be
 performed through this layer.
 """
 
-# Modules ##################################################################
+# Modules
 
 import Config
 import Database
@@ -16,18 +16,24 @@ import Log
 from string import strip
 from types import StringType
 
+
+# Globals
+
 Config = Config.Config()
 DB = Database.Database()
 DB.Connect(Config.DBType, Config.DBName)
 Log = Log.Log()
 Log.Truncate()
 
+
+# Base Classes
+
 class LampadasList:
 	"""
 	Base class for Lampadas list objects, which are cached in RAM
 	for high performance.
 
-	Classes based on this one emulast lists, with additional methods.
+	Classes based on this one emulate lists, with additional methods.
 	"""
 
 	list = []
@@ -285,6 +291,8 @@ class UserDoc:
 		DB.Exec(self.sql)
 		DB.Commit()
 
+
+# Utility routines
 
 def wsq(astring):
 	if astring == None:
