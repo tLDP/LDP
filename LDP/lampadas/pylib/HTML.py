@@ -550,25 +550,38 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
-    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None):
+    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
             ok = 1
+
+            # If a usename is passed in, show documents for that user.
+            # We're building the user's personal doctable, so language
+            # doesn't matter in that table.
             if username:
                 if doc.users[username]==None:
                     ok = 0
             else:
                 if doc.lang <> uri.lang:
                     ok = 0
-                elif type_code and doc.type_code <> type_code:
+
+            # If any other parameter was specified, limit the documents
+            # to those which match the requirement.
+            if type_code and doc.type_code <> type_code:
+                ok = 0
+            elif subtopic_code:
+                subtopic = lampadas.subtopics[subtopic_code]
+                if subtopic.docs[doc.id]==None:
                     ok = 0
-                elif subtopic_code:
-                    subtopic = lampadas.subtopics[subtopic_code]
-                    if subtopic.docs[doc.id]==None:
-                        ok = 0
+            elif not maintained==None:
+                if doc.maintained <> maintained:
+                    ok = 0
+            elif not maintainer_wanted==None:
+                if doc.maintainer_wanted <> maintainer_wanted:
+                    ok = 0
             if ok > 0:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
@@ -881,6 +894,10 @@ class PageFactory:
                     newstring = self.tablef.login(uri, build_user)
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri, build_user)
+                if token=='tabmaint_wanted':
+                    newstring = self.tablef.doctable(uri, build_user, maintainer_wanted=1)
+                if token=='tabunmaintained':
+                    newstring = self.tablef.doctable(uri, build_user, maintained=0)
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri, build_user)
                 if token=='tabdocfiles':

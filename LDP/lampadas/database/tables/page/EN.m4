@@ -11,6 +11,8 @@ insert(doctable,            default,    main,       3,  f,  f,  f)
 insert(news,                default,    news,       1,  f,  f,  f)
 
 insert(contribute,          default,    volunteer,  1,  f,  f,  f)
+insert(unmaintained,        default,    volunteer,  2,  f,  f,  f)
+insert(maint_wanted,        default,    volunteer,  3,  f,  f,  f)
 
 insert(about,               default,    help,       1,  f,  f,  f)
 insert(lampadas,            default,    help,       2,  f,  f,  f)

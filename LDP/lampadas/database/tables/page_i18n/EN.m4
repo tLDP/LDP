@@ -15,6 +15,10 @@ insert([sysadmin], [Sysadmin Page], [],
 
 insert([my], [My Home], [],
 [
+    <p>This is your personal home page.
+
+    <p>This table lists documents you have volunteered to contribute to:
+
     |session_user_docs|
 ])
 
@@ -94,6 +98,16 @@ insert([contribute], [Contributing to |strproject|],
     </li>
 
     </ul>
+])
+
+insert([unmaintained], [Unmaintained Documents], [],
+[
+    |tabunmaintained|
+])
+
+insert([maint_wanted], [New Maintainer Wanted], [],
+[
+    |tabmaint_wanted|
 ])
 
 insert([about], [About |strproject|], [About |strprojectshort|],

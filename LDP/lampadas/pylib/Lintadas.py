@@ -44,76 +44,89 @@ import os
 
 class Lintadas:
 
-	def CheckAllDocs(self):
-		keys = lampadas.docs.keys()
-		for key in keys:
-			self.CheckDoc(key)
-	
-	def CheckDoc(self, doc_id):
-		log(3, 'Running Lintadas on document ' + str(doc_id))
-		Doc = lampadas.docs[int(doc_id)]
-		assert not Doc==None
-		Doc.errs.clear()
+    def check_all(self):
+        keys = lampadas.docs.keys()
+        for key in keys:
+            self.check(key)
+    
+    def check(self, doc_id):
+        log(3, 'Running Lintadas on document ' + str(doc_id))
+        doc = lampadas.docs[int(doc_id)]
+        assert not doc==None
+        doc.errs.clear()
 
-		# Test document files
-		keys = Doc.files.keys()
-		for key in keys:
+        self.check_files(doc)
+        self.check_maintained(doc)
 
-			File = Doc.files[key]
+        doc.save()
+        log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 
-			if File.IsLocal:
-				log(3, 'Checking filename ' + key)
-			else:
-				log(3, 'Skipping remote file ' + key)
-				continue
+    def check_files(self, doc):
+        keys = doc.files.keys()
+        for key in keys:
 
-			# Determine file format
-			self.filename = File.filename.upper()
-			if self.filename[-5:]=='.SGML':
-				FileFormat = "SGML"
-				DocFormat = 'SGML'
-			elif self.filename[-4:]=='.XML':
-				FileFormat = "XML"
-				DocFormat = 'XML'
-			elif self.filename[-3:]=='.WT':
-				FileFormat = 'WIKI'
-				DocFormat = 'WIKI'
-			else:
-				FileFormat = ''
-				DocFormat = ''
+            file = doc.files[key]
 
-			formatkeys = lampadas.formats.keys()
-			for formatkey in formatkeys:
-				if lampadas.formats[formatkey].I18n['EN'].Name==FileFormat:
-					File.Formatid = formatkey
-				if lampadas.formats[formatkey].I18n['EN'].Name==DocFormat:
-					Doc.Formatid = formatkey
-			
-			log(3, 'file format is ' + FileFormat)
-			
-			# Determine DTD for SGML and XML files
-			if FileFormat=='XML' or FileFormat=='SGML':
-				dtd_version = ''
-				try:
-					command = 'grep -i DOCTYPE ' + config.cvs_root + File.filename + ' | head -n 1'
-					grep = os.popen(command, 'r')
-					dtd_version = grep.read()
-				except IOError:
-					pass
+            if file.IsLocal:
+                log(3, 'Checking filename ' + key)
+            else:
+                log(3, 'Skipping remote file ' + key)
+                continue
 
-				dtd_version = dtd_version.upper()
-				if dtd_version.count('DOCBOOK') > 0:
-					Doc.dtd_code = 'DocBook'
-				elif dtd_version.count('LINUXDOC') > 0:
-					Doc.dtd_code = 'LinuxDoc'
-				else:
-					Doc.dtd_code = ''
+            # Determine file format
+            self.filename = file.filename.upper()
+            if self.filename[-5:]=='.SGML':
+                FileFormat = "SGML"
+                DocFormat = 'SGML'
+            elif self.filename[-4:]=='.XML':
+                FileFormat = "XML"
+                DocFormat = 'XML'
+            elif self.filename[-3:]=='.WT':
+                FileFormat = 'WIKI'
+                DocFormat = 'WIKI'
+            else:
+                FileFormat = ''
+                DocFormat = ''
 
-			log(3, 'doc dtd is ' + Doc.dtd_code)
+            formatkeys = lampadas.formats.keys()
+            for formatkey in formatkeys:
+                if lampadas.formats[formatkey].name['EN']==FileFormat:
+                    file.Formatid = formatkey
+                if lampadas.formats[formatkey].name['EN']==DocFormat:
+                    doc.Formatid = formatkey
+            
+            log(3, 'file format is ' + FileFormat)
+            
+            # Determine DTD for SGML and XML files
+            if FileFormat=='XML' or FileFormat=='SGML':
+                dtd_version = ''
+                try:
+                    command = 'grep -i DOCTYPE ' + config.cvs_root + file.filename + ' | head -n 1'
+                    grep = os.popen(command, 'r')
+                    dtd_version = grep.read()
+                except IOError:
+                    pass
 
-			Doc.save()
-			File.save()
-		log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
+                dtd_version = dtd_version.upper()
+                if dtd_version.count('DOCBOOK') > 0:
+                    doc.dtd_code = 'DocBook'
+                elif dtd_version.count('LINUXDOC') > 0:
+                    doc.dtd_code = 'LinuxDoc'
+                else:
+                    doc.dtd_code = ''
+
+            log(3, 'doc dtd is ' + doc.dtd_code)
+
+            file.save()
+
+    def check_maintained(self, doc):
+        if doc.users.count()==0:
+            doc.maintained = 0
+            log(3, 'Maintained')
+        else:
+            doc.maintained = 1
+            log(3, 'Unmaintained')
+
 
 lintadas = Lintadas()
 
@@ -122,26 +135,28 @@ lintadas = Lintadas()
 # 
 
 def main():
-	import getopt
-	import sys
+    import getopt
+    import sys
 
-	Docs = sys.argv[1:]
-	if len(Docs)==0:
-		print "Running on all documents..."
-		lintadas.CheckAllDocs()
-	else:
-		for Doc in Docs:
-			lintadas.CheckDoc(Doc)
+    config.logcon = 1
+    config.log_level = 3
+    docs = sys.argv[1:]
+    if len(docs)==0:
+        print "Running on all documents..."
+        lintadas.check_all()
+    else:
+        for doc_id in docs:
+            lintadas.check(doc_id)
 
 def usage():
-	print "Lintadas version " + VERSION
-	print
-	print "This is part of the Lampadas System"
-	print
-	print "Pass doc ids to run Lintadas on specific docs,"
-	print "or call with no parameters to run Lintadas on all docs."
-	print
+    print "Lintadas version " + VERSION
+    print
+    print "This is part of the Lampadas System"
+    print
+    print "Pass doc ids to run Lintadas on specific docs,"
+    print "or call with no parameters to run Lintadas on all docs."
+    print
 
 
 if __name__=="__main__":
-	main()
+    main()

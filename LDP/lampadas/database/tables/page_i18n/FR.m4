@@ -15,6 +15,10 @@ insert([sysadmin], [Sysadmin Page], [],
 
 insert([my], [My Home], [],
 [
+    <p>This is your personal home page.
+
+    <p>This table lists documents you have volunteered to contribute to:
+
     |session_user_docs|
 ])
 
@@ -66,6 +70,16 @@ insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampad
 	<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n\'h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 	</li>
 	</ul>
+])
+
+insert([unmaintained], [Unmaintained Documents], [],
+[
+    |tabunmaintained|
+])
+
+insert([maint_wanted], [New Maintainer Wanted], [],
+[
+    |tabmaint_wanted|
 ])
 
 insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
