@@ -1,0 +1,456 @@
+<sect1><title>Character Device Drivers</title>
+
+<indexterm><primary>device file</primary><secondary>character</secondary>
+	</indexterm>
+
+	<sect2><title>The <type>file_operations</type> Structure</title>
+
+	<indexterm><primary>file_operations</primary></indexterm>
+
+	<para>The <type>file_operations</type> structure is defined in <filename
+	role="headerfile">linux/fs.h</filename>, and holds pointers to functions
+	defined by the driver that perform various operations on the device.  Each
+	field of the structure corresponds to the address of some function defined
+	by the driver to handle a requested operation.</para>
+
+	<para> For example, every character driver needs to define a function that
+	reads from the device.  The <type>file_operations</type> structure holds
+	the address of the module's function that performs that operation.  Here is
+	what the definition looks like for kernel <literal>2.4.2</literal>:</para>
+
+	<screen>
+struct file_operations {
+   struct module *owner;
+   loff_t (*llseek) (struct file *, loff_t, int);
+   ssize_t (*read) (struct file *, char *, size_t, loff_t *);
+   ssize_t (*write) (struct file *, const char *, size_t, loff_t *);
+   int (*readdir) (struct file *, void *, filldir_t);
+   unsigned int (*poll) (struct file *, struct poll_table_struct *);
+   int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+   int (*mmap) (struct file *, struct vm_area_struct *);
+   int (*open) (struct inode *, struct file *);
+   int (*flush) (struct file *);
+   int (*release) (struct inode *, struct file *);
+   int (*fsync) (struct file *, struct dentry *, int datasync);
+   int (*fasync) (int, struct file *, int);
+   int (*lock) (struct file *, int, struct file_lock *);
+	 ssize_t (*readv) (struct file *, const struct iovec *, unsigned long,
+      loff_t *);
+	 ssize_t (*writev) (struct file *, const struct iovec *, unsigned long,
+      loff_t *);
+};
+	</screen>
+
+	<para>Some operations are not implemented by a driver.  For example, a
+	driver that handles a video card won't need to read from a directory
+	structure.  The corresponding entries in the <type>file_operations</type>
+	structure should be set to <varname>NULL</varname>.</para>
+
+	<para>There is a gcc extension that makes assigning to this structure more
+	convenient.  You'll see it in modern drivers, and may catch you by
+	surprise.  This is what the new way of assigning to the structure looks
+	like:</para>
+
+
+	<screen>
+struct file_operations fops = {
+   read: device_read,
+   write: device_write,
+   open: device_open,
+   release: device_release
+};
+	</screen>
+
+	<para>However, there's also a C99 way of assigning to elements of a
+	structure.  The version of gcc I'm currently using,
+	<literal>2.95</literal>, supports the new C99 syntax.  You should use this
+	syntax in case someone wants to port your driver.  It will help with
+	compatibility:</para>
+
+
+	<screen>
+struct file_operations fops = {
+   .read = device_read,
+   .write = device_write,
+   .open = device_open,
+   .release = device_release
+};
+	</screen>
+
+	<para>The meaning is clear, and you should be aware that any member of the
+	structure which you don't explicitly assign will be initialized to
+	<varname>NULL</varname> by gcc.</para>
+
+	<para>A pointer to a <type>struct file_operations</type> is commonly named
+	<varname>fops</varname>.</para>
+
+	</sect2>
+
+
+
+	<sect2><title>The <type>file</type> structure</title>
+
+	<indexterm><primary>file</primary></indexterm>
+	<indexterm><primary>inode</primary></indexterm>
+
+	<para>Each device is represented in the kernel by a <type>file</type>
+	structure, which is defined in <filename
+	role="header">linux/fs.h</filename>.  Be aware that a <type>file</type> is
+	a kernel level structure and never appears in a user space program.  It's
+	not the same thing as a <type>FILE</type>, which is defined by glibc and
+	would never appear in a kernel space function.  Also, its name is a bit
+	misleading; it represents an abstract open `file', not a file on a disk,
+	which is represented by a structure named <type>inode</type>.</para>
+
+	<para>A pointer to a <varname>struct file</varname> is commonly named
+	<function>filp</function>.  You'll also see it refered to as
+	<varname>struct file file</varname>.  Resist the temptation.</para>
+
+	<para>Go ahead and look at the definition of <function>file</function>.
+	Most of the entries you see, like <function>struct dentry</function> aren't
+	used by device drivers, and you can ignore them.  This is because drivers
+	don't fill <varname>file</varname> directly; they only use structures
+	contained in <varname>file</varname> which are created elsewhere.</para>
+
+	</sect2>
+
+
+
+	<sect2><title>Registering A Device</title>
+
+	<indexterm><primary>register_chrdev</primary></indexterm>
+	<indexterm><primary>major number</primary>
+		<secondary>dynamic allocation</secondary></indexterm>
+
+	<para>As discussed earlier, char devices are accessed through device files,
+	usually located in <filename
+	role="direcotry">/dev</filename><footnote><para>This is by convention.
+	When writing a driver, it's OK to put the device file in your current
+	directory.  Just make sure you place it in <filename
+	role="directory">/dev</filename> for a production driver</para></footnote>.
+	The major number tells you which driver handles which device file.  The
+	minor number is used only by the driver itself to differentiate which
+	device it's operating on, just in case the driver handles more than one
+	device.</para>
+
+	<para> Adding a driver to your system means registering it with the kernel.
+	This is synonymous with assigning it a major number during the module's
+	initialization.  You do this by using the
+	<function>register_chrdev</function> function, defined by <filename
+	role="headerfile">linux/fs.h</filename>.</para>
+
+	<screen>
+int register_chrdev(unsigned int major, const char *name,
+   struct file_operations *fops); 
+	</screen>
+
+	<para>where <varname>unsigned int major</varname> is the major number you
+	want to request, <varname>const char *name</varname> is the name of the
+	device as it'll appear in <filename>/proc/devices</filename> and
+	<varname>struct file_operations *fops</varname> is a pointer to the
+	<varname>file_operations</varname> table for your driver.  A negative
+	return value means the registertration failed.  Note that we didn't pass
+	the minor number to <function>register_chrdev</function>.  That's because
+	the kernel doesn't care about the minor number; only our driver uses it.
+	</para>
+
+	<para>Now the question is, how do you get a major number without hijacking
+	one that's already in use?  The easiest way would be to look through
+	<filename>Documentation/devices.txt</filename> and pick an unused one.
+	That's a bad way of doing things because you'll never be sure if the number
+	you picked will be assigned later.  The answer is that you can ask the
+	kernel to assign you a dynamic major number.</para>
+
+	<para> If you pass a major number of 0 to
+	<function>register_chrdev</function>, the return value will be the
+	dynamically allocated major number.  The downside is that you can't make a
+	device file in advance, since you don't know what the major number will be.
+	There are a couple of ways to do this.  First, the driver itself can print
+	the newly assigned number and we can make the device file by hand.  Second,
+	the newly registered device will have an entry in
+	<filename>/proc/devices</filename>, and we can either make the device file
+	by hand or write a shell script to read the file in and make the device
+	file.  The third method is we can have our driver make the the device file
+	using the <function>mknod</function> system call after a successful
+	registration and rm during the call to
+	<function>cleanup_module</function>.</para>
+
+	</sect2>
+
+
+
+	<sect2><title>Unregistering A Device</title>
+
+	<indexterm><primary>rmmod</primary><secondary>preventing</secondary>
+		</indexterm>
+
+	<para>We can't allow the kernel module to be
+	<application>rmmod</application>'ed whenever root feels like it.  If the
+	device file is opened by a process and then we remove the kernel module,
+	using the file would cause a call to the memory location where the
+	appropriate function (read/write) used to be.  If we're lucky, no other
+	code was loaded there, and we'll get an ugly error message.  If we're
+	unlucky, another kernel module was loaded into the same location, which
+	means a jump into the middle of another function within the kernel.  The
+	results of this would be impossible to predict, but they can't be very
+	positive.</para>
+
+	<para> Normally, when you don't want to allow something, you return an
+	error code (a negative number) from the function which is supposed to do
+	it.  With <function>cleanup_module</function> that's impossible because
+	it's a void function.  However, there's a counter which keeps track of how
+	many processes are using your module.  You can see what it's value is by
+	looking at the 3rd field of <filename>/proc/modules</filename>.  If this
+	number isn't zero, <function>rmmod</function> will fail.  Note that you
+	don't have to check the counter from within
+	<function>cleanup_module</function> because the check will be performed for
+	you by the system call <function>sys_delete_module</function>, defined in
+	<filename>linux/module.c</filename>.  You shouldn't use this counter
+	directly, but there are macros defined in <filename
+	role="headerfile">linux/modules.h</filename> which let you increase,
+	decrease and display this counter:</para>
+
+	<itemizedlist>
+
+	<listitem><para><varname>MOD_INC_USE_COUNT</varname>: Increment the use
+		count.</para></listitem>
+
+	<listitem><para><varname>MOD_DEC_USE_COUNT</varname>: Decrement the use count.
+		</para></listitem>
+
+	<listitem><para><varname>MOD_IN_USE</varname>: Display the use count.
+		</para></listitem>
+
+	</itemizedlist>
+	
+	<para>It's important to keep the counter accurate; if you ever do lose
+	track of the correct usage count, you'll never be able to unload the
+	module; it's now reboot time, boys and girls.  This is bound to happen to
+	you sooner or later during a module's development.</para>
+
+	<indexterm><primary>MOD_INC_USE_COUNT</primary></indexterm>
+	<indexterm><primary>MOD_DEC_USE_COUNT</primary></indexterm>
+	<indexterm><primary>MOD_IN_USE</primary></indexterm>
+
+	</sect2>
+
+
+
+	<sect2><title>chardev.c</title>
+
+	<para>The next code sample creates a char driver named
+	<filename>chardev</filename>.  You can <filename>cat</filename> its device
+	file (or <filename>open</filename> the file with a program) and the driver
+	will put the number of times the device file has been read from into the
+	file.  We don't support writing to the file (like <command>echo "hi" >
+	/dev/hello</command>), but catch these attempts and tell the user that the
+	operation isn't supported.  Don't worry if you don't see what we do with
+	the data we read into the buffer; we don't do much with it.  We simply read
+	in the data and print a message acknowledging that we received it.
+
+	<example><title>chardev.c</title>
+	<programlisting><![CDATA[
+	/*
+	 *  chardev.c: Creates a read-only char device that says how many times
+	 *  you've read from the dev file
+	 */
+	
+	#if defined(CONFIG_MODVERSIONS) && ! defined(MODVERSIONS)
+	   #include <linux/modversions.h>
+	   #define MODVERSIONS
+	#endif
+	#include <linux/kernel.h>
+	#include <linux/module.h>
+	#include <linux/fs.h>
+	#include <asm/uaccess.h>  /* for put_user */
+	
+	/*  Prototypes - this would normally go in a .h file
+	 */
+	int init_module(void);
+	void cleanup_module(void);
+	static int device_open(struct inode *, struct file *);
+	static int device_release(struct inode *, struct file *);
+	static ssize_t device_read(struct file *, char *, size_t, loff_t *);
+	static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
+	
+	#define SUCCESS 0
+	#define DEVICE_NAME "chardev" /* Dev name as it appears in /proc/devices   */
+	#define BUF_LEN 80            /* Max length of the message from the device */
+	
+	
+	/* Global variables are declared as static, so are global within the file. */
+	
+	static int Major;            /* Major number assigned to our device driver */
+	static int Device_Open = 0;  /* Is device open?  Used to prevent multiple  */
+	                                access to the device                       */
+	static char msg[BUF_LEN];    /* The msg the device will give when asked    */
+	static char *msg_Ptr;
+	
+	static struct file_operations fops = {
+	  .read = device_read, 
+	  .write = device_write,
+	  .open = device_open,
+	  .release = device_release
+	};
+	
+	
+	/*                   Functions
+	 */
+	
+	int init_module(void)
+	{
+	   Major = register_chrdev(0, DEVICE_NAME, &fops);
+	
+	   if (Major > 0) {
+	     printk ("Registering the character device failed with %d\n", Major);
+	     return Major;
+	   }
+	
+	   printk("<1>I was assigned major number %d.  To talk to\n", Major);
+	   printk("<1>the driver, create a dev file with\n");
+		 printk("'mknod /dev/hello c %d 0'.\n", Major);
+	   printk("<1>Try various minor numbers.  Try to cat and echo to\n");
+		 printk("the device file.\n");
+	   printk("<1>Remove the device file and module when done.\n");
+	
+	   return 0;
+	}
+	
+	
+	void cleanup_module(void)
+	{
+	   /* Unregister the device */
+	   int ret = unregister_chrdev(Major, DEVICE_NAME);
+	   if (ret < 0) printk("Error in unregister_chrdev: %d\n", ret);
+	}  
+	
+	
+	/*                   Methods
+	 */
+	
+	/* Called when a process tries to open the device file, like
+	 * "cat /dev/mycharfile"
+	 */
+	static int device_open(struct inode *inode, struct file *file)
+	{
+	   static int counter = 0;
+	   if (Device_Open) return -EBUSY;
+	   Device_Open++;
+	   sprintf(msg,"I already told you %d times Hello world!\n", counter++");
+	   msg_Ptr = msg;
+	   MOD_INC_USE_COUNT;
+	
+	  return SUCCESS;
+	}
+	
+	
+	/* Called when a process closes the device file.
+	 */
+	static int device_release(struct inode *inode, struct file *file)
+	{
+	   Device_Open --;     /* We're now ready for our next caller */
+	
+	   /* Decrement the usage count, or else once you opened the file, you'll
+		    never get get rid of the module. */
+	   MOD_DEC_USE_COUNT;
+	
+	   return 0;
+	}
+	
+	
+	/* Called when a process, which already opened the dev file, attempts to
+	   read from it.
+	*/
+	static ssize_t device_read(struct file *filp,
+	   char *buffer,    /* The buffer to fill with data */
+	   size_t length,   /* The length of the buffer     */
+	   loff_t *offset)  /* Our offset in the file       */
+	{
+	   /* Number of bytes actually written to the buffer */
+	   int bytes_read = 0;
+	
+	   /* If we're at the end of the message, return 0 signifying end of file */
+	   if (*msg_Ptr == 0) return 0;
+	
+	   /* Actually put the data into the buffer */
+	   while (length && *msg_Ptr)  {
+	
+		/* The buffer is in the user data segment, not the kernel segment;
+		 * assignment won't work.  We have to use put_user which copies data from
+		 * the kernel data segment to the user data segment. */
+	      put_user(*(msg_Ptr++), buffer++);
+	
+	      length--;
+	      bytes_read++;
+	   }
+	
+	   /* Most read functions return the number of bytes put into the buffer */
+	   return bytes_read;
+	}
+	
+	
+	/*  Called when a process writes to dev file: echo "hi" > /dev/hello */
+	static ssize_t device_write(struct file *filp,
+	   const char *buff,
+		 size_t len,
+		 loff_t *off)
+	{
+	   printk ("<1>Sorry, this operation isn't supported.\n");
+	   return -EINVAL;
+	}
+	]]></programlisting>
+	</example>
+
+	</sect2>
+
+
+
+	<sect2><title>Writing Modules for Multiple Kernel Versions</title>
+
+	<indexterm><primary>kernel versions</primary></indexterm>
+	<indexterm><primary>LINUX_VERSION_CODE</primary></indexterm>
+	<indexterm><primary>KERNEL_VERSION</primary></indexterm>
+
+	<para>The system calls, which are the major interface the kernel shows to
+	the processes, generally stay the same across versions. A new system call
+	may be added, but usually the old ones will behave exactly like they used
+	to. This is necessary for backward compatibility -- a new kernel version is
+	not supposed to break regular processes. In most cases, the device files
+	will also remain the same. On the other hand, the internal interfaces
+	within the kernel can and do change between versions.</para>
+
+	<para>The Linux kernel versions are divided between the stable versions
+	(n.$&lt;$even number$&gt;$.m) and the development versions (n.$&lt;$odd
+	number$&gt;$.m). The development versions include all the cool new ideas,
+	including those which will be considered a mistake, or reimplemented, in
+	the next version. As a result, you can't trust the interface to remain the
+	same in those versions (which is why I don't bother to support them in this
+	book, it's too much work and it would become dated too quickly). In the
+	stable versions, on the other hand, we can expect the interface to remain
+	the same regardless of the bug fix version (the m number).</para>
+
+	<para>There are differences between different kernel versions, and if you
+	want to support multiple kernel versions, you'll find yourself having to
+	code conditional compilation directives.  The way to do this to compare the
+	macro <varname>LINUX_VERSION_CODE</varname> to the macro
+	<varname>KERNEL_VERSION</varname>.  In version <varname>a.b.c</varname> of
+	the kernel, the value of this macro would be $2^{16}a+2^{8}b+c$.  Be aware
+	that this macro is not defined for kernel 2.0.35 and earlier, so if you
+	want to write modules that support really old kernels, you'll have to
+	define it yourself, like:</para>
+	
+	<example><title>some title</title>
+	<programlisting>
+#if LINUX_KERNEL_VERSION >= KERNEL_VERSION(2,2,0)
+   #define KERNEL_VERSION(a,b,c) ((a)*65536+(b)*256+(c))
+#endif
+	</programlisting>
+	</example>
+
+	<para>Of course since these are macros, you can also use <command>#ifndef
+	KERNEL_VERSION</command> to test the existence of the macro, rather than
+	testing the version of the kernel.</para>
+
+	</sect2>
+
+</sect1>

@@ -1,0 +1,144 @@
+<sect1><title>Replacing <function>printk</function></title>
+
+	<indexterm><primary>replacing printk</primary></indexterm>
+	<indexterm>
+		<primary>printk</primary>
+		<secondary>replacing</secondary>
+	</indexterm> 
+
+	<para>Good writing style says we have a paragraph here.</para>
+
+	<sect2><title>Replacing <function>printk</function></title>
+
+		<para>
+			In the beginning (chapter \ref{hello-world}), I said that X and kernel
+			module programming don't mix.  That's true while developing the kernel
+			module, but in actual use you want to be able to send messages to
+			whichever <acronym>tty</acronym>
+			<footnote>
+				<para>
+					<emphasis>T</emphasis>ele<emphasis>ty</emphasis>pe, originally a
+					combination keyboard-printer used to communicate with a Unix system,
+					and today an abstraction for the text stream used for a Unix program,
+					whether it's a physical terminal, an xterm on an X display, a network
+					connection used with telnet, etc.
+				</para>
+			</footnote>
+			the command to the module came from.  This is important for identifying
+			errors after the kernel module is released, because it will be used
+			through all of them.
+		</para>
+
+		<para>
+			The way this is done is by using <parameter>current</parameter>, 
+			<indexterm><primary>current task</primary></indexterm>
+			<indexterm>
+				<primary>task</primary>
+				<secondary>current></secondary>
+			</indexterm>
+			a pointer to the currently running task, to get the current task's
+			<structname>tty</structname> structure.
+			<indexterm><primary>tty_structure</primary></indexterm>
+			<indexterm>
+				<primary>struct</primary>
+				<secondary>tty</secondary>
+			</indexterm>
+			Then, we look inside that <structname>tty</structname> structure to find
+			a pointer to a string write function, which we use to write a string to
+			the <acronym>tty</acronym>.
+		</para>
+
+		<example><title>printk.c</title>
+
+			<indexterm><primary>printk.c</primary></indexterm>
+
+			<programlisting><![CDATA[
+/* printk.c - send textual output to the tty you're running on, regardless of
+ * whether it's passed through X11, telnet, etc.
+ *
+ * Copyright (C) 2001 by Peter Jay Salzman
+ */
+
+/* The necessary header files */
+
+/* Standard in kernel modules */
+#include <linux/kernel.h>                   /* We're doing kernel work */
+#include <linux/module.h>                   /* Specifically, a module */
+
+/* Deal with CONFIG_MODVERSIONS */
+#if CONFIG_MODVERSIONS==1
+#define MODVERSIONS
+#include <linux/modversions.h>
+#endif        
+
+/* Necessary here */
+#include <linux/sched.h>                    /* For current */
+#include <linux/tty.h>                      /* For the tty declarations */
+
+/* Print the string to the appropriate tty, the one the current task uses */
+void print_string(char *str)
+{
+   struct tty_struct *my_tty;
+
+   /* The tty for the current task */
+   my_tty = current->tty;
+
+   /* If my_tty is NULL, it means that the current task has no tty you can print
+    * to (this is possible, for example, if it's a daemon). In this case,
+    * there's nothing we can do. */ 
+   if (my_tty != NULL) { 
+
+      /* my_tty->driver is a struct which holds the tty's functions, one of
+       * which (write) is used to write strings to the tty.  It can be used to
+       * take a string either from the user's memory segment or the kernel's
+       * memory segment. 
+       *
+       * The function's first parameter is the tty to write to, because the
+       * same function would normally be used for all tty's of a certain type.
+       * The second parameter controls whether the function receives a string
+       * from kernel memory (false, 0) or from user memory (true, non zero).
+       * The third parameter is a pointer to a string, and the fourth
+       * parameter is the length of the string.
+       */
+      (*(my_tty->driver).write)(
+         my_tty,                 /* The tty itself */
+         0,                      /* We don't take the string from user space */
+         str,                    /* String */
+         strlen(str));           /* Length */
+
+      /* ttys were originally hardware devices, which (usually) strictly
+       * followed the ASCII standard.  In ASCII, to move to a new line you
+       * need two characters, a carriage return and a line feed.  On Unix,
+       * the ASCII line feed is used for both purposes - so we can't just
+       * use \n, because it wouldn't have a carriage return and the next
+       * next line will start at the column right after the line feed. 
+       *
+       * BTW, this is the reason why the text file is different between
+       * Unix and Windows.  In CP/M and its derivatives, such as MS-DOS and
+       * Windows the ASCII standard was strictly adhered to, and therefore a
+       * newline requires both a line feed and a carriage return. 
+       */
+      (*(my_tty->driver).write)(my_tty, 0, "\015\012", 2);
+   }
+}
+
+/* Module initialization and cleanup */
+
+/* Initialize the module - register the proc file */
+int init_module()
+{
+   print_string("Module Inserted");
+
+   return 0;
+}
+
+/* Cleanup - unregister our file from /proc */
+void cleanup_module()
+{
+   print_string("Module Removed");
+}  
+
+				]]></programlisting>
+		</example>
+	</sect2>
+</sect1>

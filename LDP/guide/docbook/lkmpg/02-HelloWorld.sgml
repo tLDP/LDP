@@ -1,0 +1,564 @@
+<sect1><title>Hello, World (part 1): The Simplest Module</title>
+
+	<para>When the first caveman programmer chiseled the first program on the walls of
+	the first cave computer, it was a program to paint the string `Hello, world' in
+	Antelope pictures.  Roman programming textbooks began with the `Salut, Mundi'
+	program.  I don't know what happens to people who break with this tradition, but I
+	think it's safer not to find out.  We'll start with a series of hello world programs
+	that demonstrate the different aspects of the basics of writing a kernel
+	module.</para>
+
+	<para>Here's the simplest module possible.  Don't compile it yet; we'll cover module
+	compilation in the next section.</para>
+
+<example><title>Hello World (part 1)</title>
+<programlisting><![CDATA[
+/* hello-1.c - The simplest kernel module.
+ */
+
+#include <linux/module.h>  /* Needed by all modules */
+#include <linux/kernel.h>  /* Needed for KERN_ALERT */
+
+
+int init_module(void)
+{
+   printk("<1>Hello world 1.\n");
+	
+   /* A non 0 return means init_module failed; module can't be loaded. */
+   return 0;
+}
+	
+	
+void cleanup_module(void)
+{
+  printk(KERN_ALERT "Goodbye world 1.\n");
+}  
+]]></programlisting>
+</example>
+	
+	<indexterm><primary><function>init_module()</function></primary></indexterm>
+	<indexterm><primary><function>cleanup_module()</function></primary></indexterm>
+	<indexterm><primary><function>printk()</function></primary></indexterm>
+	
+
+	<para>A kernel module must have at least two functions: a "start" (initialization)
+	function called <function>init_module()</function> which is called when the module is
+	insmoded into the kernel, and an "end" (cleanup) function called
+	<function>cleanup_module()</function> which is called just before it is
+	rmmoded.</para>
+
+	<para>Typically, <function>init_module()</function> either registers a handler for
+	something with the kernel, or it replaces one of the kernel functions with its own
+	code (usually code to do something and then call the original function).  The
+	<function>cleanup_module()</function> function is supposed to undo whatever
+	<function>init_module()</function> did, so the module can be unloaded safely.</para>
+
+
+	<para>Despite what you might think, <function>printk()</function> was not meant to
+	communicate information to the user, even though we use it for exactly this purpose
+	within this document!  It happens to be a logging mechanism for the kernel, and is
+	used to log information or give warnings.  Therefore, each
+	<function>printk()</function> statement comes with a priority, which is the
+	<varname>&lt;1&gt;</varname> you see.  There are 8 priorities and the kernel has
+	macros for them, so you don't have to use cryptic numbers.  We could've used a macro
+	instead of the explicit priority level: <function>printk(KERN_ALERT "Hello,
+	world.");</function>  There are 8 priority levels and you can view them (and what
+	they mean) in the file <filename role="headerfile">linux/kernel.h</filename>.  If you
+	don't specify a priority level, the default priority,
+	<varname>DEFAULT_MESSAGE_LOGLEVEL</varname>, will be used.</para>
+
+	<para>Take time to read through the priority macros.  The header file also describes
+	what each priority means.  In practise, don't use number, like
+	<literal>&lt;4&gt;</literal>.  Always use the macro, like
+	<literal>KERN_WARNING</literal>.</para>
+	
+	<para>If the priority is less than <varname>int console_loglevel</varname>, the
+	message is printed on your current terminal.  If both <command>syslogd</command> and
+	<application>klogd</application> are running, then the message will also get appended
+	to <filename>/var/log/messages</filename>, whether it got printed to the console or
+	not.  We use a high priority, like <literal>KERN_ALERT</literal>, to make sure the
+	<function>printk()</function> messages get printed to your console rather than just
+	logged to your logfile.  When you write real modules, you'll want to use priorities
+	that are meaningful for the situation at hand.</para>
+
+	<para>There's more I want to show you using "hello world" type programs, but before
+	we move on, you need to learn how to compile them.</para>
+	
+</sect1>
+
+
+
+
+
+<sect1><title>Compiling Kernel Modules</title>
+
+	<indexterm><primary>insmod</primary></indexterm>
+
+	<para>A kernel module is not an independant executable, but an object file which will
+	be linked into the kernel during runtime using insmod.  As a result, modules should
+	be compiled with the <option>-c</option> flag.  Also, because the kernel makes
+	extensive use of inline functions, modules must be compiled with the optimization
+	flag, <option>-O</option>, although heavy optimization like <option>-O2</option> is
+	not recommended.  Without optimization, some of the assembler macros calls will be
+	mistaken by the compiler for function calls.  This will cause loading the module to
+	fail, since insmod won't find those functions in the kernel.</para>
+
+	<para>Kernel modules also need to be compiled with certain symbols defined.  This is
+	because the kernel header files need to behave differently, depending on whether
+	we're compiling a kernel module or an executable.  You define symbols using gcc's
+	<option>-D</option> option, and here are a list of symbols that should be defined for
+	every module you compile:</para>
+
+	<indexterm><primary>MODULE</primary></indexterm>
+	<indexterm><primary>__KERNEL__</primary></indexterm>
+	<indexterm><primary>__SMP__</primary></indexterm>
+
+	<itemizedlist>
+
+	<listitem><para><varname>__KERNEL__</varname>: Tells the header files that the code
+	will be run in kernel mode, not as a user process.</para></listitem>
+
+	<listitem><para><varname>MODULE</varname>: Tells the header files to give the
+	appropriate definitions for a kernel module.</para></listitem>
+
+	<listitem><para><varname>__SMP__</varname>: This must be defined if the kernel was
+		compiled to support symmetrical multiprocessing, even if it's running just on one
+		CPU.  Note how I did this in <filename>hello-1.c</filename>.</para></listitem>
+
+	</itemizedlist>
+
+	<para> So, let's look at a simple Makefile for compiling a module:</para>
+
+	<example><title>Makefile for a basic kernel module</title>
+	<screen><![CDATA[
+# Makefile for a basic kernel module
+	
+CC=gcc
+CFLAGS   := -c -0 -W -Wall -Wstrict-prototypes -Wmissing-prototypes
+MODFLAGS := -DMODULE -D__KERNEL__
+	
+	
+hello-1.o: hello.c
+   ${CC} ${MODCFLAGS} hello.c
+]]></screen>
+</example>
+
+	<para>Type <filename>hello-1.c</filename> in and compile it.  Insert it into the
+	kernel with <command>insmod ./hello-1.o</command>.  Neat, eh?  All modules loaded
+	into the kernel are listed in <filename>/proc/modules</filename>.  Go ahead and cat
+	that file to see that your module is really a part of the kernel.  Congratulations,
+	you are now the author of Linux kernel code!  When the novelty wares off, you can
+	remove your module from the kernel by using <command>rmmod hello-1</command>.  Take
+	a look at <filename>/var/log/messages</filename> just to see that it got logged to
+	your system logfile.</para>
+
+</sect1>
+
+
+
+
+<sect1><title>Hello World (part 2): The <function>module_init()</function> and
+<function>module_exit()</function> Macros</title>
+
+	<indexterm><primary>module_init</primary></indexterm>
+	<indexterm><primary>module_exit</primary></indexterm>
+
+	<para>As of Linux 2.4, you can rename the init and cleanup functions of your
+	modules; they no longer have to be called <function>init_module()</function> and
+	<function>cleanup_module()</function> respectively.  This is done with the
+	<function>module_init()</function> and <function>module_exit()</function> macros.
+	These macros are defined in <filename role="header">linux/init.h</filename>.  The
+	only caveat is that your init and cleanup functions must be defined before calling
+	the macros, otherwise you'll get compilation errors.  Here's an example of this
+	technique:</para>
+
+
+<example><title>Hello World (part 2)</title>
+<programlisting><![CDATA[
+/* hello-2.c - Demonstrating the module_init() and module_exit() macros.
+ */
+
+#include <linux/module.h>   /* Needed by all modules */
+#include <linux/kernel.h>   /* Needed for KERN_ALERT */
+#include <linux/init.h>     /* Needed for the macros */
+
+
+int my_wonderful_init(void)
+{
+   printk(KERN_ALERT "Hello, world 2\n");
+   return 0;
+}
+
+
+void my_wonderful_cleanup(void)
+{
+   printk(KERN_ALERT "Goodbye, world 2\n");
+}
+
+
+module_init(my_wonderful_init);
+module_exit(my_wonderful_cleanup);
+]]></programlisting>
+</example>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Hello World (part 3): The <literal>__init</literal> and
+<literal>__exit</literal> Macros</title>
+
+	<indexterm><primary><function>__init</function></primary></indexterm>
+	<indexterm><primary><function>__initdata</function></primary></indexterm>
+	<indexterm><primary><function>__exit</function></primary></indexterm>
+	<indexterm><primary><function>__initfunction()</function></primary></indexterm>
+
+	<para>This demonstrates a feature of kernel 2.2 and later.  Notice the change in the
+	definitions of the init and cleanup functions.  The <function>__init</function> macro
+	will cause the init function to be discarded and its memory reclaimed for the kernel
+	once the init function finishes, but only for built-in drivers.  It has no effect for
+	loadable modules.</para>
+
+	<para>There is also an <function>__initdata</function> which works similarly to
+	<function>__init</function> but for init variables rather than functions.</para>
+
+	<para>The <function>__exit</function> macro causes the omission of the function when
+	the module is built into the kernel.  This only has an effect for built in modules
+	since they never exit (and hence don't need a cleanup function).  It has no effect on
+	loadable modules since they need their cleanup function.</para> 
+
+	<para>These macros are defined in <filename role="headerfile">linux/init.h</filename>
+	and serve to free up kernel memory.  When you boot your kernel and see something like
+	<literal>Freeing unused kernel memory: 236k freed</literal>, this is precisely what
+	the kernel is freeing.</para>
+
+
+<example><title>Hello World (part 3)</title>
+<programlisting><![CDATA[
+/* hello-3.c - Illustrating the __init, __initdata and __exit macros.
+ */
+
+#include <linux/module.h>      /* Needed by all modules */
+#include <linux/kernel.h>      /* Needed for KERN_ALERT */
+#include <linux/init.h>        /* Needed for the macros */
+
+
+static int hello3_data __initdata = 3;
+
+
+static int __init hello3_init_function(void)
+{
+   printk(KERN_ALERT "Hello, world %d\n", hello3_data);
+   return 0;
+}
+
+
+static void __exit hello3_cleanup_function(void)
+{
+   printk(KERN_ALERT "Goodbye, world 3\n");
+}
+
+
+module_init(hello3_init_function);
+module_exit(hello3_cleanup_function);
+]]></programlisting>
+</example>
+
+
+	<para>You may see a directive named "<function>__initfunction()</function>" in
+	drivers written for Linux 2.2 kernels:</para>
+
+
+<screen><![CDATA[
+__initfunction(int init_module(void))
+{
+	printk(KERN_ALERT "Hi there.\n");
+
+	return 0;
+}
+]]></screen>
+
+
+	<para>This macro served the same purpose as <function>__init</function>, but is now
+	deprecated in favor of <function>__init</function>.  Don't use
+	<function>__initfunction()</function> in your own code.</para>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Hello World (part 4): Licensing and Module Documentation</title>
+
+	<indexterm><primary><literal>MODULE_LICENSE()</literal></primary></indexterm>
+	<indexterm><primary><literal>MODULE_DESCRIPTION()</literal></primary></indexterm>
+	<indexterm><primary><literal>MODULE_AUTHOR()</literal></primary></indexterm>
+	<indexterm><primary><literal>MODULE_SUPPORTED_DEVICE()</literal></primary></indexterm>
+
+	<para>If you're running kernel 2.4 or later, you might have noticed the message like:
+	"<literal>Warning: loading hello-1.o will taint the kernel: no license</literal>"
+	when you loaded the previous example modules.  In 2.4 and later, a mechanism was
+	devised to identify code licensed under the GPL (and friends) so people can be warned
+	that the code is non open-source.  This is accomplished by the
+	<literal>MODULE_LICENSE()</literal> macro which is demonstrated in the next piece of
+	code.  By setting the license to GPL, you can keep the warning from being printed.
+	This mechanism is documented in <filename
+	role="headerfile">linux/module.h</filename>, and I recommend you read the comments
+	about this macro in the header file.</para>
+
+	<para>A similar mechanism is used to identify the module description
+	"<literal>MODULE_DESCRIPTION()</literal>", author
+	"<literal>MODULE_AUTHOR()</literal>" and what device the module supports
+	"<literal>MODULE_SUPPORTED_DEVICE()</literal>" and is defined in <filename
+	role="headerfile">linux/module.h</filename>.  This info isn't really used by the
+	kernel itself; it's used as documentation and can be viewed by a tool like
+	objdump.</para>
+
+	<para>We haven't covered devices yet, so the last macro may be a mystery to you, but
+	keep it in mind.  We'll cover char devices shortly.</para>
+
+
+<example><title>Hello World (part 4)</title>
+<programlisting><![CDATA[
+/* hello-4.c - Demonstrates tainting messages and documentation.
+ */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#define DRIVER_AUTHOR "Peter Jay Salzman <p@dirac.org>"
+#define DRIVER_DESC   "A sample driver"
+
+
+static int __init hello4_init_function(void)
+{
+   printk(KERN_ALERT "Hello, world 4\n");
+   return 0;
+}
+
+
+static void __exit hello4_cleanup_function(void)
+{
+   printk(KERN_ALERT "Goodbye, world 4\n");
+}
+
+
+module_init(hello4_init_function);
+module_exit(hello4_cleanup_function);
+
+/* You can use strings here or a define, as shown.  It doesn't matter what you
+ * actually name the #define's, so "AUTHOR" is as good as "DRIVER_AUTHOR". */
+MODULE_AUTHOR(DRIVER_AUTHOR);
+MODULE_DESCRIPTION(DRIVER_DESC);
+
+/* This gets rid of the "taint message" by declaring this code as GPL. */
+MODULE_LICENSE("GPL");
+
+/* This says that the module uses /dev/testdevice.  It might be used in the
+ * future to help automatic configuration of modules, but is currently unused
+ * other than documentation purposes. */
+MODULE_SUPPORTED_DEVICE("testdevice");
+]]></programlisting>
+</example>
+
+
+</sect1>
+
+
+
+
+
+<sect1><title>Passing Command Line Arguments to a Module</title>
+
+	<para>Modules can take command line arguments, but not with the argc/argv you might
+	be used to.</para>
+
+	<para>To allow arguments to be passed to your driver, declare the variables that will
+	take the values of the command line arguments as global and then use the MODULE_PARM
+	macro (defined in <filename role="headerfile">linux/module.h</filename>) to set the
+	mechanism up.  At runtime, insmod will fill the variables with any command line
+	arguments that are given.  The variable declarations and macros should be placed at
+	the beginning of the module for clarity.  The example code should clear up my
+	admittedly lousy explanation.</para>
+
+	<para>The <literal>MODULE_PARM</literal> macro takes 2 arguments: the name of the
+	variable and its type.  The supported variable types are "<literal>b</literal>":
+	single byte, "<literal>h</literal>": short int, "<literal>i</literal>": integer,
+	"<literal>l</literal>": long int and "<literal>s</literal>": string.   Strings should
+	be declared as "<type>char *</type>" and insmod will allocate memory for them.  You
+	should always try to give the variables an initial default value.  This is kernel
+	code, and you should program defensively.  For example:</para>
+
+<screen>
+int myint = 3;
+char *mystr;
+
+MODULE_PARM (myint, "i");
+MODULE_PARM (mystr, "s");
+</screen>
+
+	<para>Arrays are supported too.  An integer value preceding the type in MODULE_PARM
+	will indicate an array of some maximum length.  Two numbers separated by a '-' will
+	give the minimum and maximum number of values.  For example, an array of shorts with
+	at least 2 and no more than 4 values could be declared as:</para>
+
+<screen>
+int myshortArray[4];
+MODULE_PARM (myintArray, "2-4i");
+</screen>
+
+
+	<para>A good use for this is to have the module variable's default values set, like
+	which IO port or IO memory to use.  If the variables contain the default values, then
+	perform autodetection (explained elsewhere).  Otherwise, keep the current value.
+	This will be made clear later on.  For now, I just want to demonstrate passing
+	arguments to a module.</para>
+
+
+<example><title>Hello World (part 5)</title>
+<programlisting><![CDATA[
+/* hello-5.c - Demonstrates command line argument passing to a module.
+ */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+static int myint = 0;
+static char *mystring = "blah";
+
+MODULE_PARM (myint, "i");
+MODULE_PARM (mystring, "s");
+
+
+static int __init hello5_init_function(void)
+{
+   printk(KERN_ALERT "Hello, world 5\n");
+   printk(KERN_ALERT "integer: %i\n", myint);
+   printk(KERN_ALERT "string: %s\n", mystring);
+   return 0;
+}
+
+
+static void __exit hello5_cleanup_function(void)
+{
+   printk(KERN_ALERT "Goodbye, world 5\n");
+}
+
+
+module_init(hello5_init_function);
+module_exit(hello5_cleanup_function);
+]]></programlisting>
+</example>
+
+
+
+
+
+</sect1>
+
+
+
+
+
+<sect1><title>Modules Spanning Multiple Files</title>
+
+	<indexterm><primary>source files</primary><secondary>multiple</secondary></indexterm>
+	<indexterm><primary>__NO_VERSION__</primary></indexterm>
+	<indexterm><primary>module.h</primary></indexterm>
+	<indexterm><primary>version.h</primary></indexterm>
+	<indexterm><primary>kernel\_version</primary></indexterm>
+	<indexterm><primary>ld</primary></indexterm>
+	<indexterm><primary>elf_i386</primary></indexterm>
+
+	<para>Sometimes it makes sense to divide a kernel module between several
+	source files.  In this case, you need to:</para>
+
+	<orderedlist>
+
+	<listitem><para>In all the source files but one, add the line
+		<command>#define __NO_VERSION__</command>. This is important because
+		<filename role="headerfile">module.h</filename> normally includes the
+		definition of <varname>kernel_version</varname>, a global variable with
+		the kernel version the module is compiled for.  If you need <filename
+		role="headerfile">version.h</filename>, you need to include it yourself,
+		because <filename role="headerfile">module.h</filename> won't do it for
+		you with <varname>__NO_VERSION__</varname>.</para></listitem>
+
+	<listitem><para>Compile all the source files as usual.</para></listitem>
+
+	<listitem><para>Combine all the object files into a single one.  Under x86,
+		use <command>ld -m elf_i386 -r -o &lt;module name.o&gt; &lt;1st src
+		file.o&gt; &lt;2nd src file.o&gt;</command>.</para></listitem>
+
+	</orderedlist>
+
+	<para>Here's an example of such a kernel module.</para>
+
+	<example><title>start.c</title>
+	<programlisting><![CDATA[
+/* start.c - Illustration of multi filed modules
+ */
+
+#include <linux/kernel.h>       /* We're doing kernel work */
+#include <linux/module.h>       /* Specifically, a module */
+
+int init_module(void)
+{
+  printk("Hello, world - this is the kernel speaking\n");
+  return 0;
+}
+	]]></programlisting>
+	</example>
+
+
+	<para>The next file:</para>
+
+
+	<example><title>stop.c</title>
+	<programlisting><![CDATA[
+/* stop.c - Illustration of multi filed modules
+ */
+
+#if defined(CONFIG_MODVERSIONS) && ! defined(MODVERSIONS)
+   #include <linux/modversions.h> /* Will be explained later */
+   #define MODVERSIONS
+#endif        
+#include <linux/kernel.h>  /* We're doing kernel work */
+#include <linux/module.h>  /* Specifically, a module  */
+#define __NO_VERSION__     /* It's not THE file of the kernel module */
+#include <linux/version.h> /* Not included by module.h because of
+	                                      __NO_VERSION__ */
+	
+void cleanup_module()
+{
+   printk("<1>Short is the life of a kernel module\n");
+}  
+	]]></programlisting>
+	</example>
+
+
+	<para>And finally, the makefile:</para>
+
+	<example><title>Makefile for a multi-filed module</title>
+	<screen><![CDATA[
+CC=gcc
+MODCFLAGS := -O -Wall -DMODULE -D__KERNEL__
+   	
+hello.o:	hello2_start.o hello2_stop.o
+   ld -m elf_i386 -r -o hello2.o hello2_start.o hello2_stop.o
+   	
+start.o: hello2_start.c
+   ${CC} ${MODCFLAGS} -c hello2_start.c
+   	
+stop.o: hello2_stop.c
+   ${CC} ${MODCFLAGS} -c hello2_stop.c
+	]]></screen>
+	</example>
+
+</sect1>
+
+<!--
+vim: tw=87
+-->
