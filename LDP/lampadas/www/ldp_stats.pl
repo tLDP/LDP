@@ -80,7 +80,7 @@ while (@row = $result->fetchrow) {
   print "</tr>\n";
   $total = $total + $count;
 
-  if ( $license eq "GFDL" || $license eq "GPL" || $license eq "OPL" ) {
+  if ( $license eq "GFDL" || $license eq "GPL" || $license eq "OPL" || $license eq "PD" ) {
     $free_count += $count;
   }
   elsif ( $license eq "" ) {
@@ -209,7 +209,7 @@ $result=$conn->exec($sql);
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 $total = 0;
-print "<table border=1 cellspacing=2>\n";
+print "<table>\n";
 print "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
