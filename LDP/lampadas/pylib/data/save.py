@@ -29,7 +29,7 @@ from Log import log
 from mod_python import apache
 
 def newdocument(req, username, doc_id,
-             title,
+             title, short_title,
              url,
              ref_url,
              pub_status_code, type_code,
@@ -42,7 +42,7 @@ def newdocument(req, username, doc_id,
              license_code, license_version, copyright_holder,
              abstract):
 
-    newdoc_id = lampadas.docs.add(title, type_code, format_code, dtd_code,
+    newdoc_id = lampadas.docs.add(title, short_title, type_code, format_code, dtd_code,
             dtd_version, version, last_update, url, isbn,
             pub_status_code, review_status_code, tickle_date, pub_date,
             ref_url, tech_review_status_code, license_code, license_version,
@@ -55,7 +55,7 @@ def newdocument(req, username, doc_id,
     redirect(req, '/editdoc' + referer_lang_ext(req) + '/' + str(newdoc_id))
 
 def document(req, username, doc_id,
-             title,
+             title, short_title,
              url,
              ref_url,
              pub_status_code, type_code,
@@ -76,6 +76,7 @@ def document(req, username, doc_id,
         return error("Cannot find document " + str(doc_id))
 
     doc.title                   = title
+    doc.short_title             = short_title
     doc.url                     = url
     doc.home_url                = ref_url
     doc.pub_status_code         = pub_status_code
