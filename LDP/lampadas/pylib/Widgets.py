@@ -143,6 +143,24 @@ class Widgets:
         combo.write("</select>\n")
         return combo.get_value()
 
+    def replaced_by_id(self, value):
+        combo = WOStringIO('<select name="replaced_by_id">\n')
+        combo.write('<option></option>\n')
+        keys = lampadas.docs.sort_by('title')
+        for key in keys:
+            doc = lampadas.docs[key]
+            combo.write("<option ")
+            if doc.id==value:
+                combo.write("selected ")
+            if doc.short_title > '':
+                combo.write("value='%s'>%s</option>\n"
+                            % (str(doc.id),doc.short_title))
+            else:
+                combo.write("value='%s'>%s</option>\n"
+                            % (str(doc.id),doc.title[:40]))
+        combo.write("</select>\n")
+        return combo.get_value()
+
     def doc_lang(self, value, lang):
         combo = WOStringIO("<select name='lang'>\n")
         if value=='':

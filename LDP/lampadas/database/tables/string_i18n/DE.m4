@@ -105,3 +105,5 @@ insert(strversions,         [Versionen])
 insert(strnotes,            [Anmerkungen])
 insert(strtranslations,     [Translations]) m4_dnl FIXME
 insert(strall,              [Alles])
+insert(strrecentnews,       [Recent News])  m4_dnl FIXME
+insert(strreplacedby,       [Replaced By])  m4_dnl FIXME

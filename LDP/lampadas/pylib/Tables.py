@@ -107,6 +107,8 @@ class Tables(LampadasCollection):
         box.write('<td class="label">|strcopyright_holder|</td><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strtrans_master|</td><td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid) + '</td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<td class="label">|strreplacedby|</td><td colspan="3">' + widgets.replaced_by_id(doc.replaced_by_id) + '</td>\n')
         box.write('''
         </tr>
         <tr>

@@ -37,7 +37,7 @@ def newdocument(req, username, doc_id,
              tickle_date, isbn,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract, short_desc):
+             abstract, short_desc, replaced_by_id):
 
     sk_seriesid = new_sk_seriesid()
     
@@ -46,7 +46,8 @@ def newdocument(req, username, doc_id,
           version, last_update, isbn,
           pub_status_code, review_status_code, tickle_date, pub_date,
           tech_review_status_code, license_code, license_version,
-          copyright_holder, abstract, short_desc, lang, sk_seriesid)
+          copyright_holder, abstract, short_desc, lang, sk_seriesid,
+          int('0' + replaced_by_id))
 
     # Add the current user as the author of the document
     doc.users.add(username)
@@ -62,7 +63,7 @@ def document(req, username, doc_id,
              tickle_date, isbn,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract, short_desc, sk_seriesid):
+             abstract, short_desc, sk_seriesid, replaced_by_id):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
@@ -90,6 +91,7 @@ def document(req, username, doc_id,
     doc.abstract                = abstract
     doc.short_desc              = short_desc
     doc.sk_seriesid             = sk_seriesid
+    doc.replaced_by_id          = int('0' + replaced_by_id)
     doc.save()
     go_back(req)
 
