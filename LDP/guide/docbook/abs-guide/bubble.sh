@@ -67,6 +67,19 @@ do
     fi  
     let "index += 1"
   done # End of inner loop
+
+# ----------------------------------------------------------------------
+# Paulo Marcel Coelho Aragao suggests for-loops as a simpler altenative.
+#
+# for (( last = $number_of_elements - 1 ; last > 1 ; last-- ))
+# do
+#     for (( i = 0 ; i < last ; i++ ))
+#     do
+#         [[ "${Countries[$i]}" > "${Countries[$((i+1))]}" ]] \
+#             && exchange $i $((i+1))
+#     done
+# done
+# ----------------------------------------------------------------------
   
 
 let "comparisons -= 1" #  Since "heaviest" element bubbles to bottom,

@@ -7,6 +7,8 @@
 # Copyright (c) Michael S. Zick, 2003, All rights reserved.
 # License: Unrestricted reuse in any form, for any purpose.
 # Version: $ID$
+#
+# Clarification and additional comments by William Park.
 
 #  Based on an example provided by Stephane Chazelas
 #+ which appeared in the book: Advanced Bash Scripting Guide.
@@ -51,6 +53,14 @@ times
 
 #  Comparing the numbers shows that the second form, pointed out
 #+ by Stephane Chazelas, is from three to four times faster.
+#
+#  William Park explains:
+#+ Second method is assigning bigOne[] as single string, whereas first
+#+  method is assigning bigOne[] element by element.  So, in essence, you
+#   So, in essence, you have:
+#                   bigTwo=( [0]="... ... ..." )
+#                   bigThree=( [0]="..." [1]="..." [2]="..." ... )
+
 
 #  I will continue to use the first form in my example descriptions
 #+ because I think it is a better illustration of what is happening.
@@ -60,5 +70,14 @@ times
 
 # MSZ: Sorry about that earlier oversight folks.
 
+
+#  Note:
+#  ----
+#  The "declare -a" statements in lines 31 and 43
+#+ are not strictly necessary, since it is implicit
+#+ in the  Array=( ... )  assignment form.
+#  However, eliminating these declarations slows down
+#+ the execution of the following sections of the script.
+#  Try it, and see what happens.
 
 exit 0

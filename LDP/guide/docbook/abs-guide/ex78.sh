@@ -16,12 +16,12 @@ echo
 
 t=table_cell_3
 table_cell_3=24
-echo "t = ${!t}"        # t = 24
+echo "t = ${!t}"                      # t = 24
 table_cell_3=387
 echo "Value of t changed to ${!t}"    # 387
 
-# This is useful for referencing members of an array or table,
-# or for simulating a multi-dimensional array.
-# An indexing option would have been nice (sigh).
+#  This is useful for referencing members of an array or table,
+#+ or for simulating a multi-dimensional array.
+#  An indexing option would have been nice (sigh).
 
 exit 0

@@ -28,8 +28,13 @@ do
   read name               # Reads from redirected stdin ($Filename).
   echo $name
   let "count += 1"
-done <"$Filename"         # Loop reads from file $Filename. 
-#    ^^^^^^^^^^^^
+done                      #  Loop reads from file $Filename
+                          #+ because of line 20.
+
+#  The original version of this script terminated the "while" loop with
+#+      done <"$Filename" 
+#  Exercise:
+#  Why is this unnecessary?
 
 
 exec 0<&3                 # Restore old stdin.

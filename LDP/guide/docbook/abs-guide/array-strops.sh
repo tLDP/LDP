@@ -78,9 +78,9 @@ echo ${arrayZ[@]/%o/XX}     # one twXX three four five five
 echo "-----------------------"
 
 
-# Before reaching for awk (or anything else)
+# Before reaching for awk (or anything else) --
 # Recall:
-#   $( ... ) is a function call.
+#   $( ... ) is command substitution.
 #   Functions run as a sub-process.
 #   Functions write their output to stdout.
 #   Assignment reads the function's stdout.

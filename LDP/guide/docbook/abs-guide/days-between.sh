@@ -79,8 +79,8 @@ day_index ()          # Gauss' Formula:
 
 
   let "Days = $DIY*$year + $year/$LEAPCYCLE - $indexyr + $indexyr/$LEAPCYCLE + $ADJ_DIY*$month/$MIY + $day - $DIM"
-  # For an in-depth explanation of this algorithm, see
-  # http://home.t-online.de/home/berndt.schwerdtfeger/cal.htm
+  #  For an in-depth explanation of this algorithm, see
+  #+ http://home.t-online.de/home/berndt.schwerdtfeger/cal.htm
 
 
   echo $Days
@@ -115,7 +115,7 @@ Parse_Date $1
 check_date $day $month $year       #  See if valid date.
 
 strip_leading_zero $day            #  Remove any leading zeroes
-day=$?                             #  on day and/or month.
+day=$?                             #+ on day and/or month.
 strip_leading_zero $month
 month=$?
 
@@ -130,13 +130,12 @@ day=$?
 strip_leading_zero $month
 month=$?
 
-#let "date2 = `day_index $day $month $year`"
-let "date2 = $(day_index $day $month $year)"
+date2=$(day_index $day $month $year) # Command substitution.
 
 
 calculate_difference $date1 $date2
 
-abs $diff                          # Make sure it's positive.
+abs $diff                            # Make sure it's positive.
 diff=$value
 
 echo $diff
@@ -144,4 +143,4 @@ echo $diff
 exit 0
 #  Compare this script with
 #+ the implementation of Gauss' Formula in a C program at:
-#     http://buschencrew.hypermart.net/software/datedif
+#+    http://buschencrew.hypermart.net/software/datedif

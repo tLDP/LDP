@@ -3,6 +3,7 @@
 
 
 array=( zero one two three four five )
+# Element 0   1   2    3     4    5
 
 echo ${array[0]}       #  zero
 echo ${array:0}        #  zero
@@ -20,9 +21,9 @@ echo ${#array}         #  4
                        #  Length of first element of array.
                        #  (Alternate notation)
 
-echo ${#array[1]}      #  4
+echo ${#array[1]}      #  3
                        #  Length of second element of array.
-		       #  Arrays in Bash have zero-based indexing.
+                       #  Arrays in Bash have zero-based indexing.
 
 echo ${#array[*]}      #  6
                        #  Number of elements in array.

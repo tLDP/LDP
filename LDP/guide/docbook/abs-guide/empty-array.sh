@@ -67,7 +67,7 @@ ListArray
 # List only 2nd and 3rd elements of array0
 from=1		# Zero based numbering
 to=2		#
-declare -a array3=( ${array0[@]:1:2} )
+array3=( ${array0[@]:1:2} )
 echo
 echo "Elements in array3:  ${array3[@]}"
 
@@ -75,26 +75,26 @@ echo "Elements in array3:  ${array3[@]}"
 # Try some other "string" forms
 
 # Replacement
-declare -a array4=( ${array0[@]/second/2nd} )
+array4=( ${array0[@]/second/2nd} )
 echo
 echo "Elements in array4:  ${array4[@]}"
 
 # Replace all matching wildcarded string
-declare -a array5=( ${array0[@]//new?/old} )
+array5=( ${array0[@]//new?/old} )
 echo
 echo "Elements in array5:  ${array5[@]}"
 
 # Just when you are getting the feel for this...
-declare -a array6=( ${array0[@]#*new} )
+array6=( ${array0[@]#*new} )
 echo # This one might surprise you
 echo "Elements in array6:  ${array6[@]}"
 
-declare -a array7=( ${array0[@]#new1} )
+array7=( ${array0[@]#new1} )
 echo # After array6 this should not be a surprise
 echo "Elements in array7:  ${array7[@]}"
 
 # Which looks a lot like...
-declare -a array8=( ${array0[@]/new1/} )
+array8=( ${array0[@]/new1/} )
 echo
 echo "Elements in array8:  ${array8[@]}"
 
@@ -109,18 +109,18 @@ echo "Elements in array8:  ${array8[@]}"
 #  Question, are those strings hard or soft quotes?
 
 zap='new*'
-declare -a array9=( ${array0[@]/$zap/} )
+array9=( ${array0[@]/$zap/} )
 echo
 echo "Elements in array9:  ${array9[@]}"
 
-# Just when you thought you where still in Kansas...
-declare -a array10=( ${array0[@]#$zap} )
+# Just when you thought you where still in Kansas . . .
+array10=( ${array0[@]#$zap} )
 echo
 echo "Elements in array10:  ${array10[@]}"
 
 # Compare array7 with array10
 # Compare array8 with array9
 
-# Answer, must be soft quotes.
+# Answer: must be soft quotes.
 
 exit 0

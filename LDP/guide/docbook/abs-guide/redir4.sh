@@ -14,7 +14,7 @@ line_count=`wc $Filename | awk '{ print $1 }'`
 #+ it's possible to redirect stdin within a "for" loop...
 #+ if you're clever enough.
 #
-# More concise is     line_count=$(wc < "$Filename")
+# More concise is     line_count=$(wc -l < "$Filename")
 
 
 for name in `seq $line_count`  # Recall that "seq" prints sequence of numbers.

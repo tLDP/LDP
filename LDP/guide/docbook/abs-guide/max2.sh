@@ -28,16 +28,18 @@ else
   fi
 fi
 
-echo $retval        # Echoes, rather than returning value.
+echo $retval        # Echoes (to stdout), rather than returning value.
 
 }
 
 
 return_val=$(max2 33001 33997)
-# Advanced parameter substitition.
-# Assigns the stdout of function to the variable 'return_val' . . .
+#  This is actually a form of command substitution:
+#+ treating a function as if it were a command,
+#+ and assigning the stdout of the function to the variable 'return_val.'
 
 
+# ========================= OUTPUT ========================
 if [ "$return_val" -eq "$E_PARAM_ERR" ]
   then
   echo "Error in parameters passed to comparison function!"
@@ -46,11 +48,14 @@ elif [ "$return_val" -eq "$EQUAL" ]
     echo "The two numbers are equal."
 else
     echo "The larger of the two numbers is $return_val."
-fi  
+fi
+# =========================================================
   
 exit 0
 
-#  Exercise:
-#  --------
-#  Find a more elegant way of testing
-#+ the parameters passed to the function.
+#  Exercises:
+#  ---------
+#  1) Find a more elegant way of testing
+#+    the parameters passed to the function.
+#  2) Simplify the if/then structure at "OUTPUT."
+#  3) Rewrite the script to take input from command-line parameters.

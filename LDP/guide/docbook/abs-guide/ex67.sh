@@ -1,7 +1,8 @@
 #!/bin/bash
 
 declare -a colors
-# Permits declaring an array without specifying its size.
+#  All subsequent commands in this script will treat
+#+ the variable "colors" as an array.
 
 echo "Enter your favorite colors (separated from each other by a space)."
 
@@ -17,6 +18,9 @@ element_count=${#colors[@]}
 #
 #  The "@" variable allows word splitting within quotes
 #+ (extracts variables separated by whitespace).
+#
+#  This corresponds to the behavior of "$@" and "$*"
+#+ in positional parameters. 
 
 index=0
 

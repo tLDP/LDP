@@ -2,7 +2,8 @@
 # Same as previous example, but...
 
 #  The - option to a here document <<-
-#  suppresses tabs in the body of the document, but *not* spaces.
+#+ suppresses leading tabs in the body of the document,
+#+ but *not* spaces.
 
 cat &lt;&lt;-ENDOFMESSAGE
 	This is line 1 of the message.
@@ -17,5 +18,6 @@ ENDOFMESSAGE
 # Above 5 lines of "message" prefaced by a tab, not spaces.
 # Spaces not affected by   <<-  .
 
+# Note that this option has no effect on *embedded* tabs.
 
 exit 0
