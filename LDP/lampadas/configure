@@ -1,5 +1,6 @@
 #!/bin/bash
 
+CHECK_ERROR=0
 SGML_DIR=/usr/share/sgml
 DOCBOOK_DIR=${SGML_DIR}/docbook
 
@@ -8,9 +9,9 @@ DOCBOOK_DIR=${SGML_DIR}/docbook
 #
 check()
 {
-  local mode=$1; shift
-  local name=$1; shift
-  local error=$1; shift
+  local mode="$1"; shift
+  local name="$1"; shift
+  local error="$1"; shift
 
   if [ "${mode}" = "quiet" ]; then
     "$@"
@@ -23,6 +24,7 @@ check()
     echo "No"
     [ -n "${error}" ] && echo "ERROR: ${error}"
     [ "${mode}" = "exit" ] && exit -1
+    [ "${mode}" = "count" ] && CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
     return 1
   fi
 }
@@ -76,29 +78,30 @@ identify_dist()
 #
 check_dist_redhat()
 {
-  dir=$( ls ${DOCBOOK_DIR} | sed -n -e '
-	/xml-dtd-4.1.2/ {
+  local mode=$1
+  local dir=$( ls ${DOCBOOK_DIR} | sed -n -e '
+	/^xml-dtd-4.1.2/ {
 		p
 		q
 	}
 ' )
 
-  local dir=${DOCBOOK_DIR}/${dir}
+  dir=${DOCBOOK_DIR}/${dir}
   local error="'docbook-dtds' is not installed."
   XML_DTD_412=${dir}/docbookx.dtd
-  check_file exit ${XML_DTD_412} ${error}
+  check_file ${mode} ${XML_DTD_412} "${error}"
 
   XML_ISO_NUM=${dir}/ent/iso-num.ent
-  check_file exit ${XML_ISO_NUM} ${error}
+  check_file ${mode} ${XML_ISO_NUM} "${error}"
 
   local dir=${DOCBOOK_DIR}/xsl-stylesheets/html
   local error="'docbook-style-xsl' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
-  check_file exit ${HTML_CHUNK} ${error}
+  check_file ${mode} ${HTML_CHUNK} "${error}"
 
   HTML_DOCBOOK=${dir}/docbook.xsl
-  check_file exit ${HTML_DOCBOOK} ${error}
+  check_file ${mode} ${HTML_DOCBOOK} "${error}"
 }
 
 #
@@ -106,22 +109,24 @@ check_dist_redhat()
 #
 check_dist_debian()
 {
+  local mode=$1
+
   # 2.2r6 = /usr/lib/sgml/dtd/docbook-xml/docbookx.dtd?
   XML_DTD_412=${DOCBOOK_DIR}/dtd/xml/4.1.2/docbookx.dtd
-  check_file exit ${XML_DTD_412} "'docbook-xml' is not installed."
+  check_file ${mode} ${XML_DTD_412} "'docbook-xml' is not installed."
 
   # 2.2r6 = /usr/lib/sgml/entities/iso-num.ent?
   XML_ISO_NUM=${SGML_DIR}/entities/xml-iso-entities-8879.1986/ISOnum.ent
-  check_file exit ${XML_ISO_NUM} "'sgml-data' is not installed."
+  check_file ${mode} ${XML_ISO_NUM} "'sgml-data' is not installed."
 
   local dir=${DOCBOOK_DIR}/stylesheet/xsl/nwalsh/html
   local error="'docbook-xsl-stylesheets' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
-  check_file exit ${HTML_CHUNK} ${error}
+  check_file ${mode} ${HTML_CHUNK} "${error}"
 
   HTML_DOCBOOK=${dir}/docbook.xsl
-  check_file exit ${HTML_DOCBOOK} ${error}
+  check_file ${mode} ${HTML_DOCBOOK} "${error}"
 }
 
 #
@@ -129,44 +134,30 @@ check_dist_debian()
 #
 check_dist_suse()
 {
-  dir=${SGML_DIR}/db41xml
+  local mode=$1
+  local dir=${SGML_DIR}/db41xml
+  local error="'docbook_4' is not installed."
 
   XML_DTD_412=${dir}/docbookx.dtd
-  check_file exit ${XML_DTD_412} "'docbook_4' is not installed."
+  check_file ${mode} ${XML_DTD_412} "${error}"
 
   XML_ISO_NUM=${dir}/ent/iso-num.ent
-  check_file exit ${XML_ISO_NUM} "'docbook_4' is not installed."
+  check_file ${mode} ${XML_ISO_NUM} "${error}"
 
-  local dir=/usr/share/doc/packages/docbook-xsl-stylesheets/html
-  local error="'docbook-xsl-stylesheets' is not installed."
+  dir=$( ls ${DOCBOOK_DIR} | sed -n -e '
+	/^docbook-xsl-stylesheets-/ {
+		p
+		q
+	}
+' )
+  local dir=${DOCBOOK_DIR}/${dir}/html
+  local error="'docbook-style-xsl' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
-  check_file exit ${HTML_CHUNK} ${error}
+  check_file ${mode} ${HTML_CHUNK} "${error}"
 
   HTML_DOCBOOK=${dir}/docbook.xsl
-  check_file exit ${HTML_CHUNK} ${error}
-}
-
-#
-# patch_xsl
-#
-patch_xsl()
-{
-  local prefix='^\([[:space:]]*<xsl:import[[:space:]]*href=\"\)'
-  local postfix='\(\".*\)$'
-
-  for file in xsl/*.xsl; do
-    echo -n "Patching ${file} ... "
-    sed -e "s|${prefix}.*\/chunk.xsl${postfix}|\1${HTML_CHUNK}\2|" \
-	-e "s|${prefix}.*\/docbook.xsl${postfix}|\1${HTML_DOCBOOK}\2|" \
-    	${file} > ${file}.tmp
-    if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
-      echo "No."
-      return 1
-    fi
-    echo "Ok"
-  done
-  return 0
+  check_file ${mode} ${HTML_DOCBOOK} "${error}"
 }
 
 #
@@ -190,27 +181,23 @@ EOF
     suse) pkg=perl-HTML-Parser ;;
   esac
   [ -n "${pkg}" ] && echo "The package is called '${pkg}'."
+  CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
   return 1
 }
 
 #
+# check_xsltproc
 #
-#
-patch_setenv()
+check_xsltproc()
 {
-  local file=$1
-  local prefix='^[[:space:]]*export[[:space:]]*LAMPADAS_'
-
-  echo -n "Patching ${file} ... "
-  sed	-e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
-  	-e "s|\(${prefix}XML_ISO_NUM=\).*|\1\"${XML_ISO_NUM}\"|" \
-  	${file} > ${file}.tmp
-  if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
-    echo "No."
-    return 1
-  fi
-  echo "Ok"
-  return 0
+  check_which count xsltproc && return 0
+  case ${DIST_NAME} in
+    debian) pkg=xsltproc ;;
+    redhat) pkg=libxslt ;;
+    suse) pkg=libxslt ;;
+  esac
+  [ -n "${pkg}" ] && echo "The package is called '${pkg}'."
+  return 1
 }
 
 #
@@ -241,11 +228,69 @@ check_python_version()
 #
 check_python()
 {
-  check_which exit python || return 1
-  check_python_version ${WHICH_FILE} && return 0
+  local mode="$1"
 
-  check_which exit python2 || return 1
-  check_python_version ${WHICH_FILE} && return 0
+  check_which ${mode} python || return 1
+  check_python_version ${WHICH_FILE} && PYTHON=${WHICH_FILE} && return 0
+
+  check_which ${mode} python2 || return 1
+  check_python_version ${WHICH_FILE} && PYTHON=${WHICH_FILE} && return 0
+}
+
+#
+# check_python_import
+#
+check_python_import()
+{
+  for module in "$@"; do
+    echo -n "Checking python module ${module} ... "
+    ${PYTHON} -c "import ${module}" 2> /dev/null
+    [ $? == 0 ] && echo "Ok." && continue
+    echo "No."
+    CHECK_ERROR=$( expr ${CHECK_ERROR} + 1 )
+  done
+}
+
+#
+# patch_xsl
+#
+patch_xsl()
+{
+  local prefix='^\([[:space:]]*<xsl:import[[:space:]]*href=\"\)'
+  local postfix='\(\".*\)$'
+
+  for file in xsl/*.xsl; do
+    echo -n "Patching ${file} ... "
+    sed -e "s|${prefix}.*\/chunk.xsl${postfix}|\1${HTML_CHUNK}\2|" \
+	-e "s|${prefix}.*\/docbook.xsl${postfix}|\1${HTML_DOCBOOK}\2|" \
+    	${file} > ${file}.tmp
+    if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
+      echo "No."
+      return 1
+    fi
+    echo "Ok"
+  done
+  return 0
+}
+
+#
+# patch_setenv
+#
+patch_setenv()
+{
+  local file=$1
+  local prefix='^[[:space:]]*export[[:space:]]*LAMPADAS_'
+
+  echo -n "Patching ${file} ... "
+  sed	-e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
+  	-e "s|\(${prefix}XML_ISO_NUM=\).*|\1\"${XML_ISO_NUM}\"|" \
+  	${file} > ${file}.tmp
+  if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
+    echo "No."
+    return 1
+  fi
+  echo "Ok"
+  return 0
 }
 
 #
@@ -254,12 +299,22 @@ check_python()
 identify_dist
 echo "Identified this installation as '${DIST_NAME}'."
 cat ${DIST_FILE}
-check_dist_${DIST_NAME} || exit -1
-check_which exit perl
-check_which exit xsltproc
-check_html_parser || exit -1
-check_which exit wt2db
-check_python || exit -1
+check_dist_${DIST_NAME} "count"
 
+check_which count make
+check_which count perl
+check_xsltproc
+check_html_parser
+check_which count wt2db
+check_python count
+check_python_import os pyPgSQL
+
+if [ ${CHECK_ERROR} -ne 0 ]; then
+  echo "${CHECK_ERROR} errors."
+  exit -1
+fi
+
+echo "No errors."
 patch_xsl || exit -1
 patch_setenv bin/setenv.sh || exit -1
+sed -e 's/^export/setenv/' -e 's/=/ /' bin/setenv.sh > bin/setenv.csh
