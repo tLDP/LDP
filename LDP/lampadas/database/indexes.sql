@@ -26,6 +26,8 @@ ALTER TABLE notes		ADD CONSTRAINT creator_id_fk	FOREIGN KEY (creator_id)		REFERE
 ALTER TABLE string_i18n		ADD CONSTRAINT string_code_fk	FOREIGN KEY (string_code)		REFERENCES string(string_code);
 ALTER TABLE string_i18n		ADD CONSTRAINT string_lang_fk	FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE subtopic		ADD CONSTRAINT topic_num_fk	FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
+ALTER TABLE topic_i18n		ADD CONSTRAINT topic_num_fk	FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
+ALTER TABLE topic_i18n		ADD CONSTRAINT lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE username_notes	ADD CONSTRAINT user_id_fk	FOREIGN KEY (user_id)			REFERENCES username(user_id);
 ALTER TABLE username_notes	ADD CONSTRAINT creator_id_fk	FOREIGN KEY (creator_id)		REFERENCES username(user_id);
 
