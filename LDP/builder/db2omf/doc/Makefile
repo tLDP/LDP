@@ -24,10 +24,12 @@ install:	all
 	$(INSTALLDIR) $(DOC_DIR)
 	$(INSTALLDOC) db2omf.html $(DOC_DIR)/db2omf.html
 
-# Publishes the documentation on the official LDP homepage for db2omf.
-# You *do* have to enter the password to publish it.
+# Publishes the documentation on the official LDP homepage.
+# This assumes you're running on an iBiblio machine and have a symlink
+# to the root of the LDP site at ~/LDP.
+#
 publish: html
-	scp db2omf.html dmerrill@login.ibiblio.org:/export/sunsite/users/dmerrill/LDP/db2omf/index.html
+	cp -p db2omf.html /export/sunsite/users/dmerrill/LDP/db2omf/index.html
 
 clean:
 	rm -f db2omf.1

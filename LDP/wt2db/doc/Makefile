@@ -29,7 +29,7 @@ install:	all
 # to the root of the LDP site at ~/LDP.
 #
 publish: html
-	cp -p wt2db.html ~/LDP/wt2db/index.html
+	cp -p wt2db.html /export/sunsite/users/dmerrill/LDP/wt2db/index.html
 
 clean:
 	rm -f wt2db.1
