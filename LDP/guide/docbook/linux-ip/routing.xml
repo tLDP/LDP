@@ -3,10 +3,10 @@
 <chapter id="ch-routing">
   <title>IP Routing</title>
   <para>
-    Routing is fundamental to the design of the Internet Protocol.  IP has
-    routing cleverly been designed to minimize the complexity for leaf
-    nodes and networks.  Linux can be used as a leaf node such as a
-    workstation where setting the IP address, netmask and
+    Routing is fundamental to the design of the Internet Protocol.  IP
+    routing has been cleverly designed to minimize the complexity for leaf
+    nodes and networks.  Linux can be used as a leaf node, such as a
+    workstation, where setting the IP address, netmask and
     default gateway suffices for all routing needs.  Alternatively, the same
     routing subsystem can be used in the core of a network connecting
     multiple public and private networks.
@@ -27,11 +27,12 @@
   </para>
   <para>
     The precinct of this documentation is primarily static routing.  Though 
-    dynamic routing is fundamental to large networks, Internet service
+    dynamic routing is important to large networks, Internet service
     providers, and backbone providers, this documentation is targetted for
     smaller networks, particularly networks which use static routing.
-    Nonetheless, the concepts introduced also apply to dynamic routing
-    environments.
+    Nonetheless, the concepts governing the manipulation of a packet in the
+    kernel, and how routing decisions are made by the kernel are applicable to
+    dynamic routing environments.
   </para>
   <para>
     The linux routing subsystem has been designed with large
@@ -43,30 +44,33 @@
     <para>
       The design of IP routing allows for very simple route
       definitions for small networks, while not hindering the flexibility of
-      routing in complex environments.  A tenet of IP routing is
-      its ability to define what adresses are locally reachable as opposed to
+      routing in complex environments.  A key concept in IP routing is
+      the ability to define what addresses are locally reachable as opposed to
       not directly known destinations.  Every IP capable host knows about at
-      least three destinations: itself, locally connected computers and
-      everywhere else.
+      least three classes of destination: itself, locally connected
+      computers and everywhere else.
     </para>
     <para>
       Most fully-featured IP-aware networked operating systems
       (all unix-like operating systems with IP stacks,
       modern Macintoshes, and modern Windows) include support for the loopback
       device and IP.  This is an IP and range configured on the host machine
-      itself which allows the machine to talk to itself.
+      itself which allows the machine to talk to itself.  Linux systems can
+      communicate over IP on any locally configured IP address, whether on the
+      loopback device or not.  This is the first class of destinations:
+      locally hosted addresses.
     </para>
     <para>
-      The second group of IP addresses are the IPs in the locally
-      reachable network segment.  Each machine with a connection to an IP
+      The second class of IP addresses are addresses in the locally
+      connected network segment.  Each machine with a connection to an IP
       network can reach a subset of the entire IP address space on its
       directly connected network interface.
     </para>
     <para>
-      All other hosts or destination IPs fall into a third range.  Any host
+      All other hosts or destination IPs fall into a third range.  Any IP
       which is not on the machine itself or locally reachable (i.e. connected
       to the same media segment) is only reachable through an IP routing
-      device.  This routing device must have an IP address in the locally
+      device.  This routing device must have an IP address in a locally
       reachable IP address range.
     </para>
     <para>
@@ -82,39 +86,248 @@
           The IP address is reachable on the machine itself.  Under linux
           this is considered
           <link linkend="tb-tools-ip-addr-scope">scope host</link> and is used
-          for IPs bound to any network device including loopback, and the
-          network range for the loopback device.
+          for IPs bound to any network device including loopback devices,
+          and the network range for the loopback device.  Addresses of this
+          nature are called local IPs or locally hosted IPs.
         </para>
       </listitem>
       <listitem>
         <para>
           The IP address is reachable on the directly connected link layer
-          medium.
+          medium.  Addresses of this type are called locally reachable or
+          (preferred) directly reachable IPs.
         </para>
       </listitem>
       <listitem>
         <para>
           The IP address is ultimately reachable through a router which
-          is reachable on the directly connected link layer medium.
+          is reachable on a directly connected link layer medium.  This class
+          of IP addresses is only reachable through a gateway.
         </para>
       </listitem>
     </orderedlist>
     <para>
-      FIXME....remember these concepts--keep them in mind for the remainder of
-      the chapter.
+      As a practical description of the above, this partial diagram of the
+      <link linkend="ax-example-network">example network</link> shows two
+      machines connected to 192.168.99.0/24.  On &tristan; the IP addresses
+      127.0.0.1 (loopback--not pictured) and 192.168.99.35 are considered
+      locally hosted IP addresses.  The directly reachable IP addresses fall
+      inside the 192.168.99.0/24 network.  Any other destination addresses are
+      only reachable through a gateway, probably &masq-gw;.
+    </para>
+    <example>
+      <title>Classes of IP addresses</title>
+      <mediaobject id="image-routing-intro">
+        <imageobject>
+          <imagedata fileref="images/routing-intro.eps" format="EPS"/>
+        </imageobject>
+        <imageobject>
+          <imagedata fileref="images/routing-intro.png" format="PNG"/>
+        </imageobject>
+        <imageobject>
+          <imagedata fileref="images/routing-intro.jpg" format="JPG"/>
+        </imageobject>
+      </mediaobject>
+    </example>
+    <para>
+      Before examining the routing system in more detail, there are some terms
+      to identify and define.  These terms are general IP networking terms 
+      and should be familiar to users who have used IP on other operating
+      systems and networking equipment.
+    </para>
+    <variablelist id="list-routing-intro-ipdefs">
+      <varlistentry id="list-routing-intro-ipdefs-octet">
+        <term>octet</term>
+        <listitem>
+          <para>
+            A single number between decimal 0 and 255, hexadecimal 0x00 and
+            0xff.  An octet is a single byte in size.
+          </para>
+          <para>
+            Examples: <emphasis>140</emphasis>, <emphasis>254</emphasis>,
+            <emphasis>255</emphasis>, <emphasis>1</emphasis>,
+            <emphasis>0</emphasis>, <emphasis>7</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-intro-ipdefs-ipaddr">
+        <term>IP address</term>
+        <term>IP</term>
+        <listitem>
+          <para>
+            A locally unique four
+            <link linkend="list-routing-intro-ipdefs-octet">octet</link>
+            logical identifier which a machine
+            can use to communicate using the Internet Protocol.  This
+            address is determined by combining the
+            <link linkend="list-routing-intro-ipdefs-netaddr">network
+            address</link> and the administratively assigned host address.
+            Simply put, the IP address is a unique number identifying
+            a host on a network.
+          </para>
+          <para>
+            Examples: <emphasis>192.168.99.35</emphasis>,
+            <emphasis>140.71.38.7</emphasis>,
+            <emphasis>205.254.210.186</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-intro-ipdefs-hostaddr">
+        <term>host address portion</term>
+        <listitem>
+          <para>
+            The rightmost bits (frequently
+            <link linkend="list-routing-intro-ipdefs-octet">octets</link>)
+            in an
+            <link linkend="list-routing-intro-ipdefs-ipaddr">IP
+            address</link> which are not a part of the
+            <link linkend="list-routing-intro-ipdefs-netaddr">network
+            address</link>.  The part of an IP address which identifies the
+            computer on a network independent of the network.
+          </para>
+          <para>
+            Examples:  192.168.1.<emphasis>27</emphasis>/24,
+            10.<emphasis>10.17.24</emphasis>/8,
+            172.20.<emphasis>158.75</emphasis>/16.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-intro-ipdefs-netaddr">
+        <term>network address</term>
+        <term>network</term>
+        <term>subnetwork address</term>
+        <listitem>
+          <para>
+            A four
+            <link linkend="list-routing-intro-ipdefs-octet">octet</link>
+            address and
+            <link linkend="list-routing-intro-ipdefs-netmask">network
+            mask</link>
+            identifying the usable range of
+            <link linkend="list-routing-intro-ipdefs-ipaddr">IP
+            addresses</link>.  Conventional and CIDR notations combine
+            the four bare octets with the netmask or prefix length to
+            define this address.  Briefly, a network address is the first
+            address in a range, and is reserved to identify the entire
+            network.
+          </para>
+          <para>
+            Examples:  <emphasis>192.168.187.0/24</emphasis>,
+            <emphasis>205.254.211.192/26</emphasis>,
+            <emphasis>4.20.17.128/255.255.255.248</emphasis>,
+            <emphasis>10.0.0.0/255.0.0.0</emphasis>,
+            <emphasis>12.35.17.112/28</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry  id="list-routing-intro-ipdefs-netmask">
+        <term>network mask</term>
+        <term>netmask</term>
+        <term>network bitmask</term>
+        <listitem>
+          <para>
+            A four-octet set of bits which, when AND'd with a particular
+            <link linkend="list-routing-intro-ipdefs-ipaddr">IP
+            address</link> produces the
+            <link linkend="list-routing-intro-ipdefs-netaddr">network
+            address</link>.  Combined with a network address or IP address,
+            the netmask identifies the range of IP addresses which are
+            directly reachable.
+          </para>
+          <para>
+            Examples:  <emphasis>255.255.255.0</emphasis>,
+            <emphasis>255.255.0.0</emphasis>,
+            <emphasis>255.255.192.0</emphasis>,
+            <emphasis>255.255.255.224</emphasis>,
+            <emphasis>255.0.0.0</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry  id="list-routing-intro-ipdefs-prefix">
+        <term>prefix length</term>
+        <listitem>
+          <para>
+            An alternate representation of
+            <link linkend="list-routing-intro-ipdefs-netmask">network
+            mask</link>, this is a single integer between 0 and 32,
+            identifying the number of significant bits in an 
+            <link linkend="list-routing-intro-ipdefs-ipaddr">IP
+            address</link> or
+            <link linkend="list-routing-intro-ipdefs-netaddr">network
+            address</link>.  This is the "slash-number" component of a
+            CIDR address.
+          </para>
+          <para>
+            Examples:  4.20.17.0<emphasis>/24</emphasis>,
+            66.14.17.116<emphasis>/30</emphasis>,
+            10.158.42.72<emphasis>/29</emphasis>,
+            10.48.7.198<emphasis>/9</emphasis>,
+            192.168.154.64<emphasis>/26</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-intro-ipdefs-bcast">
+        <term>broadcast address</term>
+        <listitem>
+          <para>
+            A four
+            <link linkend="list-routing-intro-ipdefs-octet">octet</link>
+            address derived from an OR operation between the
+            <link linkend="list-routing-intro-ipdefs-hostaddr">host address
+            portion</link> of a
+            <link linkend="list-routing-intro-ipdefs-netaddr">network
+            address</link> and the full broadcast special 255.255.255.255.
+            The broadcast is the highest allowable address in a given network,
+            and is reserved for broadcast traffic.
+          </para>
+          <para>
+            Examples:  <emphasis>192.168.205.255/24</emphasis>,
+            <emphasis>172.18.255.255/16</emphasis>,
+            <emphasis>12.7.149.63/26</emphasis>.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      These definitions are common to IP networking in general, and are
+      understood by all in the IP networking community.  For less terse
+      introductory material on matters of IP network addressing in general,
+      see
+      <xref linkend="links-general-ip"/>.
     </para>
     <para>
-      The network address is an IP address which is unusable for an individual
-      machine, but represents the first address in a range of address defining
-      an entire IP subnet (formerly subnetwork).  When combined
-      with the netmask, the result describes the size of the range of
-      acceptable addresses.  For more on addressing, see the tutorials and
-      documentation in the
-      <link linkend="links-general-ip">links section</link>.
+      As is apparent from the interdependencies amongst the above
+      definitions, each term defines a separate part of the concept of
+      the relationships between an IP address and its network.  A good
+      <link linkend="tools-ipcalc">IP calculator</link> can assist in
+      mastering these IP fundamentals.
+    </para>
+    <example id="ex-routing-intro-ipcalc">
+      <title>Using ipcalc to display IP information</title>
+      <programlisting>
+<prompt>[user@workstation]$ </prompt><userinput>ipcalc -n 12.7.149.0/26</userinput>
+
+Address:   12.7.149.0            00001100.00000111.10010101.00 000000
+Netmask:   255.255.255.192 = 26  11111111.11111111.11111111.11 000000
+Wildcard:  0.0.0.63              00000000.00000000.00000000.00 111111
+=>
+Network:   12.7.149.0/26         00001100.00000111.10010101.00 000000 (Class A)
+Broadcast: 12.7.149.63           00001100.00000111.10010101.00 111111
+HostMin:   12.7.149.1            00001100.00000111.10010101.00 000001
+HostMax:   12.7.149.62           00001100.00000111.10010101.00 111110
+Hosts/Net: 62 
+      </programlisting>
+    </example>
+    <para>
+      A tool similar to the one shown in
+      <xref linkend="ex-routing-intro-ipcalc"/> can assist in visualizing the
+      relationships among IP addressing concepts.
     </para>
     <para>
-      FIXME previous paragraph was ripped from former location and needs to be
-      integrated into the flow of the introduction.
+      Subequently, this chapter will introduce some concrete examples of
+      routing in a real network.  The
+      <link linkend="ax-example-network">example network</link> illustrates
+      this network and all of the addresses involved.
     </para>
   </section>
   <section id="routing-local">
@@ -150,8 +363,9 @@
           The <command>route -n</command> output can also be produced with
           <command>netstat -rn</command> and is commonly used by
           admininstrators who rely on platform independent behaviour across
-          heterogeneous UN*X systems.  This traditional routing table output
-          uses conventional netmask notation to denote network size.
+          heterogeneous Unix and Unix-like systems.  This traditional
+          routing table output uses conventional netmask notation to
+          denote network size.
         </para>
       </footnote>
       and then with the
@@ -195,13 +409,20 @@ default via 192.168.100.254 dev eth0</computeroutput>
       class C sized network.
     </para>
     <para>
-      When a process (program) on &isolde; wants to communicate with another
-      machine on the locally connected network, it will attempt to initiate a
-      connection from 192.168.100.17 (&isolde;'s IP).  The kernel will consult
-      the routing table to determine how to send the outbound packet.
-      Assuming the destination is 192.168.100.32.  The kernel will find that
+      When a process on &isolde; needs to send a packet to another
+      machine on the locally connected network, packets will be sent from
+      192.168.100.17 (&isolde;'s IP).  The kernel will consult
+      the routing table to determine the route and the source address to use
+      when sending this packet.
+      Assuming the destination is 192.168.100.32, the kernel will find that
       192.168.100.32 falls inside the IP address range 192.168.100.0/24 and
-      will select this route for the outbound packet.
+      will select this route for the outbound packet.  For further details on
+      source address selection, see
+      <xref linkend="routing-saddr-selection"/>.  The source address on the
+      outbound packet conveys vital information to the host receiving the
+      packet.  In order for the packet to be able to return, &isolde; has to
+      use an IP address that is locally available, 192.168.100.32 has to have
+      a route to &isolde; and neither host must block the packet.
     </para>
     <para>
       The packet will be sent to the locally connected network segment
@@ -223,20 +444,43 @@ default via 192.168.100.254 dev eth0</computeroutput>
     <para>
       This covers the classification of IP destinations which are available on
       a locally connected network.  This highlights the importance of an
-      accurate netmask and network address.  IP ranges which are not hosted on
-      the machine itself and which do not fall in the range of the locally
-      connected networks must be reached through a router.  The next section
-      will cover IP destinations of this class.
+      accurate netmask and network address.  The next section will cover
+      IP ranges which are neither locally hosted 
+      nor fall in the range of the locally reachable networks. These
+      destinations must be reached through a router.
     </para>
   </section>
   <section id="routing-default">
     <title>Routing through a Router, Commonly the Default Gateway</title>
     <para>
-      Generalization of routing to a locally connected router.  FIXME
+      By comparison to the total number of publicly accessible hosts on the
+      Internet there is an almost insignificant number of hosts inside any
+      locally reachable network.  This means that the majority of potential
+      destinations are only available via a router.
     </para>
     <para>
-      The default gateway is the catch-all route.  If no more specific a
-      route exists in a routing table, the default route will be used.
+      Any machine which will accept and forward packets between two networks
+      is a router.  Every router is at least dual-homed; one NIC connects to
+      one network, and a second NIC connects to another network.  Machines
+      connected to either network learn by a routing protocol or are
+      statically configured to pass traffic for the other network to the
+      router.
+    </para>
+    <para>
+      For &tristan;, there are two different paths out of 192.168.99.0/24.
+      One path has another leaf network, 192.168.98.0/24, and the other path
+      has many networks, including the Internet.  The routing table on
+      &tristan; should then contain two different routes out of the network.
+      One destination 192.168.98.0/24 will be reachable through 192.168.99.1.
+      So, if &tristan; has a packet with a destination IP address in the range
+      of the branch office network, it will choose to send the packet directly
+      to &isdn-router;.
+    </para>
+    <para>
+      The default route is another way to say the route for destination 0/0.
+      This is the most general possible route.
+      It is the catch-all route.  If no more specific
+      route exists in a routing table, a default route will be used.
       Many servers and workstations are connected to leaf networks
       with only one router, hence
       <xref linkend="ex-routing-local"/>
@@ -251,16 +495,15 @@ default via 192.168.100.254 dev eth0</computeroutput>
       Internet-connected router until the packet is handed off to an Internet
       Service Provider's network.
     </para>
-    <para>
-      FIXME.
-    </para>
   </section>
   <section id="routing-selection">
     <title>Route Selection</title>
     <para>
       Crucial to the proper ability of hosts to exchange IP packets is the
       correct selection of a route to the destination.  The rules for the
-      selection of route path are traditionally made on a hop-by-hop basis
+      selection of route path are traditionally made on a
+      <!-- note: per-hop-basis? PHB; consider -->
+      hop-by-hop basis
       <footnote>
         <para>
           This document could stand to allude to MPLS implementations under
@@ -270,7 +513,7 @@ default via 192.168.100.254 dev eth0</computeroutput>
           developing technologies.
         </para>
       </footnote>
-      based upon the destination address of the packet.  Linux
+      based solely upon the destination address of the packet.  Linux
       behaves as a conventional routing device in this way, but can also 
       provide a more flexible capability.  Routes can be chosen and
       prioritized based on other packet characteristics.
@@ -312,40 +555,22 @@ default via 192.168.100.254 dev eth0</computeroutput>
           </para>
         </footnote>.
         In practical terms, the concept of longest prefix match means that the
-        most specific network route to the destination will be chosen.
-      </para>
-      <para>
-        The kernel will search through the routing table to find the
-        most specific destination IP range.  This search is known as longest
-        prefix match.  Every route entry is
-        comprised of two parts, the base address and the number of significant
-        bits in that address.  Together, the base address and the number of
-        significant bits ar referred to as prefix length.  This prefix
-        length can be represented either as a netmask or a CIDR prefix.
-        The kernel will match route entries with the
-        highest number of significant bits before other routes.
+        most specific route to the destination will be chosen.
       </para>
       <para>
         The use of the
-        longest prefix match allows network routes for large networks to be
-        overridden by more specific host routes, as required in
+        longest prefix match allows routes for large networks to be
+        overridden by more specific host or network routes, as required in
         <xref linkend="ex-basic-del-static"/>, for example.  Conversely, it is
         this same property of longest prefix match which allows routes to
         individual destinations to be aggregated into larger network
         addresses.  Instead of entering individual routes for each host, large
         numbers of contiguous network addresses can be aggregated.  This is
-        the premise of CIDR networking.  See
+        the realized promise of CIDR networking.  See
         <xref linkend="links-general-ip"/> for further details.
       </para>
       <para>
-        Since IP routing defines a default route for all 
-        not specifically known paths, while
-        more specific routes take precedence, it should make
-        sense that the most specific possible route for any given destination
-        is the preferred route.
-      </para>
-      <para>
-        In the common case, the route selection is based completely on the
+        In the common case, route selection is based completely on the
         destination address.  Conventional (as opposed to policy-based) IP
         networking relies on only the destination address to select a route
         for a packet.
@@ -355,8 +580,8 @@ default via 192.168.100.254 dev eth0</computeroutput>
         based routing
         features, they use the conventional routing technique of longest
         prefix match.  While this meets the needs of a large subset of
-        linux networking needs, there is latent potential in the linux IP
-        stack.
+        linux networking needs, there are unrealized policy routing features
+        in a machine operating in this fashion.
       </para>
     </section>
     <section id="routing-selection-adv">
@@ -378,7 +603,8 @@ default via 192.168.100.254 dev eth0</computeroutput>
         tables and routes based on a number of criteria.
       </para>
       <para>
-        Selectors used in policy-basedrouting are simply attributes of a packet
+        Selectors available for use in policy-based routing are
+        attributes of a packet
         passing through the linux routing code.  The source address of a
         packet, the ToS flags, an fwmark (a mark carried through the kernel in
         the data structure representing the packet), and the interface name on
@@ -406,12 +632,12 @@ default via 192.168.100.254 dev eth0</computeroutput>
         <xref linkend="routing-cache"/>.
       </para>
       <para>
-        If there is no entry in the routing cache,
-        the kernel iterates by priority through the routing policy database.
-        For each matching entry in the RPDB, the kernel will try to
+        The kernel begins iterating by priority through the routing policy
+        database.  For each matching entry in the RPDB, the kernel will try to
         find a matching route to the destination IP
-        address in the specified routing table.  If a matching route is found,
-        the kernel will select this route, and forward the
+        address in the specified routing table using the aforementioned
+        longest prefix match selection algorithm.  When a matching destination
+        is found, the kernel will select the matching route, and forward the
         packet.  If no matching entry is found in the specified routing table,
         the kernel will pass to the next rule in the RPDB, until it finds a
         match or falls through the end of the RPDB and all consulted routing
@@ -421,7 +647,7 @@ default via 192.168.100.254 dev eth0</computeroutput>
         Here is a snippet of python-esque pseudocode to illustrate the
         kernel's route selection process again.  Each of the lookups below
         occurs in kernel hash tables which are accessible to the user through
-        the use of various <command>iproute2</command> tools.
+        the use of various &iproute2; tools.
         <programlisting>
 if packet.routeCacheLookupKey in routeCache :
     route = routeCache[ packet.routeCacheLookupKey ]
@@ -490,16 +716,36 @@ else
         </tgroup>
       </table>
       <para>
-        Observation of the output of <command>ip rule show</command>
-        (cf. <xref linkend="ex-tools-ip-rule-show"/>)
+        The route cache (also the forwarding information base) can be
+        displayed using
+        <link linkend="tools-ip-route-show-cache"><command>ip route show
+        cache</command></link>.  The routing policy database (RPDB) can be
+        manipulated with the
+        <link linkend="tools-ip-rule"><command>ip rule</command></link>
+        utility.  Individual route tables can be manipulated and displayed
+        with the
+        <link linkend="tools-ip-route"><command>ip route</command></link>
+        command line tool.
+      </para>
+      <example id="ex-routing-selection-adv-ip-rule">
+        <title></title>
+        <programlisting>
+<prompt>[root@isolde]# </prompt><userinput>ip rule show</userinput>
+<computeroutput>0:      from all lookup local
+32766:  from all lookup main
+32767:  from all lookup 253</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Observation of the output of <command>ip rule show</command> in
+        <xref linkend="ex-routing-selection-adv-ip-rule"/>
         on a box whose RPDB has not been changed should reveal a
         high priority rule, rule 0.  This rule, created at RPDB
         initialization, instructs the kernel to try to find a match for the
         destination in the
         <link linkend="routing-table-local">local routing table</link>.  If
-        there is no match for the packet in the local routing table, the next
-        present rule (32766) causes the kernel to perform a route
-        lookup in the
+        there is no match for the packet in the local routing table, then,
+        per rule 32766, the kernel will perform a route lookup in the
         main routing table.  Normally, the main routing table will contain a
         default route if not a more specific route.
         Failing a route lookup in the main routing table the final rule
@@ -514,38 +760,106 @@ else
 
       <para>
         A common mistake when working with multiple routing tables involves
-        forgetting about the statelessness of IP routing.  Consider a solution
-        which selects a more reliable connection for SMTP data by routing
-        based on fwmark.  If any packet with a source or destination address
-        is marked with an fwmark and handled by a separate routing table, this
-        routing table must contain routes by which to reach both the SMTP
-        client and SMTP server.
-      </para>
-      <para>
-        FIXME; maybe point to a practical example elsewhere?
+        forgetting about the statelessness of IP routing.  This manifests when
+        the user configuring the policy routing machine accounts for outbound
+        packets (via &fwmark;, or <command>ip rule</command>
+        selectors), but forgets to account for the return packets.
       </para>
     </section>
     <section id="routing-selection-summary">
       <title>Summary</title>
       <para>
-        Route selection, which was once a simple matter of matching the
-        destination address against a single routing table, becomes immensely
-        more complex and flexible when routes can be selected based on a
-        packet's attributes.  FIXME....horrible conclusion.  Needs work.
-      </para>
-      <para>
         For more ideas on how to use policy routing, how to work with
         multiple routing tables, and how to troubleshoot, see
         <xref linkend="adv-rpdb"/>.
       </para>
+      <para>
+        Yeah.  That's it.  So there.
+      </para>
     </section>
   </section>
-  <section id="routing-source-address-selection">
+  <section id="routing-saddr-selection">
     <title>Source Address Selection</title>
     <para>
-      For now, refer to the section in the <command>iproute2</command> command
-      reference.  The excerpt is available
-      <ulink url="http://defiant.coinet.com/iproute2/ip-cref/node155.html">here</ulink>.
+      The selection of the correct source address is key to correct
+      communication between hosts with multiple IP addresses.  If a host
+      chooses an address from a private network to communicate with a public
+      Internet host, it is likely that the return half of the communication
+      will never arrive.
+    </para>
+    <para>
+    </para>
+    <para>
+      The initial source address for an outbound packet is chosen in according
+      to the following series of rules.  The application can request a
+      particular IP
+      <footnote>
+        <para>
+          Many networking applications accept a command line option to prefer
+          a particular source address.  The call to select a particular
+          IP is known as <function>bind()</function>, so the command
+          line option frequently
+          contains the word <wordasword>bind</wordasword>, e.g.,
+          <option>--bind-address</option>.
+          Examples of command line tools allowing specification of the source
+          address are <command>nc -s $BINDADDR $DEST $PORT</command> or
+          <command>socat -
+          TCP4:$REMOTEHOST:$REMOTEPORT,bind=$BINDADDR</command>.
+        </para>
+      </footnote>,
+      the kernel will use the &src; hint from the chosen
+      route path
+      <footnote>
+        <para>
+          In this case, the route has already been selected (see
+          <xref linkend="routing-selection"/>) and the chosen route entry
+          includes a hint for preferred source address on outbound packets
+          specifically for this purpose.  For examples on configuring the
+          routing tables to include this parameter, see
+          <xref linkend="ex-tools-ip-route-add-src"/>.
+        </para>
+      </footnote>,
+      or, lacking this hint, the kernel will choose the first address
+      configured on the interface which falls in the same network as the
+      destination address or the nexthop router.
+    </para>
+    <para>
+      The following list recapitulates the manner by which the kernel
+      determines what the source address of an outbound packet.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          The application is already using the socket, in which case, the
+          source address has been chosen.  Also, the application can
+          specifically request a particular address (not necessarily a 
+          locally hosted IP; see
+          <xref linkend="adv-non-local-bind"/>) using the
+          <function>bind</function> call.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The kernel performs a
+          <link linkend="routing-selection">route lookup</link> and finds an
+          outbound route for the destination.  If the route contains the 
+          &src; parameter, the kernel selects this IP
+          address for the outbound packet.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
+      Also refer to this
+      <ulink url="http://defiant.coinet.com/iproute2/ip-cref/node155.html">excerpt</ulink>.
+      from the &iproute2; command reference.
     </para>
   </section>
   <section id="routing-cache">
@@ -565,7 +879,7 @@ else
       Because the routing cache is maintained by the kernel separately from
       the routing tables, manipulating the routing tables may not have an
       immediate effect on the kernel's choice of path for a given packet.
-      To prevent the non-deterministic lag between the time that a new route
+      To avoid a non-deterministic lag between the time that a new route
       is entered into the kernel routing tables and the time that a new lookup
       in those route tables is performed, use
       <link linkend="tools-ip-route-flush-cache"><command>ip route flush
@@ -621,9 +935,12 @@ else
         <term>fwmark</term>
         <listitem>
           <para>
-            The mark on a packet added administratively by the packet filter.
+            The mark on a packet added administratively by the packet
+            filtering engine (<command>ipchains</command> or
+            <command>iptables</command>).
             This mark is not part of the physical IP packet, and only exists
-            as part of the structure held in memory to represent the IP
+            as part of the data structure held in memory on the routing device
+            to represent the IP
             packet.  If there is no fwmark on the packet, this lookup key is
             unused.  When present, the kernel will search for a matching 
             (dst, src, tos?, fwmark) entry.  If no matching entry is found,
@@ -723,7 +1040,7 @@ else
       </varlistentry>
     </variablelist>
     <para>
-      Collectively these hash keys uniquely identify routes in the forwarding
+      Collectively the hash keys uniquely identify routes in the forwarding
       information base (routing cache) and each entry provides attributes of
       the route.
     </para>
@@ -737,24 +1054,23 @@ else
   <section id="routing-tables">
     <title>Routing Tables</title>
     <para>
-      Linux supports multiple routing tables.  In addition to the two commonly
-      used routing tables
+      Linux kernel 2.2 and 2.4 support multiple routing tables.  Beyond the
+      two commonly used routing tables
       (<link linkend="routing-table-local">the local</link> and
       <link linkend="routing-table-main">main</link> routing tables), the
-      kernel supports 253 more.  When an IP address is configured for an
-      interface, the kernel adds any required routes to these two
-      routing tables.
+      kernel supports up to 252 additional routing tables.
     </para>
     <para>
       The multiple routing table system provides a flexible infrastructure on
       top of which to implement policy routing.  By allowing multiple
       traditional routing tables (keyed primarily to destination address)
-      to be combined with the RPDB (keyed primarily to source address), the
+      to be combined with the
+      <link linkend="routing-rpdb">routing policy database (RPDB)</link>
+      (keyed primarily to source address), the
       kernel supports a well-known and well-understood interface while
-      simultaneously expanding and extanding its routing capabilities.
-      Each routing table still operates in the traditional fashion, similar
-      to other networking stacks.
-      Linux simply allows you to choose from a
+      simultaneously expanding and extending its routing capabilities.
+      Each routing table still operates in the traditional and expected
+      fashion.  Linux simply allows you to choose from a
       number of routing tables, and to traverse routing tables in a
       user-definable sequence until a matching route is found.
     </para>
@@ -798,33 +1114,127 @@ else
       </footnote>.
     </para>
     <para>
-      Each table is identified by a positive integer between 1 and 253
+      Kernels supporting multiple routing tables refer to routing tables by
+      unique integer slots between 0 and 255
       <footnote>
         <para>
           Can anybody describe to me what is in table 0?  It looks almost like
           an aggregation of the routing entries in routing tables 254 and 255.
         </para>
       </footnote>.
-      The two routing tables employed by the kernel are
-      <link linkend="routing-table-local">table 255, the local routing
-      table</link>, and
-      <link linkend="routing-table-main">table 254, the main routing
-      table</link>.  For examples of using multiple routing tables, see
+      The two routing tables normally employed are
+      <link linkend="routing-table-local">table 255, the
+      &local; routing table</link>, and
+      <link linkend="routing-table-main">table 254, the
+      &main; routing table</link>.  For
+      examples of using multiple routing tables, see
       <xref linkend="ch-advanced"/>, in particular,
       <xref linkend="ex-adv-multi-internet-outbound-ip-routing"/>,
       <xref linkend="ex-adv-multi-internet-outbound-ip-rule"/> and 
       <xref linkend="ex-adv-multi-internet-inbound"/>.  Also be sure
       to read
-      <xref linkend="adv-rpdb"/>.
+      <xref linkend="adv-rpdb"/> and 
+      <xref linkend="routing-rpdb"/>.
     </para>
     <para>
+      The <command>ip route</command> and <command>ip rule</command> commands
+      have built in support for the special tables &main; and &local;.
+      Any other routing tables can be referred to by number or an
+      administratively maintained mapping file,
+      <filename>/etc/iproute2/rt_tables</filename>.
+    </para>
+    <para>
+      The format of this file is extraordinarily simple.  Each line represents
+      one mapping of an arbitrary string to an integer.  Comments are allowed.
+    </para>
+    <example id="ex-routing-tables-rt-table">
+      <title>Typical content of
+        <filename>/etc/iproute2/rt_tables</filename></title>
+      <programlisting>
+<computeroutput>#
+# reserved values
+#
+255     local      <co id="id-rtrt-local"   linkends="id-rtrt-local-text"/>
+254     main       <co id="id-rtrt-main"    linkends="id-rtrt-main-text"/>
+253     default    <co id="id-rtrt-default" linkends="id-rtrt-default-text"/>
+0       unspec     <co id="id-rtrt-unspec"  linkends="id-rtrt-unspec-text"/>
+#
+# local
+#
+1      inr.ruhep   <co id="id-rtrt-user"    linkends="id-rtrt-user-text"/></computeroutput>
+      </programlisting>
+      <calloutlist>
+        <callout
+          arearefs="id-rtrt-local"
+          id="id-rtrt-local-text">
+            <simpara>
+              The &local; table is a special routing table maintained by the
+              kernel.  Users can remove entries from the local routing table
+              at their own risk.  Users cannot add entries to the local
+              routing table.  The file
+              <filename>/etc/iproute2/rt_tables</filename> need not exist, as
+              the &iproute2; tools have a hard-coded entry for the &local;
+              table.
+            </simpara>
+        </callout>
+        <callout
+          arearefs="id-rtrt-main"
+          id="id-rtrt-main-text">
+            <simpara>
+              The main routing table is the table operated upon by
+              <command>route</command> and, when not otherwise specified, by
+              <command>ip route</command>.  The file
+              <filename>/etc/iproute2/rt_tables</filename> need not exist, as
+              the &iproute2; tools have a hard-coded entry for the &main;
+              table.
+            </simpara>
+        </callout>
+        <callout
+          arearefs="id-rtrt-default"
+          id="id-rtrt-default-text">
+            <simpara>
+              The <constant>default</constant> routing table is another
+              special routing table, but WHY is it special!?!
+            </simpara>
+        </callout>
+        <callout
+          arearefs="id-rtrt-unspec"
+          id="id-rtrt-unspec-text">
+            <simpara>
+              Operating on the <constant>unspec</constant> routing table
+              appears to operate on all routing tables simultaneously.  Is
+              this true!?  What does that imply?
+            </simpara>
+        </callout>
+        <callout
+          arearefs="id-rtrt-user"
+          id="id-rtrt-user-text">
+            <simpara>
+              This is an example indicating that table 1 is known by the name
+              inr.ruhep.  Any references to <userinput>table ruhep</userinput>
+              in an <command>ip rule</command> or <command>ip route</command>
+              will substitue the value 1 for the word inr.ruhep.
+            </simpara>
+        </callout>
+      </calloutlist>
+    </example>
+    <para>
       The routing table manipulated by the conventional
-      <command>route</command> command is the main routing table.
-      Additionally, the use of both <command>ip address</command> and
-      <command>ifconfig</command> will change the local routing table.  For
-      further documentation on how to manipulate the other routing
-      tables, see the command description of
+      <link linkend="tools-route"><command>route</command></link> command
+      is the &main; routing table.  Additionally, the use of both
+      <link linkend="tools-ip-address"><command>ip address</command></link> and
+      <link linkend="tools-ifconfig"><command>ifconfig</command></link>
+      will cause the kernel to alter the local routing table (and usually the
+      main routing table).  For further documentation on how to manipulate
+      the other routing tables, see the command description of
       <link linkend="tools-ip-route"><command>ip route</command></link>.
+    </para>
+    <para>
+      
+    </para>
+    <para>
+    </para>
+    <para>
     </para>
     <section id="routing-table-local">
       <title>The Local Routing Table</title>
@@ -835,9 +1245,8 @@ else
         <xref linkend="ex-tools-ip-route-show-local"/>, you'll see two of the
         common uses of the local routing table.  The first common use is the
         specification of broadcast address, necessary only for link layers
-        which support broadcast addressing.  The second common
-        type of entry in a
-        local routing table is a route to local destination addresses.
+        which support broadcast addressing.  The second common type of entry
+        in a local routing table is a route to a locally hosted IP.
       </para>
       <para>
         If the the machine has several IP addresses on one ethernet interface,
@@ -847,12 +1256,57 @@ else
         of bringing up an IP address on an interface under linux.  
         Maintenance of the broadcast and local routes in the local routing
         table can only be done by the kernel.
-        Hence, read-only fingers are
-        recommended when working with the local routing table.
+      </para>
+      <example id="ex-routing-table-local-maint">
+        <title>Kernel maintenance of the &local; routing table</title>
+        <programlisting>
+<prompt>[root@real-server]# </prompt><userinput>ip address show dev eth1</userinput>
+<computeroutput>6: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+   link/ether 00:80:c8:e8:1e:fc brd ff:ff:ff:ff:ff:ff
+   inet 10.10.20.89/24 brd 10.10.20.255 scope global eth1</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip route show dev eth1</userinput>
+<computeroutput>10.10.20.0/24  proto kernel  scope link  src 10.10.20.89</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip route show dev eth1 table local</userinput>
+<computeroutput>broadcast 10.10.20.0  proto kernel  scope link  src 10.10.20.89 
+broadcast 10.10.20.255  proto kernel  scope link  src 10.10.20.89
+local 10.10.20.89  proto kernel  scope host  src 10.10.20.89</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip address add 192.168.254.254/24 brd + dev eth1</userinput>
+<prompt>[root@real-server]# </prompt><userinput>ip address show dev eth1</userinput>
+<computeroutput>6: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+   link/ether 00:80:c8:e8:1e:fc brd ff:ff:ff:ff:ff:ff
+   inet 10.10.20.89/24 brd 10.10.20.255 scope global eth1
+   inet 192.168.254.254/24 brd 192.168.254.255 scope global eth1</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip route show dev eth1</userinput>
+<computeroutput>10.10.20.0/24  proto kernel  scope link  src 10.10.20.89 
+192.168.254.0/24  proto kernel  scope link  src 192.168.254.254</computeroutput>
+<prompt>[root@real-server]# </prompt><userinput>ip route show dev eth1 table local</userinput>
+<computeroutput>broadcast 10.10.20.0  proto kernel  scope link  src 10.10.20.89 
+broadcast 192.168.254.0  proto kernel  scope link  src 192.168.254.254          
+broadcast 10.10.20.255  proto kernel  scope link  src 10.10.20.89               
+local 192.168.254.254  proto kernel  scope host  src 192.168.254.254            
+local 10.10.20.89  proto kernel  scope host  src 10.10.20.89                    
+broadcast 192.168.254.255  proto kernel  scope link  src 192.168.254.254</computeroutput>
+        </programlisting>
+      </example>
+      <para>
+        Note in
+        <xref linkend="ex-routing-table-local-maint"/>, that the kernel adds
+        not only the route for the locally connected network in the &main;
+        routing table, but also the three required special addresses in the
+        &local; routing table.  Any IP addresses which are locally hosted on
+        the box will have &local; entries in the &local; table.  The
+        <link linkend="list-routing-intro-ipdefs-netaddr">network
+        address</link> and
+        <link linkend="list-routing-intro-ipdefs-bcast">broadcast
+        address</link> are both entered as <constant>broadcast</constant> type
+        addresses on the interface to which they have been bound.
+        Conceptually, there is significance to the distinction between a
+        network and broadcast address, but practically, they are treated
+        analogously, by other networking gear as well as the linux kernel.
       </para>
       <para>
-        There is one other type of route which commonly ends up in the local
-        routing table.  When using <command>iproute2</command> NAT, there will
+        There is one other type of route which commonly ends up in the &local;
+        routing table.  When using &iproute2; NAT, there will
         be entries in the local routing table for each network address
         translation.  Refer to
         <xref linkend="ex-tools-ip-route-nat-simple"/> and
@@ -862,22 +1316,25 @@ else
     <section id="routing-table-main">
       <title>The Main Routing Table</title>
       <para>
-        The main routing table is the routing table most people think of when
-        considering the routing table on a linux box.  The main routing table
-        is operated on by default with the <command>ip route</command> command
-        and also with the <command>route</command> command.
+        The &main; routing table is the routing table most people think of when
+        considering a linux routing table.  When no table is specified to an
+        <command>ip route</command> command, the kernel assumes the &main;
+        routing table.  The <command>route</command> command only manipulates
+        the &main; routing table.
       </para>
       <para>
-        The main routing table is also populated automatically by the kernel
-        when new interfaces are brought up with network addresses.  Visit 
+        Similarly to the &local; table, the &main; table is populated
+        automatically by the kernel when new interfaces are brought up
+        with IP addresses.  Consult the &main; routing table before and after
+        <userinput>ip address add 192.168.254.254/24 brd + dev eth1</userinput>
+        in 
+        <xref linkend="ex-routing-table-local-maint"/> for a concrete example
+        of this kernel behaviour.  Also, visit 
         <link linkend="list-basic-ifconfig-side-effects-up">this summary of
         side effects</link> of interface definition and activation with
         <command>ifconfig</command> or <command>ip address</command>.
       </para>
       <para>
-        The overwhelming majority of linux machines use the main routing table
-        and only the main routing table.  This is usually the only source of
-        routing information on a machine.
       </para>
     </section>
   </section>
@@ -919,9 +1376,12 @@ else
         One important use of ICMP, which is completely transparent
         to most users (and indeed many admins), is the use of ICMP to discover
         the Path Maximum Transmission Unit (PMTU).  By discovering the Path MTU
-        and setting the MTU for the destination to this value, a host can
+        and transmitting packets with this the MTU, a host can
         minimize the delay of traffic due to fragmentation, and
-        (theoretically) attain a more even rate of data transmission.
+        (theoretically) attain a more even rate of data transmission.  Because
+        each destination may have a different MTU due to different network
+        paths, the MTU is a per route attribute stored in the
+        <link linkend="routing-cache">routing cache</link>.
       </para>
       <!-- FIXME; make sure to make a full discussion of PMTU -->
       <!--
@@ -994,17 +1454,19 @@ on some router.
         <link linkend="example-network-netmap">the example network</link>, 
         &tristan; has a route to the world through &masq-gw; and a route to
         192.168.98.0/24 through &isdn-router;.  If &tristan; sends a packet
-        for 192.168.98.0/24 to &masq-gw;, the optimal response is for
+        for 192.168.98.0/24 to &masq-gw;, the optimal outcome is for
         &masq-gw; to suggest with an ICMP redirect that &tristan; send such
         packets via &isdn-router; instead.
       </para>
       <para>
-        It is by this method that hosts can learn what networks are reachable
+        By this method, hosts can learn what networks are reachable
         through which routers on the local network segment.  ICMP redirect
         messages, however, are easy to forge, and were (at one time) used to
         subvert poorly configured machines.  While this is infrequently a
-        problem, it's still good practice to ignore ICMP redirect
-        messages in general, and create static routes where necessary to
+        problem on the Internet today,
+        it's still good practice to ignore ICMP redirect
+        messages from public networks.  Create static routes where
+        necessary on private and public networks to
         prevent ICMP redirect messages from being generated on your network.
       </para>
       <para>
