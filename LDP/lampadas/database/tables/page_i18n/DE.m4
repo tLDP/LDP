@@ -113,9 +113,9 @@ insert([lampadas], [Über Lampadas], [],
 
     <h1>Warum Lampadas?</h1>
 
-    <p>In Frank Herberts Wüstenplanet-Serie (eng. "Dune") ist Lampadas
-    der Ausbildungsplanet der Bene Gesserit. Er spielt eine wesentliche
-    Rolle im letzten Band "Die Ordensburg des Wüstenplaneten"
+    <p>In Frank Herberts Saga um den "Wüstenplanet" (eng. "Dune") ist
+    Lampadas der Ausbildungsplanet der Bene Gesserit. Er spielt eine
+    wesentliche Rolle im letzten Band "Die Ordensburg des Wüstenplaneten"
     (eng. "Chapterhouse: Dune").
 
     Vor der Zerstörung des Planeten durch die Horden der Geehrten
@@ -132,49 +132,54 @@ insert([lampadas], [Über Lampadas], [],
     Ausserdem ist "Lampadas" die Akusativform des altgriechischen
     Wortes für Fackel.
 
-    <p>In all of these senses, Lampadas seems an appropriate name for
-    this project, which is created to facilitate sharing information
-    from many people and many sources, and disseminating it widely to others.
+    <p>In jeder dieser Bedeutungen ist Lampadas ein angemessener Name
+    für ein Projekt, dass geschaffen wurde, um Informationen zwischen
+    vielen Menschen auszutauschen und zu verbreiten.
 ])
 
-insert([copyright], [Copyright Statment], [],
+insert([copyright], [Copyright], [],
 [
     <p>Lampadas is Copyright 2000, 2001, 2002 by David C. Merrill.
 
-    <p>Individual documents are copyrighted by their authors,
-    and comments are owned by the poster.
+    <p>Die Rechte an einzelnen Dokumenten liegen bei deren Autoren.
+    Kommentare sind geistiges Eigentum ihrer Verfasser.
 
-    <p>We disclaim any responsibility for contents which are posted by
-    users of the site.
-    In using the site, you might be exposed to profanity, pornography,
-    or anything else.
-    Anything of this nature which is reported to us, or anything which
-    you can demonstrate to be posted here in violation of copyright law,
-    will be removed promptly upon request.
+    <p>Wir bestreiten jede Verantwortung für Inhalte die durch
+    Benutzer dieser Web-Site veröffentlicht werden.
+    Die Benutzung dieser Web-Site kann Sie mit Fäkalsprache,
+    Gotteslästerung, Pornographie und ähnlichen Dingen konfrontieren.
+    Alle Inhalte dieser Art sowie alle belegten Urheberrechtsverletzungen
+    werden von uns prompt entfernt, wenn wir davon Kenntnis erlangen.
 
-    <p>Lampadas is made available under the terms of the GNU General Public
-    License (GPL).
-    A copy is available online at
-    <a href="http://www.gnu.org/licenses/gpl.html">www.gnu.org/licenses/gpl.html</a>.
+    <p>Die Lampadas Software wird unter den Bedingungen der GNU General
+    Public License (GPL) veröffentlich.
+    Eine Kopie der GPL ist online verfügbar unter
+    <a href="http://www.gnu.org/licenses/gpl.html"
+      >www.gnu.org/licenses/gpl.html</a>.
 
-    <p>We do our best to provide accurate information, but we do not provide
-    any warranty or guarantees as to accuracy, completeness, or anything else.
-    In fact, we make no warranty or guarantee of anything at all.
+    <p>Wir bemühen uns, genaue Information zu liefern. Aber wir
+    garantieren weder Genauigkeit, Vollständigkeit oder irgend
+    eine andere Eigenschaft. Genau genommen geben wir keinerlei
+    Garantie oder Sicherheit über irgend etwas. 
 
-    <p>Use of information, downloads, software, and any other resource on this
-    website is <i>entirely at your own risk</i>.
-    We recommend you back up your system on a regular basis, and immediately
-    before making nontrivial changes to it.
+    <p>Die Benutzung von Informationen, Downloads, Software oder
+    irgend einer anderen Ressource dieser Web-Site geschieht
+    <i>auf eigene Gefahr</i>.
+    Wir empfehlen Datensicherung ihres Systems nicht nur regelmäßig
+    sondern auch vor jeder nicht-trivialen Änderungen durchzuführen.
 
-    <p>Linux is a trademark of Linus Torvalds. TLDP is a trademark of
-    <a href="http://www.tldp.org">The Linux Documentation Project</a>.
-    All other trademarks are the trademarks of their respective owners.
+    <p>Linux ist ein eingetragenes Warenzeichen von Linus Torvalds.
+    TLDP ist ein eingetragenes Warenzeichen von
+    <a href="http://www.tldp.org">Das Linux-Dokumentations-Projekt</a>.
+    Alle anderen Warenzeichen gehören ihren Eigentümern.
 
-    <p>Unless you expressly state otherwise, by writing a comment,
-    a bug report or a document annotation or other reader feedback you
-    agree to release it into the Public Domain.
-    This is so authors are free to integrate your comments into their
-    documentation regardless of the document\'s license.
+    <p>Sofern Sie es nicht ausdrücklich anders erklären,
+    fallen alle Kommentare, Fehlerberichte, Anmerkungen zu Dokumenten
+    oder andere Formen der Leserrückmeldung die Sie hier veröffentlichen
+    in öffentlichen Besitz (eng. "public domain").
+    Diese Bestimmung ermöglicht es den Autoren, ihre Kommentare
+    unabhängig von den Lizenzbestimmungen des betreffenden Dokuments
+    in die Dokumentation aufzunehmen.
 ])
 
 insert([privacy], [Privacy Policy], [],
@@ -309,6 +314,3 @@ insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
 ])
-
-
-ö
