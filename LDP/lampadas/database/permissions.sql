@@ -27,6 +27,8 @@ GRANT ALL ON username TO "www-data";
 GRANT ALL ON username_notes TO "www-data";
 
 GRANT SELECT ON	config TO root;
+GRANT SELECT ON	class TO root;
+GRANT SELECT ON	class_i18n TO root;
 GRANT SELECT ON doc_vote TO root;
 GRANT SELECT ON document TO root;
 GRANT SELECT ON document_rev to root;

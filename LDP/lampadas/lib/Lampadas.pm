@@ -591,14 +591,15 @@ sub Roles {
 
 sub Classes {
 	my %classes = ();
-	my $sql = "SELECT class_id, lang, class_name, class_description FROM class_i18n";
+	my $language = RequestedLanguage();
+	my $sql = "SELECT class_id, lang, class_name, class_description FROM class_i18n WHERE lang=" . wsq($language);
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$class_id		= &trim($row[0]);
 		$lang			= &trim($row[1]);
 		$classname		= &trim($row[2]);
 		$classdescription	= &trim($row[3]);
-		$key			= $class_id . $lang;
+		$key			= $class_id;
 		$classes{$key}{id}		= $class_id;
 		$classes{$key}{lang}		= $lang;
 		$classes{$key}{name}		= $classname;
@@ -844,12 +845,11 @@ sub ClassCombo {
 	my $language = RequestedLanguage();
 	my %classes = Classes();
 	my $classcombo = "<select name='class_id'>\n";
-	foreach $key (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
-		next unless ($classes{$key}{lang} eq $language);
-		if ($selected eq $classes{$key}{id}) {
-			$classcombo .= "<option value='$classes{$key}{id}' selected>$classes{$key}{name}</option>\n";
+	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
+		if ($selected eq $class_id) {
+			$classcombo .= "<option value='$class_id' selected>$classes{$class_id}{name}</option>\n";
 		} else {
-			$classcombo .= "<option value='$classes{$key}{id}'>$classes{$key}{name}</option>\n";
+			$classcombo .= "<option value='$class_id'>$classes{$class_id}{name}</option>\n";
 		}
 	}
 	$classcombo .= "</select>\n";
@@ -1143,20 +1143,19 @@ sub DocsTable {
 	my %pubstatuses = PubStatuses();
 	my %reviewstatuses = ReviewStatuses();
 	
-
 	my $mypub_status = Param($foo,'strSTATUS');
 	$mypub_status = "N" unless ($mypub_status);
 	my %myclasses = ();
-	foreach $class (keys %classes) {
-		$param = "chk" . $class;
+	foreach $class_id (keys %classes) {
+		$param = "chkCLASS" . $class_id;
 		if (Param($foo, "$param") eq 'on') {
-			$myclasses{$class} = 1;
+			$myclasses{$class_id} = 1;
 		}
 	}
 
 	# Optional Fields
 	#
-	$chkSTATUS       = Param($foo, 'chkSTATUS');
+	$chkSTATUS       = Param($foo,'chkSTATUS');
 	$chkCLASS        = Param($foo,'chkCLASS');
 	$chkFORMAT       = Param($foo,'chkFORMAT');
 	$chkDTD          = Param($foo,'chkDTD');
@@ -1225,13 +1224,13 @@ sub DocsTable {
 	$table .= "</tr>";
 	$table .= "<tr><td align=center valign=top>\n";
 	$table .= "<table><tr><td>";
-	foreach $class (sort keys %classes) {
-		my $name = 'chk' . $class;
+	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
+		my $name = 'chkCLASS' . $class_id;
 		my $value = Param($foo, $name);
 		if ($value eq 'on') {
-			$table .= "<input type='checkbox' checked name='$name'>$class<br>\n";
+			$table .= "<input type='checkbox' checked name='$name'>$classes{$class_id}{name}<br>\n";
 		} else {
-			$table .= "<input type='checkbox' name='$name'>$class<br>\n";
+			$table .= "<input type='checkbox' name='$name'>$classes{$class_id}{name}<br>\n";
 		}
 	}
 	$table .= "</td></tr></table>\n";
@@ -1331,7 +1330,7 @@ sub DocsTable {
 	
 	my $sort = Param($foo, strSORT);
 	if ($sort eq 'class') {
-		@docids = sort { $docs{$a}{class} cmp $docs{$b}{class} } keys %docs;
+		@docids = sort { $classes{$docs{$a}{class_id}}{name} cmp $classes{$docs{$b}{class_id}}{name} } keys %docs;
 	} elsif ($sort eq 'rating') {
 		@docids = sort { $docs{$a}{rating} <=> $docs{$b}{rating} } keys %docs;
 	} elsif ($sort eq 'pub_status') {
@@ -1363,10 +1362,11 @@ sub DocsTable {
 	foreach $doc_id (@docids) {
 
 		$classok = 1;
-		foreach $class (keys %myclasses) {
+		foreach $class_id (keys %myclasses) {
 			$classok = 0;
-			if ($docs{$doc_id}{class} eq $class) {
+			if ($docs{$doc_id}{class_id} eq $class_id) {
 				$classok = 1;
+				last;
 			}
 		}
 		next unless ($classok);
@@ -1411,7 +1411,7 @@ sub DocsTable {
 		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, chkMAINTAINED));
 		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, chkLICENSE));
 		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, chkVERSION));
-		$table .= "<td>$docs{$doc_id}{class}</td>" if (Param($foo, chkCLASS));
+		$table .= "<td>$classes{$docs{$doc_id}{class_id}}{name}</td>" if (Param($foo, chkCLASS));
 		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, chkFORMAT));
 		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, chkDTD));
 		$table .= "<td>$docs{$doc_id}{pub_date}</td>" if (Param($foo, chkPUBDATE));
