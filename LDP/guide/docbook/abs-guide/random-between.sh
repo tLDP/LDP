@@ -98,6 +98,14 @@ randomBetween() {
    randomBetweenAnswer=$(((RANDOM%spread)/divisibleBy*divisibleBy+min))   
 
    return 0
+
+   #  However, Paulo Marcel Coelho Aragao points out that
+   #+ when $max and $min are not divisible by $divisibleBy,
+   #+ the formula fails.
+   #
+   #  He suggests instead the following formula:
+   #    rnumber = $(((RANDOM%(max-min+1)+min)/divisibleBy*divisibleBy))
+
 }
 
 # Let's test the function.

@@ -7,8 +7,8 @@ PIPS=6          # A die has 6 pips.
 MAXTHROWS=600   # Increase this, if you have nothing better to do with your time.
 throw=0         # Throw count.
 
-zeroes=0        # Must initialize counts to zero.
-ones=0          # since an uninitialized variable is null, not zero.
+zeroes=0        #  Must initialize counts to zero,
+ones=0          #+ since an uninitialized variable is null, not zero.
 twos=0
 threes=0
 fours=0
@@ -51,11 +51,11 @@ done
 
 print_result
 
-# The scores should distribute fairly evenly, assuming RANDOM is fairly random.
-# With $MAXTHROWS at 600, all should cluster around 100, plus-or-minus 20 or so.
+#  The scores should distribute fairly evenly, assuming RANDOM is fairly random.
+#  With $MAXTHROWS at 600, all should cluster around 100, plus-or-minus 20 or so.
 #
-# Keep in mind that RANDOM is a pseudorandom generator,
-# and not a spectacularly good one at that.
+#  Keep in mind that RANDOM is a pseudorandom generator,
+#+ and not a spectacularly good one at that.
 
 # Exercise (easy):
 # ---------------

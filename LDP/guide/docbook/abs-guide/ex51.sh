@@ -10,7 +10,7 @@ echo "The number of seconds elapsed since 01/01/1970 is `date +%s`."
 #+ but how is this useful?
 
 prefix=temp
-suffix=`eval date +%s`  # The "+%s" option to 'date' is GNU-specific.
+suffix=$(date +%s)  # The "+%s" option to 'date' is GNU-specific.
 filename=$prefix.$suffix
 echo $filename
 #  It's great for creating "unique" temp filenames,

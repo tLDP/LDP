@@ -1,7 +1,7 @@
 #!/bin/bash
 # strip-comment.sh: Strips out the comments (/* COMMENT */) in a C program.
 
-E_NOARGS=65
+E_NOARGS=0
 E_ARGERROR=66
 E_WRONG_FILE_TYPE=67
 
@@ -12,7 +12,7 @@ then
 fi  
 
 # Test for correct file type.
-type=`eval file $1 | awk '{ print $2, $3, $4, $5 }'`
+type=`file $1 | awk '{ print $2, $3, $4, $5 }'`
 # "file $1" echoes file type . . .
 # Then awk removes the first field of this, the filename . . .
 # Then the result is fed into the variable "type".

@@ -22,11 +22,11 @@ search () {
    # ==> but "dir in `echo *`" will not handle filenames with blanks.
    do
       if [ -d "$dir" ] ; then   # ==> If it is a directory (-d)...
-         zz=0   # ==> Temp variable, keeping track of directory level.
+         zz=0                   # ==> Temp variable, keeping track of directory level.
          while [ $zz != $deep ]    # Keep track of inner nested loop.
          do
             echo -n "|   "    # ==> Display vertical connector symbol,
-	                      # ==> with 2 spaces & no line feed in order to indent.
+                              # ==> with 2 spaces & no line feed in order to indent.
             zz=`expr $zz + 1` # ==> Increment zz.
          done
          if [ -L "$dir" ] ; then   # ==> If directory is a symbolic link...
@@ -39,7 +39,7 @@ search () {
             if cd "$dir" ; then  # ==> If can move to subdirectory...
                deep=`expr $deep + 1`   # ==> Increment depth.
                search     # with recursivity ;-)
-	                  # ==> Function calls itself.
+                          # ==> Function calls itself.
                numdirs=`expr $numdirs + 1`   # ==> Increment directory count.
             fi
          fi

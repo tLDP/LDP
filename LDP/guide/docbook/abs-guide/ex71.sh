@@ -14,6 +14,11 @@ This is the last line of the message.
 -------------------------------------
 End-of-message
 
+#  Replacing line 7, above, with
+#+   cat &gt; $Newfile &lt;&lt;End-of-message
+#+       ^^^^^^^^^^
+#+ writes the output to the file $Newfile, rather than to stdout.
+
 exit 0
 
 

@@ -6,7 +6,7 @@ E_DIR_NOMATCH=70
 E_BAD_DBFILE=71
 
 dbfile=File_record.md5
-# Filename for storing records.
+# Filename for storing records (database file).
 
 
 set_up_database ()
@@ -52,15 +52,26 @@ check_database ()
       #+ checksum first, then filename.
       checksum[n]=$( md5sum "${filename[n]}" )
 
+
       if [ "${record[n]}" = "${checksum[n]}" ]
       then
         echo "${filename[n]} unchanged."
-      else
-        echo "${filename[n]} : CHECKSUM ERROR!"
+
+      elif [ "`basename ${filename[n]}`" != "$dbfile" ]
+             #  Skip over checksum database file,
+             #+ as it will change with each invocation of script.
+	     #  ---
+	     #  This unfortunately means that when running
+	     #+ this script on $PWD, tampering with the
+	     #+ checksum database file will not be detected.
+	     #  Exercise: Fix this.
+	then
+          echo "${filename[n]} : CHECKSUM ERROR!"
         # File has been changed since last checked.
       fi
 
-    fi  
+      fi
+
 
 
     let "n+=1"
@@ -79,6 +90,8 @@ else                    #+ use current working directory.
 fi  
 
 clear                   # Clear screen.
+echo " Running file integrity check on $directory"
+echo
 
 # ------------------------------------------------------------------ #
   if [ ! -r "$dbfile" ] # Need to create database file?
@@ -95,8 +108,9 @@ echo
 #  You may wish to redirect the stdout of this script to a file,
 #+ especially if the directory checked has many files in it.
 
+exit 0
+
 #  For a much more thorough file integrity check,
 #+ consider the "Tripwire" package,
 #+ http://sourceforge.net/projects/tripwire/.
 
-exit 0

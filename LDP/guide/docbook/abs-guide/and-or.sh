@@ -11,12 +11,14 @@ else
 fi
 
 # ERROR:   if [ "$a" -eq 24 && "$b" -eq 47 ]
-#          attempts to execute  ' [ "$a" -eq 24 '
-#          and fails to finding matching ']'.
+#+         attempts to execute  ' [ "$a" -eq 24 '
+#+         and fails to finding matching ']'.
 #
-#    if [[ $a -eq 24 && $b -eq 24 ]]   works
+#  Note:  if [[ $a -eq 24 && $b -eq 24 ]]  works.
+#  The double-bracket if-test is more flexible
+#+ than the single-bracket version.       
 #    (The "&&" has a different meaning in line 17 than in line 6.)
-#    Thanks, Stephane Chazelas.
+#    Thanks, Stephane Chazelas, for pointing this out.
 
 
 if [ "$a" -eq 98 ] || [ "$b" -eq 47 ]

@@ -6,7 +6,7 @@ y=`eval ps ax | sed -n '/ppp/p' | awk '{ print $1 }'`
 kill -9 $y   # Killing it
 
 # Above lines may be replaced by
-#  kill -9 `ps ax | awk '/ppp/ { print $1 }'
+#  kill -9 `ps ax | awk '/ppp/ { print $1 }'`
 
 
 chmod 666 /dev/ttyS3

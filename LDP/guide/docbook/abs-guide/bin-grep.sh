@@ -9,7 +9,7 @@ E_NOFILE=66
 
 if [ $# -ne 2 ]
 then
-  echo "Usage: `basename $0` string filename"
+  echo "Usage: `basename $0` search_string filename"
   exit $E_BADARGS
 fi
 
@@ -20,6 +20,7 @@ then
 fi  
 
 
+IFS="\n"         # Per suggestion of Paulo Marcel Coelho Aragao.
 for word in $( strings "$2" | grep "$1" )
 # The "strings" command lists strings in binary files.
 # Output then piped to "grep", which tests for desired string.
@@ -27,7 +28,7 @@ do
   echo $word
 done
 
-# As S.C. points out, the above for-loop could be replaced with the simpler
+# As S.C. points out, lines 23 - 29 could be replaced with the simpler
 #    strings "$2" | grep "$1" | tr -s "$IFS" '[\n*]'
 
 

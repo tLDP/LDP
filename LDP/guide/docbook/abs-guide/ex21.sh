@@ -61,8 +61,8 @@ number=$RANDOM
 T=1
 
 let "number %= $BINARY"
-# let "number >>= 14"    gives a better random distribution
-# (right shifts out everything except last binary digit).
+#  Note that    let "number >>= 14"    gives a better random distribution
+#+ (right shifts out everything except last binary digit).
 if [ "$number" -eq $T ]
 then
   echo "TRUE"
@@ -73,23 +73,18 @@ fi
 echo
 
 
-# May generate toss of the dice.
-SPOTS=7   # Modulo 7 gives range 0 - 6.
+# Generate toss of the dice.
+SPOTS=6   # Modulo 6 gives range 0 - 5.
+          # Incrementing by 1 gives desired range of 1 - 6.
+          # Thanks, Paulo Marcel Coelho Aragao, for the simplification.
 ZERO=0
 die1=0
 die2=0
 
 # Tosses each die separately, and so gives correct odds.
 
-  while [ "$die1" -eq $ZERO ]     # Can't have a zero come up.
-  do
-    let "die1 = $RANDOM % $SPOTS" # Roll first one.
-  done  
-
-  while [ "$die2" -eq $ZERO ]
-  do
-    let "die2 = $RANDOM % $SPOTS" # Roll second one.
-  done  
+    let "die1 = $RANDOM % $SPOTS +1" # Roll first one.
+    let "die2 = $RANDOM % $SPOTS +1" # Roll second one.
 
 let "throw = $die1 + $die2"
 echo "Throw of the dice = $throw"

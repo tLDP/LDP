@@ -25,7 +25,7 @@ done &lt;data-file
 
 echo "------------------------------------------------"
 
-# Use $IFS (Internal File Separator variable) to split a line of input to
+# Use $IFS (Internal Field Separator variable) to split a line of input to
 # "read", if you do not want the default to be whitespace.
 
 echo "List of all users:"

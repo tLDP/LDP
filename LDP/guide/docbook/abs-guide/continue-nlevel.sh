@@ -15,7 +15,7 @@ do
                   # to see normal loop behavior.
     fi  
 
-    echo -n "$inner "  # 8 9 10 will never echo.
+    echo -n "$inner "  # 7 8 9 10 will never echo.
   done  
 
 done

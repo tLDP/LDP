@@ -79,13 +79,17 @@ PrintBases () {
 }
 
 while [ $# -gt 0 ]
+# ==>  Is a "while loop" really necessary here,
+# ==>+ since all the cases either break out of the loop
+# ==>+ or terminate the script.
+# ==> (Thanks, Paulo Marcel Coelho Aragao.)
 do
     case "$1" in
-	--)	shift; break;;
-	-h)	Usage;;                 # ==> Help message.
-	-*)	Usage;;
-	*)	break;;			# first number
-    esac   # ==> More error checking for illegal input would be useful.
+	--)     shift; break;;
+	-h)     Usage;;                 # ==> Help message.
+	-*)     Usage;;
+         *)     break;;			# first number
+    esac   # ==> More error checking for illegal input might be useful.
     shift
 done
 
@@ -98,3 +102,6 @@ else					# read from stdin
 	PrintBases $line
     done
 fi
+
+
+exit 0
