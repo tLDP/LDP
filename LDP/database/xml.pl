@@ -11,7 +11,6 @@ $query = new CGI;
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-
 $sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract, filename FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N' ORDER BY doc_id";
 $doc=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
@@ -19,6 +18,8 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
 print '<?xml version="1.0" encoding="iso-8859-1"?>' . "\n";
 print '<ldp>' . "\n";
 while (@row = $doc->fetchrow) {
+
+	#OMF
 	$doc_id                  = $row[0];
 	$title                   = $row[1];
 	$title                   =~ s/\s+$//;
@@ -33,6 +34,7 @@ while (@row = $doc->fetchrow) {
 	$review_status_name      = $row[7];
 	$tech_review_status_name = $row[8];
 	$url                     = $row[9];
+	$url                     =~ s/\s+$//;
 	$short_url               = $url;
 	$short_url               =~ s/http:\/\/www\.linuxdoc\.org\///;
 	$pub_date                = $row[10];
@@ -47,6 +49,15 @@ while (@row = $doc->fetchrow) {
 	$abstract                = $row[15];
 	$abstract                =~ s/\s+$//;
 	$filename                = $row[16];
+
+	#LDP SPECIFIC
+	$filename                = $row[16];
+	$filename                =~ s/\s+$//;
+	$name                    = $filename;
+	$name                    =~ s/\s+$//;
+	$name                    =~ s/\.sgml//;
+	$localurl                = $url;
+	$localurl                =~ s/^http:\/\/www\.linuxdoc\.org\///;
 
 	print "<resource id='$doc_id'>\n";
 
@@ -147,13 +158,16 @@ while (@row = $doc->fetchrow) {
 	}
 	print "  </rights>\n";
 
-# LDP specific tags hereafter...
+	#LDP SPECIFIC STUFF FOLLOWS
 
 	#FILENAME
 	print "  <filename>$filename</filename>\n";
 	
+	#NAME
+	print "  <name>$name</name>\n";
+
 	#URL
-	print "  <url>$short_url</url>\n";
+	print "  <url>$localurl</url>\n";
 
 	$sql = "SELECT maintainer_id, role, active, email FROM document_maintainer WHERE doc_id = $doc_id";
 	$maintainer=$conn->exec("$sql");
@@ -173,7 +187,6 @@ while (@row = $doc->fetchrow) {
 		print "    <email>$email</email>\n";
 		print "  </maintainer>\n";
 	}
-
 	print "</resource>\n";
 }
 
