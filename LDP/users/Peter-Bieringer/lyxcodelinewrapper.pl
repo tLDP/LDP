@@ -156,4 +156,4 @@ sub print_long_line ($){
 	};
 };
 
-print STDERR "WARNING: check code using utility 'diff' for proper LyX output!"
+print STDERR "\n\nWARNING: check code using utility 'diff' for proper LyX output!\n";
