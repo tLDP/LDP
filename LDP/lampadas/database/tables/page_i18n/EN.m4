@@ -167,7 +167,7 @@ insert([unmaintained], [Unmaintained Documents], [],
     If you find an error, please notify the site administrator right away
     so we can correct the problem.
     
-    |tabunmaintained|
+    <p>|tabunmaintained|
 ], 1)
 
 insert([maint_wanted], [New Maintainer Wanted], [],
@@ -429,6 +429,7 @@ insert([password_mailed], [Password Mailed], [],
 insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
+    <p>|user.docs|
 ], 1)
 
 insert([logged_in], [Logged In], [],

@@ -798,6 +798,10 @@ class TableFactory:
         return box
         
     def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
+        """
+        Creates a listing of all documents which fit the parameters passed in.
+        """
+
         log(3, "Creating doctable")
         box = '<table class="box" width="100%"><tr><th colspan="3">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
@@ -872,7 +876,7 @@ class TableFactory:
         box = box + '</table>'
         return box
 
-    def user_docs(self, uri, user):
+    def userdocs(self, uri, user):
         if user:
             box = self.doctable(uri, user, username=user.username)
         else:
@@ -1213,7 +1217,7 @@ class PageFactory:
                     else:
                         newstring = build_user.name
                 if token=='session_user_docs':
-                    newstring = self.tablef.user_docs(uri, build_user)
+                    newstring = self.tablef.userdocs(uri, build_user)
 
                 # Meta-data about the page being served
                 # 
@@ -1254,8 +1258,11 @@ class PageFactory:
                 if token=='version':
                     newstring = VERSION
 
-                # Tokens for when a page embeds an object
-                # 
+                ###########################################
+                # Tokens for when a page embeds an object #
+                ###########################################
+                
+                # Embedded User
                 if token=='user.username':
                     user = lampadas.users[uri.username]
                     if not user:
@@ -1268,12 +1275,22 @@ class PageFactory:
                         newstring = '|blknotfound|'
                     else:
                         newstring = user.name
+                if token=='user.docs':
+                    user = lampadas.users[uri.username]
+                    if not user:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = self.tablef.userdocs(uri, build_user)
+
+                # Embedded Type
                 if token=='type.name':
                     type = lampadas.types[uri.code]
                     if not type:
                         newstring = '|blknotfound|'
                     else:
                         newstring = type.name[uri.lang]
+
+                # Embedded Topic
                 if token=='topic.name':
                     topic = lampadas.topics[uri.code]
                     if not topic:

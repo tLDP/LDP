@@ -102,8 +102,32 @@ insert([contribute], [Contribuer à Lampadas], [Contribuer à Lampadas],
 
 insert([unmaintained], [Unmaintained Documents], [],
 [
-    |tabunmaintained|
-], 1)
+    <p>If you wish to become the maintainer for one of these unmaintained
+    documents, please follow these steps:
+
+    <ul>
+        <li>Contact the original author. If not listed, consult the document.
+        Make sure the author no longer wishes to maintain the document in question.
+
+        <li>Determine if a more up-to-date copy of the document exists, outside
+        of what is available here. The best way to do this is through the
+        former maintainer. If you can, secure a copy of the most recent
+        version and submit it here.
+
+        <li>Inform the site administrator that you would like to maintain the
+        document. The administrator will assign you the necessary rights so
+        you can begin maintaining it.
+
+        <li>Update the document, adding yourself as the current maintainer.
+        Be sure that you continue to credit all former maintainers.
+    </ul>
+
+    <p>It is possible that a document could be listed here erroneously.
+    If you find an error, please notify the site administrator right away
+    so we can correct the problem.
+    
+    <p>|tabunmaintained|
+], 0)
 
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
@@ -296,6 +320,7 @@ insert([password_mailed], [Password Mailed], [],
 insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
+    <p>|user.docs|
 ], 1)
 
 insert([logged_in], [Logged In], [],

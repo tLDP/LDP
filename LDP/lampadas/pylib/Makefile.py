@@ -65,6 +65,9 @@ class Makefile:
         Writes a Makefile to convert the source files into DocBook XML.
         """
 
+        if doc.errors.count() > 0 or (doc.pub_status_code<>'A' and doc.pub_status_code<>'N'):
+            return
+
         for file in doc.files.keys():
             file = doc.files[file]
             if file.top==1 and file.errors.count()==0:
@@ -86,10 +89,10 @@ class Makefile:
 
                 # LinuxDoc SGML
                 elif file.format_code=='sgml' and doc.dtd_code=='LinuxDoc':
-                    Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/' + "\n"
-                    Makefile = Makefile + 'BUILD_XML = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + file.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
-                    Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log; '
-                    Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
+                    Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/\n'
+                    Makefile = Makefile + 'BUILD_DOCBOOK = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + file.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
+                    Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log\n'
+                    Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
 
                 # DocBook XML
                 elif file.format_code=='xml' and doc.dtd_code=='DocBook':
@@ -110,6 +113,9 @@ class Makefile:
 
                 # Unrecognized
                 else:
+                    # Complain loudly if we can't handle the format.
+                    # Theoretically shouldn't happen, or the doc would have had errors.
+                    print 'ERROR in document ' + str(doc.id) + ': format_code ' + file.format_code
                     log(3, 'unrecognized format code: ' + file.format_code)
                     continue
                     
@@ -123,18 +129,31 @@ class Makefile:
 
                 Makefile = Makefile + "all:\tbuild\n\n"
                 
-                Makefile = Makefile + "build:\txml html index txt omf\n\n"
-                if file.format_code=='sgml' and doc.dtd_code=='DocBook':
+                Makefile = Makefile + "build:\tdocbook xml html index txt omf\n\n"
+
+                if file.format_code=='sgml' and doc.dtd_code=='LinuxDoc':
+                    Makefile = Makefile + 'docbook:\t' + dbsgmlfile + '\n\n'
+                else:
+                    Makefile = Makefile + "docbook:\n\n"
+
+                if file.format_code=='xml' and doc.dtd_code=='DocBook':
                     Makefile = Makefile + "xml:\n\n"
                 else:
                     Makefile = Makefile + "xml:\t" + xmlfile + "\n\n"
+
                 Makefile = Makefile + "html:\t" + htmlfile + "\n\n"
                 Makefile = Makefile + "index:\t" + indexfile + "\n\n"
                 Makefile = Makefile + "txt:\t" + txtfile + "\n\n"
                 Makefile = Makefile + "omf:\t" + omffile + "\n\n"
-                
-                Makefile = Makefile + xmlfile + ":\t" + file.file_only + "\n"
-                Makefile = Makefile + "\t$(BUILD_XML)\n\n"
+
+                if file.format_code=='sgml' and doc.dtd_code=='LinuxDoc':
+                    Makefile = Makefile + dbsgmlfile + ':\t' + file.file_only + '\n'
+                    Makefile = Makefile + '\t$(BUILD_DOCBOOK)\n\n'
+                    Makefile = Makefile + xmlfile + ":\t" + dbsgmlfile + "\n"
+                    Makefile = Makefile + "\t$(BUILD_XML)\n\n"
+                else:
+                    Makefile = Makefile + xmlfile + ":\t" + file.file_only + "\n"
+                    Makefile = Makefile + "\t$(BUILD_XML)\n\n"
 
                 Makefile = Makefile + htmlfile + ":\t" + xmlfile + "\n"
                 Makefile = Makefile + "\t$(BUILD_HTML)\n\n"
@@ -150,7 +169,8 @@ class Makefile:
 
                 Makefile = Makefile + "clean:\n"
                 Makefile = Makefile + "\trm -f " + dbsgmlfile + "\n"
-                Makefile = Makefile + "\trm -f " + xmlfile + "\n"
+                if doc.format_code<>'xml':
+                    Makefile = Makefile + "\trm -f " + xmlfile + "\n"
                 Makefile = Makefile + "\trm -f " + htmlfile + "\n"
                 Makefile = Makefile + "\trm -f " + indexfile + "\n"
                 Makefile = Makefile + "\trm -f expanded.sgml\n"
@@ -168,6 +188,7 @@ class Makefile:
 
     def write_main_makefile(self):
         docsmake = ''
+        docbookmake = ''
         xmlmake = ''
         htmlmake = ''
         indexmake = ''
@@ -184,19 +205,21 @@ class Makefile:
                     if file.top==1:
     #                    if (file.format_code=='sgml' and doc.dtd_code=='DocBook') or (file.format_code=='sgml' and doc.dtd_code=='LinuxDoc') or file.format_code=='xml' or file.format_code=='wikitext' or file.format_code=='text':
                         makeneeded = 1
-                        docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
-                        xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
-                        htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) -i html 2>>make.log\n"
-                        indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) -i index 2>>make.log\n"
-                        txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) -i txt 2>>make.log\n"
-                        omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) -i omf 2>>db2omf.log\n"
-                        cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) -i clean 2>>make.log\n"
-                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) -i rebuild 2>>make.log\n"
+                        docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) all 2>>make.log\n"
+                        docbookmake = docbookmake + '\tcd ' + str(docid) + '; $(MAKE) xml 2>>make.log\n'
+                        xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) xml 2>>make.log\n"
+                        htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) html 2>>make.log\n"
+                        indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) index 2>>make.log\n"
+                        txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) txt 2>>make.log\n"
+                        omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) omf 2>>db2omf.log\n"
+                        cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) clean 2>>make.log\n"
+                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) rebuild 2>>make.log\n"
 
         if makeneeded:
             Makefile = "all:\tbuild\n\n"
             Makefile = Makefile + "build:\tdocs\n\n"
             Makefile = Makefile + "docs:\n" + docsmake + "\n\n"
+            Makefile = Makefile + "docbook:\n" + docbookmake + "\n\n"
             Makefile = Makefile + "xml:\n" + xmlmake + "\n\n"
             Makefile = Makefile + "html:\n" + htmlmake + "\n\n"
             Makefile = Makefile + "index:\n" + indexmake + "\n\n"

@@ -40,11 +40,13 @@ import string
 
 # Globals
 
-ERR_FILE_NOT_FOUND = 1
-ERR_FILE_NOT_WRITABLE = 2
 ERR_NO_SOURCE_FILE = 3
 ERR_NO_PRIMARY_FILE = 4
 ERR_TWO_PRIMARY_FILES = 5
+ERR_NO_FORMAT_CODE = 7
+
+ERR_FILE_NOT_FOUND = 1
+ERR_FILE_NOT_WRITABLE = 2
 ERR_FILE_NOT_READABLE = 6
 
 # Lintadas
@@ -92,8 +94,11 @@ class Lintadas:
 
         # If document is not active or archived, do not flag
         # any errors against it.
-        if doc.pub_status_code<>'N' and doc.pub_status_code=='A':
+        if doc.pub_status_code<>'N' and doc.pub_status_code<>'A':
             return
+
+        if doc.format_code=='':
+            doc.errors.add(ERR_NO_FORMAT_CODE)
 
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
