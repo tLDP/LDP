@@ -2,7 +2,6 @@
 
 use CGI qw(:standard);
 use Pg;
-use Time::localtime;
 use Lampadas;
 
 $L = new Lampadas;
@@ -14,51 +13,39 @@ $query = new CGI;
 
 # Read parameters
 #
-$chkBACKGROUNDER = param('chkBACKGROUNDER');
-$chkHOWTO        = param('chkHOWTO');
-$chkMINI         = param('chkMINI');
-$chkGUIDE        = param('chkGUIDE');
-$chkFAQ          = param('chkFAQ');
-$chkQUICK        = param('chkQUICK');
-$chkTEMPLATE     = param('chkTEMPLATE');
+$chkBACKGROUNDER = $L->Param('chkBACKGROUNDER');
+$chkHOWTO        = $L->Param('chkHOWTO');
+$chkMINI         = $L->Param('chkMINI');
+$chkGUIDE        = $L->Param('chkGUIDE');
+$chkFAQ          = $L->Param('chkFAQ');
+$chkQUICK        = $L->Param('chkQUICK');
+$chkTEMPLATE     = $L->Param('chkTEMPLATE');
 
 # Optional Fields
 #
-$chkSTATUS       = param('chkSTATUS');
-$chkCLASS        = param('chkCLASS');
-$chkFORMAT       = param('chkFORMAT');
-$chkDTD          = param('chkDTD');
-$chkPUBDATE      = param('chkPUBDATE');
-$chkLASTUPDATE   = param('chkLASTUPDATE');
-$chkTICKLEDATE   = param('chkTICKLEDATE');
-$chkREVIEWSTATUS = param('chkREVIEWSTATUS');
-$chkTECHSTATUS   = param('chkTECHSTATUS');
-$chkURL          = param('chkURL');
-$chkMAINTAINED   = param('chkMAINTAINED');
-$chkLICENSE      = param('chkLICENSE');
-$chkVERSION      = param('chkVERSION');
-$chkFILENAME     = param('chkFILENAME');
-$chkRATING       = param('chkRATING');
+$chkSTATUS       = $L->Param('chkSTATUS');
+$chkCLASS        = $L->Param('chkCLASS');
+$chkFORMAT       = $L->Param('chkFORMAT');
+$chkDTD          = $L->Param('chkDTD');
+$chkPUBDATE      = $L->Param('chkPUBDATE');
+$chkLASTUPDATE   = $L->Param('chkLASTUPDATE');
+$chkTICKLEDATE   = $L->Param('chkTICKLEDATE');
+$chkREVIEWSTATUS = $L->Param('chkREVIEWSTATUS');
+$chkTECHSTATUS   = $L->Param('chkTECHSTATUS');
+$chkURL          = $L->Param('chkURL');
+$chkMAINTAINED   = $L->Param('chkMAINTAINED');
+$chkLICENSE      = $L->Param('chkLICENSE');
+$chkVERSION      = $L->Param('chkVERSION');
+$chkFILENAME     = $L->Param('chkFILENAME');
+$chkRATING       = $L->Param('chkRATING');
 
-$SORT1     = param('strSORT1');
-$SORT2     = "";
-$SORT3     = "";
+$SORT     = $L->Param('strSORT');
+$SORT = "Title" unless ($SORT);
 
-if ( $SORT1 ) {
-  $SORT2     = param('strSORT2');
-  $SORT3     = param('strSORT3');
-}
-else {
-  $SORT1 = "Title";
-}
+$strSTATUS = $L->Param('strSTATUS');
 
-if ( $SORT2 ) { $SORT2 = ", $SORT2"; }
-if ( $SORT3 ) { $SORT3 = ", $SORT3"; }
-
-$strSTATUS = param('strSTATUS');
-
-$mydocuments = param("MyDocuments");
-$reload = param('Reload');
+$mydocuments = $L->Param("MyDocuments");
+$reload = $L->Param('Reload');
 
 # if we're not reloading, or aren't a maintainer, the default is to show only Active ('N') documents.
 unless (($reload eq 'Reload') or ($mydocuments eq 'MyDocuments') or ($L->Maintainer())) {
@@ -169,23 +156,23 @@ print "</td></tr></table>\n";
 print "</td>\n";
 
 print "<td valign=top>\n";
-print "<select name=strSORT1>\n";
-if ( $SORT1 eq "title" ) { print '<option selected value="title">Title</option>'; } else { print '<option value="title">Title</option>' }
-if ( $SORT1 eq "class" ) { print '<option selected value="class">Class</option>'; } else { print '<option value="class">Class</option>' }
-if ( $SORT1 eq "rating" ) { print '<option selected value="rating">Rating</option>'; } else { print '<option value="rating">Rating</option>' }
+print "<select name=strSORT>\n";
+if ( $SORT eq "title" ) { print '<option selected value="title">Title</option>'; } else { print '<option value="title">Title</option>' }
+if ( $SORT eq "class" ) { print '<option selected value="class">Class</option>'; } else { print '<option value="class">Class</option>' }
+if ( $SORT eq "rating" ) { print '<option selected value="rating">Rating</option>'; } else { print '<option value="rating">Rating</option>' }
 if ($L->Maintainer()) {
-	if ( $SORT1 eq "document.pub_status" ) { print '<option selected value="document.pub_status">Status</option>'; } else { print '<option value="document.pub_status">Status</option>' }
-	if ( $SORT1 eq "review_status_name" ) { print '<option selected value="review_status_name">Review Status</option>'; } else { print '<option value="review_status_name">Review Status</option>' }
-	if ( $SORT1 eq "tech_review_status_name" ) { print '<option selected value="tech_review_status_name">Tech Review Status</option>'; } else { print '<option value="tech_review_status_name">Tech Review Status</option>' }
-	if ( $SORT1 eq "format" ) { print '<option selected value="format">Format</option>'; } else { print '<option value="format">Format</option>' }
-	if ( $SORT1 eq "dtd" ) { print '<option selected value="dtd">DTD</option>'; } else { print '<option value="dtd">DTD</option>' }
-	if ( $SORT1 eq "pub_date" ) { print '<option selected value="pub_date">Publication Date</option>'; } else { print '<option value="pub_date">Publication Date</option>' }
-	if ( $SORT1 eq "last_update" ) { print '<option selected value="last_update">Last Update</option>'; } else { print '<option value="last_update">Last Update</option>' }
-	if ( $SORT1 eq "tickle_date" ) { print '<option selected value="tickle_date">Tickle Date</option>'; } else { print '<option value="tickle_date">Tickle Date</option>' }
-	if ( $SORT1 eq "url" ) { print '<option selected value="url">URL</option>'; } else { print '<option value="url">URL</option>' }
-	if ( $SORT1 eq "maintained" ) { print '<option selected value="maintained">Maintained</option>'; } else { print '<option value="maintained">Maintained</option>' }
-	if ( $SORT1 eq "license" ) { print '<option selected value="license">License</option>'; } else { print '<option value="license">License</option>' }
-	if ( $SORT1 eq "filename" ) { print '<option selected value="filename">Filename</option>'; } else { print '<option value="filename">Filename</option>' }
+	if ( $SORT eq "document.pub_status" ) { print '<option selected value="document.pub_status">Status</option>'; } else { print '<option value="document.pub_status">Status</option>' }
+	if ( $SORT eq "review_status_name" ) { print '<option selected value="review_status_name">Review Status</option>'; } else { print '<option value="review_status_name">Review Status</option>' }
+	if ( $SORT eq "tech_review_status_name" ) { print '<option selected value="tech_review_status_name">Tech Review Status</option>'; } else { print '<option value="tech_review_status_name">Tech Review Status</option>' }
+	if ( $SORT eq "format" ) { print '<option selected value="format">Format</option>'; } else { print '<option value="format">Format</option>' }
+	if ( $SORT eq "dtd" ) { print '<option selected value="dtd">DTD</option>'; } else { print '<option value="dtd">DTD</option>' }
+	if ( $SORT eq "pub_date" ) { print '<option selected value="pub_date">Publication Date</option>'; } else { print '<option value="pub_date">Publication Date</option>' }
+	if ( $SORT eq "last_update" ) { print '<option selected value="last_update">Last Update</option>'; } else { print '<option value="last_update">Last Update</option>' }
+	if ( $SORT eq "tickle_date" ) { print '<option selected value="tickle_date">Tickle Date</option>'; } else { print '<option value="tickle_date">Tickle Date</option>' }
+	if ( $SORT eq "url" ) { print '<option selected value="url">URL</option>'; } else { print '<option value="url">URL</option>' }
+	if ( $SORT eq "maintained" ) { print '<option selected value="maintained">Maintained</option>'; } else { print '<option value="maintained">Maintained</option>' }
+	if ( $SORT eq "license" ) { print '<option selected value="license">License</option>'; } else { print '<option value="license">License</option>' }
+	if ( $SORT eq "filename" ) { print '<option selected value="filename">Filename</option>'; } else { print '<option value="filename">Filename</option>' }
 }
 print "</select><br>";
 print "</td>\n";
@@ -209,28 +196,11 @@ if ($L->Maintainer()) {
 
 print "</tr></table>\n";
 print "<input type=submit name=Reload value=Reload>\n";
-$username=$query->remote_user();
 
 # connect to the database
 $conn=Pg::connectdb("dbname=$dbmain");
 
 if ($L->Maintainer()) {
-	$result=$conn->exec("SELECT user_id FROM username WHERE username='$username'");
-	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-	@row = $result->fetchrow;
-	$user_id = $row[0];
-	if ($user_id > 0) {
-		$result=$conn->exec("SELECT doc_id FROM document_user WHERE user_id=$user_id");
-		die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-		while (@row = $result->fetchrow) {
-			if ($doc_id_sql) {
-				$doc_id_sql .= " OR doc_id=$row[0]";
-			} else {
-				$doc_id_sql = "(doc_id=$row[0]";
-			}
-		}
-		$doc_id_sql .= ")";
-	}
 	print "<input type=submit value='MyDocuments' name=MyDocuments>\n";
 }
 
@@ -256,19 +226,24 @@ if ( $URL ) { print "<th>URL</th>"; }
 print "</tr>\n";
 
 # load the tuples
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename, rating";
+$sql = "SELECT document.doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename, rating";
 $sql .= " FROM document,";
 $sql .= " pub_status,";
 $sql .= " review_status lr,";
 $sql .= " review_status tr";
+$sql .= ", document_user du" if ($mydocuments);
 $sql .= " $WHERE";
+if ($mydocuments){
+	$sql .= " AND document.doc_id=du.doc_id";
+	$sql .= " AND du.user_id=" . $L->CurrentUserID();
+	$sql .= " AND du.active='t'";
+}
 $sql .= " AND document.pub_status=pub_status.pub_status";
 $sql .= " AND document.review_status = lr.review_status";
 $sql .= " AND document.tech_review_status = tr.review_status";
 $sql .= " AND url > ''" unless ($L->Maintainer());
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
-if (($doc_id_sql) and ($mydocuments)) { $sql .= " AND $doc_id_sql" }
-$sql = $sql . " ORDER BY $SORT1";
+$sql = $sql . " ORDER BY $SORT";
 #print "<tr><td colspan=20>$sql</td></tr>";
 
 $result=$conn->exec("$sql");

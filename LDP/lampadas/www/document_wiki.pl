@@ -5,26 +5,28 @@ $editrows = 25;
 
 use CGI qw(:standard);
 use Pg;
+use Lampadas;
 
 $query = new CGI;
+$L = new Lampadas;
+
 $dbmain = "ldp";
 @row;
 $section_max	= 25;
 
-# Read parameters
-$doc_id		= param('doc_id');
-$notes          = param('notes');
-$revision	= param('revision');
+# Read $L->Parameters
+$doc_id		= $L->Param('doc_id');
+$notes          = $L->Param('notes');
+$revision	= $L->Param('revision');
 
 $logfile = '/tmp/ldp.log';
 open (LOG, "> $logfile");
-print LOG "document_wiki opened by $username.\n";
-
+print LOG "document_wiki opened by " . $L->CurrentUserID() . ".\n";
 
 $section = 0;
 while ($section <= $section_max) {
 	$section++;
-	$wiki_section = param("wiki$section");
+	$wiki_section = $L->Param("wiki$section");
 	if ($wiki_section) {
 #		if ($wiki) {
 #			$wiki .= "\n";
@@ -34,38 +36,26 @@ while ($section <= $section_max) {
 }
 $section = 0;
 
-$save		= param('Save');
-$preview	= param('Preview');
-$docbook	= param('DocBook');
-$splitup	= param('SplitUp');
+$save		= $L->Param('Save');
+$preview	= $L->Param('Preview');
+$docbook	= $L->Param('DocBook');
+$splitup	= $L->Param('SplitUp');
+
+unless ($L->Admin()) {
+	%userdocs = $L->UserDocs($L->CurrentUserID());
+	unless ($userdocs{$doc_id}) {
+		print $query->redirect("wrongpermission.pl");
+		exit;
+	}
+}
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
-	exit;
-} else {
-	if ($row[1] ne 't') {
-		$maintainer_id = $row[2];
-		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
-		@row = $result->fetchrow;
-		unless ($row[0]) {
-			print $query->redirect("../wrongpermission.html");
-			exit;
-		}
-	}
-}
-
-print LOG "Opening document_wiki by $username.\n";
+print LOG "Opening document_wiki by " . $L->CurrentUserID() . ".\n";
 
 if ($save) {
-	print LOG "Saving document_wiki by $username.\n";
+	print LOG "Saving document_wiki by " . $L->CurrentUserID() . ".\n";
 	while ($wiki =~ /\\/) {
 		$wiki =~ s/\\/a1s2d3f4/;
 	}
@@ -106,14 +96,14 @@ if ($save) {
 		&printheader;
 		print "<p>Edit conflict!\n";
 		print "<p>You were editing version $revisions, but trying to save to version $revision\n";
-		print end_html;
+		$L->EndPage();
 	} elsif ($wiki eq '') {
 		&printheader;
 		print "<p>No content to save!\n";
-		print end_html;
+		$L->EndPage();
 	} else {
 		$revision = $revisions + 1;
-		$sql = "INSERT INTO document_wiki(doc_id, revision, date_entered, wiki, notes, username) VALUES ($doc_id, $revision, now(), '$wiki', '$notes', '$username')";
+		$sql = "INSERT INTO document_wiki(doc_id, revision, date_entered, wiki, notes, user_id) VALUES ($doc_id, $revision, now(), '$wiki', '$notes', " . $L->CurrentUserID() . ")";
 		$result=$conn->exec($sql);
 		print $query->redirect("document_edit.pl?doc_id=$doc_id");
 	}
@@ -194,7 +184,7 @@ unless (($preview) or ($docbook)) {
 	}
 	print "</table>\n";
 	print "</form>\n";
-	print end_html;
+	$L->EndPage();
 }
 
 if ($preview or $docbook) {
@@ -215,7 +205,7 @@ if ($preview or $docbook) {
 	$cmd = "/usr/local/bin/wt2db -o $sgmlfile $txtfile";
 	system($cmd);
 	
-	print LOG "Wrote wt file to $txtfile for document $doc_id by $username.\n";
+	print LOG "Wrote wt file to $txtfile for document $doc_id by " . $L->CurrentUserID() . ".\n";
 	
 	$sgml  = '<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
 	if ($class eq 'FAQ') {
@@ -269,7 +259,7 @@ if ($preview or $docbook) {
 	
 	$sgml .= "</articleinfo>\n";
 	
-	print LOG "Opening sgml file $sgmlfile for document $doc_id by $username.\n";
+	print LOG "Opening sgml file $sgmlfile for document $doc_id by " . $L->CurrentUserID() . ".\n";
 	
 	$sgmlfileline = 0;
 	open(SGML, $sgmlfile);
@@ -289,7 +279,7 @@ if ($preview or $docbook) {
 	close(SGML);
 	print LOG "\n";
 
-	print LOG "Read $sgmlfileline lines from $sgmlfile for document $doc_id by $username.\n";
+	print LOG "Read $sgmlfileline lines from $sgmlfile for document $doc_id by " . $L->CurrentUserID() . ".\n";
 	
 	$sgml .= "</article>\n";
 
@@ -297,7 +287,7 @@ if ($preview or $docbook) {
 	print SGML $sgml;
 	close(SGML);
 	
-	print LOG "Wrote composite sgml file $sgmlfile for document $doc_id by $username.\n";
+	print LOG "Wrote composite sgml file $sgmlfile for document $doc_id by " . $L->CurrentUserID() . ".\n";
 	
 }
 
@@ -321,7 +311,7 @@ if ($docbook) {
 
 if ($preview) {
 	
-	print LOG "Previewing $sgmlfile for document $doc_id by $username.\n";
+	print LOG "Previewing $sgmlfile for document $doc_id by " . $L->CurrentUserID() . ".\n";
 
 	print LOG "Running xsltproc on $sgmlfile, into $htmlfile.\n";
 	
@@ -344,16 +334,7 @@ if ($preview) {
 }
 
 sub printheader {
-	print header(-expires=>'now');
-	print "<html><head><title>$title Wiki</title>";
-	print "<link rel=stylesheet href='../ldp.css' type='text/css'>";
-	print "</head>";
-	print "<body>";
-
-	print "<h1>$title Wiki</h1>\n";
-
-	system("./navbar.pl");
-	print "<a href='/help/wiki.html'>Page Help</a>";
+	$L->StartPage("$title Wiki");
 
 	print "<p>";
 	print "<a href='document_edit.pl?doc_id=$doc_id'>Meta-Data</a>\n";

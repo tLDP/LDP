@@ -27,35 +27,7 @@ $result=$conn->exec("SELECT user_id, username, first_name, middle_name, surname,
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 $L->StartPage('Lampadas Users');
-
-print "<p><table border=0>\n";
-print"<tr><th>Username</th>\n";
-print "<th>First Name</th>\n";
-print "<th>Middle Name</th>\n";
-print "<th>Surname</th>\n";
-print "<th>Email</th>\n";
-print "<th>Admin</th></tr>\n";
-while (@row = $result->fetchrow) {
-	$user_id = $row[0];
-	$username = $row[1];
-	$username =~ s/\s+$//;
-	$first_name = $row[2];
-	$middle_name = $row[3];
-	$surname = $row[4];
-	$email = $row[5];
-	$admin = $row[6];
-	print "<tr><td>" . a({href=>"user_edit.pl?user_id=$user_id"},"$username") . "</td>";
-	print "<td>$first_name</td>\n";
-	print "<td>$middle_name</td>\n";
-	print "<td>$surname</td>\n";
-	print "<td>$email</td>\n";
-	print "<td>$admin</td>\n";
-	print "</tr>";
-	$count++;
-}
-print "</table>\n";
-
-print "<p>Count: $count";
+print $L->UsersTable();
 
 print "<p><hr>\n";
 

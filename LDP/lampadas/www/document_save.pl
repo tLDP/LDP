@@ -64,9 +64,17 @@ $sql = "UPDATE document SET filename='$filename' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 $sql = "UPDATE document SET class='$class' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
-$sql = "UPDATE document SET format='$format' WHERE doc_id=$doc_id";
+if ($format) {
+	$sql = "UPDATE document SET format='$format' WHERE doc_id=$doc_id";
+} else {
+	$sql = "UPDATE document SET format=null WHERE doc_id=$doc_id";
+}
 $result=$conn->exec($sql);
-$sql = "UPDATE document SET dtd='$dtd' WHERE doc_id=$doc_id";
+if ($dtd) {
+	$sql = "UPDATE document SET dtd='$dtd' WHERE doc_id=$doc_id";
+} else {
+	$sql = "UPDATE document SET dtd=null WHERE doc_id=$doc_id";
+}
 $result=$conn->exec($sql);
 $sql = "UPDATE document SET dtd_version='$dtd_version' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);

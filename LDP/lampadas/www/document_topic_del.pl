@@ -1,37 +1,27 @@
 #! /usr/bin/perl
 
-use CGI qw(:standard);
-use Pg;
+use Lampadas;
+use Lampadas::Database;
 
-$query = new CGI;
-$dbmain = "ldp";
-@row;
+$L = new Lampadas;
+$DB = new Lampadas::Database;
 
 # Read parameters
-$doc_id       = param('doc_id');
-$topic_num    = param('topic_num');
-$subtopic_num = param('subtopic_num');
-$caller       = param('caller');
+$doc_id		= $L->Param('doc_id');
+$topic_num	= $L->Param('topic_num');
+$subtopic_num	= $L->Param('subtopic_num');
+$caller		= $L->Param('caller');
 
-$conn=Pg::connectdb("dbname=$dbmain");
-
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
-	exit;
-} else {
-	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
-		print $query->redirect("../wrongpermission.html");
+unless ($L->Admin()) {
+	%userdocs = $L->UserDocs($L->CurrentUserID());
+	unless ($userdocs{$doc_id}) {
+		$L->Redirect("wrongpermission.pl");
 		exit;
 	}
 }
 
-$sql = "DELETE FROM document_topic WHERE doc_id=$doc_id AND topic_num=$topic_num AND subtopic_num=$subtopic_num";
-$result=$conn->exec($sql);
+$DB->Exec("DELETE FROM document_topic WHERE doc_id=$doc_id AND topic_num=$topic_num AND subtopic_num=$subtopic_num");
 
-print $query->redirect($caller)
+$L->Redirect($caller);
+
 

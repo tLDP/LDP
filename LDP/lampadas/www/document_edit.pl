@@ -11,57 +11,18 @@ $dbmain = "ldp";
 @row;
 $message = '';
 
-# Read parameters
-$doc_id       = param('doc_id');
+$doc_id       = $L->Param('doc_id');
 
-$currentuser = $query->remote_user();
+unless ($L->Admin()) {
+	%userdocs = $L->UserDocs($L->CurrentUserID());
+	unless ($userdocs{$doc_id}) {
+		print $query->redirect("wrongpermission.pl");
+		exit;
+	}
+}
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
-
-$result = $conn->exec("SELECT user_id FROM username WHERE username='$username'");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-@row = $result->fetchrow;
-$currentuser_id = $row[0];
-
-$result = $conn->exec("SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, ref_url, pub_date, tech_review_status, maintained, license, abstract FROM document WHERE doc_id = $doc_id");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
-
-@row = $result->fetchrow;
-
-
-
-# Load from db
-$doc_id        = $row[0];
-$title         = $row[1];
-$title         =~  s/\s+$//;
-$title         =~  s/\'//;
-$filename      = $row[2];
-$filename      =~  s/\s+$//;
-$class         = $row[3];
-$class         =~  s/\s+$//;
-$format        = $row[4];
-$format        =~  s/\s+$//;
-$dtd           = $row[5];
-$dtd           =~  s/\s+$//;
-$dtd_version   = $row[6];
-$dtd_version   =~  s/\s+$//;
-$version       = $row[7];
-$version       =~  s/\s+$//;
-$last_update   = $row[8];
-$url           = $row[9];
-$isbn          = $row[10];
-$pub_status    = $row[11];
-$review_status = $row[12];
-$tickle_date   = $row[13];
-$ref_url       = $row[14];
-$pub_date      = $row[15];
-$tech_review_status = $row[16];
-$maintained    = $row[17];
-$license       = $row[18];
-$license       =~  s/\s+$//;
-$abstract      = $row[19];
-$abstract      =~  s/\s+$//;
 
 # Read the votes
 $votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id");
@@ -78,162 +39,11 @@ if ($vote_count > 0) {
 	$vote_avg = $vote_total / $vote_count;
 }
 
+%doc = $L->Doc($doc_id);
 
-$L->StartPage("$title ($doc_id)");
+$L->StartPage("$doc{title} ($doc_id)");
 
-print "<p><table class='box'>\n";
-print "<form method=POST action='document_save.pl' name='edit'>\n";
-print "<tr>\n";
-print "<th colspan=6>Document Details</th>\n";
-print "</tr>\n";
-
-print "<tr>\n";
-print "<th align=right>Title:</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$title'></td>\n";
-print "</tr>\n";
-
-print "<tr>\n";
-print "<th align=right>Filename:</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$filename'></td>\n";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right><a href='$url'>URL</a>:</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$url'></td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right><a href='$ref_url'>Home</a>:</th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$ref_url'></td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Status:</th><td>";
-print "<select name=pub_status>";
-print $L->PubStatusCombo($pub_status);
-print "</td>";
-
-print "<th align=right>Class:</th><td>\n";
-print $L->ClassCombo($class);
-print "</td>";
-
-print "<th align=right>Maintained:</th><td>\n";
-if ( $maintained eq "t" ) { print 'Yes'; } else { print 'No' }
-print "</td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Review Status:</th><td>";
-print "<select name=review_status>";
-if ( $review_status eq "U" ) { print '<option selected value="U">Unreviewed</option>'; } else { print '<option value="U">Unreviewed</option>' }
-if ( $review_status eq "N" ) { print '<option selected value="N">Need Identified</option>'; } else { print '<option value="N">Need Identified</option>' }
-if ( $review_status eq "P" ) { print '<option selected value="P">Pending</option>'; } else { print '<option value="P">Pending</option>' }
-if ( $review_status eq "R" ) { print '<option selected value="R">Completed</option>'; } else { print '<option value="R">Completed</option>' }
-print "</select></td>";
-
-print "<th align=right>Tech Review:</th><td>";
-print "<select name=tech_review_status>";
-if ( $tech_review_status eq "U" ) { print '<option selected value="U">Unreviewed</option>'; } else { print '<option value="U">Unreviewed</option>' }
-if ( $tech_review_status eq "N" ) { print '<option selected value="N">Need Identified</option>'; } else { print '<option value="N">Need Identified</option>' }
-if ( $tech_review_status eq "P" ) { print '<option selected value="P">Pending</option>'; } else { print '<option value="P">Pending</option>' }
-if ( $tech_review_status eq "R" ) { print '<option selected value="R">Completed</option>'; } else { print '<option value="R">Completed</option>' }
-print "</select></td>";
-
-print "<th align=right><a href='/help/license.html'>?</a>&nbsp;License:</th><td>";
-print $L->LicenseCombo();
-print "</td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Published:</th><td><input type=text name=pub_date size=10 value='$pub_date'></td>";
-print "<th align=right>Updated:</th><td><input type=text name=last_update size=10 value='$last_update'></td>";
-print "<th align=right>Version:</th><td><input type=text name=version size=10 value='$version'></td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Format:</th><td>";
-print "<select name=format>";
-if ( $format eq "" ) { print '<option selected></option>'; } else { print '<option></option>' }
-if ( $format eq "SGML" ) { print '<option selected>SGML</option>'; } else { print '<option>SGML</option>' }
-if ( $format eq "XML" ) { print '<option selected>XML</option>'; } else { print '<option>XML</option>' }
-if ( $format eq "TEXT" ) { print '<option selected>TEXT</option>'; } else { print '<option>TEXT</option>' }
-if ( $format eq "LaTeX" ) { print '<option selected>LaTeX</option>'; } else { print '<option>LaTeX</option>' }
-if ( $format eq "PDF" ) { print '<option selected>PDF</option>'; } else { print '<option>PDF</option>' }
-if ( $format eq "WIKI" ) { print '<option selected>WIKI</option>'; } else { print '<option>WIKI</option>' }
-print "</select></td>";
-
-print "<th align=right>DTD:</th><td>";
-print "<select name=dtd>";
-if ( $dtd eq "" ) { print '<option selected></option>'; } else { print '<option></option>' }
-if ( $dtd eq "N/A" ) { print '<option selected>N/A</option>'; } else { print '<option>N/A</option>' }
-if ( $dtd eq "HTML" ) { print '<option selected>HTML</option>'; } else { print '<option>HTML</option>' }
-if ( $dtd eq "DocBook" ) { print '<option selected>DocBook</option>'; } else { print '<option>DocBook</option>' }
-if ( $dtd eq "LinuxDoc" ) { print '<option selected>LinuxDoc</option>'; } else { print '<option>LinuxDoc</option>' }
-print "</select></td>";
-
-print "<th align=right>DTD Version:</th><td>";
-print "<input type=text name=dtd_version size=10 value='$dtd_version'>";
-print "</td>";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$tickle_date'></td>";
-
-print "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$isbn'></td>";
-
-print "<th align=right>Rating</th>\n";
-print "<td>";
-if ( $vote > 0 ) {
-  print "<table class='bargraph'>\n";
-  for ( $i = 1; $i <= 10; $i++ ) {
-    print "<td class='";
-    if ( $vote >= $i ) { print "baron" } else { print "baroff" }
-    print "'>&nbsp;&nbsp;</td>\n";
-  }
-  print "</tr></table>\n";
-}
-else {
-  print "Not rated";
-}
-print "</td>\n";
-
-print "</tr>\n<tr>\n";
-
-print "<th align=right>Abstract</th>";
-print "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$abstract</textarea></td>\n";
-
-print "</tr>\n";
-
-print "<tr>\n";
-print "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
-print "<td colspan=4>I am working on ways to provide easy online collaborative editing,
-and always for new ways to make writing for the LDP easier.
-
-<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
-WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
-WikiText-style editing format that can be converted into DocBook.
-
-<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
-
-print "<td align=right><input type=submit name=save value=Save> <input type=submit name=saveandexit value='Save/Exit'></td>\n";
-
-print "</tr>\n";
-print "</table>\n";
-
-print "<input type=hidden name=doc_id value='$doc_id'>\n";
-
-print "</form>";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print $L->DocTable($doc_id);
 
 
 
@@ -426,7 +236,6 @@ while (@row = $topic_result->fetchrow) {
   $topic_count++;
   $topics[$topic_count] = $row[0] . "." . $row[1];
   $topic_names[$topic_count] = $row[2] . ": " . $row[3];
-#  print "<p>found: " . $topics[$rownum] . " = " . $topic_names[$rownum];
 }
 
 print "<p><table class='box'>\n";
@@ -454,14 +263,16 @@ print "<tr>";
 print "<form method=POST action='document_topic_add.pl'>";
 print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
 print "<input type=hidden name=doc_id value=$doc_id>";
-print '<td valign=top><select name="topic">';
-print "<option value=></option>\n";
-for ($topic = 0; $topic < @topics; $topic++) {
-  $topic_num = $topics[$topic];
-  $topic_name = $topic_names[$topic];
-  print "<option value=" . $topic_num . ">" . $topic_num . " " . $topic_name . "</option>\n";
-}
-print "</select></td>\n";
+print "<td valign=top>\n";
+#print "<select name='topic'>";
+#for ($topic = 0; $topic < @topics; $topic++) {
+#  $topic_num = $topics[$topic];
+#  $topic_name = $topic_names[$topic];
+#  print "<option value=" . $topic_num . ">" . $topic_num . " " . $topic_name . "</option>\n";
+#}
+#print "</select>\n";
+print $L->SubtopicCombo();
+print "</td>\n";
 print "<td valign=top><input type=submit value=Add></td>\n";
 print "</form>\n";
 print "</tr></table>\n";
@@ -523,7 +334,7 @@ print "<h2>Rating</h2>\n";
 print "<p><table class='bargraph'>\n";
 for ( $i = 1; $i <= 10; $i++ ) {
 	print "<td class='";
-	if ($vote >= $i) { print "baron" } else { print "baroff" }
+	if ($doc{rating} >= $i) { print "baron" } else { print "baroff" }
 	print "'>&nbsp;&nbsp;</td>\n";
 }
 print "</tr></table>\n";

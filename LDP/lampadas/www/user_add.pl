@@ -3,7 +3,6 @@
 use Lampadas;
 $L = new Lampadas;
 
-# Read parameters
 $username	= $L->Param('username');
 $first_name	= $L->Param('first_name');
 $middle_name	= $L->Param('middle_name');

@@ -1,30 +1,20 @@
 #! /usr/bin/perl
 # 
-use CGI qw(:standard);
-$CGI = new CGI;
-
 use Lampadas;
 use Lampadas::Database;
 
 $L = new Lampadas;
 $DB = new Lampadas::Database;
 
-# Read parameters
-$user_id	= param('user_id');
-$username	= param('username');
-$username	=~ s/\s+$//;
-$first_name	= param('first_name');
-$first_name	=~ s/\s+$//;
-$middle_name	= param('middle_name');
-$middle_name	=~ s/\s+$//;
-$surname	= param('surname');
-$surname	=~ s/\s+$//;
-$email		= param('email');
-$email		=~ s/\s+$//;
-$admin		= param('admin');
+$user_id	= $L->Param('user_id');
+$username	= $L->Param('username');
+$first_name	= $L->Param('first_name');
+$middle_name	= $L->Param('middle_name');
+$surname	= $L->Param('surname');
+$email		= $L->Param('email');
+$admin		= $L->Param('admin');
 $admin = 'f' unless ($admin eq 't');
-$password	= param('password');
-$password	=~ s/\s+$//;
+$password	= $L->Param('password');
 
 
 $DB->Exec("UPDATE username SET username='$username', first_name='$first_name', middle_name='$middle_name', surname='$surname', email='$email', admin='$admin' WHERE user_id='$user_id'");
