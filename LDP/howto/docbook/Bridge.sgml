@@ -1,0 +1,739 @@
+<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN"[]>
+
+<article>
+<title>Bridging mini-HOWTO</title>
+<!-- Title information -->
+<articleinfo>
+    <author>
+        <firstname>Christopher </firstname>
+        <surname>Cole</surname>
+      <affiliation>
+          <address>
+            <email>cole@coledd.com</email>
+          </address>
+      </affiliation>
+    </author>
+<pubdate>v1.21, March 7, 2001</pubdate>
+<revhistory>
+      <revision>
+	<revnumber></revnumber>
+	<date>May 20, 2002</date>
+	<authorinitials>tab</authorinitials>
+	<revremark>Converted to Docbook 4.1 SGML and added GFDL per Christopher Cole</revremark>
+      </revision>
+</revhistory>
+<abstract>
+<para>This document describes how to setup an ethernet bridge.  What
+is an ethernet bridge? An ethernet bridge is a device that controls data
+packets within a subnet in an attempt to cut down the amount of traffic.  
+A bridge is usually placed between two separate groups of computers that
+talk within themselves, but not so much with the computers in the other
+group.  A good example of this is to consider a cluster of Macintoshes and
+a cluster of unix machines.  Both of these groups of machines tend to be
+quite chatty amongst themselves, and the traffic they produce on the
+network causes collisions for the other machines who are trying to speak
+to one another.  A bridge would be placed between these groups of
+computers.  The job of the bridge is then to examine the destination of
+the data packets one at a time and decide whether or not to pass the
+packets to the other side of the ethernet segment.  The result is a
+faster, quieter network with less collisions.
+</para>
+</abstract>
+</articleinfo>
+<!-- Table of contents -->
+
+
+<sect1>
+  <title>Setup</title>
+<para>
+ <itemizedlist>
+  <listitem>
+    <para>Get Bridge Config:
+    <ulink url="ftp://ftp.tux.org/people/alan-cox/BRCFG.tgz"> BRCFG.tgz</ulink>
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>BRCFG may also be found at:
+    <ulink url="http://coledd.com/networking/bridge/"> http://coledd.com/networking/bridge</ulink>
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>Enable multiple ethernet devices on your machine by
+        adding this line to your <filename>/etc/lilo.conf</filename>,
+        and re-run <application>lilo</application>:
+        <screen>append = "ether=0,0,eth1"</screen>
+    </para>
+    <para>If you have three interfaces on your bridge, use this line instead:
+        <screen>append = "ether=0,0,eth1 ether=0,0,eth2"</screen>
+    </para>
+    <para>More interfaces can be found by adding more ether statements.
+        By default a stock Linux kernel probes for a single ethercard,
+        and once one is found the probe ceases.  The above append statement 
+        tells the kernel to keep probing for more ethernet devices after the 
+        first one is found.
+        Alternatively, the boot parameter can be used instead:
+        <screen>linux ether=0,0,eth1</screen>
+    </para>
+    <para>Or, with 3 interfaces, use:
+        <screen>linux ether=0,0,eth1 ether=0,0,eth2</screen>
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>Recompile the kernel with <envar>BRIDGING</envar> enabled.
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>A bridge should not have an IP address.
+        It CAN, but a plain bridge doesn't need one.
+        To remove the IP address from your bridge, go to
+        <filename>/etc/sysconfig/network-scripts/</filename> (for a RedHat system)
+        and copy <filename>ifcfg-lo0</filename> to <filename>ifcfg-eth0</filename> &amp;
+        <filename>ifcfg-eth1</filename>.
+        In these two new files, change the line containing
+        <userinput>DEVICE=lo</userinput> to <userinput>DEVICE=eth0</userinput>
+        and <userinput>DEVICE=eth1</userinput>.
+        Since other distributions may deviate from this, you may need to refer to additional
+        documentation.
+        If there are more than 2 interfaces to this bridge,
+        be sure to make the corresponding configurations to those, as well.
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>Reboot so you are running the new kernel with <envar>BRIDGING</envar> in it,
+        and also to make sure that an IP addresses are not bound to the
+        network interfaces.
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>Once the system is backed up, put the ethernet cards into promiscuous mode,
+        so they will look at every packet that passes by its interface:
+        <screen>ifconfig eth0 promisc ; ifconfig eth1 promisc</screen>
+        All interfaces which are connected to network segments to be bridged
+        are to be put into promiscuous mode.
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>Turn bridging ON using the <application>brcfg</application> program:
+        <screen>brcfg -ena</screen>
+    </para>  
+  </listitem>
+
+  <listitem>
+    <para>Verify that there is different traffic on each interface:
+    <screen>
+tcpdump -i eth0     (in one window)
+tcpdump -i eth1     (in another window)
+    </screen>
+    </para>
+  </listitem>      
+
+  <listitem>
+    <para>Run a sniffer or <application>tcpdump</application> on another machine
+        to verify the bridge is separating the segment correctly.
+    </para>
+  </listitem>
+</itemizedlist>
+</para>
+</sect1>
+
+
+<sect1>
+<title>Common Problems</title>
+
+    <qandaset defaultlabel='qanda'>
+      <qandaentry>
+      <question>
+        <para>I get the message <errorname>ioctl(SIOCGIFBR) failed: Package not installed
+        </errorname>.  What does this mean?</para>
+      </question>
+      <answer>
+        <para>You don't have bridging capability in your kernel.
+        Get a 2.0 or greater kernel,
+        and recompile with the <envar>BRIDGING</envar> option enabled.</para>
+      </answer>
+      </qandaentry>
+  
+      <qandaentry>
+      <question>
+        <para>Machines on one side cannot ping the other side!</para>
+      </question>
+      <answer>
+        <itemizedlist spacing=compact>
+          <listitem><simpara>Did you enable bridging using <application>brcfg -ena</application>? (<application>brcfg</application> should say <returnvalue>bridging is ENABLED</returnvalue>)</simpara>
+          </listitem>
+          <listitem><simpara>Did you put the interfaces into promiscuous mode?
+                (issue the <application>ifconfig</application> command.
+                 The <property>PROMISC</property> flag should be on for
+                 both interfaces.)</simpara>
+          </listitem>
+          <listitem><simpara>If using multiple-media interface adapters,
+                make sure that the correct one is enabled.
+                You may need to use the config/setup program that
+                came with the network interface card.</simpara>
+          </listitem>
+        </itemizedlist>
+      </answer>
+      </qandaentry>
+
+      <qandaentry>
+      <question>
+        <para>I cannot <application>telnet</application>/<application>ftp</application> from the bridge! Why?</para>
+      </question> 
+      <answer>
+        <para>This is because there is no IP address bound to any of bridge
+        interfaces.  A bridge is to be a transparent part of a network.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+	<para>What do I need to set up in the way of routing?</para>
+     </question>	
+     <answer>
+        <para>Nothing!
+        All routing intelligence is handled by
+        the bridging code in the kernel.
+        To see the ethernet addresses as they are learned by the bridge,
+        use the <application>brcfg</application> program in debug mode:</para>
+        <screen>
+brcfg -deb
+        </screen>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>The bridge appears to work, but why doesn't <application>traceroute</application> show the bridge as a part of the path?</para>
+     </question>
+     <answer>
+        <para>Due to the nature of a bridge, a <application>traceroute</application> should NOT show the bridge as a part of the path. A bridge is to be a transparent component of the network.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>Is it necessary to compile <envar>IP_FORWARD</envar> into the kernel?</para>
+     </question>
+     <answer>
+        <para>No. The bridging code in the kernel takes care of the packet
+        transport.
+        <envar>IP_FORWARD</envar> is for a gateway that has IP addresses
+        bound to its interfaces.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>Why are the physical ethernet addresses for port 1 and port 2 the
+        same according to the <application>brcfg</application> program?
+        Shouldn't they be different?</para>
+     </question> 
+     <answer>
+        <para>No. Every port on a bridge intentionally is assigned the same
+        physical ethernet address by the bridging code.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>Bridging does not appear to be an option when performing a make
+        config on the kernel.  How does one enable it?</para>
+     </question>
+     <answer>
+        <para>During the kernel config, answer <quote>Y</quote> to the question, <prompt>Prompt for
+        development and/or incomplete code/drivers (CONFIG_EXPERIMENTAL) [Y/n/?]</prompt>.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>Too many hubs (4 or more) are chained one after another in series, 
+        cause timing problems on an ethernet.  What effect does a bridge
+        have in a subnet that is layered with hubs?</para>
+     </question>
+     <answer>
+        <para>A bridge resets the 3/4/5 hubs rule.  A bridge does not deal with
+        packets the way a hub does, and is therefore not a contributor to
+        timing problems on a network.</para>
+     </answer>
+     </qandaentry>
+
+     <qandaentry>
+     <question>
+        <para>Can a bridge interface to both 10Mb and 100Mb ethernet segments?
+        Will such a configuration slow down the rest of the traffic on the
+        high speed side?</para>
+     </question>
+     <answer>
+        <para>Yes, a bridge can tie together a 10Mb segment with a 100Mb segment.
+        As long as the network card on the fast network is 100Mb capable,
+        TCP takes care of the rest.  While it's true that the
+        packets from a host in the 100Mb network communicating to a host
+        in the 10Mb network are moving at only 10Mb/s, the rest of the
+        traffic on the fast ethernet is not slowed down.</para>
+     </answer>
+     </qandaentry>
+    </qandaset>
+
+</sect1>
+
+<sect1>
+<title>Copyright</title>
+<para>Copyright &copy; 2002 Christopher Cole</para>
+<para>Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts and no Back-Cover Texts.  A copy of the license is included in the section entitled "GNU Free Documentation License".</para>
+
+
+<sect2 id="gfdl">
+<title>GNU Free Documentation License</title>
+<!-- - GNU Project - Free Software Foundation (FSF) -->
+<!-- LINK REV="made" HREF="mailto:webmasters@gnu.org" -->
+
+
+<!-- sect2>
+<title>GNU Free Documentation License</title -->
+
+<para>Version 1.1, March 2000</para>
+
+<blockquote>
+<para>Copyright (C) 2000  Free Software Foundation, Inc.
+59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.</para>
+</blockquote>
+
+<sect2 id="gfdl-0">
+<title>PREAMBLE</title>
+
+<para>The purpose of this License is to make a manual, textbook,
+    or other written document "free" in the sense of freedom: to
+    assure everyone the effective freedom to copy and redistribute it,
+    with or without modifying it, either commercially or
+    noncommercially.  Secondarily, this License preserves for the
+    author and publisher a way to get credit for their work, while not
+    being considered responsible for modifications made by
+    others.</para>
+
+<para>This License is a kind of "copyleft", which means that
+    derivative works of the document must themselves be free in the
+    same sense.  It complements the GNU General Public License, which
+    is a copyleft license designed for free software.</para>
+
+<para>We have designed this License in order to use it for manuals
+    for free software, because free software needs free documentation:
+    a free program should come with manuals providing the same
+    freedoms that the software does.  But this License is not limited
+    to software manuals; it can be used for any textual work,
+    regardless of subject matter or whether it is published as a
+    printed book.  We recommend this License principally for works
+    whose purpose is instruction or reference.</para>
+</sect2>
+
+<sect2 id="gfdl-1">
+<title>APPLICABILITY AND DEFINITIONS</title>
+
+<para>This License applies to any manual or other work that
+    contains a notice placed by the copyright holder saying it can be
+    distributed under the terms of this License.  The "Document",
+    below, refers to any such manual or work.  Any member of the
+    public is a licensee, and is addressed as "you".</para>
+
+<para>A "Modified Version" of the Document means any work
+    containing the Document or a portion of it, either copied
+    verbatim, or with modifications and/or translated into another
+    language.</para>
+
+<para>A "Secondary Section" is a named appendix or a front-matter
+    section of the Document that deals exclusively with the
+    relationship of the publishers or authors of the Document to the
+    Document's overall subject (or to related matters) and contains
+    nothing that could fall directly within that overall subject.
+    (For example, if the Document is in part a textbook of
+    mathematics, a Secondary Section may not explain any mathematics.)
+    The relationship could be a matter of historical connection with
+    the subject or with related matters, or of legal, commercial,
+    philosophical, ethical or political position regarding
+    them.</para>
+
+<para>The "Invariant Sections" are certain Secondary Sections
+    whose titles are designated, as being those of Invariant Sections,
+    in the notice that says that the Document is released under this
+    License.</para>
+
+<para>The "Cover Texts" are certain short passages of text that
+    are listed, as Front-Cover Texts or Back-Cover Texts, in the
+    notice that says that the Document is released under this
+    License.</para>
+
+<para>A "Transparent" copy of the Document means a
+    machine-readable copy, represented in a format whose specification
+    is available to the general public, whose contents can be viewed
+    and edited directly and straightforwardly with generic text
+    editors or (for images composed of pixels) generic paint programs
+    or (for drawings) some widely available drawing editor, and that
+    is suitable for input to text formatters or for automatic
+    translation to a variety of formats suitable for input to text
+    formatters.  A copy made in an otherwise Transparent file format
+    whose markup has been designed to thwart or discourage subsequent
+    modification by readers is not Transparent.  A copy that is not
+    "Transparent" is called "Opaque".</para>
+
+<para>Examples of suitable formats for Transparent copies include
+    plain ASCII without markup, Texinfo input format, LaTeX input
+    format, SGML or XML using a publicly available DTD, and
+    standard-conforming simple HTML designed for human modification.
+    Opaque formats include PostScript, PDF, proprietary formats that
+    can be read and edited only by proprietary word processors, SGML
+    or XML for which the DTD and/or processing tools are not generally
+    available, and the machine-generated HTML produced by some word
+    processors for output purposes only.</para>
+
+<para>The "Title Page" means, for a printed book, the title page
+    itself, plus such following pages as are needed to hold, legibly,
+    the material this License requires to appear in the title page.
+    For works in formats which do not have any title page as such,
+    "Title Page" means the text near the most prominent appearance of
+    the work's title, preceding the beginning of the body of the
+    text.</para>
+</sect2>
+
+<sect2 id="gfdl-2">
+<title>VERBATIM COPYING</title>
+
+<para>You may copy and distribute the Document in any medium,
+    either commercially or noncommercially, provided that this
+    License, the copyright notices, and the license notice saying this
+    License applies to the Document are reproduced in all copies, and
+    that you add no other conditions whatsoever to those of this
+    License.  You may not use technical measures to obstruct or
+    control the reading or further copying of the copies you make or
+    distribute.  However, you may accept compensation in exchange for
+    copies.  If you distribute a large enough number of copies you
+    must also follow the conditions in section 3.</para>
+
+<para>You may also lend copies, under the same conditions stated
+    above, and you may publicly display copies.</para>
+</sect2>
+
+<sect2 id="gfdl-3">
+<title>COPYING IN QUANTITY</title>
+
+<para>If you publish printed copies of the Document numbering more
+    than 100, and the Document's license notice requires Cover Texts,
+    you must enclose the copies in covers that carry, clearly and
+    legibly, all these Cover Texts: Front-Cover Texts on the front
+    cover, and Back-Cover Texts on the back cover.  Both covers must
+    also clearly and legibly identify you as the publisher of these
+    copies.  The front cover must present the full title with all
+    words of the title equally prominent and visible.  You may add
+    other material on the covers in addition.  Copying with changes
+    limited to the covers, as long as they preserve the title of the
+    Document and satisfy these conditions, can be treated as verbatim
+    copying in other respects.</para>
+
+<para>If the required texts for either cover are too voluminous to
+    fit legibly, you should put the first ones listed (as many as fit
+    reasonably) on the actual cover, and continue the rest onto
+    adjacent pages.</para>
+
+<para>If you publish or distribute Opaque copies of the Document
+    numbering more than 100, you must either include a
+    machine-readable Transparent copy along with each Opaque copy, or
+    state in or with each Opaque copy a publicly-accessible
+    computer-network location containing a complete Transparent copy
+    of the Document, free of added material, which the general
+    network-using public has access to download anonymously at no
+    charge using public-standard network protocols.  If you use the
+    latter option, you must take reasonably prudent steps, when you
+    begin distribution of Opaque copies in quantity, to ensure that
+    this Transparent copy will remain thus accessible at the stated
+    location until at least one year after the last time you
+    distribute an Opaque copy (directly or through your agents or
+    retailers) of that edition to the public.</para>
+
+<para>It is requested, but not required, that you contact the
+    authors of the Document well before redistributing any large
+    number of copies, to give them a chance to provide you with an
+    updated version of the Document.</para>
+</sect2>
+
+<sect2 id="gfdl-4">
+<title>MODIFICATIONS</title>
+
+<para>You may copy and distribute a Modified Version of the
+    Document under the conditions of sections 2 and 3 above, provided
+    that you release the Modified Version under precisely this
+    License, with the Modified Version filling the role of the
+    Document, thus licensing distribution and modification of the
+    Modified Version to whoever possesses a copy of it.  In addition,
+    you must do these things in the Modified Version:</para>
+
+<orderedlist numeration="upperalpha">
+<listitem><para>Use in the Title Page
+      (and on the covers, if any) a title distinct from that of the
+      Document, and from those of previous versions (which should, if
+      there were any, be listed in the History section of the
+      Document).  You may use the same title as a previous version if
+      the original publisher of that version gives permission.</para>
+</listitem>
+
+<listitem><para>List on the Title Page,
+      as authors, one or more persons or entities responsible for
+      authorship of the modifications in the Modified Version,
+      together with at least five of the principal authors of the
+      Document (all of its principal authors, if it has less than
+      five).</para>
+</listitem>
+
+<listitem><para>State on the Title page
+      the name of the publisher of the Modified Version, as the
+      publisher.</para>
+</listitem>
+
+<listitem><para>Preserve all the
+      copyright notices of the Document.</para>
+</listitem>
+
+<listitem><para>Add an appropriate
+      copyright notice for your modifications adjacent to the other
+      copyright notices.</para>
+</listitem>
+
+<listitem><para>Include, immediately
+      after the copyright notices, a license notice giving the public
+      permission to use the Modified Version under the terms of this
+      License, in the form shown in the Addendum below.</para>
+</listitem>
+
+<listitem><para>Preserve in that license
+      notice the full lists of Invariant Sections and required Cover
+      Texts given in the Document's license notice.</para>
+</listitem>
+
+<listitem><para>Include an unaltered
+      copy of this License.</para>
+</listitem>
+
+<listitem><para>Preserve the section
+      entitled "History", and its title, and add to it an item stating
+      at least the title, year, new authors, and publisher of the
+      Modified Version as given on the Title Page.  If there is no
+      section entitled "History" in the Document, create one stating
+      the title, year, authors, and publisher of the Document as given
+      on its Title Page, then add an item describing the Modified
+      Version as stated in the previous sentence.</para>
+</listitem>
+
+<listitem><para>Preserve the network
+      location, if any, given in the Document for public access to a
+      Transparent copy of the Document, and likewise the network
+      locations given in the Document for previous versions it was
+      based on.  These may be placed in the "History" section.  You
+      may omit a network location for a work that was published at
+      least four years before the Document itself, or if the original
+      publisher of the version it refers to gives permission.</para>
+</listitem>
+
+<listitem><para>In any section entitled
+      "Acknowledgements" or "Dedications", preserve the section's
+      title, and preserve in the section all the substance and tone of
+      each of the contributor acknowledgements and/or dedications
+      given therein.</para>
+</listitem>
+
+<listitem><para>Preserve all the
+      Invariant Sections of the Document, unaltered in their text and
+      in their titles.  Section numbers or the equivalent are not
+      considered part of the section titles.</para>
+</listitem>
+
+<listitem><para>Delete any section
+      entitled "Endorsements".  Such a section may not be included in
+      the Modified Version.</para>
+</listitem>
+
+<listitem><para>Do not retitle any
+      existing section as "Endorsements" or to conflict in title with
+      any Invariant Section.</para>
+</listitem>
+</orderedlist>
+<para>If the Modified Version includes new front-matter sections
+    or appendices that qualify as Secondary Sections and contain no
+    material copied from the Document, you may at your option
+    designate some or all of these sections as invariant.  To do this,
+    add their titles to the list of Invariant Sections in the Modified
+    Version's license notice.  These titles must be distinct from any
+    other section titles.</para>
+
+<para>You may add a section entitled "Endorsements", provided it
+    contains nothing but endorsements of your Modified Version by
+    various parties--for example, statements of peer review or that
+    the text has been approved by an organization as the authoritative
+    definition of a standard.</para>
+
+<para>You may add a passage of up to five words as a Front-Cover
+    Text, and a passage of up to 25 words as a Back-Cover Text, to the
+    end of the list of Cover Texts in the Modified Version.  Only one
+    passage of Front-Cover Text and one of Back-Cover Text may be
+    added by (or through arrangements made by) any one entity.  If the
+    Document already includes a cover text for the same cover,
+    previously added by you or by arrangement made by the same entity
+    you are acting on behalf of, you may not add another; but you may
+    replace the old one, on explicit permission from the previous
+    publisher that added the old one.</para>
+
+<para>The author(s) and publisher(s) of the Document do not by
+    this License give permission to use their names for publicity for
+    or to assert or imply endorsement of any Modified Version.</para>
+</sect2>
+
+<sect2 id="gfdl-5">
+<title>COMBINING DOCUMENTS</title>
+
+<para>You may combine the Document with other documents released
+    under this License, under the terms defined in section 4 above for
+    modified versions, provided that you include in the combination
+    all of the Invariant Sections of all of the original documents,
+    unmodified, and list them all as Invariant Sections of your
+    combined work in its license notice.</para>
+
+<para>The combined work need only contain one copy of this
+    License, and multiple identical Invariant Sections may be replaced
+    with a single copy.  If there are multiple Invariant Sections with
+    the same name but different contents, make the title of each such
+    section unique by adding at the end of it, in parentheses, the
+    name of the original author or publisher of that section if known,
+    or else a unique number.  Make the same adjustment to the section
+    titles in the list of Invariant Sections in the license notice of
+    the combined work.</para>
+
+<para>In the combination, you must combine any sections entitled
+    "History" in the various original documents, forming one section
+    entitled "History"; likewise combine any sections entitled
+    "Acknowledgements", and any sections entitled "Dedications".  You
+    must delete all sections entitled "Endorsements."</para>
+</sect2>
+
+<sect2 id="gfdl-6">
+<title>COLLECTIONS OF DOCUMENTS</title>
+
+<para>You may make a collection consisting of the Document and
+    other documents released under this License, and replace the
+    individual copies of this License in the various documents with a
+    single copy that is included in the collection, provided that you
+    follow the rules of this License for verbatim copying of each of
+    the documents in all other respects.</para>
+
+<para>You may extract a single document from such a collection,
+    and distribute it individually under this License, provided you
+    insert a copy of this License into the extracted document, and
+    follow this License in all other respects regarding verbatim
+    copying of that document.</para>
+</sect2>
+
+<sect2 id="gfdl-7">
+<title>AGGREGATION WITH INDEPENDENT WORKS</title>
+<para>A compilation of the Document or its derivatives with other
+    separate and independent documents or works, in or on a volume of
+    a storage or distribution medium, does not as a whole count as a
+    Modified Version of the Document, provided no compilation
+    copyright is claimed for the compilation.  Such a compilation is
+    called an "aggregate", and this License does not apply to the
+    other self-contained works thus compiled with the Document, on
+    account of their being thus compiled, if they are not themselves
+    derivative works of the Document.</para>
+
+<para>If the Cover Text requirement of section 3 is applicable to
+    these copies of the Document, then if the Document is less than
+    one quarter of the entire aggregate, the Document's Cover Texts
+    may be placed on covers that surround only the Document within the
+    aggregate.  Otherwise they must appear on covers around the whole
+    aggregate.</para>
+</sect2>
+
+<sect2 id="gfdl-8">
+<title>TRANSLATION</title>
+
+<para>Translation is considered a kind of modification, so you may
+    distribute translations of the Document under the terms of section
+    4.  Replacing Invariant Sections with translations requires
+    special permission from their copyright holders, but you may
+    include translations of some or all Invariant Sections in addition
+    to the original versions of these Invariant Sections.  You may
+    include a translation of this License provided that you also
+    include the original English version of this License.  In case of
+    a disagreement between the translation and the original English
+    version of this License, the original English version will
+    prevail.</para>
+</sect2>
+
+<sect2 id="gfdl-9">
+<title>TERMINATION</title>
+<para>You may not copy, modify, sublicense, or distribute the
+    Document except as expressly provided for under this License.  Any
+    other attempt to copy, modify, sublicense or distribute the
+    Document is void, and will automatically terminate your rights
+    under this License.  However, parties who have received copies, or
+    rights, from you under this License will not have their licenses
+    terminated so long as such parties remain in full
+    compliance.</para>
+</sect2>
+
+<sect2 id="gfdl-10">
+<title>FUTURE REVISIONS OF THIS LICENSE</title>
+
+<para>The Free Software Foundation may publish new, revised
+    versions of the GNU Free Documentation License from time to time.
+    Such new versions will be similar in spirit to the present
+    version, but may differ in detail to address new problems or
+    concerns.  See <ulink
+    url="http://www.gnu.org/copyleft/">http://www.gnu.org/copyleft/</ulink>.</para>
+
+<para>Each version of the License is given a distinguishing
+    version number.  If the Document specifies that a particular
+    numbered version of this License "or any later version" applies to
+    it, you have the option of following the terms and conditions
+    either of that specified version or of any later version that has
+    been published (not as a draft) by the Free Software Foundation.
+    If the Document does not specify a version number of this License,
+    you may choose any version ever published (not as a draft) by the
+    Free Software Foundation.</para>
+</sect2>
+
+<sect2 id="gfdl-11">
+<title>How to use this License for your documents</title>
+
+<para>To use this License in a document you have written, include
+    a copy of the License in the document and put the following
+    copyright and license notices just after the title page:</para>
+
+<blockquote><para>
+Copyright (c)  YEAR  YOUR NAME.
+      Permission is granted to copy, distribute and/or modify this document
+      under the terms of the GNU Free Documentation License, Version 1.1
+      or any later version published by the Free Software Foundation;
+      with the Invariant Sections being LIST THEIR TITLES, with the
+      Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+      A copy of the license is included in the section entitled "GNU
+      Free Documentation License".
+</para></blockquote>
+
+<para>If you have no Invariant Sections, write "with no Invariant
+    Sections" instead of saying which ones are invariant.  If you have
+    no Front-Cover Texts, write "no Front-Cover Texts" instead of
+    "Front-Cover Texts being LIST"; likewise for Back-Cover
+    Texts.</para>
+
+<para>If your document contains nontrivial examples of program
+    code, we recommend releasing these examples in parallel under your
+    choice of free software license, such as the GNU General Public
+    License, to permit their use in free software.</para>
+</sect2>
+</sect1>
+</article>
