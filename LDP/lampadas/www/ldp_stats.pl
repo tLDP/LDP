@@ -99,12 +99,13 @@ $unknown_pct = sprintf( '%3.2f', $unknown_count / $total * 100 );
 
 print "<p><table>\n";
 print "<tr><th>Type</th><th align=right>Count</th><th align=right>Percent</th></tr>\n";
-print "<tr><td>Free</td><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
+print "<tr><td>Free*</td><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
 print "<tr><td>Non-Free</td><td align=right>$nonfree_count</td><td align=right>$nonfree_pct</td></tr>\n";
 print "<tr><td>Unknown</td><td align=right>$unknown_count</td><td align=right>$unknown_pct</td></tr>\n";
 print "<tr><td>Total</td><td align=right>$total</td></tr>";
 print "</table>\n";
 
+print "<p>*Free licenses include GFDL, GPL, OPL, and PD.\n";
 
 print "<p><hr>";
 
