@@ -47,6 +47,8 @@ else {
 if ( $SORT2 ) { $SORT2 = ", $SORT2"; }
 if ( $SORT3 ) { $SORT3 = ", $SORT3"; }
 
+$strSTATUS = param('strSTATUS');
+
 # Clear
 $BACKGROUNDER = "";
 $HOWTO = "";
@@ -121,7 +123,7 @@ print "</form>\n";
 print "<form name=filter method=POST action='document_list.pl'>";
 
 print "<p><table border=2 cellspacing=5>";
-print "<tr><th>Classes</th><th>Optional Fields</th><th>Sorting Options</th></tr>";
+print "<tr><th>Classes</th><th>Optional Fields</th><th>Sorting Options</th><th>Status</th></tr>";
 print "<tr><td valign=top>\n";
 print "<input type=checkbox $BACKGROUNDER name=chkBACKGROUNDER>Backgrounder<br>\n";
 print "<input type=checkbox $HOWTO name=chkHOWTO>HOWTOs<br>\n";
@@ -149,22 +151,35 @@ print "</td>\n";
 
 print "<td valign=top>\n";
 print "<select name=strSORT1>\n";
-print "<option></option>\n";
-print "<option>Title</option>\n";
-print "<option value='document.pub_status, title'>Status</option>\n";
-print "<option value='review_status_name, title'>Review Status</option>\n";
-print "<option value=tech_review_status_name, title'>Tech Review Status</option>\n";
-print "<option value='class, title'>Class</option>\n";
-print "<option value='format, title'>Format</option>\n";
-print "<option value='dtd, title'>DTD</option>\n";
-print "<option value='pub_date, title'>Publication Date</option>\n";
-print "<option value='last_update, title'>Last Update</option>\n";
-print "<option value='tickle_date, title'>Tickle Date</option>\n";
-print "<option value='url, title'>URL</option>\n";
-print "<option value='maintained, title'>Maintained</option>\n";
-print "<option value='license, title'>License</option>\n";
+if ( $SORT1 eq "title" ) { print '<option selected value="title">Title</option>'; } else { print '<option value="title">Title</option>' }
+if ( $SORT1 eq "document.pub_status" ) { print '<option selected value="document.pub_status">Status</option>'; } else { print '<option value="document.pub_status">Status</option>' }
+if ( $SORT1 eq "review_status_name" ) { print '<option selected value="review_status_name">Review Status</option>'; } else { print '<option value="review_status_name">Review Status</option>' }
+if ( $SORT1 eq "tech_review_status_name" ) { print '<option selected value="tech_review_status_name">Tech Review Status</option>'; } else { print '<option value="tech_review_status_name">Tech Review Status</option>' }
+if ( $SORT1 eq "class" ) { print '<option selected value="class">Class</option>'; } else { print '<option value="class">Class</option>' }
+if ( $SORT1 eq "format" ) { print '<option selected value="format">Format</option>'; } else { print '<option value="format">Format</option>' }
+if ( $SORT1 eq "dtd" ) { print '<option selected value="dtd">DTD</option>'; } else { print '<option value="dtd">DTD</option>' }
+if ( $SORT1 eq "pub_date" ) { print '<option selected value="pub_date">Publication Date</option>'; } else { print '<option value="pub_date">Publication Date</option>' }
+if ( $SORT1 eq "last_update" ) { print '<option selected value="last_update">Last Update</option>'; } else { print '<option value="last_update">Last Update</option>' }
+if ( $SORT1 eq "tickle_date" ) { print '<option selected value="tickle_date">Tickle Date</option>'; } else { print '<option value="tickle_date">Tickle Date</option>' }
+if ( $SORT1 eq "url" ) { print '<option selected value="url">URL</option>'; } else { print '<option value="url">URL</option>' }
+if ( $SORT1 eq "maintained" ) { print '<option selected value="maintained">Maintained</option>'; } else { print '<option value="maintained">Maintained</option>' }
+if ( $SORT1 eq "license" ) { print '<option selected value="license">License</option>'; } else { print '<option value="license">License</option>' }
 print "</select><br>";
+print "</td>\n";
 
+print "<td valign=top>\n";
+print "<select name=strSTATUS>\n";
+print "<option></option>\n";
+if ( $strSTATUS eq "N" ) { print '<option selected value="N">Active</option>'; } else { print '<option value="N">Active</option>' }
+if ( $strSTATUS eq "?" ) { print '<option selected value="?">Unknown</option>'; } else { print '<option value="?">Unknown</option>' }
+if ( $strSTATUS eq "A" ) { print '<option selected value="A">Archived</option>'; } else { print '<option value="A">Archived</option>' }
+if ( $strSTATUS eq "D" ) { print '<option selected value="D">Deleted</option>'; } else { print '<option value="D">Deleted</option>' }
+if ( $strSTATUS eq "O" ) { print '<option selected value="O">Offsite</option>'; } else { print '<option value="O">Offsite</option>' }
+if ( $strSTATUS eq "P" ) { print '<option selected value="P">Pending</option>'; } else { print '<option value="P">Pending</option>' }
+if ( $strSTATUS eq "R" ) { print '<option selected value="R">Replaced</option>'; } else { print '<option value="R">Replaced</option>' }
+if ( $strSTATUS eq "W" ) { print '<option selected value="W">Wishlist</option>'; } else { print '<option value="W">Wishlist</option>' }
+if ( $strSTATUS eq "C" ) { print '<option selected value="C">Cancelled</option>'; } else { print '<option value="C">Cancelled</option>' }
+print "</select>\n";
 print "</td>\n";
 
 print "</tr></table>\n";
@@ -193,7 +208,9 @@ print "</tr>\n";
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license FROM document, pub_status, review_status lr, review_status tr $WHERE AND document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status ORDER BY $SORT1";
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license FROM document, pub_status, review_status lr, review_status tr $WHERE AND document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status";
+if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
+$sql = $sql . " ORDER BY $SORT1";
 #print "<tr><td colspan=20>$sql</td></tr>";
 
 $result=$conn->exec("$sql");
