@@ -11,6 +11,8 @@ b=5
 #+ whose value consists of all-integer characters.
 #  Caution advised.
 
+echo
+
 if [ "$a" -ne "$b" ]
 then
   echo "$a is not equal to $b"
@@ -23,9 +25,11 @@ if [ "$a" != "$b" ]
 then
   echo "$a is not equal to $b."
   echo "(string comparison)"
+  #     "4"  != "5"
+  # ASCII 52 != ASCII 53
 fi
 
-# In this instance, both "-ne" and "!=" work.
+# In this particular instance, both "-ne" and "!=" work.
 
 echo
 

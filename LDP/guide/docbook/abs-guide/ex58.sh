@@ -3,17 +3,14 @@
 #  Backs up all files in current directory modified within last 24 hours
 #+ in a "tarball" (tarred and gzipped file).
 
-NOARGS=0
-E_BADARGS=65
+BACKUPFILE=backup
+archive=${1:-$BACKUPFILE}
+#  If no backup-archive filename specified on command line,
+#+ it will default to "backup.tar.gz."
 
-if [ $# = $NOARGS ]
-then
-  echo "Usage: `basename $0` filename"
-  exit $E_BADARGS
-fi  
-
-tar cvf - `find . -mtime -1 -type f -print` > $1.tar
-gzip $1.tar
+tar cvf - `find . -mtime -1 -type f -print` > $archive.tar
+gzip $archive.tar
+echo "Directory $PWD backed up in archive file \"$archive.tar.gz\"."
 
 
 #  Stephane Chazelas points out that the above code will fail
@@ -21,14 +18,14 @@ gzip $1.tar
 #+ or if any filenames contain blank characters.
 
 # He suggests the following alternatives:
-# -------------------------------------------------------------
-#   find . -mtime -1 -type f -print0 | xargs -0 tar rvf "$1.tar"
+# -------------------------------------------------------------------
+#   find . -mtime -1 -type f -print0 | xargs -0 tar rvf "$archive.tar"
 #      using the GNU version of "find".
 
 
-#   find . -mtime -1 -type f -exec tar rvf "$1.tar" '{}' \;
-#      portable to other UNIX flavors, but much slower.
-# -------------------------------------------------------------
+#   find . -mtime -1 -type f -exec tar rvf "$archive.tar" '{}' \;
+#         portable to other UNIX flavors, but much slower.
+# -------------------------------------------------------------------
 
 
 exit 0

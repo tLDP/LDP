@@ -1,11 +1,8 @@
 #!/bin/bash
 
-# Erratic behavior of the "$*" and "$@" internal Bash variables,
-# depending on whether these are quoted or not.
-# Word splitting and linefeeds handled inconsistently.
-
-# This example script by Stephane Chazelas,
-# and slightly modified by the document author.
+#  Erratic behavior of the "$*" and "$@" internal Bash variables,
+#+ depending on whether they are quoted or not.
+#  Inconsistent handling of word splitting and linefeeds.
 
 
 set -- "First one" "second" "third:one" "" "Fifth: :one"
@@ -135,3 +132,6 @@ echo
 # Try this script with ksh or zsh -y.
 
 exit 0
+
+# This example script by Stephane Chazelas,
+# and slightly modified by the document author.

@@ -1,5 +1,6 @@
 #!/bin/bash
 # stupid-script-tricks.sh: Don't try this at home, folks.
+# From "Stupid Script Tricks," Volume I.
 
 
 dangerous_variable=`cat /boot/vmlinuz`   # The compressed Linux kernel itself.

@@ -6,7 +6,7 @@ echo
 for file in *
 do
   ls -l "$file"  # Lists all files in $PWD (current directory).
-  # Recall that the wild card character "*" matches everything,
+  # Recall that the wild card character "*" matches every filename,
   # however, in "globbing", it doesn't match dot-files.
 
   # If the pattern matches no file, it is expanded to itself.

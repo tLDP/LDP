@@ -24,9 +24,9 @@ for i in /var/lock/subsys/*; do
 	# --> Match variable name, which, in this case, is the file name.
 	# --> This is the exact equivalent of subsys=`basename $i`.
 	
-	# --> It gets it from the lock file name, and since if there
-	# --> is a lock file, that's proof the process has been running.
-	# --> See the "lockfile" entry, above.
+	# -->  It gets it from the lock file name (if there is a lock file,
+	# -->+ that's proof the process has been running).
+	# -->  See the "lockfile" entry, above.
 
 
 	# Bring the subsystem down.
@@ -34,7 +34,7 @@ for i in /var/lock/subsys/*; do
 	    /etc/rc.d/init.d/$subsys.init stop
 	else
 	    /etc/rc.d/init.d/$subsys stop
-	# --> Suspend running jobs and daemons
+        # --> Suspend running jobs and daemons
         # --> using the 'stop' shell builtin.
 	fi
 done

@@ -18,12 +18,18 @@ then
 fi  
   
 
-if [ -n "$1" ]
-then
-  blocks=$1
-else
-  blocks=$MINBLOCKS              # Set to default of 40 blocks
-fi                               # if nothing specified on command line.
+blocks=${1:-$MINBLOCKS}          #  Set to default of 40 blocks,
+                                 #+ if nothing specified on command line.
+# This is the equivalent of the command block below.
+# --------------------------------------------------
+# if [ -n "$1" ]
+# then
+#   blocks=$1
+# else
+#   blocks=$MINBLOCKS
+# fi
+# --------------------------------------------------
+
 
 if [ "$blocks" -lt $MINBLOCKS ]
 then

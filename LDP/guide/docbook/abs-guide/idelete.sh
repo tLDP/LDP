@@ -26,6 +26,7 @@ inum=`ls -i | grep "$1" | awk '{print $1}'`
 # Every file has an inode, a record that hold its physical address info.
 
 echo; echo -n "Are you absolutely sure you want to delete \"$1\" (y/n)? "
+# The '-v' option to 'rm' also asks this.
 read answer
 case "$answer" in
 [nN]) echo "Changed your mind, huh?"

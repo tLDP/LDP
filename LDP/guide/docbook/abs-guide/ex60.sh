@@ -1,12 +1,21 @@
 #!/bin/bash
+# Functions and parameters
+
+DEFAULT=default                             # Default param value.
 
 func2 () {
-   if [ -z "$1" ]                    # Checks if parameter #1 is zero length.
+   if [ -z "$1" ]                           # Is parameter #1 zero length?
    then
-     echo "-Parameter #1 is zero length.-"  # Also if no parameter is passed.
+     echo "-Parameter #1 is zero length.-"  # Or no parameter passed.
    else
      echo "-Param #1 is \"$1\".-"
    fi
+
+   variable=${1-$DEFAULT}                   #  What does
+   echo "variable = $variable"              #+ parameter substitution show?
+                                            #  ---------------------------
+                                            #  It distinguishes between
+                                            #+ no param and a null param.
 
    if [ "$2" ]
    then

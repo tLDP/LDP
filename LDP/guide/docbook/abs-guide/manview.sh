@@ -1,14 +1,14 @@
 #!/bin/bash
 # manview.sh: Formats the source of a man page for viewing.
 
-# This is useful when writing man page source and you want to
-# look at the intermediate results on the fly while working on it.
+#  This is useful when writing man page source and you want to
+#+ look at the intermediate results on the fly while working on it.
 
 E_WRONGARGS=65
 
 if [ -z "$1" ]
 then
-  echo "Usage: `basename $0` [filename]"
+  echo "Usage: `basename $0` filename"
   exit $E_WRONGARGS
 fi
 

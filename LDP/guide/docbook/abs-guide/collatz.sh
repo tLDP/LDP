@@ -20,22 +20,16 @@
 #+ an operation that feeds its output back into the input.
 #  Sometimes the result is a "chaotic" series.
 
-ARGS=1
-E_BADARGS=65
-
-if [ $# -ne $ARGS ]           # Need a seed number.
-then
-  echo "Usage: `basename $0` NUMBER"
-  exit $E_BADARGS
-fi
 
 MAX_ITERATIONS=200
 # For large seed numbers (&gt;32000), increase MAX_ITERATIONS.
 
-h=$1                          # Seed
+h=${1:-$$}                      #  Seed
+                                #  Use $PID as seed,
+                                #+ if not specified as command-line arg.
 
 echo
-echo "C($1) --- $MAX_ITERATIONS Iterations"
+echo "C($h) --- $MAX_ITERATIONS Iterations"
 echo
 
 for ((i=1; i<=MAX_ITERATIONS; i++))

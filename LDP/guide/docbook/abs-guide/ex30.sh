@@ -30,8 +30,7 @@ case "$person" in
   echo "revans@zzy.net"
   echo "Business partner & old friend"
   ;;
-# Note double semicolon to terminate
-# each option.
+# Note double semicolon to terminate each option.
 
   "J" | "j" )
   echo

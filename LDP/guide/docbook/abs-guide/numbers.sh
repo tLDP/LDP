@@ -1,24 +1,26 @@
 #!/bin/bash
-# numbers.sh: Representation of numbers.
+# numbers.sh: Representation of numbers in different bases.
 
-# Decimal
+# Decimal: the default
 let "dec = 32"
 echo "decimal number = $dec"             # 32
 # Nothing out of the ordinary here.
 
 
 # Octal: numbers preceded by '0' (zero)
-let "oct = 071"
-echo "octal number = $oct"               # 57
+let "oct = 032"
+echo "octal number = $oct"               # 26
 # Expresses result in decimal.
+# --------- ------ -- -------
 
 # Hexadecimal: numbers preceded by '0x' or '0X'
-let "hex = 0x7a"
-echo "hexadecimal number = $hex"         # 122
+let "hex = 0x32"
+echo "hexadecimal number = $hex"         # 50
 # Expresses result in decimal.
 
 # Other bases: BASE#NUMBER
 # BASE between 2 and 64.
+# NUMBER must use symbols within the BASE range, see below.
 
 let "bin = 2#111100111001101"
 echo "binary number = $bin"              # 31181
@@ -38,13 +40,13 @@ echo $((36#zz)) $((2#10101010)) $((16#AF16)) $((53#1aA))
                                          # 1295 170 44822 3375
 
 
-# Important note:
+#  Important note:
+#  --------------
 #  Using a digit out of range of the specified base notation
 #+ will give an error message.
 
 let "bad_oct = 081"
 # numbers.sh: let: oct = 081: value too great for base (error token is "081")
-#          Octal numbers use only digits in the range of 0 - 7.
+#             Octal numbers use only digits in the range 0 - 7.
 
-exit 0
-# Thanks, Rich Bartell and Stephane Chazelas, for clarification.
+exit 0       # Thanks, Rich Bartell and Stephane Chazelas, for clarification.

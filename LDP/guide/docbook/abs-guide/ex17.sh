@@ -2,6 +2,7 @@
 
 # Call this script with at least 10 parameters, for example
 # ./scriptname 1 2 3 4 5 6 7 8 9 10
+MINPARAMS=10
 
 echo
 
@@ -29,10 +30,16 @@ fi
 
 # ...
 
+
 if [ -n "${10}" ]  # Parameters > $9 must be enclosed in {brackets}.
 then
  echo "Parameter #10 is ${10}"
 fi 
+
+if [ $# -lt "$MINPARAMS" ]
+then
+  echo "Give me at least $MINPARAMS command-line arguments!"
+fi  
 
 echo
 

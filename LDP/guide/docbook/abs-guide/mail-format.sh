@@ -40,6 +40,6 @@ s/		*//
 #+ extolling a 164K Windows utility with similar functionality.
 #
 #  An nice set of text processing utilities and an efficient
-#+ scripting language makes unnecessary bloated executables.
+#+ scripting language provide an alternative to bloated executables.
 
 exit 0
