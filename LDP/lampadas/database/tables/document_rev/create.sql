@@ -7,5 +7,7 @@ CREATE TABLE document_rev
 	initials		CHAR(3)		NOT NULL,
 	notes			TEXT,
 
-	PRIMARY KEY (doc_id, rev_id)
+	PRIMARY KEY (rev_id)
 );
+
+CREATE INDEX document_rev_idx ON (doc_id);

@@ -539,6 +539,7 @@ insert([type], [|type.name|], [],
 insert([sourcefile], [Quelldatei], [],
 [
     |tabfile_reports|
+    <p>|tabfile_metadata|
 ], 3)
 
 insert([file_report], [Report einer Datei], [],

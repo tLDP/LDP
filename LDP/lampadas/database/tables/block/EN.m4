@@ -22,6 +22,7 @@ insert([blkheader], [
     <td>
       <h1>|strproject|</h1>
       <h2>|title|</h2>
+      <center><a href="|uri.base||page.code||uri.lang_ext|">|stredit_this_page_now|</a></center>
     </td>
   </tr>
 </table>])

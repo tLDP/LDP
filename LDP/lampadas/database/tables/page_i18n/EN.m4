@@ -608,6 +608,7 @@ insert([type], [|type.name|], [],
 insert([sourcefile], [Source File], [],
 [
     |tabfile_reports|
+    <p>|tabfile_metadata|
 ], 3)
 
 insert([file_report], [File Report], [],
@@ -657,5 +658,3 @@ insert([addstring], [Add String], [],
 
 insert([omf], [OpenSource Meta-data Framework XML Output], [OMF XML Output],
 [|tabomf|], 0)
-
-
