@@ -136,10 +136,10 @@ class Widgets:
                     combo.write("selected ")
                 if doc.short_title > '':
                     combo.write("value='%s'>%s</option>\n"
-                                % (str(doc.sk_seriesid),doc.short_title))
+                                % (str(doc.sk_seriesid), doc.short_title + ' (' + doc.lang + ')'))
                 else:
                     combo.write("value='%s'>%s</option>\n"
-                                % (str(doc.sk_seriesid),doc.title[:40]))
+                                % (str(doc.sk_seriesid), doc.title[:40] + ' (' + doc.lang + ')'))
         combo.write("</select>\n")
         return combo.get_value()
 
