@@ -9,7 +9,7 @@ from Globals import package_home
 import sys, traceback
 
 PRODUCT_NAME = 'Lampadas'
-SKIN_DIRS = ['lampadas_templates', 'lampadas_scripts']
+SKIN_DIRS = ['cmft', 'lampadas_templates', 'lampadas_scripts']
 
 def install_tool(self, out):
     if not hasattr(self, "content_tool"):
