@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Yet another version of the "column totaler" script (col-totaler.sh)
-# that adds up a specified column (of numbers) in the target file.
-# This uses the environment to pass a script variable to 'awk'.
+#  Yet another version of the "column totaler" script (col-totaler.sh)
+#+ that adds up a specified column (of numbers) in the target file.
+#  This uses the environment to pass a script variable to 'awk'.
 
 ARGS=2
 E_WRONGARGS=65

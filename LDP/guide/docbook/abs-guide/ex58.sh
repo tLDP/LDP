@@ -3,10 +3,12 @@
 #  Backs up all files in current directory modified within last 24 hours
 #+ in a "tarball" (tarred and gzipped file).
 
-BACKUPFILE=backup
+BACKUPFILE=backup-$(date +%m-%d-%Y)
+#                 Embeds date in backup filename.
+#                 Thanks, Joshua Tschida, for the idea.
 archive=${1:-$BACKUPFILE}
 #  If no backup-archive filename specified on command line,
-#+ it will default to "backup.tar.gz."
+#+ it will default to "backup-MM-DD-YYYY.tar.gz."
 
 tar cvf - `find . -mtime -1 -type f -print` > $archive.tar
 gzip $archive.tar

@@ -1,6 +1,10 @@
 #!/bin/bash
 # days-between.sh:    Number of days between two dates.
 # Usage: ./days-between.sh [M]M/[D]D/YYYY [M]M/[D]D/YYYY
+#
+# Note: Script modified to account for changes in Bash 2.05b
+#+      that closed the loophole permitting large negative
+#+      integer return values.
 
 ARGS=2                # Two command line parameters expected.
 E_PARAM_ERR=65        # Param error.
@@ -13,10 +17,10 @@ MIY=12
 DIM=31
 LEAPCYCLE=4
 
-MAXRETVAL=256         # Largest permissable
-                      # positive return value from a function.
+MAXRETVAL=255         #  Largest permissable
+                      #+ positive return value from a function.
 
-diff=		      # Declare global variable for date difference.
+diff=                 # Declare global variable for date difference.
 value=                # Declare global variable for absolute value.
 day=                  # Declare globals for day, month, year.
 month=
@@ -50,11 +54,10 @@ check_date ()                 # Checks for invalid date(s) passed.
 }
 
 
-strip_leading_zero () # Better to strip possible leading zero(s)
-{                     # from day and/or month
-  val=${1#0}          # since otherwise Bash will interpret them
-  return $val         # as octal values (POSIX.2, sect 2.9.2.1).
-}
+strip_leading_zero () #  Better to strip possible leading zero(s)
+{                     #+ from day and/or month
+  return ${1#0}       #+ since otherwise Bash will interpret them
+}                     #+ as octal values (POSIX.2, sect 2.9.2.1).
 
 
 day_index ()          # Gauss' Formula:
@@ -80,13 +83,7 @@ day_index ()          # Gauss' Formula:
   # http://home.t-online.de/home/berndt.schwerdtfeger/cal.htm
 
 
-  if [ "$Days" -gt "$MAXRETVAL" ]  # If greater than 256,
-  then                             # then change to negative value
-    let "dindex = 0 - $Days"       # which can be returned from function.
-  else let "dindex = $Days"
-  fi
-
-  return $dindex
+  echo $Days
 
 }  
 
@@ -97,13 +94,13 @@ calculate_difference ()            # Difference between to day indices.
 }  
 
 
-abs ()                             # Absolute value
-{                                  # Uses global "value" variable.
-  if [ "$1" -lt 0 ]                # If negative
-  then                             # then
-    let "value = 0 - $1"           # change sign,
-  else                             # else
-    let "value = $1"               # leave it alone.
+abs ()                             #  Absolute value
+{                                  #  Uses global "value" variable.
+  if [ "$1" -lt 0 ]                #  If negative
+  then                             #+ then
+    let "value = 0 - $1"           #+ change sign,
+  else                             #+ else
+    let "value = $1"               #+ leave it alone.
   fi
 }
 
@@ -115,18 +112,15 @@ then
 fi  
 
 Parse_Date $1
-check_date $day $month $year      # See if valid date.
+check_date $day $month $year       #  See if valid date.
 
-strip_leading_zero $day           # Remove any leading zeroes
-day=$?                            # on day and/or month.
+strip_leading_zero $day            #  Remove any leading zeroes
+day=$?                             #  on day and/or month.
 strip_leading_zero $month
 month=$?
 
-day_index $day $month $year
-date1=$?
+let "date1 = `day_index $day $month $year`"
 
-abs $date1                         # Make sure it's positive
-date1=$value                       # by getting absolute value.
 
 Parse_Date $2
 check_date $day $month $year
@@ -136,11 +130,9 @@ day=$?
 strip_leading_zero $month
 month=$?
 
-day_index $day $month $year
-date2=$?
+#let "date2 = `day_index $day $month $year`"
+let "date2 = $(day_index $day $month $year)"
 
-abs $date2                         # Make sure it's positive.
-date2=$value
 
 calculate_difference $date1 $date2
 
@@ -150,5 +142,6 @@ diff=$value
 echo $diff
 
 exit 0
-# Compare this script with the implementation of Gauss' Formula in C at
-# http://buschencrew.hypermart.net/software/datedif
+#  Compare this script with
+#+ the implementation of Gauss' Formula in a C program at:
+#     http://buschencrew.hypermart.net/software/datedif

@@ -1,5 +1,6 @@
 #!/bin/bash
 # wf.sh: Crude word frequency analysis on a text file.
+# This is a more efficient version of the "wf2.sh" script.
 
 
 # Check for input file on command line.
@@ -23,12 +24,12 @@ fi
 
 ########################################################
 # main ()
-sed -e 's/\.//g'  -e 's/ /\
+sed -e 's/\.//g'  -e 's/\,//g' -e 's/ /\
 /g' "$1" | tr 'A-Z' 'a-z' | sort | uniq -c | sort -nr
 #                           =========================
 #                            Frequency of occurrence
 
-#  Filter out periods and
+#  Filter out periods and commas, and
 #+ change space between words to linefeed,
 #+ then shift characters to lowercase, and
 #+ finally prefix occurrence count and sort numerically.
@@ -36,7 +37,8 @@ sed -e 's/\.//g'  -e 's/ /\
 
 # Exercises:
 # ---------
-# 1) Add 'sed' commands to filter out other punctuation, such as commas.
+# 1) Add 'sed' commands to filter out other punctuation,
+#+   such as semicolons.
 # 2) Modify to also filter out multiple spaces and other whitespace.
 # 3) Add a secondary sort key, so that instances of equal occurrence
 #+   are sorted alphabetically.
