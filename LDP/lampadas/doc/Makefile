@@ -1,4 +1,4 @@
-man = lampadas.1 lampadasdb.1 lampadasweb.1 lampadas.conf.5
+man = lampadas.1 lampadasdb.1 lampadas.conf.5
 docs = Lampadas.html index.html $(man)
 
 docprefix = /usr/doc
