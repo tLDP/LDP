@@ -24,8 +24,6 @@ The Globals module implements low level utility and convenience routines.
 
 # Modules
 
-from string import strip
-
 VERSION = '0.3-cvs'
 
 def wsq(astring):
@@ -122,6 +120,6 @@ def trim(astring):
         temp = ''
     else:
         temp = str(astring)
-    return strip(temp)
+    return temp.strip()
 
 
