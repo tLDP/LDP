@@ -13,7 +13,6 @@ from Globals import *
 from Config import Config
 from Log import Log
 from DataLayer import Lampadas
-from Converter import Converter
 import WebLayer
 
 import commands
@@ -26,7 +25,6 @@ import sys
 Config = Config()
 Log = Log()
 L = Lampadas()
-C = Converter()
 
 
 # Constants
@@ -397,7 +395,12 @@ class PageFactory:
 					keys = Files.keys()
 					for key in keys:
 						File = Files[key]
-						page = C.ConvertSGMLFile(Config.CVSRoot + File.Filename, docformat)
+
+						# FIXME: This must process the XML file that came out of
+						# Converter(), not the source file.
+
+						command = 'xsltproc /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl ' + Config.CVSRoot + File.Filename
+						page = commands.getoutput(command)
 			else:
 				page =  'FORMAT ' + docformat  + ' NOT YET SUPPORTED'
 		return page

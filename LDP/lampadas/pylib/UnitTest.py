@@ -8,7 +8,9 @@ import unittest
 import Config
 import Database
 import DataLayer
+import Converter
 #import HTML
+import commands
 
 Config = Config.Config()
 DB = Database.Database()
@@ -312,6 +314,50 @@ class testUserDocs(unittest.TestCase):
 			assert UserDoc.DocID > 0
 			assert UserDoc.Active == 1 or UserDoc.Active == 0
 		L.Log(3, 'testing UserDocs done')
+
+class testConverter(unittest.TestCase):
+
+	def setUp(self):
+		self.C = Converter.Converter()
+
+	def testWikiText(self):
+		output = self.C.WikiText('test/wt/Lampadas.wt')
+		fd = open('test/wt/Lampadas.xml.new', 'w')
+		fd.write(output + "\n")
+		fd.close()
+
+		newchecksum = commands.getoutput('md5sum < test/wt/Lampadas.xml.new')
+		newchecksum = newchecksum + "\n"
+		
+		fd = open('test/wt/Lampadas.md5.new', 'w')
+		fd.write(newchecksum)
+		fd.close()
+
+		fd = open('test/wt/Lampadas.md5.old', 'r')
+		oldchecksum = fd.read()
+		fd.close()
+
+		assert oldchecksum == newchecksum
+
+	def testTexinfo(self):
+		output = self.C.Texinfo('test/texinfo/texinfo.txi')
+		fd = open('test/texinfo/texinfo.xml.new', 'w')
+		fd.write(output + "\n")
+		fd.close()
+
+		newchecksum = commands.getoutput('md5sum < test/texinfo/texinfo.xml.new')
+		newchecksum = newchecksum + "\n"
+		
+		fd = open('test/texinfo/texinfo.md5.new', 'w')
+		fd.write(newchecksum)
+		fd.close()
+
+		fd = open('test/texinfo/texinfo.md5.old', 'r')
+		oldchecksum = fd.read()
+		fd.close()
+
+		assert oldchecksum == newchecksum
+
 
 #class testHTML(unittest.TestCase):
 	

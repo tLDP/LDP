@@ -82,10 +82,10 @@ class Classes(LampadasCollection):
 			self.data[newClass.ID] = newClass
 
 class Class:
-    """
+	"""
     A class is a way of identifying the type of a document, such as a
     User's Guide, a HOWTO, or a FAQ List.
-    """
+	"""
 
 	def __init__(self, ClassID=None):
 		self.I18n = {}
