@@ -1,0 +1,170 @@
+#!/usr/bin/perl
+#
+# ldp_cp <file_without_extension>
+#
+# copy all various output forms needed for the LDP to respective locations
+#
+if($ARGV[0] eq '') {
+   die "\nusage: $0 <file_without_extension>\n";
+}
+
+my($cmd, $dtd, $f, $base) = '';
+my($linuxdoc) = 0;
+
+$base      = '/public/ftp/pub/linux/docs/HOWTO';
+$base_html = '/public/html/LDP/HOWTO';
+
+$f = $ARGV[0];
+if( $f =~ /\.[\w]+ml$/ ) {
+    $f =~ s/\.[\w]+$//;
+}
+
+# determine DTD
+#
+my($fname) = '';
+if( -e "$f.sgml" ) {
+    $fname = "$f.sgml";
+} elsif( -e "$f.xml" ) {
+    $fname = "$f.xml";
+}
+
+open(FP_IN, "head -100 $fname | grep -i '\!doctype' |") ||
+               die "ldp_cp: cannot determine DTD for $fname\n";
+$cmd = <FP_IN>;
+close(FP_IN);
+if( $cmd eq '' ) {
+   die "ldp_cp: cannot determine DTD for $f\n";
+}
+if( $cmd =~ /linuxdoc/i ) {
+    $linuxdoc = 1;
+}
+if( $cmd =~ /\ xml\ /i ) {
+    $dtd = 'xml';
+} else {
+    $dtd = 'sgml';
+}
+
+
+# copy PLAIN TEXT version
+#
+if( -e "$f.txt" ) {
+    $cmd = "cp -f $f.txt $base/$f; chmod 664 $base/$f; chgrp ldp $base/$f";
+    print "$0: $f $base\n";
+    system($cmd);
+
+    $cmd = "cp -f $f.txt $base_html/text/$f; " .
+           "chmod 664 $base_html/text/$f; " .
+           "chgrp ldp $base_html/text/$f";
+    system($cmd);
+}
+
+# copy HTML version
+#
+if( -e "$f-html.tar.gz" ) {
+    $cmd = "cp -f $f-html.tar.gz $base/other-formats/html; " .
+           "chmod 664 $base/other-formats/html/$f-html.tar.gz; " .
+           "chgrp ldp $base/other-formats/html/$f-html.tar.gz";
+    print "$0: $f-html.tar.gz $base/other-formats/html\n";
+    system($cmd);
+}
+if( (-e "$f.html" && $linuxdoc == 1)
+    ||
+    (-d "$f"      && $linuxdoc == 0) ) {
+
+    if( $linuxdoc == 1 ) {
+        $cmd = "cp -f $f\*.html $base_html; " .
+               "chmod 664 $base_html/$f\*.html; " .
+               "chgrp ldp $base_html/$f\*.html";
+    } else {
+        if( -d "$base_html/$f" ) {
+            system("rm -f $base_html/$f/\*.html");
+        }
+        $cmd = "cp -rf $f $base_html; " .
+               "chmod 775 $base_html/$f; " .
+               "chmod 664 $base_html/$f/\*.html; " .
+               "chgrp -R ldp $base_html/$f";
+    }
+    print "$0: $base_html\n";
+    system($cmd);
+}
+
+# copy single HTML version
+#
+if( -e "00_$f.html" ) {
+    $cmd = "cp -f 00_" . "$f.html $base/other-formats/html_single/$f.html; " .
+           "chmod 664 $base/other-formats/html_single/$f.html; " .
+           "chgrp ldp $base/other-formats/html_single/$f.html";
+    print "$0: $f.html $base/other-formats/html_single\n";
+    system($cmd);
+
+    $cmd = "mkdir $base_html/html_single/$f; " .
+           "cp -f 00_" . "$f.html $base_html/html_single/$f/index.html; " .
+           "chmod 775 $base_html/html_single/$f/; " .
+           "chmod 664 $base_html/html_single/$f/index.html; " .
+           "chgrp -R ldp $base_html/html_single/$f/";
+    system($cmd);
+}
+
+
+# copy PDF version
+#
+if( -e "$f.pdf" ) {
+    $cmd = "cp -f $f.pdf $base/other-formats/pdf; " .
+           "chmod 664 $base/other-formats/pdf/$f.pdf; " .
+           "chgrp ldp $base/other-formats/pdf/$f.pdf";
+    print "$0: $f.pdf $base/other-formats/pdf\n";
+    system($cmd);
+}
+
+# copy PS version
+#
+if( -e "$f.ps.gz" ) {
+    $cmd = "cp -f $f.ps.gz $base/other-formats/ps; " .
+           "chmod 664 $base/other-formats/ps/$f.ps.gz; " .
+           "chgrp ldp $base/other-formats/ps/$f.ps.gz";
+    print "$0: $f.ps.gz $base/other-formats/ps\n";
+    system($cmd);
+}
+
+# copy source version
+#
+if( -e "$f.${dtd}.gz" ) {
+
+    my($ext) = '';
+    if( $linuxdoc == 1 ) {
+        $ext = 'sgml';
+    } else {
+        $ext = 'docbook';
+    }
+
+    $cmd = "cp -f $f.${dtd}.gz $base/other-formats/$ext; " .
+           "chmod 664 $base/other-formats/$ext/$f.${dtd}.gz; " .
+           "chgrp ldp $base/other-formats/$ext/$f.${dtd}.gz";
+    print "$0: $f.${dtd}.gz $base/other-formats/$ext\n";
+    system($cmd);
+
+    # docbook SGML generated from linuxdoc
+    #
+    if( $linuxdoc == 1 && (-e "DB_$f.sgml.gz") ) {
+        $ext = 'docbook';
+        $cmd = "cp -f DB_$f.sgml.gz $base/other-formats/$ext/$f.sgml.gz; " .
+               "chmod 664 $base/other-formats/$ext/$f.sgml.gz; " .
+               "chgrp ldp $base/other-formats/$ext/$f.sgml.gz";
+        system($cmd);
+    }
+}
+
+
+# for announce msg
+#
+print "\n";
+if( $linuxdoc == 1 ) {
+    system("head -5 $f.txt");
+} else {
+    system("head -12 $f.txt");
+}
+print "\n  * updated\n  http://tldp.org/HOWTO/" . 
+      ($linuxdoc == 1 ? "$f.html" : "$f/"), "\n\n";
+
+exit(0);
+
