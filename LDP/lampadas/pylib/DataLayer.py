@@ -53,7 +53,7 @@ class LampadasList:
 
 	def keys(self):
 		return self.list.keys()
-
+	
 	def items(self):
 		return self.list.items()
 
@@ -90,6 +90,9 @@ class LampadasCollection:
 
 	def __delitem__(self, key):
 		del self.data[key]
+
+	def keys(self):
+		return self.data.keys()
 
 	def Count(self):
 		return len(self.data)

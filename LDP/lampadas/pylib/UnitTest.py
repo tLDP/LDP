@@ -81,6 +81,11 @@ class testDocs(unittest.TestCase):
 		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
 		assert self.NewID == self.OldID
 
+		keys = L.Docs.keys()
+		for key in keys:
+			self.Doc = L.Docs[key]
+			assert self.Doc.ID == key
+
 	def testMapping(self):
 		self.Doc = L.Docs[1]
 		assert not self.Doc == None
