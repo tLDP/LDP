@@ -22,6 +22,10 @@
 Lampadas Database Module
 
 This module generates a Database object for accessing a back-end RDBMS
+
+FIXME: why did the factory function get removed??? There is no need
+to get Database to delegate to XXDatabase, just get the real instance
+from the factory! --nico
 """
 
 # Modules ##################################################################
@@ -42,12 +46,17 @@ class Database:
     connected = 0
 
     def __del__(self):
+        """
+        FIXME: unneeded. done automatically. Remove this method.
+        """
         if self.connected:
             self.database.connection.close()
         
     def connect(self, db_type, db_name):
         """
         Connect to the database specified in Config.
+
+        FIXME: turn this back into the factory function it once was.
         """
 
         if db_name=='':
@@ -122,8 +131,4 @@ class MySQLDatabase(Database):
 log(2, '               **********Initializing DataLayer**********')
 db = Database()
 db.connect(config.db_type, config.db_name)
-
-if __name__=='__main__':
-    print "Running unit tests..."
-    print "Unit tests run."
 
