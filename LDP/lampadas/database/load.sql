@@ -32,5 +32,5 @@ copy stats from '/tmp/ldp_stats.txt';
 copy stats_cdf from '/tmp/ldp_stats_cdf.txt';
 copy license from '/tmp/ldp_license.txt';
 
-copy volunteer from '/tmp/ldp_volunteer.txt';
 copy username from '/tmp/ldp_username.txt';
+copy config from '/tmp/ldp_config.txt';

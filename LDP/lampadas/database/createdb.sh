@@ -36,9 +36,8 @@ psql ldp -qf stats_cdf.sql
 
 psql ldp -qf license.sql
 
-psql ldp -qf volunteer.sql
-
 psql ldp -qf username.sql
+psql ldp -qf config.sql
 
 #views
 psql ldp -qf vw_gfdl_emails.sql
