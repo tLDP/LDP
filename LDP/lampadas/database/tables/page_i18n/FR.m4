@@ -1,3 +1,8 @@
+insert([newdocument], [New Document], [],
+[
+    |tabeditdoc|
+])
+
 insert([admin], [Admin Page], [],
 [
     <p>Admin tools.

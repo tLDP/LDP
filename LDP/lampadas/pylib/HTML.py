@@ -31,7 +31,7 @@ from Globals import *
 from Config import config
 from Log import log
 from URLParse import URI
-from DataLayer import lampadas
+from DataLayer import *
 from WebLayer import lampadasweb
 from Sessions import sessions
 
@@ -118,7 +118,7 @@ class ComboFactory:
         return combo
 
     def sk_seriesid(self, value, lang):
-        combo = "<select name='sk_seriesid'>\n"
+        combo = '<select name="sk_seriesid">\n'
         combo = combo + '<option></option>'
         keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
@@ -135,9 +135,9 @@ class ComboFactory:
         return combo
 
     def dtd(self, value, lang):
-        combo = "<select name='dtd'>\n"
+        combo = '<select name="dtd_code">\n'
         combo = combo + '<option></option>'
-        keys = lampadas.dtds.sort_by_lang('DTD', lang)
+        keys = lampadas.dtds.sort_by('dtd_code')
         for key in keys:
             dtd = lampadas.dtds[key]
             assert not dtd==None
@@ -281,13 +281,14 @@ class TableFactory:
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
-    def doc(self, uri):
-        if uri.id:
+    def doc(self, uri, user):
+        if uri.id > 0:
             doc = lampadas.docs[uri.id]
             box = '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
             box = '<form method=GET action="data/save/newdocument" name="document">'
+        box = box + '<input name="username" type=hidden value=' + user.username + '>\n'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
@@ -326,8 +327,8 @@ class TableFactory:
         box = box + '<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n'
         box = box + '<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strformat|</th><td>' + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n'
-        box = box + '<th class="label">|strdtd|</th><td>' + doc.dtd_code + ' ' + doc.dtd_version + '</td>\n'
+        box = box + '<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n'
+        box = box + '<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + ' ' + '<input type=text name=dtd_version value="' + doc.dtd_version + '"></td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n'
         box = box + '<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
@@ -515,29 +516,34 @@ class TableFactory:
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
-            if doc.lang==uri.lang:
-                ok = 1
-                if type_code and doc.type_code <> type_code:
+            ok = 1
+            if username:
+                if doc.users[username]==None:
                     ok = 0
-                if subtopic_code:
+            else:
+                if doc.lang <> uri.lang:
+                    ok = 0
+                elif type_code and doc.type_code <> type_code:
+                    ok = 0
+                elif subtopic_code:
                     subtopic = lampadas.subtopics[subtopic_code]
                     if subtopic.docs[doc.id]==None:
                         ok = 0
-                if username:
-                    if doc.users[username]==None:
-                        ok = 0
-                if ok > 0:
-                    box = box + '<tr><td>'
-                    if user and user.can_edit(doc_id=doc.id):
-                        box = box + '<a href="editdoc/' + str(doc.id) + '/">' + EDIT_ICON + '</a>'
-                    box = box + '</td>\n'
-                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
-                    box = box + '</tr>\n'
+            if ok > 0:
+                box = box + '<tr><td>'
+                if user and user.can_edit(doc_id=doc.id):
+                    box = box + '<a href="editdoc/' + str(doc.id) + '/">' + EDIT_ICON + '</a>'
+                box = box + '</td>\n'
+                box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
+                box = box + '</tr>\n'
         box = box + '</table>'
         return box
 
     def user_docs(self, uri, user):
-        box = self.doctable(uri, user, username=user.username)
+        if user:
+            box = self.doctable(uri, user, username=user.username)
+        else:
+            box = ' '
         return box
 
     def section_menu(self, uri, user, section_code):
@@ -836,7 +842,7 @@ class PageFactory:
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabeditdoc':
-                    newstring = self.tablef.doc(uri)
+                    newstring = self.tablef.doc(uri, build_user)
                 if token=='tabdocfiles':
                     newstring = self.tablef.docfiles(uri)
                 if token=='tabdocusers':

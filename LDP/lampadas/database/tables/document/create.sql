@@ -2,8 +2,8 @@ CREATE TABLE document
 (
 	doc_id			INT4		NOT NULL,
 	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
-	title			TEXT		NOT NULL,
-	type_code		CHAR(20)	NOT NULL	REFERENCES type(type_code),
+	title			TEXT,
+	type_code		CHAR(20)			REFERENCES type(type_code),
 	format_code		CHAR(20)			REFERENCES format(format_code),
 	dtd_code		CHAR(12)			REFERENCES dtd(dtd_code),
 	dtd_version		CHAR(12),

@@ -28,10 +28,25 @@ import smtplib
 import string
 import whrandom
 
-def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
+def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
              review_status_code, tech_review_status_code, maintainer_wanted,
              license_code, pub_date, last_update, version, tickle_date, isbn,
-             lang, abstract):
+             format_code, dtd_code, dtd_version, lang, abstract):
+
+    newdoc_id = lampadas.docs.add(title, url, ref_url, pub_status_code, type_code,
+             review_status_code, tech_review_status_code, maintainer_wanted,
+             license_code, pub_date, last_update, version, tickle_date, isbn,
+             format_code, dtd_code, dtd_version, lang, abstract)
+
+    doc = lampadas.docs[newdoc_id]
+    doc.users.add(username)
+    
+    return 'Added.'
+
+def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
+             review_status_code, tech_review_status_code, maintainer_wanted,
+             license_code, pub_date, last_update, version, tickle_date, isbn,
+             format_code, dtd_code, dtd_version, lang, abstract):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
@@ -54,6 +69,9 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
     doc.version                 = version
     doc.tickle_date             = tickle_date
     doc.ibsn                    = isbn
+    doc.format_code             = format_code
+    doc.dtd_code                = dtd_code
+    doc.dtd_version             = dtd_version
     doc.lang                    = lang
     doc.abstract                = abstract
     doc.save()

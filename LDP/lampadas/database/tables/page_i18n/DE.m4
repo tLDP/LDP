@@ -1,3 +1,8 @@
+insert([newdocument], [New Document], [],
+[
+    |tabeditdoc|
+])
+
 insert([admin], [Administration], [],
 [
     <p>Werkzeuge für Administratoren.

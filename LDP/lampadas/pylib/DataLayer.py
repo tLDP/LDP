@@ -192,7 +192,7 @@ class Docs(LampadasCollection):
         sql = "INSERT INTO document(doc_id, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(url) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(home_url) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(abstract) + ", " + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
-        doc_id = db.read_value('SELECT MAX(doc_id) from document')
+        doc_id = int(db.read_value('SELECT MAX(doc_id) from document'))
         doc = Doc(doc_id)
         self[doc_id] = doc
         return doc_id
@@ -210,6 +210,35 @@ class Doc:
     """
 
     def __init__(self, id=None):
+        self.id                      = 0
+        self.title                   = ''
+        self.type_code               = ''
+        self.format_code             = ''
+        self.dtd_code                = ''
+        self.dtd_version             = ''
+        self.version                 = ''
+        self.last_update             = ''
+        self.url                     = ''
+        self.isbn                    = ''
+        self.pub_status_code         = ''
+        self.review_status_code      = ''
+        self.tickle_date             = ''
+        self.pub_date                = ''
+        self.home_url                = ''
+        self.tech_review_status_code = ''
+        self.maintained              = 0
+        self.maintainer_wanted       = ''
+        self.license_code            = ''
+        self.abstract                = ''
+        self.rating                  = 0
+        self.lang                    = ''
+        self.sk_seriesid             = ''
+        self.errs                    = DocErrs()
+        self.files                   = DocFiles()
+        self.users                   = DocUsers()
+        self.versions                = DocVersions()
+        self.ratings                 = DocRatings()
+        self.ratings.parent          = self
         if id==None: return
         self.load(id)
 
@@ -268,7 +297,7 @@ class DocErrs(LampadasCollection):
     Lintadas subsystem.
     """
 
-    def __init__(self, doc_id):
+    def __init__(self, doc_id=0):
         self.data = {}
         self.doc_id = doc_id
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -318,7 +347,7 @@ class DocFiles(LampadasCollection):
     A collection object providing access to all document source files.
     """
 
-    def __init__(self, doc_id):
+    def __init__(self, doc_id=0):
         self.data = {}
         assert not doc_id==None
         self.doc_id = doc_id
@@ -390,7 +419,7 @@ class DocUsers(LampadasCollection):
     A collection object providing access to all document volunteers.
     """
 
-    def __init__(self, doc_id):
+    def __init__(self, doc_id=0):
         self.data = {}
         self.doc_id = doc_id
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE doc_id=" + str(doc_id)
@@ -402,7 +431,7 @@ class DocUsers(LampadasCollection):
             docuser.load_row(row)
             self.data[docuser.username] = docuser
 
-    def add(self, username, role_code, email, active):
+    def add(self, username, role_code='author', email='', active=1):
         sql = 'INSERT INTO document_user (doc_id, username, role_code, email, active) VALUES (' + str(self.doc_id) + ', ' + wsq(username) + ', ' + wsq(role_code) + ', ' + wsq(email) + ', ' + wsq(bool2tf(active)) + ')'
         db.runsql(sql)
         db.commit()
@@ -454,7 +483,7 @@ class DocRatings(LampadasCollection):
     A collection object providing access to all ratings placed on documents by users.
     """
 
-    def __init__(self, doc_id):
+    def __init__(self, doc_id=0):
         self.data = {}
         self.parent = None
         assert not doc_id==None
@@ -536,7 +565,7 @@ class DocVersions(LampadasCollection):
     A collection object providing access to document revisions.
     """
 
-    def __init__(self, doc_id):
+    def __init__(self, doc_id=0):
         LampadasCollection.__init__(self)
         assert not doc_id==None
         self.doc_id = doc_id
