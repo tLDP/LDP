@@ -32,7 +32,7 @@ import htmlentitydefs
 
 # Globals
 
-VERSION = '0.9.2-cvs'
+VERSION = '0.9.3-cvs'
 
 # Document errors
 ERR_NO_SOURCE_FILE      = 001
