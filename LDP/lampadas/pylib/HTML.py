@@ -244,7 +244,7 @@ class TableFactory:
         return str(value) + '/' + str(max)
 
     def doc(self, DocID, lang):
-        box = '<table class="box"><tr><th colspan="6">|docdetails|</th></tr>'
+        box = '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         if DocID:
             doc = lampadas.Docs[DocID]
             box = box + '<form method=GET action="data/save/document" name="document">'
@@ -334,7 +334,7 @@ class TableFactory:
             user = User()
             box = box + '<form method=GET action="data/save/newuser" name="user">\n'
         box = box + '<input name="username" type=hidden value=' + username + '></input>\n'
-        box = box + '<tr><th colspan=2>|userdetails|</th><th>|comments|</th></tr>\n'
+        box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
         box = box + '<tr><th class="label">|strusername|</th><td>' + username + '</td>\n'
         box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
         box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td></tr>\n'
@@ -353,7 +353,7 @@ class TableFactory:
     def doctable(self, lang):
         log(3, "Creating doctable")
         box = ''
-        box = box + '<table class="box"><tr><th colspan="2">|title|</th></tr>'
+        box = box + '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.Docs.sort_by("Title")
         for key in keys:
             doc = lampadas.Docs[key]
@@ -365,31 +365,49 @@ class TableFactory:
         box = box + '</table>'
         return box
 
-    def section_menu(self, section_code, lang):
-        log(3, "Creating section menu: " + section_code)
-        section = lampadasweb.sections[section_code]
+    def section_menu(self, user, section, lang):
         assert not section == None
+        log(3, "Creating section menu: " + section.code)
         box = '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
         box = box + '<tr><td>'
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
             page = lampadasweb.pages[key]
-            if page.section_code == section_code:
+            if page.section_code == section.code:
+                if page.only_registered or page.only_admin or page.only_sysadmin > 0:
+                    if user==None:
+                        continue
+                if page.only_admin > 0:
+                    if user.admin==0 and user.sysadmin==0:
+                        continue
+                if page.only_sysadmin > 0:
+                    if user.sysadmin==0:
+                        continue
                 box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
         box = box + '</td></tr></table>\n'
         return box
 
-    def section_menus(self, lang):
+    def section_menus(self, user, lang):
         log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
         for key in keys:
-            box = box + self.section_menu(key, lang)
+            section = lampadasweb.sections[key]
+            if section.only_registered or section.only_admin or section.only_sysadmin > 0:
+                if user==None or section.registered_count==0:
+                    continue
+            if section.only_admin > 0:
+                if (user.admin==0 and user.sysadmin==0) or (section.admin_count==0):
+                    continue
+            if section.only_sysadmin > 0:
+                if user.sysadmin==0 or section.sysadmin_count==0:
+                    continue
+            box = box + self.section_menu(user, section, lang)
         return box
 
     def recent_news(self, lang):
         log(3, 'Creating recent news')
-        box = '<table class="box"><tr><th>|date|</th><th>|news|</th></tr>\n'
+        box = '<table class="box"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
@@ -403,7 +421,7 @@ class TableFactory:
 
     def topics(self, lang):
         log(3, 'Creating topics table')
-        box = '<table class="navbox"><tr><th>|topics|</th></tr>\n'
+        box = '<table class="navbox"><tr><th>|strtopics|</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.topics.sort_by('num')
         for key in keys:
@@ -446,7 +464,7 @@ class TableFactory:
 
     def classes(self, lang):
         log(3, 'Creating classes table')
-        box = '<table class="navbox"><tr><th>|classes|</th></tr>\n'
+        box = '<table class="navbox"><tr><th>|strclasses|</th></tr>\n'
         box = box + '<tr><td>\n'
         keys = lampadas.Classes.sort_by('sort_order')
         for key in keys:
@@ -469,13 +487,13 @@ class TableFactory:
             box = box + '</table>\n'
         else:
             log(3, 'Creating login box')
-            box = '<table class="navbox"><tr><th colspan="2">|login|</th></tr>\n'
+            box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
             box = box + '<tr><td align=right>|strusername|</td><td><input type=text size=12 name=username></input></td></tr>\n'
-            box = box + '<tr><td align=right>|password|</td><td><input type=password size=12 name=password></input></td></tr>\n'
-            box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="|login|"><br>\n'
-            box = box + '<a href="mailpass">|mail_password|</a><br>\n'
-            box = box + '<a href="newuser">|create_account|</a></td></tr>\n'
+            box = box + '<tr><td align=right>|strpassword|</td><td><input type=password size=12 name=password></input></td></tr>\n'
+            box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
+            box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
+            box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
             box = box + '</form>\n'
             box = box + '</table>\n'
         return box
@@ -484,7 +502,7 @@ class TableFactory:
         if user:
             if user.admin > 0:
                 log(3, 'Creating sessions table')
-                box = '<table class="navbox"><tr><th>|sessions|</th></tr>\n'
+                box = '<table class="navbox"><tr><th>|strsessions|</th></tr>\n'
                 box = box + '<tr><td>\n'
                 keys = sessions.sort_by('username')
                 for key in keys:
@@ -497,6 +515,20 @@ class TableFactory:
                 return box
         return ' '
 
+    def languages(self, lang):
+        log(3, 'Creating languages table')
+        box = '<table class="navbox"><tr><th>|strlanguages|</th></tr>\n'
+        box = box + '<tr><td>\n'
+        keys = sessions.sort_by('username')
+        for key in keys:
+            session = sessions[key]
+            box = box + '<a href="user/' + str(session.username) + '">\n'
+            user = lampadas.users[key]
+            box = box + user.name + '</a><br>\n'
+        box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        return box
+        return ' '
 
 # PageFactory
 
@@ -592,9 +624,9 @@ class PageFactory:
                 if token=='version':
                     newstring = VERSION
 
-                # special tokens, for when a page embeds an object
+                # Tokens for when a page embeds an object
                 # 
-                if token=='user_name':
+                if token=='user.username':
                     user = lampadas.users[uri.username]
                     newstring = user.name
 
@@ -609,7 +641,7 @@ class PageFactory:
                 if token=='tabuser':
                     newstring = self.tablef.user(uri.username, uri.language)
                 if token=='tabmenus':
-                    newstring = self.tablef.section_menus(uri.language)
+                    newstring = self.tablef.section_menus(build_user, uri.language)
                 if token=='tabrecentnews':
                     newstring = self.tablef.recent_news(uri.language)
                 if token=='tabtopics':
@@ -622,6 +654,8 @@ class PageFactory:
                     newstring = self.tablef.classes(uri.language)
                 if token=='tabsessions':
                     newstring = self.tablef.sessions(build_user, uri.language)
+                if token=='tablanguages':
+                    newstring = self.tablef.languages(uri.language)
             
                 # Blocks and Strings
                 # 

@@ -82,7 +82,7 @@ class Sections(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT section_code, sort_order FROM section"
+        sql = "SELECT section_code, sort_order, only_registered, only_admin, only_sysadmin FROM section"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -97,8 +97,14 @@ class Section:
         self.i18n = LampadasCollection()
 
     def load(self, row):
-        self.code		= trim(row[0])
-        self.sort_order = safeint(row[1])
+        self.code		      = trim(row[0])
+        self.sort_order       = safeint(row[1])
+        self.only_registered  = tf2bool(row[2])
+        self.only_admin       = tf2bool(row[3])
+        self.only_sysadmin    = tf2bool(row[4])
+        self.registered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_registered or only_admin or only_sysadmin'))
+        self.admin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_admin or only_sysadmin'))
+        self.sysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_sysadmin'))
         sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -121,7 +127,7 @@ class Pages(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT page_code, section_code, sort_order, template_code FROM page"
+        sql = "SELECT page_code, section_code, sort_order, template_code, only_registered, only_admin, only_sysadmin FROM page"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -136,10 +142,13 @@ class Page:
         self.i18n = LampadasCollection()
 
     def load(self, row):
-        self.code           = trim(row[0])
-        self.section_code	= trim(row[1])
-        self.sort_order     = safeint(row[2])
-        self.template_code	= trim(row[3])
+        self.code            = trim(row[0])
+        self.section_code	 = trim(row[1])
+        self.sort_order      = safeint(row[2])
+        self.template_code	 = trim(row[3])
+        self.only_registered = tf2bool(row[4])
+        self.only_admin      = tf2bool(row[5])
+        self.only_sysadmin   = tf2bool(row[6])
         sql = "SELECT lang, title, menu_name, page FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
