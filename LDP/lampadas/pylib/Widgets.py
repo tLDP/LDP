@@ -236,6 +236,20 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
+    def new_page_lang(self, page_code, lang):
+        combo = WOStringIO("<select name='lang'>\n")
+        page = lampadasweb.pages[page_code]
+        keys = languages.sort_by_lang('name', lang)
+        for key in keys:
+            language = languages[key]
+            assert not language==None
+            if language.supported==1 and key not in page.title.keys():
+                combo.write("<option value='" + language.code + "'>")
+                combo.write(language.name[lang])
+                combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
     def lang(self, value, lang, allow_null=1, allow_unsupported=1):
         combo = WOStringIO("<select name='lang'>\n")
         if allow_null==1:

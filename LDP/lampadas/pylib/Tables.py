@@ -2003,37 +2003,38 @@ class TabPage(Table):
                                  escape_tokens(page.page[lang])
                                 ))
 
-            # Add a new translation
-            box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
-                      '<input type=hidden name="page_code" value="%s">\n' \
-                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
-                      '<tr><td class="label">|strlanguage|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strtitle|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strmenu_name|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strversion|:</td>' \
-                      '    <td>%s</td>\n' \
-                      '    <td></td>' \
-                      '</tr>\n' \
-                      '<tr><td class="label">|strpage|:</td>' \
-                      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
-                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
-                      '</tr></form>'
-                      % (page.code,
-                         widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0),
-                         widgets.title(''),
-                         widgets.menu_name(''),
-                         widgets.version('')
-                        ))
-            box.write('</table>')
+            # Add a new translation if there are untranslated languages.
+	    if len(page.untranslated_lang_keys()) > 0:
+		    box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
+			      '<input type=hidden name="page_code" value="%s">\n' \
+			      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
+			      '<tr><td class="label">|strlanguage|:</td>' \
+			      '    <td>%s</td>\n' \
+			      '    <td></td>' \
+			      '</tr>\n' \
+			      '<tr><td class="label">|strtitle|:</td>' \
+			      '    <td>%s</td>\n' \
+			      '    <td></td>' \
+			      '</tr>\n' \
+			      '<tr><td class="label">|strmenu_name|:</td>' \
+			      '    <td>%s</td>\n' \
+			      '    <td></td>' \
+			      '</tr>\n' \
+			      '<tr><td class="label">|strversion|:</td>' \
+			      '    <td>%s</td>\n' \
+			      '    <td></td>' \
+			      '</tr>\n' \
+			      '<tr><td class="label">|strpage|:</td>' \
+			      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
+			      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+			      '</tr></form>'
+			      % (page.code,
+				 widgets.new_page_lang(uri.code, uri.lang),
+				 widgets.title(''),
+				 widgets.menu_name(''),
+				 widgets.version('')
+				))
+		    box.write('</table>')
         else:
             page = Page()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newpage">\n' \
@@ -2246,7 +2247,10 @@ class TabEditThisPage(Table):
             return ''
         elif sessions.session.user.can_edit(page_code=uri.page_code)==0:
             return ''
-        return '<center><a href="|uri.base|page_edit/|uri.page_code||uri.lang_ext|">|stredit_this_page|</a></center>'
+        if uri.page_code=='page_edit':
+            return '<center><a href="|uri.base||uri.page_code||uri.lang_ext|">|strview_this_page|</a></center>'
+        else:
+            return '<center><a href="|uri.base|page_edit/|uri.page_code||uri.lang_ext|">|stredit_this_page|</a></center>'
 
 class TableMap(LampadasCollection):
 

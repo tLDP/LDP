@@ -32,6 +32,7 @@ from Globals import *
 from BaseClasses import *
 from Config import config
 from Database import db
+from Languages import languages
 import string
 
 
