@@ -1,0 +1,288 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Transparent Proxy with Squid mini-HOWTO</title>
+<author>Daniel Kiracofe</author>
+<date>v1.1, 29 September 2000</date>
+<abstract>
+This document provides information on how to setup a transparent caching
+HTTP proxy server using only Linux and squid.
+</abstract>
+
+<toc>
+
+<sect>
+Introduction
+<sect1>
+Comments
+<p>
+Comments and general feedback on this mini HOWTO are welcome and can be
+directed to its author, Daniel Kiracofe, at drk@unxsoft.com. 
+</p>
+<sect1>
+Copyrights and Trademarks 
+<p>
+Copyright 2000 by UnxSoft Ltd (www.unxsoft.com)
+</p>
+<p>
+This manual may be reproduced in whole or in part, without fee, subject
+ to the following restrictions: 
+</p>
+<p>
+<itemize>
+ <item>
+The copyright notice above and this permission notice must be preserved
+ complete on all complete or partial copies 
+ <item>
+Any translation or derived work must be approved by the author in writing
+ before distribution. 
+ <item>
+If you distribute this work in part, instructions for obtaining the complete
+ version of this manual must be included, and a means for obtaining a complete
+ version provided. 
+ <item>
+Small portions may be reproduced as illustrations for reviews or quotes
+ in other works without this permission notice if proper citation is given.
+</itemize>
+</p><p>
+Exceptions to these rules may be granted for academic purposes: Write to
+ the author and ask. These restrictions are here to protect us as authors, not
+ to restrict you as learners and educators. Any source code (aside from the
+ SGML this document was written in) in this document is placed under the GNU
+ General Public License, available via anonymous FTP from the GNU archive.
+</p>
+<sect1>
+&num;include &lt;disclaimer.h&gt;
+<p>
+No warranty, expressed or implied, etc, etc, etc...
+</p>
+<sect>
+Overview of Transparent Proxying
+<sect1>
+Motivation
+<p>
+In ``ordinary'' proxying, the client specifies the hostname and port number
+ of a proxy in his web browsing software. The browser then makes requests to
+ the proxy, and the proxy forwards them to the origin servers. This is all fine
+ and good, but sometimes one of several situations arise. Either
+</p>
+<p>
+<itemize>
+ <item>
+You want to force clients on your network to use the proxy, whether they
+ want to or not.
+ <item>
+You want clients to use a proxy, but don't want them to know they're being
+ proxied.
+ <item>
+You want clients to be proxied, but don't want to go to all the work of
+ updating the settings in hundreds or thousands of web browsers.
+</itemize>
+</p><p>
+This is where transparent proxying comes in. A web request can be intercepted
+ by the proxy, transparently. That is, as far as the client software knows,
+ it is talking to the origin server itself, when it is really the proxy server.
+</p>
+<p>
+Cisco routers support transparent proxying. But, (surprisingly enough)
+ Linux can act as a router, and can perform transparent proxying by redirecting
+ TCP connections to local ports. However, we also need to make our web proxy
+ aware of the affect of the redirection, so that it can make connections to
+ the proper origin servers. There are two general ways this works:
+</p>
+<p>
+The first is when your web proxy is not transparent proxy aware. You can
+ use a nifty little daemon called transproxy that sits in front of your web
+ proxy and takes care of all the messy details for you. transproxy was written
+ by John Saunders, and is available from ftp://ftp.nlc.net .au/pub/linux/www/
+ or your local metalab mirror. transproxy will not be discussed further in this
+ document.
+</p>
+<p>
+A cleaner solution is to get a web proxy that is aware of transparent proxying
+ itself. The one we are going to focus on here is squid. Squid is an Open Source
+ caching proxy server for Unix systems. It is available from www.squid-cache.org
+</p>
+<sect1>
+Scope of this document
+<p>
+This document will focus on squid version 2.3 and linux kernel version
+ 2.2, the most current stable releases as of this writing (March 2000). It should
+ also work with squids as early as 2.0 and the later 2.1 linux kernels. Should
+ you need information about earlier releases, you may find some earlier documents
+ at www.unxsoft.com. 
+</p>
+<p>
+If you want to use linux 2.3, you will have to use a thing called netfilter
+ instead of ipchains. However, it is assumed that if you are running a development
+ kernel, you can figure out netfilter on your own from the provided documentation.
+ If not, you really shouldn't be running a development kernel (trust me on this).
+ Once linux 2.4 is released, this document will be updated to cover netfilter.
+</p>
+<p>
+Note that this document focuses only on HTTP proxing.  I get many emails asking
+about transparent FTP proxying. While it may not be theoretically impossible
+to proxy FTP transparently, it is MUCH harder than HTTP, and I do not know 
+of any currently available tools that can do it.  If you can figure it out, I
+suggest you write your own HOWTO...
+</p>
+<sect>
+Configuring the Kernel
+<p>
+First, we need to make sure all the proper options are set in your kernel.
+ If you are using a stock kernel from your distribution, transparent proxying
+ may or may not be enabled (IIRC, it is in RH 6.1, but don't quote me on that).
+ If you are unsure, the best way to tell is to simply skip this section, and
+ if the commands in the next section give you weird errors, it's probably because
+ the kernel wasn't configured properly.
+</p>
+<p>
+If your kernel is not configured for transparent proxying, you will need
+ to recompile. Recompiling a kernel is a complex process (at least at first),
+ and it is beyond the scope of this document. If you need help compiling a kernel,
+ please see &lt;a href=&quot;http://metalab.unc.edu/pub/Linux/do cs/HOWTO/Kernel-HOWTO&quot;&gt;The
+ Kernel HOWTO.&lt;/a&gt;
+</p>
+<p>
+The options you need to set in your configuration are as follows (Note:
+ none of these can be built as modules)
+</p>
+<p>
+<itemize>
+ <item>
+Sysctl support
+ <item>
+TCP/IP networking
+ <item>
+IP: firewalling
+ <item>
+IP: always defragment
+ <item>
+IP: transparent proxy support
+ <item>
+/proc filesystem support
+</itemize>
+</p><p>
+Once you have your new kernel up and running, you may need to enable IP
+ forwarding. IP forwarding allows your computer to act as a router. Since this
+ is not what the average user wants to do, it is off by default and must be
+ explicitly enabled at run-time. However, your distribution might do this for
+ you already. To check, do ``cat /proc/sys/net/ipv4/ip_forward''. If you see
+ ``1'' you're good. Otherwise, do ``cat '1' &gt; /proc/sys/net/ipv4/ip_forward''.
+ You will then want to add that command to your appropriate bootup script in
+ /etc/rc.d/.
+</p>
+<sect>
+Setting up squid
+<p>
+ow, we need to get squid up and running. Download the latest source tarball
+ from www.squid-cache.org. Make sure you get a STABLE version, not a DEVEL version.
+ The latest as of this writing was squid-2.3.STABLE4.tar.gz.
+</p>
+<p>
+Now, untar and gunzip the archive (use ``tar -xzf &lt;filename&gt;'').
+ Run the autoconfiguration script (``./configure''), compile (``make'') and
+ then install (``make install''). 
+</p>
+<p>
+Now, we need to edit the default squid.conf file (installed to /usr/local/squid/
+ etc/squid.conf, unless you changed the defaults). The squid.conf file is heavily
+ commented. In fact, some of the best documentation available for squid is in
+ the squid.conf file. After you get it all up and running, you should go back
+ and reread the whole thing. But for now, let's just get the minimum required.
+ Find the following directives, uncomment them, and change them to the appropriate
+ values:
+</p>
+<p>
+<itemize>
+ <item>
+httpd_accel_host virtual
+ <item>
+httpd_accel_port 80
+ <item>
+httpd_accel_with_proxy on httpd_accel_uses_host_header on
+</itemize>
+</p><p>
+Finally, look at the http_access directive. The default is usually ``http_access
+ deny all''. This will prevent anyone from accessing squid. For now, you can
+ change this to ``http_access allow all'', but once it is working, you will
+ probably want to read the directions on ACLs (Access Control Lists), and setup
+ the cache such that only people on your local network (or whatever) can access
+ the cache. This may seem silly, but you should put some kind of restrictions
+ on access to your cache. People behind filtering firewalls (such as porn filters,
+ or filters in nations where speech is not very free) often ``hijack'' onto
+ wide open proxies and eat up your bandwidth.
+</p>
+<p>
+Initialize the cache directories with ``squid -z'' (if this is a not a
+ new installation of squid, you should skip this step).
+</p>
+<p>
+Now, run squid using the RunCache script in the /usr/local/squid/bin/ directory.
+ If it works, you should be able to set your web browser's proxy settings to
+ the IP of the box and port 3128 (unless you changed the default port number)
+ and access squid as a normal proxy.
+</p>
+<p>
+For additional help configuring, see the squid FAQ at www.squid-cache.org.
+</p>
+<sect>
+Setting up ipchains
+<p>
+ipchains should be installed with almost every recent distribution (anything
+ based on kernel 2.2). However, should you not have ipchains, you can get it
+ from ftp://ftp.rustcorp.com/ipchains/. ipchains is a very powerful tool, and
+ we'll only scratch the surface here. For more information, please see http://www.rustcorp.com/linux/ipchains/HOWTO.html
+ for the ipchains HOWTO.
+</p>
+<p>
+To set up the rules, you will need to know two things, the IP address of
+ the box (I'll use 192.168.1.1 as an example) and the port squid is running
+ on (I'll use the default of 3128 as an example).
+</p>
+<p>
+First, we need to allow packets destined for any actual webserver on this
+ box through. We should setup both the loopback interface and the ethernet interface.
+ You should not skip this step even if you no actual webserver on your box,
+ as the absence of these rules can create infinite forwarding loops where the
+ proxy tries to connect to itself. Use the following commands:
+</p>
+<p>
+<itemize>
+ <item>
+ipchains -A input -p TCP -d 127.0.0.1/32 www -j ACCEPT
+ <item>
+ipchains -A input -p TCP -d 192.168.1.1/32 www -j ACCEPT
+</itemize>
+</p><p>
+Now, the magic words for transparent proxying:
+</p>
+<p>
+<itemize>
+ <item>
+ipchains -A input -p TCP -d any/0 www -j REDIRECT 3128
+</itemize>
+</p><p>
+You will want to add the above commands to your appropriate bootup script
+ under /etc/rc.d/.
+</p>
+<sect>
+Put it all together
+<p>
+If everything has gone well so far, go to another machine, change it's
+ gateway to the IP of your new squid box, and surf away. To make sure that requests
+ are really being forwarded through your proxy instead of straight to the origin
+ server, check the log file /usr/local/squid/logs/acces s.log
+</p>
+<sect>
+Further Resources
+<p>
+Should you still need assistance, you may wish to check the squid FAQ or
+ the squid mailing list at www.squid-cache.org. You may also e-mail me at drk@unxsoft.com, and I'll try to answer your questions if time permits (sometimes 
+it does, but sometimes it doesn't).  Please, please, please, send the output of
+``ipchains -L'' and relavent portions of any configuration files in your e-mail, or else I will probably not be able to help you out much...
+</p>
+
+</article>
+
