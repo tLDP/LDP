@@ -9,11 +9,13 @@ INSERT INTO template (template_code, template) VALUES ('default',
     <link rel="stylesheet" href="css/|stylesheet|.css" type="text/css">
   </head>
   <body>
-    <table width=100%>
+    <table class="layout" style="width:100%">
       <tr><td colspan=2>|header|</td></tr>
       <tr>
-        <td width="200">|boxmainmenu|</td>
-        <td>|body|</td>
+        <td width="200" valign="top">|boxmainmenu|</td>
+        <td valign="top">
+        |body|
+        </td>
       </tr>
       <tr><td colspan=2>|footer|</td></tr>
     </table>

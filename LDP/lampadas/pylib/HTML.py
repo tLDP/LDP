@@ -29,6 +29,11 @@ L = Lampadas()
 C = Converter()
 
 
+# Constants
+
+EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
+
+
 # ComboFactory
 
 class ComboFactory:
@@ -245,7 +250,7 @@ class TableFactory:
 		for key in keys:
 			if L.Docs[key].Lang == lang:
 				self.box = self.box + '<tr>'
-				self.box = self.box + '<td><a href="editdoc/' + str(L.Docs[key].ID) + '">Edit</a></td>'
+				self.box = self.box + '<td><a href="editdoc/' + str(L.Docs[key].ID) + '">' + EDIT_ICON + '</a></td>'
 				self.box = self.box + '<td><a href="' + str(L.Docs[key].URL) + '">' + L.Docs[key].Title + '</a></td>'
 				self.box = self.box + '</tr>'
 		self.box = self.box + '</table>'

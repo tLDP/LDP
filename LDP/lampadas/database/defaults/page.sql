@@ -27,8 +27,6 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('404', 'FR', 'Le No
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('home', 'EN', 'Lampadas',
 '
-<h2>Welcome to the Lampadas System.</h2>
-
 <p>This is a development system. The code is being edited constantly,
 so the site breaks from time to time.
 
@@ -183,8 +181,6 @@ INSERT INTO page (page_code, section_code, template_code) VALUES ('downloads',	'
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('downloads', 'EN', 'Downloads',
 '
-<h3>&nbsp;Linux Documentation Project Downloads</h3>
-
 <p>
 Along with the many HOWTOs, Guides and other documents published by the
 LDP, we also develop tools and utilities for working with documentation.

@@ -6,22 +6,30 @@ INSERT INTO block (block_code) VALUES ('footer');
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('header', 'EN',
 '
-<center>
-<a href="home">Home</a> \\|
-<a href="about">About |projectshort|</a>
-</center>
+<table class="header" style="width:100%">
+<tr><th>|project| Lampadas System</th></tr>
+</table>
+
+<table class="title">
+<tr><td><h1>|title|</h1></td></tr>
+</table>
 ');
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('header', 'FR',
 '
-<center>
-<a href="home">Chez Moi</a> \\|
-<a href="about">About |projectshort|</a>
-</center>
+<table class="header" style="width:100%">
+<tr><th>|project| Syst&egrave;me Lampadas</th></tr>
+</table>
+
+<table class="title">
+<tr><td><h1>|title|</h1></td></tr>
+</table>
 ');
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'EN',
 '
+<table class="box" style="width:100%">
+<tr><td>
 <center>
 <a href="copyright">Copyright</a> \\|
 <a href="privacy">Privacy</a> \\|
@@ -30,10 +38,14 @@ INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'EN',
 <a href="/EN/|page|">English</a> \\|
 <a href="/FR/|page|">French</a>
 </center>
+</td></tr>
+</table>
 ');
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'FR',
 '
+<table class="box" style="width:100%">
+<tr><td>
 <center>
 <a href="copyright">Le Copyright</a> \\|
 <a href="privacy">Le Privacy</a> \\|
@@ -42,4 +54,6 @@ INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'FR',
 <a href="/EN/|page|">L''Anglais</a> \\|
 <a href="/FR/|page|">Fran&ccedil;ais</a>
 </center>
+</td></tr>
+</table>
 ');
