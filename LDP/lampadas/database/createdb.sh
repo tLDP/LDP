@@ -15,8 +15,8 @@ psql ldp -f document.sql
 psql ldp -f notes.sql
 
 psql ldp -f document_wiki.sql
-
 psql ldp -f document_topic.sql
+psql ldp -f document_rev.sql
 
 psql ldp -f maintainer.sql
 psql ldp -f maintainer_notes.sql

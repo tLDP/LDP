@@ -49,7 +49,7 @@ if ($class eq 'FAQ') {
 } else {
 	$sgml .= "<article>\n";
 }
-$sgml .= "<articleinfo>\n";
+$sgml .= "  <articleinfo>\n";
 	
 $result = $conn->exec("SELECT title, last_update, abstract FROM document WHERE doc_id = $doc_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
@@ -73,10 +73,12 @@ while (@row = $result->fetchrow) {
 	}
 
 	#build the document header.
-	$sgml .= "<title>$title</title>\n";
-	$sgml .= "<date>$date</date>\n";
-	$sgml .= "<pubdate>$date</pubdate>\n";
-	$sgml .= "<abstract>$abstract</abstract>\n";
+	$sgml .= "    <title>$title</title>\n";
+	$sgml .= "    <date>$date</date>\n";
+	$sgml .= "    <pubdate>$date</pubdate>\n";
+	$sgml .= "    <abstract>\n";
+	$sgml .= "      $abstract\n";
+	$sgml .= "    </abstract>\n";
 }
 	
 $result = $conn->exec("SELECT m.maintainer_name, dm.email FROM document_maintainer dm, maintainer m WHERE doc_id = $doc_id AND dm.maintainer_id = m.maintainer_id AND active='t'");
@@ -84,16 +86,33 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 while (@row = $result->fetchrow) {
 	$name  = $row[0];
 	$email = $row[1];
-	$sgml .= "<author>\n";
-	$sgml .= "<affiliation>\n";
-	$sgml .= "<address>\n";
-	$sgml .= "<firstname>$name</firstname>\n";
-	$sgml .= "</address>\n";
-		$sgml .= "</affiliation>\n";
-	$sgml .= "</author>\n";
+	$sgml .= "    <author>\n";
+	$sgml .= "      <affiliation>\n";
+	$sgml .= "        <address>\n";
+	$sgml .= "          <firstname>$name</firstname>\n";
+	$sgml .= "        </address>\n";
+	$sgml .= "      </affiliation>\n";
+	$sgml .= "    </author>\n";
 }	
-	
-$sgml .= "</articleinfo>\n";
+
+$sgml .= "    <revhistory>\n";
+$result = $conn->exec("SELECT version, pub_date, initials, notes FROM document_rev WHERE doc_id = $doc_id ORDER BY pub_date DESC");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+while (@row = $result->fetchrow) {
+	$rev_version = $row[0];
+	$rev_version =~ s/\s+$//;
+	$rev_date = $row[1];
+	$rev_init = $row[2];
+	$rev_note = $row[3];
+	$sgml .= "      <revision>\n";
+	$sgml .= "        <revnumber>$rev_version</revnumber>\n";
+	$sgml .= "        <date>$rev_date</date>\n";
+	$sgml .= "        <authorinitials>$rev_init</authorinitials>\n";
+	$sgml .= "        <revremark>$rev_note</revremark>\n";
+	$sgml .= "      </revision>\n";
+}	
+$sgml .= "    </revhistory>\n";	
+$sgml .= "  </articleinfo>\n";
 	
 open(SGML, $sgmlfile);
 while (<SGML>) {

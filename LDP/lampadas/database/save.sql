@@ -7,6 +7,7 @@ copy document_audience to '/tmp/ldp_document_audience.txt';
 copy document_editor to '/tmp/ldp_document_editor.txt';
 copy document_maintainer to '/tmp/ldp_document_maintainer.txt';
 copy document_topic to '/tmp/ldp_document_topic.txt';
+copy document_rev to '/tmp/ldp_document_rev.txt';
 copy dtd to '/tmp/ldp_dtd.txt';
 copy editor to '/tmp/ldp_editor.txt';
 copy editor_role to '/tmp/ldp_editor_role.txt';
