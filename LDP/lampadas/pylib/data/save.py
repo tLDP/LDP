@@ -24,6 +24,7 @@ from globals import *
 from Config import config
 from DataLayer import lampadas
 from HTML import page_factory
+from URLParse import URI
 from Log import log
 from mod_python import apache
 
@@ -41,7 +42,7 @@ def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, typ
     doc = lampadas.docs[newdoc_id]
     doc.users.add(username)
     
-    redirect(req, '/editdoc/' + str(newdoc_id))
+    redirect(req, '/editdoc' + referer_lang_ext(req) + '/' + str(newdoc_id))
 
 def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
              review_status_code, tech_review_status_code, maintainer_wanted,
@@ -185,7 +186,7 @@ def newuser(req, username, email, first_name, middle_name, surname, stylesheet, 
         return page_factory.page('email_exists')
 
     lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
-    redirect(req, '/user/' + username)
+    redirect(req, '/user' + referer_lang_ext(req) + '/' + username)
 
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]
@@ -209,7 +210,7 @@ def mailpass(req, email):
     user = lampadas.users.find_email_user(email)
     if user:
         send_mail(email, 'Your password for Lampadas is: ' + user.password)
-        redirect(req, '/password_mailed')
+        redirect(req, '/password_mailed' + referer_lang_ext(req))
     else:
         return error('User not found.')
 

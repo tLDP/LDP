@@ -202,6 +202,7 @@ class Template:
         self.code       = trim(row[0])
         self.template   = trim(row[1])
 
+
 # NewsItems
 
 class NewsItems(LampadasCollection):
@@ -213,18 +214,18 @@ class NewsItems(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newNewsItem = NewsItem()
-            newNewsItem.load(row)
-            self.data[newNewsItem.id] = newNewsItem
+            news = NewsItem()
+            news.load_row(row)
+            self.data[news.id] = news
 
 class NewsItem:
 
     def __init__(self):
         self.news = LampadasCollection()
 
-    def load(self, row):
-        self.id             = row[0]
-        self.pub_date       = date2str(row[1])
+    def load_row(self, row):
+        self.id       = row[0]
+        self.pub_date = date2str(row[1])
         sql = "SELECT lang, news FROM news_i18n WHERE news_id=" + str(self.id)
         cursor = db.select(sql)
         while (1):

@@ -76,10 +76,9 @@ class LampadasCollection:
         for key, item in self.items():
             value = getattr(item, attribute)
             temp.append((value, key))
-        temp.sort()
         temp.reverse()
         for v,k in temp :
-            result.append(v)
+            result.append(k)
         return result
 
     def sort_by_lang(self, attribute, lang):

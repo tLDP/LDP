@@ -19,10 +19,16 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
+from URLParse import URI
 from Config import config
 from mod_python import apache
 import smtplib
 
+def referer_lang_ext(req):
+    url = req.headers_in['referer']
+    uri = URI(url)
+    return uri.lang_ext
+    
 def redirect(req, url):
     req.headers_out['location'] = url
     req.status = apache.HTTP_MOVED_TEMPORARILY

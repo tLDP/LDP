@@ -26,6 +26,7 @@ The API is documented in the Lampadas Programmer's Guide.
 from DataLayer import lampadas
 from Log import log
 import urlparse
+import os
 
 AVAILABLE_LANG = lampadas.languages.keys()
 #AVAILABLE_LANG = ['FR','EN','ES']
@@ -43,18 +44,29 @@ class URI:
         self.server = ""
         self.port = ""
         self.lang = "EN"
-        self.force_lang = 0
+        self.lang_ext = ''
         self.path = "/"
         self.parameter = ""
         self.anchor = ""
-        
+
+        self.force_lang = 0
+              
         self.filename = "home"
+
+        # If the URL specifies a user, doc, etc., it is stored in one
+        # of these attributes.
         self.username = ''
         self.id = 0
         self.code = ''
         self.letter = ''
 
+        # Any of the above is duplicated here.
+        # Ugly, but this way we can read data
+        # w/o caring what type might be there.
+        self.data = ''
+
         self.uri = uri
+        self.base = uri
         
         protocol, host, path, params, query, fragment = urlparse.urlparse(uri)
 
@@ -68,7 +80,6 @@ class URI:
         self.anchor = fragment
         
         # path
-        self.base = path
         path = path.split('/')
 
         if not path : return
@@ -79,15 +90,21 @@ class URI:
         if path[-1] == '' :
             path = path[:-1]
 
-        if not path : return
-        if path[0] in AVAILABLE_LANG :
-            self.force_lang = 1
-            self.lang, path = path[0], path[1:]
-            self.base = '/'.join(path)
-
-        if self.base[0]<>'/':
-            self.base = '/' + self.base
-
+        # See if a filename code was passed as a file extension
+        self.filename = path[0]
+        if self.filename.find('.') > 0:
+            self.filename, ext = os.path.splitext(self.filename)
+            path[0] = self.filename
+            ext = ext.replace('.','')
+            ext = ext.upper()
+            if ext in AVAILABLE_LANG :
+                self.lang = ext
+                
+                # This is used to add onto links that we generate.
+                self.lang_ext = '.' + ext.lower()
+                self.filename = self.filename[:-3]
+                self.base = self.base.replace(self.lang_ext,'')
+        
         # this is where we load ids and codes for pages which
         # contain an object and display its attributes.
 
@@ -95,27 +112,30 @@ class URI:
         # be specified in the page table, so this code doesn't have to
         # be updated to add new pages!
         if not path : return
-        print path[0]
         if path[0]=='editdoc' or path[0]=='cvslog':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.id = int(path[0])
+                self.data = path[0]
         elif path[0]=='topic' or path[0]=='subtopic' or path[0]=='type':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.code = path[0]
+                self.data = path[0]
         elif path[0]=='user':
             self.filename = path[0]
             path = path[1:]
             if path :
                 self.username = path[0]
+                self.data = path[0]
         elif path[0]=='users':
             self.filename = path[0]
             path = path[1:]
             if path:
                 self.letter = path[0]
+                self.data = path[0]
         else:
             if len(path)==1:
                 self.path = '/'
@@ -126,21 +146,15 @@ class URI:
                 if len(path[-1]) > 0:
                     self.filename = path[-1]
 
-        # FIXME: Code to pull the language code from the filename,
-        # rather than from the path: home.fr for french, etc.
-        # This will make it easy to configure the static site to serve
-        # the right language in Apache.
-        
-
     def printdebug(self):
         print "URI: [%s]"      % self.uri
-        print "Base: [%s]"     % self.base
+        print "Base: [%s]"      % self.base
         print "Protocol: [%s]" % self.protocol
         print "Server: [%s]"   % self.server
         print "Port: [%s]"     % self.port
         print "Path: [%s]"     % self.path
         print "Language: [%s]" % self.lang
-        print "Forced Language: [%s]" % self.force_lang
+        print "Language Extension: [%s]" % self.lang_ext
         print "Parameter: [%s]"% self.parameter
         print "Anchor: [%s]"   % self.anchor
         print "ID: [%s]"       % self.id

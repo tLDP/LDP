@@ -300,18 +300,18 @@ class TableFactory:
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
         ''' % (user.username, doc.id))
-        box.write('''<table class="box" width="100%">
+        box.write('''<table class="box" width="100%%">
         <tr><th colspan="6">|strdocdetails|</th></tr>
         <tr><th class="label">|strtitle|</th>
         <td colspan="5">
-        <input type="text" name="title" style="width:100%" value="%s"></td>
+        <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
         box.write('<tr>\n<th class="label">')
         if doc.url:
             box.write('<a href="%s">|strurl|</a>' % doc.url)
         else:
             box.write('|strurl|')
-        box.write('</th><td colspan="5"><input type="text" name="url" style="width:100%" value="%s"></td>' % doc.url)
+        box.write('</th><td colspan="5"><input type="text" name="url" style="width:100%%" value="%s"></td>' % doc.url)
         box.write('</tr>\n<tr>\n<th class="label">')
         if doc.home_url:
             box.write('<a href="' + doc.home_url + '">|strhome_url|</a>')
@@ -347,7 +347,7 @@ class TableFactory:
         </tr>
         <tr>
           <th class="label">|strabstract|</th>
-          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%" wrap>%s</textarea></td>
+          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
         </tr>
         <tr>
           <td></td>
@@ -708,7 +708,7 @@ class TableFactory:
             if letter==uri.letter:
                 box = box + '<th>' + letter + '</th>\n'
             else:
-                box = box + '<th><a href="' + uri.filename + '/' + letter + '">' + letter + '</a></th>\n'
+                box = box + '<th><a href="' + uri.filename + '|uri.lang_ext|/' + letter + '">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
         return box
         
@@ -724,7 +724,7 @@ class TableFactory:
             for username in usernames:
                 user = lampadas.users[username]
                 box = box + '<tr>\n'
-                box = box + '<td><a href="/user/' + username + '">' + username + '</a></td>\n'
+                box = box + '<td><a href="/user|uri.lang_ext|/' + username + '">' + username + '</a></td>\n'
                 box = box + '<td>' + user.name + '</a></td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -816,7 +816,7 @@ class TableFactory:
             if ok > 0:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
-                    box = box + '<a href="editdoc/' + str(doc.id) + '">' + EDIT_ICON + '</a>'
+                    box = box + '<a href="editdoc|uri.lang_ext|/' + str(doc.id) + '">' + EDIT_ICON + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                 box = box + '</tr>\n'
@@ -848,7 +848,7 @@ class TableFactory:
                 if page.only_sysadmin > 0:
                     if user.sysadmin==0:
                         continue
-                box = box + '<a href="' + page.code + '">' + page.menu_name[uri.lang] + '</a><br>\n'
+                box = box + '<a href="' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr></table>\n'
         return box
 
@@ -906,7 +906,7 @@ class TableFactory:
                     if page.only_sysadmin > 0:
                         if user.sysadmin==0:
                             continue
-                    box = box + '<a href="/' + page.code + '">' + page.menu_name[uri.lang] + '</a><br>\n'
+                    box = box + '<a href="/' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
             box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -921,7 +921,7 @@ class TableFactory:
         for key in keys:
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
-                box.write('''<tr><td>%s</td><td>%s</td></tr>\n'
+                box.write('''<tr><td>%s</td><td>%s</td></tr>\n'''
                           % (news.pub_date, news.news[uri.lang]))
         box.write('</table>\n')
         return box.get_value()
@@ -934,7 +934,7 @@ class TableFactory:
         keys = lampadas.topics.sort_by('num')
         for key in keys:
             topic = lampadas.topics[key]
-            box.write('<li><a href="topic/%s">%s</a></li>\n'
+            box.write('<li><a href="topic|uri.lang_ext|/%s">%s</a></li>\n'
                       % (topic.code, topic.name[uri.lang]))
         box.write('</ol></td></tr></table>\n')
         return box.get_value()
@@ -942,7 +942,7 @@ class TableFactory:
     def subtopics(self, uri):
         log(3, 'Creating subtopics menu')
         topic = lampadas.topics[uri.code]
-        box = WOStringIO('''<table class="box" width="100%">
+        box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>|topic.description|</td></tr>
         <tr><td><ol>
@@ -951,7 +951,7 @@ class TableFactory:
         for key in keys:
             subtopic = lampadas.subtopics[key]
             if subtopic.topic_code==uri.code:
-                box.write('<li><a href="subtopic/%s">%s</a>\n'
+                box.write('<li><a href="subtopic|uri.lang_ext|/%s">%s</a>\n'
                           % (subtopic.code, subtopic.name[uri.lang]))
         box.write('</ol></td></tr>\n</table>\n')
         return box.get_value()
@@ -959,7 +959,7 @@ class TableFactory:
     def subtopic(self, uri):
         log(3, 'Creating subtopic table')
         subtopic = lampadas.subtopics[uri.code]
-        box = '''<table class="box" width="100%">
+        box = '''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>%s</td><tr>
         </table>
@@ -974,7 +974,7 @@ class TableFactory:
         keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
-            box.write('<a href="type/%s">%s</a><br>\n'
+            box.write('<a href="type|uri.lang_ext|/%s">%s</a><br>\n'
                       % (type.code, type.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
@@ -987,7 +987,7 @@ class TableFactory:
             <form name="logout" action="data/session/logout">
             <input name="username" type="hidden" value="%s">
             <tr><td align="center">
-            <a href="/user/|session_username|">|session_name|</a>
+            <a href="/user|uri.lang_ext|/|session_username|">|session_name|</a>
             </td></tr>
             <tr><td align="center"><input type="submit" name="logout"
             value="|strlog_out|"></td></tr>
@@ -1010,8 +1010,8 @@ class TableFactory:
             <tr>
               <td align="center" colspan="2">
               <input type=submit name="login" value="login"><br>
-              <a href="mailpass">|strmail_passwd|</a><br>
-              <a href="newuser">|strcreate_acct|</a></td>
+              <a href="mailpass|uri.lang_ext|">|strmail_passwd|</a><br>
+              <a href="newuser|uri.lang_ext|">|strcreate_acct|</a></td>
             </tr>
             </form> 
             </table>
@@ -1028,7 +1028,7 @@ class TableFactory:
             keys = sessions.sort_by('username')
             for key in keys:
                 session = sessions[key]
-                box.write('<a href="user/%s">%s</a><br>\n'
+                box.write('<a href="user|uri.lang_ext|/%s">%s</a><br>\n'
                           % (session.username, session.username))
             box.write('</td></tr>\n</table>\n')
             return box.get_value()
@@ -1050,7 +1050,7 @@ class TableFactory:
             for key in keys:
                 session = sessions[key]
                 box.write('''<tr>
-                <td><a href="user/%s">%s</a></td>
+                <td><a href="user|uri.lang_ext|/%s">%s</a></td>
                 <td>%s</td>
                 <td>%s</td>
                 <td>%s</td>
@@ -1073,9 +1073,13 @@ class TableFactory:
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
-                box.write('<a href="/%s%s">%s</a><br>\n'
-                          % (language.code, uri.base,
-                             language.name[uri.lang]))
+                if uri.data > '':
+                    add_data = '/' + uri.data
+                else:
+                    add_data = ''
+                box.write('<a href="/%s.%s%s">%s</a><br>\n'
+                          % (uri.filename, language.code.lower(),
+                             add_data, language.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
@@ -1135,7 +1139,7 @@ class PageFactory:
                 oldstring = html[pos:pos2+1]
                 token = html[pos+1:pos2]
 
-                newstring = ''
+                newstring = None
             
                 # Tokens based on a logged-in user
                 # 
@@ -1170,6 +1174,10 @@ class PageFactory:
                     newstring = newstring + config.root_dir
                     if uri.force_lang:
                         newstring = newstring + uri.lang + '/'
+
+                # Meta-data from the page's URL
+                if token=='uri.lang_ext':
+                    newstring = uri.lang_ext
                 if token=='uri.code':
                     newstring = uri.code
                 if token=='uri.base':
@@ -1297,7 +1305,7 @@ class PageFactory:
             
                 # Blocks and Strings
                 # 
-                if newstring=='':
+                if newstring==None:
                     block = lampadasweb.blocks[token]
                     if block==None:
                         string = lampadasweb.strings[token]
@@ -1310,7 +1318,7 @@ class PageFactory:
                 
                 # Add an error message if the token was not found
                 # 
-                if newstring=='':
+                if newstring==None:
                     log(1, 'Could not replace token ' + token)
                     newstring = 'ERROR (' + token + ')'
                 
