@@ -316,19 +316,7 @@ class TableFactory:
         <td colspan="5">
         <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
-        box.write('<tr>\n<th class="label">')
-        if doc.url:
-            box.write('<a href="%s">|strurl|</a>' % doc.url)
-        else:
-            box.write('|strurl|')
-        box.write('</th><td colspan="5"><input type="text" name="url" style="width:100%%" value="%s"></td>' % doc.url)
-        box.write('</tr>\n<tr>\n<th class="label">')
-        if doc.home_url:
-            box.write('<a href="' + doc.home_url + '">|strhome_url|</a>')
-        else:
-            box.write('|strhome_url|')
-        box.write('</th><td colspan="5"><input type="text" name="ref_url" style="width:100%" value="' + doc.home_url + '"></td>')
-        box.write('</tr>\n<tr>\n')
+        box.write('<tr>')
         box.write('<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n')
         box.write('<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')

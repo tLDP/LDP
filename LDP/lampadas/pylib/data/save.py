@@ -31,8 +31,6 @@ import os
 
 def newdocument(req, username, doc_id,
              title, short_title,
-             url,
-             ref_url,
              pub_status_code, type_code,
              version,
              review_status_code, tech_review_status_code,
@@ -50,9 +48,9 @@ def newdocument(req, username, doc_id,
     process.close()
     
     newdoc_id = lampadas.docs.add(title, short_title, type_code, format_code, dtd_code,
-            dtd_version, version, last_update, url, isbn,
+            dtd_version, version, last_update, isbn,
             pub_status_code, review_status_code, tickle_date, pub_date,
-            ref_url, tech_review_status_code, license_code, license_version,
+            tech_review_status_code, license_code, license_version,
             copyright_holder, abstract, short_desc, lang, sk_seriesid)
 
     # Add the current user as the author of the document
@@ -63,8 +61,6 @@ def newdocument(req, username, doc_id,
 
 def document(req, username, doc_id,
              title, short_title,
-             url,
-             ref_url,
              pub_status_code, type_code,
              version,
              review_status_code, tech_review_status_code,
@@ -84,8 +80,6 @@ def document(req, username, doc_id,
 
     doc.title                   = title
     doc.short_title             = short_title
-    doc.url                     = url
-    doc.home_url                = ref_url
     doc.pub_status_code         = pub_status_code
     doc.type_code               = type_code
     doc.review_status_code      = review_status_code
