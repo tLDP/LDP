@@ -4,7 +4,7 @@
 
 <title>Transparent Proxy with Linux and Squid mini-HOWTO</title>
 <author>Daniel Kiracofe</author>
-<date>v1.9, August 2001</date>
+<date>v1.10, December 2001</date>
 <abstract>
 This document provides information on how to setup a transparent caching
 HTTP proxy server using only Linux and squid.
@@ -121,7 +121,7 @@ A cleaner solution is to get a web proxy that is aware of transparent proxying
 Scope of this document
 <p>
 This document will focus on squid version 2.4 and Linux kernel version
- 2.4, the most current stable releases as of this writing (July 2001). It 
+ 2.4, the most current stable releases as of this writing (December 2001). It 
 should also work with most of the later 2.3 kernels. If you need information 
 about  earlier releases of squid or Linux, you can find some earlier 
 documents at <htmlurl url="http://www.unxsoft.com/transproxy.html" name="www.unxsoft.com/transproxy.html">. 
@@ -135,6 +135,17 @@ about transparent FTP proxying.  Squid can't do it.  Now, allegedly a program
 called Frox can. I have not tried this myself, so I cannot say how well it
 works.  You can find it at <htmlurl url="http://www.hollo32.fsnet.co.uk/frox/" name ="http://www.hollo32.fsnet.co.uk/frox/">.  
 </p>
+<p>
+I only focus on squid here, but Apache can also function as a caching proxy 
+server.  (If you are not sure which to use, I recommend squid, since it was 
+built from the ground up to be
+a caching proxy server, Apache's caching proxy features are more of 
+afterthought additions to an already existing system.)
+If you want use Apache instead of squid: follow all the instructions in this
+document that pertain to the kernel and iptables rules.  Ignore the squid
+specific sections, and instead look at 
+<htmlurl url="http://lupo.campus.uniroma2.it/progetti/mod_tproxy/" name="http://lupo.campus.uniroma2.it/progetti/mod_tproxy/"> for source code and 
+instructions for a transparent proxy module for Apache (thanks to Cristiano Paris (c.paris@libero.it) for contributing this).
 <p>Finally, as far as transparently proxing HTTPS (e.g. secure web pages using
 SSL, etc.), you can't do it.  Don't even ask.  For the explanation, do a 
 search for 'man-in-the-middle attack'.  Note that you probably don't
@@ -202,7 +213,7 @@ Setting up squid
 Now, we need to get squid up and running. Download the latest source tarball
  from <htmlurl url="http://www.squid-cache.org" name="www.squid-cache.org">.
 Make sure you get a STABLE version, not a DEVEL version.
- The latest as of this writing was squid-2.4.STABLE1.tar.gz.  Note that AFAIK, you must have squid-2.4 for linux kernel 2.4.  The reason is that the 
+ The latest as of this writing was squid-2.4.STABLE3.tar.gz.  Note that AFAIK, you must have squid-2.4 for linux kernel 2.4.  The reason is that the 
 mechanism by which the process determines the original destination address
 has changed from linux 2.2, and only squid-2.4 has this new code in it. (For those of you who are interested, previously the getsockname() call was hacked to provide the original destination address, but now the call is getsockopt() with a level of SOL_IP and an option of SO_ORIGINAL_DST).
 </p>
@@ -297,9 +308,12 @@ much nicer, and only this command is needed.
 <sect>
 Transparent Proxy to a Remote Box <label id="twoboxes">
 <p>
-Now, the question naturally arises, if we can do all this nifty stuff redirecting HTTP connections to local ports, could we do the same thing but to a 
-remote box (e.g., the machine with squid running is not the same machine as 
-iptables is running on).  The answer is yes, but it takes a little different magic words.  (Thanks to Giles Coochey for help writing this section).
+Now, the question naturally arises, if we can do all this nifty stuff 
+redirecting HTTP connections to local ports, could we do the same thing 
+but to a  remote box (e.g., the machine with squid running is not the same 
+machine as iptables is running on).  The answer is yes, but it takes a little different magic words. If you only want to redirect to the local box 
+(the normal case), skip this section.
+(Thanks to Giles Coochey for help writing this section).
 </p><p>
 For the purposes of example commands, let's assume we have two boxes called squid-box and iptables-box, and that they are on the network local-network.  In the commands below, replace these strings with the actual IP addresses or 
 name of your machines and network. 
@@ -345,6 +359,27 @@ reflect it.  This will save you a lot of hassle.
 </p>
 </sect1>
 </sect>
+<sect>
+Transparent Proxy With Bridging
+<p>
+Warning, this is really esoteric stuff.  If you need it, you'll know.  If
+not, skip this section.  Thanks to Lewis Shobbrook (lshobbrook@fasttrack.net.au) for contributing to this section.
+<p>
+If you are trying to setup a transparent proxy on a Linux machine that has
+been configured as a bridge, you will need to add one additional command.
+Specifically, you need to explicitly allow connections to the machine
+on port 3128 (or any other port squid is listening on), otherwise the 
+machine will just forward them over to the other interface like a good 
+little bridge.  Here's the magic words:
+<itemize><item>
+iptables -A INPUT -i <bf>interface</bf> -p tcp -d <bf>your_bridge_ip</bf> -s <bf>local-network</bf> --dport 3128 -m state --state NEW,ESTABLISHED -j ACCEPT
+</item></itemize>
+Replacing <bf>interface</bf> with the interface that corresponds to
+<bf>your_bridge_ip</bf> (typically eth0 or eth1).  First time bridge users 
+should also note that you'll probably want to repeat the same command with
+``3128'' replaced by ``telnet'' if you want to administer your bridge
+remotely.
+</sect>
 
 <sect>
 Put it all together
@@ -354,6 +389,31 @@ If everything has gone well so far, go to another machine, change it's
 requests are really being forwarded through your proxy instead of straight 
 to the origin server, check the log file /usr/local/squid/logs/access.log
 </p>
+<sect>
+Troubleshooting
+<p>
+There is one problem that occurs often enough to mention here.  If you 
+get the following error:
+<tscreen>
+/lib/modules/2.4.2-2/kernel/net/ipv4/netfilter/ip_tables.o
+init_modules: Device or resource busy
+Hints: insmod errors can be caused by incorrect module parameters;
+including invalid IO or IRQ parameters.<p>
+perhaps iptables or your kernel needs to be upgraded...<p>
+</tscreen>
+then you are probably running Red Hat 7.1.  The folks at Red Hat, in all 
+their wisdom, decided to load the ipchains module by default on startup.
+I guess this was for backwards compatibility for those who haven't learned
+iptables yet.  However, the problem is that ipchains and iptables are
+mutually incompatible.  Since ipchains has been secretly loaded by RH, you
+cannot use iptables commands.  To see if this is your problem, do the 
+command ``lsmod'' and look for the module named ``ipchains''.  If you 
+see it, that is your problem.  The quick fix is to execute the command
+``rmmod ipchains'' before you issue any iptables commands.  Long term,
+you'll want to search through RH's setup scripts and remove the reference
+to ipchains in the first place (I don't really know where this is, as 
+I've never used RH 7.1 myself).
+
 <sect>
 Further Resources
 <p>
