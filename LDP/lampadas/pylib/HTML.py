@@ -765,7 +765,7 @@ class TableFactory:
         return box
 
     def topics(self, uri):
-        log(3, 'Creating topics table')
+        log(3, 'Creating topics menu')
         box = '<table class="navbox"><tr><th>|strtopics|</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.topics.sort_by('num')
@@ -778,9 +778,9 @@ class TableFactory:
         return box
 
     def subtopics(self, uri):
-        log(3, 'Creating subtopics table')
+        log(3, 'Creating subtopics menu')
         topic = lampadas.topics[uri.code]
-        box = '<table class="navbox"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
+        box = '<table class="box"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>|topic.description|</td></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.subtopics.sort_by('num')
@@ -796,13 +796,13 @@ class TableFactory:
     def subtopic(self, uri):
         log(3, 'Creating subtopic table')
         subtopic = lampadas.subtopics[uri.code]
-        box = '<table class="navbox"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
+        box = '<table class="box"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
         box = box + '</table>\n'
         return box
 
     def types(self, uri):
-        log(3, 'Creating types table')
+        log(3, 'Creating types menu')
         box = '<table class="navbox"><tr><th>|strtypes|</th></tr>\n'
         box = box + '<tr><td>\n'
         keys = lampadas.types.sort_by('sort_order')
