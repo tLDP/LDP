@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2003-04-24 09:58:15 ccurley make.fdisk>
+# Time-stamp: <2004-04-10 13:51:37 root make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -46,9 +46,29 @@
 # obligated to do so.  If you do not wish to do so, delete this
 # exception statement and the subroutine cut2fmt from your version.
 
-# You can also contact the Free Software Foundation at http://www.fsf.org/
+# You can also contact the Free Software Foundation at
+# http://www.fsf.org/
 
 # Changes:
+
+# 2004 04 10: fdisk v > 2.11 has wider columns. Added code to select
+# the appropriate cut string based on fdisk's version.
+
+# 2004 04 09: Added support for Mandrake's idea of devfs. On Mandrake,
+# everything is mounted with devfs. So the mount devices are buried
+# deep in places like /dev/ide/host0/bus0/target0/lun0/part1 instead
+# of places like /dev/hda1, where $DEITY intended they should be. We
+# have to reverse from the long devfs device to the shorter old style
+# that tomsrtbt uses. The alternative is to keep track in an array of
+# which devfs device belongs to which short device.
+
+# 2003 12 29: Changed the regex for detecting whether a file system is
+# read-write in the code that builds the mount file(s). The old test
+# does not work if mount returns multiple parameters in the 5th field,
+# e.g. (rw,errors=remount-ro) on some debian systems. This regex
+# assumes that the rw parameter is always listed first, which may not
+# always be the case. If it fails, take out the '\('. Thanks to Pasi
+# Oja-Nisula <pon at iki dot fi> for pointing this out.
 
 # 2003 01 09: Added support for FAT32. We now create two scripts for
 # each hard drive, make.dev.[as]dx and mount.dev.[as]dx. These create
@@ -158,8 +178,8 @@ sub cut2fmt {
     my $lastpos     = 1;
 
     foreach $place (@positions) {
-	$template .= "A" . ($place - $lastpos) . " ";
-	$lastpos = $place;
+        $template .= "A" . ($place - $lastpos) . " ";
+        $lastpos = $place;
     }
 
     $template .= "A*";
@@ -210,11 +230,47 @@ FINIS
 
 $device = defined ($ARGV[0]) ? $ARGV[0] : "/dev/hda";
 
-# print "Device is $device.\n";
+# Need to check to see if $device is a sym link. If it is, the mount
+# point is the target of the link. (Mandrake) Otherwise we search for
+# mount points on $device. Fedora, Red Hat.
 
-# prepare format string.
-$fmt = cut2fmt (11, 19, 24, 34, 45, 49);
-# print "Format string is $fmt.\n\n";
+if ( -l $device) {
+
+    # It is a sym link. Get the target of the link, then make it into
+    # an absolute path, preserving the numbering.
+
+    $mountdev = '/dev/' . readlink ($device);
+    $mountdev =~ s|ide/host(\d+)/bus(\d+)/target(\d+)/lun(\d+)/disc|ide/host\1/bus\2/target\3/lun\4|;
+} else {
+    # not a sym link; just assign it.
+    $mountdev = $device;
+}
+
+# print "Device is $device; mount device is $mountdev.\n";
+
+# Prepare format string. Here are two format strings I have found
+# useful. Here, column numbers are 1 based, i.e. the leftmost column
+# is column 1, not column 0 as in Emacs.
+
+# We select a format string according to fdisk's version.
+
+$fdpid = open (FDVER, "fdisk -v |") or die "Couldn't fork: $!\n";
+while (<FDVER>) {
+    @_ = unpack ("A7 A*", $_);
+    $fdver=$_[1];
+    $fdver =~ s/[^\d.]//g; # strip non-numbers, non-periods, as in "2.12pre".
+}
+
+# print "fdisk version is $fdver\n";
+
+if ($fdver < 2.12) {
+# fdisk to 2.11?? Red Hat, Fedora Core 1
+    $fmt = cut2fmt (11, 19, 24, 34, 45, 49);
+} else {
+# fdisk 2.12 & up?? Mandrake 10.0, Fedora Core 2
+    $fmt = cut2fmt (12, 14, 26, 38, 50, 55);
+}
+# print "Format string is $fmt.\n";
 
 # define fields in the array @_.
 $dev = 0;
@@ -236,22 +292,42 @@ $outputfilepath = "\/root\/bin\/";
 # Make a hash of the labels.
 $mpid = open (MOUNT, "mount -l |") or die "Couldn't fork: $!\n";
 while (<MOUNT>) {
-    if ($_ =~ /^$device/i) {	# is this a line with a partition in it?
-#     	print $_;		# print it just for grins
-	split;
-	if ($_[6] ne "") {	# only process if there actually is a label
-	    $_[6] =~ s/[\[\]]//g; # strike [ and ].
-	    $labels{$_[0]} = $_[6];
-#	    print "The label of file device $_[0] is $labels{$_[0]}.\n";
-	}
+    if ($_ =~ /^$mountdev/i) { # is this a line with a partition in it?
+#       print $_;               # print it just for grins
+        split;
+        if ($_[6] ne "") {      # only process if there actually is a label
+            $_[6] =~ s/[\[\]]//g; # strike [ and ].
+            $labels{$_[0]} = $_[6];
+#           print "The label of file device $_[0] is $labels{$_[0]}.\n";
+        }
 
 
-	# We only mount if it's ext2fs or ext3fs and read and write.
+        # We only mount if it's ext2fs or ext3fs and read and write.
 
-	if ($_[4] =~ /ext[23]/ and $_[5] eq "(rw)" ) {
+        if ($_[4] =~ /ext[23]/ and $_[5] =~ /\(rw/ ) {
+            if ($_[0] =~ /ide/i) {
+
+                # We have a devfs system, e.g. Mandrake. This code
+                # converts back from the devfs designation to the old
+                # /dev/hd* designation for tomsrtb. I have NOT checked
+                # this out for drives other than /dev/hda. Also, this
+                # code does not handle SCSI drives.
+
+                if ( $_[0] =~ /target0/ && $_[0] =~ /bus0/ ) {
+                    $letter = 'a';
+                } elsif ( $_[0] =~ /target1/ && $_[0] =~ /bus0/) {
+                    $letter = 'b';
+                } elsif ( $_[0] =~ /target0/ && $_[0] =~ /bus1/) {
+                    $letter = 'c';
+                } else {
+                    $letter = 'd';
+                }
+                $_[0] =~ s|/ide/host\d+/bus\d+/target\d+/lun\d+/part|/hd|g;
+                $_[0] =~ s/hd/hd$letter/;
+            }
             $mountpoints{$_[2]} = $_[0];
-#           print "$_[2] is the mountpoint for $mountpoints{$_[2]}.\n";
-	}
+#             print "$_[2] is the mountpoint for tomsrtbt device $mountpoints{$_[2]}.\n";
+        }
     }
 }
 close (MOUNT);
@@ -263,204 +339,204 @@ open (OUTPUT, "> $outputfilepath${outputfilename}")
     or die "Couldn't open output file $outputfilepath${outputfilename}.\n";
 
 while (<FDISK>) {
-    if ($_ =~ /^$device/i) {	# is this a line with a partition in it?
-#   	print $_;		# print it just for grins
-	chop;			# kill trailing \r
-	@_ = unpack ($fmt, $_);
+    if ($_ =~ /^$device/i) {    # is this a line with a partition in it?
+#       print $_;               # print it just for grins
+        chop;                   # kill trailing \r
+        @_ = unpack ($fmt, $_);
 
-	# now strip white spaces from cylinder numbers
-	@_[$firstcyl] =~ s/[ \t]+//;
-	@_[$lastcyl] =~ s/[ \t]+//;
-	@_[$parttype] =~ s/[ \t]+//;
+        # now strip white spaces from cylinder numbers
+        @_[$firstcyl] =~ s/[ \t]+//;
+        @_[$lastcyl] =~ s/[ \t]+//;
+        @_[$parttype] =~ s/[ \t]+//;
 
-	$partnumber = substr(@_[$dev], 8, 10); # get partition number for this line
-	# just for grins
-#  	print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$parttype], @_[$partstring]\n";
+        $partnumber = substr(@_[$dev], 8, 10); # get partition number for this line
+        # just for grins
+#       print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$parttype], @_[$partstring]\n";
 
-	# Here we start creating the input to recreate the partition
-	# this line represents.
+        # Here we start creating the input to recreate the partition
+        # this line represents.
 
-	print OUTPUT "n\n";
-	if ($partnumber < 5) {
-	    # primary Linux partition
-	    if (@_[$parttype] == 83) {
-		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
+        print OUTPUT "n\n";
+        if ($partnumber < 5) {
+            # primary Linux partition
+            if (@_[$parttype] == 83) {
+                print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
 
-		# Now detect if this is an ext3 (journaling)
-		# partition. We do this using dumpe2fs to dump the
-		# partition and grepping on "journal". If the
-		# partition is ext2, there will be no output. If it is
-		# ext3, there will be output, and we use that fact to
-		# set a command line switch. The command line switch
-		# goes into an associative array (hash) so we don't
-		# have to remember to reset it to the null string when
-		# we're done.
+                # Now detect if this is an ext3 (journaling)
+                # partition. We do this using dumpe2fs to dump the
+                # partition and grepping on "journal". If the
+                # partition is ext2, there will be no output. If it is
+                # ext3, there will be output, and we use that fact to
+                # set a command line switch. The command line switch
+                # goes into an associative array (hash) so we don't
+                # have to remember to reset it to the null string when
+                # we're done.
 
-		$dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
-		    or die "Couldn't fork: $!\n";
-		while (<DUMPE2FS>) {
-# 		    print "Dumpe2fs: $_";
-		    $ext3{$_[$dev]} = "-j ";
-		    last;
-		}
-		close (DUMPE2FS);
+                $dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+                    or die "Couldn't fork: $!\n";
+                while (<DUMPE2FS>) {
+#                   print "Dumpe2fs: $_";
+                    $ext3{$_[$dev]} = "-j ";
+                    last;
+                }
+                close (DUMPE2FS);
 
-		if ($labels{@_[$dev]}) { # do we have a label?
-		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
-		} else {
-		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck @_[$dev]\n\n";
-		}
+                if ($labels{@_[$dev]}) { # do we have a label?
+                    $format .= "echo\necho formatting $checking@_[$dev]\n";
+                    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+                } else {
+                    $format .= "echo\necho formatting $checking@_[$dev]\n";
+                    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck @_[$dev]\n\n";
+                }
 
-		# extended partition
-	    } elsif (@_[$parttype] == 5) {
-		# print ("Creating Extended Partition.\n");
-		print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
+                # extended partition
+            } elsif (@_[$parttype] == 5) {
+                # print ("Creating Extended Partition.\n");
+                print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
 
-		# extended partition, Win95 Ext'd (LBA)
-	    } elsif (@_[$parttype] eq "f") {
-		# print ("Creating Extended LBA Partition.\n");
-		print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\nf\n";
+                # extended partition, Win95 Ext'd (LBA)
+            } elsif (@_[$parttype] eq "f") {
+                # print ("Creating Extended LBA Partition.\n");
+                print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\nf\n";
 
-		# primary Linux swap partition
-	    } elsif (@_[$parttype] == 82) {
-		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n82\n";
-		$format .= "echo Making @_[$dev] a swap partition.\n";
-		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                # primary Linux swap partition
+            } elsif (@_[$parttype] == 82) {
+                print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n82\n";
+                $format .= "echo Making @_[$dev] a swap partition.\n";
+                $format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
-		# Primary mess-dos partition. We don't handle hidden
-		# partitions.
-	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
-		      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
-		      || @_[$parttype] eq "e" ) {
-		# print ("Making DOS primary partition.\n");
-		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
-		print (" bs=512 count=1\n");
-		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
-		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-		$format .= "echo\necho formatting $checking@_[$dev]\n";
-		$format .= "mkdosfs \$blockcheck";
-		if ( @_[$parttype] == b || @_[$parttype] == c) {
-		    # We have a W9x FAT32 partition. Add a command line switch.
-		    $format .= " -F 32";
-		}
-		$format .= " @_[$dev]\n";
-		$format .= "# restore FAT boot sector.\n";
-		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+                # Primary mess-dos partition. We don't handle hidden
+                # partitions.
+            } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
+                      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
+                      || @_[$parttype] eq "e" ) {
+                # print ("Making DOS primary partition.\n");
+                print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
+                print (" bs=512 count=1\n");
+                system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+                print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+                $format .= "echo\necho formatting $checking@_[$dev]\n";
+                $format .= "mkdosfs \$blockcheck";
+                if ( @_[$parttype] == b || @_[$parttype] == c) {
+                    # We have a W9x FAT32 partition. Add a command line switch.
+                    $format .= " -F 32";
+                }
+                $format .= " @_[$dev]\n";
+                $format .= "# restore FAT boot sector.\n";
+                $format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
-	    } else {
-		# anything else partition
-		print OUTPUT "p\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-	    }
+            } else {
+                # anything else partition
+                print OUTPUT "p\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+            }
 
-	} else {
-	    # logical Linux partition
-	    if (@_[$parttype] == 83) {
-		print OUTPUT "l\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
+        } else {
+            # logical Linux partition
+            if (@_[$parttype] == 83) {
+                print OUTPUT "l\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
 
-		# Now detect if this is an ext3 (journaling)
-		# partition. We do this using dumpe2fs to dump the
-		# partition and grepping on "journal". If the
-		# partition is ext2, there will be no output. If it is
-		# ext3, there will be output, and we use that fact to
-		# set a command line switch. The command line switch
-		# goes into an associative array (hash) so we don't
-		# have to remember to reset it to the null string when
-		# we're done.
+                # Now detect if this is an ext3 (journaling)
+                # partition. We do this using dumpe2fs to dump the
+                # partition and grepping on "journal". If the
+                # partition is ext2, there will be no output. If it is
+                # ext3, there will be output, and we use that fact to
+                # set a command line switch. The command line switch
+                # goes into an associative array (hash) so we don't
+                # have to remember to reset it to the null string when
+                # we're done.
 
-		$dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
-		    or die "Couldn't fork: $!\n";
-		while (<DUMPE2FS>) {
-# 		    print "Dumpe2fs: $_";
-		    $ext3{$_[$dev]} = "-j ";
-		    last;
-		}
-		close (DUMPE2FS);
+                $dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+                    or die "Couldn't fork: $!\n";
+                while (<DUMPE2FS>) {
+#                   print "Dumpe2fs: $_";
+                    $ext3{$_[$dev]} = "-j ";
+                    last;
+                }
+                close (DUMPE2FS);
 
-		if ($labels{@_[$dev]}) { # do we have a label?
-		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
-		} else {
-		    $format .= "echo\necho formatting $checking@_[$dev]\n";
-		    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck @_[$dev]\n\n";
-		}
+                if ($labels{@_[$dev]}) { # do we have a label?
+                    $format .= "echo\necho formatting $checking@_[$dev]\n";
+                    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+                } else {
+                    $format .= "echo\necho formatting $checking@_[$dev]\n";
+                    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck @_[$dev]\n\n";
+                }
 
-		# logical Linux swap partition
-	    } elsif (@_[$parttype] == 82 ) {
-		print OUTPUT "l\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n82\n";
-		$format .= "echo Making @_[$dev] a swap partition.\n";
-		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                # logical Linux swap partition
+            } elsif (@_[$parttype] == 82 ) {
+                print OUTPUT "l\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n82\n";
+                $format .= "echo Making @_[$dev] a swap partition.\n";
+                $format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
-		# Logical mess-dos partition. We don't handle hidden
-		# partitions.
+                # Logical mess-dos partition. We don't handle hidden
+                # partitions.
 
-	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
-		      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
-		      || @_[$parttype] eq "e" ) {
-# 		print ("Making DOS logical partition.\n");
-		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
-		print (" bs=512 count=1\n");
-		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
-		print OUTPUT "l\n$partnumber\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-		$format .= "echo\necho formatting $checking@_[$dev]\n";
-		$format .= "mkdosfs \$blockcheck";
-		if ( @_[$parttype] == b || @_[$parttype] == c) {
-		    # We have a W9x FAT32 partition. Add a command line switch.
-		    $format .= " -F 32";
-		}
-		$format .= " @_[$dev]\n";
-		$format .= "# restore FAT boot sector.\n";
-		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+            } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
+                      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
+                      || @_[$parttype] eq "e" ) {
+#               print ("Making DOS logical partition.\n");
+                print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
+                print (" bs=512 count=1\n");
+                system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+                print OUTPUT "l\n$partnumber\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+                $format .= "echo\necho formatting $checking@_[$dev]\n";
+                $format .= "mkdosfs \$blockcheck";
+                if ( @_[$parttype] == b || @_[$parttype] == c) {
+                    # We have a W9x FAT32 partition. Add a command line switch.
+                    $format .= " -F 32";
+                }
+                $format .= " @_[$dev]\n";
+                $format .= "# restore FAT boot sector.\n";
+                $format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
-	    } else {
-		# anything else partition
-		print OUTPUT "l\n@_[$firstcyl]\n";
-		if (@_[$firstcyl] ne @_[$lastcyl]) {
-		    print OUTPUT "@_[$lastcyl]\n";
-		}
-		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
-	    }
+            } else {
+                # anything else partition
+                print OUTPUT "l\n@_[$firstcyl]\n";
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
+                    print OUTPUT "@_[$lastcyl]\n";
+                }
+                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+            }
 
-	}
+        }
 
-	# handle bootable partitions
-	if (@_[$bootable] =~ /\*/) {
-	    print OUTPUT "a\n$partnumber\n";
-	}
+        # handle bootable partitions
+        if (@_[$bootable] =~ /\*/) {
+            print OUTPUT "a\n$partnumber\n";
+        }
     }
 }
 
@@ -545,7 +621,7 @@ FINIS
 # untarring the contents of the ZIP disk, done in restore.metadata.
 
 foreach $point ( sort keys %mountpoints) {
-    print OUTPUT "\n# $point is the mountpoint for $mountpoints{$point}.\n";
+    print OUTPUT "\n# $point is the mountpoint for tomsrtbt device $mountpoints{$point}.\n";
     print OUTPUT "mkdir $target$point\n";
     print OUTPUT "mount $mountpoints{$point} $target$point\n";
 }
