@@ -61,7 +61,10 @@ class Config:
         import os
 
         self.config = ConfigParser.ConfigParser()
-        self.config_file    = os.getenv('LAMPADAS_ETC') + '/lampadas.conf'
+        self.config_file = os.getenv('LAMPADAS_ETC')
+        if self.config_file == None:
+            self.config_file = '/etc/lampadas'
+        self.config_file = self.config_file + '/lampadas.conf'
         if not os.access(self.config_file, os.F_OK):
             print self.config_file + " not found."
             return
