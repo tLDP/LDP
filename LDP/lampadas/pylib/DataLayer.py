@@ -101,8 +101,8 @@ class Class:
     """
 
     def __init__(self, class_code=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if class_code==None: return
         self.code = class_code
 
@@ -557,8 +557,8 @@ class Err:
     """
     
     def __init__(self, ErrID=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if Err==None: return
         self.ErrID = ErrID
 
@@ -598,8 +598,8 @@ class Format:
     """
 
     def __init__(self, FormatID=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if FormatID==None: return
         self.ID = FormatID
 
@@ -650,7 +650,7 @@ class Language:
     def load(self, row):
         self.code      = trim(row[0])
         self.supported = tf2bool(row[1])
-        self.name = {}
+        self.name = LampadasCollection()
         sql = "SELECT lang, lang_name FROM language_i18n WHERE lang_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -685,8 +685,8 @@ class PubStatus:
     """
     
     def __init__(self, PubStatusCode=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if PubStatusCode==None: return
         self.Code = PubStatusCode
 
@@ -727,8 +727,8 @@ class ReviewStatus:
     """
     
     def __init__(self, ReviewStatusCode=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if ReviewStatusCode==None: return
         self.Code = ReviewStatusCode
 
@@ -770,8 +770,8 @@ class Topic:
     """
 
     def __init__(self, TopicCode=None, TopicNum=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if TopicCode==None: return
         self.code = TopicCode
         self.num  = TopicNum
@@ -815,8 +815,8 @@ class Subtopic:
     """
 
     def __init__(self, subtopic_code=None, subtopic_num=None, topic_code=None):
-        self.name = {}
-        self.description = {}
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
         if subtopic_code==None: return
         self.code       = subtopic_code
         self.num        = subtopic_num

@@ -56,7 +56,7 @@ class Blocks(LampadasCollection):
 class Block:
 
     def __init__(self):
-        self.block = {}
+        self.block = LampadasCollection()
 
     def load(self, row):
         self.code  = trim(row[0])
@@ -81,7 +81,7 @@ class Sections(LampadasCollection):
 class Section:
 
     def __init__(self):
-        self.name = {}
+        self.name = LampadasCollection()
 
     def load(self, row):
         self.code		      = trim(row[0])
@@ -119,9 +119,9 @@ class Pages(LampadasCollection):
 class Page:
 
     def __init__(self):
-        self.title = {}
-        self.menu_name = {}
-        self.page = {}
+        self.title = LampadasCollection()
+        self.menu_name = LampadasCollection()
+        self.page = LampadasCollection()
 
     def load(self, row):
         self.code            = trim(row[0])
@@ -168,7 +168,7 @@ class String:
     """
 
     def __init__(self, StringCode=None):
-        self.string = {}
+        self.string = LampadasCollection()
 
     def load(self, row):
         self.code = trim(row[0])
@@ -220,7 +220,7 @@ class NewsItems(LampadasCollection):
 class NewsItem:
 
     def __init__(self):
-        self.news = {}
+        self.news = LampadasCollection()
 
     def load(self, row):
         self.id             = row[0]

@@ -529,7 +529,7 @@ class TableFactory:
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
-                box = box + '<a href="/' + language.code + '/' + uri.base + '">' + language.name[uri.lang] + '</a>\n'
+                box = box + '<a href="/' + language.code + '/' + uri.base + '">' + language.name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
