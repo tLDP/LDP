@@ -180,7 +180,7 @@ sub proc_txt {
 		# emphasis
 		#
 		while ($line =~ /'''.*'''/) {
-			$line =~ s/'''/<emphasis>/;
+			$line =~ s/'''/<emphasis role='bold'>/;
 			$line =~ s/'''/<\/emphasis>/;
 		}
 
