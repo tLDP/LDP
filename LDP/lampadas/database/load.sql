@@ -28,3 +28,4 @@ copy doc_vote from '/tmp/ldp_doc_vote.txt';
 
 copy stats from '/tmp/ldp_stats.txt';
 copy stats_cdf from '/tmp/ldp_stats_cdf.txt';
+copy license from '/tmp/ldp_license.txt';

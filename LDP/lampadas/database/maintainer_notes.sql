@@ -13,4 +13,3 @@ FOREIGN KEY (maintainer_id)
 REFERENCES maintainer(maintainer_id);
 
 GRANT ALL ON notes TO "www-data";
-

@@ -59,3 +59,4 @@ FOREIGN KEY (dtd)
 REFERENCES dtd(dtd);
 
 GRANT ALL ON document TO "www-data";
+GRANT SELECT ON document TO root;

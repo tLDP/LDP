@@ -19,7 +19,6 @@ ADD CONSTRAINT topic_num_fk
 FOREIGN KEY (topic_num)
 REFERENCES topic(topic_num);
 
-# fails because subtopic is not a primary key
 #ALTER TABLE document_topic
 #ADD CONSTRAINT subtopic_num_fk
 #FOREIGN KEY (subtopic_num)

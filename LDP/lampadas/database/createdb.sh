@@ -32,3 +32,4 @@ psql ldp -f doc_vote.sql
 psql ldp -f stats.sql
 psql ldp -f stats_cdf.sql
 
+psql ldp -f license.sql

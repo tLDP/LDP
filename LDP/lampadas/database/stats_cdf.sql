@@ -9,4 +9,4 @@ CREATE TABLE stats_CDF (
 );
 
 GRANT SELECT ON stats_CDF to "www-data";
-
+GRANT ALL ON stats_CDF to root;
