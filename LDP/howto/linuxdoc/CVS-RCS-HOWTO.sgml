@@ -44,7 +44,7 @@ Revision Control System
 <author>Al Dev (Alavoor Vasudevan) 
        <htmlurl url="mailto:alavoor@yahoo.com"
              name="alavoor@yahoo.com">
-<date>v11.0, 10 June 2000
+<date>v12.0, 15 July 2000
 <abstract>
 This document is a "practical guide" to very quickly setup CVS/RCS source code
 control system. This document also has custom shell scripts which are wrappers on top of CVS. These scripts provide a easy user interface for CVS. The information in this document applies to Linux and as well as to all other flavors of Unix liks Solaris, HPUX, AIX, SCO, Sinix, BSD, SCO, etc..
@@ -127,7 +127,8 @@ enable concurrent editing of files using shell scripts or PERL.
 Disadvantages of CVS
 <itemize>
 <item> Needs a little more administration than RCS
-<item> Very highly sophisticated and complex system. It is the "State of the Art" technology.
+<item> Very highly sophisticated and complex system. It is the "State of the Art" technology. The cvs software is very advanced and capable system developed
+over very long period of time (it took several years!!).
 <item> Has a large number of commands and command options, hence a steeper 
 learning curve for beginners. The shell scripts at <ref id="Shell Scripts"> can ease usage.
 </itemize>
@@ -158,6 +159,9 @@ ls -l howto-6.0-*.noarch.rpm
 rpm -qpl howto-6* | grep -i rcs 
 </CODE>
 or visit <url url="http://www.LinuxDoc.org/HOWTO/mini/RCS.html">
+
+See also the RCS shell scripts at 
+<ref id="rcs_scripts">
 <!-- 
 	*******************************************
 	************ End of Section ***************
@@ -204,12 +208,19 @@ export CVSROOT=/home/cvsroot
 export CVSREAD=yes
 </CODE>
 
-Create a directory to store the source code repository and give read, write access to unix group/user.
+Create a directory to store the source code repository 
+and give read, write access to unix group/user.
+Also make sure that the directory name of CVSROOT does not contain
+any blank spaces. For example CVSROOT should not be like '/home/my rootcvs'.
 <CODE>
 export CVSROOT=/home/cvsroot
 mkdir $CVSROOT
 chmod o-rwx $CVSROOT
 chmod ug+rwx $CVSROOT
+</CODE>
+Now, change the group of $CVSROOT to group-name of users who want to use cvs sytem.
+<CODE>
+chgrp users $CVSROOT
 </CODE>
 To initialize the CVS and to put in source code files do -
 <CODE>
@@ -316,6 +327,23 @@ added to make it site specific. For example, sedit script provides locking
 so that users will know some-one is editing the file. Of course users can 
 directly use the CVS commands to by-pass these scripts. These scripts demonstrate how CVS can be customized to a great extent.
 
+<bf>NOTE: </bf> <it>The wrapper shell scripts assume that the user's 
+home directory as the root and check out the tree from cvs to build the 
+tree underneath user's home directory.
+</it>
+
+<bf> TIP: </bf> <it>In shell scripts, every target filename is composed 
+of 3 parts - Home directory, sub-directory 
+and the filename. The full-path is $HOME/$subdir/$fname
+And in CVS the same directory structure is maintained (by 
+variable $subdir) therefore in cvs there will be something 
+like  $CVSROOT/$subdir/$fname.
+In all scripts, these 4 variables $HOME, $CVSROOT, $subdir and $fname
+play a important role. For example, sample values can be like
+HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+and fname=foo.cpp
+</it>
+
 Copy these scripts to /usr/local/bin and this should be in the user's PATH environment.
 <enum>
 <item> <bf>sget</bf> &lsqb;-r revision_number&rsqb; &lt;file/directory name&gt;
@@ -344,7 +372,11 @@ Copy these scripts to /usr/local/bin and this should be in the user's PATH envir
 <item> <bf>slist</bf>	
 	To see the list of files currently being edited by you. 
 	Does 'ls -l | grep | ...' command.
-	Click <ref id="slist">
+	Click <ref id="slist">. 
+	Note that there is also another unix
+	command by name slist (list available Netware servers), you
+	should make sure cvs script slist comes before other in your
+	PATH environment.
 
 <item> <bf>sinfo</bf> &lt;filename/directory&gt; 
 	To get the information of changes/revisions to a file 
@@ -393,1251 +425,6 @@ Copy these scripts to /usr/local/bin and this should be in the user's PATH envir
 </verb></tscreen>
 <p>
 
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sget <label id="sget">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program sget
-# Program to check out the file from CVS read-only
-
-cmdname=`basename $0`
-
-Usage()
-{
-	print "\nUsage: $cmdname [-r revision_number/symbolic_tag_name] <file/directory name> "
-	print "The options -r are optional "
-	print "For example - "
-	print "	$cmdname -r 1.1 foo.cpp"
-	print "	$cmdname foo.cpp "
-	print "	$cmdname some_directory "
-	print "Extract by symbolic revision tag like - "
-	print "	$cmdname -r REVISION_1 some_directory "
-	print " "
-	exit
-}
-
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-while getopts r: ii
-do
-	case $ii in
-	r) FLAG1=$ii; OARG1="$OPTARG";;
-	?) Usage; exit 2;;
-	esac
-done
-shift ` expr $OPTIND - 1 `
-
-#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
-
-if [ $# -lt 1 ]; then
-	Usage
-fi
-
-bkextn=sget_bak
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-# Check if file already exists....
-if [ -f $1 ]; then
-	user_perms=" "
-	group_perms=" "
-	other_perms=" "
-	user_perms=`ls -l $1 | awk '{print $1 }' | cut -b3-3 `
-	group_perms=`ls -l $1 | awk '{print $1 }' | cut -b6-6 `
-	other_perms=`ls -l $1 | awk '{print $1 }' | cut -b9-9 `
-	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
-		-o "$other_perms" = "w" ]; then
-		print "\nError: The file is writable. Aborting $cmdname ......"
-		print "       You should either backup, scommit or delete the file and"
-		print "       try $cmdname again\n"
-		exit
-	fi
-fi
-
-cur_dir=`pwd`
-#echo $cur_dir
-
-len=${#hme}
-len=$(($len + 2))
-#echo $len
-
-subdir=` echo $cur_dir | cut -b $len-2000 `
-#echo $subdir
-
-if [ "$subdir" = "" ]; then
-	fdname=$1
-else
-	fdname=$subdir"/"$1
-fi
-
-# Move the file
-touch $1 2>/dev/null
-\mv -f $1 $1.$bkextn
-
-# Create subshell
-(
-cd $hme
-#echo $fdname
-
-# Use -A option to clear all sticky flags
-if [ "$FLAG1" = "" ]; then
-	cvs -r checkout -A $fdname
-else
-	cvs -r checkout -A -$FLAG1 $OARG1 $fdname
-fi
-)
-#pwd
-
-if [ -f $1 ]; then
-	print "\nREAD-ONLY copy of the file $fdname obtained."
-	print "Done $cmdname"
-	#print "\nTip (Usage): $cmdname <file/directory name> \n"
-fi
-
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sedit <label id="sedit">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-# CVS program sedit
-# Program to check out the file from CVS read/write mode with locking
-
-cmdname=`basename $0`
-
-Usage()
-{
-#	print "\nUsage: $cmdname [-r revision_number] [-F] <filename>"
-#	print "The options -r, -F are optional "
-#	print "The option -F is FORCE edit even if file is "
-#	print "locked by another developer"
-
-	print "\nUsage: $cmdname [-r revision_number] <filename>"
-	print "The options -r are optional "
-
-	print "For example - "
-	print "	$cmdname -r 1.1 foo.cpp"
-	print "	$cmdname foo.cpp "
-#	print "	$cmdname -F foo.cpp "
-	print " "
-}
-
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-#while getopts r:F ii
-while getopts r: ii
-do
-	case $ii in
-	r) FLAG1=$ii; OARG1="$OPTARG";;
-#	F) FLAG2=$ii; OARG2="$OPTARG";;
-	?) Usage; exit 2;;
-	esac
-done
-shift ` expr $OPTIND - 1 `
-
-#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
-
-if [ $# -lt 1 ]; then
-	Usage
-	exit
-fi
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-bkextn=sedit_bak
-
-cur_dir=`pwd`
-#echo $cur_dir
-
-len=${#hme}
-len=$(($len + 2))
-#echo $len
-
-subdir=` echo $cur_dir | cut -b $len-2000 `
-#echo $subdir
-
-if [ "$subdir" = "" ]; then
-	fdname=$1
-else
-	fdname=$subdir"/"$1
-fi
-
-# If file is already checked out by another developer....
-cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
-if [ "$cvs_root" = "" ]; then
-	print "\nError: \$CVSROOT is not set!!\n"
-	exit
-fi
-cldir=$CVSROOT/$subdir/Locks
-mkdir $cldir 2>/dev/null
-rcsfile=$CVSROOT/$subdir/$1,v
-#echo $rcsfile
-
-if [ ! -e $rcsfile ]; then
-	print "\nError: File $1 does not exist in CVS repository!!\n"
-	exit
-fi
-
-# Get the tip revision number of the file....
-# Use tmpfile as the arg cannot be set inside the sub-shell
-tmpfile=$hme/sedit-lock.tmp
-\rm -f $tmpfile 2>/dev/null
-if [ "$FLAG1" = "" ]; then
-	(
-	cd $hme
-	cvs log $fdname | head -6 | grep head: | awk '{print $2}' > $tmpfile 
-	)
-	OARG1=`cat $tmpfile`
-	\rm -f $tmpfile 2>/dev/null
-fi
-
-lockfile=$cldir/$1-$OARG1
-#if [ -e $lockfile -a "$FLAG2" = "" ]; then
-if [ -e $lockfile ]; then
-	print "\nError: File $1 Revision $OARG1 already locked by another developer !!"
-	aa=` ls -l $lockfile | awk '{print "Locking developers unix login name is = " $3}' `
-	print $aa
-	print "That developer should do scommit OR sunlock to release the lock"
-	print " "
-#	print "You can also use -F option to force edit the file even if"
-#	print "the file is locked by another developer. But you must talk to"
-#	print "other developer to work concurrently on this file." 
-#	print "For example - this option is useful if you work on a seperate"
-#	print "C++ function in the file which does not interfere with other"
-#	print "developer."
-#	print " "
-	exit
-fi
-
-# Get read-only copy now....
-if [ ! -e $1 ]; then
-	(
-	cd $hme
-	cvs -r checkout $fdname 1>/dev/null
-	)
-fi
-
-# Check if file already exists....
-if [ -f $1 ]; then
-	user_perms=" "
-	group_perms=" "
-	other_perms=" "
-	user_perms=`ls -l $1 | awk '{print $1 }' | cut -b3-3 `
-	group_perms=`ls -l $1 | awk '{print $1 }' | cut -b6-6 `
-	other_perms=`ls -l $1 | awk '{print $1 }' | cut -b9-9 `
-	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
-		-o "$other_perms" = "w" ]; then
-		print "\nError: The file is writable. Aborting $cmdname ......"
-		print "       You must backup, scommit or delete file and"
-		print "       try $cmdname again\n"
-		exit
-	fi
-	#print "\nNote: The file $1 is read-only."
-	#print "Hence I am moving it to $1.$bkextn ....\n"
-	\mv -f $1 $1.$bkextn
-	chmod 444 $1.$bkextn
-elif [ -d $1 ]; then
-	print "\nError: $1 is a directory and NOT a file. Aborting $cmdname ....\n"
-	exit
-fi
-
-# Create subshell
-print "\nNow getting the file $1 from CVS repository ...\n"
-(
-cd $hme
-#echo $fdname
-# Use -A option to clear the sticky tag and to get 
-# the HEAD revision version
-if [ "$FLAG1" = "" ]; then
-	cvs -w checkout -A $fdname
-else
-	cvs -w checkout -A -$FLAG1 $OARG1 $fdname
-fi
-)
-
-if [ -e $1 ]; then
-	touch $lockfile
-fi
-
-#pwd
-
-print "\nDone $cmdname"
-#print "\nTip (Usage): $cmdname <filename> \n"
-
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> scommit <label id="scommit">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-# CVS program scommit
-# Program to commit the changes and check in the file into CVS
-
-cmdname=`basename $0`
-
-Usage()
-{
-	print "\nUsage: $cmdname [-r revision_number] <filename>"
-	print "The options -r are optional "
-	print "For example - "
-	print "	$cmdname -r 1.1 foo.cpp"
-	print "	$cmdname foo.cpp "
-	print " "
-}
-
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-while getopts r: ii
-do
-	case $ii in
-	r) FLAG1=$ii; OARG1="$OPTARG";;
-	?) Usage; exit 2;;
-	esac
-done
-shift ` expr $OPTIND - 1 `
-
-#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
-
-if [ $# -lt 1 ]; then
-	Usage
-	exit 2
-fi
-
-if [ -d $1 ]; then
-	Usage
-	exit 2
-fi
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-# Find sub-directory
-cur_dir=`pwd`
-#echo $cur_dir
-len=${#hme}
-len=$(($len + 2))
-#echo $len
-subdir=` echo $cur_dir | cut -b $len-2000 `
-#echo $subdir
-if [ "$subdir" = "" ]; then
-	fdname=$1
-else
-	fdname=$subdir"/"$1
-fi
-
-# If file is already checked out by another user....
-cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
-if [ "$cvs_root" = "" ]; then
-	print "\nError: \$CVSROOT is not set!!\n"
-	exit
-fi
-cldir=$CVSROOT/$subdir/Locks
-mkdir $cldir 2>/dev/null
-
-# Get the working revision number of the file....
-# Use tmpfile as the arg cannot be set inside the sub-shell
-tmpfile=$hme/sedit-lock.tmp
-\rm -f $tmpfile 2>/dev/null
-if [ "$FLAG1" = "" ]; then
-	(
-	cd $hme
-	cvs status $fdname 2>/dev/null | grep "Working revision:" | awk '{print $3}' >$tmpfile
-	)
-	OARG1=`cat $tmpfile`
-	\rm -f $tmpfile 2>/dev/null
-fi
-
-if [ "$OARG1" = "" ]; then
-	print "The file $fdname is NEW, it is not in the CVS repository"
-else
-	lockfile=$cldir/$1-$OARG1
-	if [ -e $lockfile ]; then
-		# Check if this revision is owned by you...
-		aa=` ls -l $lockfile | awk '{print $3}' `
-		userid=`id | cut -d'(' -f2 | cut -d')' -f1 `
-		if [ "$aa" != "$userid" ]; then
-			print " "
-			print "The file $fdname is NOT locked by you!!"
-			print "It is locked by unix user name $aa and your login name is $userid"
-#			print "If you are working concurrently with other developer"
-#			print "and you used -F option with sedit."
-			print "You need to wait untill other developer does scommit"
-			print "or sunlock"
-			print "Aborting the $cmdname ...."
-			print " "
-			exit 2
-		fi
-	else
-		if [ -f $CVSROOT/$subdir/$1,v ]; then
-			print "You did not lock the file $fdname with sedit!!"
-			print "Aborting the $cmdname ...."
-			exit 2 
-		else
-			print "\nThe file $fdname does not exist in CVS repository yet!!"
-			print "You should have done sadd on $fdname ...."
-		fi
-	fi
-fi
-
-if [ -d $1 ]; then
-	Usage
-	exit 2
-	# Do not allow directory commits for now ...
-	#cvs commit
-else
-	cvs commit $1
-	exit_status=$?
-fi
-
-if [ $exit_status -eq 0 ]; then
-	print "\nDone $cmdname. $cmdname successful"
-	#print "\nTip (Usage): $cmdname <filename/directory name>\n"
-fi
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> supdate <label id="supdate">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program supdate
-# Program to update the file from CVS read/write mode
-
-cmdname=`basename $0`
-
-if [ $# -lt 1 ]; then
-	print "\nUsage: $cmdname <filename>"
-	exit
-fi
-
-# Check if file already exists....
-if [ $# -gt 0 -a  -f $1 ]; then
-	user_perms=" "
-	group_perms=" "
-	other_perms=" "
-	user_perms=`ls -l $1 | awk '{print $1 }' | cut -b3-3 `
-	group_perms=`ls -l $1 | awk '{print $1 }' | cut -b6-6 `
-	other_perms=`ls -l $1 | awk '{print $1 }' | cut -b9-9 `
-	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
-		-o "$other_perms" = "w" ]; then
-		while :
-		do
-			print "\n$cmdname will backup your working file "
-			print "$1 to $1.supdate_bak before doing any merges."
-			print "Are you sure you want the merge the changes from"
-			print -n "CVS repository to your working file ? <y/n> [n]: "
-			read ans
-			if [ "$ans" = "y" -o "$ans" = "Y" ]; then
-				if [ -f $1.supdate_bak ]; then
-					print "\nWarning : File $1.supdate_bak already exists!!"
-					print "Please examine the file $1.supdate_bak and delete it"
-					print "and than re-try this $cmdname "
-					print "Aborting $cmdname ...."
-					exit
-				else
-					cp $1 $1.supdate_bak
-					break
-				fi
-			elif [ "$ans" = "n" -o "$ans" = "N" -o "$ans" = "" -o "$ans" = " " ]; then
-				exit
-			fi
-		done
-	fi
-fi
-
-if [ -d $1 ]; then
-	print "\nDirectory update is disabled as cvs update"
-	print "merges the changes from repository to your working directory"
-	print "So give the filename to update - as shown below: "
-	print "	Usage: $cmdname <filename>"
-	exit
-#	cvs update
-else
-	cvs update $1
-fi
-
-print "\nDone $cmdname. $cmdname successful"
-#print "\nTip (Usage): $cmdname <filename/directory name>\n"
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sunlock <label id="sunlock">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-# CVS program sunlock
-# Program to unlock the file to release the lock done by sedit
-
-cmdname=`basename $0`
-
-Usage()
-{
-	print "\nUsage: $cmdname [-r revision_number] <filename>"
-	print "	The options -r is optional "
-	print "For example - "
-	print "	$cmdname -r 1.1 foo.cpp"
-	print "	$cmdname foo.cpp "
-	print " "
-}
-
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-while getopts r: ii
-do
-	case $ii in
-	r) FLAG1=$ii; OARG1="$OPTARG";;
-	?) Usage; exit 2;;
-	esac
-done
-shift ` expr $OPTIND - 1 `
-
-if [ $# -lt 1 ]; then
-	Usage
-	exit
-fi
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-cur_dir=`pwd`
-#echo $cur_dir
-
-len=${#hme}
-len=$(($len + 2))
-#echo $len
-
-subdir=` echo $cur_dir | cut -b $len-2000 `
-#echo $subdir
-
-if [ "$subdir" = "" ]; then
-	fdname=$1
-else
-	fdname=$subdir"/"$1
-fi
-
-# If file is already checked out by another user....
-cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
-if [ "$cvs_root" = "" ]; then
-	print "\nError: \$CVSROOT is not set!!\n"
-	exit
-fi
-cldir=$CVSROOT/$subdir/Locks
-rcsfile=$CVSROOT/$subdir/$1,v
-#echo $rcsfile
-
-if [ ! -e $rcsfile ]; then
-	print "\nError: File $1 does not exist in CVS repository!!\n"
-	exit
-fi
-
-# Get the tip revision number of the file....
-# Use tmpfile as the arg cannot be set inside the sub-shell
-tmpfile=$hme/sedit-lock.tmp
-\rm -f $tmpfile 2>/dev/null
-if [ "$FLAG1" = "" ]; then
-	(
-	cd $hme
-	cvs log $fdname | head -6 | grep head: | awk '{print $2}' > $tmpfile 
-	)
-	OARG1=`cat $tmpfile`
-	\rm -f $tmpfile 2>/dev/null
-fi
-
-lockfile=$cldir/$1-$OARG1
-#echo lockfile is : $lockfile
-if [ ! -e $lockfile ]; then
-	print "\nFile $1 revision $OARG1 is NOT locked by anyone"
-	print " "
-	exit 
-fi
-
-ans=""
-while :
-do
-	print "\n\n***************************************************"
-	print "WARNING: $cmdname will release lock and enable other"
-	print "         developers to edit the file. It is advisable"
-	print "         to save your changes with scommit command"
-	print "***************************************************"
-	print -n "\nAre you sure you want to unlock the file <y/n>? [n]: "
-	read ans
-	if [ "$ans" = "" -o "$ans" = " " -o "$ans" = "n" -o "$ans" = "N" ]; then
-		print "\nAborting $cmdname ...."
-		exit
-	fi
-	if [ "$ans" = "y" -o "$ans" = "Y" ]; then
-		print "\n\n\n\n\n "
-		print "CAUTION: You may lose all the changes made to file!!"
-		print -n "Do you really want to unlock the file <y/n>? [n]: "
-		read ans
-		if [ "$ans" = "y" -o "$ans" = "Y" ]; then
-			break
-		else
-			exit
-		fi
-	else
-		print "\n\nWrong entry. Try again..."
-		sleep 1
-	fi
-done
-
-if [ -e $lockfile ]; then
-	\rm -f $lockfile
-	print "\nDone $cmdname"
-else
-	print "\nFile $1 is NOT locked by anyone"
-	print " "
-fi
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> slist <label id="slist">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program slist
-# Program to list all edited source files from CVS
-
-#cmdname=`basename $0`
-
-#echo "no of params : " $#
-#echo "all args : " $@
-
-recurse_flag=""
-
-if [ "$1" = "" ]; then
-	dir=.
-	recurse_flag=""
-else
-	dir=$@
-	recurse_flag=" -prune "
-fi
-
-FOUT=slist_temporary_file.out
-
-\rm -f $FOUT
-
-find $dir  $recurse_flag -type f -exec ls -ltr {} \; \
-| grep -v "/CVS/" \
-| grep ^\-rw \
-| grep -v \\.o \
-| grep -v \\.log \
-| grep -v \\.out \
-| grep -v \\.pid \
-| awk '{ if ($NF != "tags") print $0 }' \
-| awk '{ if ($NF != "a.out") print $0 }' \
-| awk '{ if ($NF != "core") print $0 }' \
-| awk '{ print $NF }' > $FOUT
-
-aa=`cat $FOUT`
-\rm -f $FOUT
-
-for ii in $aa ; do
-	ftype=" "
-	ftype=`file $ii | awk '{print $2 }' `
-
-	# find . -type f -exec file {} \;
-	# 1)ELF 2)commands 3)[nt]roff, 4)c 5)English  6)executable
-	# 7)ascii 8)current 9)empty
-	# Binaries are ELF, lib.a are current
-	#
-	if [ "$ftype" = "ascii" -o "$ftype" = "commands" \
-		-o "$ftype" = "[nt]roff," -o "$ftype" = "c" -o "$ftype" = "data" \
-		-o "$ftype" = "English" -o "$ftype" = "executable" ]; then
-		pcfile=` echo $ii | cut -d'.' -f1`
-		pcfile=${pcfile}".pc"
-		if [ ! -f $pcfile ]; then
-			ls -l $ii
-		else
-			if [ "$ii" = "$pcfile" ]; then
-				ls -l $ii
-			fi
-		fi
-	fi
-done;
-
-#| grep -v ^\-rwx \
-
-#ls -l | grep ^\-rw | grep -v \\.o
-#ls -l | grep ^\-rw | grep -v \\.o | awk '{ if ($NF != "tags") print $0 }'
-#ls -l | grep ^\-rw | grep -v ^\-rwx | grep -v \\.o |  awk '{ if ($NF != "tags") print $0 }' | awk '{ if ($NF != "core") print $0 }'
-
-#print "\nDone $cmdname. $cmdname successful"
-#print "\nTip (Usage): $cmdname <filename>\n"
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sinfo <label id="sinfo">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program sinfo
-# Program to get the status of files in working directory
-
-cmdname=`basename $0`
-
-if [ $# -lt 1 ]; then
-	print "\nUsage: $cmdname [file/directory name] "
-	print "For example - "
-	print "	$cmdname foo.cpp"
-	print "	$cmdname some_directory "
-	print " "
-	exit
-fi
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-tmpfile=$hme/cvs_sinfo.tmp
-rm -f $tmpfile
-
-cur_dir=`pwd`
-#echo $cur_dir
-
-len=${#hme}
-len=$(($len + 2))
-#echo $len
-
-subdir=` echo $cur_dir | cut -b $len-2000 `
-#echo $subdir
-
-if [ "$subdir" = "" ]; then
-	fdname=$1
-else
-	fdname=$subdir"/"$1
-fi
-
-# Create subshell
-if [ -f $1 ]; then
-	(
-	cd $hme
-	clear
-	cvs status $fdname 
-	)
-elif [ -d $1 ]; then
-	(
-	cd $hme
-	clear
-	echo "  " >> $tmpfile
-	echo "  ****************************************" >> $tmpfile
-	echo "        Overall Status of Directory" >> $tmpfile
-	echo "  ****************************************" >> $tmpfile
-	cvs release $fdname 1>>$tmpfile 2>>$tmpfile << EOF
-Y
-EOF
-	echo "\n   -------------------------------\n" >> $tmpfile
-
-	aa=`cat $tmpfile | grep ^"M " | awk '{print $2}' `
-	for ii in $aa 
-	do
-		jj="(cd $hme; cvs status $subdir/$ii );"
-		echo $jj | /bin/sh  \
-			| grep -v Sticky | awk '{if (NF != 0) print $0}' \
-			1>>$tmpfile 2>>$tmpfile 
-	done
-
-	cat $tmpfile | grep -v ^? | grep -v "Are you sure you want to release" \
-	| less
-	rm -f $tmpfile
-	)
-else
-	print "\nArgument $1 if not a file or directory"
-	exit
-fi
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> slog <label id="slog">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program slog
-# Program to list history of the file in CVS 
-
-cmdname=`basename $0`
-
-if [ $# -lt 1 ]; then
-	print "\nUsage: $cmdname <filename> \n"
-	exit
-fi
-
-# Check if file does not exist....
-if [ ! -f $1 ]; then
-	print "\nError: $1 is NOT a file. Aborting $cmdname ......"
-	exit
-fi
-
-cvs log $1 | /usr/local/bin/less
-
-print "\nDone $cmdname. $cmdname successful"
-#print "\nTip (Usage): $cmdname <filename>\n"
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sdif <label id="sdif">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program sdif
-# Program to see difference of the working file with CVS copy
-
-cmdname=`basename $0`
-
-Usage()
-{
-	print "\nUsage: $cmdname <filename> "
-	print "$cmdname -r<rev1> -r<rev2> <filename> \n"
-	exit
-}
-FLAG1=""
-FLAG2=""
-OARG1=""
-OARG2=""
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-while getopts r:r: ii
-do
-	case $ii in
-	r) 
-		if [ "$FLAG1" = "" ]; then
-			FLAG1=$ii; 
-			OARG1="$OPTARG"
-		else
-			FLAG2=$ii; 
-			OARG2="$OPTARG"
-		fi
-		;;
-	?) Usage; exit 2;;
-	esac
-done
-shift ` expr $OPTIND - 1 `
-
-if [ "$FLAG2" = "" ]; then
-	FLAG2=r
-	OARG2=HEAD
-fi
-
-if [ "$FLAG1" = "" ]; then
-	cvs diff -r HEAD $1 | less
-else
-	cvs diff -$FLAG1 $OARG1 -$FLAG2 $OARG2 $1 | less
-fi
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sadd <label id="sadd">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# test
-# CVS program sadd
-# Program to add the file to CVS
-
-cmdname=`basename $0`
-if [ $# -lt 1 ]; then
-	print "\nUsage: $cmdname <filename/directory> \n"
-	exit
-fi
-
-# Check if file exists ....
-if [ -f $1 ]; then
-	cvs add $1
-	exit
-fi
-
-if [ ! -d $1 ]; then
-	print "\nArgument $1 is not a file and not a directory!"
-	print "Usage: $cmdname <filename/directory> \n"
-	exit
-fi
-
-# Argument is a directory name .....
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-
-cur_dir=`pwd`
-len=${#hme}
-len=$(($len + 2))
-subdir=` echo $cur_dir | cut -b $len-2000 `
-
-if [ "$subdir" = "" ]; then
-	if [ -d $CVSROOT/$1 ]; then
-		print "\nDirectory $1 already exists in CVSROOT"
-		exit
-	else
-		# You are adding at root directory $CVSROOT
-		if [ "$2" = "" -o "$3" = "" ]; then
-			print "\nUsage: $cmdname <directory> <vendor tag> <release tag>"
-			print "For example - "
-			print "	$cmdname foo_directory V_1_0 R_1_0"
-			exit
-		else
-			(
-			cd $1;
-			cvs import $1 $2 $3
-			)
-		fi
-	fi
-else
-	# If current directory exists in CVS...
-	if [ -d $CVSROOT/$subdir ]; then
-		if [ -d $CVSROOT/$subdir/$1 ]; then
-			print "\nDirectory $1 already in CVS repository!"
-		else
-			cvs add $1
-		fi
-	else
-		print "\nSub-directory $subdir does not exist in CVS"
-		print "You need to first add $subdir to CVS"
-		exit
-	fi
-fi
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sdelete <label id="sdelete">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program sdelete
-# Program to delete the file from CVS
-
-cmdname=`basename $0`
-
-if [ $# -lt 1 ]; then
-	print "\nUsage: $cmdname <filename> \n"
-	exit
-fi
-
-# Check if file does not exist....
-if [ ! -f $1 ]; then
-	# Try to get the file from CVS
-	sget $1
-	if [ ! -f $1 ]; then
-		print "\nError: $1 does NOT exist in CVS repository. Aborting $cmdname ......"
-		exit
-	fi
-fi
-
-bkextn=cvs_sdelete_safety_backup
-\mv -f $1 $1.$bkextn
-
-cvs remove $1
-
-print "\nsdelete command removes the file from CVS repository"
-print "and archives the file in CVS Attic directory. In case"
-print "you need this file in future than contact your CVS administrator"
-print " "
-
-print "\nDone $cmdname. $cmdname successful"
-#print "\nTip (Usage): $cmdname <filename>\n"
-\mv -f $1.$bkextn $1
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> sfreeze <label id="sfreeze">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-# CVS program sfreeze
-# Program to freeze and cut out the release of source tree from CVS
-
-cmdname=`basename $0`
-
-Usage()
-{
-	print "\nUsage: $cmdname symbolic_tag <directory name> "
-
-	print "\nFor example :- "
-	print "   cd \$HOME"
-	print "   $cmdname  REVISION_1   mesa"
-	print "To see the list of revisons do -"
-	print "slog <filename> and see the symbolic name and do -"
-	print "cvs history -T"
-
-	print "\nTo create a branch off-shoot from main trunk, use"
-	print "the -b and -r options which makes the tag a branch tag. This is"
-	print "useful for creating a patch to previously released software"
-	print "For example :- "
-	print "   cd \$HOME"
-	print "   cvs rtag -b -r REVISION_1   REVISION_1_1   mesa"
-	print " "
-
-#	print "\nTag info is located at \$CVSROOT/CVSROOT/taginfo,v"
-#	print "You can do - cd $HOME; sget CVSROOT"
-#	print "to see this file"
-	exit
-}
-
-# Command getopt will not supported in next major release. 
-# Use getopts instead. 
-#while getopts r: ii
-#do
-#	case $ii in
-#	r) FLAG1=$ii; OARG1="$OPTARG";;
-#	?) Usage; exit 2;;
-#	esac
-#done
-#shift ` expr $OPTIND - 1 `
-
-#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
-
-if [ $# -lt 2 ]; then
-	Usage
-fi
-
-if [ ! -d $2 ]; then
-	print "\nError: Second argument $2 is not a directory!"
-	print "       Aborting $cmdname...."
-	print " "
-	exit
-fi
-
-# cvs rtag symbolic_tag <directory name>
-cvs rtag $1 $2
-
-print "\nDone $cmdname. $cmdname successful"
-</code>
-<!-- 
-	*******************************************
-	************ End of Section ***************
-	*******************************************
-
-
-
-
--->
-<sect1> saddtree <label id="saddtree">
-<p>
-<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
-
-Save this file as text file and chmod a+rx on it.
-
-<code>
-#!/bin/ksh
-
-################################################################
-# Sample Program to checkin a directory tree (let's say SAMP) into CVS
-# Note that if SAMP directory is not in CVS than you would use sadd
-# command and -
-# 	cd SAMP; cvs import SAMP V_1_0 R_1_0
-# After running this program do -
-# 	cd $HOME/foo/SAMP
-# 	cvs import foo/SAMP V1_0 Rev_1_0
-################################################################
-
-hme=` echo $HOME | cut -f1 -d' '  `
-if [ "$hme" = "" ]; then
-	print "\nError: \$HOME is not set!!\n"
-	exit
-fi
-sampdir=$hme/foo/SAMP
-
-check_out_files()
-{
-	# Now check out the files
-	tmp2f=$hme/tmp2.baksamp.sh
-
-	cd $hme
-	\rm -rf foo/SAMP
-	cvs -w checkout foo/SAMP
-	cd $hme/foo
-	find SAMP -type f -print > $tmp2f
-
-	cd $hme
-	for ii in `cat $tmp2f`
-	do
-		iidir=`dirname $ii`
-		iifile=`basename $ii`
-		if [ "$iifile" = "Root" -o "$iifile" = "Repository" -o "$iifile" = "Entries" ]; then
-			continue
-		fi
-		jjdir=` echo $iidir | cut  -d'/' -f2-1000 `
-
-		cp $hme/foo/SAMP.tobe/$jjdir/$iifile  $hme/foo/$iidir/$iifile
-		echo "cp $hme/foo/SAMP.tobe/$jjdir/$iifile  $hme/foo/$iidir/$iifile "
-
-		cvs add  foo/$iidir/$iifile
-	done
-
-	print 
-	print "================================================"
-	print " Now run cvs commit foo/SAMP"
-	print " After commit. Do - "
-	print " 	cd foo; rm -rf SAMP and "
-	print " get fresh copy, sget SAMP"
-	print " Verify with slog filename.samp to see new revision"
-	print "================================================"
-	print
-}
-
-check_out_files
-</code>
 <!-- 
 	*******************************************
 	************ End of Section ***************
@@ -1707,6 +494,143 @@ This gives diff between version 1.4 and 1.5 on filename.
 Emacs is a powerful editor and it supports CVS/RCS - especially 
 for revision merging and comparing. Emacs main site 
 is at <url url="http://www.emacs.org">.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+<chapt> RCS Shell scripts <label id="rcs_scripts">
+-->
+<sect> RCS Shell scripts <label id="rcs_scripts">
+<p>
+If you want to use RCS instead of CVS then you can use the following
+shell scripts.
+<sect1> cotree.sh <label id="cotree.sh">
+<p>
+<code>
+#!/bin/ksh
+
+# cotree.sh (Check Out Tree shell script)
+# cotree.sh - Check out the entire RCS directory
+
+# Usage :
+# This will get the all the directories
+#	unix> cotree.sh 
+#
+# This will get just one single directory tree
+#	unix> cotree.sh <directory name>
+
+# See also cofiles.sh
+
+###############################################################
+# Setting up RCS (Revision Control System)
+# Install the RCS programs - which gives command co, ci, rcslog
+# Create a rcs home directory where you want to put all the
+# source code repository. Call this $RCSDIR=/home/rcs_version_control
+# Setup up a environment variable RCSDIR=/home/rcs_version_control
+# in $HOME/.profile file. Like -
+#		export RCSDIR=/home/rcs_version_control
+# Create a directory structure under $RCSDIR and check in all your
+# files using ci . See 'man ci'
+# Now create a link from your home directory to your project
+# under $RCSDIR
+# 		cd $HOME
+#		mkdir $HOME/myproject
+#		cd $HOME/myproject
+# and run this script to get all the files and directory tree
+#		cotree.sh
+# This script will create the entire source-tree under user's
+# home and also will have a soft link to RCS directories. Each 
+# user will run this script under his home directory.
+###############################################################
+
+check_out_directory()
+{
+	# Root directory of RCS (revision control system)
+	# like RCSDIR=/home/rcs_version_control
+	RCSDIR=$1
+	DIRNAME=$2
+
+	# The given directory name must exist in rcs root directory
+	if [ "$DIRNAME" = "" -o  ! -d $RCSDIR/$DIRNAME ]; then
+		print "\nDirectory DIRNAME=$DIRNAME does not exist!!"
+		print "\nAborting the program ... and exiting...\n"
+		exit
+	fi
+	
+	mkdir -p $DIRNAME
+	ln -s $RCSDIR/$DIRNAME/RCS $DIRNAME
+	(
+		cd $DIRNAME
+
+		# This fails in case of filename=sample,vv 
+		# which inside RCS will be RCS/sample,vv,v
+		# ls RCS | cut -d',' -f1 | xargs co
+		# Use match to end of name $, as below -
+		ls RCS | sed -e's/,v$//g' | xargs co
+	)
+}
+
+# Root directory of RCS (revision control system)
+# like RCSDIR=/home/rcs_version_control
+if [ "$RCSDIR" = "" -o ! -d $RCSDIR ]; then
+	print "\nDirectory RCSDIR=$RCSDIR does not exist!!"
+	print "\nAborting the program ... and exiting...\n"
+	exit
+fi
+#echo "rcsdir is : $RCSDIR"
+
+# If a directory argument is passed, then check out all
+# files for this directory only and exit.
+if [ "$1" != "" ]; then
+	(cd $RCSDIR; find $1 -type d -print ) | 
+	while read DIRNAME
+	do
+		#echo DIRNAME=$DIRNAME
+		#DIRNAME=c_src
+		# Send rcs root directory and dir name relative to rcs root dir
+		tmpaa=` basename $DIRNAME `
+		if [ "$tmpaa" != "RCS" ]; then
+			check_out_directory $RCSDIR $DIRNAME
+		fi
+	done
+else
+	(cd $RCSDIR; find * -type d -print ) | 
+	while read DIRNAME
+	do
+		echo DIRNAME=$DIRNAME
+		#DIRNAME=c_src
+		# Send rcs root directory and dir name relative to rcs root dir
+		tmpaa=` basename $DIRNAME `
+		if [ "$tmpaa" != "RCS" ]; then
+			check_out_directory $RCSDIR $DIRNAME
+		fi
+	done
+fi
+</code>
+<sect1> cofiles.sh <label id="cofiles.sh">
+<p>
+<code>
+#!/bin/ksh
+
+# cofiles.sh (Check Out files shell script)
+# cofiles.sh - Check out all the files in current directory from RCS
+# See also cotree.sh and 'man rcsclean'
+
+if [ ! -d RCS ]; then
+	print "\nDirectory RCS does not exist!!"
+	print "\nAborting the program ... and exiting...\n"
+	exit
+fi
+
+# This fails in case of filename=sample,vv in RCS/sample,vv,v
+# ls RCS | cut -d',' -f1 | xargs co
+# Use match to end of name $, as below -
+ls RCS | sed -e's/,v$//g' | xargs co
+</code>
 <!-- 
 	*******************************************
 	************ End of Section ***************
@@ -1863,4 +787,1674 @@ and email on all copies.
 
 
 -->
+<sect> sget <label id="sget">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sget
+# Program to check out the file from CVS read-only
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+Usage()
+{
+	print "\nUsage: $cmdname [-r revision_number/symbolic_tag_name] <file/directory name> "
+	print "The options -r are optional "
+	print "For example - "
+	print " $cmdname -r 1.1 foo.cpp"
+	print " $cmdname foo.cpp "
+	print " $cmdname some_directory "
+	print "Extract by symbolic revision tag like - "
+	print " $cmdname -r REVISION_1 some_directory "
+	print " "
+	exit
+}
+
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+while getopts r: ii
+do
+	case $ii in
+	r) FLAG1=$ii; OARG1="$OPTARG";;
+	?) Usage; exit 2;;
+	esac
+done
+shift ` expr $OPTIND - 1 `
+
+#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
+
+if [ $# -lt 1 ]; then
+	Usage
+fi
+
+bkextn=sget_bak
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname=$1
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# Check if file already exists....
+if [ -f "$HOME/$subdir/$fname" ]; then
+	tmpaa="$HOME/$subdir/$fname"
+	user_perms=" "
+	group_perms=" "
+	other_perms=" "
+	user_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b3-3 `
+	group_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b6-6 `
+	other_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b9-9 `
+	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
+			-o "$other_perms" = "w" ]; then
+		print "\nError: The file is writable. Aborting $cmdname ......"
+		print "       You should either backup, scommit or delete the file and"
+		print "       try $cmdname again\n"
+		exit
+	fi
+fi
+
+# Move the file
+mkdir -p "$HOME/$subdir"
+touch "$HOME/$subdir/$fname" 2>/dev/null
+\mv -f "$HOME/$subdir/$fname" "$HOME/$subdir/$fname.$bkextn"
+
+# Create subshell
+(
+	cd $homedir
+
+	# Use -A option to clear all sticky flags
+	if [ "$FLAG1" = "" ]; then
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs -r checkout -A $fname
+		else
+			cvs -r checkout -A "$subdir/$fname"
+		fi
+	else
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs -r checkout -A -$FLAG1 $OARG1 $fname
+		else
+			cvs -r checkout -A -$FLAG1 $OARG1 "$subdir/$fname"
+		fi
+	fi
+)
+#pwd
+
+if [ -f "$HOME/$subdir/$fname" ]; then
+	print "\nREAD-ONLY copy of the file $subdir/$fname obtained."
+	print "Done $cmdname"
+	#print "\nTip (Usage): $cmdname <file/directory name> \n"
+fi
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sedit <label id="sedit">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sedit
+# Program to check out the file from CVS read/write mode with locking
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+Usage()
+{
+#       print "\nUsage: $cmdname [-r revision_number] [-F] <filename>"
+#       print "The options -r, -F are optional "
+#       print "The option -F is FORCE edit even if file is "
+#       print "locked by another developer"
+
+        print "\nUsage: $cmdname [-r revision_number] <filename>"
+        print "The options -r are optional "
+
+        print "For example - "
+        print " $cmdname -r 1.1 foo.cpp"
+        print " $cmdname foo.cpp "
+#       print " $cmdname -F foo.cpp "
+        print " "
+}
+
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+#while getopts r:F ii
+while getopts r: ii
+do
+        case $ii in
+        r) FLAG1=$ii; OARG1="$OPTARG";;
+#       F) FLAG2=$ii; OARG2="$OPTARG";;
+        ?) Usage; exit 2;;
+        esac
+done
+shift ` expr $OPTIND - 1 `
+
+#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
+
+if [ $# -lt 1 ]; then
+        Usage
+        exit
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+        print "\nError: \$HOME is not set!!\n"
+        exit
+fi
+
+bkextn=sedit_bak
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname=$1
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# If file is already checked out by another developer....
+cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
+if [ "$cvs_root" = "" ]; then
+        print "\nError: \$CVSROOT is not set!!\n"
+        exit
+fi
+mkdir -p "$CVSROOT/$subdir/Locks" 2>/dev/null
+
+if [ ! -e "$CVSROOT/$subdir/$fname,v" ]; then
+        print "\nError: File $fname does not exist in CVS repository!!\n"
+        exit
+fi
+
+# Get the tip revision number of the file....
+# Use tmpfile as the arg cannot be set inside the sub-shell
+tmpfile=$homedir/sedit-lock.tmp
+\rm -f $tmpfile 2>/dev/null
+if [ "$FLAG1" = "" ]; then
+	(
+        cd $homedir
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs log $fname | head -6 | grep head: | awk '{print $2}' > $tmpfile
+		else
+			cvs log "$subdir/$fname" | head -6 | grep head: | awk '{print $2}' > $tmpfile
+		fi
+	)
+	OARG1=`cat $tmpfile`
+	\rm -f $tmpfile 2>/dev/null
+fi
+
+lockfile="$CVSROOT/$subdir/Locks/$fname-$OARG1"
+#echo "lockfile is : " $lockfile
+#if [ -e $lockfile -a "$FLAG2" = "" ]; then
+if [ -e $lockfile ]; then
+        print "\nError: File $fname Revision $OARG1 already locked by another developer !!"
+        aa=` ls -l $lockfile | awk '{print "Locking developers unix login name is = " $3}' `
+        print $aa
+        print "That developer should do scommit OR sunlock to release the lock"
+        print " "
+#       print "You can also use -F option to force edit the file even if"
+#       print "the file is locked by another developer. But you must talk to"
+#       print "other developer to work concurrently on this file."
+#       print "For example - this option is useful if you work on a seperate"
+#       print "C++ function in the file which does not interfere with other"
+#       print "developer."
+#       print " "
+        exit
+fi
+
+# Get read-only copy now....
+if [ ! -e "$HOME/$subdir/$fname" ]; then
+	(
+        cd $homedir
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs -r checkout $fname 1>/dev/null
+		else
+			cvs -r checkout "$subdir/$fname" 1>/dev/null
+		fi
+	)
+fi
+
+# Check if file already exists....
+tmpaa="$HOME/$subdir/$fname"
+if [ -f $tmpaa ]; then
+	user_perms=" "
+	group_perms=" "
+	other_perms=" "
+	user_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b3-3 `
+	group_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b6-6 `
+	other_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b9-9 `
+	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
+			-o "$other_perms" = "w" ]; then
+		print "\nError: The file is writable. Aborting $cmdname ......"
+		print "       You must backup, scommit or delete file and"
+		print "       try $cmdname again\n"
+		exit
+	fi
+	#print "\nNote: The file $tmpaa is read-only."
+	#print "Hence I am moving it to $tmpaa.$bkextn ....\n"
+	\mv -f $tmpaa $tmpaa.$bkextn
+	chmod 444 $tmpaa.$bkextn
+elif [ -d $tmpaa ]; then
+	print "\nError: $tmpaa is a directory and NOT a file. Aborting $cmdname ....\n"
+	exit
+fi
+
+# Create subshell
+print "\nNow getting the file $fname from CVS repository ...\n"
+(
+	cd $homedir
+	# Use -A option to clear the sticky tag and to get
+	# the HEAD revision version
+	if [ "$FLAG1" = "" ]; then
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs -w checkout -A $fname
+		else
+			cvs -w checkout -A "$subdir/$fname"
+		fi
+	else
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs -w checkout -A -$FLAG1 $OARG1 $fname
+		else
+			cvs -w checkout -A -$FLAG1 $OARG1 "$subdir/$fname"
+		fi
+	fi
+)
+
+if [ -e "$HOME/$subdir/$fname" ]; then
+	# The lockfile is $CVSROOT/$subdir/Locks/$fname-$OARG1
+	touch $lockfile
+fi
+
+#pwd
+
+print "\nDone $cmdname"
+#print "\nTip (Usage): $cmdname <filename> \n"
+
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> scommit <label id="scommit">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program scommit
+# Program to commit the changes and check in the file into CVS
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+Usage()
+{
+	print "\nUsage: $cmdname [-r revision_number] <filename>"
+	print "The options -r are optional "
+	print "For example - "
+	print " $cmdname -r 1.1 foo.cpp"
+	print " $cmdname foo.cpp "
+	print " "
+}
+
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+while getopts r: ii
+do
+	case $ii in
+	r) FLAG1=$ii; OARG1="$OPTARG";;
+	?) Usage; exit 2;;
+	esac
+done
+shift ` expr $OPTIND - 1 `
+
+#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
+
+if [ $# -lt 1 ]; then
+	Usage
+	exit 2
+fi
+
+if [ -d $1 ]; then
+	Usage
+	exit 2
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+# Find sub-directory
+cur_dir=`pwd`
+#echo $cur_dir
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname=$1
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+# echo "subdir is : " $subdir
+# echo "fname is : " $fname
+
+# If file is already checked out by another user....
+cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
+if [ "$cvs_root" = "" ]; then
+	print "\nError: \$CVSROOT is not set!!\n"
+	exit
+fi
+mkdir -p "$CVSROOT/$subdir/Locks" 2>/dev/null
+
+# Get the working revision number of the file....
+# Use tmpfile as the arg cannot be set inside the sub-shell
+tmpfile=$homedir/sedit-lock.tmp
+\rm -f $tmpfile 2>/dev/null
+if [ "$FLAG1" = "" ]; then
+	(
+        cd $homedir
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs status $fname 2>/dev/null | grep "Working revision:" | awk '{print $3}' >$tmpfile
+		else
+			cvs status "$subdir/$fname" 2>/dev/null | grep "Working revision:" | awk '{print $3}' >$tmpfile
+		fi
+	)
+	OARG1=`cat $tmpfile`
+	\rm -f $tmpfile 2>/dev/null
+fi
+
+if [ "$OARG1" = "" ]; then
+	print "The file $subdir/$fname is NEW, it is not in the CVS repository"
+else
+	lockfile="$CVSROOT/$subdir/Locks/$fname-$OARG1"
+	if [ -e $lockfile ]; then
+		# Check if this revision is owned by you...
+		aa=` ls -l $lockfile | awk '{print $3}' `
+		userid=`id | cut -d'(' -f2 | cut -d')' -f1 `
+		if [ "$aa" != "$userid" ]; then
+			print " "
+			print "The file $subdir/$fname is NOT locked by you!!"
+			print "It is locked by unix user name $aa and your login name is $userid"
+#                       print "If you are working concurrently with other developer"
+#                       print "and you used -F option with sedit."
+			print "You need to wait untill other developer does scommit"
+			print "or sunlock"
+			print "Aborting the $cmdname ...."
+			print " "
+			exit 2
+		fi
+	else
+		# The file must exist in cvs 
+		if [ -f "$CVSROOT/$subdir/$fname,v" ]; then
+			print "You did not lock the file $subdir/$fname with sedit!!"
+			print "Aborting the $cmdname ...."
+			exit 2
+		else
+			print "\nThe file $subdir/$fname does not exist in CVS repository yet!!"
+			print "You should have done sadd on $subdir/$fname ...."
+			exit 2
+		fi
+	fi
+fi
+
+# Operate inside sub-shell - and operate from root directory
+(
+	cd $homedir
+
+	# Do not allow directory commits for now ...
+	#if [ -d "$subdir/$fname" ]; then
+	#	cvs commit "$subdir/$fname"
+	#fi
+
+	if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+		cvs commit $fname
+	else
+		cvs commit "$subdir/$fname"
+	fi
+	exit_status=$?
+
+	if [ $exit_status -eq 0 ]; then
+		lockfile="$CVSROOT/$subdir/Locks/$fname-$OARG1"
+		if [ -e $lockfile ]; then
+			\rm -f $lockfile
+		fi
+
+		# Must change the permissions on file in case
+		# there are no changes to file
+		chmod a-w "$HOME/$subdir/$fname"
+		print "\nDone $cmdname. $cmdname successful"
+		#print "\nTip (Usage): $cmdname <filename/directory name>\n"
+	fi
+)
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> supdate <label id="supdate">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program supdate
+# Program to update the file from CVS read/write mode
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+if [ $# -lt 1 ]; then
+	print "\nUsage: $cmdname <filename>"
+	exit
+fi
+
+# Put double quotes to protect spaces in $1
+tmpaa="$1"
+
+# Check if file already exists....
+if [ $# -gt 0 -a  -f $tmpaa ]; then
+	user_perms=" "
+	group_perms=" "
+	other_perms=" "
+	user_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b3-3 `
+	group_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b6-6 `
+	other_perms=`ls -l $tmpaa | awk '{print $tmpaa }' | cut -b9-9 `
+	if [ "$user_perms" = "w" -o "$group_perms" = "w"  \
+			-o "$other_perms" = "w" ]; then
+		while :
+		do
+			print "\n$cmdname will backup your working file "
+			print "$tmpaa to $tmpaa.supdate_bak before doing any merges."
+			print "Are you sure you want the merge the changes from"
+			print -n "CVS repository to your working file ? <y/n> [n]: "
+			read ans
+			if [ "$ans" = "y" -o "$ans" = "Y" ]; then
+				if [ -f $tmpaa.supdate_bak ]; then
+					print "\nWarning : File $tmpaa.supdate_bak already exists!!"
+					print "Please examine the file $tmpaa.supdate_bak and delete it"
+					print "and than re-try this $cmdname "
+					print "Aborting $cmdname ...."
+					exit
+				else
+					cp $tmpaa $tmpaa.supdate_bak
+					break
+				fi
+			elif [ "$ans" = "n" -o "$ans" = "N" -o "$ans" = "" -o "$ans" = " " ]; then
+				exit
+			fi
+		done
+	fi
+fi
+
+if [ -d $tmpaa ]; then
+	print "\nDirectory update is disabled because cvs update"
+	print "merges the changes from repository to your working directory."
+	print "Hence give the filename to update - as shown below: "
+	print " Usage: $cmdname <filename>"
+	exit
+#       cvs update
+else
+	cvs update $tmpaa
+fi
+
+print "\nDone $cmdname. $cmdname successful"
+print "\n\nThe original file is backed-up to $tmpaa.supdate_bak"
+print "\nHence your original file is SAVED to $tmpaa.supdate_bak"
+print "\n\n"
+#print "\nTip (Usage): $cmdname <filename/directory name>\n"
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sunlock <label id="sunlock">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sunlock
+# Program to unlock the file to release the lock done by sedit
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+Usage()
+{
+	print "\nUsage: $cmdname [-r revision_number] <filename>"
+	print " The options -r is optional "
+	print "For example - "
+	print " $cmdname -r 1.1 foo.cpp"
+	print " $cmdname foo.cpp "
+	print " "
+}
+
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+while getopts r: ii
+do
+	case $ii in
+	r) FLAG1=$ii; OARG1="$OPTARG";;
+	?) Usage; exit 2;;
+	esac
+done
+shift ` expr $OPTIND - 1 `
+
+if [ $# -lt 1 ]; then
+	Usage
+	exit
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname=$1
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
+if [ "$cvs_root" = "" ]; then
+	print "\nError: \$CVSROOT is not set!!\n"
+	exit
+fi
+
+if [ ! -e "$CVSROOT/$subdir/$fname,v" ]; then
+	print "\nError: File $fname does not exist in CVS repository!!\n"
+	exit
+fi
+
+# Get the tip revision number of the file....
+# Use tmpfile as the arg cannot be set inside the sub-shell
+tmpfile=$homedir/sunlock-lock.tmp
+\rm -f $tmpfile 2>/dev/null
+if [ "$FLAG1" = "" ]; then
+	# Operate inside sub-shell - from root directory
+	(
+        cd $homedir
+		if [ "$subdir" = "." ]; then  # don't use dot, will mess up cvs
+			cvs log $fname | head -6 | grep head: | awk '{print $2}' > $tmpfile
+		else
+			cvs log "$subdir/$fname" | head -6 | grep head: | awk '{print $2}' > $tmpfile
+		fi
+	)
+	OARG1=`cat $tmpfile`
+	\rm -f $tmpfile 2>/dev/null
+fi
+
+lockfile="$CVSROOT/$subdir/Locks/$fname-$OARG1"
+#echo lockfile is : $lockfile
+if [ ! -e $lockfile ]; then
+	print "\nFile $fname revision $OARG1 is NOT locked by anyone"
+	print " "
+	exit
+fi
+
+ans=""
+while :
+do
+	print "\n\n***************************************************"
+	print "WARNING: $cmdname will release lock and enable other"
+	print "         developers to edit the file. It is advisable"
+	print "         to save your changes with scommit command"
+	print "***************************************************"
+	print -n "\nAre you sure you want to unlock the file <y/n>? [n]: "
+	read ans
+	if [ "$ans" = "" -o "$ans" = " " -o "$ans" = "n" -o "$ans" = "N" ]; then
+		print "\nAborting $cmdname ...."
+		exit
+	fi
+	if [ "$ans" = "y" -o "$ans" = "Y" ]; then
+		print "\n\n\n\n\n "
+		print "CAUTION: You may lose all the changes made to file!!"
+		print -n "Are you sure? Do you really want to unlock the file <y/n>? [n]: "
+		read ans
+		if [ "$ans" = "y" -o "$ans" = "Y" ]; then
+			break
+		elif [ "$ans" = "" -o "$ans" = " " -o "$ans" = "n" -o "$ans" = "N" ]; then
+			exit
+		else
+			print "\n\nWrong entry. Try again..."
+			sleep 1
+		fi
+	else
+		print "\n\nWrong entry. Try again..."
+		sleep 1
+	fi
+done
+
+if [ -e $lockfile ]; then
+	\rm -f $lockfile
+	print "\nDone $cmdname"
+else
+	print "\nFile $fname is NOT locked by anyone"
+	print " "
+fi
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> slist <label id="slist">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+	Note that there is also another unix
+	command by name slist (list available Netware servers), you
+	should make sure cvs script slist comes before other in your
+	PATH environment.
+
+<code>
+#!/bin/ksh
+
+# CVS program slist
+# Program to list all edited source files from CVS
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+# Usage:
+# 		$ slist      (All files and sub-directories)
+# 		$ slist *.*      (All files)
+# 		$ slist *      (All files and sub-directories)
+# 		$ slist ab*      (All files starting with ab wild-card)
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+
+# If file is already checked out by another developer....
+cvs_root=` echo $CVSROOT | cut -f1 -d' '  `
+if [ "$cvs_root" = "" ]; then
+        print "\nError: \$CVSROOT is not set!!\n"
+        exit
+fi
+
+# If the current directory tree is not in cvs-root then exit
+if [ ! -d $CVSROOT/$subdir ]; then
+	print "\nThe directory $subdir does not exist in $CVSROOT"
+	exit
+fi
+
+#echo "no of params : " $#
+#echo "The arg $ 1 is : " $1
+#echo "all args : " $@
+
+if [ $# -eq 0 ]; then
+	tmpbb=` find * -prune -type d `
+elif [ $# -eq 1 ]; then
+	if [ "$1" = "." ]; then
+		tmpbb=` find * -prune -type d `
+	else
+		if [ -d $1 -a ! -d $CVSROOT/$subdir/$1 ]; then
+			print "\nThe directory $subdir/$1 does not exist in $CVSROOT"
+			exit
+		fi
+		tmpbb=$@
+	fi
+else
+	tmpbb=$@
+fi
+
+#echo "The tmpbb is : " $tmpbb
+
+# Now, remove all the directory names which are not in cvs-root
+dirnames=""
+for ii in $tmpbb ; do
+	if [ -d $CVSROOT/$subdir/$ii ]; then
+		dirnames="$dirnames $ii "
+	fi
+done
+#echo "The dirnames is : " $dirnames
+
+if [ "$dirnames" != "" ]; then
+	find $dirnames  -type f |
+	while read ii
+	do
+		# List only those files which are in cvs system
+		if [ -f "$CVSROOT/$subdir/$ii,v" ]; then
+			#echo "ii is : " $ii
+			ls -l $ii | grep ^\-rw
+		fi
+	done;
+fi
+
+# Get all the files in the current directory
+listfiles=`ls $tmpbb `
+find * -prune -type f |
+while read ii
+do
+	for jj in $listfiles ; do
+		if [ "$jj" = "$ii" ]; then
+			# List only those files which are in cvs system
+			if [ -f "$CVSROOT/$subdir/$ii,v" ]; then
+				#echo "ii is : " $ii
+				ls -l $ii | grep ^\-rw
+			fi
+		fi
+	done
+done;
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sinfo <label id="sinfo">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sinfo
+# Program to get the status of files in working directory
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+if [ $# -lt 1 ]; then
+	print "\nUsage: $cmdname [file/directory name] "
+	print "For example - "
+	print " $cmdname foo.cpp"
+	print " $cmdname some_directory "
+	print " "
+	exit
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname=$1
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# Create subshell
+if [ -f $1 ]; then
+	(
+        cd $homedir
+		clear
+		print "\ncvs status is : "
+        cvs status "$subdir/$fname"
+	)
+elif [ -d $1 ]; then
+	(
+		cd $homedir
+		clear
+		print "\ncvs status is : "
+		tmpfile="$homedir/cvs_sinfo.tmp"
+		rm -f $tmpfile
+        echo "  " >> $tmpfile
+        echo "  ****************************************" >> $tmpfile
+        echo "        Overall Status of Directory" >> $tmpfile
+        echo "  ****************************************" >> $tmpfile
+        cvs release "$subdir/$fname" 1>>$tmpfile 2>>$tmpfile << EOF
+N
+EOF
+        echo "\n   -------------------------------\n" >> $tmpfile
+
+        aa=`cat $tmpfile | grep ^"M " | awk '{print $2}' `
+        for ii in $aa
+        do
+			jj="(cd $homedir; cvs status \"$subdir/$ii\" );"
+			echo $jj | /bin/sh  \
+					| grep -v Sticky | awk '{if (NF != 0) print $0}' \
+					1>>$tmpfile 2>>$tmpfile
+        done
+
+        cat $tmpfile | grep -v ^? | grep -v "Are you sure you want to release" \
+        | less
+        rm -f $tmpfile
+	)
+else
+	print "\nArgument $1 if not a file or directory"
+	exit
+fi
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> slog <label id="slog">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program slog
+# Program to list history of the file in CVS
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+if [ $# -lt 1 ]; then
+        print "\nUsage: $cmdname <filename> \n"
+        exit
+fi
+
+# Check if file does not exist....
+if [ ! -f "$1" ]; then
+        print "\nError: $1 is NOT a file. Aborting $cmdname ......"
+        exit
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname="$1"
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# Operate inside a sub-shell
+(
+	cd $homedir
+	cvs log "$homedir/$subdir/$fname" | less
+)
+
+print "\nDone $cmdname. $cmdname successful"
+#print "\nTip (Usage): $cmdname <filename>\n"
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sdif <label id="sdif">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sdif
+# Program to see difference of the working file with CVS copy
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+Usage()
+{
+	print "\nUsage: $cmdname <filename> "
+	print "$cmdname -r<rev1> -r<rev2> <filename> \n"
+	exit
+}
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+FLAG1=""
+FLAG2=""
+OARG1=""
+OARG2=""
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+while getopts r:r: ii
+do
+	case $ii in
+	r)
+		if [ "$FLAG1" = "" ]; then
+			FLAG1=$ii;
+			OARG1="$OPTARG"
+		else
+			FLAG2=$ii;
+			OARG2="$OPTARG"
+		fi
+		;;
+	?) Usage; exit 2;;
+	esac
+done
+shift ` expr $OPTIND - 1 `
+
+if [ "$FLAG2" = "" ]; then
+	FLAG2=r
+	OARG2=HEAD
+fi
+
+cur_dir=`pwd`
+#echo $cur_dir
+
+len=${#homedir}
+len=$(($len + 2))
+#echo $len
+
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname $1`
+if [ "$tmpaa" = "." ]; then
+	fname="$1"
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename $1`
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# Operate inside sub-shell
+(
+	cd $homedir
+	if [ "$FLAG1" = "" ]; then
+		cvs diff -r HEAD "$homedir/$subdir/$fname" | less
+	else
+		cvs diff -$FLAG1 $OARG1 -$FLAG2 $OARG2 "$homedir/$subdir/$fname" | less
+	fi
+)
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sadd <label id="sadd">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sadd
+# Program to add the file to CVS
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+if [ $# -lt 1 ]; then
+	print "\nUsage: $cmdname <filename/directory> \n"
+	exit
+fi
+
+onearg="$1"
+if [ ! -f "$onearg" -a ! -d "$onearg" ]; then
+	print "\nArgument $onearg is not a file or a directory!"
+	print "Usage: $cmdname <filename/directory> \n"
+	exit
+fi
+
+# Check if file exists ....
+if [ -f "$onearg" ]; then
+	cvs add "$onearg"
+	exit
+fi
+
+# Argument is a directory name .....
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+len=${#homedir}
+len=$(($len + 2))
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname "$onearg" `
+if [ "$tmpaa" = "." ]; then
+	fname="$onearg"
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename "$onearg" `
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# When $subdir is "." then you are at the root directory
+if [ "$subdir" = "." ]; then
+	# The $onearg is a directory and not a file at this point...
+	if [ -d "$CVSROOT/$onearg" ]; then
+		print "\nDirectory $onearg already exists in CVSROOT"
+		exit
+	else
+		# You are adding at root directory $CVSROOT
+		if [ "$2" = "" -o "$3" = "" ]; then
+			print "\nUsage: $cmdname <directory> <vendor tag> <release tag>"
+			print "For example - "
+			print " $cmdname foo_directory V_1_0 R_1_0"
+			exit
+		else
+			(
+				cd "$homedir/$subdir";
+				cvs import "$onearg" $2 $3
+			)
+		fi
+	fi
+else
+	# If current directory exists in CVS...
+	if [ -d $CVSROOT/$subdir ]; then
+		if [ -d "$CVSROOT/$subdir/$onearg" ]; then
+			print "\nDirectory $onearg already in CVS repository!"
+			exit
+		else
+			(
+				if [ -d "$homedir/$subdir/$onearg/CVS" ]; then 
+					print "\nError: Directory $homedir/$subdir/$onearg/CVS exists!!"
+					print "\nAborting now ...."
+					exit
+				fi
+
+				# For import you MUST change to target directory
+				# and you MUST specify full-path starting with $subdir
+				cd "$homedir/$subdir/$onearg";
+				cvs import "$subdir/$onearg" Ver_1 Rel_1
+			)
+		fi
+	else
+		print "\nSub-directory $subdir does not exist in CVS"
+		print "You need to first add $subdir to CVS"
+		exit
+	fi
+fi
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sdelete <label id="sdelete">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sdelete
+# Program to delete the file from CVS
+
+# Every filename is composed of 3 parts - Home directory, sub-directory 
+# and the filename. The full-path is $HOME/$subdir/$fname
+# And in CVS the same directory structure is maintained (by 
+# variable $subdir) therefore in cvs we will have $CVSROOT/$subdir/$fname
+# In this program these 4 variables $HOME, $CVSROOT, $subdir and $fname
+# play a important role. For example, sample values can be like
+# HOME=/home/aldev, subdir=myproject/src CVSROOT=/home/cvsroot 
+# and fname=foo.cpp
+
+# Caution: Put double-quotes to protect the variables having 
+#          spaces, like "$HOME/$subdir" if subdir is 'some foo.cpp'
+
+cmdname=`basename $0`
+
+if [ $# -lt 1 ]; then
+	print "\nUsage: $cmdname <filename> \n"
+	exit
+fi
+
+onearg="$1"
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+len=${#homedir}
+len=$(($len + 2))
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+tmpaa=`dirname "$onearg" `
+if [ "$tmpaa" = "." ]; then
+	fname="$onearg"
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	fi
+else
+	fname=`basename "$onearg" `
+	if [ "$subdir" = "" ]; then
+		subdir=$tmpaa
+	else
+		subdir="$subdir/$tmpaa"
+	fi
+fi
+#echo "subdir is : " $subdir
+#echo "fname is : " $fname
+
+# Operate inside a sub-shell ...
+(
+	cd $homedir
+
+	# Check if file does not exist....
+	if [ ! -f "$subdir/$fname" ]; then
+		# Try to get the file from CVS
+		sget "$subdir/$fname"
+		if [ ! -f "$subdir/$fname" ]; then
+			print "\nError: $subdir/$fname does NOT exist in CVS repository."
+			print "\nAborting $cmdname ......"
+			exit
+		fi
+	fi
+
+	bkextn=cvs_sdelete_safety_backup
+	\mv -f "$subdir/$fname" "$subdir/$fname.$bkextn" 
+
+	cvs remove "$subdir/$fname"
+
+	print "\nsdelete command removes the file from CVS repository"
+	print "and archives the file in CVS Attic directory. In case"
+	print "you need this file in future than contact your CVS administrator"
+	print " "
+
+	print "\nDone $cmdname. $cmdname successful"
+	print "Run scommit on $homedir/$subdir/$fname to"
+	print "make this change permanent"
+	\mv -f "$subdir/$fname.$bkextn" "$subdir/$fname"
+)
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> sfreeze <label id="sfreeze">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+# CVS program sfreeze
+# Program to freeze and cut out the release of source tree from CVS
+
+cmdname=`basename $0`
+
+Usage()
+{
+	clear
+	print "\nUsage: $cmdname symbolic_tag <directory name> "
+
+	print "\nFor example :- "
+	print "   cd \$HOME"
+	print "   $cmdname  REVISION_1   myprojectsource_directory"
+	print "To see the list of revisons do -"
+	print "slog <filename> and see the symbolic name and do -"
+	print "cvs history -T"
+
+	print "\nTo create a branch off-shoot from main trunk, use"
+	print "the -b and -r options which makes the tag a branch tag. This is"
+	print "useful for creating a patch to previously released software"
+	print "For example :- "
+	print "   cd \$HOME"
+	print "   cvs rtag -b -r REVISION_1   REVISION_1_1   myprojectsource_directory"
+	print " "
+
+#   print "\nTag info is located at \$CVSROOT/CVSROOT/taginfo,v"
+#   print "You can do - cd $HOME; sget CVSROOT"
+#   print "to see this file"
+	exit
+}
+
+# Command getopt will not supported in next major release.
+# Use getopts instead.
+#while getopts r: ii
+#do
+#	case $ii in
+#		r) FLAG1=$ii; OARG1="$OPTARG";;
+#		?) Usage; exit 2;;
+#	esac
+#done
+#shift ` expr $OPTIND - 1 `
+
+#echo FLAG1 = $FLAG1 , OARG1 = $OARG1
+
+if [ $# -lt 2 ]; then
+	Usage
+fi
+
+if [ ! -d $2 ]; then
+	print "\nError: Second argument $2 is not a directory!"
+	print "       Aborting $cmdname...."
+	print " "
+	exit
+fi
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+
+cur_dir=`pwd`
+len=${#homedir}
+len=$(($len + 2))
+subdir=` echo $cur_dir | cut -b $len-2000 `
+#echo "subdir is : " $subdir
+
+if [ "$cur_dir" != "$homedir" ]; then
+	print "\nYou are not in home directory $homedir!!"
+	print "You must give the sfreeze command "
+	print "from home directory $homedir"
+	exit
+fi
+
+# cvs rtag symbolic_tag <directory name>
+cvs rtag $1 $2
+
+print "\nDone $cmdname. $cmdname successful"
+</code>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
+-->
+<sect> saddtree <label id="saddtree">
+<p>
+<bf>NOTE : <it>Korn shell /bin/ksh is got by installing pdksh*.rpm from Linux contrib cdrom</it></bf>
+
+Save this file as text file and chmod a+rx on it.
+
+<code>
+#!/bin/ksh
+
+This script is deprecated -- use sadd instead...
+
+################################################################
+# Sample Program to checkin a directory tree (let's say SAMP) into CVS
+# Note that if SAMP directory is not in CVS than you would use sadd
+# command and -
+#       cd SAMP; cvs import SAMP V_1_0 R_1_0
+# After running this program do -
+#       cd $HOME/foo/SAMP
+#       cvs import foo/SAMP V1_0 Rev_1_0
+################################################################
+
+homedir=` echo $HOME | cut -f1 -d' '  `
+if [ "$homedir" = "" ]; then
+	print "\nError: \$HOME is not set!!\n"
+	exit
+fi
+sampdir=$homedir/foo/SAMP
+
+check_out_files()
+{
+	# Now check out the files
+	tmp2f=$homedir/tmp2.baksamp.sh
+
+	cd $homedir
+	\rm -rf foo/SAMP
+	cvs -w checkout foo/SAMP
+	cd $homedir/foo
+	find SAMP -type f -print > $tmp2f
+
+	cd $homedir
+	for ii in `cat $tmp2f`
+	do
+		iidir=`dirname $ii`
+		iifile=`basename $ii`
+		if [ "$iifile" = "Root" -o "$iifile" = "Repository" -o "$iifile" = "Entries" ]; then
+				continue
+		fi
+		jjdir=` echo $iidir | cut  -d'/' -f2-1000 `
+
+		cp $homedir/foo/SAMP.tobe/$jjdir/$iifile  $homedir/foo/$iidir/$iifile
+		echo "cp $homedir/foo/SAMP.tobe/$jjdir/$iifile  $homedir/foo/$iidir/$iifile "
+
+		cvs add  foo/$iidir/$iifile
+	done
+
+	print
+	print "================================================"
+	print " Now run cvs commit foo/SAMP"
+	print " After commit. Do - "
+	print "         cd foo; rm -rf SAMP and "
+	print " get fresh copy, sget SAMP"
+	print " Verify with slog filename.samp to see new revision"
+	print "================================================"
+	print
+}
+
+check_out_files
+</code>
 </article>
