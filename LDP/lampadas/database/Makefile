@@ -1,16 +1,11 @@
-sqlprefix = /usr/local/share
-
-INSTALLDIR = install -d
-INSTALLSQL = install -p -m 644
-
 all:	build
 
 build:
+	cd tables; $(MAKE) build
 
 install: all
-	$(INSTALLDIR) $(sqlprefix)/lampadas
-	$(INSTALLDIR) $(sqlprefix)/lampadas/sql
-	$(INSTALLSQL) *.sql $(sqlprefix)/lampadas/sql
+	cd tables; $(MAKE) install
 
 clean:
+	cd tables; $(MAKE) clean
 
