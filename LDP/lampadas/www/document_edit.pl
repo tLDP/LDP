@@ -96,7 +96,7 @@ print "<form method=POST action='document_save.pl' name='edit'>\n";
 print "<input type=hidden name=doc_id value='$doc_id'>\n";
 
 print "<table>\n";
-print "<tr><th colspan=8>Document Details</th></tr>\n";
+print "<tr><th colspan=6>Document Details</th></tr>\n";
 print "<tr><td align=right>Title:</td><td colspan=5><input type=text name=title size=60 value='$title'></td></tr>\n";
 print "<tr><td align=right>Filename:</td><td colspan=5><input type=text name=filename size=60 value='$filename'></td></tr>\n";
 
@@ -196,11 +196,11 @@ print "</td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right><a href='$url'>URL</a>:</td><td colspan=7><input type=text name=url size=60 value='$url'></td>";
+print "<td align=right><a href='$url'>URL</a>:</td><td colspan=5><input type=text name=url size=60 value='$url'></td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right><a href='$ref_url'>Home</a>:</td><td colspan=7><input type=text name=ref_url size=60 value='$ref_url'></td>";
+print "<td align=right><a href='$ref_url'>Home</a>:</td><td colspan=5><input type=text name=ref_url size=60 value='$ref_url'></td>";
 
 print "</tr>\n<tr>\n";
 
@@ -208,7 +208,10 @@ print "<td align=right>Tickle Date</td><td><input type=text name=tickle_date siz
 
 print "<td align=right>ISBN:</td><td><input type=text name=isbn size=14 value='$isbn'></td>";
 
-print "<td></td><td><input type=submit value=Save></td>";
+print "</tr>\n<tr>\n";
+
+print "<td align=right>Abstract</td>";
+print "<td colspan=5><textarea name=abstract rows=10 cols=60 wrap>$abstract</textarea></td>\n";
 
 print "</tr>\n<tr>\n";
 
@@ -232,6 +235,8 @@ else {
 }
 
 print "</td>";
+
+print "<td colspan=5 align=right><input type=submit value=Save></td>";
 
 
 print "</tr></table>\n";
