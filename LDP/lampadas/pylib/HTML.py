@@ -46,10 +46,12 @@ import fpformat
 
 from CoreDM import dms
 
-
 class PageFactory:
 
     elapsed_time = 0
+
+    def __init__(self):
+        dms.preload()
 
     def page_exists(self, key):
         uri = URI(key)
@@ -58,20 +60,18 @@ class PageFactory:
         return
 
     def page(self, uri):
-        if sessions.session:
-            log(3, 'user: ' + sessions.session.username)
+        if state.session:
+            log(3, 'user: ' + state.session.username)
 
         page = dms.page.get_by_id(uri.page_code)
         if page==None:
             page = dms.page.get_by_id('404')
-        assert not page==None
         html = self.build_page(page, uri)
         return html
     
     def build_page(self, page, uri):
         start_time = time.time()
         template = page.template
-        assert not template==None
         html = template.template
 
         html = self.replace_tokens(page, uri, html)
@@ -94,30 +94,30 @@ class PageFactory:
                 token = temp[pos+1:pos2]
 
                 newstring = None
-            
+
                 # System diagnostic tokens
                 if token=='elapsed_time':
                     newstring = 'DCM_ELAPSED_TIME'
                     
                 # Session Tokens
                 elif token=='session_id':
-                    if sessions.session:
-                        newstring = sessions.session.user.session_id
+                    if state.session:
+                        newstring = state.user.session_id
                     else:
                         newstring = ''
                 elif token=='session_username':
-                    if sessions.session:
-                        newstring = sessions.session.username
+                    if state.session:
+                        newstring = state.session.username
                     else:
                         newstring = ''
                 elif token=='session_name':
-                    if sessions.session:
-                        newstring = sessions.session.user.name
+                    if state.session:
+                        newstring = state.user.name
                     else:
                         newstring = ''
                 elif token=='session_user_docs':
-                    if sessions.session:
-                        newstring = tables.userdocs(uri, username=sessions.session.username)
+                    if state.session:
+                        newstring = tables.userdocs(uri, username=state.session.username)
                     else:
                         newstring = '|nopermission|'
 
@@ -125,11 +125,11 @@ class PageFactory:
                 elif token=='title':
                     newstring = page.title[uri.lang]
                 elif token=='body':
-                    if page.only_registered==1 and sessions.session==None:
+                    if page.only_registered==1 and state.session==None:
                         newstring = '|blknopermission|'
-                    elif page.only_admin==1 and (sessions.session==None or sessions.session.user.admin==0):
+                    elif page.only_admin==1 and (state.session==None or state.user.admin==0):
                         newstring = '|blknopermission|'
-                    elif page.only_sysadmin==1 and (sessions.session==None or sessions.session.user.sysadmin==0):
+                    elif page.only_sysadmin==1 and (state.session==None or state.user.sysadmin==0):
                         newstring = '|blknopermission|'
                     else:
                         newstring = page.page[uri.lang]
@@ -339,21 +339,22 @@ class PageFactory:
                 elif token=='tabdocument_icon_box':
                     newstring = tables.tabdocument_icon_box(uri)
             
+
                 # Tables, Blocks and Strings
                 if newstring==None:
-                    tablegen = tablemap[token]
-                    if tablegen==None:
+                    if tablemap.has_key(token):
+                        tablegen = tablemap[token]
+                        newstring = tablegen(uri)
+                    else:
                         block = dms.block.get_by_id(token)
                         if block==None:
-                            string = dms.webstring.get_by_id(token)
-                            if string==None:
+                            webstring = dms.string.get_by_id(token)
+                            if webstring==None:
                                 log(1, 'Could not replace token ' + token)
                             else:
-                                newstring = string.string[uri.lang]
+                                newstring = webstring.string[uri.lang]
                         else:
                             newstring = block.block
-                    else:
-                        newstring = tablegen(uri)
                 
                 # Just use the token if the token was not found
                 if newstring==None:

@@ -113,8 +113,8 @@ class DataManagers(LampadasCollection):
         self['type']                = Type()
         self['type_i18n']           = TypeI18n()
         self['username']            = Username()
-        self['webstring']           = WebString()
-        self['webstring_i18n']      = WebStringI18n()
+        self['string']              = WebString()
+        self['string_i18n']         = WebStringI18n()
 
         # Point each data manager back here. The data managers will in turn
         # point all objects they create back here.:w
@@ -179,8 +179,8 @@ class DataManagers(LampadasCollection):
         self['type'].object_class                = persistence.Type
         self['type_i18n'].object_class           = persistence.TypeI18n
         self['username'].object_class            = persistence.Username
-        self['webstring'].object_class           = persistence.WebString
-        self['webstring_i18n'].object_class      = persistence.WebStringI18n
+        self['string'].object_class              = persistence.WebString
+        self['string_i18n'].object_class         = persistence.WebStringI18n
 
     def __getattr__(self, attribute):
         """
@@ -190,3 +190,7 @@ class DataManagers(LampadasCollection):
         """
         return self[attribute]
 
+    def preload(self):
+        for key in self.keys():
+            if key.find('_i18n') < 0:
+                self[key].preload()

@@ -107,7 +107,10 @@ class Mirror:
                 # Some publishing tools leave clutter in the directory on failure.
                 if not os.access(filename, os.F_OK):
                     log(2, 'Cannot mirror missing file: ' + filename)
-                    docfile.errors.add(ERR_MIRROR_NO_SOURCE)
+                    err = dms.file_error.new()
+                    err.err_id = ERR_MIRROR_NOT_FOUND
+                    err.filename = docfile.filename
+                    docfile.sourcefile.errors.add(err)
                     continue
 
                 if sourcefile.format_code=='dir':
@@ -125,7 +128,10 @@ class Mirror:
                     urllib.urlretrieve(sourcefile.filename, workname)
                 except IOError:
                     log(0, 'error retrieving remote file ' + filename)
-                    docfile.errors.add(ERR_MIRROR_URL_RETRIEVE)
+                    err = dms.file_error.new()
+                    err.err_id = ERR_MIRROR_URL_RETRIEVE
+                    err.filename = docfile.filename
+                    docfile.sourcefile.errors.add(err)
                     continue
 
             if self.unpack(workdir, file_only):
@@ -137,7 +143,6 @@ class Mirror:
             doc.mirror_time = now_string()
         doc.files.save()
         doc.save()
-
         log(3, 'Mirroring document ' + str(doc_id) + ' complete.')
 
     def unpack(self, dir, file):

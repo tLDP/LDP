@@ -66,7 +66,7 @@ templates = dms.template.get_all()
 topics = dms.topic.get_all()
 types = dms.type.get_all()
 users = dms.username.get_all()
-webstrings = dms.webstring.get_all()
+webstrings = dms.string.get_all()
 print 'Done.'
 
 BIN = '/home/david/ldp/cvs/LDP/lampadas/bin/'

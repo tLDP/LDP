@@ -7,8 +7,7 @@ class Language(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents = self.dms.document.get_by_keys([['lang', '=', self.code]])
-            return self.documents
+            return self.dms.document.get_by_keys([['lang', '=', self.code]])
         elif attribute=='name':
             name = LampadasCollection()
             i18ns = self.dms.language_i18n.get_by_keys([['lang_code', '=', self.code]])

@@ -19,17 +19,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 from Globals import *
-from Docs import docs, Doc
-from Topics import topics
-from DocTopics import doctopics, DocTopic
-from DocFiles import docfiles, DocFile
-from DocCollections import doccollections, DocCollection
 import sys
 import os
 import fnmatch
 import fileinput    # FIXME: I think this can go.
 import re
 import string
+
+from CoreDM import dms
 
 # Set to 1 to get debugging messages, 2 to get more
 DEBUG = 0
@@ -422,7 +419,7 @@ def callback(arg, directory, files):
             if DEBUG >= 1:
                 omf.print_debug()
 
-            doc = Doc(docs)
+            doc = dms.document.new()
             doc.title            = omf.title
             doc.version          = omf.version
             doc.pub_status_code  = 'N'
@@ -434,15 +431,23 @@ def callback(arg, directory, files):
             doc.language         = omf.language
             doc.sk_seriesid      = omf.seriesid
             doc.replaced_by_id   = 0
-            docs.add(doc)
+            doc.save()
 
             # Add document file
             if omf.url > '':
-                docfile          = DocFile(docfiles)
+                docfile          = dms.document_file.new()
                 docfile.doc_id   = doc.id
                 docfile.filename = omf.url
                 docfile.top      = 1
-                docfile = doc.files.add(docfile)
+
+                # Make sure there's a file to refer to, before saving!
+                sourcefile = docfile.sourcefile
+                if sourcefile==None:
+                    sourcefile = dms.sourcefile.new()
+                    sourcefile.filename = docfile.filename
+                    sourcefile.save()
+
+                doc.files.add(docfile)
 
             # Add document topics
             for category in omf.categories:
@@ -460,18 +465,18 @@ def callback(arg, directory, files):
                     continue
 
                 # Double-check the topic_code.
-                topic = topics[topic_code]
+                topic = dms.topic.get_by_id(topic_code)
                 if topic==None:
                     print 'ERROR: Gnome category mapped to an invalid topic: ' + topic_code
                     sys.exit(1)
 
-                doctopic            = DocTopic(doctopics)
+                doctopic            = dms.document_topic.new()
                 doctopic.doc_id     = doc.id
                 doctopic.topic_code = topic_code
                 doc.topics.add(doctopic)
 
             # Store in the GNOME collection.
-            doccoll                 = DocCollection(doccollections)
+            doccoll                 = dms.document_collection.new()
             doccoll.collection_code = 'gnome'
             doccoll.doc_id          = doc.id
             doc.collections.add(doccoll)

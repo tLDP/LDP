@@ -44,12 +44,10 @@ class Sessions(LampadasCollection):
     """
 
     def __init__(self):
-        self.session = None
+        super(Sessions, self).__init__()
         self.load()
-        self.update_global()
 
     def load(self):
-        self.data = {}
         sql = 'SELECT username, ip_address, uri, created FROM session'
         cursor = db.select(sql)
         while (1):
@@ -60,30 +58,30 @@ class Sessions(LampadasCollection):
             session.ip_address = trim(row[1])
             session.uri        = trim(row[2])
             session.created    = time2str(row[3])
-            self.data[session.username] = session
+            self[session.username] = session
     
     def add(self, username, ip_address, uri=''):
         sql = 'INSERT INTO session(username, ip_address, uri) VALUES (' + wsq(username) + ', ' + wsq(ip_address) + ', ' + wsq(uri) + ')'
         db.runsql(sql)
         db.commit()
-        self.session = Session(username)
-        self.session.user = dms.username.get_by_id(username)
-        self.data[username] = self.session
-        self.update_global()
+        self[username] = Session(username)
+        state.session = self[username]
+        state.user = dms.username.get_by_id(username)
 
     def delete(self, username):
         sql = 'DELETE FROM session WHERE username=' + wsq(username)
         db.runsql(sql)
         db.commit()
         del self[username]
-        self.session = None
-        self.update_global()
+        state.session = None
+        state.user = None
 
     def count(self):
         return db.read_value('SELECT COUNT(*) FROM session')
 
     def get_session(self, req):
-        self.session = None
+        state.session = None
+        state.user = None
         cookie = self.get_cookie(req.headers_in, 'lampadas')
         if cookie:
             session_id = str(cookie)
@@ -93,13 +91,13 @@ class Sessions(LampadasCollection):
             if not row==None:
                 username = trim(row[0])
                 self.load()
-                self.session = sessions[username]
-                if self.session:
-                    self.session.refresh(req.connection.remote_addr[0], req.uri)
+                if self.has_key(username):
+                    state.session = self[username]
+                    state.session.refresh(req.connection.remote_addr[0], req.uri)
+                    state.user = state.session.user
                 else:
                     self.add(username, req.connection.remote_addr[0], req.uri)
-                self.session.user = dms.username.get_by_id(username)
-        self.update_global()
+                state.user = dms.username.get_by_id(username)
 
     def get_cookie(self, headers_in, key):
         if headers_in.has_key('Cookie'):
@@ -108,10 +106,6 @@ class Sessions(LampadasCollection):
             if cookie.has_key(key):
                 return cookie[key].value
         return None
-
-    def update_global(self):
-        global current_session
-        current_session = self.session
 
 class Session:
 
@@ -137,7 +131,6 @@ class Session:
             sql = 'INSERT INTO session(username) VALUES (' + wsq(self.username) + ')'
             db.runsql(sql)
             db.commit()
-
 
 sessions = Sessions()
 

@@ -6,10 +6,8 @@ class FileError(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='sourcefile':
-            self.sourcefile = self.dms.sourcefile.get_by_id(self.filename)
-            return self.sourcefile
+            return self.dms.sourcefile.get_by_id(self.filename)
         elif attribute=='error':
-            self.error = self.dms.error.get_by_id(self.err_id)
-            return self.error
+            return self.dms.error.get_by_id(self.err_id)
         else:
             raise AttributeError('No such attribute %s' % attribute)

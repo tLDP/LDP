@@ -42,7 +42,6 @@ import time
 
 from CoreDM import dms
 
-
 class Lintadas:
     """
     Updates file and document meta-data and analyzes  it for errors.
@@ -55,7 +54,6 @@ class Lintadas:
 
     # FIXME: These should be loaded from a configuration file so they
     # are easily configurable by the administrator.
-
     def update_metadata(self):
         docs = dms.document.get_all()
         for key in docs.keys():
@@ -79,6 +77,10 @@ class Lintadas:
             self.check_file(key)
             
     def check_docs(self):
+        # Preload data if we're checking all files.
+        docusers = dms.document_user.get_all()
+        docfiles = dms.document_file.get_all()
+        sourcefiles = dms.sourcefile.get_all()
         docs = dms.document.get_all()
         for key in docs.keys():
             self.check_doc(key)
@@ -86,6 +88,8 @@ class Lintadas:
     def check_file(self, filename):
         log(3, 'Running Lintadas on file ' + filename)
         sourcefile = dms.sourcefile.get_by_id(filename)
+
+        sourcefile.read_metadata()
 
         # CLear out errors before checking
         sourcefile.errors.clear()
@@ -121,6 +125,7 @@ class Lintadas:
         sourcefile.filemode = filestat[stat.ST_MODE]
         sourcefile.modified = time.ctime(filestat[stat.ST_MTIME])
         
+        sourcefile.read_metadata()
         if stat.S_ISDIR(sourcefile.filemode)==1:
             sourcefile.format_code = 'dir'
 
@@ -130,8 +135,6 @@ class Lintadas:
             err.err_id = ERR_FILE_FORMAT_UNKNOWN
             err.filename = sourcefile.filename
             sourcefile.errors.add(err)
-
-        sourcefile.save()
 
     def check_doc(self, doc_id):
         """
@@ -186,7 +189,6 @@ class Lintadas:
                 doc.errors.add(err)
 
         doc.lint_time = now_string()
-        doc.save()
         log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 
 
@@ -204,14 +206,36 @@ def main():
     config.log_level = 3
     doc_ids = sys.argv[1:]
     if len(doc_ids)==0:
-        print 'Checking all documents for errors...'
-        lintadas.check_docs()
+
+        # Prefetch data to make things run faster...
+        print 'Prefetching data for faster performance...'
+        print '  Fetching documents...'
+        docs = dms.document.get_all()
+        print '  Fetching source files...'
+        sourcefiles = dms.sourcefile.get_all()
+        print '  Fetching document files...'
+        docfiles = dms.document_file.get_all()
+
         print 'Checking all source files for errors...'
-        lintadas.check_files()
+        for key in sourcefiles.keys():
+            sourcefile = sourcefiles[key]
+            print '  Checking file ' + sourcefile.filename
+            lintadas.check_file(sourcefile.filename)
+            sourcefile.save()
+
+        print 'Updating document metadata and error checking...'
+        for key in docs.keys():
+            doc = docs[key]
+            print '  Checking and updating metadata in document ' + str(doc.id) + ' ' + doc.title
+            doc.update_metadata()
+            lintadas.check_doc(doc.id)
+            doc.save()
     else:
         for doc_id in doc_ids:
-            print 'Checking document ' + str(doc_id) + ' for errors...'
+            print '  Checking document ' + str(doc_id) + ' for errors...'
+            doc = dms.document.get_by_id(int(doc_id))
             lintadas.check_doc(int(doc_id))
+            doc.save()
     print 'Done.'
 
 def usage():

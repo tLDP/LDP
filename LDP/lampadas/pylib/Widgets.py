@@ -321,8 +321,8 @@ class Widgets:
     def replaced_by_id(self, value, view=0):
         docs = dms.document.get_all()
         if view==1:
-            doc = docs[value]
-            if doc:
+            if docs.has_key(value):
+                doc = docs[value]
                 title = doc.title
                 if title=='':
                     topfile = doc.top_file
@@ -400,7 +400,7 @@ class Widgets:
     def new_string_lang(self, string_code, lang):
         combo = WOStringIO("<select name='lang'>\n")
         languages = dms.language.get_all()
-        webstring = dms.webstring.get_by_id(string_code)
+        webstring = dms.string.get_by_id(string_code)
         for key in languages.sort_by_lang('name', lang):
             language = languages[key]
             if language.supported==1 and key not in webstring.string.keys():

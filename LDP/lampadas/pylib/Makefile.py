@@ -26,7 +26,7 @@ XSLTPROC_PARAMS = ''
 class Commands(LampadasCollection):
 
     def add(self, command):
-        command.sort_order = len(self.data) + 1
+        command.sort_order = len(self) + 1
         self[command.sort_order] = command
 
 class Command:
@@ -44,8 +44,8 @@ class Targets(LampadasCollection):
 
     def add(self, name, dependencies, commands):
         target = Target(name, dependencies, commands)
-        target.sort_order = len(self.data) + 1
-        self.data[target.name] = target
+        target.sort_order = len(self) + 1
+        self[target.name] = target
         return target
        
 class Target:
@@ -85,11 +85,11 @@ class Target:
 class Projects(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(Projects, self).__init__()
         docs = dms.document.get_all()
         for key in docs.sort_by('id'):
             project = Project(key)
-            self.data[key] = project
+            self[key] = project
         
     def make(self, name='all'):
         log(3, 'Running project Makefile target: ' + name)
@@ -126,8 +126,8 @@ class Projects(LampadasCollection):
                 continue
 
             # Make each individual file
-            for keys in doc.files.keys():
-                docfile = doc.files[key]
+            for dfkey in doc.files.keys():
+                docfile = doc.files[dfkey]
                 sourcefile = docfile.sourcefile
                 if docfile.top==1:
                     makeneeded = 1

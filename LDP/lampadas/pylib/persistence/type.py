@@ -7,8 +7,7 @@ class Type(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents =self.dms.document.get_by_keys([['type_code', '=', self.code]])
-            return self.documents
+            return self.dms.document.get_by_keys([['type_code', '=', self.code]])
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()

@@ -7,11 +7,9 @@ class Page(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='template':
-            self.template = self.dms.template.get_by_id(self.template_code)
-            return self.template
+            return self.dms.template.get_by_id(self.template_code)
         elif attribute=='section':  
-            self.section = self.dms.section.get_by_id(self.section_code)
-            return self.section
+            return self.dms.section.get_by_id(self.section_code)
         elif attribute in ('title', 'menu_name', 'page', 'version'):
             title     = LampadasCollection()
             menu_name = LampadasCollection()

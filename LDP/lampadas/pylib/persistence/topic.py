@@ -7,14 +7,11 @@ class Topic(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents = self.dms.document_topic.get_by_keys([['topic_code', '=', self.code]])
-            return self.documents
+            return self.dms.document_topic.get_by_keys([['topic_code', '=', self.code]])
         elif attribute=='parent':
-            self.parent = self.dms.topic.get_by_id(self.parent_code)
-            return self.parent
+            return self.dms.topic.get_by_id(self.parent_code)
         elif attribute=='children':
-            self.children = self.dms.topic.get_by_keys([['parent_code', '=', self.code]])
-            return self.children
+            return self.dms.topic.get_by_keys([['parent_code', '=', self.code]])
         elif attribute=='title':
             parent = self.parent
             if parent:
@@ -25,8 +22,7 @@ class Topic(Persistence):
                     title[key] = title[key] + ': ' + self.name[key]
             else:
                 title = self.name
-            self.title = title
-            return self.title
+            return title
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()

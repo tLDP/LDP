@@ -9,53 +9,52 @@ class Document(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='collections':
-            self.collections = self.dms.document_collection.get_by_keys([['doc_id', '=', self.id]])
-            return self.collections
+            return self.dms.document_collection.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='errors':
-            self.errors = self.dms.document_error.get_by_keys([['doc_id', '=', self.id]])
-            return self.errors
+            return self.dms.document_error.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='files':
-            self.files = self.dms.document_file.get_by_keys([['doc_id', '=', self.id]])
-            return self.files
+            return self.dms.document_file.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='notes':
-            self.notes =self.dms.document_note.get_by_keys([['doc_id', '=', self.id]])
-            return self.notes
+            return self.dms.document_note.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='ratings':
-            self.ratings = self.dms.document_rating.get_by_keys([['doc_id', '=', self.id]])
-            return self.ratings
+            return self.dms.document_rating.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='versions':
-            self.versions = self.dms.document_rev.get_by_keys([['doc_id', '=', self.id]])
-            return self.versions
+            return self.dms.document_rev.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='topics':
-            self.topics = self.dms.document_topic.get_by_keys([['doc_id', '=', self.id]])
-            return self.topics
+            return self.dms.document_topic.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='users':
-            self.users = self.dms.document_user.get_by_keys([['doc_id', '=', self.id]])
-            return self.users
+            return self.dms.document_user.get_by_keys([['doc_id', '=', self.id]])
         elif attribute=='language':
-            self.language = self.dms.language.get_by_id(self.lang)
-            return self.language
+            return self.dms.language.get_by_id(self.lang)
         elif attribute=='license':
-            self.license = self.dms.license.get_by_id(self.license_code)
-            return self.license
+            return self.dms.license.get_by_id(self.license_code)
         elif attribute=='top_file':
             top_file = self.dms.document_file.get_by_keys([['doc_id', '=', self.id], ['top', '=', 1]])
             if top_file.count()==1:
-                self.top_file = top_file[top_file.keys()[0]].sourcefile
+                return top_file[top_file.keys()[0]].sourcefile
             else:
-                self.top_file = None
-            return self.top_file
+                return None
         elif attribute=='file_error_count':
             count = 0
             for key in self.files.keys():
                 docfile = self.files[key]
                 sourcefile = docfile.sourcefile
                 count = count + sourcefile.errors.count()
-            self.file_error_count = count
-            return self.file_error_count
+            return count
         else:
             raise AttributeError('No such attribute %s' % attribute)
 
+    def delete(self):
+        self.collections.clear()
+        self.errors.clear()
+        self.files.clear()
+        self.notes.clear()
+        self.ratings.clear()
+        self.versions.clear()
+        self.topics.clear()
+        self.users.clear()
+        self.dm.delete(self)
+        
     def update_metadata(self):
         topfile = self.top_file
         if topfile:

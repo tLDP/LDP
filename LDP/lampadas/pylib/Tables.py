@@ -81,9 +81,6 @@ VIEW_ICON_BIG   = 'View'
 
 class Tables(LampadasCollection):
 
-    def __init__(self):
-        self.data = {}
-
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
@@ -153,7 +150,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def editdoc(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         box = WOStringIO('<table class="box" width="100%">' 
@@ -208,7 +205,7 @@ class Tables(LampadasCollection):
                   '    <td class="label">|strencoding|</td><td>%s</td></tr>\n'
                   '<tr><td></td><td>%s%s</td></tr>'
                   '</table></form>'
-                  % (sessions.session.username, doc.id,
+                  % (state.user.username, doc.id,
                      widgets.title(doc.title),
                      widgets.short_desc(doc.short_desc),
                      widgets.abstract(doc.abstract),
@@ -261,7 +258,7 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def editdocversions(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         log(3, 'Creating editdocversions table')
@@ -344,7 +341,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def editdocfiles(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         log(3, 'Creating editdocfiles table')
@@ -432,7 +429,7 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def editdocusers(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         log(3, 'Creating editdocusers table')
@@ -453,8 +450,8 @@ class Tables(LampadasCollection):
                       '<input type=hidden name="username" value="%s">\n'
                       '<tr class="%s">\n'
                       % (doc.id, docuser.username, odd_even.get_next()))
-            if sessions.session:
-                if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+            if state.session:
+                if state.user.admin==1 or state.user.sysadmin==1:
                     box.write('<td><a href="|uri.base|user/%s">%s</a></td>\n'
                               % (docuser.username, docuser.username))
                 else:
@@ -503,7 +500,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def editdoctopics(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         log(3, 'Creating editdoctopics table')
@@ -562,7 +559,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def editdocnotes(self, uri):
-        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+        if (state.session==None or state.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
         log(3, 'Creating editdocnotes table')
@@ -585,7 +582,7 @@ class Tables(LampadasCollection):
                   '<td>%s</td>\n'
                   '<td>%s</td></tr>\n'
                   '</form></table>\n'
-                  % (doc.id, sessions.session.username,
+                  % (doc.id, state.user.username,
                      widgets.notes(''), widgets.add()))
         return box.get_value()
 
@@ -615,7 +612,7 @@ class Tables(LampadasCollection):
         all of their contents.
         """
 
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
 
         log(3, 'Creating errors table')
@@ -625,7 +622,7 @@ class Tables(LampadasCollection):
             doc = docs[key]
 
             # Only display docs the user has rights to.
-            if sessions.session.user.can_edit(doc_id=doc.id)==0:
+            if state.user.can_edit(doc_id=doc.id)==0:
                 continue
             if doc.lang==uri.lang:
                 uri.id = doc.id
@@ -699,9 +696,9 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def filereports(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
+        elif state.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating filereports table')
@@ -723,9 +720,9 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def filereport(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
+        elif state.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
         log(3, 'Creating filereport table')
@@ -759,8 +756,8 @@ class Tables(LampadasCollection):
                          '<tr><th class="collabel">|strerrors|</th></tr>\n'
                          '<tr class="odd"><td><pre>%s</pre></td></tr>\n'
                          % (report.name[uri.lang], stdout, stderr))
-        if sessions.session:
-            if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+        if state.session:
+            if state.user.admin==1 or state.user.sysadmin==1:
                 box.write('<tr><th class="collabel">|strcommand|</th></tr>\n'
                           '<tr class="odd"><td><pre>%s</pre></td></tr>\n'
                           % command)
@@ -780,9 +777,9 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def users(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|tabnopermission|'
-        elif sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
+        elif state.user.admin==0 and state.user.sysadmin==0:
             return '|tabnopermission|'
         elif uri.letter=='':
             return ''
@@ -802,9 +799,9 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def user(self, uri):
-        if sessions.session==None:
+        if state.session==None:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(username=uri.username)==0:
+        elif state.user.can_edit(username=uri.username)==0:
             return '|blknopermission|'
 
         if uri.username > '':
@@ -836,17 +833,17 @@ class Tables(LampadasCollection):
             box.write('<tr><td class="label">|strpassword|</td><td>%s</td></tr>\n'
                       % widgets.newpassword())
         else:
-            if sessions.session:
-                if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+            if state.session:
+                if state.user.admin==1 or state.user.sysadmin==1:
                     box.write('<tr><td class="label">|strpassword|</td><td>%s</td></tr>\n' % user.password)
             box.write('<tr><td class="label">|strnewpassword|</td><td>%s</td></tr>\n' % widgets.newpassword())
-        if sessions.session.user and (sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0):
+        if state.user and (state.user.admin > 0 or state.user.sysadmin > 0):
             box.write('<tr><td class="label">|stradmin|</td><td>%s</td></tr>\n' % widgets.tf('admin', user.admin))
         else:
             box.write('<input name="admin" type="hidden" value="%s">\n'
                       '<tr><td class="label">|stradmin|</td><td>%s</td></tr>\n'
                       % (user.admin, bool2yesno(user.admin)))
-        if sessions.session.user and sessions.session.user.sysadmin > 0:
+        if state.user and state.user.sysadmin > 0:
             box.write('<tr><td class="label">|strsysadmin|</td><td>%s</td></tr>\n' % widgets.tf('sysadmin', user.sysadmin))
         else:
             box.write('<input name="sysadmin" type="hidden" value="%s">\n'
@@ -923,7 +920,7 @@ class Tables(LampadasCollection):
             # Don't include unpublished documents
             # except for admins and owners, unless config says otherwise
             if doc.pub_time=='':
-                if sessions.session==None:
+                if state.session==None:
                     if config.world_can_see_unpublished==0:
                         continue
 
@@ -1136,7 +1133,7 @@ class Tables(LampadasCollection):
                   % (cell_type, str(doc.id), VIEW_ICON_SM, cell_type))
 
         # Edit icon
-        if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+        if state.session and state.user.can_edit(doc_id=doc.id)==1:
             box.write('<%s width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></%s>\n'
                       % (cell_type, str(doc.id), EDIT_ICON_SM, cell_type))
         else:
@@ -1151,36 +1148,14 @@ class Tables(LampadasCollection):
         The default is to display docs for the logged-on user,
         but you can override that.
         """
-        if sessions.session==None:
+        if state.session==None:
             return '|nopermission|'
-        if sessions.session.user.can_edit(username=username)==0:
+        if state.user.can_edit(username=username)==0:
             return '|nopermission|'
         if username > '':
             return self.doctable(uri, username=username, show_search=0)
         else:
-            return self.doctable(uri, username=sessions.session.username, show_search=0)
-
-    def section_menu(self, uri, section_code):
-        log(3, "Creating section menu: " + section_code)
-        section = dms.section.get_by_id(section_code)
-        box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n'
-                         '<tr><td>' % section.name[uri.lang])
-        for key in section.pages.sort_by('sort_order'):
-            page = section.pages[key]
-            if STATIC and page.only_dynamic:
-                continue
-            if page.only_registered and sessions.session==None:
-                continue
-            if page.only_admin and (sessions.session==None or sessions.session.user.admin==0):
-                continue
-            if page.only_sysadmin and (sessions.session==None or sessions.session.user.sysadmin==0):
-                continue
-            menu_name = page.menu_name[uri.lang]
-            menu_name = menu_name.replace(' ', '&nbsp;')
-            box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
-                % (page.code, menu_name))
-        box.write('</td></tr></table>\n')
-        return box.get_value()
+            return self.doctable(uri, username=state.user.username, show_search=0)
 
     def section_menus(self, uri):
         log(3, "Creating all section menus")
@@ -1191,13 +1166,13 @@ class Tables(LampadasCollection):
             section = sections[key]
             if STATIC and section.static_count==0:
                 continue
-            if section.nonregistered_count==0 and (sessions.session==None):
+            if section.nonregistered_count==0 and (state.session==None):
                 continue
-            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count==0 and (state.session==None or state.user.admin==0):
                 continue
-            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count==0 and (state.session==None or state.user.sysadmin==0):
                 continue
-            box.write(menu_separator + self.section_menu(uri, section.code))
+            box.write(menu_separator + section.navbox.get_html(uri))
             menu_separator = '<p>'
         return box.get_value()
 
@@ -1209,11 +1184,11 @@ class Tables(LampadasCollection):
             section = sections[key]
             if section.static_count==0 and STATIC:
                 continue
-            if section.nonregistered_count==0 and sessions.session==None:
+            if section.nonregistered_count==0 and state.session==None:
                 continue
-            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count==0 and (state.session==None or state.user.admin==0):
                 continue
-            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count==0 and (state.session==None or state.user.sysadmin==0):
                 continue
 
             odd_even = OddEven()
@@ -1224,14 +1199,14 @@ class Tables(LampadasCollection):
                 if page.only_dynamic and STATIC:
                     continue
                 if page.only_registered or page.only_admin or page.only_sysadmin > 0:
-                    if sessions.session==None: continue
+                    if state.session==None: continue
                 if page.only_admin > 0:
-                    if sessions.session==None: continue
-                    if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
+                    if state.session==None: continue
+                    if state.user.admin==0 and state.user.sysadmin==0:
                         continue
                 if page.only_sysadmin > 0:
-                    if sessions.session==None: continue
-                    if sessions.session.user.sysadmin==0:
+                    if state.session==None: continue
+                    if state.user.sysadmin==0:
                         continue
                 box.write('<tr class="%s"><td><a href="|uri.base|%s|uri.lang_ext|">%s</a></td></tr>\n'
                           % (odd_even.get_next(), page.code, page.menu_name[uri.lang]))
@@ -1328,7 +1303,7 @@ class Tables(LampadasCollection):
     def navlogin(self, uri):
         if STATIC==1:
             return ''
-        if sessions.session:
+        if state.session:
             log(3, 'Creating active user box')
             box = '''<table class="navbox">
             <tr><th>|stractive_user|</th></tr>
@@ -1341,7 +1316,7 @@ class Tables(LampadasCollection):
             value="|strlog_out|"></td></tr>
             </form>
             </table>
-            ''' % sessions.session.username
+            ''' % state.user.username
         else:
             log(3, 'Creating login box')
             box = '''<table class="navbox">
@@ -1367,7 +1342,7 @@ class Tables(LampadasCollection):
         return box
 
     def navsessions(self, uri):
-        if sessions.session and sessions.session.user.admin > 0:
+        if state.session and state.user.admin > 0:
             log(3, 'Creating navsessions table')
             box = WOStringIO('''<table class="navbox">
             <tr><th>|strsessions|</th></tr>
@@ -1383,7 +1358,7 @@ class Tables(LampadasCollection):
         return ''
 
     def tabsessions(self, uri):
-        if sessions.session.user and sessions.session.user.admin > 0:
+        if state.user and state.user.admin > 0:
             log(3, 'Creating sessions table')
             box = WOStringIO('''<table class="box" width="100%">
             <tr><th colspan="4">|strsessions|</th></tr>
@@ -1639,7 +1614,7 @@ class DocAdmin(Table):
 
         # FIXME: Only 'N'ormal documents should be publishable!
 
-        if sessions.session and sessions.session.user.can_edit(uri.id)==1:
+        if state.session and state.user.can_edit(uri.id)==1:
             doc = dms.document.get_by_id(uri.id)
             box = WOStringIO('<table class="box nontabular" width="100%%">\n'
                              '<tr>'
@@ -1695,7 +1670,7 @@ class TabNews(Table):
         for key in keys:
             news = news[key]
             if not news.news[uri.lang]==None:
-                if sessions.session and sessions.session.user.can_edit(news_id=news.id)==1:
+                if state.session and state.user.can_edit(news_id=news.id)==1:
                     edit_icon = '<a href="|uri.base|news_edit/%s|uri.lang_ext|">%s</a>\n' \
                                 % (str(news.id),EDIT_ICON_SM)
                 else:
@@ -1721,9 +1696,9 @@ class TabNewsItem(Table):
         Table.__init__(self, 'news', self.method)
 
     def method(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(news_id=uri.id)==0:
+        elif state.user.can_edit(news_id=uri.id)==0:
             return '|blknopermission|'
 
         if uri.id > 0:
@@ -1810,7 +1785,7 @@ class TabPages(Table):
         pages = dms.page.get_all()
         for key in pages.sort_by('code'):
             page = pages[key]
-            if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
+            if state.session and state.user.can_edit(page_code=page.code)==1:
                 edit_icon = '<a href="|uri.base|page_edit/' + str(page.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
             else:
                 edit_icon = ''
@@ -1842,9 +1817,9 @@ class TabPage(Table):
         Table.__init__(self, 'page', self.method)
 
     def method(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(page_code=uri.code)==0:
+        elif state.user.can_edit(page_code=uri.code)==0:
             return '|blknopermission|'
 
         if uri.code > '':
@@ -2005,11 +1980,11 @@ class TabStrings(Table):
                          ' <th class="collabel" colspan="2">|strstring_code|</th>'
                          ' <th class="collabel">|strstring|</th>'
                          '</tr>\n')
-        webstrings = dms.webstring.get_all()
+        webstrings = dms.string.get_all()
         odd_even = OddEven()
         for key in webstrings.sort_by('code'):
             webstring = webstrings[key]
-            if sessions.session and sessions.session.user.can_edit(string_code=webstring.code)==1:
+            if state.session and state.user.can_edit(string_code=webstring.code)==1:
                 edit_icon = '<a href="|uri.base|string_edit/%s|uri.lang_ext|">%s</a>\n' \
                             % (str(webstring.code),EDIT_ICON_SM)
             else:
@@ -2034,13 +2009,13 @@ class TabString(Table):
         Table.__init__(self, 'string', self.method)
 
     def method(self, uri):
-        if not sessions.session:
+        if not state.session:
             return '|blknopermission|'
-        elif sessions.session.user.can_edit(string_code=uri.code)==0:
+        elif state.user.can_edit(string_code=uri.code)==0:
             return '|blknopermission|'
 
         if uri.code > '':
-            webstring = dms.webstring.get_by_id(uri.code)
+            webstring = dms.string.get_by_id(uri.code)
 
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/string">\n'
                              '<table class="box">'
@@ -2070,16 +2045,15 @@ class TabString(Table):
                               '<input type=hidden name="lang" value="%s">\n'
                               '<tr class="%s">'
                               ' <td class="sectionlabel" colspan="3">%s</td>'
-                              ' <td></td>'
                               '</tr>\n'
                               '<tr class="%s">'
-                              ' <td class="label">|strversion|</td>'
+                              ' <td class="label">|strversion|:</td>'
                               ' <td>%s:</td>'
                               ' <td></td>'
                               '</tr>\n'
                               '<tr class="%s">'
-                              ' <td class="label">|strstring|</td>'
-                              ' <td width="100%%">%s:</td>'
+                              ' <td class="label">|strstring|:</td>'
+                              ' <td width="100%%">%s</td>'
                               ' <td>%s</td>'
                               '</tr>\n'
                               '</form>'
@@ -2120,7 +2094,7 @@ class TabString(Table):
                              widgets.save()))
             box.write('</table>')
         else:
-            webstring = dms.webstring.new()
+            webstring = dms.string.new()
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/newstring">\n'
                              '<table class="box">\n'
                              '<tr>'
@@ -2214,9 +2188,9 @@ class TabEditThisPage(Table):
 
     def method(self, uri):
         log(3, 'Creating edit_this_page table')
-        if not sessions.session:
+        if not state.session:
             return ''
-        elif sessions.session.user.can_edit(page_code=uri.page_code)==0:
+        elif state.user.can_edit(page_code=uri.page_code)==0:
             return ''
         if uri.page_code=='page_edit':
             return '<center><a href="|uri.base||uri.code||uri.lang_ext|">|strview_this_page|</a></center>'
@@ -2340,8 +2314,9 @@ class TabPubStatusStats(Table):
         odd_even = OddEven()
         pub_statuses = dms.pub_status.get_all()
         for key in pub_statuses.sort_by('sort_order'):
-            stat = stattable[key]
-            if stat==None:
+            if stattable.has_key(key):
+                stat = stattable[key]
+            else:
                 stat = Stat()
             box.write('<tr class="%s">'
                       ' <td class="label">%s</td>\n'
@@ -2413,8 +2388,9 @@ class TabDocFormatStats(Table):
         odd_even = OddEven()
         formats = dms.format.get_all()
         for key in formats.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
-            if stat==None:
+            if stattable.has_key(key):
+                stat = stattable[key]
+            else:
                 stat = Stat()
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
@@ -2447,8 +2423,9 @@ class TabPubDocFormatStats(Table):
         odd_even = OddEven()
         formats = dms.format.get_all()
         for key in formats.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
-            if stat==None:
+            if stattable.has_key(key):
+                stat = stattable[key]
+            else:
                 stat = Stat()
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
@@ -2481,8 +2458,9 @@ class TabDocDTDStats(Table):
         odd_even = OddEven()
         dtds = dms.dtd.get_all()
         for key in dtds.sort_by('code'):
-            stat = stattable[key]
-            if stat==None:
+            if stattable.has_key(key):
+                stat = stattable[key]
+            else:
                 stat = Stat()
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
@@ -2515,8 +2493,9 @@ class TabPubDocDTDStats(Table):
         odd_even = OddEven()
         dtds = dms.dtd.get_all()
         for key in dtds.sort_by('code'):
-            stat = stattable[key]
-            if stat==None:
+            if stattable.has_key(key):
+                stat = stattable[key]
+            else:
                 stat = Stat()
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
@@ -2550,8 +2529,9 @@ class TabDocLangStats(Table):
         languages = dms.language.get_all()
         for key in languages.sort_by_lang('name', uri.lang):
             language = languages[key]
-            stat = stattable[language.code]
-            if stat==None:
+            if stattable.has_key(language.code):
+                stat = stattable[language.code]
+            else:
                 stat = Stat()
             if stat.value==0: continue
             box.write('<tr class="%s"><td class="label">%s</td>\n'
@@ -2587,8 +2567,10 @@ class TabPubDocLangStats(Table):
         languages = dms.language.get_all()
         for key in languages.sort_by_lang('name', uri.lang):
             language = languages[key]
-            stat = stattable[language.code]
-            if stat==None: continue
+            if stattable.has_key(language.code):
+                stat = stattable[language.code]
+            else:
+                continue
             box.write('<tr class="%s">'
                       ' <td class="label">%s</td>\n'
                       ' <td align="right">%s</td>\n'
@@ -2608,7 +2590,7 @@ class TabPubDocLangStats(Table):
 class TableMap(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(TableMap, self).__init__()
         self['tabdocs'] = DocTable()
         self['tabdocs_expanded'] = DocTableExpanded()
         self['tabdocadmin'] = DocAdmin()

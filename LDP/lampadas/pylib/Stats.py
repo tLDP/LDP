@@ -34,10 +34,11 @@ class Stats(LampadasCollection):
     """Calculates various statistical data about the system and documents."""
 
     def __init__(self):
-        self.calc()
+        super(Stats, self).__init__()
+        self.reset()
         
     def reset(self):
-        self.data = {}
+        self.clear()
         self['general']  = StatTable(['doc_count'])
         self['pub_status'] = StatTable()
         self['lint_time'] = StatTable()
@@ -106,10 +107,10 @@ class StatTable(LampadasCollection):
     """Holds a set of statistics."""
 
     def __init__(self, labels=[]):
-        self.data = {}
+        super(StatTable, self).__init__()
         for label in labels:
             stat = Stat(label)
-            stat.sort_order = len(self.data) + 1
+            stat.sort_order = len(self) + 1
             self[label] = stat
 
     def avg(self):
@@ -126,9 +127,9 @@ class StatTable(LampadasCollection):
     def pct(self, label):
         """Returns the requested value's percentage of the total."""
         
-        if self[label]==None:
-            return float(0)
-        return float(self[label].value)/self.sum()
+        if self.has_key(label):
+            return float(self[label].value)/self.sum()
+        return float(0)
 
     def inc(self, key):
         """
@@ -136,12 +137,12 @@ class StatTable(LampadasCollection):
         If there is no entry to match the key, create one.
         """
 
-        stat = self[key]
-        if stat==None:
+        if self.has_key(key):
+            stat = self[key]
+        else:
             stat = Stat(key)
             self[key] = stat
         stat.value = stat.value + 1
-
 
 class Stat:
     """Holds a single statistic."""

@@ -6,7 +6,6 @@ class DocumentRev(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='document':
-            self.document = self.dms.document.get_by_id(self.doc_id)
-            return self.document
+            return self.dms.document.get_by_id(self.doc_id)
         else:
             raise AttributeError('No such attribute %s' % attribute)

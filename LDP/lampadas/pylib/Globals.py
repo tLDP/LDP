@@ -38,7 +38,6 @@ YES = 1
 NO  = 0
 
 STATIC = 0
-current_session = None
 
 # How many items to clear from a cache when it is full
 # and we're adding another object to it.
@@ -352,5 +351,14 @@ class OddEven:
     def get_last(self):
         return self.value
 
+class State:
+
+    def __init__(self):
+        self.session = None
+        self.user = None
+
+state = State()
+
 if __name__=='__main__':
     pass
+

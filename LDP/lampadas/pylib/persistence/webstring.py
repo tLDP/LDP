@@ -9,7 +9,7 @@ class WebString(Persistence):
         if attribute in ('string', 'version'):
             webstring = LampadasCollection()
             version = LampadasCollection()
-            i18ns = self.dms.webstring_i18n.get_by_keys([['string_code', '=', self.code]])
+            i18ns = self.dms.string_i18n.get_by_keys([['string_code', '=', self.code]])
             for key in i18ns.keys():
                 i18n = i18ns[key]
                 webstring[i18n.lang] = i18n.string

@@ -7,8 +7,7 @@ class Role(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='users':
-            self.users = dms.document_user.get_by_keys([['role_code', '=', self.code]])
-            return self.users
+            return dms.document_user.get_by_keys([['role_code', '=', self.code]])
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()

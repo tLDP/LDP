@@ -36,8 +36,7 @@ def login(req, username, password):
     user = dms.username.get_by_id(username)
     if user and user.username==username:
         if user.password == password:
-            
-            if sessions[username]==None:
+            if not sessions.has_key(username):
                 sessions.add(username, req.connection.remote_addr[0])
     
             # establish random 20 character session_id.

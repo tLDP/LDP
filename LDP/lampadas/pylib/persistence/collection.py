@@ -9,8 +9,7 @@ class Collection(Persistence):
     """
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents = self.dms.document_collection.get_by_keys([['collection_code', '=', self.code]])
-            return self.documents
+            return self.dms.document_collection.get_by_keys([['collection_code', '=', self.code]])
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()

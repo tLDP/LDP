@@ -101,7 +101,7 @@ def document(req, username, doc_id,
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
 
-    koc = dms.document.get_by_id(int(doc_id))
+    doc = dms.document.get_by_id(int(doc_id))
     if doc==None:
         return error("Cannot find document " + str(doc_id))
 
@@ -399,24 +399,24 @@ def newpage_lang(req, page_code, lang, title, menu_name, page, version):
     go_back(req)
 
 def newstring(req, string_code):
-    webstring = dms.webstring.new()
+    webstring = dms.string.new()
     webstring.code = string_code
-    dms.webstring.add(webstring)
+    dms.string.add(webstring)
     redirect(req, '../../string_edit/' + str(webstring.code) + referer_lang_ext(req))
 
 def string_lang(req, string_code, lang, webstring, version):
-    webstringi18ns = dms.webstring_i18n.get_by_keys([['string_code', '=', string_code], ['lang', '=', lang]])
+    webstringi18ns = dms.string_i18n.get_by_keys([['string_code', '=', string_code], ['lang', '=', lang]])
     webstringi18n = webstringi18ns[webstringi18ns.keys()[0]]
     webstringi18n.string = webstring
     webstringi18n.version = version
-    dms.webstring_i18n.add(webstringi18n)
+    webstringi18n.save()
     go_back(req)
 
 def newstring_lang(req, string_code, lang, webstring, version):
-    webstringi18n = dms.webstring_i18n.new()
+    webstringi18n = dms.string_i18n.new()
     webstringi18n.code = string_code
     webstringi18n.lang = lang
     webstringi18n.string = webstring
     webstringi18n.version = version
-    dms.webstring_i18n.add(webstringi18n)
+    dms.string_i18n.add(webstringi18n)
     go_back(req)

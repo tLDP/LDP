@@ -45,7 +45,7 @@ import string
 class Blocks(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        Super(Blocks, self).__init__()
         sql = "SELECT block_code, block FROM block"
         cursor = db.select(sql)
         while (1):
@@ -53,7 +53,7 @@ class Blocks(LampadasCollection):
             if row==None: break
             newBlock = Block()
             newBlock.load_row(row)
-            self.data[newBlock.code] = newBlock
+            self[newBlock.code] = newBlock
 
 class Block:
 
@@ -70,7 +70,7 @@ class Block:
 class Sections(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(Sessions, self).__init__()
         sql = "SELECT section_code, sort_order FROM section"
         cursor = db.select(sql)
         while (1):
@@ -78,7 +78,7 @@ class Sections(LampadasCollection):
             if row==None: break
             newSection = Section()
             newSection.load_row(row)
-            self.data[newSection.code] = newSection
+            self[newSection.code] = newSection
 
 class Section:
 
@@ -113,7 +113,7 @@ class Section:
 class Pages(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(Pages, self).__init__()
         sql = "SELECT page_code, section_code, sort_order, template_code, data, only_dynamic, only_registered, only_admin, only_sysadmin FROM page"
         cursor = db.select(sql)
         while (1):
@@ -121,7 +121,7 @@ class Pages(LampadasCollection):
             if row==None: break
             page = Page()
             page.load_row(row)
-            self.data[page.code] = page
+            self[page.code] = page
 
     def add(self, page_code, section_code, template_code, only_dynamic, only_registered, only_admin, only_sysadmin, data):
         if section_code=='':
@@ -134,7 +134,7 @@ class Pages(LampadasCollection):
         db.runsql(sql)
         db.commit()
         page = Page(page_code)
-        self.data[page.code] = page
+        self[page.code] = page
         return page
 
     def normalize_all_sort_orders(self):
@@ -296,7 +296,7 @@ class Strings(LampadasCollection):
     """
     
     def __init__(self):
-        self.data = {}
+        super(Strings, self).__init__()
         sql = "SELECT string_code FROM string"
         cursor = db.select(sql)
         while (1):
@@ -304,7 +304,7 @@ class Strings(LampadasCollection):
             if row==None: break
             newString = String()
             newString.load_row(row)
-            self.data[newString.code] = newString
+            self[newString.code] = newString
 
     def add(self, string_code):
         sql = 'INSERT INTO string(string_code) VALUES (' + wsq(string_code) + ')'
@@ -366,7 +366,7 @@ class String:
 class Templates(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(Templates, self).__init__()
         sql = "SELECT template_code, template FROM template"
         cursor = db.select(sql)
         while (1):
@@ -374,7 +374,7 @@ class Templates(LampadasCollection):
             if row==None: break
             newTemplate = Template()
             newTemplate.load_row(row)
-            self.data[newTemplate.code] = newTemplate
+            self[newTemplate.code] = newTemplate
 
 class Template:
 
@@ -388,7 +388,7 @@ class Template:
 class NewsItems(LampadasCollection):
 
     def __init__(self):
-        self.data = {}
+        super(NewsItems, self).__init__()
         sql = "SELECT news_id, pub_date FROM news"
         cursor = db.select(sql)
         while (1):
@@ -396,7 +396,7 @@ class NewsItems(LampadasCollection):
             if row==None: break
             news = NewsItem()
             news.load_row(row)
-            self.data[news.id] = news
+            self[news.id] = news
 
     def add(self, pub_date=None):
         news = NewsItem()
@@ -473,10 +473,11 @@ class NewsItem:
 class FileReports(LampadasCollection):
 
     def __init__(self):
+        super(FileReports, self).__init__()
         self.load()
 
     def load(self):
-        self.data = {}
+        self.clear()
         sql = 'SELECT report_code, only_cvs, command FROM file_report'
         cursor = db.select(sql)
         while (1):

@@ -8,7 +8,7 @@ data managers are built.
 from Globals import *
 from BaseClasses import LampadasCollection
 from Database import db
-from cache import Cache
+from cache import Cache, CACHE_UNLIMITED
 import string
 
 # FIXME: use sqlgen ?
@@ -32,7 +32,6 @@ class TableField:
         self.table = table
 
     def get_default(self):
-        global current_session
         if self.data_type in ('sequence', 'int', 'float'): return 0
         elif self.data_type in ('string', ''): return ''
         elif self.data_type=='list':           return []
@@ -42,13 +41,13 @@ class TableField:
         elif self.data_type=='created':        return now_string()
         elif self.data_type=='updated':        return now_string()
         elif self.data_type=='creator':
-            if current_session:
-                return current_session.user.username
+            if state.user:
+                return state.user.username
             else:
                 return ''
         elif self.data_type=='updater':
-            if current_session:
-                return current_session.user.username
+            if state.user:
+                return state.user.username
             else:
                 return ''
         else:
@@ -177,6 +176,19 @@ class DataManager(DataTable):
         self.cache        = Cache()
         self.all_cached   = 0
         self.last_synched = ''
+        self.preloaded    = 0
+    
+    def preload(self):
+        if self.preloaded==1:
+            return
+        if self.cache.size <> CACHE_UNLIMITED:
+            return
+        #print 'Preloading ' + self.table.name
+        self.get_all()
+        i18n_table = self.table.name + '_i18n'
+        if self.dms.has_key(i18n_table):
+            i18n_dm = self.dms[i18n_table]
+            i18n_dm.preload()
         
     def get_by_id(self, id):
         """
@@ -216,6 +228,7 @@ class DataManager(DataTable):
         set = DataSet(self, sql)
         for key in self.cache.keys():
             object = self.cache[key]
+            match = 1
             for filter in filters:
                 field_name, operator, value = filter
                 data_field = self.table.fields[field_name]
@@ -225,17 +238,19 @@ class DataManager(DataTable):
                     if value.upper()==obj_value.upper()[:len(value)]:
                         set[object.key] = object
                 elif operator=='=':
-                    if obj_value==value: set[object.key] = object
+                    if obj_value<>value: match = 0
                 elif operator=='<':
-                    if obj_value < value: set[object.key] = object
+                    if obj_value >= value: match = 0
                 elif operator=='<=':
-                    if obj_value <= value: set[object.key] = object
+                    if obj_value > value: match = 0
                 elif operator=='>':
-                    if obj_value > value: set[object.key] = object
+                    if obj_value <= value: match = 0
                 elif operator=='>=':
-                    if obj_value >= value: set[object.key] = object
+                    if obj_value < value:  match = 0
                 else:
                     raise UnknownOperator('Unrecognized operator: %s' %(data_field.operator))
+            if match==1:
+                set[object.key] = object
         return set
 
     def filters_to_sql(self, filters):
@@ -258,14 +273,16 @@ class DataManager(DataTable):
             set = self.get_sql(self.table.select)
             if self.cache.filled==0:
                 self.all_cached = 1
-                self.last_synched = now_string()
             return set
         self.synch()
         return self.get_cached()
 
     def synch(self):
+        #print 'Synchronizing ' + self.table.name + ' with database'
         last_synched = self.last_synched        # Remember this, because we're about to overwrite it.
         self.last_synched = now_string()
+
+        # Delete any newly deleted objects.
         sql = 'SELECT identifier FROM deleted WHERE table_name=' + wsq(self.table.name) + ' AND deleted >= ' + wsq(last_synched)
         cursor = db.select(sql)
         while (1):
@@ -274,18 +291,21 @@ class DataManager(DataTable):
             for key in self.table.field_list:
                 field = self.fields[key]
                 if field.key_field==1:
-                    value = field.field_to_attr(row[1])
+                    value = field.field_to_attr(row[0])
                     break
             object = self.new()
             object.key = value
-            #print 'Asking cache to delete ' + self.table.name + ': ' + str(value)
+            #print 'Deleting from ' + self.table.name + ' cache: ' + str(value)
             self.cache.delete(object)
-        sql = self.table.select + ' WHERE updated >= ' + wsq(self.last_synched)
+
+        # Update any newly updated objects.
+        sql = self.table.select + ' WHERE updated >= ' + wsq(last_synched)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             object = self.row_to_object(row)
+            #print 'Updating in ' + self.table.name + ' cache: ' + str(object.key)
             self.cache.add(object)
 
     def get_cached(self):
@@ -301,6 +321,7 @@ class DataManager(DataTable):
         
         Does not read from the cache, but writes into it.
         """
+        #print 'Cache miss, loading: ' + self.table.name
         set = DataSet(self, sql)
         cursor = db.select(sql)
         while (1):
@@ -317,6 +338,7 @@ class DataManager(DataTable):
             field = self.table.fields[key]
             setattr(object, field.attribute, field.get_default())
         object.changed = 0
+        object.in_database = 0
         return object
 
     def row_to_object(self, row):
@@ -328,10 +350,10 @@ class DataManager(DataTable):
         self.save(object)
 
     def save(self, object):
-        if object.changed==0:
+        object.key = self.table.get_key(object) # New objects need their key calculated.
+        if object.changed==0 and object.in_database==0:
             return
         if object.in_database==0:
-            object.key = self.table.get_key(object) # New objects need their key calculated.
             field_list = []
             value_list = []
             for key in self.table.field_list:
@@ -360,6 +382,7 @@ class DataManager(DataTable):
                 if field.key_field==1:
                     where_list.append(field.field_name + '=' + value)
             sql = 'UPDATE %s SET %s WHERE %s' % (self.table.name, string.join(update_list, ', '), string.join(where_list, ' AND '))
+            print sql
         db.runsql(sql)
         db.commit()
         self.cache.add(object)

@@ -60,7 +60,7 @@ class SourceFiles(LampadasCollection):
             sourcefile = SourceFile()
             sourcefile.load_row(row)
             sourcefile.errors = FileErrs(sourcefile.filename)
-            self.data[sourcefile.filename] = sourcefile
+            self[sourcefile.filename] = sourcefile
         # FIXME: use cursor.execute(sql,params) instead! --nico
         self.load_file_errors()
 
@@ -82,7 +82,7 @@ class SourceFiles(LampadasCollection):
         sourcefile.errors.filename = filename
         sourcefile.calc_filenames()
     	sourcefile.read_metadata()
-        self.data[filename] = sourcefile
+        self[filename] = sourcefile
         return sourcefile
 
     def delete(self, filename):
@@ -91,7 +91,7 @@ class SourceFiles(LampadasCollection):
         sql = 'DELETE FROM sourcefile WHERE fiename=' + wsq(filename)
         db.runsql(sql)
         db.commit()
-        del self.data[filename]
+        del self[filename]
         
 class SourceFile:
     """
@@ -374,7 +374,7 @@ class FileErrs(LampadasCollection):
     """
 
     def __init__(self, filename=''):
-        self.data = {}
+        super(FileErrs, self).__init__()
         self.filename = filename
         if filename > '':
             self.load()
@@ -388,14 +388,14 @@ class FileErrs(LampadasCollection):
             if row==None: break
             file_err = FileErr()
             file_err.load_row(row)
-            self.data[file_err.err_id] = file_err
+            self[file_err.err_id] = file_err
 
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM file_error WHERE filename=" + wsq(self.filename)
         db.runsql(sql)
         db.commit()
-        self.data = {}
+        self.clear()
 
     def count(self):
         return len(self)
@@ -411,7 +411,7 @@ class FileErrs(LampadasCollection):
         file_err.filename = self.filename
         file_err.err_id = err_id
         file_err.created = now_string()
-        self.data[file_err.err_id] = file_err
+        self[file_err.err_id] = file_err
         db.commit()
 
 class FileErr:

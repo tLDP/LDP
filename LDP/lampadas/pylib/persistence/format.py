@@ -7,8 +7,7 @@ class Format(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents = self.dms.document.get_by_keys([['format_code', '=', self.code]])
-            return self.documents
+            return self.dms.document.get_by_keys([['format_code', '=', self.code]])
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()

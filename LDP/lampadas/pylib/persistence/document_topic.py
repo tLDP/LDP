@@ -6,13 +6,10 @@ class DocumentTopic(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='document':
-            self.document = self.dms.document.get_by_id(self.doc_id)
-            return self.document
+            return self.dms.document.get_by_id(self.doc_id)
         elif attribute=='topic':
-            self.topic = self.dms.topic.get_by_id(self.topic_code)
-            return self.topic
+            return self.dms.topic.get_by_id(self.topic_code)
         elif attribute=='sort_order':
-            self.sort_order =self.topic.sort_order
-            return self.sort_order
+            return self.topic.sort_order
         else:
             raise AttributeError('No such attribute %s' % attribute)

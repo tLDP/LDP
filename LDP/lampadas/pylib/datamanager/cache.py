@@ -29,22 +29,22 @@ class Cache(LampadasCollection):
     
     def __init__(self):
         LampadasCollection.__init__(self)
-        self.cache_size = CACHE_UNLIMITED 
-        self.hits = 0
+        self.size   = CACHE_UNLIMITED 
+        self.hits   = 0
         self.misses = 0
         self.filled = 0
 
-    def set_cache_size(self, size):
+    def set_size(self, size):
         """
         Establishes the size to which the cache will grow.
         If set to 0, the cache size is unbounded.
         """
-        self.cache_size = size
+        self.size = size
 
     def adjust_size(self):
 #        print 'Adjusting cache size'
-        if self.cache_size==CACHE_UNLIMITED: return
-        if len(self) > self.cache_size + CACHE_ADJUSTMENT_TRIGGER:
+        if self.size==CACHE_UNLIMITED: return
+        if len(self) > self.size + CACHE_ADJUSTMENT_TRIGGER:
             self.filled = 1
             keys = self.sort_by('last_access')[:CACHE_ADJUSTMENT_TRIGGER]
             for key in keys:
@@ -64,6 +64,9 @@ class Cache(LampadasCollection):
 
     def get_by_key(self, key):
         """Returns the requested object, and updates its access time."""
+        if not self.has_key(key):
+            return None
+
         object = self[key]
         if object:
             object.last_access = time.time()

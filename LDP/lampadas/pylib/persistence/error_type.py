@@ -7,8 +7,7 @@ class ErrorType(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='errors':
-            self.errors = self.dms.error.get_by_keys([['err_type_code', '=', self.code]])
-            return self.errors
+            return self.dms.error.get_by_keys([['err_type_code', '=', self.code]])
         elif attribute in ('name', 'description'):
             name = LampadasCollection()
             description = LampadasCollection()
