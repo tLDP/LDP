@@ -10,7 +10,7 @@
 <author><firstname>David A.</firstname> <surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>version 0.87, 22 March 2001</pubdate>
+<pubdate>version 0.91, 14 September 2001</pubdate>
 <abstract>
 <para>
 This HOWTO for programmers
@@ -38,7 +38,7 @@ dynamically loaded (DL) libraries.
 
 <para>
 This paper first discusses static libraries, which are installed
-into a program executable before the program is run.
+into a program executable before the program can be run.
 It then discusses shared libraries, which are loaded at program
 start-up and shared between programs.
 Finally, it discusses dynamically loaded (DL) libraries, which can
@@ -51,13 +51,15 @@ with references to other sources of information.
 </para>
 
 <para>
-This HOWTO discusses only the Executable and Linking Format
-(ELF) format for executables and libraries, the format
-used by nearly all Linux distributions today.
-The GNU gcc toolset can actually handle library formats other than ELF;
-in particular, most Linux distributions can still
-use the obsolete a.out format.
-However, these formats are outside the scope of this paper.
+Most developers who are developing libraries should create shared libraries,
+since these allow users to update their libraries separately from the
+applications that use the libraries.
+Dynamically loaded (DL) libraries are useful, but they require a little more
+work to use and many programs don't need the flexibility they offer, 
+Conversely, static libraries make upgrading libraries far more troublesome,
+so for general-purpose use they're hard to recommend.
+Still, each have their advantages, and the advantages of each type
+are described in the section discussing that type.
 </para>
 
 <para>
@@ -68,6 +70,16 @@ some use the term DLL to mean any library that is used
 as a DL library, and some
 use the term DLL to mean a library meeting either condition.
 No matter which meaning you pick, this HOWTO covers DLLs on Linux.
+</para>
+
+<para>
+This HOWTO discusses only the Executable and Linking Format
+(ELF) format for executables and libraries, the format
+used by nearly all Linux distributions today.
+The GNU gcc toolset can actually handle library formats other than ELF;
+in particular, most Linux distributions can still
+use the obsolete a.out format.
+However, these formats are outside the scope of this paper.
 </para>
 
 <para>
@@ -378,9 +390,14 @@ should only matter in a few exotic situations.
 <title>Environment Variables</title>
 <para>
 Various environment variables can control this process,
-and in fact there are environment variables that permit
+and there are environment variables that permit
 you to override this process.
-For example, you can temporarily substitute a different library for
+</para>
+
+<sect3>
+<title>LD_LIBRARY_PATH</title>
+<para>
+You can temporarily substitute a different library for
 this particular execution.
 In Linux, the environment variable LD_LIBRARY_PATH
 is a colon-separated set of directories where libraries should be
@@ -410,8 +427,48 @@ be modified by an installation process for normal use by normal users; see
 for an explanation of why.
 But it's still useful for development or testing, and for working around
 problems that can't be worked around otherwise.
+If you don't want to set the LD_LIBRARY_PATH environment variable, on Linux
+you can even invoke the program loader directly and pass it arguments.
+For example, the following will use the given PATH instead
+of the content of the environment variable LD_LIBRARY_PATH, and run
+the given executable:
+<programlisting>
+  /lib/ld-linux.so.2 --library-path PATH EXECUTABLE
+</programlisting>
+Just executing ld-linux.so without arguments will give you more help on
+using this, but again, don't use this for normal use - these are all
+intended for debugging.
 </para>
+</sect3>
 
+<sect3>
+<title>LD_DEBUG</title>
+<para>
+Another useful environment variable in the GNU C loader is LD_DEBUG.
+This triggers the dl* functions so that they give quite verbose information
+on what they are doing. For example:
+<programlisting>
+  export LD_DEBUG=files
+  command_to_run
+</programlisting>
+displays the processing of files and libraries when handling libraries,
+telling you what dependencies are detected and which SOs are loaded
+in what order.
+Setting LD_DEBUG to ``bindings'' displays information
+about symbol binding, setting it to ``libs'' displays the
+library search paths, and setting ti to ``versions'' displays the
+version depdendencies.
+</para>
+<para>
+Setting LD_DEBUG to ``help'' and then trying to run a program
+will list the possible options.
+Again, LD_DEBUG isn't intended for normal use, but it can be handy
+when debugging and testing.
+</para>
+</sect3>
+
+<sect3>
+<title>Other Environment Variables</title>
 <para>
 There are actually a number of other environment variables that control
 the loading process; their names begin with LD_ or RTLD_.
@@ -445,6 +502,7 @@ Other Unix-like systems handle the situation differently but
 for the same reason: a setuid/setgid program
 should not be unduly affected by the environment variables set. 
 </para>
+</sect3>
 </sect2>
 
 <sect2>
@@ -512,6 +570,24 @@ the ``-rdynamic'' flag doesn't always work for gcc on non-Linux systems.
 </itemizedlist>
 </para>
 
+<para>
+During development, there's the potential problem of modifying a library
+that's also used by many other programs -- and you don't want the
+other programs to use the ``developmental''library, only a particular
+application that you're testing against it.
+One link option you might use is ld's ``rpath'' option, which specifies
+where the runtime library search path of that particular program
+being compiled.
+From gcc, you can invoke the rpath option by specifying it this way:
+<programlisting>
+ -Wl,-rpath,$(DEFAULT_LIB_INSTALL_PATH)
+</programlisting>
+If you use this option when building the library client program,
+you don't need to bother with LD_LIBRARY_PATH (described next) other
+than to ensure it's not conflicting, or using other techniques to
+hide the library.
+</para>
+
 </sect2>
 
 <sect2>
@@ -523,21 +599,26 @@ standard directories (e.g., /usr/lib) and run ldconfig(8).
 </para>
 
 <para>
-If you can't do that (e.g., you don't have the right to modify
-/usr/lib), then you can use environment variables to control things.
 First, you'll need to create the shared libraries somewhere.
-Then, you'll need to set up the necesary symbolic links, in particular
+Then, you'll need to set up the necessary symbolic links, in particular
 a link from a soname to the real name (as well as from a versionless
 soname, that is, a soname that ends in ``.so'' for users who don't specify
 a version at all).  The simplest approach is to run:
-</para>
-
 <programlisting>
  ldconfig -n <replaceable>directory_with_shared_libraries</replaceable>
 </programlisting>
+</para>
 
 <para>
-Then you can set LD_LIBRARY_PATH, which is a colon-separated
+If you can't or don't want to install a library in a standard place
+(e.g., you don't have the right to modify
+/usr/lib),
+then you'll need to change your approach.
+You can use the ``rpath'' approach (described above), particularly if
+you only have a specific program to use the library being placed in
+a ``non-standard'' place.
+You can also use environment variables to control things.
+In particular, you can set LD_LIBRARY_PATH, which is a colon-separated
 list of directories in which to search for shared libraries before
 the usual places.
 If you're using bash, you could invoke my_program this way using:
@@ -551,12 +632,12 @@ LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH  my_program
 If you want to override just a few selected functions,
 you can do this by creating an overriding object file and setting
 LD_PRELOAD; the functions in this object file will override just
-those functions.
+those functions (leaving others as they were).
 </para>
 
 <para>
 Usually you can update libraries without concern; if there was an API
-change, the library creator will change the soname.
+change, the library creator is supposed to change the soname.
 However, if a program breaks on an update to a library that kept the
 same soname, you can force it to use the older library version by
 copying the old library back somewhere,
@@ -573,6 +654,9 @@ The wrapper script could look something like this:
   export LD_LIBRARY_PATH=/usr/local/my_lib:$LD_LIBRARY_PATH
   exec /usr/bin/my_program.orig $*
 </programlisting>
+Please don't depend on this when you write your own programs; try to
+make sure that your libraries are either backwards-compatible or that
+you've incremented the version number in the soname.
 </para>
 
 <para>
@@ -749,7 +833,7 @@ Since the glib interface is well-explained in its documentation,
 I won't discuss it further here.
 Another approach is to use libltdl, which is part of
 <ulink url="http://www.gnu.org/software/libtool/libtool.html">GNU libtool</ulink>.
-If you want much more functionality this, you might want to
+If you want much more functionality than this, you might want to
 look into a CORBA Object Request Broker (ORB).
 If you're still interested in directly using the interface supported
 by Linux and Solaris, read on.
@@ -798,7 +882,7 @@ in <replaceable>flag</replaceable>,
 meaning that the external symbols defined in the library will be made
 available to subsequently loaded libraries.
 While you're debugging, you'll probably want to use RTLD_NOW; using
-RTLD_LAZY can create inscrutible errors if there are unresolved references.
+RTLD_LAZY can create inscrutable errors if there are unresolved references.
 Using RTLD_NOW makes opening the library take slightly longer
 (but it speeds up lookups later); if this causes a user interface problem
 you can switch to RTLD_LAZY later.
@@ -1113,6 +1197,19 @@ It describes how to make a truly tiny program executable.
 Frankly, you shouldn't use most of these tricks under normal
 circumstances, but they're quite instructive in showing how
 ELF really works.
+</para>
+</sect2>
+
+<sect2>
+<title>Speeding up C++ initialization</title>
+<para>
+The KDE developers have noticed that large GUI C++ applications can take
+a long time to start up, in part due to its needing to do many relocations.
+There are several solutions to this.
+See
+<ulink url="http://www.suse.de/~bastian/Export/linking.txt">Making C++
+ready for the desktop (by Waldo Bastian)</ulink>
+for more information.
 </para>
 </sect2>
 </sect1>
