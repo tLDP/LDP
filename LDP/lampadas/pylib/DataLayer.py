@@ -100,7 +100,7 @@ class Class:
     """
 
     def __init__(self, ClassID=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if ClassID==None: return
         self.ID = ClassID
 
@@ -563,7 +563,7 @@ class Err:
     """
     
     def __init__(self, ErrID=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if Err==None: return
         self.ErrID = ErrID
 
@@ -612,7 +612,7 @@ class Format:
     """
 
     def __init__(self, FormatID=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if FormatID==None: return
         self.ID = FormatID
 
@@ -663,7 +663,7 @@ class Language:
     """
 
     def __init__(self, LanguageCode=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if LanguageCode == None: return
         self.Code = LanguageCode
         self.sql = "SELECT isocode, supported FROM language WHERE isocode= " + wsq(LanguageCode)
@@ -716,7 +716,7 @@ class PubStatus:
     """
     
     def __init__(self, PubStatusCode=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if PubStatusCode==None: return
         self.Code = PubStatusCode
 
@@ -766,7 +766,7 @@ class ReviewStatus:
     """
     
     def __init__(self, ReviewStatusCode=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if ReviewStatusCode==None: return
         self.Code = ReviewStatusCode
 
@@ -817,7 +817,7 @@ class Topic:
     """
 
     def __init__(self, TopicNum=None):
-        self.I18n = {}
+        self.I18n = LampadasCollection()
         if TopicNum==None: return
         self.Num = TopicNum
 

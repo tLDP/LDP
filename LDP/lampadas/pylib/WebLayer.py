@@ -56,7 +56,7 @@ class Blocks(LampadasCollection):
 class Block:
 
     def __init__(self):
-        self.i18n = {}
+        self.i18n = LampadasCollection()
 
     def load(self, row):
         self.code		= trim(row[0])
@@ -94,7 +94,7 @@ class Sections(LampadasCollection):
 class Section:
 
     def __init__(self):
-        self.i18n = {}
+        self.i18n = LampadasCollection()
 
     def load(self, row):
         self.code		= trim(row[0])
@@ -133,7 +133,7 @@ class Pages(LampadasCollection):
 class Page:
 
     def __init__(self):
-        self.i18n = {}
+        self.i18n = LampadasCollection()
 
     def load(self, row):
         self.code           = trim(row[0])
@@ -182,7 +182,7 @@ class String:
     """
 
     def __init__(self, StringCode=None):
-        self.i18n = {}
+        self.i18n = LampadasCollection()
 
     def load(self, row):
         self.code = trim(row[0])
@@ -225,6 +225,45 @@ class Template:
         self.code       = trim(row[0])
         self.template   = trim(row[1])
 
+# NewsItems
+
+class NewsItems(LampadasCollection):
+
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT news_id, pub_date FROM news"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newNewsItem = NewsItem()
+            newNewsItem.load(row)
+            self.data[newNewsItem.id] = newNewsItem
+
+class NewsItem:
+
+    def __init__(self):
+        self.i18n = LampadasCollection()
+
+    def load(self, row):
+        self.id             = row[0]
+        self.pub_date       = date2str(row[1])
+        sql = "SELECT lang, news FROM news_i18n WHERE news_id=" + str(self.id)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newNewsItemI18n = NewsItemI18n()
+            newNewsItemI18n.load(row)
+            self.i18n[newNewsItemI18n.lang] = newNewsItemI18n
+
+class NewsItemI18n:
+
+    def load(self, row):
+        self.lang       = row[0]
+        self.news       = trim(row[1])
+
+
 # WebLayer
 
 class LampadasWeb:
@@ -235,6 +274,7 @@ class LampadasWeb:
         self.pages      = Pages()
         self.strings    = Strings()
         self.templates  = Templates()
+        self.news       = NewsItems()
 
 
 lampadasweb = LampadasWeb()

@@ -37,7 +37,11 @@ class LampadasList:
         return len(self.list)
         
     def __getitem__(self, key):
-        return self.list[key]
+        try:
+            item = self.list[key]
+        except KeyError:
+            item = None
+        return item
 
     def __setitem__(self, key, value):
         self.list[key] = value
@@ -96,6 +100,16 @@ class LampadasCollection:
             value = getattr(item, attribute)
             result.append((value, key))
         result.sort()
+        for i in xrange(len(result)):
+            result[i] = result[i][1]
+        return result
+
+    def sort_by_desc(self, attribute):
+        result = []
+        for key, item in self.items():
+            value = getattr(item, attribute)
+            result.append((value, key))
+        result.reverse()
         for i in xrange(len(result)):
             result[i] = result[i][1]
         return result

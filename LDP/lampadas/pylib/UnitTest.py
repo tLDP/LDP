@@ -30,13 +30,11 @@ from URLParse import URI
 from Log import log
 import commands
 
-# Test Suite ###################################################################
 
-#def TS():
-#	TS = unittest.TestSuite()
-#	TS.addTest(ConfigTest)
-#	return TS
-
+# TESTS TO ADD:
+# 
+# make sure there are no conflicts between blocks and strings, which could
+# confuse things.
 
 # Unit Tests ###################################################################
 

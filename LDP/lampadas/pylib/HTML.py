@@ -213,14 +213,15 @@ class BoxFactory:
         section = lampadasweb.sections[section_code]
         assert not section == None
         box = ''
-        box = box + '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>'
+        box = box + '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
         box = box + '<tr><td>'
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
             page = lampadasweb.pages[key]
             if page.section_code == section_code:
-                box = box + '<a href="/' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>'
-        box = box + '</td></tr></table>'
+                log(3, 'adding item: ' + page.code + ', citeref: ' + page.i18n[lang].menu_name)
+                box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
+        box = box + '</td></tr></table>\n'
         log(3, "section menu complete")
         return box
 
@@ -325,20 +326,36 @@ class TableFactory:
             doc = lampadas.Docs[key]
             if doc.Lang == lang:
                 box = box + '<tr>'
-                box = box + '<td><a href="/editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
-                box = box + '<td><a href="/doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                box = box + '<td><a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
+                box = box + '<td><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
                 box = box + '</tr>\n'
         box = box + '</table>'
         log(3, "doctable complete")
         return box
 
     def menus(self, lang):
-        log(3, "Creating all section menus:")
+        log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
         for key in keys:
             box = box + self.boxf.section_menu(key, lang)
         log(3, "all section menus complete")
+        return box
+
+    def news(self, lang):
+        log(3, 'Creating news')
+        box = ''
+        box = box + '<table class="box"><tr><th>|date|</th><th>|news|</th></tr>\n'
+        keys = lampadasweb.news.sort_by_desc('pub_date')
+        for key in keys:
+            news = lampadasweb.news[key]
+            if not news.i18n[lang] == None:
+                box = box + '<tr>\n'
+                box = box + '<td>' + news.pub_date + '</td>\n'
+                box = box + '<td>' + news.i18n[lang].news + '</td>\n'
+                box = box + '</tr>\n'
+        box = box + '</table>\n'
+        log(3, 'News table complete')
         return box
 
 
@@ -409,20 +426,19 @@ class PageFactory:
                     newstring = page.code
                 if token=='stylesheet':
                     newstring='default'
+                if token=='version':
+                    newstring = VERSION
 
                 # Tables
                 # 
-                if token=='tabdocstable':
+                if token=='tabdocs':
                     newstring = self.tablef.doctable(uri.language)
-            
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri.id, uri.language)
-
-                if token=='version':
-                    newstring = VERSION
-            
                 if token=='tabmenus':
                     newstring = self.tablef.menus(uri.language)
+                if token=='tabnews':
+                    newstring = self.tablef.news(uri.language)
             
                 # Blocks and Strings
                 # 
@@ -431,7 +447,7 @@ class PageFactory:
                     if block == None:
                         string = lampadasweb.strings[token]
                         if string == None:
-                            newstring = 'ERROR'
+                            newstring = 'ERROR (' + token + ')'
                             log(1, 'Could not replace token ' + token)
                         else:
                             newstring = string.i18n[uri.language].string
