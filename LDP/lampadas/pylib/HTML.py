@@ -1104,8 +1104,6 @@ class PageFactory:
                     newstring = self.tablef.section_menus(uri, build_user)
                 if token=='navtopics':
                     newstring = self.tablef.topics(uri)
-                if token=='navsubtopics':
-                    newstring = self.tablef.subtopics(uri)
                 if token=='navtypes':
                     newstring = self.tablef.types(uri)
                 if token=='navsessions':
@@ -1115,6 +1113,8 @@ class PageFactory:
 
                 # Tables
                 # 
+                if token=='tabsubtopics':
+                    newstring = self.tablef.subtopics(uri)
                 if token=='tabdocs':
                     newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabmaint_wanted':
@@ -1221,7 +1221,7 @@ def main():
                 p.sort_stats('time').print_stats()
 
             else:
-                print page_factory.page(arg)
+                print page_factory.page(URI(arg))
     else:
         profile()
 

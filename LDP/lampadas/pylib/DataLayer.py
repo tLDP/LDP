@@ -187,6 +187,13 @@ class Docs(LampadasCollection):
             if row==None: break
             doc = Doc()
             doc.load_row(row)
+            doc.errors.doc_id = doc.id
+            doc.files.doc_id = doc.id
+            doc.users.doc_id = doc.id
+            doc.versions.doc_id = doc.id
+            doc.ratings.doc_id = doc.id
+            doc.topics.doc_id = doc.id
+            doc.notes.doc_id = doc.id
             self[doc.id] = doc
         self.load_errors()
         self.load_files()
@@ -204,7 +211,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.errors.doc_id = doc_id
             docerr = DocErr()
             docerr.load_row(row)
             doc.errors[docerr.err_id] = docerr
@@ -217,7 +223,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.users.doc_id = doc_id
             docuser = DocUser()
             docuser.load_row(row)
             doc.users[docuser.username] = docuser
@@ -230,7 +235,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.files.doc_id = doc_id
             docfile = DocFile()
             docfile.load_row(row)
             doc.files[docfile.filename] = docfile
@@ -243,7 +247,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.versions.doc_id = doc_id
             docversion = DocVersion()
             docversion.load_row(row)
             doc.versions[docversion.id] = docversion
@@ -256,7 +259,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.ratings.doc_id = doc_id
             doc.ratings.parent = doc
             docrating = DocRating()
             docrating.load_row(row)
@@ -270,7 +272,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[0]
             doc = self[doc_id]
-            doc.topics.doc_id = doc_id
             doctopic = DocTopic()
             doctopic.load_row(row)
             doc.topics[doctopic.subtopic_code] = doctopic
@@ -283,7 +284,6 @@ class Docs(LampadasCollection):
             if row==None: break
             doc_id = row[1]
             doc = self[doc_id]
-            doc.notes.doc_id = doc_id
             docnote = DocNote()
             docnote.load_row(row)
             doc.notes[docnote.id] = docnote
