@@ -1,43 +1,52 @@
 #!/bin/sh
 
 SCRIPT_NAME=lampadasdb
-DEFAULT_DBNAME=lampadas
 
 usage()
 {
 	echo "\
-Usage: $SCRIPT_NAME { OPTION } ACTION [ DATABASE ]
+Usage: $SCRIPT_NAME { OPTION } ACTION
 
 Where ACTION is one of:
 
-    create         Create new data tables.
-    insert         Insert default values (work on insert.m4)
-    update         Update default values (work on update.m4)
-    drop           Drop all tables.
-    delete         Delete all data.
-    load           Load data from files in \$LAMPADAS_SPOOL.
-    save           Copy data to files in \$LAMPADAS_SPOOL.
+   create           Create new data tables.
+   insert           Insert default values (work on insert.m4)
+   update           Update default values (work on update.m4)
+   drop             Drop all tables.
+   delete           Delete all data.
+   load             Load data from files in \$LAMPADAS_SPOOL.
+   save             Copy data to files in \$LAMPADAS_SPOOL.
 
 Where OPTION can choosen from:
 
-    -h | --help    Write this message and exit.
-    -sql <dir>     Override value of LAMPADAS_SQL
-    -spool <dir>   Override value of LAMPADAS_SPOOL
-    -lang <lang>   insert and update work only on <lang>.m4,
-                   not all languages found 
+   -h | --help      Write this message and exit.
+   -data <dir>      Override value of LAMPADAS_DATA.
+   -db <database>   Override value of LAMPADAS_DB.
+   -spool <dir>     Override value of LAMPADAS_SPOOL.
+   -sql <dir>       Override value of LAMPADAS_SQL.
+   -lang <lang>     Insert and update work only on <lang>.m4,
+                    not all found languages.
 
-LAMPADAS_SQL and LAMPADAS_SPOOL are typically set within setenv.sh.
-Read comments in that file for a description.
-
-Default value for LAMPADAS_SPOOL is /tmp.
-Default value for argument DATABASE is $DEFAULT_DBNAME.
+The environment variables prefixed with 'LAMPADAS_' are typically set
+within setenv.sh. Read comments in that file for a description.
 "
 }
+
+check_var()
+{
+  [ -n "$1" ] && return  
+  echo "Environment variable $2 is not set."
+  echo "Read the comments in file 'setenv.sh' how to fix that."
+  [ -n "$3" ] && echo "You can also use option -$3."
+  exit -1
+}
+
+#---------------------------------------------
 
 find_sql()
 {
   local name=${1:-create}
-  find $LAMPADAS_SQL -type f -name "$@" -maxdepth 2 -mindepth 2
+  find "$LAMPADAS_SQL" -type f -name "$@" -maxdepth 2 -mindepth 2
 }
 
 find_table()
@@ -107,7 +116,7 @@ create()
 
   for name in views.sql indexes.sql permissions.sql; do
     echo "-- ${name}"
-    find_sql ${name} | xargs -r cat
+    find_sql "${name}" | xargs -r cat
   done
 }
 
@@ -146,13 +155,16 @@ m4script()
   make -f $TABLE_ORDER \
   | while read table
   do
-    [ -e $LAMPADAS_SQL/$table/$1.m4 ] || continue
-    find $LAMPADAS_SQL/$table -type f -name "$SQLLANG.m4" \
+    test -e "$LAMPADAS_SQL/$table/$1.m4" -a \
+    	-d "$LAMPADAS_DATA/$table" \
+    || continue
+
+    find $LAMPADAS_DATA/$table -type f -name "$SQLLANG.m4" \
     | while read file
     do
       lang=${file%.m4}
       lang=${lang##*/}
-      echo "-- $table/$lang --"
+      echo "-- $table/$lang -- $table/$1.m4 --"
       m4 -P -DI18N_lang_code=${lang} "$LAMPADAS_SQL/$table/$1.m4" $file
       echo ""
     done
@@ -162,28 +174,19 @@ m4script()
 #---------------------------------------------
 # main()
 
+
 SQLLANG="[A-Z][A-Z]"
 while true; do
-  case "${1}" in
+  case "$1" in
       "" | -h | --help )
 	      usage
 	      exit 1
 	      ;;
-      "-lang" )
-	      shift
-	      SQLLANG=$1
-	      shift
-	      ;;
-      "-sql" )
-	      shift
-	      LAMPADAS_SQL=$1
-	      shift
-	      ;;
-      "-spool" )
-	      shift
-	      LAMPADAS_SQL_SPOOL=$1
-	      shift
-	      ;;
+      "-data" ) shift; LAMPADAS_DATA="$1"; shift ;;
+      "-db" ) shift; LAMPADAS_DB="$1"; shift ;;
+      "-lang" ) shift; SQLLANG="$1"; shift ;;
+      "-spool" ) shift; LAMPADAS_SPOOL="$1"; shift ;;
+      "-sql" ) shift; LAMPADAS_SQL="$1"; shift ;;
       "create" | "drop" | "delete" | "load" | "save" )
               COMMAND=$1
               break
@@ -198,25 +201,15 @@ while true; do
   esac
 done
 
-if [ -z "$LAMPADAS_SQL" ]; then
-  echo "Environment variable LAMPADAS_SQL is not set."
-  echo "Read the comments in file 'setenv.sh' how to fix that,"
-  echo "or use option -sql."
-  exit -1
-fi
+check_var "$LAMPADAS_DATA" "LAMPADAS_DATA" "db"
+check_var "$LAMPADAS_DB" "LAMPADAS_DB" "db"
+check_var "$LAMPADAS_SPOOL" "LAMPADAS_SPOOL" "spool"
+check_var "$LAMPADAS_SQL" "LAMPADAS_SQL" "sql"
 
-[ -n "$LAMPADAS_SPOOL" ] || export LAMPADAS_SPOOL=/tmp
-
-TABLE_ORDER=$LAMPADAS_SPOOL/table_order.mak
-
-if [ $# -gt 2 ]; then
- 	usage
-	exit 1
-fi
-DBNAME=${2:-$DEFAULT_DBNAME}
+TABLE_ORDER="$LAMPADAS_SPOOL/table_order.mak"
 need_rebuild "$TABLE_ORDER" && build_makefile
 
-sql=$LAMPADAS_SPOOL/$1.sql
+sql="$LAMPADAS_SPOOL/$1.sql"
 if need_rebuild "$sql"; then
   echo "Writing $sql"
   (
@@ -227,4 +220,4 @@ if need_rebuild "$sql"; then
   ) > $sql || exit -1
 fi
 echo "Executing $sql" \
-&& psql $DBNAME -qf $sql
+&& psql $LAMPADAS_DB -qf "$sql"
