@@ -9,6 +9,7 @@ psql ldp -qf review_status.sql
 psql ldp -qf role.sql
 psql ldp -qf topic.sql
 psql ldp -qf subtopic.sql
+psql ldp -qf language.sql
 
 psql ldp -qf document.sql
 
