@@ -64,6 +64,14 @@
     </td>
   </tr>
   <tr>
+    <td>
+    	<p><a href="/archive/index.htm?8">news</a></p>
+    </td>
+    <td>
+    	<p>linuxdoc news - small volume list</p>
+    </td>
+  </tr>
+  <tr>
      <td>
         <p><a href="/archive/index.htm?4">cvs-commits</a></p>
      </td>
@@ -95,6 +103,15 @@
         <p>'just testing' list - please ignore</p>
      </td>
   </tr>
+  <tr>
+     <td>
+        <p><a href="/archive/index.htm?6">wheel</a></p>
+     </td>
+     <td>
+        <p>'just testing' list - please ignore</p>
+     </td>
+				        </tr>
+
 <tr>
 	<td colspan="2"><a href="/old/">
 	Old archives to December 2000</a></td>
