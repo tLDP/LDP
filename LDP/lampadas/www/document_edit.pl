@@ -264,7 +264,7 @@ $rev_result = $conn->exec("SELECT rev_id, version, pub_date, initials, notes FRO
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $rev_result->resultStatus;
 
 print "<p><table>\n";
-print "<tr><th>Version</th><th>Date</th><th>Who?</th><th>Notes</th></tr>";
+print "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
 while (@row = $rev_result->fetchrow) {
   $rev_id = $row[0];
   $rev_version = $row[1];
@@ -280,7 +280,7 @@ while (@row = $rev_result->fetchrow) {
 
   print "<td valign=top><input type=text name=rev_version width=12 size=12 value='$rev_version'></input></td>\n";
   print "<td valign=top><input type=text name=rev_date width=12 size=12 value='$rev_date'></input></td>\n";
-  print "<td valign=top><input type=text name=rev_init width=3 size=5 value='$rev_init'></input></td>\n";
+  print "<td valign=top><input type=text name=rev_init width=5 size=5 value='$rev_init'></input></td>\n";
   print "<td><textarea name=rev_note rows=3 cols=40 wrap>$rev_note</textarea>\n";
 
   print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
@@ -298,7 +298,7 @@ print "<input type=hidden name=doc_id value=$doc_id>";
 
 print "<td valign=top><input type=text name=rev_version width=12 size=12></input></td>\n";
 print "<td valign=top><input type=text name=rev_date width=12 size=12></input></td>\n";
-print "<td valign=top><input type=text name=rev_init width=5 size=3></input></td>\n";
+print "<td valign=top><input type=text name=rev_init width=5 size=5></input></td>\n";
 print "<td><textarea name=rev_note rows=3 cols=40 wrap></textarea>\n";
 
 print "<td valign=top></td>\n";
