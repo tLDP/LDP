@@ -20,7 +20,7 @@ insert(index,
             <td class="sidebarleft">
               |blklogo|
             </td>
-            <td class="body" width="100%" colspan="2">
+            <td width="100%" colspan="2">
               |blkheader|
             </td>
 	      </tr>
@@ -60,7 +60,7 @@ insert(default,
             <td class="sidebarleft">
               |blklogo|
             </td>
-            <td class="body" width="100%">
+            <td width="100%">
               |blkheader|
             </td>
 	      </tr>
