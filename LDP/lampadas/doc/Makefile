@@ -1,16 +1,17 @@
-docs = Lampadas.html index.html lampadas.8 lampadasdb.8 lampadasweb.8 lampadas.conf.5
+man = lampadas.1 lampadasdb.1 lampadasweb.1 lampadas.conf.5
+docs = Lampadas.html index.html $(man)
+
 docprefix = /usr/doc
-man8prefix = /usr/share/man/man8
+man1prefix = /usr/share/man/man1
 man5prefix = /usr/share/man/man5
 
 INSTALLDIR = install -d
 INSTALLDOC = install -p -m 644
 
 all:	build
-
 build:	docs
-
 docs:	$(docs)
+man:	$(man)
 
 install: all
 	$(INSTALLDIR) $(docprefix)/lampadas
@@ -18,9 +19,9 @@ install: all
 	$(INSTALLDOC) ../COPYING $(docprefix)/lampadas
 	$(INSTALLDOC) ../CREDITS $(docprefix)/lampadas
 	$(INSTALLDOC) ../README $(docprefix)/lampadas
-	$(INSTALLDOC) lampadas.8 $(man8prefix)/lampadas.8
-	$(INSTALLDOC) lampadasdb.8 $(man8prefix)/lampadasdb.8
-	$(INSTALLDOC) lampadasweb.8 $(man8prefix)/lampadasweb.8
+	$(INSTALLDOC) lampadas.1 $(ma.1prefix)/lampadas.1
+	$(INSTALLDOC) lampadasdb.1 $(ma.1prefix)/lampadasdb.1
+	$(INSTALLDOC) lampadasweb.1 $(ma.1prefix)/lampadasweb.1
 	$(INSTALLDOC) lampadas.conf.5 $(man5prefix)/lampadas.conf.5
 
 clean:
@@ -43,18 +44,21 @@ Lampadas.html:	Lampadas.xml
 Lampadas.xml:	Lampadas.wt
 	wt2db -x Lampadas.wt -o Lampadas.xml
 	
-lampadas.8:	lampadas.sgml
-	docbook-to-man $< > $@
-
-lampadasdb.8:	lampadasdb.sgml
-	docbook-to-man $< > $@
-
-lampadasweb.8:	lampadasweb.sgml
-	docbook-to-man $< > $@
-
-lampadas.conf.5:	lampadas.conf.sgml
-	docbook-to-man $< > $@
-
-preview:	Lampadas.html
+preview: Lampadas.html
 	galeon Lampadas.html
 
+.SUFFIXES: .sgml .1 .5
+
+.sgml.1:
+	if which docbook-to-man; then \
+	  docbook-to-man $< > $@; \
+        else \
+	  docbook2man $<; \
+        fi
+
+.sgml.5:
+	if which docbook-to-man; then \
+	  docbook-to-man $< > $@; \
+        else \
+	  docbook2man $<; \
+        fi
