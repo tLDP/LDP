@@ -484,8 +484,14 @@ class Tables(LampadasCollection):
         command = report.command
         sourcefile = sourcefiles[uri.filename]
 
-        fh = open('/tmp/lampadas_filename.txt', 'w')
+        # Write local filename in case script wants it.
+        fh = open('/tmp/lampadas_localname.txt', 'w')
         fh.write(sourcefile.localname + '\n')
+        fh.close()
+        
+        # Write CVS-relative filename in case script wants it.
+        fh = open('/tmp/lampadas_filename.txt', 'w')
+        fh.write(sourcefile.filename + '\n')
         fh.close()
         
         child_stdin, child_stdout, child_stderr  = os.popen3(command)
