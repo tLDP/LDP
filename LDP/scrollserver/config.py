@@ -16,6 +16,9 @@ SECTION = 0
 FUNC = 1
 DEFAULT = 2
 
+# An exception which will only be raised by this module
+class ConfigError(Exception): pass
+
 def parseConfig():
 	"""
 	The main entry point for this module. This function returns a
