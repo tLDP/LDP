@@ -5,8 +5,8 @@
 # Requirements:
 # 
 # If you use the "ldp:" namespace, you must have wget installed.
-# Wget is used to request a name-to-url conversion from the LDP
-# database, http://db.linuxdoc.org.
+# Wget is used to request an xml record from the LDP # database,
+# http://db.linuxdoc.org.
 # 
 my($txtfile, $dbfile) = '';
 
@@ -102,8 +102,7 @@ sub proc_txt {
 	# read in the text file
 	#
 	open(TXT, "$f") || die "txt2db: cannot open $f ($!)\n";
-	while (<TXT>) {
-		$originalline = $_;
+	while ($originalline = <TXT>) {
 		$line = $originalline;
 		$linenumber++;
 
@@ -122,6 +121,77 @@ sub proc_txt {
 		#
 		$line =~ s/^q:/Q:/;
 		$line =~ s/^a:/A:/;
+
+		# inline docbook
+		#
+		# ulink
+		# 
+		while ($line =~ /\[\[/) {
+			unless ($line =~ /\]\]/) {
+				print "txt2db: ERROR unterminated '[[' tag on line $linenumber.\n";
+				exit(1);
+			}
+
+			# separate link url from link name
+			#
+			$link = $line;
+			$link=~ s/\n//;
+			$link =~ s/.*?\[\[//;
+			$link =~ s/\]\].*?$//;
+			if ( $link =~ /\|/) {
+				$linkname = $link;
+				$link =~ s/\|.+$//;
+				$linkname =~ s/^\S+\|//;
+			} else {
+				$linkname = $link;
+			}
+			
+			# namespaces are handled differently
+			#
+			if ($link =~ /mailto:/) {
+				$linkname =~ s/^mailto://;
+			} elsif ($link =~ /wiki:/) {
+				$link =~ s/^wiki:/http:\/\/www\.wikipedia\.com\/wiki\//;
+				$link =~ s/\ /_/;
+				$linkname =~ s/^wiki://;
+			} elsif ($link =~ /ldp:/) {
+				$link =~ s/^ldp://;
+				$linkname =~ s/^ldp://;
+				$tempfile = "/tmp/txt2db-" . $rand;
+				$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
+				system("$cmd");
+				open(URL, "$tempfile") || die "txt2db: cannot open temporary file ($!)\n";
+				$link = "";
+				while ($url_line = <URL>) {
+					$url_line =~ s/\n//;
+					if ($url_line =~ /identifier/) {
+						$link .= $url_line;
+					}
+				}
+				close(URL);
+				unlink $tempfile;
+				$link =~ s/^.*?<identifier>//;
+				$link =~ s/<\/identifier>.*?$//;
+				if ($link eq '') {
+					$linkname = "ERROR: LDP namespace resolution failure on $linkname";
+				}
+			}			
+			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+		}
+
+		# emphasis
+		#
+		while ($line =~ /'''.*'''/) {
+			$line =~ s/'''/<emphasis>/;
+			$line =~ s/'''/<\/emphasis>/;
+		}
+
+		# filename
+		#
+		while ($line =~ /\[.*?\]/) {
+			$line =~ s/\[/<filename>/;
+			$line =~ s/\]/<\/filename>/;
+		}
 
 		# this block defines DocBook structures that won't be broken up with 
 		# paragraphs when we hit empty lines:
@@ -144,8 +214,6 @@ sub proc_txt {
 		     ($line =~ /^<programlisting>/)) and
 		    ($noparadepth == 0)) { 
 		    	&closepara;
-#			&closenonsect;
-
 			$noparatag = $line;
 			$noparatag =~ s/^.*?<//;
 			$noparatag =~ s/>.*?$//;
@@ -172,6 +240,8 @@ sub proc_txt {
 			#
 			$line = $originalline;
 
+		# structured docbook
+		#
 		# sect3
 		#
 		} elsif ($line =~ /^===/) {
@@ -278,62 +348,6 @@ sub proc_txt {
 			} else {
 				$line .= " ";
 			}
-		}
-
-		# inline docbook
-
-		# ulink
-		# 
-		while ($line =~ /\[\[/) {
-			unless ($line =~ /\]\]/) {
-				print "txt2db: ERROR unterminated '[[' tag on line $linenumber.\n";
-				exit(1);
-			}
-
-			# separate link url from link name
-			#
-			$link = $line;
-			$link =~ s/.*?\[\[//;
-			$link =~ s/\]\].*?$//;
-			if ( $link =~ /\|/) {
-				$linkname = $link;
-				$link =~ s/\|.+$//;
-				$linkname =~ s/^\S+\|//;
-			} else {
-				$linkname = $link;
-			}
-			
-			# namespaces are handled differently
-			#
-			if ($link =~ /mailto:/) {
-				$link =~ s/^mailto://;
-				$linkname =~ s/^mailto://;
-			} elsif ($link =~ /ldp:/) {
-				$link =~ s/^ldp://;
-				$linkname =~ s/^ldp://;
-				$tempfile = "/tmp/txt2db-" . $rand;
-				$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O $tempfile";
-				system("$cmd");
-				open(URL, "$tempfile") || die "txt2db: cannot open temporary file ($!)\n";
-				$link = <URL>;
-				close(URL);
-				unlink $tempfile;
-			}			
-			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
-		}
-
-		# emphasis
-		#
-		while ($line =~ /'''.*'''/) {
-			$line =~ s/'''/<emphasis>/;
-			$line =~ s/'''/<\/emphasis>/;
-		}
-
-		# filename
-		#
-		while ($line =~ /\[.*?\]/) {
-			$line =~ s/\[/<filename>/;
-			$line =~ s/\]/<\/filename>/;
 		}
 
 		$buf .= "$line ";
