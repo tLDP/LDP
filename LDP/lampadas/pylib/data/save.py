@@ -35,7 +35,6 @@ def newdocument(req, username, doc_id,
              review_status_code, tech_review_status_code,
              pub_date, last_update,
              tickle_date, isbn,
-             format_code, dtd_code, dtd_version,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
              abstract, short_desc):
@@ -46,8 +45,9 @@ def newdocument(req, username, doc_id,
     sk_seriesid = process.read()
     process.close()
     
-    newdoc_id = lampadas.docs.add(title, short_title, type_code, format_code, dtd_code,
-            dtd_version, version, last_update, isbn,
+    newdoc_id = lampadas.docs.add(title, short_title, type_code,
+            '', '', '',
+            version, last_update, isbn,
             pub_status_code, review_status_code, tickle_date, pub_date,
             tech_review_status_code, license_code, license_version,
             copyright_holder, abstract, short_desc, lang, sk_seriesid)
@@ -65,7 +65,6 @@ def document(req, username, doc_id,
              review_status_code, tech_review_status_code,
              pub_date, last_update,
              tickle_date, isbn,
-             format_code, dtd_code, dtd_version,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
              abstract, short_desc, sk_seriesid):
@@ -92,9 +91,6 @@ def document(req, username, doc_id,
     doc.version                 = version
     doc.tickle_date             = tickle_date
     doc.ibsn                    = isbn
-    doc.format_code             = format_code
-    doc.dtd_code                = dtd_code
-    doc.dtd_version             = dtd_version
     doc.lang                    = lang
     doc.abstract                = abstract
     doc.short_desc              = short_desc

@@ -29,7 +29,7 @@ This module generates a Database object for accessing a back-end RDBMS
 import pyPgSQL
 from Config import config
 from Log import log
-
+import types
 
 class UnknownDBException(Exception):
     pass
@@ -51,6 +51,12 @@ class Database:
     def execute(self, sql, params=None) :
         if config.log_sql :
             log(3, sql+' '+str(params))
+        
+        for k in params.keys():
+            if type(params[k])==types.StringType:
+                if params[k]=='':
+                    params[k] = None
+        
         cursor = self.connection.cursor()
         cursor.execute(sql,params)
         return cursor

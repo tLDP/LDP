@@ -47,6 +47,7 @@ def random_string(length):
         password += whrandom.choice(chars)
     return password
 
+
 def wsq(astring):
     """
     WSQ stands for "Wrap in Single Quotes". It accepts a string,

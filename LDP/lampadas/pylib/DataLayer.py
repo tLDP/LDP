@@ -236,7 +236,7 @@ class Docs(LampadasCollection):
 
 
     def load_files(self):
-        sql = "SELECT doc_id, filename, top, format_code, filesize, filemode, modified FROM document_file"
+        sql = "SELECT doc_id, filename, top, format_code, dtd_code, dtd_version, filesize, filemode, modified FROM document_file"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -524,7 +524,7 @@ class DocFiles(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, filename, top, format_code FROM document_file WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, filename, top, format_code, dtd_code, dtd_version FROM document_file WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -542,7 +542,7 @@ class DocFiles(LampadasCollection):
 
     def add(self, doc_id, filename, top, format_code=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'INSERT INTO document_file (doc_id, filename, top, format_code) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ')'
+        sql = 'INSERT INTO document_file (doc_id, filename, top, format_code, dtd_code, dtd_version) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ', ' + wsq(dtd_code) + ', ' + wsq(dtd_version) + ')'
         assert db.runsql(sql)==1
         db.commit()
         file = DocFile()
@@ -580,6 +580,9 @@ class DocFile:
 
     def __init__(self, filename=''):
         self.filename = filename
+        self.format_code = ''
+        self.dtd_code    = ''
+        self.dtd_version = ''
         self.filesize    = 0
         self.filemode    = ''
         self.modified    = ''
@@ -589,7 +592,7 @@ class DocFile:
         self.load(filename)
 
     def load(self, filename):
-        sql = 'SELECT doc_id, filename, top, format_code, filesize, filemode, modified FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(filename)
+        sql = 'SELECT doc_id, filename, top, format_code, dtd_code, dtd_version filesize, filemode, modified FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(filename)
         cursor = db.select(sql)
         row = cursor.fetchone()
         if row==None: return
@@ -601,9 +604,11 @@ class DocFile:
         self.filename    = trim(row[1])
         self.top         = tf2bool(row[2]) 
         self.format_code = trim(row[3])
-        self.filesize    = safeint(row[4])
-        self.filemode    = trim(row[5])
-        self.modified    = time2str(row[6])
+        self.dtd_code = trim(row[4])
+        self.dtd_version = trim(row[5])
+        self.filesize    = safeint(row[6])
+        self.filemode    = trim(row[7])
+        self.modified    = time2str(row[8])
         if self.filename[:5]=='http:' or self.filename[:4]=='ftp:' or self.filename[:5]=='file:':
             self.local = 0
         else:
@@ -618,6 +623,8 @@ class DocFile:
         #db.runsql(sql)
         dict = {'top':bool2tf(self.top),
                 'format_code':self.format_code,
+                'dtd_code':self.dtd_code,
+                'dtd_version':self.dtd_version,
                 'doc_id':self.doc_id,
                 'filename':self.filename,
                 'filesize':999,

@@ -121,7 +121,7 @@ def name_fields(cursor,records) :
         result.append(record_dict)
     return result
     
-        
+
 def _test():
     import doctest, sqlgen
     return doctest.testmod(sqlgen)

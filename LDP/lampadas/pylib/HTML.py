@@ -339,8 +339,12 @@ class TableFactory:
         box.write('<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n')
         box.write('<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang))
+        box.write('<th class="label">|strformat|</th>')
+        if doc.format_code > '':
+            box.write('<td>'  + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n')
+        else:
+            box.write('<td></td>\n')
+        box.write('<th class="label">|strdtd|</th><td>' + doc.dtd_code + '</td>\n')
         box.write(' <input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n')

@@ -99,9 +99,6 @@ class Lintadas:
         if doc.pub_status_code<>'N' and doc.pub_status_code<>'A':
             return
 
-        if doc.format_code=='':
-            doc.errors.add(ERR_NO_FORMAT_CODE)
-
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
             doc.errors.add(ERR_NO_SOURCE_FILE)
@@ -122,6 +119,8 @@ class Lintadas:
                 file.errors.clear()
 
                 # Do not check remote files.
+                # FIXME: It should check the local file if it has been
+                # downloaded already.
                 if file.local==0:
                     log(3, 'Skipping remote file ' + filename)
                     continue
@@ -150,10 +149,22 @@ class Lintadas:
                 if self.extensions.has_key(file_extension) > 0:
                     file.format_code = self.extensions[file_extension]
                 
+                # If we were able to read format code, post it to the document,
+                if file.format_code=='':
+                    file.errors.add(ERR_NO_FORMAT_CODE)
+
                 # Determine DTD for SGML and XML files
                 if file.format_code=='xml' or file.format_code=='sgml':
-                    file.dtd = self.read_file_dtd(filename)
-
+                    file.dtd, file.dtd_version = self.read_file_dtd(filename)
+                else:
+                    file.dtd = 'N/A'
+                    file.dtd_version = ''
+                
+                # If this was the top file, post to document.
+                if file.top==1:
+                    doc.format_code = file.format_code
+                    doc.dtd = file.dtd
+                    doc.dtd_version = file.dtd_version
 
                 # FIXME: need a way to keep track of who is managing these fields.
                 # Probably it should be managed by Lampadas, but allow the user
@@ -169,38 +180,37 @@ class Lintadas:
         Determines a file's DTD and DTD version if possible.
         Returns a tuple, (DTD, VERSION).
         """
-        
-        dtd_code = ''
-        fh = open(filename, 'r', 1)
-        line = fh.readline()
-        while line:
-            line = line.upper()
-            pos = line.find('DOCTYPE')
-            if pos > 0:
-                if line.count('DOCBOOK') > 0:
-                    dtd_code = 'DocBook'
-                elif line.count('LINUXDOC') > 0:
-                    dtd_code = 'LinuxDoc'
-                break
-            line = fh.readline()
-        fh.close()
-        return dtd_code
 
-        dtd_version = ''
+        dtd_code, dtd_version = '', ''
         try:
-            command = 'grep -i DOCTYPE ' + filename + ' | head -n 1'
-            grep = os.popen(command, 'r')
-            dtd_version = grep.read()
+            fh = open(filename, 'r', 1)
+            line = fh.readline()
+            while line:
+                line = line.upper()
+                pos = line.find('DOCTYPE')
+                if pos > 0:
+                    dbpos = line.find('DOCBOOK')
+                    ldpos = line.find('LINUXDOC')
+                    if dbpos > 0:
+                        dtd_code = 'DocBook'
+                        pos = dbpos + 9
+                    elif ldpos > 0:
+                        dtd_code = 'LinuxDoc'
+                        pos = ldpos + 10
+                    if dtd_code > '':
+                        if line.find('XML') > 0:
+                            pos = pos + 4
+                        pos2 = line.find('//', pos)
+                        if pos2 > 0:
+                            dtd_version = line[pos:pos2]
+                            break
+                line = fh.readline()
+            fh.close()
+
         except IOError:
             pass
-
-        dtd_version = dtd_version.upper()
-        if dtd_version.count('DOCBOOK') > 0:
-            doc.dtd_code = 'DocBook'
-        elif dtd_version.count('LINUXDOC') > 0:
-            doc.dtd_code = 'LinuxDoc'
-        else:
-            doc.dtd_code = ''
+            
+        return dtd_code, dtd_version
 
 
 lintadas = Lintadas()
