@@ -15,7 +15,6 @@ types_globals = globals()
 _types = {}
 
 def registerType(type):
-    print 'Registering %s meta_type in Lampadas' % type.meta_type
     _types[type.meta_type] = type
     
 def listTypes():
@@ -24,10 +23,6 @@ def listTypes():
 def initialize(context):
     import cmf_types        
 
-    print 'Initializing Lampadas product.'
-    print 'dir() is ', dir()
-    print 'dir(cmf_types) is ', dir(cmf_types)
-    
     homedir = package_home(globals())
     edit_dir = view_dir = os.path.join(homedir, 'skins', 'lampadas_templates')
     script_dir = os.path.join(homedir, 'skins', 'lampadas_scripts')
