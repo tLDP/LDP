@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #  -*- Python -*-
 
 """Complicated notification for CVS checkins.
