@@ -1,0 +1,2519 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [
+
+<!ENTITY mac "<acronym>MAC</acronym>">
+<!ENTITY stp "<acronym>STP</acronym>">
+<!ENTITY arp "<acronym>ARP</acronym>">
+
+]>
+
+<article lang="en">
+
+  <title>Linux BRIDGE-STP-HOWTO</title>
+  <subtitle>About The Linux Modular Bridge And STP</subtitle>
+
+  <artheader>
+
+    <author>
+      <firstname>Uwe</firstname>
+      <surname>Böhme</surname>
+      <affiliation>
+        <address>
+          <street>Johann-Heinrich-Abt-Straße 7</street>
+          <postcode>95213</postcode>
+          <city>Münchberg</city>
+          <country>Germany</country>
+          <phone>+49/9251 960877</phone>
+          <fax>+49/9251 960878</fax>
+          <email>uwe@bnhof.de</email>
+        </address>
+      </affiliation>
+    </author>
+
+    <author>
+      <firstname>Lennert</firstname>
+      <surname>Buytenhenk</surname>
+      <authorblurb>
+        <para>He made the bridge fly.</para>
+      </authorblurb>
+      <affiliation>
+        <jobtitle>bridge code maintainer and developer</jobtitle>
+        <orgname>gnu.org</orgname>
+        <address>
+          <email>buytenh@gnu.org</email>
+        </address>
+      </affiliation>
+      <contrib>The source, a lot of useful advice,documentation of STP,
+        comments to message logs, typo correction,devices and encouragement.
+      </contrib>
+    </author>
+
+    <copyright>
+      <year>2000
+      </year>
+      <holder>Uwe Böhme
+      </holder>
+    </copyright>
+
+    <releaseinfo>Still draft</releaseinfo>
+
+    <revhistory>
+      <revision>
+        <revnumber>v0.00
+        </revnumber>
+        <date>01 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>Initial Release.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v1.01
+        </revnumber>
+        <date>07 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>Applied patch from Lennert.
+          Corrected some syntactical errors.
+          Completed some brctl commands.
+          Added test output and description.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v1.02
+        </revnumber>
+        <date>08 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>More typo and grammar corrections.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v1.03
+        </revnumber>
+        <date>09 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>The usual typo.
+          Applied Lennert's explanations about the message logs of the pull-the-plug-test.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v1.04
+        </revnumber>
+        <date>11 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>The usual typo.
+          Applied ultimate test dumps.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v1.05
+        </revnumber>
+        <date>17 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>System freeze remark. Modified style sheet.
+        </revremark>
+      </revision>
+
+      <revision>
+        <revnumber>v0.01
+        </revnumber>
+        <date>25 June 2000
+        </date>
+        <authorinitials>U.B.
+        </authorinitials>
+        <revremark>Changes name from BRIDGE-HOWTO to BRIDGE-STP-HOWTO (avoid
+          interference with BRIDGE-HOWTO by Christopher Cole) and restart
+          Version numbering (we where already too far).
+          Lennert Buytenhenk announced as coauthor.
+        </revremark>
+      </revision>
+
+    </revhistory>
+
+    <legalnotice>
+      <para>All files are copyrighted by their mentioned
+        author or organization as mentioned in the file.
+        This file may be distributed or modified
+	according to the terms of
+        <ulink url="http://www.linuxdoc.org/COPYRIGHT.html">LDP
+         Copyright</ulink>.
+      </para>
+      <para><xref linkend="what-is-a-bridge"> is based on the introduction to
+        the BRIDGE-HOWTO by
+	<author>
+	  <firstname>Christopher</firstname>
+	  <surname>Cole</surname>
+	  <affiliation>
+	    <address>
+              <email>
+                <ulink type="mail" url="mailto:cole@coledd.com">cole@coledd.com
+                </ulink>
+              </email>
+	    </address>
+          </affiliation>
+        </author>
+	Published v1.11, 7 September 1998 with LDP-Copyright.
+      </para>
+    </legalnotice>
+
+  </artheader>
+
+  <abstract>
+    <para>This document describes how to setup a bridge with the
+      recent kernel patches and brctl utility by Lennert Buytenhek.
+      With developer kernel 2.3.47 the new bridging code is part
+      of the mainstream.
+      On 20.06.2000 there are patches for stable kernels 2.2.14
+      and 2.2.15.
+      What happend if a penguin crosses a bridge?
+
+    </para>
+  </abstract>
+
+<sect1 id="license">
+  <title>License
+  </title>
+
+  <para>Copyright (c) 2000 by Uwe Böhme.
+    This document may be distributed only subject to the terms and conditions
+    set forth in the <ulink url="../COPYRIGHT.html"><acronym>LDP</acronym> License</ulink> available at
+    <ulink url="http://sunsite.unc.edu/LDP/LICENSE.html">http://sunsite.unc.edu/LDP/LICENSE.html</ulink>
+  </para>
+
+</sect1>
+
+<sect1 id="what-is-a-bridge">
+  <title>What Is A Bridge?</title>
+
+  <para>A bridge is a device that separates two or more network segments
+    within one logical network (e.g. IP-subnet).
+  </para>
+
+  <para>A bridge is usually placed between two separate groups of computers
+    that talk with each other, but not that much with the computers in
+    the other group.
+    A good example of this is to consider a cluster of Macintoshes and a
+    cluster of Unix machines.
+    Both of these groups of machines tend to be quite chatty amongst
+    themselves, and the traffic they produce on the network causes
+    collisions for the other machines who are trying to speak to one
+    another.
+  </para>
+
+  <para>The job of the bridge is to examine the destination of the
+    data packets one at a time and decide whether or not to pass the
+    packets to the other side of the Ethernet segment.
+    The result is a faster, quieter network with less collisions.
+  </para>
+
+  <para>The bridging code decides whether to bridge data or to drop it not
+    by looking at the protocol type (IP, IPX, NetBEUI), but by looking at
+    the &mac;-address unique to each NIC.
+  </para>
+
+  <important>
+    <para>It's vital to understand that a bridge is neither a router nor
+      a fire-wall.
+      Spoken in simple term a bridge behaves like a network switch
+      (i.e. Layer 2 Switch), making it a transparent network component
+      (which is not absolutely true, bat nearly).
+      Read more about this at <xref linkend="rules-on-bridging">.
+    </para>
+  </important>
+
+  <para>In addition, you can overcome hardware incompatibilities with a
+    bridge, without leaving the address-range of your IP-net or subnet.
+    E.g. it's possible to bridge between different physical media like
+    10 Base T and 100 Base TX.
+  </para>
+
+  <para>My personal reason for starting to set up a bridge was that in my
+    work I had to connect Fast Ethernet components to a existing HP
+    Voice Grade network, which is a proprietary networking standard.
+  </para>
+
+  <variablelist>
+    <title>Features Above Pure Bridging</title>
+
+    <varlistentry>
+      <term>STP</term>
+      <listitem>
+        <para>The Spanning Tree Protocol is a nifty method of keeping
+          Ethernet devices connected in multiple paths working.
+          The participating switches negotiate the shortest available path
+          by STP.
+          This feature will be discussed in
+          <xref linkend="stp">.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term>Multiple Bridge Instances</term>
+      <listitem>
+        <para>Multiple bridge instances allow you to have more than one
+          bridge on your box up and running, and to control each instance
+          separately.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term>Fire-walling</term>
+      <listitem>
+        <para>There is a patch to the bridging code which allows you
+          to use IP chains on the interface inside a bridge.
+          More info about this you'll find at
+          <xref linkend="ipchains">.
+        </para>
+      </listitem>
+    </varlistentry>
+
+  </variablelist>
+
+</sect1>
+
+
+<sect1 id="rules-on-bridging">
+  <title>Rules On Bridging</title>
+
+  <para>There is a number of rules you are not allowed to break
+    (otherwise your bridge does).
+  </para>
+
+  <itemizedlist spacing="compact">
+    <listitem>
+      <para>A port can only be a member of one bridge.
+      </para>
+    </listitem>
+    <listitem>
+      <para>A bridge knows nothing about routes.
+      </para>
+    </listitem>
+    <listitem>
+      <para>A bridge knows nothing about higher protocols than &arp;.
+        That's the reason why it can bridge any possible protocol
+        possibly running on your Ethernet.
+      </para>
+    </listitem>
+    <listitem>
+      <para>No matter how many ports you have in your logical bridge,
+        it's covered by only one logical interface
+      </para>
+    </listitem>
+    <listitem>
+      <para>As soon as a port (e.g. a NIC) is added to a bridge you have no
+        more direct control about it.
+      </para>
+    </listitem>
+  </itemizedlist>
+
+  <warning>
+    <para>If one of the points mentioned above is not clear to you now,
+      don't continue reading.
+      Read the documents listed in <xref linkend="recommended-reading">
+      first.
+    </para>
+  </warning>
+
+  <para>If you ever tried to ping an unmanaged switch, you will know that
+    it doesn't work, because you don't have a IP-address for it.
+    To switch datagrams it doesn't need one.
+    The other thing is if you want to manage the switch.
+    It's too much strain, to take a dumb terminal, walk to the
+    place you installed it (normally a dark, dusty and warm
+    room, with a lot of green and red Christmas lights), to connect the
+    terminal and to change the settings.
+  </para>
+
+  <para>What you want is remote management, usually by SNMP, telnet, rlogin
+    or (best) ssh.
+    For all this services you will need a IP.
+    That's the exception to the transparency.
+    The new code allows you without any problem to assign a IP address to
+    the virtual interface formed by the bridge-instance you will create
+    in <xref linkend="basic-setup">.
+    All NIC's (or other interfaces) in your bridge will happily listen and
+    respond to datagrams destined to this IP.
+  </para>
+
+  <para>All other data will not interfere with the bridge.
+    The bridge just acts like a switch.
+  </para>
+
+</sect1>
+
+
+<sect1 id="preparing-the-bridge">
+  <title>Preparing The Bridge</title>
+  <para>This section describes what you need and how you do to prepare
+    your bridge.
+  </para>
+
+  <sect2 id="get-the-files">
+    <title>Get The Files</title>
+    <para>Here you can find a list of the files and down-loads you will need
+      for the setup of the bridge.
+      If you have one of the mentioned files or packages on your
+      distribution, of course there is no need to create network load.
+    </para>
+    <para>I'll only mention the files for the 2.2.14 kernel.
+      If you want to try a different one (e.g. 2.2.15 or the recent
+      development kernel) just replace the kernel version number and
+      look whether you find it.
+    </para>
+
+
+    <variablelist>
+      <title>File and package list</title>
+
+      <varlistentry>
+        <term>Unpatched kernel-sources</term>
+        <listitem>
+          <para>E.g. <filename>linux-2.2.14.tar.bz2</filename> available
+            from your local kernel.org mirror.
+            Please check first if you find it in your distribution (take
+            unpatched kernel-sources).
+            If you don't, please check
+            <ulink url="http://www.kernel.org/mirrors/">The Linux Kernel
+            Archive Mirror System</ulink> for a close by mirror and down-load
+            it from there.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Bridge patches</term>
+        <listitem>
+          <note>
+            <para>If your kernel is later than 2.3.47 you don't need this.
+              The bridging is part of the mainstream from that version.
+            </para>
+          </note>
+          <para>Get the bridge kernel patches for your kernel
+            version from
+            <ulink type="http" url="http://www.openrock.net/bridge/">http://www.openrock.net/bridge/</ulink>.
+            Identify the file by the kernel number.
+          </para>
+          <para>
+            <note>
+              <para>There are also patches allowing to work with IP chains.
+                I never tried it, for I don't see the need to fire-wall
+                inside my LAN, and absolutely no need to bridge against
+                the outer world. Feel free to contribute about that issue.
+              </para>
+            </note>
+          </para>
+          <formalpara>
+            <title>Kernel patches for the stable 2.2 kernel</title>
+            <para>
+          <itemizedlist>
+            <listitem>
+               <para><ulink url="ftp://openrock.net/bridge/patches/bridge-0.0.5-against-2.2.14.diff">bridge-0.0.5-against-2.2.14.diff</ulink>
+               </para>
+            </listitem>
+            <listitem>
+               <para><ulink url="ftp://openrock.net/bridge/patches/bridge-0.0.5-against-2.2.15.diff">bridge-0.0.5-against-2.2.15.diff</ulink>
+               </para>
+            </listitem>
+          </itemizedlist>
+	      </para>
+          </formalpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Bridge configuration utilities</term>
+        <listitem>
+          <para>You also will need the bridge configuration utilities to
+            set up the bridge <xref linkend="set-up-the-bridge">.
+            You can also download them from
+            <ulink type="http" url="http://www.openrock.net/bridge/">http://www.openrock.net/bridge/</ulink>.
+            The current one (as of this writing) is <filename>bridge-utils-0.9.1.tar.gz</filename>.
+            <ulink url="ftp://openrock.net/bridge/bridge-utils/bridge-utils-0.9.1.tar.gz">bridge-utils-0.9.1.tar.gz</ulink>.
+          </para>
+        </listitem>
+      </varlistentry>
+
+    </variablelist>
+  </sect2>
+
+  <sect2 id="apply-the-patches">
+    <title>Apply The Patches</title>
+
+    <note>
+      <para>If your kernel is later than 2.3.47 you don't need this.
+        The bridging is part of the mainstream from that version.
+      </para>
+    </note>
+
+    <para>Apply the bridging patch your kernel.
+      If you don`t know <emphasis>how to</emphasis> do that read the
+      Kernel-HOWTO which can be found in your distribution or at
+      <ulink type="http" url="http://sunsite.unc.edu/LDP/HOWTO/HOWTO-INDEX.html">http://sunsite.unc.edu/LDP/HOWTO/HOWTO-INDEX.html
+      </ulink>
+    </para>
+
+    <example id="apply-kernel-patch-sample">
+      <title>Applying a kernel patch</title>
+      <screen width="80">
+root@mbb-1:~ # cd /usr/src/linux-2.2.14
+root@mbb-1:/usr/src/linux-2.2.14 # patch -p1 &lt; \
+    <userinput>bridge-0.0.5-against-2.2.14.diff</userinput>
+.
+.
+      </screen>
+    </example>
+
+  </sect2>
+
+  <sect2 id="configure-the-kernel">
+    <title>Configure The Kernel</title>
+
+    <para>Now it's time we configure our freshly patched kernel to create
+      the ability to bridge.
+    </para>
+    <para>Run <command>make&nbsp;config</command>,
+      <command>make&nbsp;menuconfig</command> or the
+      <acronym>click-o-rama</acronym> <command>make&nbsp;xconfig</command>.
+      Select <command>bridging</command> in the <command>networking
+      option</command> section to be compiled as a module.
+      AFAIK there is no strong reason why <emphasis>not</emphasis> to
+      compile it as a kernel module, whereas I heard rumors about
+      problems with compiling the bridging code directly into the kernel.
+    </para>
+    <informalexample>
+      <screen width="80">
+root@mbb-1:~ # cd /usr/src/linux-2.2.14
+root@mbb-1:/usr/src/linux-2.2.14 # make menuconfig
+.
+      </screen>
+    </informalexample>
+
+  </sect2>
+
+  <sect2 id="compile-the-kernel">
+    <title>Compile The Kernel</title>
+
+    <para>Compile your kernel <xref linkend="kernel-compile-commands">.
+      Make the new compiled kernel-image to be loaded.
+      I don't know if the kernel patches only apply to the bridging-module
+      or also modify some interfaces inside <filename>vmlinuz</filename>.
+      So it might not be a error to give a reboot after you updated the
+      kernel-image.
+    </para>
+
+    <example id="kernel-compile-commands">
+      <title>Commands To Compile Your Kernel</title>
+      <screen width="85">
+root@mbb-1:/usr/src/linux-2.2.14 # make dep clean zImage modules modules_install zlilo
+...
+      </screen>
+    </example>
+
+  </sect2>
+
+
+  <sect2 id="compile-the-utils">
+    <title>Compile The Bridge Utilities</title>
+
+    <para>There is no magic about it.
+      Just <command>unzip</command> the utilities-tarball, <command>cd</command>
+      into the newly created directory and give a <command>make</command>.
+    </para>
+
+    <example id="utils-compile-commands">
+      <title>Commands To Compile Your Bridge-Utilities</title>
+      <screen width="85">
+root@mbb-1:/usr/src/linux-2.2.14 # cd /usr/local/src
+root@mbb-1:/usr/local/src/ # tar xzvf <userinput>bridge-utils-0.9.1.tar.gz</userinput>
+.....
+....
+root@mbb-1:/usr/local/src # cd bridge
+root@mbb-1:/usr/local/src/bridge # make
+.....
+....
+      </screen>
+    </example>
+
+    <para>After the compilation shown in
+      <xref linkend="utils-compile-commands"> have worked properly, you
+      can copy the executables to let's say
+      <filename class="directory">/usr/sbin/</filename> (at least I did).
+      So the commands you have to give should be clear, but to be complete
+      see <xref linkend="utils-copy-binaries">
+    </para>
+
+    <example id="utils-copy-binaries">
+      <title>Copy The Binaries Of The Utilities</title>
+      <screen width="85">
+root@mbb-1:/usr/local/src/bridge # cd brctl
+root@mbb-1:/usr/local/src/bridge/brctl # cp brctl /usr/bin/local
+root@mbb-1:/usr/local/src/bridge/brctl # chmod 700 /usr/bin/local/brctl
+root@mbb-1:/usr/local/src/bridge/brctl # cp brctld /usr/bin/local
+root@mbb-1:/usr/local/src/bridge/brctl # chmod 700 /usr/bin/local/brctld
+      </screen>
+    </example>
+
+    <para>Also now you can copy the new man-page to a decent place,
+      as shown in <xref linkend="utils-copy-manpage">.
+    </para>
+
+    <example id="utils-copy-manpage">
+      <title>Copy The Man-page Of brctl</title>
+      <screen width="85">
+root@mbb-1:/usr/local/src/bridge # cd doc
+root@mbb-1:/usr/local/src/bridge/doc #  gzip -c brctl.8 > /usr/local/man/man8/brctl.8.gz
+      </screen>
+    </example>
+
+  </sect2>
+
+</sect1>
+
+<sect1 id="set-up-the-bridge">
+  <title>Set Up The Bridge</title>
+  <titleabbrev>setup</titleabbrev>
+
+  <para>Make sure all your network cards are working nicely
+    and are accessible.
+    If so, <command>ifconfig</command> will show you the hardware layout
+    of the network-interface.
+    If you have problems making your cards work please read the
+    Ethernet-HOWTO at
+    <ulink type="http" url="http://sunsite.unc.edu/LDP/HOWTO/HOWTO-INDEX.html">http://sunsite.unc.edu/LDP/HOWTO/HOWTO-INDEX.html
+    </ulink>.
+    Don't mess around with IP-addresses or net-masks.
+    You will not need it, until you bridge fully operational an up.
+  </para>
+
+  <para>After you did the steps mentioned above a
+    <command>modprobe -v bridge</command> should show no errors.
+    Also for each of the network cards you want to use in the bridge
+    the <command>ifconfig <userinput>whateverNameYourInterfaceHas</userinput></command>
+    should give you some information about the interface.
+  </para>
+
+  <para>If your <application>bridge-utilities</application> have been
+    correctly built and your kernel and bridge-module are OK, then
+    issuing a <command>brctl</command> should show a small command
+    synopsis.
+  </para>
+
+  <sect2 id="brctl-synopsis">
+    <title><command>brctl</command> Command Synopsis</title>
+
+    <para>
+      <screen width="90">
+root@mbb-1:~ # brctl
+commands:
+    addbr           &lt;bridge>                add bridge                      <co id="brctl-addbr">
+    addif           &lt;bridge> &lt;device>       add interface to bridge         <co id="brctl-addif">
+    delbr           &lt;bridge>                delete bridge                   <co id="brctl-delbr">
+    delif           &lt;bridge> &lt;device>       delete interface from bridge    <co id="brctl-delif">
+    show                                    show a list of bridges          <co id="brctl-show">
+    showbr          &lt;bridge>                show bridge info                <co id="brctl-showbr">
+    showmacs        &lt;bridge>                show a list of mac addrs        <co id="brctl-showmacs">
+
+    setageing       &lt;bridge> &lt;time>         set ageing time                 <co id="brctl-setageing">
+    setbridgeprio   &lt;bridge> &lt;prio>         set bridge priority             <co id="brctl-setbridgeprio">
+    setfd           &lt;bridge> &lt;time>         set bridge forward delay        <co id="brctl-setfd">
+    setgcint        &lt;bridge> &lt;time>         set garbage collection interval <co id="brctl-setgcint">
+    sethello        &lt;bridge> &lt;time>         set hello time                  <co id="brctl-sethello">
+    setmaxage       &lt;bridge> &lt;time>         set max message age             <co id="brctl-setmaxage">
+    setpathcost     &lt;bridge> &lt;port> &lt;cost>  set path cost                   <co id="brctl-setpathcost">
+    setportprio     &lt;bridge> &lt;port> &lt;prio>  set port priority               <co id="brctl-setportprio">
+    stp             &lt;bridge> &lt;state>        {dis,en}able stp                <co id="brctl-stp">
+      </screen>
+
+    </para>
+
+    <calloutlist>
+
+      <callout arearefs="brctl-addbr brctl-delbr">
+
+        <para>The
+          <command>brctl addbr <userinput>bridgename</userinput></command>
+          command creates a logical bridge instance with the name
+          <userinput>bridgename</userinput>.
+          You will need at least one logical instance to do any bridging at
+          all.
+          You can interpret the logical bridge being a container for the
+          interfaces taking part in the bridging.
+          Each bridging instance is represented by a new network interface.
+        </para>
+
+        <example id="create-a-instance">
+          <title>Creating A Instance</title>
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl addbr mybridge1]]>
+         </screen>
+       </example>
+
+        <para>The corresponding <quote>shutdown</quote> command is
+          <command>brctl delbr <userinput>bridgename</userinput></command>.
+          <caution>
+            <para><command>brctl delbr <userinput>bridgename</userinput></command>
+              will only work, if there are no more interfaces added to the
+              instance you want to delete.
+            </para>
+          </caution>
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-addif brctl-delif">
+
+        <para>The
+          <command>brctl addif <userinput>bridgename</userinput>
+          <userinput>device</userinput></command>
+          command enslaves the network device <userinput>device</userinput>
+          to take part in the bridging of <userinput>bridgename</userinput>.
+          As a simple explanation, each interface enslaved into a instance
+          is bridged to the other interfaces of the instance.
+        </para>
+
+        <para>The corresponding command to tale a interface out of the bridge
+           would be
+           <command>brctl delif <userinput>bridgename</userinput>
+           <userinput>device</userinput></command>
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-show">
+
+        <para>The <command>brctl show</command> command gives you a summary
+          about the overall bridge status, and the instances running as
+          shown in <xref linkend="brctl-show-output">.
+          If you are interested in detailed information about a instance and
+          it's interfaces you will have to check <xref linkend="brctl-showbr">.
+        </para>
+
+        <example id="brctl-show-output">
+          <title>Output Of <command>brctl show</command></title>
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl show
+bridge name     bridge id               stp enabled
+mybridge1       0000.0800062815f6       yes]]>
+          </screen>
+        </example>
+
+      </callout>
+
+      <callout arearefs="brctl-showbr">
+
+        <para>The <command>brctl showbr <userinput>bridgename</userinput></command>
+          command gives you a summary about a bridge instance and it's enslaved
+          interfaces.
+        </para>
+
+        <example id="brctl-showbr-output">
+          <title>Output Of <command>brctl showbr <userinput>bridgename</userinput></command></title>
+            <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl showbr mybridge1
+mybridge1
+ bridge id              0000.0800062815f6
+ designated root        0000.0800062815f6
+ root port                 0                    path cost                  0
+ max age                   4.00                 bridge max age             4.00
+ hello time                1.00                 bridge hello time          1.00
+ forward delay             4.00                 bridge forward delay       4.00
+ ageing time             300.00                 gc interval                4.00
+ hello timer               0.84                 tcn timer                  0.00
+ topology change timer     0.00                 gc timer                   1.84
+ flags
+
+
+eth0 (1)
+ port id                8001                    state                   forwarding
+ designated root        0000.0800062815f6       path cost                100
+ designated bridge      0000.0800062815f6       message age timer          0.00
+ designated port        8001                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.84
+ flags
+
+eth1 (2)
+ port id                8002                    state                   forwarding
+ designated root        0000.0800062815f6       path cost                100
+ designated bridge      0000.0800062815f6       message age timer          0.00
+ designated port        8002                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.84
+ flags]]>
+          </screen>
+        </example>
+
+      </callout>
+
+
+      <callout arearefs="brctl-showmacs">
+        <para>The <command>brctl showmacs <userinput>bridgename</userinput></command>
+          command gives you a list of &mac;-addresses of the
+          interfaces which are enslaved in <userinput>bridgename</userinput>.
+        </para>
+
+        <example id="brctl-showmacs-output">
+          <title>Output Of <command>brctl showmacs <userinput>bridgename</userinput></command></title>
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl showmacs mybridge1
+port no mac addr                is local?       ageing timer
+  1     00:10:4b:b6:c6:e4       no               119.25
+  1     00:50:04:43:82:85       no                 0.00
+  1     00:50:da:45:45:b1       no                76.75
+  1     00:a0:24:d0:4c:d6       yes                0.00
+  1     00:a0:24:f0:22:71       no                 5.81
+  1     08:00:09:b5:dc:41       no                22.22
+  1     08:00:09:fb:39:a1       no                27.24
+  1     08:00:09:fc:92:2c       no                53.13
+  4     08:00:09:fc:d2:11       yes                0.00
+  1     08:00:09:fd:23:88       no               230.42
+  1     08:00:09:fe:0d:6f       no               144.55]]>
+          </screen>
+        </example>
+
+      </callout>
+
+      <callout arearefs="brctl-setageing">
+
+        <para>Sets the aging time.
+          The aging time is the number of seconds a &mac;-address will be
+          kept in the forwarding database after having received a packet
+          from this &mac; address.
+          The entries in the forwarding database are periodically timed out
+          to ensure they won't stay around forever.
+          Normally there should be no need to modify this parameter.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-setbridgeprio">
+
+        <para>Sets the bridge's relative priority.
+          The bridge with the lowest priority will be elected as the root
+          bridge.
+          The root bridge is the <quote>central</quote> bridge in the
+          spanning tree.
+          More information about &stp; you find at
+          <xref linkend="stp">.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-setfd">
+
+        <para>Sets the forwarding delay time.
+          The forwarding delay time is the time spent in each of the
+          Listening and Learning states before the Forwarding state is
+          entered.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-setgcint">
+
+        <para>Sets the garbage collection interval.
+          Every (this number) seconds, the entire forwarding database is
+          checked for timed-out entries.
+          The timed-out entries are removed.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-sethello">
+
+        <para>Sets the hello time.
+          Every (this number) seconds, a hello packet is sent out by the Root
+          Bridge and the Designated Bridges.
+          Hello packets are used to communicate information about the topology
+          throughout the entire Bridged Local Area Network.
+          More information about &stp; you find at
+          <xref linkend="stp">.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-setmaxage">
+
+        <para>Sets the maximum message age.
+          If the last seen (received) hello packet is more than this number
+          of seconds old, the bridge in question will start the takeover
+          procedure in attempt to become the Root Bridge itself.
+          More information about &stp; you find at
+          <xref linkend="stp">.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-setpathcost">
+
+        <para>Sets the cost of receiving (or sending, I'm not sure) a packet
+          on this interface.
+          Faster interfaces should have lower path costs.
+          These values are used in the computation of the minimal spanning
+          tree.
+          More information about &stp; you find at
+          <xref linkend="stp">.
+          Paths with lower costs are likelier to be used in the spanning tree
+          than high-cost paths
+          (As an example, think of a gigabit line with a 100Mbit or 10Mbit
+          line as a backup line.
+          You don't want the 10/100Mbit line to become the primary line there.)
+        </para>
+
+        <para>
+          The Linux implementation currently sets the path cost of all eth*
+          interfaces to 100, the nominal cost for a 10Mbit connection. There is
+          unfortunately no easy way to discern 10Mbit from 100Mbit from 1Gbit
+          Ethernet cards, so the bridge cannot use the real interface speed.
+        </para>
+
+      </callout>
+
+      <callout arearefs="brctl-stp">
+        <para>With this parameter you can enable or disable the Spanning Tree
+          Protocol.
+        </para>
+      </callout>
+
+      <callout arearefs="brctl-setbridgeprio brctl-sethello brctl-setpathcost brctl-stp">
+
+        <para>This parameters are only of interest, if you have more than
+          one bridge in your LAN and stp enabled.
+          Before modifying them you should read
+          <xref linkend="stp">.
+        </para>
+
+      </callout>
+
+    </calloutlist>
+
+  </sect2>
+
+  <sect2 id="basic-setup">
+    <title>Basic Setup</title>
+
+    <para>The standard configuration should consist of:
+    </para>
+
+    <orderedlist spacing="compact">
+
+      <listitem>
+        <para>Create the bridge interface.
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl addbr mybridge]]>
+          </screen>
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>Add interfaces to the bridge.
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # brctl addif mybridge eth0
+root@mbb-1:~ # brctl addif mybridge eth1]]>
+          </screen>
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>Zero IP the interfaces.
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # ifconfig eth0 0.0.0.0
+root@mbb-1:~ # ifconfig eth1 0.0.0.0]]>
+          </screen>
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>Optionally you can configure the virtual interface
+          <userinput>mybridge</userinput> to take part in your network.
+          It behaves like one interface (like a normal network card).
+          Exactly that way you configure it.
+          <screen width="80"><![CDATA[
+root@mbb-1:~ # ifconfig mybridge 192.168.100.5 netmask 255.255.255.0 up]]>
+          </screen>
+        </para>
+      </listitem>
+
+    </orderedlist>
+
+    <para>A more sophisticated setup script you will find at
+      <xref linkend="bridge-init-script">.
+    </para>
+
+    <important>
+
+      <para>If you get the terrible experience of a frozen system or
+        some nasty behavior of your nicely shaped linux box at
+        <screen width="80">
+root@mbb-1:~ # ifconfig eth<userinput>n</userinput> 0 0.0.0.0
+        </screen>
+        please try (after the reboot of the system if necessary)
+        before starting any bridge stuff at all a
+        <screen width="80">
+root@mbb-1:~ # ifconfig eth<userinput>n</userinput> promisc up
+        </screen>
+        If again your system is frozen it's you NIC's driver you have to blame,
+        not the bridging code.
+      </para>
+
+    </important>
+
+  </sect2>
+
+</sect1>
+
+
+<sect1 id="advanced-bridge">
+  <title>Advanced Bridge Features</title>
+
+  <para>Here we will cover some advanced features of the new bridge code.
+  </para>
+
+  <sect2 id="stp">
+    <title>Spanning Tree Protocol</title>
+    <titleabbrev>STP</titleabbrev>
+
+    <formalpara>
+      <title>Tell me...</title>
+
+      <para>
+          <itemizedlist>
+            <listitem>
+              <para>You are a networkadmin...?
+              </para>
+            </listitem>
+            <listitem>
+              <para>You have a switch on top of your ethernet tree...?
+              </para>
+            </listitem>
+            <listitem>
+              <para>You have nightmares of a switch emmiting smoke...?
+              </para>
+            </listitem>
+            <listitem>
+              <para>Your company is not extremely rich and con provide
+              another redundant switch just waiting for you to plug the
+              patchwires..?
+              </para>
+            </listitem>
+            <listitem>
+              <para>You don't feel like placing your bed close to your
+              main network node to plug the wires...?
+              </para>
+            </listitem>
+          </itemizedlist>
+      </para>
+
+    </formalpara>
+
+    <formalpara>
+      <title>Don't wait until you're just another nervous wreck</title>
+      <para>Join linux bridge community and enjoy the relaxment a
+        stp-enabled inhouse scenario is offering to you.
+      </para>
+    </formalpara>
+
+    <para>Ok, let's leave that commercial and get back linux and the bridge.
+      Take a look on this small thread from the linux-bridge mailing list.
+    </para>
+
+    <qandaset defaultlabel="none">
+      <title>STP Thread from bridge@openrock.net</title>
+
+      <qandaentry>
+
+        <question>
+          <para>Could you give me some hints about multi-bridge scenarios.
+          </para>
+        </question>
+
+        <answer>
+          <para>You can just set up two <quote>mirrored</quote> bridges.
+            You have two network interfaces in your bridge?
+            Set up the mirror bridge so that it has two network interfaces
+            as well, and connect each of the interfaces to one subnet.
+            This will work without the need of configuration.
+          </para>
+
+          <para>
+            <note>
+              <para>Be sure that you have the spanning tree protocol
+                enabled.
+                If you didn't use <command>brctl</command>, this should
+                be fine, because in Linux, it is on by default.
+                To check, you could check whether the bridge sends a
+                packet to <computeroutput>0180c2000000</computeroutput>
+                every 2 seconds.
+                If it does, the &stp; is on.
+                The &stp; is needed so that only one bridge will be active
+                at any given time.
+              </para>
+            </note>
+  	</para>
+
+          <para>
+            The <quote>master</quote> bridge will send out &stp; packets every
+            2 seconds by default.
+            The <quote>slave</quote> bridge will receive these packets,
+            and will notice that the master is still up.
+            If the slave hasn't received a packet in 20 seconds (max.
+            message age parameter), it will start the takeover procedure.
+            From the moment the takeover procedure starts, it will take
+            about 30 seconds (twice the forward delay parameter) for the
+            bridge to become fully operational.
+          </para>
+        </answer>
+
+      </qandaentry>
+
+      <qandaentry>
+
+        <question>
+          <para>Does the &stp; <quote>heartbeat</quote> mechanism also work
+            with bridges with more than two cards?
+          </para>
+        </question>
+
+        <answer>
+          <para>Yes, it works with any number of interfaces.
+            You can invent bizarre topologies to your heart's desire.
+            You can use multiple (redundant) bridge-bridge connects,
+            you can insert loops, whatever.
+            The &stp; code will always find the minimal spanning tree.
+            The bridge code will even deal with the loss of any number
+            of interfaces.
+            If there are two redundant bridges with identical connections,
+            the loss of an interface on one of the bridges will cause the
+            other bridge to take over forwarding to that specific
+            interface.
+            <emphasis>Now isn't that great? :)</emphasis>
+          </para>
+        </answer>
+
+      </qandaentry>
+
+      <qandaentry>
+
+        <question>
+          <para>How fast does it get up, and what can I do about it?
+          </para>
+        </question>
+
+        <answer>
+          <para>If you think 50 seconds is too much -- and I guess you
+  	  should; alas, the IEEE specs gives us these default values
+  	  -- you can tweak these parameters.
+            If you set the hello time (the &stp; packet interval) from 2 to 1
+  	  second, you can safely set the message age parameter to 4
+  	  seconds.
+            Then you can set the forward delay to 4 seconds, and this will
+            in total give you a takeover time of ~12 seconds.
+          </para>
+        </answer>
+
+      </qandaentry>
+
+    </qandaset>
+
+    <para>The great thing which is made possible by &stp; is
+      a redundant parallel bridging scenario, with automated take over
+      features.
+
+      Within a network basing on stp the bridges always try to send a
+      datagram the (by path cost) shortest path.
+      Only on that path the bridges are forwarding, all other paths between
+      this shortest way are blocked.
+
+      If there is a broken path, the bridges agree about the next shortest.
+      So doubled paths don't break the net, but are bringing more security...
+
+      For a example setup of a fail secured connection see
+      <xref linkend="practical-example">.
+    </para>
+
+  </sect2>
+
+  <sect2 id="ipchains">
+    <title>Bridge And The IP-Chains</title>
+
+    <para>The normal idea about a bridge would not allow anything like
+      firewalling, but since several people have asked Lennert for ipchains
+      firewalling on bridge forwarding he implemented it.
+    </para>
+
+    <important>
+      <para>If you want to do this, you will need to apply the
+        special ip-chain-bridge-patch (also available at
+        <ulink url="http://openrock.net/bridge/">the bridge homepage</ulink>).
+      </para>
+    </important>
+
+    <para>As soon you have everything up correctly, the bridging code will
+      check each to-be-forwarded packet against the ipchains chain which has
+      the same name as the bridge.
+    </para>
+
+    <para>So.. if a packet on eth0 is to be forwarded to eth1, and those
+      interfaces are both part of the bridge group br0, the
+      bridging code will check the packet against the chain called 'br0'.
+    </para>
+
+    <warning>
+      <para>If the chain does not exist, the packet will be forwarded.
+        So if you want to do firewalling, you'll have to create the chain
+        yourself.
+      </para>
+    </warning>
+
+    <example id="simple-fw-config">
+      <title>A Simple Bridge Firewall Setup</title>
+
+      <screen>
+Example:
+# brctl addbr <userinput>br0</userinput>                                   <co id="ipch-addbr">
+# brctl addif br0 eth0                              <co id="ipch-addif-eth0">
+# brctl addif br0 eth1                              <co id="ipch-addif-eth1">
+# ifconfig br0 10.0.0.254                           <co id="ipch-ifconfig">
+# ipchains -N <userinput>br0</userinput>                                   <co id="ipch-addchain">
+# ipchains -A br0 -s 10.0.0.1/8 -i eth0 -j DENY     <co id="ipch-den-eth0">
+      </screen>
+
+      <calloutlist>
+
+        <callout arearefs="ipch-addbr">
+          <para>Creating a bridge interface named <userinput>br0</userinput>
+          </para>
+        </callout>
+
+        <callout arearefs="ipch-addif-eth0 ipch-addif-eth1">
+          <para>Placing eth0 and eth1 into the bridge.
+          </para>
+        </callout>
+
+        <callout arearefs="ipch-ifconfig">
+          <para>Assigning a regular IP address to the bridge.
+            The IP is taken from private network 10.X.X.X (Class A).
+          </para>
+        </callout>
+
+        <callout arearefs="ipch-addchain">
+          <para>Creating a ip-chain named <userinput>br0</userinput>
+          </para>
+        </callout>
+
+        <callout arearefs="ipch-addbr ipch-addchain">
+	  <para>
+            <caution>
+              <para>It's vital to have the same name here
+                (<userinput>br0</userinput> or whatever you have selected,
+                as long as you have the same in all places).
+              </para>
+            </caution>
+          </para>
+        </callout>
+
+        <callout arearefs="ipch-den-eth0">
+          <para>Denying all trafic with source 10.X.X.X on eth0.
+          </para>
+        </callout>
+
+      </calloutlist>
+
+    </example>
+
+  </sect2>
+
+</sect1>
+
+<sect1 id="practical-example">
+  <title>A Practical Setup Example</title>
+  <abstract>
+     <para>This is a real-world example which is currently working
+       in our network.
+       Even if it's for sure not a very common situation it might be
+       useful.
+     </para>
+  </abstract>
+
+  <para>I had to solve a small hardware incompatibility.
+    HP-VG (Voice Grade) 100Mbit network is not fast Ethernet
+    compatible.
+    Having neither the money nor the will to replace the
+    stuff and having the need to expand the system I had to find a
+    solution which was a) stable and b) cheap.
+  </para>
+
+  <para>For sure buying a HP modular switch was not meeting condition
+    b).
+    So I remembered I heard about Linux-bridging which automatically
+    fulfilled condition a) and b).
+  </para>
+
+  <para>So quite some time ago I successfully set up a bridge
+    between the two incompatible networks.
+    Its first hardware-layout is shown in
+    <xref linkend="old-bridge-hardware-setup">.
+  </para>
+
+  <figure id="old-bridge-hardware-setup">
+    <title>Hardware setup Of The Old Bridge Scenario</title>
+    <titleabbrev>Old Bridge Hardware setup</titleabbrev>
+    <mediaobject>
+      <imageobject>
+        <imagedata fileref="old-hardware-setup.eps" format="eps">
+      </imageobject>
+      <imageobject>
+        <imagedata fileref="old-hardware-setup.png">
+      </imageobject>
+      <textobject>
+        <screen width="90"><![CDATA[
++-------------------------+    +-------------------+
+| +---------------------+ |    |3com Superstack III|
+| | P75  32MB RAM       | |    | *  TX Switch      |
+| |                     | |    +-+-----------------+
+| +---------------------+ | /----/
+|                         | | .Uplinked Hubs.........
+| +---------------------+ | | .+-------------------+.
+| | NIC 3c905c  PCI   *-+-+-/ .|    HPVG HUB 15    |.
+| +---------------------+ |   .|                 * |.
+|                         |   .+-----------------+-+.
+| +---------------------+ |   .                /-/  .
+| | NIC HP2585B PCI   *-+-+-\ .                |    .
+| +---------------------+ | | .+---------------+---+.
+|                         | | .|   HPVG HUB 15 |   |.
++-------------------------+ | .| *             * * |.
+                            | .+-+---------------+-+.
+                            \----/               |  .
+                              .                  |  .
+                              .+-----------------+-+.
+                              .|   HPVG HUB 15   | |.
+                              .|                 * |.
+                              .+-------------------+.
+                              .......................
+]]>
+        </screen>
+      </textobject>
+      <caption>
+        <para>The old setup of my previous linux bridge
+        </para>
+      </caption>
+    </mediaobject>
+  </figure>
+
+  <para>It was configured as a transparent network component,
+    meaning it didn't take a part in the network, but only bridged
+    it.
+    Originally it was set up on kernel 2.0.35 from a SuSE 5.3 distribution.
+  </para>
+
+  <para>The next problem showed up at once. A single bridge
+    connecting the big segments might be c) a bottleneck and
+    d) a reason to kill the netadmin, if it blows up.
+    So I tried to find some solution for that problem.
+  </para>
+
+  <para>What happened next was that I discovered some hints that a
+    new maintainer took over the bridging code.
+    A few mails on the bridge-mailing list later as shown in
+    <xref linkend="stp"> I was more clever.
+    The new modular bridging code fulfilled exactly what I was looking
+    for.
+  </para>
+
+  <formalpara>
+    <title>The new maintainer: Lennert Buytenhek
+    </title>
+    <para>His project page can be found at
+      <ulink url="http://openrock.net/bridge">http://openrock.net/bridge</ulink>
+      IMHO he's doing a great job. Thanks a lot.
+    </para>
+  </formalpara>
+
+  <sect2>
+    <title>Hardware-setup</title>
+
+    <para>The ideas and hints I got from the mailing list discussion shown in
+      <xref linkend="stp"> lead to a new hardware-setup shown in
+      <xref linkend="multi-bridge-hardware-setup">.
+      The setup is intended to provide a default machine
+      (guess which one).
+      The bridge has 3 HP cards of which each is connected to a HP VG15 hub.
+      The 3com card is connected to a 3com Superstack Fast Ethernet switch.
+    </para>
+
+    <figure id="multi-bridge-hardware-setup">
+      <title>Hardware Setup Of The Multi bridge Scenario</title>
+      <titleabbrev>Multi bridge Hardware Setup</titleabbrev>
+      <mediaobject>
+        <imageobject>
+          <imagedata fileref="hardware-setup.eps" format="eps">
+        </imageobject>
+        <imageobject>
+          <imagedata fileref="hardware-setup.png"
+        </imageobject>
+        <textobject>
+          <screen width="90"><![CDATA[
++-------------------------+    +-------------------+    +-------------------------+
+| +---------------------+ |    |3com Superstack III|    | +---------------------+ |
+| | P466 64MB RAM       | |    | *  TX Switch    * |    | | P75 64MB RAM        | |
+| | Defaultpriority 100 | |    +-+---------------+-+    | | Defaultpriority 100 | |
+| +---------------------+ | /----/               \----\ | +---------------------+ |
+|                         | |                         | |                         |
+| +---------------------+ | |  +-------------------+  | | +---------------------+ |
+| | NIC 3c905c  PCI   *-+-+-/  |    HPVG HUB 15    |  \-+-+-* NIC 3c509b  ISA   | |
+| +---------------------+ |    | *               * |    | +---------------------+ |
+|                         |    +-+---------------+-+    |                         |
+| +---------------------+ | /----/               \----\ | +---------------------+ |
+| | NIC HP2585B PCI   *-+-+-/                         \-+-+-* NIC HP2585B PCI   | |
+| +---------------------+ |    +-------------------+    | +---------------------+ |
+|                         |    |    HPVG HUB 15    |    |                         |
+| +---------------------+ |    | *               * |    | +---------------------+ |
+| | NIC HP2585B PCI   *-+-+-\  +-+---------------+-+  /-+-+-* NIC HP2585B PCI   | |
+| +---------------------+ | \----/               \----/ | +---------------------+ |
+|                         |                             |                         |
+| +---------------------+ |    +-------------------+    | +---------------------+ |
+| | NIC HP2585B PCI   *-+-+-\  |    HPVG HUB 15    |  /-+-+-* NIC HP2585B PCI   | |
+| +---------------------+ | |  | *               * |  | | +---------------------+ |
++-------------------------+ |  +-+---------------+-+  | +-------------------------+
+                            \----/               \----/
+]]>
+          </screen>
+        </textobject>
+        <caption>
+          <para>The practically working setup of my local linux Ethernet multi bridge
+          </para>
+        </caption>
+      </mediaobject>
+    </figure>
+
+    <para>This setup is not only fail proof to any one of the bridge's
+      interfaces being down, but also to complete blackout of one of the
+      bridges.
+      Additional advantage to the old-setup
+      <xref linkend="old-bridge-hardware-setup"> that the single HUBS are
+      switched.
+      This means that a datagram being sent from one port on the VG15 HUB
+      blocks 30 ports by maximum and 15 ports by minimum, instead of
+      blocking all 45 ports.
+      Also, the breakdown of the HUB, to the old bridge was connected, would
+      have caused the whole HP-segment to break down.
+      With the new code only the machines connected to the broken HUB will
+      get no more data.
+    </para>
+
+  </sect2>
+
+  <sect2>
+    <title>Software-setup</title>
+
+    <para>For both bridges the setup is exactly the same (with the
+      exception of bridge priority which will be discussed later on).
+      The machine was setup by the SuSE 6.4 distribution with the original
+      unpatched kernel sources installed.
+      At this point only the minimal configuration and no additional
+      hardware or network setup.
+    </para>
+
+    <para>The basic setup is according the descriptions in the beginning of
+      this document.
+      The thing I did in addition was bringing up the unpatched 2.2.14
+      sources of the SuSE 6.4 distribution to version 2.2.15 as in	
+      <xref linkend="apply-kernel-patch">.
+    </para>
+
+    <example id="apply-kernel-patch">
+      <title>Upgrading The Kernel From 2.2.14 To 2.2.15</title>
+      <screen width="80">
+root@mbb-1:~ # cd /usr/src/linux-2.2.14
+root@mbb-1:/usr/src/linux-2.2.14 # patch -p1 \
+    <userinput>/usr/local/download/kernel/patch-2.2.15</userinput>
+patching file ........................
+patching file ...................
+...
+..
+root@mbb-1:/usr/src/linux-2.2.14 # cd ..
+root@mbb-1:/usr/src # mv linux-2.2.14 linux-2.2.15
+root@mbb-1:/usr/src # rm linux
+root@mbb-1:/usr/src # ln -s linux-2.2.15 linux
+      </screen>
+    </example>
+
+    <para>Next step was to apply the bridge-patch as shown in
+      <xref linkend="apply-bridge-patch">.
+    </para>
+
+    <example id="apply-bridge-patch">
+      <title>Applying The Kernel Patch</title>
+      <screen width="80">
+root@mbb-1:/usr/src # cd /usr/src/linux-2.2.15
+root@mbb-1:/usr/src/linux-2.2.15 # patch -p1 &lt; \
+    <userinput>bridge-0.0.5-against-2.2.15.diff</userinput>
+patching file ........................
+patching file ...................
+...
+..
+      </screen>
+    </example>
+
+    <para>After that I selected the bridging code to be compiled as a
+      module as shown in
+      <xref linkend="menuconfig-bridge-module-selection">.
+    </para>
+
+    <example id="menuconfig-bridge-module-selection">
+      <title>Configuring The Kernel</title>
+
+      <screen width="80">
+root@mbb-1:/usr/src/linux-2.2.15 # make config
+
+..
+
+*
+* Code maturity level options
+*
+Prompt for development and/or incomplete code/drivers (CONFIG_EXPERIMENTAL)
+[N/y/?] Y
+
+..
+
+
+802.1d Ethernet Bridging (CONFIG_BRIDGE) [N/y/m/?] (NEW) m
+
+..
+      </screen>
+    </example>
+
+    <para>By the way I also selected the drivers of my NIC's to be compiled
+      as modules which resulted to <filename>3c95x.o</filename> and
+      <filename>hp100.o</filename>.
+    </para>
+
+    <informalexample>
+      <screen width="80">
+root@mbb-1:/usr/src/linux-2.2.15 # make dep clean zImage \
+  modules modules_install zlilo
+
+..
+
+root@mbb-1:/usr/src/linux-2.2.15 # init 6
+      </screen>
+    </informalexample>
+
+    <para>After the reboot happening I started at runlevel 1 leaving all the
+      networking out of the running system.
+      That gave me the chance to check the setup step by step.
+    </para>
+
+    <para>The command <command>modprobe -v bridge</command> worked
+      without any warnings, so that one was OK.
+      Next I edited my <filename>/etc/modules.conf</filename> by aliasing
+      my network card drivers as shown in
+      <xref linkend="modules-conf-nic-sample-mbb1"> and
+      <xref linkend="modules-conf-nic-sample-mbb2">.
+      I didn't need to make use of the options, all cards where realized
+      proper as I checked by <command>cat /proc/modules</command>,
+      <command>cat /proc/interrupts</command> and
+      <command>cat /proc/ioports</command>.
+    </para>
+
+    <example id="modules-conf-nic-sample-mbb1">
+      <title><filename>/etc/modules.conf</filename> of <emphasis>mbb-1</emphasis></title>
+      <screen width="80">
+# Aliases - specify your hardware
+alias eth0             3c59x
+alias eth1             hp100
+alias eth2             hp100
+alias eth3             hp100
+      </screen>
+    </example>
+
+    <example id="modules-conf-nic-sample-mbb2">
+      <title><filename>/etc/modules.conf</filename> of <emphasis>mbb-2</emphasis></title>
+      <screen width="80">
+# Aliases - specify your hardware
+alias eth0             3c509
+alias eth1             hp100
+alias eth2             hp100
+alias eth3             hp100
+      </screen>
+    </example>
+
+    <para>So next thing would have been a step by step setup of the bridge
+      and it's interfaces.
+      Because I'm lazy I just show the init script I prepared for the
+      setup.	
+
+      <important>
+        <para>Of course you'll have do adapt the script to your system,
+          if you want to use it.
+          Please remember I'm writing this for the setup of a SuSE
+          distribution.
+        </para>
+      </important>
+    </para>
+
+    <example id="bridge-init-script">
+      <title>Bridge Init Script</title>
+      <para>
+        <programlisting width="80">
+#! /bin/bash
+# Copyright (c) 2000 Uwe Böhme.  All rights reserved.
+#
+# Author: Uwe Böhme &lt;uwe@bnhof.de>, 2000
+#
+#
+# /sbin/init.d/bridge
+#
+
+. /etc/rc.config
+
+return=$rc_done
+case "$1" in
+    start)
+	echo "Starting service bridge mueb"
+	brctl addbr mueb  ||  return=$rc_failed          <co id="create-bridge">
+	brctl setbridgeprio mueb 0 || return=$rc_failed  <co id="set-root-bridge">
+	brctl addif mueb eth0  ||  return=$rc_failed     <co id="addif-eth0">
+	brctl addif mueb eth1  ||  return=$rc_failed     <co id="addif-eth1">
+	brctl addif mueb eth2  ||  return=$rc_failed     <co id="addif-eth2">
+	brctl addif mueb eth3  ||  return=$rc_failed     <co id="addif-eth3">
+	ifconfig eth0 0.0.0.0  ||  return=$rc_failed     <co id="up-eth0">
+	ifconfig eth1 0.0.0.0  ||  return=$rc_failed     <co id="up-eth1">
+	ifconfig eth2 0.0.0.0  ||  return=$rc_failed     <co id="up-eth2">
+	ifconfig eth3 0.0.0.0  ||  return=$rc_failed     <co id="up-eth3">
+	brctl sethello mueb 1  ||  return=$rc_failed     <co id="hello-1">
+	brctl setmaxage mueb 4  ||  return=$rc_failed    <co id="maxage-4">
+	brctl setfd mueb 4  ||  return=$rc_failed        <co id="forwarddelay-4">
+	
+	echo -e "$return"
+	;;
+    stop)
+	echo "Shutting down service bridge mueb"
+	brctl delif mueb eth3  ||  return=$rc_failed     <co id="delif-eth3">
+	brctl delif mueb eth2  ||  return=$rc_failed     <co id="delif-eth2">
+	brctl delif mueb eth1  ||  return=$rc_failed     <co id="delif-eth1">
+	brctl delif mueb eth0  ||  return=$rc_failed     <co id="delif-eth0">
+	brctl delbr mueb  ||  return=$rc_failed          <co id="destroy-bridge">
+	rmmod bridge || return=$rc_failed                <co id="remove-module">
+
+	echo -e "$return"
+	;;
+    status)
+	ifconfig mueb
+	brctl showbr mueb
+
+	;;
+    restart)
+	$0 stop && $0 start || return=$rc_failed
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|restart}"
+	exit 1
+esac
+
+test "$return" = "$rc_done" || exit 1
+exit 0
+        </programlisting>
+      </para>
+    </example>
+
+    <calloutlist>
+
+      <callout arearefs="create-bridge">
+        <para>This command creates a new virtual interface (bridge instance)
+          with the name <userinput>mueb</userinput> and also brings up the
+          bridge module.
+          <note>
+            <para>At least my system it does.
+              Maybe you have to enable the kernel module loader.
+            </para>
+          </note>
+        </para>
+      </callout>
+
+      <callout arearefs="set-root-bridge">
+        <para>Here the script sets the bridge's priority (relative to
+          other bridges in the net) to 0.
+          This is indicating that this bridge will become the root bridge
+          as long as there is no other bridge with a lower priority level
+          available.
+        </para>
+        <important>
+          <para>In the init script of the backup bridge this line in missing,
+            leaving it with the default priority of 100.
+          </para>
+        </important>
+      </callout>
+
+      <callout arearefs="addif-eth0 addif-eth1 addif-eth2 addif-eth3">
+        <para>Enslaves the Ethernet interface to become a port in the
+          bridge.
+        </para>
+      </callout>
+
+      <callout arearefs="up-eth0 up-eth1 up-eth2 up-eth3">
+        <para>Takes away any possibly disturbing IP-address and brings the
+          interface up.
+        </para>
+      </callout>
+
+      <callout arearefs="hello-1">
+        <para>Setting the hello time of the bridge to one second makes it
+          possible to reduce the maxage value of the bridges inside the
+          network.
+        </para>
+      </callout>
+
+      <callout arearefs="maxage-4">
+        <para>Setting the time the a bridge is waiting before starting the
+          takeover process to a shorter period.
+        </para>
+      </callout>
+
+      <callout arearefs="forwarddelay-4">
+        <para>Forcing the bridge to forward earlier than the default time.
+        </para>
+      </callout>
+
+      <callout arearefs="delif-eth3 delif-eth2 delif-eth1 delif-eth0">
+        <para>Take the Ethernet out of the bridging instance.
+        </para>
+      </callout>
+
+      <callout arearefs="destroy-bridge">
+        <para>Destroy the bridge instance.
+        </para>
+      </callout>
+
+      <callout arearefs="remove-module">
+        <para>Remove the bridge module.
+        </para>
+      </callout>
+
+    </calloutlist>
+
+    <para>To polish your setup and to be able to reach the bridge from
+      remote you now can configure your bridge instance as if it would be
+      a physical existing network interface.
+      You can give it a nice IP with a suitable net-mask.
+      It doesn't matter from which segment in you net, you will reach the
+      bridge with this IP-address.
+    </para>
+
+  </sect2>
+
+  <sect2 id="see-it-work">
+    <title>See It Work</title>
+
+    <para>Here I want to show and explain about how the running bridge shows
+      up.
+      The output <xref linkend="sample-bridge-status-mbb1"> of
+      <emphasis>bridge@mbb-1</emphasis> is the output of the
+      primary bridge, while you see in
+      <xref linkend="sample-bridge-status-mbb2"> the output of the backup
+      bridge waiting to take over.
+    </para>
+
+    <example id="sample-bridge-status-mbb1">
+      <title>Status Output Of mbb-1 Fully Up</title>
+      <screen width="85">
+mueb
+ bridge id		0000.0800062815f6
+ designated root	0000.0800062815f6
+ root port		   0			path cost		   0
+ max age		   4.00			bridge max age		   4.00
+ hello time		   1.00			bridge hello time	   1.00
+ forward delay		   4.00			bridge forward delay	   4.00
+ ageing time		 300.00			gc interval		   4.00
+ hello timer		   0.80			tcn timer		   0.00
+ topology change timer	   0.00			gc timer		   3.80
+ flags			
+
+
+eth0 (1)
+ port id		8001			state			forwarding
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.00
+ designated port	8001			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.80
+ flags			
+
+eth1 (2)
+ port id		8002			state			forwarding
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.00
+ designated port	8002			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.80
+ flags			
+
+eth2 (3)
+ port id		8003			state			forwarding
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.00
+ designated port	8003			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.80
+ flags			
+
+eth3 (4)
+ port id		8004			state			forwarding
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.00
+ designated port	8004			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.80
+ flags			
+      </screen>
+    </example>
+
+    <example id="sample-bridge-status-mbb2">
+      <title>Status Output Of mbb-2 Fully Up</title>
+      <screen width="85">
+mueb
+ bridge id		0064.00a024d04cd6
+ designated root	0000.0800062815f6
+ root port		   1			path cost		 100
+ max age		   4.00			bridge max age		   4.00
+ hello time		   1.00			bridge hello time	   1.00
+ forward delay		   4.00			bridge forward delay	   4.00
+ ageing time		 300.00			gc interval		   4.00
+ hello timer		   0.00			tcn timer		   0.00
+ topology change timer	   0.00			gc timer		   2.39
+ flags			
+
+
+eth0 (1)
+ port id		8001			state			forwarding
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.42
+ designated port	8001			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.00
+ flags			
+
+eth1 (2)
+ port id		8002			state			blocking
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.42
+ designated port	8002			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.00
+ flags			
+
+eth2 (3)
+ port id		8003			state			blocking
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.42
+ designated port	8003			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.00
+ flags			
+
+eth3 (4)
+ port id		8004			state			blocking
+ designated root	0000.0800062815f6	path cost		 100
+ designated bridge	0000.0800062815f6	message age timer	   0.42
+ designated port	8004			forward delay timer	   0.00
+ designated cost	   0			hold timer		   0.00
+ flags			
+      </screen>
+    </example>
+
+    <para>If you take a glance into
+      <filename>/var/log/messages</filename> as shown in
+      <xref linkend="messages-from-init-2-at-mbb-1"> and in
+      <xref linkend="messages-from-init-2-at-mbb-2"> you can see
+      how the bridges are coming up and deciding how to do their
+      duty.
+      <acronym>mbb-1</acronym> has a lower value for bridge-priority
+      (see <xref linkend="brctl-setbridgeprio">),
+      telling it to try to become the root bridge.
+      As you can see <acronym>mbb-1</acronym> forwards all ports,
+      while <acronym>mbb-2</acronym> blocks all ports with the exception
+      of eth0.
+    </para>
+
+    <example id="messages-from-init-2-at-mbb-1">
+      <title><acronym>mbb-1</acronym> Messages From
+        <command>init 2</command></title>
+      <screen width="85">
+May 25 16:46:04 mbb-1 init: Switching to runlevel: 2
+May 25 16:46:04 mbb-1 kernel: NET4: Ethernet Bridge 008 for NET4.0
+May 25 16:46:04 mbb-1 kernel: device eth0 entered promiscuous mode
+May 25 16:46:04 mbb-1 kernel: device eth1 entered promiscuous mode
+May 25 16:46:04 mbb-1 kernel: device eth2 entered promiscuous mode
+May 25 16:46:04 mbb-1 kernel: device eth3 entered promiscuous mode
+May 25 16:46:04 mbb-1 kernel: mueb: port 4(eth3) entering listening state
+May 25 16:46:04 mbb-1 kernel: mueb: port 3(eth2) entering listening state
+May 25 16:46:04 mbb-1 kernel: mueb: port 2(eth1) entering listening state
+May 25 16:46:04 mbb-1 kernel: mueb: port 1(eth0) entering listening state
+May 25 16:46:08 mbb-1 kernel: mueb: port 4(eth3) entering learning state
+May 25 16:46:08 mbb-1 kernel: mueb: port 3(eth2) entering learning state
+May 25 16:46:08 mbb-1 kernel: mueb: port 2(eth1) entering learning state
+May 25 16:46:08 mbb-1 kernel: mueb: port 1(eth0) entering learning state
+May 25 16:46:12 mbb-1 kernel: mueb: port 4(eth3) entering forwarding state
+May 25 16:46:12 mbb-1 kernel: mueb: topology change detected, propagating
+May 25 16:46:12 mbb-1 kernel: mueb: port 3(eth2) entering forwarding state
+May 25 16:46:12 mbb-1 kernel: mueb: topology change detected, propagating
+May 25 16:46:12 mbb-1 kernel: mueb: port 2(eth1) entering forwarding state
+May 25 16:46:12 mbb-1 kernel: mueb: topology change detected, propagating
+May 25 16:46:12 mbb-1 kernel: mueb: port 1(eth0) entering forwarding state
+May 25 16:46:12 mbb-1 kernel: mueb: topology change detected, propagating
+      </screen>
+    </example>
+
+
+    <example id="messages-from-init-2-at-mbb-2">
+      <title><acronym>mbb-2</acronym> Messages From
+        <command>init 2</command></title>
+      <screen width="85">
+Jun  8 06:06:16 mbb-2 init: Switching to runlevel: 2
+Jun  8 06:06:17 mbb-2 kernel: NET4: Ethernet Bridge 008 for NET4.0
+Jun  8 06:06:17 mbb-2 kernel: device eth0 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth1 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth2 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth3 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 4(eth3) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 3(eth2) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 1(eth0) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 2(eth1) entering blocking state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 3(eth2) entering blocking state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 4(eth3) entering blocking state
+Jun  8 06:06:21 mbb-2 kernel: mueb: port 1(eth0) entering learning state
+Jun  8 06:06:25 mbb-2 kernel: mueb: port 1(eth0) entering forwarding state
+      </screen>
+
+    </example>
+
+  </sect2>
+
+  <sect2 id="bridge-tests">
+    <title>Bridge Tests</title>
+
+    <para>To check if really all the promised features are working, I did
+      some crude test.
+      The message logs are shown here in.
+    </para>
+
+    <sect3 id="tear-the-patch-wire-test">
+      <title>Tear The Patch Wire Test</title>
+
+      <para>
+        I think just taking a patch wire out of a bridge port is a really good
+        real survival test.
+        So I pulled the plugs one by one out of the sockets and looked what
+        happened.
+        To give you not too much tension let me summarize first:
+        <emphasis>It's really working</emphasis>.
+        All the takeovers happened within less then 12 seconds.
+      </para>
+
+      <para>The really interesting messages you can find at
+        <acronym>mbb-2</acronym>.
+        To see how everything comes up, I stopped network services first.
+
+        In <xref linkend="mbb-2-messages-of-bridge-test"> you will see
+        the messages caused by a <command>init 2</command> followed
+        by a <quote>take out the plug, wait what happens, then place it
+        back</quote> in the order eth3, eth2, eth1, eth0 .
+      </para>
+
+      <note>
+        <para>The thing I did, was making the tests, and publishing the dump.
+          The one writing the nice explanations was Lennert again.
+        </para>
+      </note>
+
+      <example id="mbb-2-messages-of-bridge-test">
+        <title><acronym>mbb-2</acronym> Message Output Of Bridge Test</title>
+        <screen width="95">
+Jun  8 06:06:16 mbb-2 init: Switching to runlevel: 2
+Jun  8 06:06:17 mbb-2 kernel: NET4: Ethernet Bridge 008 for NET4.0
+Jun  8 06:06:17 mbb-2 kernel: device eth0 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth1 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth2 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: device eth3 entered promiscuous mode
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 4(eth3) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 3(eth2) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 1(eth0) entering listening state                 <co id="see-other-bridge">
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 2(eth1) entering blocking state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 3(eth2) entering blocking state
+Jun  8 06:06:17 mbb-2 kernel: mueb: port 4(eth3) entering blocking state
+Jun  8 06:06:21 mbb-2 kernel: mueb: port 1(eth0) entering learning state
+Jun  8 06:06:25 mbb-2 kernel: mueb: port 1(eth0) entering forwarding state                <co id="keep-one-interface">
+Jun  8 06:07:15 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 4(eth3) <co id="pull-plug-eth3">
+Jun  8 06:07:15 mbb-2 kernel: mueb: port 4(eth3) entering listening state                 <co id="enter-listen-state">
+Jun  8 06:07:19 mbb-2 kernel: mueb: port 4(eth3) entering learning state                  <co id="enter-learn-state">
+Jun  8 06:07:23 mbb-2 kernel: mueb: port 4(eth3) entering forwarding state                <co id="enter-forward-state">
+Jun  8 06:07:23 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu            <co id="topology-change-detect">
+Jun  8 06:08:51 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu            <co id="topology-changed-again">
+Jun  8 06:08:51 mbb-2 kernel: mueb: port 4(eth3) entering blocking state                  <co id="root-is-back">
+Jun  8 06:09:22 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 3(eth2) <co id="from-pull-to-back-eth2">
+Jun  8 06:09:22 mbb-2 kernel: mueb: port 3(eth2) entering listening state
+Jun  8 06:09:26 mbb-2 kernel: mueb: port 3(eth2) entering learning state
+Jun  8 06:09:30 mbb-2 kernel: mueb: port 3(eth2) entering forwarding state
+Jun  8 06:09:30 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:10:09 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:10:09 mbb-2 kernel: mueb: port 3(eth2) entering blocking state
+Jun  8 06:10:10 mbb-2 kernel: mueb: retransmitting tcn bpdu                               <co id="retransmit-tcn-bpdu">
+Jun  8 06:10:41 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 2(eth1) <co id="from-pull-to-back-eth1">
+Jun  8 06:10:41 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun  8 06:10:45 mbb-2 kernel: mueb: port 2(eth1) entering learning state
+Jun  8 06:10:49 mbb-2 kernel: mueb: port 2(eth1) entering forwarding state
+Jun  8 06:10:49 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:11:06 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:11:06 mbb-2 kernel: mueb: port 2(eth1) entering blocking state
+Jun  8 06:11:33 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 1(eth0) <co id="from-pull-to-back-eth0">
+Jun  8 06:11:33 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun  8 06:11:37 mbb-2 kernel: mueb: port 2(eth1) entering learning state
+Jun  8 06:11:41 mbb-2 kernel: mueb: port 2(eth1) entering forwarding state
+Jun  8 06:11:41 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:14:18 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun  8 06:14:18 mbb-2 kernel: mueb: port 2(eth1) entering blocking state
+Jun  8 06:14:19 mbb-2 kernel: mueb: retransmitting tcn bpdu
+        </screen>
+
+        <calloutlist>
+           <title>What Lennert Told About This</title>
+
+           <callout arearefs="see-other-bridge">
+             <para>The kernel sees that there are already bridges (actually,
+               only one of them, but Hello packets are coming in on all 4 of
+               the ports) on eth[0123].
+             </para>
+           </callout>
+
+           <callout arearefs="keep-one-interface">
+             <para>To maintain connectivity with the rest of the network, the
+               bridge decides to keep port 1 (eth0) active (i.e. in the
+               <quote>forwarding</quote> state), and to temporarily disable
+               ports 2-4.
+             </para>
+           </callout>
+
+           <callout arearefs="pull-plug-eth3">
+             <para>The plug on eth3 was pulled.
+               Here you can see that the message age timer expired
+               (<xref linkend="brctl-setmaxage">).
+               The last Hello packet was seen more than X seconds ago.
+               The bridge concludes that the connection to the bridge that
+               was there has died.
+               Therefore, it is going to try to enable this port, to provide
+               network connectivity to the now-cutoff segment.
+             </para>
+           </callout>
+
+           <callout arearefs="enter-listen-state">
+             <para>It enters the listening state.
+               It waits to see whether the old bridge might come back, or
+               whether another bridge is going to claim takeover.
+             </para>
+           </callout>
+
+           <callout arearefs="enter-learn-state">
+             <para>Okay, no other bridge was seen.
+               We're going to try to provide network connectivity to this
+               segment ourselves.
+               Which means: we're going to try and become
+               <quote>designated bridge</quote> for this segment.
+               We now enter the learning state.
+               In this state, we only learn &mac; addresses and we do not
+               forward yet.
+               This is because if we see an unknown destination address, we
+               send the datagram to all ports, and this <quote>flooding</quote>
+               will happen unnecessarily often if we have a empty &mac; table.
+               Therefore, we're going to fill up our &mac; table with useful
+               entries first, and this is what happens during the learning
+               state.
+             </para>
+           </callout>
+
+           <callout arearefs="enter-forward-state">
+             <para>Okay, here we go.
+               Pray for us.
+             </para>
+           </callout>
+
+           <callout arearefs="topology-change-detect">
+             <para>Because we took over for this segment, all communication
+               towards this segment now goes through this bridge.
+               This means that the topology has changed.
+               If the topology changes, we must let all bridges now, so that
+               they can time out stale &mac; address location data quickly.
+               This is why we send Topology Change Notification Bridge
+               Protocol Data Units (tcn bpdus).
+             </para>
+             <para>Apparently the root bridge immediately acknowledges this
+               tcn bpdu in the next Hello message it sends (the protocol
+               requires for the root bridge to acknowledge it), because this
+               is the only such message we see.
+               <note>
+                 <para>In situations where you see loads of these messages,
+                   it means that the root bridge cannot acknowledge them,
+                   which probably means your root bridge has a twisted STP
+                   implementation.
+                 </para>
+               </note>
+             </para>
+           </callout>
+
+
+           <callout arearefs="topology-changed-again">
+             <para>Hey, something happened again!
+             </para>
+           </callout>
+
+
+           <callout arearefs="root-is-back">
+             <para>Yup... eth3 came back online.
+               The root bridge will provide connectivity for this segment
+               again, so that we can disable this port.
+             </para>
+           </callout>
+
+           <callout arearefs="from-pull-to-back-eth2 from-pull-to-back-eth1 from-pull-to-back-eth0">
+             <para>Same story for eth2, eth1 and eth0.
+             </para>
+           </callout>
+
+           <callout arearefs="retransmit-tcn-bpdu">
+             <para>This means the tcn bpdu wasn't acknowledged quick enough.
+               That is why it is retransmitted.
+             </para>
+           </callout>
+
+        </calloutlist>
+
+      </example>
+
+      <para>The root bridge <acronym>mbb-1</acronym> was not so chatty.
+        It only reported some topology changes and propagated them as you can
+        see in <xref linkend="mbb-1-messages-of-bridge-test">.
+        If somebody can offer a explanation why the root bridge is so quiet in
+        messaging please <ulink type="mail" url="mailto:uwe@bnhof">tell me</ulink>.
+      </para>
+
+      <example id="mbb-1-messages-of-bridge-test">
+        <title><acronym>mbb-2</acronym> Message Output Of Bridge Test</title>
+        <screen width="80">
+Jun  8 06:06:52 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:06:52 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:07:31 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:07:31 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:07:32 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:07:32 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:08:11 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:08:11 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:08:29 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:08:29 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:09:03 mbb-1 kernel: mueb: received tcn bpdu on port 2(eth1)
+Jun  8 06:09:03 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:11:40 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:11:40 mbb-1 kernel: mueb: topology change detected, propagating
+Jun  8 06:11:41 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun  8 06:11:41 mbb-1 kernel: mueb: topology change detected, propagating
+        </screen>
+
+        <para>One of the other bridges tells us that the topology of the LAN
+          has changed (see <xref linkend="mbb-2-messages-of-bridge-test">).
+          Well, okay.
+          We will set lower timeouts on our &mac;C table for a short period of
+          time, and we will propagate this topology change throughout the
+          network.
+        </para>
+
+      </example>
+
+    </sect3>
+
+    <sect3 id="kill-the-root-bridge-test">
+      <title>Kill The Root Bridge Test</title>
+
+      <para>The ultimate test is of course a total blocking, breakdown or
+        something similar to the root bridge.
+        I did this by shooting down the root bridge by
+        <command>init 1</command>.
+        Next I brought it up again with <command>init 2</command>.
+        Last I pulled all plugs out of the root bridge and waited for some
+        time before I placed them again.
+        In <xref linkend="test-messages-of-master-bridge"> you will see
+        the messages from the master-bridge mbb-1, and in
+        <xref linkend="test-messages-of-backup-bridge"> you see what
+        happened the same time at the backup-bridge mbb-2.
+      </para>
+
+      <example id="test-messages-of-master-bridge">
+        <title>Test Messages Of Master Bridge <acronym>mbb-1</acronym></title>
+        <screen width="95">
+Jun 12 13:35:15 mbb-1 init: Switching to runlevel: 1
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 4(eth3) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 3(eth2) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 2(eth1) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 1(eth0) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 2(eth1) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: device eth1 left promiscuous mode
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 1(eth0) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: device eth0 left promiscuous mode
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 4(eth3) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: device eth3 left promiscuous mode
+Jun 12 13:35:20 mbb-1 kernel: mueb: port 3(eth2) entering disabled state
+Jun 12 13:35:20 mbb-1 kernel: device eth2 left promiscuous mode
+Jun 12 13:35:50 mbb-1 init: Switching to runlevel: 2
+Jun 12 13:35:50 mbb-1 kernel: NET4: Ethernet Bridge 008 for NET4.0
+Jun 12 13:35:51 mbb-1 kernel: device eth0 entered promiscuous mode
+Jun 12 13:35:51 mbb-1 kernel: device eth1 entered promiscuous mode
+Jun 12 13:35:51 mbb-1 kernel: device eth2 entered promiscuous mode
+Jun 12 13:35:51 mbb-1 kernel: device eth3 entered promiscuous mode
+Jun 12 13:35:51 mbb-1 kernel: mueb: port 4(eth3) entering listening state
+Jun 12 13:35:51 mbb-1 kernel: mueb: port 3(eth2) entering listening state
+Jun 12 13:35:51 mbb-1 kernel: mueb: port 2(eth1) entering listening state
+Jun 12 13:35:51 mbb-1 kernel: mueb: port 1(eth0) entering listening state
+Jun 12 13:35:51 mbb-1 kernel: mueb: received tcn bpdu on port 2(eth1)
+Jun 12 13:35:51 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:52 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun 12 13:35:52 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:55 mbb-1 kernel: mueb: port 4(eth3) entering learning state
+Jun 12 13:35:55 mbb-1 kernel: mueb: port 3(eth2) entering learning state
+Jun 12 13:35:55 mbb-1 kernel: mueb: port 2(eth1) entering learning state
+Jun 12 13:35:55 mbb-1 kernel: mueb: port 1(eth0) entering learning state
+Jun 12 13:35:59 mbb-1 kernel: mueb: port 4(eth3) entering forwarding state
+Jun 12 13:35:59 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:59 mbb-1 kernel: mueb: port 3(eth2) entering forwarding state
+Jun 12 13:35:59 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:59 mbb-1 kernel: mueb: port 2(eth1) entering forwarding state
+Jun 12 13:35:59 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:59 mbb-1 kernel: mueb: port 1(eth0) entering forwarding state
+Jun 12 13:35:59 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:39:03 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun 12 13:39:03 mbb-1 kernel: mueb: topology change detected, propagating
+Jun 12 13:39:05 mbb-1 kernel: mueb: received tcn bpdu on port 1(eth0)
+Jun 12 13:39:05 mbb-1 kernel: mueb: topology change detected, propagating
+        </screen>
+
+        <para></para>
+
+      </example>
+
+      <example id="test-messages-of-backup-bridge">
+        <title>Test Messages Of Backup Bridge <acronym>mbb-2</acronym></title>
+        <screen width="95">
+Jun 12 13:35:21 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 4(eth3)
+Jun 12 13:35:21 mbb-2 kernel: mueb: port 4(eth3) entering listening state
+Jun 12 13:35:21 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 3(eth2)
+Jun 12 13:35:21 mbb-2 kernel: mueb: port 3(eth2) entering listening state
+Jun 12 13:35:21 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 2(eth1)
+Jun 12 13:35:21 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun 12 13:35:21 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 1(eth0)
+Jun 12 13:35:21 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:25 mbb-2 kernel: mueb: port 4(eth3) entering learning state
+Jun 12 13:35:25 mbb-2 kernel: mueb: port 3(eth2) entering learning state
+Jun 12 13:35:25 mbb-2 kernel: mueb: port 2(eth1) entering learning state
+Jun 12 13:35:29 mbb-2 kernel: mueb: port 4(eth3) entering forwarding state
+Jun 12 13:35:29 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:29 mbb-2 kernel: mueb: port 3(eth2) entering forwarding state
+Jun 12 13:35:29 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:29 mbb-2 kernel: mueb: port 2(eth1) entering forwarding state
+Jun 12 13:35:29 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:35:49 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun 12 13:35:49 mbb-2 kernel: mueb: port 3(eth2) entering blocking state
+Jun 12 13:35:49 mbb-2 kernel: mueb: topology change detected, \
+                              &lt;6>mueb: port 4(eth3) entering blocking state
+Jun 12 13:35:49 mbb-2 kernel: mueb: topology change detected, \
+                              &lt;6>mueb: port 2(eth1) entering blocking state
+Jun 12 13:35:50 mbb-2 kernel: mueb: retransmitting tcn bpdu
+Jun 12 13:38:26 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 2(eth1)
+Jun 12 13:38:26 mbb-2 kernel: mueb: port 2(eth1) entering listening state
+Jun 12 13:38:27 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 3(eth2)
+Jun 12 13:38:27 mbb-2 kernel: mueb: port 3(eth2) entering listening state
+Jun 12 13:38:28 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 4(eth3)
+Jun 12 13:38:28 mbb-2 kernel: mueb: port 4(eth3) entering listening state
+Jun 12 13:38:30 mbb-2 kernel: mueb: port 2(eth1) entering learning state
+Jun 12 13:38:30 mbb-2 kernel: mueb: neighbour 0000.08:00:06:28:15:f6 lost on port 1(eth0)
+Jun 12 13:38:30 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:38:31 mbb-2 kernel: mueb: port 3(eth2) entering learning state
+Jun 12 13:38:32 mbb-2 kernel: mueb: port 4(eth3) entering learning state
+Jun 12 13:38:34 mbb-2 kernel: mueb: port 2(eth1) entering forwarding state
+Jun 12 13:38:34 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:38:35 mbb-2 kernel: mueb: port 3(eth2) entering forwarding state
+Jun 12 13:38:35 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:38:36 mbb-2 kernel: mueb: port 4(eth3) entering forwarding state
+Jun 12 13:38:36 mbb-2 kernel: mueb: topology change detected, propagating
+Jun 12 13:39:01 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun 12 13:39:01 mbb-2 kernel: mueb: port 3(eth2) entering blocking state
+Jun 12 13:39:01 mbb-2 kernel: mueb: topology change detected, \
+                              &lt;6>mueb: port 4(eth3) entering blocking state
+Jun 12 13:39:02 mbb-2 kernel: mueb: topology change detected, sending tcn bpdu
+Jun 12 13:39:02 mbb-2 kernel: mueb: port 2(eth1) entering blocking state
+        </screen>
+
+        <para></para>
+
+      </example>
+
+    </sect3>
+
+  </sect2>
+
+</sect1>
+
+<appendix id="nic-info">
+  <title>Network Interface Cards</title>
+
+  <para>In this section you will find a (for now)
+    very incomplete list of NIC's which are known to work
+    or known to cause problem.
+    For I neither have the money to buy a lot of different
+    NIC's, nor I have any connections to hardware vendors,
+    I depend on your feedback to keep the list accurate.
+    So feel free to mail about success or failure to
+    <ulink type="mail" url="mailto:uwe@bnhof.de">Uwe Böhme</ulink>.
+  </para>
+
+  <table>
+     <title>NIC Information</title>
+    <tgroup cols="3" colsep="1" rowsep="1">
+        <colspec colnum="1" colwidth="3*">
+        <colspec colnum="2" colwidth="1*">
+        <colspec colnum="3" colwidth="8*">
+      <thead>
+        <row>
+          <entry>Name</entry>
+          <entry>Value</entry>
+          <entry>Comment</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>3c509b Etherlink III</entry>
+          <entry>++</entry>
+          <entry>&nbsp;</entry>
+        </row>
+        <row>
+          <entry>3c905b</entry>
+          <entry>+++</entry>
+          <entry>Never heard about any problem</entry>
+        </row>
+        <row>
+          <entry>3c905c</entry>
+          <entry>++</entry>
+          <entry>Never heard about any problem</entry>
+        </row>
+        <row>
+          <entry>HP J2585A</entry>
+          <entry>- -</entry>
+          <entry>System hang-up after <command>ifconfig</command></entry>
+        </row>
+        <row>
+          <entry>HP J2585B</entry>
+          <entry>++</entry>
+          <entry>&nbsp;</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <table>
+     <title>Valuing Of NIC Information</title>
+    <tgroup cols="2" colsep="1" rowsep="1">
+        <colspec colnum="1" colwidth="1*">
+        <colspec colnum="2" colwidth="5*">
+      <thead>
+        <row>
+          <entry>Value</entry>
+          <entry>Meaning</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>- - -</entry>
+          <entry>Cards I tried and are also reported not to work by other
+            people
+          </entry>
+        </row>
+        <row>
+          <entry>- -</entry>
+          <entry>Cards I tried or are reported not to work by other
+            people</entry>
+        </row>
+        <row>
+          <entry>-</entry>
+          <entry>Cards reported not to work by other people</entry>
+        </row>
+        <row>
+          <entry>*</entry>
+          <entry>Cards without any report or experience</entry>
+        </row>
+        <row>
+          <entry>+</entry>
+          <entry>Cards reported to work by other people</entry>
+        </row>
+        <row>
+          <entry>++</entry>
+          <entry>Cards I tried or are reported to work by other people</entry>
+        </row>
+        <row>
+          <entry>+++</entry>
+          <entry>Cards I tried and are also reported to work by other
+            people
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+</appendix>
+
+
+<appendix id="recommended-reading">
+  <title>Recommended Reading</title>
+
+  <para>Here you will some recommendations which documents you should read
+    before you start to setup a bridge.
+  </para>
+
+  <variablelist>
+
+    <varlistentry>
+      <term><ulink url="http://openrock.net/bridge/">The bridge home-page</ulink></term>
+      <listitem>
+        <para>Will give you recent information about the bridging code and
+          the bridge utilities.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><ulink url="http://www.linuxdoc.org/HOWTO/NET3-4-HOWTO.html">NET3-4-HOWTO</ulink></term>
+      <listitem>
+        <para>Describes how to install and configure the Linux networking
+          software and associated tools.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><ulink url="http://www.linuxdoc.org/HOWTO/Ethernet-HOWTO.html">Ethernet-HOWTO</ulink></term>
+      <listitem>
+        <para>Information about which Ethernet devices can be used for
+          Linux, and how to set them up (focused on the hardware and low
+          level driver aspect of the Ethernet cards).
+        </para>
+      </listitem>
+    </varlistentry>
+
+  </variablelist>
+
+</appendix>
+
+
+
+<appendix id="fax">
+  <title>FAQ</title>
+
+  <para>Here you will find some of the frequently asked questions connected
+    to bridging.
+  </para>
+
+  <qandaset defaultlabel="none">
+    <title>FAQ</title>
+
+    <qandadiv>
+      <title>Hardware</title>
+
+      <qandaentry>
+
+        <question>
+          <para>What hardware do I need to run a bridge with
+            2-<userinput>n</userinput> NICs.
+          </para>
+        </question>
+
+        <answer>
+          <para>I think a fat 486 or a modest Pentium should be able to keep
+            up with 2x100Mbit pretty well, but I have never tested this.
+            I don't think RAM will matter much (8 or 16MB and all should
+            be fine).
+
+            CPU will not matter a whole lot either (486/Pentium and all
+            should be fine).
+            I think the primary contributor is the type of bus (ISA, PCI)
+            and the type of network cards (some network cards require less
+            <quote>work</quote> than others).
+
+            Big switches usually have immensely fat internal buses (3 or 4
+            gigabits is not uncommon).
+            Standard PCI, for example, can't keep up with a gigabit ethernet
+            cards.
+          </para>
+
+        </answer>
+
+      </qandaentry>
+
+      <qandaentry>
+
+        <question>
+          <para>Can you please recommend some tools to measure a 2-port
+            linux bridge throughput.
+          </para>
+        </question>
+
+        <answer>
+          <para>Well, first question is: does it have 100mbit interfaces?
+            If it hasn't (10mbit only), it shouldn't have problems with
+            keeping up, almost regardless of the processor speed.
+            If it does have 100mbit interfaces and you're not sure it will
+            keep up, you can run a flood ping with big packets across it
+            (<command>ping -f -s 1450 <userinput>ipaddress</userinput></command>)
+            and see whether it keeps up.
+          </para>
+
+        </answer>
+
+      </qandaentry>
+
+    </qandadiv>
+
+    <qandadiv>
+      <title>Software</title>
+
+      <qandaentry>
+
+        <question>
+          <para>I'm running with kernel x.x.x.
+            Is a patch out there, to give me chance to use this stuff?
+          </para>
+        </question>
+
+        <answer>
+          <para>There are patches for and 2.2.14, 2.2.15.
+             Since 2.3.47 it's in the mainstream kernel, so you don't need to
+             patch.
+             If you're talking about others, you will have to upgrade, if you
+             need to bridge.
+          </para>
+
+        </answer>
+
+      </qandaentry>
+
+    </qandadiv>
+
+  </qandaset>
+
+</appendix>
+
+<toc></toc>
+
+</article>
