@@ -10,7 +10,7 @@ INSERT INTO template (template_code, template) VALUES ('default',
     <table width=100%>
       <tr><td colspan=2>|header|</td></tr>
       <tr>
-        <td width="200">|mainmenu|</td>
+        <td width="200">|boxmainmenu|</td>
         <td>|body|</td>
       </tr>
       <tr><td colspan=2>|footer|</td></tr>

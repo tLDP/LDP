@@ -8,6 +8,7 @@ INSERT INTO page (page_code, template_code) VALUES ('copyright',	'default');
 INSERT INTO page (page_code, template_code) VALUES ('contribute',	'default');
 INSERT INTO page (page_code, template_code) VALUES ('privacy',		'default');
 INSERT INTO page (page_code, template_code) VALUES ('about',		'default');
+INSERT INTO page (page_code, template_code) VALUES ('doctable',		'default');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'EN', 'Test Page',
 'Test Page');
@@ -132,5 +133,15 @@ Replace this text with information about your project.
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('about', 'FR', 'Le About |project|',
 '
 Le About Project
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('doctable', 'EN', 'DocTable',
+'
+|tabdoctable|
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('doctable', 'FR', 'Le DocTable',
+'
+Le DocTable goes here...
 ');
 

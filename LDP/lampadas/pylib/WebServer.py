@@ -26,7 +26,7 @@ class RequestHandler(BaseClass):
 		fd = self.send_head()
 		if fd:
 			self.send_response(200)
-			self.send_header('Content-type', 'text/html')
+			self.send_header('Content-type', 'text/html; charset=utf-8')
 			filesize = len(self.page)
 			self.send_header('Content-length', filesize)
 			self.end_headers()

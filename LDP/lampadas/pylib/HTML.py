@@ -48,8 +48,22 @@ class BoxFactory:
 		self.box = ''
 		self.box = self.box + '<table><tr><th>|mmtitle|</th></tr>'
 		self.box = self.box + '<tr><td>'
-		self.box = self.box + '<a href="home">|home|</a>'
+		self.box = self.box + '<a href="home">|home|</a><br>'
+		self.box = self.box + '<a href="doctable">|doctable|</a>'
 		self.box = self.box + '</td></tr>'
+		self.box = self.box + '</table>'
+		return self.box
+
+
+class TableFactory:
+
+	def DocTable(self, lang):
+		self.box = ''
+		self.box = self.box + '<table><tr><th>Title</th></tr>'
+		keys = L.Docs.keys()
+		for key in keys:
+			if L.Docs[key].Lang == lang:
+				self.box = self.box + '<tr><td><a href="' + str(L.Docs[key].URL) + '">' + L.Docs[key].Title + '</a></td></tr>'
 		self.box = self.box + '</table>'
 		return self.box
 
@@ -130,6 +144,7 @@ class PageFactory:
 	Strings		= WebLayer.Strings()
 	Templates	= WebLayer.Templates()
 	Box		= BoxFactory()
+	Table		= TableFactory()
 
 	def __call__(self, key, lang):
 		return self.Page(key, lang)
@@ -167,8 +182,6 @@ class PageFactory:
 			page = page.replace('|title|', Page.I18n[lang].Title)
 			page = page.replace('|body|', Page.I18n[lang].Page)
 
-			page = page.replace('\|', 'DCM_PIPE')
-
 			page = page.replace('|header|', self.Blocks['header'].I18n[lang].Block)
 			page = page.replace('|footer|', self.Blocks['footer'].I18n[lang].Block)
 			
@@ -183,11 +196,18 @@ class PageFactory:
 					oldstring = page[pos:pos2+1]
 					token = page[pos+1:pos2]
 					
-					if token=='mainmenu':
+					newstring = ''
+					
+					if token=='boxmainmenu':
 						newstring = self.Box.MainMenu(lang)
 					
-					else:
-						newstring = ''
+					if token=='tabdoctable':
+						newstring = self.Table.DocTable(lang)
+				
+					if token=='page':
+						newstring = pagecode
+
+					if newstring == '':
 						Block = self.Blocks[token]
 						if Block == None:
 							String = self.Strings[token]
@@ -201,10 +221,9 @@ class PageFactory:
 					
 					if newstring == '':
 						Log(1, 'Could not replace token ' + token)
-						
-					page = page.replace(page[pos:pos2+1], newstring)
-					
-					page = page.replace('\|', 'DCM_PIPE')
+					else:
+						page = page.replace(page[pos:pos2+1], newstring)
+						page = page.replace('\|', 'DCM_PIPE')
 					
 					pos = page.find('|')
 			
