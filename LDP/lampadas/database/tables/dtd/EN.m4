@@ -1,4 +1,4 @@
-insert(DocBook)
-insert(LinuxDoc)
-insert(N/A)
-insert(HTML)
+insert(none)
+insert(html)
+insert(linuxdoc)
+insert(docbook)

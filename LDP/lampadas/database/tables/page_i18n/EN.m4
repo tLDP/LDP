@@ -24,7 +24,7 @@ insert([sessions], [User Sessions], [],
     |tabsessions|
 ], 1)
 
-insert([my], [My Home], [],
+insert([my], [My Home Page], [],
 [
     <p>This is your personal home page.</p>
 
