@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase3">
+  <title>Some Basic Utilities</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>In the previous phase of the project it might seem like we did not
+    accomplish very much. A lot of energy was expended redesigning the root
+    disk, but the functionality is basically the same as in the initial
+    prototype phase. The root disk still does not do very much. But we did
+    make significant improvements when it comes to space savings. In this
+    phase we will put that extra space to good use and start cramming the root
+    disk with as many utilities as it can hold.</para>
+
+    <para>The root disk in first two phases only had shell built-in commands
+    like echo and pwd. For this phase, it would be nice to have some of the
+    commonly used external commands like cat, ls, mkdir, rm and such on the
+    root disk. Keeping this in mind we can define the goals for this phase as
+    follows:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Retain all of the functionality from the previous phase.</para>
+      </listitem>
+
+      <listitem>
+        <para>Add some of the commonly used external commands.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <sect2>
+      <title>Determining Required Commands</title>
+
+      <para>The first question that might come to mind is, &#34;How do we know
+      which commands are needed?&#34; It is possible to just start with cat
+      and ls then install other commands as we discover a need for them. But
+      this is terribly inefficient. We need a plan or a blueprint to work
+      from. For this we can turn to the Filesystem Hierarchy Standard (FHS)
+      available from <ulink url="http://www.pathname.com/fhs/">http://www.pathname.com/fhs/</ulink>.
+      The FHS dictates which commands should be present on a GNU/Linux system
+      and where they should be placed in the directory structure.</para>
+    </sect2>
+
+    <sect2>
+      <title>Locating Source Code</title>
+
+      <para>The next logical question is, &#34;Now that we know what we need,
+      where do we get the source code?&#34; The answer to this question can be
+      found by searching the Internet. There are several good &#39;net
+      resources out there that can aid us in our quest for source code. One
+      good place to start looking is the Linux Software Map (LSM) on Ibiblio.
+      Ibiblio&#39;s LSM search page can be found by navigating to <ulink
+      url="http://www.ibiblio.org/pub/linux">http://www.ibiblio.org/pub/linux</ulink>.
+      By using the names of commands as keywords, we should be able to come up
+      with the name and location of the corresponding source code package.</para>
+    </sect2>
+
+    <sect2>
+      <title>Leveraging FHS</title>
+
+      <para>So let&#39;s look at the FHS requirements for the /bin directory.
+      The first few commands in the list are cat, chgrp, chmod &#38; chown.
+      Using these as keywords in an LSM search we discover that we need
+      GNU&#39;s textutils package for cat and GNU&#39;s fileutils package for
+      chmod, chgrp &#38; chown. In fact quite a few of the commands in /bin
+      come from GNU&#39;s fileutils. So a good way to tackle the problem of
+      finding source code might be to group the commands together by package.</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>The BASH shell -- echo, false, pwd, sh, true</para>
+        </listitem>
+
+        <listitem>
+          <para>GNU textutils -- cat</para>
+        </listitem>
+
+        <listitem>
+          <para>GNU fileutils -- chgrp, chmod, chown, cp, dd, df, ln, ls,
+          mkdir, mknod, mv, rm, rmdir, sync</para>
+        </listitem>
+
+        <listitem>
+          <para>GNU sh-utils -- date, hostname, stty, su, uname</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>These four packages do not contain all of the commands in the /bin
+      directory, but they do represent of over 70% of them. That should be
+      enough to accomplish our goal of adding some of the commonly used
+      external commands. We can worry about the remaining commands in later
+      phases of the project.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <para>Rather than copying files directly to the ramdisk, we can make
+    things easier by setting up a staging area. The staging area will give us
+    room to work without worrying about the space constraints of the ramdisk.
+    It will also provide a way to save our work and make it easier to enhance
+    the rootdisk in later phases of the project.</para>
+
+    <para>The staging procedure will work like this:</para>
+
+    <orderedlist>
+      <listitem>
+        <para>Create a directory structure as defined in the FHS.</para>
+      </listitem>
+
+      <listitem>
+        <para>Copy in the files from phase 2&#39;s root disk.</para>
+      </listitem>
+
+      <listitem>
+        <para>Build the four new packages from source code.</para>
+      </listitem>
+
+      <listitem>
+        <para>Install files into the correct FHS directories.</para>
+      </listitem>
+
+      <listitem>
+        <para>Strip the binaries to save space.</para>
+      </listitem>
+
+      <listitem>
+        <para>Check library dependencies.</para>
+      </listitem>
+
+      <listitem>
+        <para>Copy to the whole directory structure to the ramdisk.</para>
+      </listitem>
+
+      <listitem>
+        <para>Compress the ramdisk and write it out to floppy.</para>
+      </listitem>
+    </orderedlist>
+
+    <sect2>
+      <title>Create a staging area</title>
+
+      <para><programlisting>bash# mkdir ~/staging
+bash# cd ~/staging
+bash# mkdir bin boot dev etc home lib mnt opt proc root sbin tmp usr var
+bash# mkdir var/log var/run</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy contents of phase 2 rootdisk</title>
+
+      <para><programlisting>bash# dd if=~/phase2-image.gz | gunzip -c &#62; /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR /mnt/* ~/staging
+bash# umount /dev/ram7
+bash# rmdir ~/staging/lost+found</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install &#34;cat&#34; from GNU Textutils</title>
+
+      <para><programlisting>bash# cd /usr/src/textutils-2.1
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cd src
+bash# cp cat ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install binaries from GNU fileutils</title>
+
+      <para><programlisting>bash# cd /usr/src/fileutils-4.1
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cd src
+bash# cp chgrp chmod chown cp dd df ln ls ~/staging/bin
+bash# cp mkdir mkfifo mknod mv rm rmdir sync ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install binaries from sh-utils</title>
+
+      <para><programlisting>bash# cd /usr/src/sh-utils-2.0
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cd src
+bash# cp date hostname stty su uname ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Strip Binaries</title>
+
+      <para><programlisting>bash# strip ~/staging/bin/*</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy additional libraries</title>
+
+      <para><programlisting>bash# ldd ~/staging/bin/cat
+bash# ldd ~/staging/bin/ls
+bash# ls ~/staging/lib
+bash# cp /lib/librt.so.1 ~/staging/lib
+bash# cp /lib/libpthread.so.0 ~/staging/lib</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create a compressed root disk image</title>
+
+      <para><programlisting>bash# cd /
+bash# dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+bash# mke2fs -m0 /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR ~/staging/* /mnt
+bash# umount /dev/ram7
+bash# dd if=/dev/ram7 of=~/phase3-image bs=1k
+bash# gzip -9 ~/phase3-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Write the root disk image to floppy</title>
+
+      <para>Insert the diskette labled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting>bash# dd if=~/phase3-image.gz of=/dev/fd0</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <para>We will need to have a read-write filesystem in order for some of
+    the commands to work. The kernel&#39;s normal behavior is to mount root as
+    read-only, but we can change this using a kernel option. By passing LILO
+    &#34;rw&#34; before &#34;init=/bin/sh&#34; we will get a read-write root
+    filesystem.</para>
+
+    <sect2>
+      <title>Sytem startup</title>
+
+      <para>Follow these steps to get the system running.</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Boot the PC from using the LILO boot disk.</para>
+        </listitem>
+
+        <listitem>
+          <para>At the LILO prompt, type &#34;<userinput>bootdisk rw
+          init=/bin/sh</userinput>&#34; and press <keycap>Enter</keycap>.</para>
+        </listitem>
+
+        <listitem>
+          <para>Insert the recently created root disk when prompted.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>The terminal display should look similar to the example below.</para>
+
+      <para><screen>boot: bootdisk rw init=/bin/sh
+Loading bootdisk
+Uncompressing Linux... Ok, booting kernel.
+..
+.. [various kernel messages]
+..
+VFS: Insert root floppy to be loaded into RAM disk and press ENTER
+RAMDISK: Compressed image found at block 0
+VFS: Mounted root (ext2 filesystem).
+Freeing unused kernel memory: 178k freed
+# _</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Testing new commands</title>
+
+      <para>Now that the system is up and running, try using some of the new
+      commands.</para>
+
+      <para><programlisting>bash# uname -a
+bash# ls /etc
+bash# echo &#34;PocketLinux&#34; &#62; /etc/hostname
+bash# hostname $(cat /etc/hostname)
+bash# uname -n
+bash# mkdir /home/stuff
+bash# cd /home/stuff</programlisting></para>
+
+      <para>If everything goes well the commands like cat, ls and hostname
+      should work now. Even mkdir should work since the root filesystem is
+      mounted read-write. Of course since we are using a ramdisk, any changes
+      will be lost once the PC is reset.</para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para>Remove the diskette from fd0 and restart the system using
+      <keycap>CTRL</keycap>-<keycap>ALT</keycap>-<keycap>DELETE</keycap>.</para>
+    </sect2>
+  </sect1>
+</chapter>

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase2">
+  <title>Saving Space</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>One of the drawbacks in the previous phase of the project was that
+    the diskset was not all that useful. The only commands that worked were
+    the ones built into the BASH shell. We could improve our root disk by
+    installing commands like cat, ls, mv, rm and so on. Unfortunately, we are
+    short on space. The current root disk has no shared libraries so each
+    binary would have to be statically linked just like the BASH shell. A lot
+    of big binaries together with a static shell will rapidly exceed the tiny
+    1.44M of available disk space. So our main goal in this phase should be to
+    maximize space savings on the root disk and pave the way for expanded
+    functionality in the next phase.</para>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <para>Take another look at the Bootdisk-HOWTO and notice how many
+    utilities can be squeezed onto on 1.44M floppy. There are three things
+    that make this possible. One is the use of shared libraries. The second is
+    stripped binaries. And the third is the use of a compressed filesystem. We
+    can use all of these techniques to save space on our root disk.</para>
+
+    <sect2>
+      <title>Shared Libraries</title>
+
+      <para>First, in order to use shared libraries we will need to rebuild
+      the BASH shell. This time we will configure it without using the
+      &#34;--enable-static-link&#34; option. Once BASH is rebuilt we need to
+      figure out which libraries it is linked with and be sure to include them
+      on the root disk. The &#34;ldd&#34; command makes this job easy. By
+      typing &#34;ldd bash&#34; on the command-line we can see a list of all
+      the shared libraries that BASH uses. As long as all these libraries are
+      copied to the root disk, the new BASH build should work fine.</para>
+    </sect2>
+
+    <sect2>
+      <title>Stripped Binaries</title>
+
+      <para>Next, we should strip any binaries that get copied to the root
+      disk. The manpage for strip does not give much description of what it
+      does other than to say, &#34;strip discards all symbols from the object
+      files.&#34; A vast majority of these symbols are for debugging. While
+      these debugging symbols are very helpful to programmers working to
+      improve the code, they do not do much for the average end-user other
+      than take up more disk space. Since space is at a premium on a floppy
+      disk, we should definitely strip all of the binaries.</para>
+    </sect2>
+
+    <sect2>
+      <title>Compressed Root Filesystem</title>
+
+      <para>Finally, we can tackle the problem of how to build a compressed
+      root filesystem. The Bootdisk-HOWTO suggests three ways of constructing
+      a compressed root filesystem using either a ramdisk, a spare hard drive
+      partition or a loopback device. This project will concentrate on using
+      the ramdisk approach. It seems logical that if the root filesystem is
+      going to be run from a ramdisk, it may as well be built on a ramdisk.
+      All we have to do is create a second extended filesystem on a ramdisk
+      device, mount it and copy files to it. (Note: For this to work, we need
+      to make sure the kernel is configured with ramdisk support and a default
+      size of 4,096K. If this is not the case we will know right away, because
+      the filesystem creation and mounting of the ramdisk will fail.) Once the
+      filesystem is populated with all the files that the root disk needs, we
+      simply unmount it, compress it and write it out to floppy.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <para>This section is written using ramdisk seven (/dev/ram7) to build the
+    root image. There is nothing particularly special about ramdisk seven and
+    it is possible to use any of the other available ramdisks provided they
+    are not already in use.</para>
+
+    <sect2>
+      <title>Create a ramdisk</title>
+
+      <para><programlisting><prompt>bash#</prompt> dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+<prompt>bash#</prompt> mke2fs -m0 /dev/ram7
+<prompt>bash#</prompt> mount /dev/ram7 /mnt</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Rebuild the BASH shell</title>
+
+      <para><programlisting><prompt>bash#</prompt> cd /usr/src/bash-2.05a
+<prompt>bash#</prompt> make distclean
+<prompt>bash#</prompt> ./configure --enable-minimal-config --host=i386-pc-linux-gnu
+<prompt>bash#</prompt> make
+<prompt>bash#</prompt> strip bash</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Determine which libraries are required</title>
+
+      <para><programlisting><prompt>bash#</prompt> ldd bash</programlisting></para>
+
+      <para>Note the output from the ldd command. It will most likely show
+      that these library files are required for BASH: <filename>/lib/libdl.so.2</filename>,
+      <filename>/lib/libc.so.6</filename> &#38; <filename>/lib/ld-linux.so.2</filename></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy BASH and its libraries to the ramdisk</title>
+
+      <para><programlisting><prompt>bash#</prompt> mkdir /mnt/bin
+<prompt>bash#</prompt> cp bash /mnt/bin
+<prompt>bash#</prompt> ln -s bash /mnt/bin/sh
+<prompt>bash#</prompt> mkdir /mnt/lib
+<prompt>bash#</prompt> cp /lib/libdl.so.2 /mnt/lib
+<prompt>bash#</prompt> cp /lib/libc.so.6 /mnt/lib
+<prompt>bash#</prompt> cp /lib/ld-linux.so.2 /mnt/lib</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create a console device</title>
+
+      <para><programlisting><prompt>bash#</prompt> mkdir /mnt/dev
+<prompt>bash#</prompt> mknod /mnt/dev/console c 5 1</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Compress the ramdisk image</title>
+
+      <para><programlisting><prompt>bash#</prompt> umount /dev/ram7
+<prompt>bash#</prompt> dd if=/dev/ram7 of=~/phase2-image bs=1k
+<prompt>bash#</prompt> gzip -9 ~/phase2-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy the compressed image to diskette</title>
+
+      <para>Insert the floppy labeled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting><prompt>bash#</prompt> dd if=~/phase2-image.gz of=/dev/fd0 bs=1k</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <sect2>
+      <title>System startup</title>
+
+      <para>Follow these steps to boot:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Restart the PC using the lilo boot disk from the previous
+          chapter.</para>
+        </listitem>
+
+        <listitem>
+          <para>At the LILO prompt, type &#34;<userinput>bootdisk init=/bin/sh</userinput>&#34;
+          and press <keycap>Enter</keycap>.</para>
+        </listitem>
+
+        <listitem>
+          <para>Insert the new, compressed root disk when prompted.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>The screen output should be similar to the following example:</para>
+
+      <para><screen>boot: bootdisk init=/bin/sh
+Loading bootdisk
+Uncompressing Linux... Ok, booting kernel.
+..
+.. [various kernel messages]
+..
+VFS: Insert root floppy to be loaded into RAM disk and press ENTER
+RAMDISK: Compressed image found at block 0
+VFS: Mounted root (ext2 filesystem) read-write.
+Freeing unused kernel memory: 178k freed
+# _</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Verify results</title>
+
+      <para>If the implementation was successful, this new root disk should
+      behave exactly like the root disk from the previous chapter. The key
+      difference is that this compressed root disk has much more room to grow
+      and we will put this extra space to good use in the next phase of the
+      project.</para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para>Remove the diskette from fd0 and restart the system using
+      <keycap>CTRL</keycap>-<keycap>ALT</keycap>-<keycap>DELETE</keycap>.</para>
+    </sect2>
+  </sect1>
+</chapter>

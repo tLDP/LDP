@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase4">
+  <title>Checking and Mounting Disks</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>In phase 3 of the project we added a lot of new commands and as a
+    result the root disk has a lot more functionality. But there are still a
+    few things lacking. One thing that really stands out is that there was no
+    way to mount disks. In order to get a read-write root filesystem we had to
+    resort to passing the &#34;rw&#34; kernel parameter through LILO. This is
+    fine for an emergency situation, but a normal system boot process should
+    do things differently.</para>
+
+    <para>Most GNU/Linux distributions take several steps to mount
+    filesystems. Watching the boot process or digging into the startup scripts
+    on one of the popular Linux distributions reveals the following sequence
+    of events:</para>
+
+    <orderedlist>
+      <listitem>
+        <para>The kernel automatically mounts the root filesystem as
+        read-only.</para>
+      </listitem>
+
+      <listitem>
+        <para>All local filesystems are checked for errors.</para>
+      </listitem>
+
+      <listitem>
+        <para>If filesystems are clean, root is remounted as read-write.</para>
+      </listitem>
+
+      <listitem>
+        <para>The rest of the local filesystems are mounted.</para>
+      </listitem>
+
+      <listitem>
+        <para>Network filesystems are mounted.</para>
+      </listitem>
+    </orderedlist>
+
+    <para>So far our Pocket Linux system can do step one and that is it. If we
+    want to have a professional looking boot / root diskset we will have to do
+    better than one out of five. In this phase of the project we will work on
+    steps two and three. Steps four and five can wait. Since this is a
+    diskette-based system, there really are no other filesystems to mount
+    besides root.</para>
+
+    <para>Taking into account all of the above information, the goals for this
+    phase are defined as follows:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>A way to check filesystem integrity.</para>
+      </listitem>
+
+      <listitem>
+        <para>The ability to mount filesystems.</para>
+      </listitem>
+
+      <listitem>
+        <para>A script to automate checking and mounting of local filesystems.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <sect2>
+      <title>Determining necessary utilities.</title>
+
+      <para>We can use the Filesystem Hierarchy Standard (FHS) document to
+      help find the names of utilities we need and where they reside in the
+      directory structure. The FHS /sbin directory lists &#34;fsck&#34; and
+      something called &#34;fsck.*&#34; for checking filesystems. Since we are
+      using a Second Extended (ext2) filesystem the &#34;fsck.*&#34; becomes
+      &#34;fsck.ext2&#34; for our purposes. Mounting filesystems is done using
+      the commands &#34;mount&#34; and &#34;umount&#34; in the /bin directory.
+      However, the name of a script to automatically mount local filesystems
+      cannot be found. On most systems this type of script is in the /etc
+      directory, but while FHS does list requirements for /etc, it does not
+      currently make recommendations for startup scripts. Several GNU/Linux
+      distributions use /etc/init.d as the place to hold startup scripts so we
+      will put our filesystem mounting script there.</para>
+    </sect2>
+
+    <sect2>
+      <title>Finding source code</title>
+
+      <para>If we search Ibiblio&#39;s Linux Software Map (LSM) at <ulink
+      url="http://www.ibiblio.org/pub/linux/">http://www.ibiblio.org/pub/Linux/</ulink>
+      for the keyword &#34;fsck&#34; we get a large number of matches. Since
+      we are using a Second Extended filesystem, called ext2 for short, we can
+      refine the search using &#34;ext2&#34; as a keyword. Supplying both
+      keywords to the LSM search engine comes up with a package called
+      e2fsprogs. Looking at the LSM entry for e2fsprogs we find out that
+      package contains the utilities e2fsck, mke2fs, dumpe2fs, fsck and more.
+      We also find out that the LSM entry for e2fsprogs has not been updated
+      since 1999. There is almost certainly a newer version out there
+      somewhere. Another good Internet resource for source code is SourceForge
+      at <ulink url="http://sourceforge.net">http://sourceforge.net</ulink>.
+      Using the keyword &#34;e2fsprogs&#34; in the SourceForge search engine
+      results in a much newer version of e2fsprogs.</para>
+
+      <para>Finding fsck was quite an adventure, but now we can move on to
+      finding mount and umount. A search on LSM comes up with a number of
+      matches, but most of them point to various versions of a package called
+      util-linux. All we have to do is scroll through and pick the most recent
+      release. The LSM entry for util-linux lists a lot of utilities besides
+      just mount and umount. We should definitely scan through the list to see
+      if any of the other util-linux commands show up in the FHS requirements
+      for /bin and /sbin.</para>
+
+      <para>Below is a list of packages we have gathered so far and the
+      utilities that match up with FHS.</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>e2fsprogs -- fsck, fsck.ext2 (e2fsck), mkfs.ext2 (mke2fs)</para>
+        </listitem>
+
+        <listitem>
+          <para>util-linux -- dmesg, getty (agetty), kill, login, mount,
+          swapon, umount</para>
+        </listitem>
+      </itemizedlist>
+    </sect2>
+
+    <sect2>
+      <title>Automating fsck and mount</title>
+
+      <para>Now that we have fsck and mount commands we need to come up with a
+      shell script to automate checking and mounting the local filesystems. An
+      easy way to do this would be to write a short, two line script that
+      calls fsck and then mount. But, what if the filesystems are not clean?
+      The system should definitely not try to mount a corrupted filesystem.
+      Therefore we need to devise a way of determining the status of the
+      filesystems before mounting them. The manpage for fsck gives some
+      insight into how this can be accomplished using return codes. Basically,
+      a return code of zero or one means the filesystem is okay and two or
+      greater means some kind of manual intervention is needed. A simple
+      if-then statement could evaluate the fsck return code to determine
+      whether or not the filesystem should be mounted. For help on writing
+      shell scripts we can turn to the BASH(1) manpage and the Advanced BASH
+      Scripting Guide (<ulink url="http://www.tldp.org/guides.html">http://www.tldp.org/guides.html</ulink>).
+      Both references are freely available from the Linux Documentation
+      Project.</para>
+    </sect2>
+
+    <sect2>
+      <title>File dependencies</title>
+
+      <para>The last thing to do is to figure out if any other files besides
+      the binaries are needed. We learned about using ldd to check for library
+      dependencies in the last phase of the project and we will use it to
+      check the utilities in this phase too. There are also some other files
+      that fsck and mount will need and the fsck(8) and mount(8) manpages give
+      some insight into what those files are. There is /etc/fstab that lists
+      devices and their mount points, /etc/mtab which keeps track of what is
+      mounted and the device files that represent the various disks. We will
+      need to include all of these to have everything work right.</para>
+
+      <para>The /etc/fstab file is just a simple text file that can be created
+      with any editor. We will need an entry for the root filesystem and for
+      the proc filesystem. The reason for the proc filesystem entry is so we
+      can create /etc/mtab as a symlink that points to /proc/mounts. The
+      /proc/mounts file contains almost exactly the same information as the
+      traditional /etc/mtab file. We just have to make sure the proc
+      filesystem is mounted before anything else. The only thing left is to
+      create device files. We will need /dev/ram0, because that is where the
+      root filesystem is located. We also need /dev/fd0 to mount other floppy
+      disks and /dev/null.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <sect2>
+      <title>Install utilities from e2fsprogs</title>
+
+      <para><programlisting>bash# cd /usr/src/e2fsprogs-1.29
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cd e2fsck
+bash# cp e2fsck.shared ~/staging/sbin/e2fsck
+bash# ln -s e2fsck ~/staging/sbin/fsck.ext2
+bash# cd ../misc
+bash# cp fsck mke2fs ~/staging/sbin
+bash# ln -s mke2fs ~/staging/sbin/mkfs.ext2</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install utilities from util-linux</title>
+
+      <para><programlisting>bash# cd /usr/src/util-linux-2.11u</programlisting></para>
+
+      <para>Use a text editor to make the following changes to MCONFIG:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Change &#34;HAVE_SHADOW=yes&#34; to &#34;HAVE_SHADOW=no&#34;</para>
+        </listitem>
+
+        <listitem>
+          <para>Change &#34;CPU=$(shell uname -m)&#34; to &#34;CPU=i386&#34;</para>
+        </listitem>
+      </itemizedlist>
+
+      <para><programlisting>bash# ./configure
+bash# make
+bash# cp disk-utils/mkfs ~/staging/sbin
+bash# cp fdisk/fdisk ~/staging/sbin
+bash# cp login-utils/agetty ~/staging/sbin
+bash# ln -s agetty ~/staging/sbin/getty
+bash# cp login-utils/login ~/staging/bin
+bash# cp misc-utils/kill ~/staging/bin
+bash# cp mount/mount ~/staging/bin
+bash# cp mount/umount ~/staging/bin
+bash# cp mount/swapon ~/staging/sbin
+bash# cp sys-utils/dmesg ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Check library requirements</title>
+
+      <para><programlisting>bash# ldd ~/staging/bin/* | more
+bash# ldd ~/staging/sbin/* | more
+bash# ls ~/staging/lib</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Strip binaries to save space</title>
+
+      <para><programlisting>bash# strip ~/staging/bin/*
+bash# strip ~/staging/sbin/*</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create additional device files</title>
+
+      <para><programlisting>bash# mknod ~/staging/dev/ram0 b 1 0
+bash# mknod ~/rootfiles/dev/fd0 b 2 0
+bash# mknod ~/rootfiles/dev/null c 1 3</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create mtab and fstab files</title>
+
+      <para><programlisting>bash# cd ~/staging/etc
+bash# ln -s /proc/mounts mtab</programlisting></para>
+
+      <para>Use an editor like vi emacs or pico to create the following file
+      and save it as ~/staging/etc/fstab.</para>
+
+      <para><programlisting>proc		/proc	proc	noauto		0	0
+/dev/ram0	/	ext2	defaults	1	1</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Write a script to mount the proc filesystem</title>
+
+      <para><programlisting>bash# mkdir ~/staging/etc/init.d</programlisting></para>
+
+      <para>Use an editor to create the following shell script and save it as
+      ~/staging/etc/init.d/proc_fs:</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# proc_fs - mount the proc filesystem
+#
+PATH=/sbin:/bin ; export PATH
+
+mount -t proc proc /proc
+#
+# end of proc_fs</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Write a script to check and mount local filesystems</title>
+
+      <para>Use an editor to create the following shell script and save it as
+      ~/staging/etc/init.d/local_fs:</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# local_fs - check and mount local filesystems
+#
+PATH=/sbin:/bin ; export PATH
+
+fsck -ATCp
+if [ $(($?)) -gt $((1)) ]; then
+  echo &#34;Filesystem errors still exist!  Manual intervention required.&#34;
+  /bin/sh
+else
+  echo &#34;Remounting / as read-write.&#34;
+  mount -o remount,rw /
+  echo &#34;Mounting local filesystems.&#34;
+  mount -a
+fi
+#
+# end of local_fs</programlisting></para>
+
+      <para>Set execute permissions on the scripts.</para>
+
+      <para><programlisting>bash# chmod +x proc_fs
+bash# chmod +x local_fs</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create a compressed root disk image</title>
+
+      <para><programlisting>bash# cd /
+bash# dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+bash# mke2fs -m0 /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR ~/staging/* /mnt
+bash# umount /dev/ram7
+bash# dd if=/dev/ram7 of=~/phase4-image bs=1k
+bash# gzip -9 ~/phase4-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Write the root disk image to floppy</title>
+
+      <para>Insert the diskette labled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting>bash# dd if=~/phase4-image.gz of=/dev/fd0 bs=1k</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <sect2>
+      <title>System startup</title>
+
+      <para>Start the system using the following procedure:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Boot the PC using the floppy labled &#34;boot disk&#34;.</para>
+        </listitem>
+
+        <listitem>
+          <para>Type &#34;<userinput>bootdisk init=/bin/sh</userinput>&#34; at
+          the LILO prompt.</para>
+        </listitem>
+
+        <listitem>
+          <para>Put in the recently created root disk when prompted.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>The output should resemble the example below:</para>
+
+      <para><screen>boot: bootdisk init=/bin/sh
+Loading bootdisk
+Uncompressing Linux... Ok, booting kernel.
+..
+.. [various kernel messages]
+..
+VFS: Insert root floppy to be loaded into RAM disk and press ENTER
+RAMDISK: Compressed image found at block 0
+VFS: Mounted root (ext2 filesystem) readonly.
+Freeing unused kernel memory: 178k freed
+# _</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Test proc_fs and local_fs scripts</title>
+
+      <para>Run the scripts by typing the following commands at the shell
+      prompt:</para>
+
+      <para><programlisting>bash# PATH=/sbin:/bin:/etc/init.d ; export PATH
+bash# proc_fs
+bash# cat /etc/mtab
+bash# local_fs
+bash# df</programlisting></para>
+
+      <para>If everything is working properly, then the screen output should
+      look something like the example below.</para>
+
+      <para><screen># PATH=/sbin:/bin:/etc/init.d ; export PATH
+# proc_fs
+# cat /etc/mtab
+/dev/root / ext2 ro 0 0
+proc /proc proc rw 0 0
+# local_fs
+/dev/ram0: clean 74/1024 files 3178/4096 blocks
+# df
+Filesystem      1k-blocks       Used Available Use% Mounted on
+/dev/root       3963            3045 918        77% /
+Remounting / as read-write.
+Mounting local filesystems.</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Create and mount additional filesystems</title>
+
+      <para>Remove the root disk floppy and insert a blank diskette labeled
+      &#34;home&#34;. Then type the following commands:</para>
+
+      <para><programlisting>bash# mkfs /dev/fd0
+bash# fsck /dev/fd0
+bash# mount /dev/fd0 /home
+bash# mkdir /home/floyd
+bash# cd /home/floyd
+bash# echo &#34;Goodbye cruel world.&#34; &#62; goodbye.txt
+bash# cat goodbye.txt</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para><programlisting>bash# cd /
+bash# umount /dev/fd0
+bash# sync</programlisting></para>
+
+      <para>Remove the diskette from fd0 and restart the system using
+      <keycap>CTRL</keycap>-<keycap>ALT</keycap>-<keycap>DELETE</keycap>.</para>
+    </sect2>
+  </sect1>
+</chapter>

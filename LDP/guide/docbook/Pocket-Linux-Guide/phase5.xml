@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase5">
+  <title>Automating Startup &#38; Shutdown</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>The root disk from the last phase is looking pretty good. It has
+    about seventy percent of the commands that the Filesystem Hierarchy
+    Standard (FHS) document requires for the root filesystem. Plus it has
+    commands for checking and mounting filesystems. But even with all of this
+    the root disk is far from perfect. The list below outlines three things
+    that could use some improvement if the Pocket Linux system is to stand up
+    next to the more professional looking distributions.</para>
+
+    <orderedlist>
+      <listitem>
+        <para>The system currently requires the kernel parameter
+        &#34;init=/bin/sh&#34; to be typed at the LILO prompt in order to
+        start properly. On any other GNU/Linux system this is only done in an
+        emergency situation when the system is corrupted.</para>
+      </listitem>
+
+      <listitem>
+        <para>Checking and mounting the root filesystem has to be done
+        manually by running a script at a shell prompt. On most modern
+        operating systems this function is handled automatically as part of
+        the system start-up process.</para>
+      </listitem>
+
+      <listitem>
+        <para>Using CTRL-ALT-DELETE for system shutdown is not very graceful.
+        Filesystems should be unmounted and cached information should be
+        flushed prior to shutdown. Again, this is something that most
+        operating systems handle automatically.</para>
+      </listitem>
+    </orderedlist>
+
+    <para>Taking the above list into consideration, the goals for this phase
+    are defined as follows:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Automated start-up sequence.</para>
+      </listitem>
+
+      <listitem>
+        <para>Graceful shutdown capability.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <sect2>
+      <title>Determining necessary utilities</title>
+
+      <para>We need an init daemon to automate start-up. We know this because
+      the Bootdisk-HOWTO and From-Powerup-To-BASH-Prompt-HOWTO both make
+      mention of it as the first program to start after the kernel loads. The
+      latter HOWTO also goes into some detail about the /etc/inittab file and
+      the organization of startup scripts. This could be helpful since FHS,
+      the blueprint we have used so far, makes no recommendation for init
+      scripts.</para>
+
+      <para>We will also need to find the shutdown command to fulfill the
+      second goal of graceful shutdown capability.</para>
+    </sect2>
+
+    <sect2>
+      <title>Obtaining source code</title>
+
+      <para>Searching the Linux Software Map on Ibiblio for the keyword
+      &#34;init&#34; gives a large number of results. From reading the
+      From-Powerup-To-BASH-Prompt-HOWTO however, we know that most Linux
+      systems use a System V style init daemon. Narrowing the search with the
+      additional key phrase of &#34;System V&#34; gives much better results.
+      The sysvinit package contains init, shutdown, halt and reboot which is
+      everything we need. The version listed in the LSM entry looks to be
+      pretty old, but there is a primary-site URL that will probably lead to
+      the latest version.</para>
+    </sect2>
+
+    <sect2>
+      <title>Checking Dependencies</title>
+
+      <para>The manpage for init mentions a FIFO called &#34;/dev/initctl&#34;
+      that is required for init to communicate with other programs in the
+      sysvinit package. We will have to create this file for init to function
+      properly.</para>
+    </sect2>
+
+    <sect2>
+      <title>Outlining start-up scripts</title>
+
+      <para>Many of the popular GNU/Linux distributions use System V style
+      init scripts. Since we are using a &#34;sysvinit&#34; daemon it makes
+      since to use System V style scripts as well. The following documents all
+      touch upon the System V style init scripts in some way and will serve as
+      references when building the scripts for this project:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>The Debian Policy Manual -- available online at <ulink
+          url="http://www.debian.org/doc/debian-policy">http://www.debian.org/doc/debian-policy</ulink>.</para>
+        </listitem>
+
+        <listitem>
+          <para>The Linux Standard Base specification -- downloadable in many
+          formats from <ulink url="http://www.linuxbase.org/spec/index.shtml">http://www.linuxbase.org/spec/index.shtml</ulink>.</para>
+        </listitem>
+
+        <listitem>
+          <para>Essential System Administration, 3rd Edition by Aeleen Frisch
+          -- available at bookstores or directly from O&#39;Reilly Publishing
+          at <ulink url="http://www.oreilly.com/">http://www.oreilly.com/</ulink>.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>After glancing at one or two of the above references we should
+      have a pretty good idea of how the System V style system initialization
+      process works. We should also know what it takes to create System V
+      style init scripts for the Pocket Linux project. Below is a brief list
+      of what needs to be done:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Create an inittab file to call an &#34;rc&#34; script with a
+          numerical argument giving the runlevel.</para>
+        </listitem>
+
+        <listitem>
+          <para>Write an &#34;rc&#34; script that use the runlevel argument to
+          execute the appropriate &#34;K&#34; and &#34;S&#34; scripts.</para>
+        </listitem>
+
+        <listitem>
+          <para>Modify the previously built local_fs script to take
+          &#34;start&#34; and &#34;stop&#34; arguments.</para>
+        </listitem>
+
+        <listitem>
+          <para>Create new scripts for shutdown and reboot.</para>
+        </listitem>
+
+        <listitem>
+          <para>Set up /etc/rcN.d directories and links to scripts in
+          /etc/init.d.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>As always, the BASH(1) manpage and the Advanced BASH Scripting
+      Guide are very helpful for writing and understanding shell scripts.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <sect2>
+      <title>Install sysvinit utilities</title>
+
+      <para><programlisting>bash# cd /usr/src/sysvinit-2.84/src
+bash# make CC=&#34;gcc -mcpu=i386&#34;
+bash# cp halt init shutdown ~/staging/sbin
+bash# ln -s halt ~/staging/sbin/reboot
+bash# ln -s init ~/staging/sbin/telinit
+bash# mknod ~/staging/dev/initctl p</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create /etc/inittab file</title>
+
+      <para>Use a text editor to create the following file and save it as
+      ~/staging/etc/inittab</para>
+
+      <para><programlisting># /etc/inittab - init daemon configuration file
+#
+# Default runlevel
+id:1:initdefault:
+#
+# System initialization
+si:S:sysinit:/etc/init.d/rc S
+#
+# Runlevel scripts
+r0:0:wait:/etc/init.d/rc 0
+r1:1:respawn:/bin/sh
+r2:2:wait:/etc/init.d/rc 2
+r3:3:wait:/etc/init.d/rc 3
+r4:4:wait:/etc/init.d/rc 4
+r5:5:wait:/etc/init.d/rc 5
+r6:6:wait:/etc/init.d/rc 6
+#
+# end of /etc/inittab</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create /etc/init.d/rc script</title>
+
+      <para>Use a text editor to create the following file and save it as
+      ~/staging/etc/init.d/rc</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# /etc/init.d/rc - runlevel change script
+#
+PATH=/sbin:/bin
+SCRIPT_DIR=&#34;/etc/rc$1.d&#34;
+#
+# Check that the rcN.d directory really exists.
+if [ -d $SCRIPT_DIR ]; then
+#
+# Execute the kill scripts first.
+  for SCRIPT in $SCRIPT_DIR/K*; do
+    if [ -x &#34;$SCRIPT&#34; ]; then
+      $SCRIPT stop;
+    fi;
+  done;
+#
+# Do the Start scripts last.
+  for SCRIPT in $SCRIPT_DIR/S*; do
+    if [ -x $SCRIPT ]; then
+      $SCRIPT start;
+    fi;
+  done;
+fi</programlisting></para>
+
+      <para>Make the file executable.</para>
+
+      <para><programlisting>bash# chmod +x /etc/init.d/rc</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Modify /etc/init.d/local_fs script</title>
+
+      <para>A case statement is added to allow the script to either mount or
+      dismount local filesystems depending on the command-line argument given.
+      The original script is contained inside the &#34;start&#34; portion of
+      the case statement. The stop portion is new.</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# local_fs - check and mount local filesystems
+#
+PATH=/sbin:/bin ; export PATH
+
+case $1 in
+
+start)
+  echo &#34;Checking local filesystem integrity.&#34;
+  fsck -ATCp
+  if [ $(($?)) -gt $((1)) ]; then
+    echo &#34;Filesystem errors still exist!  Manual intervention required.&#34;
+    /bin/sh
+  else
+    echo &#34;Remounting / as read-write.&#34;
+    mount -o remount,rw /
+    echo &#34;Mounting local filesystems.&#34;
+    mount -a
+  fi
+;;
+
+stop)
+  echo &#34;Dismounting local filesystems.&#34;
+  umount -a
+  echo &#34;Remounting / as read-only.&#34;
+  mount -o remount,rw /
+  echo &#34;Flushing disk cache.&#34;
+  sync
+;;
+
+default)
+  echo &#34;usage: $0 start|stop&#34;;
+;;
+
+esac
+#
+# end of local_fs</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create a hostname script</title>
+
+      <para>Use a text editor to create the following script and save it as
+      ~/staging/etc/init.d/hostname</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# hostname - set the system name to the name stored in /etc/hostname
+#
+PATH=/sbin:/bin ; export PATH
+
+echo &#34;Setting hostname.&#34;
+if [ -f /etc/hostname ]; then
+  hostname $(cat /etc/hostname)
+else
+  hostname gnu-linux
+fi
+#
+# end of hostname</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create halt &#38; reboot scripts</title>
+
+      <para>Use a text editor to create ~/staging/etc/init.d/halt as shown
+      below.</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# halt - halt the system
+#
+PATH=/sbin:/bin ; export PATH
+
+echo &#34;Initiating system halt.&#34;
+halt
+#
+# end of /etc/init.d/halt</programlisting></para>
+
+      <para>Create the following script and save it as
+      ~/staging/etc/init.d/reboot</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# reboot - reboot the system
+#
+PATH=/sbin:/bin ; export PATH
+
+echo &#34;Initiating system reboot.&#34;
+reboot
+#
+# end of /etc/init.d/reboot</programlisting></para>
+
+      <para>Flag script files as executable.</para>
+
+      <para><programlisting>bash# chmod +x /etc/init.d/*</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create rcN.d directories and links</title>
+
+      <para><programlisting>bash# cd ~/staging/etc
+bash# mkdir rc0.d rc1.d rc2.d rc3.d rc4.d rc5.d rc6.d rcS.d
+bash# cd rcS.d
+bash# ln -s ../init.d/proc_fs S10proc_fs
+bash# ln -s ../init.d/local_fs S20local_fs
+bash# ln -s ../init.d/hostname S30hostname
+bash# cd rc0.d
+bash# ln -s ../init.d/local_fs K10local_fs
+bash# ln -s ../init.d/halt K90halt
+bash# cd rc6.d
+bash# ln -s ../init.d/local_fs K10local_fs
+bash# ln -s ../init.d/reboot K90reboot</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create the root disk image</title>
+
+      <para><programlisting>bash# cd /
+bash# dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+bash# mke2fs -m0 /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR ~/staging/* /mnt
+bash# umount /dev/ram7
+bash# dd if=/dev/ram7 of=~/phase5-image bs=1k
+bash# gzip -9 ~/phase5-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy the image to diskette</title>
+
+      <para>Insert the diskette labled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting>bash# dd if=~/phase5-image.gz of=/dev/fd0 bs=1k</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <sect2>
+      <title>System Startup</title>
+
+      <para>Boot the PC using the floppy labled &#34;boot disk&#34; and press
+      <keycap>Enter</keycap> at the LILO prompt. Place the recently created
+      root disk in fd0 when prompted. The output should resemble the example
+      below:</para>
+
+      <para><screen>boot: bootdisk
+Loading bootdisk
+Uncompressing Linux... Ok, booting kernel.
+..
+.. [various kernel messages]
+..
+VFS: Insert root floppy to be loaded into RAM disk and press ENTER
+RAMDISK: Compressed image found at block 0
+VFS: Mounted root (ext2 filesystem) readonly.
+Freeing unused kernel memory: 178k freed
+Checking local filesystem integrity.
+/dev/ram0: clean 103/1024 files 3253/4096 blocks
+Remounting / as read-write.
+Mounting local filesystems.
+Setting the hostname.
+INIT: Entering runlevel: 1
+# _</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Verify success of startup scripts</title>
+
+      <para>Use the mount command to check that local filesystems are mounted
+      as read-write. The output should look like the example below.</para>
+
+      <para><screen>bash# mount
+/dev/root on / type ext2 (rw)
+proc on /proc type proc (rw)</screen></para>
+
+      <para>Check the hostname.</para>
+
+      <para><screen>bash# uname -n
+gnu-linux</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para>Bring the system down gracefully with the &#34;shutdown&#34;
+      command.</para>
+
+      <para><programlisting>bash# shutdown -h now</programlisting></para>
+
+      <para>We should see the following output from init and the shutdown scripts:</para>
+
+      <para><screen>INIT: Switching to runlevel: 0
+INIT: Sending processes the TERM signal
+Terminated
+INIT: Sending processes the KILL signal
+Dismounting local filesystems.
+Remounting / as read-only.
+Flushing disk cache.
+Initiating system reboot.</screen></para>
+    </sect2>
+  </sect1>
+</chapter>

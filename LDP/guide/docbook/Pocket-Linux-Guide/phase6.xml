@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase6">
+  <title>Enabling Multiple Users</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>Up to now the system has been operating in single user mode. There
+    is no login process and anyone who boots the system goes straight into a
+    shell with root privileges. Obviously, this is not the normal operating
+    mode for most GNU/Linux distributions. Most systems feature multi-user
+    capability where many users can access the system simultaneously with
+    different privilege levels. These multi-user systems also support virtual
+    consoles so that the keyboard and video display can be multiplexed between
+    several terminal sessions. So in this phase we would like to add the
+    following enhancements to the system:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Enable multi-user capability.</para>
+      </listitem>
+
+      <listitem>
+        <para>Create multiple, virtual consoles.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <sect2>
+      <title>The login process</title>
+
+      <para>The From-Powerup-To-BASH-Prompt-HOWTO does a good job of outlining
+      the steps in the login process. Basically it works like this.</para>
+
+      <orderedlist>
+        <listitem>
+          <para>The init daemon starts a getty process on the terminal.</para>
+        </listitem>
+
+        <listitem>
+          <para>The getty program displays the contents of /etc/issue and
+          prompts for a user name.</para>
+        </listitem>
+
+        <listitem>
+          <para>When the user name is entered, control is handed off to the
+          login program.</para>
+        </listitem>
+
+        <listitem>
+          <para>The login program asks for a password and verifies the
+          credentials using /etc/passwd, /etc/group and possibly /etc/shadow.</para>
+        </listitem>
+
+        <listitem>
+          <para>If everything is okay the user&#39;s shell is started.</para>
+        </listitem>
+      </orderedlist>
+    </sect2>
+
+    <sect2>
+      <title>Obtaining source code</title>
+
+      <para>The getty and login programs were already installed as part of
+      util-linux.</para>
+    </sect2>
+
+    <sect2>
+      <title>Creating support files</title>
+
+      <sect3>
+        <title>Device nodes</title>
+
+        <para>Details about virtual console device files can be found in the
+        Linux kernel source code file called &#34;devices.txt&#34; in the
+        &#34;Documentation&#34; directory. We will need to create tty1 through
+        tty6 for each of the virtual consoles as well as tty0 and tty to
+        represent the current virtual console.</para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/issue</title>
+
+        <para>The /etc/issue file is pretty easy to construct. It can contain
+        any text we want displayed on the screen prior to the login prompt. It
+        could be something friendly like &#34;Welcome to Pocket Linux&#34;,
+        something menacing like &#34;Authorized users only!&#34; or it
+        something informational like &#34;Connected to tty1 at 9600bps&#34;.
+        The agetty(8) manpage explains how to display information like tty
+        line and baud rate using escape codes.</para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/passwd</title>
+
+        <para>The format of /etc/passwd can be obtained by reading the
+        passwd(5) manpage (by typing, &#34;man 5 passwd&#34;). We can easily
+        create a user account by adding a line like
+        &#34;root::0:0:superuser:/root:/bin/sh&#34; to the file.</para>
+
+        <para>Maintaining passwords will be somewhat challenging because of
+        the system being loaded into ramdisk. Any changes to /etc/passwd will
+        be lost when the system is shutdown. So to make things easy, we will
+        create all users with null passwords.</para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/group</title>
+
+        <para>The structure of /etc/group is available from the group(5)
+        manpage. A line of &#34;root::0:root&#34; would define a group called
+        &#34;root&#34; with no password, a group id of zero and the user root
+        assigned to it as the only member.</para>
+      </sect3>
+
+      <sect3>
+        <title>Conventions</title>
+
+        <para>User and group names and id&#39;s are generally not chosen at
+        random. Most Linux systems have very similar looking /etc/passwd and
+        /etc/group files. Definitions for commonly used user id and group id
+        assignments may be found in one of several places:</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>The /etc/passwd and /etc/group files on any popular
+            GNU/Linux distribution.</para>
+          </listitem>
+
+          <listitem>
+            <para>The Debian Policy Manual -- available online at <ulink
+            url="http://www.debian.org/doc/debian-policy">http://www.debian.org/doc/debian-policy</ulink>.</para>
+          </listitem>
+
+          <listitem>
+            <para>The Linux Standard Base specification -- downloadable in
+            many formats from <ulink
+            url="http://www.linuxbase.org/spec/index.shtml">http://www.linuxbase.org/spec/index.shtml</ulink>.</para>
+          </listitem>
+
+          <listitem>
+            <para>Essential System Administration, 3rd Edition by Aeleen
+            Frisch -- available at bookstores or directly from O&#39;Reilly
+            Publishing at <ulink url="http://www.oreilly.com/">http://www.oreilly.com/</ulink>.</para>
+          </listitem>
+        </itemizedlist>
+      </sect3>
+    </sect2>
+
+    <sect2>
+      <title>Dependencies</title>
+
+      <para>Running ldd on the login program from util-linux will reveal that
+      it is linked to the library &#34;libcrypt.so.1&#34;. In addition to
+      libcrypt, there is another, less obvious library dependency on
+      &#34;libnss_files.so.2&#34;. The name service switch library
+      &#34;libnss_files.so.2&#34; is required for the login program to access
+      the /etc/passwd file. Without libnss, all logins will mysteriously fail.</para>
+    </sect2>
+
+    <sect2>
+      <title>Assigning ownership and permissions</title>
+
+      <para>Previously, with the single user system, there was no need to
+      worry about permissions when installing directories, files and device
+      nodes. The shell was effectively operating as root, so everything was
+      accessible. Things become more complex with the addition of multiple
+      user capability. Now we need to make sure that every user has access to
+      what they need and at the same time gets blocked from what they do not
+      need.</para>
+
+      <para>A good guideline for assigning ownership and permissions would be
+      to give the minimum level of access required. Take the /bin directory as
+      an example. The Filesystem Hierarchy (FHS) document says, &#34;/bin
+      contains commands that may be used by both the system administrator and
+      by users&#34;. From that statement we can infer that /bin should have
+      read and execute permission for everyone. On the other hand, the /boot
+      directory contains files for the boot loader. Chances are good that
+      regular users will not need to access anything in the /boot directory.
+      So the minimum level of access would be read permission for the root
+      user and other administrators who are members of the root group. Normal
+      users would have no permissions assigned on the /boot directory.</para>
+
+      <para>Most of the time we can assign similar permissions to all the
+      commands in a directory, but there are some programs that prove to be
+      exceptions to the rule. The &#34;su&#34; command is a good example.
+      Other commands in the /bin directory have a minimum requirement of read
+      and execute, but the &#34;su&#34; command needs to be setuid root in
+      order to run correctly. Since it is a setuid binary, it might be a good
+      idea not to allow just anyone to run it. Ownership of 0:0 (root user,
+      root group) and permissions of rwsr-x--- (octal 1750) would be a good
+      fit for &#34;su&#34;.</para>
+
+      <para>The same logic can be applied to other directories and files in
+      the root filesystem using the following steps:</para>
+
+      <orderedlist>
+        <listitem>
+          <para>Assign ownership to the root user and root group.</para>
+        </listitem>
+
+        <listitem>
+          <para>Set the most restrictive permissions possible.</para>
+        </listitem>
+
+        <listitem>
+          <para>Adjust ownership and permissions on an &#34;as needed&#34;
+          basis.</para>
+        </listitem>
+      </orderedlist>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <sect2>
+      <title>Verify presence of getty and login</title>
+
+      <para><programlisting>bash# ls ~/staging/sbin/getty
+bash# ls ~/staging/bin/login</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Modify inittab for multi-user mode</title>
+
+      <para>Modify ~/staging/etc/inittab by changing the default runlevel and
+      adding getty entries as shown below.</para>
+
+      <para><programlisting># /etc/inittab - init daemon configuration file
+#
+# Default runlevel
+id:2:initdefault:
+#
+# System initialization
+si:S:sysinit:/etc/init.d/rc S
+#
+# Runlevel scripts
+r0:0:wait:/etc/init.d/rc 0
+r1:1:respawn:/bin/sh
+r2:2:wait:/etc/init.d/rc 2
+r3:3:wait:/etc/init.d/rc 3
+r4:4:wait:/etc/init.d/rc 4
+r5:5:wait:/etc/init.d/rc 5
+r6:6:wait:/etc/init.d/rc 6
+#
+# Spawn virtual terminals
+1:235:respawn:/sbin/getty 9600 tty1 linux
+2:235:respawn:/sbin/getty 9600 tty2 linux
+3:235:respawn:/sbin/getty 9600 tty3 linux
+4:235:respawn:/sbin/getty 9600 tty4 linux
+5:235:respawn:/sbin/getty 9600 tty5 linux
+6:2345:respawn:/sbin/getty 9600 tty6 linux
+#
+# end of /etc/inittab</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create tty devices</title>
+
+      <para><programlisting>bash# cd ~/staging/dev
+bash# mknod tty0 c 4 0
+bash# mknod tty1 c 4 1
+bash# mknod tty2 c 4 2
+bash# mknod tty3 c 4 3
+bash# mknod tty4 c 4 4
+bash# mknod tty5 c 4 5
+bash# mknod tty6 c 4 6
+bash# mknod tty c 5 0</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create support files in /etc</title>
+
+      <sect3>
+        <title>/etc/issue</title>
+
+        <para>Create the file ~/staging/etc/issue using the example below or
+        design a customized message.</para>
+
+        <para><programlisting>Connected to \l at \b bps.</programlisting></para>
+
+        <para>Note that &#34;\l&#34; is a lowercase letter L, not the number
+        one.</para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/passwd</title>
+
+        <para>Use a text editor to create a minimal passwd file conforming to
+        the Linux Standards Base (LSB) document. Save the file as
+        ~/staging/etc/passwd</para>
+
+        <para><programlisting>root::0:0:Super User:/root:/bin/sh
+bin:x:1:1:Legacy UID:/bin:/bin/false
+daemon:x:2:2:Legacy UID:/sbin:/bin/false</programlisting></para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/group</title>
+
+        <para>Use a text editor to create an LSB conforming group file and
+        save it as ~/staging/etc/group</para>
+
+        <para><programlisting>root::0:root
+bin:x:1:root,bin,daemon
+daemon:x:2:root,bin,daemon</programlisting></para>
+      </sect3>
+    </sect2>
+
+    <sect2>
+      <title>Copy required libraries</title>
+
+      <para><programlisting>bash# cp /lib/libcrypt.so.1 ~/staging/lib
+bash# cp /lib/libnss_files.so.2 ~/staging/lib</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Set directory and file permissions</title>
+
+      <para>Set minimal privileges on all files and directories under
+      ~/staging. Everything is owned by the root user and the root group.
+      Permissions are read-write for the owner and read-only for the group.
+      Exceptions to the blanket permissions are handled case by case.</para>
+
+      <para><programlisting>cd ~/staging
+chown -R 0:0 *
+chmod -R 640 *</programlisting></para>
+
+      <para>Set execute permission on all directories. (Note capital X)</para>
+
+      <para><programlisting>chmod -R +X *</programlisting></para>
+
+      <para>Files in /bin are read and execute for all, but su is an
+      exception.</para>
+
+      <para><programlisting>chmod 755 bin/*
+chmod 4750 bin/su</programlisting></para>
+
+      <para>Files in /dev have various permissions. Disk devices should be
+      accessible to administrators only. Other files like /dev/null should
+      have full privileges granted to everyone.</para>
+
+      <para><programlisting>chmod 660 fd0 ram0
+chmod 666 dev/null
+chmod 644 dev/zero
+chmod 622 dev/console
+chmod 600 dev/initctl
+chmod 622 dev/tty
+chmod 622 dev/tty?</programlisting></para>
+
+      <para>The passwd and group files must be world readable.</para>
+
+      <para><programlisting>chmod 644 etc/passwd
+chmod 644 etc/group</programlisting></para>
+
+      <para>The scripts in /etc/init.d are read and execute for
+      administrators.</para>
+
+      <para><programlisting>chmod 750 etc/init.d/*</programlisting></para>
+
+      <para>Libraries need read and execute permissions for everyone.</para>
+
+      <para><programlisting>chmod 755 lib/*</programlisting></para>
+
+      <para>Only root should have access to the /root directory.</para>
+
+      <para><programlisting>chmod 700 root</programlisting></para>
+
+      <para>Make files in /sbin read and execute for administrators.</para>
+
+      <para><programlisting>chmod 750 sbin/*</programlisting></para>
+
+      <para>Temp should be read-write for all with the sticky bit set.</para>
+
+      <para><programlisting>chmod 1777 tmp</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create the root disk image</title>
+
+      <para><programlisting>bash# cd /
+bash# dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+bash# mke2fs -m0 /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR ~/staging/* /mnt
+bash# umount /dev/ram7
+bash# dd if=/dev/ram7 of=~/phase6-image bs=1k
+bash# gzip -9 ~/phase6-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy the image to diskette</title>
+
+      <para>Insert the diskette labled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting>bash# dd if=~/phase6-image.gz of=/dev/fd0 bs=1k</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <sect2>
+      <title>System Startup</title>
+
+      <para>If everything goes well, the virtual console display should look
+      similar to the following example:</para>
+
+      <para><screen>Connected to tty1 at 9600 bps.
+gnu-linux login:</screen></para>
+    </sect2>
+
+    <sect2>
+      <title>Add a new user to the system</title>
+
+      <para>Log in as root.</para>
+
+      <para>Create a new, unprivileged user and new group by appending a line
+      to the /etc/passwd and /etc/group files, respectively. Be sure to use a
+      double greater-than (&#62;&#62;) to avoid accidentally overwriting the
+      files.</para>
+
+      <para><programlisting>bash# echo &#34;floyd::501:500:User:/home/floyd:/bin/sh&#34; &#62;&#62; /etc/passwd
+bash# echo &#34;users::500:&#34; &#62;&#62; /etc/group
+bash# mkdir /home/floyd
+bash# chown floyd.users /home/floyd
+bash# chmod 700 /home/floyd</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Test the new user&#39;s ability to use the system</title>
+
+      <para>Switch to virtual terminal tty2 by pressing
+      &#60;ALT&#62;+&#60;F2&#62;.</para>
+
+      <para>Log in as floyd.</para>
+
+      <para>Try the following commands and verify that they work.</para>
+
+      <para><programlisting>bash$ pwd
+bash$ ls -l /
+bash$ cat /etc/passwd</programlisting></para>
+
+      <para>Try the following commands and verify that they do not work.</para>
+
+      <para><programlisting>bash$ ls /root
+bash$ /sbin/shutdown -h now
+bash$ su -</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para>Switch back to tty1 where root is logged in.</para>
+
+      <para><programlisting>bash# shutdown -h now</programlisting></para>
+    </sect2>
+  </sect1>
+</chapter>

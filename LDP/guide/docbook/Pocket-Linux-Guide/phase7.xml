@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<chapter id="phase7">
+  <title>Filling in the Gaps</title>
+
+  <sect1>
+    <title>Analysis</title>
+
+    <para>The root disk has come a long way since its humble beginnings as a
+    statically linked shell. It now shares many features with the popular,
+    ready-made distributions. For example it has:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Several common utilities like cat, ls and so on.</para>
+      </listitem>
+
+      <listitem>
+        <para>Startup scripts that automatically check and mount filesystems.</para>
+      </listitem>
+
+      <listitem>
+        <para>Graceful shutdown capability.</para>
+      </listitem>
+
+      <listitem>
+        <para>Support for multiple users and virtual terminals.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>As a final test, we can put the root disk up against the Filesystem
+    Hierarchy Standard (FHS) requirements for the root filesystem. (We will
+    ignore anything in the /usr hierarchy because of space constraints.)
+    Compared to FHS requirement, the only files missing are a few commands in
+    the /bin directory. Specifically, the root disk lacks the following
+    commands:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>more</para>
+      </listitem>
+
+      <listitem>
+        <para>ps</para>
+      </listitem>
+
+      <listitem>
+        <para>sed</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>In addition to the required commands, it might be nice to include
+    the &#34;ed&#34; editor listed as an option by the FHS. It is not as
+    robust as vi or emacs, but it works and it should fit onto the tiny root
+    filesystem.</para>
+
+    <para>So in order to finish up this phase of the project, we need to
+    accomplish the following goals:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Add the more, ps and sed commands.</para>
+      </listitem>
+
+      <listitem>
+        <para>Install the optional &#34;ed&#34; editor.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+    <title>Design</title>
+
+    <sect2>
+      <title>more</title>
+
+      <para>There is a &#34;more&#34; command that comes with util-linux, but
+      it will not work for this project. The reason is because of library
+      dependencies and space constraints. The util-linux supplied
+      &#34;more&#34; needs either the libncurses or libtermcap to work and
+      there just is not enough space on the root disk floppy to fit everything
+      in. So, in order to have a &#34;more&#34; command we will have to get
+      creative.</para>
+
+      <para>The &#34;more&#34; command is used to display a file page-by-page.
+      It&#39;s a little like having a &#34;cat&#34; command that pauses every
+      twenty-five lines. The basic logic is outlined below.</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Read one line of the file.</para>
+        </listitem>
+
+        <listitem>
+          <para>Display the line on the screen.</para>
+        </listitem>
+
+        <listitem>
+          <para>If 25 lines have been displayed, pause.</para>
+        </listitem>
+
+        <listitem>
+          <para>Loop and do it again.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>Of course there are some details left out like what to do if the
+      screen dimensions are not what we anticipated, but overall it is a fair
+      representation of what &#34;more&#34; does. Given this simple program
+      logic, it should not be hard to put together a short shell script that
+      emulates the basic functionality of &#34;more&#34;. The BASH(1) manpage
+      and Adv-BASH-Scripting-Guide will serve as references.</para>
+    </sect2>
+
+    <sect2>
+      <title>More device files</title>
+
+      <para>The &#34;more&#34; script will need access to device files that
+      are not on the root disk yet. Specifically &#34;more&#34; needs to have
+      stdin, stdout and stderr, but while we are at it we should check for any
+      other missing /dev files. The Linux Standard Base requires null, zero
+      and tty to be present in the /dev directory. Files for null and tty
+      already exist from previous phases of the project, but we still need
+      /dev/zero. We can refer to &#34;devices.txt&#34; in the Linux source
+      code &#34;Documentation&#34; directory for major and minor numbers.</para>
+    </sect2>
+
+    <sect2>
+      <title>ps, sed &#38; ed</title>
+
+      <para>These three packages can be found by using some of the same
+      Internet resources we have used before. The procps package shows up in
+      an Ibiblio LSM search (<ulink url="http://www.ibiblio.org/pub/linux/">http://www.ibiblio.org/pub/linux/</ulink>)
+      for the keyword &#34;ps&#34;. The &#34;sed&#34; and &#34;ed&#34;
+      packages can be found on the GNU ftp server at <ulink
+      url="ftp://ftp.gnu.org">ftp://ftp.gnu.org</ulink>.</para>
+
+      <para>Both &#34;sed&#34; and &#34;ed&#34; packages feature GNU&#39;s
+      familiar ./configure script and are therefore very easy to build. There
+      is no ./configure script for &#34;procps&#34; but this does not make
+      things too difficult. We can just read the package&#39;s
+      &#34;INSTALL&#34; file to find out about how to set various
+      configuration options. We can use one of these options to avoid the
+      complexity of using and installing libproc. Setting SHARED=0 makes
+      &#34;libproc&#34; an integrated part of &#34;ps&#34; rather than a
+      separate, shared library.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Construction</title>
+
+    <sect2>
+      <title>Write a &#34;more&#34; script</title>
+
+      <para>Create the following script with a text editor and save it as
+      ~/staging/bin/more.sh</para>
+
+      <para><programlisting>#!/bin/sh
+#
+# more.sh - emulates the basic functions of the &#34;more&#34; binary without
+#           requiring ncurses or termcap libraries.
+#
+# Assume input is coming from STDIN unless a valid file is given as
+# a command-line argument. 
+if [ -f &#34;$1&#34; ]; then
+  INPUT=&#34;$1&#34;
+else
+  INPUT=&#34;/dev/stdin&#34;
+fi
+#
+# Set IFS to newline only. See BASH(1) manpage for details on IFS.
+IFS=$&#39;\n&#39;
+#
+# If terminal dimensions are not already set as shell variables, take
+# a guess of 80x25.
+if [ &#34;$COLS&#34; = &#34;&#34; ]; then
+  COLS=80;
+fi
+if [ &#34;$ROWS&#34; = &#34;&#34; ]; then
+  ROWS=25;
+fi
+#
+# Initialize row counter variable
+ROW_COUNTER=$ROWS
+#
+# Read the input file one line at a time and display on STDOUT until
+# the page fills up. Display &#34;Press &#60;Enter&#62;&#34; message on STDERR and wait
+# for keypress from STDERR.  Continue until the end of the input file.
+# Any input line greater than $COLS characters in length is wrapped and
+# counts as multiple lines.
+#
+while read -n $COLS LINE_BUFFER; do
+  echo &#34;$LINE_BUFFER&#34;
+  ROW_COUNTER=$(($ROW_COUNTER - 1))
+  if [ $ROW_COUNTER -le 1 ]; then
+    echo &#34;Press &#60;ENTER&#62; for next page or &#60;CTRL&#62;+C to quit.&#34;&#62;/dev/stderr
+    read&#60;/dev/stderr
+    ROW_COUNTER=$ROWS
+  fi
+done&#60;$INPUT
+#
+# end of more.sh</programlisting></para>
+
+      <para>Create a symbolic link for more</para>
+
+      <para><programlisting>bash# ln -s more.sh ~/staging/bin/more</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create additional device files</title>
+
+      <para><programlisting>bash# ln -s /proc/self/fd ~/staging/dev/fd
+bash# ln -s fd/0 ~/staging/dev/stdin
+bash# ln -s fd/1 ~/staging/dev/stout
+bash# ln -s fd/2 ~/staging/dev/sterr
+bash# mknod -m644 ~/staging/dev/zero c 1 5</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install procps</title>
+
+      <para><programlisting>bash# cd /usr/src/procps-2.07
+bash# make SHARED=0 CC=&#34;gcc -mcpu=i386&#34;
+bash# cd ps
+bash# cp ps ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install sed</title>
+
+      <para><programlisting>bash# cd /usr/src/sed-3.02
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cd sed
+bash# cp sed ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Install ed</title>
+
+      <para><programlisting>bash# cd /usr/src/ed-0.2
+bash# ./configure --host=i386-pc-linux-gnu
+bash# make
+bash# cp ed ~/staging/bin</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Strip binaries to save space</title>
+
+      <para><programlisting>bash# strip ~/staging/bin/*</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Ensure proper permissions</title>
+
+      <para><programlisting>bash# chown 0:0 ~/staging/bin/*
+bash# chmod -R 755 ~/staging/bin
+bash# chmod 4750 ~/staging/bin/su</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Create the root disk image</title>
+
+      <para><programlisting>bash# cd /
+bash# dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+bash# mke2fs -m0 /dev/ram7
+bash# mount /dev/ram7 /mnt
+bash# cp -dpR ~/staging/* /mnt
+bash# umount /dev/ram7
+bash# dd if=/dev/ram7 of=~/phase7-image bs=1k
+bash# gzip -9 ~/phase7-image</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Copy the image to diskette</title>
+
+      <para>Insert the diskette labled &#34;root disk&#34; into drive fd0.</para>
+
+      <para><programlisting>bash# dd if=~/phase7-image.gz of=/dev/fd0 bs=1k</programlisting></para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Implementation</title>
+
+    <sect2>
+      <title>System startup</title>
+
+      <para>Boot from the diskset in the usual way.</para>
+    </sect2>
+
+    <sect2>
+      <title>Test the &#34;more&#34; script</title>
+
+      <para>Display kernel messages by piping the output of &#34;dmesg&#34; to
+      &#34;more&#34;.</para>
+
+      <para><programlisting>bash# dmesg | more</programlisting></para>
+
+      <para>Examine the local_fs script by using &#34;more&#34; with a
+      command-line argument.</para>
+
+      <para><programlisting>bash# more /etc/init.d/local_fs</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Use ps to show running processes</title>
+
+      <para>Display processes for the user currently logged in.</para>
+
+      <para><programlisting>bash# ps</programlisting></para>
+
+      <para>Display all available information about all running processes.</para>
+
+      <para><programlisting>bash# ps -ef</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Run a simple sed script</title>
+
+      <para>Use &#34;sed&#34; to display an alternate version of /etc/passwd.</para>
+
+      <para><programlisting>bash# sed -e &#34;s/Legacy/Old School/&#34; /etc/passwd</programlisting></para>
+
+      <para>Verify that sed did not make the changes permanent.</para>
+
+      <para><programlisting>bash# cat /etc/passwd</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>Test the &#34;ed&#34; editor</title>
+
+      <para>Use &#34;ed&#34; to change properties on the &#34;bin&#34; user.</para>
+
+      <para><programlisting>bash# ed -p*
+ed* r /etc/passwd
+ed* %p
+ed* /bin/s/Legacy/Old School/
+ed* %p
+ed* w
+ed* q</programlisting></para>
+
+      <para>Verify that the changes are permanent (at least until the system
+      is restarted.)</para>
+
+      <para><programlisting>bash# cat /etc/passwd</programlisting></para>
+    </sect2>
+
+    <sect2>
+      <title>System shutdown</title>
+
+      <para>Bring the system down gracefully with the &#34;shutdown&#34;
+      command.</para>
+    </sect2>
+  </sect1>
+</chapter>
