@@ -504,12 +504,194 @@ is discussed in quite a bit of detail in Section XXX titled
     </section>
 </section>
 
-<section id="controlmsg"> <title>Control messages</title>
-<para>
-    (Discuss control messages. Show examples of actual control messages
-    if possible. Discuss security issues in the form of control message
-    storms, and how digital signatures are being used to tackle it. This
-    sets the ground for <literal>pgpverify</literal> later on.) 
-</para>
+<section id="controlmsg"><title>Control messages</title>
+
+<para>The Usenet is a massive dispersed collection of servers which
+operate almost without any supervision, provided they have adequate disk
+space and do not suffer disk corruption due to power failures,
+<emphasis>etc.</emphasis> (It is indeed surprising how self-managing a
+good Usenet server is, provided these two pre-requisites are met.) These
+servers are each under the control of human administrators, but it is
+preferable that certain routine actions be performed across all these
+servers remotely from one location, without the manual intervention of
+these humans.</para>
+
+<para>One common need for centralised operations is the creation of new
+groups in the standard eight hierarchies. The Usenet follows a fairly
+formal process which asks for votes from readers worldwide before
+deciding on the restructuring of its newsgroups list, including merging of
+low-volume groups, splitting of high-volume groups into many specialised
+groups, creating new groups, and even deleting groups. Once the voting
+process for a change concludes and the change action is to be carried
+out, it would be extremely tedious to send email to the hundreds of
+thousands of Usenet administrators and hope that they make the changes
+right, and answer their doubts if they get confused. It would be much
+better to have an <emphasis>automatic</emphasis> way to make the
+changes across all servers, of course with proper authorisation.</para>
+
+<para>The solution to this does not lie in giving some central authority
+the ability to run an OS-level command of his choice on all the world's
+Usenet servers, because OS commands differ from OS to OS, and because
+few Usenet administrators would trust a stranger from another part of
+the world with OS level access. Therefore, the solution lay in defining
+a small set of common Usenet maintenance actions, and permitting only
+these actions to be triggered on all servers through the passing of
+special command messages, called <emphasis role=bold>control
+messages</emphasis>.</para>
+
+<para>Control messages look like ordinary Usenet articles, more or less.
+They have an extra header line, with its value in a specific format,
+but they usually carry body text which looks like a normal human-written
+article. Here is a control message (a spurious one at that, but it'll
+do for now):</para>
+
+<programlisting>
+<![CDATA[
+Xref: news.starcomsoftware.com control:814217
+Path: news.starcomsoftware.com!linux594.dn.net!news.dn.hoopoo.com!
+	feed-out.newsfeeds.com!newsfeeds.com!feed.newsfeeds.com!
+	newsfeeds.com!news-spur1.maxwell.syr.edu!news.maxwell.syr.edu!
+	newsfeed.icl.net!newsfeed.skycache.com!Cidera!newsfeed.gamma.ru!
+	Gamma.RU!carrier.kiev.ua!goblin.nadrabank.kiev.ua!not-for-mail
+From: tale@uunet.uu.net (David C Lawrence)
+Newsgroups: news.groups,humanities.hipcrime
+Subject: cmsg newgroup humanities.hipcrime
+Control: newgroup humanities.hipcrime
+Date: Sun, 18 Feb 2001 11:50:28 GMT
+Organization: The Cabal
+Lines: 20
+Approved: tale@uunet.uu.net
+Message-ID: <3afWYZTIR.G5YOC2@uunet.uu.net>
+NNTP-Posting-Host: 203.145.147.67
+X-Trace: goblin.nadrabank.kiev.ua 982528840 21455 203.145.147.67
+         (18 Feb 2001 20:40:40 GMT)
+X-Complaints-To: usenet@nadrabank.kiev.ua
+NNTP-Posting-Date: 18 Feb 2001 20:40:40 GMT
+X-No-Archive: Yes
+
+humanities.hipcrime is an unmoderated newsgroup which passed its
+vote for creation by 326:10 as reported in news.announce.newgroups
+on 18 Feb 2001.
+
+For your newsgroups file:
+humanities.hipcrime	HipCrime for Humanity - you committed one now!
+
+Anyone can create a newsgroup in the alt, biz, comp, earth,
+humanities, misc, news, meow, rec, sci, soc, talk, us, or
+any other Usenet hierarchy.  New newsgroup proposals may be
+optionally discussed in news.groups. Please be sure that your
+/usr/lib/news/control.ctl is configured correctly:
+
+##	NEWGROUP MESSAGES
+## honor them all and log in \${LOG}/newgroup.log
+newgroup:*:alt.*|biz.*|comp.*|earth.*|humanities.*|misc.*|news.*|\
+	meaw.*|rec.*|sci.*|soc.*|talk.*|us.*:doit=newgroup
+
+##	RMGROUP MESSAGES
+## drop them all and don't log
+rmgroup:*:*:drop
+
+Meow!
+David C Lawrence
+]]>
+</programlisting>
+
+<para>A control message must have a <literal>Control</literal>
+header. Besides, all control messages <emphasis>will</emphasis>
+have an <literal>Approved</literal> header, like messages posted
+to moderated newsgroups. The <literal>Control</literal> header
+actually specifies a command to run on the local server, and the
+parameter(s) to supply to it. The local Usenet server software is
+supposed to figure out its own way to get the task done. In this
+example, the command in the <literal>Control</literal> header is
+<literal>newgroup</literal>, which creates a new newsgroup. And its
+parameter is <literal>humanities.hipcrime</literal>, which gives the
+name of the newsgroup to create.</para>
+
+<para>In C-News, the control message implementation works through
+separate shellscripts kept in a fixed directory,
+<literal>$NEWSBIN/ctl/</literal>, as a security measure; if the
+executable script isn't present there, the control message command will
+be ignored. The control message types supported are:</para>
+
+<itemizedlist>
+<listitem><para><literal>checkgroups</literal>:  control message to
+check whether the list of newsgroups in your active file are all correct
+as per a master list of newsgroups sent in the control message
+</para></listitem>
+
+<listitem><para><literal>newgroup</literal>: control message to create a
+new newsgroup
+</para></listitem>
+
+<listitem><para><literal>rmgroup</literal>: control message to delete a
+newsgroup and all articles in it
+</para></listitem>
+
+<listitem><para><literal>sendsys</literal>: control message to cause an
+email response to be sent to the author with the <literal>sys</literal>
+file of your server in it. This results in a response storm of
+emails from all the Usenet servers in the world to the author. These
+responses allow the sender of the control message to analyse all the
+<literal>sys</literal> files of the world's Usenet servers and create the
+directed graph of Usenet newsfeeds. Why someone would want to do this is
+hard to guess, but the result is surely an awesome picture of one facet
+of networked human civilisation, like looking at a giant world map.
+</para><para>Incidentally, there is no invasion of privacy here, because
+your server's <literal>sys</literal> file is supposed to be public
+information, if you take feeds from the public Usenet.
+</para></listitem>
+
+<listitem><para><literal>version</literal>: control message which results
+in your Usenet software sending an email to the author of the message,
+containing the type and version of the Usenet news software you are
+using. This too is not an invasion of privacy, because this information
+is supposed to be public knowledge.
+</para></listitem>
+
+<listitem><para>The cancel message: the most frequently occurring type of
+control messages. They specify the message ID of an article, and result
+in the cancellation (deletion) of that article. If you post an article
+and regret it a moment later, your Usenet newsreader software usually
+allows you to ``cancel'' it by generating a cancel message.
+</para></listitem>
+</itemizedlist>
+
+<para>The Usenet news software maintains a pseudo-newsgroup called
+<literal>control</literal>, where it files all control messages it
+receives. If you have an incoming newsfeed from the public Usenet, your
+server's <literal>control</literal> group will usually be full with
+thousands of cancel messages from trigger-happy fingers all over the
+world. Usenet news server software like C-News allows you to filter the
+incoming feed based on newsgroups, and will discard articles for groups
+they do not subscribe to. But since all servers have to receive and
+process control messages, they will all accept these cancel messages,
+though many of them may apply to articles which are not part of your
+highly-pruned subset of groups. <literal>C'est la vie</literal>.</para>
+
+<para>Remember to set expiry for the <literal>control</literal> group to
+one day or even shorter, so that the junk can be cleaned out as rapidly as
+possible, just like the <literal>junk</literal> newsgroup.</para>
+
+<para>The beauty of the control message architecture is that it
+integrates seamlessly into the newsfeed mechanism for automatic control
+of the network of servers. No separate channel of connection is needed
+for the control actions. And article replication automatically
+propagates control messages with human-readable articles, thus
+guaranteeing reach across heterogenous networks technologies.</para>
+
+<para>What your Usenet server does on receiving a
+control message is governed by an authorisation file:
+<literal>$NEWSCTL/controlperms</literal> in the case of C-News
+and <literal>control.ctl</literal> in the case of INN, for
+instance. The security measures implemented by this module are
+further enhanced by the <literal>pgpcontrol</literal> package with its
+<literal>pgpverify</literal> script. Using <literal>pgpverify</literal>,
+your server can check that all control messages (except for article
+cancellation messages) are digitally signed by a trusted party
+using military-spec public key cryptography. Our integrated
+Usenet news software distribution includes integration with
+<literal>pgpverify</literal>.</para>
+
 </section>
 </section>
