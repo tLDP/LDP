@@ -64,13 +64,13 @@ to form an encrypted network tunnel between two hosts.
 <para>
 The technique described in this HOWTO uses PPP to convert packets
 into a character stream and SSH to encrypt it
-and transmit it to the remote computer.  Most systems administrators
+and transmit it to the remote computer.  Most system administrators
 are well acquainted with the tools and configuration files needed
-to set up PPP-SSH VPN.
+to set up a PPP-SSH VPN.
 </para>
 
 <para>
-While it works well under moderate load over a reliable
+While it works well with moderate loads over a reliable
 connection, be warned that a PPP-SSH VPN is subject to
 some scalability problems.  I've included a list of benefits in
 <xref linkend="benefits"> and drawbacks in
@@ -96,10 +96,9 @@ http://www.linuxdoc.org/COPYRIGHT.html</ulink>
 <title>Disclaimer</title>
 
 <para>
-You must use the information in this document completely and entirely at
-your own risk.
+You use the information in this document entirely at your own risk.
 I especially make no guarantees as to the legality or cryptographic strength 
-of the techniques described herein.
+of the techniques described here.
 If you feel that you cannot take full responsibility
 for your setup, then you need to put
 down this HOWTO and hire one of the many excellent companies who
@@ -319,7 +318,8 @@ Ping times skyrocket for a spell (2 minutes and beyond), traffic moves
 at a trickle for a while, then it stops completely.
 The only way to get packets moving again is to restart the tunnel.
 I'm not sure if this is a bug or an inherent
-limitation.  Reducing simultaneous loaded connections helps a lot.
+limitation.  Reducing the number of connections that Postfix maintains
+for outgoing mail fixed this problem for me..
     </para>
   </listitem>
   </varlistentry>
@@ -398,7 +398,7 @@ also check the <ulink url="http://www.openssh.org/">OpenSSH web site</ulink>.
     <term>Networking Documentation</term>
   <listitem>
     <para>
-If you're not terribly familiar with networking, you'll want to scour the
+If you're not very familiar with networking, you'll want to scour the
 <ulink url="http://www.linuxdoc.org/LDP/nag2/index.html">
 Linux Network Administrators Guide</ulink>.
 It's an excellent introduction to most of the concepts we'll be using here.
@@ -549,9 +549,11 @@ I'll include a little more detail about this in
   <listitem>
     <para>
 You must install the pppd daemon.  This most likely comes with your
-distribution. I'm using ppp-2.3.11, but earlier versions should work as
+distribution. I'm using ppp-2.3.11.  Later versions should work just
+fine, and earlier versions should also work as
 well as long as they support the "pty" option.  You don't need to install
-chat or any of the other tools designed to work with PPP.
+chat or any of the other tools designed to work with PPP -- you just need
+pppd.
     </para>
   </listitem>
 
@@ -685,9 +687,9 @@ sure the modules get properly loaded.
 </para>
 
 <para>
-You can check to see if ppp is listed, along with all the modules that
+You can check to see if ppp is listed, along with all other
 currently loaded modules, when you run lsmod.  Remember to check
-for PPP on both the client and the server.
+that the PPP module is loaded on both the client and the server.
 </para>
 
 <screen>
@@ -794,7 +796,7 @@ to bring up the tunnel.
 <title>Create a VPN User</title>
 
 <para>
-The incoming SSH VPN requests must be directed at a particular user
+The incoming SSH VPN requests must be directed to a particular user
 on the server.  For security and accountability, I recommend you
 use a dedicated user to field VPN requests.  The following steps will
 set up a system user named "vpn" to do just that.
@@ -972,8 +974,9 @@ everything as the "vpn" user.  How can the vpn user run pppd?
 
 <para>
 There are a number of ways of solving this problem.  One is to use
-the suid bit, and arrange permissions by groups.  This can get
-confusing and difficult to administer pretty fast, though.  Personally,
+the suid bit, and arrange permissions by groups.  However, this can get
+confusing and difficult to administer pretty fast, leading to unintentional
+security holes.  Personally,
 I find the sudo utility to be a much better solution.
 </para>
 
@@ -1110,7 +1113,7 @@ your settings are being interpreted correctly.
 <title>The vpn-pppssh Script</title>
 
 <para>
-Here is vpn-pppssh.  All the action is in one line.
+Here is vpn-pppssh.  All the action is on one line.
 (the one beginning with "PPPD" in the start clause).
 All the rest of this file is just support code.
 </para>
@@ -1368,11 +1371,12 @@ When it hits this script, your machine will wait
 until the VPN is up before it continues booting.  If this is an
 issue, you can write your own /etc/init.d/vpn-pppssh
 script that calls the /usr/local/bin/vpn-pppssh script in the
-background and continues with the boot process.
+background.  The link will come up as your machine finishes
+booting.
 </para>
 
 <para>
-To manually bring up or down the link, run the vpn-pppssh
+To manually bring the link down or up, just run the vpn-pppssh
 script directly from /etc/init.d:
 </para>
 
@@ -1404,26 +1408,25 @@ Create the "vpn-up" file in /etc/ppp/ip-up.d:
 #!/bin/sh
 
 if [ "$PPP_IPPARAM" = "vpn" ]; then
-        # Don't bring up the VPN if we're bringing up the vpn.  :)
+        # Don't bring up the vpn if we're bringing up the vpn.
         exit 0
 fi
 
 /usr/local/bin/vpn start
 </programlisting>
     <para>
-There's a re-entrancy here that we need to deal with.  If we're
+There's a re-entrancy here that the if statement takes care of.  If we're
 bringing up the regular PPP link, we want to bring up the VPN.
 But, the VPN is a PPP link itself!  If we didn't do anything
 about this, PPP would recursively spawn itself until it ground
 your machine to a halt.
     </para>
     <para>
-The secret is the "ipparam vpn" parameter passed to the local
-invocation of pppd.  This sets the IPPARAM variable for this
+The secret is the "ipparam vpn" parameter in the vpn-pppssh script.
+This sets the IPPARAM variable for this
 invocation to "vpn", which we then check in the startup script.
-If it's set to vpn, then we're in the middle of bringing up the
-vpn, so we just exit.  That's what the first four lines of
-the program listing above do.
+If it's set to vpn, then we know we're in the middle of bringing
+up the vpn, so we just exit without error.  Otherwise, we fire it up.
     </para>
   </listitem>
 
@@ -1455,7 +1458,7 @@ Create the "vpn-down" file in /etc/ppp/ip-down.d/vpn-pppssh:
 #!/bin/sh
 
 if [ "$PPP_IPPARAM" = "vpn" ]; then
-        # Don't bring up the VPN if we're bringing up the vpn.  :)
+        # Don't bring down the VPN if we're bringing down the vpn.
         exit 0
 fi
 
@@ -1469,7 +1472,7 @@ fi
 Make sure to make all the scripts above executable
 (chmod a+x /etc/ppp/ip-up.d/vpn-pppssh).
 Now, when you bring up your PPP link, the VPN should come up with it.
-And, when you shut it down, the VPN will disappear.
+And, when you shut it down, the VPN will disappear.  Easy as pie.
 </para>
 
 </sect2>
@@ -1556,8 +1559,8 @@ the VPN.
 <para>
 There should be no need to set up custom routing -- pppd 
 tries to do it all for you.  However, if you find that pppd
-doesn't cover your needs, then place your routing commands in
-the vpn-pppssh script.  To change the routing on the client,
+doesn't cover your needs, the place for your routing commands is in
+the vpn-pppssh script itself.  To change the routing on the client,
 simply run route.  To change the route on the server, use
 ssh to send those commands to the server.
 Here's an example:
@@ -1592,6 +1595,8 @@ See the &masqhowto; for more.
 <para>
 That should be all you need to forward packets from subnets
 connected to the client or server to the opposite machine.
+May your PPP-SSH VPNs serve you quietly and reliably for many
+years to come.
 </para>
 
 
