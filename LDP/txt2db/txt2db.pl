@@ -20,6 +20,9 @@ my($level1,
 my($line);
 my($id, $title);
 
+my($error);
+$error = 0;
+
 # read in cmd-line arguments
 #
 while (1) {
@@ -43,9 +46,11 @@ while (1) {
 # 
 if($txtfile eq '') {
 	print "txt2db: ERROR text file not specified.\n\n";
+	$error = 1;
 	&usage();
 } elsif( !(-r $txtfile) ) {
 	print "txt2db: ERROR cannot read $f ($!)\n\n";
+	$error = 1;
 	&usage();
 }
 
@@ -68,7 +73,7 @@ exit(0);
 
 sub usage {
 	print "Usage: txt2db {-o <sgml file>} <text file>\n";
-	exit(0);
+	exit($error);
 }
 
 sub proc_txt {
@@ -206,18 +211,26 @@ sub proc_txt {
 
 		# ulink
 		# 
-		if ($line =~ /\[\[/) {
+		while ($line =~ /\[\[/) {
+			unless ($line =~ /\]\]/) {
+				print "txt2db: ERROR unterminated '[[' tag.\n";
+				exit(1);
+			}
 			$link = $line;
-			$link =~ s/^.*\[\[//;
-			$link =~ s/\]\].*$//;
-			if ( $link =~ /\ /) {
+			$link =~ s/^.*?\[\[//;
+			$link =~ s/\]?\].*$//;
+			print "link=$link\n";
+			if ( $link =~ /\|/) {
 				$linkname = $link;
-				$link =~ s/\ .+$//;
-				$linkname =~ s/^\S+\ //;
+				$link =~ s/\|.+$//;
+				$linkname =~ s/^\S+\|//;
+			} elsif ($link =~ /mailto:/) {
+				$linkname = $link;
+				$linkname =~ s/mailto://;
 			} else {
 				$linkname = $link;
 			}
-			$line =~ s/\[\[.*\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			$line =~ s/\[?\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		}
 
 		# emphasis
@@ -344,10 +357,8 @@ sub splittitle {
 		$id = $line;
 		$id =~ s/^.+\|//;
 	}
-	while ($title =~ /^\ /) {
-		$title =~ s/^\ //;
-	}
-	while ($title =~ /\ $/) {
-		$title =~ s/\ $//;
-	}
+	$title =~ s/\s+$//;
+	$title =~ s/^\s+//;
+	$id =~ s/\s+$//;
+	$id =~ s/^\s+//;
 }
