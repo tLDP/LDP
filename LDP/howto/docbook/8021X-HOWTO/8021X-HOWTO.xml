@@ -1,0 +1,2463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" []> 
+
+<article>
+  <articleinfo>
+
+    <!-- Article Title -->
+    <title>802.1X Port-Based Authentication HOWTO</title> 
+    <titleabbrev>802.1X</titleabbrev>
+
+    <author>
+       <firstname>Lars</firstname>
+       <surname>Strand</surname>
+       <affiliation>
+          <!-- Valid email -->
+          <address><email>lars strand (at) gnist org</email></address>
+       </affiliation>
+     </author>
+
+      <editor>
+        <firstname>Rick</firstname> 
+        <surname>Moen</surname> 
+        <contrib>Language review of draft 0.0</contrib>
+      </editor>
+
+     <!-- All dates specified in ISO "YYYY-MM-DD" format -->
+     <pubdate>2004-08-18</pubdate>
+
+     <!-- Most-recent revision goes at the top; list in descending order -->
+     <revhistory>
+       <revision>
+          <revnumber>1.0</revnumber>
+          <date>2004-10-18</date>
+          <authorinitials>LKS</authorinitials>
+          <revremark>Initial Release, reviewed by TLDP.</revremark>
+       </revision>
+       <revision>
+          <revnumber>0.2b</revnumber>
+          <date>2004-10-13</date>
+          <authorinitials>LKS</authorinitials>
+          <revremark>Various updates. Thanks to Rick Moen &lt;rick
+          (at) linuxmafia com> for language review. </revremark>
+       </revision>
+       <revision>
+          <revnumber>0.0</revnumber>
+          <date>2004-07-23</date>
+          <authorinitials>LKS</authorinitials>
+          <revremark>Initial draft.</revremark>
+       </revision>
+     </revhistory>
+
+     <!-- Provide a good abstract; a couple of sentences is sufficient -->
+     <abstract>
+        <para>
+        This document describes the software and procedures to set up
+        and use <ulink
+        url="http://standards.ieee.org/getieee802/download/802.1X-2001.pdf">IEEE
+        802.1X Port-Based Network Access Control</ulink> using <ulink
+        url="http://www.open1x.org"><application>Xsupplicant</application></ulink>
+        as Supplicant with <ulink
+        url="http://www.freeradius.org"><application>FreeRADIUS</application></ulink>
+        as a back-end Authentication Server. 
+	</para>
+     </abstract>
+
+  </articleinfo>
+
+<!-- ##################################################### -->
+
+<sect1 id="intro">
+  <title>Introduction</title>
+
+  <para>
+  This document describes the software and procedures to set up and use <ulink
+  url="http://standards.ieee.org/getieee802/download/802.1X-2001.pdf">802.1X: 
+  Port-Based Network Access Control</ulink> using <ulink
+  url="http://www.open1x.org"><application>Xsupplicant</application></ulink>
+  with PEAP (PEAP/MS-CHAPv2) as authentication method and <ulink
+  url="http://www.freeradius.org/"><application>FreeRADIUS</application></ulink>
+  as back-end authentication server.
+  </para>
+
+  <para>
+  If another authentication mechanism than PEAP is preferred, e.g.,
+  EAP-TLS or EAP-TTLS, only a small number of configuration options
+  needs to be changed. PEAP/MS-CHAPv2 are also supported by Windows XP
+  SP1/Windows 2000 SP3.
+  </para>
+
+<!-- ################## -->
+
+  <sect2 id="what8021x">
+  <title>What is 802.1X?</title>
+
+  <para>The 802.1X-2001 standard states:</para>
+
+  <para>
+  <quote>Port-based network access control makes use of the physical
+  access characteristics of IEEE 802 LAN infrastructures in order to
+  provide a means of <emphasis>authenticating</emphasis> and
+  <emphasis>authorizing</emphasis> devices attached 
+  to a LAN port that has point-to-point connection characteristics,
+  and of <emphasis>preventing access</emphasis> to that port in cases
+  which the authentication and authorization fails. A port in this
+  context is a single point of attachment to the LAN
+  infrastructure.</quote> --- 802.1X-2001, page 1.
+  </para>
+
+  <mediaobject id="p8021x">
+    <imageobject>
+      <imagedata fileref="images/8021X-Overview.png" format="PNG"
+    width="550" align="center" scalefit="1"/> 
+    </imageobject>
+  <textobject>
+    <phrase>802.1X</phrase>
+  </textobject>
+  <caption>
+   <para>Figure 802.1X: A wireless node must be authenticated before it
+    can gain access to other LAN resources.</para>
+  </caption>
+  </mediaobject>
+
+  <orderedlist>
+  <listitem>
+    <para>
+    When a new wireless node (WN) requests access to a LAN resource,
+    the access point (AP) asks for the WN's identity. <emphasis>No
+    other traffic than EAP is allowed before the WN is authenticated
+    (the <quote>port</quote> is closed).</emphasis> 
+    </para>
+
+    <para>
+    The wireless node that requests authentication is often called
+    <emphasis>Supplicant</emphasis>, although it is more correct to
+    say that the wireless node <emphasis>contains</emphasis> a
+    Supplicant. The Supplicant is responsible for responding to
+    Authenticator data that will establish its credentials. The same
+    goes for the access point; the 
+    <emphasis>Authenticator is</emphasis> not the access point. Rather,
+    the access point contains an Authenticator. The Authenticator does
+    not even need to be in the access point; it can be an external
+    component.
+    </para>
+
+    <para>
+    EAP, which is the protocol used for authentication, was originally
+    used for dial-up PPP. The identity was the username, and either
+    PAP or CHAP authentication [<ulink 
+    url="http://www.ietf.org/rfc/rfc1994.txt">RFC1994</ulink>] was
+    used to check the user's password. Since the identity is sent in
+    clear (not encrypted), a malicious sniffer may learn the user's
+    identity. <quote>Identity hiding</quote> is therefore used; the
+    real identity is not sent before the encrypted TLS tunnel is up.
+    </para>
+  </listitem>
+
+  <listitem>
+    <para>
+    After the identity has been sent, the authentication process
+    begins. The protocol used between the Supplicant and the
+    Authenticator is EAP, or, more correctly, EAP encapsulation over
+    LAN (EAPOL). The Authenticator re-encapsulates the EAP messages to
+    RADIUS format, and passes them to the Authentication Server. 
+    </para>
+    <para>
+    During authentication, the Authenticator just relays packets
+    between the Supplicant and the Authentication Server. When the
+    authentication process finishes, the Authentication Server sends a
+    success message (or failure, if the authentication
+    failed).<emphasis> The Authenticator then opens the
+    <quote>port</quote> for the Supplicant.</emphasis> 
+    </para>
+  </listitem>
+  <listitem>
+    <para>
+    After a successful authentication, the Supplicant is granted
+    access to other LAN resources/Internet.
+    </para>
+  </listitem>
+
+  </orderedlist>
+
+  <para>
+  See figure <link linkend="p8021x">802.1X</link> for explanation.
+  </para>
+
+  <para>
+  Why is it called <quote>port</quote>-based authentication? The
+  Authenticator deals with <emphasis>controlled</emphasis> and
+  <emphasis>uncontrolled</emphasis> ports. Both the controlled and the
+  uncontrolled port are logical entities (virtual ports), but use the
+  same physical connection to the LAN (same point of attachment).
+  </para>
+
+  <mediaobject id="port">
+    <imageobject>
+      <imagedata fileref="images/8021X-Ports.png" format="PNG"
+    width="550" align="center" scalefit="1"/> 
+    </imageobject>
+  <textobject>
+    <phrase>802.1X (un)controlled port</phrase>
+  </textobject>
+  <caption>
+   <para>Figure port: The authorization state of the controlled
+    port.</para>
+  </caption>
+  </mediaobject>
+
+  <para>
+  Before authentication, only the uncontrolled port is
+  <quote>open</quote>. The only traffic allowed is EAPOL; see
+  Authenticator System 1 on figure <link
+  linkend="port">port</link>. After the Supplicant has been
+  authenticated, the controlled port is opened, and access to other LAN
+  resources are granted; see Authenticator System 2 on figure <link 
+  linkend="port">port</link>.
+  </para>
+
+  <para>
+  802.1X plays a major role in the new IEEE wireless standard 802.11i.
+  </para>
+
+  </sect2>
+<!-- ################## -->
+
+  <sect2 id="what80211i">
+  <title>What is 802.11i?</title>
+
+<!-- ########### -->
+
+   <sect3 id="WEP">
+   <title>WEP</title>
+   
+     <para>
+     Wired Equivalent Privacy (WEP), which is part of the original
+     802.11 standard, should provide confidentiality. Unfortunately WEP
+     is poorly designed and easily cracked. There is no authentication
+     mechanism, only a weak form of access control (must have the
+     shared key to communicate). Read more <ulink
+     url="http://www.isaac.cs.berkeley.edu/isaac/wep-faq.html">here</ulink>.
+     </para>
+
+     <para>
+     As a response to WEP broken security, IEEE has come up with
+     a new wireless security standard named 802.11i. 802.1X plays a
+     major role in this new standard.
+     </para>
+
+   </sect3> 
+
+<!-- ########### -->
+   <sect3 id="RSN">
+   <title>802.11i</title>    
+
+     <para>
+     The new security standard, 802.11i, which was ratified in June
+     2004, fixes all WEP weaknesses. It is divided into three main
+     categories:
+     </para>
+     
+     <orderedlist>
+     
+     <listitem>
+     <para>
+     <emphasis>Temporary Key Integrity Protocol (TKIP)</emphasis> is
+     a short-term solution that fixes all WEP weaknesses. TKIP can be
+     used with old 802.11 equipment (after a driver/firmware upgrade)
+     and provides integrity and confidentiality.
+     </para>
+     </listitem>
+
+     <listitem>
+     <para>
+     <emphasis>Counter Mode with CBC-MAC Protocol (CCMP) [<ulink
+     url="http://www.ietf.org/rfc/rfc3610.txt">RFC2610</ulink>]</emphasis>
+     is a new protocol, designed from ground up. It uses AES [<ulink
+     url="http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">FIPS
+     197</ulink>] as its cryptographic algorithm, and, since this is
+     more CPU intensive than RC4 (used in WEP and TKIP), new 802.11
+     hardware may be required. Some drivers can implement CCMP in
+     software. CCMP provides integrity and confidentiality. 
+     </para>
+     </listitem>
+ 
+     <listitem>
+     <para>
+     <emphasis>802.1X Port-Based Network Access Control:</emphasis>
+     Either when using TKIP or CCMP, 802.1X is used for
+     authentication.
+     </para>
+     </listitem>
+    
+     </orderedlist>
+
+     <para>
+     In addition, an optional encryption method called <quote>Wireless
+     Robust Authentication Protocol</quote> (WRAP) may be used instead
+     of CCMP. WRAP was the original AES-based proposal for 802.11i, but
+     was replaced by CCMP since it became plagued by property
+     encumbrances. Support for WRAP is optional, but CCMP support is
+     mandatory in 802.11i. 
+     </para>
+
+     <para>
+     802.11i also has an extended key derivation/management,
+     described next.
+     </para>
+
+   </sect3>
+
+<!-- ########### -->
+   <sect3 id="Key">
+   <title>Key Management</title>
+
+   <!-- #### -->
+   <sect4 id="DynKey">
+   <title>Dynamic key exchange and management</title>
+
+   <para>
+   To enforce a security policy using encryption and integrity
+   algorithms, keys must be obtained. Fortunately, 802.11i implements
+   a key derivation/management regime. See figure <link
+   linkend="keyman">KM</link>.
+   </para>
+
+  <mediaobject id="keyman">
+    <imageobject>
+      <imagedata fileref="images/8021X-KeyManagement.png" format="PNG"
+    width="550" align="center" scalefit="1"/> 
+    </imageobject>
+  <textobject>
+    <phrase>802.1X Key Management</phrase>
+  </textobject>
+  <caption>
+   <para>Figure KM: Key management and distribution in 802.11i.</para> 
+  </caption>
+  </mediaobject>
+  
+  <orderedlist>
+  <listitem>
+   <para>
+   When the Supplicant (WN) and Authentication Server (AS)
+   authenticate, one of the last messages sent from AS, given that
+   authentication was successful, is a <emphasis>Master Key
+   (MK)</emphasis>. After it has been sent, the MK is known only to the
+   WN and the AS. The MK is bound to this session between the WN and
+   the AS.
+   </para>
+  </listitem>
+
+  <listitem>
+   <para>
+   Both the WN and the AS derive a new key, called the
+   <emphasis>Pairwise Master Key (PMK)</emphasis>, from the Master
+   Key.
+   </para>
+  </listitem>
+
+  <listitem>
+  <para>
+   The PMK is then moved from the AS to the Authenticator (AP). Only
+   the WN and the AS can derive the PMK, else the AP could 
+   make access-control decisions instead of the AS. The PMK is a fresh
+   symmetric key bound to this session between the WN and the AP. 
+   </para>
+  </listitem>
+
+  <listitem>
+   <para>
+   PMK and a 4-way handshake are used between the WN and the AP to
+   derive, bind, and verify a <emphasis>Pairwise Transient Key
+   (PTK)</emphasis>. The PTK is a collection of operational keys:
+   <itemizedlist>
+     <listitem>
+     <para>
+     <emphasis>Key Confirmation Key (KCK)</emphasis>, as the name
+     implies, is  used to prove the posession of the PMK and to bind
+     the PMK to the AP.
+     </para>
+     </listitem>
+     
+     <listitem>
+     <para>
+     <emphasis>Key Encryption Key (KEK)</emphasis> is used to
+     distributed the Group Transient Key (GTK). Described below.
+     </para>
+     </listitem>
+
+     <listitem>
+     <para>
+     <emphasis>Temporal Key 1 &amp; 2 (TK1/TK2)</emphasis> are used
+     for encryption. Usage of TK1 and TK2 is ciphersuite-specific.
+     </para>
+     </listitem>
+
+     </itemizedlist>
+   </para>
+  
+   <para>
+   See figure <link linkend="pkh">PKH</link> for a overview of the
+   Pairwise Key Hierarchy.
+   </para>
+   </listitem>
+
+  <listitem>   
+   <para>
+   The KEK and a 4-way group handshake are then used to send the
+   <emphasis>Group Transient Key (GTK)</emphasis> from the AP to the
+   WN. The GTK is a shared key among all Supplicants connected to the
+   same Authenticator, and is used to secure multicast/broadcast
+   traffic.
+   </para> 
+  </listitem>
+  </orderedlist>
+
+  <mediaobject id="pkh">
+    <imageobject>
+      <imagedata fileref="images/8021X-KeyHierarchy.png" format="PNG"
+    width="550" align="center" scalefit="1"/> 
+    </imageobject>
+  <textobject>
+    <phrase>Pairwise Key Hierarchy</phrase>
+  </textobject>
+  <caption>
+   <para>Figure PKH: Pairwise Key Hierarchy</para> 
+  </caption>
+  </mediaobject>
+
+  </sect4>
+
+   <!-- #### -->
+   <sect4 id="PSK">
+   <title>Pre-shared Key</title>
+
+   <para>
+   For small office / home office (SOHO), ad-hoc networks or home
+   usage, a pre-shared key (PSK) may be used. When using PSK, the whole
+   802.1X authentication process is elided. This has also been called
+   <quote>WPA Personal</quote> (WPA-PSK), whereas WPA using EAP (and
+   RADIUS) is <quote>WPA Enterprise</quote> or just
+   <quote>WPA</quote>.
+   </para>
+
+   <para>
+   The 256-bit PSK is generated from a given password using PBKDFv2
+   from [<ulink
+   url="http://www.ietf.org/rfc/rfc2898.txt">RFC2898</ulink>], and is
+   used as the Master Key (MK) described in the key management regime
+   above. It can be one single PSK for the whole network (insecure), or
+   one PSK per Supplicant (more secure). 
+   </para>
+   
+   </sect4>
+   
+  </sect3>
+
+
+<!-- ########### -->
+   <sect3 id="WPA">
+   <title>TSN (WPA) / RSN (WPA2)</title>
+
+     <para>
+     The industry didn't have time to wait until the 802.11i standard
+     was completed. They wanted the WEP issues fixed now! <ulink
+     url="http://www.wi-fi.org/">Wi-Fi Alliance</ulink> felt the
+     pressure, took a <quote>snapshot</quote> of the standard
+     (based on draft 3), and called it <emphasis>Wi-Fi Protected Access
+     (WPA)</emphasis>. One requirement was that existing 802.11
+     equipment could be used with WPA, so WPA is basically TKIP +
+     802.1X.
+     </para>
+
+     <para>
+     WPA is not the long term solution. To get a <emphasis>Robust
+     Secure Network (RSN)</emphasis>, the hardware must support and use
+     CCMP. RSN is basically CCMP + 802.1X.
+     </para>
+     
+     <para>
+     RSN, which uses TKIP instead of CCMP, is also called Transition
+     Security Network (TSN). RSN may also be called WPA2, so that the
+     market don't get confused.
+     </para>
+
+     <para>
+     Confused?
+     </para>
+     
+     <para>
+     Basically: 
+
+     <itemizedlist>
+     <listitem><para>TSN = TKIP + 802.1X = WPA(1)</para></listitem>
+     <listitem><para>RSN = CCMP + 802.1X = WPA2</para></listitem>
+     </itemizedlist>
+
+     In addition comes key management, as described in the previous
+     section.
+     </para>
+    
+   </sect3>
+  </sect2>
+
+<!-- ################## -->
+
+  <sect2 id="EAP">
+  <title>What is EAP?</title>
+
+   <para>
+   Extensible Authentication Protocol (EAP) [<ulink
+   url="http://www.ietf.org/rfc/rfc3748.txt">RFC 3748</ulink>] is just
+   the transport protocol optimized for authentication, not the
+   authentication method itself:
+   </para>
+
+   <para>
+   <quote>
+   [EAP is] an authentication framework which supports multiple
+   authentication methods. EAP typically runs directly over data link
+   layers such as Point-to-Point Protocol (PPP) or IEEE 802, without
+   requiring IP. EAP provides its own support for duplicate
+   elimination and retransmission, but is reliant on lower layer
+   ordering guarantees. Fragmentation is not supported within EAP
+   itself; however, individual EAP methods may support this.</quote>
+   --- RFC 3748, page 3 
+   </para>
+
+  </sect2>
+
+<!-- ################## -->
+  <sect2 id="auth">
+  <title>EAP authentication methods</title>
+
+    <para>
+    Since 802.1X is using EAP, multiple different authentication
+    schemes may be added, including smart cards, Kerberos, public key,
+    one time passwords, and others. 
+    </para>
+    
+    <para>
+    Some of the most-used EAP authentication mechanism are listed
+    below. A full list of registered EAP authentication types is
+    available at IANA: <ulink 
+    url="http://www.iana.org/assignments/eap-numbers">http://www.iana.org/assignments/eap-numbers</ulink>.
+    </para>
+
+    <warning>
+    <para>
+    Not all authentication mechanisms are considered secure!
+    </para>
+    </warning>
+
+    <itemizedlist>
+    
+    <listitem>
+    <para>
+    <emphasis>EAP-MD5:</emphasis> MD5-Challenge requires
+    username/password, and is equivalent to the PPP CHAP protocol
+    [<ulink
+    url="http://www.ietf.org/rfc/rfc1994.txt">RFC1994</ulink>]. This
+    method does not provide dictionary attack resistance, mutual
+    authentication, or key derivation, and has therefore little use in a
+    wireless authentication enviroment.
+    </para>
+    </listitem>
+    
+    <listitem>
+    <para>
+    <emphasis>Lightweight EAP (LEAP):</emphasis> A username/password
+    combination is sent to a Authentication Server (RADIUS) for
+    authentication. Leap is a proprietary protocol developed by
+    Cisco, and is not considered secure. Cisco is phasing out LEAP in
+    favor of PEAP. The closest thing to a published standard can be
+    found <ulink
+    url="http://lists.cistron.nl/pipermail/cistron-radius/2001-September/002042.html">here</ulink>. 
+    </para>
+    </listitem>
+
+    <listitem>
+    <para>
+    <emphasis>EAP-TLS:</emphasis> Creates a TLS session within EAP,
+    between the Supplicant and the Authentication Server. Both the
+    server and the client(s) need a valid (x509) certificate, and
+    therefore a PKI. This method provides authentication both
+    ways. EAP-TLS is described in [<ulink
+    url="http://www.ietf.org/rfc/rfc2716.txt">RFC2716</ulink>].
+    </para>
+    </listitem>
+
+    <listitem>
+    <para>
+    <emphasis>EAP-TTLS:</emphasis> Sets up a encrypted TLS-tunnel for
+    safe transport of authentication data. Within the TLS tunnel,
+    (any) other authentication methods may be used. Developed by Funk
+    Software and Meetinghouse, and is currently an IETF draft.
+    </para>
+    </listitem>
+
+    <listitem>
+    <para>
+    <emphasis>Protected EAP (PEAP):</emphasis> Uses, as EAP-TTLS, an
+    encrypted TLS-tunnel. Supplicant certificates for both EAP-TTLS
+    and EAP-PEAP are optional, but server (AS) certificates are
+    required. Developed by Microsoft, Cisco, and RSA Security, and is
+    currently an IETF draft. 
+    </para>
+    </listitem>
+
+    <listitem>
+    <para>
+    <emphasis>EAP-MSCHAPv2:</emphasis> Requires username/password, and
+    is basically an EAP encapsulation of MS-CHAP-v2 [<ulink
+    url="http://www.ietf.org/rfc/rfc2759.txt">RFC2759</ulink>].
+    Usually used inside of a PEAP-encrypted tunnel. Developed by
+    Microsoft, and is currently an IETF draft.
+    </para>
+    </listitem>
+
+    </itemizedlist>
+
+  </sect2>
+
+<!-- ################## -->
+
+  <sect2 id="AAA">
+  <title>What is RADIUS?</title>
+
+    <para>
+    Remote Authentication Dial-In User Service (RADIUS) is defined in
+    [<ulink url="http://www.ietf.org/rfc/rfc2865.txt">RFC2865</ulink>]
+    (with friends), and was primarily used by ISPs who authenticated
+    username and password before the user got authorized to use the
+    ISP's network.
+    </para>
+
+    <para>
+    802.1X does not specify what kind of back-end authentication
+    server must be present, but RADIUS is the "de-facto" back-end
+    authentication server used in 802.1X.
+    </para>
+
+    <para>
+    There are not many AAA protocols available, but both RADIUS and
+    DIAMETER [<ulink
+    url="http://www.ietf.org/rfc/rfc3588.txt">RFC3588</ulink>]
+    (including their extensions) conform to full AAA support. AAA
+    stands for Authentication, Authorization, and Accounting (<ulink
+    url="http://www.ietf.org/html.charters/aaa-charter.html">IETF's
+    AAA Working Group</ulink>).
+    </para>
+
+  </sect2>
+
+</sect1>
+
+<!-- ####################################################### -->
+<sect1 id="cert">
+ <title>Obtaining Certificates</title>
+    
+  <note><para>OpenSSL must be installed to use either EAP-TLS,
+  EAP-TTLS, or PEAP!</para></note>
+
+ <para>
+ When using EAP-TLS, both the Authentication Server and all the
+ Supplicants (clients) need certificates [<ulink
+ url="http://www.ietf.org/rfc/rfc2459.txt">RFC2459</ulink>] . Using
+ EAP-TTLS or PEAP, only the Authentication Server requires
+ certificates; Supplicant certificates are optional.
+ </para>
+ 
+ <para>
+ You get certificates from the local certificate authority (CA). If
+ there is no local CA available, <application>OpenSSL</application>
+ may be used to generate self-signed certificates.
+ </para>
+
+ <para>
+ Included with the <application>FreeRADIUS</application> source are
+ some helper scripts to generate self-signed certificates. The scripts
+ are located under the <filename>scripts/</filename> folder included
+ with the <application>FreeRADIUS</application> source:
+ </para>
+ 
+ <para>
+ <filename>CA.all</filename> is a shell script that generates 
+ certificates based on some questions it
+ ask. <filename>CA.certs</filename> generates certificates  
+ non-interactively based on pre-defined information at the start of
+ the script.
+ </para>
+ 
+ <note>
+ <para>
+ The scripts uses a Perl script called <filename>CA.pl</filename>,
+ included with OpenSSL. The path to this Perl script
+ in <filename>CA.all</filename> and <filename>CA.certs</filename> may
+ need to be changed to make it work.
+ </para>
+ </note>
+
+ <tip>
+ <para>
+ More information on how to generate your own certificates can be
+ found in the <ulink
+ url="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/">SSL
+ certificates HOWTO</ulink>.
+ </para>
+ </tip>
+ 
+</sect1>
+
+<!-- ####################################################### -->
+
+<sect1 id="FreeRADIUS">
+ <title>Authentication Server: Setting up FreeRADIUS</title>
+
+ <para>
+ <application>FreeRADIUS</application> is a fully GPLed RADIUS server
+ implementation. It supports a wide range of authentication mechanisms,
+ but PEAP is used for the example in this document.
+ </para>
+ 
+ <!-- ################## -->
+ <sect2 id="instradius">
+ <title>Installing FreeRADIUS</title>
+
+ <procedure>
+ <title>Installing FreeRADIUS</title>
+
+ <step performance="required">
+  <para>
+  Head over to the <application>FreeRADIUS</application> site, <ulink
+  url="http://www.freeradius.org/">http://www.freeradius.org/</ulink>,
+  and download the latest release.
+  </para>
+
+  <screen>
+   <prompt># </prompt><userinput><command>cd </command>/usr/local/src</userinput>
+   <prompt># </prompt><userinput><command>wget </command>ftp://ftp.freeradius.org/pub/radius/freeradius-1.0.0.tar.gz</userinput>
+   <prompt># </prompt><userinput><command>tar </command>zxfv freeradius-1.0.0.tar.gz</userinput>
+   <prompt># </prompt><userinput><command>cd </command>freeradius-1.0.0</userinput>
+  </screen>
+ </step>
+
+ <step performance="required">
+   <para>
+   Configure, make and install:
+   </para>
+  
+   <screen>
+    <prompt># </prompt><userinput><command>./configure</command></userinput>
+    <prompt># </prompt><userinput><command>make</command></userinput>
+    <prompt># </prompt><userinput><command>make install</command></userinput>
+   </screen>
+
+   <para>
+    <emphasis>You can pass options to
+    <command>configure</command>. Use <command>./configure
+    --help</command> or read the README file, for more
+    information.</emphasis>
+    </para>
+ </step>
+ </procedure>
+    
+ <para>
+ The binaries are installed in <filename>/usr/local/bin</filename> and
+ <filename>/usr/local/sbin</filename>. The configuration files are found
+ under <filename>/usr/local/etc/raddb</filename>.
+ </para>
+
+ <para>
+ If something went wrong, check the <filename>INSTALL</filename> and
+ <filename>README</filename> included with the source. The <ulink
+ url="http://www.freeradius.org/faq/">RADIUS FAQ</ulink> also contains
+ valuable information.
+ </para>
+
+ </sect2>
+
+ <!-- ################## -->
+  <sect2 id="confradius">
+  <title>Configuring FreeRADIUS</title>
+
+ <para>
+ <application>FreeRADIUS</application> has a big and mighty
+ configuration file. It's so big, it has been split into several
+ smaller files that are just <quote>included</quote> into the main
+ <filename>radius.conf</filename> file.
+ </para>
+
+ <para>
+ There is numerous ways of using and setting up FreeRADIUS to do
+ what you want: i.e., fetch user information from LDAP, SQL, PDC,
+ Kerberos, etc. In this document, user information from a plain text
+ file, <filename>users</filename>, is used.
+ </para>
+ 
+ <tip>
+ <para>
+ The configuration files are thoroughly commented, and, if that is not
+ enough, the <filename>doc/</filename> folder that comes with the source
+ contains additional information.
+ </para>
+ </tip>
+
+  <procedure>
+  <title>Configuring FreeRADIUS</title>
+
+  <step performance="required">
+   <para>
+   The configuration files can be found under <filename>/usr/local/etc/raddb/</filename>
+   </para>
+   <screen>
+    <prompt># </prompt><userinput><command>cd </command>/usr/local/etc/raddb/</userinput>
+   </screen>
+  </step>
+
+  <step performance="required">
+   <para>
+   Open the main configuration file <filename>radiusd.conf</filename>,
+   <emphasis>and read the comments!</emphasis> Inside the encrypted
+   PEAP tunnel, an MS-CHAPv2 authentication mechanism is used.
+   </para>
+
+  <substeps> 
+   <step performance="required">
+    <para>
+    MPPE [<ulink
+    url="http://www.ietf.org/rfc/rfc3078.txt">RFC3078</ulink>] is
+    responsible for sending the PMK to the AP. Make sure the following
+   settings are set:
+    </para>
+   
+    <programlisting>
+    # under MODULES, make sure mschap is uncommented!
+    mschap {
+      # authtype value, if present, will be used
+      # to overwrite (or add) Auth-Type during
+      # authorization. Normally, should be MS-CHAP
+      authtype = MS-CHAP
+
+      # if use_mppe is not set to no, mschap will
+      # add MS-CHAP-MPPE-Keys for MS-CHAPv1 and
+      # MS-MPPE-Recv-Key/MS-MPPE-Send-Key for MS-CHAPv2
+      #
+      use_mppe = yes
+
+      # if mppe is enabled, require_encryption makes
+      # encryption moderate
+      #
+      require_encryption = yes
+
+      # require_strong always requires 128 bit key
+      # encryption
+      #
+      require_strong = yes
+
+      authtype = MS-CHAP
+      # The module can perform authentication itself, OR
+      # use a Windows Domain Controller. See the radius.conf file
+      # for how to do this.
+    }
+    </programlisting>
+    </step>
+
+    <step performance="required">
+    <para>
+    Also make sure the <quote>authorize</quote> and
+    <quote>authenticate</quote> contains:
+    </para>
+    
+    <programlisting>
+    authorize {
+        preprocess
+        mschap
+	suffix
+	eap
+	files
+    }
+    
+    authenticate {
+         
+         #
+         #  MSCHAP authentication.    
+         Auth-Type MS-CHAP {
+               mschap
+          }
+	
+	 #
+         #  Allow EAP authentication.
+         eap
+     }
+    </programlisting>
+
+    </step>
+  </substeps>
+  </step>
+
+  <step performance="required"> 
+   <para>
+   Then, change the <filename>clients.conf</filename> file to specify
+   what network it's serving: 
+   </para>
+
+   <programlisting>
+   # Here, we specify which network we're serving
+   client 192.168.0.0/16 { 
+        # This is the shared secret between the Authenticator (the 
+	# access point) and the Authentication Server (RADIUS).
+        secret          = SharedSecret99
+        shortname       = testnet
+    }
+   </programlisting>
+  </step>
+
+  <step performance="required">
+    <para>
+    The <filename>eap.conf</filename> should also be pretty
+    straightforward.
+    </para>
+
+   <substeps>
+    <step performance="required">
+     <para>
+     Set <quote>default_eap_type</quote> to <quote>peap</quote>:
+     </para>
+
+     <programlisting>
+      default_eap_type = peap
+     </programlisting>
+    </step>
+
+    <step performance="required">
+    <para>
+    Since PEAP is using TLS, the TLS section must contain:
+    </para>
+    <programlisting>
+    tls { 
+        # The private key password
+        private_key_password = SecretKeyPass77
+	# The private key
+        private_key_file = ${raddbdir}/certs/cert-srv.pem
+        #  Trusted Root CA list
+        CA_file = ${raddbdir}/certs/demoCA/cacert.pem
+        dh_file = ${raddbdir}/certs/dh
+        random_file = /dev/urandom
+	}
+    </programlisting>    
+    </step>
+
+    <step performance="required">
+     <para>
+     Find the <quote>peap</quote> section, and make sure it contain
+    the following:
+     </para>
+
+     <programlisting>
+      peap {
+        #  The tunneled EAP session needs a default
+        #  EAP type, which is separate from the one for
+        #  the non-tunneled EAP module.  Inside of the
+        #  PEAP tunnel, we recommend using MS-CHAPv2,
+        #  as that is the default type supported by
+        #  Windows clients.
+        default_eap_type = mschapv2
+      }
+      </programlisting>
+    </step>
+    </substeps>
+   </step>
+   
+   <step>
+   <para>
+   The user information is stored in a plain text file
+   <filename>users</filename>. A more sophisticated solution to store
+   user information may be preferred (SQL, LDAP, PDC, etc.).
+   </para>
+
+   <para>
+   Make sure the <filename>users</filename> file contains the
+   following entry:
+   </para>
+   
+   <screen>
+   "testuser"      User-Password == "Secret149"
+   </screen>
+   </step>
+
+ </procedure>
+
+ </sect2>
+</sect1>
+
+<!-- ####################################################### -->
+<sect1 id="xsupplicant">
+ <title>Supplicant: Setting up Xsupplicant</title>
+
+ <para>
+ The Supplicant is usually a laptop or other (wireless) device that
+ requires authentication. <application>Xsupplicant</application>
+ does the bidding of being the <quote>Supplicant</quote> part of the
+ IEEE 802.1X-2001 standard.
+ </para>
+
+<!-- ################## -->
+  <sect2 id="instxsup">
+  <title>Installing Xsupplicant</title>
+
+  <procedure>
+  <title>Installing Xsupplicant</title>
+
+   <step performance="required">
+    <para>
+    Download the latest source from from <ulink
+    url="http://www.open1x.org/">http://www.open1x.org/</ulink> 
+    </para>
+
+    <screen>
+    <prompt># </prompt><userinput><command>cd </command>/usr/local/src</userinput>
+    <prompt># </prompt><userinput><command>wget </command>http://belnet.dl.sourceforge.net/sourceforge/open1x/xsupplicant-1.0.tar.gz</userinput>
+    <prompt># </prompt><userinput><command>tar </command>zxfv xsupplicant-1.0.tar.gz</userinput>
+    <prompt># </prompt><userinput><command>cd </command>xsupplicant</userinput>
+    </screen>
+   </step>
+
+   <step performance="required">
+    <para>
+    Configure, make, and install:
+    </para>
+
+    <screen>
+    <prompt># </prompt><userinput><command>./configure</command></userinput>
+    <prompt># </prompt><userinput><command>make</command></userinput>
+    <prompt># </prompt><userinput><command>make install</command></userinput>
+    </screen>
+
+   </step>
+
+   <step performance="required">
+    <para>
+    If the configuration file wasn't installed (copied) into the "etc"
+    folder, do it manually:
+    </para>
+
+   <screen>
+    <prompt># </prompt><userinput><command>mkdir </command>-p /usr/local/etc/1x</userinput>
+    <prompt># </prompt><userinput><command>cp </command>etc/tls-example.conf /usr/local/etc/1x</userinput>
+    </screen>
+   </step>
+   
+  </procedure>
+
+  <para>
+  If installation fails, check the <filename>README</filename> and
+  <filename>INSTALL</filename> files included with the source. You may
+  also check out the <ulink 
+  url="http://sourceforge.net/docman/display_doc.php?docid=23371&amp;group_id=60236">official
+  documentation</ulink>.
+  </para>
+
+  </sect2>
+
+<!-- ################## -->
+  <sect2 id="confxsup">
+  <title>Configuring Xsupplicant</title>
+
+  <procedure>
+   <title>Configuring Xsupplicant</title>
+
+   <step performance="required">
+   <para>
+   The Supplicant must have access to the root certificate.
+   </para>
+
+   <para>
+   If the Supplicant needs to authenticate against the Authentication
+   Server (authentication both ways), the Supplicant must have
+   certificates as well.
+   </para>
+
+   <para>
+   Create a certificate folder, and move the certificates into it: 
+   </para>
+
+   <screen>
+    <prompt># </prompt><userinput><command>mkdir</command> -p /usr/local/etc/1x/certs</userinput>
+    <prompt># </prompt><userinput><command>cp</command> root.pem /usr/local/etc/1x/certs/</userinput>
+    <prompt># </prompt>(copy optional client certificate(s) into the same folder)
+   </screen>
+   </step>
+
+   <step performance="required">
+
+   <para>
+   Open and edit the configuration file:
+   </para>
+
+   <programlisting>
+   # startup_command: the command to run when Xsupplicant is first started.
+   #   This command can do things such as configure the card to associate with
+   #   the network properly.
+   startup_command = &lt;BEGIN_COMMAND>/usr/local/etc/1x/startup.sh&lt;END_COMMAND>
+   </programlisting>
+
+   <para>
+   The <filename>startup.sh</filename> will be created shortly.
+   </para>
+
+   </step>
+
+   <step performance="required">
+   <para>
+   When the client is authenticated, it will transmit a DHCP request or
+   manually set an IP address. Here, the Supplicant sets its IP address
+   manually in <filename>startup2.sh</filename>:
+   </para>
+
+   <programlisting>
+   # first_auth_command: the command to run when Xsupplicant authenticates to
+   #   a wireless network for the first time.  This will usually be used to
+   #   start a DHCP client process.
+   #first_auth_command = &lt;BEGIN_COMMAND>dhclient %i&lt;END_COMMAND>
+   first_auth_command = &lt;BEGIN_COMMAND>/usr/local/etc/1x/startup2.sh&lt;END_COMMAND>
+   </programlisting>
+   </step>
+   
+   <step performance="optional">
+   <para>
+   Since <quote>-i</quote> is just for debugging purpose (and may
+   go away according to the developers),
+   <quote>allow_interfaces</quote> must be set:
+   </para>
+   <programlisting>
+   allow_interfaces = eth0
+   deny_interfaces = eth1
+   </programlisting>
+   </step>
+
+   <step performance="required">
+   <para>
+   Next, under the <quote>NETWORK SECTION</quote>, we'll configure
+   PEAP:
+   </para>
+   
+   <programlisting>
+   # We'll be using PEAP
+   allow_types = eap_peap
+
+   # Don't want any eavesdropper to learn the username during the
+   # first phase (which is unencrypted), so 'identity hiding' is 
+   # used (using a bogus username).
+   identity = &lt;BEGIN_ID>anonymous&lt;END_ID>
+
+   eap-peap {
+      # As in tls, define either a root certificate or a directory
+      # containing root certificates.
+      root_cert = /usr/local/etc/1x/certs/root.pem
+      #root_dir = /path/to/root/certificate/dir
+      #crl_dir = /path/to/dir/with/crl
+      chunk_size = 1398
+      random_file = /dev/urandom
+      #cncheck = myradius.radius.com   # Verify that the server certificate
+                                       # has this value in its CN field.
+      #cnexact = yes                   # Should it be an exact match?
+      session_resume = yes
+
+      # Currently 'all' is just mschapv2.
+      # If no allow_types is defined, all is assumed.
+      #allow_types = all # where all = MSCHAPv2, MD5, OTP, GTC, SIM
+      allow_types = eap_mschapv2
+
+      # Right now, you can do any of these methods in PEAP:
+      eap-mschapv2 {
+        username = &lt;BEGIN_UNAME>testuser&lt;END_UNAME>
+        password = &lt;BEGIN_PASS>Secret149&lt;END_PASS>
+      }
+   }
+   </programlisting>
+   </step>
+
+   <step performance="required">
+   <para>
+   The Supplicant must first associate with the access point. The
+   script <filename>startup.sh</filename> does that job. It is also
+   the first command <application>Xsupplicant</application> executes.
+   </para>
+
+   <note>
+   <para>
+   Notice the bogus key we give to iwconfig (<emphasis>enc
+   000000000</emphasis>)! This key is used to tell the driver
+   to run in encrypted mode. The key gets replaced after successful
+   authentication. This can be set to <emphasis>enc 
+   off</emphasis> only if encryption is disabled in the AP (for
+   testing purposes).
+   </para>
+   </note>
+   
+   <para>
+   Both <filename>startup.sh</filename> and
+   <filename>startup2.sh</filename> must be saved under
+   <filename>/usr/local/etc/1x/</filename>.
+   </para>
+
+   <programlisting>
+   #!/bin/bash
+   echo "Starting startup.sh"
+   # Take down interface (if it's up)
+   /sbin/ifconfig eth0 down
+   # To make sure the routes are flushed
+   sleep 1
+   # Configuring the interface with a bogus key
+   /sbin/iwconfig eth0 mode managed essid testnet enc 000000000
+   # Bring the interface up and make sure it listens to multicast packets
+   /sbin/ifconfig eth0 allmulti up
+   echo "Finished startup.sh"
+   </programlisting>
+   </step>
+
+   <step performance="required">
+   <para>
+   This next file is used to set the IP address statically. This can
+   be omitted if a DHCP server is present (as it typically is, in many
+   access points).
+   </para>
+
+   <programlisting>
+   #!/bin/bash
+   echo "Starting startup2.sh"
+   # Assigning an IP address
+   /sbin/ifconfig eth0 192.168.1.5 netmask 255.255.255.0
+   echo "Finished startup2.sh"
+   </programlisting>
+   </step>
+   
+   </procedure>
+   
+  </sect2>
+</sect1>
+
+<!-- ##################################################### -->
+<sect1 id="authenticator">
+ <title>Authenticator: Setting up the Authenticator (Access
+ Point)</title>
+ 
+ <para>
+ During the authentication process, the Authenticator just relays all
+ messages between the Supplicant and the Authentication Server
+ (RADIUS). EAPOL is used between the Supplicant and the Authenticator;
+ and, between the Authenticator and the Authentication Server, UDP is
+ used.
+ </para>
+ 
+<!-- ################## --> 
+ <sect2 id="AP">
+ <title>Access Point</title>
+
+ <para>
+ Many access point have support for 802.1X (and RADIUS)
+ authentication. It must first be configured to use 802.1X
+ authentication.
+ </para>
+
+ <note> 
+ <para>
+ <emphasis>Configuring and setting up 802.1X on the AP may differ
+ between vendors.</emphasis> Listed below are the required settings to
+ make a Cisco AP350 work. Other settings to TIKP, CCMP etc. may also
+ be configured.
+ </para>
+ </note>
+ 
+ <para>
+ The AP must set the ESSID to <quote>testnet</quote> and must
+ activate: 
+ </para>
+
+ <screenshot>
+ <screeninfo>Cisco AP350 RADIUS configuration screen</screeninfo>
+  <mediaobject id="ciscoAP">
+  <imageobject> 
+   <imagedata fileref="images/8021X-CiscoAP.png" format="PNG" width="599"
+   align="center" scalefit="1"/>
+  </imageobject> 
+    <textobject>
+      <phrase>The Cisco AP-350 RADIUS configuration</phrase>
+    </textobject>
+    <caption>
+    <para>Figure AP350: The RADIUS configuration screen for a Cisco
+    AP-350</para>  
+    </caption>
+  </mediaobject>
+ </screenshot>
+ 
+
+ <itemizedlist>
+
+  <listitem>
+  <para>
+  <emphasis>802.1X-2001:</emphasis> Make sure the 802.1X Protocol
+  version is set to <quote>802.1X-2001</quote>. Some older Access
+  Points support only the draft version of the 802.1X standard (and
+  may therefore not work).
+  </para>
+  </listitem>
+    
+  <listitem>
+  <para>
+  <emphasis>RADIUS Server:</emphasis> the name/IP address of the
+  RADIUS server and the shared secret between the RADIUS server and
+  the Access Point (which in this document is "SharedSecret99"). See
+  figure <link linkend="ciscoAP">AP350</link>.
+  </para>
+  </listitem>
+
+  <listitem>
+  <para>
+  <emphasis>EAP Authentication:</emphasis> The RADIUS server should be
+  used for EAP authentication.
+  </para>
+  </listitem>
+
+ </itemizedlist>
+
+ <screenshot>
+ <screeninfo>Cisco AP350 Encryption configuration screen</screeninfo>
+  <mediaobject id="ciscoAP2">
+  <imageobject> 
+   <imagedata fileref="images/8021X-CiscoAP2.png" format="PNG" width="604"
+   align="center" scalefit="1"/>
+  </imageobject> 
+    <textobject>
+      <phrase>The Cisco AP-350 Encryption configuration</phrase>
+    </textobject>
+    <caption>
+    <para>Figure AP350-2: The Encryption configuration screen for a
+    Cisco AP-350</para>  
+    </caption>
+  </mediaobject>
+ </screenshot>
+
+ <itemizedlist>
+    
+  <listitem>
+  <para>
+  <emphasis>Full Encryption</emphasis> to allow only encrypted
+  traffic. Note that 802.1X may be used without using encryption,
+  which is nice for test purposes.
+  </para>
+  </listitem>
+
+  <listitem>
+  <para>
+  <emphasis>Open Authentication</emphasis> to make the Supplicant
+  associate with the Access Point before encryption keys are
+  available. Once the association is done, the Supplicant may start EAP
+  authentication.
+  </para>
+  </listitem>
+
+  <listitem>
+  <para>
+  <emphasis>Require EAP</emphasis> for the <quote>Open
+  Authentication</quote>. That will ensure that only authenticated
+  users are allowed into the network.
+  </para>
+  </listitem>
+
+ </itemizedlist>
+
+ </sect2>
+
+<!-- ################## -->
+ <sect2 id="LinuxAP">
+ <title>Linux Authenticator</title>
+ <para>
+ An ordinary Linux node can be set up to function as a wireless Access
+ Point and Authenticator. How to set up and use Linux as an AP is
+ beyond the scope of this document. Simon Anderson's <ulink
+ url="http://oob.freeshell.org/nzwireless/LWAP-HOWTO.html">Linux
+ Wireless Access Point HOWTO</ulink> may be of guidance.
+ </para>
+ </sect2>
+
+</sect1>
+
+<!-- ##################################################### -->
+<sect1 id="testbed">
+  <title>Testbed</title>
+
+<!-- ################## -->
+  <sect2 id="testcase">
+  <title>Testcase</title>
+
+  <mediaobject id="testbedimg">
+    <imageobject>
+      <imagedata fileref="images/8021X-Testbed.png" format="PNG"
+    width="500" align="center" scalefit="1"/> 
+    </imageobject>
+  <textobject>
+    <phrase>Testbed</phrase>
+  </textobject>
+  <caption>
+   <para>figure testbed: A wireless node request authentication.</para>
+  </caption>
+  </mediaobject>
+
+  <para>
+  Our testbed consists of two nodes and one Access Point (AP). One
+  node functions as the Supplicant (WN), the other as the back-end
+  Authentication Server running RADIUS (AS). The Access Point is the
+  Authenticator. See figure <link linkend="testbedimg">testbed</link>
+  for explanation. 
+  </para>
+
+  <important>
+  <para>
+  It is crucial that the Access Point be able to reach (ping) the
+  Authentication Server, and vice versa! 
+  </para>
+  </important>
+
+  </sect2>
+
+<!-- ################## -->
+  <sect2 id="startrad">
+  <title>Running some tests</title>
+
+  <procedure>
+  <title>Running some tests</title>
+
+  <step performance="required">
+  <para>
+  The RADIUS server is started in debug mode. This produces
+  <emphasis>a lot</emphasis> of debug information. The important
+  snippets are below: 
+  </para>
+
+  <screen>
+  <prompt># </prompt><userinput><command>radiusd</command> -X</userinput>
+  Starting - reading configuration files ...
+  reread_config:  reading radiusd.conf
+  Config:   including file: /usr/local/etc/raddb/proxy.conf
+  Config:   including file: /usr/local/etc/raddb/clients.conf
+  Config:   including file: /usr/local/etc/raddb/snmp.conf
+  Config:   including file: /usr/local/etc/raddb/eap.conf
+  Config:   including file: /usr/local/etc/raddb/sql.conf
+  ......
+  Module: Loaded MS-CHAP 
+   mschap: use_mppe = yes
+   mschap: require_encryption = no
+   mschap: require_strong = no
+   mschap: with_ntdomain_hack = no
+   mschap: passwd = "(null)"
+   mschap: authtype = "MS-CHAP"
+   mschap: ntlm_auth = "(null)"
+  Module: Instantiated mschap (mschap)
+  ......
+  Module: Loaded eap 
+   eap: default_eap_type = "peap" <co id="rad_peap"/>
+   eap: timer_expire = 60
+   eap: ignore_unknown_eap_types = no
+   eap: cisco_accounting_username_bug = no
+  rlm_eap: Loaded and initialized type md5
+   tls: rsa_key_exchange = no <co id="rad_tls"/>
+   tls: dh_key_exchange = yes
+   tls: rsa_key_length = 512
+   tls: dh_key_length = 512
+   tls: verify_depth = 0
+   tls: CA_path = "(null)"
+   tls: pem_file_type = yes
+   tls: private_key_file = "/usr/local/etc/raddb/certs/cert-srv.pem"
+   tls: certificate_file = "/usr/local/etc/raddb/certs/cert-srv.pem"
+   tls: CA_file = "/usr/local/etc/raddb/certs/demoCA/cacert.pem"
+   tls: private_key_password = "SecretKeyPass77"
+   tls: dh_file = "/usr/local/etc/raddb/certs/dh"
+   tls: random_file = "/usr/local/etc/raddb/certs/random"
+   tls: fragment_size = 1024
+   tls: include_length = yes
+   tls: check_crl = no
+   tls: check_cert_cn = "(null)"
+  rlm_eap: Loaded and initialized type tls
+   peap: default_eap_type = "mschapv2" <co id="rad_mschapv2"/>
+   peap: copy_request_to_tunnel = no
+   peap: use_tunneled_reply = no
+   peap: proxy_tunneled_request_as_eap = yes
+  rlm_eap: Loaded and initialized type peap
+   mschapv2: with_ntdomain_hack = no
+  rlm_eap: Loaded and initialized type mschapv2
+  Module: Instantiated eap (eap) 
+  ......
+  Module: Loaded files 
+   files: usersfile = "/usr/local/etc/raddb/users" <co id="rad_users"/>
+  ...... 
+  Module: Instantiated radutmp (radutmp) 
+  Listening on authentication *:1812
+  Listening on accounting *:1813
+  Ready to process requests. <co id="rad_finished"/>
+  </screen>
+  
+  <calloutlist>
+    <callout arearefs="rad_peap">
+       <para>
+       Default EAP type is set to PEAP.
+       </para>
+    </callout>
+    <callout arearefs="rad_tls">
+       <para>
+       RADIUS's TLS settings are initiated here. The certificate type,
+       location, and password are listet here.
+       </para> 
+    </callout>
+    <callout arearefs="rad_mschapv2">
+       <para>
+       Inside the PEAP tunnel, MS-CHAPv2 is used.
+       </para>
+    </callout>
+    <callout arearefs="rad_users">
+       <para>
+       The username/password information is found in the
+       <filename>users</filename> file.
+       </para>
+    </callout>
+    <callout arearefs="rad_finished">
+       <para>
+       RADIUS server started successfully. Waiting for incoming requests.
+       </para>
+    </callout>
+  </calloutlist>
+
+  <para>The radius server is now ready to process requests!</para>
+  
+  <para>
+  The most interesting output is included above. If you get any
+  error message instead of the last line, go over the configuration
+  (above) carefully. 
+  </para>
+  </step>
+
+  <step performance="required">
+  <para>
+  Now the Supplicant is ready to get authenticated. Start
+  <application>Xsupplicant</application> in debug mode. Note that
+  we'll see output produced by the two startup scripts:
+  <filename>startup.sh</filename> and
+  <filename>startup2.sh</filename>.
+  </para>
+
+  <screen>
+  <prompt># </prompt><userinput><command>xsupplicant</command> -c /usr/local/etc/1x/1x.conf -i eth0 -d 6</userinput>
+  Starting /etc/1x/startup.sh
+  Finished /etc/1x/startup.sh
+  Starting /etc/1x/startup2.sh
+  Finished /etc/1x/startup2.sh
+  </screen>
+  </step>
+
+  <step performance="required">
+  <para>
+  At the same time, the RADIUS server is producing a lot of
+  output. Key snippets are shown below: 
+  </para>
+
+  <screen>
+  ......
+  rlm_eap: Request found, released from the list
+  rlm_eap: EAP/peap
+  rlm_eap: processing type peap
+  rlm_eap_peap: Authenticate
+  rlm_eap_tls: processing TLS <co id="rpro_tls"/>
+  eaptls_verify returned 7 
+  rlm_eap_tls: Done initial handshake 
+  eaptls_process returned 7 
+  rlm_eap_peap: EAPTLS_OK <co id="rpro_peap"/>
+  rlm_eap_peap: Session established.  Decoding tunneled attributes.
+  rlm_eap_peap: Received EAP-TLV response.
+  rlm_eap_peap: Tunneled data is valid.
+  rlm_eap_peap: Success
+  rlm_eap: Freeing handler
+  modcall[authenticate]: module "eap" returns ok for request 8
+modcall: group authenticate returns ok for request 8
+Login OK: [testuser/&lt;no User-Password attribute>] (from client testnet port 37 cli 0002a56fa08a)
+Sending Access-Accept of id 8 to 192.168.2.1:1032 <co id="rpro_accept"/>
+	MS-MPPE-Recv-Key = 0xf21757b96f52ddaefe084c343778d0082c2c8e12ce18ae10a79c550ae61a5206 <co id="rpro_reckey"/>
+	MS-MPPE-Send-Key = 0x5e1321e06a45f7ac9f78fb9d398cab5556bff6c9d003cdf8161683bfb7e7af18 
+	EAP-Message = 0x030a0004
+	Message-Authenticator = 0x00000000000000000000000000000000
+	User-Name = "testuser"
+  </screen>
+
+  <calloutlist>
+    <callout arearefs="rpro_tls">
+       <para>
+       TLS session startup. Doing TLS-handshake.
+       </para>
+    </callout>
+    <callout arearefs="rpro_peap">
+       <para>
+       The TLS session (PEAP-encrypted tunnel) is up.
+       </para> 
+    </callout>
+    <callout arearefs="rpro_accept">
+       <para>
+       The Supplicant has been authenticated successfully by the
+       RADIUS server. An <quote>Access-Accept</quote> message is
+       sent.
+       </para>
+    </callout>
+    <callout arearefs="rpro_reckey">
+       <para>
+       The <emphasis>MS-MPPE-Recv-Key</emphasis> [<ulink
+       url="http://www.ietf.org/rfc/rfc2548.txt">RFC2548</ulink> 
+       section 2.4.3] contains the Pairwise Master Key (PMK) destined
+       to the Authenticator (access point), encrypted with the MPPE
+       Protocol [<ulink
+       url="http://www.ietf.org/rfc/rfc3078.txt">RFC3078</ulink>],
+       using the shared secret between the Authenticator and
+       Authentication Server as key. The Supplicant derives the same
+       PMK from MK, as described in <link linkend="Key">Key
+       Management</link>. 
+       </para>
+    </callout>
+
+  </calloutlist>
+
+  </step>
+
+  <step performance="required">
+   <para>
+   The Authenticator (access point) may also show something like this
+   in its log: 
+  </para>
+
+  <screen>
+  00:02:16 (Info): Station 0002a56fa08a Associated
+  00:02:17 (Info): Station=0002a56fa08a User="testuser" EAP-Authenticated 
+  </screen>
+  </step>
+  </procedure>
+  
+  <para>
+  That's it! The Supplicant is now authenticated to use the Access
+  Point!
+  </para>
+
+  </sect2>
+
+</sect1>
+
+<!-- ##################################################### -->
+<sect1 id="dynWEP">
+  <title>Note about driver support and Xsupplicant</title>
+  
+  <para>
+  As described in <link linkend="Key">Key Management</link>, one of
+  the big advantages of using Dynamic WEP/802.11i with 802.1X is the
+  support for session keys. A new encryption key is generated for each
+  session.
+  </para>
+
+  <para>
+  <application>Xsupplicant</application> only supports <quote>Dynamic
+  WEP</quote> as of this writing. Support for WPA and RSN/WPA2
+  (802.11i) is being worked on, and is estimated to be supported at
+  the end of the year/early next year (2004/2005), according to Chris
+  Hessing (one of the <application>Xsupplicants</application>
+  developers).
+  </para>
+
+  <para>
+  Not all wireless drives support dynamic WEP, nor WPA. To use RSN
+  (WPA2), new support in hardware may even be required. Many older
+  drivers assume only one WEP key will be used on the network at any
+  time. The card is reset whenever the key is changed to let the new
+  key take effect. This triggers a new authentication, and there is a
+  never-ending loop.
+  </para>
+
+  <para>
+  At the time of writing, most of the wireless drivers in the base
+  Linux kernel require patching to make dynamic WEP/WPA work. They
+  will, in time, be upgraded to support these new features. Many drivers
+  developed outside the kernel, however, support for dynamic WEP;
+  HostAP, madwifi, Orinoco, and atmel should work without problems.
+  </para>
+
+  <para>
+  Instead of using Xsupplicant, <ulink
+  url="http://hostap.epitest.fi/wpa_supplicant/">wpa_supplicant</ulink>
+  may be used. It has support for both WPA and RSN (WPA2), and a wide
+  range of EAP authentication methods.
+  </para>
+  
+  
+</sect1>
+
+<!-- ##################################################### -->
+<sect1 id="faq">
+  <title>FAQ</title>
+
+  <para>
+  Do not forget to check out the FAQ section of both the <ulink
+  url="http://www.freeradius.org/faq/">FreeRADIUS</ulink> (highly
+  recommended!) and <ulink
+  url="http://sourceforge.net/docman/display_doc.php?docid=23371&amp;group_id=60236#ch7">
+  Xsupplicant</ulink> Web sites!
+  </para>
+  
+  <qandaset>
+
+  <qandaentry>
+  <question>
+  <para>
+  Is it possible to allow user-specific
+  <application>Xsupplicant</application> configuration, to avoid
+  having a global configuration file? 
+  </para>
+  </question>
+  
+  <answer>
+  <para>
+  No, not at the moment.
+  </para>
+  </answer>
+  </qandaentry>
+
+  <qandaentry>
+  <question>
+  <para>I don't want to use PEAP; can I use EAP-TTLS or EAP-TLS instead?</para>
+  </question>
+  
+  <answer>
+  <para>
+  Yes. To use EAP-TTLS, only small changes to the configuration used
+  in this document are required. To use EAP-TLS, client certificates
+  must be used as well.
+  </para>
+  </answer>
+  </qandaentry>
+
+  <qandaentry>
+  <question>
+  <para>
+  Can I use a Windows Supplicant (client) instead of GNU/Linux?
+  </para>
+  </question>
+  
+  <answer>
+  <para>
+  Yes. Windows XP SP1/Windows 2000 SP3 has support for PEAP MSCHAPv2
+  (used in this document). A Windows HOWTO can be found here: <ulink
+  url="http://text.dslreports.com/forum/remark,9286052~mode=flat">FreeRADIUS/WinXP
+  Authentication Setup</ulink>
+  </para>
+  </answer>
+  </qandaentry>
+
+  <qandaentry>
+  <question>
+  <para>
+  Can I use a Active Directory to authenticate users?
+  </para>
+  </question>
+  
+  <answer>
+  <para>
+  Yes. FreeRADIUS can authenticate users from AD by using
+  <quote>ntlm_auth</quote>.
+  </para>
+  </answer>
+  </qandaentry>
+
+  <qandaentry>
+  <question>
+  <para>
+  Is there any Windows Supplicant clients available?
+  </para>
+  </question>
+  
+  <answer>
+  <para>
+  Yes. As of Windows XP SP1 or Windows 2000 SP3, support for WPA
+  (PEAP/MS-CHAPv2) is supported. Other clients include (not tested)
+  <ulink url="http://www.securew2.com">Secure W2</ulink> (free for
+  non-commercial) and <ulink
+  url="http://wire.cs.nthu.edu.tw/wire1x/">WIRE1X</ulink>. <ulink
+  url="http://www.funk.com">Funk Software</ulink> also has a
+  commercial client available.
+  </para>
+  </answer>
+  </qandaentry>
+
+  </qandaset>
+  
+</sect1>
+
+<!-- ##################################################### -->
+<sect1 id="resources">
+  <title>Useful Resources</title>
+
+  <para>
+  Only IEEE standards older than 12 months are available to
+  the public in general (through the <ulink
+  url="http://standards.ieee.org/getieee802/"><quote>Get IEEE 802
+  Program</quote></ulink>). So the new <emphasis>802.11i</emphasis> and
+  <emphasis>802.1X-2004</emphasis> standards documents are not
+  available. You must be a IEEE participant to get hold of any
+  drafts/work in progress papers (which actually isn't that hard -
+  just join a mailing list and say you are interested).
+  </para>
+
+  <para>
+  <orderedlist>
+
+    <listitem>
+      <para>FreeRADIUS Server Project<ulink
+      url="http://www.freeradius.org/">
+      http://www.freeradius.org/</ulink>
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>Open1x: Open Source implementation of IEEE 802.1X (Xsupplicant)<ulink
+      url="http://www.open1x.org/">
+      http://www.open1x.org/</ulink>
+      </para>
+    </listitem>    
+
+    <listitem>
+      <para>The Open1x User's Guide<ulink
+      url="http://sourceforge.net/docman/display_doc.php?docid=23371&amp;group_id=60236"> 
+      http://sourceforge.net/docman/display_doc.php?docid=23371&amp;group_id=60236</ulink>  
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>Port-Based Network Access Control (802.1X-2001)<ulink
+      url="http://standards.ieee.org/getieee802/download/802.1X-2001.pdf">
+      http://standards.ieee.org/getieee802/download/802.1X-2001.pdf</ulink>
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC2246: The TLS Protocol Version 1.0<ulink
+      url="http://www.ietf.org/rfc/rfc2246.txt"> 
+      http://www.ietf.org/rfc/rfc2246.txt</ulink>  
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC2459: Internet X.509 Public Key Infrastructure -
+      Certificate and CRL Profile<ulink 
+      url="http://www.ietf.org/rfc/rfc2459.txt"> 
+      http://www.ietf.org/rfc/rfc2459.txt</ulink>  
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC2548: Microsoft Vendor-specific RADIUS Attributes<ulink
+      url="http://www.ietf.org/rfc/rfc2548.txt"> 
+      http://www.ietf.org/rfc/rfc2548.txt</ulink>  
+      </para>
+    </listitem>  
+
+    <listitem>
+      <para>RFC2716: PPP EAP TLS Authentication Protocol<ulink
+      url="http://www.ietf.org/rfc/rfc2716.txt"> 
+      http://www.ietf.org/rfc/rfc2716.txt</ulink>  
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC2865: Remote Authentication Dial-In User Service (RADIUS)<ulink
+      url="http://www.ietf.org/rfc/rfc2865.txt">
+      http://www.ietf.org/rfc/rfc2865.txt</ulink>
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC3079: Deriving Keys for use with Microsoft Point-to-Point Encryption (MPPE)<ulink
+      url="http://www.ietf.org/rfc/rfc3079.txt">
+      http://www.ietf.org/rfc/rfc3079.txt</ulink>
+      </para>
+    </listitem> 
+
+    <listitem>
+      <para>RFC3579: RADIUS Support For EAP<ulink
+      url="http://www.ietf.org/rfc/rfc3579.txt">
+      http://www.ietf.org/rfc/rfc3579.txt</ulink>
+      </para>
+    </listitem> 
+
+    <listitem>
+      <para>RFC3580: IEEE 802.1X RADIUS Usage Guidelines<ulink
+      url="http://www.ietf.org/rfc/rfc3580.txt">
+      http://www.ietf.org/rfc/rfc3580.txt</ulink>
+      </para>
+    </listitem> 
+
+    <listitem>
+      <para>RFC3588: Diameter Base Protocol<ulink
+      url="http://www.ietf.org/rfc/rfc3588.txt">
+      http://www.ietf.org/rfc/rfc3588.txt</ulink>
+      </para>
+    </listitem> 
+
+    <listitem>
+      <para>RFC3610: Counter with CBC-MAC (CCM)<ulink
+      url="http://www.ietf.org/rfc/rfc3610.txt">
+      http://www.ietf.org/rfc/rfc3610.txt</ulink>
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>RFC3748: Extensible Authentication Protocol (EAP)<ulink
+      url="http://www.ietf.org/rfc/rfc3748.txt">
+      http://www.ietf.org/rfc/rfc3748.txt</ulink>
+      </para>
+    </listitem> 
+
+    <listitem>
+    <para>Linux Wireless Access Point HOWTO <ulink
+     url="http://oob.freeshell.org/nzwireless/LWAP-HOWTO.html">
+     http://oob.freeshell.org/nzwireless/LWAP-HOWTO.html</ulink>
+    </para>
+    </listitem>
+
+    <listitem>
+      <para>SSL Certificates HOWTO<ulink
+      url="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/"> 
+      http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/</ulink>  
+      </para>
+    </listitem>
+    
+    <listitem>
+      <para>OpenSSL: x509(1)<ulink
+      url="http://www.openssl.org/docs/apps/x509.html"> 
+      http://www.openssl.org/docs/apps/x509.html</ulink>  
+      </para>
+    </listitem>   
+
+  </orderedlist>
+  </para>
+</sect1>
+
+<!-- ##################################################### -->
+
+<sect1 id="copyack">
+  <title>Copyright, acknowledgments and miscellaneous</title>
+
+<!-- ################## -->
+
+  <sect2 id="copyright">
+    <title>Copyright and License</title>
+    <para> Copyright (c) 2004 Lars Strand.</para>
+    <para>
+      Permission is granted to copy, distribute and/or modify this 
+      document under the terms of the <ulink
+      url="http://www.gnu.org/licenses/fdl.html">GNU Free
+      Documentation License</ulink>, Version 1.2 or any later version
+      published by the Free Software Foundation; with no Invariant
+      Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy
+      of the license is included in the section entitled "GNU Free
+      Documentation License". 
+    </para>
+
+  </sect2>
+
+<!-- ################## -->
+
+  <sect2 id="produced">
+
+    <title>How this document was produced</title>
+
+    <para>This document was written in DocBook XML using Emacs.</para>
+
+  </sect2>
+
+<!-- ################## -->
+
+  <sect2 id="feedback">
+
+    <title>Feedback</title>
+
+    <para>
+    Suggestions, corrections, additions wanted. Contributors wanted
+    and acknowledged. Flames not wanted.
+    </para>
+
+    <para>
+    I can always be reached at <email>lars strand at gnist org</email>
+    </para>
+
+    <para>
+    Homepage: <ulink
+    url="http://www.gnist.org/~lars/">http://www.gnist.org/~lars/</ulink>
+    </para> 
+
+  </sect2>
+
+<!-- ################## -->
+
+  <sect2 id="ack">
+
+    <title>Acknowledgments</title>
+
+    <para>
+    Thanks to Andreas Hafslund <email>andreha at unik no</email> and Thales
+    Communication for initial support. 
+    </para>
+
+    <para>
+    Also thanks to Artur Hecker <email>hecker at enst fr</email>,
+    Chris Hessing <email>chris hessing at utah edu</email>, Jouni
+    Malinen <email>jkmaline at cc hut fi</email> and Terry
+    Simons <email>galimore at mac com</email> for valuable feedback!
+    </para>
+
+    <para>
+    Thanks to Rick Moen <email>rick at linuxmafia com</email> for
+    doing a language review! 
+    </para>
+  </sect2>
+
+</sect1>
+
+<!-- ################## -->
+
+<appendix id="gfdl">
+<title>GNU Free Documentation License</title>
+<subtitle>Version 1.2, November 2002</subtitle>
+
+<blockquote id="fsf-copyright">
+ <para>Copyright (C) 2000,2001,2002  Free Software Foundation, Inc.
+59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.</para>
+</blockquote>
+
+<section id="gfdl-0"><title>PREAMBLE</title>
+
+<para>The purpose of this License is to make a manual, textbook, or
+other functional and useful document "free" in the sense of freedom: to
+assure everyone the effective freedom to copy and redistribute it, with
+or without modifying it, either commercially or noncommercially.
+Secondarily, this License preserves for the author and publisher a way
+to get credit for their work, while not being considered responsible for
+modifications made by others.</para>
+
+<para>This License is a kind of "copyleft", which means that derivative
+works of the document must themselves be free in the same sense.  It
+complements the GNU General Public License, which is a copyleft license
+designed for free software.</para>
+
+<para>We have designed this License in order to use it for manuals for
+free software, because free software needs free documentation: a free
+program should come with manuals providing the same freedoms that the
+software does.  But this License is not limited to software manuals; it
+can be used for any textual work, regardless of subject matter or
+whether it is published as a printed book.  We recommend this License
+principally for works whose purpose is instruction or reference.</para>
+</section>
+
+<section id="gfdl-1"><title>APPLICABILITY AND DEFINITIONS</title>
+
+<para id="gfdl-doc">This License applies to any manual or other work, in
+any medium, that contains a notice placed by the copyright holder saying
+it can be distributed under the terms of this License.  Such a notice
+grants a world-wide, royalty-free license, unlimited in duration, to use
+that work under the conditions stated herein.  The "Document", below,
+refers to any such manual or work.  Any member of the public is a
+licensee, and is addressed as "you".  You accept the license if you
+copy, modify or distribute the work in a way requiring permission under
+copyright law.</para>
+
+<para id="gfdl-mod-ver">A "Modified Version" of the Document means any
+work containing the Document or a portion of it, either copied verbatim,
+or with modifications and/or translated into another language.</para>
+
+<para id="gfdl-secnd-sect">A "Secondary Section" is a named appendix or
+a front-matter section of the Document that deals exclusively with the
+relationship of the publishers or authors of the Document to the
+Document's overall subject (or to related matters) and contains nothing
+that could fall directly within that overall subject.  (Thus, if the
+Document is in part a textbook of mathematics, a Secondary Section may
+not explain any mathematics.)  The relationship could be a matter of
+historical connection with the subject or with related matters, or of
+legal, commercial, philosophical, ethical or political position
+regarding them.</para>
+
+<para id="gfdl-inv-sect">The "Invariant Sections" are certain Secondary
+Sections whose titles are designated, as being those of Invariant
+Sections, in the notice that says that the Document is released under
+this License.  If a section does not fit the above definition of
+Secondary then it is not allowed to be designated as Invariant.  The
+Document may contain zero Invariant Sections.  If the Document does not
+identify any Invariant Sections then there are none.</para>
+
+<para id="gfdl-cov-text">The "Cover Texts" are certain short passages of
+text that are listed, as Front-Cover Texts or Back-Cover Texts, in the
+notice that says that the Document is released under this License.  A
+Front-Cover Text may be at most 5 words, and a Back-Cover Text may be at
+most 25 words.</para>
+
+<para id="gfdl-transparent">A "Transparent" copy of the Document means a
+machine-readable copy, represented in a format whose specification is
+available to the general public, that is suitable for revising the
+document straightforwardly with generic text editors or (for images
+composed of pixels) generic paint programs or (for drawings) some widely
+available drawing editor, and that is suitable for input to text
+formatters or for automatic translation to a variety of formats suitable
+for input to text formatters.  A copy made in an otherwise Transparent
+file format whose markup, or absence of markup, has been arranged to
+thwart or discourage subsequent modification by readers is not
+Transparent.  An image format is not Transparent if used for any
+substantial amount of text.  A copy that is not "Transparent" is called
+"Opaque".</para>
+
+<para>Examples of suitable formats for Transparent copies include plain
+ASCII without markup, Texinfo input format, LaTeX input format, SGML or
+XML using a publicly available DTD, and standard-conforming simple HTML,
+PostScript or PDF designed for human modification.  Examples of
+transparent image formats include PNG, XCF and JPG.  Opaque formats
+include proprietary formats that can be read and edited only by
+proprietary word processors, SGML or XML for which the DTD and/or
+processing tools are not generally available, and the machine-generated
+HTML, PostScript or PDF produced by some word processors for output
+purposes only.</para>
+
+<para id="gfdl-title-page">The "Title Page" means, for a printed book,
+the title page itself, plus such following pages as are needed to hold,
+legibly, the material this License requires to appear in the title page.
+For works in formats which do not have any title page as such, "Title
+Page" means the text near the most prominent appearance of the work's
+title, preceding the beginning of the body of the text.</para>
+
+<para id="gfdl-entitled">A section "Entitled XYZ" means a named subunit
+of the Document whose title either is precisely XYZ or contains XYZ in
+parentheses following text that translates XYZ in another language.
+(Here XYZ stands for a specific section name mentioned below, such as
+"Acknowledgements", "Dedications", "Endorsements", or "History".)  To
+"Preserve the Title" of such a section when you modify the Document
+means that it remains a section "Entitled XYZ" according to this
+definition.</para>
+
+<para>The Document may include Warranty Disclaimers next to the notice
+which states that this License applies to the Document.  These Warranty
+Disclaimers are considered to be included by reference in this License,
+but only as regards disclaiming warranties: any other implication that
+these Warranty Disclaimers may have is void and has no effect on the
+meaning of this License.</para>
+</section>
+
+<section id="gfdl-2"><title>VERBATIM COPYING</title>
+
+<para>You may copy and distribute the Document in any medium, either
+commercially or noncommercially, provided that this License, the
+copyright notices, and the license notice saying this License applies to
+the Document are reproduced in all copies, and that you add no other
+conditions whatsoever to those of this License.  You may not use
+technical measures to obstruct or control the reading or further copying
+of the copies you make or distribute.  However, you may accept
+compensation in exchange for copies.  If you distribute a large enough
+number of copies you must also follow the conditions in section 3.
+</para>
+
+<para>You may also lend copies, under the same conditions stated above,
+and you may publicly display copies.</para>
+</section>
+
+<section id="gfdl-3"><title>COPYING IN QUANTITY</title>
+
+<para>If you publish printed copies (or copies in media that commonly
+have printed covers) of the Document, numbering more than 100, and the
+Document's license notice requires Cover Texts, you must enclose the
+copies in covers that carry, clearly and legibly, all these Cover Texts:
+Front-Cover Texts on the front cover, and Back-Cover Texts on the back
+cover.  Both covers must also clearly and legibly identify you as the
+publisher of these copies.  The front cover must present the full title
+with all words of the title equally prominent and visible.  You may add
+other material on the covers in addition.  Copying with changes limited
+to the covers, as long as they preserve the title of the Document and
+satisfy these conditions, can be treated as verbatim copying in other
+respects.</para>
+
+<para>If the required texts for either cover are too voluminous to fit
+legibly, you should put the first ones listed (as many as fit
+reasonably) on the actual cover, and continue the rest onto adjacent
+pages.</para>
+
+<para>If you publish or distribute Opaque copies of the Document
+numbering more than 100, you must either include a machine-readable
+Transparent copy along with each Opaque copy, or state in or with each
+Opaque copy a computer-network location from which the general
+network-using public has access to download using public-standard
+network protocols a complete Transparent copy of the Document, free of
+added material.  If you use the latter option, you must take reasonably
+prudent steps, when you begin distribution of Opaque copies in quantity,
+to ensure that this Transparent copy will remain thus accessible at the
+stated location until at least one year after the last time you
+distribute an Opaque copy (directly or through your agents or retailers)
+of that edition to the public.</para>
+
+<para>It is requested, but not required, that you contact the authors of
+the Document well before redistributing any large number of copies, to
+give them a chance to provide you with an updated version of the
+Document.</para>
+</section>
+
+<section id="gfdl-4"><title>MODIFICATIONS</title>
+
+<para>You may copy and distribute a Modified Version of the Document
+under the conditions of sections 2 and 3 above, provided that you
+release the Modified Version under precisely this License, with the
+Modified Version filling the role of the Document, thus licensing
+distribution and modification of the Modified Version to whoever
+possesses a copy of it.  In addition, you must do these things in the
+Modified Version:</para>
+
+<orderedlist id="gfdl-modif-cond" numeration="upperalpha">
+<listitem><simpara>Use in the Title Page (and on the covers, if any) a
+  title distinct from that of the Document, and from those of previous
+  versions (which should, if there were any, be listed in the History
+  section of the Document).  You may use the same title as a previous
+  version if the original publisher of that version gives permission.
+</simpara></listitem>
+<listitem><simpara>List on the Title Page, as authors, one or more
+  persons or entities responsible for authorship of the modifications in
+  the Modified Version, together with at least five of the principal
+  authors of the Document (all of its principal authors, if it has fewer
+  than five), unless they release you from this requirement.
+</simpara></listitem>
+<listitem><simpara>State on the Title page the name of the publisher of
+  the Modified Version, as the publisher.</simpara></listitem>
+<listitem><simpara>Preserve all the copyright notices of the Document.
+</simpara></listitem>
+<listitem><simpara>Add an appropriate copyright notice for your
+  modifications adjacent to the other copyright notices.
+</simpara></listitem>
+<listitem><simpara>Include, immediately after the copyright notices, a
+  license notice giving the public permission to use the Modified
+  Version under the terms of this License, in the form shown in the
+  <link linkend="gfdl-addendum">Addendum</link> below.
+</simpara></listitem>
+<listitem><simpara>Preserve in that license notice the full lists of
+  Invariant Sections and required Cover Texts given in the Document's
+  license notice.</simpara></listitem>
+<listitem><simpara>Include an unaltered copy of this License.
+</simpara></listitem>
+<listitem><simpara>Preserve the section Entitled "History", Preserve its
+  Title, and add to it an item stating at least the title, year, new
+  authors, and publisher of the Modified Version as given on the Title
+  Page.  If there is no section Entitled "History" in the Document,
+  create one stating the title, year, authors, and publisher of the
+  Document as given on its Title Page, then add an item describing the
+  Modified Version as stated in the previous sentence.
+</simpara></listitem>
+<listitem><simpara>Preserve the network location, if any, given in the
+  Document for public access to a Transparent copy of the Document, and
+  likewise the network locations given in the Document for previous
+  versions it was based on.  These may be placed in the "History"
+  section.  You may omit a network location for a work that was
+  published at least four years before the Document itself, or if the
+  original publisher of the version it refers to gives permission.
+</simpara></listitem>
+<listitem><simpara>For any section Entitled "Acknowledgements" or
+  "Dedications", Preserve the Title of the section, and preserve in the
+  section all the substance and tone of each of the contributor
+  acknowledgements and/or dedications given therein.
+</simpara></listitem>
+<listitem><simpara>Preserve all the Invariant Sections of the Document,
+  unaltered in their text and in their titles.  Section numbers or the
+  equivalent are not considered part of the section titles.
+</simpara></listitem>
+<listitem><simpara>Delete any section Entitled "Endorsements".
+  Such a section may not be included in the Modified Version.
+</simpara></listitem>
+<listitem><simpara>Do not retitle any existing section to be Entitled
+  "Endorsements" or to conflict in title with any Invariant Section.
+</simpara></listitem>
+<listitem><simpara>Preserve any Warranty Disclaimers.
+</simpara></listitem>
+</orderedlist>
+
+<para>If the Modified Version includes new front-matter sections or
+appendices that qualify as Secondary Sections and contain no material
+copied from the Document, you may at your option designate some or all
+of these sections as invariant.  To do this, add their titles to the
+list of Invariant Sections in the Modified Version's license notice.
+These titles must be distinct from any other section titles.</para>
+
+<para>You may add a section Entitled "Endorsements", provided it
+contains nothing but endorsements of your Modified Version by various
+parties--for example, statements of peer review or that the text has
+been approved by an organization as the authoritative definition of a
+standard.</para>
+
+<para>You may add a passage of up to five words as a Front-Cover Text,
+and a passage of up to 25 words as a Back-Cover Text, to the end of the
+list of Cover Texts in the Modified Version.  Only one passage of
+Front-Cover Text and one of Back-Cover Text may be added by (or through
+arrangements made by) any one entity.  If the Document already includes
+a cover text for the same cover, previously added by you or by
+arrangement made by the same entity you are acting on behalf of, you may
+not add another; but you may replace the old one, on explicit permission
+from the previous publisher that added the old one.</para>
+
+<para>The author(s) and publisher(s) of the Document do not by this
+License give permission to use their names for publicity for or to
+assert or imply endorsement of any Modified Version.</para>
+</section>
+
+<section id="gfdl-5"><title>COMBINING DOCUMENTS</title>
+
+<para>You may combine the Document with other documents released under
+this License, under the terms defined in <link linkend="gfdl-4">section
+4</link> above for modified versions, provided that you include in the
+combination all of the Invariant Sections of all of the original
+documents, unmodified, and list them all as Invariant Sections of your
+combined work in its license notice, and that you preserve all their
+Warranty Disclaimers.</para>
+
+<para>The combined work need only contain one copy of this License, and
+multiple identical Invariant Sections may be replaced with a single
+copy.  If there are multiple Invariant Sections with the same name but
+different contents, make the title of each such section unique by adding
+at the end of it, in parentheses, the name of the original author or
+publisher of that section if known, or else a unique number.  Make the
+same adjustment to the section titles in the list of Invariant Sections
+in the license notice of the combined work.</para>
+
+<para>In the combination, you must combine any sections Entitled
+"History" in the various original documents, forming one section
+Entitled "History"; likewise combine any sections Entitled
+"Acknowledgements", and any sections Entitled "Dedications".  You must
+delete all sections Entitled "Endorsements".</para>
+</section>
+
+<section id="gfdl-6"><title>COLLECTIONS OF DOCUMENTS</title>
+
+<para>You may make a collection consisting of the Document and other
+documents released under this License, and replace the individual copies
+of this License in the various documents with a single copy that is
+included in the collection, provided that you follow the rules of this
+License for verbatim copying of each of the documents in all other
+respects.</para>
+
+<para>You may extract a single document from such a collection, and
+distribute it individually under this License, provided you insert a
+copy of this License into the extracted document, and follow this
+License in all other respects regarding verbatim copying of that
+document.</para>
+</section>
+
+<section id="gfdl-7"><title>AGGREGATION WITH INDEPENDENT WORKS</title>
+
+<para>A compilation of the Document or its derivatives with other
+separate and independent documents or works, in or on a volume of a
+storage or distribution medium, is called an "aggregate" if the
+copyright resulting from the compilation is not used to limit the legal
+rights of the compilation's users beyond what the individual works
+permit.  When the Document is included in an aggregate, this License does
+not apply to the other works in the aggregate which are not themselves
+derivative works of the Document.</para>
+
+<para>If the Cover Text requirement of section 3 is applicable to these
+copies of the Document, then if the Document is less than one half of
+the entire aggregate, the Document's Cover Texts may be placed on covers
+that bracket the Document within the aggregate, or the electronic
+equivalent of covers if the Document is in electronic form.  Otherwise
+they must appear on printed covers that bracket the whole
+aggregate.</para>
+</section>
+
+<section id="gfdl-8"><title>TRANSLATION</title>
+
+<para>Translation is considered a kind of modification, so you may
+distribute translations of the Document under the terms of section 4.
+Replacing Invariant Sections with translations requires special
+permission from their copyright holders, but you may include
+translations of some or all Invariant Sections in addition to the
+original versions of these Invariant Sections.  You may include a
+translation of this License, and all the license notices in the
+Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions
+of those notices and disclaimers.  In case of a disagreement between the
+translation and the original version of this License or a notice or
+disclaimer, the original version will prevail.</para>
+
+<para>If a section in the Document is Entitled "Acknowledgements",
+"Dedications", or "History", the requirement (section 4) to Preserve its
+Title (section 1) will typically require changing the actual
+title.</para>
+</section>
+
+<section id="gfdl-9"><title>TERMINATION</title>
+
+<para>You may not copy, modify, sublicense, or distribute the Document
+except as expressly provided for under this License.  Any other attempt
+to copy, modify, sublicense or distribute the Document is void, and will
+automatically terminate your rights under this License.  However,
+parties who have received copies, or rights, from you under this License
+will not have their licenses terminated so long as such parties remain
+in full compliance.</para>
+</section>
+
+<section id="gfdl-10"><title>FUTURE REVISIONS OF THIS LICENSE</title>
+
+<para>The Free Software Foundation may publish new, revised versions of
+the GNU Free Documentation License from time to time.  Such new versions
+will be similar in spirit to the present version, but may differ in
+detail to address new problems or concerns.  See
+http://www.gnu.org/copyleft/.</para>
+
+<para>Each version of the License is given a distinguishing version
+number.  If the Document specifies that a particular numbered version of
+this License "or any later version" applies to it, you have the option
+of following the terms and conditions either of that specified version
+or of any later version that has been published (not as a draft) by the
+Free Software Foundation.  If the Document does not specify a version
+number of this License, you may choose any version ever published (not
+as a draft) by the Free Software Foundation.</para>
+</section>
+
+<section id="gfdl-addendum"><title>ADDENDUM: How to use this License for
+  your documents</title>
+
+<para>To use this License in a document you have written, include a copy
+of the License in the document and put the following copyright and
+license notices just after the title page:</para>
+
+<blockquote id="copyright-sample"><para>
+    Copyright (c)  YEAR  YOUR NAME.
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.2
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the section entitled "GNU
+    Free Documentation License".
+</para></blockquote>
+
+<para>If you have Invariant Sections, Front-Cover Texts and Back-Cover
+Texts, replace the "with...Texts." line with this:</para>
+
+<blockquote id="inv-cover-sample"><para>
+    with the Invariant Sections being LIST THEIR TITLES, with the
+    Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+</para></blockquote>
+
+<para>If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.</para>
+
+<para>If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of free
+software license, such as the GNU General Public License, to permit
+their use in free software.</para>
+</section>
+</appendix>
+
+</article>
