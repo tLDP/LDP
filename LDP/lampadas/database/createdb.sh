@@ -18,13 +18,9 @@ psql ldp -qf document_wiki.sql
 psql ldp -qf document_topic.sql
 psql ldp -qf document_rev.sql
 
-psql ldp -qf maintainer.sql
-psql ldp -qf maintainer_notes.sql
-psql ldp -qf document_maintainer.sql
-
-psql ldp -qf editor.sql
-psql ldp -qf editor_role.sql
-psql ldp -qf document_editor.sql
+psql ldp -qf username.sql
+psql ldp -qf username_notes.sql
+psql ldp -qf document_user.sql
 
 psql ldp -qf audience.sql
 psql ldp -qf document_audience.sql
@@ -36,12 +32,7 @@ psql ldp -qf stats_cdf.sql
 
 psql ldp -qf license.sql
 
-psql ldp -qf username.sql
 psql ldp -qf config.sql
 
 # permissions
 psql ldp -qf permissions.sql
-
-# views
-psql ldp -qf vw_gfdl_emails.sql
-psql ldp -qf vw_gfdl_docs.sql
