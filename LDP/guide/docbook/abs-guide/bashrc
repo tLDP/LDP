@@ -1,19 +1,26 @@
 #===============================================================
 #
-# PERSONAL $HOME/.bashrc FILE for bash-2.05 (or later)
+# PERSONAL $HOME/.bashrc FILE for bash-2.05a (or later)
+#
+# Last modified: Tue Apr 15 20:32:34 CEST 2003
 #
 # This file is read (normally) by interactive shells only.
 # Here is the place to define your aliases, functions and
 # other interactive features like your prompt.
 #
-# This file was designed (originally) for Solaris.
+# This file was designed (originally) for Solaris but based 
+# on Redhat's default .bashrc file
 # --> Modified for Linux.
+# The majority of the code you'll find here is based on code found
+# on Usenet (or internet).
 # This bashrc file is a bit overcrowded - remember it is just
-# just an example. Tailor it to your needs 
+# just an example. Tailor it to your needs
+#
 #
 #===============================================================
 
 # --> Comments added by HOWTO author.
+# --> And then edited again by ER :-)
 
 #-----------------------------------
 # Source global definitions (if any)
@@ -25,38 +32,69 @@ fi
 
 #-------------------------------------------------------------
 # Automatic setting of $DISPLAY (if not set already)
-# This works for linux and solaris - your mileage may vary....
+# This works for linux - your mileage may vary.... 
+# The problem is that different types of terminals give
+# different answers to 'who am i'......
+# I have not found a 'universal' method yet
 #-------------------------------------------------------------
 
+function get_xserver ()
+{
+    case $TERM in
+	xterm )
+	    XSERVER=$(who am i | awk '{print $NF}' | tr -d ')''(' ) 
+	    XSERVER=${XSERVER%%:*}
+	    ;;
+	aterm | rxvt)
+ 	# find some code that works here.....
+	    ;;
+    esac  
+}
+
 if [ -z ${DISPLAY:=""} ]; then
-    DISPLAY=$(who am i)
-    DISPLAY=${DISPLAY%%\!*}
-    if [ -n "$DISPLAY" ]; then
-        export DISPLAY=$DISPLAY:0.0
-    else
-        export DISPLAY=":0.0"  # fallback
+    get_xserver
+    if [[ -z ${XSERVER}  || ${XSERVER} == $(hostname) || ${XSERVER} == "unix" ]]; then 
+	DISPLAY=":0.0"		# Display on local host
+    else		
+	DISPLAY=${XSERVER}:0.0	# Display on remote host
     fi
 fi
+
+export DISPLAY
 
 #---------------
 # Some settings
 #---------------
 
+ulimit -S -c 0		# Don't want any coredumps
 set -o notify
 set -o noclobber
 set -o ignoreeof
 set -o nounset
 #set -o xtrace          # useful for debuging
 
+# Enable options:
 shopt -s cdspell
 shopt -s cdable_vars
 shopt -s checkhash
 shopt -s checkwinsize
 shopt -s mailwarn
 shopt -s sourcepath
-shopt -s no_empty_cmd_completion
-shopt -s histappend histreedit
-shopt -s extglob        # useful for programmable completion
+shopt -s no_empty_cmd_completion  # bash>=2.04 only
+shopt -s cmdhist
+shopt -s histappend histreedit histverify
+shopt -s extglob	# necessary for programmable completion
+
+# Disable options:
+shopt -u mailwarn
+unset MAILCHECK		# I don't want my shell to warn me of incoming mail
+
+
+export TIMEFORMAT=$'\nreal %3R\tuser %3U\tsys %3S\tpcpu %P\n'
+export HISTIGNORE="&:bg:fg:ll:h"
+export HOSTFILE=$HOME/.hosts	# Put a list of remote hosts in ~/.hosts
+
+
 
 #-----------------------
 # Greeting, motd etc...
@@ -75,26 +113,37 @@ NC='\e[0m'              # No Color
 # Looks best on a black background.....
 echo -e "${CYAN}This is BASH ${RED}${BASH_VERSION%.*}${CYAN} - DISPLAY on ${RED}$DISPLAY${NC}\n"
 date
-if [ -x /usr/games/fortune ]; then 
+if [ -x /usr/games/fortune ]; then
     /usr/games/fortune -s     # makes our day a bit more fun.... :-)
 fi
 
-function _exit()        # function to run upon exit of shell
+function _exit()	# function to run upon exit of shell
 {
     echo -e "${RED}Hasta la vista, baby${NC}"
 }
-trap _exit 0
+trap _exit EXIT
 
 #---------------
-# Shell prompt
+# Shell Prompt
 #---------------
+
+if [[ "${DISPLAY#$HOST}" != ":0.0" &&  "${DISPLAY}" != ":0" ]]; then  
+    HILIT=${red}   # remote machine: prompt will be partly red
+else
+    HILIT=${cyan}  # local machine: prompt will be partly cyan
+fi
+
+#  --> Replace instances of \W with \w in prompt functions below
+#+ --> to get display of full path name.
 
 function fastprompt()
 {
     unset PROMPT_COMMAND
     case $TERM in
         *term | rxvt )
-            PS1="[\h] \W > \[\033]0;[\u@\h] \w\007\]" ;;
+            PS1="${HILIT}[\h]$NC \W > \[\033]0;\${TERM} [\u@\h] \w\007\]" ;;
+	linux )
+	    PS1="${HILIT}[\h]$NC \W > " ;;
         *)
             PS1="[\h] \W > " ;;
     esac
@@ -105,17 +154,16 @@ function powerprompt()
     _powerprompt()
     {
         LOAD=$(uptime|sed -e "s/.*: \([^,]*\).*/\1/" -e "s/ //g")
-        TIME=$(date +%H:%M)
     }
 
     PROMPT_COMMAND=_powerprompt
     case $TERM in
         *term | rxvt  )
-            PS1="${cyan}[\$TIME \$LOAD]$NC\n[\h \#] \W > \[\033]0;[\u@\h] \w\007\]" ;;
+            PS1="${HILIT}[\A \$LOAD]$NC\n[\h \#] \W > \[\033]0;\${TERM} [\u@\h] \w\007\]" ;;
         linux )
-            PS1="${cyan}[\$TIME - \$LOAD]$NC\n[\h \#] \w > " ;;
+            PS1="${HILIT}[\A - \$LOAD]$NC\n[\h \#] \w > " ;;
         * )
-            PS1="[\$TIME - \$LOAD]\n[\h \#] \w > " ;;
+            PS1="[\A - \$LOAD]\n[\h \#] \w > " ;;
     esac
 }
 
@@ -144,6 +192,7 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 # -> Prevents accidentally clobbering files.
+alias mkdir='mkdir -p'
 
 alias h='history'
 alias j='jobs -l'
@@ -151,23 +200,23 @@ alias r='rlogin'
 alias which='type -all'
 alias ..='cd ..'
 alias path='echo -e ${PATH//:/\\n}'
-alias print='/usr/bin/lp -o nobanner -d $LPDEST'   # Assumes LPDEST is defined 
+alias print='/usr/bin/lp -o nobanner -d $LPDEST'   # Assumes LPDEST is defined
 alias pjet='enscript -h -G -fCourier9 -d $LPDEST'  # Pretty-print using enscript
-alias background='xv -root -quit -max -rmode 5' # put a picture in the background
-alias vi='vim'
-alias du='du -h'
-alias df='df -kh'
+alias background='xv -root -quit -max -rmode 5'    # Put a picture in the background
+alias du='du -kh'
+alias df='df -kTh'
 
 # The 'ls' family (this assumes you use the GNU ls)
+alias la='ls -Al'               # show hidden files
 alias ls='ls -hF --color'	# add colors for filetype recognition
-alias lx='ls -lXB'		# sort by extension
-alias lk='ls -lSr'		# sort by size
-alias la='ls -Al'		# show hidden files
-alias lr='ls -lR'		# recursice ls
-alias lt='ls -ltr'		# sort by date
-alias lm='ls -al |more'		# pipe through 'more'
-alias tree='tree -Cs'		# nice alternative to 'ls'
-
+alias lx='ls -lXB'              # sort by extension
+alias lk='ls -lSr'              # sort by size
+alias lc='ls -lcr'		# sort by change time  
+alias lu='ls -lur'		# sort by access time   
+alias lr='ls -lR'               # recursive ls
+alias lt='ls -ltr'              # sort by date
+alias lm='ls -al |more'         # pipe through 'more'
+alias tree='tree -Csu'		# nice alternative to 'ls'
 
 # tailoring 'less'
 alias more='less'
@@ -190,10 +239,11 @@ alias kk='ll'
 
 function xtitle ()
 {
-    case $TERM in
+    case "$TERM" in
         *term | rxvt)
             echo -n -e "\033]0;$*\007" ;;
-        *)  ;;
+        *)  
+	    ;;
     esac
 }
 
@@ -202,21 +252,22 @@ alias top='xtitle Processes on $HOST && top'
 alias make='xtitle Making $(basename $PWD) ; make'
 alias ncftp="xtitle ncFTP ; ncftp"
 
-# .. and functions 
+# .. and functions
 function man ()
 {
-    xtitle The $(basename $1|tr -d .[:digit:]) manual
-    man -a "$*"
+    for i ; do
+	xtitle The $(basename $1|tr -d .[:digit:]) manual
+	command man -F -a "$i"
+    done
 }
 
 function ll(){ ls -l "$@"| egrep "^d" ; ls -lXB "$@" 2>&-| egrep -v "^d|total "; }
-function xemacs() { { command xemacs -private $* 2>&- & } && disown ;}
 function te()  # wrapper around xemacs/gnuserv
 {
     if [ "$(gnuclient -batch -eval t 2>&-)" == "t" ]; then
         gnuclient -q "$@";
     else
-        ( xemacs "$@" & );
+        ( xemacs "$@" &);
     fi
 }
 
@@ -224,18 +275,33 @@ function te()  # wrapper around xemacs/gnuserv
 # File & strings related functions:
 #-----------------------------------
 
-function ff() { find . -name '*'$1'*' ; }                 # find a file
-function fe() { find . -name '*'$1'*' -exec $2 {} \; ; }  # find a file and run $2 on it 
-function fstr() # find a string in a set of files
+# Find a file with a pattern in name:
+function ff() { find . -type f -iname '*'$*'*' -ls ; }
+# Find a file with pattern $1 in name and Execute $2 on it:
+function fe() { find . -type f -iname '*'$1'*' -exec "${2:-file}" {} \;  ; }
+# find pattern in a set of filesand highlight them:
+function fstr()
 {
-    if [ "$#" -gt 2 ]; then
-        echo "Usage: fstr \"pattern\" [files] "
+    OPTIND=1
+    local case=""
+    local usage="fstr: find string in files.
+Usage: fstr [-i] \"pattern\" [\"filename pattern\"] "
+    while getopts :it opt
+    do
+        case "$opt" in
+        i) case="-i " ;;
+        *) echo "$usage"; return;;
+        esac
+    done
+    shift $(( $OPTIND - 1 ))
+    if [ "$#" -lt 1 ]; then
+        echo "$usage"
         return;
     fi
-    SMSO=$(tput smso)
-    RMSO=$(tput rmso)
-    find . -type f -name "${2:-*}" -print | xargs grep -sin "$1" | \
-sed "s/$1/$SMSO$1$RMSO/gI"
+    local SMSO=$(tput smso)
+    local RMSO=$(tput rmso)
+    find . -type f -name "${2:-*}" -print0 | xargs -0 grep -sn ${case} "$1" 2>&- | \
+sed "s/$1/${SMSO}\0${RMSO}/gI" | more
 }
 
 function cuttail() # cut last n lines in file, 10 by default
@@ -266,10 +332,11 @@ function lowercase()  # move filenames to lowercase
 function swap()         # swap 2 filenames around
 {
     local TMPFILE=tmp.$$
-    mv $1 $TMPFILE
-    mv $2 $1
-    mv $TMPFILE $2
+    mv "$1" $TMPFILE
+    mv "$2" "$1"
+    mv $TMPFILE "$2"
 }
+
 
 #-----------------------------------
 # Process/system related functions:
@@ -283,16 +350,16 @@ function pp() { my_ps f | awk '!/awk/ && $0~var' var=${1:-".*"} ; }
 function killps()   # kill by process name
 {
     local pid pname sig="-TERM"   # default signal
-    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then 
-	echo "Usage: killps [-SIGNAL] pattern"
-	return;
+    if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        echo "Usage: killps [-SIGNAL] pattern"
+        return;
     fi
     if [ $# = 2 ]; then sig=$1 ; fi
     for pid in $(my_ps| awk '!/awk/ && $0~pat { print $1 }' pat=${!#} ) ; do
-	pname=$(my_ps | awk '$1~var { print $5 }' var=$pid )
-	if ask "Kill process $pid <$pname> with signal $sig?"
-	    then kill $sig $pid
-	fi
+        pname=$(my_ps | awk '$1~var { print $5 }' var=$pid )
+        if ask "Kill process $pid <$pname> with signal $sig?"
+            then kill $sig $pid
+        fi
     done
 }
 
@@ -316,7 +383,6 @@ function ii()   # get current host related info
     echo
 }
 
-
 # Misc utilities:
 
 function repeat()       # repeat n times command
@@ -327,7 +393,6 @@ function repeat()       # repeat n times command
         eval "$@";
     done
 }
-
 
 function ask()
 {
@@ -341,8 +406,9 @@ function ask()
 #=========================================================================
 #
 # PROGRAMMABLE COMPLETION - ONLY SINCE BASH-2.04
-# (Most are taken from the bash 2.05 documentation)
-# You will in fact need bash-2.05 for some features
+# Most are taken from the bash 2.05 documentation and from Ian McDonalds
+# 'Bash completion' package (http://www.caliban.org/bash/index.shtml#completion)
+# You will in fact need bash-2.05a for some features
 #
 #=========================================================================
 
@@ -352,11 +418,9 @@ if [ "${BASH_VERSION%.*}" \< "2.05" ]; then
 fi
 
 shopt -s extglob        # necessary
-set +o nounset		# otherwise some completions will fail
+set +o nounset          # otherwise some completions will fail
 
 complete -A hostname   rsh rcp telnet rlogin r ftp ping disk
-complete -A command    nohup exec eval trace gdb
-complete -A command    command type which
 complete -A export     printenv
 complete -A variable   export local readonly unset
 complete -A enabled    builtin
@@ -372,40 +436,57 @@ complete -A job -P '%'     fg jobs disown
 complete -A directory  mkdir rmdir
 complete -A directory   -o default cd
 
-complete -f -d -X '*.gz'  gzip
-complete -f -d -X '*.bz2' bzip2
-complete -f -o default -X '!*.gz'  gunzip
-complete -f -o default -X '!*.bz2' bunzip2
-complete -f -o default -X '!*.pl'  perl perl5
+# Compression
+complete -f -o default -X '*.+(zip|ZIP)'  zip
+complete -f -o default -X '!*.+(zip|ZIP)' unzip
+complete -f -o default -X '*.+(z|Z)'      compress
+complete -f -o default -X '!*.+(z|Z)'     uncompress
+complete -f -o default -X '*.+(gz|GZ)'    gzip
+complete -f -o default -X '!*.+(gz|GZ)'   gunzip
+complete -f -o default -X '*.+(bz2|BZ2)'  bzip2
+complete -f -o default -X '!*.+(bz2|BZ2)' bunzip2
+# Postscript,pdf,dvi.....
 complete -f -o default -X '!*.ps'  gs ghostview ps2pdf ps2ascii
 complete -f -o default -X '!*.dvi' dvips dvipdf xdvi dviselect dvitype
-complete -f -o default -X '!*.pdf' acroread pdf2ps 
-complete -f -o default -X '!*.+(pdf|ps)' gv 
+complete -f -o default -X '!*.pdf' acroread pdf2ps
+complete -f -o default -X '!*.+(pdf|ps)' gv
 complete -f -o default -X '!*.texi*' makeinfo texi2dvi texi2html texi2pdf
-complete -f -o default -X '!*.tex' tex latex slitex 
-complete -f -o default -X '!*.lyx' lyx 
-complete -f -o default -X '!*.+(jpg|gif|xpm|png|bmp)' xv gimp
-complete -f -o default -X '!*.mp3' mpg123 
-complete -f -o default -X '!*.ogg' ogg123 
+complete -f -o default -X '!*.tex' tex latex slitex
+complete -f -o default -X '!*.lyx' lyx
+complete -f -o default -X '!*.+(htm*|HTM*)' lynx html2ps
+# Multimedia
+complete -f -o default -X '!*.+(jp*g|gif|xpm|png|bmp)' xv gimp
+complete -f -o default -X '!*.+(mp3|MP3)' mpg123 mpg321
+complete -f -o default -X '!*.+(ogg|OGG)' ogg123
 
+
+
+complete -f -o default -X '!*.pl'  perl perl5
 
 # This is a 'universal' completion function - it works when commands have
-# a so-called 'long options' mode , ie: 'ls --all' instead of 'ls -a' 
-_universal_func ()
+# a so-called 'long options' mode , ie: 'ls --all' instead of 'ls -a'
+
+_get_longopts () 
+{ 
+    $1 --help | sed  -e '/--/!d' -e 's/.*--\([^[:space:].,]*\).*/--\1/'| \
+grep ^"$2" |sort -u ;
+}
+
+_longopts_func ()
 {
-    case "$2" in
+    case "${2:-*}" in
 	-*)	;;
 	*)	return ;;
     esac
 
     case "$1" in
-	\~*)	eval cmd=$1 ;;
+	\~*)	eval cmd="$1" ;;
 	*)	cmd="$1" ;;
     esac
-    COMPREPLY=( $("$cmd" --help | sed  -e '/--/!d' -e 's/.*--\([^ ]*\).*/--\1/'| \
-grep ^"$2" |sort -u) )
+    COMPREPLY=( $(_get_longopts ${1} ${2} ) )
 }
-complete  -o default -F _universal_func ldd wget bash id info
+complete  -o default -F _longopts_func configure bash
+complete  -o default -F _longopts_func wget id info a2ps ls recode
 
 
 _make_targets ()
@@ -459,22 +540,6 @@ _make_targets ()
 
 complete -F _make_targets -X '+($*|*.[cho])' make gmake pmake
 
-_configure_func ()
-{
-    case "$2" in
-        -*)     ;;
-        *)      return ;;
-    esac
-
-    case "$1" in
-        \~*)    eval cmd=$1 ;;
-        *)      cmd="$1" ;;
-    esac
-
-    COMPREPLY=( $("$cmd" --help | awk '{if ($1 ~ /--.*/) print $1}' | grep ^"$2" | sort -u) )
-}
-
-complete -F _configure_func configure
 
 # cvs(1) completion
 _cvs ()
@@ -485,16 +550,15 @@ _cvs ()
     prev=${COMP_WORDS[COMP_CWORD-1]}
 
     if [ $COMP_CWORD -eq 1 ] || [ "${prev:0:1}" = "-" ]; then
-	COMPREPLY=( $( compgen -W 'add admin checkout commit diff \
-	export history import log rdiff release remove rtag status \
-	tag update' $cur ))
+        COMPREPLY=( $( compgen -W 'add admin checkout commit diff \
+        export history import log rdiff release remove rtag status \
+        tag update' $cur ))
     else
-	COMPREPLY=( $( compgen -f $cur ))
+        COMPREPLY=( $( compgen -f $cur ))
     fi
     return 0
 }
 complete -F _cvs cvs
-
 
 _killall ()
 {
@@ -513,6 +577,60 @@ _killall ()
 }
 
 complete -F _killall killall killps
+
+
+# A meta-command completion function for commands like sudo(8), which need to
+# first complete on a command, then complete according to that command's own
+# completion definition - currently not quite foolproof (e.g. mount and umount
+# don't work properly), but still quite useful - By Ian McDonald, modified by me.
+
+_my_command()
+{
+    local cur func cline cspec
+    
+    COMPREPLY=()
+    cur=${COMP_WORDS[COMP_CWORD]}
+
+    if [ $COMP_CWORD = 1 ]; then
+	COMPREPLY=( $( compgen -c $cur ) )
+    elif complete -p ${COMP_WORDS[1]} &>/dev/null; then
+	cspec=$( complete -p ${COMP_WORDS[1]} )
+	if [ "${cspec%%-F *}" != "${cspec}" ]; then
+	    # complete -F &lt;function&gt;
+	    #
+	    # COMP_CWORD and COMP_WORDS() are not read-only,
+	    # so we can set them before handing off to regular
+	    # completion routine
+	
+	    # set current token number to 1 less than now
+	    COMP_CWORD=$(( $COMP_CWORD - 1 ))
+	    # get function name
+	    func=${cspec#*-F }
+	    func=${func%% *}
+	    # get current command line minus initial command
+	    cline="${COMP_LINE#$1 }"
+	    # split current command line tokens into array
+		COMP_WORDS=( $cline )
+	    $func $cline
+	elif [ "${cspec#*-[abcdefgjkvu]}" != "" ]; then
+	    # complete -[abcdefgjkvu]
+	    #func=$( echo $cspec | sed -e 's/^.*\(-[abcdefgjkvu]\).*$/\1/' )
+	    func=$( echo $cspec | sed -e 's/^complete//' -e 's/[^ ]*$//' )
+	    COMPREPLY=( $( eval compgen $func $cur ) )
+	elif [ "${cspec#*-A}" != "$cspec" ]; then
+	    # complete -A &lt;type&gt;
+	    func=${cspec#*-A }
+	func=${func%% *}
+	COMPREPLY=( $( compgen -A $func $cur ) )
+	fi
+    else
+	COMPREPLY=( $( compgen -f $cur ) )
+    fi
+}
+
+
+complete -o default -F _my_command nohup exec eval trace truss strace sotruss gdb
+complete -o default -F _my_command command type which man nice
 
 # Local Variables:
 # mode:shell-script

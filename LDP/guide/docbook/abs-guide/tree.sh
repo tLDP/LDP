@@ -1,6 +1,6 @@
 #!/bin/sh
 #         @(#) tree      1.1  30/11/95       by Jordi Sanfeliu
-#                                         email: mikaku@arrakis.es
+#                                         email: mikaku@fiwix.org
 #
 #         Initial version:  1.0  30/11/95
 #         Next version   :  1.1  24/02/97   Now, with symbolic links

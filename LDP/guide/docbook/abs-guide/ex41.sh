@@ -17,3 +17,9 @@ echo >>logfile
 echo >>logfile
 
 exit 0
+
+# Exercise:
+# --------
+#  Modify this script to track changes in /var/log/messages at intervals
+#+ of 20 minutes.
+#  Hint: Use the "watch" command. 

@@ -7,7 +7,7 @@ DOC_REQUEST=70
 if [ "$1" = "-h"  -o "$1" = "--help" ]     # Request help.
 then
   echo; echo "Usage: $0 [directory-name]"; echo
-  cat "$0" | sed --silent -e '/DOCUMENTATIONXX$/,/^DOCUMENTATION/p' |
+  sed --silent -e '/DOCUMENTATIONXX$/,/^DOCUMENTATION/p' "$0" |
   sed -e '/DOCUMENTATIONXX/d'; exit $DOC_REQUEST; fi
 
 : << DOCUMENTATIONXX

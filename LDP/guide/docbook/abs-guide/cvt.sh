@@ -24,10 +24,16 @@ do
   filename=${file%.*c}      #  Strip ".mac" suffix off filename
                             #+ ('.*c' matches everything
 			    #+ between '.' and 'c', inclusive).
-  $OPERATION $file > $filename.$SUFFIX
+  $OPERATION $file > "$filename.$SUFFIX"
                             # Redirect conversion to new filename.
   rm -f $file               # Delete original files after converting.   
   echo "$filename.$SUFFIX"  # Log what is happening to stdout.
 done
 
 exit 0
+
+# Exercise:
+# --------
+#  As it stands, this script converts *all* the files in the current
+#+ working directory.
+#  Modify it to work *only* on files with a ".mac" suffix.
