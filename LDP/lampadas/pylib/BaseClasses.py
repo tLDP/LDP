@@ -32,8 +32,8 @@ import types
 import sys
 import md5
 
-# TODO: Write testing routines that go through trying to write random data into the database
-# whilc executing random deletes, etc.
+# TODO: Write testing routines that go through trying to write random data
+# into the database while executing random deletes, etc.
 
 class LampadasCollection:
     """
