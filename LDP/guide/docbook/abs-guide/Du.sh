@@ -13,7 +13,8 @@ NEWFILENAME=$1.unx
 
 CR='\015'  # Carriage return.
            # 015 is octal ASCII code for CR.
-           # Lines in a DOS text file end in a CR-LF.
+           # Lines in a DOS text file end in CR-LF.
+           # Lines in a UNIX text file end in LF only.
 
 tr -d $CR &lt; $1 &gt; $NEWFILENAME
 # Delete CR's and write to new file.

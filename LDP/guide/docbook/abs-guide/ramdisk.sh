@@ -2,13 +2,13 @@
 # ramdisk.sh
 
 #  A "ramdisk" is a segment of system RAM memory
-#+ that acts as if it were a filesystem.
+#+ which acts as if it were a filesystem.
 #  Its advantage is very fast access (read/write time).
 #  Disadvantages: volatility, loss of data on reboot or powerdown.
-#                 less RAM available to system.
+#+                less RAM available to system.
 #
-#  What good is a ramdisk?
-#  Keeping a large dataset, such as a table or dictionary on ramdisk
+#  Of what use is a ramdisk?
+#  Keeping a large dataset, such as a table or dictionary on ramdisk,
 #+ speeds up data lookup, since memory access is much faster than disk access.
 
 
@@ -33,9 +33,10 @@ then                           #+ so no error if this script is run
 fi
 
 dd if=/dev/zero of=$DEVICE count=$SIZE bs=$BLOCKSIZE  # Zero out RAM device.
+                                                      # Why is this necessary?
 mke2fs $DEVICE                 # Create an ext2 filesystem on it.
 mount $DEVICE $MOUNTPT         # Mount it.
-chmod 777 $MOUNTPT             # So ordinary user can access ramdisk.
+chmod 777 $MOUNTPT             # Enables ordinary user to access ramdisk.
                                # However, must be root to unmount it.
 
 echo "\"$MOUNTPT\" now available for use."
@@ -45,7 +46,11 @@ echo "\"$MOUNTPT\" now available for use."
 #+ on reboot or power loss.
 #  Copy anything you want saved to a regular directory.
 
-# After reboot, run this script again to set up ramdisk.
+# After reboot, run this script to again set up ramdisk.
 # Remounting /mnt/ramdisk without the other steps will not work.
+
+#  Suitably modified, this script can by invoked in /etc/rc.d/rc.local,
+#+ to set up ramdisk automatically at bootup.
+#  That may be appropriate on, for example, a database server.
 
 exit 0

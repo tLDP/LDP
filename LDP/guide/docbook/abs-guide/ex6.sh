@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Check some of the system's environmental variables.
+#  Check some of the system's environmental variables.
+#  This is good preventative maintenance.
 #  If, for example, $USER, the name of the person at the console, is not set,
 #+ the machine will not recognize you.
 
@@ -43,9 +44,12 @@ echo
 #
 #                      echo ${ZZXy23AB?} >/dev/null
 
+#  Compare these methods of checking whether a variable has been set
+#+ with "set -u" . . .
 
 
-echo "You will not see this message, because script terminated above."
+
+echo "You will not see this message, because script already terminated."
 
 HERE=0
-exit $HERE   # Will *not* exit here.
+exit $HERE   # Will NOT exit here.

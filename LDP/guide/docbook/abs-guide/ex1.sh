@@ -1,4 +1,4 @@
-# cleanup
+# Cleanup
 # Run as root, of course.
 
 cd /var/log

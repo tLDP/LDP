@@ -4,7 +4,7 @@ wall &lt;&lt;zzz23EndOfMessagezzz23
 E-mail your noontime orders for pizza to the system administrator.
     (Add an extra dollar for anchovy or mushroom topping.)
 # Additional message text goes here.
-# Note: Comment lines printed by 'wall'.
+# Note: 'wall' prints comment lines.
 zzz23EndOfMessagezzz23
 
 # Could have been done more efficiently by

@@ -39,5 +39,5 @@ zcat $1 | most
 
 
 exit $?   # Script returns exit status of pipe.
-# Actually "exit $?" unnecessary, as the script will, in any case,
+# Actually "exit $?" is unnecessary, as the script will, in any case,
 # return the exit status of the last command executed.

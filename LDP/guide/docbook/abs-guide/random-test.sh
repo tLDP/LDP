@@ -56,9 +56,13 @@ print_result
 #  Keep in mind that RANDOM is a pseudorandom generator,
 #+ and not a spectacularly good one at that.
 
+#  Randomness is a deep and complex subject.
+#  Sufficiently long "random" sequences may exhibit
+#+ chaotic and other "non-random" behavior.
+
 # Exercise (easy):
 # ---------------
 # Rewrite this script to flip a coin 1000 times.
-# Choices are "HEADS" or "TAILS".
+# Choices are "HEADS" and "TAILS".
 
 exit 0

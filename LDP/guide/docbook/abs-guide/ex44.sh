@@ -11,7 +11,7 @@ $killppp                  # This variable is now a command.
 
 # The following operations must be done as root user.
 
-chmod 666 /dev/ttyS3      # Must be read+write permissions, or else?
+chmod 666 /dev/ttyS3      # Must be read+write permissions, or else what?
 #  Since doing a SIGKILL on ppp changed the permissions on the serial port,
 #+ we restore permissions to previous state.
 

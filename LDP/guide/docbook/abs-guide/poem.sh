@@ -28,3 +28,7 @@ done
 echo
 
 exit 0
+
+# Exercise:
+# --------
+# Modify this script to pretty-print a poem from a text data file.

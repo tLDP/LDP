@@ -4,49 +4,51 @@
 
 TRUE=1
 LOGFILE=/var/log/messages
-# Note that $LOGFILE must be readable (chmod 644 /var/log/messages).
+#  Note that $LOGFILE must be readable
+#+ (as root, chmod 644 /var/log/messages).
 TEMPFILE=temp.$$
-# Create a "unique" temp file name, using process id of the script.
+#  Create a "unique" temp file name, using process id of the script.
 KEYWORD=address
-# At logon, the line "remote IP address xxx.xxx.xxx.xxx"
-#                     appended to /var/log/messages.
+#  At logon, the line "remote IP address xxx.xxx.xxx.xxx"
+#                      appended to /var/log/messages.
 ONLINE=22
 USER_INTERRUPT=13
 CHECK_LINES=100
-# How many lines in log file to check.
+#  How many lines in log file to check.
 
 trap 'rm -f $TEMPFILE; exit $USER_INTERRUPT' TERM INT
-# Cleans up the temp file if script interrupted by control-c.
+#  Cleans up the temp file if script interrupted by control-c.
 
 echo
 
 while [ $TRUE ]  #Endless loop.
 do
   tail -$CHECK_LINES $LOGFILE> $TEMPFILE
-  # Saves last 100 lines of system log file as temp file.
-  # Necessary, since newer kernels generate many log messages at log on.
+  #  Saves last 100 lines of system log file as temp file.
+  #  Necessary, since newer kernels generate many log messages at log on.
   search=`grep $KEYWORD $TEMPFILE`
-  # Checks for presence of the "IP address" phrase,
-  # indicating a successful logon.
+  #  Checks for presence of the "IP address" phrase,
+  #+ indicating a successful logon.
 
-  if [ ! -z "$search" ] # Quotes necessary because of possible spaces.
+  if [ ! -z "$search" ] #  Quotes necessary because of possible spaces.
   then
      echo "On-line"
-     rm -f $TEMPFILE    # Clean up temp file.
+     rm -f $TEMPFILE    #  Clean up temp file.
      exit $ONLINE
   else
-     echo -n "."        # -n option to echo suppresses newline,
-                        # so you get continuous rows of dots.
+     echo -n "."        #  The -n option to echo suppresses newline,
+                        #+ so you get continuous rows of dots.
   fi
 
   sleep 1  
 done  
 
 
-# Note: if you change the KEYWORD variable to "Exit",
-# this script can be used while on-line to check for an unexpected logoff.
+#  Note: if you change the KEYWORD variable to "Exit",
+#+ this script can be used while on-line
+#+ to check for an unexpected logoff.
 
-# Exercise: Change the script, as per the above note,
+# Exercise: Change the script, per the above note,
 #           and prettify it.
 
 exit 0
@@ -61,7 +63,7 @@ while true
 done
 
 # Problem: Hitting Control-C to terminate this process may be insufficient.
-#          (Dots may keep on echoing.)
+#+         (Dots may keep on echoing.)
 # Exercise: Fix this.
 
 
@@ -76,5 +78,5 @@ do echo -n .
 done
 echo "On-line"
 
-# Exercise: Discuss the strengths and weaknesses
-#           of each of these various approaches.
+# Exercise: Discuss the relative strengths and weaknesses
+#!          of each of these various approaches.

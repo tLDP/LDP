@@ -1,7 +1,7 @@
 #!/bin/bash
 # crypto-quote.sh: Encrypt quotes
 
-# Will encrypt famous quotes in a simple monoalphabetic substitution.
+#  Will encrypt famous quotes in a simple monoalphabetic substitution.
 #  The result is similar to the "Crypto Quote" puzzles
 #+ seen in the Op Ed pages of the Sunday paper.
 
@@ -20,7 +20,7 @@ cat "$@" | tr "a-z" "A-Z" | tr "A-Z" "$key"
 # Passes non-alphabetic characters through unchanged.
 
 
-# Try this script with something like
+# Try this script with something like:
 # "Nothing so needs reforming as other people's habits."
 # --Mark Twain
 #

@@ -33,14 +33,22 @@ sed -e 's/\.//g'  -e 's/\,//g' -e 's/ /\
 #+ change space between words to linefeed,
 #+ then shift characters to lowercase, and
 #+ finally prefix occurrence count and sort numerically.
+
+#  Arun Giridhar suggests modifying the above to:
+#  . . . | sort | uniq -c | sort +1 [-f] | sort +0 -nr
+#  This adds a secondary sort key, so instances of
+#+ equal occurrence are sorted alphabetically.
+#  As he explains it:
+#  "This is effectively a radix sort, first on the
+#+ least significant column
+#+ (word or string, optionally case-insensitive)
+#+ and last on the most significant column (frequency)."
 ########################################################
+
+exit 0
 
 # Exercises:
 # ---------
 # 1) Add 'sed' commands to filter out other punctuation,
 #+   such as semicolons.
 # 2) Modify to also filter out multiple spaces and other whitespace.
-# 3) Add a secondary sort key, so that instances of equal occurrence
-#+   are sorted alphabetically.
-
-exit 0

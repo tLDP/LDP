@@ -4,11 +4,12 @@
 # Written by Rick Boivie, and used with permission.
 # Modifications by document author.
 
-MINARGS=1     # Script needs at least one argument.
+MINARGS=1     #  Script needs at least one argument.
 DATAFILE=./phonebook
-              # A data file named "phonebook" must exist.
+              #  A data file in current working directory
+              #+ named "phonebook" must exist.
 PROGNAME=$0
-E_NOARGS=70   # No arguments error.
+E_NOARGS=70   #  No arguments error.
 
 if [ $# -lt $MINARGS ]; then
       echo "Usage: "$PROGNAME" data"
@@ -25,11 +26,11 @@ else
 fi
 
 exit 0        #  Script exits here.
-              #  It's o.k. to put non-hashmarked comments
-              #+ and data after this point.
+              #  Therefore, it's o.k. to put
+	      #+ non-hashmarked comments and data after this point.
 
 # ------------------------------------------------------------------------
-# Sample "phonebook" datafile:
+Sample "phonebook" datafile:
 
 John Doe        1555 Main St., Baltimore, MD 21228          (410) 222-3333
 Mary Moe        9899 Jones Blvd., Warren, NH 03787          (603) 898-3232
@@ -45,5 +46,5 @@ Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
 $bash pb.sh Roe Sam
 Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
 
-#  When more than one argument passed to script,
+#  When more than one argument is passed to this script,
 #+ it prints *only* the line(s) containing all the arguments.

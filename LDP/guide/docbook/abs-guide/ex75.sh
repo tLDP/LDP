@@ -8,6 +8,7 @@
 
 badname=`ls | grep ' '`
 
+# Try this:
 # echo "$badname"
 
 rm "$badname"

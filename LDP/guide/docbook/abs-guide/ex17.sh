@@ -42,7 +42,7 @@ echo "All the command-line parameters are: "$*""
 if [ $# -lt "$MINPARAMS" ]
 then
   echo
-  echo "Give me at least $MINPARAMS command-line arguments!"
+  echo "This script needs at least $MINPARAMS command-line arguments!"
 fi  
 
 echo

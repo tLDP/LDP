@@ -18,6 +18,7 @@ done`
 
 echo "variable2 = $variable2"  # variable2 = 0123456789
 
-# It's possible to embed a loop within a variable declaration.
+#  Demonstrates that it's possible to embed a loop
+#+ within a variable declaration.
 
 exit 0

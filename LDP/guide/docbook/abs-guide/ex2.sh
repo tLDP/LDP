@@ -1,6 +1,14 @@
 #!/bin/bash
-# cleanup, version 2
-# Run as root, of course.
+# Cleanup, version 3
+
+#  Warning:
+#  -------
+#  This script uses quite a number of features that will be explained
+#+ later on.
+#  By the time you've finished the first half of the book,
+#+ there should be nothing mysterious about it.
+
+
 
 LOG_DIR=/var/log
 ROOT_UID=0     # Only users with $UID 0 have root privileges.
@@ -9,6 +17,7 @@ E_XCD=66       # Can't change directory?
 E_NOTROOT=67   # Non-root exit error.
 
 
+# Run as root, of course.
 if [ "$UID" -ne "$ROOT_UID" ]
 then
   echo "Must be root to run this script."
