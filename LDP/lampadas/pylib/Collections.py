@@ -27,9 +27,10 @@ class Collections(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Collection,
                                  'collection',
-                                 {'collection_code': 'code'},
-                                 'sort_order',
-                                 {'collection_name': 'name', 'collection_desc': 'description'})
+                                 {'collection_code':  {'data_type': 'string', 'attribute': 'code'}},
+                                 {'sort_order':       {'data_type': 'int'}},
+                                 [{'collection_name': {'data_type': 'string', 'attribute': 'name'}},
+                                  {'collection_desc': {'data_type': 'string', 'attribute': 'description'}}])
 
 class Collection(DataObject):
     """A collection is an arbitrary set of documents."""

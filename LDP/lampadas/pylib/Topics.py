@@ -34,9 +34,11 @@ class Topics(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Topic,
                                'topic',
-                               {'topic_code': 'code'},
-                               ['sort_order', 'parent_code'],
-                               {'topic_name': 'name', 'topic_desc': 'description'})
+                               {'topic_code':   {'data_type': 'string', 'attribute': 'code'}},
+                               [{'sort_order':  {'data_type': 'int'}},
+                                {'parent_code': {'data_type': 'string'}}],
+                               [{'topic_name':  {'data_type': 'string', 'attribute': 'name'}},
+                                {'topic_desc':  {'data_type': 'string', 'attribute': 'description'}}])
         
 
     def load(self):

@@ -33,9 +33,12 @@ class Languages(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Language,
                                 'language',
-                                {'lang_code':  'code'},
-                                ['supported', 'encoding', 'created', 'updated'],
-                                {'lang_name': 'name'})
+                                {'lang_code':  {'data_type': 'string', 'attribute': 'code'}},
+                                [{'encoding':  {'data_type': 'string'}},
+                                 {'supported': {'data_type': 'bool'}},
+                                 {'created':   {'data_type': 'created'}},
+                                 {'updated':   {'data_type': 'updated'}}],
+                                {'lang_name':  {'data_type': 'string', 'attribute': 'name'}})
 
     # TODO: Replace with a reusable filtering system in DataCollection
     def supported_keys(self, lang=''):

@@ -31,9 +31,10 @@ class ReviewStatuses(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, ReviewStatus,
                                  'review_status',
-                                 {'review_status_code': 'code'},
-                                 'sort_order',
-                                 {'review_status_name': 'name', 'review_status_desc': 'description'})
+                                 {'review_status_code':  {'data_type': 'string', 'attribute': 'code'}},
+                                 {'sort_order':          {'data_type': 'int'}},
+                                 [{'review_status_name': {'data_type': 'string', 'attribute': 'name'}},
+                                  {'review_status_desc': {'data_type': 'string', 'attribute': 'description'}}])
 
 class ReviewStatus(DataObject):
     """

@@ -27,9 +27,11 @@ class ErrorTypes(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, ErrorType,
                                  'error_type',
-                                 {'err_type_code': 'code'},
-                                 ['created', 'updated'],
-                                 {'err_type_name': 'name', 'err_type_desc': 'description'})
+                                 {'err_type_code': {'data_type': 'string', 'attribute': 'code'}},
+                                 [{'created':      {'data_type': 'created'}},
+                                  {'updated':      {'data_type': 'updated'}}],
+                                 {'err_type_name': {'data_type': 'string', 'attribute': 'name'}},
+                                 {'err_type_desc': {'data_type': 'string', 'attribute': 'description'}})
 
 class ErrorType(DataObject):
     pass

@@ -33,9 +33,12 @@ class Errors(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Error,
                                 'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
+                                {'err_id':         {'data_type': 'int',    'attribute': 'id'}},
+                                [{'err_type_code': {'data_type': 'string'}},
+                                 {'created':       {'data_type': 'created'}},
+                                 {'updated':       {'data_type': 'updated'}}],
+                                [{'err_name':      {'data_type': 'string', 'attribute': 'name'}},
+                                 {'err_desc':      {'data_type': 'string', 'attribute': 'description'}}])
         
 class Error(DataObject):
     """

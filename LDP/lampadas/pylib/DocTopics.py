@@ -31,15 +31,17 @@ class DocTopics(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, DocTopic,
                                  'document_topic',
-                                 ['topic_code', 'doc_id'],
-                                 ['created', 'updated'], [])
+                                 [{'topic_code': {'data_type': 'string'}},
+                                  {'doc_id':     {'data_type': 'int'}}],
+                                 [{'created':    {'data_type': 'created'}},
+                                  {'updated':    {'data_type': 'updated'}}])
 
     def add(self, doc_id, topic_code):
         sql = 'INSERT INTO document_topic(doc_id, topic_code) VALUES (' + str(doc_id) + ', ' + wsq(topic_code) + ')'
         db.runsql(sql)
         db.commit()
-        doctopic = DocTopic()
-        doc.topic.doc_id = doc_id
+        doctopic = DocTopic(self)
+        doctopic.doc_id = doc_id
         doctopic.topic_code = topic_code
         doctopic.load()
         self[doctopic.identifier] = doctopic

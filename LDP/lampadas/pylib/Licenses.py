@@ -31,9 +31,15 @@ class Licenses(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, License,
                                  'license',
-                                 {'license_code': 'code'},
-                                 ['free', 'dfsg_free', 'osi_cert_free', 'url', 'sort_order'],
-                                 {'license_short_name': 'short_name', 'license_name': 'name', 'license_desc': 'description'})
+                                 {'license_code':        {'data_type': 'string', 'attribute': 'code'}},
+                                 [{'free':               {'data_type': 'bool'}},
+                                  {'dfsg_free':          {'data_type': 'bool'}},
+                                  {'osi_cert_free':      {'data_type': 'bool'}},
+                                  {'url':                {'data_type': 'string'}},
+                                  {'sort_order':         {'data_type': 'int'}}],
+                                 [{'license_short_name': {'data_type': 'string', 'attribute': 'short_name'}},
+                                  {'license_name':       {'data_type': 'string', 'attribute': 'name'}},
+                                  {'license_desc':       {'data_type': 'string', 'attribute': 'description'}}])
 
 class License(DataObject):
     """

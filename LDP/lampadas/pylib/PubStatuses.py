@@ -31,9 +31,9 @@ class PubStatuses(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, PubStatus,
                                  'pub_status',
-                                 {'pub_status_code': 'code'},
-                                 'sort_order',
-                                 {'pub_status_name': 'name', 'pub_status_desc': 'description'})
+                                 {'pub_status_code':        {'data_type': 'string', 'attribute': 'code'}},
+                                 {'sort_order':         {'data_type': 'int'}},
+                                 {'pub_status_name':       {'data_type': 'string', 'attribute': 'name'}})
 
 class PubStatus(DataObject):
     """

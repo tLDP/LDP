@@ -31,9 +31,10 @@ class Types(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Type,
                                  'type',
-                                 {'type_code': 'code'},
-                                 'sort_order',
-                                 {'type_name': 'name', 'type_desc': 'description'})
+                                 {'type_code':  {'data_type': 'string', 'attribute': 'code'}},
+                                 {'sort_order': {'data_type': 'int'}},
+                                 [{'type_name': {'data_type': 'string', 'attribute': 'name'}},
+                                  {'type_desc': {'data_type': 'string', 'attribute': 'description'}}])
 
 class Type(DataObject):
     """

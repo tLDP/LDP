@@ -31,9 +31,10 @@ class Roles(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Role,
                                  'role',
-                                 {'role_code': 'code'},
+                                 {'role_code':  {'data_type': 'string', 'attribute': 'code'}},
                                  [],
-                                 {'role_name': 'name', 'role_desc': 'description'})
+                                 [{'role_name': {'data_type': 'string', 'attribute': 'name'}},
+                                  {'role_desc': {'data_type': 'string', 'attribute': 'description'}}])
 
 class Role(DataObject):
     """

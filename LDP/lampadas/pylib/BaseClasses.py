@@ -29,6 +29,7 @@ from Log import log
 import string
 import copy
 import types
+import sys
 
 # TODO: Write testing routines that go through trying to write random data into the database
 # whilc executing random deletes, etc.
@@ -119,6 +120,49 @@ class LampadasCollection:
             item.sort_order = langvalue
         return self.sort_by('sort_order')
 
+class DataFields(LampadasCollection):
+    
+    def primary_keys(self):
+        keys = []
+        for key in self.sort_by('field_name'):
+            data_field = self[key]
+            if data_field.primary==1:
+                keys.append(key)
+        return keys
+
+    def nonprimary_keys(self):
+        keys = []
+        for key in self.sort_by('field_name'):
+            data_field = self[key]
+            if data_field.primary==0:
+                keys.append(key)
+        return keys
+
+class DataField:
+
+    def __init__(self, field_name='', data_type='', attribute='', primary=0, nullable=1):
+        self.field_name = field_name
+        self.data_type  = data_type
+        self.attribute  = attribute
+        self.primary    = primary
+        self.nullable   = nullable
+        if self.attribute=='':
+            self.attribute = self.field_name
+   
+    def __call__(self):
+        return self.attribute
+
+    def convert_field(self, value):
+        if self.data_type in ('string', ''):      return trim(value)
+        elif self.data_type in ('int', 'float'):  return safeint(value)
+        elif self.data_type=='time':              return time2str(value)
+        elif self.data_type=='date':              return date2str(value)
+        elif self.data_type=='bool':              return tf2bool(value)
+        elif self.data_type=='created':           return time2str(value)
+        elif self.data_type=='updated':           return time2str(value)
+        else:
+            print 'Unrecognized type: ' + type_name
+            sys.exit(1)
 
 # TODO: Write add(), delete() and update() methods.
 
@@ -139,33 +183,62 @@ class DataCollection(LampadasCollection):
         self.indexfields = []
         self.fields      = []
         self.i18nfields  = []
-        self.map         = {}
+        self.map         = DataFields()
 
+        # All index files are *automatically* set to be primary
         self.indexfields   = self.parse_fieldmap(indexfields)
+        for key in self.map.keys():
+            self.map[key].primary = 1
         self.fields        = self.parse_fieldmap(fields)
         self.i18nfields    = self.parse_fieldmap(i18nfields)
         self.allfields     = self.indexfields + self.fields
         self.alli18nfields = self.indexfields + self.i18nfields
-        
+
+        self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
         self.filters = []
 
     def parse_fieldmap(self, map):
-        if type(map)==types.StringType:
-            self.map[map] = map
-            return [map]
-        elif type(map)==types.DictType:
-            for key in map.keys():
-                if map[key]:
-                    self.map[key] = map[key]
-                else:
-                    self.map[key] = key
+
+        # Just a field name
+        # A complete dictionary of field properties
+        if type(map)==types.DictType:
+            if len(map.keys()) > 1:
+                print 'ERROR: There should only be a single key here.'
+                print 'This is probably an error in a data structure definition.'
+                print
+                print 'table: ' + self.table
+                print 'map keys: ' + str(map.keys())
+            key = string.join(map.keys())
+            if self.map.has_key(key)==0:
+                self.map[key] = DataField(field_name=key)
+            oldmap = map[key]
+            newmap = self.map[key]
+            if type(oldmap)==types.DictType:
+                for key in oldmap.keys():
+                    value = oldmap[key]
+                    if key=='data_type':   newmap.data_type = value
+                    elif key=='attribute': newmap.attribute = value
+                    elif key=='primary':   newmap.primary   = value
+                    elif key=='nullable':  newmap.nullable  = value
+                    else:
+                        print 'ERROR: Unrecognized DataField key: ' + key
+                        sys.exit(1)
+            else:
+                newmap.field_name = oldmap
             return map.keys()
+
+        # A list of field names.
         elif type(map)==types.ListType:
             fields = []
             for field in map:
                 fields2 = self.parse_fieldmap(field)
                 fields += fields2
             return fields
+        else:
+            print 'ERROR: Unrecognized data definition type, ' + str(type(map))
+            print 'Table= ' + self.table
+            print 'Data= ' + str(map)
+            sys.exit(1)
 
     def load(self):
         LampadasCollection.__init__(self)
@@ -175,7 +248,6 @@ class DataCollection(LampadasCollection):
             self.load_i18n_table()
 
     def load_table(self):
-        self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
         cursor = db.select(self.select)
         while (1):
             row = cursor.fetchone()
@@ -186,11 +258,11 @@ class DataCollection(LampadasCollection):
             # Build an identifier.
             # If there are multiple key fields, build a string representation instead.
             if len(self.indexfields)==1:
-                identifier = convert_field(row[0])
+                identifier = self.map[self.indexfields[0]].convert_field(row[0])
             else:
                 identifier = ''
                 for field in self.indexfields:
-                    value = getattr(object, self.map[field])
+                    value = getattr(object, self.map[field].attribute)
                     identifier = identifier + str(value) + ' '
                 identifier = trim(identifier)
             object.identifier = identifier
@@ -200,13 +272,14 @@ class DataCollection(LampadasCollection):
         for key in self.keys():
             object = self[key]
             for field in self.i18nfields:
-                setattr(object, self.map[field], LampadasCollection())
+                setattr(object, self.map[field].attribute, LampadasCollection())
         sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields, ', ') + ' FROM ' + self.i18ntable + ' ORDER BY ' + string.join(self.indexfields, ', ')
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            identifier = convert_field(row[0])
+            data_field = self.map[string.join(self.map.primary_keys())]
+            identifier = data_field.convert_field(row[0])
             object = self[identifier]
             object.load_i18n_row(row)
 
@@ -258,13 +331,15 @@ class DataObject:
             if where=='':
                 where = ' WHERE '
             else:
-                where = ' AND '
+                where += ' AND '
             where = where + field + '='
-            value = getattr(self, self.parent.map[field])
+            value = getattr(self, self.parent.map[field].attribute)
             type_name = str(type(value))
             if type_name=="<type 'string'>": where += wsq(value)
             elif type_name=="<type 'int'>": where += str(value)
-            else: print 'Unrecognized type: ' + type_name
+            else:
+                print 'Unrecognized type: ' + type_name
+                sys.exit(1)
             
         return where
 
@@ -272,12 +347,12 @@ class DataObject:
         # Build an identifier.
         # If there are multiple key fields, build a string representation instead.
         if len(self.parent.indexfields)==1:
-            attribute = self.parent.map[self.parent.indexfields[0]]
-            identifier = getattr(self, attribute)
+            map = self.parent.map[self.parent.indexfields[0]]
+            identifier = getattr(self, map.attribute)
         else:
             identifier = ''
             for field in self.parent.indexfields:
-                value = getattr(self, self.parentmap[field])
+                value = getattr(self, self.parent.map[field])
                 identifier = identifier + str(value) + ' '
             identifier = trim(identifier)
         self.identifier = identifier
@@ -293,22 +368,59 @@ class DataObject:
     def load_row(self, row):
         i = 0
         for field in self.parent.allfields:
-            alias = self.parent.map[field]
-            value = convert_field(row[i])
-            setattr(self, alias, value)
+            attribute = self.parent.map[field].attribute
+            value = self.parent.map[field].convert_field(row[i])
+            setattr(self, attribute, value)
             i += 1
 
     def load_i18n_row(self, row):
         lang = row[1]
         i = 2
         for field in self.parent.i18nfields:
-            value = convert_field(row[i])
-            alias = self.parent.map[field]
-            coll = getattr(self, alias)
+            value = self.parent.map[field].convert_field(row[i])
+            attribute = self.parent.map[field].attribute
+            coll = getattr(self, attribute)
             coll[lang] = value
             setattr(self, field, coll)
             i += 1
 
+    def save(self):
+        field_list = []
+        sql = WOStringIO('UPDATE %s SET ' % self.parent.table)
+        for key in self.parent.map.keys():
+            data_field = self.parent.map[key]
+            value = getattr(self, data_field.attribute)
+            data_type = data_field.data_type
+            if data_type in ('int', 'float'):
+                if data_field.nullable==1 and value==0:
+                    replacement = 'NULL'
+                else:
+                    replacement = str(value)
+            elif data_type=='bool':
+                replacement = wsq(bool2tf(value))
+            elif data_type=='string':
+                replacement = wsq(str(value))
+            elif data_type=='date':
+                replacement = wsq(str(value))
+            elif data_type=='time':
+                replacement = wsq(str(value))
+            elif data_type=='created':
+                replacement = wsq(str(value))
+            elif data_type=='updated':
+                replacement = wsq(now_string())
+            else:
+                print 'ERROR: Unrecognized data type definition, see DataObject.save()'
+                print 'Table= ' + self.parent.table
+                print 'Data= ' + str(key)
+                print 'Data Type (INVALID): ' + str(data_type)
+                sys.exit(1)
+            field_list.append('%s=%s' % (key, replacement))
+        sql.write(string.join(field_list, ', '))
+        sql.write(self.where())
+        #print sql.get_value()
+        db.runsql(sql.get_value())
+                
+            
 
 class Filter:
 

@@ -19,12 +19,14 @@
 # 
 # Collections
 
+from Globals import *
 from BaseClasses import *
 from DocTopics import doctopics, DocTopics
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
 from sqlgen import sqlgen
+
 
 # Documents
 
@@ -36,12 +38,37 @@ class Docs(DataCollection):
     def __init__(self):
         DataCollection.__init__(self, Doc,
                                'document',
-                               {'doc_id': 'id'},
-                               ['title', 'short_title', 'type_code', 'format_code', 'dtd_code', 'dtd_version',
-                               'version', 'last_update', 'isbn', 'encoding', 'pub_status_code', 'review_status_code',
-                               'tickle_date', 'pub_date', 'tech_review_status_code', 'maintained', 'maintainer_wanted',
-                               'license_code', 'license_version', 'copyright_holder', 'abstract', 'short_desc', 'rating',
-                               'lang', 'sk_seriesid', 'replaced_by_id', 'lint_time', 'pub_time', 'mirror_time', 'first_pub_date'],
+                               {'doc_id':                   {'data_type': 'int',    'attribute': 'id'}},
+                               [{'title':                   {'data_type': 'string'}},
+                                {'short_title':             {'data_type': 'string'}},
+                                {'type_code':               {'data_type': 'string'}}, 
+                                {'format_code':             {'data_type': 'string'}}, 
+                                {'dtd_code':                {'data_type': 'string'}}, 
+                                {'dtd_version':             {'data_type': 'string'}},
+                                {'version':                 {'data_type': 'string'}}, 
+                                {'last_update':             {'data_type': 'date'}}, 
+                                {'isbn':                    {'data_type': 'string'}}, 
+                                {'encoding':                {'data_type': 'string'}}, 
+                                {'pub_status_code':         {'data_type': 'string'}}, 
+                                {'review_status_code':      {'data_type': 'string'}},
+                                {'tickle_date':             {'data_type': 'date'}}, 
+                                {'pub_date':                {'data_type': 'date'}}, 
+                                {'tech_review_status_code': {'data_type': 'string'}},
+                                {'maintained':              {'data_type': 'bool'}},
+                                {'maintainer_wanted':       {'data_type': 'bool'}},
+                                {'license_code':            {'data_type': 'string'}},
+                                {'license_version':         {'data_type': 'string'}}, 
+                                {'copyright_holder':        {'data_type': 'string'}}, 
+                                {'abstract':                {'data_type': 'string'}}, 
+                                {'short_desc':              {'data_type': 'string'}},
+                                {'rating':                  {'data_type': 'int',    'nullable': 1}},
+                                {'lang':                    {'data_type': 'string'}},
+                                {'sk_seriesid':             {'data_type': 'string'}},
+                                {'replaced_by_id':          {'data_type': 'int',    'nullable': 1}},
+                                {'lint_time':               {'data_type': 'time'}},
+                                {'pub_time':                {'data_type': 'time'}},
+                                {'mirror_time':             {'data_type': 'time'}},
+                                {'first_pub_date':          {'data_type': 'date'}}],
                                [])
                  
     def load(self):
@@ -358,9 +385,7 @@ class Doc(DataObject):
         
         # Always recalculate the rating when saving a document.
         self.calc_rating()
-        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ', encoding=' + wsq(self.encoding) + ", pub_status_code=" + wsq(self.pub_status_code) + ", review_status_code=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status_code=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + ', replaced_by_id=' + str(self.replaced_by_id) + ', lint_time=' + wsq(self.lint_time) + ', pub_time=' + wsq(self.pub_time) + ', mirror_time=' + wsq(self.mirror_time) + ', first_pub_date=' + wsq(self.first_pub_date) + ' WHERE doc_id=' + str(self.id)
-        db.runsql(sql)
-        db.commit()
+        DataObject.save(self)
 
     def calc_rating(self):
         self.rating = 0
@@ -450,6 +475,10 @@ class DocErrs(LampadasCollection):
         else:
             i = 0
             for key in self.keys():
+                print key
+                print self.keys()
+                docerror = self[key]
+                error = errors[docerror.err_id]
                 if errors[key].err_type_code==err_type_code:
                     i = i + 1
             return i
@@ -483,7 +512,7 @@ class DocErrs(LampadasCollection):
         doc_err.err_id = err_id
         doc_err.created = now_string()
         doc_err.notes = notes
-        self.data[doc_err.err_id] = doc_err
+        self[doc_err.err_id] = doc_err
         db.commit()
 
 class DocErr:
