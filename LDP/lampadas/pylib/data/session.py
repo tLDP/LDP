@@ -31,7 +31,7 @@ import string
 def login(req, username, password):
 
     user = lampadas.users[username]
-    if user:
+    if user and user.username==username:
         if user.password == password:
             if sessions[username] == None:
                 sessions.add(username)

@@ -47,7 +47,7 @@ def send_HTML(req, HTML):
     Send the passed HTML page.
     """
     log(3, 'Sending HTML')
-    req.content_type = 'text/html'
+    req.content_type = 'text/html; charset=UTF-8'
     add_content_length(req, len(HTML))
     req.send_http_header()
     req.write(HTML)
