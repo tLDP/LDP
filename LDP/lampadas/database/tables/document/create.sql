@@ -24,6 +24,7 @@ CREATE TABLE document
 	license_version		CHAR(12),
 	copyright_holder	TEXT,
 	abstract		TEXT,
+	short_desc		TEXT,
 	rating			REAL,
 	sk_seriesid		CHAR(36),
 	replaced_by_id		INT4,
