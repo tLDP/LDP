@@ -18,6 +18,7 @@ CREATE TABLE document
 	ref_url			TEXT,
 	tech_review_status	CHAR				REFERENCES review_status(review_status),
 	maintained		BOOLEAN	DEFAULT False,
+	maintainer_wanted	BOOLEAN DEFAULT False,
 	license_code		CHAR(12)			REFERENCES license(license_code),
 	abstract		TEXT,
 	rating			REAL,
