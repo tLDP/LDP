@@ -58,9 +58,12 @@ validate_sgml() {
 
 create_html_multipage() {
 	echo "INF: Create HTML multipages"
-	[ ! -d html ] && mkdir html
-	rm -rf html/*
-	pushd html/
+	if [ ! -d "$file_base" ]; then
+		mkdir "$file_base"
+	else
+		rm -rf "$file_base/*"
+	fi
+	pushd "$file_base"
 	jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
 	popd
 }
