@@ -14,7 +14,7 @@ $doc_id       = param('doc_id');
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 
-$result = $conn->exec("SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, ref_url, pub_date, tech_review_status, maintained, license FROM document WHERE doc_id = $doc_id");
+$result = $conn->exec("SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, ref_url, pub_date, tech_review_status, maintained, license, abstract FROM document WHERE doc_id = $doc_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 @row = $result->fetchrow;
@@ -50,7 +50,8 @@ $tech_review_status = $row[16];
 $maintained    = $row[17];
 $license       = $row[18];
 $license       =~  s/\s+$//;
-
+$abstract      = $row[19];
+$abstract      =~  s/\s+$//;
 
 # Read the votes
 $votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id");
@@ -208,6 +209,10 @@ print "<td align=right>Tickle Date</td><td><input type=text name=tickle_date siz
 print "<td align=right>ISBN:</td><td><input type=text name=isbn size=14 value='$isbn'></td>";
 
 print "<td></td><td><input type=submit value=Save></td>";
+
+print "</tr>\n<tr>\n";
+
+print "<td align=right>Abstract</td><td colspan=10><textarea name=abstract rows=10 cols=60 wrap></textarea>\n";
 
 print "</tr>\n<tr>\n";
 

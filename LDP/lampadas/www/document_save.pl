@@ -43,6 +43,7 @@ $pub_date      = param('pub_date');
 $tech_review_status = param('tech_review_status');
 $maintained    = param('maintained');
 $license       = param('license');
+$abstract      = param('abstract');
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
@@ -88,6 +89,8 @@ $result=$conn->exec($sql);
 $sql = "UPDATE document SET maintained='$maintained' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 $sql = "UPDATE document SET license='$license' WHERE doc_id=$doc_id";
+$result=$conn->exec($sql);
+$sql = "UPDATE document SET abstract='$abstract' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 
 print $query->redirect("document_edit.pl?doc_id=$doc_id");
