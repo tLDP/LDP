@@ -12,22 +12,52 @@ from twisted.cred.authorizer import DefaultAuthorizer
 from twisted.internet import defer
 
 # Sibling imports
-from row import BlockRow, PageRow, PageI18nRow
+from row import ROW_CLASSES
 
-ROW_CLASSES = [BlockRow, PageRow, PageI18nRow]
+
+class Block:
+    def __init__(self, refl):
+        self.refl = refl
+
+    def get_all(self, callback):
+        self.refl.loadObjectsFrom('block').addCallback(callback)
+
+    def get_by_code(self, code, callback):
+        w = [('block_code', reflector.EQUAL, code)]
+        self.refl.loadObjectsFrom('block', whereClause=w).addCallback(callback)
 
 class Page:
     def __init__(self, refl):
         self.refl = refl
 
     def get_all(self, callback):
-        print 'Page.get_all()'
         self.refl.loadObjectsFrom('page').addCallback(callback)
 
     def get_by_code(self, code, callback):
-        print 'Page.get_by_code(%s): ' % code
-        w = [('block_code', reflector.EQUAL, code)]
-        self.refl.loadObjectsFrom('block', whereClause=w).addCallback(callback)
+        w = [('page_code', reflector.EQUAL, code)]
+        self.refl.loadObjectsFrom('page', whereClause=w).addCallback(callback)
+
+class Section:
+    def __init__(self, refl):
+        self.refl = refl
+
+    def get_all(self, callback):
+        self.refl.loadObjectsFrom('section').addCallback(callback)
+
+    def get_by_code(self, code, callback):
+        w = [('section_code', reflector.EQUAL, code)]
+        self.refl.loadObjectsFrom('section', whereClause=w).addCallback(callback)
+
+class String:
+    def __init__(self, refl):
+        self.refl = refl
+
+    def get_all(self, callback):
+        self.refl.loadObjectsFrom('string').addCallback(callback)
+
+    def get_by_code(self, code, callback):
+        w = [('string_code', reflector.EQUAL, code)]
+        self.refl.loadObjectsFrom('string', whereClause=w).addCallback(callback)
 
 class Objects:
     def connect(self, callback):
@@ -37,6 +67,10 @@ class Objects:
             db_module = 'pyMySQL.MySQL'
         self.dbpool = adbapi.ConnectionPool(db_module, database=config.db_name, user='www-data')
         self.refl = SQLReflector(self.dbpool, ROW_CLASSES, callback)
+
+        self.block = Block(self.refl)
         self.page = Page(self.refl)
+        self.section = Section(self.refl)
+        self.string = String(self.refl)
 
 object_server = Objects()

@@ -30,8 +30,7 @@ class Gadget(widgets.Gadget):
 
     def loaded(self, pages):
         print 'Pages loaded:'
-        self.pages = pages
-        for row in self.pages:
+        for row in pages:
             page = WebPage()
             page.row = row
             self.putWidget(page.row.page_code, page)
