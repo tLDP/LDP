@@ -63,6 +63,9 @@ $sql = "select license, count(*) FROM document where pub_status = 'N' group by l
 $result=$conn->exec($sql);
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 $total = 0;
+$free_count = 0;
+$nonfree_count = 0;
+$unknown_count = 0;
 print "<table>\n";
 print "<tr><th>License</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
