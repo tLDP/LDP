@@ -11,9 +11,11 @@ import shutil
 
 from HTML import PageFactory
 from Globals import VERSION
+import Config
 
 import StringIO
 
+Config = Config.Config()
 P = PageFactory()
 
 BaseClass = BaseHTTPServer.BaseHTTPRequestHandler
@@ -51,8 +53,8 @@ def WebServer():
 	"""
 	Initialize the server.
 	"""
-	interface = ''
-	port = 8000
+	interface = Config.Interface
+	port = Config.Port
 
 	print "Lampadas " + VERSION + " -- development version!"
 	if interface != '':

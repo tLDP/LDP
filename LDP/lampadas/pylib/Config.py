@@ -31,6 +31,8 @@ class Config:
 	LogLevel = 0
 	LogSQL = ''
 	LogConsole = 0
+	Interface = ''
+	Port = 80
 
 	def __init__(self) :
 		import ConfigParser
@@ -44,6 +46,8 @@ class Config:
 		self.LogLevel	= int(self.ReadVar('LOG', 'loglevel'))
 		self.LogSQL	= int(self.ReadVar('LOG', 'logsql'))
 		self.LogConsole	= int(self.ReadVar('LOG', 'logcon'))
+		self.Interface	= self.ReadVar('WEBSERVER', 'interface')
+		self.Port	= int(self.ReadVar('WEBSERVER', 'port'))
 
 	def ReadVar(self, section, name):
 		if not self.config.has_section(section) :
@@ -67,4 +71,6 @@ if __name__ == '__main__' :
 	print "LogFile=" + Config.LogFile
 	print "LogSQL=" + str(Config.LogSQL)
 	print "LogConsole=" + str(Config.LogConsole)
+	print "Interface=" + Config.Interface
+	print "Port=" + str(Config.Port)
 	print "Unit tests complete."
