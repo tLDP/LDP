@@ -281,12 +281,10 @@
 (define (shade-verbatim-element-colors element)
   (case element
     (("SYNOPSIS") (list "#000000" "#6495ED"))
-    (("PROGRAMLISTING") (list "#000000" "#E0E0E0"))
-    (("SCREEN") (list "#000000" "#E0E0E0"))
     ;; ...
     ;; Add your verbatim elements here
     ;; ...
-    (else (list "#32CD32" "#000000"))))
+    (else (list "#000000" "#E0E0E0"))))
 
 (define (shade-verbatim-attr-element element)
   (list
