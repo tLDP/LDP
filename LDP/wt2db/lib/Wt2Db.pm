@@ -88,7 +88,10 @@ sub ProcessFile {
 	# wrap article if requested
 	#
 	if ($article) {
-		$buf = '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
+		$buf = '<?xml version="1.0" standalone="no"?>';
+		$buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN"' . "\n";
+     		$buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"[]>';
+		$buf .= "\n";
 		$buf .= '<article>' . "\n";
 	}
 
