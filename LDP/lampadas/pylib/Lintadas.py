@@ -75,6 +75,7 @@ class Lintadas:
         'wt':   'wikitext',
         'txt':  'text',
         'texi': 'texinfo',
+        'sh':   'shell',
     }
 
     def check_files(self):
