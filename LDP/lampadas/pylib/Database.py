@@ -12,9 +12,6 @@ import pyPgSQL
 import Config
 import Log
 
-Config = Config.Config()
-Log = Log.Log()
-
 # Database
 
 class UnknownDBException(Exception):
@@ -25,6 +22,14 @@ class Database:
 	The database contains all users and documents
 	"""
 
+	Config = Config.Config()
+	Log = Log.Log()
+	Connected = 0
+
+	def __del__(self):
+		if self.Connected:
+			self.db.connection.close()
+		
 	def Connect(self, dbtype, dbname):
 		"""
 		Connect to the database specified in Config.
@@ -34,8 +39,11 @@ class Database:
 			raise UnknownDBException('Database name not specified')
 		elif dbtype == 'pgsql':
 			self.db = PgSQLDatabase(dbname)
+			self.Connected = 1
 		else:
 			raise UnknownDBException('Unknown database type %s' % dbtype)
+
+#		self.Log(3, 'Thread safety ' + str(self.db.connection.threadsafety()))
 
 	def Connection(self):
 		return self.db.connection
@@ -44,15 +52,15 @@ class Database:
 		return self.db.connection.cursor()
 
 	def Select(self, sql):
-		if Config.LogSQL:
-			Log(sql)
+		if self.Config.LogSQL:
+			self.Log(3, sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		return self.cursor
 
 	def Value(self, sql):
-		if Config.LogSQL:
-			Log(sql)
+		if self.Config.LogSQL:
+			self.Log(3, sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		self.row = self.cursor.fetchone()
@@ -63,15 +71,14 @@ class Database:
 		return self.value
 
 	def Exec(self, sql):
-		if Config.LogSQL:
-			Log(sql)
+		if self.Config.LogSQL:
+			self.Log(3, sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		return self.cursor.rowcount
 
 	def Commit(self):
-		if Config.Loglevel >= 3:
-			Log('Committing database')
+		self.Log(3, 'Committing database')
 		self.db.connection.commit()
 
 
@@ -100,5 +107,6 @@ class MySQLDatabase(Database):
 
 # main
 if __name__ == '__main__':
-	print "This should start the unit tests"
+	print "Running unit tests..."
+	print "Unit tests run."
 

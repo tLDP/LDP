@@ -11,7 +11,7 @@ This module provides configuration information from lampadas.conf.
 
 # Globals
 
-CONF_FILE = '../conf/lampadas.conf'
+CONF_FILE = '/home/david/ldp/cvs/LDP/lampadas/conf/lampadas.conf'
 
 
 # BaseConfig ###############################################################
@@ -25,9 +25,12 @@ class Config:
 	the database.
 	"""
 
-	DBType = ""
-	DBName = ""
-	Logfile = ""
+	DBType = ''
+	DBName = ''
+	LogFile = ''
+	LogLevel = 0
+	LogSQL = ''
+	LogConsole = 0
 
 	def __init__(self) :
 		import ConfigParser
@@ -37,10 +40,10 @@ class Config:
 
 		self.DBType	= self.ReadVar('DB', 'dbtype')
 		self.DBName	= self.ReadVar('DB', 'dbname')
-		self.Logfile	= self.ReadVar('LOG', 'logfile')
-		self.Loglevel	= self.ReadVar('LOG', 'loglevel')
-		self.LogSQL	= self.ReadVar('LOG', 'logsql')
-
+		self.LogFile	= self.ReadVar('LOG', 'logfile')
+		self.LogLevel	= int(self.ReadVar('LOG', 'loglevel'))
+		self.LogSQL	= int(self.ReadVar('LOG', 'logsql'))
+		self.LogConsole	= int(self.ReadVar('LOG', 'logcon'))
 
 	def ReadVar(self, section, name):
 		if not self.config.has_section(section) :
@@ -60,6 +63,8 @@ if __name__ == '__main__' :
 	print "DBType= " + Config.DBType
 	assert Config.DBName > ''
 	print "DBName= " + Config.DBName
-	assert Config.Logfile > ''
-	print "Logfile=" + Config.Logfile
+	assert Config.LogFile > ''
+	print "LogFile=" + Config.LogFile
+	print "LogSQL=" + str(Config.LogSQL)
+	print "LogConsole=" + str(Config.LogConsole)
 	print "Unit tests complete."

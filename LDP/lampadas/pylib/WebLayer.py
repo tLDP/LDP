@@ -84,7 +84,7 @@ class Page:
 	def Load(self, row):
 		self.Code		= trim(row[0])
 		self.TemplateCode	= trim(row[1])
-		self.sql = "SELECT lang, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
+		self.sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
@@ -97,7 +97,8 @@ class PageI18n:
 
 	def Load(self, row):
 		self.Lang	= row[0]
-		self.Page	= row[1]
+		self.Title	= row[1]
+		self.Page	= row[2]
 
 
 # Strings

@@ -10,11 +10,11 @@ to the Lampadas system.
 # Modules ##################################################################
 
 from Globals import *
-import Config
+from Config import Config
 import Database
-import DataLayer
+from DataLayer import *
 import WebLayer
-import Converter
+from Converter import Converter
 import commands
 from string import split
 import sys
@@ -22,11 +22,9 @@ import sys
 
 # Globals
 
-Config = Config.Config()
-L = DataLayer.Lampadas()
-C = Converter.Converter()
-DB = Database.Database()
-DB.Connect(Config.DBType, Config.DBName)
+Config = Config()
+L = Lampadas()
+C = Converter()
 
 cvs_root = L.Config('cvs_root')
 
@@ -54,7 +52,7 @@ class PageFactory:
 
 	def Page(self, key, lang):
 		Keys = split(key, '/')
-		pagecode = Keys[0]
+		pagecode = Keys[1]
 		if pagecode == 'doc':
 			DocID = int(Keys[1])
 			page = self.DocPage(DocID, lang)
@@ -64,6 +62,7 @@ class PageFactory:
 			Template = self.Templates[Page.TemplateCode]
 			assert not Template == None
 			page = Template.Template
+			page = page.replace('|title|', Page.I18n[lang].Title)
 			page = page.replace('|header|', self.Blocks['header'].I18n[lang].Block)
 			page = page.replace('|body|', Page.I18n[lang].Page)
 			page = page.replace('|footer|', self.Blocks['footer'].I18n[lang].Block)

@@ -23,7 +23,6 @@ Config = Config.Config()
 DB = Database.Database()
 DB.Connect(Config.DBType, Config.DBName)
 Log = Log.Log()
-Log.Truncate()
 
 
 # Lampadas
@@ -40,6 +39,7 @@ class Lampadas:
 	"""
 	
 	def __init__(self):
+		self.Log		= Log
 		self.Classes		= Classes()
 		self.Classes.Load()
 		self.Config		= Config()
@@ -140,11 +140,13 @@ class Docs(LampadasCollection):
 		self.sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
 		self.cursor = DB.Select(self.sql)
 		while (1):
+			Log(3, 'Loading document')
 			self.row = self.cursor.fetchone()
 			if self.row == None: break
 			newDoc = Doc()
 			newDoc.Load(self.row)
 			self[newDoc.ID] = newDoc
+			Log(3, 'Loaded document ' + str(newDoc.ID))
 
 	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
 		self.id = DB.Value('SELECT max(doc_id) from document') + 1
@@ -346,7 +348,8 @@ class DocRatings(LampadasCollection):
 				self.Average = self.Average + self.data[key].Rating
 			self.Average = self.Average / self.Count()
 		self.sql = "UPDATE document SET rating=" + str(self.Average) + " WHERE doc_id=" + str(self.DocID)
-		DB.Exec(self.sql)
+#		DB.Exec(self.sql)
+#		DB.Commit()
 		if not self.Parent == None:
 			self.Parent.Rating = self.Average
 
@@ -385,10 +388,10 @@ class DocVersions(LampadasCollection):
 		self.sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(DocID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
 			newDocVersion = DocVersion()
-			newDocVersion.Load(DocID, row)
+			newDocVersion.Load(DocID, self.row)
 			self.data[newDocVersion.ID] = newDocVersion
 
 class DocVersion:
