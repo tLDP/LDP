@@ -11,8 +11,8 @@ $query = new CGI;
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N' ORDER BY doc_id";
 
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract, filename FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N' ORDER BY doc_id";
 $doc=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
 
@@ -33,6 +33,8 @@ while (@row = $doc->fetchrow) {
 	$review_status_name      = $row[7];
 	$tech_review_status_name = $row[8];
 	$url                     = $row[9];
+	$short_url               = $url;
+	$short_url               =~ s/http:\/\/www\.linuxdoc\.org\///;
 	$pub_date                = $row[10];
 	$last_update             = $row[11];
 	$maintained              = $row[12];
@@ -44,6 +46,7 @@ while (@row = $doc->fetchrow) {
 	$version                 =~ s/\s+$//;
 	$abstract                = $row[15];
 	$abstract                =~ s/\s+$//;
+	$filename                = $row[16];
 
 	print "<resource id='$doc_id'>\n";
 
@@ -144,7 +147,48 @@ while (@row = $doc->fetchrow) {
 	}
 	print "  </rights>\n";
 
+# LDP specific tags hereafter...
+
+	#FILENAME
+	print "  <filename>$filename</filename>\n";
+	
+	#URL
+	print "  <url>$short_url</url>\n";
+
+	$sql = "SELECT maintainer_id, role, active, email FROM document_maintainer WHERE doc_id = $doc_id";
+	$maintainer=$conn->exec("$sql");
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
+	while (@maintainer_row = $maintainer->fetchrow) {
+		$maintainer_id    = $maintainer_row[0];
+		$role             = $maintainer_row[1];
+		$role             = $maintainer_row[1];
+		$role             =~ s/\s+$//;
+		$active           = $maintainer_row[2];
+		$active           =~ s/f/No/;
+		$active           =~ s/t/Yes/;
+		$email            = $maintainer_row[3];
+		print "  <maintainer id='$maintainer_id'>\n";
+		print "    <role>$role</role>\n";
+		print "    <active>$active</active>\n";
+		print "    <email>$email</email>\n";
+		print "  </maintainer>\n";
+	}
+
 	print "</resource>\n";
+}
+
+$sql = "SELECT maintainer_id, maintainer_name, email FROM maintainer";
+$maintainer=$conn->exec("$sql");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
+while (@maintainer_row = $maintainer->fetchrow) {
+	$maintainer_id    = $maintainer_row[0];
+	$maintainer_name  = $maintainer_row[1];
+	$maintainer_name  =~ s/\&/\&amp\;/;
+	$maintainer_email = $maintainer_row[2];
+	print "<maintainer id='$maintainer_id'>\n";
+	print "  <name>$maintainer_name</name>\n";
+	print "  <email>$maintainer_email</email>\n";
+	print "</maintainer>\n";
 }
 print "</ldp>\n";
 
