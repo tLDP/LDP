@@ -45,7 +45,7 @@ $informalpara = 0;
 $inpara = 0;
 
 # these maintain internal program state
-# 
+#
 $line = "";
 $originalline = "";
 $currentfile = "";
@@ -63,8 +63,14 @@ $literal = "";
 $sgmlfile = "";
 $title = "";
 $authorname = "";
-$abstract = "";
 $buf = "";
+
+# these are used when parsing the line for commands
+# 
+$command;
+$tag;
+$tagplain;
+$contents;
 
 # these hold information about the node we are currently in, if any
 #
@@ -78,6 +84,7 @@ $nodeinit = 0;
 # remember this hierarchical information for every node
 # we use it if the node doesn't specify a level.
 #
+%nodenames  = ();
 %nodenexts  = ();
 %nodeprevs  = ();
 %nodeups    = ();
@@ -96,6 +103,7 @@ $nodeinit = 0;
 #
 $pattern = "";
 $action = "";
+$replacement = "";
 
 # In the following hash, the perl expressions are used to search
 # each line of the input file. If matched, the Action field defines
@@ -137,6 +145,8 @@ $action = "";
 	'^\@contents\b'			=>'DROPLINE',
 	'^\@defindex\b'			=>'DROPLINE',		# TODO
 	'^\@definfoenclose'		=>'DEFINFOENCLOSE',
+	'^\@dircategory'		=>'DROPLINE',
+	'^\@direntry'			=>'SEEKEND',
 	'^\@display\b'			=>'LITERALBLOCK',
 	'^\@enumerate\b'		=>'ORDEREDLIST',
 	'^\@end enumerate\b'		=>'ORDEREDLISTEND',
@@ -145,17 +155,18 @@ $action = "";
 	'^\@headings\b'			=>'DROPLINE',
 	'^\@html\b'			=>'SEEKEND',
 	'^\@end html\b'			=>'DROLINE',
-	'^\@ifhtml\b'			=>'DROPLINE',
+	'^\@ifhtml\b'			=>'SEEKEND',
 	'^\@end ifhtml\b'		=>'DROPLINE',
 	'^\@ifinfo\b'			=>'SEEKEND',
 	'^\@end ifinfo\b'		=>'DROPLINE',
-	'^\@ifnottex\b'			=>'DROPLINE',
+	'^\@ifnottex\b'			=>'SEEKEND',
 	'^\@end ifnottex\b'		=>'DROPLINE',
 	'^\@ifset\b'			=>'IFSET',		# handled like SEEKEND
 	'^\@end ifset\b'		=>'DROPLINE',		# or ignored, so ignore this too
 	'^\@ifclear\b'			=>'IFCLEAR',
 	'^\@end ifclear\b'		=>'DROPLINE',
-	'^\@iftex\b'			=>'SEEKEND',
+	'^\@iftex\b'			=>'DROPLINE',
+	'^\@end iftex\b'		=>'DROPLINE',
 	'^\@ignore\b'			=>'SEEKEND',
 	'^\@itemize\b'			=>'ITEMIZEDLIST',
 	'^\@end itemize\b'		=>'ITEMIZEDLISTEND',
@@ -175,6 +186,8 @@ $action = "";
 	'^\@sp\b'			=>'DROPLINE',
 	'^\@table\b'			=>'TABLE',
 	'^\@end table\b'		=>'TABLEEND',
+	'^\@vtable\b'			=>'TABLE',
+	'^\@end vtable\b'		=>'TABLEEND',
 	'^\@tex\b'			=>'SEEKEND',
 	'^\@titlepage\b'		=>'SEEKEND',
 
@@ -215,94 +228,100 @@ $action = "";
 #
 # Note: Only the left side should be escaped!
 #
-# Example: @copyright{} becomes &copy;
-# 
 %substitutions = (
-	'\@!'			=>'!',
-	'\@\*'			=>'',
-	'\@\s'			=>' ',
-	'\@"A'			=>'&Auml;',
-	'\@"E'			=>'&Euml;',
-	'\@"I'			=>'&Iuml;',
-	'\@"O'			=>'&Ouml;',
-	'\@"U'			=>'&Uuml;',
-	'\@"a'			=>'&auml;',
-	'\@"e'			=>'&euml;',
-	'\@"i'			=>'&iuml;',
-	'\@"o'			=>'&ouml;',
-	'\@"u'			=>'&uuml;',
-	'\@' . "'" . 'A'	=>'&Aacute;',
-	'\@' . "'" . 'E'	=>'&Eacute;',
-	'\@' . "'" . 'I'	=>'&Iacute;',
-	'\@' . "'" . 'O'	=>'&Oacute;',
-	'\@' . "'" . 'U'	=>'&Uacute;',
-	'\@' . "'" . 'a'	=>'&aacute;',
-	'\@' . "'" . 'e'	=>'&eacute;',
-	'\@' . "'" . 'i'	=>'&iacute;',
-	'\@' . "'" . 'o'	=>'&oacute;',
-	'\@' . "'" . 'u'	=>'&uacute;',
-	'\@,{c}'		=>'&cedil;',
-	'\@-'			=>'&macr;',
-	'\@\.'			=>'.',
-	'\@:'			=>'',
-	'\@='			=>'',
-	'\@\?'			=>'?',
-	'\@^A'			=>'&Acirc;',
-	'\@^E'			=>'&Ecirc;',
-	'\@^I'			=>'&Icirc;',
-	'\@^O'			=>'&Ocirc;',
-	'\@^U'			=>'&Ucirc;',
-	'\@^a'			=>'&acirc;',
-	'\@^e'			=>'&ecirc;',
-	'\@^i'			=>'&icirc;',
-	'\@^o'			=>'&ocirc;',
-	'\@^u'			=>'&ucirc;',
-	'\@`A'			=>'&Agrave;',
-	'\@`E'			=>'&Egrave;',
-	'\@`I'			=>'&Igrave;',
-	'\@`O'			=>'&Ograve;',
-	'\@`U'			=>'&Ugrave;',
-	'\@`a'			=>'&agrave;',
-	'\@`e'			=>'&egrave;',
-	'\@`i'			=>'&igrave;',
-	'\@`o'			=>'&ograve;',
-	'\@`u'			=>'&ugrave;',
-#	'\@\{'			=>'{',			# do these manually at the end so brackets match
-#	'\@\}'			=>'}',
-	'\@~A'			=>'&Atilde;',
-	'\@~E'			=>'&Etilde;',
-	'\@~I'			=>'&Itilde;',
-	'\@~O'			=>'&Otilde;',
-	'\@~U'			=>'&Utilde;',
-	'\@~a'			=>'&atilde;',
-	'\@~e'			=>'&etilde;',
-	'\@~i'			=>'&itilde;',
-	'\@~o'			=>'&otilde;',
-	'\@~u'			=>'&utilde;',
-	'\@AA\{\}'		=>'&Aring;',
-	'\@aa\{\}'		=>'&aring;',
-	'\@AE\{\}'		=>'&AElig;',
-	'\@ae\{\}'		=>'&aelig;',
-	'\@copyright\{\}'	=>'&copy;',
-	'\@dots\{\}'		=>'&hellip;',
-	'\@center\b'		=>'',
-	'\@enddots\{\}'		=>'&hellip;',
-	'\@equiv'		=>'&equiv;',
-	'\@group\b'		=>'',
-	'\@end group\b'		=>'',
-	'\@exclamdown'		=>'&iexcl;',
-	'\@noindent\b'		=>'',
-	'\@refill\b'		=>'',
-	'\@result\{\}'		=>'=&gt;',
-	'\@TeX\{\}'		=>'TeX',
+	'@.'			=>'.',
+	'@!'			=>'!',
+	'@*'			=>'',
+	'@s'			=>' ',
+	'@"A'			=>'&Auml;',
+	'@"E'			=>'&Euml;',
+	'@"I'			=>'&Iuml;',
+	'@"O'			=>'&Ouml;',
+	'@"U'			=>'&Uuml;',
+	'@"a'			=>'&auml;',
+	'@"e'			=>'&euml;',
+	'@"i'			=>'&iuml;',
+	'@"o'			=>'&ouml;',
+	'@"u'			=>'&uuml;',
+	'@' . "'" . 'A'		=>'&Aacute;',
+	'@' . "'" . 'E'		=>'&Eacute;',
+	'@' . "'" . 'I'		=>'&Iacute;',
+	'@' . "'" . 'O'		=>'&Oacute;',
+	'@' . "'" . 'U'		=>'&Uacute;',
+	'@' . "'" . 'a'		=>'&aacute;',
+	'@' . "'" . 'e'		=>'&eacute;',
+	'@' . "'" . 'i'		=>'&iacute;',
+	'@' . "'" . 'o'		=>'&oacute;',
+	'@' . "'" . 'u'		=>'&uacute;',
+	'@,{c}'			=>'&cedil;',
+	'@-'			=>'&macr;',
+	'@\.'			=>'.',
+	'@:'			=>'',
+	'@='			=>'',
+	'@\?'			=>'?',
+	'@^A'			=>'&Acirc;',
+	'@^E'			=>'&Ecirc;',
+	'@^I'			=>'&Icirc;',
+	'@^O'			=>'&Ocirc;',
+	'@^U'			=>'&Ucirc;',
+	'@^a'			=>'&acirc;',
+	'@^e'			=>'&ecirc;',
+	'@^i'			=>'&icirc;',
+	'@^o'			=>'&ocirc;',
+	'@^u'			=>'&ucirc;',
+	'@`A'			=>'&Agrave;',
+	'@`E'			=>'&Egrave;',
+	'@`I'			=>'&Igrave;',
+	'@`O'			=>'&Ograve;',
+	'@`U'			=>'&Ugrave;',
+	'@`a'			=>'&agrave;',
+	'@`e'			=>'&egrave;',
+	'@`i'			=>'&igrave;',
+	'@`o'			=>'&ograve;',
+	'@`u'			=>'&ugrave;',
+#	'@\{'			=>'{',			# do these manually at the end so brackets match
+#	'@\}'			=>'}',
+	'@~A'			=>'&Atilde;',
+	'@~E'			=>'&Etilde;',
+	'@~I'			=>'&Itilde;',
+	'@~O'			=>'&Otilde;',
+	'@~U'			=>'&Utilde;',
+	'@~a'			=>'&atilde;',
+	'@~e'			=>'&etilde;',
+	'@~i'			=>'&itilde;',
+	'@~o'			=>'&otilde;',
+	'@~u'			=>'&utilde;',
+	'@center'		=>'',
+	'@equiv'		=>'&equiv;',
+	'@group'		=>'',
+	'@end group'		=>'',
+	'@exclamdown'		=>'&iexcl;',
+	'@noindent'		=>'',
+	'@refill'		=>'',
 );
 
 # these are inline tags that require some kind of programmatic control
 # because they do strange things.
 # 
 %specsubstitutions = (
-	'\@uref\b'		=>'UREF',
-	'\@anchor\b'		=>'ANCHOR',
+	'@anchor'		=>'ANCHOR',
+	'@ref'			=>'REF',
+	'@uref'			=>'UREF',
+	'@xref'			=>'XREF',
+	'@bullet'		=>'*',
+	'@kbd'			=>'KBD',
+	'@AA'			=>'&Aring;',
+	'@aa'			=>'&aring;',
+	'@AE'			=>'&AElig;',
+	'@ae'			=>'&aelig;',
+	'@copyright'		=>'&copy;',
+	'@dots'			=>'&hellip;',
+	'@minus'		=>'-',
+	'@O'			=>'&Oslash;',
+	'@o'			=>'&oslash;',
+	'@result'		=>'=&gt;',
+	'@TeX'			=>'TeX',
+	'@enddots'		=>'&hellip;',
 );
 
 # These are special block wrapping tags. When we hit one of these,
@@ -327,20 +346,23 @@ $action = "";
 # Example: @code{foo} becomes <literal>foo</literal>.
 #
 %tags = (
-	'\@acronym\b'		=>'abbrev',
-	'\@b\b'			=>"emphasis role='bold'",
-	'\@cite\b'		=>'citetitle',
-	'\@code\b'		=>'literal',
-	'\@command\b'		=>'command',
-	'\@dfn\b'		=>"emphasis role='bold'",
-	'\@email\b'		=>'email',
-	'\@emph\b'		=>'emphasis',
-	'\@env\b'		=>'envvar',
-	'\@footnote\b'		=>'footnote',
-	'\@file\b'		=>'filename',
-	'\@i\b'			=>'emphasis',
-	'\@samp\b'		=>'literal',
-	'\@w\b'			=>'',
+	'@acronym'		=>'abbrev',
+	'@b'			=>"emphasis role='bold'",
+	'@cite'			=>'citetitle',
+	'@code'			=>'literal',
+	'@command'		=>'command',
+	'@dfn'			=>"emphasis role='bold'",
+	'@key'			=>'keycap',
+	'@email'		=>'email',
+	'@emph'			=>'emphasis',
+	'@env'			=>'envvar',
+	'@footnote'		=>'footnote',
+	'@file'			=>'filename',
+	'@i'			=>'emphasis',
+	'@samp'			=>'literal',
+	'@sc'			=>'',
+	'@t'			=>'programlisting',
+	'@w'			=>'',
 );
 
 # this is where definfoenclose definitions go, and they are processed last
@@ -357,6 +379,7 @@ $macroargs = "";
 $macrotext = "";
 %macrotext = ();
 
+%aliases = ();
 
 ##############################################################################
 ##############################################################################
@@ -405,7 +428,7 @@ $verbose = 3 if ($verbose > 3);
 &message("insanity mode on.") if ($verbose ==3);
 
 if ($outputfile) {
-	&message("output will go to $outputfile") if (verbose);
+	&message("output will go to $outputfile") if ($verbose);
 	open($outfh, "> $outputfile");
 }
 
@@ -447,6 +470,7 @@ LINE:	while ($line = <$fh>) {
 		$currentfile = $filename;
 		$currentline = $linenumber;
 
+		&cleanline;
 		$originalline = $line;
 		$trimline;
 
@@ -464,6 +488,8 @@ LINE:	while ($line = <$fh>) {
 		$line =~ s/\@\{/DCM_LB/g;
 		$line =~ s/\@\}/DCM_RB/g;
 
+		# keep reading until we have only complete tags
+		# 
 		if ($saveline) {
 			$line = $saveline . ' ' . $line;
 			$saveline = '';
@@ -621,21 +647,13 @@ LINE:	while ($line = <$fh>) {
 	close($fh);
 }
 
+sub cleanline {
+	$line =~ s/\x0c//;
+}
+
 sub writefile {
 	&closeappendix;
-	&message("copying meta-data to docbook") if ($verbose);
-	$template =~ s/%%TITLE/$title/;
-	$template =~ s/%%ABSTRACT/$abstract/;
-	$template =~ s/%%BODY/$buf/;
-#	&message("deleting empty tags") if ($verbose);
-#	$i = 0;
-#	while (1) {
-#		$template =~ s/\<(.+?)\>\W*\<\/\1\>//gs;	# delete empty tags
-#		$i++;
-#		last if ($i == 10);
-#	}
-	&message("writing $outputfile") if ($verbose);
-	print $outfh $template . "\n";
+	print $outfh $buf;
 	print $outfh '</article>'. "\n";
 }
 
@@ -667,261 +685,189 @@ sub matchblock {
 # the rest are all inline processing
 #
 sub convertinline {
-	&convertsubsts;		# single characters, do immediately  and after macros
-	&message("  SUBSTS: $line") if ($verbose > 1);
-	&convertmacros;		# can insert new @{} commands, do first
-	&message("  MACROS: $line") if ($verbose > 1);
-	&convertsubsts;		# single characters, do immediately and after macros
-	&message("  SUBSTS: $line") if ($verbose > 1);
-	&convertvalues;		# insert variables, do immediately after macros
-	&message("  VALUES: $line") if ($verbose > 1);
-	&convertdefinfos;	# custom highlighting, do after macros
-	&message("  DINFOS: $line") if ($verbose > 1);
-	&converttags;		# @foo{bar} to <foo>bar</foo> do next to last
-	&message("  DBTAGS: $line") if ($verbose > 1);
-	&convertlinks;		# @ref{} => <ulink>, do last
-	&message("  ULINKS: $line") if ($verbose > 1);
-	&convertspecsubsts;	# @anchor{} => <anchor>, do last
-	&message("  ANCHOR: $line") if ($verbose > 1);
-}
 
-# macros
-#
-sub convertmacros {
-	while (1) {
-		($macro, $macroargs, $macrotext) = &matchmacro();
-		last unless ($macro);
-		&message("matched macro $macro") if ($verbose > 1);
-		if ($line =~ /\@$macro\{.*?\}/) {
-			&replacemacro;
-		} else {
-			&raiseerror("unmatched macro brackets in line $line");
-			last;
+	# Do this first to avoid @@foo from being
+	# identified as a command later.
+	$line =~ s/\@\@/\@/;
+
+TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
+	
+		$command = $line;
+		$command =~ s/.*(\@\w+\{[^{]*?\}).*/\1/;
+		$tag = $command;
+		$tag =~ s/(.*)\{.*/\1/;
+		$tagplain = $tag;
+		$tagplain =~ s/\@//;
+		$contents = $command;
+		$contents =~ s/.*\{(.*)\}/\1/;
+		&message("line:     $line") if ($verbose > 1);
+		&message("command:  $command") if ($verbose > 2);
+		&message("tag:      $tag") if ($verbose > 2);
+		&message("tagplain: $tagplain") if ($verbose > 2);
+		&message("contents: $contents") if ($verbose > 2);
+
+		# substitutions (only @{} type will get caught here)
+		# 
+		if (exists $substitutions{$tag}) {
+			$replacement = $substitutions{$tag};
+			&replaceinline;
+			next TAG;
 		}
-		&message("line is now $line") if ($verbose > 2);
-	}
-}
-
-sub matchmacro {
-#	&message("matchmacros $line");
-	foreach $macro (keys %macroargs) {
-		if ($line =~ /\@$macro\{/) {
-			return ($macro, $macroargs{$macro}, $macrotext{$macro});
+		
+		# macros
+		#
+		if (exists $macros{$tagplain}) {
+			$macro = $macros{$tagplain};
+			$macroargs = "\\\\" . $macroargs{$tagplain} . "\\\\";
+			$macrotext = $macrotext{$tagplain};
+	
+			$macroarg = $command;
+			$macroarg =~ s/^.*?\@$macro\{//;
+			$macroarg =~ s/\}.*?$//;
+			$macrotext =~ s/\@$macro\{([^\{]*?)\}/$macroarg/;
+			$macrotext =~ s/$macroargs/$macroarg/g;
+			$replacement = $macrotext;
+			&replaceinline;
+			next TAG;
 		}
-	}
-}
 
-sub replacemacro {
-	my $macroarg = $line;
-	my $open;
-	my $close;
-	$macroargs = "\\\\" . $macroargs . "\\\\";
-	$macroarg =~ s/^.*?\@$macro\{//;
-	$macroarg =~ s/\}.*?$//;
-	$macrotext =~ s/\@$macro\{([^\{]*?)\}/$macroarg/;
-	&message("replace pattern '$macroargs' with '$macroarg' in '$macrotext'") if ($verbose > 2);
-	$macrotext =~ s/$macroargs/$macroarg/g;
-	$line =~ s/\@$macro\{.*?\}/$macrotext/;
-}
-
-# character substitution
-#
-sub convertsubsts {
-	while (1) {
-		($pattern, $action) = &matchsubst();
-		last unless ($pattern);
-		&replacesubst;
-	}
-}
-
-sub matchsubst {
-	foreach $key (keys %substitutions) {
-		if ($line =~ /$key/) {
-			return ($key, $substitutions{$key});
+		# special character substitutions
+		# 
+		if (exists $specsubstitutions{$tag}) {
+			$replacement = $specsubstitutions{$tag};
+			&replacespecsubst;
+			&replaceinline;
+			next TAG;
 		}
-	}
-	return ('', '');
-}
-
-sub replacesubst {
-	&message("replacing '$pattern' with '$action' on line $line") if ($verbose > 1);
-	$line =~ s/$pattern/$action/g;
-}
-
-# special character substitution
-#
-sub convertspecsubsts {
-	while (1) {
-		($pattern, $action) = &matchspecsubst();
-		last unless ($pattern);
-		&replacespecsubst;
-	}
-}
-
-sub matchspecsubst {
-	foreach $key (keys %specsubstitutions) {
-		if ($line =~ /$key/) {
-			return ($key, $specsubstitutions{$key});
+		
+		# docbook wrapper tags
+		# 
+		if (exists $tags{$tag}) {
+			$replacement = $tags{$tag};
+			if ($replacement) {
+				($tag, $attributes) = split(/ /, $replacement);
+				if ($attributes) {
+					$replacement = "\<$tag $attributes\>$contents\<\/$tag\>";
+				} else {
+					$replacement = "\<$tag\>$contents\<\/$tag\>";
+				}
+			} else {
+				$replacement = $contents;
+			}
+			&replaceinline;
+			next TAG;
 		}
+
+		if (exists $definfos{$tagplain}){
+			$action = $definfos{$tagplain};
+			($prefix, $suffix) = split(/,/,$action);
+			$replacement = $prefix . $contents . $suffix;
+			&message("definfo prefix: $prefix, suffix: $suffix, contents: $contents") if ($verbose > 1);
+			&replaceinline;
+			next TAG;
+		}
+
+		if (exists $setvalues{$contents}) {
+			$replacement = $setvalues{$contents};
+			&replaceinline;
+			next TAG;
+		}
+
+		if (exists $aliases{$tag}) {
+			$replacement = $aliases{$tag} . '{' . $contents . '}';
+			&replaceinline;
+			next TAG;
+		}
+		
+		&raiseerror("cannot resolve $command");
+		$replacement = "ERROR";
+		&replaceinline;
 	}
-	return ('', '');
+	
+	# fix character-level substitutions.
+	#
+	for $key (keys %substitutions) {
+		$key = quotemeta($key);
+		$line =~ s/$key/$substitutions{$key}/g
+	}
+}
+
+sub replaceinline {
+	&message("replacing $command with $replacement") if ($verbose > 1);
+	$command = quotemeta($command);
+	$line =~ s/$command/$replacement/;
 }
 
 sub replacespecsubst {
+	my $anchor;
 	my $link;
 	my $linkname;
-	
-	&message("replacing 'special case' $pattern $action on line $line") if ($verbose > 2);
-	if ($action eq 'UREF') {
-		$link = $line;
-		$link =~ s/^.*?\@uref\{(.*?)\}.*$/\1/;
+	my $keystring;
+	my @keycombos;
+	my @keycaps;
+	my $mykeys;
+
+	if ($replacement eq 'REF') {
+		&message("making xref on line $line") if ($verbose > 1);
+		$link = $contents;
+		$linktitle = &trim($link);
+		$link = &linkfix($link);
+		&message("link: $link, title; $linktitle") if ($verbose > 2);
+		&raiseerror("NO ANCHOR in $line") unless ($link);
+
+		# decide what kind of link to make based on whether it is 
+		# to a section or not. Sections have titles that can be
+		# referenced using an xref. Anchors do not, and we have to
+		# render a full <link> tag.
+		# 
+		if ($nodelevels{$link}) {
+			$replacement = "See \<xref linkend='$link' endterm='$link-title'\/\>";
+		} else {
+			$replacement = "See \<link linkend='$link'\>$linktitle\<\/link\>";
+		}
+		&message("made xref to tag $link on line: $line") if ($verbose > 1);
+	} elsif ($replacement eq 'UREF') {
+		$link = $contents;
 		($link, $linkname) = split(/,/, $link);
 		$link = &trim($link);
 		$linkname = &trim($linkname);
 		$linkname = $link unless ($linkname);
-		$line =~ s/\@uref\{(.*?)\}/\<ulink url='$link'\>$linkname\<\/ulink\>/g;
-		&message("ulink: $link, linkname: $linkname, line: $line"); # if ($verbose > 2);
-	} elsif ($action eq 'ANCHOR') {
-
-		$link = $line;
-		$link =~ s/^.*?\@anchor\{(.*?)\}.*$/\1/;
+		$replacement = "\<ulink url='$link'\>$linkname\<\/ulink\>";
+		&message("ulink: $link, linkname: $linkname, line: $line") if ($verbose > 2);
+	} elsif ($replacement eq 'XREF') {
+		($link, $linkname, $foo, $foo) = split(/,/, $contents);
+		$link = &anchorfix(&trim($link));
+		$linkname = &trim($linkname);
+		$linkname = $link unless ($linkname);
+		&message("xref, contents: $contents, link: $link, linkname: $linkname");
+		if ($nodelevels{$link}) {
+			$replacement = "\<xref linkend='$link' endterm='$link-title'\/\>";
+		} else {
+			$replacement = "\<link linkend='$link'\>$linkname\<\/link\>";
+		}
+	} elsif ($replacement eq 'ANCHOR') {
+		$link = $contents;
 		$link = &anchorfix($link);
-		$line =~ s/\@anchor\{(.*?)\}/<anchor id='$link'\/\>/;
-		
-#		$line =~ s/\@anchor\{([^\}]*?)\}/\<anchor id='$link'\/\>/;
-#		$line =~ s/\@anchor\{([^\}]*?\{.*?\}.*?)\}/\<anchor id='$link'\/\>/;
-#		&message("anchor: $link on line: $line"); # if ($verbose > 2);
-	} else {
-		&raiseerror("Unrecognized 'special case' inline substitution code $pattern");
-	}
-}
-
-$loops = 0;
-	
-# replace @-Commands with DocBook tags
-#
-sub converttags {
-	$loops = 0;
-	while (1) {
-		($pattern, $action) = &matchtag();
-		last unless ($pattern);
-		if ($line =~ /$pattern.*?\}/) {
-			$loops++;
-			&replacetag;
-			exit if ($loops >= 25);
-		} else {
-			&raiseerror("unmatched tag brackets in line $line");
-			last;
-		}
-	}
-}
-
-sub matchtag {
-	foreach $key (keys %tags) {
-		if ($line =~ /$key/) {
-			return ($key, $tags{$key});
-		}
-	}
-	return ('', '');
-}
-
-sub replacetag {
-	my ($tag,
-	    $attributes,
-	    $part,
-	    $newline,
-	    $fragment,
-	   );
-
-	if ($action eq '') {
-		&message("removing old tag, but not adding a new one") if ($verbose > 2);
-		$line =~ s/$pattern\{([^\}]*?\{.*?\}.*?)\}/\1/g;
-		$line =~ s/$pattern\{([^\}]*?)\}/\1/g;
-	} else {
-		&message("replacing $pattern with $action tags on line $line") if ($verbose > 1);
-		($tag, $attributes) = split(/ /, $action);
-		if ($attributes) {
-			$line =~ s/$pattern\{([^\}]*?\{.*?\}.*?)\}/\<$tag $attributes\>\1\<\/$tag\>/g;
-			$line =~ s/$pattern\{([^\}]*?)\}/\<$tag $attributes\>\1\<\/$tag\>/g;
-		} else {
-			$line =~ s/$pattern\{([^\}]*?\{.*?\}.*?)\}/\<$tag\>\1\<\/$tag\>/g;
-			$line =~ s/$pattern\{([^\}]*?)\}/\<$tag\>\1\<\/$tag\>/g;
-		}
-	}
-}
-
-# replace @-Commands with custom highlighting
-#
-sub convertdefinfos {
-	while (1) {
-		($pattern, $action) = &matchdefinfo();
-		last unless ($pattern);
-		&message("matched definfoenclose '$pattern'") if ($verbose >2);
-		&replacedefinfo;
-	}
-}
-
-sub matchdefinfo {
-	foreach $key (keys %definfos) {
-		if ($line =~ /$key\{.*?\}/) {
-			return ($key, $definfos{$key});
-		}
-	}
-	return ('', '');
-}
-
-sub replacedefinfo {
-	($prefix, $suffix) = split(/,/,$action);
-	&message("pattern: $pattern, prefix: $prefix, suffix: $suffix") if ($verbose > 2);
-	$line =~ s/$pattern\{([^\}]*?\{.*?\}.*?)\}/$prefix\1$suffix/g;
-	$line =~ s/$pattern\{([^\}]*?)\}/$prefix\1$suffix/g;
-	$line =~ s/$pattern\{\}/$prefix$suffix/g;
-	&message("definfoenclose replaced") if ($verbose >2);
-}
-
-# replace @value{} with values
-#
-sub convertvalues {
-	my ($key,
-	    $value);
-	   
-	foreach $key (keys %setvalues) {
-		$value = $setvalues{$key};
-		$line =~ s/\@value\{$key\}/$value/;
-	}
-}
-
-sub convertlinks {
-	my $link,
-	   $anchor;
-	
-	while ($line =~ /\@ref\{/) {
-		if ($line =~ /\@ref\{.*?\}/) {
-			&message("making xref on line $line") if ($verbose > 1);
-			$anchor = $line;
-			$anchor =~ s/^.*?\@ref\{//;
-			$anchor =~ s/\}.*$//;
-			$anchortitle = &trim($anchor);
-			$anchor = &anchorfix($anchor);
-			&message("anchor: $anchor, title; $anchortitle") if ($verbose > 2);
-			&raiseerror("NO ANCHOR in $line") unless ($anchor);
-
-			# decide what kind of link to make based on whether it is 
-			# to a section or not. Sections have titles that can be
-			# referenced using an xref. Anchors do not, and we have to
-			# render a full <link> tag.
-			# 
-			if ($nodelevels{$anchor}) {
-				$link = "\<xref linkend='$anchor' endterm='$anchor-title'\/\>";
+		$replacement = "<anchor id='$link'\/\>";
+	} elsif ($replacement eq 'KBD') {
+		$keystring = $contents;
+		@keycombos = split(/\s+/, $keystring);
+		foreach $keycombo (@keycombos) {
+			&message("keycombo: $keycombo");
+			@keycaps = split('-', $keycombo);
+			if (length(@keycaps) > 1) {
+				$mykeys .= "\<keycombo action='simul'\>";
+				foreach $keycap (@keycaps) {
+					$mykeys .= "\<keycap\>$keycap\<\/keycap\>";
+				}
+				$mykeys .= '</keycombo>'
 			} else {
-				$link = "\<link linkend='$anchor'\>$anchortitle\<\/link\>";
+				$mykeys .= "\<keycap\>$keycaps[0]\<\/keycap\>";
 			}
-			$line =~ s/\@ref\{.*?\}/$link/;
-			&message("made xref to tag $anchor on line: $line") if ($verbose > 1);
-		} else {
-			&raiseerror("unmatched ref brackets in line $line");
-			last;
 		}
+		$replacement = $mykeys;
+	} else {
+		$replacement = $specsubstitutions{$tag};
 	}
 }
 
@@ -1012,6 +958,10 @@ sub writeline {
 	$line =~ s/DCM_LB/\{/g;
 	$line =~ s/DCM_RB/\}/g;
 	$buf .= $line . "\n";
+	if ($linenumber % 1000 == 0) {
+		print $outfh $buf;
+		$buf = '';
+	}
 }
 
 ##############################################
@@ -1049,17 +999,21 @@ sub node {
 	$nodeprev = &trim($nodeprev);
 	$nodenext = &trim($nodenext);
 	$nodeup   = &trim($nodeup);
-	$nodenexts{$nodename} = $nodenext;
-	$nodeprevs{$nodename} = $nodeprev;
-	$nodeups{$nodename} = $nodeup;
 	$nodeinit = 0;
 	&message("Name: $nodename Next: $nodenext Previous: $nodeprev Up: $nodeup") if ($verbose > 1);
 	&closeformalpara;
-	if ($nodename eq 'Top') {
+	if ($inabstract) {
 		$inabstract = 0;
-		$abstract = $buf;
+		&message("copying meta-data to docbook") if ($verbose);
+		$template =~ s/%%TITLE/$title/;
+		$template =~ s/%%ABSTRACT/$buf/;
+		print $outfh $template . "\n";
 		$buf = "";
 	}
+	$nodenames{$nodename} = $nodename;
+	$nodenexts{$nodename} = $nodenext;
+	$nodeprevs{$nodename} = $nodeprev;
+	$nodeups{$nodename} = $nodeup;
 }
 
 sub appendix {
@@ -1068,7 +1022,7 @@ sub appendix {
 	$inappendix = 1;
 	$nodeinit = 1;
 	$nodelevels{$nodename} = "A";
-	&message("processing node $nodename at level $nodelevels{$nodename}");
+	&message("processing node $nodename at level $nodelevels{$nodename}") if ($verbose);
 }
 
 sub sect1 {
@@ -1077,7 +1031,7 @@ sub sect1 {
 	$insect1 = 1;
 	$nodeinit = 1;
 	$nodelevels{$nodename} = 1;
-	&message("set node $nodename level to $nodelevels{$nodename}");
+	&message("set node $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect2 {
@@ -1092,7 +1046,7 @@ sub sect2 {
 	$insect2 = 1;
 	$nodeinit = 1;
 	$nodelevels{$nodename} = 2;
-	&message("set node $nodename level to $nodelevels{$nodename}");
+	&message("set node $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect3 {
@@ -1107,7 +1061,7 @@ sub sect3 {
 	$insect3 = 1;
 	$nodeinit = 1;
 	$nodelevels{$nodename} = 3;
-	&message("set node $nodename level to $nodelevels{$nodename}");
+	&message("set node $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect4 {
@@ -1359,30 +1313,23 @@ sub ifset {
 # META-LANGUAGE #
 #################
 
-# only the commands in %tags are currently supported
-#
 sub alias {
 	my $alias;
 	
 	($foo, $alias) = split(/\s/, $line);
-	&message("alias: $alias") if ($verbose > 2);
 	($alias, $command) = split(/=/, $alias);
 	&message("alias: $alias, command: $command") if ($verbose > 2);
-	$alias = '\@' . $alias . '\b';
-	$command = '\@' . $command . '\b';
-	&message("alias: $alias, command: $command") if ($verbose > 2);
-	$tag = $tags{$command};
-	&message("tag: $tag") if ($verbose > 2);
-	$tags{$alias} = $tag;
+	$aliases{'@' . $alias} = $command;
 }
 
 sub macro {
-	$line =~ s/\@macro\s*?(.*?)\{(.*?)\}/\1,\2/;
+	$line =~ s/\@macro\s+?(.*?)\{(.*?)\}/\1,\2/;
 	($macro, $macroargs) = split(/,/, $line);
 	$macro = &trim($macro);
 	$macros{$macro} = $macro;
 	$macrotext = '';
 	$inmacro = 1;
+	&message("adding macro $macro") if ($verbose > 2);
 }
 
 # load custom @-commands
@@ -1396,10 +1343,9 @@ sub definfoenclose {
 	   
 	$line =~ s/\@definfoenclose\s+//;
 	($name, $prefix, $suffix) = split(/,/, $line);
-	$key = '\@' . $name;
 	$replacement =  $prefix. ',' . $suffix;
-	$definfos{$key} = $replacement;
-#	&message("custom definfoenclosure: \[$name\] \[$prefix\] \[$suffix\] \/ \[$key\] \[$replacement\]") if ($verbose > 0);
+	$definfos{$name} = $replacement;
+	&message("custom definfoenclosure: \[$name\] \[$prefix\] \[$suffix\]") if (verbose > 1);
 }
 
 ###########
@@ -1494,7 +1440,9 @@ sub usage {
 }
 
 __END__
-<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1.2//EN" >
+<?xml version='1.0'?>
+<!DOCTYPE book PUBLIC '-//OASIS//DTD DocBook XML V4.1.2//EN'
+                      "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 
 <article>
   <artheader>
@@ -1503,5 +1451,4 @@ __END__
       %%ABSTRACT
     </abstract>
   </artheader>
-%%BODY
 
