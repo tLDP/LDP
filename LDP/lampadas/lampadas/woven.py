@@ -13,29 +13,9 @@ from twisted.web import domhelpers
 import cgi
 import twisted.web
 
+from Globals import state, VERSION
 from URLParse import URI
 from BaseClasses import LampadasCollection
-
-def html_to_widgets(html):
-    counter = 0
-    html_widgets = []
-    temp = html.replace('\|', 'DCM_PIPE')
-    for piece in temp.split('|'):
-        counter += 1
-        is_text = counter % 2
-        if is_text:
-            piece = piece.replace('DCM_PIPE', '\|')
-            if piece > '':
-                html_widgets.append(widgets.Text(piece))
-        else:
-            if strings.has_key(piece):
-                html_widgets.append(strings[piece].view)
-            elif blocks.has_key(piece):
-                html_widgets.append(blocks[piece].view)
-            else:
-                print 'Could not find token: ', piece
-    print 'html_to_widgets of ', html, ' yielded: ', html_widgets
-    return html_widgets
 
 # Custom Widgets
 class I18nTextWidget(widgets.Text):
@@ -52,9 +32,31 @@ class I18nListWidget(widgets.List):
         self.lang = lang
 
     def getData(self):
-        print 'I18nListWidget.getData() returns: ', widgets.List.getData(self)[self.lang]
         return widgets.List.getData(self)[self.lang]
 
+class SectionBarWidget(widgets.Widget):
+    def generateDOM(self, request, node):
+        document = widgets.document
+
+        self.cleanNode(node)
+
+        tr_node = document.createElement('tr')
+        node.appendChild(tr_node)
+
+        for key in sections.sort_by('sort_order'):
+            td_node = document.createElement('td')
+            tr_node.appendChild(td_node)
+            a_node = document.createElement('a')
+            td_node.appendChild(a_node)
+            
+            section = sections[key].object
+            href = '%ssection/%s%s' % (state.uri.base, section.section_code, state.uri.lang_ext)
+            name = section.section_name[state.uri.lang]
+            
+            a_node.setAttribute('href', href)
+            text_node = document.createTextNode(name)
+            a_node.appendChild(text_node)
+        return self.node
 
 # Holds an MVC triad as well as the original row object in a neat package.
 class MVC:
@@ -66,6 +68,65 @@ class MVC:
         self.controller = object_controller
         self.__dict__.update(rowobject.__dict__)
         self.object.__dict__.update(rowobject.__dict__)
+
+# Parse strings, replacing tokens and text with appropriate widgets.
+def replace_token(token):
+    if token=='uri.base':
+        return state.uri.base
+    elif token=='uri.lang_ext':
+        return state.uri.lang_ext
+    elif token=='version':
+        return VERSION
+    elif token=='':
+        return ''
+
+    print 'Cannot replace token: ', token
+    return '<font color="red">%s</font>' % token
+    
+def build_items(object, text):
+    object.items = []
+    counter = 0
+    temp = text.replace('\|', 'DCM_PIPE')
+    for piece in temp.split('|'):
+        counter += 1
+        is_text = counter % 2
+        if is_text:
+            piece = piece.replace('DCM_PIPE', '\|')
+            if piece > '':
+                object.items.append(piece)
+        else:
+            if strings.has_key(piece):
+                object.items.append(strings[piece].string[lang])
+            elif blocks.has_key(piece):
+                object.items.append(blocks[piece].block[lang])
+            else:
+                newstring = replace_token(piece)
+                object.items.append(newstring)
+    return object.items
+
+def build_lang_items(object, text):
+    object.items = LampadasCollection()
+    for lang in text.keys():
+        counter = 0
+        items = []
+        temp = text[lang].replace('\|', 'DCM_PIPE')
+        for piece in temp.split('|'):
+            counter += 1
+            is_text = counter % 2
+            if is_text:
+                piece = piece.replace('DCM_PIPE', '\|')
+                if piece > '':
+                    items.append(piece)
+            else:
+                if strings.has_key(piece):
+                    items.append(strings[piece].string[lang])
+                elif blocks.has_key(piece):
+                    items.append(blocks[piece].block[lang])
+                else:
+                    newstring = replace_token(piece)
+                    items.append(newstring)
+        object.items[lang] = items
+    return object.items
 
 # Collections of MVC triads.
 # Each collection has its own MVC, and each object in the collection does as well.
@@ -79,34 +140,7 @@ class Pages(LampadasCollection, model.WModel):
     pass
 
 class Page:
-    def build_page_items(self):
-        self.page_items = LampadasCollection()
-        for lang in self.page.keys():
-            counter = 0
-            page_items = []
-            page = self.page[lang]
-            temp = page.replace('\|', 'DCM_PIPE')
-            for piece in temp.split('|'):
-                counter += 1
-                is_text = counter % 2
-                if is_text:
-                    piece = piece.replace('DCM_PIPE', '\|')
-                    if piece > '':
-                        #page_items.append(model.Wrapper(piece))
-                        page_items.append(piece)
-                else:
-                    if strings.has_key(piece):
-                        #page_items.append(strings[piece].model)
-                        page_items.append(strings[piece].string[lang])
-                    elif blocks.has_key(piece):
-                        #page_items.append(blocks[piece].model)
-                        page_items.append(blocks[piece].block[lang])
-                    else:
-                        pass
-                        #print 'Could not find token: ', piece
-            self.page_items[lang] = page_items
-            print 'Items for ', lang + ': ', page_items
-        return self.page_items
+    pass
 
 class Sections(LampadasCollection, model.WModel):
     pass
@@ -141,6 +175,11 @@ class VBlock(view.WView):
         domhelpers.clearNode(node)
         return widgets.Text(model)
     
+    def wvfactory_block_items(self, request, node, model):
+        block_object = blocks[self.model.block_code].object
+        build_items(block_object, block_object.block)
+        return widgets.List(block_object.items)
+
 class CBlock(controller.WController):
     pass
 
@@ -161,6 +200,10 @@ class VPage(widgets.Widget):
         pass
 
     def wvfactory_title(self, request, node, model):
+        page_object = pages[self.model.page_code]
+        build_lang_items(page_object.title, page_object.title)
+        return widgets.List(page_object.title.items[self.lang])
+
         return I18nTextWidget(model, lang=self.lang)
     
     def wvfactory_page_code(self, request, node, model):
@@ -170,13 +213,15 @@ class VPage(widgets.Widget):
         return I18nTextWidget(model, lang=self.lang)
 
     def wvfactory_page_items(self, request, node, model):
-        #if not hasattr(self.model, 'page_items'):
         page_object = pages[self.model.page_code].object
-        page_object.build_page_items()
-        return widgets.List(page_object.page_items[self.lang])
+        build_lang_items(page_object, page_object.page)
+        return widgets.List(page_object.items[self.lang])
 
     def wvfactory_menu(self, request, node, model):
         return widgets.List(sections.keys())
+
+    def wvfactory_section_bar(self, request, node, model):
+        return SectionBarWidget()
 
 class CPage(controller.WController):
     pass
@@ -203,6 +248,11 @@ class VString(widgets.Widget):
     def wvfactory_string(self, request, node, model):
         return I18nTextWidget(model, lang=self.lang)
     
+    def wvfactory_string_items(self, request, node, model):
+        string_object = strings[self.model.string_code].object
+        build_lang_items(string_object, string_object.string)
+        return widgets.List(string_object.items[self.lang])
+
     def wvfactory_version(self, request, node, model):
         return I18nTextWidget(model, lang=self.lang)
 
@@ -290,11 +340,6 @@ class Gadget(twisted.web.widgets.Gadget):
             page_controller = CPage(page_model)
             page_controller.setView(page_view)
             page_mvc = MVC(pagerow, page_object, page_model, page_view, page_controller)
-            #html_widgets = LampadasCollection()
-            #for lang in pagerow.page.keys():
-            #    trans = pagerow.page[lang]
-            #    html_widgets[lang] = html_to_widgets(trans)
-            #page_view.add(html_widgets)
             pages[pagerow.page_code] = page_mvc
         print 'Pages loaded.'
         
@@ -327,11 +372,12 @@ class Gadget(twisted.web.widgets.Gadget):
             self.load_pages()
        
     def getChild(self, path, request):
-        uri = URI(path)
-        if not pages.has_key(uri.page_code):
-            uri = URI('404' + uri.lang_ext)
-        resource = pages[uri.page_code].view
-        resource.lang = uri.lang
+        state.uri = URI(request.path)
+        if pages.has_key(state.uri.page_code):
+            resource = pages[state.uri.page_code].view
+        else:
+            resource = pages['404'].view
+        resource.lang = state.uri.lang
         return resource
     
 def updateApplication(app, config):

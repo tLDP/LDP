@@ -114,6 +114,13 @@ class Section(row.RowObject):
                   ('created',           'timestamp'),
                   ('updated',           'timestamp')]
 
+    def __init__(self):
+        self.section_name = LampadasCollection()
+    
+    def addI18n(self, i18n):
+        lang = i18n.lang
+        self.section_name[lang] = i18n.section_name
+
 class SectionI18n(row.RowObject):
     rowFactoryMethod = [rowFactory]
     rowTableName = 'section_i18n'
@@ -124,6 +131,7 @@ class SectionI18n(row.RowObject):
                   ('section_name',  'varchar'),
                   ('created',       'timestamp'),
                   ('updated',       'timestamp')]
+    rowForeignKeys = [('section', [('section_code', 'varchar')], [('section_code', 'varchar')], 'addI18n', 1)]
 
 class String(row.RowObject):
     rowFactoryMethod = [rowFactory]
