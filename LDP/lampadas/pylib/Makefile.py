@@ -116,7 +116,7 @@ class Projects(LampadasCollection):
         print 'Running project Makefile target: ' + name
         for doc_id in self.sort_by('doc_id'):
             doc = lampadas.docs[doc_id]
-            if doc.pub_status_code<>'A' and doc.pub_status_code<>'N':
+            if doc.pub_status_code<>'N':
                 continue
             print 'Making document: ' + str(doc_id)
             self[doc_id].make(name)
@@ -191,8 +191,7 @@ class Project:
         
         # If the file is not to be published (Archived or Normal status),
         # or if it has not been mirrored successfully, skip it.
-        if (self.doc.pub_status_code<>'A' and self.doc.pub_status_code<>'N') \
-            or (self.doc.mirror_time==''):
+        if self.doc.pub_status_code<>'N'  or self.doc.mirror_time=='':
             return
 
         for file in self.doc.files.keys():
@@ -378,9 +377,11 @@ class Project:
                     if filesize==0:
                         self.doc.errors.add(ERR_MAKE_ZERO_LENGTH, cmd_text)
                         print 'ERROR: The command left a zero-length file. Removing.'
-                        os.remove(self.workdir + command.output_to)
+                        if exit_status==0:
+                            exit_status = 2;
 
                     if exit_status <> 0:
+                        os.remove(self.workdir + command.output_to)
                         return(exit_status, timestamp)
 
             # Reread our timestamp. It's like to have changed.

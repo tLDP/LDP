@@ -196,7 +196,7 @@ class Lintadas:
 
         # If document is not active or archived, do not flag
         # any errors against it.
-        if doc.pub_status_code<>'N' and doc.pub_status_code<>'A':
+        if doc.pub_status_code<>'N':
             return
 
         # Flag an error against the *doc* if there are no files.

@@ -62,7 +62,7 @@ class Stats(LampadasCollection):
                 self['doc_error'].inc(key)
 
             # Only track mirroring stats for publishable docs
-            if doc.pub_status_code in ('N', 'A'):
+            if doc.pub_status_code=='N':
                 mirror_time = date2str(doc.mirror_time)
                 self['mirror_time'].inc(mirror_time)
 
