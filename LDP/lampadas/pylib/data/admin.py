@@ -88,6 +88,7 @@ def run_publish(req, doc_id):
     project = Project(doc.id)
     
     project.write()
+    project.make('clean')
     project.make('publish')
     go_back(req)
 

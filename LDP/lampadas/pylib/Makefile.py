@@ -93,8 +93,8 @@ class Target:
         cmd_text = ''
         for key in self.commands.sort_by('sort_order'):
             command = self.commands[key]
-            if command.errors_to > '':
-                cmd_text += '\trm -f ' + command.errors_to + '\n'
+#            if command.errors_to > '':
+#                cmd_text += '\trm -f ' + command.errors_to + '\n'
             cmd_text += '\t' 
             cmd_text += command.command
             if command.output_to > '':
@@ -236,6 +236,7 @@ class Project:
                 target = self.targets.add('clean', [],
                                             [Command('rm -f log/*'),
                                              Command('rm -f expanded.sgml'),
+                                             Command('rm -f normalized.sgml'),
                                              Command('rm -f expanded.fot'),
                                              Command('rm -f ' + dbsgmlfile),
                                              Command('rm -f ' + xmlfile),
@@ -249,24 +250,37 @@ class Project:
                     target.commands.add(Command('rm -f *.xml'))
 
                 if sourcefile.format_code=='wikitext':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                        [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                    self.targets.add(xmlfile,    [dbsgmlfile],
+                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='text':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                        [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                    self.targets.add(xmlfile,    [dbsgmlfile],
+                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='texinfo':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('texi2db -f ' + sourcefile.file_only, errors_to='texi2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                        [Command('texi2db -f ' + sourcefile.file_only, errors_to='texi2db.log', stderr_check=1)])
+                    self.targets.add(xmlfile,    [dbsgmlfile],
+                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='linuxdoc':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('sgmlnorm -d /usr/local/share/ld2db/docbook.dcl ' + sourcefile.file_only, output_to='expanded.sgml', errors_to='log/sgmlnorm.log', stderr_check=1),
-                                                                          Command('jade -t sgml -c /usr/local/share/ld2db/catalog -d /usr/local/share/ld2db/ld2db.dsl\\#db expanded.sgml', output_to=dbsgmlfile, errors_to='log/jade.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                        [Command('sgmlnorm -d /usr/local/share/ld2db/docbook.dcl ' + sourcefile.file_only, output_to='expanded.sgml', errors_to='log/sgmlnorm.log', stderr_check=1),
+                         Command('jade -t sgml -c /usr/local/share/ld2db/catalog -d /usr/local/share/ld2db/ld2db.dsl\\#db expanded.sgml', output_to=dbsgmlfile, errors_to='log/jade.log', stderr_check=1),
+                         Command('sgmlnorm -d ' + dbsgmlfile, output_to='normalized.sgml', errors_to='log/sgmlnorm.log', stderr_check=1)])
+                    self.targets.add(xmlfile,    [dbsgmlfile],
+                        [Command('xmllint --sgml normalized.sgml', output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='docbook':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [])
-                    self.targets.add(xmlfile,    [sourcefile.file_only], [Command('xmllint --sgml ' + sourcefile.file_only, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                        [])
+                    self.targets.add(xmlfile,    [sourcefile.file_only],
+                        [Command('xmllint --sgml ' + sourcefile.file_only, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='xml' and sourcefile.dtd_code=='docbook':
-                    self.targets.add(dbsgmlfile, [],                     [])
-                    self.targets.add(xmlfile,    [],                     [])
+                    self.targets.add(dbsgmlfile, [],
+                        [])
+                    self.targets.add(xmlfile,    [],
+                        [])
                 else:
                     log(1, 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code + '. Lampadas cannot build this document.')
                 
