@@ -2,7 +2,7 @@
 <article>
 <title>Large Disk HOWTO
 <author>Andries Brouwer, <tt/aeb@cwi.nl/
-<date>v2.2s, 9 December 2000
+<date>v2.2u, 12 March 2001
 
 
 <abstract>
@@ -83,6 +83,9 @@ If LILO hangs at boot time, also specify
 <tt><ref id="linear" name="linear"></tt> in the
 configuration file <tt>/etc/lilo.conf</tt>.
 (And if you did have <tt>linear</tt>, try without it.)
+If you have a recent LILO (version 21.4 or later),
+the keyword <tt>lba32</tt> will usually allow booting from
+anywhere on the disk, that is, the 1024 cylinder limit is gone.
 
 There may be geometry problems that can be solved by giving
 an explicit geometry to kernel/LILO/fdisk.
@@ -139,8 +142,9 @@ these floppies are 1440 KiB (1.47 MB, 1.41 MiB),
 and 1 TiB is 1099511627776 bytes (1.1 TB).
 <p>
 Quite correctly, the disk drive manufacturers follow the SI norm
-and use the decimal units. However, Linux boot messages and some
-fdisk-type programs use the symbols MB and GB for binary, or
+and use the decimal units. However, Linux kernel boot messages
+(for not-so-recent kernels) and some fdisk-type programs
+use the symbols MB and GB for binary, or
 mixed binary-decimal units. So, before you think your disk is
 smaller than was promised when you bought it, compute first the
 actual size in decimal units (or just in bytes).
@@ -365,12 +369,14 @@ some bootstrap loader.  These small bootstrap programs
 found there typically have no own disk drivers and use
 BIOS services.  This means that a Linux kernel can only be
 booted when it is entirely located within the first 1024
-cylinders.
+cylinders, unless you both have a modern BIOS (a BIOS that supports
+the Extended INT13 functions), and a modern bootloader
+(a bootloader that uses these functions when available).
 <p>
-This problem is very easily solved: make sure that the kernel
-(and perhaps other files used during bootup, such as LILO map files)
-are located on a partition that is entirely contained in the
-first 1024 cylinders of a disk that the BIOS can access -
+This problem (if it is a problem) is very easily solved:
+make sure that the kernel (and perhaps other files used during bootup,
+such as LILO map files) are located on a partition that is entirely
+contained in the first 1024 cylinders of a disk that the BIOS can access -
 probably this means the first or second disk.
 <p>
 Thus: create a small partition, say 10 MB large, so that there
@@ -378,22 +384,42 @@ is room for a handful of kernels, making sure that it is entirely
 contained within the first 1024 cylinders of the first or second
 disk. Mount it on <tt>/boot</tt> so that LILO will put its stuff there.
 <p>
+Most systems from 1998 or later will have a modern BIOS.
+<p>
 
-<sect1>LILO and the `linear' option
+<sect1>LILO and the `lba32' and `linear' options
 <label id="linear">
 <p>
-Another point is that the boot loader and the BIOS must agree
-as to the disk geometry.  LILO asks the kernel for the geometry,
+Executive summary: If you use LILO as boot loader, make sure you have
+LILO version 21.4 or later. (It can be found at
+<htmlurl name="ftp://metalab.unc.edu/pub/Linux/system/boot/lilo/"
+url="ftp://metalab.unc.edu/pub/Linux/system/boot/lilo/">.)
+Always use the <tt>lba32</tt> option.
+<p>
+An invocation of <tt>/sbin/lilo</tt> (the boot map installer) stores a list
+of addresses in the boot map, so that LILO (the boot loader) knows from
+where to read the kernel image. By default these addresses are
+stored in (c,h,s) form, and ordinary INT13 calls are used at boot time.
+<p>
+When the configuration file specifies <tt>lba32</tt> or <tt>linear</tt>,
+linear addresses are stored. With <tt>lba32</tt> also linear addresses
+are used at boot time, when the BIOS supports extended INT13.
+With <tt>linear</tt>, or with an old BIOS, these linear addresses are
+converted back to (c,h,s) form, and ordinary INT13 calls are used.
+<p>
+Thus, with <tt>lba32</tt> there are no geometry problems and there is
+no 1024 cylinder limit. Without it there is a 1024 cylinder limit.
+What about the geometry?
+<p>
+The boot loader and the BIOS must agree as to the disk geometry.
+<tt>/sbin/lilo</tt> asks the kernel for the geometry,
 but there is no guarantee that the Linux kernel geometry coincides
 with what the BIOS will use. Thus, often the geometry
 supplied by the kernel is worthless. In such cases it helps
-to give LILO the `<tt/linear/' option. The effect of this is that
-LILO does not need geometry information at boot loader install
-time (it stores linear addresses in the maps) but does the conversion
-of linear addresses at boot time. Why is this not the default?
-Well, there is one disadvantage: with the `linear' option, LILO
-no longer knows about cylinder numbers, and hence cannot warn you
-when part of the kernel was stored above the 1024 cylinder limit,
+to give LILO the `<tt/linear/' option. The advantage is that
+the Linux kernel idea of the geometry no longer plays a role.
+The disadvantage is that <tt>lilo</tt> cannot warn you when
+part of the kernel was stored above the 1024 cylinder limit,
 and you may end up with a system that does not boot.
 
 <sect1>A LILO bug<p>
@@ -414,13 +440,6 @@ of 1 MiB = 1.05 MB), or H=255, S=63 (that is, cylinders of 8.2 MB),
 depending on setup options in firmware and BIOS. No doubt the BIOS
 assumed the former, so that the 1024 cylinder limit was found at 1 GiB,
 while Linux used the latter and LILO thought that this limit was at 8.4 GB.
-
-<sect1>No 1024 cylinder limit on modern machines<p>
-Recent BIOSes have `Extended INT 13' functions, that allow
-access to the entire disk. The latest LILO (version 21.4, found at
-<htmlurl name="ftp://metalab.unc.edu/pub/Linux/system/boot/lilo/"
-url="ftp://metalab.unc.edu/pub/Linux/system/boot/lilo/">)
-will boot Linux from anywhere on the disk.
 
 <sect1>No 1024 cylinder limit on old machines with IDE<p>
 The <tt>nuni</tt> boot loader does not use BIOS services
@@ -971,8 +990,8 @@ is found extended translation is set only when the user asked
 for it using this boot parameter (while when a SEEPROM is found,
 the boot parameter is ignored).
 This means that a setup that works under 2.0.36 may fail to boot
-with 2.2.6 (and require the `linear' keyword for LILO, or
-the `aic7xxx=extended' kernel boot parameter).
+with 2.2.6 (and require the <tt>linear</tt> keyword for LILO, or
+the <tt>aic7xxx=extended</tt> kernel boot parameter).
 <p>
 <tag/buslogic:/ <p>
 H=64, S=32 unless C &gt;= 1024, and moreover extended translation
@@ -1153,8 +1172,8 @@ Moreover, attempts to access sector 66055248 and above yield I/O errors.
 However, on Maxtor drives the actual size can be found and made accessible
 using the READ NATIVE MAX ADDRESS and SET MAX ADDRESS commands.
 Presumably this is what MaxBlast/EZ-Drive does. Now there is also
-a small Linux utility <htmlurl url="setmax.c" name="setmax.c"> for this,
-and also a kernel patch has been published.
+a small Linux utility <htmlurl url="http://www.win.tue.nl/~aeb/linux/setmax.c"
+name="setmax.c"> for this, and also a kernel patch has been published.
 <p>
 Early large Maxtor disks have an additional detail: the J46 jumper
 for these 34-40 GB disks changes the geometry from 16383/16/63
@@ -1311,7 +1330,7 @@ Or, they think that the problems they have are due to disk geometry,
 while in fact disk geometry has nothing to do with the matter.
 All of the above may have sounded complicated, but disk geometry
 handling is extremely easy: do nothing at all, and all is fine;
-or perhaps give LILO the keyword `linear' if it doesn't get past
+or perhaps give LILO the keyword <tt>lba32</tt> if it doesn't get past
 `LI' when booting. Watch the kernel boot messages, and
 remember: the more you fiddle with geometries (specifying heads
 and cylinders to LILO and fdisk and on the kernel command line)
@@ -1424,3 +1443,4 @@ On the other hand, this filesystem can have at most 1024000 files
 (more than enough), against 4096000 (too much) earlier. 
 
 </article>
+
