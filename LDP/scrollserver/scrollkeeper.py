@@ -2,13 +2,6 @@ import sys, os, commands, string
 from xml.dom.minidom import parse
 import urllib
 
-def FileContents(filename):
-	f = open(filename, "r")
-	text = f.read()
-	f.close
-	return text
-
-
 class TOCSection:
 
 	ID = ""
@@ -52,6 +45,7 @@ class Document:
 	OMF = ""
 	SourceFile = ""
 	Format = ""
+	URL = ""
 	TOC = TOC()
 
 	def loadDOM(self,dom):
@@ -72,6 +66,11 @@ class Document:
 					if child.nodeName == "docsource":
 						for text in child.childNodes:
 							self.SourceFile = self.SourceFile + text.nodeValue
+						self.URL = self.SourceFile
+						if self.URL[:5] == "http://" or self.URL[:6] == "file://":
+							pass
+						else:
+							self.URL = "file://" + self.URL
 					if child.nodeName == "docformat":
 						for text in child.childNodes:
 							self.Format = self.Format + text.nodeValue
@@ -81,56 +80,6 @@ class Document:
 			print "ERROR, not a document"
 
 
-	def Prepare(self):
-		if self.Format == "text/sgml":
-			print "Processing " + self.SourceFile
-			
-			# only needed for remote documents, 
-			# but harmless
-			sgmlfile = urllib.urlretrieve(self.SourceFile)	
-
-			sgmlfile = sgmlfile[0]
-                        xsl_stylesheet = "stylesheets/docbook/docbook.xsl"
-
-			cmd = "mkdir /var/cache/scrollserver/" + self.ID + "; xsltproc --docbook --timing " + xsl_stylesheet + " " + sgmlfile + " > /var/cache/scrollserver/" + self.ID + "/index.html"
-
-			os.system(cmd)
-
-	def URL(self):
-		if self.Format == "text/html":
-			text = self.SourceFile
-			if text[:5] == "http://" or text[:6] == "file://":
-				pass
-			else:
-				text = "file://" + text
-			#print text
-			return text
-		else:
-			url = "docid?" + str(self.ID)
-		return url
-
-	def Link(self):
-		html = "<a href=" + self.URL() + ">" + self.Title + "</a>"
-		html += " (" + self.Format + ")"
-		return html
-
-	def HTML(self):
-		if self.Format == "text/sgml":
-			htmlfile = "/var/cache/scrollserver/" + self.ID + "/index.html"
-
-			# Comment this, uncomment below to enable caching.
-			self.Prepare()
-			
-#			if not os.path.isfile(htmlfile):
-#				self.Prepare()
-#			elif os.stat(htmlfile)[9] < os.stat(self.SourceFile)[9]:
-#				self.Prepare()
-
-			text = FileContents(htmlfile)
-			
-		else:
-			text = "Sorry, I don't even know what (" + self.Format + ") is!"
-		return text
 
 
 class Section:
@@ -139,10 +88,6 @@ class Section:
 	Title = ""
 	Sections = []
 	Documents = []
-
-	hasHTML = 0
-	html_loaded = 0
-	html = ""
 
 	def loadDOM(self,dom):
 		if dom.nodeType == 1 and dom.nodeName == "sect":
@@ -162,42 +107,16 @@ class Section:
 						newDocument.loadDOM(child)
 						self.Documents = self.Documents + [newDocument]
 
-	def HTML(self):
-		if self.html_loaded == 0:
-
-			self.html = ""
-			
-			# See if any subsections generate HTML
-			for sect in self.Sections:
-				if sect.HTML() <> "":
-					self.hasHTML = 1
-
-			# See if any documents generate HTML
-			for document in self.Documents:
-				if self.html <> "":
-					self.html = self.html + "<br>"
-				self.html = self.html + document.Link()
-				self.hasHTML = 1
-		
-			# If there is HTML, add title section and subsections
-			if self.hasHTML > 0:
-				self.html = "<h" + str(self.Level) + ">" + self.Title + "</h" + str(self.Level) + ">" + self.html
-
-				for sect in self.Sections:
-					self.html = self.html + sect.HTML()
-			
-			self.html_loaded = 1
-		return self.html
 
 	def DocumentByID(self, docid):
 		for document in self.Documents:
 			if document.ID == docid:
-				return document.HTML()
+				return document
 		for sect in self.Sections:
-			text = sect.DocumentByID(docid)
-			if text <> "":
-				return text
-		return ""
+			document = sect.DocumentByID(docid)
+			if not document == None:
+				return document
+		return None
 	
 
 
@@ -205,15 +124,11 @@ class ContentList:
 
 	Sections = []
 
-	html = ""
-	
-	
 	def __init__(self):
 		self.load()
 
 	def load(self):
 		self.Sections = []
-		self.html = ""
 		cmd = "scrollkeeper-get-extended-content-list C"
 		filename = commands.getoutput(cmd)
 		dom = parse(filename)
@@ -227,19 +142,12 @@ class ContentList:
 				newSection.loadDOM(sect)
 				self.Sections = self.Sections + [newSection]
 
-	def HTML(self):
-		if self.html == "":
-			self.html = ""
-			for sect in self.Sections:
-				self.html = self.html + sect.HTML()
-		return self.html
-
 	def DocumentByID(self, docid):
 		for sect in self.Sections:
-			text = sect.DocumentByID(docid)
-			if text <> "":
-				return text
-		return ""
+			document = sect.DocumentByID(docid)
+			if not document == None:
+				return document
+		return None
 
 
 class ScrollKeeper:
