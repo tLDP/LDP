@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 	 * Sixth one is always NULL 
 	 */
 	refresh();
+    getch();
 	endwin();			/* End curses mode		  */
 	return 0;
 }

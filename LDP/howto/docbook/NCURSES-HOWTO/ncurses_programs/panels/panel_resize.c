@@ -51,6 +51,7 @@ int main()
 
 	/* Show it on the screen */
 	attron(COLOR_PAIR(4));
+	mvprintw(LINES - 3, 0, "Use 'm' for moving, 'r' for resizing");
 	mvprintw(LINES - 2, 0, "Use tab to browse through the windows (F1 to Exit)");
 	attroff(COLOR_PAIR(4));
 	doupdate();
@@ -76,13 +77,13 @@ int main()
 			case 'r':	/* Re-Size*/
 				size = TRUE;
 				attron(COLOR_PAIR(4));
-				mvprintw(LINES - 3, 0, "Entered Resizing :Use Arrow Keys to resize and press <ENTER> to end resizing");
+				mvprintw(LINES - 4, 0, "Entered Resizing :Use Arrow Keys to resize and press <ENTER> to end resizing");
 				refresh();
 				attroff(COLOR_PAIR(4));
 				break;
 			case 'm':	/* Move */
 				attron(COLOR_PAIR(4));
-				mvprintw(LINES - 3, 0, "Entered Moving: Use Arrow Keys to Move and press <ENTER> to end moving");
+				mvprintw(LINES - 4, 0, "Entered Moving: Use Arrow Keys to Move and press <ENTER> to end moving");
 				refresh();
 				attroff(COLOR_PAIR(4));
 				move = TRUE;
@@ -120,7 +121,7 @@ int main()
 					++newy;
 				break;
 			case 10:	/* Enter */
-				move(LINES - 3, 0);
+				move(LINES - 4, 0);
 				clrtoeol();
 				refresh();
 				if(size == TRUE)
@@ -138,6 +139,11 @@ int main()
 				break;
 			
 		}
+	    attron(COLOR_PAIR(4));
+    	mvprintw(LINES - 3, 0, "Use 'm' for moving, 'r' for resizing");
+    	mvprintw(LINES - 2, 0, "Use tab to browse through the windows (F1 to Exit)");
+    	attroff(COLOR_PAIR(4));
+        refresh();	
 		update_panels();
 		doupdate();
 	}

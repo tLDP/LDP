@@ -12,7 +12,7 @@ int main()
  mvprintw(row/2,(col-strlen(mesg))/2,"%s",mesg);
                      		/* print the message at the center of the screen */
  getstr(str);
- mvprintw(23, 0, "You Entered: %s", str);
+ mvprintw(LINES - 2, 0, "You Entered: %s", str);
  getch();
  endwin();
 

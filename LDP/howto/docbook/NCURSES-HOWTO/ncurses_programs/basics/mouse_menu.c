@@ -34,7 +34,7 @@ int main()
 	starty = (24 - HEIGHT) / 2;
 	
 	attron(A_REVERSE);
-	mvprintw(23, 1, "Click on Exit to quit");
+	mvprintw(23, 1, "Click on Exit to quit (Works best in a virtual console)");
 	refresh();
 	attroff(A_REVERSE);
 
