@@ -47,7 +47,7 @@ import os
 
 # Constants
 
-EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" '\
+EDIT_ICON = '<img src="/images/edit.png" alt="Edit" height="20" width="20" '\
             'border="0" hspace="5" vspace="0" align="top">'
 MAKE_ICON = 'MAKE'
 
