@@ -7,12 +7,12 @@ insert(template, [Vorlage],
 insert(quickref, [QuickRef],
 [Extrem kurze Zusammenfassungen, etwa eine Seite Umfang, ]m4_dnl
 [zum Beispiel ein Schummelzettel mit Kommandozeilenoptionen].)
-insert(userguide, [User\'s Guide],
-[End user documentation for an application.])
-insert(programguide, [Programmer\'s Guide],
-[Documentation for programmers and other software developers.])
-insert(adminguide, [Administrator\'s Guide],
-[Documentation for system administrators.])
+insert(userguide, [Benutzerhandbuch],
+[Dokumentation einer Software für deren Anwender.])
+insert(programguide, [Entwicklerhandbuch],
+[Dokumentation für Programmierer und sonstige Software-Entwickler.])
+insert(adminguide, [Administratorhandbuch],
+[Dokumentation für System-Administratoren.])
 insert(intro, [Einführung],
 [Einführung und Hintergrundinformation, für Anfänger geeignet.])
 insert(manpage, [Man-Page],

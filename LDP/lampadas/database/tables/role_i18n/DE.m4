@@ -1,7 +1,17 @@
-insert(author,       [Author],         [A person who writes or who substantially rewrites the document.])
-insert(maintainer,   [Maintainer],     [A person who does not write the document, but who keeps it updated.])
-insert(comaintainer, [Co-maintainer],  [A person who assists the maintainer but is not primarily responsible for the document.])
-insert(converter,    [Converter],      [A person who converts the document from one format into another.])
-insert(translator,   [Translator],     [A person who translates the document from another language into this one.])
-insert(editor,       [Editor],         [A person who does copyediting and other forms of work on the language in the document.])
-insert(factchecker,  [Fact-checker],   [A person who ensures the document is factually accurate. Usually a subject matter expert.])
+insert(author,       [Autor],
+[Jemand der eine neues Dokument schreibt, ]m4_dnl
+[oder ein bestehendes stark überarbeitet.])
+insert(maintainer,   [Instandhalter],
+[Jemand der ein Dokument auf dem letzten Stand hält.]) 
+insert(comaintainer, [Vize-Instandhalter],
+[Jemand der dem Instandhalter hilft, ]m4_dnl
+[aber nicht für das Dokument verantwortlich ist.])
+insert(converter,    [Konverter],
+[Jemand der das Dokument in ein anderes Format umwandelt.])
+insert(translator,   [Übersetzer],
+[Jemand der das Dokument aus einer andere Sprache übersetzt.])
+insert(editor,       [Lektor],
+[Jemand der das Dokument auf sprachliche Gesichtspunkte hin bearbeitet.])
+insert(factchecker,  [Faktenprüfer],
+[Jemand der die fachlichte Richtigkeit des Dokuments sicherstellt. ]m4_dnl
+[Üblicherweise ein Experte im betreffenden Gebiet.])

@@ -1,4 +1,4 @@
-insert(german, German, [], User,
+insert(german, German, [], Benutzer,
 	[], f, f, password,
-	[This is the German test account.],
+	[Dies ist der Deutsche Testbenutzer.],
 	[default])
