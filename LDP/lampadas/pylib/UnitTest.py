@@ -143,7 +143,14 @@ class testStrings(unittest.TestCase):
 		assert L.Strings.Count() > 0
 		assert not L.Strings['header'] == None
 		assert L.Strings['test'].I18n['EN'].Text == 'Test Text'
-		
+	
+class testLanguages(unittest.TestCase):
+
+	def testLanguages(self):
+		assert L.Languages['EN'].Name == 'English'
+		assert L.Languages['FR'].Name == 'French'
+		assert L.Languages.Count() == 136
+
 class testUsers(unittest.TestCase):
 
 	def testUsers(self):

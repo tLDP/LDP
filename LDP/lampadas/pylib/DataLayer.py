@@ -15,7 +15,6 @@ import Database
 import Log
 from string import strip
 from types import StringType
-#from UserDict import UserDict
 
 
 # Globals
@@ -115,6 +114,7 @@ class Lampadas:
 		self.Config.Load()
 		self.Docs	= Docs()
 		self.Docs.Load()
+		self.Languages	= Languages()
 		self.Strings	= Strings()
 		self.Users	= Users()
 
@@ -142,23 +142,6 @@ class Classes(LampadasCollection):
 			newClass = Class()
 			newClass.Load(row)
 			self.data[newClass.ID] = newClass
-
-#	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
-#		self.id = DB.Value('SELECT max(doc_id) from document') + 1
-#		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
-#		assert DB.Exec(self.sql) == 1
-#		DB.Commit()
-#		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
-#		newDoc = Doc(self.NewID)
-#		self[self.NewID] = newDoc
-#		return self.NewID
-	
-#	def Del(self, id):
-#		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
-#		assert DB.Exec(self.sql) == 1
-#		DB.Commit()
-#		del self[id]
-
 
 
 class Class:
@@ -203,7 +186,6 @@ class Config(LampadasCollection):
 			row = self.cursor.fetchone()
 			if row == None: break
 			self[trim(row[0])] = trim(row[1])
-		
 
 
 # Documents
@@ -371,6 +353,39 @@ class DocError:
 		self.Error	= trim(row[0])
 
 
+# Languages
+
+class Languages(LampadasCollection):
+	"""
+	A collection object of all languages.
+	"""
+
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT isocode, language_name FROM language"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newLanguage = Language()
+			newLanguage.Load(row)
+			self.data[newLanguage.Code] = newLanguage
+
+
+class Language:
+
+	def __init__(self, LanguageCode=None):
+		if LanguageCode == None: return
+		self.Code = LanguageCode
+		self.sql = "SELECT isocode, language_name FROM language WHERE isocode= " + wsq(LanguageCode)
+		self.cursor = DB.Select(self.sql)
+		self.Load(self.sql)
+
+	def Load(self, row):
+		self.Code = trim(row[0])
+		self.Name = trim(row[1])
+
+
 # String
 
 class Strings(LampadasCollection):
@@ -388,23 +403,6 @@ class Strings(LampadasCollection):
 			newString = String()
 			newString.Load(row)
 			self.data[newString.Code] = newString
-
-#	def Add(self, Title, StringID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
-#		self.id = DB.Value('SELECT max(doc_id) from document') + 1
-#		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(StringID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
-#		assert DB.Exec(self.sql) == 1
-#		DB.Commit()
-#		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
-#		newDoc = Doc(self.NewID)
-#		self[self.NewID] = newDoc
-#		return self.NewID
-	
-#	def Del(self, id):
-#		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
-#		assert DB.Exec(self.sql) == 1
-#		DB.Commit()
-#		del self[id]
-
 
 
 class String:

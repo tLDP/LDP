@@ -39,27 +39,34 @@ class PageFactory:
 
 	def __call__(self, key, lang):
 		if key[:4] == 'doc/':
-			docid = int(key[4:])
-			Doc = L.Docs[docid]
-			assert not Doc == None
-			if Doc.Format=='SGML' or Doc.Format == 'XML':
-				Files = Doc.Files
-				if Files.Count() == 0:
-					return "No file to process"
-				elif Files.Count() > 1:
-					return "Only single files supported right now"
+			DocID = int(key[4:])
+			return self.DocPage(DocID, lang)
+		else:
+			return self.Page(key, lang)
+
+	def Page(self, key, lang):
+		page = L.Strings['tpl-default'].I18n[lang].Text
+		page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
+		page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
+		page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
+		return page
+
+	def DocPage(self, DocID, lang):
+		Doc = L.Docs[DocID]
+		assert not Doc == None
+		if Doc.Format=='SGML' or Doc.Format == 'XML':
+			Files = Doc.Files
+			if Files.Count() == 0:
+				page = 'No file to process'
+			elif Files.Count() > 1:
+				page = 'Only single files supported right now'
+			else:
 				keys = Files.keys()
 				for key in keys:
 					File = Files[key]
 					page = C.ConvertSGMLFile(cvs_root + File.Filename, File.Format)
-			else:
-				return "FORMAT NOT YET SUPPORTED"
-
 		else:
-			page = L.Strings['tpl-default'].I18n[lang].Text
-			page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
-			page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
-			page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
+			page =  'FORMAT NOT YET SUPPORTED'
 		return page
 
 

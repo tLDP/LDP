@@ -89,7 +89,9 @@ class Lintadas:
 		Log('Lintadas run on document ' + str(DocID) + ' complete')
 
 
-# When run at the command line, all checks are performed on all documents.
+# When run at the command line, check the document requested.
+# If no document was specified, all checks are performed on all documents.
+# 
 
 Lintadas = Lintadas()
 
