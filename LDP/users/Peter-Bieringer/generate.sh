@@ -5,10 +5,21 @@
 
 # $Id$
 
+
 if [ -z "$1" ]; then
 	file_sgml="Linux+IPv6-HOWTO.sgml"
 else
 	file_sgml="$1"
+fi
+
+if ! echo "$file_sgml" | grep -q ".sgml$"; then
+	echo "ERR: file is not a SGML file: $file_sgml"
+	exit 1
+fi
+
+if ! head -1 "$file_sgml" |grep -q DOCTYPE ; then
+	echo "ERR: file is not a SGML file: $file_sgml"
+	exit 1
 fi
 
 echo "Used SGML file: $file_sgml"
@@ -42,10 +53,22 @@ else
 	echo "WARN: cannot execute 'runsgmlfix.sh'"
 fi
 
+# look for required binaries
+for f in /usr/bin/htmldoc /usr/local/bin/ldp_print /usr/bin/nsgmls /usr/bin/jade /usr/bin/db2ps; do
+	if [ ! -e $f ]; then
+		echo "Missing file: $f"
+		exit 1
+	fi
+	if [ ! -x $f ]; then
+		echo "Cannot executue: $f"
+		exit 1
+	fi
+done
+
 validate_sgml() {
 	echo "INF: Validate SGML code '$file_sgml'"
 	set -x
-	nsgmls -s $file_sgml
+	/usr/bin/nsgmls -s $file_sgml
 	set +x
 	if [ $? -gt 0 ]; then
 		echo "ERR: Validation results in errors!"
@@ -64,14 +87,14 @@ create_html_multipage() {
 		rm -rf "$file_base/*"
 	fi
 	pushd "$file_base"
-	jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
+	/usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
 	popd
 }
 
 create_html_singlepage() {
 	echo "INF: Create HTML singlepage '$file_html'"
 	set -x
-	jade -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_sgml >$file_html
+	/usr/bin/jade -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_sgml >$file_html
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -85,7 +108,7 @@ create_html_singlepage() {
 create_rtf() {
 	echo "INF: Create RTF file '$file_rtf'"
 	set -x
-	jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_sgml
+	/usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_sgml
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -99,7 +122,7 @@ create_rtf() {
 create_ps() {
 	echo "INF: Create PS file '$file_ps'"
 	set -x
-	db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
+	/usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
