@@ -2,7 +2,7 @@
 
 <book id="index">
  <bookinfo>
-  <title>The Linux SCSI subsystem in 2.4</title>
+  <title>The Linux SCSI subsystem in 2.4 HOWTO</title>
 
   <authorgroup>
    <author>
@@ -15,7 +15,20 @@
     </affiliation>
    </author>
   </authorgroup>
-  <pubdate>2nd January 2001</pubdate>
+  <pubdate>2001-01-22</pubdate>
+
+  <revhistory>
+     <revision>
+       <revnumber>1.1</revnumber>
+       <date>2001-01-22</date>
+       <authorinitials>dpg</authorinitials>
+       <revremark>
+             Add osst description, _EXTRA_DEVS limitations
+       </revremark>
+     </revision>
+
+     <!-- Additional (*earlier*) revision histories go here -->
+  </revhistory>
 
   <copyright>
    <year>2000</year>
@@ -38,6 +51,18 @@
    </para>
 
   </legalnotice>
+
+  <abstract>
+  <para>
+    This document describes the SCSI subsystem as the Linux kernel
+    enters the 2.4 production series.
+    An external view of the SCSI subsystem is the main theme.
+    Material is included to help the system administration of the
+    Linux SCSI subsystem. There are also brief descriptions of
+    ioctl()s and interfaces that may be relevant to those writing
+    applications that use this subsystem.
+  </para>
+  </abstract>
  </bookinfo>
 
 <toc></toc>
@@ -57,7 +82,8 @@ However internal data structures and design issues are not addressed
 [see reference <link linkend=W2>W2</link>]. To unclutter the presentation,
 compile options and system calls (including ioctl()s) have been placed in
 <xref linkend="compileopt">. Although not strictly part of the SCSI 
-subsystem, there is also description of raw devices in <xref linkend="rawdev">.
+subsystem, there is also a description of raw devices in 
+<xref linkend="rawdev">.
 </para>
 <para>
 This document follows on from one written four years ago by Drew
@@ -70,11 +96,11 @@ document has a lot of information on the adapter drivers.
 </para>
 <para>
 The most up to date version of this document can be found at
-<ulink url="http://www.torque.net/scsi/linux_scsi_24">
-<literal>www.torque.net/scsi/linux_scsi_24</literal></ulink>.
+<ulink url="http://www.torque.net/scsi/SCSI-2.4-HOWTO">
+<literal>www.torque.net/scsi/SCSI-2.4-HOWTO</literal></ulink>.
 </para>
 <para>
-This document was built on 2nd January 2001.
+This document was built on 22nd January 2001.
 </para>
 </chapter>
 
@@ -271,7 +297,14 @@ case of SCSI disks, are subdivided as follows:
 The disk device names without a trailing digit refer to the whole disk
 (e.g. <filename>/dev/sda</filename>)
 while those with a trailing digit refer to one of the 15 allowable
-partitions within that disk.
+partitions 
+<footnote><para>
+If 15 partitions is too limiting then the Logical Volume Manager (LVM)
+might be considered. See <filename>/usr/src/linux/Documentation/LVM-HOWTO
+</filename>. LVM will also allow a logical partition to span multiple
+block devices.
+</para></footnote>
+within that disk.
 </para>
 <para>
 The remaining 7 SCSI disk block major numbers follow a similar pattern:
@@ -593,7 +626,10 @@ a floppy.
 While LILO is the most common boot loader in use with Linux today, other
 boot loaders such as "grub" [see <ulink url="http://www.gnu.org/software/grub">
 <literal>www.gnu.org/software/grub</literal></ulink>] should be considered
-if the root partition is a reiserfs or ext3 partition.
+if the root partition is a reiserfs or ext3 partition. An excellent paper
+on lilo and the Linux bootup sequence can be found 
+<ulink url="ftp://icaftp.epfl.ch/pub/people/almesber/booting/bootinglinux-0.ps.gz">
+<literal>here</literal></ulink>.
 </para>
 <para>
 Some boot parameters related to the SCSI subsystem:
@@ -608,6 +644,7 @@ Some boot parameters related to the SCSI subsystem:
  init=&lt;command> [executes &lt;command> rather than init]
  quiet          [reduce output to console during boot]
  debug          [increase output to console during boot]
+ nmi_watchdog=0 [turn off NMI watchdog on a SMP machine]
  max_scsi_luns=1  [limits SCSI bus scans to lun==0]
 
 * When devfs is in use the initial read-only mount
@@ -618,6 +655,12 @@ Some boot parameters related to the SCSI subsystem:
   when disk or adapter changes have broken the
   kernel boot load.
 </programlisting>
+The "root=" argument may also be a hex number. For example, if the root
+partition is on <filename>/dev/sda3</filename> then "root=803" is 
+appropriate. The last two digits are the minor device number discussed
+in an earlier section.
+</para>
+<para>
 The default argument to the "init" parameter is <filename>/sbin/init
 </filename> (see man (8) init). If files such as <filename>/etc/fstab
 </filename> have incorrect entries, it may be useful to drop directly
@@ -934,9 +977,23 @@ file (block or char) typically found in the <filename>/dev
 <sect1 id="sd">
       <title>Disk driver (sd)</title>
 <para>
+Two types of SCSI devices are accessible via the sd driver:
+<itemizedlist>
+<listitem><para>"direct access" devices which are usually magnetic disks.
+[SCSI peripheral device code is 0]</para></listitem>
+<listitem><para>"Optical memory devices" which are often called MOD
+disks. [SCSI peripheral device code is 7]</para></listitem>
+</itemizedlist>
 The sd driver is a block device which means that it is closely associated
 with the block subsystem. It also supports the concept of partitions.
 [<command>man sd</command> dates from 1992.]
+</para>
+<para>
+The sd driver is capable of recognizing 128 disks when it is loaded
+at kernel boot time or later as a module. However, once it is loaded,
+it will only recognize a fixed number of additional disks. The number
+of additional disks that can be accommodated is set by the kernel
+configuration parameter CONFIG_SD_EXTRA_DEVS whose default value is 40.
 </para>
 
 <sect2 id="sdbparams">
@@ -958,7 +1015,9 @@ its module name is <filename>sd_mod.o</filename>.
 <sect1 id="sr">
       <title>CDROM driver (sr or scd)</title>
 <para>
-The SCSI upper level device name is "sr" while "sr_mod" is the module name.
+CDROM and DVD drives (and WORM devices) are accessible via the sr upper 
+level device driver.
+While is "sr" is the device driver name, "sr_mod" is its module name.
 The device file name is either <filename>/dev/sr&lt;n></filename> or
 <filename>/dev/scd&lt;n></filename>.
 </para>
@@ -988,6 +1047,22 @@ driver would be <filename>ide-cd.o</filename> . Once the IDE subsystem
 "owns" an ATAPI CDROM player then this excludes the ide-scsi driver from
 attaching itself to the same device. In order to change this default
 action see the following sections on boot and module parameters.
+</para>
+<para>
+Two types of SCSI devices are accessible via the sr driver:
+<itemizedlist>
+<listitem><para>CD-ROM devices (including DVD players)
+[SCSI peripheral device code is 5]</para></listitem>
+<listitem><para>"Write-once read-multiple" devices which are known as WORMs.
+[SCSI peripheral device code is 4]</para></listitem>
+</itemizedlist>
+</para>
+<para>
+The sr driver is capable of recognizing 256 CDROM/DVD drives when it is 
+loaded at kernel boot time or later as a module. However, once it is 
+loaded, it will only recognize a fixed number of additional drives. The 
+number of additional drives that can be accommodated is set by the kernel
+configuration parameter CONFIG_SR_EXTRA_DEVS whose default value is 2.
 </para>
 
 <sect2 id="srbparams">
@@ -1077,6 +1152,17 @@ program for controlling tape autoloaders
 (see <ulink url="http://mtx.sourceforge.net">
 <literal>mtx.sourceforge.net</literal></ulink>).
 </para>
+<para>
+The st driver detects those SCSI devices whose peripheral device type
+is "Sequential-access" (code number 1) unless they appear on the
+driver's "reject_list". [Currently the OnStream tape drives (decribed
+in a following section) are the only entry in this reject_list.]
+</para>
+<para>
+The st driver is capable of recognizing 256 tape drives. Any number of
+tape drives (up to the overall limit of 256) can be added after the st
+driver is loaded.
+</para>
 
 <sect2 id="stbparams">
       <title>st boot parameters</title>
@@ -1111,10 +1197,43 @@ max_sg_segs=&lt;n>
 None.
 </para>
 </sect2>
+<sect2 id="stosst">
+      <title>osst driver for OnStream devices</title>
+<para>
+There is an auxiliary tape driver for tape drives manufactured by
+OnStream. It is an additional upper level driver and can co-exist with
+the st driver. Its driver name is "osst" (as is its module name).
+</para>
+<para>
+The OnStream SC-x0 SCSI tape drives can not be driven by the 
+standard st driver, but instead need this special osst driver and 
+use the  <filename>/dev/osst&lt;x></filename> char device nodes (major 206).   
+[Where &lt;x> follows the same naming scheme as st devices outlined
+in the <link linkend=dnames>device name</link> section.]
+Via usb-storage and ide-scsi, you may be able to drive the USB-x0 
+and DI-x0 drives as well. Note that there is also a second generation
+of OnStream tape drives (ADR-x0) that supports the standard SCSI-2
+commands for tapes (QIC-157) and can be driven by the standard 
+driver st. For more information, you may have a look at the kernel
+source file <filename>/usr/src/linux/drivers/scsi/README.osst</filename>.
+More info on the OnStream driver may be found on 
+<ulink url="http://linux1.onstream.nl/test/">
+<literal>linux1.onstream.nl/test/</literal></ulink>.
+</para>
+</sect2>
 </sect1>
 
 <sect1 id="sg">
       <title>Generic driver (sg)</title>
+<para>
+All types of SCSI devices are accessible via the sg driver. This means
+devices such as CDROM drives can be accessed both via the sr and sg
+drivers. Other SCSI devices such as scanners can only be accessed
+via the sg driver.
+The sg driver is capable of recognizing 256 SCSI devices. Any number of
+devices (up to the overall limit of 256) can be added after the sg
+driver is loaded.
+</para>
 <para>
 See reference <link linkend=W4>W4</link> for the SCSI Generic (sg) driver
 documentation. For SCSI standards see reference
@@ -1312,6 +1431,16 @@ maintainers are listed in the <filename>/usr/src/linux/MAINTAINERS</filename>
 file. If there is nothing there, look in the relevant ".c" file in the SCSI
 subsystem directory. Some old drivers have no active maintainers. In such cases
 posting to the linux-scsi newsgroup may help [see <link linkend=N1>N1</link>].
+</para>
+<para>
+Lower level drivers can support either of 2 error handling strategies.
+The older one is considered obsolete while the newer one is often called
+"new_eh". The advantage of "new_eh" is that it uses a separate kernel
+thread (named "scsi_eh_&lt;n>") to facilitate error recovery. Both error
+handling strategies were also available in the lk 2.2 series in which
+very few adapter drivers used "new_eh". In the lk 2.4 series, more 
+drivers are using it and the plan in the forthcoming lk 2.5 development
+series is to drop mid level support for the older, obsolete error strategy.
 </para>
 <para>
 Drew Eckhardt's SCSI-HOWTO document [see reference <link linkend=W7>W7</link>]
@@ -1537,7 +1666,7 @@ raw devices. The size of the transfer for read(2) and write(2) must be
 an integral multiple of the physical device's block size. For a disk
 this will be its sector size which is normally 512 bytes. The data buffer
 given to read() and write() system calls must be aligned to the block 
-size.The lseek(2) call needs to align its file read/write offset to a block
+size. The lseek(2) call needs to align its file read/write offset to a block
 boundary as well. The pread(3) call (see <command>man pread</command>)
 combines a read() and a lseek() and can be useful with raw devices (dito with 
 pwrite() ). Care should be taken with offsets greater than 2 GB (or perhaps
@@ -1925,6 +2054,11 @@ Associated with devfs but very useful even in its absence is the
 "scsihosts" kernel boot time (and module load time) option. This option
 allows users to have some control over the ordering of multiple SCSI hosts.
 </para>
+<para>
+This appendix is difficult to maintain since features and drivers that
+have proven useful in lk 2.4 (and its development tree) have tended to
+be backported into the higher release numbers of the lk 2.2 series.
+</para>
 
 <sect1 id="chgml">
       <title>Mid level changes</title>
@@ -1940,7 +2074,7 @@ SCSI_IOCTL_GET_IDLUN    {ioctl, changed}
 <para>
 <programlisting>
 HDIO_GETGEO_BIG         {ioctl, new}
-SCSI_EMULATED_HOST      {ioctl, new}
+ <!-- flagged _not_ added:  SCSI_EMULATED_HOST      {ioctl, new} -->
 </programlisting>
 </para>
 </sect1>
@@ -1965,6 +2099,10 @@ device at <filename>/dev/hdb</filename>. In lk 2.4 this has become
 No interface changes. In lk 2.2 the maximum number of extra tape devices
 that could be added after boot time was limited to 3. This limitation
 has been removed (leaving a maximum of 32 tape devices as noted earlier).
+</para>
+<para>
+A variant st driver called "osst" to handle early model OnStream tape
+drives has been added in lk 2.4 .
 </para>
 </sect1>
 
@@ -2681,8 +2819,7 @@ The author is grateful for the following contributions:
 <formalpara><title>CORRECTIONS and SUGGESTIONS</title>
 <para>
 Please send any corrections or suggestions to the author at
-<email>dougg@torque.net</email> or <email>dgilbert@interlog.com
-</email>.
+<email>dgilbert@interlog.com</email> or <email>dougg@torque.net</email> .
 </para>
 </formalpara>
 
