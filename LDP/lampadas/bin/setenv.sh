@@ -20,3 +20,6 @@ export LAMPADAS_SQL=$LAMPADAS_ROOT/database/tables
 
 # used by bin/lampadasweb to find the file lampadas.conf
 export LAMPADAS_ETC=$LAMPADAS_ROOT/conf
+
+# used by pylib/Makefile.py to locate XSLT stylesheets
+export LAMPADAS_XSL=$LAMPADAS_ROOT/xsl

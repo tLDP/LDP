@@ -1,3 +1,4 @@
-insert(main, [Main Menu])
-insert(misc, [Misc Menu])
-insert(help, [Help Menu])
+insert(main,        [Main Menu])
+insert(news,        [News Menu])
+insert(volunteer,   [Volunteer Menu])
+insert(help,        [Help Menu])

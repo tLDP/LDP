@@ -11,7 +11,6 @@ insert(default,
 	      <tr><td colspan=2>|header|</td></tr>
 	      <tr>
 		<td width="200" valign="top">
-            |boxmainmenu|
             |tabmenus|
         </td>
 		<td valign="top">|body|</td>

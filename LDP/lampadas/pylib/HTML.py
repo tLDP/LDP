@@ -208,17 +208,6 @@ class ComboFactory:
 
 class BoxFactory:
 
-    def main_menu(self, lang):
-        box = ''
-        box = box + '<table class="navbox"><tr><th>|mmtitle|</th></tr>'
-        box = box + '<tr><td>'
-        box = box + '<a href="home">|home|</a><br>'
-        box = box + '<a href="doctable">|doctable|</a><br>'
-        box = box + '<a href="downloads">Downloads</a>'
-        box = box + '</td></tr>'
-        box = box + '</table>'
-        return box
-
     def section_menu(self, section_code, lang):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
@@ -226,7 +215,7 @@ class BoxFactory:
         box = ''
         box = box + '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>'
         box = box + '<tr><td>'
-        keys = lampadasweb.pages.keys()
+        keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
             page = lampadasweb.pages[key]
             if page.section_code == section_code:
@@ -327,7 +316,7 @@ class TableFactory:
 
         return box
 
-    def docs(self, lang):
+    def doctable(self, lang):
         log(3, "Creating doctable")
         box = ''
         box = box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
@@ -346,7 +335,7 @@ class TableFactory:
     def menus(self, lang):
         log(3, "Creating all section menus:")
         box = ''
-        keys = lampadasweb.sections.sort_by("sort_order")
+        keys = lampadasweb.sections.sort_by('sort_order')
         for key in keys:
             box = box + self.boxf.section_menu(key, lang)
         log(3, "all section menus complete")
@@ -421,15 +410,10 @@ class PageFactory:
                 if token=='stylesheet':
                     newstring='default'
 
-                # Boxes
-                # 
-                if token=='boxmainmenu':
-                    newstring = self.boxf.main_menu(uri.language)
-
                 # Tables
                 # 
                 if token=='tabdocstable':
-                    newstring = self.tablef.docs(uri.language)
+                    newstring = self.tablef.doctable(uri.language)
             
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri.id, uri.language)
@@ -476,9 +460,11 @@ def profile():
     profile.run('page_factory.page("home")')
     
 def main():
-    profile()
-#    for arg in sys.argv[1:]:
-#        print page_factory.page(arg)
+    if len(sys.argv[1:]):
+        for arg in sys.argv[1:]:
+            print page_factory.page(arg)
+    else:
+        profile()
 
 
 if __name__ == "__main__":

@@ -1,20 +1,82 @@
-insert([404], [Error 404, Page Not Found], Error,
-[
-    <p>I\'m sorry, but the page you requested does not exist.
-    If you came here from another website, please notify the webmaster of that site
-    that their link is incorrect or out of date.
-
-    <p>If you came here from another page on this Lampadas system,
-    you have probably found a bug.
-    If you believe that to be the case, please file a bug report for the Lampadas developers.
-])
-
 insert([home], [Lampadas], [Home], 
 [
-    <p>Welcome to |project|
+    <p>Welcome to |project|.
 
     <p>This site is based on a development version of the Lampadas Document Management System
     from <a href="http://www.tldp.org">The Linux Documentation Project</a>
+])
+
+insert([doctable], [DocTable], DocTable,
+[
+    |tabdocstable|
+])
+
+insert([news], [News], [News],
+[
+    |tabnews|
+])
+
+insert([contribute], [Contributing to |project|], [Contributing],
+[
+    As a member of this Lampadas community, you can collaborate with
+    hundreds or even thousands of others to produce documentation,
+    which can then be shared with others all around the world over the
+    Web.
+    
+    <p>We\'ve designed the Lampadas system to make contributing simple and easy.
+    Here are some ways you can help, roughly in order of difficulty or
+    commitment required:
+
+    <ul>
+    <li>Rate Documents
+
+    <p>Each document has a "rating", on a scale of 1 to 10, which tells you
+    what other readers think of it.
+    We use this rating to improve our documents, for focusing our attention
+    on the documents you\'ve identified as neednig improvement.
+    </li>
+
+    <li>Report a Bug
+
+    <p>If you find an error in any document, file a bug report.
+    </li>
+    
+    <li>Translate a Document
+
+    <p>Translators are always in short supply, and we value them very much.
+    Our goal is to provide all of our documentation in as many languages as possible,
+    allowing people all over the world to take advantage of it.
+    </li>
+
+    <li>Write a Document
+
+    <p>If you are a good writer with solid technical knowledge,
+    write a new document and contribute it to the collection.
+    Lampadas has several tools that will help you.
+    </li>
+    
+    <li>Help Lampadas
+
+    <p>If you have programming or translating skills, you can help to develop
+    the platform upon which this site is based.
+
+    <p>The Lampadas System itself can be localized to display in several languages.
+    Translators are needed to translate it into additional languages.
+    It is currently available in:
+
+    <ul>
+    <li>English</li>
+    <li>French</li>
+    <li>German</li>
+    </ul>
+    </li>
+
+    </ul>
+])
+
+insert([about], [About |project|], [About |projectshort|],
+[
+    Replace this text with information about your project.
 ])
 
 insert([lampadas], [About Lampadas], About Lampadas,
@@ -97,64 +159,6 @@ insert([copyright], [Copyright], [Copyright],
     documentation regardless of the document\'s license.
 ])
 
-insert([contribute], [Contributing to |project|], [Contributing],
-[
-    As a member of this Lampadas community, you can collaborate with
-    hundreds or even thousands of others to produce documentation,
-    which can then be shared with others all around the world over the
-    Web.
-    
-    <p>We\'ve designed the Lampadas system to make contributing simple and easy.
-    Here are some ways you can help, roughly in order of difficulty or
-    commitment required:
-
-    <ul>
-    <li>Rate Documents
-
-    <p>Each document has a "rating", on a scale of 1 to 10, which tells you
-    what other readers think of it.
-    We use this rating to improve our documents, for focusing our attention
-    on the documents you\'ve identified as neednig improvement.
-    </li>
-
-    <li>Report a Bug
-
-    <p>If you find an error in any document, file a bug report.
-    </li>
-    
-    <li>Translate a Document
-
-    <p>Translators are always in short supply, and we value them very much.
-    Our goal is to provide all of our documentation in as many languages as possible,
-    allowing people all over the world to take advantage of it.
-    </li>
-
-    <li>Write a Document
-
-    <p>If you are a good writer with solid technical knowledge,
-    write a new document and contribute it to the collection.
-    Lampadas has several tools that will help you.
-    </li>
-    
-    <li>Help Lampadas
-
-    <p>If you have programming or translating skills, you can help to develop
-    the platform upon which this site is based.
-
-    <p>The Lampadas System itself can be localized to display in several languages.
-    Translators are needed to translate it into additional languages.
-    It is currently available in:
-
-    <ul>
-    <li>English</li>
-    <li>French</li>
-    <li>German</li>
-    </ul>
-    </li>
-
-    </ul>
-])
-
 insert([privacy], [Privacy Policy], [Privacy],
 [
     <p>We are committed to helping you maintain your privacy while online.
@@ -171,18 +175,19 @@ insert([privacy], [Privacy Policy], [Privacy],
     <p>We will not spam you or add you to any mailing lists without your consent.
 ])
 
-insert([about], [About |project|], [About |projectshort|],
-[
-    Replace this text with information about your project.
-])
-
-insert([doctable], [DocTable], DocTable,
-[
-    |tabdocstable|
-])
-
 insert([editdoc], [Edit Document Meta-data], [Edit Document],
 [
     |tabeditdoc|
+])
+
+insert([404], [Error 404, Page Not Found], Error,
+[
+    <p>I\'m sorry, but the page you requested does not exist.
+    If you came here from another website, please notify the webmaster of that site
+    that their link is incorrect or out of date.
+
+    <p>If you came here from another page on this Lampadas system,
+    you have probably found a bug.
+    If you believe that to be the case, please file a bug report for the Lampadas developers.
 ])
 

@@ -1,34 +1,21 @@
-insert([404], [Introuvable],
-[
-	Introuvable
-])
-
-insert([home], [Le Lampadas], 
+insert([home], [Le Lampadas], [Le Lampadas],
 [
 	<p>Ce syst&egrave;me est en cours de d&eacute;veloppement. Son code est modifi&eacute; en permanence ce qui le rend instable.
 
 	<p>Merci de ne pas envoyer de rapport de bogue pour le moment
 ])
 
-insert([lampadas], [A propos de Lampadas],
+insert([doctable], [Table des docs],
 [
-	<p>Lampadas est un syst&egrave;me de r&eacute;daction, gestion, publication et lecture de documentaion.
-
-	<p>Une fois enregistr&eacute; dans Lampadas, vous devenez membre d\'une communaut&eacute; 
-	incluant auteurs, &eacute;diteurs, experts techniques et lecteurs,
-	qui collaborent et partagent des informations.
-
-	<p>See <a href="contribute">Contribuer &agrave; Lampadas</a>.
-
-	<p>...
+	|tabdocstable|
 ])
 
-insert([copyright], [Le Copyright],
+insert([news], [News], [News],
 [
-	Copyright 2002 David Merrill.
+	|tabnews|
 ])
 
-insert([contribute], [Contribuer &agrave; Lampadas],
+insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampadas],
 [
 	En tant que membre de ce syst&egrave;me, vous b&eacute;n&eacute;ficiez du travail de plusieurs centaines d\'utilisateurs de Linux, qui ont b&eacute;n&eacute;volement contribu&eacute; &agrave; cr&eacute;er cette &eacute;norme biblioth&egrave;que &eacute;lectronique.
 
@@ -61,22 +48,41 @@ insert([contribute], [Contribuer &agrave; Lampadas],
 	</ul>
 ])
 
-insert([privacy], [Confidentialit&eacute;],
-[
-	Confidentialit&eacute;
-])
-
-insert([about], [A propos de |project|],
+insert([about], [A propos de |project|], [A propos de |projectshort|],
 [
 	Remplacez ce texte par la description de votre projet.
 ])
 
-insert([doctable], [Table des docs],
+insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
 [
-	|tabdocstable|
+	<p>Lampadas est un syst&egrave;me de r&eacute;daction, gestion, publication et lecture de documentaion.
+
+	<p>Une fois enregistr&eacute; dans Lampadas, vous devenez membre d\'une communaut&eacute; 
+	incluant auteurs, &eacute;diteurs, experts techniques et lecteurs,
+	qui collaborent et partagent des informations.
+
+	<p>See <a href="contribute">Contribuer &agrave; Lampadas</a>.
+
+	<p>...
 ])
 
-insert([editdoc], [M&eacute;ta-donn&eacute;es du doc],
+insert([copyright], [Le Copyright], [Le Copyright],
+[
+	Copyright 2002 David Merrill.
+])
+
+insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
+[
+	Confidentialit&eacute;
+])
+
+insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|
 ])
+
+insert([404], [Introuvable], [Introuvable],
+[
+	Introuvable
+])
+
