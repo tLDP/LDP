@@ -19,11 +19,14 @@ unless ($L->Admin()) {
 	}
 }
 
-@topic_subtopic_num = split /\./, $topic;
-$topic_num    = $topic_subtopic_num[0];
-$subtopic_num = $topic_subtopic_num[1];
+if ($topic) {
+	@topic_subtopic_num = split /\./, $topic;
+	$topic_num    = $topic_subtopic_num[0];
+	$subtopic_num = $topic_subtopic_num[1];
 
-$sql = "INSERT INTO document_topic (doc_id, topic_num, subtopic_num) VALUES ($doc_id, $topic_num, $subtopic_num)";
-$DB->Exec($sql);
+	$sql = "INSERT INTO document_topic (doc_id, topic_num, subtopic_num) VALUES ($doc_id, $topic_num, $subtopic_num)";
+	$DB->Exec($sql);
+}
+
 $L->Redirect($caller);
 
