@@ -219,7 +219,7 @@ sub proc_txt {
 			&closelistitem;
 			$line =~ s/^#//;
 			&trimline;
-			$line =~ s/^/\n<listitem><para>/;
+			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
 
@@ -234,7 +234,7 @@ sub proc_txt {
 			&closelistitem;
 			$line =~ s/^\*//;
 			&trimline;
-			$line =~ s/^/\n<listitem><para>/;
+			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
 
@@ -306,15 +306,18 @@ sub proc_txt {
 			# namespaces are handled differently
 			#
 			if ($link =~ /mailto:/) {
-				$linkname = $link;
-				$linkname =~ s/mailto://;
-			} elsif ($link =~ /^ldp:/) {
+				$link =~ s/^mailto://;
+				$linkname =~ s/^mailto://;
+			} elsif ($link =~ /ldp:/) {
 				$link =~ s/^ldp://;
 				$linkname =~ s/^ldp://;
-				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O /tmp/name-to-url.txt");
-				open(URL, "/tmp/name-to-url.txt") || die "txt2db: cannot open temporary file ($!)\n";
+
+				$tempfile = "/tmp/txt2db-" . $rand;
+				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O $tempfile");
+				open(URL, "$tempfile") || die "txt2db: cannot open temporary file ($!)\n";
 				$link = <URL>;
 				close(URL);
+				unlink $tempfile;
 			}			
 			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		}
