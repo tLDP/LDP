@@ -18,14 +18,22 @@ when this was a sgml document.
     <surname>Gilbert</surname>
     <affiliation>
      <address>
-      <email>dgilbert@interlog.com</email>
+      <email>dgilbert at interlog dot com</email>
      </address>
     </affiliation>
    </author>
   </authorgroup>
-  <pubdate>2003-05-04</pubdate>
+  <pubdate>2003-08-24</pubdate>
 
   <revhistory>
+     <revision>
+       <revnumber>2.1</revnumber>
+       <date>2004-08-24</date>
+       <authorinitials>dpg</authorinitials>
+       <revremark>
+             scsihosts change -> run mkinitrd, lk 2.4.21,22
+       </revremark>
+     </revision>
      <revision>
        <revnumber>2.0</revnumber>
        <date>2003-05-04</date>
@@ -114,6 +122,7 @@ when this was a sgml document.
    <year>2001</year>
    <year>2002</year>
    <year>2003</year>
+   <year>2004</year>
    <holder>Douglas Gilbert</holder>
   </copyright>
 
@@ -189,13 +198,13 @@ document can be found at
 <ulink url="http://www.torque.net/scsi/SCSI-2.4-HOWTO">
 <literal>www.torque.net/scsi/SCSI-2.4-HOWTO</literal></ulink> (this is
 the multi-page html version).
-At that location this document is rendered in txt, ps, pdf, a single 
-(long) page of html as well as multi-page html (e.g. the postscript
-version is at <ulink url="http://www.torque.net/scsi/SCSI-2.4-HOWTO.ps">
-<literal>www.torque.net/scsi/SCSI-2.4-HOWTO.ps</literal></ulink>).
+At that location this document is rendered in txt, pdf, ps, a single 
+(long) page of html as well as multi-page html. For example, a pdf
+version is at <ulink url="http://www.torque.net/scsi/SCSI-2.4-HOWTO.pdf">
+<literal>www.torque.net/scsi/SCSI-2.4-HOWTO.pdf</literal></ulink>).
 </para>
 <para>
-This document was last altered on 4th May 2003.
+This document was last altered on 24th August 2004.
 </para>
 </chapter>
 
@@ -755,6 +764,7 @@ Some boot parameters related to the SCSI subsystem:
  debug          [increase output to console during boot]
  nmi_watchdog=0 [turn off NMI watchdog on a SMP machine]
  max_scsi_luns=1  [limits SCSI bus scans to lun==0]
+ scsi_allow_ghost_devices=&lt;n>
 </programlisting>
 * When devfs is in use the initial read-only mount
 of the root partition can be done via the old
@@ -1021,6 +1031,12 @@ max_scsi_luns=&lt;n>
     where &lt;n> is a number between 1 and 8 (&lt; lk 2.4.7),
     	>= lk 2.4.7 the upper limit can be much larger
 
+scsi_allow_ghost_devices=&lt;n>
+    where (&lt;n> - 1) is the maximum lu number to ghost if the
+        the corresponding device is offline. When &lt;n>==0
+        (default) then don't ghost any devices (in lk 2.4.26
+        and later)
+
 scsihosts=host0:hosts1::host3 
 </programlisting>
 </para>
@@ -1033,7 +1049,14 @@ the names of lower level drivers (e.g. "scsihosts=advansys:imm::ide-scsi").
 <footnote>
 <para>
 Either comma or colon can be delimiters for "scsihosts". This means that
-"scsihosts=advansys,imm,,ide-scsi" is also valid.
+"scsihosts=advansys,imm,,ide-scsi" is also valid. Also if a machine's
+boot sequence involves an "initrd" stage (look in 
+<filename>/etc/grub.conf</filename> or <filename>/etc/lilo.conf</filename>
+to find out if this is the case), then the <command>mkinitrd</command>
+command should be run after a change to the "scsihosts" boot time parameter.
+This will generate a new initrd image that needs to be put in the
+correct place (most probably in the <filename>/boot</filename>
+directory).
 </para>
 </footnote>
 <footnote>
@@ -1083,6 +1106,7 @@ scsi_logging_level=&lt;n>
     where &lt;n> is the logging level mask (0 for logging off)
 max_scsi_luns=&lt;n>
 scsihosts=host0::host2
+scsi_allow_ghost_devices=&lt;n>
 </programlisting>
 </para>
 </sect1>
@@ -1117,7 +1141,7 @@ the same).
 </para>
 <para>
 Existing devices can be removed using <command>
-  echo "scsi remove-single-device &lt;h> &lt;b> &lt;t &lt;l>"
+  echo "scsi remove-single-device &lt;h> &lt;b> &lt;t> &lt;l>"
                       > /proc/scsi/scsi</command>
 where the variables are host, bus (channel), target (scsi id) and lun. The
 success (or otherwise) of this command can be determined by sending a
@@ -1284,6 +1308,16 @@ loaded, it will only recognize a fixed number of additional drives. The
 number of additional drives that can be accommodated is set by the kernel
 configuration parameter CONFIG_SR_EXTRA_DEVS whose default value is 2.
 </para>
+<para>
+People often use the <command>dd</command> command to read a data CDROM
+containing an iso9660 file system. If a count argument is not given then
+the <command>dd</command> command will read the number of 2048 byte sectors
+indicated by the SCSI Read Capacity command. Unfortunately this can 
+include unwritten (or "run out") sectors at the end of the image that can
+cause I/O errors. Use the <command>isosize</command> command (see its man 
+page) to find the true length of the iso9660 image and use that in the
+"count=" argument given to the <command>dd</command> command.
+</para>
 
 <sect2 id="srbparams">
       <title>sr boot parameters</title>
@@ -1445,7 +1479,7 @@ subsystem, then cdroms should be mounted via the "scd" device name
 and cd players should also use the "scd" device. Strangely the
 <command>hdparm</command> command should still use the <filename>
 /dev/hdd</filename> device file (or the "echo ... > /proc/ide/hdd/settings"
-method).
+method described in this <link linkend="idescsi">section</link>).
 <footnote><para>
 In the linux 2.4 kernel series there has been an increase in problems when
 the ide-scsi driver is used so that <command>cdrecord</command> can control
@@ -1845,6 +1879,7 @@ maintainers.
 </para>
 <formalpara><title>IDE-SCSI</title>
 <para>
+<anchor id="idescsi"/>
 From configuration point of view, ide-scsi will grab and try to control
 every ATA (a.k.a. IDE) device which doesn't have a "native"
 driver attached (such as ide-cd, ide-tape, etc). So for example, if
@@ -2356,12 +2391,12 @@ by Serial Attached SCSI.
 <para>
 Serial Attached SCSI (SAS) uses the same transport technology as Serial
 ATA (sATA) and extends it. [sATA is described below.] SAS can use external 
-expanders to control up to 4096 (?) devices from a single HBA circuit. The 
-data transfer is full duplex and 1.5 Gbps "phys"s can be aggregated to 
-increase bandwidth. Cable lengths can be up to 6 meters. SAS disks are 
-dual ported. sATA disks can be connected to a SAS HBA (but SAS disks can't
-be connected to a sATA HBA). SAS was demonstrated at CeBit recently but 
-won't reach the market until 2004.
+expanders to control up to 16000 devices from a single HBA. The data 
+transfer is full duplex and 1.5 Gbps or 3.0 Gbps "phys"s can be aggregated 
+to increase bandwidth. Cable lengths can be up to 6 meters. SAS disks are 
+dual ported. sATA disks can be connected to a SAS expanders (but SAS disks
+can't be connected to a sATA HBA). SAS was demonstrated at CeBit recently
+but won't reach the market until 2004.
 </para>
 </formalpara>
 <formalpara><title>FC-AL</title>
@@ -2376,15 +2411,29 @@ isn't necessarily fibre optic cable: copper (in the form of co-axial
 cable) can also be used at lower speeds and for shorter distances.
 </para>
 </formalpara>
+<formalpara><title>SRP/InfiniBand</title>
+<para>
+SRP (SCSI RDMA Protocol) 
+[<ulink url="http://www.t10.org/drafts.htm#SCSI3_SRP">
+<literal>SRP_draft</literal></ulink>] is a SCSI transport for InfiniBand 
+[<ulink url="http://www.infinibandta.org">
+<literal>Infiniband_trade_association</literal></ulink>], a high-performance
+interconnect running at 10 and 30 Gbps. SRP driver source is available at 
+<ulink url="http://infiniband.sourceforge.net/Storage/SRP/index.htm"> 
+<literal>infiniband.sourceforge.net/Storage/SRP</literal></ulink> .
+</para>
+</formalpara>
 <formalpara><title>IEEE 1394</title>
 <para>
 <anchor id="ieee1394"/>
 This standard also goes by the name of "Fire Wire" [trademarked
 by Apple] and "iLink" [trademarked by Sony]. It is a serial bus that can run
-at up to 400 Megabits/sec. It has a similar but more general architecture than
-USB. The IEEE 1394 standard allows for the SCSI command set to be
-carried over a 1394 bus. There is a "sbp2_1394" driver now available for
-the Linux IEEE 1394 stack. This sbp2_1394 driver is also a SCSI subsystem
+at up to 400 Megabits/sec (IEEE 1394a). A newer standard, IEEE 1394b, ups
+this to 800 Megabits/sec (with extensions to 1.6 and 3.2 Gigabits/sec) with
+cable runs up to 100 metres. It has a similar but more general architecture
+than USB. The IEEE 1394 standard allows for the SCSI command set to be
+carried over a 1394 bus. There is a "sbp2" driver now available for
+the Linux IEEE 1394 stack. This sbp2 driver is also a SCSI subsystem
 lower level driver (so it is functionally similar to the ide-scsi driver).
 So IEEE 1394 devices that use the SBP-2 protocol (e.g. disks, cd-rw/dvd
 drives, MO drives and scanners) can be accessed via the SCSI subsystem.
@@ -2395,8 +2444,8 @@ The sbp2 driver is now in lk 2.4.7 .
 </formalpara>
 <formalpara><title>iSCSI</title>
 <para>
-This is an emerging IETF standard for sending the SCSI command set over a
-TCP connection (or several of them). This will permit SCSI devices (targets
+This is a new IETF standard for sending the SCSI command set over a
+TCP connection (or several of them). This permits SCSI devices (targets
 such as disks) to be network appliances, accessed locally (or potentially
 at a great distance) by a host machine.
 </para>
@@ -2756,6 +2805,38 @@ error. Send warning to log/console.
 </para></listitem>
 <listitem><para>
 [2.4.20] "blocking_open" boot time, module load time parameter added to st.
+</para></listitem>
+<listitem><para>
+[2.4.21] Give new HBAs a new host number (higher than any previously used)
+unless there is a "scsihosts" match. Host numbering sequence "holes" are
+only re-used if there is a "scsihosts" match.
+</para></listitem>
+<listitem><para>
+[2.4.21] stop the SCSI status RECOVERED ERROR being treated as an error
+by the mid level (complements a change in 2.4.19).
+</para></listitem>
+<listitem><para>
+[2.4.21] use the TEST_UNIT_READY command (rather than START_STOP) to
+determine if removable media has changed (in sd driver).
+</para></listitem>
+<listitem><para>
+[2.4.21] major work on ide-scsi driver.
+</para></listitem>
+<listitem><para>
+[2.4.21] add aic79xx driver for Adaptec Ultra 320 controllers.
+</para></listitem>
+<listitem><para>
+[2.4.22] Extend timeout of SEND DIAGNOSTIC command to 2 hours. This is
+for foreground extended self tests.
+</para></listitem>
+<listitem><para>
+[2.4.26] Add 'scsi_allow_ghost_devices' kernel boot time and scsi_mod
+module option.
+</para></listitem>
+<listitem><para>
+[2.4.27] SATA support via "libata" library introduced. SATA disks appear
+with SCSI subsystem names (e.g. "/dev/sdb) and respond to SCSI commands (via
+a command translation facility).
 </para></listitem>
 </itemizedlist>
 </para>
@@ -3529,8 +3610,8 @@ series. This book is highly recommended.
 The authors
 and the publisher have unselfishly made this book available under the GNU
 Free Documentation License (version 1.1). It can be found in html at
-<ulink url="http://www.oreilly.com/catalog/linuxdrive2/chapter/book">
-<literal>www.oreilly.com/catalog/linuxdrive2/chapter/book</literal></ulink> .
+<ulink url="http://www.xml.com/ldd/chapter/book">
+<literal>www.xml.com/ldd/chapter/book</literal></ulink> .
 </para>
 <para>
 <anchor id="B2"/>
@@ -3550,16 +3631,18 @@ of Linux (sg) and ASPI/ASPI32 as used by Windows.
 <para>
 The author is grateful for the following contributions:
 <itemizedlist>
-<listitem><para>Kai M&auml;kisara (st)  <email>Kai.Makisara@metla.fi</email>
+<listitem><para>Kai M&auml;kisara (st)  <email>Kai.Makisara at metla
+dot fi</email>
 </para></listitem>
-<listitem><para>Jens Axboe (sr)  <email>axboe@suse.de</email>
+<listitem><para>Jens Axboe (sr)  <email>axboe at suse dot de</email>
 </para></listitem>
-<listitem><para>Richard Gooch (devfs)  <email>rgooch@atnf.csiro.au</email>
+<listitem><para>Richard Gooch (devfs)  <email>rgooch at atnf dot csiro 
+dot au</email>
 </para></listitem>
 <listitem><para>Tim Waugh (ppa, imm, ppscsi + docbook)
-<email>twaugh@redhat.com</email> </para></listitem>
+<email>twaugh at redhat dot com</email> </para></listitem>
 <listitem><para>Gadi Oxman (ide-scsi)
-<email>gadio@netvision.net.il</email> </para></listitem>
+<email>gadio at netvision dot net dot il</email> </para></listitem>
 </itemizedlist>
 </para>
 </formalpara>
@@ -3567,7 +3650,8 @@ The author is grateful for the following contributions:
 <formalpara><title>CORRECTIONS and SUGGESTIONS</title>
 <para>
 Please send any corrections or suggestions to the author at
-<email>dgilbert@interlog.com</email> or <email>dougg@torque.net</email> .
+<email>dgilbert at interlog dot com</email> or <email>dougg at torque
+dot net</email> .
 </para>
 </formalpara>
 
