@@ -8,11 +8,10 @@ This module generates the system log for Lampadas.
 
 # Modules ##################################################################
 
+import Config
 
+Config = Config.Config()
 
-# Constants
-
-LOG_FILE = 'lampadas.log'
 
 class Log:
 	"""
@@ -20,7 +19,7 @@ class Log:
 	"""
 
 	def __init__(self):
-		self.log = open(LOG_FILE, 'a+')
+		self.log = open(Config.Logfile, 'a+')
 
 	def __del__(self):
 		self.log.close
@@ -33,4 +32,4 @@ class Log:
 
 	def Truncate(self):
 		self.log.close
-		self.log = open(LOG_FILE, 'w+')
+		self.log = open(Config.Logfile, 'w+')
