@@ -36,7 +36,7 @@ class Document(Persistence):
             self.language = self.dms.language.get_by_id(self.lang)
             return self.language
         elif attribute=='license':
-            self.license = self.dms.license.get_by_id(self.lang)
+            self.license = self.dms.license.get_by_id(self.license_code)
             return self.license
         elif attribute=='top_file':
             top_file = self.dms.document_file.get_by_keys([['doc_id', '=', self.id], ['top', '=', 1]])

@@ -26,11 +26,6 @@ This module subclasses the Document class to generate an OMF structure for it.
 
 from Globals import *
 from Config import config
-from Users import User
-from Docs import docs
-from Licenses import licenses
-from WebLayer import lampadasweb    # FIXME: Obviously strings are not just used
-                                    # for the web! Move them out of WebLayer.
 
 from CoreDM import dms
 
@@ -63,9 +58,9 @@ class OMF:
                             self.creators(),
                             self.maintainers(),
                             self.contributors(),
-                            self.metadata.title,
+                            self.doc.title,
                             self.doc.last_update,
-                            self.metadata.version,
+                            self.doc.version,
                             self.doc.last_update,
                             self.doc.type_code,
                             self.format(),
@@ -116,7 +111,7 @@ class OMF:
     def format(self):
         omf = WOStringIO()
         if self.doc.format_code=='xml':
-            omf.write('<format dtd="%s" mime="text/xml"/>' % self.metadata.dtd_code)
+            omf.write('<format dtd="%s" mime="text/xml"/>' % self.doc.dtd_code)
         elif self.doc.format_code=='sgml':
             if self.doc.dtd_code=='html':
                 omf.write('<format dtd="%s" mime="text/html"/>' % self.doc.dtd_code)
