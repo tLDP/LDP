@@ -6,12 +6,11 @@ insert(my,                   default,    main,       2,  [],                 t, 
 insert(doctable,             default,    main,       3,  [],                 f,  f,  f,  f)
 insert(search,               default,    main,       5,  [],                 t,  f,  f,  f)
                                                                                  
-m4_dnl  Admin Menu           
-insert(users,                default,    admin,      1,  [letter],           t,  f,  t,  f)
-insert(user,                 default,    admin,      2,  [user],             t,  f,  t,  f)
 insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)
+insert(users,                default,    admin,      1,  [letter],           t,  f,  t,  f)
+insert(adduser,              default,    admin,      2,  [],                 t,  f,  t,  f)
+insert(adddocument,          default,    admin,      5,  [],                 t,  t,  f,  f)
 insert(errors,               default,    admin,      4,  [],                 t,  f,  t,  f)
-insert(newdocument,          default,    admin,      5,  [],                 t,  t,  f,  f)
                              
 insert(news,                 default,    news,       1,  [],                 f,  f,  f,  f)
                                                                                  
@@ -47,6 +46,7 @@ insert(username_required,    default,    [],         0,  [],                 t, 
 insert(email_exists,         default,    [],         0,  [],                 t,  f,  f,  f)
 insert(account_created,      default,    [],         0,  [],                 t,  f,  f,  f)
 insert(password_mailed,      default,    [],         0,  [],                 t,  f,  f,  f)
+insert(user,                 default,    [],         0,  [user],             t,  f,  f,  f)
 insert(logged_in,            default,    [],         0,  [],                 t,  f,  f,  f)
 insert(logged_out,           default,    [],         0,  [],                 t,  f,  f,  f)
 insert(type,                 default,    [],         0,  [type],             t,  f,  f,  f)

@@ -130,7 +130,6 @@ class Widgets:
         keys = lampadas.docs.sort_by('title')
         for key in keys:
             doc = lampadas.docs[key]
-            assert not doc==None
             if doc.sk_seriesid > '':
                 combo.write("<option ")
                 if doc.sk_seriesid==value:

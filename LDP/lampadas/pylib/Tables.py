@@ -21,6 +21,7 @@
 from Globals import *
 from Log import log
 from BaseClasses import *
+from Languages import languages
 from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
 from WebLayer import lampadasweb
@@ -330,7 +331,7 @@ class Tables(LampadasCollection):
                 box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
                 box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
                 box = box + '<input type=hidden name="topic_code" value=' + topic_code + '>\n'
-                box = box + '<tr><td>' + topic.title[uri.lang]
+                box = box + '<tr><td><a href="|uri.base|topic/' + topic_code + '|uri.lang_ext|">' + topic.title[uri.lang] + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
                 box = box + '</tr>\n'
@@ -361,6 +362,7 @@ class Tables(LampadasCollection):
         box = box + '<th class="collabel">|strdate_time|</th>\n'
         box = box + '<th class="collabel">|strusername|</th>\n'
         box = box + '<th class="collabel">|strcomments|</th>\n'
+        box = box + '<th class="collabel">|straction|</th>\n'
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
         note_ids = doc.notes.sort_by('date_entered')
@@ -370,12 +372,13 @@ class Tables(LampadasCollection):
             box = box + '<td>' + note.date_entered + '</td>\n'
             box = box + '<td>' + note.creator + '</td>\n'
             box = box + '<td>' + note.notes + '</td>\n'
+            box = box + '<td></td>\n'
             box = box + '</tr>\n'
         box = box + '<form method=GET action="/data/save/newdocument_note" name="document_note">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<input name="creator" type=hidden value=' + sessions.session.username + '>\n'
         box = box + '<tr><td></td><td></td>\n'
-        box = box + '<td><textarea name="notes" rows=5 cols=40></textarea></td>\n'
+        box = box + '<td><textarea name="notes" rows=5 cols=40 style="width:100%"></textarea></td>\n'
         box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
         box = box + '</tr>\n'
         box = box + '</form>\n'
@@ -610,13 +613,12 @@ class Tables(LampadasCollection):
             user = User()
             box = '<form method=GET action="/data/save/newuser" name="user">\n'
         box = box + '<table class="box" width="100%">\n'
-        box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
+        box = box + '<tr><th colspan=2>|struserdetails|</th></tr>\n'
         box = box + '<tr><td class="label">|strusername|</td>'
         if user.username=='':
             box = box + '<td><input type=text name="username"></td>\n'
         else:
-            box = box + '<td><input name="username" type=hidden value=' + uri.username + '>' + uri.username + '</td>\n'
-        box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
+            box = box + '<td><input name="username" type=hidden value=' + user.username + '>' + user.username + '</td></tr>\n'
         box = box + '<tr><td class="label">|strfirst_name|</td><td><input type=text name=first_name size="15" value="' + user.first_name + '"></td></tr>\n'
         box = box + '<tr><td class="label">|strmiddle_name|</td><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></td></tr>\n'
         box = box + '<tr><td class="label">|strsurname|</td><td><input type=text name=surname size="15" value="' + user.surname + '"></td></tr>\n'
@@ -639,6 +641,7 @@ class Tables(LampadasCollection):
         else:
             box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
             box = box + '<tr><td class="label">|strsysadmin|</td><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
+        box = box + '<tr><td class="label">|strcomments|</td><td style="width:100%"><textarea rows=6 name="notes" wrap=soft style="width:100%;">' + user.notes + '</textarea></td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
         box = box + '</table>\n'
         box = box + '</form>\n'
@@ -1054,7 +1057,7 @@ class Tables(LampadasCollection):
         <tr><th>|strlanguages|</th></tr>
         <tr><td>
         ''')
-        keys = lampadas.languages.sort_by_lang('name', uri.lang)
+        keys = languages.sort_by_lang('name', uri.lang)
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
@@ -1143,20 +1146,18 @@ class Tables(LampadasCollection):
         return box
 
     def tabsplashlanguages(self, uri):
-        """
-        Creates a fancy splash page for selecting a language.
-        """
+        """Creates a customizable splash page for selecting a language.
+           Each element gets a unique identifier such as 'p1', so a css
+           stylesheet can exercise fine control over placement."""
         log(3, 'Creating tabslashlanguages table')
         box = WOStringIO('<p class="hide"><div class="map">\n' \
-                         '<p id="p1">|strproject|</p>\n')
+                         '<h1 id="p1">|strproject|</h1>\n')
         id = 1
-        langkeys = lampadas.languages.keys()
-        for langkey in langkeys:
-            language = lampadas.languages[langkey]
-            if language.supported==1:
-                id = id + 1
-                box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
-                    % (str(id), 'home', langkey.lower(), language.name[language.code]))
+        for key in languages.supported_keys():
+            id = id + 1
+            language = languages[key]
+            box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
+                % (str(id), 'home', key.lower(), language.name[language.code]))
         box.write('</div>')
         return box.get_value()
 

@@ -7,7 +7,6 @@ CREATE TABLE sourcefile
 	filesize		INT4,
 	filemode		CHAR(20),
 	modified		TIMESTAMP,
-	full_text		TEXT,
 
 	PRIMARY KEY (filename)
 );

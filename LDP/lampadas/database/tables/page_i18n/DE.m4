@@ -11,7 +11,7 @@ insert([index], [|strproject|], [Splash-Seite],
     |tabsplashlanguages|
 ], 0)
 
-insert([newdocument], [Dokument hinzufügen], [],
+insert([adddocument], [Dokument hinzufügen], [],
 [
     |tabeditdoc|
 ], 1)
@@ -374,7 +374,7 @@ insert([topic], [View Topic], [],
     <p>|tabtopicdocs|
 ], 1)
 
-insert([document], [Alle Metadaten des Dokuments ändern], [],
+insert([document], [|doc.title|], [],
 [
     |tabeditdoc|
     <p>|tabdocerrors|
@@ -387,45 +387,45 @@ insert([document], [Alle Metadaten des Dokuments ändern], [],
     <p>|tabdoctranslations|
 ], 2)
 
-insert([document_main], [Metadaten des Dokuments ändern], [],
+insert([document_main], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
-insert([document_files], [Dateien des Dokuments ändern], [],
+insert([document_files], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
-insert([document_users], [Benutzer des Dokuments ändern], [],
+insert([document_users], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocusers|
 ])
 
-insert([document_revs], [Versionierung des Dokuments ändern], [],
+insert([document_revs], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocversions|
 ])
 
-insert([document_topics], [Themen Dokuments ändern], [],
+insert([document_topics], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdoctopics|
 ])
 
-insert([document_notes], [Anmerkungen zum Dokument], [],
+insert([document_notes], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocnotes|
 ])
 
-insert([document_translation], [Document Translations], [],
+insert([document_translation], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdoctranslations|
@@ -477,10 +477,15 @@ insert([password_mailed], [Kennwort wurde zugeschickt], [],
     wenn Sie noch weiter Probleme bei der Anmeldung haben.
 ], 1)
 
-insert([user], [Benutzerdaten ändern], [Neuer Benutzer],
+insert([user], [|user.username| - |user.name|], [],
 [
     |tabuser|
     <p>|user.docs|
+], 1)
+
+insert([adduser], [Add User], [Add User],
+[
+    |tabuser|
 ], 1)
 
 insert([logged_in], [Angemeldet], [],

@@ -39,11 +39,7 @@ def newdocument(req, username, doc_id,
              license_code, license_version, copyright_holder,
              abstract, short_desc):
 
-    # Generate a ScrollKeeper series ID
-    command = 'scrollkeeper-gen-seriesid'
-    process = os.popen(command)
-    sk_seriesid = process.read()
-    process.close()
+    sk_seriesid = new_sk_seriesid()
     
     doc = lampadas.docs.add(title, short_title, type_code,
           '', '', '',
@@ -55,7 +51,7 @@ def newdocument(req, username, doc_id,
     # Add the current user as the author of the document
     doc.users.add(username)
     
-    redirect(req, '|uri.base|editdoc/' + str(doc.id) + referer_lang_ext(req))
+    redirect(req, '../../document_main/' + str(doc.id) + referer_lang_ext(req))
 
 def document(req, username, doc_id,
              title, short_title,
@@ -207,7 +203,7 @@ def newuser(req, username, email, first_name, middle_name, surname, stylesheet, 
         return page_factory.page('email_exists')
 
     lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
-    redirect(req, '|uri.base|user/' + username + referer_lang_ext(req))
+    redirect(req, '../../user/' + username + referer_lang_ext(req))
 
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]
@@ -231,7 +227,7 @@ def mailpass(req, email):
     user = lampadas.users.find_email_user(email)
     if user:
         send_mail(email, 'Your password for Lampadas is: ' + user.password)
-        redirect(req, '|uri.base|password_mailed' + referer_lang_ext(req))
+        redirect(req, '../../password_mailed' + referer_lang_ext(req))
     else:
         return error('User not found.')
 

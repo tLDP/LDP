@@ -257,16 +257,17 @@ def main():
     config.log_level = 3
     docs = sys.argv[1:]
     if len(docs)==0:
-        print 'Running Lintadas on all documents...'
+        print 'Checking all documents for errors...'
         lintadas.check_docs()
-        print 'Running Lintadas on all files...'
+        print 'Checking all source files for errors...'
         lintadas.check_files()
         print 'Updating Meta-data on all documents...'
         lintadas.import_docs_metadata()
     else:
         for doc_id in docs:
-            print "Running Lintadas on document " + str(doc_id)
+            print 'Checking document ' + str(doc_id) + ' for errors...'
             lintadas.check_doc(int(doc_id))
+    print 'Done.'
 
 def usage():
     print "Lintadas version " + VERSION

@@ -24,7 +24,7 @@ CREATE TABLE document
 	abstract		TEXT,
 	short_desc		TEXT,
 	rating			REAL,
-	sk_seriesid		CHAR(36),
+	sk_seriesid		CHAR(36)	NOT NULL,
 	replaced_by_id		INT4,
 
 	PRIMARY KEY (doc_id)

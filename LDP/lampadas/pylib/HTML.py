@@ -104,7 +104,7 @@ class PageFactory:
                 if token=='elapsed_time':
                     newstring = 'DCM_ELAPSED_TIME'
                     
-                # Tokens based on a logged-in user
+                # Session Tokens
                 elif token=='session_id':
                     if sessions.session:
                         newstring = sessions.session.user.session_id
@@ -126,7 +126,7 @@ class PageFactory:
                     else:
                         newstring = '|nopermission|'
 
-                # Meta-data about the page being served
+                # Page Meta-data
                 elif token=='title':
                     newstring = page.title[uri.lang]
                 elif token=='body':
@@ -144,7 +144,7 @@ class PageFactory:
                         newstring = newstring + ':' + config.port
                     newstring = newstring + config.root_dir
 
-                # Meta-data from the page's URL
+                # URI Meta-data
                 elif token=='uri.lang_ext':
                     newstring = uri.lang_ext
                 elif token=='uri.base':
@@ -159,7 +159,7 @@ class PageFactory:
                     newstring = uri.filename
 
 
-                # Configuration information
+                # Configuration Tokens
                 elif token=='hostname':
                     newstring = config.hostname
                 elif token=='rootdir':
@@ -180,20 +180,15 @@ class PageFactory:
                 
                 # Embedded User
                 elif token=='user.username':
-                    if sessions.session:
-                        newstring = sessions.session.username
-                    else:
-                        newstring = '|blknotfound|'
+                    newstring = uri.username
                 elif token=='user.name':
-                    if sessions.session:
+                    user = lampadas.users[uri.username]
+                    if user:
                         newstring = user.name
                     else:
-                        newstring = '|blknotfound|'
+                        newstring = ''
                 elif token=='user.docs':
-                    if sessions.session:
-                        newstring = tables.userdocs(uri, uri.username)
-                    else:
-                        newstring = '|blknotfound|'
+                    newstring = tables.userdocs(uri, uri.username)
 
                 # Embedded Type
                 elif token=='type.name':
@@ -217,6 +212,14 @@ class PageFactory:
                     else:
                         newstring = topic.description[uri.lang]
 
+                # Embedded Document
+                elif token=='doc.title':
+                    doc = lampadas.docs[uri.id]
+                    if not doc:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = doc.title
+                
                 # Navigation Boxes
                 elif token=='navlogin':
                     newstring = tables.login(uri)

@@ -27,6 +27,7 @@ The Globals module implements low level utility and convenience routines.
 import time
 import string
 import whrandom
+import os
 
 
 # Globals
@@ -195,6 +196,13 @@ def octal2permission(filemode):
         else:
             symbolic += '-'
     return symbolic
+
+def new_sk_seriesid():
+    command = 'scrollkeeper-gen-seriesid'
+    process = os.popen(command)
+    sk_seriesid = process.read()
+    process.close()
+    return sk_seriesid
 
 class WOStringIO:
     """

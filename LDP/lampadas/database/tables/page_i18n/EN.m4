@@ -8,7 +8,7 @@ insert([index], [|strproject|], [Splash Page],
     |tabsplashlanguages|
 ], 1)
 
-insert([newdocument], [Add Document], [],
+insert([adddocument], [Add Document], [],
 [
     |tabeditdoc|
 ], 1)
@@ -377,7 +377,7 @@ insert([topic], [View Topic], [],
     <p>|tabtopicdocs|
 ], 1)
 
-insert([document], [Edit All Document Meta-data], [],
+insert([document], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabeditdoc|
@@ -391,45 +391,45 @@ insert([document], [Edit All Document Meta-data], [],
     <p>|tabdoctranslations|
 ], 2)
 
-insert([document_main], [Edit Document Meta-data], [],
+insert([document_main], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
-insert([document_files], [Edit Document Files], [],
+insert([document_files], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
-insert([document_users], [Edit Document Users], [],
+insert([document_users], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocusers|
 ])
 
-insert([document_revs], [Edit Document Versions], [],
+insert([document_revs], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocversions|
 ])
 
-insert([document_topics], [Edit Document Topics], [],
+insert([document_topics], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdoctopics|
 ])
 
-insert([document_notes], [Document Notes], [],
+insert([document_notes], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdocnotes|
 ])
 
-insert([document_translation], [Document Translations], [],
+insert([document_translation], [|doc.title|], [],
 [
     |blkdocument_tabs|
     |tabdoctranslations|
@@ -477,10 +477,15 @@ insert([password_mailed], [Password Mailed], [],
     the site administrator for assistance.
 ], 1)
 
-insert([user], [Edit User Record], [Add User],
+insert([user], [|user.username| - |user.name|], [],
 [
     |tabuser|
     <p>|user.docs|
+], 1)
+
+insert([adduser], [Add User], [Add User],
+[
+    |tabuser|
 ], 1)
 
 insert([logged_in], [Logged In], [],
