@@ -792,7 +792,7 @@ class TableFactory:
         
     def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
         log(3, "Creating doctable")
-        box = '<table class="box" width="100%"><tr><th colspan="2">|strtitle|</th></tr>'
+        box = '<table class="box" width="100%"><tr><th colspan="3">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
@@ -839,7 +839,10 @@ class TableFactory:
 #                    box = box + '<input type=submit name="action" value="|strmake|">\n'
 #                    box = box + '</form>\n'
                 box = box + '</td>\n'
-                box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
+                if doc.errors.count() > 0 or doc.files.error_count() > 0:
+                    box = box + '<td style="width:100%" class="error">' + doc.title + '</td>'
+                else:
+                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                 box = box + '</tr>\n'
         box = box + '</table>'
         return box

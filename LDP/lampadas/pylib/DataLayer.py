@@ -552,6 +552,12 @@ class DocFiles(LampadasCollection):
             fileerr.load_row(row)
             file.errors[fileerr.err_id] = fileerr
             
+    def error_count(self):
+        count = 0
+        for key in self.keys():
+            count = count + self[key].errors.count()
+        return count
+
     def add(self, doc_id, filename, top, format_code=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'INSERT INTO document_file (doc_id, filename, top, format_code) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ')'
