@@ -101,6 +101,22 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
+    def sk_seriesid(self, value, lang):
+        combo = "<select name='sk_seriesid'>\n"
+        keys = lampadas.Docs.sort_by_lang('Title', lang)
+        for key in keys:
+            doc = lampadas.Docs[key]
+            assert not doc==None
+            if doc.Lang==lang or lang==None:
+                combo = combo + "<option "
+                if doc.sk_seriesid==value:
+                    combo = combo + "selected "
+                combo = combo + "value='" + str(doc.sk_seriesid) + "'>"
+                combo = combo + doc.Title
+                combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
+
     def dtd(self, value, lang):
         combo = "<select name='dtd'>\n"
         keys = lampadas.DTDs.sort_by_lang('DTD', lang)
@@ -147,7 +163,7 @@ class ComboFactory:
         return combo
 
     def license(self, value, lang):
-        combo = "<select name='license'>\n"
+        combo = "<select name='license_code'>\n"
         keys = lampadas.licenses.sort_by('sort_order')
         for key in keys:
             license = lampadas.licenses[key]
@@ -243,25 +259,25 @@ class TableFactory:
         return str(value) + '/' + str(max)
 
     def doc(self, uri):
-        box = '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         if uri.id:
             doc = lampadas.Docs[uri.id]
-            box = box + '<form method=GET action="data/save/document" name="document">'
+            box = '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
-            box = box + '<form method=GET action="data/save/newdocument" name="document">'
-            
+            box = '<form method=GET action="data/save/newdocument" name="document">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
+        
+        box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
-        box = box + '<th class="label">strtitle</th><td colspan=5><input type=text name=title size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
+        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
         box = box + '</tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="label">'
         if doc.URL:
-            box = box + '<a href="' + doc.URL + '">url</a>'
+            box = box + '<a href="' + doc.URL + '">|strurl|</a>'
         else:
-            box = box + 'strurl'
-        box = box + '</th><td colspan=5><input type=text name=url size=60 style="width:100%" value="' + doc.URL + '"></td>'
+            box = box + '|strurl|'
+        box = box + '</th><td colspan=5><input type=text name="url" size=60 style="width:100%" value="' + doc.URL + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">'
 
@@ -269,7 +285,7 @@ class TableFactory:
             box = box + '<a href="' + doc.HomeURL + '">|strhome_url|</a>'
         else:
             box = box + '|strhome_url|'
-        box = box + '</th><td colspan=5><input type=text name=ref_url size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
+        box = box + '</th><td colspan=5><input type=text name="ref_url" size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strstatus|</th><td>'
         box = box + combo_factory.pub_status(doc.PubStatusCode, uri.lang)
@@ -294,12 +310,12 @@ class TableFactory:
         box = box + combo_factory.license(doc.license_code, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strpub_date|</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
-        box = box + '<th class="label">|strupdated|</th><td><input type=text name=last_update size=10 value="' + doc.LastUpdate + '"></td>'
-        box = box + '<th class="label">|strversion|</th><td><input type=text name=version size=10 value="' + doc.Version + '"></td>'
+        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" size=10 value="' + doc.PubDate + '"></td>'
+        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" size=10 value="' + doc.LastUpdate + '"></td>'
+        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" size=10 value="' + doc.Version + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name=tickle_date size=10 value="' + doc.TickleDate + '"></td>'
-        box = box + '<th class="label">|strisbn|</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
+        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" size=10 value="' + doc.TickleDate + '"></td>'
+        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" size=14 value="' + doc.ISBN + '"></td>'
         box = box + '<th class="label">|strrating|</th>\n'
         box = box + '<td>'
         box = box + self.bar_graph(doc.Rating, 10, uri.lang)
@@ -315,12 +331,15 @@ class TableFactory:
         box = box + combo_factory.language(doc.Lang, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
+        box = box + '<th class="label">|strmaintainer_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
+        box = box + '<td></td><td></td>'
+        box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strabstract|</th>'
-        box = box + '<td colspan=5><textarea name=abstract rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
+        box = box + '<td colspan=5><textarea name="abstract" rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
         box = box + '</tr>\n'
-        box = box + '<tr><td></td><td><input type=submit name=save value="|strsave|"></td></tr>\n'
-        box = box + '</form>\n'
+        box = box + '<tr><td></td><td><input type=submit name="save" value="|strsave|"></td></tr>\n'
         box = box + '</table>\n'
+        box = box + '</form>\n'
 
         return box
 

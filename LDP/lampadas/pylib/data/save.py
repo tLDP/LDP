@@ -28,25 +28,27 @@ import smtplib
 import string
 import whrandom
 
-def document(req, doc_id, title, url, ref_url, pub_status_code, class_id,
-             review_status_code, tech_review_status_code, license, pub_date,
-             last_update, version, tickle_date, isbn, lang, abstract):
+def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
+             review_status_code, tech_review_status_code, maintainer_wanted,
+             license_code, pub_date, last_update, version, tickle_date, isbn,
+             lang, abstract):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
 
     doc = lampadas.Docs[int(doc_id)]
-    if doc == None:
+    if doc==None:
         return error("Cannot find document " + str(doc_id))
 
     doc.Title                   = title
     doc.URL                     = url
     doc.HomeURL                 = ref_url
     doc.PubStatusCode           = pub_status_code
-    doc.ClassID                 = int(class_id)
+    doc.type_code               = type_code
     doc.ReviewStatusCode        = review_status_code
     doc.TechReviewStatusCode    = tech_review_status_code
-    doc.License                 = license
+    doc.maintainer_wanted       = maintainer_wanted
+    doc.license_code            = license_code
     doc.PubDate                 = pub_date
     doc.LastUpdate              = last_update
     doc.Version                 = version
@@ -61,7 +63,7 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, class_id,
 
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]
-    if not user == None:
+    if not user==None:
         user.first_name = first_name
         user.middle_name = middle_name
         user.surname = surname
@@ -79,7 +81,7 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
 
 def newuser(req, username, email, first_name, middle_name, surname):
     
-    if username == '':
+    if username=='':
         return page_factory.page('username_required')
 
     user = lampadas.users[username]
