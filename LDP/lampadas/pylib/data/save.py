@@ -47,7 +47,7 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
     doc.type_code               = type_code
     doc.ReviewStatusCode        = review_status_code
     doc.TechReviewStatusCode    = tech_review_status_code
-    doc.maintainer_wanted       = maintainer_wanted
+    doc.maintainer_wanted       = int(maintainer_wanted)
     doc.license_code            = license_code
     doc.PubDate                 = pub_date
     doc.LastUpdate              = last_update
