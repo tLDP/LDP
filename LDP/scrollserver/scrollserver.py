@@ -5,16 +5,18 @@ import os
 import string
 import commands
 import StringIO
+import locale
 import urlparse
 import SimpleHTTPServer
 import scrollkeeper
 
 
-htmlbase = "/var/cache/scrollserver/"	# This is the cache directory
-caching = 1 				# set to 1 to enable caching
+htmlbase  = "/var/cache/scrollserver/"	# This is the cache directory
+caching   = 1 				# set to 1 to enable caching
 xsltparam = "--timing"			# parameters to pass in all xsltproc calls
 xsltparam = ""
 
+lang = locale.setlocale(locale.LC_ALL)
 
 BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
 ScrollKeeper = scrollkeeper.ScrollKeeper()
@@ -112,12 +114,12 @@ class RequestHandler(BaseClass):
 		return self.send_File(htmlbase + "index.html")
 			
 	def send_ContentsList(self):
-		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
+		contents_list = commands.getoutput("scrollkeeper-get-content-list " + lang)
 		FileCache (contents_list, htmlbase + "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > " + htmlbase + "contents.html")
 		return self.send_File(htmlbase + "contents.html")
 
 	def send_DocList(self):
-		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
+		contents_list = commands.getoutput("scrollkeeper-get-content-list " + lang)
 		FileCache (contents_list, htmlbase + "documents.html", "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > " + htmlbase + "documents.html")
 		return self.send_File(htmlbase + "documents.html")
 
