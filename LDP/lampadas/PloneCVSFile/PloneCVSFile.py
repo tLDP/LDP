@@ -26,6 +26,9 @@ from Products.CMFCore.DynamicType import DynamicType
 # OFS imports
 from OFS.SimpleItem import SimpleItem
 
+# OMF imports
+from OMF import OMF
+
 # Python builtins
 import os
 from DateTime import DateTime
@@ -57,7 +60,17 @@ def initMetadata(object):
                          expiration_date=None,
                          format='text/plain',
                          language='',
-                         rights='')
+                         rights='',
+                         authors = (),
+                         maintainers = (),
+                         versions = (),
+                         types = (),
+                         formats = (),
+                         identifiers = (),
+                         sources = (),
+                         relations = (),
+                         coverages = ()
+                         )
 
 def makeCMFCVSFile(id, title, description, target_filepath):
     object = PloneCVSFile(id, title, description, target_filepath)
@@ -79,9 +92,6 @@ def manage_add(self,
     object = makeCMFCVSFile(id, title, description, target_filepath)
     self._setObject(id, object)
     self._getOb(id).reindex_object()
-
-    
-
 
 def manage_add_with_upload(self,
                            id, title, description,
@@ -107,14 +117,15 @@ def manage_lampadas(self, action, REQUEST=None):
 # CVSFile class
 ################################################################
 
-class PloneCVSFile(CVSFile, PortalContent):
+class PloneCVSFile(CVSFile, PortalContent, OMF):
 
     """Extended from CVSFile
     """
 
     def __init__(self, id, title='', description='', relativeFilePath='foo.html'):
         CVSFile.__init__(self, id, title, description, relativeFilePath)
-        
+        OMF.__init__(self)
+       # , title=title, description-description)
     
     meta_type = 'CMF CVS File'  # This is the name Zope will use for the Product in
                               # the "addProduct" list
