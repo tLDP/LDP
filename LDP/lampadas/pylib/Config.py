@@ -161,7 +161,7 @@ class ConfigReader :
         """
         c = Config()
         self.parser.readfp(file)
-        r = self.read_var
+        r = self._read_var
         c.project_name              = r('MAIN', 'project_name')
         c.project_short             = r('MAIN', 'project_short')
         c.db_type                   = r('DB', 'db_type')
@@ -204,19 +204,21 @@ class ConfigReader :
                                                % (self.config_file,section))
 
         if not self.parser.has_option(section, name):
-            raise ConfigFileReadErrorException("Can't read option '%s' from %s"
-                                               % (name,self.config_file))
+            raise ConfigFileReadErrorException("Can't read option '%s' from section %s of file %s"
+                                               % (name, section, self.config_file))
         return self.parser.get(section, name)
 
 
 ## exports ##
 
 config_file = get_config_filepath()
-config = ConfigReader().read_config(open(config_file))
-config.config_file = config_file
+config_reader = ConfigReader()
+config_reader.config_file = config_file
+config = config_reader.read_config(open(config_file))
 
 # main
 if __name__=='__main__' :
     print "Running unit tests..."
-    config.print_debug()
+    print str(config)
+#    config.print_debug()
     print "Unit tests complete."
