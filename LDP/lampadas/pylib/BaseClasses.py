@@ -62,28 +62,28 @@ class LampadasCollection:
         return len(self.data)
 
     def sort_by(self, attribute):
-        result = []
+        temp, result = [], []
         for key, item in self.items():
             value = getattr(item, attribute)
-            result.append((value, key))
-        result.sort()
-        for i in xrange(len(result)):
-            result[i] = result[i][1]
+            temp.append((value, key))
+        temp.sort()
+        for v,k in temp :
+            result.append(k)
         return result
 
     def sort_by_desc(self, attribute):
-        result = []
+        temp, result = [], []
         for key, item in self.items():
             value = getattr(item, attribute)
-            result.append((value, key))
-        result.reverse()
-        for i in xrange(len(result)):
-            result[i] = result[i][1]
+            temp.append((value, key))
+        temp.sort()
+        temp.reverse()
+        for v,k in temp :
+            result.append(v)
         return result
 
     def sort_by_lang(self, attribute, lang):
-        keys = self.keys()
-        for key in keys:
+        for key in self.keys():
             item = self.data[key]
             value = getattr(item, attribute)
             langvalue = value[lang]
