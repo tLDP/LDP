@@ -47,11 +47,11 @@ INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'FR',
 <table class="footer" style="width:100%">
 <tr><td>
 <center>
-<a href="copyright">Le Copyright</a> \\|
-<a href="privacy">Le Privacy</a> \\|
-<a href="lampadas">Le About Lampadas</a>
+<a href="copyright">Copyright</a> \\|
+<a href="privacy">Confidentialit&eacute;</a> \\|
+<a href="lampadas">A propos de Lampadas</a>
 <p>
-<a href="/EN/|page|">L''Anglais</a> \\|
+<a href="/EN/|page|">Anglais</a> \\|
 <a href="/FR/|page|">Fran&ccedil;ais</a>
 </center>
 </td></tr>
