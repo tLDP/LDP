@@ -58,6 +58,7 @@ class Name:
                 self.middle_name = mi1
         else:
             print "ERROR: found a five word name, cannot parse it: " + string.join(name)
+            sys.exit()
         
         mi = string.upper(self.middle_name)
         if mi=='VAN' or mi=='VAN DER' or mi=='VAN DEN' or mi=='DE' or mi=='DE LA' or mi=='DER' or mi=='DOS' or mi=='DA':
@@ -70,7 +71,7 @@ class OldMaintainers(LampadasCollection):
     def __init__(self):
         self.data = {}
         sql = 'SELECT maintainer_id, maintainer_name, email FROM maintainer'
-        cursor = ldp.select(sql)
+        cursor = ldp_db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
@@ -96,7 +97,7 @@ class OldEditors(LampadasCollection):
     def __init__(self):
         self.data = {}
         sql = 'SELECT editor_id, editor_name, email, notes FROM editor'
-        cursor = ldp.select(sql)
+        cursor = ldp_db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
@@ -124,7 +125,7 @@ class OldUsers(LampadasCollection):
     def __init__(self):
         self.data = {}
         sql = 'SELECT username, first_name, surname, email, admin, maintainer_id, editor_id FROM username'
-        cursor = ldp.select(sql)
+        cursor = ldp_db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
@@ -195,8 +196,8 @@ class NewUser:
         sql += 'email, admin, notes, password) '
         sql += 'VALUES(' + wsq(self.username) + ', ' + wsq(self.first_name) + ', ' + wsq(self.middle_name) + ', ' + wsq(self.surname) + ', '
         sql += wsq(self.email) + ', ' + wsq(bool2tf(self.admin)) + ', ' + wsq(self.notes) + ', ' + wsq(self.password) + ')'
-        lampadas.runsql(sql)
-        lampadas.commit()
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
 
 
 ###################################################################3
@@ -237,7 +238,7 @@ def copy_users():
                 print '           using email changed it to: ' + newuser.username
                 if newusers[newuser.username]:
                     print "ERROR: cannot generate unique username for: " + newuser.username + ', ' + newuser.name
-                    continue
+                    sys.exit()
             newusers[newuser.username] = newuser
     
     # Merge editor data
@@ -264,7 +265,7 @@ def copy_users():
                 print '       using email changed it to: ' + newuser.username
                 if newusers[newuser.username]:
                     print "ERROR: cannot generate unique username for: " + newuser.username + ', ' + newuser.name
-                    continue
+                    sys.exit()
             newusers[newuser.username] = newuser
 
     # Save the new data
@@ -272,11 +273,12 @@ def copy_users():
 
 def copy_documents():
     sql = 'SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document'
-    cursor = ldp.select(sql)
+    cursor = ldp_db.select(sql)
     while (1):
         row = cursor.fetchone()
         if row==None: break
-        doc_id              = row[0]
+        # adjust doc_id to lie above any existing documents
+        doc_id              = row[0] + doc_id_offset
         title               = trim(row[1])
         filename            = trim(row[2])
         type                = trim(row[3])
@@ -298,9 +300,6 @@ def copy_documents():
         abstract            = trim(row[19])
         rating              = safeint(row[20])
 
-        # adjust doc_id to lie above any existing documents
-        doc_id = doc_id + doc_id_offset
-        
         type = type.lower()
         if type=='guide':
             type = 'userguide'
@@ -327,8 +326,10 @@ def copy_documents():
         if pub_status=='?':
             pub_status = ''
         
-        # offsite records do not get copies
+        # offsite records do not get copies.
+        # Record doc_id in ignore_docs so child data is ignored too.
         if pub_status=='O':
+            ignore_docs.append(doc_id)
             continue
         
         # replaced pub_status is gone -- it wasn't really a pub
@@ -346,16 +347,22 @@ def copy_documents():
         sql += wsq(pub_date) + ',' + wsq(ref_url) + ', '
         sql += wsq(tech_review_status) + ', ' + wsq(bool2tf(maintained)) + ', '
         sql += wsq(license) + ', ' + wsq(abstract) + ', ' + str(rating) + ')'
-        lampadas.runsql(sql)
-        lampadas.commit()
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
 
 def copy_document_users():
     sql = 'SELECT doc_id, maintainer_id, role, active, email FROM document_maintainer'
-    cursor = ldp.select(sql)
+    cursor = ldp_db.select(sql)
     while (1):
         row = cursor.fetchone()
         if row==None: break
-        doc_id        = row[0]
+        # adjust doc_id to lie above any existing documents
+        doc_id        = row[0] + doc_id_offset
+        
+        # Ignore child data if parent was ignored.
+        if doc_id in ignore_docs:
+            continue
+
         maintainer_id = row[1]
         role          = trim(row[2])
         active        = tf2bool(row[3])
@@ -370,33 +377,139 @@ def copy_document_users():
         sql = 'INSERT INTO document_user (doc_id, username, role_code, email, active) '
         sql += 'VALUES (' + str(doc_id) + ', ' + wsq(username) + ', ' + wsq(role) + ', ' 
         sql += wsq(email) + ', ' + wsq(bool2tf(active)) + ')'
-        lampadas.runsql(sql)
-        lampadas.commit()
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
 
 def copy_document_topics():
-    pass
+    sql = 'SELECT doc_id, topic_num, subtopic_num FROM document_topic'
+    cursor = ldp_db.select(sql)
+    while (1):
+        row = cursor.fetchone()
+        if row==None: break
+        # adjust doc_id to lie above any existing documents
+        doc_id        = row[0] + doc_id_offset
+
+        # Ignore child data if parent was ignored.
+        if doc_id in ignore_docs:
+            continue
+        
+        topic_num     = row[1]
+        subtopic_num  = row[2]
+
+        #sql = 'SELECT topic.topic_num, subtopic.subtopic_num, subtopic_code'
+        sql = 'SELECT subtopic_code'
+        sql += ' FROM topic, subtopic'
+        sql += ' WHERE topic.topic_code = subtopic.topic_code'
+        sql += ' AND topic.topic_num=' + str(topic_num)
+        sql += ' AND subtopic.subtopic_num=' + str(subtopic_num)
+        cursor2 = lampadas_db.select(sql)
+        row2 = cursor2.fetchone()
+        if row2==None:
+            print 'ERROR: could not locate the subtopic_code for topic_num: ' + str(topic_num) + ' subtopic_num: ' + str(subtopic_num)
+            sys.exit()
+        subtopic_code = trim(row2[0])
+
+        sql = 'INSERT INTO document_topic(doc_id, subtopic_code) '
+        sql += 'VALUES (' + str(doc_id) + ', ' + wsq(subtopic_code) + ')'
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
+
 
 def copy_document_revs():
-    pass
+    sql = 'SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev'
+    cursor = ldp_db.select(sql)
+    while(1):   
+        row = cursor.fetchone()
+        if row==None: break
+        # adjust doc_id to lie above any existing documents
+        doc_id   = row[0] + doc_id_offset
+        
+        # Ignore child data if parent was ignored.
+        if doc_id in ignore_docs:
+            continue
+
+        rev_id   = row[1]
+        version  = trim(row[2])
+        pub_date = date2str(row[3])
+        initials = trim(row[4])
+        notes    = trim(row[5])
+
+        sql = 'INSERT INTO document_rev(rev_id, doc_id, version,'
+        sql += ' pub_date, initials, notes)'
+        sql += ' VALUES(' + str(rev_id) + ', ' + str(doc_id) + ', ' + wsq(version) + ', '
+        sql += wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes) + ')'
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
 
 def copy_document_files():
-    pass
+    sql = 'SELECT doc_id, filename, dtd, format, class FROM document'
+    cursor = ldp_db.select(sql)
+    while(1):   
+        row = cursor.fetchone()
+        if row==None: break
+        # adjust doc_id to lie above any existing documents
+        doc_id   = row[0] + doc_id_offset
+
+        # Ignore child data if parent was ignored.
+        if doc_id in ignore_docs:
+            continue
+        
+        filename = trim(row[1])
+
+        # Skip any empty filenames.
+        if filename=='':
+            continue
+
+        # Guess the CVS directory based on document's attributes
+        dtd    = trim(row[2])
+        format = trim(row[3])
+        type   = trim(row[4])
+
+        # Preface with the dtd or format
+        if dtd=='DocBook':   filename = 'docbook/' + filename
+        if dtd=='LinuxDoc':  filename = 'linuxdox/' + filename
+        if format=='WIKI':      filename = 'wikitext/' + filename
+
+        # Preface with the type
+        if type=='FAQ':      filename = 'faq/' + filename
+        if type=='GUIDE':    filename = 'guide/' + filename
+        if type=='HOWTO':    filename = 'howto/' + filename
+        if type=='MINI':     filename = 'howto/' + filename
+        if type=='QUICK':    filename = 'ref/' + filename
+        if type=='TEMPLATE': filename = 'howto/' + filename
+        
+        sql = 'INSERT INTO document_file(doc_id, filename, top)'
+        sql += ' VALUES(' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq('t') + ')'
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
+
 
 def copy_notes():
-    pass
+    note_id = lampadas_db.max_id('notes', 'note_id')
+    sql = 'SELECT doc_id, date_entered, notes, username FROM notes'
+    cursor = ldp_db.select(sql)
+    while(1):   
+        row = cursor.fetchone()
+        if row==None: break
+        # adjust doc_id to lie above any existing documents
+        doc_id       = row[0] + doc_id_offset
 
-# This will probably be deleted -- this script will then
-# load LDP data right on top of any default data.
-def clear_old():
-    lampadas.runsql('DELETE FROM notes')
-    lampadas.runsql('DELETE FROM document_error')
-    lampadas.runsql('DELETE FROM document_file')
-    lampadas.runsql('DELETE FROM document_rev')
-    lampadas.runsql('DELETE FROM document_topic')
-    lampadas.runsql('DELETE FROM document_user')
-    lampadas.runsql('DELETE FROM document')
-    lampadas.runsql('DELETE FROM username')
-    lampadas.commit()
+        # Ignore child data if parent was ignored.
+        if doc_id in ignore_docs:
+            continue
+
+        note_id = note_id + 1
+        date_entered = time2str(row[1])
+        notes        = trim(row[2])
+        username     = trim(row[3])
+        
+        sql = 'INSERT INTO notes(note_id, doc_id, date_entered, '
+        sql += ' notes, creator)'
+        sql += ' VALUES(' + str(note_id) + ', ' + str(doc_id) + ', ' + wsq(date_entered) + ', '
+        sql += wsq(notes) + ', ' + wsq(username) + ')'
+        lampadas_db.runsql(sql)
+        lampadas_db.commit()
+
 
 def usage():
     print """Usage: ldp-import [FROM] [TO]
@@ -410,12 +523,12 @@ def usage():
 # Options passed on the command line
 if len(sys.argv) <> 3:
     usage()
-ldp_db      = sys.argv[1]
-lampadas_db = sys.argv[2]
+ldp_db_name      = sys.argv[1]
+lampadas_db_name = sys.argv[2]
 
 # Databas objects,
-ldp = get_database('pgsql', ldp_db)
-lampadas = get_database('pgsql', lampadas_db)
+ldp_db = get_database('pgsql', ldp_db_name)
+lampadas_db = get_database('pgsql', lampadas_db_name)
 
 # Collection objects to store user data while merging.
 maintainers = OldMaintainers()
@@ -430,9 +543,25 @@ newusernames = newusers.keys()
 # Doc ids in the ldp database are all bumped by this much to avoid
 # collissions with existing docs in the database. This lets us
 # load the LDP data on top of any existing data.
-doc_id_offset = lampadas.max_id('document', 'doc_id')
+doc_id_offset = lampadas_db.max_id('document', 'doc_id')
 
-# Main code
+# Store docs which were not imported here. Docs with a pub_status of
+# "O" (Offsite) are not imported. When loading dependent tables,
+# check here to see whether to just ignore the record.
+ignore_docs = [] 
+
+# This will probably be deleted -- this script will then
+# load LDP data right on top of any default data.
+#lampadas_db.runsql('DELETE FROM notes')
+#lampadas_db.runsql('DELETE FROM document_file')
+#lampadas_db.runsql('DELETE FROM document_rev')
+#lampadas_db.runsql('DELETE FROM document_topic')
+#lampadas_db.runsql('DELETE FROM document_user')
+#lampadas_db.runsql('DELETE FROM document')
+#lampadas_db.runsql('DELETE FROM username')
+#lampadas_db.commit()
+
+# Load the data
 copy_users()
 copy_documents()
 copy_document_users()

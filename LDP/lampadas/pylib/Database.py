@@ -68,16 +68,13 @@ class Database:
         return value
 
     def max_id(self, table, field):
-        sql = 'SELECT MAX(' + field + ') FROM ' + table
-        max_id = self.read_value(sql)
-        if max_id==None:
-            max_id = 0
-        return max_id
+        if self.count(table)==0:
+            return 0
+        else:
+            return self.read_value('SELECT MAX(' + field + ') FROM ' + table)
         
     def next_id(self, table, field):
-        max_id = self.max_id(table, field)
-        max_id = max_id + 1
-        return max_id
+        return self.max_id(table, field) + 1
 
     def runsql(self, sql):
         if config.log_sql:
@@ -85,6 +82,9 @@ class Database:
         cursor = self.connection.cursor()
         cursor.execute(sql)
         return cursor.rowcount
+
+    def count(self, table):
+        return int(self.read_value('SELECT COUNT(*) FROM ' + table))
 
     def commit(self):
         log(3, 'Committing database')
