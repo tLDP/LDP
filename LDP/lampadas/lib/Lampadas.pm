@@ -436,21 +436,26 @@ sub AddDoc {
 	my ($self, $title, $class_id, $format, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating, $lang) = @_;
 	my $doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	$doc_id++;
-	my $sql = "INSERT INTO document(doc_id, title, class_id, format, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang)";
-	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($class_id) . ", " . wsq($format) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ", '$lang')";
+	my $sk_seriesid = &trim(qx('scrollkeeper-gen-seriesid'));
+	my $sql = "INSERT INTO document(doc_id, title, class_id, format, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid)";
+	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($class_id) . ", " . wsq($format) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ", '$lang', '$sk_seriesid')";
+
+#	StartPage ();
+#	print $sql;
+#	EndPage();
+#	exit;
+	
 	$DB->Exec($sql);
 	$doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	return $doc_id;
 }
 
 sub SaveDoc {
-	my ($self, $doc_id, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract, $lang) = @_;
+	my ($self, $doc_id, $title, $class_id, $format, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract, $lang) = @_;
 	my $sql = "UPDATE document SET";
 	$sql .= "  title=" . wsq($title);
 	$sql .= ", class_id=$class_id";
 	$sql .= ", format=" . wsq($format);
-	$sql .= ", dtd=" . wsq($dtd);
-	$sql .= ", dtd_version=" . wsq($dtd_version);
 	$sql .= ", version=" . wsq($version);
 	$sql .= ", last_update=" . wsq($last_update);
 	$sql .= ", url=" . wsq($url);
@@ -1188,6 +1193,7 @@ sub TopicCombo {
 	my $selected = shift;
 	my %topics = Topics();
 	my $topiccombo = "<select name='topic'>\n";
+	$topiccombo .= "<option></option>\n";
 	my $topic;
 	foreach $topic (sort { $a <=> $b } keys %topics) {
 		if ($selected eq $topic) {
@@ -1205,6 +1211,7 @@ sub SubtopicCombo {
 	my $selected = shift;
 	my %subtopics = Subtopics();
 	my $subtopiccombo = "<select name='topic'>\n";
+	$subtopiccombo .= "<option></option>\n";
 	my $subtopic;
 	foreach $subtopic (sort { $subtopics{$a}{topicnum} * 100 + $subtopics{$a}{num} <=> $subtopics{$b}{topicnum} * 100 + $subtopics{$b}{num} } keys %subtopics) {
 		if ($selected eq $subtopic) {
