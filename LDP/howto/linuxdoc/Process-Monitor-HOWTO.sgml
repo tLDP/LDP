@@ -39,7 +39,7 @@ Process Monitor HOW-TO for Linux
 <author> Al Dev (Alavoor Vasudevan)
        <htmlurl url="mailto:alavoor@yahoo.com"
 		name="alavoor@yahoo.com">
-<date>v8.0, 07 Mar 2001
+<date>v9.0, 23 May 2001
 
 <abstract>
 This document describes how to monitor Linux/Unix processes and to re-start them automatically
@@ -142,6 +142,7 @@ You can also use micro-seconds option '-m' or nano-seconds option '-o', edit the
 <p>
 // From your browser save this file as <bf>text-file</bf> named as 'procautostart.cpp'. 
 <code>
+// Author: Al Dev alavoor@yahoo.com
 //
 // Program to monitor the unix processes
 // and automatically re-start them if they die
@@ -166,7 +167,11 @@ extern int errno;
 #include <time.h> // for strftime()
 #include <libgen.h> // for basename()
 
+//#include <syslog.h> // for logging 
+
 #include "debug.h"
+#include "String.h"
+#include "StringTokenizer.h"
 
 #define BUFF_HUN	100
 #define BUFF_THOU	1024
@@ -190,6 +195,27 @@ inline void error_msg(char *mesg_out, char *lg_file, bool pr_lg, bool std_err, b
 // To test this program use --
 // procautostart -n 5 -c 'monitor_test dummy1 -a dummy2 -b dummy3  ' &
 //////////////////////////////////////////////
+
+void usage(char **argv)
+{
+
+    printf("%s:\n", argv[0]);
+    printf("\ninterval specification:\n");
+    printf(" -n # -- seconds\n");
+    printf(" -m # -- microseconds\n");
+    printf(" -o # -- nanoseconds\n");
+    printf("\nprocess specification:\n");
+    printf(" -c 'cmdline'\n");
+    printf
+	(" -p pidfile -- if specified reads process pid from this file\n");
+    printf("\n");
+
+	printf("\nUsage : %s -n <seconds> -m <microsecond> -o <nanosecond> -c '<command>'\n", argv[0]);
+	printf("\nExample: procautostart -n 5 -c 'monitor_test dummy1 -a dummy2 -b dummy3  ' \n");
+
+    exit(-1);
+}
+
 int main(int argc, char **argv, char **envp)
 {
 	unsigned long 	sleep_sec, sleep_micro, sleep_nano;
@@ -197,9 +223,11 @@ int main(int argc, char **argv, char **envp)
 	pid_t	proc_pid;
 	int pr_no = PR_INIT_VAL;
 	char mon_log[40];
-	char *pr_name = NULL, *cmd_line = NULL, **cmdargs = NULL;
+	char *pr_name = NULL, **cmdargs = NULL;
+	String cmdline;
+    char *pidfile = NULL;
 
-	// you can turn on debug by editing Makefile and put -DDEBUG in gcc
+	// you can turn on debug by editing Makefile and put -DDEBUG_PRT in gcc
 	debug_("test debug", "this line"); 
 	debug_("argc", argc); 
 
@@ -213,7 +241,7 @@ int main(int argc, char **argv, char **envp)
 	sleep_sec = DEF_SL_SECS ; // default sleep time
 	sleep_micro = 0; // default micro-sleep time
 	sleep_nano = 0; // default nano-sleep time
-	optarg = cmd_line = NULL;
+	optarg = NULL;
 	while ((ch = getopt(argc, argv, "n:m:o:h:c:")) != -1) // needs trailing colon :
 	{
 		switch (ch)
@@ -235,89 +263,59 @@ int main(int argc, char **argv, char **envp)
 				break;
 			case 'c':
 				debug_("scanned option c ", optarg);
-				cmd_line = strdup(optarg); // does auto-malloc here
-				debug_("cmd_line", cmd_line);
+				cmdline = optarg;
+				//cmdline = strdup(optarg); // does auto-malloc here
+				debug_("cmdline", cmdline.val());
 				break;
 			case 'h':
 				debug_("scanned option h ", optarg);
-				fprintf(stderr, "\nUsage : %s -n <sleep> -m <microsecond> -o <nanosecond> -c '<command>'\n", argv[0]);
-				exit(-1);
+				usage(argv);
 				break;
+            case 'p':
+                pidfile = strdup(optarg);
+                break;
+
 			default:
 				debug_("ch", "default");
-				fprintf(stderr, "\nUsage : %s -n <sleep> -m <microsecond> -o <nanosecond> -c '<command>'\n", argv[0]);
-				exit(-1);
+				usage(argv);
 				break;
 		}
 	}
 
-	if (cmd_line == NULL)
-	{
-		fprintf(stderr, "\ncmd_line is NULL");
-		fprintf(stderr, "\nUsage : %s -n <sleep> -m <microsecond> -o <nanosecond> -c '<command>'\n", argv[0]);
-		exit(-1);
-	}
-	else
-	{
-		// trim the trailing blanks -- otherwise problem in grep command
-		int tmpii = strlen(cmd_line);
-		for (int tmpjj = tmpii; tmpjj > -1; tmpjj--)
-		{
-			if (cmd_line[tmpjj] == ' ')
-				cmd_line[tmpjj] = '\0';
-			else
-			if (cmd_line[tmpjj] == '&')  // discards amp-and .. we will be appending later
-				cmd_line[tmpjj] = '\0';
-			else
-			if (cmd_line[tmpjj] == '\0')
-				continue;
-			else
-			{
-				if (cmd_line[tmpjj] == '&') // Discard trailing & in command line
-					cmd_line[tmpjj] = '\0';
-				break;
-			}
-		}
-		debug_("cmd_line", cmd_line);
-	}
+	if (cmdline.length() == 0) //if (cmdline == NULL)
+		usage(argv);
 
-	//argv0 = (char *) strdup(argv[0]);
-	//debug_("argv0", argv0); 
+	// detach from the main process
+    if (fork())  // 0 returned in child process
+		exit(0); // exit parent process - non-zero child PID got here... 
+
+    //openlog(argv[0], LOG_PID, LOG_DAEMON);
+
+	// trim the trailing blanks -- otherwise problem in grep command
+	//cmdline.trim(true);
+	//cmdline.chopall('&'); // trim trailing ampersand
+	debug_("cmdline", cmdline.val());
 
 	// Start the process
 	{
 		// Find the command line args
-		char *aa = strdup(cmd_line), *bb = NULL;
-		cmdargs = (char **) (malloc(sizeof(char **) + SAFE_MEM));
-		for (int tmpii = 0; ; tmpii++)
+		StringTokenizer strtokens(cmdline.val());  // string tokenizer is borrowed from Java
+		cmdargs = (char **) calloc(strtokens.countTokens() + SAFE_MEM, sizeof(char *));
+		debug_("countTokens()", strtokens.countTokens());
+		for (int tmpii = 0; strtokens.hasMoreTokens(); tmpii++)
 		{
-			// Allocate more memory ....
-			cmdargs = (char **) realloc(cmdargs, (sizeof(char **) * (tmpii+1) + SAFE_MEM)  );
-
-			if (tmpii == 0)
-				bb = strtok(aa, " ");
-			else
-				bb = strtok(NULL, " "); // subsequent calls must have NULL as first arg
-
-			if (bb == NULL)
-			{
-				cmdargs[tmpii] = bb;
-				break;
-			}
-			else
-			{
-				// Must malloc with strdup because aa, bb are 
-				// local vars in local scope!!
-				cmdargs[tmpii] = strdup(bb);
-			}
-
+			cmdargs[tmpii] = strdup(strtokens.nextToken().val());
 			debug_("tmpii", tmpii);
 			debug_("cmdargs[tmpii]", (char *) cmdargs[tmpii]);
 		}
 
 		// In case execve you MUST NOT have trailing ampersand & in the command line!!
-		//pr_no = start_process(cmd_line, NULL, NULL, proc_pid);  // Using execlp ...
-		pr_no = start_process(cmdargs[0], &amp cmdargs[0], envp, proc_pid); // Using execve ....
+		//pr_no = start_process(cmdline, NULL, NULL, proc_pid);  // Using execlp ...
+		pr_no = start_process(cmdargs[0], & cmdargs[0], envp, proc_pid); // Using execve ....
+		//cmdpid = start_command(cmdargs, envp, pidfile);
+		
+		// You can also use syslog if you do not like above logging
+		//syslog(LOG_NOTICE, "Started process: %s", cmdline.val());
 
 		debug_("The child pid", pr_no);
 		if (pr_no < 0)
@@ -327,7 +325,7 @@ int main(int argc, char **argv, char **envp)
 		}
 		sleep(WAIT_FOR_SYS); // wait for the process to come up
 
-		// Get process name - only the first word from cmd_line
+		// Get process name - only the first word from cmdline
 		pr_name = strdup(basename(cmdargs[0])); // process name,  does auto-malloc here
 	}
 
@@ -350,97 +348,34 @@ int main(int argc, char **argv, char **envp)
 	}
 
 	// monitors the process - restarts if process dies...
-	bool process_died = false;
 	char print_log[200];
 	while (1)  // infinite loop - monitor every 6 seconds
 	{
 		//debug_("Monitoring the process now...", ".");
-		if (kill(pr_no, 0))  // if (kill(pr_no,0) != 0)
-		{
-			debug_("errno from kill() function", errno);
-			if (errno == EINVAL)
-			{
-				process_died = false; // unable to execute kill() - wrong input
-				strcpy(print_log, "Error EINVAL: Invalid signal was specified");
-				error_msg(print_log, mon_log, LOG_YES, STD_ERR_YES, DATE_YES);
-			}
-			else
-			if (errno == ESRCH )
-			{
+        switch (kill(pr_no, 0))
+        {
+            case 0:
+                break;
+
+            default:
+            case ESRCH:    // process died !!
 				// ERSRCH means - No process can be found corresponding to pr_no
 				// hence process had died !!
-				process_died = true; // No process can be found matching pr_no
-				sprintf(print_log, 
-				"Error ESRCH: No process or process group can be found for %d", pr_no);
+				sprintf(print_log, "Error ESRCH: No process or process group can be found for %d", pr_no);
 				error_msg(print_log, mon_log, LOG_YES, STD_ERR_YES, DATE_YES);
-			}
-			else
-			if (errno == EPERM)
-			{
-				process_died = false; // unable to execute kill() - wrong input
-				strcpy(print_log, 
-				"Error EPERM: The real or saved user ID does not match the real user ID");
-				error_msg(print_log, mon_log, LOG_YES, STD_ERR_YES, DATE_YES);
-			}
-			else
-			{
-				process_died = true; // process died!! restart now
-				debug_("process_die ", "others");
-			}
-
-			if (process_died == true)
-			{
-				//
-				// char respawn[1024];
-				// strcpy(respawn, cmd_line);
-				//
-				// For "C" program use kill(pid_t process, int signal) function. 
-				// #include <signal.h> // See 'man 2 kill'  
-				// Returns 0 on success and -1 with errno set.
-				// 		kill -0 $pid 2>/dev/null || respawn
-				// To get the exit return status do --
-				// 		kill -0 $pid 2>/dev/null | echo $?
-				// Return value 0 is success and others mean failure
-				// Sending 0 does not do anything to target process, but it tests
-				// whether the process exists. The kill command will set its exit
-				// status based on this process.
-				//
-				// Alternatively, you can use
-				//		ps -p $pid >/dev/null 2>&1 || respawn
-				// To get the exit return status do --
-				//		ps -p $pid >/dev/null 2>&1 | echo $?
-				// Return value 0 is success and others mean failure
-				//
-
-				// If the process had died, restart and  re-assign the pid to pr_no
-				// start the process in background ....
-				// Now re-assign new value of process id to pr_no
-				if (pr_no > 0 )
-					sprintf(print_log, "Fatal Error: Process %s with PID = %d died!!",
-						pr_name, pr_no);
-				else
-					sprintf(print_log, "Fatal Error: Process %s is not up!!",
-						pr_name);
-				error_msg(print_log, mon_log, LOG_YES, STD_ERR_YES, DATE_YES);
-
+				// You can also use syslog if you do not like above logging
+                //syslog(LOG_NOTICE, "PROCESS DIED: %s", cmdline.val());
+				//pr_no = start_process(cmdline, NULL, NULL, proc_pid);  // Using execlp ....
+				pr_no = start_process(cmdargs[0], & cmdargs[0], envp, proc_pid); // Using execve ....
+				// You can also use syslog if you do not like below logging
+                //syslog(LOG_NOTICE, "Started process: %s", cmdline.val());
 				sprintf(print_log, "Starting process %s", pr_name);
 				error_msg(print_log, mon_log, LOG_YES, STD_ERR_NO, DATE_NO);
-
-				//pr_no = start_process(cmd_line, NULL, NULL, proc_pid);  // Using execlp ....
-				pr_no = start_process(cmdargs[0], &amp cmdargs[0], envp, proc_pid); // Using execve ....
-
-				debug_("The child pid", pr_no);
-				if (pr_no < 0)
-				{
-					sprintf(print_log, "Fatal Error: Failed to start the process");
-					error_msg(print_log, mon_log, LOG_YES, STD_ERR_YES, DATE_YES);
-					exit(-1);
-				}
 				sleep(WAIT_FOR_SYS); // wait for the process to come up
-				sprintf(print_log, "Process ID of %s is %d", pr_name, pr_no);
-				error_msg(print_log, mon_log, LOG_YES, STD_ERR_NO, DATE_NO);
-			}
-		}
+                break;
+        }
+		sprintf(print_log, "Process ID of %s is %d", pr_name, pr_no);
+		error_msg(print_log, mon_log, LOG_YES, STD_ERR_NO, DATE_NO);
 		//debug_("Sleeping now ......", ".");
 		sleep(sleep_sec);
 
@@ -456,7 +391,15 @@ int main(int argc, char **argv, char **envp)
 		//req->tv_sec = 0; // seconds
 		//req->tv_nsec = sleep_nano; // nanoseconds
 		//nanosleep( (const struct timespec *)req, NULL);
+
+		/* You can use select instead of sleep for portability
+        struct timeval interval;
+		interval.tv_sec += tmp;
+		interval.tv_usec += (long int) 1e3 *tmp;
+        select(1, NULL, NULL, NULL, & interval);
+		*/
 	}
+	//closelog(); if using syslog
 }
 
 inline void error_msg(char *mesg_out, char *lg_file, bool pr_lg, bool std_err, bool pr_dt)
@@ -481,7 +424,7 @@ inline void error_msg(char *mesg_out, char *lg_file, bool pr_lg, bool std_err, b
 	if (std_err) // (std_err == true) output to standard error
 		fprintf(stderr, "\n%s\n", mesg_out);
 	
-	debug_("mesg_out", mesg_out);
+	//debug_("mesg_out", mesg_out);
 }
 
 // start a process and returns PID or -ve value if error
@@ -560,6 +503,8 @@ int start_process(char *commandline, char *args[], char **envp, pid_t parent_pid
 		debug_("before execve args[5]", args[5]);
 		debug_("before execve args[6]", args[6]);
 		debug_("before execve args[7]", args[7]);
+		debug_("before execve args[8]", args[8]);
+		debug_("before execve args[9]", args[9]);
 		execve(commandline, args, envp);
 
 		// execlp, execvp does not provide expansion of metacharacters
@@ -592,16 +537,16 @@ int start_process(char *commandline, char *args[], char **envp, pid_t parent_pid
 			}
 			fclose(fp1);
 			debug_("start process(): ff - ", ff);
-#ifndef DEBUG
+#ifndef DEBUG_PRT
 			sprintf(buff, "rm -f mon/%d%lu.out", (int) parent_pid, tsecs);
 			system(buff);
-#endif // DEBUG
+#endif // DEBUG_PRT
 		}
 
 		// define wait() to put child process in foreground or else put in background
-		//waitpid(ff, &amp status, WNOHANG || WUNTRACED);
-		//waitpid(ff, &amp status, WUNTRACED);
-		//wait(&amp status); 
+		//waitpid(ff, & status, WNOHANG || WUNTRACED);
+		//waitpid(ff, & status, WUNTRACED);
+		//wait(& status); 
 
 		break;
 	}
@@ -641,7 +586,7 @@ int fork2(pid_t parent_pid, unsigned long tsecs)
     }
 
 	//debug_("fork2 pid : ", pid);
-    if (mainpid < 0 || waitpid(mainpid, &amp status, 0) < 0)
+    if (mainpid < 0 || waitpid(mainpid, & status, 0) < 0)
       return -1;
 
     if (WIFEXITED(status))
@@ -654,6 +599,106 @@ int fork2(pid_t parent_pid, unsigned long tsecs)
 
     return -1;
 }
+
+//
+// char respawn[1024];
+// strcpy(respawn, cmdline);
+// For "C" program use kill(pid_t process, int signal) function. 
+// #include <signal.h> // See 'man 2 kill'  
+// Returns 0 on success and -1 with errno set.
+// 		kill -0 $pid 2>/dev/null || respawn
+// To get the exit return status do --
+// 		kill -0 $pid 2>/dev/null | echo $?
+// Return value 0 is success and others mean failure
+// Sending 0 does not do anything to target process, but it tests
+// whether the process exists. The kill command will set its exit
+// status based on this process.
+//
+// Alternatively, you can use
+//		ps -p $pid >/dev/null 2>&1 || respawn
+// To get the exit return status do --
+//		ps -p $pid >/dev/null 2>&1 | echo $?
+// Return value 0 is success and others mean failure
+
+
+//***********************************************************************
+//  	You can use pidfile to get the process id
+//**********************************************************************
+/* 
+void poll_pidfile(char *pidfile)
+{
+    struct stat buf;
+    struct timeval interval =       
+    {
+        tv_sec:0, tv_usec:(long int) 1e4
+    }; // 10 miliseconds
+
+    while (stat(pidfile, & buf) ? errno == ENOENT : buf.st_size == 0)
+    {
+        struct timeval i = interval;
+        select(1, NULL, NULL, NULL, & i);
+    }
+}
+
+int start_command(char **args, char **envp, char *pidfile)
+{
+    pid_t cmdpid;
+
+    if (pidfile != NULL)
+    {
+        switch (unlink(pidfile))
+        {
+            case ENOENT:
+            case 0:
+                break;
+
+            default:
+                return -1;
+        }
+    }
+
+    switch (cmdpid = fork2())
+    {
+        case 0: // child
+            execve(args[0], args, envp);
+            exit(-1);
+
+        case -1: // error
+            return -1;
+
+        default: // parent
+            break;
+    }
+
+    if (pidfile != NULL)
+    {
+        FILE *pf;
+
+        poll_pidfile(pidfile);
+
+        if ((pf = fopen(pidfile, "r")) == NULL)
+        {
+            syslog(LOG_ERR, "failed to read pidfile, using fork2 pid");
+        }
+        else
+        {
+            char textpid[1024];
+            pid_t pid;
+
+            fgets(textpid, sizeof(textpid), pf);
+            if ((pid = atoi(textpid)) != -1)
+            {
+                cmdpid = pid;
+            } else
+            syslog(LOG_ERR,
+                    "failed to find pid in pidfile, using fork2 pid");
+            fclose(pf);
+        }
+    }
+
+    return cmdpid;
+}
+*/
 </code>
 <!-- 
 	*******************************************
@@ -670,12 +715,7 @@ int fork2(pid_t parent_pid, unsigned long tsecs)
 // From your browser save this file as <bf>text-file</bf> named as 'debug.cpp'.
 <p>
 <code>
-// This file defines the debug_() function which can be used for debugging
-// the program. It is similar to "C" assert(). The debug_() is set to void()
-// if DEBUG is not defined in Makefile. This way executable size of production
-// release is NOT AT ALL effected. Using debug_() very generously has no
-// impact on production executable size.
-#ifdef DEBUG
+#ifdef DEBUG_PRT
 
 #include "debug.h"
 // Variable value[] can be char, string, int, unsigned long, float, etc...
@@ -690,10 +730,10 @@ void local_dbg(char name[], unsigned int value, char fname[], int lineno, bool l
 	printf("\nDebug %s Line: %d %s is = %d\n", fname, lineno, name, value ); }
 
 void local_dbg(char name[], long value, char fname[], int lineno, bool logfile) {
-	printf("\nDebug %s Line: %d %s is = %d\n", fname, lineno, name, value ); }
+	printf("\nDebug %s Line: %d %s is = %ld\n", fname, lineno, name, value ); }
 
 void local_dbg(char name[], unsigned long value, char fname[], int lineno, bool logfile) {
-	printf("\nDebug %s Line: %d %s is = %d\n", fname, lineno, name, value ); }
+	printf("\nDebug %s Line: %d %s is = %ld\n", fname, lineno, name, value ); }
 
 void local_dbg(char name[], short value, char fname[], int lineno, bool logfile) {
 	printf("\nDebug %s Line: %d %s is = %d\n", fname, lineno, name, value ); }
@@ -709,7 +749,7 @@ void local_dbg(char name[], double value, char fname[], int lineno, bool logfile
 
 // You add many more here - value can be a class, ENUM, datetime, etc...
 
-#endif // DEBUG
+#endif // DEBUG_PRT
 </code>
 <!-- 
 	*******************************************
@@ -726,7 +766,7 @@ void local_dbg(char name[], double value, char fname[], int lineno, bool logfile
 // From your browser save this file as <bf>text-file</bf> named as 'debug.h'.
 <p>
 <code>
-#ifdef DEBUG
+#ifdef DEBUG_PRT
 
 #include <stdio.h>
 //#include <strings.h>
@@ -746,7 +786,7 @@ void local_dbg(char name[], float value, char fname[], int lineno, bool logfile=
 #define debug_(NM, VL) ((void) 0)
 #define debug2_(NM, VL, LOG_FILE) ((void) 0)
 
-#endif // DEBUG
+#endif // DEBUG_PRT
 </code>
 <!-- 
 	*******************************************
@@ -763,32 +803,101 @@ void local_dbg(char name[], float value, char fname[], int lineno, bool logfile=
 # From your browser save this file as <bf>text-file</bf> named as 'Makefile'.
 <p>
 <code>
-EXE=procautostart
-SRCS=procautostart.cpp debug.cpp 
-OBJS=procautostart.o  debug.o
+#//*****************************************************************
+#// Copyright policy is GNU/GPL and it is requested that
+#// you include author's name and email on all copies
+#// Author : Al Dev Email: alavoor@yahoo.com
+#//*****************************************************************
 
-CXX=gcc
+.SUFFIXES: .pc .cpp .c .o
 
 HOSTFLAG=-DLinux
 #HOSTFLAG=-DSunOS
 
-# Do not use compiler optimizer -O as this may break the program
-# Use debug flag to enable the debug() function. If DEBUG is not
-# defined than the function debug() is set to void(), similar 
-# to assert()
+CC=gcc
+CXX=g++
+
+MAKEMAKE=mm
+#LIBRARY=libString.a
+DEST=/home/myname/lib
+
+# Note: You should set only ONE value of MYCFLAGS below, that is only
+# one line is uncommented and others are commented.
 # Use options -Wall (all warning msgs) -O3 (optimization)
-#MYCFLAGS=-DDEBUG -g -Wall
-MYCFLAGS=-O3 -Wall
+MYCFLAGS=-DDEBUG_PRT -g3 -Wall
+#MYCFLAGS=-O3 -Wall
 
-all: $(OBJS)
-	$(CXX) $(HOSTFLAG) $(MYCFLAGS) $(OBJS) -o $(EXE)
+#PURIFY=purify -best-effort
 
-$(OBJS): $(SRCS)
-	$(CXX) -c $(HOSTFLAG) $(MYCFLAGS) $(SRCS)
+SRCS=procautostart.cpp debug.cpp 
+#HDR=my_malloc.h  String.h StringTokenizer.h File.h debug.h string_multi.h
+#LIBOBJS=my_malloc.o String.o StringTokenizer.o File.o debug.o
+OBJS=procautostart.o  debug.o
+EXE=procautostart
+
+# For generating makefile dependencies..
+SHELL=/bin/sh
+
+CPPFLAGS=$(MYCFLAGS) $(OS_DEFINES)
+CFLAGS=$(MYCFLAGS) $(OS_DEFINES)
+
+#
+# If the libString.a is in the current 
+# directory then use -L. (dash L dot)
+MYLIBDIR=-L$(MY_DIR)/libmy -L.
+
+ALLLDFLAGS= $(LDFLAGS)  $(MYLIBDIR)
+
+COMMONLIBS=-lstdc++ -lm
+MYLIBS=-lString
+LIBS=$(COMMONLIBS)  $(MYLIBS)
+
+all: $(LIBRARY) $(EXE)
+
+$(MAKEMAKE):
+	@rm -f $(MAKEMAKE)
+	$(PURIFY) $(CXX) -M  $(INCLUDE) $(CPPFLAGS) *.cpp > $(MAKEMAKE)
+
+$(EXE): $(OBJS) $(LIBRARY)
+	@echo "Creating a executable "
+	$(PURIFY) $(CC) -o $(EXE) $(OBJS) $(ALLLDFLAGS) $(LIBS)
+
+#$(LIBRARY): $(LIBOBJS)
+#	@echo "\n***********************************************"
+#	@echo "   Loading $(LIBRARY) ... to $(DEST)"
+#	@echo "***********************************************"
+#	@ar cru $(LIBRARY) $(LIBOBJS)
+#	@echo "\n "
+
+.cpp.o: $(SRCS) $(HDR)
+#	@echo "Creating a object files from " $*.cpp " files "
+	$(PURIFY) $(CXX) -c  $(INCLUDE) $(HOSTFLAG) $(CPPFLAGS) $*.cpp
+
+.c.o: $(SRCS) $(HDR)
+#	@echo "Creating a object files from " $*.c " files "
+	$(PURIFY) $(CC) -c $(INCLUDE) $(HOSTFLAG) $(CFLAGS) $*.c
 
 clean:
-	rm -f *.o *.log *.log.old *.pid core err a.out afiedt.buf
+	rm -f *.o *.log *~ *.log.old *.pid core err a.out lib*.a afiedt.buf  *.class tags
 	rm -f $(EXE)
+	rm -f $(MAKEMAKE)
+	ln -s ../cpphowto/libString.a .
+
+#%.d: %.c
+#	@echo "Generating the dependency file *.d from *.c"
+#	$(SHELL) -ec '$(CC) -M $(CPPFLAGS) $< | sed '\''s/$*.o/& $@/g'\'' > $@'
+#%.d: %.cpp
+#	@echo "Generating the dependency file *.d from *.cpp"
+#	$(SHELL) -ec '$(CC) -M $(CPPFLAGS) $< | sed '\''s/$*.o/& $@/g'\'' > $@'
+
+# Must include all the c flags for -M option
+#$(MAKEMAKE):
+#	@echo "Generating the dependency file *.d from *.cpp"
+#	$(CXX) -M  $(INCLUDE) $(CPPFLAGS) *.cpp > $(MAKEMAKE)
+
+include $(MAKEMAKE)
+#include $(SRCS:.cpp=.d)
+#include $(SRCS:.c=.d)
 
 </code>
 <!-- 
