@@ -8,3 +8,4 @@ all:
 	mkdir html/{installer,people}
 	cp ../installer/*.png html/installer
 	cp ../people/*.png html/people
+	cp html/Welcome.html html/index.html
