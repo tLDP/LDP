@@ -682,7 +682,10 @@ class PageFactory:
                 if token=='port':
                     newstring = str(config.port)
                 if token=='stylesheet':
-                    newstring='default'
+                    if build_user:
+                        newstring = build_user.stylesheet
+                    else:
+                        newstring='default'
                 if token=='version':
                     newstring = VERSION
 
@@ -770,18 +773,20 @@ class PageFactory:
 page_factory = PageFactory()
 combo_factory = ComboFactory()
 
-profile_reps = 100
-
 def benchmark(url, reps):
+    from DataLayer import Lampadas
     for x in range(0, reps):
+        lampadas = DataLayer.Lampadas()
         page = page_factory.page(url)
 
 def main():
     import profile
+    import pstats
     
     if len(sys.argv[1:]):
         profile_it = 0
         reps_flag = 0
+        profile_reps = 100
         for arg in sys.argv[1:]:
             if reps_flag:
                 profile_reps = int(arg)
@@ -793,7 +798,10 @@ def main():
             elif profile_it > 0:
                 print 'Profiling, ' + str(profile_reps) + ' repetitions...'
                 page = page_factory.page(arg)
-                profile.run('benchmark("' + arg + '", ' + str(profile_reps) + ')')
+                profile.run('benchmark("' + arg + '", ' + str(profile_reps) + ')', 'profile_stats')
+                p = pstats.Stats('profile_stats')
+                p.sort_stats('time').print_stats()
+
             else:
                 print page_factory.page(arg)
     else:
@@ -802,3 +810,4 @@ def main():
 
 if __name__=="__main__":
     main()
+
