@@ -86,6 +86,8 @@ use Exporter;
 	DocRatingTable,
 	DocNotesTable,
 	TopicsTable,
+	SubtopicsTable,
+	TopicDocsTable,
 
 	PubStatusStatsTable,
 	LicenseStatsTable,
@@ -101,9 +103,10 @@ use Exporter;
 
 	NavBox,
 	TopicsBox,
-	TitleBox,
+	HeaderBox,
 	LoginBox,
 	AdminBox,
+	EditImage,
 
 	Login,
 	Logout,
@@ -210,7 +213,7 @@ sub UserDocs {
 	my $self = shift;
 	my $user_id = shift;
 	my %docs = ();
-	$sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
+	$sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$doc_id				= $row[0];
@@ -218,10 +221,11 @@ sub UserDocs {
 		$docs{$doc_id}{title}		= &trim($row[1]);
 		$docs{$doc_id}{class}		= &trim($row[2]);
 		$docs{$doc_id}{pub_status}	= &trim($row[3]);
-		$docs{$doc_id}{pub_status_name}	= &trim($row[4]);
-		$docs{$doc_id}{role}		= &trim($row[5]);
-		$docs{$doc_id}{active}		= &yn2bool($row[6]);
-		$docs{$doc_id}{email}		= &trim($row[7]);
+		$docs{$doc_id}{url}		= &trim($row[4]);
+		$docs{$doc_id}{pub_status_name}	= &trim($row[5]);
+		$docs{$doc_id}{role}		= &trim($row[6]);
+		$docs{$doc_id}{active}		= &yn2bool($row[7]);
+		$docs{$doc_id}{email}		= &trim($row[8]);
 	}
 	return %docs;
 }
@@ -585,10 +589,10 @@ sub StartPage {
 	}
 
 	print "<html><head>\n";
-	print "<title>$title</title>\n";
+	print "<title>Lampadas || $title</title>\n";
 	print "<link rel='stylesheet' href='css/default.css' type='text/css'>\n";
 	print "</head>\n";
-	print "<body>\n";
+	print "<body><a name='top'>\n";
 
 	if ($debug) {
 		push @errors, "UserID: $currentuser_id";
@@ -597,7 +601,9 @@ sub StartPage {
 	
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
-	TitleBox($title);
+	HeaderBox($foo, $title);
+	print "</td><tr>\n";
+	print "<tr><td colspan=2>\n";
 	ErrorsTable();
 	print "</td><tr>\n";
 
@@ -617,6 +623,7 @@ sub EndPage {
 	print "<p><center>\n";
 	print Config($foo, 'copyright');
 	print "</center>\n";
+	print "<br>";
 	print "</body>\n";
 	print "</html>\n";
 	exit;
@@ -887,9 +894,10 @@ sub UserDocsTable {
 	$table .= "<tr><th>Title</th><th>Class</th><th>Doc Status</th><th>Role</th><th>Active</th><th>Feedback Email</th></tr>\n";
 	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
 		$table .= "<tr>";
-		$table .= "<td valign=top><a href='document_edit.pl?doc_id=$docs{$doc}{id}'>$docs{$doc}{title}</a>\n";
+		$table .= "<td valign=top>";
+		$table .= "<a href='document_edit.pl?doc_id=$docs{$doc}{id}'>" . EditImage() . "</a>";
 		if ($docs{$doc}{url}) {
-			$table .= " <a href=$docs{$doc}{url}>Go!</a>"
+			$table .= "<a href='$docs{$doc}{url}'>$docs{$doc}{title}</a>"
 		}
 		$table .= "</td>\n";
 		$table .= "<td valign=top>$docs{$doc}{class}</td>\n";
@@ -906,7 +914,7 @@ sub UserDocsTable {
 sub UserNotesTable {
 	my ($self, $user_id) = @_;
 	my %usernotes = UserNotes($foo, $user_id);
-	my $table = "<table class='box'>\n";
+	my $table = "<table style='width:100%' class='box'>\n";
 	$table .= "<form name=notes method=POST action='user_note_add.pl'>\n";
 	$table .= "<tr><th colspan=3>User Notes</th></tr>\n";
 	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
@@ -918,7 +926,7 @@ sub UserNotesTable {
 		$table .= "</tr>\n";
 	}
 	$table .= "<tr><td colspan=2 align=right>To add a note, type the note, then click Save.</td>\n";
-	$table .= "<td><textarea name=notes rows=10 cols=40 wrap></textarea>\n";
+	$table .= "<td><textarea name=notes style='width:100%' rows=10 wrap></textarea>\n";
 	$table .= "<input type=hidden name=user_id value=$user_id>\n";
 	$table .= "<input type=submit value='Save'></td>\n";
 	$table .= "</tr>";
@@ -930,6 +938,7 @@ sub UserNotesTable {
 sub DocsTable {
 	my ($self) = @_;
 	my %docs = Docs();
+	my %userdocs = UserDocs($foo, CurrentUserID());
 	my %classes = Classes();
 	my %pubstatuses = PubStatuses();
 	my %reviewstatuses = ReviewStatuses();
@@ -943,32 +952,6 @@ sub DocsTable {
 			$myclasses{$class} = 1;
 		}
 	}
-
-	my $table = '';
-
-	$table .= "<table class='box'>\n";
-	$table .= "<tr><th colspan=100>Document Table</th></tr>\n";
-	$table .= "<tr><td align=center colspan=100>\n";
-
-	$table .= "<table style:'width:100%' class='box'>";
-	$table .= "<form name=filter method=POST action='document_list.pl'>";
-	$table .= "<tr><th>Classes</th><th>Optional Fields</th><th>Sort By</th>";
-	$table .= "<th>Status</th>" if (Maintainer());
-	$table .= "</tr>";
-	$table .= "<tr><td valign=top>\n";
-	$table .= '<table><tr><td>';
-	foreach $class (sort keys %classes) {
-		my $name = 'chk' . $class;
-		my $value = Param($foo, $name);
-		if ($value eq 'on') {
-			$table .= "<input type='checkbox' checked name='$name'>$class<br>\n";
-		} else {
-			$table .= "<input type='checkbox' name='$name'>$class<br>\n";
-		}
-	}
-	$table .= "</td></tr></table>\n";
-
-	$table .= "</td>\n";
 
 	# Optional Fields
 	#
@@ -1032,7 +1015,28 @@ sub DocsTable {
 	if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
 	if ( $chkRATING eq "on" ) { $RATING = "checked "; }
 
-	$table .= "<td valign=top>\n";
+	my $table = '';
+
+	$table .= "<table style='width:100%' class='box'>\n";
+	$table .= "<form name=filter method=POST action='document_list.pl'>";
+	$table .= "<tr><th>Classes</th><th>Optional Fields</th><th>Sort By</th>";
+	$table .= "<th>Status</th>" if (Maintainer());
+	$table .= "</tr>";
+	$table .= "<tr><td align=center valign=top>\n";
+	$table .= "<table><tr><td>";
+	foreach $class (sort keys %classes) {
+		my $name = 'chk' . $class;
+		my $value = Param($foo, $name);
+		if ($value eq 'on') {
+			$table .= "<input type='checkbox' checked name='$name'>$class<br>\n";
+		} else {
+			$table .= "<input type='checkbox' name='$name'>$class<br>\n";
+		}
+	}
+	$table .= "</td></tr></table>\n";
+	$table .= "</td>\n";
+
+	$table .= "<td align=center valign=top>\n";
 	$table .= "<table><tr><td valign=top>\n";
 	$table .= "<input type=checkbox $STATUS name=chkSTATUS>Status<br>\n" if (Maintainer());
 	$table .= "<input type=checkbox $CLASS name=chkCLASS>Class<br>\n";
@@ -1055,7 +1059,8 @@ sub DocsTable {
 	$table .= "</td></tr></table>\n";
 	$table .= "</td>\n";
 
-	$table .= "<td valign=top>\n";
+	$table .= "<td align=center valign=top>\n";
+	$table .= "<table><tr><td valign=top>\n";
 	$table .= "<select name=strSORT>\n";
 	if ( $SORT eq "title" ) { $table .= '<option selected value="title">Title</option>'; } else { $table .= '<option value="title">Title</option>' }
 	if ( $SORT eq "class" ) { $table .= '<option selected value="class">Class</option>'; } else { $table .= '<option value="class">Class</option>' }
@@ -1063,10 +1068,10 @@ sub DocsTable {
 	if (Maintainer()) {
 		if ( $SORT eq "document.pub_status" ) { $table .= '<option selected value="document.pub_status">Status</option>'; } else { $table .= '<option value="document.pub_status">Status</option>' }
 		if ( $SORT eq "review_status_name" ) { $table .= '<option selected value="review_status_name">Review Status</option>'; } else { $table .= '<option value="review_status_name">Review Status</option>' }
-		if ( $SORT eq "tech_review_status_name" ) { $table .= '<option selected value="tech_review_status_name">Tech Review Status</option>'; } else { $table .= '<option value="tech_review_status_name">Tech Review Status</option>' }
+		if ( $SORT eq "tech_review_status_name" ) { $table .= '<option selected value="tech_review_status_name">Tech Status</option>'; } else { $table .= '<option value="tech_review_status_name">Tech Status</option>' }
 		if ( $SORT eq "format" ) { $table .= '<option selected value="format">Format</option>'; } else { $table .= '<option value="format">Format</option>' }
 		if ( $SORT eq "dtd" ) { $table .= '<option selected value="dtd">DTD</option>'; } else { $table .= '<option value="dtd">DTD</option>' }
-		if ( $SORT eq "pub_date" ) { $table .= '<option selected value="pub_date">Publication Date</option>'; } else { $table .= '<option value="pub_date">Publication Date</option>' }
+		if ( $SORT eq "pub_date" ) { $table .= '<option selected value="pub_date">Pub Date</option>'; } else { $table .= '<option value="pub_date">Pub Date</option>' }
 		if ( $SORT eq "last_update" ) { $table .= '<option selected value="last_update">Last Update</option>'; } else { $table .= '<option value="last_update">Last Update</option>' }
 		if ( $SORT eq "tickle_date" ) { $table .= '<option selected value="tickle_date">Tickle Date</option>'; } else { $table .= '<option value="tickle_date">Tickle Date</option>' }
 		if ( $SORT eq "url" ) { $table .= '<option selected value="url">URL</option>'; } else { $table .= '<option value="url">URL</option>' }
@@ -1075,10 +1080,12 @@ sub DocsTable {
 		if ( $SORT eq "filename" ) { $table .= '<option selected value="filename">Filename</option>'; } else { $table .= '<option value="filename">Filename</option>' }
 	}
 	$table .= "</select><br>";
+	$table .= "</td></tr></table>\n";
 	$table .= "</td>\n";
 
 	if (Maintainer()) {
-		$table .= "<td valign=top>\n";
+		$table .= "<td align=center valign=top>\n";
+		$table .= "<table><tr><td valign=top>\n";
 		$table .= "<select name=strSTATUS>\n";
 		$table .= "<option></option>\n";
 		if ( $strSTATUS eq "N" ) { $table .= '<option selected value="N">Active</option>'; } else { $table .= '<option value="N">Active</option>' }
@@ -1091,6 +1098,7 @@ sub DocsTable {
 		if ( $strSTATUS eq "W" ) { $table .= '<option selected value="W">Wishlist</option>'; } else { $table .= '<option value="W">Wishlist</option>' }
 		if ( $strSTATUS eq "C" ) { $table .= '<option selected value="C">Cancelled</option>'; } else { $table .= '<option value="C">Cancelled</option>' }
 		$table .= "</select>\n";
+		$table .= "</td></tr></table>\n";
 		$table .= "</td>\n";
 	}
 	$table .= "</tr>\n";
@@ -1100,9 +1108,11 @@ sub DocsTable {
 	$table .= "</form>\n";
 	$table .= "</table>\n";
 
-	$table .= "</td></tr>\n";
+	# Documents
+	#
+	$table .= "<table class='box'>\n";
 
-	$table .= "<tr><th>Title</th>";
+	$table .= "<tr><th colspan='2'>Title</th>";
 	$table .= "<th>Status</th>" if (Param($foo, chkSTATUS));
 	$table .= "<th>Review</th>" if (Param($foo, chkREVIEWSTATUS));
 	$table .= "<th>Tech Status</th>" if (Param($foo, chkTECHSTATUS));
@@ -1172,16 +1182,29 @@ sub DocsTable {
 		}
 		next unless ($pub_statusok);
 
+		next unless (($docs{$doc_id}{url}) or Admin() or (exists $userdocs{$doc_id}));
+
 		$table .= "<tr>";
 		if (Maintainer()) {
 			$table .= "<td>";
-			$table .= "<a href='document_edit.pl?doc_id=$doc_id'>$docs{$doc_id}{title}</a>";
-			$table .= "&nbsp;&nbsp;&nbsp;<a href='$docs{$doc_id}{url}'>Go!</a>" if ($docs{$doc_id}{url});
+			if (Admin() or ($userdocs{$doc_id}{active})) {
+				$table .= "<a href='document_edit.pl?doc_id=$doc_id'>" . EditImage() . "</a>";
+			}
+			$table .= "</td>";
+
+			$table .= "<td>";
+			if ($docs{$doc_id}{url}) {
+				$table .= "<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
+			} else {
+				$table .= $docs{$doc_id}{title};
+			}
 			$table .= "</td>\n";
 		} elsif ($docs{$doc_id}{url}) {
 			$table .= "<td>";
-			$table .= "&nbsp;&nbsp;&nbsp;<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
+			$table .= "<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
 			$table .= "</td>\n";
+		} else {
+			next;
 		}
 		$table .= "<td>$pubstatuses{$docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, chkSTATUS));
 		$table .= "<td>$reviewstatuses{$docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, chkREVIEWSTATUS));
@@ -1295,7 +1318,7 @@ sub DocTable {
 	$doctable .= "</td>\n";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Abstract</th>";
-	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
+	$doctable .= "<td colspan=5><textarea name=abstract rows=6 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n";
 	$doctable .= "</form>\n";
@@ -1559,7 +1582,7 @@ sub DocVersionsTable {
 		$table .= "<td valign=top><input type=text name=version width=12 size=12 value='$docversions{$key}{version}'></input></td>\n";
 		$table .= "<td valign=top><input type=text name=pub_date width=12 size=12 value='$docversions{$key}{pub_date}'></input></td>\n";
 		$table .= "<td valign=top><input type=text name=initials width=5 size=5 value='$docversions{$key}{initials}'></input></td>\n";
-		$table .= "<td><textarea name=notes rows=3 cols=40 style='width:100%' wrap>$docversions{$key}{notes}</textarea>\n";
+		$table .= "<td><textarea name=notes rows=3 style='width:100%' wrap>$docversions{$key}{notes}</textarea>\n";
 		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td valign=top><input type=submit value=Save></td>\n";
 		$table .= "</form>";
@@ -1574,7 +1597,7 @@ sub DocVersionsTable {
 	$table .= "<td valign=top><input type=text name=version width=12 size=12></input></td>\n";
 	$table .= "<td valign=top><input type=text name=pub_date width=12 size=12></input></td>\n";
 	$table .= "<td valign=top><input type=text name=initials width=5 size=5></input></td>\n";
-	$table .= "<td><textarea name=notes rows=3 cols=40 style='width:100%' wrap></textarea>\n";
+	$table .= "<td><textarea name=notes rows=3 style='width:100%' wrap></textarea>\n";
 
 	$table .= "<td valign=top></td>\n";
 	$table .= "<td valign=top><input type=submit value=Add></td>\n";
@@ -1678,7 +1701,7 @@ sub DocTopicsTable {
 		$table .= "<input type=hidden name=doc_id value=$doc_id>";
 		$table .= "<input type=hidden name=topic_num value=$doctopics{$key}{topic_num}>";
 		$table .= "<input type=hidden name=subtopic_num value=$doctopics{$key}{subtopic_num}>";
-		$table .= "<td>$doctopics{$key}{topic_num}.$doctopics{$key}{subtopic_num} $doctopics{$key}{topic_name}: $doctopics{$key}{subtopic_name}</td>";
+		$table .= "<td><a href='topic_list.pl#$key'>$doctopics{$key}{topic_num}.$doctopics{$key}{subtopic_num} $doctopics{$key}{topic_name}: $doctopics{$key}{subtopic_name}</td>";
 		$table .= "<td valign=top><input type=submit value=Delete></td>\n";
 		$table .= "</form>\n";
 		$table .= "</tr>\n";
@@ -1732,7 +1755,7 @@ sub DocNotesTable {
 		$table .= "</tr>\n";
 	}
 	$table .= "<tr><td colspan=2 align=right>To add a note, type the note, then click Save.</td>\n";
-	$table .= "<td><textarea name=notes rows=10 cols=40 wrap></textarea>\n";
+	$table .= "<td><textarea name=notes rows=10 wrap></textarea>\n";
 	$table .= "<input type=hidden name=doc_id value=$doc_id>\n";
 	$table .= "<input type=submit value='Save'></td>\n";
 	$table .= "</tr>";
@@ -1769,6 +1792,60 @@ sub SubtopicsTable {
 	return $table;
 }
 
+sub TopicDocsTable {
+	my %docs = Docs();
+	my %userdocs = UserDocs($foo, CurrentUserID());
+	my $sql = "SELECT topic.topic_num, topic.topic_name, subtopic.subtopic_num, subtopic.subtopic_name, document.doc_id, document.title, topic_description, subtopic_description, url ";
+	$sql .= "FROM topic, subtopic, document_topic, document ";
+	$sql .= "WHERE topic.topic_num = subtopic.topic_num and topic.topic_num = document_topic.topic_num and subtopic.subtopic_num = document_topic.subtopic_num and document_topic.doc_id = document.doc_id AND document.pub_status='N' ";
+	$sql .= "ORDER BY topic_num, subtopic_num, title";
+	$recordset=$DB->Recordset($sql);
+
+	$last_topic_num = 0;
+	$last_subtopic_num = 0;
+	my $table = "<table><tr><td>\n";
+	while (@row = $recordset->fetchrow) {
+		$topic_num		= $row[0];
+		$topic_name		= &trim($row[1]);
+		$subtopic_num		= $row[2];
+		$subtopic_name		= &trim($row[3]);
+		$doc_id			= $row[4];
+		$title			= &trim($row[5]);
+		$topic_description	= &trim($row[6]);
+		$subtopic_description	= &trim($row[7]);
+		$url			= &trim($row[8]);
+		if ($topic_num != $last_topic_num) {
+			$table .= "<a name='$topic_num'>";
+			$table .= "<h2>";
+			$table .= "<a href='topic_edit.pl?topic_num=$topic_num'>" . EditImage() . "</a>" if (Admin());
+			$table .= "$topic_num $topic_name";
+			$table .= "</h2>";
+			$table .= "<blockquote>$topic_description</blockquote>\n";
+		}
+		if ($subtopic_num != $last_subtopic_num) {
+			$table .= "<a name='$topic_num.$subtopic_num'>";
+			$table .= "<h3>";
+			$table .= "<a href='subtopic_edit.pl?subtopic_num=$topic_num.$subtopic_num'>" . EditImage() . "</a>" if (Admin());
+			$table .= "$topic_num.$subtopic_num $subtopic_name";
+			$table .= "</h3>";
+			$table .= "<blockquote>$subtopic_description</blockquote>\n";
+		}
+		if (Admin() or (exists $userdocs{$doc_id})) {
+			$table .= "<a href='document_edit.pl?doc_id=$doc_id'>" . EditImage() . "</a>";
+		}
+		if ($url) {
+			$table .= "<a href='$url'>$title</a>";
+		}
+		
+		$table .= "<br>\n";
+
+		$last_topic_num = $topic_num;
+		$last_subtopic_num = $subtopic_num;
+	}
+	$table .= "</td></tr></table>\n";
+	return $table;
+}
+
 sub ErrorsTable {
 	my $message = '';
 	if (scalar @errors) {
@@ -1793,6 +1870,7 @@ sub NavBar {
 sub NavBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Menu</th></tr>\n";
+	print "<tr><td><a href='topic_list.pl'>Edit Topics</a></td></tr>\n";
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "</table>\n";
@@ -1805,10 +1883,11 @@ sub TopicsBox {
 	print "<tr><th>Topics</th></tr>\n";
 	print "<tr><td>\n";
 	foreach $topic_num (sort { $a <=> $b } keys %topics) {
-		print "<a href='topic_doc_list.pl?topic_num=$topic_num'>$topics{$topic_num}{name}</a><br>\n";
+		print "<p>" if ($topic_num != 1);
+		print "<a href='topic_list.pl#$topic_num'>$topics{$topic_num}{name}</a><br>\n";
 		foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
 			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
-				print "&nbsp;&nbsp;&nbsp;&nbsp;<a href='subtopic_doc_list.pl?subtopic_num=$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
+				print "&nbsp;&nbsp;&nbsp;&nbsp;<a href='topic_list.pl#$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
 			}
 		}
 	}
@@ -1816,21 +1895,28 @@ sub TopicsBox {
 	print "</table>\n";
 }
 
-sub TitleBox {
-	my $title = shift;
-	print "<table width='100%'><tr>\n";
-	print "<td><h1>$title</h1></td>\n";
-	print "<td align=right>\n";
+sub HeaderBox {
+	my ($foo, $title) = @_;
+	my $project = Config($foo, project);
+	my $table = "<table class = 'header'><tr>\n";
+	$table .= "<th>$project Lampadas System</th>";
+	$table .= "</tr></table>\n";
+	
+	$table .= "<table class='title' style='width:100%'><tr>\n";
+	$table .= "<td><h1>$title</h1></td>\n";
+	$table .= "<td align=right>\n";
 	if ($currentuser_id) {
-		print "<a href='user_edit.pl?user_id=$currentuser{id}'>$currentuser{name}</a> ";
+		$table .= "<a href='user_edit.pl?user_id=$currentuser{id}'>$currentuser{name}</a> ";
 		if (Admin()) {
-			print "(Administrator) ";
+			$table .= "(Administrator) ";
 		} elsif (Maintainer()) {
-			print "(Maintainer) ";
+			$table .= "(Maintainer) ";
 		}
-		print "<br><a href='logout.pl'>Log out</a>\n";
+		$table .= "<br><a href='logout.pl'>Log out</a>\n";
 	}
-	print "</td></tr></table>\n";
+	$table .= "</td>";
+	$table .= "</tr></table>\n";
+	print $table;
 }
 
 sub LoginBox {
@@ -1864,10 +1950,13 @@ sub AdminBox {
 	return unless Admin();
 	print "<p><table class='navbox'>\n";
 	print "<tr><th>Admin Tools</th></tr>\n";
-	print "<tr><td><a href='user_list.pl'>Users</a></t></tr>\n";
-	print "<tr><td><a href='document_new.pl'>New Document</a></td></tr>\n";
-	print "<tr><td><a href='topic_list.pl'>Edit Topics</a></td></tr>\n";
+	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></t></tr>\n";
+	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
+}
+
+sub EditImage {
+	return "<img src='images/edit.png' alt='Edit' height='20' width='20' border='0' hspace='5' vspace='0' align='top'>";
 }
 
 sub Login {

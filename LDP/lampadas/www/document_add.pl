@@ -1,13 +1,10 @@
 #! /usr/bin/perl
 
 use Lampadas;
-use Lampadas::Database;
-
 $L = new Lampadas;
 
 unless ($L->Admin()) {
-	print $query->redirect("wrongpermission.pl");
-	exit;
+	$L->Redirect("wrongpermission.pl");
 }
 $title      = $L->Param('title');
 $class      = $L->Param('class');

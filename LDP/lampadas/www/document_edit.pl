@@ -1,18 +1,14 @@
 #!/usr/bin/perl
 #
 use Lampadas;
-use Lampadas::Database;
-
 $L = new Lampadas;
-$DB = new Lampadas::Database;
 
 $doc_id       = $L->Param('doc_id');
 
 unless ($L->Admin()) {
 	%userdocs = $L->UserDocs($L->CurrentUserID());
 	unless ($userdocs{$doc_id}) {
-		print $query->redirect("wrongpermission.pl");
-		exit;
+		$L->Redirect("wrongpermission.pl");
 	}
 }
 
