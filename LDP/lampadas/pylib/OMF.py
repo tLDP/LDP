@@ -35,6 +35,7 @@ class OMF:
     def __init__(self, doc_id):
         self.id = doc_id
         self.doc = lampadas.docs[doc_id]
+        self.metadata = self.doc.metadata()
         omf = WOStringIO('<resource id="%s">\n'
                          '%s'
                          '%s'
@@ -59,9 +60,9 @@ class OMF:
                             self.creators(),
                             self.maintainers(),
                             self.contributors(),
-                            self.doc.title,
+                            self.metadata.title,
                             self.doc.last_update,
-                            self.doc.version,
+                            self.metadata.version,
                             self.doc.last_update,
                             self.doc.type_code,
                             self.format(),
@@ -112,12 +113,12 @@ class OMF:
     def format(self):
         omf = WOStringIO()
         if self.doc.format_code=='xml':
-            omf.write('<format dtd="%s" mime="text/xml"/>' % self.doc.dtd_code)
+            omf.write('<format dtd="%s" mime="text/xml"/>' % self.metadata.dtd_code)
         elif self.doc.format_code=='sgml':
-            if self.doc.dtd_code=='html':
-                omf.write('<format dtd="%s" mime="text/html"/>' % self.doc.dtd_code)
+            if self.metadata.dtd_code=='html':
+                omf.write('<format dtd="%s" mime="text/html"/>' % self.metadata.dtd_code)
             else:
-                omf.write('<format dtd="%s" mime="text/sgml"/>' % self.doc.dtd_code)
+                omf.write('<format dtd="%s" mime="text/sgml"/>' % self.metadata.dtd_code)
         elif self.doc.format_code=='text':
             omf.write('<format mime="text/plain"/>')
         elif self.doc.format_code=='latex':
@@ -125,8 +126,8 @@ class OMF:
         return omf.get_value()
 
     def description(self):
-        if self.doc.abstract > '':
-            return '<description>%s</description>' % self.doc.abstract
+        if self.metadata.abstract > '':
+            return '<description>%s</description>' % self.metadata.abstract
         else:
             return ''
 

@@ -10,11 +10,11 @@ CREATE TABLE document
 	dtd_version		CHAR(12),
 	version			CHAR(12),
 	last_update		DATE,
-	ISBN			TEXT,
+	isbn			TEXT,
 	pub_status_code		CHAR				REFERENCES pub_status(pub_status_code),
 	review_status_code	CHAR				REFERENCES review_status(review_status_code),
 	tickle_date		DATE,
-	pub_date		DATE,
+	pub_date		TEXT,
 	tech_review_status_code	CHAR				REFERENCES review_status(review_status_code),
 	maintained		BOOLEAN		DEFAULT False,
 	maintainer_wanted	BOOLEAN		DEFAULT False,
@@ -29,6 +29,7 @@ CREATE TABLE document
 	lint_time		TIMESTAMP,
 	pub_time		TIMESTAMP,
 	mirror_time		TIMESTAMP,
+	first_pub_date		TEXT,
 
 	PRIMARY KEY (doc_id)
 );

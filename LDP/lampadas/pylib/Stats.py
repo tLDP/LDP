@@ -54,6 +54,7 @@ class Stats(LampadasCollection):
         # Calculate document statistics by iterating through them.
         for doc_id in lampadas.docs.keys():
             doc = lampadas.docs[doc_id]
+            metadata = doc.metadata()
 
             # Increment document counts
             self['general'].inc('doc_count')
@@ -82,7 +83,7 @@ class Stats(LampadasCollection):
                         
                         if doc.pub_time > '':
                             self['doc_format'].inc(doc.format_code)
-                            self['doc_dtd'].inc(doc.dtd_code)
+                            self['doc_dtd'].inc(metadata.dtd_code)
                             self['doc_lang'].inc(doc.lang)
 
 

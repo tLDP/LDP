@@ -228,16 +228,18 @@ class PageFactory:
                 # Embedded Document
                 elif token=='doc.title':
                     doc = lampadas.docs[uri.id]
+                    metadata = doc.metadata()
                     if not doc:
                         newstring = '|blknotfound|'
                     else:
-                        newstring = doc.title
+                        newstring = metadata.title
                 elif token=='doc.abstract':
                     doc = lampadas.docs[uri.id]
+                    metadata = doc.metadata()
                     if not doc:
                         newstring = '|blknotfound|'
                     else:
-                        newstring = doc.abstract
+                        newstring = metadata.abstract
                 
                 # Navigation Boxes
                 elif token=='navlogin':

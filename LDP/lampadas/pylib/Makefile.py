@@ -188,6 +188,7 @@ class Project:
     def __init__(self, doc_id):
         self.doc_id = int(doc_id)
         self.doc = lampadas.docs[self.doc_id]
+        self.metadata = self.doc.metadata()
         self.workdir = config.cache_dir + str(self.doc_id) + '/work/'
         self.filename = ''
         self.targets  = Targets()
@@ -248,12 +249,21 @@ class Project:
                     target.commands.add(Command('rm -f *.html'))
                 if sourcefile.format_code<>'xml':
                     target.commands.add(Command('rm -f *.xml'))
+                if sourcefile.format_code<>'sgml':
+                    target.commands.add(Command('rm -f *.sgml'))
 
+                # The default embedded DocBook in WikiText is XML
                 if sourcefile.format_code=='wikitext':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
-                    self.targets.add(xmlfile,    [dbsgmlfile],
-                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    if self.metadata.format_code=='sgml':
+                        self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                            [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                        self.targets.add(xmlfile,    [dbsgmlfile],
+                            [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                    else:
+                        self.targets.add(dbsgmlfile, [sourcefile.file_only],
+                            [Command(config.wt2db + ' -n -x ' + sourcefile.file_only + ' -o ' + xmlfile, errors_to='log/wt2db.log', stderr_check=1)])
+                        self.targets.add(xmlfile,    [],
+                            [])
                 elif sourcefile.format_code=='text':
                     self.targets.add(dbsgmlfile, [sourcefile.file_only],
                         [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])

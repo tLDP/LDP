@@ -33,21 +33,22 @@ import string
 # FIXME: Need permission checks on all of these routines!
 
 def newdocument(req, username, doc_id,
-             title, short_title,
+             format_code, dtd_code, dtd_version,
+             title, abstract, version,
+             pub_date, isbn,
+             short_title,
              pub_status_code, type_code,
-             version,
              review_status_code, tech_review_status_code,
-             pub_date, last_update,
-             lint_time, pub_time, mirror_time,
-             tickle_date, isbn,
+             last_update, tickle_date,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract, short_desc, replaced_by_id):
+             short_desc, replaced_by_id,
+             lint_time, pub_time, mirror_time):
 
     sk_seriesid = new_sk_seriesid()
     
     doc = lampadas.docs.add(title, short_title, type_code,
-          '', '', '',
+          format_code, dtd_code, dtd_version,
           version, last_update, isbn,
           pub_status_code, review_status_code, tickle_date, pub_date,
           tech_review_status_code, license_code, license_version,
@@ -61,15 +62,16 @@ def newdocument(req, username, doc_id,
     redirect(req, '../../document_main/' + str(doc.id) + referer_lang_ext(req))
 
 def document(req, username, doc_id,
-             title, short_title,
+             format_code, dtd_code, dtd_version,
+             title, abstract, version,
+             pub_date, isbn,
+             short_title,
              pub_status_code, type_code,
-             version,
              review_status_code, tech_review_status_code,
-             pub_date, last_update,
-             tickle_date, isbn,
+             last_update, tickle_date,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract, short_desc, sk_seriesid, replaced_by_id,
+             short_desc, sk_seriesid, replaced_by_id,
              lint_time, pub_time, mirror_time):
 
     if not doc_id:
@@ -80,7 +82,14 @@ def document(req, username, doc_id,
         return error("Cannot find document " + str(doc_id))
 
     # Save all data to the document.
+    doc.format_code             = format_code
+    doc.dtd_code                = dtd_code
+    doc.dtd_version             = dtd_version
     doc.title                   = title
+    doc.abstract                = abstract
+    doc.version                 = version
+    doc.pub_date                = pub_date
+    doc.isbn                    = isbn
     doc.short_title             = short_title
     doc.pub_status_code         = pub_status_code
     doc.type_code               = type_code
@@ -90,13 +99,9 @@ def document(req, username, doc_id,
     doc.license_code            = license_code
     doc.license_version         = license_version
     doc.copyright_holder        = copyright_holder
-    doc.pub_date                = pub_date
     doc.last_update             = last_update
-    doc.version                 = version
     doc.tickle_date             = tickle_date
-    doc.ibsn                    = isbn
     doc.lang                    = lang
-    doc.abstract                = abstract
     doc.short_desc              = short_desc
     doc.sk_seriesid             = sk_seriesid
     doc.replaced_by_id          = int('0' + replaced_by_id)

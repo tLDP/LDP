@@ -75,6 +75,7 @@ UNK_ICON_SM     = '<img src="|uri.base|images/icons/unknown22x22.png" alt="?"   
 UNK_ICON        = '<img src="|uri.base|images/icons/unknown32x32.png" alt="?"      align="middle">'
 UNK_ICON_BIG    = '<img src="|uri.base|images/icons/unknown48x48.png" alt="?"      align="middle">'
 
+
 class Tables(LampadasCollection):
 
     def __init__(self):
@@ -107,13 +108,41 @@ class Tables(LampadasCollection):
             doc.tech_review_status_code = 'U'
             box.write('<form method=GET action="|uri.base|data/save/newdocument" '\
                       'name="document">')
+
+        metadata = doc.metadata()
+
+        # Set CSS class for defaulted data.
+        format_code_class = ''
+        dtd_code_class    = ''
+        dtd_version_class = ''
+        title_class       = ''
+        abstract_class    = ''
+        version_class     = ''
+        pub_date_class    = ''
+        isbn_class        = ''
+        if doc.format_code=='' and metadata.format_code > '':
+            format_code_class = ' class="defaulted"'
+        if doc.dtd_code=='' and metadata.dtd_code > '':
+            dtd_code_class = ' class="defaulted"'
+        if doc.dtd_version=='' and metadata.dtd_version > '':
+            dtd_version_class = ' class="defaulted"'
+        if doc.title=='' and metadata.title > '':
+            title_class = ' class="defaulted"'
+        if doc.abstract=='' and metadata.abstract > '':
+            abstract_class = ' class="defaulted"'
+        if doc.version=='' and metadata.version > '':
+            version_class = ' class="defaulted"'
+        if doc.pub_date=='' and metadata.pub_date > '':
+            pub_date_class = ' class="defaulted"'
+        if doc.isbn=='' and metadata.isbn > '':
+            isbn_class = ' class="defaulted"'
+            
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
         ''' % (sessions.session.username, doc.id))
         box.write('''<tr><td class="label">|strtitle|</td>
-        <td colspan="5">
-        <input type="text" name="title" style="width:100%%" value="%s"></td>
-        </tr>''' % doc.title)
+        <td colspan="5">%s</td>
+        </tr>''' % widgets.title(metadata.title, title_class))
         box.write('''
         <tr>
           <td class="label">|strshort_desc|</td>
@@ -121,19 +150,19 @@ class Tables(LampadasCollection):
         </tr>
         <tr>
           <td class="label">|strabstract|</td>
-          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
-        </tr>''' % (doc.short_desc, doc.abstract))
+          <td colspan="5">%s</td>
+        </tr>''' % (doc.short_desc, widgets.abstract(metadata.abstract, abstract_class)))
         box.write('<tr>')
         box.write('<td class="label">|strstatus|</td><td>' + widgets.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
         box.write('<td class="label">|strtype|</td><td>' + widgets.type_code(doc.type_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<td class="label">|strversion|</td><td><input type="text" name="version" value="' + doc.version + '"></td>\n')
+        box.write('<td class="label">|strversion|</td><td>%s</td>\n' % widgets.version(metadata.version, version_class))
         box.write('<td class="label">|strshort_title|</td><td><input type="text" name="short_title" value="' + doc.short_title + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strwriting|</td><td>' + widgets.review_status_code(doc.review_status_code, uri.lang) + '</td>\n')
         box.write('<td class="label">|straccuracy|</td><td>' + widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<td class="label">|strpub_date|</td><td><input type="text" name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
+        box.write('<td class="label">|strpub_date|</td><td>%s</td>\n' % (widgets.pub_date(metadata.pub_date, pub_date_class)))
         box.write('<td class="label">|strupdated|</td><td><input type="text" name="last_update" value="' + doc.last_update + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strlint_time|</td><td><input type="text" name="lint_time" value="' + doc.lint_time + '"></td>\n')
@@ -145,12 +174,8 @@ class Tables(LampadasCollection):
         box.write('<td class="label">|strmaintained|</td><td>' + bool2yesno(doc.maintained) + '</td>\n')
         box.write('<td class="label">|strrating|</td><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<td class="label">|strformat|</td>')
-        if doc.format_code > '':
-            box.write('<td>'  + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n')
-        else:
-            box.write('<td></td>\n')
-        box.write('<td class="label">|strdtd|</td><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
+        box.write('<td class="label">|strformat|</td><td>' + widgets.format_code(metadata.format_code, format_code_class, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strdtd|</td><td>%s %s</td>' % (widgets.dtd_code(metadata.dtd_code, dtd_code_class, uri.lang), widgets.dtd_version(metadata.dtd_version, dtd_version_class, uri.lang)))
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strlanguage|</td><td>' + widgets.lang(doc.lang, uri.lang) + '</td>\n')
         box.write('<td class="label">|strmaint_wanted|</td><td>' + widgets.tf('maintainer_wanted', doc.maintainer_wanted) + '</td>\n')
@@ -163,7 +188,7 @@ class Tables(LampadasCollection):
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strreplacedby|</td><td colspan="3">' + widgets.replaced_by_id(doc.replaced_by_id) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<td class="label">|strisbn|</td><td><input type="text" name="isbn" value="' + doc.isbn + '"></td><td></td>')
+        box.write('<td class="label">|strisbn|</td><td>%s</td><td></td>' % widgets.isbn(metadata.isbn, isbn_class))
         box.write('''</tr> 
         <tr>
           <td></td>
@@ -180,6 +205,7 @@ class Tables(LampadasCollection):
 
         log(3, 'Creating docversions table')
         doc = lampadas.docs[uri.id]
+        metadata = doc.metadata()
         box = WOStringIO('''
         <table class="box" width="100%">
         <tr><th colspan="6">|strdocversions|</th></tr>
@@ -508,6 +534,7 @@ class Tables(LampadasCollection):
         box = WOStringIO('')
         for doc_id in doc_ids:
             doc = lampadas.docs[doc_id]
+            metadata = doc.metadata()
 
             # Only display docs the user has rights to.
             if sessions.session.user.can_edit(doc_id=doc_id)==0:
@@ -517,7 +544,7 @@ class Tables(LampadasCollection):
                 doctable = self.docerrors(uri)
                 filestable = self.docfileerrors(uri)
                 if doctable > '' or filestable > '':
-                    box.write('<h1><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>%s</h1>' % (str(doc.id), EDIT_ICON, doc.title))
+                    box.write('<h1><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>%s</h1>' % (str(doc.id), EDIT_ICON, metadata.title))
                 if doctable > '':
                     box.write('<p>' + doctable)
                 if filestable > '':
@@ -816,6 +843,7 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for key in keys:
             doc = lampadas.docs[key]
+            metadata = doc.metadata()
 
             # Don't include unpublished documents
             # except for admins and owners.
@@ -850,7 +878,7 @@ class Tables(LampadasCollection):
                 if doc.maintainer_wanted <> int(maintainer_wanted):
                     continue
             if title > '':
-                if doc.title.upper().find(title.upper())==-1:
+                if metadata.title.upper().find(title.upper())==-1:
                     continue
             if short_desc > '':
                 if doc.short_title.upper().find(short_title.upper())==-1:
@@ -865,7 +893,7 @@ class Tables(LampadasCollection):
                 if doc.tech_review_status_code <> tech_review_status_code:
                     continue
             if pub_date > '':
-                if doc.pub_date <> pub_date:
+                if metadata.pub_date <> pub_date:
                     continue
             if last_update > '':
                 if doc.last_update <> last_update:
@@ -874,7 +902,7 @@ class Tables(LampadasCollection):
                 if doc.tickle_date <> tickle_date:
                     continue
             if isbn > '':
-                if doc.isbn <> isbn:
+                if metadata.isbn <> isbn:
                     continue
             if rating > '':
                 if doc.rating <> int(rating):
@@ -883,7 +911,7 @@ class Tables(LampadasCollection):
                 if doc.format_code <> format_code:
                     continue
             if dtd_code > '':
-                if doc.dtd_code <> dtd_code:
+                if metadata.dtd_code <> dtd_code:
                     continue
             if license_code > '':
                 if doc.license_code <> license_code:
@@ -895,7 +923,7 @@ class Tables(LampadasCollection):
                 if doc.sk_seriesid.find(sk_seriesid)==-1:
                     continue
             if abstract > '':
-                if doc.abstract.upper().find(abstract.upper())==-1:
+                if metadata.abstract.upper().find(abstract.upper())==-1:
                     continue
             if short_desc > '':
                 if doc.short_desc.upper().find(short_desc.upper())==-1:
@@ -918,7 +946,7 @@ class Tables(LampadasCollection):
                 box.write(self.document_icon_cells(doc.id, 'td'))
 
                 # Format the title differently to flag its status
-                display_title = html_encode(widgets.title_compressed(doc.title))
+                display_title = html_encode(widgets.title_compressed(metadata.title))
 
                 if doc.pub_time > '':
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
@@ -957,12 +985,12 @@ class Tables(LampadasCollection):
 
                 # Format the title based on the presence of errors.
                 if doc.errors.count() > 0 or doc.files.error_count > 0:
-                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
+                    block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
                 else:
-                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(doc.title)) + '</th>'
+                    block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
 
                 # Finally, pull in the abstract.
-                block_abstract = '<td class="nontabular">' + html_encode(doc.abstract) + '</td>'
+                block_abstract = '<td class="nontabular">' + html_encode(metadata.abstract) + '</td>'
 
                 box.write('<table class="box" width="100%%">\n' \
                           '  <tr>%s</tr>\n' \
@@ -1075,8 +1103,10 @@ class Tables(LampadasCollection):
                     continue
                 if page.only_sysadmin and (sessions.session==None or sessions.session.user.sysadmin==0):
                     continue
+                menu_name = page.menu_name[uri.lang]
+                menu_name = menu_name.replace(' ', '&nbsp;')
                 box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
-                    % (page.code, page.menu_name[uri.lang]))
+                    % (page.code, menu_name))
         box.write('</td></tr></table>\n')
         return box.get_value()
 
@@ -1382,7 +1412,7 @@ class Tables(LampadasCollection):
             </form>
             </table>
             '''
-            % (widgets.title(title),
+            % (widgets.title(title, ''),
                widgets.short_title(short_title),
                widgets.pub_status_code(pub_status_code, uri.lang),
                widgets.type_code(type_code, uri.lang),
@@ -1393,17 +1423,17 @@ class Tables(LampadasCollection):
                widgets.doc_lang(lang, uri.lang),
                widgets.review_status_code(review_status_code, uri.lang),
                widgets.tech_review_status_code(tech_review_status_code, uri.lang),
-               widgets.pub_date(pub_date),
+               widgets.pub_date(pub_date, ''),
                widgets.last_update(last_update),
                widgets.tickle_date(tickle_date),
-               widgets.isbn(isbn),
+               widgets.isbn(isbn, ''),
                widgets.rating(rating),
-               widgets.format_code(format_code, uri.lang),
-               widgets.dtd_code(dtd_code),
+               widgets.format_code(format_code, '', uri.lang),
+               widgets.dtd_code(dtd_code, '', uri.lang),
                widgets.license_code(license_code, uri.lang),
                widgets.copyright_holder(copyright_holder),
                widgets.sk_seriesid(sk_seriesid),
-               widgets.abstract(abstract),
+               widgets.abstract(abstract, ''),
                widgets.short_desc(short_desc),
                widgets.collection_code(collection_code, uri.lang),
                widgets.doctable_layout(layout)
@@ -1997,44 +2027,44 @@ class TabPage(Table):
                               % (page.code,
                                  lang,
                                  languages[lang].name[uri.lang],
-                                 widgets.title(page.title[lang]),
+                                 widgets.title(page.title[lang], ''),
                                  widgets.menu_name(page.menu_name[lang]),
-                                 widgets.version(page.version[lang]),
+                                 widgets.version(page.version[lang], ''),
                                  escape_tokens(page.page[lang])
                                 ))
 
             # Add a new translation if there are untranslated languages.
-	    if len(page.untranslated_lang_keys()) > 0:
-		    box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
-			      '<input type=hidden name="page_code" value="%s">\n' \
-			      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
-			      '<tr><td class="label">|strlanguage|:</td>' \
-			      '    <td>%s</td>\n' \
-			      '    <td></td>' \
-			      '</tr>\n' \
-			      '<tr><td class="label">|strtitle|:</td>' \
-			      '    <td>%s</td>\n' \
-			      '    <td></td>' \
-			      '</tr>\n' \
-			      '<tr><td class="label">|strmenu_name|:</td>' \
-			      '    <td>%s</td>\n' \
-			      '    <td></td>' \
-			      '</tr>\n' \
-			      '<tr><td class="label">|strversion|:</td>' \
-			      '    <td>%s</td>\n' \
-			      '    <td></td>' \
-			      '</tr>\n' \
-			      '<tr><td class="label">|strpage|:</td>' \
-			      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
-			      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
-			      '</tr></form>'
-			      % (page.code,
-				 widgets.new_page_lang(uri.code, uri.lang),
-				 widgets.title(''),
-				 widgets.menu_name(''),
-				 widgets.version('')
-				))
-		    box.write('</table>')
+            if len(page.untranslated_lang_keys()) > 0:
+                box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
+                      '<input type=hidden name="page_code" value="%s">\n' \
+                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
+                      '<tr><td class="label">|strlanguage|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strtitle|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strmenu_name|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strversion|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strpage|:</td>' \
+                      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
+                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '</tr></form>'
+                      % (page.code,
+                     widgets.new_page_lang(uri.code, uri.lang),
+                     widgets.title(''),
+                     widgets.menu_name(''),
+                     widgets.version('')
+                    ))
+                box.write('</table>')
         else:
             page = Page()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newpage">\n' \
@@ -2216,6 +2246,20 @@ class TabFileMetadata(Table):
             if docfile==None:
                 return ''
             sourcefile = sourcefiles[docfile.filename]
+        
+        # Read the format_name
+        format = lampadas.formats[sourcefile.format_code]
+        if format:
+            format_name = format.name[uri.lang]
+        else:
+            format_name = ''
+
+        # Read the dtd_name
+        dtd = lampadas.dtds[sourcefile.dtd_code]
+        if dtd:
+            dtd_name = dtd.name[uri.lang]
+        else:
+            dtd_name = ''
         box = WOStringIO('<table class="box"><tr><th colspan="2">%s |strmetadata|</th></tr>\n'
                          '<tr><td class="label">|strformat|:</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strdtd|:</td><td>%s %s</td></tr>\n'
@@ -2226,8 +2270,8 @@ class TabFileMetadata(Table):
                          '<tr><td class="label">|strisbn|:</td><td>%s</td></tr>\n'
                          '</table>\n'
                          % (sourcefile.filename,
-                            sourcefile.format_code,
-                            sourcefile.dtd_code,
+                            format_name,
+                            dtd_name,
                             sourcefile.dtd_version,
                             sourcefile.title,
                             sourcefile.abstract,

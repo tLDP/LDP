@@ -92,7 +92,7 @@ class SourceFiles(LampadasCollection):
         sourcefile = SourceFile(filename)
         sourcefile.errors.filename = filename
         sourcefile.calc_filenames()
-	sourcefile.read_metadata()
+    	sourcefile.read_metadata()
         self.data[filename] = sourcefile
         return sourcefile
 
@@ -239,22 +239,15 @@ class SourceFile:
         if self.format_code not in METADATA_FORMATS:
             self.dtd_code = 'none'
             return
-       
+
+        if self.local==0:
+            return
+        
         try:
-            fh = open(config.cvs_root + self.filename, 'r')
+            fh = open(self.localname, 'r')
         except IOError:
             return
             
-        # Use these to store the new data. We'll compare it later and
-        # save it only if it has changed.
-        dtd_code    = ''
-        dtd_version = ''
-        title       = ''
-        abstract    = ''
-        version     = ''
-        pub_date    = ''
-        isbn        = ''
-      
         flags = re.I | re.M | re.S
 
         # Read the document header
@@ -271,8 +264,23 @@ class SourceFile:
                 break
         fh.close()
 
-	# Convert header into a regular string for searching
-	header = header.get_value()
+        # Convert header into a regular string for searching
+        header = header.get_value()
+
+        # Use these to store the new data. We'll compare it later and
+        # save it only if it has changed.
+        dtd_code    = ''
+        dtd_version = ''
+        title       = ''
+        abstract    = ''
+        version     = ''
+        pub_date    = ''
+        isbn        = ''
+      
+        # WikiText is *always* DocBook, whether or not it contains
+        # an explicit DocType declaration.
+        if self.format_code=='wikitext':
+            dtd_code    ='docbook'
 
         # Look for DocType declaration
         m = re.search('DOCTYPE(.*?)>', header, flags)
@@ -293,29 +301,29 @@ class SourceFile:
                     m = re.search('.*?LINUXDOC\s*?(.*?)\/\/', doctype, flags)
                     if m: dtd_version = trim(m.group(1))
 
-        # Read <title>
         m = re.search('<TITLE>(.*?)</TITLE>', header, flags)
-        if m: title = m.group(1)
+        if m:
+            title = m.group(1)
 
-        # Read <abstract>
         m = re.search('<ABSTRACT>(.*?)</ABSTRACT>', header, flags)
-        if m: abstract = m.group(1)
+        if m:
+            abstract = m.group(1)
 
-        # Read <version>
-        m = re.search('<VERSION>(.*?)</VERSION>', header, flags)
-        if m: version = m.group(1)
-
-        # Read <pub_date>
-        m = re.search('<PUBDATE>(.*?)</PUBDATE>', header, flags)
-        if m: pub_date = m.group(1)
+        if dtd_code=='docbook':
+            m = re.search('<PUBDATE>(.*?)</PUBDATE>', header, flags)
+            if m:
+                pub_date = m.group(1)
+        elif dtd_code=='linuxdoc':
+            m = re.search('<VERSION>(.*?)</VERSION>', header, flags)
+            if m:
+                version = m.group(1)
+            m = re.search('<DATE>(.*?)</DATE>', header, flags)
+            if m:
+                pub_date = m.group(1)
         
-        # Read <date> (LinuxDoc)
-        m = re.search('<DATE>(.*?)</DATE>', header, flags)
-        if m: pub_date = m.group(1)
-        
-        # Read <isbn> (DocBook)
         m = re.search('<ISBN>(.*?)</ISBN>', header, flags)
-        if m: isbn = m.group(1)
+        if m:
+            isbn = m.group(1)
         
         # Decide whether we need to save this data
         if dtd_code    <> self.dtd_code or \

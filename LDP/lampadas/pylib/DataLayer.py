@@ -88,6 +88,7 @@ class Lampadas:
         self.collections.load()
         self.users           = Users()
 
+            
 # Roles
 
 class Roles(LampadasCollection):
@@ -225,7 +226,7 @@ class Docs(LampadasCollection):
     """
 
     def load(self):
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time FROM document"
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document"
         cursor = db.select(sql)
         self.languages = LampadasCollection()
         while (1):
@@ -234,14 +235,14 @@ class Docs(LampadasCollection):
             doc = Doc()
             doc.load_row(row)
             self.adjust_lang_count(doc.lang, 1)
-            doc.errors.doc_id = doc.id
-            doc.files.doc_id = doc.id
-            doc.users.doc_id = doc.id
+            doc.errors.doc_id   = doc.id
+            doc.files.doc_id    = doc.id
+            doc.users.doc_id    = doc.id
             doc.versions.doc_id = doc.id
-            doc.ratings.doc_id = doc.id
-            doc.topics.doc_id = doc.id
-            doc.notes.doc_id = doc.id
-            self[doc.id] = doc
+            doc.ratings.doc_id  = doc.id
+            doc.topics.doc_id   = doc.id
+            doc.notes.doc_id    = doc.id
+            self[doc.id]        = doc
         self.load_errors()
         self.load_users()
         self.load_docfiles()
@@ -250,6 +251,9 @@ class Docs(LampadasCollection):
         self.load_topics()
         self.load_collections()
         self.load_notes()
+        for doc_id in self.keys():
+            doc = self[doc_id]
+            doc.remove_duplicate_metadata()
 
     def load_errors(self):
         sql = "SELECT doc_id, err_id, date_entered, notes FROM document_error"
@@ -363,10 +367,10 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters. --nico
 
-    def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time):
+    def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date):
         id = db.next_id('document', 'doc_id')
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ', ' + str(replaced_by_id) + ', ' + wsq(lint_time) + ', ' + wsq(pub_time) + ', ' + wsq(mirror_time) + ')'
+        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ', ' + str(replaced_by_id) + ', ' + wsq(lint_time) + ', ' + wsq(pub_time) + ', ' + wsq(mirror_time) + ', ' + wsq(first_pub_date) + ')'
         assert db.runsql(sql)==1
         db.commit()
         doc = Doc(id)
@@ -396,6 +400,17 @@ class Docs(LampadasCollection):
         db.commit()
         del self[id]
 
+    def sort_by_metadata(self, attribute):
+        temp, result = [], []
+        for key, item in self.items():
+            metadata = item.metadata()
+            value = getattr(metadata, attribute)
+            temp.append((value, key))
+        temp.sort()
+        for v,k in temp :
+            result.append(k)
+        return result
+        
 class Doc:
     """
     A document in any format, whether local or remote.
@@ -431,6 +446,7 @@ class Doc:
         self.lint_time               = ''
         self.pub_time                = ''
         self.mirror_time             = ''
+        self.first_pub_date          = ''
         self.errors                  = DocErrs()
         self.errors.doc_id           = self.id
         self.files                   = DocFiles()
@@ -453,7 +469,7 @@ class Doc:
 
     def load(self, id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.load_row(row)
@@ -481,7 +497,7 @@ class Doc:
         self.pub_status_code         = trim(row[10])
         self.review_status_code      = trim(row[11])
         self.tickle_date             = date2str(row[12])
-        self.pub_date                = date2str(row[13])
+        self.pub_date                = trim(row[13])
         self.tech_review_status_code = trim(row[14])
         self.maintained              = tf2bool(row[15])
         self.maintainer_wanted       = tf2bool(row[16])
@@ -497,14 +513,70 @@ class Doc:
         self.lint_time               = time2str(row[26])
         self.pub_time                = time2str(row[27])
         self.mirror_time             = time2str(row[28])
+        self.first_pub_date          = trim(row[29])
+
+    def remove_duplicate_metadata(self):
+        # FIXME: This is temporary code to get rid of redundant
+        # stuff. Once we have good, clean data we can 
+        # discard it.
+
+        # If our metadata matches that of our top file, it is
+        # redundant, so discard it.
+        topfile = self.find_top_file()
+        if topfile:
+            sourcefile = sourcefiles[topfile.filename]
+            updated = 0
+            if self.dtd_code==sourcefile.dtd_code:
+                self.dtd_code = ''
+                updated = 1
+            if self.dtd_version==sourcefile.dtd_version:
+                self.dtd_version = ''
+                updated = 1
+            if self.title==sourcefile.title:
+                self.title = ''
+                updated = 1
+            if self.abstract==sourcefile.abstract:
+                self.abstract = ''
+                updated = 1
+            if self.version==sourcefile.version:
+                self.version = ''
+                updated = 1
+            if self.pub_date==sourcefile.pub_date:
+                self.pub_date = ''
+                updated = 1
+            if self.isbn==sourcefile.isbn:
+                self.isbn = ''
+                updated = 1
+            if updated==1:
+                self.save()
 
     def save(self):
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
+
+        # Discard superfluous meta-data
+        docfile = self.find_top_file()
+        if docfile:
+            sourcefile = sourcefiles[docfile.filename]
+            if self.dtd_code==sourcefile.dtd_code:
+                self.dtd_code = ''
+            if self.dtd_version==sourcefile.dtd_version:
+                self.dtd_version = ''
+            if self.title==sourcefile.title:
+                self.title = ''
+            if self.abstract==sourcefile.abstract:
+                self.abstract = ''
+            if self.version==sourcefile.version:
+                self.version = ''
+            if self.pub_date==sourcefile.pub_date:
+                self.pub_date = ''
+            if self.isbn==sourcefile.isbn:
+                self.isbn = ''
+        
         # Always recalculate the rating when saving a document.
         self.calc_rating()
-        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ", pub_status_code=" + wsq(self.pub_status_code) + ", review_status_code=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status_code=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + ', replaced_by_id=' + str(self.replaced_by_id) + ', lint_time=' + wsq(self.lint_time) + ', pub_time=' + wsq(self.pub_time) + ', mirror_time=' + wsq(self.mirror_time) + ' WHERE doc_id=' + str(self.id)
+        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ", pub_status_code=" + wsq(self.pub_status_code) + ", review_status_code=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status_code=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + ', replaced_by_id=' + str(self.replaced_by_id) + ', lint_time=' + wsq(self.lint_time) + ', pub_time=' + wsq(self.pub_time) + ', mirror_time=' + wsq(self.mirror_time) + ', first_pub_date=' + wsq(self.first_pub_date) + ' WHERE doc_id=' + str(self.id)
         db.runsql(sql)
         db.commit()
 
@@ -524,7 +596,46 @@ class Doc:
             if docfile.top==1:
                 return docfile
 
-        
+    def metadata(self):
+        temp = DocMetaData()
+        temp.format_code = self.format_code
+        temp.dtd_code    = self.dtd_code
+        temp.dtd_version = self.dtd_version
+        temp.title       = self.title
+        temp.abstract    = self.abstract
+        temp.version     = self.version
+        temp.pub_date    = self.pub_date
+        temp.isbn        = self.isbn
+        docfile = self.find_top_file()
+        if docfile:
+            sourcefile = sourcefiles[docfile.filename]
+            if temp.format_code=='': temp.format_code = sourcefile.format_code
+            if temp.dtd_code=='':    temp.dtd_code    = sourcefile.dtd_code
+            if temp.dtd_version=='': temp.dtd_version = sourcefile.dtd_version
+            if temp.title=='':       temp.title       = sourcefile.title
+            if temp.abstract=='':    temp.abstract    = sourcefile.abstract
+            if temp.version=='':     temp.version     = sourcefile.version
+            if temp.pub_date=='':    temp.pub_date    = sourcefile.pub_date
+            if temp.isbn=='':        temp.isbn        = sourcefile.isbn
+        return temp
+       
+
+# DocMetaData
+
+class DocMetaData:
+
+    def __init__(self):
+        self.doc_id      = 0
+        self.format_code = ''
+        self.dtd_code    = ''
+        self.dtd_version = ''
+        self.title       = ''
+        self.abstract    = ''
+        self.version     = ''
+        self.pub_date    = ''
+        self.isbn        = ''
+
+
 # DocErrs
 
 class DocErrs(LampadasCollection):

@@ -404,26 +404,13 @@ insert([document_main], [|doc.title|], [],
     |blkdocument_nav_bar|
     |tabeditdoc|
     <p>|tabdocerrors|
-
-    <p>Lampadas automatically reads meta-data from source files
-    which contain it. The table below shows the meta-data which
-    Lampadas was able to read from this document's top source file.
-
-    <p>Each of the data elements in the table below can also be
-    entered in the table above. If you leave the corresponding
-    fields empty, the meta-data from the table below will be used.
-
-    <p>If Lampadas was not able to read some meta-data from the top
-    source file, or if you wish to override the values it has read,
-    you should complete the missing fields above.
-
-    <p>|tabfile_metadata|
 ])
 
 insert([document_files], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocfiles|
+    |blkdocument_nav_bar|
+    <p>|tabfile_metadata|
+    <p>|tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 

@@ -21,9 +21,10 @@ insert(index,
       <table class="layout" width="100%">
         <tr>
           <td class="sidebarleft">|blklogo|</td>
-          <td class="center" width="100%" colspan="2">|blkheader|</td>
-          <td></td>
+          <td class="center" width="100%">|blkheader|</td>
         </tr>
+      </table>
+      <table class="layout" width="100%">
         <tr>
           <td class="sidebarleft" valign="top">
             |navmenus|
@@ -32,14 +33,19 @@ insert(index,
             <p>|navtypes|
             <p>|navlanguages|
           </td>
-          <td class="center body" width="100%" valign="top">|body|</td>
+          <td class="center body" width="100%" valign="top">
+            |body|
+            |tabedit_this_page|
+          </td>
           <td class="sidebarright" valign="top">
             |navlogin|
             <p>|navsessions|
           </td>
         </tr>
+      </table>
+      <table class="layout" width="100%'>
         <tr>
-          <td colspan="3">|blkfooter|</td>
+          <td>|blkfooter|</td>
         </tr>
       </table>
     </body>
@@ -57,6 +63,8 @@ insert(default,
           <td class="sidebarleft">|blklogo|</td>
           <td class="center" width="100%">|blkheader|</td>
         </tr>
+      </table>
+      <table>
         <tr>
           <td class="sidebarleft" valign="top">
             |navmenus|
@@ -67,8 +75,10 @@ insert(default,
           </td>
           <td class="center body" width="100%" valign="top">|body|</td>
         </tr>
+      </table>
+      <table class="layout" width="100%">
         <tr>
-          <td colspan="2">|blkfooter|</td>
+          <td>|blkfooter|</td>
         </tr>
       </table>
     </body>

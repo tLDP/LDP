@@ -22,7 +22,6 @@ insert([blkheader], [
     <td>
       <h1>|strproject|</h1>
       <h2>|title|</h2>
-      |tabedit_this_page|
     </td>
   </tr>
 </table>])

@@ -1,6 +1,7 @@
 CREATE TABLE sourcefile_metadata
 (
 	filename		TEXT		NOT NULL	REFERENCES sourcefile(filename),
+	format_code		CHAR(20)			REFERENCES format(format_code),
 	dtd_code		CHAR(12)			REFERENCES dtd(dtd_code),
 	dtd_version		CHAR(12),
 	title			TEXT,
