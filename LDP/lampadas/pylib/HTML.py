@@ -10,6 +10,8 @@ to the Lampadas system.
 # Modules ##################################################################
 
 import DataLayer
+import Converter
+import commands
 
 
 # Constants
@@ -18,7 +20,9 @@ import DataLayer
 # Globals
 
 L = DataLayer.Lampadas()
+C = Converter.Converter()
 
+cvs_root = L.Config('cvs_root')
 
 # HTMLFactory
 
@@ -41,15 +45,21 @@ class PageFactory:
 		
 		if key[:4] == 'doc/':
 			docid = int(key[4:])
-			print "DOC " + str(docid) + " requested"
 			Doc = L.Docs[docid]
 			assert not Doc == None
-			Files = Doc.Files
-			keys = Files.keys()
-			for key in keys:
-				File = Files[key]
-				print "filename: " + File.Filename
-				print "format: " + File.Format
+			if Doc.Format=='SGML' or Doc.Format == 'XML':
+				Files = Doc.Files
+				if Files.Count() == 0:
+					return "No file to process"
+				elif Files.Count() > 1:
+					return "Only single files supported right now"
+				keys = Files.keys()
+				for key in keys:
+					File = Files[key]
+					page = C.ConvertSGMLFile(cvs_root + File.Filename, File.Format)
+			else:
+				return "FORMAT NOT YET SUPPORTED"
+
 		else:
 			page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
 		return page
@@ -95,13 +105,21 @@ class ComboFactory:
 
 Factory = HTMLFactory()
 
+# Sample low-level ComboBox, Classes
 #output = Factory.Combo.Classes(2,'EN')
 #print output
 
+# Sample i18n page, About Lampadas
 #output = Factory.Page('pg-about', 'EN')
 #print output
 
-output = Factory.Page('doc/1', 'EN')
+# Sample SGML processing, LDP Reviewer HOWTO
+#output = Factory.Page('doc/419', 'EN')
 #print output
+
+# Sample XML processing, Finnish HOWTO
+output = Factory.Page('doc/68', 'EN')
+print output
+
 
 #if __name__ == "__main__":
