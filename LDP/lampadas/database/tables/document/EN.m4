@@ -1,13 +1,20 @@
-insert(1, [Apache Overview HOWTO], [0.7], [],
-[adminguide], [sgml], [DocBook], [4.1],
-[gfdl],
-[This document gives you an overview of the Apache webserver and related projects.
-It provides pointers for further information and implementation details.],
-[http://www.tldp.org/HOWTO/Apache-Overview-HOWTO.html], [],
-[N], [U], [U],
-[1970-01-01], [2002-02-28], [2002-01-01],
-f, f, 0,
-[APACHE_SERIES_ID], NULL)
+m4_dnl      doc_id, lang, title, version, isbn,
+m4_dnl      type_code, format_code, dtd_code, dtd_version,
+m4_dnl      license_code, abstract,
+m4_dnl      url, ref_url,
+m4_dnl      pub_status, review_status, tech_review_status,
+m4_dnl      pub_date, last_update, tickle_date,
+m4_dnl      maintained, maintainer_wanted, rating,
+m4_dnl      sk_seriesid, replaced_by_id
+
+insert(1, [Lampadas Developer\'s Guide], [0.1], [],
+[programguide], [], [N/A], [],
+[gfdl], [],
+[], [],
+N, U, U,
+[], [], [],
+t, f, 0,
+'071fdbe0-9488-11d6-896a-ce3464467b39', [])
 
 insert(2, [Test DocBook SGML HOWTO], [1.0], [],
 [howto], [sgml], [DocBook], [4.1.2],
