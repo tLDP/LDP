@@ -235,8 +235,8 @@ class DataManager(DataTable):
                 obj_value = getattr(object, data_field.attribute)
                 if operator.upper()=='LIKE':
                     if len(value) > len(obj_value): continue
-                    if value.upper()==obj_value.upper()[:len(value)]:
-                        set[object.key] = object
+                    if value.upper() <> obj_value.upper()[:len(value)]:
+                        match = 0
                 elif operator=='=':
                     if obj_value<>value: match = 0
                 elif operator=='<':
@@ -249,6 +249,7 @@ class DataManager(DataTable):
                     if obj_value < value:  match = 0
                 else:
                     raise UnknownOperator('Unrecognized operator: %s' %(data_field.operator))
+                if match==0: break
             if match==1:
                 set[object.key] = object
         return set
@@ -382,7 +383,7 @@ class DataManager(DataTable):
                 if field.key_field==1:
                     where_list.append(field.field_name + '=' + value)
             sql = 'UPDATE %s SET %s WHERE %s' % (self.table.name, string.join(update_list, ', '), string.join(where_list, ' AND '))
-            print sql
+#            print sql
         db.runsql(sql)
         db.commit()
         self.cache.add(object)

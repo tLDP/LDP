@@ -6,7 +6,14 @@ from base import Persistence
 class Page(Persistence):
 
     def __getattr__(self, attribute):
-        if attribute=='template':
+        if attribute=='untranslated_lang_keys':
+            untranslated = []
+            supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
+            for key in supported_langs.keys():
+                if key not in self.title.keys():
+                    untranslated.append(key)
+            return untranslated
+        elif attribute=='template':
             return self.dms.template.get_by_id(self.template_code)
         elif attribute=='section':  
             return self.dms.section.get_by_id(self.section_code)

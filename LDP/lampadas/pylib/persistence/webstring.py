@@ -6,7 +6,14 @@ from base import Persistence
 class WebString(Persistence):
 
     def __getattr__(self, attribute):
-        if attribute in ('string', 'version'):
+        if attribute=='untranslated_lang_keys':
+            untranslated = []
+            supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
+            for key in supported_langs.keys():
+                if key not in self.string.keys():
+                    untranslated.append(key)
+            return untranslated
+        elif attribute in ('string', 'version'):
             webstring = LampadasCollection()
             version = LampadasCollection()
             i18ns = self.dms.string_i18n.get_by_keys([['string_code', '=', self.code]])
@@ -21,10 +28,3 @@ class WebString(Persistence):
         else:
             raise AttributeError('No such attribute %s' % attribute)
 
-    def untranslated_lang_keys(self, lang):
-        untranslated = []
-        supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
-        for key in supported_langs.keys():
-            if key not in self.string.keys():
-                untranslated.append(key)
-        return untranslated

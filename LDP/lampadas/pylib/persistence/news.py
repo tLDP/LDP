@@ -6,9 +6,16 @@ from base import Persistence
 class News(Persistence):
 
     def __getattr__(self, attribute):
-        if attribute in ('headline', 'news', 'version'):
-            name = LampadasCollection()
-            description = LampadasCollection()
+        if attribute=='untranslated_lang_keys':
+            untranslated = []
+            supported_langs = self.dms.language.get_by_keys([['supported', '=', 1]])
+            for key in supported_langs.keys():
+                if key not in self.headline.keys():
+                    untranslated.append(key)
+            return untranslated
+        elif attribute in ('headline', 'news', 'version'):
+            version = LampadasCollection()
+            headline = LampadasCollection()
             news = LampadasCollection()
             i18ns = self.dms.news_i18n.get_by_keys([['news_id', '=', self.id]])
             for key in i18ns.keys():
@@ -25,10 +32,3 @@ class News(Persistence):
         else:
             raise AttributeError('No such attribute %s' % attribute)
 
-    def untranslated_lang_keys(self, lang):
-        untranslated = []
-        supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
-        for key in supported_langs.keys():
-            if key not in self.headline.keys():
-                untranslated.append(key)
-        return untranslated

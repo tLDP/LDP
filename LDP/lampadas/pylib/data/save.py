@@ -333,9 +333,9 @@ def news(req, news_id, pub_date):
 def news_lang(req, news_id, lang, headline, news, version):
     newsitemi18ns = dms.news_i18n.get_by_keys([['news_id', '=', int(news_id)], ['lang', '=', lang]])
     newsitemi18n = newsitemi18ns[newsitemi18ns.keys()[0]]
-    newsitemi18n.headline[lang] = headline
-    newsitemi18n.news[lang] = news
-    newsitemi18n.version[lang] = version
+    newsitemi18n.headline = headline
+    newsitemi18n.news = news
+    newsitemi18n.version = version
     newsitemi18n.save()
     go_back(req)
 
@@ -346,7 +346,7 @@ def newnews_lang(req, news_id, lang, headline, news, version):
     newsitem.headline = headline
     newsitem.news = news
     newsitem.version = version
-    dms.news.add(newsitem)
+    dms.news_i18n.add(newsitem)
     go_back(req)
 
 def newpage(req, page_code, section_code, template_code,

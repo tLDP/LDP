@@ -1648,31 +1648,21 @@ class DocAdmin(Table):
 
 class TabNews(Table):
 
-    def __init__(self, items=0):
-        """
-        The off-by-one error is intentional. If 0 is passed in items, we never
-        stop processing items, but list them all instead.
-        """
-
+    def __init__(self):
         Table.__init__(self, 'news', self.method)
-        self.items = items
 
     def method(self, uri):
         log(3, 'Creating recent news')
         box = WOStringIO('<table class="box nontabular" width="100%">\n'
                          '<tr><th colspan="2">|strnews|</th></tr>')
 
-        # display first 'self.items' items only
         news = dms.news.get_all()
-        keys = news.sort_by_desc('pub_date')
-        if self.items > 0 :
-            keys = keys[:self.items]
-        for key in keys:
-            news = news[key]
-            if not news.news[uri.lang]==None:
-                if state.session and state.user.can_edit(news_id=news.id)==1:
+        for key in news.sort_by_desc('pub_date'):
+            newsitem = news[key]
+            if newsitem.news.has_key(uri.lang):
+                if state.session and state.user.can_edit(news_id=newsitem.id)==1:
                     edit_icon = '<a href="|uri.base|news_edit/%s|uri.lang_ext|">%s</a>\n' \
-                                % (str(news.id),EDIT_ICON_SM)
+                                % (str(newsitem.id),EDIT_ICON_SM)
                 else:
                     edit_icon = ''
 
@@ -1684,9 +1674,9 @@ class TabNews(Table):
                           ' <td>%s</td>'
                           '</tr>\n'
                           % (edit_icon,
-                             news.headline[uri.lang],
-                             news.pub_date,
-                             news.news[uri.lang]))
+                             newsitem.headline[uri.lang],
+                             newsitem.pub_date,
+                             newsitem.news[uri.lang]))
         box.write('</table>\n')
         return box.get_value()
 
@@ -1721,7 +1711,7 @@ class TabNewsItem(Table):
             languages = dms.language.get_by_keys([['supported', '=', 1]])
             for key in languages.keys():
                 language = languages[key]
-                if not news.news[language.code]==None:
+                if language.code in news.headline.keys():
                     box.write('<form method="GET" action="|uri.base|data/save/news_lang">\n'
                               '<input type=hidden name="news_id" value="%s">\n'
                               '<input type=hidden name="lang" value="%s">\n'
@@ -1730,15 +1720,15 @@ class TabNewsItem(Table):
                               '<tr class="%s"><td class="label">|strheadline|</td><td>%s</td><td></td></tr>\n'
                               '<tr class="%s"><td class="label">|strnews|</td><td width="100%%">%s</td><td>%s</td></tr>'
                               '</form>'
-                              % (news.id, lang,
+                              % (news.id, language.code,
                                  odd_even.get_next(), language.name[uri.lang],
-                                 odd_even.get_last(), widgets.version(news.version[lang]),
-                                 odd_even.get_last(), widgets.headline(news.headline[lang]),
-                                 odd_even.get_last(), widgets.news(news.news[lang]),
+                                 odd_even.get_last(), widgets.version(news.version[language.code]),
+                                 odd_even.get_last(), widgets.headline(news.headline[language.code]),
+                                 odd_even.get_last(), widgets.news(news.news[language.code]),
                                  widgets.save()))
 
             # Add a new translation if there are untranslated languages.
-            if len(news.untranslated_lang_keys(uri.lang)) > 0:
+            if len(news.untranslated_lang_keys) > 0:
                 box.write('<form method="GET" action="|uri.base|data/save/newnews_lang">\n'
                           '<input type=hidden name="news_id" value="%s">\n'
                           '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>'
@@ -1890,7 +1880,7 @@ class TabPage(Table):
             supported_languages = dms.language.get_by_keys([['supported', '=', 1]])
             for key in supported_languages.keys():
                 language = supported_languages[key]
-                if not page.page[language.code]==None:
+                if language.code in page.page.keys():
                     box.write('<form method="GET" action="|uri.base|data/save/page_lang">\n'
                               '<input type=hidden name="page_code" value="%s">\n'
                               '<input type=hidden name="lang" value="%s">\n'
@@ -1925,8 +1915,7 @@ class TabPage(Table):
                                  odd_even.get_last(), widgets.menu_name(page.menu_name[language.code]),
                                  odd_even.get_last(), widgets.page(escape_tokens(page.page[language.code])),
                                  widgets.save()))
-
-            if len(page.untranslated_lang_keys(uri.lang)) > 0:
+            if len(page.untranslated_lang_keys) > 0:
                 box.write('<form method="GET" action="|uri.base|data/save/newpage_lang">\n'
                       '<input type=hidden name="page_code" value="%s">\n'
                       '<tr class="%s"><td class="sectionlabel" colspan="3">|stradd_translation|</td></tr>'
@@ -2064,7 +2053,7 @@ class TabString(Table):
                                  widgets.save()))
 
             # Add a new translation if there are untranslated languages.
-            if len(webstring.untranslated_lang_keys(uri.lang)) > 0:
+            if len(webstring.untranslated_lang_keys) > 0:
                 box.write('<form method="GET" action="|uri.base|data/save/newstring_lang">\n'
                           '<input type=hidden name="string_code" value="%s">\n'
                           '<tr class="%s">'
@@ -2594,7 +2583,7 @@ class TableMap(LampadasCollection):
         self['tabdocs'] = DocTable()
         self['tabdocs_expanded'] = DocTableExpanded()
         self['tabdocadmin'] = DocAdmin()
-        self['tabrecentnews'] = TabNews(items=10)
+        self['tabrecentnews'] = TabNews()
         self['tabnews'] = TabNews()
         self['tabnewsitem'] = TabNewsItem()
         self['tabpages'] = TabPages()
