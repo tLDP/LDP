@@ -3,7 +3,7 @@
 # A script to save certain meta-data off to the boot partition. Useful for
 # restoration.
 
-# Time-stamp: <2001-11-19 09:18:52 ccurley save.metadata>
+# Time-stamp: <2002-08-23 16:30:05 ccurley save.metadata>
 
 # Copyright 2000 through the last date of modification, Charles Curley.
 
@@ -23,10 +23,59 @@
 
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
+
+# 2002 07 01: Went to bzip2 to compress the archives, for smaller
+# results. This is important in a 100MB ZIP disk. Also some general
+# code cleanup.
+
+# 2002 07 01: The function crunch will tar and BZIP2 the
+# archives. This is cleaner than the old code, and has better safety
+# checking.
+
+
 # For more information contact the author, Charles Curley, at
 # http://w3.trib.com/~ccurley/.
 
-export zip="/mnt/zip";
+
+# Crunch: A function to compress the contents of a directory and put
+# the archive onto the ZIP disk.
+
+# The first parameter is the name of the archive file to be
+# created. The backup location, $zip, will be prepended and the
+# extension, "tar.bz2" will be appended.
+
+# All following parameters will be taken as additional directories or
+# files to be put into the archive.
+
+function crunch {
+
+if [ -z "$1" ] || [ -z "$2" ]	# Checks if parameter #1 or #2 is zero length.
+then
+   echo "-Parameter #1 or #2 is missing.-"  # Also if no parameter is passed.
+   return 1
+else
+   local file=$1		# The archive file to create
+   shift			# Discard the file name
+   local dirs=$@		# The director[y|ies] to archive
+   local tarcmd="tar -cjf"	# The tar command.
+
+   $tarcmd  $zip/$file.tar.bz2 $dirs # do it!!
+
+   error=$?			# Preserve the exit code
+
+   if [ $error != 0 ]		# Did we fail?
+   then				# Yes
+      echo "Tar failed with error $error"
+      echo $tarcmd $zip/$file.tar.bz2 $dirs
+      exit $error		# return tar's exit code as ours
+   fi
+
+   return 0			# For error testing if needed.
+fi
+}
+
+# Begin the main line code
+export zip="/mnt/zip";		# Where we will put archives
 #  export save="/mnt/save";
 
 echo "saving hard drive info"
@@ -40,18 +89,20 @@ rpm -Va > /etc/rpmVa.txt
 
 echo "Finished verifying RPMs; now mounting the ZIP drive."
 
+# Make sure we have the ZIP drive mounted.
 umount $zip
-
-modprobe ppa
-
-mount /dev/sda1
+modprobe ppa			# Driver for 100MB parallel port ZIP disk
+mount /dev/sda1			# It should have ext2fs on partition 1.
 
 # clean it all out
 rm -r $zip/*
+mkdir $zip/lost+found
 
 echo "Building the ZIP drive backups."
 
-mkdir $zip/lost+found
+# These are in case we need to refer to them while rebuilding. The
+# rebuilding process should be mostly automated, but you never
+# know....
 
 fdisk -l /dev/hda > $zip/fdisk.hda
 
@@ -63,38 +114,37 @@ cp -p /etc/* $zip/etc
 
 cd /
 
-# These appear to be required so we can restore later on.
+# Build our minimal archives on the ZIP disk. These appear to be
+# required so we can restore later on.
 
-tar cf - boot     | gzip -c > $zip/boot.tar.gz
-tar cf - root     | gzip -c > $zip/root.tar.gz
-tar cf - etc      | gzip -c > $zip/etc.tar.gz
-tar cf - lib      | gzip -c > $zip/lib.tar.gz
+crunch boot boot
+crunch root root
+crunch etc etc
+crunch lib lib
 
-tar cf - usr/sbin | gzip -c > $zip/usr.sbin.tar.gz
-tar cf - usr/bin  | gzip -c > $zip/usr.bin.tar.gz
-tar cf - sbin     | gzip -c > $zip/sbin.tar.gz
-tar cf - bin      | gzip -c > $zip/bin.tar.gz
-tar cf - dev      | gzip -c > $zip/dev.tar.gz
+crunch usr.sbin usr/sbin
+crunch usr.bin usr/bin
+crunch sbin sbin
+crunch bin bin
+crunch dev dev
 
 # Now optional saves.
 
 # arkeia specific:
-tar cf - usr/knox | gzip -c > $zip/arkeia.tar.gz
+# crunch arkeia usr/knox
 
 # save these so we can use ssh for restore. *crack* for RH 7.0 login
 # authentication.
-tar cf - usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto*\
-    | gzip -c > $zip/usr.lib.tar.gz
+crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto* 
 
-
-# save the scripts we used to create the zip disk and the ones we will
+# save the scripts we used to create the ZIP disk and the ones we will
 # use to restore it.
 mkdir $zip/root.bin
 cp -p /root/bin/* $zip/root.bin
 rm $zip/root.bin/*~ $zip/root.bin/#*#
 
-echo "Test our results."
-find $zip -iname "*.gz" | xargs gzip -t
+echo "Testing our results."
+find $zip -iname "*.bz2" | xargs bunzip2 -t
 
 # Not a normal part of the process: we duplicate the ZIP disk onto an
 # NFS mount elsewhere.
@@ -109,4 +159,3 @@ find $zip -iname "*.gz" | xargs gzip -t
 #  cp -pr $zip $save
 
 df -m
-eject $zip
