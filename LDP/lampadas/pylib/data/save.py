@@ -27,6 +27,7 @@ from HTML import page_factory
 from URLParse import URI
 from Log import log
 from mod_python import apache
+import os
 
 def newdocument(req, username, doc_id,
              title, short_title,
@@ -40,13 +41,19 @@ def newdocument(req, username, doc_id,
              format_code, dtd_code, dtd_version,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract):
+             abstract, short_desc):
 
+    # Generate a ScrollKeeper series ID
+    command = 'scrollkeeper-gen-seriesid'
+    process = os.popen(command)
+    sk_seriesid = process.read()
+    process.close()
+    
     newdoc_id = lampadas.docs.add(title, short_title, type_code, format_code, dtd_code,
             dtd_version, version, last_update, url, isbn,
             pub_status_code, review_status_code, tickle_date, pub_date,
             ref_url, tech_review_status_code, license_code, license_version,
-            copyright_holder, abstract, lang, '')
+            copyright_holder, abstract, short_desc, lang, sk_seriesid)
 
     # Add the current user as the author of the document
     doc = lampadas.docs[newdoc_id]
@@ -66,7 +73,7 @@ def document(req, username, doc_id,
              format_code, dtd_code, dtd_version,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
-             abstract):
+             abstract, short_desc, sk_seriesid):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
@@ -97,6 +104,8 @@ def document(req, username, doc_id,
     doc.dtd_version             = dtd_version
     doc.lang                    = lang
     doc.abstract                = abstract
+    doc.short_desc              = short_desc
+    doc.sk_seriesid             = sk_seriesid
     doc.save()
     go_back(req)
 

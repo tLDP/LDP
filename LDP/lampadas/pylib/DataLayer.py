@@ -185,7 +185,7 @@ class Docs(LampadasCollection):
     """
 
     def load(self):
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, rating, lang, sk_seriesid FROM document"
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -317,10 +317,10 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters. --nico
 
-    def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status_code, review_status_code, tickle_date, pub_date, home_url, tech_review_status_code, license_code, license_version, copyright_holder, abstract, lang, sk_seriesid):
+    def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status_code, review_status_code, tickle_date, pub_date, home_url, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid):
         self.id = db.next_id('document', 'doc_id')
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, license_version, copyright_holder, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(url) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(home_url) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
+        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(url) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(home_url) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
         doc = Doc(self.id)
@@ -377,6 +377,7 @@ class Doc:
         self.license_version         = ''
         self.copyright_holder        = ''
         self.abstract                = ''
+        self.short_desc              = ''
         self.rating                  = 0
         self.lang                    = ''
         self.sk_seriesid             = ''
@@ -400,7 +401,7 @@ class Doc:
 
     def load(self, id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.load_row(row)
@@ -437,15 +438,16 @@ class Doc:
         self.license_version         = trim(row[20])
         self.copyright_holder        = trim(row[21])
         self.abstract                = trim(row[22])
-        self.rating                  = safeint(row[23])
-        self.lang                    = trim(row[24])
-        self.sk_seriesid             = trim(row[25])
+        self.short_desc              = trim(row[23])
+        self.rating                  = safeint(row[24])
+        self.lang                    = trim(row[25])
+        self.sk_seriesid             = trim(row[26])
 
     def save(self):
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
-        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", url=" + wsq(self.url) + ", isbn=" + wsq(self.isbn) + ", pub_status=" + wsq(self.pub_status_code) + ", review_status=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", ref_url=" + wsq(self.home_url) + ", tech_review_status=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
+        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", url=" + wsq(self.url) + ", isbn=" + wsq(self.isbn) + ", pub_status=" + wsq(self.pub_status_code) + ", review_status=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", ref_url=" + wsq(self.home_url) + ", tech_review_status=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
         db.runsql(sql)
         db.commit()
 

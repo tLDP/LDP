@@ -352,7 +352,7 @@ class TableFactory:
         box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
         box.write('<th class="label">|strcopyright_holder|</th><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strsk_seriesid|<td colspan="3">' + combo_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strtrans_master|<td colspan="3">' + combo_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
         box.write('''
         </tr>
         <tr>
@@ -360,11 +360,15 @@ class TableFactory:
           <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
         </tr>
         <tr>
+          <th class="label">|strshort_desc|</th>
+          <td colspan="5"><input type=text name="short_desc" style="width:100%%" value="%s"></td>
+        </tr>
+        <tr>
           <td></td>
           <td><input type=submit name="save" value="|strsave|"></td>
         </tr>
         </table>
-        </form>''' % doc.abstract)
+        </form>''' % (doc.abstract, doc.short_desc))
         return box.get_value()
 
     def docversions(self, uri, user):
