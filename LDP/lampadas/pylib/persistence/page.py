@@ -7,9 +7,12 @@ class Page(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='template':
-            return self.dms.template.get_by_id(self.template_code)
-            
-        if attribute in ('title', 'menu_name', 'page', 'version'):
+            self.template = self.dms.template.get_by_id(self.template_code)
+            return self.template
+        elif attribute=='section':  
+            self.section = self.dms.section.get_by_id(self.section_code)
+            return self.section
+        elif attribute in ('title', 'menu_name', 'page', 'version'):
             self.title     = LampadasCollection()
             self.menu_name = LampadasCollection()
             self.page      = LampadasCollection()
@@ -21,12 +24,14 @@ class Page(Persistence):
                 self.menu_name[i18n.lang] = i18n.menu_name
                 self.page[i18n.lang]      = i18n.page
                 self.version[i18n.lang]   = i18n.version
-        if attribute=='title':
-            return self.title
-        elif attribute=='menu_name':
-            return self.menu_name
-        elif attribute=='page':
-            return self.page
+            if attribute=='title':
+                return self.title
+            elif attribute=='menu_name':
+                return self.menu_name
+            elif attribute=='page':
+                return self.page
+            else:
+                return self.version
         else:
-            return self.version
+            raise AttributeError('No such attribute %s' % attribute)
 

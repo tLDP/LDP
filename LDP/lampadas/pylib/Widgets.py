@@ -26,22 +26,12 @@ This module generates HTML primitives.
 
 from Globals import *
 from Log import log
-from WebLayer import lampadasweb
 from Docs import docs
 from Languages import languages
-from Formats import formats
-from DTDs import dtds
-from Encodings import encodings
-from Roles import roles
-from Collections import collections
-from Types import types
-from Licenses import licenses
-from PubStatuses import pub_statuses
-from ReviewStatuses import review_statuses
-from Topics import topics
 import re
 import string
 
+from CoreDM import dms
 
 class Widgets:
     """
@@ -52,15 +42,15 @@ class Widgets:
 
     def format_code(self, value, lang, css_class='', view=0):
         if view==1:
-            format = formats[value]
+            format = dms.format.get_by_id(value)
             if format:
                 return format.name[lang]
             return ''
 
         combo = WOStringIO('<select name="format_code"%s>\n' % css_class)
         combo.write('<option></option>')
-        keys = formats.sort_by_lang('name', lang)
-        for key in keys:
+        formats = dms.format.get_all()
+        for key in formats.sort_by_lang('name', lang):
             format = formats[key]
             combo.write("<option ")
             if format.code==value:
@@ -73,7 +63,7 @@ class Widgets:
         
     def dtd_code(self, value, lang, css_class='', view=0):
         if view==1:
-            dtd = dtds[value]
+            dtd = dms.dtd.get_by_id(value)
             if dtd:
                 return dtd.name[lang]
             return ''
@@ -83,8 +73,8 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
-        keys = dtds.sort_by_lang('name', lang)
-        for key in keys:
+        dtds = dms.dtd.get_all()
+        for key in dtds.sort_by_lang('name', lang):
             dtd = dtds[key]
             combo.write("<option ")
             if dtd.code==value:
@@ -122,15 +112,15 @@ class Widgets:
 
     def encoding(self, value, css_class='', view=0):
         if view==1:
-            encoding = encodings[value]
+            encoding = dms.encoding.get_by_id(value)
             if encoding:
                 return encoding.encoding
             return ''
             
         combo = WOStringIO('<select name="encoding"%s>\n' % css_class)
         combo.write('<option></option>')
-        keys = encodings.sort_by('encoding')
-        for key in keys:
+        encodings = dms.encoding.get_all()
+        for key in encodings.sort_by('encoding'):
             encoding = encodings[key]
             combo.write("<option ")
             if encoding.encoding==value:
@@ -228,14 +218,14 @@ class Widgets:
 
     def role_code(self, value, lang, view=0):
         if view==1:
-            role = roles[value]
+            role = dms.role.get_by_id(value)
             if role:
                 return role.name[lang]
             return ''
 
         combo = WOStringIO("<select name='role_code'>\n")
-        keys = roles.sort_by_lang('name', lang)
-        for key in keys:
+        roles = dms.role.get_all()
+        for key in roles.sort_by_lang('name', lang):
             role = roles[key]
             combo.write("<option ")
             if role.code==value:
@@ -248,8 +238,8 @@ class Widgets:
     def collection_code(self, value, lang):
         combo = WOStringIO("<select name='collection_code'>\n" \
                            "<option></option>\n")
-        keys = collections.sort_by('sort_order')
-        for key in keys:
+        collections = dms.collection.get_all()
+        for key in collections.sort_by('sort_order'):
             collection = collections[key]
             assert not collection==None
             combo.write("<option ")
@@ -262,15 +252,15 @@ class Widgets:
 
     def type_code(self, value, lang, view=0):
         if view==1:
-            type = types[value]
+            type = dms.type.get_by_id(value)
             if type:
                 return type.name[lang]
             return ''
 
         combo = WOStringIO("<select name='type_code'>\n" \
                            "<option></option>\n")
-        keys = types.sort_by('sort_order')
-        for key in keys:
+        types = dms.type.get_all()
+        for key in types.sort_by('sort_order'):
             type = types[key]
             assert not type==None
             combo.write("<option ")
@@ -298,10 +288,17 @@ class Widgets:
 
     def sk_seriesid(self, value, view=0):
         if view==1:
-            doc = docs[value]
-            if doc:
-                return doc.title
-            return ''
+            documents = dms.document.get_by_keys([['sk_seriesid', '=', value]])
+            title = ''
+            for key in documents.keys():
+                doc = documents[key]
+                if title > '':
+                    title += '<br>'
+                if doc.short_title > '':
+                    title += doc.short_title
+                else:
+                    title += doc.title
+            return title
 
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
@@ -369,7 +366,7 @@ class Widgets:
 
     def new_page_lang(self, page_code, lang):
         combo = WOStringIO("<select name='lang'>\n")
-        page = lampadasweb.pages[page_code]
+        page = dms.page.get_by_id(page_code)
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
             language = languages[key]
@@ -383,7 +380,7 @@ class Widgets:
 
     def new_news_lang(self, news_id, lang):
         combo = WOStringIO("<select name='lang'>\n")
-        news = lampadasweb.news[news_id]
+        news = dms.news.get_by_id(news_id)
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
             language = languages[key]
@@ -397,7 +394,7 @@ class Widgets:
 
     def new_string_lang(self, string_code, lang):
         combo = WOStringIO("<select name='lang'>\n")
-        webstring = lampadasweb.strings[string_code]
+        webstring = dms.webstring.get_by_id(string_code)
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
             language = languages[key]
@@ -438,15 +435,15 @@ class Widgets:
 
     def license_code(self, value, lang, view=0):
         if view==1:
-            license = licenses[value]
+            license = dms.license.get_by_id(value)
             if license:
                 return license.name[lang]
             return ''
 
         combo = WOStringIO("<select name='license_code'>\n")
         combo.write('<option></option>')
-        keys = licenses.sort_by('sort_order')
-        for key in keys:
+        licenses = dms.license.get_all()
+        for key in licenses.sort_by('sort_order'):
             license = licenses[key]
             assert not license==None
             combo.write("<option ")
@@ -463,9 +460,9 @@ class Widgets:
 
     def page_code(self, value, lang):
         combo = WOStringIO("<select name='page_code'>\n")
-        keys = lampadasweb.pages.sort_by('page_code')
-        for key in keys:
-            page = lampadasweb.pages[key]
+        pages = dms.page.get_all()
+        for key in pages.sort_by('page_code'):
+            page = pages[key]
             assert not page==None
             combo.write("<option ")
             if page.code==value:
@@ -478,15 +475,15 @@ class Widgets:
 
     def pub_status_code(self, value, lang, view=0):
         if view==1:
-            pubstatus = pub_statuses[value]
+            pubstatus = dms.pub_status.get_by_id(value)
             if pubstatus:
                 return pubstatus.name[lang]
             return ''
             
         combo = WOStringIO("<select name='pub_status_code'>\n")
         combo.write('<option></option>')
-        keys = pub_statuses.sort_by('sort_order')
-        for key in keys:
+        pub_statuses = dms.pub_status.get_all()
+        for key in pub_statuses.sort_by('sort_order'):
             pubstatus = pub_statuses[key]
             assert not pubstatus==None
             combo.write("<option ")
@@ -500,15 +497,15 @@ class Widgets:
         
     def review_status_code(self, value, lang, view=0):
         if view==1:
-            status = review_statuses[value]
+            status = dms.review_status.get_by_id(value)
             if status:
                 return status.name[lang]
             return ''
 
         combo = WOStringIO("<select name='review_status_code'>\n")
         combo.write('<option></option>')
-        keys = review_statuses.sort_by('sort_order')
-        for key in keys:
+        review_statuses = dms.review_status.get_all()
+        for key in review_statuses.sort_by('sort_order'):
             review_status = review_statuses[key]
             assert not review_status==None
             combo.write("<option ")
@@ -522,15 +519,15 @@ class Widgets:
 
     def tech_review_status_code(self, value, lang, view=0):
         if view==1:
-            status = review_statuses[value]
+            status = dms.review_status.get_by_id(value)
             if status:
                 return status.name[lang]
             return ''
 
         combo = WOStringIO("<select name='tech_review_status_code'>\n")
         combo.write('<option></option>')
-        keys = review_statuses.sort_by('sort_order')
-        for key in keys:
+        review_statuses = dms.review_status.get_all()
+        for key in review_statuses.sort_by('sort_order'):
             review_status = review_statuses[key]
             assert not review_status==None
             combo.write("<option ")
@@ -545,9 +542,10 @@ class Widgets:
     def topic_code(self, value, lang):
         combo = WOStringIO('<select name="topic_code">\n')
         combo.write('<option></option>')
-        topic_codes = topics.sort_by('sort_order')
-        for topic_code in topic_codes:
-            topic = topics[topic_code]
+        topics = dms.topic.get_all()
+        keys = topics.sort_by('sort_order')
+        for key in keys:
+            topic = topics[key]
             combo.write("<option ")
             if topic.code==value:
                 combo.write("selected ")
@@ -566,9 +564,9 @@ class Widgets:
     def section_code(self, value, lang):
         combo = WOStringIO('<select name="section_code">\n' \
                            '<option></option>\n')
-        section_codes = lampadasweb.sections.sort_by('sort_order')
-        for section_code in section_codes:
-            section = lampadasweb.sections[section_code]
+        sections = dms.section.get_all()
+        for key in sections.sort_by('sort_order'):
+            section = sections[key]
             combo.write("<option ")
             if section.code==value:
                 combo.write("selected ")
@@ -580,9 +578,9 @@ class Widgets:
 
     def template_code(self, value):
         combo = WOStringIO('<select name="template_code">\n')
-        template_codes = lampadasweb.templates.sort_by('code')
-        for template_code in template_codes:
-            template = lampadasweb.templates[template_code]
+        templates = dms.template.get_all()
+        for key in templates.sort_by('code'):
+            template = templates[key]
             combo.write("<option ")
             if template.code==value:
                 combo.write("selected ")

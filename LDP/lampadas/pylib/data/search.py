@@ -31,6 +31,8 @@ from Log import log
 from mod_python import apache
 import os
 
+from CoreDM import dms
+
 def document(req,
              title='',
              short_title='',
@@ -68,7 +70,7 @@ def document(req,
     sessions.get_session(req)
 
     uri = URI(req.uri)
-    page = lampadasweb.pages['doctable']
+    page = dms.page.get_by_id('doctable')
 
     # serve search results by manually replacing the
     # doctable here instead of during the regular call.

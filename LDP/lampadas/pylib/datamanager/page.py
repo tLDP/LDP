@@ -9,7 +9,7 @@ class Page(DataManager):
              'section_code':        {'key_field': NO,  'data_type': 'string',   'nullable': NO,  'i18n': NO,  'foreign_key': 'section.section_code'},
              'sort_order':          {'key_field': NO,  'data_type': 'int',      'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'template_code':       {'key_field': NO,  'data_type': 'string',   'nullable': NO,  'i18n': NO,  'foreign_key': 'template.template_code'},
-             'data':                {'key_field': NO,  'data_type': 'string',   'nullable': NO,  'i18n': NO,  'foreign_key': ''},
+             'data':                {'key_field': NO,  'data_type': 'list',     'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'only_dynamic':        {'key_field': NO,  'data_type': 'bool',     'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'only_registered':     {'key_field': NO,  'data_type': 'bool',     'nullable': NO,  'i18n': NO,  'foreign_key': ''},
              'only_admin':          {'key_field': NO,  'data_type': 'bool',     'nullable': NO,  'i18n': NO,  'foreign_key': ''},

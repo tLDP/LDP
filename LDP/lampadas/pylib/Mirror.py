@@ -35,12 +35,7 @@ from Config import config
 import urllib
 import os
 
-
-# Constants
-
-
-# Globals
-
+from CoreDMs import dms
 
 class Mirror:
 

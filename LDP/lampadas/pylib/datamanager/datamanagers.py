@@ -188,7 +188,5 @@ class DataManagers(LampadasCollection):
         
         This lets you access self['block'] using the simpler syntax self.block.
         """
-
         return self[attribute]
-
 

@@ -6,6 +6,10 @@ class DocumentUser(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='document':
-            return self.dms.document.get_by_id(self.doc_id)
-        if attribute=='user':
-            return self.dms.username.get_by_id(self.doc_id)
+            self.document = self.dms.document.get_by_id(self.doc_id)
+            return self.document
+        elif attribute=='user':
+            self.user = self.dms.username.get_by_id(self.doc_id)
+            return self.user
+        else:
+            raise AttributeError('No such attribute %s' % attribute)

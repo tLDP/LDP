@@ -131,7 +131,7 @@ class testDocs(unittest.TestCase):
         doc.pub_time               = '2002-03-03 15:35:23'
         doc.first_pub_date         = '2002-01-01 12:12:12'
 
-        dms.document.save(doc)
+        doc.save()
         assert doc.id > 0
         assert doc.title=='Test Document'
         assert doc.short_title=='Test Doc'
@@ -193,19 +193,19 @@ class testDocTopics(unittest.TestCase):
         assert len(remember_topics)==doc.topics.count()
 #        print 'Clearing ' + str(remember_count) + ' topics...'
 #        print doc.topics.keys()
-        dms.document_topic.clear(doc.topics)
+        doc.topics.clear()
         assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         for topic_code in topics.keys():
-            doctopic = dms.document_topic.new()
+            doctopic = doc.topics.new()
             doctopic.doc_id = doc.id
             doctopic.topic_code = topic_code
-            dms.document_topic.save(doctopic)
+            doc.topics.add(doctopic)
             doctopic = doc.topics[doctopic.topic_code]
 #            print doctopic.where()
 #            print doctopic.parent
         assert doc.topics.count()==topics.count(), 'Counts don\'t match: %s and %s ' % (doc.topics.count(), topics.count())
         for key in doc.topics.keys():
-            dms.document_topic.delete(doc.topics[key])
+            doc.topics.delete(doc.topics[key])
         assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         count = 0
 #        print 'doctopics is: ' + str(doctopics)
@@ -214,7 +214,7 @@ class testDocTopics(unittest.TestCase):
             doctopic.doc_id = doc.id
             doctopic.topic_code = remember_topics[key].topic_code
 #            print 'doc.topics is: ' + str(doc.topics) + ', parent is: ' + str(doc.topics.parent_collection)
-            dms.document_topic.save(doctopic)
+            doc.topics.add(doctopic)
 #            print 'Added back ' + topic_code
             count += 1
         assert doc.topics.count()==count
@@ -249,9 +249,9 @@ class testDocErrs(unittest.TestCase):
                 newerr.doc_id =doc.id
                 newerr.err_id = ERR_NO_SOURCE_FILE
                 newerr.notes  = ''
-                dms.document_error.save(newerr)
+                doc.errors.add(newerr)
                 assert doc.errors.count()==1, 'doc.errors.count() should be 1, but has ' + str(doc.errors.count()) + ' items.'
-                dms.document_error.delete(newerr)
+                doc.errors.delete(newerr)
                 assert doc.errors.count()==0, 'doc.errors.count() should be 0, but has ' + str(doc.errors.count()) + ' items.'
         log(3, 'testing DocErrs done')
     
@@ -280,7 +280,7 @@ class testDocRatings(unittest.TestCase):
         log(3, 'testing DocRatings')
         doc = docs[1]
         assert not doc==None
-        dms.document_rating.clear(doc.ratings)
+        doc.ratings.clear()
         assert doc.ratings.count()==0, 'doc.ratings.count() should be 0, but has ' + str(doc.ratings.count()) + ' items.'
         assert doc.ratings.average('rating')==0
 
@@ -290,7 +290,7 @@ class testDocRatings(unittest.TestCase):
         docrating.doc_id = doc.id
         docrating.rating = 5
         docrating.username = 'david'
-        dms.document_rating.save(docrating)
+        doc.ratings.add(docrating)
         assert doc.ratings.count()==1
         assert doc.ratings.average('rating')==5
         set = dms.document_rating.get_by_keys([['username', '=', 'david'], ['doc_id', '=', doc.id]])
@@ -303,7 +303,7 @@ class testDocRatings(unittest.TestCase):
         docrating.doc_id = doc.id
         docrating.rating = 7
         docrating.username = 'admin'
-        dms.document_rating.save(docrating)
+        doc.ratings.add(docrating)
         assert doc.ratings.count()==2
         assert doc.ratings.average('rating')==6
         set = dms.document_rating.get_by_keys([['doc_id', '=', doc.id]])
@@ -312,13 +312,13 @@ class testDocRatings(unittest.TestCase):
 
         # Del Userid: 1
     
-        dms.document_rating.delete_by_keys([['username', '=', 'david'], ['doc_id', '=', doc.id]])
+        doc.ratings.delete_by_keys([['username', '=', 'david']])
         assert doc.ratings.count()==1
         assert doc.ratings.average('rating')==7
 
         # Clear again
 
-        dms.document_rating.clear(doc.ratings)
+        doc.ratings.clear()
         assert doc.ratings.count()==0
         assert doc.ratings.average('rating')==0
         log(3, 'testing DocRatings done')

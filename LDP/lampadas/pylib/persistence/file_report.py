@@ -14,8 +14,9 @@ class FileReport(Persistence):
                 i18n = i18ns[key]
                 self.name[i18n.lang] = i18n.report_name
                 self.description[i18n.lang] = i18n.report_desc
-        if attribute=='name':
-            return self.name
+            if attribute=='name':
+                return self.name
+            else:
+                return self.description
         else:
-            return self.description
-
+            raise AttributeError('No such attribute %s' % attribute)

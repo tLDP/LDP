@@ -14,8 +14,9 @@ class WebString(Persistence):
                 i18n = i18ns[key]
                 self.string[i18n.lang] = i18n.string
                 self.version[i18n.lang] = i18n.version
-        if attribute=='string':
-            return self.string
+            if attribute=='string':
+                return self.string
+            else:
+                return self.version
         else:
-            return self.version
-
+            raise AttributeError('No such attribute %s' % attribute)

@@ -16,10 +16,11 @@ class News(Persistence):
                 self.version[i18n.lang] = i18n.version
                 self.headline[i18n.lang] = i18n.headline
                 self.news[i18n.lang] = i18n.news
-        if attribute=='version':
-            return self.version
-        elif attribute=='headline':
-            return self.headline
+            if attribute=='version':
+                return self.version
+            elif attribute=='headline':
+                return self.headline
+            else:
+                return self.news
         else:
-            return self.news
-
+            raise AttributeError('No such attribute %s' % attribute)

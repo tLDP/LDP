@@ -23,16 +23,17 @@ The URLParse module deciphers a Lampadas URL into its component parts.
 The API is documented in the Lampadas Programmer's Guide.
 """
 
-from WebLayer import lampadasweb
-from Languages import languages
+#from WebLayer import lampadasweb
+
 from Log import log
 import urlparse
 import os
 import string
 
-AVAILABLE_LANG = languages.keys()
-#AVAILABLE_LANG = ['FR','EN','ES']
-#def log(a,b): pass
+from CoreDM import dms
+
+# Only load this once. No need to support adding languages during runtime!
+AVAILABLE_LANG = dms.language.get_all().keys('code')
 
 class URI:
     """
@@ -52,6 +53,7 @@ class URI:
         self.anchor = ""
 
         self.page_code = ''
+        self.page_data = ''
 
         # If the URL specifies a user, doc, etc., it is stored in one
         # of these attributes.
@@ -125,7 +127,7 @@ class URI:
             self.page_code = data[0]
             self.data = data[1:]
 
-        page = lampadasweb.pages[self.page_code]
+        page = dms.page.get_by_id(self.page_code)
         if page==None:
             print "ERROR"
             self.printdebug()
@@ -137,6 +139,7 @@ class URI:
         # FIXME: As a temporary fix, we reload any embedded data, to overcome
         # the shortcomings of the caching system. We really need to just
         # fix the cache, but this is a quick fix for now.
+        self.page_data = page.data
         data = self.data
         for item in page.data:
             if len(data)==0:
@@ -146,6 +149,7 @@ class URI:
                 data = data[1:]
             elif item in ('collection', 'topic', 'type', 'report', 'page', 'string'):
                 self.code = data[0]
+                print 'Loading code: ' + self.code
                 data = data[1:]
             elif item in ('user',):
                 self.username = data[0]
@@ -165,6 +169,7 @@ class URI:
         print "Port: [%s]"               % self.port
         print "Path: [%s]"               % self.path
         print "Page Code: [%s]"          % self.page_code
+        print "Page Data: [%s]"          % self.page_data
         print "Language: [%s]"           % self.lang
         print "Language Extension: [%s]" % self.lang_ext
         print "Parameter: [%s]"          % self.parameter

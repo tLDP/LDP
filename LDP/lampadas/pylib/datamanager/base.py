@@ -29,6 +29,7 @@ class TableField:
     def get_default(self):
         if self.data_type in ('sequence', 'int', 'float'): return 0
         elif self.data_type in ('string', ''): return ''
+        elif self.data_type=='list':           return []
         elif self.data_type=='time':           return ''
         elif self.data_type=='date':           return ''
         elif self.data_type=='bool':           return 0
@@ -43,6 +44,7 @@ class TableField:
         if self.data_type in ('sequence', 'int', 'float'):
             return safeint(value)
         elif self.data_type in ('string', ''): return trim(value)
+        elif self.data_type=='list':           return trim(value).split()
         elif self.data_type=='time':           return time2str(value)
         elif self.data_type=='date':           return date2str(value)
         elif self.data_type=='bool':           return tf2bool(value)
@@ -60,6 +62,7 @@ class TableField:
             else:
                 return str(value)
         elif self.data_type=='string':  return wsq(str(value))
+        elif self.data_type=='list':    return wsq(string.join(value))
         elif self.data_type=='bool':    return wsq(bool2tf(value))
         elif self.data_type=='date':    return wsq(str(value))
         elif self.data_type=='time':    return wsq(str(value))
@@ -180,7 +183,10 @@ class DataManager(DataTable):
         for filter in filters:
             field_name, operator, value = filter
             data_field = self.table.fields[field_name]
-            wheres.append(field_name + operator + data_field.attr_to_field(value))
+            if operator.upper()=='LIKE':
+                wheres.append(field_name + ' LIKE ' + data_field.attr_to_field(value + '%'))
+            else:
+                wheres.append(field_name + operator + data_field.attr_to_field(value))
         where = ' WHERE ' + string.join(wheres, ' AND ')
         return self.get_sql(self.table.select + where)
 
@@ -327,6 +333,9 @@ class DataSet(LampadasCollection):
             minimum = min(minimum, value)
         return minimum
 
+    def new(self):
+        return self.dms.new()
+
     def add(self, object):  
         self.dms.save(object)
         self[object.key] = object
@@ -337,3 +346,57 @@ class DataSet(LampadasCollection):
         self.dms.delete(object)
         if self.has_key(object.key):
             del self[object.key]
+
+    def delete_by_keys(self, filters):
+        subset = self.get_subset(filters)
+        for key in subset.keys():
+            object = self[key]
+            self.delete(object)
+    
+    def clear(self):
+        for key in self.keys():
+            object = self[key]
+            self.delete(object)
+
+    def get_subset(self, filters):
+        subset = DataSet(self.dms, self.sql)
+        for key in self.keys():
+            object = self[key]
+            passes = 1
+            for filter in filters:
+                attribute, operator, value = filter
+                my_value = getattr(object, attribute)
+                if operator=='=': match = (my_value==value)
+                elif operator=='>': match = (my_value > value)
+                elif operator=='<': match = (my_value < value)
+                else:
+                    raise AttributeError('No such operator: ' + operator)
+                if match==0:
+                    passes = 0
+                    break
+            if passes:
+                subset[object.key] = object
+        return subset
+
+    def count(self, filters=None):
+        if filters:
+            i = 0
+            for key in self.keys():
+                object = self[key]
+                passes = 1
+                for filter in filters:
+                    attribute, operator, value = filter
+                    my_value = getattr(object, attribute)
+                    if operator=='=': match = (my_value==value)
+                    elif operator=='>': match = (my_value > value)
+                    elif operator=='<': match = (my_value < value)
+                    else:
+                        raise AttributeError('No such operator: ' + operator)
+                    if match==0:
+                        passes = 0
+                        break
+                if passes:
+                    i += 1
+            return i
+        else:
+            return super(DataSet, self).count()

@@ -6,6 +6,13 @@ class DocumentError(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='document':
-            return self.dms.document.get_by_id(self.doc_id)
-        if attribute=='error':
-            return self.dms.error.get_by_id(self.doc_id)
+            self.document = self.dms.document.get_by_id(self.doc_id)
+            return self.document
+        elif attribute=='error':
+            self.error = self.dms.error.get_by_id(self.doc_id)
+            return self.error
+        elif attribute=='err_type_code':
+            self.err_type_code = self.error.err_type_code
+            return self.err_type_code
+        else:
+            raise AttributeError('No such attribute %s' % attribute)

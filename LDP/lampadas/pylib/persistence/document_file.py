@@ -6,6 +6,10 @@ class DocumentFile(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='document':
-            return self.dms.document.get_by_id(self.doc_id)
-        if attribute=='file':
-            return self.dms.sourcefile.get_by_id(self.doc_id)
+            self.document = self.dms.document.get_by_id(self.doc_id)
+            return self.document
+        elif attribute=='sourcefile':
+            self.sourcefile = self.dms.sourcefile.get_by_id(self.doc_id)
+            return self.sourcefile
+        else:
+            raise AttributeError('No such attribute %s' % attribute)

@@ -31,17 +31,13 @@ from Globals import *
 from Config import config
 from Log import log
 from URLParse import URI
-from SourceFiles import sourcefiles
+
 from Docs import docs
-from Types import types
-from Topics import topics
-from Collections import collections
-from Users import users
-from WebLayer import lampadasweb
 from Tables import tables, tablemap
 from Widgets import widgets
-from Lintadas import lintadas
 from Sessions import sessions
+
+from Lintadas import lintadas
 import commands
 import string
 import sys
@@ -49,8 +45,7 @@ import os
 import time
 import fpformat
 
-# Globals
-
+from CoreDM import dms
 
 # PageFactory
 
@@ -60,7 +55,7 @@ class PageFactory:
 
     def page_exists(self, key):
         uri = URI(key)
-        if uri.path=='' and lampadasweb.pages[uri.page_code]:
+        if uri.path=='' and dms.page.get_by_id(uri.code):
             return 1
         return
 
@@ -68,17 +63,16 @@ class PageFactory:
         if sessions.session:
             log(3, 'user: ' + sessions.session.username)
 
-        page = lampadasweb.pages[uri.page_code]
+        page = dms.page.get_by_id(uri.page_code)
         if page==None:
-            page = lampadasweb.pages['404']
+            page = dms.page.get_by_id('404')
         assert not page==None
         html = self.build_page(page, uri)
-
         return html
     
     def build_page(self, page, uri):
         start_time = time.time()
-        template = lampadasweb.templates[page.template_code]
+        template = page.template
         assert not template==None
         html = template.template
 
@@ -182,9 +176,9 @@ class PageFactory:
                 elif token=='user.username':
                     newstring = uri.username
                 elif token=='user.name':
-                    user = users[uri.username]
+                    user = dms.username.get_by_id(uri.username)
                     if user:
-                        newstring = user.name()
+                        newstring = user.name
                     else:
                         newstring = ''
                 elif token=='user.docs':
@@ -192,7 +186,7 @@ class PageFactory:
 
                 # Embedded Type
                 elif token=='type.name':
-                    type = types[uri.code]
+                    type = dms.type.get_by_id(uri.code)
                     if not type:
                         newstring = '|blknotfound|'
                     else:
@@ -200,13 +194,13 @@ class PageFactory:
 
                 # Embedded Topic
                 elif token=='topic.name':
-                    topic = topics[uri.code]
+                    topic = dms.topic.get_by_id(uri.code)
                     if not topic:
                         newstring = '|blknotfound|'
                     else:
                         newstring = topic.name[uri.lang]
                 elif token=='topic.description':
-                    topic = topics[uri.code]
+                    topic = dms.topic.get_by_id(uri.code)
                     if not topic:
                         newstring = '|blknotfound|'
                     else:
@@ -214,13 +208,13 @@ class PageFactory:
 
                 # Embedded Collection
                 elif token=='collection.name':
-                    collection = collections[uri.code]
+                    collection = dms.collection.get_by_id(uri.code)
                     if not collection:
                         newstring = '|blknotfound|'
                     else:
                         newstring = collection.name[uri.lang]
                 elif token=='collection.description':
-                    collection = collections[uri.code]
+                    collection = dms.collection.get_by_id(uri.code)
                     if not collection:
                         newstring = '|blknotfound|'
                     else:
@@ -345,9 +339,9 @@ class PageFactory:
                 if newstring==None:
                     tablegen = tablemap[token]
                     if tablegen==None:
-                        block = lampadasweb.blocks[token]
+                        block = dms.block.get_by_id(token)
                         if block==None:
-                            string = lampadasweb.strings[token]
+                            string = dms.webstring.get_by_id(token)
                             if string==None:
                                 log(1, 'Could not replace token ' + token)
                             else:
@@ -411,6 +405,9 @@ def main():
     else:
         profile()
 
+# USAGE:
+#
+#   HTML.py page -p --reps 10
 
 if __name__=="__main__":
     main()

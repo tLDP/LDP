@@ -9,5 +9,7 @@ CREATE TABLE document_file
 	PRIMARY KEY (doc_id, filename)
 );
 
-CREATE INDEX document_file_upd_idx ON document_file (updated);
-CREATE INDEX document_file_ctd_idx ON document_file (created);
+CREATE INDEX document_file_doc_idx   ON document_file (doc_id)
+CREATE INDEX fileument_file_file_idx ON fileument_file (filename)
+CREATE INDEX document_file_upd_idx   ON document_file (updated);
+CREATE INDEX document_file_ctd_idx   ON document_file (created);

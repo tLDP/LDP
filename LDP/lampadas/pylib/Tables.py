@@ -22,19 +22,9 @@ from Globals import *
 from Config import config
 from Log import log
 from BaseClasses import *
-from Languages import languages
 from Docs import docs, Doc
 from Users import users, User
-from SourceFiles import sourcefiles
-from ErrorTypes import errortypes
-from Errors import errors
-from Topics import topics
-from Types import types
-from Collections import collections
-from Formats import formats
-from DTDs import dtds
-from PubStatuses import pub_statuses
-from WebLayer import lampadasweb, Page, NewsItem, String
+from WebLayer import lampadasweb
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
@@ -43,6 +33,8 @@ from OMF import OMF
 import os
 import fpformat
 import string
+
+from CoreDM import dms
 
 # FIXME: Replace the rest of the form elements, including buttons, with widgets in the widget library.
 
@@ -353,7 +345,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def viewdocfiles(self, uri):
-        doc = docs[uri.id]
+        doc = dms.document.get_by_id(uri.id)
         if doc==None:
             return '|blknotfound|'
 
@@ -361,11 +353,10 @@ class Tables(LampadasCollection):
         box = WOStringIO('<table class="box" width="100%%">'
                          '<tr><th colspan="6">%s</th></tr>'
                          % ('|strdocfiles|'))
-        keys = doc.files.sort_by('filename')
-        for key in keys:
-            lintadas.check_file(key)
+        for key in doc.files.sort_by('filename'):
             docfile = doc.files[key]
-            sourcefile = sourcefiles[key]
+            lintadas.check_file(docfile.filename)
+            sourcefile = docfile.sourcefile
             if sourcefile.errors.count() > 0:
                 css_class = ' error'
             else:
@@ -399,12 +390,11 @@ class Tables(LampadasCollection):
         box = WOStringIO('<table class="box" width="100%%">'
                          '<tr><th colspan="6">%s</th></tr>'
                          % ('|strdocfiles|'))
-        doc = docs[uri.id]
-        keys = doc.files.sort_by('filename')
-        for key in keys:
-            lintadas.check_file(key)
+        doc = dms.document.get_by_id(uri.id)
+        for key in doc.files.sort_by('filename'):
             docfile = doc.files[key]
-            sourcefile = sourcefiles[key]
+            lintadas.check_file(docfile.filename)
+            sourcefile = docfile.sourcefile
             if sourcefile.errors.count() > 0:
                 css_class = ' error'
             else:
@@ -538,21 +528,21 @@ class Tables(LampadasCollection):
             return '|blknotfound|'
 
         log(3, 'Creating viewdoctopics table')
-        doc = docs[uri.id]
+        #doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th>|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th></tr>\n')
-        topics.calc_titles()
-        keys = topics.sort_by('sort_order')
-        dtkeys = doc.topics.keys('topic_code')
+        #topics.calc_titles()
+        doc = dms.document.get_by_id(uri.id)
+        doctopics = doc.topics
+        keys = doctopics.sort_by('sort_order')
         odd_even = OddEven()
         for key in keys:
-            if key in dtkeys: # XXXFIXME using key in both loops sounds like a bug !!!
-                topic = topics[key]
-                box.write('<tr class="%s"><td>'
-                          '<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a>'
-                          '</td></tr>\n'
-                          % (odd_even.get_next(), topic.code, topic.title[uri.lang]))
+            doctopic = doctopics[key]
+            box.write('<tr class="%s"><td>'
+                      '<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a>'
+                      '</td></tr>\n'
+                      % (odd_even.get_next(), doctopic.topic.code, doctopic.topic.title[uri.lang]))
         box.write('</table>')
         return box.get_value()
 
@@ -561,29 +551,28 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdoctopics table')
-        doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th>\n'
                          '    <th class="collabel">|straction|</th></tr>\n')
-        topics.calc_titles()
-        keys = topics.sort_by('sort_order')
-        dtkeys = doc.topics.keys('topic_code')
+        #topics.calc_titles()
         odd_even = OddEven()
-        for key in keys:
-            if key in dtkeys:# XXXFIXME using key in both loops sounds like a bug !!!
-                topic = topics[key]
-                box.write('<form method="GET" name="document_topic"'
-                          ' action="|uri.base|data/save/deldocument_topic">\n'
-                          '<input type=hidden name="doc_id" value="%s">\n'
-                          '<input type=hidden name="topic_code" value="%s">\n'
-                          '<tr class="%s">'
-                          ' <td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
-                          ' <td><input type=submit name="action" value="|strdelete|"></td>'
-                          '</tr>\n'
-                          '</form>\n'
-                          % (doc.id, topic.code, odd_even.get_next(),
-                             topic.code, topic.title[uri.lang]))
+        doc = dms.document.get_by_id(uri.id)
+        doctopics = doc.topics
+        for key in doctopics.sort_by('sort_order'):
+            doctopic = doctopics[key]
+            topic = doctopic.topic
+            box.write('<form method="GET" name="document_topic"'
+                      ' action="|uri.base|data/save/deldocument_topic">\n'
+                      '<input type=hidden name="doc_id" value="%s">\n'
+                      '<input type=hidden name="topic_code" value="%s">\n'
+                      '<tr class="%s">'
+                      ' <td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
+                      ' <td><input type=submit name="action" value="|strdelete|"></td>'
+                      '</tr>\n'
+                      '</form>\n'
+                      % (doc.id, topic.code, odd_even.get_next(),
+                         topic.code, topic.title[uri.lang]))
         box.write('<form name="document_topic" method="GET"'
                   ' action="|uri.base|data/save/newdocument_topic">\n'
                   '<input name="doc_id" type=hidden value="%s">\n'
@@ -718,8 +707,8 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for err_id in err_ids:
             docerror = doc.errors[err_id]
-            error = errors[err_id]
-            errtype = errortypes[error.err_type_code]
+            error = dms.error.get_by_id(err_id)
+            errtype = error.error_type
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s<br><pre>%s</pre></td></tr>'
                       % (odd_even.get_next(),
                          docerror.created,
@@ -747,11 +736,10 @@ class Tables(LampadasCollection):
         filenames = doc.files.sort_by('filename')
         odd_even = OddEven()
         for filename in filenames:
-            sourcefile = sourcefiles[filename]
-            err_ids = sourcefile.errors.sort_by('created')
-            for err_id in err_ids:
+            sourcefile = dms.sourcefile.get_by_id(filename)
+            for keys in sourcefile.errors.keys('created'):
                 fileerror = sourcefile.errors[err_id]
-                error = errors[err_id]
+                error = fileerror.error
                 box.write('<tr class="%s">\n<td>%s</td>\n<td>%s</td>\n<td><a href="|uri.base|sourcefile/%s|uri.lang_ext|">%s</a></td>\n</tr>\n'
                           % (odd_even.get_next(), fileerror.err_id, error.name[uri.lang],
                              sourcefile.filename, widgets.filename_compressed(sourcefile.filename)))
@@ -765,17 +753,17 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating filereports table')
-        sourcefile = sourcefiles[uri.filename]
+        sourcefile = dms.sourcefile.get_by_id(uri.filename)
         display_filename = widgets.filename_compressed(sourcefile.filename)
 
         box = WOStringIO('<table class="box" width="100%%">'
                          '<tr><th colspan="2">|strfilereports|</th></tr>\n'
                          '<tr><th colspan="2" class="sectionlabel">%s</th></tr>\n'
                          % display_filename)
-        report_codes = lampadasweb.file_reports.sort_by_lang('name', uri.lang)
+        file_reports = dms.file_report.get_all()
         odd_even = OddEven()
-        for report_code in report_codes:
-            report = lampadasweb.file_reports[report_code]
+        for key in file_reports.sort_by_lang('name', uri.lang):
+            report = file_reports[key]
             if report.only_cvs==0 or sourcefile.in_cvs==1:
                 box.write('<tr class="%s"><td><a href="|uri.base|file_report/%s/%s%s">%s</a></td><td>%s</td></tr>\n'
                 % (odd_even.get_next, report.code, uri.filename, uri.lang_ext, report.name[uri.lang], report.description[uri.lang]))
@@ -791,9 +779,9 @@ class Tables(LampadasCollection):
         log(3, 'Creating filereport table')
 
         # Build and execute the command
-        report = lampadasweb.file_reports[uri.code]
+        report = dms.file_report.get_by_id(uri.code)
         command = report.command
-        sourcefile = sourcefiles[uri.filename]
+        sourcefile = dms.sourcefile.get_by_id(uri.filename)
 
         # Write local filename in case script wants it.
         fh = open('/tmp/lampadas_localname.txt', 'w')
@@ -852,12 +840,12 @@ class Tables(LampadasCollection):
                          '<tr><th class="collabel" colspan="2">|strusername|</th>\n'
                          '    <th class="collabel">|strname|</th></tr>\n')
         if uri.letter > '':
-            usernames = users.letter_keys(uri.letter)
+            users = dms.username.get_by_keys([['username', 'like', uri.letter]])
             odd_even = OddEven()
-            for username in usernames:
+            for key in users.keys():
                 user = users[username]
                 box.write('<tr class="%s"><td><a href="|uri.base|user/%s|uri.lang_ext|">%s</a></td><td>%s</td><td>%s</a></td></tr>\n'
-                          % (odd_even.get_next(), username, EDIT_ICON_SM, username, user.name))
+                          % (odd_even.get_next(), user.username, EDIT_ICON_SM, user.username, user.name))
         box.write('</table>\n')
         return box.get_value()
 
@@ -974,7 +962,7 @@ class Tables(LampadasCollection):
         elif layout=='expanded':
             box = WOStringIO('')
 
-        docs.reload()
+        #docs.reload()
         keys = docs.sort_by("title")
         odd_even = OddEven()
         for key in keys:
@@ -1223,12 +1211,11 @@ class Tables(LampadasCollection):
 
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
-        section = lampadasweb.sections[section_code]
+        section = dms.section.get_by_id(section_code)
         box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n'
                          '<tr><td>' % section.name[uri.lang])
-        keys = lampadasweb.pages.sort_by('sort_order')
-        for key in keys:
-            page = lampadasweb.pages[key]
+        for key in section.pages.keys():
+            page = section.pages[key]
             if page.section_code==section.code:
                 if lampadasweb.static and page.only_dynamic:
                     continue
@@ -1248,10 +1235,10 @@ class Tables(LampadasCollection):
     def section_menus(self, uri):
         log(3, "Creating all section menus")
         box = WOStringIO('')
-        keys = lampadasweb.sections.sort_by('sort_order')
+        sections = dms.section.get_all()
         menu_separator = ''
-        for key in keys:
-            section = lampadasweb.sections[key]
+        for key in sections.sort_by('sort_order')
+            section = sections[key]
             if lampadasweb.static and section.static_count()==0:
                 continue
             if section.nonregistered_count()==0 and (sessions.session==None):
@@ -1267,10 +1254,9 @@ class Tables(LampadasCollection):
     def sitemap(self, uri):
         log(3, 'Creating sitemap')
         box = WOStringIO('')
-        section_codes = lampadasweb.sections.sort_by('sort_order')
-        page_codes = lampadasweb.pages.sort_by('sort_order')
-        for section_code in section_codes:
-            section = lampadasweb.sections[section_code]
+        sections = dms.section.get_all()
+        for key in sections.sort_by('sort_order')
+            section = sections[key]
             if section.static_count()==0 and lampadasweb.static:
                 continue
             if section.nonregistered_count()==0 and sessions.session==None:
@@ -1283,56 +1269,51 @@ class Tables(LampadasCollection):
             odd_even = OddEven()
             box.write('<p><table class="box" width="100%%"><tr><th>%s</th></tr>\n'
                       % section.name[uri.lang])
-            for page_code in page_codes:
-                page = lampadasweb.pages[page_code]
-                if page.section_code==section_code:
-                    if page.only_dynamic and lampadasweb.static:
+            for pagekey in section.pages.sort_by('sort_order'):
+                page = section.pages[pagekey]
+                if page.only_dynamic and lampadasweb.static:
+                    continue
+                if page.only_registered or page.only_admin or page.only_sysadmin > 0:
+                    if sessions.session==None: continue
+                if page.only_admin > 0:
+                    if sessions.session==None: continue
+                    if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
                         continue
-                    if page.only_registered or page.only_admin or page.only_sysadmin > 0:
-                        if sessions.session==None: continue
-                    if page.only_admin > 0:
-                        if sessions.session==None: continue
-                        if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
-                            continue
-                    if page.only_sysadmin > 0:
-                        if sessions.session==None: continue
-                        if sessions.session.user.sysadmin==0:
-                            continue
-                    box.write('<tr class="%s"><td><a href="|uri.base|%s|uri.lang_ext|">%s</a></td></tr>\n'
-                              % (odd_even.get_next(), page.code, page.menu_name[uri.lang]))
+                if page.only_sysadmin > 0:
+                    if sessions.session==None: continue
+                    if sessions.session.user.sysadmin==0:
+                        continue
+                box.write('<tr class="%s"><td><a href="|uri.base|%s|uri.lang_ext|">%s</a></td></tr>\n'
+                          % (odd_even.get_next(), page.code, page.menu_name[uri.lang]))
             box.write('</table>\n')
         return box.get_value()
 
     def navtopics(self, uri):
-        if self['navtopics']==None:
-            self['navtopics'] = LampadasCollection()
-            self['navtopics'].html = LampadasCollection()
-        if self['navtopics'].html[uri.lang]==None:
-            log(3, 'Creating navtopics menu')
-            box = WOStringIO('''<table class="navbox">
-            <tr><th>|strtopics|</th></tr>
-            <tr><td>''')
-            keys = topics.sort_by('sort_order')
-            for key in keys:
-                topic = topics[key]
-                if topic.parent_code=='':
-                    box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
-                              % (topic.code, topic.name[uri.lang]))
-            box.write('</td></tr></table>\n')
-            self['navtopics'].html[uri.lang] = box.get_value()
-        return self['navtopics'].html[uri.lang]
+        log(3, 'Creating navtopics menu')
+        box = WOStringIO('''<table class="navbox">
+        <tr><th>|strtopics|</th></tr>
+        <tr><td>''')
+        topics = dms.topic.get_all()
+        for key in topics.sort_by('sort_order'):
+            topic = topics[key]
+            if topic.parent_code=='':
+                box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
+                          % (topic.code, topic.name[uri.lang]))
+        box.write('</td></tr></table>\n')
+        return box.get_value()
 
     def tabtopics(self, uri):
         log(3, 'Creating tabtopics table')
-        topics.calc_titles()
-        topic = topics[uri.code]
+        #topics.calc_titles()
+        #topic = topics[uri.code]
+        topics = dms.topic.get_all()
+        topic = dms.topic.get_by_id(uri.code)
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><th class="collabel">|topic.description|</th></tr>
         ''' % topic.title[uri.lang])
-        keys = topics.sort_by('sort_order') 
         odd_even = OddEven()
-        for key in keys:
+        for key in topics.sort_by('sort_order'):
             topic = topics[key]
             if topic.parent_code==uri.code:
                 box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>\n'
@@ -1342,8 +1323,8 @@ class Tables(LampadasCollection):
 
     def tabtopic(self, uri):
         log(3, 'Creating tabtopic table')
-        topics.calc_titles()
-        topic = topics[uri.code]
+        #topics.calc_titles()
+        topic = dms.topic.get_by_id(uri.code)
         box = '''<table class="box nontabular" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>%s</td><tr>
@@ -1356,8 +1337,8 @@ class Tables(LampadasCollection):
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strtypes|</th></tr>
         <tr><td>''')
-        keys = types.sort_by('sort_order')
-        for key in keys:
+        types = dms.type.get_all()
+        for key in types.sort_by('sort_order'):
             type = types[key]
             box.write('<a href="|uri.base|type/%s|uri.lang_ext|">%s</a><br>\n'
                       % (type.code, type.name[uri.lang]))
@@ -1369,8 +1350,8 @@ class Tables(LampadasCollection):
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strcollections|</th></tr>
         <tr><td>''')
-        keys = collections.sort_by('sort_order')
-        for key in keys:
+        collections = dms.collection.get_all()
+        for key in collections.sort_by('sort_order'):
             collection = collections[key]
             box.write('<a href="|uri.base|collection/%s|uri.lang_ext|">%s</a><br>\n'
                       % (collection.code, collection.name[uri.lang]))
@@ -1381,8 +1362,8 @@ class Tables(LampadasCollection):
         log(3, 'Creating collections table')
         box = WOStringIO('''<table class="box">
         <tr><th colspan="2">|strcollections|</th></tr>''')
-        keys = collections.sort_by('sort_order')
-        for key in keys:
+        collections = dms.collection.get_all()
+        for key in collections.sort_by('sort_order'):
             collection = collections[key]
             box.write('<tr><td><a href="|uri.base|collection/%s|uri.lang_ext|">%s</a></td>\n'
                       '    <td>%s</td>\n'
@@ -1489,22 +1470,22 @@ class Tables(LampadasCollection):
         <tr><th>|strlanguages|</th></tr>
         <tr><td>
         ''')
+        languages = dms.language.get_by_keys([['supported', '=', 1]])
         keys = languages.sort_by_lang('name', uri.lang)
         for key in keys:
             language = languages[key]
-            if language.supported > 0:
-                if uri.data > '':
-                    add_data = '/' + uri.data
-                else:
-                    add_data = ''
-                add_data = string.join(uri.data,'/')
-                if add_data > '':
-                    add_data = '/' + add_data
-                box.write('<a href="|uri.base|%s%s.%s.html">%s</a><br>\n'
-                          % (uri.page_code,
-                             add_data,
-                             language.code.lower(),
-                             language.name[uri.lang]))
+            if uri.data > '':
+                add_data = '/' + uri.data
+            else:
+                add_data = ''
+            add_data = string.join(uri.data,'/')
+            if add_data > '':
+                add_data = '/' + add_data
+            box.write('<a href="|uri.base|%s%s.%s.html">%s</a><br>\n'
+                      % (uri.page_code,
+                         add_data,
+                         language.code.lower(),
+                         language.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
@@ -1600,7 +1581,8 @@ class Tables(LampadasCollection):
         box = WOStringIO('<p class="hide"><div class="map">\n'
                          '<h1 id="p1">|strproject|</h1>\n')
         id = 1
-        for key in languages.supported_keys():
+        languages = dms.language.get_by_keys([['supported', '=', 1]])
+        for key in languages.keys():
             id = id + 1
             language = languages[key]
             box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
@@ -1757,11 +1739,12 @@ class TabNews(Table):
                          '<tr><th colspan="2">|strnews|</th></tr>')
 
         # display first 'self.items' items only
-        keys = lampadasweb.news.sort_by_desc('pub_date')
+        news = dms.news.get_all()
+        keys = news.sort_by_desc('pub_date')
         if self.items > 0 :
             keys = keys[:self.items]
         for key in keys:
-            news = lampadasweb.news[key]
+            news = news[key]
             if not news.news[uri.lang]==None:
                 if sessions.session and sessions.session.user.can_edit(news_id=news.id)==1:
                     edit_icon = '<a href="|uri.base|news_edit/%s|uri.lang_ext|">%s</a>\n' \
@@ -1795,7 +1778,7 @@ class TabNewsItem(Table):
             return '|blknopermission|'
 
         if uri.id > 0:
-            news = lampadasweb.news[uri.id]
+            news = dms.news.get_by_id(uri.id)
 
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/news">\n'
                              '<table class="box nontabular"><tr><th colspan="3">|strnews|</th></tr>\n'
@@ -1811,8 +1794,10 @@ class TabNewsItem(Table):
             box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
-            for lang in languages.supported_keys(uri.lang):
-                if not news.news[lang]==None:
+            languages = dms.language.get_by_keys([['supported', '=', 1]])
+            for key in languages.keys():
+                language = languages[key]
+                if not news.news[language.code]==None:
                     box.write('<form method="GET" action="|uri.base|data/save/news_lang">\n'
                               '<input type=hidden name="news_id" value="%s">\n'
                               '<input type=hidden name="lang" value="%s">\n'
@@ -1822,7 +1807,7 @@ class TabNewsItem(Table):
                               '<tr class="%s"><td class="label">|strnews|</td><td width="100%%">%s</td><td>%s</td></tr>'
                               '</form>'
                               % (news.id, lang,
-                                 odd_even.get_next(), languages[lang].name[uri.lang],
+                                 odd_even.get_next(), language.name[uri.lang],
                                  odd_even.get_last(), widgets.version(news.version[lang]),
                                  odd_even.get_last(), widgets.headline(news.headline[lang]),
                                  odd_even.get_last(), widgets.news(news.news[lang]),
@@ -1846,7 +1831,7 @@ class TabNewsItem(Table):
                              widgets.save()))
             box.write('</table>')
         else:
-            news = NewsItem()
+            news = dms.news.new()
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/newnews">\n'
                              '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n'
                              '<tr class="odd"><td class="label">|strpub_date|</td>\n'
@@ -1872,16 +1857,16 @@ class TabPages(Table):
                          '    <th class="collabel">|strsection|</th>\n'
                          '    <th class="collabel">|strname|</th>\n'
                          '</tr>\n')
-        keys = lampadasweb.pages.sort_by('code')
         odd_even = OddEven()
-        for key in keys:
-            page = lampadasweb.pages[key]
+        pages = dms.page.get_all()
+        for key in pages.sort_by('code'):
+            page = pages[key]
             if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
                 edit_icon = '<a href="|uri.base|page_edit/' + str(page.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
             else:
                 edit_icon = ''
-            if page.section_code > '':
-                section_name = lampadasweb.sections[page.section_code].name[uri.lang]
+            if page.section:
+                section_name = page.section.name[uri.lang]
             else:
                 section_name = ''
 
@@ -1914,7 +1899,7 @@ class TabPage(Table):
             return '|blknopermission|'
 
         if uri.code > '':
-            page = lampadasweb.pages[uri.code]
+            page = dms.page.get_by_id(uri.code)
             
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/page">\n'
                              '<table class="box"><tr><th colspan="3">|strpage|: %s</th></tr>\n'
@@ -1978,8 +1963,10 @@ class TabPage(Table):
                       '<tr><th colspan="3">|strtranslations|</th></tr>\n')
 
             odd_even = OddEven()
-            for lang in languages.supported_keys(uri.lang):
-                if not page.page[lang]==None:
+            languages = dms.language.get_by_keys([['supported', '=', 1]])
+            for key in languages.keys():
+                language = languages[key]
+                if not page.page[language.code]==None:
                     box.write('<form method="GET" action="|uri.base|data/save/page_lang">\n'
                               '<input type=hidden name="page_code" value="%s">\n'
                               '<input type=hidden name="lang" value="%s">\n'
@@ -2007,12 +1994,12 @@ class TabPage(Table):
                               ' <td>%s</td>'
                               '</tr>\n'
                               '</form>'
-                              % (page.code, lang,
-                                 odd_even.get_next(), languages[lang].name[uri.lang],
-                                 odd_even.get_last(), widgets.version(page.version[lang], ''),
-                                 odd_even.get_last(), widgets.title(page.title[lang], ''),
-                                 odd_even.get_last(), widgets.menu_name(page.menu_name[lang]),
-                                 odd_even.get_last(), widgets.page(escape_tokens(page.page[lang])),
+                              % (page.code, language.code,
+                                 odd_even.get_next(), language.name[uri.lang],
+                                 odd_even.get_last(), widgets.version(page.version[language.code], ''),
+                                 odd_even.get_last(), widgets.title(page.title[language.code], ''),
+                                 odd_even.get_last(), widgets.menu_name(page.menu_name[language.code]),
+                                 odd_even.get_last(), widgets.page(escape_tokens(page.page[language.code])),
                                  widgets.save()))
 
             # Add a new translation if there are untranslated languages.
@@ -2036,7 +2023,7 @@ class TabPage(Table):
                          widgets.add()))
             box.write('</table>')
         else:
-            page = Page()
+            page = dms.page.new()
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/newpage">\n'
                              '<table class="box"><tr><th colspan="3">|stradd_page|</th></tr>\n'
                              '<tr><td class="label">|strpage_code|</td>\n<td><input type=text name="page_code"></td>\n<td></td>\n</tr>\n'
@@ -2070,13 +2057,13 @@ class TabStrings(Table):
                          ' <th class="collabel" colspan="2">|strstring_code|</th>'
                          ' <th class="collabel">|strstring|</th>'
                          '</tr>\n')
-        keys = lampadasweb.strings.sort_by('code')
+        webstrings = dms.webstring.get_all()
         odd_even = OddEven()
-        for key in keys:
-            string = lampadasweb.strings[key]
-            if sessions.session and sessions.session.user.can_edit(string_code=string.code)==1:
+        for key in webstrings.sort_by('code'):
+            webstring = webstrings[key]
+            if sessions.session and sessions.session.user.can_edit(string_code=webstring.code)==1:
                 edit_icon = '<a href="|uri.base|string_edit/%s|uri.lang_ext|">%s</a>\n' \
-                            % (str(string.code),EDIT_ICON_SM)
+                            % (str(webstring.code),EDIT_ICON_SM)
             else:
                 edit_icon = ''
 
@@ -2087,8 +2074,8 @@ class TabStrings(Table):
                       '</tr>\n'
                       % (odd_even.get_next(),
                          edit_icon,
-                         string.code,
-                         escape_tokens(safestr(string.string[uri.lang]))
+                         webstring.code,
+                         escape_tokens(safestr(webstring.string[uri.lang]))
                         ))
         box.write('</table>\n')
         return box.get_value()
@@ -2105,7 +2092,7 @@ class TabString(Table):
             return '|blknopermission|'
 
         if uri.code > '':
-            webstring = lampadasweb.strings[uri.code]
+            webstring = dms.webstring.get_by_id(uri.code)
 
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/string">\n'
                              '<table class="box">'
@@ -2126,8 +2113,10 @@ class TabString(Table):
                       '</tr>\n')
 
             odd_even = OddEven()
-            for lang in languages.supported_keys(uri.lang):
-                if not webstring.string[lang]==None:
+            languages = dms.language.get_by_keys([['supported', '=', 1]])
+            for key in languages.keys():
+                language = languages[key]
+                if not webstring.string[language.code]==None:
                     box.write('<form method="GET" action="|uri.base|data/save/string_lang">\n'
                               '<input type=hidden name="string_code" value="%s">\n'
                               '<input type=hidden name="lang" value="%s">\n'
@@ -2146,8 +2135,8 @@ class TabString(Table):
                               ' <td>%s</td>'
                               '</tr>\n'
                               '</form>'
-                              % (webstring.code, lang,
-                                 odd_even.get_next(), languages[lang].name[uri.lang],
+                              % (webstring.code, language.code,
+                                 odd_even.get_next(), language.name[uri.lang],
                                  odd_even.get_last(), widgets.version(webstring.version[lang]),
                                  odd_even.get_last(), widgets.string(webstring.string[lang]),
                                  widgets.save()))
@@ -2183,7 +2172,7 @@ class TabString(Table):
                              widgets.save()))
             box.write('</table>')
         else:
-            webstring = String()
+            webstring = dms.webstring.new()
             box = WOStringIO('<form method="GET" action="|uri.base|data/save/newstring">\n'
                              '<table class="box">\n'
                              '<tr>'
@@ -2226,23 +2215,23 @@ class TabFileMetadata(Table):
     def method(self, uri):
         log(3, 'Creating file_metadata table')
         if uri.filename > '':
-            sourcefile = sourcefiles[uri.filename]
+            sourcefile = dms.sourcefile.get_by_id(uri.filename)
         elif uri.id > 0:
-            doc = docs[uri.id]
-            docfile = doc.find_top_file()
+            doc = dms.document.get_by_id(uri.id)
+            docfile = doc.top_file
             if docfile==None:
                 return ''
-            sourcefile = sourcefiles[docfile.filename]
+            sourcefile = docfile.sourcefile
         
         # Read the format_name
-        format = formats[sourcefile.format_code]
+        format = sourcefile.format
         if format:
             format_name = format.name[uri.lang]
         else:
             format_name = ''
 
         # Read the dtd_name
-        dtd = dtds[sourcefile.dtd_code]
+        dtd = sourcefile.dtd
         if dtd:
             dtd_name = dtd.name[uri.lang]
         else:
@@ -2400,6 +2389,7 @@ class TabPubStatusStats(Table):
                          '</tr>\n')
         stattable = stats['pub_status']
         odd_even = OddEven()
+        pub_statuses = dms.pub_status.get_all()
         for key in pub_statuses.sort_by('sort_order'):
             stat = stattable[key]
             if stat==None:
@@ -2439,8 +2429,8 @@ class TabDocErrorStats(Table):
         odd_even = OddEven()
         for key in stattable.sort_by('label'):
             stat = stattable[key]
-            error = errors[key]
-            errortype = errortypes[error.err_type_code]
+            error = dms.error.get_by_id(key)
+            errortype = error.error_type
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td>%s</td>\n'
                           '<td>%s</td>\n'
@@ -2472,6 +2462,7 @@ class TabDocFormatStats(Table):
                          '</tr>\n')
         stattable = stats['doc_format']
         odd_even = OddEven()
+        formats = dms.format.get_all()
         for key in formats.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None:
@@ -2505,6 +2496,7 @@ class TabPubDocFormatStats(Table):
                          '</tr>\n')
         stattable = stats['pub_doc_format']
         odd_even = OddEven()
+        formats = dms.format.get_all()
         for key in formats.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None:
@@ -2538,6 +2530,7 @@ class TabDocDTDStats(Table):
                          '</tr>\n')
         stattable = stats['doc_dtd']
         odd_even = OddEven()
+        dtds = dms.dtd.get_all()
         for key in dtds.sort_by('code'):
             stat = stattable[key]
             if stat==None:
@@ -2571,6 +2564,7 @@ class TabPubDocDTDStats(Table):
                          '</tr>\n')
         stattable = stats['pub_doc_dtd']
         odd_even = OddEven()
+        dtds = dms.dtd.get_all()
         for key in dtds.sort_by('code'):
             stat = stattable[key]
             if stat==None:
@@ -2604,15 +2598,18 @@ class TabDocLangStats(Table):
                          '</tr>\n')
         stattable = stats['doc_lang']
         odd_even = OddEven()
+        languages = dms.language.get_all()
         for key in languages.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
-            if stat==None: continue
+            language = languages[key]
+            stat = stattable[language.code]
+            if stat==None:
+                stat = Stat()
             box.write('<tr class="%s"><td class="label">%s</td>\n'
                           '<td align="right">%s</td>\n'
                           '<td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
-                         languages[stat.label].name[uri.lang],
+                         language.name[uri.lang],
                          stat.value,
                          fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n'
@@ -2637,8 +2634,10 @@ class TabPubDocLangStats(Table):
                          '</tr>\n')
         stattable = stats['pub_doc_lang']
         odd_even = OddEven()
+        languages = dms.language.get_all()
         for key in languages.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
+            language = languages[key]
+            stat = stattable[language.code]
             if stat==None: continue
             box.write('<tr class="%s">'
                       ' <td class="label">%s</td>\n'
@@ -2646,7 +2645,7 @@ class TabPubDocLangStats(Table):
                       ' <td align="right">%s</td>\n'
                       '</tr>\n'
                       % (odd_even.get_next(),
-                         languages[stat.label].name[uri.lang],
+                         language.name[uri.lang],
                          stat.value,
                          fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s">'
