@@ -23,7 +23,7 @@ from Config import config
 from Log import log
 from BaseClasses import *
 from Languages import languages
-from Docs import docs
+from Docs import docs, Doc
 from Users import users, User
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
@@ -180,7 +180,7 @@ class Tables(LampadasCollection):
         else:
 
             # Create a new document
-            doc = Doc()
+            doc = Doc(docs)
             doc.lang = uri.lang
             doc.pub_status_code = 'P'
             doc.review_status_code = 'U'
@@ -717,7 +717,7 @@ class Tables(LampadasCollection):
             for err_id in err_ids:
                 fileerror = sourcefile.errors[err_id]
                 error = errors[err_id]
-                box.write('<tr class="%s">\n<td>%s</td>\n<td>%s</td>\n<td><a href="|uri.base|sourcefile/%s">%s</a></td>\n</tr>\n'
+                box.write('<tr class="%s">\n<td>%s</td>\n<td>%s</td>\n<td><a href="|uri.base|sourcefile/%s|uri.lang_ext|">%s</a></td>\n</tr>\n'
                           % (odd_even.get_next(), fileerror.err_id, error.name[uri.lang],
                              sourcefile.filename, widgets.filename_compressed(sourcefile.filename)))
         box.write('</table>\n')

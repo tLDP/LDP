@@ -133,7 +133,7 @@ class Lintadas:
         """
 
         log(3, 'Running Lintadas on document ' + str(doc_id))
-        doc = docs[doc_id]
+        doc = docs[int(doc_id)]
         filenames = doc.files.keys()
         usernames = doc.users.keys()
        
