@@ -663,6 +663,8 @@ class TableFactory:
             box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
             box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
         else:
+            box = box + '<input name="admin" type="hidden" value="' + str(user.admin) + '">\n'
+            box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
             box = box + '<tr><th class="label">|stradmin|</th><td>' + bool2yesno(user.admin) + '</td></tr>\n'
             box = box + '<tr><th class="label">|strsysadmin|</th><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'

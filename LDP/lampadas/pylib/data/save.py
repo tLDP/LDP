@@ -190,6 +190,7 @@ def random_password():
     password = ''
     for x in range(10):
         password += whrandom.choice(chars)
+    return password
 
 def mail_password(email, password):
     """
