@@ -7,3 +7,7 @@ insert(date,            [Date])
 insert(news,            [News])
 insert(topics,          [Topics])
 insert(subtopics,       [Subtopics])
+insert(classes,         [Classes])
+insert(title,           [Title])
+insert(languages,       [Languages])
+
