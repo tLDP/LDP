@@ -35,13 +35,13 @@ use vars qw ($project $from_email $dest_email @sendmail $sync_delay);
 ### Configuration
 
 # Project name (as known to CIA).
-$project = 'ELinks';
+$project = 'TLDP';
 
 # The from address in generated mails.
-$from_email = 'pasky@ucw.cz';
+$from_email = 'ser@tldp.org';
 
 # Mail all reports to this address.
-$dest_email = 'commits@picogui.org';
+$dest_email = 'cia@pld-linux.org';
 
 # Path to your sendmail binary. If you have it at a different place (and
 # outside of $PATH), add your location at the start of this list. By all means

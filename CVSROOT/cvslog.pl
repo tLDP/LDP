@@ -45,25 +45,25 @@ $project = 'ELinks';
 # isn't in the CVSROOT directory of your repository for some reason), you will
 # need to explicitly set $REPOSITORY to the root directory of your repository
 # (the same thing that you would set CVSROOT to).
-$repository = '/home/cvs/elinks'; # ($0 =~ m#^(.*)/CVSROOT/cvslog$#);
+$repository = '/cvsroot'; # ($0 =~ m#^(.*)/CVSROOT/cvslog$#);
 
 # The from address in the generated mails.
-$from_email = 'cvs@pasky.ji.cz';
+$from_email = 'ser@tldp.org';
 
 # Mail all reports to this address.
 #$dest_email = 'elinks-cvs@v.or.cz, pasky@pasky.ji.cz, fonseca@diku.dk, zas@norz.org';
-$dest_email = 'elinks-cvs@v.or.cz';
+$dest_email = 'cvs-commits@en.tldp.org';
 
 # Email address all the replies should go at.
-$reply_email = 'elinks-dev@linuxfromscratch.org';
+$reply_email = 'discuss@en.tldp.org';
 
 # The cvs binary location + name (full path to the executable). If in doubt,
 # try just 'cvs' and hope. Otherwise, /usr/bin/cvs or /usr/local/bin/cvs could
 # do.
-$CVS = '/opt/cvs/bin/cvs';
+$CVS = '/usr/bin/cvs';
 
 # URL of cvsweb. Just comment out if you don't have any.
-$cvsweb_url = 'http://cvsweb.elinks.or.cz/cvsweb.cgi';
+$cvsweb_url = 'http://cvsview.tldp.org/index.cgi';
 
 # The leading message of the mail:
 $help_msg = "This is an automated notification of a change to the $project CVS tree.";
