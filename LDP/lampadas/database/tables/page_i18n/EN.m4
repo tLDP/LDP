@@ -80,7 +80,7 @@ insert([home], [|strprojectshort| Home Page], [Home],
     Guide</a>.</p>
 ], 1)
 
-insert([doctable], [DocTable], [],
+insert([doctable], [Browse Documents], [],
 [
     |tabdocs|
 ], 1)

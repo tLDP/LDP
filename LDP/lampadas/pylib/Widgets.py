@@ -144,11 +144,28 @@ class Widgets:
         combo.write("</select>\n")
         return combo.get_value()
 
+    def doc_lang(self, value, lang):
+        combo = WOStringIO("<select name='lang'>\n")
+        if value=='':
+            combo.write('<option selected></option>')
+        else:
+            combo.write('<option></option>')
+        keys = lampadas.languages.sort_by_lang('name', lang)
+        for key in keys:
+            if lampadas.docs.languages[key] > 0:
+                language = lampadas.languages[key]
+                assert not language==None
+                combo.write("<option ")
+                if language.code==value:
+                    combo.write("selected ")
+                combo.write("value='" + language.code + "'>")
+                combo.write(language.name[lang])
+                combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
     def lang(self, value, lang):
         combo = WOStringIO("<select name='lang'>\n")
-
-        # I think I took the blank entry out once, but don't remember why.
-        # If we run across a need again, we'll have to make it optional.
         if value=='':
             combo.write('<option selected></option>')
         else:

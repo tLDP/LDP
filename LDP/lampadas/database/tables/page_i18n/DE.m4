@@ -65,9 +65,9 @@ insert([home], [|strproject|], [Home],
     Link "Benutzerkonto anlegen").
 ], 1)
 
-insert([doctable], [Liste der Dokumente], [],
+insert([doctable], [Browse Documents], [],
 [
-    |tabdocs|
+	|tabdocs|
 ], 1)
 
 insert([search], [Suche], [],

@@ -47,7 +47,8 @@ class Tables(LampadasCollection):
         elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
-        box = WOStringIO()
+        box = WOStringIO('<table class="box" width="100%">')
+        box.write('<tr><th colspan="6">|strdocdetails|</th></tr>')
         if uri.id > 0:
             lintadas.check_doc(uri.id)
             lintadas.import_doc_metadata(uri.id)
@@ -67,9 +68,7 @@ class Tables(LampadasCollection):
         box.write('''<input name="username" type="hidden" value="%s">
         <input name="doc_id" type="hidden" value="%s">
         ''' % (sessions.session.username, doc.id))
-        box.write('''<table class="box" width="100%%">
-        <tr><th colspan="6">|strdocdetails|</th></tr>
-        <tr><td class="label">|strtitle|</td>
+        box.write('''<tr><td class="label">|strtitle|</td>
         <td colspan="5">
         <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
@@ -391,7 +390,12 @@ class Tables(LampadasCollection):
         """
         log(3, 'Creating doctranslations table')
         doc = lampadas.docs[uri.id]
-        return self.doctable(uri, sk_seriesid=doc.sk_seriesid)
+        return self.doctable(uri, sk_seriesid=doc.sk_seriesid,
+                             columns={'|strlanguage|':  'lang',
+                                      '|strversion|':   'version',
+                                      '|strupdated|':   'last_update',
+                                      '|strpub_date|':  'pub_date',
+                                     })
 
     def errors(self, uri):
         """
@@ -561,9 +565,9 @@ class Tables(LampadasCollection):
         box = '<table class="tab"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
-                box = box + '<td>' + letter + '</td>\n'
+                box = box + '<th>' + letter + '</th>\n'
             else:
-                box = box + '<td><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></td>\n'
+                box = box + '<th><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
         return box
         
@@ -663,13 +667,21 @@ class Tables(LampadasCollection):
                  sk_seriesid=None,
                  abstract=None,
                  short_desc=None,
+                 columns={},
                 ):
         """
         Creates a listing of all documents which fit the parameters passed in.
         """
 
         log(3, "Creating doctable")
-        box = WOStringIO('<table class="box" width="100%"><tr><th colspan="3">|strtitle|</th></tr>')
+        colspan = 2 + len(columns)
+
+        box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>'
+                         % str(colspan))
+        box.write('<tr><th class="collabel" colspan="2">|strtitle|</th>')
+        for column in columns.keys():
+            box.write('<th class="collabel">%s</td>' % column)
+        box.write('</tr>')
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
@@ -770,8 +782,6 @@ class Tables(LampadasCollection):
             if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                 box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
             box.write('</td>\n')
-            box.write('<td>')
-            box.write('</td>\n')
             if doc.pub_status_code=='N' or doc.pub_status_code=='A':
                 if doc.errors.count() > 0 or doc.files.error_count > 0:
                     box.write('<td style="width:100%%" class="error">%s</td>' % doc.title)
@@ -779,6 +789,8 @@ class Tables(LampadasCollection):
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>' % (str(doc.id), doc.title))
             else:
                 box.write('<td style="width:100%%">%s</td>' % doc.title)
+            for column in columns.keys():
+                box.write('<td>%s</td>' % getattr(doc, columns[column]))
             box.write('</tr>\n')
         box.write('</table>')
         return box.get_value()
@@ -1099,7 +1111,7 @@ class Tables(LampadasCollection):
                widgets.topic_code('', uri.lang),
                widgets.tf('maintained', '', uri.lang),
                widgets.tf('maintainer_wanted', '', uri.lang),
-               widgets.lang(uri.lang, uri.lang),
+               widgets.doc_lang(uri.lang, uri.lang),
                widgets.review_status_code('', uri.lang),
                widgets.tech_review_status_code('', uri.lang),
                widgets.pub_date(''),

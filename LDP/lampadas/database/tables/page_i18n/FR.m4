@@ -56,7 +56,7 @@ insert([home], [|strproject|], [Home],
     account using the "Create Account" link to the right.
 ], 1)
 
-insert([doctable], [Table des docs], [Table des docs],
+insert([doctable], [Browse Documents], [],
 [
 	|tabdocs|
 ], 1)
