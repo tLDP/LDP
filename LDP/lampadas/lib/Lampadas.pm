@@ -785,13 +785,12 @@ sub StartPage {
 	print "</head>\n";
 	print "<body><a name='top'>\n";
 
-	print "Preferred Language: " . RequestedLanguage();
-
 	if ($debug) {
 		push @messages, "UserID: $currentuser_id";
 		push @messages, "UserName: " . $currentuser{username};
 	}
 
+	print "Requested Language: " . RequestedLanguage() . "<p>";
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
 	HeaderBox($foo, $title);
@@ -1551,11 +1550,11 @@ sub DocTable {
 sub PubStatusStatsTable{
 	my $document_total = DocCount();
 	my $sql = "SELECT pub_status_name, COUNT(*) FROM pub_status, document WHERE pub_status.pub_status = document.pub_status GROUP BY pub_status_name";
-	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Publication Status Statistics</th></tr>\n";
 	$table .= "<tr><th>Status</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
@@ -1573,11 +1572,11 @@ sub PubStatusStatsTable{
 sub LicenseStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
 	my $sql = "SELECT license, COUNT(*) FROM document WHERE pub_status = 'N' GROUP BY license";
-	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>License Statistics</th></tr>\n";
 	$table .= "<tr><th>License</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$license = $row[0];
 		$license =~ s/\s+$//;
@@ -1624,12 +1623,13 @@ sub FreeNonfreeStatsTable {
 
 sub ClassStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
-	my $sql = "SELECT class_name, count(*) FROM class, document WHERE pub_status = 'N' and class.class = document.class group by class_name";
-	my $recordset = $DB->Recordset($sql);
+	my $sql = "SELECT class_name, count(*) FROM class_i18n ci, document d WHERE d.pub_status = 'N' and ci.class_id=d.class_id AND ci.lang ='$language' GROUP BY class_name";
 	my $total = 0;
+	my $language = RequestedLanguage();
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Classes</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
@@ -1647,11 +1647,11 @@ sub ClassStatsTable {
 sub FormatStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
 	my $sql = "SELECT format, count(*) FROM document WHERE pub_status = 'N' group by format";
-	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Format Statistics</th></tr>\n";
 	$table .= "<tr><th>Format</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
@@ -1669,11 +1669,11 @@ sub FormatStatsTable {
 sub DTDStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
 	my $sql = "SELECT dtd, count(*) FROM document WHERE pub_status = 'N' group by dtd";
-	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>DTD Statistics</th></tr>\n";
 	$table .= "<tr><th>DTD</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
@@ -1691,11 +1691,11 @@ sub DTDStatsTable {
 sub FormatDTDStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
 	my $sql = "SELECT format, dtd, count(*) FROM document WHERE pub_status = 'N' group by format, dtd";
-	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=4>Format and DTD Statistics</th></tr>\n";
 	$table .= "<tr><th>Format</th><th>DTD</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$format = $row[0];
 		$dtd    = $row[1];
@@ -1716,12 +1716,13 @@ sub FormatDTDStatsTable {
 
 sub DetailedStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
-	my $sql = "SELECT class, dtd, format, count(*) FROM document WHERE pub_status = 'N' group by class, dtd, format";
-	my $recordset = $DB->Recordset($sql);
+	my $sql = "SELECT class_name, dtd, format, count(*) FROM class_i18n ci, document d WHERE d.pub_status = 'N' AND ci.lang = '$language' AND ci.class_id=d.class_id GROUP BY class_name, dtd, format";
 	my $total = 0;
+	my $language = RequestedLanguage();
 	my $table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=5>Detailed Statistics</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
+	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
