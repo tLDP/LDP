@@ -32,7 +32,10 @@ from Lintadas import lintadas
 from Log import log
 
 
+
 # Constants
+
+XSLTPROC_PARAMS = ''
 
 
 # Globals
@@ -40,24 +43,19 @@ from Log import log
 
 class Makefile:
 
-    import os.path
-    import urllib
-    import os
-
     def write_all(self):
         log(3, 'Writing Makefile for all documents')
         for dockey in lampadas.docs.keys():
-            self.write_doc(dockey)
+            self.write(dockey)
         self.write_main_makefile()
 
-    def write_doc(self, doc_id):
+    def write(self, doc_id):
         log(3, 'Writing Makefile for document ' + str(doc_id))
-        self.Doc = lampadas.docs[doc_id]
+        doc = lampadas.docs[doc_id]
         
         # Determine where files live
-        # 
-        self.cachedir   = config.cache_dir + str(self.Doc.id) + '/'
-        self.write_makefile(self.Doc, self.cachedir)
+        cachedir   = config.cache_dir + str(doc.id) + '/'
+        self.write_makefile(doc, cachedir)
         
         log(3, 'Writing Makefile for document ' + str(doc_id) + ' complete.')
         
@@ -68,38 +66,57 @@ class Makefile:
         """
 
         for file in doc.files.keys():
-            File = doc.files[file]
-            if File.is_primary:
-                dbsgmlfile = File.basename + '.db.sgml'
-                xmlfile = File.basename + '.xml'
-                htmlfile = File.basename + '.html'
+            file = doc.files[file]
+            if file.top==1 and file.errors.count()==0:
+                
+                log(3, 'Found top file: ' + file.filename)
+                dbsgmlfile = file.basename + '.db.sgml'
+                xmlfile = file.basename + '.xml'
+                htmlfile = file.basename + '.html'
                 indexfile = 'index.html'
-                txtfile = File.basename + '.txt'
-                omffile = File.basename + '.omf'
+                txtfile = file.basename + '.txt'
+                omffile = file.basename + '.omf'
                 
                 Makefile = 'xmlfile = ' + xmlfile + "\n\n"
-                if File.Formatid==1 and doc.dtd_code=='DocBook':
-                    Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + File.file_only + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.Formatid==1 and doc.dtd_code=='LinuxDoc':
+
+                # DocBook SGML
+                if file.format_code=='sgml' and doc.dtd_code=='DocBook':
+                    Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + file.file_only + ' > ' + xmlfile + " 2>>xmllint.log; "
+
+
+                # LinuxDoc SGML
+                elif file.format_code=='sgml' and doc.dtd_code=='LinuxDoc':
                     Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/' + "\n"
-                    Makefile = Makefile + 'BUILD_XML = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + File.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
+                    Makefile = Makefile + 'BUILD_XML = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + file.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
                     Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log; '
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.Formatid==4 and doc.dtd_code=='DocBook':
-                    pass
-                elif File.Formatid==3:
-                    Makefile = Makefile + 'BUILD_XML = wt2db -n -s ' + File.file_only + ' -o ' + dbsgmlfile + " 2>>wt2db.log; "
+
+                # DocBook XML
+                elif file.format_code=='xml' and doc.dtd_code=='DocBook':
+                    Makefile = Makefile + 'BUILD_XML = '
+
+                # WikiText
+                elif file.format_code=='wikitext':
+                    Makefile = Makefile + 'BUILD_XML = wt2db -n -s ' + file.file_only + ' -o ' + dbsgmlfile + " 2>>wt2db.log; "
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.Formatid==6:
-                    Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + File.file_only + ' -o ' + xmlfile + " 2>>wt2db.log; "
-                elif File.Formatid==7:
-                    Makefile = Makefile + 'BUILD_XML = texi2db -f ' + File.file_only + ' -o ' + xmlfile + " 2>>texi2db.log; "
+
+                # Text
+                elif file.format_code=='text':
+                    Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + file.file_only + ' -o ' + xmlfile + " 2>>wt2db.log; "
+
+                # Texinfo
+                elif file.format_code=='texinfo':
+                    Makefile = Makefile + 'BUILD_XML = texi2db -f ' + file.file_only + ' -o ' + xmlfile + " 2>>texi2db.log; "
+
+                # Unrecognized
                 else:
+                    log(3, 'unrecognized format code: ' + file.format_code)
                     continue
+                    
                 Makefile = Makefile + 'tidy -config /etc/lampadas/tidyrc -quiet -f tidy.log -modify ' + xmlfile + "\n"
                 
-                Makefile = Makefile + "BUILD_HTML = xsltproc --param quiet 1 --maxdepth 100 --nonet --novalid " + config.xslt_html + ' ' + xmlfile + ' > ' + htmlfile + " 2>>xsltproc.log\n"
-                Makefile = Makefile + "BUILD_INDEX = xsltproc --param quiet 1 --maxdepth 100 --nonet --novalid " + config.xslt_chunk + ' ' + xmlfile + " 2>>xsltproc.log\n"
+                Makefile = Makefile + "BUILD_HTML = xsltproc --param quiet 1 --maxdepth 100 " + XSLT_PARAMS + ' ' + config.xslt_html + ' ' + xmlfile + ' > ' + htmlfile + " 2>>xsltproc.log\n"
+                Makefile = Makefile + "BUILD_INDEX = xsltproc --param quiet 1 --maxdepth 100 " + XSLT_PARAMS + ' ' + config.xslt_chunk + ' ' + xmlfile + " 2>>xsltproc.log\n"
                 Makefile = Makefile + "BUILD_TXT = lynx --dump --nolist " + htmlfile + ' > ' + txtfile + " 2>>lynx.log\n"
                 Makefile = Makefile + "BUILD_OMF = db2omf " + xmlfile + ' -o ' + omffile + " 2>>db2omf.log\n"
                 Makefile = Makefile + "\n"
@@ -107,7 +124,7 @@ class Makefile:
                 Makefile = Makefile + "all:\tbuild\n\n"
                 
                 Makefile = Makefile + "build:\txml html index txt omf\n\n"
-                if File.Formatid==4 and doc.dtd_code=='DocBook':
+                if file.format_code=='sgml' and doc.dtd_code=='DocBook':
                     Makefile = Makefile + "xml:\n\n"
                 else:
                     Makefile = Makefile + "xml:\t" + xmlfile + "\n\n"
@@ -116,7 +133,7 @@ class Makefile:
                 Makefile = Makefile + "txt:\t" + txtfile + "\n\n"
                 Makefile = Makefile + "omf:\t" + omffile + "\n\n"
                 
-                Makefile = Makefile + xmlfile + ":\t" + File.file_only + "\n"
+                Makefile = Makefile + xmlfile + ":\t" + file.file_only + "\n"
                 Makefile = Makefile + "\t$(BUILD_XML)\n\n"
 
                 Makefile = Makefile + htmlfile + ":\t" + xmlfile + "\n"
@@ -160,20 +177,20 @@ class Makefile:
         rebuildmake = ''
         makeneeded = 0
         for docid in lampadas.docs.keys():
-            Doc = lampadas.docs[docid]
-            for file in Doc.files.keys():
-                File = Doc.files[file]
-                if File.is_primary:
-                    if (File.Formatid==1 and Doc.dtd_code=='DocBook') or (File.Formatid==1 and Doc.dtd_code=='LinuxDoc') or File.Formatid==3 or File.Formatid==6 or File.Formatid==7:
-                        makeneeded = 1
-                        docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
-                        xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
-                        htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) -i html 2>>make.log\n"
-                        indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) -i index 2>>make.log\n"
-                        txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) -i txt 2>>make.log\n"
-                        omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) -i omf 2>>db2omf.log\n"
-                        cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) -i clean 2>>make.log\n"
-                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) -i rebuild 2>>make.log\n"
+            doc = lampadas.docs[docid]
+            for file in doc.files.keys():
+                file = doc.files[file]
+                if file.top==1 and file.errors.count()==0:
+#                    if (file.format_code=='sgml' and doc.dtd_code=='DocBook') or (file.format_code=='sgml' and doc.dtd_code=='LinuxDoc') or file.format_code=='xml' or file.format_code=='wikitext' or file.format_code=='text':
+                    makeneeded = 1
+                    docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
+                    xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
+                    htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) -i html 2>>make.log\n"
+                    indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) -i index 2>>make.log\n"
+                    txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) -i txt 2>>make.log\n"
+                    omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) -i omf 2>>db2omf.log\n"
+                    cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) -i clean 2>>make.log\n"
+                    rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) -i rebuild 2>>make.log\n"
 
         if makeneeded:
             Makefile = "all:\tbuild\n\n"
@@ -196,6 +213,5 @@ makefile = Makefile()
 
 
 if __name__=="__main__":
-#	makefile.write_main_makefile()
     makefile.write_all()
 

@@ -30,6 +30,9 @@ local Lampdas system.
 from DataLayer import lampadas
 from Log import log
 from Config import config
+import urllib
+import os
+
 
 # Constants
 
@@ -39,80 +42,74 @@ from Config import config
 
 class Mirror:
 
-    import os.path
-    import urllib
-    import os
-
     def mirror_all(self):
         log(3, 'Mirroring all documents')
         for dockey in lampadas.docs.keys():
-            self.mirror_doc(dockey)
+            self.mirror(dockey)
 
-    def mirror_doc(self, doc_id):
+    def mirror(self, doc_id):
         log(3, 'Mirroring document ' + str(doc_id))
-        self.Doc = lampadas.docs[doc_id]
+        doc = lampadas.docs[doc_id]
         
         # decide if the document is remote
-        #
-        self.is_remote = 0
-        filekeys = self.Doc.files.keys()
+        local = 1
+        filekeys = doc.files.keys()
         for filekey in filekeys:
-            if not self.Doc.files[filekey].IsLocal:
-                self.is_remote = 1
+            if doc.files[filekey].local==0:
+                local = 0
         
         # delete list of local files if document is remote
-        #
-        if self.is_remote:
-                filekeys = self.Doc.files.keys()
-                for filekey in filekeys:
-                    if self.Doc.files[filekey].IsLocal:
-                        self.Doc.files[filekey].Del()
+        if local==0:
+            filekeys = doc.files.keys()
+            for filekey in filekeys:
+                if doc.files[filekey].local:
+                    doc.files[filekey].delete()
 
         # mirror all files into cache, whether from remote
         # or local storage
         #
-        # filename can look like:	http://foo.org/foo.sgml
-        # 							ftp://foo.org/foo.sgml
-        # 							howto/docbook/big-memory-howto.sgml
+        # filename can look like:
+        #   http://foo.org/foo.sgml     Pull via HTTP
+        #   ftp://foo.org/foo.sgml      Pull via FTP
+        #   file://foo.org/foo.sgml     Local, but outside CVS
+        #   howto/docbook/big-memory-howto.sgml
         # 
         for filekey in filekeys:
             
             # create cache directory for this document
-            # 
-            self.cachedir = config.cache_dir + str(self.Doc.id) + '/'
-            if not self.os.access(self.cachedir, self.os.F_OK):
-                self.os.mkdir(self.cachedir)
+            cachedir = config.cache_dir + str(doc.id) + '/'
+            if not os.access(cachedir, os.F_OK):
+                os.mkdir(cachedir)
 
-            self.File		= self.Doc.files[filekey]
-            self.filename	= self.File.filename
-            self.file_only	= self.File.file_only
-            self.cachename	= self.cachedir + self.file_only
+            file		= doc.files[filekey]
+            filename	= file.filename
+            file_only	= file.file_only
+            cachename	= cachedir + file_only
             
-            if self.File.IsLocal:
+            if file.local==1:
 
                 # It is expensive to copy local documents into a cache directory,
                 # but it avoids publishing documents directly out of CVS.
                 # Some publishing tools leave clutter in the directory on failure.
-                # 
-                if not self.os.access(config.cvs_root + self.filename, self.os.F_OK):
-                    log(2, 'Cannot mirror missing file: ' + self.filename)
+                if not os.access(config.cvs_root + filename, os.F_OK):
+                    log(2, 'Cannot mirror missing file: ' + filename)
                     continue
-                log(3, 'mirroring local file ' + self.filename)
-                command = 'cd ' + self.cachedir + '; cp -pu ' + config.cvs_root + self.filename + ' .'
-                self.os.system(command)
+                log(3, 'mirroring local file ' + filename)
+                command = 'cd ' + cachedir + '; cp -pu ' + config.cvs_root + filename + ' .'
+                os.system(command)
         
             else:
                 try:
-                    log(3, 'mirroring remote file ' + self.filename)
-                    self.urllib.urlretrieve(self.File.filename, self.cachename)
+                    log(3, 'mirroring remote file ' + filename)
+                    urllib.urlretrieve(file.filename, cachename)
                 except IOError:
-                    log(0, 'error retrieving remote file ' + self.filename)
+                    log(0, 'error retrieving remote file ' + filename)
                     continue
 
-            if self.unpack(self.cachedir, self.file_only):
-                for file in self.os.listdir(self.cachedir):
+            if self.unpack(cachedir, file_only):
+                for file in os.listdir(cachedir):
                     if file[-5:] <> '.html':
-                        self.Doc.files.add(self.Doc.id, file)
+                        doc.files.add(doc.id, file)
 
         log(3, 'Mirroring document ' + str(doc_id) + ' complete.')
         
@@ -126,13 +123,13 @@ class Mirror:
         """
         cmd_start = 'cd ' + dir + '; '
         if file[-7:]=='.tar.gz':
-            self.os.system(cmd_start + 'tar -zxf ' + file)
+            os.system(cmd_start + 'tar -zxf ' + file)
             return 1
         elif file[-4:]=='.tar':
-            self.os.system(cmd_start + 'tar -xf ' + file)
+            os.system(cmd_start + 'tar -xf ' + file)
             return 1
         elif file[-3:]=='.gz':
-            self.os.system(cmd_start + 'gunzip -f ' + file)
+            os.system(cmd_start + 'gunzip -f ' + file)
             return 1
 
 mirror = Mirror()
