@@ -46,7 +46,7 @@ import os
 
 # Constants
 
-EDIT_ICON = '<img src="images/edit64x64.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
+EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
 
 
 # ComboFactory
