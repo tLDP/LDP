@@ -453,10 +453,10 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([sourcefile], [Source File], [],
+insert([sourcefile], [Quelldatei], [],
 [
     |tabfile_reports|
-], 2)
+], 3)
 
 insert([file_report], [Report einer Datei], [],
 [
