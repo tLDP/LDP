@@ -246,10 +246,10 @@ class Project:
                     target.commands.add(Command('rm -f *.xml'))
 
                 if sourcefile.format_code=='wikitext':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, output_to='log/wt2db.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
                     self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='text':
-                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, output_to='log/wt2db.log', stderr_check=1)])
+                    self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('wt2db -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
                     self.targets.add(xmlfile,    [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='texinfo':
                     self.targets.add(dbsgmlfile, [sourcefile.file_only], [Command('texi2db -f ' + sourcefile.file_only, errors_to='texi2db.log', stderr_check=1)])
