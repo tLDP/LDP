@@ -115,8 +115,8 @@ class Makefile:
                     
                 Makefile = Makefile + 'tidy -config /etc/lampadas/tidyrc -quiet -f tidy.log -modify ' + xmlfile + "\n"
                 
-                Makefile = Makefile + "BUILD_HTML = xsltproc --param quiet 1 --maxdepth 100 " + XSLT_PARAMS + ' ' + config.xslt_html + ' ' + xmlfile + ' > ' + htmlfile + " 2>>xsltproc.log\n"
-                Makefile = Makefile + "BUILD_INDEX = xsltproc --param quiet 1 --maxdepth 100 " + XSLT_PARAMS + ' ' + config.xslt_chunk + ' ' + xmlfile + " 2>>xsltproc.log\n"
+                Makefile = Makefile + "BUILD_HTML = xsltproc --param quiet 1 --maxdepth 100 " + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + xmlfile + ' > ' + htmlfile + " 2>>xsltproc.log\n"
+                Makefile = Makefile + "BUILD_INDEX = xsltproc --param quiet 1 --maxdepth 100 " + XSLTPROC_PARAMS + ' ' + config.xslt_chunk + ' ' + xmlfile + " 2>>xsltproc.log\n"
                 Makefile = Makefile + "BUILD_TXT = lynx --dump --nolist " + htmlfile + ' > ' + txtfile + " 2>>lynx.log\n"
                 Makefile = Makefile + "BUILD_OMF = db2omf " + xmlfile + ' -o ' + omffile + " 2>>db2omf.log\n"
                 Makefile = Makefile + "\n"
