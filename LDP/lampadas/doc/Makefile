@@ -45,7 +45,8 @@ Lampadas.xml:	Lampadas.wt
 	wt2db -x Lampadas.wt -o Lampadas.xml
 	
 preview: Lampadas.html
-	galeon Lampadas.html
+#	galeon Lampadas.html
+	mozilla -remote "openURL(file:///home/david/ldp/cvs/LDP/lampadas/doc/Lampadas.html)"
 
 .SUFFIXES: .sgml .1 .5
 
