@@ -34,10 +34,10 @@ class HTMLFactory:
 class PageFactory:
 
 	def __call__(self, key, lang):
-		page = ''
-		page = page + L.Strings['header'].I18n[lang].Text
-		page = page + L.Strings[key].I18n[lang].Text
-		page = page + L.Strings['footer'].I18n[lang].Text
+		page = L.Strings['template_default'].I18n[lang].Text
+		page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
+		page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
+		page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
 		return page
 
 
