@@ -21,6 +21,7 @@ my($id, $title);
 #
 while (1) {
 	if($ARGV[0] eq "-o") {
+		shift(@ARGV);
 		$dbfile = $ARGV[0];
 		shift(@ARGV);
 	} elsif($ARGV[0] eq "-h") {
