@@ -28,15 +28,25 @@ from URLParse import URI
 from Log import log
 from mod_python import apache
 
-def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
-             review_status_code, tech_review_status_code, maintainer_wanted,
-             license_code, pub_date, last_update, version, tickle_date, isbn,
-             format_code, dtd_code, dtd_version, lang, abstract):
+def newdocument(req, username, doc_id,
+             title,
+             url,
+             ref_url,
+             pub_status_code, type_code,
+             version,
+             review_status_code, tech_review_status_code,
+             pub_date, last_update,
+             tickle_date, isbn,
+             format_code, dtd_code, dtd_version,
+             lang, maintainer_wanted,
+             license_code, license_version, copyright_holder,
+             abstract):
 
     newdoc_id = lampadas.docs.add(title, type_code, format_code, dtd_code,
             dtd_version, version, last_update, url, isbn,
             pub_status_code, review_status_code, tickle_date, pub_date,
-            ref_url, tech_review_status_code, license_code, abstract, lang, '')
+            ref_url, tech_review_status_code, license_code, license_version,
+            copyright_holder, abstract, lang, '')
 
     # Add the current user as the author of the document
     doc = lampadas.docs[newdoc_id]
@@ -44,10 +54,19 @@ def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, typ
     
     redirect(req, '/editdoc' + referer_lang_ext(req) + '/' + str(newdoc_id))
 
-def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
-             review_status_code, tech_review_status_code, maintainer_wanted,
-             license_code, pub_date, last_update, version, tickle_date, isbn,
-             format_code, dtd_code, dtd_version, lang, abstract):
+def document(req, username, doc_id,
+             title,
+             url,
+             ref_url,
+             pub_status_code, type_code,
+             version,
+             review_status_code, tech_review_status_code,
+             pub_date, last_update,
+             tickle_date, isbn,
+             format_code, dtd_code, dtd_version,
+             lang, maintainer_wanted,
+             license_code, license_version, copyright_holder,
+             abstract):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
@@ -65,6 +84,8 @@ def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_c
     doc.tech_review_status_code = tech_review_status_code
     doc.maintainer_wanted       = int(maintainer_wanted)
     doc.license_code            = license_code
+    doc.license_version         = license_version
+    doc.copyright_holder        = copyright_holder
     doc.pub_date                = pub_date
     doc.last_update             = last_update
     doc.version                 = version

@@ -20,6 +20,8 @@ CREATE TABLE document
 	maintained		BOOLEAN		DEFAULT False,
 	maintainer_wanted	BOOLEAN		DEFAULT False,
 	license_code		CHAR(12)			REFERENCES license(license_code),
+	license_version		CHAR(12),
+	copyright_holder	TEXT,
 	abstract		TEXT,
 	rating			REAL,
 	sk_seriesid		CHAR(36),

@@ -322,8 +322,8 @@ class TableFactory:
         box.write('<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n')
         box.write('<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang) + '</td>\n')
         box.write('<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n')
+        box.write('<th class="label"><td></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strwriting|</th><td>' + combo_factory.review_status(doc.review_status_code, uri.lang) + '</td>\n')
         box.write('<th class="label">|straccuracy|</th><td>' + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang) + '</td>\n')
@@ -338,10 +338,15 @@ class TableFactory:
         box.write('<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + '<input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n')
+        box.write('<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang))
+        box.write(' <input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n')
         box.write('<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang))
+        box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
+        box.write('<th class="label">|strcopyright_holder|</th><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('''
           <td></td>
         </tr>
@@ -570,7 +575,7 @@ class TableFactory:
         box = box + '<th class="collabel">|strcomments|</th>\n'
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
-        note_ids = doc.notes.sort_by_desc('date_entered')
+        note_ids = doc.notes.sort_by('date_entered')
         for note_id in note_ids:
             note = doc.notes[note_id]
             box = box + '<tr>\n'

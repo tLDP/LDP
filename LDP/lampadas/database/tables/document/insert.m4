@@ -1,6 +1,6 @@
 m4_define(insert, [INSERT INTO document(doc_id, lang, title, version, isbn,
 type_code, format_code, dtd_code, dtd_version,
-license_code, abstract,
+license_code, license_version, copyright_holder, abstract,
 url, ref_url,
 pub_status, review_status, tech_review_status,
 pub_date, last_update, tickle_date,
@@ -8,9 +8,9 @@ maintained, maintainer_wanted, rating,
 sk_seriesid, replaced_by_id)
 VALUES ($1, 'I18N_lang_code', '$2', '$3', '$4',
 '$5', string_or_null($6), '$7', '$8',
-'$9', '$10',
-'$11', '$12',
-'$13', '$14', '$15',
-string_or_null($16), string_or_null($17), string_or_null($18),
-'$19', '$20', $21,
-'$22', $23);])m4_dnl
+'$9', '$10', '$11', '$12',
+'$13', '$14',
+'$15', '$16', '$17',
+string_or_null($18), string_or_null($19), string_or_null($20),
+'$21', '$22', $23,
+'$24', $25);])m4_dnl
