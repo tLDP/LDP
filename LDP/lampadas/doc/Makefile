@@ -35,7 +35,7 @@ Lampadas.html:	Lampadas.xml
 	xsltproc /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl Lampadas.xml > Lampadas.html
 	
 Lampadas.xml:	Lampadas.wt
-	wt2db -a Lampadas.wt -o Lampadas.xml
+	wt2db -x Lampadas.wt -o Lampadas.xml
 	
 lampadas.8:	lampadas.sgml
 	docbook-to-man $< > $@
