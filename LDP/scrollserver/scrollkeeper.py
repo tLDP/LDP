@@ -1,12 +1,17 @@
-#import sys
-#import os
-import commands
-#import string
-#import urllib
+#!/usr/bin/python2
 
+import commands				# Import requierd modules
+import locale
 from xml.dom.minidom import parse
 
-class TOCSection:
+lang = locale.setlocale(locale.LC_ALL)	# hard code an ISO languaeg here to test it
+#lang = "de"				# but it must match in the scrollserver.py
+
+					# These classes are instantiated when the
+					# indicated element is found in the
+					# ScrollKeeper XML file.
+					
+class TOCSection:			# <tocsection>
 
 	ID = ""
 	Sections = []
@@ -27,7 +32,7 @@ class TOCSection:
 			print "ERROR, not a TOC section"
 		
 
-class TOC:
+class TOC:				# <toc>
 
 	Sections = []
 	
@@ -42,7 +47,7 @@ class TOC:
 			print "ERROR, not a TOC"
 
 
-class Document:
+class Document:				# <doc>
 
 	ID = 0
 	Title = ""
@@ -84,9 +89,7 @@ class Document:
 			print "ERROR, not a document"
 
 
-
-
-class Section:
+class Section:				# <sect>
 
 	Level = 0
 	Title = ""
@@ -123,8 +126,7 @@ class Section:
 		return None
 	
 
-
-class ContentList:
+class ContentList:			# <scrollkeepercontentlist>
 
 	Sections = []
 
@@ -133,7 +135,7 @@ class ContentList:
 
 	def load(self):
 		self.Sections = []
-		cmd = "scrollkeeper-get-extended-content-list C"
+		cmd = "scrollkeeper-get-extended-content-list " + lang
 		filename = commands.getoutput(cmd)
 		dom = parse(filename)
 		self.loadDOM(dom.documentElement)
@@ -154,12 +156,13 @@ class ContentList:
 		return None
 
 
-class ScrollKeeper:
+class ScrollKeeper:			# The top level object
 
-	content_list = ContentList()
+	content_list = ContentList()	# Load the contents list
 
-	def ContentList(self):
+	def ContentList(self):		# Serve contents list, to allow interation
 		return self.content_list
 
-	def DocumentByID(self, docid):
+	def DocumentByID(self, docid):	# Return a document object if given its id
 		return self.content_list.DocumentByID(docid)
+
