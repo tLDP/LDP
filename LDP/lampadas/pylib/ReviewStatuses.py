@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,28 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# ReviewStatuses
 
-class Errors(DataCollection):
+class ReviewStatuses(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of all publication statuses.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, ReviewStatus,
+                                 'review_status',
+                                 {'review_status_code': 'code'},
+                                 'sort_order',
+                                 {'review_status_name': 'name', 'review_status_desc': 'description'})
+
+class ReviewStatus(DataObject):
     """
-    An error that can be filed against a document.
+    The Review Status defines where in the review process a
+    document is.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+review_statuses = ReviewStatuses()
+review_statuses.load()

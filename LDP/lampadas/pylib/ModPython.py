@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from DataLayer import lampadas
 from Log import log
 from HTML import page_factory
 from Sessions import sessions

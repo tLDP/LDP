@@ -21,8 +21,8 @@
 
 from Config import config
 from globals import *
-from DataLayer import lampadas
 from URLParse import URI
+from Users import users
 from Sessions import sessions
 from HTML import page_factory
 from Log import log
@@ -32,7 +32,7 @@ import string
 
 def login(req, username, password):
 
-    user = lampadas.users[username]
+    user = users[username]
     if user and user.username==username:
         if user.password == password:
             
@@ -45,7 +45,7 @@ def login(req, username, password):
             session_id = ''
             for x in range(20):
                 session_id += whrandom.choice(chars)
-            user = lampadas.users[username]
+            user = users[username]
             user.session_id = session_id
             user.save()
                     
@@ -62,7 +62,7 @@ def login(req, username, password):
 def logout(req, username):
     sessions.delete(username)
 
-    user = lampadas.users[username]
+    user = users[username]
     user.session_id = ''
     user.save()
 

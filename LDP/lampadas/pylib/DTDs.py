@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,27 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# DTDs
 
-class Errors(DataCollection):
+class DTDs(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of Document Type Definitions.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, DTD,
+                                 'dtd',
+                                 {'dtd_code': 'code'},
+                                 [],
+                                 {'dtd_name': 'name', 'dtd_desc': 'description'})
+
+class DTD(DataObject):
     """
-    An error that can be filed against a document.
+    A Data Type Definition, for SGML and XML documents.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+dtds = DTDs()
+dtds.load()

@@ -23,10 +23,17 @@ from Config import config
 from Log import log
 from BaseClasses import *
 from Languages import languages
-from DataLayer import lampadas, Doc, User
+from Docs import docs
+from Users import users, User
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
+from Topics import topics
+from Types import types
+from Collections import collections
+from Formats import formats
+from DTDs import dtds
+from PubStatuses import pub_statuses
 from WebLayer import lampadasweb, Page, NewsItem, String
 from Widgets import widgets
 from Sessions import sessions
@@ -92,7 +99,7 @@ class Tables(LampadasCollection):
         return str(value) + '/' + str(max)
 
     def viewdoc(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -166,7 +173,7 @@ class Tables(LampadasCollection):
                 
         if uri.id > 0:
             lintadas.check_doc(uri.id)
-            doc = lampadas.docs[uri.id]
+            doc = docs[uri.id]
             delete_widget = widgets.delete() + '|strdelete| '
             box.write('<form method=GET action="|uri.base|data/save/document" '\
                       'name="document">')
@@ -275,12 +282,12 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def viewdocversions(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
         log(3, 'Creating viewdocversions table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         metadata = doc.metadata()
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th colspan="4">|strdocversions|</th></tr>\n'
@@ -302,7 +309,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocversions table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         metadata = doc.metadata()
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr><th colspan="6">|strdocversions|</th></tr>\n'
@@ -337,7 +344,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def viewdocfiles(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -381,7 +388,7 @@ class Tables(LampadasCollection):
         box = WOStringIO('<table class="box" width="100%%">'
                          '<tr><th colspan="6">%s</th></tr>'
                          % ('|strdocfiles|'))
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         keys = doc.files.sort_by('filename')
         for key in keys:
             lintadas.check_file(key)
@@ -428,7 +435,7 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def viewdocusers(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -458,7 +465,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocusers table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="6">|strdocusers|</th></tr>'
                          '<tr><th class="collabel">|strusername|</th>'
@@ -504,24 +511,23 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def viewdoctopics(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
         log(3, 'Creating viewdoctopics table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th>|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th></tr>\n')
-        doc = lampadas.docs[uri.id]
-        topic_codes = lampadas.topics.sort_by('sort_order')
+        keys = topics.sort_by('sort_order')
+        dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
-        for topic_code in topic_codes:
-            doctopic = doc.topics[topic_code]
-            if doctopic:
-                topic = lampadas.topics[topic_code]
+        for key in keys:
+            if key in dtkeys:
+                topic = topics[key]
                 box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>'
-                          % (odd_even.get_next(), topic_code, topic.title[uri.lang]))
+                          % (odd_even.get_next(), topic.code, topic.title[uri.lang]))
         box.write('</table>')
         return box.get_value()
 
@@ -530,25 +536,24 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdoctopics table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th>\n'
                          '    <th class="collabel">|straction|</th></tr>\n')
-        doc = lampadas.docs[uri.id]
-        topic_codes = lampadas.topics.sort_by('sort_order')
+        keys = topics.sort_by('sort_order')
+        dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
-        for topic_code in topic_codes:
-            doctopic = doc.topics[topic_code]
-            if doctopic:
-                topic = lampadas.topics[topic_code]
+        for key in keys:
+            if key in dtkeys:
+                topic = topics[key]
                 box.write('<form method=GET action="|uri.base|data/save/deldocument_topic" name="document_topic">\n'
                           '<input type=hidden name="doc_id" value="%s">\n'
                           '<input type=hidden name="topic_code" value="%s">\n'
                           '<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
                           '               <td><input type=submit name="action" value="|strdelete|"></td></tr>\n'
                           '</form>\n'
-                          % (doc.id, topic_code, odd_even.get_next(), topic_code, topic.title[uri.lang]))
+                          % (doc.id, topic.code, odd_even.get_next(), topic.code, topic.title[uri.lang]))
         box.write('<form method=GET action="|uri.base|data/save/newdocument_topic" name="document_topic">\n'
                   '<input name="doc_id" type=hidden value="%s">\n'
                   '<tr><td>%s</td><td>%s</td></tr>'
@@ -559,7 +564,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def viewdocnotes(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -583,7 +588,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating editdocnotes table')
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
                          '<tr><th class="collabel">|strdate_time|</th>\n'
@@ -613,7 +618,7 @@ class Tables(LampadasCollection):
         Based on the DocTable.
         """
         
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -637,10 +642,10 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         log(3, 'Creating errors table')
-        doc_ids = lampadas.docs.sort_by('title')
+        doc_ids = docs.sort_by('title')
         box = WOStringIO('')
         for doc_id in doc_ids:
-            doc = lampadas.docs[doc_id]
+            doc = docs[doc_id]
             metadata = doc.metadata()
 
             # Only display docs the user has rights to.
@@ -660,7 +665,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def docerrors(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -691,7 +696,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def docfileerrors(self, uri):
-        doc = lampadas.docs[uri.id]
+        doc = docs[uri.id]
         if doc==None:
             return '|blknotfound|'
 
@@ -812,10 +817,10 @@ class Tables(LampadasCollection):
                          '<tr><th class="collabel" colspan="2">|strusername|</th>\n'
                          '    <th class="collabel">|strname|</th></tr>\n')
         if uri.letter > '':
-            usernames = lampadas.users.letter_keys(uri.letter)
+            usernames = users.letter_keys(uri.letter)
             odd_even = OddEven()
             for username in usernames:
-                user = lampadas.users[username]
+                user = users[username]
                 box.write('<tr class="%s"><td><a href="|uri.base|user/%s|uri.lang_ext|">%s</a></td><td>%s</td><td>%s</a></td></tr>\n'
                           % (odd_even.get_next(), username, EDIT_ICON_SM, username, user.name))
         box.write('</table>\n')
@@ -828,7 +833,7 @@ class Tables(LampadasCollection):
             return '|blknopermission|'
 
         if uri.username > '':
-            user = lampadas.users[uri.username]
+            user = users[uri.username]
             if user==None:
                 return '|blknotfound|'
             box = WOStringIO('<form method=GET action="|uri.base|data/save/user" name="user">\n')
@@ -934,10 +939,10 @@ class Tables(LampadasCollection):
         elif layout=='expanded':
             box = WOStringIO('')
 
-        keys = lampadas.docs.sort_by("title")
+        keys = docs.sort_by("title")
         odd_even = OddEven()
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             metadata = doc.metadata()
 
             # Don't include unpublished documents
@@ -965,7 +970,7 @@ class Tables(LampadasCollection):
                 if doc.type_code <> type_code:
                     continue
             if topic_code > '':
-                topic = lampadas.topics[topic_code]
+                topic = topics[topic_code]
                 if topic.docs[doc.id]==None:
                     continue
             if maintained > '':
@@ -1136,7 +1141,7 @@ class Tables(LampadasCollection):
     def document_icon_cells(self, doc_id, cell_type='td'):
         """Returns a series of cells populated with icons for the document."""
 
-        doc = lampadas.docs[doc_id]
+        doc = docs[doc_id]
 
         # Link to the online output
         if doc.pub_time > '':
@@ -1272,9 +1277,9 @@ class Tables(LampadasCollection):
             box = WOStringIO('''<table class="navbox">
             <tr><th>|strtopics|</th></tr>
             <tr><td>''')
-            keys = lampadas.topics.sort_by('sort_order')
+            keys = topics.sort_by('sort_order')
             for key in keys:
-                topic = lampadas.topics[key]
+                topic = topics[key]
                 if topic.parent_code=='':
                     box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
                               % (topic.code, topic.name[uri.lang]))
@@ -1284,15 +1289,15 @@ class Tables(LampadasCollection):
 
     def tabtopics(self, uri):
         log(3, 'Creating tabtopics table')
-        topic = lampadas.topics[uri.code]
+        topic = topics[uri.code]
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><th class="collabel">|topic.description|</th></tr>
         ''' % topic.title[uri.lang])
-        keys = lampadas.topics.sort_by('sort_order') 
+        keys = topics.sort_by('sort_order') 
         odd_even = OddEven()
         for key in keys:
-            topic = lampadas.topics[key]
+            topic = topics[key]
             if topic.parent_code==uri.code:
                 box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>\n'
                           % (odd_even.get_next(), topic.code, topic.name[uri.lang]))
@@ -1301,7 +1306,7 @@ class Tables(LampadasCollection):
 
     def tabtopic(self, uri):
         log(3, 'Creating tabtopic table')
-        topic = lampadas.topics[uri.code]
+        topic = topics[uri.code]
         box = '''<table class="box nontabular" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>%s</td><tr>
@@ -1314,9 +1319,9 @@ class Tables(LampadasCollection):
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strtypes|</th></tr>
         <tr><td>''')
-        keys = lampadas.types.sort_by('sort_order')
+        keys = types.sort_by('sort_order')
         for key in keys:
-            type = lampadas.types[key]
+            type = types[key]
             box.write('<a href="|uri.base|type/%s|uri.lang_ext|">%s</a><br>\n'
                       % (type.code, type.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
@@ -1327,9 +1332,9 @@ class Tables(LampadasCollection):
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strcollections|</th></tr>
         <tr><td>''')
-        keys = lampadas.collections.sort_by('sort_order')
+        keys = collections.sort_by('sort_order')
         for key in keys:
-            collection = lampadas.collections[key]
+            collection = collections[key]
             box.write('<a href="|uri.base|collection/%s|uri.lang_ext|">%s</a><br>\n'
                       % (collection.code, collection.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
@@ -1339,9 +1344,9 @@ class Tables(LampadasCollection):
         log(3, 'Creating collections table')
         box = WOStringIO('''<table class="box">
         <tr><th colspan="2">|strcollections|</th></tr>''')
-        keys = lampadas.collections.sort_by('sort_order')
+        keys = collections.sort_by('sort_order')
         for key in keys:
-            collection = lampadas.collections[key]
+            collection = collections[key]
             box.write('<tr><td><a href="|uri.base|collection/%s|uri.lang_ext|">%s</a></td>\n' \
                       '    <td>%s</td>\n' \
                       '</tr>'
@@ -1567,7 +1572,7 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def tabdocument_tabs(self, uri):
-        document = lampadas.docs[uri.id]
+        document = docs[uri.id]
         box = WOStringIO('<table class="tab"><tr>\n')
        
         # Determine which tab is selected and establish classes.
@@ -1667,7 +1672,7 @@ class DocAdmin(Table):
         # FIXME: Only 'N'ormal documents should be publishable!
 
         if sessions.session and sessions.session.user.can_edit(uri.id)==1:
-            doc = lampadas.docs[uri.id]
+            doc = docs[uri.id]
             box = WOStringIO('<table class="box nontabular" width="100%%"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
                              '<tr><td class="label">|strdoc_check_errors|</td>\n' \
                              '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
@@ -2062,8 +2067,8 @@ class TabOMF(Table):
         if uri.id > 0:
             box.write(OMF(uri.id).omf)
         else:
-            for doc_id in lampadas.docs.sort_by('id'):
-                doc = lampadas.docs[doc_id]
+            for doc_id in docs.sort_by('id'):
+                doc = docs[doc_id]
                 if doc.pub_status_code=='N':
                     box.write(OMF(doc_id).omf + '\n')
         box.write('</omf>\n')
@@ -2079,21 +2084,21 @@ class TabFileMetadata(Table):
         if uri.filename > '':
             sourcefile = sourcefiles[uri.filename]
         elif uri.id > 0:
-            doc = lampadas.docs[uri.id]
+            doc = docs[uri.id]
             docfile = doc.find_top_file()
             if docfile==None:
                 return ''
             sourcefile = sourcefiles[docfile.filename]
         
         # Read the format_name
-        format = lampadas.formats[sourcefile.format_code]
+        format = formats[sourcefile.format_code]
         if format:
             format_name = format.name[uri.lang]
         else:
             format_name = ''
 
         # Read the dtd_name
-        dtd = lampadas.dtds[sourcefile.dtd_code]
+        dtd = dtds[sourcefile.dtd_code]
         if dtd:
             dtd_name = dtd.name[uri.lang]
         else:
@@ -2235,7 +2240,7 @@ class TabPubStatusStats(Table):
                          '</tr>\n')
         stattable = stats['pub_status']
         odd_even = OddEven()
-        for key in lampadas.pub_statuses.sort_by('sort_order'):
+        for key in pub_statuses.sort_by('sort_order'):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
@@ -2244,7 +2249,7 @@ class TabPubStatusStats(Table):
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
-                        lampadas.pub_statuses[key].name[uri.lang], 
+                        pub_statuses[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
@@ -2304,7 +2309,7 @@ class TabDocFormatStats(Table):
                          '</tr>\n')
         stattable = stats['doc_format']
         odd_even = OddEven()
-        for key in lampadas.formats.sort_by_lang('name', uri.lang):
+        for key in formats.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
@@ -2313,7 +2318,7 @@ class TabDocFormatStats(Table):
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
-                        lampadas.formats[key].name[uri.lang], 
+                        formats[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
@@ -2337,7 +2342,7 @@ class TabPubDocFormatStats(Table):
                          '</tr>\n')
         stattable = stats['pub_doc_format']
         odd_even = OddEven()
-        for key in lampadas.formats.sort_by_lang('name', uri.lang):
+        for key in formats.sort_by_lang('name', uri.lang):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
@@ -2346,7 +2351,7 @@ class TabPubDocFormatStats(Table):
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
-                        lampadas.formats[key].name[uri.lang], 
+                        formats[key].name[uri.lang], 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
@@ -2370,7 +2375,7 @@ class TabDocDTDStats(Table):
                          '</tr>\n')
         stattable = stats['doc_dtd']
         odd_even = OddEven()
-        for key in lampadas.dtds.sort_by('code'):
+        for key in dtds.sort_by('code'):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
@@ -2379,7 +2384,7 @@ class TabDocDTDStats(Table):
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
-                        lampadas.dtds[key].code, 
+                        dtds[key].code, 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
@@ -2403,7 +2408,7 @@ class TabPubDocDTDStats(Table):
                          '</tr>\n')
         stattable = stats['pub_doc_dtd']
         odd_even = OddEven()
-        for key in lampadas.dtds.sort_by('code'):
+        for key in dtds.sort_by('code'):
             stat = stattable[key]
             if stat==None:
                 stat = Stat()
@@ -2412,7 +2417,7 @@ class TabPubDocDTDStats(Table):
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
-                        lampadas.dtds[key].code, 
+                        dtds[key].code, 
                         stat.value, 
                         fpformat.fix(stattable.pct(key) * 100, 2)))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \

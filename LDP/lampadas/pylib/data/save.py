@@ -22,7 +22,8 @@
 from Globals import *
 from globals import *
 from Config import config
-from DataLayer import lampadas
+from Docs import docs
+from Users import users
 from WebLayer import lampadasweb
 from Log import log
 from mod_python import apache
@@ -47,7 +48,7 @@ def newdocument(req, username, doc_id,
 
     sk_seriesid = new_sk_seriesid()
     
-    doc = lampadas.docs.add(title, short_title, type_code,
+    doc = docs.add(title, short_title, type_code,
           format_code, dtd_code, dtd_version,
           version, last_update, isbn, encoding,
           pub_status_code, review_status_code, tickle_date, pub_date,
@@ -79,11 +80,11 @@ def document(req, username, doc_id,
         return error("A required parameter is missing. Please go back and correct the error.")
 
     if delete=='on':
-        lampadas.docs.delete(int(doc_id))
+        docs.delete(int(doc_id))
         redirect(req, '../../document_deleted' + referer_lang_ext(req))
         return
 
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     if doc==None:
         return error("Cannot find document " + str(doc_id))
 
@@ -119,16 +120,16 @@ def document(req, username, doc_id,
     go_back(req)
 
 def newdocument_user(req, doc_id, username, active, role_code, email):
-    user = lampadas.users[username]
+    user = users[username]
     if user==None or user.username<>username:
         return error('User not found.')
     else:
-        doc = lampadas.docs[int(doc_id)]
+        doc = docs[int(doc_id)]
         doc.users.add(username, role_code, email, int(active))
         go_back(req)
     
 def document_user(req, doc_id, username, active, role_code, email, delete=''):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     if delete=='on':
         doc.users.delete(username)
         go_back(req)
@@ -144,12 +145,12 @@ def document_user(req, doc_id, username, active, role_code, email, delete=''):
 # such as file size and permissions, are not part of the add
 # interface, so we don't pass them.
 def newdocument_file(req, doc_id, filename, top):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     doc.files.add(doc_id, filename, int(top))
     go_back(req)
     
 def document_file(req, doc_id, filename, top, delete=''):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     if delete=='on':
         doc.files.delete(filename)
         go_back(req)
@@ -160,12 +161,12 @@ def document_file(req, doc_id, filename, top, delete=''):
         go_back(req)
     
 def newdocument_version(req, doc_id, version, pub_date, initials, notes):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     doc.versions.add(version, pub_date, initials, notes)
     go_back(req)
     
 def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, delete=''):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     if delete=='on':
         doc.versions.delete(int(rev_id))
         go_back(req)
@@ -179,17 +180,17 @@ def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, de
         go_back(req)
     
 def newdocument_topic(req, doc_id, topic_code):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     doc.topics.add(topic_code)
     go_back(req)
     
 def deldocument_topic(req, doc_id, topic_code):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     doc.topics.delete(topic_code)
     go_back(req)
 
 def newdocument_note(req, doc_id, notes, creator):
-    doc = lampadas.docs[int(doc_id)]
+    doc = docs[int(doc_id)]
     doc.notes.add(notes, creator)
     go_back(req)
     
@@ -201,16 +202,16 @@ def newaccount(req, username, email, first_name, middle_name, surname):
     if username=='':
         redirect(req, '../../username_required' + referer_lang_ext(req))
 
-    user = lampadas.users[username]
+    user = users[username]
     if user:
         redirect(req, '../../user_exists' + referer_lang_ext(req))
-    if lampadas.users.is_email_taken(email):
+    if users.is_email_taken(email):
         redirect(req, '../../email_exists' + referer_lang_ext(req))
 
     password = random_string(12)
     send_mail(email, 'Your password for Lampadas is: ' + password)
 
-    lampadas.users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
+    users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
     redirect(req, '../../account_created' + referer_lang_ext(req))
 
 def newuser(req, username, email, first_name, middle_name, surname, password, admin, sysadmin, notes):
@@ -221,17 +222,17 @@ def newuser(req, username, email, first_name, middle_name, surname, password, ad
     if username=='':
         redirect(req, '../../username_required' + referer_lang_ext(req))
 
-    user = lampadas.users[username]
+    user = users[username]
     if user:
         redirect(req, '../../user_exists' + referer_lang_ext(req))
-    if lampadas.users.is_email_taken(email):
+    if users.is_email_taken(email):
         redirect(req, '../../email_exists' + referer_lang_ext(req))
 
-    lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes)
+    users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes)
     redirect(req, '../../user/' + username + referer_lang_ext(req))
 
 def user(req, username, first_name, middle_name, surname, email, password, admin, sysadmin, notes):
-    user = lampadas.users[username]
+    user = users[username]
     if not user==None:
         user.first_name = first_name
         user.middle_name = middle_name

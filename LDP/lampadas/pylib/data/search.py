@@ -22,7 +22,6 @@
 from Globals import *
 from globals import *
 from Config import config
-from DataLayer import lampadas
 from WebLayer import lampadasweb
 from HTML import page_factory
 from Tables import tables

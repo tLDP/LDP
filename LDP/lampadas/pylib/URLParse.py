@@ -23,7 +23,10 @@ The URLParse module deciphers a Lampadas URL into its component parts.
 The API is documented in the Lampadas Programmer's Guide.
 """
 
-from DataLayer import lampadas
+from Docs import docs
+from Collections import collections
+from Topics import topics
+from Types import types
 from WebLayer import lampadasweb
 from Languages import languages
 from SourceFiles import sourcefiles
@@ -147,7 +150,7 @@ class URI:
                 self.id = int(data[0])
                 data = data[1:]
                 if item=='doc':
-                    doc = lampadas.docs[self.id]
+                    doc = docs[self.id]
                     if doc:
                         doc.load()
                 elif item=='news':
@@ -158,15 +161,15 @@ class URI:
                 self.code = data[0]
                 data = data[1:]
                 if item=='collection':
-                    collection = lampadas.collections[self.code]
+                    collection = collections[self.code]
                     if collection:
                         collection.load()
                 elif item=='topic':
-                    topic = lampadas.topics[self.code]
+                    topic = topics[self.code]
                     if topic:
                         topic.load()
                 elif item=='type':
-                    type = lampadas.types[self.code]
+                    type = types[self.code]
                     if type:
                         type.load()
                 elif item=='report':

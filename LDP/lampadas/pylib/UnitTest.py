@@ -36,12 +36,23 @@ import unittest
 from Config import config
 from Database import db
 from Languages import languages
-from DataLayer import lampadas
+from Docs import docs
+from Users import users, User
+from Types import types
+from Licenses import licenses
+from DTDs import dtds
+from Formats import formats
+from PubStatuses import pub_statuses
+from Topics import topics
 from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
-import commands
+import os
 
+BIN = '/home/david/ldp/csv/LDP/lampadas/bin/'
+PYLIB = '/home/david/ldp/csv/LDP/lampadas/bin/'
+EXTERNAL_TESTS = (BIN + 'rebuild', BIN + 'reload', 'Lintadas.py', 'Mirror.py', 'Makefile.py publish')
+EXTERNAL_TESTS = (BIN + 'rebuild', BIN + 'reload')
 
 # TESTS TO ADD:
 # 
@@ -55,8 +66,8 @@ class testTypes(unittest.TestCase):
 
     def testTypes(self):
         log(3, 'testing types')
-        assert not lampadas.types==None
-        assert lampadas.types.count() > 0
+        assert not types==None
+        assert types.count() > 0
         log(3, 'testing types done')
 
 
@@ -66,7 +77,7 @@ class testDocs(unittest.TestCase):
         log(3, 'testing Docs')
 
         # Add
-        doc = lampadas.docs.add('Test Document',
+        doc = docs.add('Test Document',
                                 'Test Doc',
                                 'howto',
                                 'xml',
@@ -107,12 +118,12 @@ class testDocs(unittest.TestCase):
         doc.save()
        
         # Delete
-        lampadas.docs.delete(doc.id)
-        assert lampadas.docs[doc.id]==None
+        docs.delete(doc.id)
+        assert docs[doc.id]==None
 
-        keys = lampadas.docs.keys()
+        keys = docs.keys()
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             assert doc.id==key
 
         log(3, 'testing Docs done')
@@ -122,9 +133,9 @@ class testDocErrs(unittest.TestCase):
 
     def testDocErrs(self):
         log(3, 'testing DocErrs')
-        keys = lampadas.docs.keys()
+        keys = docs.keys()
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             assert not doc==None
             if doc.errors.count() > 0:
                 log(3, "found a doc with errors")
@@ -140,9 +151,9 @@ class testDocFiles(unittest.TestCase):
 
     def testDocFiles(self):
         log(3, 'testing DocFiles')
-        keys = lampadas.docs.keys()
+        keys = docs.keys()
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             docfilekeys = doc.files.keys()
             for docfilekey in docfilekeys:
                 docfile = doc.files[docfilekey]
@@ -158,10 +169,10 @@ class testDocRatings(unittest.TestCase):
 
     def testDocRatings(self):
         log(3, 'testing DocRatings')
-        dockeys = lampadas.docs.keys()
+        dockeys = docs.keys()
         for dockey in dockeys:
 
-            doc = lampadas.docs[dockey]
+            doc = docs[dockey]
             assert not doc==None
             doc.ratings.clear()
             doc.calc_rating()
@@ -202,10 +213,10 @@ class testDocVersions(unittest.TestCase):
 
     def testDocVersions(self):
         log(3, 'testing DocVersions')
-        keys = lampadas.docs.keys()
+        keys = docs.keys()
         found = 0
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             assert not doc==None
             if doc.versions.count() > 0:
                 found = 1
@@ -223,8 +234,8 @@ class testLicenses(unittest.TestCase):
 
     def testLicenses(self):
         log(3, 'testing Licenses')
-        assert lampadas.licenses.count() > 0
-        assert not lampadas.licenses['gpl']==None
+        assert licenses.count() > 0
+        assert not licenses['gpl']==None
         log(3, 'testing Licenses done')
 
 
@@ -232,8 +243,8 @@ class test_dtds(unittest.TestCase):
 
     def test_dtds(self):
         log(3, 'testing DTDs')
-        assert lampadas.dtds.count() > 0
-        assert not lampadas.dtds['docbook']==None
+        assert dtds.count() > 0
+        assert not dtds['docbook']==None
         log(3, 'testing DTDs done')
 
 
@@ -241,10 +252,10 @@ class testFormats(unittest.TestCase):
 
     def testFormats(self):
         log(3, 'testing Formats')
-        assert lampadas.formats.count() > 0
-        assert not lampadas.formats['xml']==None
-        assert lampadas.formats['xml'].name['EN'] > ''
-        assert lampadas.formats['xml'].description['EN'] > ''
+        assert formats.count() > 0
+        assert not formats['xml']==None
+        assert formats['xml'].name['EN'] > ''
+        assert formats['xml'].description['EN'] > ''
         log(3, 'testing Formats done')
 
 
@@ -268,17 +279,17 @@ class testPubStatuses(unittest.TestCase):
     
     def testPubStatuses(self):
         log(3, 'testing PubStatuses')
-        assert not lampadas.pub_statuses==None
-        assert lampadas.pub_statuses.count() > 0
+        assert not pub_statuses==None
+        assert pub_statuses.count() > 0
         
         # Ensure that the default publication statuses are in the database
         # for all supported languages, and that they all have names and
         # descriptions.
         for pub_status in ('C', 'D', 'N', 'P', 'W'):
-            assert not lampadas.pub_statuses[pub_status]==None
+            assert not pub_statuses[pub_status]==None
             for lang in languages.supported_keys('EN'):
-                assert lampadas.pub_statuses[pub_status].name[lang] > ''
-                assert lampadas.pub_statuses[pub_status].description[lang] > ''
+                assert pub_statuses[pub_status].name[lang] > ''
+                assert pub_statuses[pub_status].description[lang] > ''
         log(3, 'testing PubStatuses done')
         
 
@@ -286,11 +297,11 @@ class testTopics(unittest.TestCase):
 
     def testTopics(self):
         log(3, 'testing Topics')
-        assert not lampadas.topics==None
-        assert lampadas.topics.count() > 0
-        keys = lampadas.topics.keys()
+        assert not topics==None
+        assert topics.count() > 0
+        keys = topics.keys()
         for key in keys:
-            topic = lampadas.topics[key]
+            topic = topics[key]
             assert topic.name['EN'] > ''
         log(3, 'testing Topics done')
 
@@ -299,18 +310,18 @@ class testUsers(unittest.TestCase):
 
     def testUsers(self):
         log(3, 'testing Users')
-        assert not lampadas.users==None
+        assert not users==None
 
-        count = lampadas.users.count()
+        count = users.count()
         assert count > 0
 
-        user = lampadas.users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here')
+        user = users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here')
         assert not user==None
         assert user.username=='testuser'
         assert user.email=='foo@example.com'
         
-        lampadas.users.delete(user.username)
-        assert lampadas.users.count()==count
+        users.delete(user.username)
+        assert users.count()==count
         log(3, 'testing Users done')
 
 
@@ -318,7 +329,7 @@ class testUserDocs(unittest.TestCase):
 
     def testUserDocs(self):
         log(3, 'testing UserDocs')
-        user = lampadas.user('david')
+        user = User('david')
         assert len(user.docs) > 0
         assert user.docs.count() > 0
         assert not user.docs==None
@@ -378,4 +389,11 @@ class testURLParse(unittest.TestCase):
 
 
 if __name__=="__main__":
+    log(3, 'testing commands')
+    for command in EXTERNAL_TESTS:
+        log(3, 'testing command: ' + command)
+        os.system(command)
+        log(3, 'testing command: ' + command + ' done')
+    log(3, 'testing commands done')
+
 	unittest.main()

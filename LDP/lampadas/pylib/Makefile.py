@@ -33,7 +33,7 @@ XSLTPROC_PARAMS = ''
 
 from BaseClasses import *
 from Globals import *
-from DataLayer import lampadas
+from Docs import docs
 from SourceFiles import sourcefiles
 from Languages import languages
 from Config import config
@@ -110,14 +110,14 @@ class Projects(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        for key in lampadas.docs.sort_by('id'):
+        for key in docs.sort_by('id'):
             project = Project(key)
             self.data[key] = project
         
     def make(self, name='all'):
         log(3, 'Running project Makefile target: ' + name)
         for doc_id in self.sort_by('doc_id'):
-            doc = lampadas.docs[doc_id]
+            doc = docs[doc_id]
             if doc.pub_status_code<>'N':
                 continue
             log(3, 'Making document: ' + str(doc_id))
@@ -142,8 +142,8 @@ class Projects(LampadasCollection):
         omfmake = ''
 
         makeneeded = 0
-        for docid in lampadas.docs.keys():
-            doc = lampadas.docs[docid]
+        for docid in docs.keys():
+            doc = docs[docid]
             if doc.pub_time=='':
                 continue
 
@@ -186,7 +186,7 @@ class Project:
 
     def __init__(self, doc_id):
         self.doc_id = int(doc_id)
-        self.doc = lampadas.docs[self.doc_id]
+        self.doc = docs[self.doc_id]
         self.workdir = config.cache_dir + str(self.doc_id) + '/work/'
         self.filename = ''
         self.targets  = Targets()

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,23 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
-
-class Errors(DataCollection):
+class Encodings(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of all encodings.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, Encoding,
+                                 'encoding',
+                                 'encoding')
+                                 
+class Encoding(DataObject):
     """
-    An error that can be filed against a document.
+    A encoding is a way of representing characters.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+encodings = Encodings()
+encodings.load()

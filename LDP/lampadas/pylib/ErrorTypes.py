@@ -21,17 +21,17 @@
 
 from BaseClasses import *
 
-class ErrorTypes(TableCollection):
+class ErrorTypes(DataCollection):
     """A collection of error types."""
 
     def __init__(self):
-        TableCollection.__init__(self, ErrorType,
+        DataCollection.__init__(self, ErrorType,
                                  'error_type',
                                  {'err_type_code': 'code'},
                                  ['created', 'updated'],
                                  {'err_type_name': 'name', 'err_type_desc': 'description'})
 
-class ErrorType:
+class ErrorType(DataObject):
     pass
 
 errortypes = ErrorTypes()

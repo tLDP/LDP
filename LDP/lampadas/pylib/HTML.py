@@ -31,8 +31,12 @@ from Globals import *
 from Config import config
 from Log import log
 from URLParse import URI
-from DataLayer import *
 from SourceFiles import sourcefiles
+from Docs import docs
+from Types import types
+from Topics import topics
+from Collections import collections
+from Users import users
 from WebLayer import lampadasweb
 from Tables import tables, tablemap
 from Widgets import widgets
@@ -178,7 +182,7 @@ class PageFactory:
                 elif token=='user.username':
                     newstring = uri.username
                 elif token=='user.name':
-                    user = lampadas.users[uri.username]
+                    user = users[uri.username]
                     if user:
                         newstring = user.name
                     else:
@@ -188,7 +192,7 @@ class PageFactory:
 
                 # Embedded Type
                 elif token=='type.name':
-                    type = lampadas.types[uri.code]
+                    type = types[uri.code]
                     if not type:
                         newstring = '|blknotfound|'
                     else:
@@ -196,13 +200,13 @@ class PageFactory:
 
                 # Embedded Topic
                 elif token=='topic.name':
-                    topic = lampadas.topics[uri.code]
+                    topic = topics[uri.code]
                     if not topic:
                         newstring = '|blknotfound|'
                     else:
                         newstring = topic.name[uri.lang]
                 elif token=='topic.description':
-                    topic = lampadas.topics[uri.code]
+                    topic = topics[uri.code]
                     if not topic:
                         newstring = '|blknotfound|'
                     else:
@@ -210,13 +214,13 @@ class PageFactory:
 
                 # Embedded Collection
                 elif token=='collection.name':
-                    collection = lampadas.collections[uri.code]
+                    collection = collections[uri.code]
                     if not collection:
                         newstring = '|blknotfound|'
                     else:
                         newstring = collection.name[uri.lang]
                 elif token=='collection.description':
-                    collection = lampadas.collections[uri.code]
+                    collection = collections[uri.code]
                     if not collection:
                         newstring = '|blknotfound|'
                     else:
@@ -224,14 +228,14 @@ class PageFactory:
 
                 # Embedded Document
                 elif token=='doc.title':
-                    doc = lampadas.docs[uri.id]
+                    doc = docs[uri.id]
                     metadata = doc.metadata()
                     if not doc:
                         newstring = '|blknotfound|'
                     else:
                         newstring = metadata.title
                 elif token=='doc.abstract':
-                    doc = lampadas.docs[uri.id]
+                    doc = docs[uri.id]
                     metadata = doc.metadata()
                     if not doc:
                         newstring = '|blknotfound|'
@@ -375,7 +379,7 @@ class PageFactory:
 page_factory = PageFactory()
 
 def benchmark(url, reps):
-    from DataLayer import Lampadas
+    from Docs import docs
     for x in range(0, reps):
         page = page_factory.page(url)
 

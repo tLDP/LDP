@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -18,30 +17,23 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
+# Collections
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
-
-class Errors(DataCollection):
-    """
-    A collection object of all errors that can be filed against a document.
-    """
-    
+class Collections(DataCollection):
+    """A collection object of all document collections."""
+   
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
-    """
-    An error that can be filed against a document.
-    """
+        DataCollection.__init__(self, Collection,
+                                 'collection',
+                                 {'collection_code': 'code'},
+                                 'sort_order',
+                                 {'collection_name': 'name', 'collection_desc': 'description'})
+
+class Collection(DataObject):
+    """A collection is an arbitrary set of documents."""
     pass
-    
-errors = Errors()
-errors.load()
+
+collections = Collections()
+collections.load()

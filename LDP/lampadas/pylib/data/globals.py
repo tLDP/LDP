@@ -21,7 +21,7 @@
 
 from URLParse import URI
 from Config import config
-from DataLayer import lampadas
+from Users import users
 from mod_python import apache
 import smtplib
 
@@ -58,7 +58,7 @@ def send_mail(email, message):
     server.quit()
 
 def mailpass(req, email):
-    user = lampadas.users.find_email_user(email)
+    user = users.find_email_user(email)
     if user:
         send_mail(email, 'Your password for Lampadas is: ' + user.password)
         redirect(req, '../../password_mailed' + referer_lang_ext(req))

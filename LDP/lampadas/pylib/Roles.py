@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,28 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# Roles
 
-class Errors(DataCollection):
+class Roles(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of all roles.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, Role,
+                                 'role',
+                                 {'role_code': 'code'},
+                                 [],
+                                 {'role_name': 'name', 'role_desc': 'description'})
+
+class Role(DataObject):
     """
-    An error that can be filed against a document.
+    A role is a way of identifying the role a user plays in the production
+    of a document.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+roles = Roles()
+roles.load()

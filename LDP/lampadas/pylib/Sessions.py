@@ -31,7 +31,7 @@ This module tracks users who have active sessions.
 
 from Globals import *
 from BaseClasses import *
-from DataLayer import lampadas
+from Users import users
 from Config import config
 from Database import db
 from Log import log
@@ -73,7 +73,7 @@ class Sessions(LampadasCollection):
         db.runsql(sql)
         db.commit()
         self.session = Session(username)
-        self.session.user = lampadas.users[username]
+        self.session.user = users[username]
         self.data[username] = self.session
 
     def delete(self, username):
@@ -91,7 +91,7 @@ class Sessions(LampadasCollection):
         cookie = self.get_cookie(req.headers_in, 'lampadas')
         if cookie:
             session_id = str(cookie)
-            username = lampadas.users.find_session_user(session_id)
+            username = users.find_session_user(session_id)
             if username > '':
                 self.load()
                 self.session = sessions[username]
@@ -99,7 +99,7 @@ class Sessions(LampadasCollection):
                     self.session.refresh(req.connection.remote_addr[0], req.uri)
                 else:
                     self.add(username, req.connection.remote_addr[0], req.uri)
-                self.session.user = lampadas.users[username]
+                self.session.user = users[username]
 
     def get_cookie(self, headers_in, key):
         if headers_in.has_key('Cookie'):
@@ -115,7 +115,7 @@ class Session:
     def __init__(self, username=None):
         self.user = None
         if username:
-            self.user = lampadas.users[username]
+            self.user = users[username]
             sql = 'SELECT username, ip_address, uri, created FROM session WHERE username=' + wsq(username)
             cursor = db.select(sql)
             row = cursor.fetchone()

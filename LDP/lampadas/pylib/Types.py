@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,28 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# Types
 
-class Errors(DataCollection):
+class Types(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A type object of all document classes (HOWTO, FAQ, etc).
     """
-    
+
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, Type,
+                                 'type',
+                                 {'type_code': 'code'},
+                                 'sort_order',
+                                 {'type_name': 'name', 'type_desc': 'description'})
+
+class Type(DataObject):
     """
-    An error that can be filed against a document.
+    A type is a way of identifying the type of a document, such as a
+    User's Guide, a HOWTO, or a FAQ List.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+types = Types()
+types.load()

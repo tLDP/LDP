@@ -35,7 +35,7 @@ This module works closely with the
 from Globals import *
 from Config import config
 from Log import log
-from DataLayer import lampadas
+from Docs import docs
 from SourceFiles import sourcefiles
 import os
 import stat
@@ -60,6 +60,12 @@ class Lintadas:
     # FIXME: These should be loaded from a configuration file so they
     # are easily configurable by the administrator.
 
+    def remove_duplicate_metadata(self):
+    
+        for doc_id in docs.keys():
+            doc = self[doc_id]
+            doc.remove_duplicate_metadata()
+
     def check_files(self, doc_id=None):
         """Checks files for errors. Checks all files by default, but you can
         also check the files belonging to a single document."""
@@ -68,7 +74,7 @@ class Lintadas:
         if doc_id==None:
             keys = sourcefiles.keys()
         else:
-            doc= lampadas.docs[doc_id]
+            doc= docs[doc_id]
             keys = doc.files.keys()
             
         # Check the files for errors.
@@ -76,7 +82,7 @@ class Lintadas:
             self.check_file(key)
             
     def check_docs(self):
-        keys = lampadas.docs.keys()
+        keys = docs.keys()
         for key in keys:
             self.check_doc(key)
     
@@ -127,7 +133,7 @@ class Lintadas:
         """
 
         log(3, 'Running Lintadas on document ' + str(doc_id))
-        doc = lampadas.docs[doc_id]
+        doc = docs[doc_id]
         filenames = doc.files.keys()
         usernames = doc.users.keys()
        

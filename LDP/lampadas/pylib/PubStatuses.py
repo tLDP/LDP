@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,28 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# PubStatuses
 
-class Errors(DataCollection):
+class PubStatuses(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of all publication statuses.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, PubStatus,
+                                 'pub_status',
+                                 {'pub_status_code': 'code'},
+                                 'sort_order',
+                                 {'pub_status_name': 'name', 'pub_status_desc': 'description'})
+
+class PubStatus(DataObject):
     """
-    An error that can be filed against a document.
+    The Publication Status defines where in the publication process a
+    document is.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+pub_statuses = PubStatuses()
+pub_statuses.load()

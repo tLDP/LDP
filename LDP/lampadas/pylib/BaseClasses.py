@@ -25,8 +25,13 @@ but are never instantiated directly.
 
 from Globals import *
 from Database import db
+from Log import log
 import string
+import copy
 import types
+
+# TODO: Write testing routines that go through trying to write random data into the database
+# whilc executing random deletes, etc.
 
 class LampadasCollection:
     """
@@ -57,8 +62,15 @@ class LampadasCollection:
     def __delitem__(self, key):
         del self.data[key]
 
-    def keys(self):
-        return self.data.keys()
+    def keys(self, attribute=''):
+        if attribute=='':
+            return self.data.keys()
+        keys = []
+        for key in self.data.keys():
+            object = self[key]
+            value = getattr(object, attribute)
+            keys.append(value)
+        return keys
 
     def has_key(self, key):
         return self.data.has_key(key)
@@ -101,12 +113,22 @@ class LampadasCollection:
         return self.sort_by('sort_order')
 
 
-class TableCollection(LampadasCollection):
+# TODO: Write add(), delete() and update() methods.
 
-    def __init__(self, object=None, table='', indexfields=[], fields=[], i18nfields=[]):
+# TODO: Use a database table to log changed objects, and have DataCollection
+# objects poll for updates during page loads. To fix broken caching.
+
+class DataCollection(LampadasCollection):
+
+    def __init__(self, object=None, table='', indexfields=[], fields=[], i18nfields=[], filter=None):
         LampadasCollection.__init__(self)
         self.object      = object
         self.table       = table
+        self.origindex   = indexfields
+        self.origfields  = fields
+        self.origi18n    = i18nfields
+        self.filter      = filter
+        
         self.indexfields = []
         self.fields      = []
         self.i18nfields  = []
@@ -117,6 +139,8 @@ class TableCollection(LampadasCollection):
         self.i18nfields    = self.parse_fieldmap(i18nfields)
         self.allfields     = self.indexfields + self.fields
         self.alli18nfields = self.indexfields + self.i18nfields
+        
+        self.filters = []
 
     def parse_fieldmap(self, map):
         if type(map)==types.StringType:
@@ -137,6 +161,7 @@ class TableCollection(LampadasCollection):
             return fields
 
     def load(self):
+        print 'Loading data from table ' + self.table
         LampadasCollection.__init__(self)
         self.load_table()
         if len(self.i18nfields) > 0:
@@ -144,19 +169,25 @@ class TableCollection(LampadasCollection):
             self.load_i18n_table()
 
     def load_table(self):
-        sql = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
-        cursor = db.select(sql)
+        self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
+        cursor = db.select(self.select)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            identifier = self.convert_field(row[0])
-            object = self.object()
-            i = 0
-            for field in self.allfields:
-                alias = self.map[field]
-                value = self.convert_field(row[i])
-                setattr(object, alias, value)
-                i += 1
+            object = self.object(self)
+            object.load_row(row)
+
+            # Build an identifier.
+            # If there are multiple key fields, build a string representation instead.
+            if len(self.indexfields)==1:
+                identifier = convert_field(row[0])
+            else:
+                identifier = ''
+                for field in self.indexfields:
+                    value = getattr(object, self.map[field])
+                    identifier = identifier + str(value) + ' '
+                identifier = trim(identifier)
+            object.identifier = identifier
             self[identifier] = object
 
     def load_i18n_table(self):
@@ -169,28 +200,107 @@ class TableCollection(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            identifier = self.convert_field(row[0])
-            lang = row[1]
+            identifier = convert_field(row[0])
             object = self[identifier]
-            i = 2
-            for field in self.i18nfields:
-                value = self.convert_field(row[i])
-                alias = self.map[field]
-                coll = getattr(object, alias)
-                coll[lang] = value
-                setattr(object, field, coll)
-                i += 1
+            object.load_i18n_row(row)
 
-    def convert_field(self, value):
-        type_name = str(type(value))
-        if type_name=="<type 'string'>":
-            return trim(value)
-        elif type_name=="<type 'int'>":
-            return safeint(value)
-        elif type_name=="<type 'DateTime'>":
-            return time2str(value)
-        elif type_name=="<type 'libpq.PgBoolean'>":
-            return tf2bool(value)
+    def apply_filter(self, superclass, filter):
+        """
+        Filter the collection for the requested pattern.
+
+        This routine supports up to two key fields. Whichever field was not
+        requested in the filter is returned as the key field in the resultset.
+        """
+
+        # TODO: Generate the search form using the filter information,
+        # so the filter can easily be displayed and refined.
+        
+        # TODO: Write subclasses to generate search forms,
+        # list forms (including the DocTable), edit forms
+        # and add forms. Subclass Table as well, and add to
+        # the tables collection.
+
+        # TODO: Add ability to add, edit and delete any of the filters.
+
+        # TODO: Add the ability to name and save a set of filters.
+
+        filter_results = superclass()
+        filter_results.filters.append(filter)
+        for key in self.keys():
+            object = self[key]
+            value = getattr(object, filter.attribute)
+            match = 0
+            if filter.operator=='=':    match = (value == filter.value)
+            elif filter.operator=='<>': match = (value <> filter.value)
+            elif filter.operator=='>':  match = (value >  filter.value)
+            elif filter.operator=='<':  match = (value <  filter.value)
+            else: log(1, 'Unrecognized filter operator')
+            if match==1:
+                identifier = object.identifier
+                filter_results[identifier] = object
+        return filter_results
+
+
+class DataObject:
+
+    def __init__(self, parent):
+        self.parent = parent
+
+    def where(self):
+        where = ''
+        for field in self.parent.indexfields:
+            if where=='':
+                where = ' WHERE '
+            else:
+                where = ' AND '
+            where = where + field + '=' + wsq(getattr(self, self.parent.map[field]))
+        return where
+
+    def load(self):
+        # Build an identifier.
+        # If there are multiple key fields, build a string representation instead.
+        if len(self.parent.indexfields)==1:
+            identifier = getattr(self, self.parent.map[self.parent.indexfields[0]])
         else:
-            print 'Unrecognized type: ' + type_name
+            identifier = ''
+            for field in self.parent.indexfields:
+                value = getattr(self, self.parentmap[field])
+                identifier = identifier + str(value) + ' '
+            identifier = trim(identifier)
+        self.identifier = identifier
+        self.select = self.parent.select + self.where()
+        cursor = db.select(self.select)
+        row = cursor.fetchone()
+        if row==None:
+            # FIXME: We have to delete ourselves
+            del self.parent[self.identifier]
+        else:
+            self.load_row(row)
+
+    def load_row(self, row):
+        i = 0
+        for field in self.parent.allfields:
+            alias = self.parent.map[field]
+            value = convert_field(row[i])
+            setattr(self, alias, value)
+            i += 1
+
+    def load_i18n_row(self, row):
+        lang = row[1]
+        i = 2
+        for field in self.parent.i18nfields:
+            value = convert_field(row[i])
+            alias = self.parent.map[field]
+            coll = getattr(self, alias)
+            coll[lang] = value
+            setattr(self, field, coll)
+            i += 1
+
+
+class Filter:
+
+    def __init__(self, attribute, operator, value):
+        self.attribute = attribute
+        self.operator  = operator
+        self.value     = value
 

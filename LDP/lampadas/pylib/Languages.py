@@ -24,20 +24,20 @@ Holds a collection of ISO languages.
 
 from BaseClasses import *
 
-class Languages(TableCollection):
+class Languages(DataCollection):
     """
     A collection object of all languages supported by the ISO 639
     standard.
     """
 
     def __init__(self):
-        TableCollection.__init__(self, Language,
-                                 'language',
-                                 {'lang_code':  'code'},
-                                 ['supported', 'encoding', 'created', 'updated'],
-                                 {'lang_name': 'name'})
+        DataCollection.__init__(self, Language,
+                                'language',
+                                {'lang_code':  'code'},
+                                ['supported', 'encoding', 'created', 'updated'],
+                                {'lang_name': 'name'})
 
-    # TODO: Replace with a reusable filtering system in TableCollection
+    # TODO: Replace with a reusable filtering system in DataCollection
     def supported_keys(self, lang=''):
         supported = LampadasCollection()
         for key in self.keys():
@@ -54,7 +54,7 @@ class Languages(TableCollection):
         return keys
     
 
-class Language:
+class Language(DataObject):
     """
     Defines a language supported by Lampadas. Documents can be translated into,
     and Lampadas can be localized for, any language supported by ISO 639.

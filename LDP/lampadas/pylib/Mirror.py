@@ -28,7 +28,7 @@ local Lampdas system.
 # Modules ##################################################################
 
 from Globals import *
-from DataLayer import lampadas
+from Docs import docs
 from SourceFiles import sourcefiles
 from Log import log
 from Config import config
@@ -46,12 +46,12 @@ class Mirror:
 
     def mirror_all(self):
         log(3, 'Mirroring all documents')
-        for dockey in lampadas.docs.sort_by('id'):
+        for dockey in docs.sort_by('id'):
             self.mirror(dockey)
 
     def mirror(self, doc_id):
         log(3, 'Mirroring document ' + str(doc_id))
-        doc = lampadas.docs[doc_id]
+        doc = docs[doc_id]
 
         if doc.lint_time=='':
             return

@@ -26,7 +26,9 @@ This module subclasses the Document class to generate an OMF structure for it.
 
 from Globals import *
 from Config import config
-from DataLayer import lampadas, User
+from Users import User
+from Docs import docs
+from Licenses import licenses
 from WebLayer import lampadasweb    # FIXME: Obviously strings are not just used
                                     # for the web! Move them out of WebLayer.
 
@@ -34,7 +36,7 @@ class OMF:
 
     def __init__(self, doc_id):
         self.id = doc_id
-        self.doc = lampadas.docs[doc_id]
+        self.doc = docs[doc_id]
         self.metadata = self.doc.metadata()
         omf = WOStringIO('<resource id="%s">\n'
                          '%s'
@@ -134,7 +136,7 @@ class OMF:
     def rights(self):
         if self.doc.license_code=='':
             return ''
-        license = lampadas.licenses[self.doc.license_code]
+        license = licenses[self.doc.license_code]
         if license.url=='':
             return '<rights><type>%s</type></rights>\n' % license.code
         else:
@@ -144,7 +146,7 @@ class OMF:
 if __name__=='__main__':
     print '<xml version="1.0" encoding="UTF-8"?>'
     print '<omf>'
-    for doc_id in lampadas.docs.sort_by('id'):
+    for doc_id in docs.sort_by('id'):
         print OMF(doc_id).omf
     print '</omf>'
 

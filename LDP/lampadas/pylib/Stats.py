@@ -27,7 +27,7 @@ This module generates statistical information about the Lampadas system.
 from Globals import *
 from BaseClasses import *
 from Log import log
-from DataLayer import lampadas
+from Docs import docs
 
 
 class Stats(LampadasCollection):
@@ -55,8 +55,8 @@ class Stats(LampadasCollection):
         self.reset()
 
         # Calculate document statistics by iterating through them.
-        for doc_id in lampadas.docs.keys():
-            doc = lampadas.docs[doc_id]
+        for doc_id in docs.keys():
+            doc = docs[doc_id]
             metadata = doc.metadata()
 
             # Increment document counts

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -19,29 +19,27 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# Errors
+# Licenses
 
-class Errors(DataCollection):
+class Licenses(DataCollection):
     """
-    A collection object of all errors that can be filed against a document.
+    A collection object of all licenses.
     """
     
     def __init__(self):
-        DataCollection.__init__(self, Error,
-                                'error',
-                                {'err_id': 'id'},
-                                ['err_type_code', 'created', 'updated'],
-                                {'err_name': 'name', 'err_desc': 'description'})
-        
-class Error(DataObject):
+        DataCollection.__init__(self, License,
+                                 'license',
+                                 {'license_code': 'code'},
+                                 ['free', 'dfsg_free', 'osi_cert_free', 'url', 'sort_order'],
+                                 {'license_short_name': 'short_name', 'license_name': 'name', 'license_desc': 'description'})
+
+class License(DataObject):
     """
-    An error that can be filed against a document.
+    A documentation or software license.
     """
     pass
-    
-errors = Errors()
-errors.load()
+
+licenses = Licenses()
+licenses.load()

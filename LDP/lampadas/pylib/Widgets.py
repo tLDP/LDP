@@ -26,9 +26,19 @@ This module generates HTML primitives.
 
 from Globals import *
 from Log import log
-from DataLayer import lampadas
 from WebLayer import lampadasweb
+from Docs import docs
 from Languages import languages
+from Formats import formats
+from DTDs import dtds
+from Encodings import encodings
+from Roles import roles
+from Collections import collections
+from Types import types
+from Licenses import licenses
+from PubStatuses import pub_statuses
+from ReviewStatuses import review_statuses
+from Topics import topics
 import re
 import string
 
@@ -42,16 +52,16 @@ class Widgets:
 
     def format_code(self, value, lang, css_class='', view=0):
         if view==1:
-            format = lampadas.formats[value]
+            format = formats[value]
             if format:
                 return format.name[lang]
             return ''
 
         combo = WOStringIO('<select name="format_code"%s>\n' % css_class)
         combo.write('<option></option>')
-        keys = lampadas.formats.sort_by_lang('name', lang)
+        keys = formats.sort_by_lang('name', lang)
         for key in keys:
-            format = lampadas.formats[key]
+            format = formats[key]
             combo.write("<option ")
             if format.code==value:
                 combo.write("selected ")
@@ -63,7 +73,7 @@ class Widgets:
         
     def dtd_code(self, value, lang, css_class='', view=0):
         if view==1:
-            dtd = lampadas.dtds[value]
+            dtd = dtds[value]
             if dtd:
                 return dtd.name[lang]
             return ''
@@ -73,9 +83,9 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
-        keys = lampadas.dtds.sort_by_lang('name', lang)
+        keys = dtds.sort_by_lang('name', lang)
         for key in keys:
-            dtd = lampadas.dtds[key]
+            dtd = dtds[key]
             combo.write("<option ")
             if dtd.code==value:
                 combo.write("selected ")
@@ -112,16 +122,16 @@ class Widgets:
 
     def encoding(self, value, css_class='', view=0):
         if view==1:
-            encoding = lampadas.encodings[value]
+            encoding = encodings[value]
             if encoding:
                 return encoding.encoding
             return ''
             
         combo = WOStringIO('<select name="encoding"%s>\n' % css_class)
         combo.write('<option></option>')
-        keys = lampadas.encodings.sort_by('encoding')
+        keys = encodings.sort_by('encoding')
         for key in keys:
-            encoding = lampadas.encodings[key]
+            encoding = encodings[key]
             combo.write("<option ")
             if encoding.encoding==value:
                 combo.write("selected ")
@@ -218,15 +228,15 @@ class Widgets:
 
     def role_code(self, value, lang, view=0):
         if view==1:
-            role = lampadas.roles[value]
+            role = roles[value]
             if role:
                 return role.name[lang]
             return ''
 
         combo = WOStringIO("<select name='role_code'>\n")
-        keys = lampadas.roles.sort_by_lang('name', lang)
+        keys = roles.sort_by_lang('name', lang)
         for key in keys:
-            role = lampadas.roles[key]
+            role = roles[key]
             combo.write("<option ")
             if role.code==value:
                 combo.write("selected ")
@@ -238,9 +248,9 @@ class Widgets:
     def collection_code(self, value, lang):
         combo = WOStringIO("<select name='collection_code'>\n" \
                            "<option></option>\n")
-        keys = lampadas.collections.sort_by('sort_order')
+        keys = collections.sort_by('sort_order')
         for key in keys:
-            collection = lampadas.collections[key]
+            collection = collections[key]
             assert not collection==None
             combo.write("<option ")
             if collection.code==value:
@@ -252,16 +262,16 @@ class Widgets:
 
     def type_code(self, value, lang, view=0):
         if view==1:
-            type = lampadas.types[value]
+            type = types[value]
             if type:
                 return type.name[lang]
             return ''
 
         combo = WOStringIO("<select name='type_code'>\n" \
                            "<option></option>\n")
-        keys = lampadas.types.sort_by('sort_order')
+        keys = types.sort_by('sort_order')
         for key in keys:
-            type = lampadas.types[key]
+            type = types[key]
             assert not type==None
             combo.write("<option ")
             if type.code==value:
@@ -273,9 +283,9 @@ class Widgets:
 
     def doc_id(self, value, lang):
         combo = WOStringIO("<select name='doc'>\n")
-        keys = lampadas.docs.sort_by('title')
+        keys = docs.sort_by('title')
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             assert not doc==None
             if doc.lang==lang or lang==None:
                 combo.write("<option ")
@@ -288,16 +298,16 @@ class Widgets:
 
     def sk_seriesid(self, value, view=0):
         if view==1:
-            doc = lampadas.docs[value]
+            doc = docs[value]
             if doc:
                 return doc.title
             return ''
 
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
-        keys = lampadas.docs.sort_by_metadata('title')
+        keys = docs.sort_by_metadata('title')
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             metadata = doc.metadata()
             combo.write("<option ")
             if doc.sk_seriesid==value:
@@ -313,16 +323,16 @@ class Widgets:
 
     def replaced_by_id(self, value, view=0):
         if view==1:
-            doc = lampadas.docs[value]
+            doc = docs[value]
             if doc:
                 return doc.title
             return ''
 
         combo = WOStringIO('<select name="replaced_by_id">\n')
         combo.write('<option></option>\n')
-        keys = lampadas.docs.sort_by('title')
+        keys = docs.sort_by('title')
         for key in keys:
-            doc = lampadas.docs[key]
+            doc = docs[key]
             metadata = doc.metadata()
             combo.write("<option ")
             if doc.id==value:
@@ -344,7 +354,7 @@ class Widgets:
             combo.write('<option></option>')
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
-            if lampadas.docs.languages[key] > 0:
+            if docs.languages[key] > 0:
                 language = languages[key]
                 assert not language==None
                 combo.write("<option ")
@@ -427,16 +437,16 @@ class Widgets:
 
     def license_code(self, value, lang, view=0):
         if view==1:
-            license = lampadas.licenses[value]
+            license = licenses[value]
             if license:
                 return license.name[lang]
             return ''
 
         combo = WOStringIO("<select name='license_code'>\n")
         combo.write('<option></option>')
-        keys = lampadas.licenses.sort_by('sort_order')
+        keys = licenses.sort_by('sort_order')
         for key in keys:
-            license = lampadas.licenses[key]
+            license = licenses[key]
             assert not license==None
             combo.write("<option ")
             if license.code==value:
@@ -467,16 +477,16 @@ class Widgets:
 
     def pub_status_code(self, value, lang, view=0):
         if view==1:
-            pubstatus = lampadas.pub_statuses[value]
+            pubstatus = pub_statuses[value]
             if pubstatus:
                 return pubstatus.name[lang]
             return ''
             
         combo = WOStringIO("<select name='pub_status_code'>\n")
         combo.write('<option></option>')
-        keys = lampadas.pub_statuses.sort_by('sort_order')
+        keys = pub_statuses.sort_by('sort_order')
         for key in keys:
-            pubstatus = lampadas.pub_statuses[key]
+            pubstatus = pub_statuses[key]
             assert not pubstatus==None
             combo.write("<option ")
             if pubstatus.code==value:
@@ -489,16 +499,16 @@ class Widgets:
         
     def review_status_code(self, value, lang, view=0):
         if view==1:
-            status = lampadas.review_statuses[value]
+            status = review_statuses[value]
             if status:
                 return status.name[lang]
             return ''
 
         combo = WOStringIO("<select name='review_status_code'>\n")
         combo.write('<option></option>')
-        keys = lampadas.review_statuses.sort_by('sort_order')
+        keys = review_statuses.sort_by('sort_order')
         for key in keys:
-            review_status = lampadas.review_statuses[key]
+            review_status = review_statuses[key]
             assert not review_status==None
             combo.write("<option ")
             if review_status.code==value:
@@ -511,16 +521,16 @@ class Widgets:
 
     def tech_review_status_code(self, value, lang, view=0):
         if view==1:
-            status = lampadas.review_statuses[value]
+            status = review_statuses[value]
             if status:
                 return status.name[lang]
             return ''
 
         combo = WOStringIO("<select name='tech_review_status_code'>\n")
         combo.write('<option></option>')
-        keys = lampadas.review_statuses.sort_by('sort_order')
+        keys = review_statuses.sort_by('sort_order')
         for key in keys:
-            review_status = lampadas.review_statuses[key]
+            review_status = review_statuses[key]
             assert not review_status==None
             combo.write("<option ")
             if review_status.code==value:
@@ -534,9 +544,9 @@ class Widgets:
     def topic_code(self, value, lang):
         combo = WOStringIO('<select name="topic_code">\n')
         combo.write('<option></option>')
-        topic_codes = lampadas.topics.sort_by('sort_order')
+        topic_codes = topics.sort_by('sort_order')
         for topic_code in topic_codes:
-            topic = lampadas.topics[topic_code]
+            topic = topics[topic_code]
             combo.write("<option ")
             if topic.code==value:
                 combo.write("selected ")
