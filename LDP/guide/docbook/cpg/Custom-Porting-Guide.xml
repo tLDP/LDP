@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.0/docbookx.dtd"[
+]>
+<book><bookinfo><title>Custom Linux: A Porting Guide</title>
+<subtitle>Porting LinuxPPC to a Custom SBC</subtitle>
+<author><firstname>Shie</firstname><surname>Erlich</surname>
+<affiliation><address><email>shie@myrealbox.com</email></address></affiliation></author>
+<revhistory><revision><revnumber>0.1</revnumber>
+<date>2002-05-13</date></revision></revhistory>
+</bookinfo>
+
+<dedication><para>I would like to thanks Rafi Yanai, my partner to the porting process, and
+Avi Rubenbach, for invaluable advices and help. Without him, this wouldn't be possible.</para></dedication>
+<chapter><title>Introduction</title>
+<section><title>Who needs to read this ?</title>
+<para>This guide describes a work in progress, to port Linux to a custom PowerPC-based board.
+This means making the operating system work on unfamiliar hardware. Anyone, who is on
+the same track might benefit from reading this paper, as it highlights the pitfalls
+and problematic points along the way.</para></section>
+<section><title>What do I need to know (why so much) ?</title>
+<para>Before attempting to port Linux, know (at least) the following:
+(whenever possible, a link to a proper information source is attached)</para>
+<itemizedlist>
+<listitem><para>Hardware: know what hardware you've got, how it works (if it works),
+   and how is it initialized. Get all the hardware manuals you can - you'll probably need them.
+   Also, never assume the hardware works the way it supposed to ! Hardware people do the
+   darnest things :-(</para></listitem>
+<listitem><para>Basic understanding of drivers and how they work in Linux. Programming
+   knowledge of simple drivers is an advantage - but not a must.
+   <ulink url="http://www.linuxdoc.org/HOWTO/Module-HOWTO/index.html"></ulink></para></listitem>
+<listitem><para>How to work with Vision-ICE, how configure it and use it to load a binary
+   kernel into the target RAM. Also, at least for the beginning, you'll need to know how to
+   use ICE to debug in assembly.</para></listitem>
+<listitem><para>How to compile and configure a Linux kernel.
+   <ulink url="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html"></ulink></para></listitem>
+<listitem><para>The Linux boot process.
+   <ulink url="http://www.linuxdoc.org/HOWTO/BootPrompt-HOWTO.html"></ulink></para></listitem>
+<listitem><para>Working knowledge of C programming is a must. Some assembly is sure to
+   help. Also, it is best to get to know makefiles. They tend to raise their ugly head once
+   in a while.</para></listitem>
+<listitem><para>The Internet is your friend. All the information you need is probably on
+   the net. You just have to know how to find it. Goggle is a good way to start, mailing
+   lists and news groups usually keep the real gold.</para></listitem>
+<listitem><para>How to install Linux, configure it, administrate it and basically take
+   care of everything it needs. This guide does not cover anything regarding system
+   administration, setting up a server etc.</para></listitem>
+</itemizedlist>
+</section>
+<section><title>The tools</title>
+<para>This section describes the tools we used during the process. Most are trivial to
+install and use. When neccesary, consult the appropriate url or manual.</para>
+<itemizedlist>
+<listitem><para><emphasis>HardHat Linux</emphasis>: First and formost, HHLinux (today known
+   as MontaVista Linux)  is the distribution we started with. It contains LSPs (same as BSPs)
+   for PowerPC in a number of board configurations. For porting to our board, we took the LSP which
+   is closest (in hardware) to our board, Artysyn PMPPC, and started from there.</para></listitem>
+<listitem><para><emphasis>LXR</emphasis>: This is THE killer tool, which allowed us to port
+   Linux in a very short time. LXR is a cross referencer, which means it reads a piece of code
+   (the Linux kernel, for example), and then allows browsing the code, searching through it and
+   much more. I cannot emphasize enough how important this tool really is. To see how the end
+   result looks like, look at <ulink url="http://lxr.linux.no/source"></ulink>. LXR itself
+   can be downloaded at <ulink url="http://lxr.sf.net"></ulink></para></listitem>
+<listitem><para><emphasis>VisionICE</emphasis>: A hardware debugger, which has the ability
+   to stop, run and add breakpoint straight in the CPU. It is very usuful when no operating
+   system is running, and allows to step in the kernel during boot process. It is also used to
+   take a binary image of a kernel, load it into the target's RAM memory and run it - useful
+   when you've got no boot loader.</para></listitem>
+<listitem><para><emphasis>CVS</emphasis>: A version control system, allows you to keep
+   multiple versions of the code. Other than backing up the code, it allows diffing between
+   different version, and reverting to older version, when needed.</para></listitem>
+<listitem><para>A terminal program, like <emphasis>HyperTerminal</emphasis> or <emphasis>ProCOMM</emphasis>
+   for Windows(R), or <emphasis>minicom</emphasis> for Linux.</para></listitem>
+</itemizedlist>
+</section>
+<section><title>The hardware</title>
+<para>The board is based on PPC750 (PowerPC) processor. It is 6U VME64 standard. The board is designed to
+host two PCI Mezzanine cards (CCPMC) - Mezzanine cards that comply with Std CCPMC1386 can be attached.</para>
+<itemizedlist>
+<listitem><para>COP connector.</para></listitem>
+<listitem><para>1 MB of L2 cache.</para></listitem>
+<listitem><para>CPC700 system controller.</para></listitem>
+<listitem><para>128 MB SDRAM with ECC.</para></listitem>
+<listitem><para>Flash memory, divided to boot flash and user flash.</para></listitem>
+<listitem><para>NVRAM memory.</para></listitem>
+<listitem><para>I/O discretes.</para></listitem>
+<listitem><para>RS232 channels.</para></listitem>
+<listitem><para>General purpose registers.</para></listitem>
+<listitem><para>PCI 2.1 local bus.</para></listitem>
+<listitem><para>10/100 BaseT ethernet channel.</para></listitem>
+<listitem><para>VME64 system bus.</para></listitem>
+</itemizedlist>
+</section>
+</chapter>
+
+<chapter><title>Bootcamp: How To Begin ?</title>
+<section><title>Creating a development environment</title>
+<para>The minimum requirments are obviously a development station and a target. However,
+the recommended way of working is having a third host which acts as a server. The server
+runs several services such as ftp, telnet, NFS, tftp (if needed) and CVS. The main role of
+the server is running CVS and keeping version control. However, once booting the target
+from network is available, the server will also hold the target images, and filesystem,
+which makes development much easier.</para>
+<para>Regardless, the first step is to install a tool-chain (compiler, linker etc.) for your 
+target. The HardHat Linux cdrom includes all the needed files, and the installation sequence
+is documented in the HardHat Linux documentation. During the installation, you must select 
+your LSP (basic software for the selected board), and HardHat will install a set of tools 
+and a kernel source tree matching your LSP.</para>
+<para>We had a board that had vxWorks running on it, so we setup the target to boot 
+using the standard vxWorks loader. Once the loader initiated, we used visionICE to take-over 
+the target (so that vxWorks won't load an image file) and load a Linux image into the target. 
+What you need to do at this point is get an ICE, connect it to the network and to the target -
+through a JTAG connection - and install the ICE software on your host.</para>
+<para>What should have been done so far:</para>
+<itemizedlist>
+<listitem><para>A Linux host installed, and the HardHat tool-chain.</para></listitem>
+<listitem><para>A working target (hardware should be functional)</para></listitem>
+<listitem><para>ICE is connected to the target and the network and its software usable.</para></listitem>
+<listitem><para>Optionally, a server running CVS, telnetd, NFS and FTP.</para></listitem>
+</itemizedlist>
+</section>
+<section><title>Compiling the first kernel</title>
+<para>If you've installed the Linux kernel that comes with HardHat, then cross-compiling
+should already be enabled in the kernel <filename>Makefile</filename>. If, however, your
+kernel didn't come from the HardHat CD, you should enable cross-compiling in the
+<filename>Makefile</filename> by defining a CROSS_COMPILE entry in the following manner:
+(a code segment from the main Makefile)</para>
+<programlisting>
+CROSS_COMPILE 	= /opt/hardhat/devkit/ppc/7xx/bin/ppc_7xx-
+AS		= $(CROSS_COMPILE)as
+LD		= $(CROSS_COMPILE)ld
+CC		= $(CROSS_COMPILE)gcc
+</programlisting>
+<para>The Linux kernel is modular, and allows you to configure it and choose which "blocks"
+should be compiled with the kernel. In order to do this, first <command>cd /usr/src/linux</command>
+(assuming your kernel source code is installed at /usr/src/linux). Once there, type
+<command>make xconfig</command>.After saving your options, you should <command>make vmlinux</command>
+to create a kernel image suitably for using with VisionICE.</para>
+<para>We will not go into more details here, as it's outside the scope of this document.
+For more information, try <ulink url="http://www.linux.org/docs/ldp/howto/Kernel-HOWTO.html"></ulink></para>
+</section>
+<section><title>Booting the machine</title>
+<para>First, configure the terminal program, in our case <application>minicom</application>,
+the following way: 9600 bps, 8 bits, no parity, 1 stop bit and no flow control of any kind.
+The serial port in Linux should be <emphasis>/dev/ttyS0</emphasis> for <emphasis>COM1</emphasis>,
+<emphasis>/dev/ttyS1</emphasis> for <emphasis>COM2</emphasis> etc.</para>
+<para>Start the target. You should see the vxWorks bootloader on your terminal's screen, and
+should be able to stop the boot sequence (by pressing space).</para>
+<note><para>We <emphasis>cannot use vxWorks' bootloader to load a Linux kernel</emphasis> since
+it looks in the ELF header and loads the image to the address written there. However, the Linux
+kernel (which uses virtual memory) is linked to a high-memory address, and vxWorks can't
+handle that.</para></note>
+<para>Once the target is stopped, you should run the <application>VisionICE</application> software
+and perform the following steps:
+<itemizedlist>
+<listitem><para>Initialize the target by pressing <command>Target|Initialize</command></para></listitem>
+<listitem><para>Press <command>File|Load Executable</command>. A dialog box will open,
+   asking you to choose a file. Please choose your kernel image (vmlinux). Before pressing
+   <command>Load</command>, don't forget to enter a value in the <emphasis>+/- Bias</emphasis> field.
+   <tip><para>The bias field makes it possible to tell ICE to load a certain image in a different
+   address than what's stated in the ELF binary. We wanted to load the kernel into address
+   0x300000, and since the binary was linked to 0xC0000000, we entered
+   <emphasis>-0xBFD00000</emphasis>.</para></tip></para></listitem>
+<listitem><para>Once the image is loaded succesfully, you can press <command>Run</command>
+   or <command>Step</command> to start executing your kernel.</para></listitem>
+</itemizedlist>
+After pressing the Run button, nothing happened. At that moment (and for some time after), it
+seemed that nothing was happening and the kernel was stuck. We used ICE to step through the
+initialization code of the kernel and rule out some potential problems (like virtual memory
+errors), only to finally discover that the problem was simple: the kernel was indeed booting
+but since the console (tty) driver had problems, we couldn't see anything !
+<caution><para>VisionICE is not the correct tool to use when debugging Linux. ICE doesn't know
+about virtual memory and protected mode (at least the version we had), and since the Linux
+kernel turns on virtual memory very early, ICE is only useful for debugging the first assembler
+statements. After VM is turned on, ICE starts crashing and giving wierd results. </para></caution></para>
+</section>
+</chapter>
+
+<chapter><title>Booting In The Dark</title>
+<section>
+<title>Debugging with print_str()</title>
+<para>As said in the previous chapter, the machine starts to boot, but nothing happens. At least, nothing
+that we can see. The screen is blank and no kernel messages appear. At this point, you have to ask yourself,
+is it really booting ?</para>
+<para>Since the console wouldn't start, and ICE died real fast, we had no choice. We had to debug somehow,
+and the oldest way is good here - print stuff to the screen. Obviously, we couldn't use <function>printk()</function>, 
+so we wrote a short function which pushes characters straight into the serial port. We used the boot process "map"
+shown in the previous section, and inserted some prints along the way. This helped us to know what stage we
+are completing and where we're dying. The following piece of code prints a single character to the serial
+port, by polling on it and waiting for it to be free.
+<programlisting>
+                          /* tx holding reg empty or tx    */
+#define LSR_THREMPTY 0x20     /* fifo is empty (in fifo mode ) */
+#define THR_REG      0x00     /* Transmit holding reg */
+#define LSR_REG      0x05     /* Line status reg */
+#define COM1_ADDRESS 0xFF600300
+
+void print_char (char ch) {
+   volatile  unsigned char *status;
+   /*  read status reg */
+   status = ((volatile unsigned char *)(COM1_ADDRESS + LSR_REG));
+   /* wait until txempty */
+   while ( (*status & LSR_THREMPTY ) == 0);
+   *((volatile unsigned char *)(COM1_ADDRESS + THR_REG)) = ch;
+}
+</programlisting>
+
+<note><para>There's a better code for printing directly to the serial port, however, it's a bit
+more complicated. You can find it in arch/ppc/boot/common/misc-common.c, using <function>puts()</function> or 
+<function>putc()</function>.</para></note></para>
+</section>
+
+<section><title>Modifying code using compiler flags</title>
+<para>Although not a porting issue, the way you modify your code matters. It's easier if you do it right the
+first time. The Linux kernel uses standard configuration flags CONFIG_XXXX (like CONFIG_PPC, CONFIG_ISA etc),
+which are used to mark a certain machine, architecture or device. We defined ourselves a new flag (let's call
+it CONFIG_TESTMACH), and surrounded our new/modified code with these flag:
+<programlisting>
+....original code....
+#ifdef CONFIG_TESTMACH
+....modified code....
+#else
+....original code....
+#endif /* CONFIG_TESTMACH */
+</programlisting>
+To "activate" our code, we added the new flag to the kernel configuration file - <filename>.config</filename> -
+by adding <command>CONFIG_TESTMACH=y</command> to it. At the first stages, this solution allows you a quick
+way to find the code you changed, but later, the flag you chose will allow you to add your code into the
+kernel tree and into the configuration program (<command>make xconfig</command>).</para>
+</section>
+
+<section><title>Getting the console to work</title>
+<section><title>Forcing the kernel to boot our-way</title>
+<para>Once we discovered the kernel is indeed booting, but the console isn't printing, it was time to begin.
+First, we did the obvious and forced the kernel to boot using a specified configuration for the serial port,
+in our case 9600n1, and not allow any command line option, boot time considerations etc.</para>
+<para>First place to go is <filename>drivers/char/tty_io.c</filename>, to <function>console_init()</function>
+This function determines the console configuration at startup. Here's a small part of it:
+<programlisting>
+memset(, 0, sizeof(struct termios));
+memcpy(tty_std_termios.c_cc, INIT_C_CC, NCCS);
+tty_std_termios.c_iflag = ICRNL | IGNPAR;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = CLOCAL | B9600 | CS8 | CREAD;
+tty_std_termios.c_cflag &= ~(CRTSCTS);
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+tty_std_termios.c_iflag = ICRNL | IXON;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = B38400 | CS8 | CREAD | HUPCL;
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+</programlisting>
+The first (naive) thing we tried, is to configure the console the way we wanted.
+<emphasis>Ofcourse, this didn't help us much ;-)</emphasis></para>
+<para>Disappointed, but not discouraged, we remembered that we don't have a bootloader yet, and that we don't
+really know if any option is passed on to the kernel. "Maybe the kernel gets some garbage for command line?"
+we (again, naively) thought. So we tried to stop the kernel from parsing command-line options, and manually
+inserted our command line. <emphasis>Ofcourse, this didn't help us much ;-)</emphasis></para>
+</section>
+
+<section><title>Non-standard hardware - just say no!</title>
+<para>At that point, we didn't have a console, but we had time. So we dived a bit deeper into the console
+issues. Looking at <filename>drivers/char/serial.c</filename>, 
+we came across <function>serial_console_setup()</function>. This function, apart from parsing command-line
+options, also configures the serial port, by writing directly to it. At that point, our hardware people 
+decided it was a good time to let us know that our serial port isn't standard. The lines that are used for
+flow control aren't connected. Nice. We decided to remark-out the following line, which sets the RTS and DTR
+lines high, because we just don't have them.
+<programlisting>serial_out(info, UART_MCR, UART_MCR_DTR | UART_MCR_RTS);</programlisting>
+<emphasis>Ofcourse, this didn't help us much :-(</emphasis>
+The lesson learned here was <emphasis>check, check, check your hardware!!!</emphasis>, custom boards might
+not be standard, and the porting will go a lot quicker, if you'll know about it.</para>
+</section>
+
+<section><title>Let there be light: calculating baud rate</title>
+<para>Finally, we decided to check the obvious, baudrate. Did Linux mean what we thought it means when it said
+9600 ? Possibly not, since we didn't know how it computed that value. We've noticed that the file(s)
+<filename>include/asm-ppc/pmppc_serial.h</filename>  (replace pmppc with your board name) included a definition
+of <emphasis>BAUDBASE</emphasis>, which is later used for everything regarding serial ports. It was computed
+using the board's local bus frequency, bus clock to system clock ratio etc. This seemed wrong, so we checked 
+out what was the base baud in a vxWorks system we had running on the board, and so, we changed it to:
+<programlisting>
+/*
+ * system clock = 33Mhz, serial clock = system clock / 4
+ * the following must hold: (divisor * BaudRate) == (System clock / 64)
+ */
+#define BASE_BAUD (33000000 / 4 / 16)
+</programlisting>
+A quick compilation, and a reboot later we had a booting kernel visible through our serial port. success!</para>
+</section>
+</section>
+</chapter>
+
+<chapter>
+<title>Linux Still Isn't Booting</title>
+
+<section>
+<title>Memory probing, RTC and decrementors</title>
+<para> Now that we've had console working, we could see the real problems. The system isn't booting, yet. Since we were
+working with C code, we traced the code, and found that a function called <function>sdram_size()</function> wasn't
+completing correctly. It seems that the function is probing a register for the size of the RAM, a register our board doesn't
+have. Obviously, this has got to go... We made the function return a given value of 128MB, it's an ugly hack, but our
+board doesn't have a way of knowing the amount of RAM - none that we know of.</para>
+<para>Furthermore, we had the same problems with a bunch of functions called todc_XXXX, mainly
+<function>todc_get_rtc_time()</function>, <function>todc_set_rtc_time()</function>, and <function>time_init()</function>
+since we don't have a RTC (real-time clock) chip on our board, and those functions were using it. For the time being, we
+made the todc_XXX function do nothing (actually, set and get a constant date and time), since our board doesn't have a
+bios battery, and so cannot keep time over power-off.</para>
+<para>Once all this was done, we sumbled upon <function>todc_calibrate_descr()</function>, which again, uses the RTC chip.
+We had to replace that one, with out own:
+<programlisting>
+void calibrate_decr() {
+	int freq, divisor;
+	freq = bus_freq();
+	divisor = 4;
+	tb_ticks_per_jiffy = freq / HZ / divisor;
+	tb_to_us = mulhwu_scale_factor(freq / divisor, 1000000);
+}
+</programlisting></para>
+</section>
+
+<section>
+<title>Big-little endian (we should have known)</title>
+<section> <!-- Begin of Head 3 -->
+<title>Probing the CPC700</title>
+<para>Finally, we've reached the PCI-probing part of the boot process, only to discover that it doens't work. We tried
+communicating with the CPC700 using <function>cpc700_read_local_pci_cfgb()</function>, which was supplied along with the
+PMPPC's lsp, and tries to read CPC's config register. We should have gotten 0x1014 (which is the vendor ID), but we didn't.
+We realized that we were talking little-endian and the CPC was listening in big-endian. We've made a small patch to the
+functions, so that we spoke big-endian to the CPC700. Granted, we could read the vendorID correctly, but the rest of it
+still didn't work. Obviously, we didn't want to alter the code so that everything would be done big-endian style.</para>
+</section> <!-- end of Head 3 -->
+
+<section> <!-- Begin of Head 3 -->
+<title>Making CPC700 speak little-endian</title>
+<para>Luckily, we discovered that the CPC700 can be initialized to do automatic byte-swapping, which does little-to-big endian
+convertion on the fly. As it seems, our board was initialized to do just that. We added a small code segment in
+<function>setup_arch()</function>, which (lazily) checks if byte-swapping is enabled, and if so, disables it:
+<programlisting>
+while (cnt<2) {
+	cpc700_read_local_pci_cfgb(0, );
+	cpc700_read_local_pci_cfgb(1, );
+	if (l == 0 && h == 0) {
+		if (cnt == 0) {
+			printk("CPC700 byte swaping enabled - trying to disable ... ");
+			cpc700_write_pifcfg_be(0x18, 0); /* disable byte-swapping */
+		} else {
+			printk("FAILED !!\n");
+			break;
+		}
+	} else {cd
+		printk("byte swapping disabled.\n");
+		break;
+	}
+	++cnt;
+}
+</programlisting>
+A short compilation later, PCI probing was working ! We got some beer and partied ;-)</para>
+</section> <!-- End of Head 3 -->
+</section>
+
+<section>
+<title>Ethernet: our first PCI device</title>
+<para>Our board uses an Intel ethernet chip, called i82559er, which has a module called <emphasis>eepro100</emphasis>.
+After compiling the module and booting, we discovered that the module isn't working, although an ethernet device was found.
+We guessed that it's an irq problem, and that the devices doesn't get the IRQ it needs. We modified a function that was
+called <function>pmppc_map_irq()</function> to map our ethernet devices:
+<programlisting>
+XXXX_map_irq(struct pci_dev *dev, unsigned char idsel, unsigned char pin) {
+	static char pci_irq_table[][4] =
+	/*
+	 *      PCI IDSEL/INTPIN->INTLINE
+	 *      A       B       C       D
+	 */
+	{
+		{22,    0,      0,      0},/* IDSEL 3 - Ethernet */
+		{0,     0,      0,      0},/* IDSEL 4 - unused   */
+		{0,     0,      0,      0},/* IDSEL 5 - unused   */
+		{0,     0,      0,      0},/* IDSEL 6 - ????     */
+		{0,     0,      0,      0},/* IDSEL 7 - unused   */
+		{0,     0,      0,      0},/* IDSEL 8 - unused   */
+		{0,     0,      0,      0},/* IDSEL 9 - unused   */
+	};
+
+	const long min_idsel = 3, max_idsel = 9, irqs_per_slot = 4;
+	return PCI_IRQ_TABLE_LOOKUP;
+}
+</programlisting>
+The function maps irqs according to IDselects, which basically means the order on the PCI bus by which the devices are set.
+This structure is a bit tricky: <emphasis>min_idsel</emphasis> denotes the topleft corner of the array, and
+<emphasis>max_idsel</emphasis> is the bottomleft corner. <emphasis>irqs_per_slot</emphasis> is the number of irqs per line.
+The structure can be described as follows:
+<programlisting>
+each cell contains (IDSEL, SLOT#, IRQ)
+		+----------------------------------------+
+		| (3,0,22) | (3,1,0) | (3,2,0) | (3,3,0) |
+		+----------------------------------------+
+		| (4,0,0)  | (4,1,0) | (4,2,0) | (4,3,0) |
+		+----------------------------------------+
+							..........
+							..........
+		+----------------------------------------+
+		| (9,0,0)  | (9,1,0) | (9,2,0) | (9,3,0) |
+		+----------------------------------------+
+</programlisting>
+As you can see, our i8559er needs IRQ 22, and is seated in IDselect 3. Ofcourse, we didn't know that at the start, so we
+wrote a small piece of code that read all the vendor IDs in all the IDselects.
+Once done, we compiled and still, the ethernet device didn't work.</para>
+<para>Well, the next problem was that the module couldn't decide on a MAC address for the device. The MAC address should be
+written on an EEPROM chip (connected to the device), but we discovered that the hardware guys decided that i82559 doesn't
+need the EEPROM. So they removed it. (did i tell you about non-standard hardware ?) After hardcoding a MAC address inside
+<filename>eepro100.c</filename>, the ethernet device finally worked !
+The final solution was to make the module read the MAC address from a NVRAM memory, and if no other choice is available,
+fall back to a default MAC address.
+<note><para>The next step was to mount a NFS root filesystem. For details see the documentation in Documentation/nfsroot.txt</para></note></para>
+</section>
+
+<section><title>Some Misc. Issues</title>
+<para>We had new problems, some would say good problems. We don't have a bootloader, yet. We do need, however, to pass a command line to the kernel at boot time. For now, we hard-coded the command line into the kernel inside the already beaten <function>parse_options()</function>. After that was finished, we made <function>console_init()</function> and
+<function>serial_console_setup()</function> work the way they should. They no longer ignore the command line, but still
+RTS and DTR stay low.</para>
+
+<para>Another important issue is memory mapping. The file <filename>arch/ppc/mm/init.c</filename> contains a function called <function>MMU_init()</function>. This function is actually a big <command>switch</command> statment, divided by the machine type. Each machine maps its memory using the <function>setbat()</function> and <function>ioremap()</function> functions. The BAT mechanism is a way of translating virtual addresses into physical ones. Thus, <function>setbat()</function> is used by specifying a virtual address, a physical address and a page size. Notice that not every size can be used here, as you should use one of the finite set of sizes, ranging from 128KB to 256MB. Anyway, we mapped our IO memory so that virtual actually equals physical.</para>
+<para>As mentioned, there is another way of mapping memory - <function>ioremap()</function>. This one is used to map physical addresses into virtual ones, making them available to the kernel. The function <emphasis>does not allocate any memory</emphasis>, simply return a virtual address by which one can access the memory region. The following is a snippet from <function>MMU_init()</function>:
+<programlisting>
+case _MACH_mymachine:
+	setbat(0, LOW_IO_VIRT_BASE, LOW_IO_PHYS_BASE, LOW_IO_SIZE, IO_PAGE);
+	ioremap(UNIVERSE_BASE,UNIVERSE_SIZE);      /* Universe VME */
+	ioremap(EEPRO100_BASE,EEPRO100_SIZE);      /* Ethernet EEPRO100 */
+	break;
+</programlisting>
+As you can see,  we don't take the return value of <function>ioremap()</function>. We don't really need it since at this stage, the kernel maps the addresses so that virtual address == physical address.</para>
+</section>
+</chapter>
+
+
+<chapter><title>Linux Is Booting ... What Now ?</title>
+<section><title>The 64 bit barrier</title>
+<para>As it is, the CPC700 has a &quot;feature&quot; (or so the hardware people say) which makes some memory access use 64 bit wide. This is  a problem since some test-and-set registers on our board might get set unintentionally because we were trying to read something 16 bit lower. In order to solve this situation, the memory controller was set to 64 bit wide intervals. What's really nice is that if you try to access those area in some other manner (8 or 16 bit access), the CPC700 simply throws them away. Nice. Naturally, we had to be able to read/write those areas, since important &quot;discretes&quot; (controlled by an Altera device) were mapped there.</para>
+<para>In order to access those areas, we need a function which does a 64 bit write. (As much as I know) doing a 64 bit write on a PowerPC is possible in two ways: using cache lines and using a floating point register. The floating point register is a 64 bit sized register, so when we write it, the whole 64 bit get written. The problem is that you can't really do floating point in the kernel. Since the kernel doesn't save the floating point registers during context switch, it doesn't allow FP, and will throw an exception if done in the kernel.</para>
+<para>After messing with cache lines, we decided to go the FP way, and added the following function:
+<programlisting>
+void out64(__u32 addr, long long *pVal) {
+	__u32 flags, tmp_msr;
+
+	save_flags(flags);
+	cli();
+	tmp_msr = __get_MSR();
+	tmp_msr |= MSR_FP;
+	tmp_msr &= ~(MSR_FE0 | MSR_FE1);
+	__put_MSR(tmp_msr);
+
+	sysOut64(addr, pVal);
+	__put_MSR(flags & ~(MSR_EE));
+	restore_flags(flags);
+}
+</programlisting>
+The function adds floating point to the PowerPC MSR register, and makes sure that no exceptions will be generated as a result of doing FP. Once done, it uses and assembly code, described below in <function>sysOut64()</function> to do the actual floating-point operation. Note that the function turns off interrupts, but this is acceptable here, since we use the function on rare occasion.
+<programlisting>
+_GLOBAL(sysOut64)
+stwu    r1, -DEPTH(r1)
+mflr    r0
+stw     r31, FP_LOC(r1)
+stw     r0,  LR_LOC(r1)
+mr              r31, r1
+stfd    fr0, FPR_SAVE(r31)      /* save floating point reg contents */
+
+lfd     fr0,0(r4)
+stfd  fr0,0(r3)
+eieio
+
+lfd     fr0, FPR_SAVE(r31)      /* restore floating point value */
+lwz     r4, 0(r1)               /* now restore the stack frame  */
+lwz     r0, 4(r4)
+mtlr    r0
+lwz     r31, -4(r4)
+mr      r1, r4
+blr
+</programlisting></para>
+</section>
+
+
+<section><title>Booting from flash</title>
+<para>While Linux was booting using an NFS filesystem, this is not enough. For actual field product, we need Linux to boot from an independent device, without the need for network at all. In order to achieve that, we decided to create a special kind of image, called <emphasis>initrd</emphasis>, which is basically a Linux kernel with a compressed file. The compressed file includes a Linux filesystem. This filesystem is unpacked to a ramdisk on boot, and mounted as the root filesystem.</para>
+<para>During the boot process, the bootloader relocates the kernel image to address zero - which was fine with us, and the initrd part to a higher address. As it happens, the area to which initrd was relocated wasn't mapped in our kernel's memory, and all we got was a kernel OOPS (access to bad area). After modifying the bootloader to relocate initrd to a different address, all was fine and Linux booted succesfully.</para>
+<tip><para>If your board has some NVRAM memory, it would be a good idea to use it for bootloader purposes. After writing a module for our NVRAM memory (out of scope for this paper), we modified the bootloader, such that the kernel command-line, and MAC address are saved in NVRAM. When the bootloader starts, it checks NVRAM and if it is initialized (by a certain magic number), the bootloader uses the command line written there. Otherwise, the bootloader reverts to a default command line, allowing the user to edit it. Makes life easier.</para></tip>
+</section>
+</chapter>
+
+
+<article>
+<para><trademark class="registered">Linux</trademark> is a registered trademark of Linus Torvalds.</para>
+<para><trademark>MontaVista</trademark> is a trademark of MontaVista Software Inc.</para>
+<para><trademark class="registered">PowerPC</trademark> is a registered trademark of IBM Corporation.</para>
+<para><trademark class="registered">Windows</trademark> is a registered trademark of Microsoft Corporation.</para>
+<para><trademark>vxWorks</trademark> and <trademark>Vision ICE</trademark> are trademarks of Wind River Systems Inc.</para>
+<para><trademark>ProCOMM</trademark> is a trademark of Symantec Corporation.</para></article>
+</book>
+
