@@ -2,7 +2,7 @@
 <article>
 <title>The Linux MIDI-HOWTO 
 <author>By Phil Kerr, <tt/phil@plus24.com/ 
-<date>v1.00, January 2002
+<date>v1.10, April 2002
 <abstract>
 This document describes the hardware, software and procedures needed to
 play and sequence using MIDI under Linux.
@@ -18,10 +18,13 @@ It covers:
 <item>Sequencing
 <item>Controlling external MIDI equipment
 <item>MIDI controlled software based sound synthesis
+<item>Example MIDI code
 </itemize>
 
+[Download plain html version here: <url url="midi-howto.html">]
+
 <sect1>Scope of document<p>
-This document's primary focus is the use of a MIDI interface to play external MIDI equipment.  
+This document's primary focus is the use of a MIDI interface to play external MIDI equipment under Linux.  
 
 <sect>Copyright of this document.<p>
 
@@ -40,6 +43,8 @@ The homepage for the most recent version of this HOWTO is:  <url url="http://www
 <sect>Acknowledgments.<p>
 
 This HOWTO is an expansion of the MIDI-SB mini-HOWTO written by Hideki Saito.  Many thanks for his contribution to the Linux community. 
+
+Many of the code samples contained in this HOWTO originated from the Linux Audio Developers (LAD) mailing list.  Many thanks to them for allowing their inclusion.
 
 <sect>Disclaimer.<p>
 
@@ -62,33 +67,31 @@ You are strongly recommended to take a backup of your system before major instal
 
 MIDI is a set of hardware and software protocols used by electronic musical instruments to communicate.   It was first released in 1982 and has become the de-facto communication standard between electronic musical instruments.  The protocol specifies the physical hardware parameters for the cable and interfaces, and provides a well defined set of communication protocols to exchange musical and timing data.
 
-Prior to MIDI there were several analogue, and later basic digital, connection protocols.  The earliest, circa. 1974, would transmit note information as a voltage though a wire from one keyboard to another.  Later, 1980 - 1981,  Roland created a basic digital protocol.  The MIDI Manufacturers Association (MMA), working with the equipment manufacturers, defined a standard protocol and physical connection which allowed equipment from all complying manufacturers to connect and communicate with each other.
+Prior to MIDI there were several analog, and later basic digital, connection protocols.  The earliest, circa. 1974, would transmit note information as a voltage though a wire from one keyboard to another.  Later, 1980 - 1981,  Roland created a basic digital protocol, DCB.  The MIDI Manufacturers Association (MMA), working with the equipment manufacturers, defined a standard protocol and physical connection which allowed equipment from all complying manufacturers to connect and communicate with each other.
 
->From 1985 MIDI interfaces started to appear on home computers and soon after sequencing programs appeared.
+From 1985 MIDI interfaces started to appear on home computers and soon after sequencing programs appeared.
 
 
 <sect>Configuring MIDI devices.
 <p>
 
-<sect1>Configuring and debugging<p>
-
 MIDI devices can be integrated into the soundcard or be a separate device.  External MIDI interfaces may be attached to either the serial or USB port.
 <p>
 The first *and most important* thing you should do is check if your card is supported!
 <p>
-<url url="http://www.alsa-project.org/src/soundcards.html">
+<url url="http://www.alsa-project.org/soundcards.php3">
 <p>
 <url url="http://www.4front-tech.com/osshw.html">
 
 Configuring MIDI devices varies with Linux distributions.  At it's most simplest a well supported card may be configured when you install the OS.   
 
-The Linux Kernel includes the OSS drivers, although some distributions use Alsa, and most distributions provide a configuration tool (mostly for soundcards, but if you are using the MIDI port of a sound card it should be configured).  Under RedHat you would use sndconfig, under SuSE yast, and Mandrake, DrakConf. 
+The Linux kernel includes the OSS drivers and in the 2.5 kernel the ALSA drivers.  Most distributions provide a configuration tool (mostly for soundcards), but if you are using the MIDI port of a sound card it should be configured.  Under RedHat you would use sndconfig, under SuSE yast, and Mandrake, DrakConf. 
 
 If none of the above tools will configure your MIDI interface, or you are experiencing problems, the following steps should be taken:
 
-Does lsmod show any MIDI related modules?  Here's a typical output.
+Does lsmod show any MIDI related modules?  Here's a typical output from an OSS based system.
 <code>
-[root@mega /root]# lsmod
+[root@beatbox]# lsmod
 Module                  Size  Used by
 lockd                  32208   1  (autoclean)
 sunrpc                 54640   1  (autoclean) [lockd]
@@ -124,7 +127,7 @@ If you are using USB devices don't forget to check if the USB modules are there.
 To check the config cat the sndstat file:
 
 <code>
-[root@mega /root]# cat /dev/sndstat 
+[root@beatbox]# cat /dev/sndstat 
 OSS/Free:3.8s2++-971130
 Load type: Driver loaded as a module
 Kernel: Linux mega 2.2.17-21mdk #1 Thu Oct 5 13:16:08 CEST 2000 i686
@@ -156,7 +159,7 @@ We see here that the MIDI device is a mad16 and this is listed in the lsmod outp
 If you see nothing related to MIDI check the contents of your /etc/modules.conf file.
 
 <code>
-[root@mega /root]# cat /etc/modules.conf
+[root@beatbox]# cat /etc/modules.conf
 alias net-pf-4 ipx 
 pre-install pcmcia_core /etc/rc.d/init.d/pcmcia start 
 alias usb-interface usb-ohci 
@@ -210,16 +213,110 @@ f008-f00f : ide1
  
 You should see something similar to the above.  If not you'll need to install MIDI drivers.
 
-If you are going to be using ALSA divers, I suggest a good read of Valentijn Sessink's Alsa-sound-mini-HOWTO which can be found at the link below:
+If you are going to be using ALSA 0.5x divers, I suggest a good read of Valentijn Sessink's Alsa-sound-mini-HOWTO which can be found at the link below:
 
 <url url="http://www.linuxdoc.org/HOWTO/mini/Alsa-sound.html">
 
+For ALSA drivers later than 0.9x you should have a good read of the ALSA-HOWTO by Madhu Maddy.
 
-<sect1>Latency.<p>
+<url url="http://www.alsa-project.org/alsa-doc/alsa-howto/">
+
+<sect1>ALSA 0.9 quick install<p>
+Below is a very quick install run-though for installing the ALSA 0.9 drivers and libs which is a required configuration for most MIDI apps.
+
+
+<code>
+[root@beatbox] # tar jxvf alsa-driver....tar.bz2
+[root@beatbox] # cd alsa-driver.....
+[root@beatbox] # ./configure
+
+messages - no errors
+
+[root@beatbox] # make
+
+messages - no errors
+
+[root@beatbox] # make install
+
+messages - no errors
+
+[root@beatbox] # ./snddevices
+
+</code>
+
+Now you will need to edit /etc/modules.conf, or the ALSA file in your modules directory on some distributions.  There may be entries for other, non-MIDI, devices, so be careful when you are editing the file.
+
+A typical system may have old ALSA or OSS configurations in the file, you will need to remove, or better still comment them out.
+
+Below is a typical modules.conf file showing the ALSA config with OSS.
+
+<code>
+alias char-major-116 snd
+alias char-major-14 soundcore
+
+alias snd-card-0 (MIDI/Sound card)
+alias sound-slot-0 snd-card-0
+
+alias sound-service-0-0 snd-mixer-oss
+alias sound-service-0-1 snd-seq-oss
+alias sound-service-0-3 snd-pcm-oss
+alias sound-service-0-12 snd-pcm-oss
+</code>
+
+Change the (MIDI/Sound card) entry to that of your card.  This information can normally be found on the ALSA website.  
+
+With the ALSA drivers installed, now you will need to install the header library files needed by ALSA based programs.  This is what is contained in the alsa-libs package.
+
+Make sure you have a matching pair of alsa-drivers and alsa-libs!
+
+<code>
+[root@beatbox] # tar jxvf alsa-libs....tar.bz2
+[root@beatbox] # cd alsa-libs.....
+[root@beatbox] # ./configure
+
+messages - no errors
+
+[root@beatbox] # make
+
+messages - no errors
+
+[root@beatbox] # make install
+
+</code> 
+
+Your system should now be configured :)
+
+You can check this with a simple C program, if it compiles and can be executed then your system should be ok.
+
+<code>
+// Compile this test program like so: gcc alsatest.c -o alsatest -lasound
+
+#include <stdio.h>
+#include <alsa/asoundlib.h>
+
+int main (int argc, char *argv[])
+{
+  snd_seq_t *seq_handle;
+
+  if (snd_seq_open(&amp;seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
+    fprintf(stderr, "Error opening ALSA sequencer.\n");
+    exit(1);
+  }
+
+printf("The ALSA libraries are installed.\n");
+return 0;
+}
+
+
+</code>
+
+
+
+<sect1>Latency<p>
 
 MIDI is a real-time protocol and latency issues are a serious problem. 
 
-There are now several developers working on improving the latency times and improvements in the Kernel are making Linux a fine platform for MIDI.
+There are now several developers working on improving the latency times and improvements in the kernel are making Linux a fine platform for MIDI.
 
 Although stock Linux distributions may run fine, pro set-ups should apply low-latency patches.  More information can be found here:
 
@@ -289,12 +386,15 @@ Formerly known as KooBase
 
 Anthem is an advanced open source MIDI sequencer. Anthem allows you to record, edit and playback music using a sophisticated and acclaimed object oriented song technology.
 
+<!-- img src="anthem.png"-->
+
 <url url="http://anthem.sourceforge.net/">
 
 <sect2>Jazz++<p>
 
 JAZZ++ is a full featured, audio capable midi sequencer for Linux and Windows.
 
+<!--img src="jazzshot.png"-->
 <url url="http://www.jazzware.com/cgi-bin/Zope.cgi/jazzware/">
 
 <sect2>Linux Ultimate Music Editor<p>
@@ -307,23 +407,25 @@ UltiMusE-LX (the Ultimate Music Editor) is a composing program. No, it doesn't c
 
 Melys is a Midi sequencer application for the Advanced Linux Sound Architecture (ALSA). Melys uses the sequencer support of ALSA, along with the GNOME libraries to produce a powerful and easy to use sequencer. 
 
+<!-- img src="melsys.png"-->
+
 <url url="http://www.parabola.demon.co.uk/melys/">
 
 <sect2>MidiMountain Sequencer<p>
 MidiMountain is a sequencer to edit standard MIDI files. Its easy-to-use interface should help beginners to edit and create MIDI songs (sequences), and it is designed to edit every definition known to standard MIDI files and the MIDI transfer protocol, from easy piano roll editing to changing binary system exclusive messages. 
-
+<!-- img src="thumb_mm_main.jpg"-->
 <url url="http://www.midimountain.com/">
 
 <sect2>MusE<p>
 
 MusE is a Qt 2.1-based MIDI sequencer for Linux with editing and recording capabilities. While the sequencer is playing you can edit events in realtime with the pianoroll editor or the score editor. Recorded MIDI events can be grouped as parts and arranged in the arrange editor. 
-
+<!-- img src="musemain.png"-->
 <url url="http://muse.seh.de/">
 
 <sect2>Rosegarden<p>
 
 Rosegarden is an integrated MIDI sequencer and musical notation editor.
-
+<!--img src="r21-seq-small.gif"-->
 <url url="http://www.all-day-breakfast.com/rosegarden/">
 
 
@@ -410,6 +512,214 @@ KeyKit is a multi-tasking interpreted programming language (inspired by awk) des
 
 <url url="http://nosuch.com/keykit/">
 
+
+<sect>MIDI Development.
+<p>
+
+For those looking to develop MIDI applications, good examples are often needed to get you started.
+
+The following examples were posted to the LAD mailing list in a thread about examples and documentation/tutorials.
+
+Below is a little sample ALSA 0.9 sequencer client from Dr. Matthias Nagorni.  It creates a writeable sequencer client and printf's any Pitchbender-, 7-Bit Controller- and Note-events on stderr.
+
+More examples can be obtained from Matthias's site which is listed in the Links section. 
+
+You compile it like so:
+
+<code>
+[phil@beatbox] $ gcc seqdemo.c -o seqdemo -lasound
+
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;alsa/asoundlib.h&gt;
+
+snd_seq_t *open_seq();
+void midi_action(snd_seq_t *seq_handle);
+
+snd_seq_t *open_seq() {
+
+  snd_seq_t *seq_handle;
+  int portid;
+
+  if (snd_seq_open(&amp;seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
+    fprintf(stderr, "Error opening ALSA sequencer.\n");
+    exit(1);
+  }
+  snd_seq_set_client_name(seq_handle, "ALSA Sequencer Demo");
+  if ((portid = snd_seq_create_simple_port(seq_handle, "ALSA Sequencer Demo",
+            SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
+            SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+    fprintf(stderr, "Error creating sequencer port.\n");
+    exit(1);
+  }
+  return(seq_handle);
+}
+
+void midi_action(snd_seq_t *seq_handle) {
+
+  snd_seq_event_t *ev;
+
+  do {
+    snd_seq_event_input(seq_handle, &amp;ev);
+    switch (ev->type) {
+      case SND_SEQ_EVENT_CONTROLLER: 
+        fprintf(stderr, "Control event on Channel %2d: %5d       \r",
+                ev->data.control.channel, ev->data.control.value);
+        break;
+      case SND_SEQ_EVENT_PITCHBEND:
+        fprintf(stderr, "Pitchbender event on Channel %2d: %5d   \r", 
+                ev->data.control.channel, ev->data.control.value);
+        break;
+      case SND_SEQ_EVENT_NOTEON:
+        fprintf(stderr, "Note On event on Channel %2d: %5d       \r",
+                ev->data.control.channel, ev->data.note.note);
+        break;        
+      case SND_SEQ_EVENT_NOTEOFF: 
+        fprintf(stderr, "Note Off event on Channel %2d: %5d      \r",         
+                ev->data.control.channel, ev->data.note.note);           
+        break;        
+    }
+    snd_seq_free_event(ev);
+  } while (snd_seq_event_input_pending(seq_handle, 0) > 0);
+}
+
+int main(int argc, char *argv[]) {
+
+  snd_seq_t *seq_handle;
+  int npfd;
+  struct pollfd *pfd;
+    
+  seq_handle = open_seq();
+  npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
+  pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
+  snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
+  while (1) {
+    if (poll(pfd, npfd, 100000) > 0) {
+      midi_action(seq_handle);
+    }  
+  }
+}
+
+</code>
+
+
+Below is a ALSA 0.9 MIDI redirector by Nick Dowell.
+
+<code>
+/* ALSA Sequencer MIDI redirector.
+   Redirects the input to outputs determined by the MIDI channel
+   (as requested by Nathaniel Virgo on Linux-Audio-Dev ;-)
+   based on Dr. Matthias Nagorni's ALSA seq example
+   
+   Nick Dowell <nixx@nixx.org.uk>
+   */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;alsa/asoundlib.h&gt;
+
+int
+main()
+{
+  snd_seq_t *seq_handle;
+  snd_seq_event_t *ev;
+  int i;
+  int portid;              /* input port */
+  int oportid[16];         /* output ports */
+  int npfd;
+  struct pollfd *pfd;
+  char txt[20];
+
+  if (snd_seq_open(&amp;seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
+    fprintf(stderr, "Error opening ALSA sequencer.\n");
+    exit(1);
+  }
+
+  snd_seq_set_client_name(seq_handle, "MIDI Redirect");
+  
+  /* open one input port */
+  if ((portid = snd_seq_create_simple_port
+       (seq_handle, "Input",
+        SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE,
+        SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+    fprintf(stderr, "fatal error: could not open input port.\n");
+    exit(1);
+  }
+  /* open 16 output ports for the MIDI channels */
+  for (i=0; i<16; i++){
+    sprintf( txt, "MIDI Channel %d", i );
+    if ((oportid[i] = snd_seq_create_simple_port
+         (seq_handle, txt,
+          SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ,
+          SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+      fprintf(stderr, "fatal error: could not open output port.\n");
+      exit(1);
+    }
+  }
+
+  npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
+  pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
+  snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
+
+  while (1)  /* main loop */
+    if (poll(pfd, npfd, 1000000) > 0){
+      do {
+        snd_seq_event_input(seq_handle, &amp;ev);
+        snd_seq_ev_set_source( ev, oportid[ev->data.control.channel] );
+        snd_seq_ev_set_subs( ev );
+        snd_seq_ev_set_direct( ev );
+        snd_seq_event_output_direct( seq_handle, ev );
+        snd_seq_free_event(ev);
+      } while (snd_seq_event_input_pending(seq_handle, 0) > 0);
+    }
+  return 0;
+}
+
+</code>
+
+Below is an example of writing data to the OSS /dev/midi interface by Craig Stuart Sapp.
+
+More examples can be found at Craig's site listed in the Links section.
+
+<code>
+//
+// Programmer:    Craig Stuart Sapp [craig@ccrma.stanford.edu]
+// Creation Date: Mon Dec 21 18:00:42 PST 1998
+// Last Modified: Mon Dec 21 18:00:42 PST 1998
+// Filename:      ...linuxmidi/output/method1.c
+// Syntax:        C 
+// $Smake:        gcc -O -o devmidiout devmidiout.c && strip devmidiout
+//
+
+#include &lt;linux/soundcard.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+
+int main(void) {
+   char* device =  "/dev/midi" ;
+   unsigned char data[3] = {0x90, 60, 127};
+
+   // step 1: open the OSS device for writing
+   int fd = open(device, O_WRONLY, 0);
+   if (fd < 0) {
+      printf("Error: cannot open %s\n", device);
+      exit(1);
+   }
+
+   // step 2: write the MIDI information to the OSS device
+   write(fd, data, sizeof(data));
+
+   // step 3: (optional) close the OSS device
+   close(fd);
+
+   return 0;
+}
+</code>
+
 <sect>Useful Links.
 <p>
 
@@ -421,21 +731,22 @@ Below is a list of links to sites and resources covering MIDI and Linux.
 
 <url url="http://www.linuxdj.com/audio/quality"> The Linux Audio Quality HOWTO.  A good section on MIDI cards, essential reading for building a Linux studio. 
 
-<url url="http://www.alsa-project.org/"> Alsa Project
+<url url="http://www.alsa-project.org/"> Alsa Project - Audio/MIDI Driver
 
-<url url="http://www.4front-tech.com/"> OSS
+<url url="http://www.4front-tech.com/"> OSS - Audio/MIDI Driver
 
 <url url="http://www.gardena.net/benno/linux/audio/"> Low Latancy patches
 
-<url url="http://ccrma-www.stanford.edu/~craig/articles/linuxmidi/"> Introduction to MIDI programming in Linux.  Craig Stuart Sapp covers writing basic MIDI utilities in C/C++.  A great primer.
+<url url="http://ccrma-www.stanford.edu/~craig/articles/linuxmidi/"> Introduction to MIDI programming in Linux.  Craig Stuart Sapp covers writing basic MIDI utilities in C/C++ for the OSS driver.
+
+<url url="http://www.suse.de/~mana"> Excellent collection of ALSA 0.9 MIDI and PCM example C programs by Dr. Matthias Nagorni.
 
 <sect>Feedback.
 <p>
 
 As ever, a HOWTO is a work in progress.  You are encouraged to give feedback on new applications and other interesting developments with MIDI under Linux.
 
-MIDI cards are, by their wide variety, sometimes difficult to configure as they have various levels of driver support.  Your best source of reference for problems are newsgroups, if you get stuck please try searching the Linux Audio mailing lists.  
+MIDI cards are, by their wide variety, sometimes difficult to configure as they have various levels of driver support and configuration options.  Your best source of reference for problems are ALSA's and OSS's websites, newsgroups, and if you get stuck please try searching the Linux Audio mailing lists.  
 
 
 </article>
-
