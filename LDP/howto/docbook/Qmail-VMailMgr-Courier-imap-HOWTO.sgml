@@ -1,0 +1,1226 @@
+<!DOCTYPE Article PUBLIC "-//Davenport//DTD DocBook V3.0//EN">
+
+<Article>
+
+<ArtHeader>
+<Title>Qmail VMailMgr and Courier-Imap HOWTO</Title>
+<AUTHOR>
+<FirstName>Dan Kuykendall &lt;dan@kuykendall.org&gt;</FirstName>
+</AUTHOR>
+<PubDate>v1.5, 12 March 2002</PubDate>
+
+<Abstract>
+<Para>
+  This document is about building a mail server that will
+  support virtual domain hosting and provide smtp, pop3 and imap services, 
+	using a powerful alternative to sendmail.
+</Para>
+</Abstract>
+</ArtHeader>
+
+<Sect1 id="Introduction">
+<Title>Introduction </Title>
+<Para>
+	Qmail, VMailMgr and Courier-IMAP are a very powerful and easy to use 
+	solution, but they are not what I would consider easy to setup.
+	I hope this document helps with that.
+</Para>
+
+<Sect2 id="WhatisQmail">
+<Title>What is Qmail and why should I use it? </Title>
+<Para>
+Here is the authors (Dan Bernstein) blurb:
+</Para>
+
+<Para>
+Qmail is a secure, reliable, efficient, simple message transfer agent.
+It is meant as a replacement for the entire sendmail-binmail system on
+typical Internet-connected UNIX hosts.
+</Para>
+
+<Para>
+It offers POP3, and IMAP (with the help of Courier-IMAP) so that you can
+use any mail client you prefer.
+</Para>
+
+<Para>
+Secure: Security isn't just a goal, but an absolute requirement. Mail
+delivery is critical for users; it cannot be turned off, so it must be
+completely secure. (This is why I started writing qmail: I was sick of
+the security holes in sendmail and other MTAs.)
+</Para>
+
+<Para>
+Reliable: qmail's straight-paper-path philosophy guarantees that a
+message, once accepted into the system, will never be lost. qmail also
+supports maildir, a new, super-reliable user mailbox format. Maildirs,
+unlike mbox files and mh folders, won't be corrupted if the system
+crashes during delivery. Even better, not only can a user safely read
+his mail over NFS, but any number of NFS clients can deliver mail to
+him at the same time.
+</Para>
+
+<Para>
+Efficient: On a Pentium under BSD/OS, qmail can easily sustain 200000
+local messages per day---that's separate messages injected and
+delivered to mailboxes in a real test! Although remote deliveries are
+inherently limited by the slowness of DNS and SMTP, qmail overlaps 20
+simultaneous deliveries by default, so it zooms quickly through
+mailing lists. (This is why I finished qmail: I had to get a big
+mailing list set up.)
+</Para>
+
+<Para>
+Simple: qmail is vastly smaller than any other Internet MTA. Some
+reasons why: (1) Other MTAs have separate forwarding, aliasing, and
+mailing list mechanisms. qmail has one simple forwarding mechanism
+that lets users handle their own mailing lists. (2) Other MTAs offer a
+spectrum of delivery modes, from fast+unsafe to slow+queued. qmail-
+send is instantly triggered by new items in the queue, so the qmail
+system has just one delivery mode: fast+queued. (3) Other MTAs
+include, in effect, a specialized version of inetd that watches the
+load average.  qmail's design inherently limits the machine load, so
+qmail-smtpd can safely run from your system's inetd.
+</Para>
+
+<Para>
+Replacement for sendmail: qmail supports host and user masquerading,
+full host hiding, virtual domains, null clients, list-owner rewriting,
+relay control, double-bounce recording, arbitrary RFC 822 address
+lists, cross-host mailing list loop detection, per-recipient
+checkpointing, downed host backoffs, independent message retry
+schedules, etc. In short, it's up to speed on modern MTA features.
+qmail also includes a drop-in ``sendmail'' wrapper so that it will be
+used transparently by your current UAs.
+</Para>
+</Sect2>
+
+<Sect2 id="WhatisVMailMgr">
+<Title>What is VMailMgr and why should I use it? </Title>
+<Para>
+VMailMgr is:
+</Para>
+
+<Para>
+A password checking interface between qmail-popup and qmail-pop3d which 
+replaces the usual checkpassword, as well as an authentication module 
+for Courier IMAP, that provide access to the virtual mailboxes by one of 
+three methods: 
+<ItemizedList>
+<ListItem>
+<Para>
+ IP-based virtual server access (invisible to the POP3 user) 
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ username-based access (username-virtualuser) 
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ hostname-based access (virtualuser@virtual.host or virtualuser:virtual.host) 
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+You should use it if:
+</Para>
+<Para>
+You prefer to have the users manage their own domains email accounts, 
+and store their email in their own home dir.
+(This makes setting up disk space quotas much easier)
+</Para>
+</Sect2>
+
+<Sect2 id="WhatisCourier">
+<Title>What is Courier-imap and why should I use it? </Title>
+<Para>
+Courier-IMAP is:
+</Para>
+
+<Para>
+A server that provides IMAP access to Maildir mailboxes. This IMAP server 
+does NOT handle traditional mailbox files (/var/spool/mail, and derivatives), 
+it was written for the specific purpose of providing IMAP access to Maildirs.
+</Para>
+
+<Para>
+You should use it because:
+</Para>
+
+<Para>
+By default Qmail uses the newer more efficient Maildir format for storing email,
+and Courier-imap is the only imap server I am aware of that supports Maildir.
+So in short, if you use Qmail, and want imap support, you have to use it.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Description of the components</Title>
+<Para>
+The email system you hopefully will get after having read this HOWTO is
+composed of several parts, the patched Qmail rpms are key to using this
+document. I recommend using the software versions I tried, they will 
+probably compile without many problems and result in a fairly stable 
+daemon. If you are courageous, you can try to compile all the 
+latest-stuff-with-tons-of-new-features, but  don't blame me if something
+fails ;-). However, you may report other working configurations to be 
+included in future versions of this document. All of the steps were tested
+on a RedHat Linux 7.2 box, so the HOWTO is somewhat specific, but you should
+be able to use it for other linux distributions as well.
+</Para>
+
+<Para>
+You do not necessarily have to install in all components. I tried to
+structure this HOWTO so that you can skip the parts you are not
+interested in.
+</Para>
+
+<Para>
+The document is neither a user manual to Qmail, VMailMgr nor
+Courier-imap. Its prime intention is to save email admins some
+headaches when installing their server and to do my little
+contribution to the linux community.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Working configurations</Title>
+
+<Para>
+Though this document is only able to cover a snapshot in time on a limited number of setups,
+I am pretty confident that it can help you get your email system up and running. 
+Combinations that work for me are:
+<ItemizedList>
+<ListItem>
+<Para>
+ RedHat 7.2, Qmail 1.03+patches-18, VMailMgr 0.96.9, Courier-imap 1.4.3
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ RedHat 6.2, Linux 2.2.14, Qmail 1.03+patches-12, VMailMgr 0.96.6, Courier-imap 0.31
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ Mandrake 7.0, Linux 2.2.13, Qmail 1.03+patches-12, VMailMgr 0.96.6, Courier-imap 0.31
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ Debian Potato, Qmail 1.03, VMailMgr 0.96.9, Courier-imap 1.4.3
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+</Sect2>
+
+<Sect2 id="History">
+<Title>History </Title>
+<Para>
+This document was started on April 18, 2000 by Dan Kuykendall after several installs of Qmail and VMailMgr.
+Then even more setups when Courier-imap support was ready.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>New versions </Title>
+<Para>
+The newest version of this can be found on my homepage
+<ULink URL="http://www.clearrivertech.com/linux/HOWTO"></ULink> as SGML source, as HTML and as TEXT.
+Other versions may be found in different formats at the LDP homepage <ULink URL="http://www.linuxdoc.org/"></ULink>.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Comments </Title>
+<Para>
+Comments on this HOWTO may be directed to the author Dan Kuykendall (<ULink URL="mailto:dan@kuykendall.org">dan@kuykendall.org</ULink>).
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Version History </Title>
+<Para>
+v0.1 (April 18, 2000)
+</Para>
+
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Preview version, wasn't in HOWTO format.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.0 (April 18, 2000)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Minor corrections.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Added details and put into HOWTO format.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.1 (April 19, 2000)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Minor corrections.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Restructured RPM install step.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Added source compile and install steps.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.2 (April 19, 2000)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Minor corrections.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Fixed source compile locations and install steps.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Added source compile and install steps.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.3 (April 19, 2000)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Minor corrections.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Built proper SGML version (using LinuxDoc DTD).
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.4 (April 23, 2000)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Updated the Courier-IMAP setup information for new VMailMgr version.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Switched the license to the GNU FDL.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Other minor additions and corrections.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+
+<Para>
+v1.5 (March 11, 2002)
+</Para>
+<Para>
+<ItemizedList>
+<ListItem>
+<Para>
+Updated the Courier-IMAP setup information for new VMailMgr version.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Updated links to various websites.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Other minor additions and corrections.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+Switched SGML from LinuxDOC to DocBook.
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Copyrights and Trademarks </Title>
+<Para>
+Copyright (c)  Dan Kuykendall.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1
+or any later version published by the Free Software Foundation
+</Para>
+
+<Para>
+A copy of the license is available at
+<ULink URL="http://www.gnu.org/copyleft/fdl.txt" >GNU Free Documentation License</ULink>.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Acknowledgements and Thanks </Title>
+<Para>
+Thanks to everyone that gave comments as I was writing this. This includes
+Bruce Guenter and other members of the vmailmgr-discuss list.
+</Para>
+</Sect2>
+
+</Sect1>
+
+<Sect1>
+<Title>Component installation</Title>
+
+<Sect2>
+<Title>Preparations</Title>
+<Para>
+You have two options
+<ItemizedList>
+<ListItem>
+<Para>
+ Get and compile source rpms. 
+This has the benefit of being able to review the source before compiling,
+and compiling for your specific setup.
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ Or simply get the binary rpms. 
+This has the benefit of simplicity, and not having to worry about having the
+necessary libraries installed.
+</Para>
+</ListItem>
+</ItemizedList>
+I recommend using Bruce Guenter's rpm releases, since they are well patched, and
+its what I used for building my systems. 
+</Para>
+
+<Sect3>
+<Title>Get source rpms</Title>
+<Para>
+You will need:
+<ItemizedList>
+<ListItem>
+<Para>
+ ucspi-tcp-0.88-1.src.rpm - <ULink URL="http://untroubled.org/rpms/ucspi-tcp/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ ucspi-unix-0.34-1.src.rpm - <ULink URL="http://untroubled.org/ucspi-unix/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ daemontools-0.70-3.src.rpm - <ULink URL="http://untroubled.org/rpms/daemontools/"></ULink> 
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ supervise-scripts-3.3-1.src.rpm - <ULink URL="http://untroubled.org/supervise-scripts/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ qmail-1.03+patches-18.src.rpm - <ULink URL="http://untroubled.org/qmail+patches/current/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ vmailmgr-0.96.9-1.src.rpm - <ULink URL="http://www.vmailmgr.org/current/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ courier-imap-1.4.3.tar.gz - <ULink URL="http://www.inter7.com/courierimap/"></ULink>
+</Para>
+</ListItem>
+</ItemizedList>
+For Courier-imap you must build the source rpm from the tar 
+file (instructions will follow).
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Get binary rpms</Title>
+<Para>
+Qmail does not come in binary form. Such packages are explicitly disallowed by 
+the author of Qmail, and frustrating as it may be, I understand his reasoning. 
+</Para>
+<Para>
+Courier-imap does not come in binary form, unless you want to use the one 
+I built. If you want mine, visit <ULink URL="http://www.clearrivertech.com/linux/HOWTO/supportfiles/"></ULink>.
+</Para>
+<Para>
+VMailMgr does not come in binary form that supports Courier-imap, unless you 
+want to use the one I built. If you want mine, email me, and I will send it.
+<ItemizedList>
+<ListItem>
+<Para>
+ ucspi-tcp-0.88-1.i386.rpm - <ULink URL="http://untroubled.org/rpms/ucspi-tcp/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ ucspi-unix-0.34-1.i386.rpm - <ULink URL="http://untroubled.org/ucspi-unix/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ daemontools-0.70-1.i386.rpm - <ULink URL="http://untroubled.org/rpms/daemontools/"></ULink> 
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ supervise-scripts-3.3-1.noarch.rpm - <ULink URL="http://untroubled.org/supervise-scripts/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ qmail-1.03+patches-18.src.rpm - <ULink URL="http://untroubled.org/qmail+patches/current/"></ULink>(*)
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ vmailmgr-0.96.9-2.i386.rpm - <ULink URL="http://www.vmailmgr.org/current/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ vmailmgr-courier-imap-0.96.9-2.i386.rpm - <ULink URL="http://www.vmailmgr.org/current/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ courier-imap-1.4.3.tar.gz - <ULink URL="http://www.inter7.com/courierimap/"></ULink> (**)
+</Para>
+</ListItem>
+</ItemizedList>
+* For qmail, you must always compile yourself due to the license restrictions.
+** For Courier-imap you must build the binary rpm from the tar file (instructions will follow) or email me for my binary rpm.
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Get deb packages</Title>
+<Para>
+	There are multiple locations for qmail and vmailmgr deb packages.
+	Courier-imap is part of the normal debian applications.
+</Para>
+<Para>
+	You can get them in the following locations:
+<ItemizedList>
+<ListItem>
+<Para>
+ <ULink URL="http://bagic.net/~billy/debs/"></ULink> - by Hon <ULink URL="mailto:billy@bagic.net">billy@bagic.net</ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ <ULink URL="http://www.tet.dk/"></ULink> - by Ole Barnkob Kaas <ULink URL="mailto:admin@tet.dk">admin@tet.dk</ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ <ULink URL="http://smarden.org/pape/Debian/"></ULink> - by Gerrit Pape <ULink URL="mailto:pape@smarden.org">pape@smarden.org</ULink>
+</Para>
+</ListItem>
+</ItemizedList>
+	The packages by Hon are current and even include support for courier-imap, 
+	which was a great help for me, so I am going to use a combination of them for my examples.
+	You can of course choose the ones you want for yourself, but your results may vary.
+</Para>
+<Para>
+	You will need:
+<ItemizedList>
+<ListItem>
+<Para>
+ ucspi-tcp_0.88-3_i386.deb - <ULink URL="http://bagic.net/~billy/debs/ucspi-tcp/0.88-3/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ ucspi-unix_0.34-1_i386.deb - <ULink URL="http://bagic.net/~billy/debs/ucspi-unix/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ The latest daemontools from - <ULink URL="http://smarden.org/pape/Debian/daemontools.html"></ULink> 
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ supervise-scripts_3.3-6_i386.deb - <ULink URL="http://share.runtime-collective.com/~berkan/debian/dists/woody/misc/binary-i386/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ qmail_1.03-17_i386.deb - <ULink URL="http://bagic.net/~billy/debs/qmail/1.03-17/"></ULink>(*)
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ vmailmgr_0.96.9-3_i386.deb - <ULink URL="http://bagic.net/~billy/debs/vmailmgr/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ courier-imap - apt-get courier-imap
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Get tarred sources (for non-RPM users)</Title>
+<Para>
+If your system does not have, or you do not use RPMS, you can install from source.
+<ItemizedList>
+<ListItem>
+<Para>
+ ucspi-tcp-0.88.tar.gz - <ULink URL="http://cr.yp.to/ucspi-tcp/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ ucspi-unix-0.34.tar.gz - <ULink URL="http://untroubled.org/ucspi-unix/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ daemontools-0.70.tar.gz - <ULink URL="http://cr.yp.to/daemontools"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ supervise-scripts-3.3.tar.gz - <ULink URL="http://untroubled.org/supervise-scripts/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ (qmail) release-18.tar.gz - <ULink URL="http://untroubled.org/qmail+patches/current/"></ULink> (*)
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ vmailmgr-0.96.9.tar.gz - <ULink URL="http://www.vmailmgr.org/current/"></ULink>
+</Para>
+</ListItem>
+<ListItem>
+<Para>
+ courier-imap-1.4.3.tar.gz - <ULink URL="http://www.inter7.com/courierimap/"></ULink>
+</Para>
+</ListItem>
+</ItemizedList>
+</Para>
+<Para>
+<Screen>
+(*) There may be minor differences in these instructions due to the use of the standard
+Qmail package. Please review the documentation for Qmail and VMailMgr if any of
+the files deviates from my instructions.
+</Screen>
+</Para>
+</Sect3>
+
+</Sect2>
+
+<Sect2>
+<Title>Install support packages</Title>
+
+<Sect3>
+<Title>Install with RPMS</Title>
+
+<Sect4>
+<Title>Compiling SRC.RPM's</Title>
+<Para>
+Simply run the following command for each package
+rpm --rebuild &lt;package.src.rpm&gt;
+-Example-
+<ProgramListing>
+  rpm --rebuild ucspi-tcp-0.88-1.src.rpm
+  rpm --rebuild ucspi-unix-0.34-1.src.rpm  
+  rpm --rebuild daemontools-0.70-3.src.rpm  
+  rpm --rebuild supervise-scripts-3.3-1.src.rpm  
+</ProgramListing>
+You may get dependancy errors. If you do then install the package that is being requested using the steps below.
+This may happen when you compile daemontools before installing ucspi-tcp.
+</Para>
+</Sect4>
+
+<Sect4>
+<Title>Installing RPM's</Title>
+<Para>
+If you compiled the source rpms, the binaries will be located 
+in <Literal remap="tt">/usr/src/redhat/RPMS/i386/</Literal> or something similar.
+</Para>
+<Para>
+Simply run the following command for each package
+rpm -ivh &lt;location&gt;/&lt;package.i386.rpm&gt;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  rpm -ivh /usr/src/redhat/RPMS/i386/ucspi-tcp-0.88-1.i386.rpm
+  rpm -ivh /usr/src/redhat/RPMS/i386/ucspi-unix-0.34-1.i386.rpm
+  rpm -ivh /usr/src/redhat/RPMS/i386/daemontools-0.70-3.i386.rpm
+  rpm -ivh /usr/src/redhat/RPMS/i386/supervise-scripts-3.3-1.i386.rpm
+</ProgramListing>
+</Para>
+</Sect4>
+</Sect3>
+
+<Sect3>
+<Title>Install with debs</Title>
+<Para>
+Run the following commands for each package
+  (as root)
+  dpkg -i &#60;package.deb&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  dpkg -i ucspi-tcp_0.88-3_i386.deb
+  dpkg -i ucspi-unix_0.34-1_i386.deb
+  dpkg -i daemontools_0.70-1_i386.deb
+  dpkg -i supervise-scripts_3.3-6_i386.deb
+</ProgramListing>
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Install with source</Title>
+<Para>
+Run the following commands for each package
+  (As non-root user)
+  tar zxf &#60;package.tar.gz&#62;
+  cd &#60;newly created dir&#62;
+  ./configure
+  make
+  (As root)
+  make setup check (for ucspi-tcp and daemontools)
+  or
+  make install (for ucspi-unix and supervise-scripts)
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  (As non-root user)
+  tar zxf supervise-scripts-2.4.tar.gz
+  cd supervise-scripts-2.4
+  ./configure
+  make
+  (As root)
+  make setup check or  make install
+</ProgramListing>
+</Para>
+</Sect3>
+
+</Sect2>
+
+<Sect2>
+<Title>Install Qmail</Title>
+
+<Sect3>
+<Title>Install with RPMS</Title>
+
+<Sect4>
+<Title>Compiling SRC.RPM's</Title>
+
+<Para>
+After installing the support packages, 
+
+Simply run the following command:
+rpm --rebuild &#60;package.src.rpm&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  rpm --rebuild qmail-1.03+patches-18.src.rpm
+</ProgramListing>
+</Para>
+</Sect4>
+
+<Sect4>
+<Title>Installing RPM's</Title>
+
+<Para>
+After compiling the source rpms, the binaries will be located 
+in <Literal remap="tt">/usr/src/redhat/RPMS/i386/</Literal> or something similar.
+</Para>
+<Para>
+Simply run the following command for the qmail package
+rpm -ivh &#60;location&#62;/&#60;package.i386.rpm&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  rpm -ivh /usr/src/redhat/RPMS/i386/qmail-1.03+patches-18.i386.rpm
+</ProgramListing>
+</Para>
+<Para>
+  * note start *
+  - Remove sendmail and any dependant applications prior to installing Qmail
+  - by running the following command for each package
+  - rpm -e &#60;packagename&#62;*
+  - 
+  - On my system I had to remove sendmail, so I typed
+  - rpm -e sendmail
+  * note end *
+</Para>
+</Sect4>
+</Sect3>
+
+<Sect3>
+<Title>Install with debs</Title>
+<Para>
+Run the following commands for each package
+  (as root)
+  dpkg -i &#60;package.deb&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  dpkg -i qmail_1.03-17_i386.deb
+</ProgramListing>
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Install with source</Title>
+<Para>
+Run the following command
+  (As non-root user)
+  tar zxf &#60;package.tar.gz&#62;
+  cd &#60;newly created dir&#62;
+  (Now read the INSTALL file and follow the steps to install Qmail)
+-Example-
+<ProgramListing>
+  (As non-root user)
+  tar zxf release-18.tar.gz
+  cd release-1.03
+  vi INSTALL (Read and follow steps)
+</ProgramListing>
+</Para>
+</Sect3>
+</Sect2>
+
+<Sect2>
+<Title>Install Courier-imap</Title>
+
+<Sect3>
+<Title>Install with RPMS</Title>
+
+<Sect4>
+<Title>Compiling SRC.RPM's</Title>
+
+<Para>
+Build the courier-imap rpms from the tar file
+<Literal remap="tt">rpm -ta courier-imap-1.4.3.tar.gz</Literal>
+</Para>
+<Para>
+  * note start *
+  - This errors out if you compile as root, but if your not root you
+  - wont have permissions to /usr/src/redhat. You will want to build as a 
+  - non-root user, so create a ".rpmmacros" file (for rpm v3 and later) in 
+  - your home directory containing the line "%_topdir /path/to/home/redhat".
+  - Then create your own "redhat" directory containing all the subdirs that
+  - /usr/src/redhat contains.
+  - You should never build RPMs as root unless you have to.
+  * note end *
+</Para>
+<Para>
+* I will mention again, that I have built the binaries, and you can get them at *
+* <ULink URL="http://www.clearrivertech.com/linux/HOWTO/supportfiles/"></ULink>. *
+</Para>
+
+</Sect4>
+
+<Sect4>
+<Title>Installing RPM's</Title>
+<Para>
+After compiling the source rpms, the binary will be located 
+in <Literal remap="tt">/usr/src/redhat/RPMS/i386/</Literal> or something similar.
+</Para>
+<Para>
+Simply run the following command for each package
+  rpm -ivh &#60;location&#62;/&#60;package.i386.rpm&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  rpm -ivh /usr/src/redhat/RPMS/i386/courier-imap-1.4.3.i386.rpm
+</ProgramListing>
+</Para>
+</Sect4>
+</Sect3>
+
+<Sect3>
+<Title>Install with debs</Title>
+<Para>
+Run the following commands for each package
+  (as root)
+  apt-get &#60;package.deb&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  apt-get courier-imap
+</ProgramListing>
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Install with source</Title>
+<Para>
+Run the following command
+  (As non-root user)
+  tar zxf &#60;package.tar.gz&#62;
+  cd &#60;newly created dir&#62;
+  ./configure
+  make
+  (As root)
+  make install
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  (As non-root user)
+  tar zxf courier-imap-1.4.3.tar.gz
+  cd courier-imap-1.4.3
+  ./configure
+  make
+  (As root)
+  make install
+</ProgramListing>
+</Para>
+</Sect3>
+
+</Sect2>
+
+<Sect2>
+<Title>Install VMailMgr</Title>
+
+<Sect3>
+<Title>Install with RPMS</Title>
+
+<Sect4>
+<Title>Compiling SRC.RPM's</Title>
+<Para>
+There is a problem compliling VMailMGR on RedHat 7.x distros (and maybe other new ones as well).
+To solve this you must edit the source files
+These files need to have an #include &lt;string.h&gt; added
+<ProgramListing>
+lib/misc/exec.cc
+lib/misc/keystrlist.cc
+lib/misc/strlist.cc
+lib/mystring/append.cc
+authenticate/authvmailmgr.cc
+</ProgramListing>
+
+The following needs to have an #include &lt;stdlib.h&gt;:
+<ProgramListing>
+authenticate/vauthenticate.cc
+authenticate/checkvpw.cc
+</ProgramListing>
+The copies I have on <ULink URL="http://www.clearrivertech.com/linux/HOWTO/supportfiles/rh72/"></ULink> are already patched.
+</Para>
+<Para>
+Simply run the following command
+rpm --rebuild &lt;package.src.rpm&gt;
+-Example-
+<ProgramListing>
+  rpm --rebuild vmailmgr-0.96.9-1.src.rpm  
+</ProgramListing>
+</Para>
+</Sect4>
+
+<Sect4>
+<Title>Installing RPM's</Title>
+
+<Para>
+If you compiled the source rpm, the binaries will be located 
+in <Literal remap="tt">/usr/src/redhat/RPMS/i386/</Literal> or something similar.
+</Para>
+<Para>
+Simply run the following command for each package
+rpm -ivh &lt;location&gt;/&lt;package.i386.rpm&gt;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  rpm -ivh /usr/src/redhat/RPMS/i386/vmailmgr-0.96.9-1.i386.rpm
+  rpm -ivh /usr/src/redhat/RPMS/i386/VMailMgr-daemon-0.96.6-1.i386.rpm
+  rpm -ivh /usr/src/redhat/RPMS/i386/vmailmgr-courier-imap-0.96.9-2.i386.rpm
+</ProgramListing>
+</Para>
+</Sect4>
+</Sect3>
+
+<Sect3>
+<Title>Install with debs</Title>
+<Para>
+Run the following commands for each package
+  (as root)
+  dpkg -i &#60;package.deb&#62;
+</Para>
+<Para>
+-Example-
+<ProgramListing>
+  dpkg -i vmailmgr_0.96.9-3_i386.deb
+</ProgramListing>
+</Para>
+</Sect3>
+
+<Sect3>
+<Title>Install with source</Title>
+<Para>
+There is a problem compliling VMailMGR on RedHat 7.x distros (and maybe other new ones as well).
+To solve this you must edit the source files
+These files need to have an #include &lt;string.h&gt; added
+<ProgramListing>
+lib/misc/exec.cc
+lib/misc/keystrlist.cc
+lib/misc/strlist.cc
+lib/mystring/append.cc
+authenticate/authvmailmgr.cc
+</ProgramListing>
+
+The following needs to have an #include &lt;stdlib.h&gt;:
+<ProgramListing>
+authenticate/vauthenticate.cc
+authenticate/checkvpw.cc
+</ProgramListing>
+The copies I have on <ULink URL="http://www.clearrivertech.com/linux/HOWTO/supportfiles/rh72/"></ULink> are already patched.
+</Para>
+<Para>
+Run the following commands
+  (As non-root user)
+  tar zxf &#60;package.tar.gz&#62;
+  cd &#60;newly created dir&#62;
+  ./configure
+  make
+  (As root)
+  make install
+-Example-
+<ProgramListing>
+  (As non-root user)
+  tar zxf vmailmgr-0.96.9.tar.gz
+  cd vmailmgr-0.96.9
+  ./configure
+  make
+  (As root)
+  make setup check or  make install
+</ProgramListing>
+That should do it.
+</Para>
+</Sect3>
+
+</Sect2>
+</Sect1>
+
+<Sect1>
+<Title>Putting it all together</Title>
+
+<Sect2>
+<Title>Basic Qmail config</Title>
+
+<Para>
+You will need to add your domains to the /var/qmail/control/virtualdomains 
+file in the following format as is normal with qmail and VMailMgr.
+  domain1.com:user1
+For more detailed setup and config documentation visit the Qmail website
+<ULink URL="http://www.qmail.org"></ULink> and the VMailMgr website <ULink URL="http://www.vmailmgr.org"></ULink>
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Tell Qmail to use VMailMgr for authentication</Title>
+<Para>
+By default qmail uses checkpassword for authentication, to tell Qmail
+to use VMailMgr for authentication type the following command:
+<ProgramListing>
+  echo checkvpw &#62; /var/qmail/control/checkpassword
+</ProgramListing>
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Setup Courier-imap for VMailMgr</Title>
+<Para>
+Copy the VMailMgr auth libs to courier's directory.
+If you installed from RPM, then the vmailmgr-courier-imap RPM will have done this for you.
+Otherwise use this command:
+<ProgramListing>
+  cp /usr/bin/authvmailmgr /usr/lib/courier-imap/libexec/authlib/
+</ProgramListing>
+</Para>
+<Para>
+Edit <Literal remap="tt">/usr/lib/courier-imap/etc/imapd</Literal>
+and add authvmailmgr as the only entry in AUTHMODULES
+</Para>
+<Para>
+For more detailed setup and config documentation visit the Courier-imap 
+website <ULink URL="http://www.inter7.com/courierimap/"></ULink>
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Setup virtual domain with VMailMgr</Title>
+
+<Para>
+With the user account that will be managing the domain go to their home dir
+and type:
+<ProgramListing>
+  vsetup
+</ProgramListing>
+</Para>
+<Para>
+This will setup the users home dir with the necessary structure to handle
+incoming email. You will probably want to create a email account by typing
+</Para>
+<Para>
+<ProgramListing>
+  vadduser emailuser
+</ProgramListing>
+</Para>
+<Para>
+For more detailed setup and config documentation visit the VMailMgr website <ULink URL="http://www.vmailmgr.org"></ULink>
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Starting the daemons</Title>
+
+<Para>
+  Starting the Qmail daemon. Qmail installs itself to autostart by some mysterious (to me) way.
+	If you like init scripts you can get Larry Doolittle's (<ULink URL="ldoolitta@ajlab.org">ldoolitta@ajlab.org</ULink>)
+	init.d script at <ULink URL="http://qmail.area.com/init.d-script"></ULink>
+	If you have the Larry's init.d script just do this.
+<ProgramListing>
+  /etc/rc.d/init.d/qmail start
+</ProgramListing>
+</Para>
+
+<Para>
+Start VMailMgr daemon
+<ProgramListing>
+  /etc/rc.d/init.d/vmailmgrd start
+</ProgramListing>
+</Para>
+
+<Para>
+Start Courier-imap damon
+<ProgramListing>
+  /etc/rc.d/init.d/courier-imap start
+</ProgramListing>
+</Para>
+
+</Sect2>
+
+<Sect2>
+<Title>Some considerations left</Title>
+<Para>
+Qmail and the Maildirs may cause some email apps that run locally to 
+not work. Visit the Qmail website <ULink URL="http://www.qmail.org"></ULink> for details
+on email apps that have been patched to work with Maildirs.
+</Para>
+<Para>
+Courier-imap is not as widely used as Cyrus or UWash imap servers.
+As such, you may suffer from minor incompatibilities. Courier-imap is
+extremely well written, and tries to comply with the imap definition
+even if it means some imap clients wont work well. For details visit
+the Courier-imap website <ULink URL="http://www.inter7.com/courierimap/"></ULink>.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Mail clients</Title>
+<Para>
+With the solution you should now have setup you will need to know that user accounts will be user@domain.com 
+Netscape does not like this, so for netscape use user:domain.com
+</Para>
+<Para>
+I would like to suggest that you also checkout phpGroupWare at <ULink URL="http://www.phpgroupware.org"></ULink>.
+I have built in support for vmailmgr into it already and it can give you an end result of a full Groupware solution to fend of MS Exchange/Outlook or Lotus Domino.
+</Para>
+<Para>
+If you decide to use a web based mail client, you will probably want to adjust courier-imaps MAXPERIP setting. By default it is 4, which is a bit low. 
+Bump it up to something more sensible, like 10 - 50. Otherwise our webmail users will have problems connecting. This setting is in <Literal remap="tt">/usr/lib/courier-imap/etc/imapd</Literal>.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>Known bugs</Title>
+<Para>
+None yet.
+</Para>
+</Sect2>
+
+<Sect2>
+<Title>The final word</Title>
+<Para>
+Im tired, and wonder if anyone will ever use this, but I'm happy its done.
+I'm sure if you have read this far your tired too. Well, all I can hope is
+that you have Qmail, VMailMgr and Courier-imap working. If so, Enjoy!
+If not, bummer!
+</Para>
+<Para>
+O.K. readers, you're done for today. Feel free to send me your
+feedback, eternal gratitude, flowers, ecash, cars, oil sources etc.
+</Para>
+</Sect2>
+</Sect1>
+</Article>
+
+
