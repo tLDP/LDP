@@ -1,0 +1,520 @@
+<sect1><title>Hello, World (part 1): The Simplest Module</title>
+
+	<para>When the first caveman programmer chiseled the first program on the walls of the first cave computer, it was a program
+	to paint the string `Hello, world' in Antelope pictures.  Roman programming textbooks began with the `Salut, Mundi' program.
+	I don't know what happens to people who break with this tradition, but I think it's safer not to find out.  We'll start with a
+	series of hello world programs that demonstrate the different aspects of the basics of writing a kernel module.</para>
+
+	<para>Here's the simplest module possible.  Don't compile it yet; we'll cover module compilation in the next section.</para>
+
+	<indexterm><primary>source file</primary><secondary>hello-1.c</secondary></indexterm>
+
+
+<example><title>hello-1.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/hello-1.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+
+	<indexterm><primary><function>init_module()</function></primary></indexterm>
+	<indexterm><primary><function>cleanup_module()</function></primary></indexterm>
+	
+	<para>Kernel modules must have at least two functions: a "start" (initialization) function called
+	<function>init_module()</function> which is called when the module is insmoded into the kernel, and an "end" (cleanup)
+	function called <function>cleanup_module()</function> which is called just before it is rmmoded.  Actually, things have
+	changed starting with kernel 2.3.13.  You can now use whatever name you like for the start and end functions of a module, and
+	you'll learn how to do this in <xref linkend="hello2">.  In fact, the new method is the preferred method.  However, many
+	people still use <function>init_module()</function> and <function>cleanup_module()</function> for their start and end
+	functions.</para>
+
+	<para>Typically, <function>init_module()</function> either registers a handler for something with the kernel, or it replaces
+	one of the kernel functions with its own code (usually code to do something and then call the original function).  The
+	<function>cleanup_module()</function> function is supposed to undo whatever <function>init_module()</function> did, so the
+	module can be unloaded safely.</para>
+
+	<para>Lastly, every kernel module needs to include <filename role="headerfile">linux/module.h</filename>.  We needed to
+	include <filename role="headerfile">linux/kernel.h</filename> only for the macro expansion for the
+	<function>printk()</function> log level, <varname>KERN_ALERT</varname>, which you'll learn about in <xref
+	linkend="introducingprintk">.</para>
+
+
+
+		<sect2 id="introducingprintk"><title>Introducing <function>printk()</function></title>
+
+			<indexterm><primary><function>printk()</function></primary></indexterm>
+			<indexterm><primary><varname>DEFAULT_MESSAGE_LOGLEVEL</varname></primary></indexterm>
+
+			<para>Despite what you might think, <function>printk()</function> was not meant to communicate information to the user,
+			even though we used it for exactly this purpose in <application>hello-1</application>!  It happens to be a logging
+			mechanism for the kernel, and is used to log information or give warnings.  Therefore, each <function>printk()</function>
+			statement comes with a priority, which is the <varname>&lt;1&gt;</varname> and <varname>KERN_ALERT</varname> you see.
+			There are 8 priorities and the kernel has macros for them, so you don't have to use cryptic numbers, and you can view them
+			(and their meanings) in <filename role="headerfile">linux/kernel.h</filename>.  If you don't specify a priority level, the
+			default priority, <literal>DEFAULT_MESSAGE_LOGLEVEL</literal>, will be used.</para>
+
+			<para>Take time to read through the priority macros.  The header file also describes what each priority means.  In
+			practise, don't use number, like <literal>&lt;4&gt;</literal>.  Always use the macro, like
+			<literal>KERN_WARNING</literal>.</para>
+
+			<para>If the priority is less than <varname>int console_loglevel</varname>, the message is printed on your current
+			terminal.  If both <command>syslogd</command> and <application>klogd</application> are running, then the message will also
+			get appended to <filename>/var/log/messages</filename>, whether it got printed to the console or not.  We use a high
+			priority, like <literal>KERN_ALERT</literal>, to make sure the <function>printk()</function> messages get printed to your
+			console rather than just logged to your logfile.  When you write real modules, you'll want to use priorities that are
+			meaningful for the situation at hand.</para>
+
+		</sect2>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Compiling Kernel Modules</title>
+
+	<indexterm><primary>insmod</primary></indexterm>
+
+	<para>Kernel modules need to be compiled with certain gcc options to make them work. In addition, they also need to be
+	compiled with certain symbols defined. Former kernel versions required us to care much about these settings,
+	which are usually stored in Makefiles. Although hierarchically organized, many redundant settings accumulated in
+	sublevel Makefiles and made them large and rather difficult to maintain.
+
+	Fortunately, there is a new way of doing these things, called kbuild, and the build process for external loadable modules is now 
+	fully integrated into the standard kernel build mechanism.  To learn more on how to compile modules which are not part of the
+	official kernel (as ours), see file <filename>linux/Documentation/kbuild/modules.txt</filename>.</para>
+	
+	<para>So, let's look at a simple Makefile for compiling a module named <filename>hello-1.c</filename>:</para>
+
+<example><title>Makefile for a basic kernel module</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/Makefile.1" format="linespecific"/></inlinegraphic></programlisting></example>
+
+	<para>Now you can compile the module by issuing the command <command> make -C /usr/src/linux-`uname -r` SUBDIRS=$PWD modules </command>.
+	You should obtain an output which resembles the following:</para>
+
+	<screen>
+[root@pcsenonsrv test_module]# make -C /usr/src/linux-`uname -r` SUBDIRS=$PWD modules
+make: Entering directory `/usr/src/linux-2.6.x
+  CC [M]  /root/test_module/hello-1.o
+  Building modules, stage 2.
+  MODPOST
+  CC      /root/test_module/hello-1.mod.o
+  LD [M]  /root/test_module/hello-1.ko
+make: Leaving directory `/usr/src/linux-2.6.x
+	</screen>
+
+	<para>Please note that kernel 2.6 introduces a new file naming convention: kernel modules now have a <filename>.ko</filename> 
+	extension (in place of the old <filename>.o</filename> extension) which easily distinguishes them from conventional object files.
+	Additional details about Makefiles for kernel modules are available in <filename>linux/Documentation/kbuild/makefiles.txt</filename>.
+	Be sure to read this and the related files before starting to dig into Makefiles.</para>
+
+	<para>Now it is time to insert your freshly-compiled module it into the kernel with <command>insmod ./hello-1.ko</command> 
+	(ignore anything you see about tainted kernels; we'll cover that shortly).</para>
+
+	<para>
+	All modules 
+	loaded into the kernel are listed in <filename>/proc/modules</filename>.  Go ahead and cat that file to see that your module
+	is really a part of the kernel.  Congratulations, you are now the author of Linux kernel code!  When the novelty wares off,
+	remove your module from the kernel by using <command>rmmod hello-1</command>.  Take a look at
+	<filename>/var/log/messages</filename> just to see that it got logged to your system logfile.</para>
+
+	<para>Here's another exercise to the reader.  See that comment above the return statement in
+	<function>init_module()</function>?  Change the return value to something non-zero, recompile and load the module again.  What
+	happens?</para>
+
+</sect1>
+
+
+<sect1 id="hello2"><title>Hello World (part 2)</title>
+
+	<indexterm><primary>module_init</primary></indexterm>
+	<indexterm><primary>module_exit</primary></indexterm>
+
+	<para>As of Linux 2.4, you can rename the init and cleanup functions of your modules; they no longer have to be called
+	<function>init_module()</function> and <function>cleanup_module()</function> respectively.  This is done with the
+	<function>module_init()</function> and <function>module_exit()</function> macros.  These macros are defined in <filename
+	role="header">linux/init.h</filename>.  The only caveat is that your init and cleanup functions must be defined before calling
+	the macros, otherwise you'll get compilation errors.  Here's an example of this technique:</para>
+
+	<indexterm><primary>source file</primary><secondary>hello-2.c</secondary></indexterm>
+
+
+<example><title>hello-2.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/hello-2.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+
+	<para>So now we have two real kernel modules under our belt. Adding another module is as simple as this: </para>
+
+
+<example><title>Makefile for both our modules</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/Makefile.2" format="linespecific"/></inlinegraphic></programlisting></example>
+
+
+	<para>Now have a look at <filename>linux/drivers/char/Makefile</filename> for a real world example. As you can see, some things
+	get hardwired into the kernel (obj-y) but where are all those obj-m gone?  Those familiar with shell scripts will easily be
+	able to spot them. For those not, the obj-$(CONFIG_FOO) entries you see everywhere expand into obj-y or obj-m, depending on 
+	whether the CONFIG_FOO variable has been set to y or m. While we are at it, those were exactly the kind of variables
+	that you have set in the <filename>linux/.config</filename> file, the last time when you said <command>make menuconfig</command>
+	or something like that.
+	</para>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Hello World (part 3): The <literal>__init</literal> and <literal>__exit</literal> Macros</title>
+
+	<indexterm><primary><function>__init</function></primary></indexterm>
+	<indexterm><primary><function>__initdata</function></primary></indexterm>
+	<indexterm><primary><function>__exit</function></primary></indexterm>
+	<indexterm><primary><function>__initfunction()</function></primary></indexterm>
+
+	<para>This demonstrates a feature of kernel 2.2 and later.  Notice the change in the definitions of the init and cleanup
+	functions.  The <function>__init</function> macro causes the init function to be discarded and its memory freed once the init
+	function finishes for built-in drivers, but not loadable modules.  If you think about when the init function is invoked, this
+	makes perfect sense.</para>
+
+	<para>There is also an <function>__initdata</function> which works similarly to <function>__init</function> but for init
+	variables rather than functions.</para>
+
+	<para>The <function>__exit</function> macro causes the omission of the function when the module is built into the kernel, and
+	like <function>__exit</function>, has no effect for loadable modules.  Again, if you consider when the cleanup function runs,
+	this makes complete sense; built-in drivers don't need a cleanup function, while loadable modules do.</para>
+
+	<para>These macros are defined in <filename role="headerfile">linux/init.h</filename> and serve to free up kernel memory.
+	When you boot your kernel and see something like <literal>Freeing unused kernel memory: 236k freed</literal>, this is
+	precisely what the kernel is freeing.</para>
+
+	<indexterm><primary>source file</primary><secondary>hello-3.c</secondary></indexterm>
+
+
+<example><title>hello-3.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/hello-3.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+</sect1>
+
+
+<sect1><title>Hello World (part 4): Licensing and Module Documentation</title>
+
+	<para>If you're running kernel 2.4 or later, you might have noticed something like this when you loaded the previous example
+	modules:</para>
+	
+	<screen>
+# insmod hello-3.o
+Warning: loading hello-3.o will taint the kernel: no license
+  See http://www.tux.org/lkml/#export-tainted for information about tainted modules
+Hello, world 3
+Module hello-3 loaded, with warnings
+	</screen>
+
+	<indexterm><primary><function>MODULE_LICENSE()</function></primary></indexterm>
+
+	<para>In kernel 2.4 and later, a mechanism was devised to identify code licensed under the GPL (and friends) so people can be
+	warned that the code is non open-source.  This is accomplished by the <function>MODULE_LICENSE()</function> macro which is
+	demonstrated in the next piece of code.  By setting the license to GPL, you can keep the warning from being printed.  This
+	license mechanism is defined and documented in <filename role="headerfile">linux/module.h</filename>:
+
+<screen>
+/*
+ * The following license idents are currently accepted as indicating free
+ * software modules
+ *
+ *	"GPL"				[GNU Public License v2 or later]
+ *	"GPL v2"			[GNU Public License v2]
+ *	"GPL and additional rights"	[GNU Public License v2 rights and more]
+ *	"Dual BSD/GPL"			[GNU Public License v2
+ *					 or BSD license choice]
+ *	"Dual MPL/GPL"			[GNU Public License v2
+ *					 or Mozilla license choice]
+ *
+ * The following other idents are available
+ *
+ *	"Proprietary"			[Non free products]
+ *
+ * There are dual licensed components, but when running with Linux it is the
+ * GPL that is relevant so this is a non issue. Similarly LGPL linked with GPL
+ * is a GPL combined work.
+ *
+ * This exists for several reasons
+ * 1.	So modinfo can show license info for users wanting to vet their setup 
+ *	is free
+ * 2.	So the community can ignore bug reports including proprietary modules
+ * 3.	So vendors can do likewise based on their own policies
+ */
+</screen>
+        </para>
+
+	<indexterm><primary><function>MODULE_DESCRIPTION()</function></primary></indexterm>
+	<indexterm><primary><function>MODULE_AUTHOR()</function></primary></indexterm>
+	<indexterm><primary><function>MODULE_SUPPORTED_DEVICE()</function></primary></indexterm>
+
+	<para>Similarly, <function>MODULE_DESCRIPTION()</function> is used to describe what the module does,
+	<function>MODULE_AUTHOR()</function> declares the module's author, and  <function>MODULE_SUPPORTED_DEVICE()</function>
+	declares what types of devices the module supports.</para>
+
+	<para>These macros are all defined in <filename role="headerfile">linux/module.h</filename> and aren't used by the kernel
+	itself.  They're simply for documentation and can be viewed by a tool like <application>objdump</application>.  As an exercise
+	to the reader, try grepping through <filename role="directory">linux/drivers</filename> to see how module authors use these
+	macros to document their modules.</para>
+
+	<indexterm><primary>source file</primary><secondary>hello-4.c</secondary></indexterm>
+
+
+<example><title>hello-4.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/hello-4.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Passing Command Line Arguments to a Module</title>
+
+	<para>Modules can take command line arguments, but not with the <varname>argc</varname>/<varname>argv</varname> you might be
+	used to.</para>
+
+	<para>To allow arguments to be passed to your module, declare the variables that will take the values of the command line
+	arguments as global and then use the <functioN>MODULE_PARM()</function> macro, (defined in <filename
+	role="headerfile">linux/module.h</filename>) to set the mechanism up.  At runtime, insmod will fill the variables with any
+	command line arguments that are given, like <command>./insmod mymodule.o myvariable=5</command>.  The variable declarations
+	and macros should be placed at the beginning of the module for clarity.  The example code should clear up my admittedly lousy
+	explanation.</para>
+
+	<para>The <function>MODULE_PARM()</function> macro takes 2 arguments: the name of the variable and its type.  The supported
+	variable types are "<literal>b</literal>": single byte, "<literal>h</literal>": short int, "<literal>i</literal>": integer,
+	"<literal>l</literal>": long int and "<literal>s</literal>": string, and the integer types can be signed as usual or unsigned.
+	Strings should be declared as "<type>char *</type>" and insmod will allocate memory for them.  You should always try to give
+	the variables an initial default value.  This is kernel code, and you should program defensively.  For example:</para>
+
+	<screen>
+int myint = 3;
+char *mystr;
+
+MODULE_PARM(myint, "i");
+MODULE_PARM(mystr, "s");
+	</screen>
+
+	<para>Arrays are supported too.  An integer value preceding the type in MODULE_PARM will indicate an array of some maximum
+	length.  Two numbers separated by a '-' will give the minimum and maximum number of values.  For example, an array of shorts
+	with at least 2 and no more than 4 values could be declared as:</para>
+
+	<screen>
+int myshortArray[4];
+MODULE_PARM (myintArray, "3-9i");
+	</screen>
+
+	<para>A good use for this is to have the module variable's default values set, like an port or IO address.  If the variables
+	contain the default values, then perform autodetection (explained elsewhere).  Otherwise, keep the current value.  This will
+	be made clear later on.</para>
+
+	<para>Lastly, there's a macro function, <function>MODULE_PARM_DESC()</function>, that is used to document arguments that the
+	module can take.  It takes two parameters: a variable name and a free form string describing that variable.</para>
+
+	<indexterm><primary>source file</primary><secondary>hello-5.c</secondary></indexterm>
+
+
+<example><title>hello-5.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/hello-5.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+
+	<para>I would recommend playing around with this code:</para>
+
+	<screen>
+satan# insmod hello-5.o mystring="bebop" mybyte=255 myintArray=-1
+mybyte is an 8 bit integer: 255
+myshort is a short integer: 1
+myint is an integer: 20
+mylong is a long integer: 9999
+mystring is a string: bebop
+myintArray is -1 and 420
+
+satan# rmmod hello-5
+Goodbye, world 5
+
+satan# insmod hello-5.o mystring="supercalifragilisticexpialidocious" \
+> mybyte=256 myintArray=-1,-1
+mybyte is an 8 bit integer: 0
+myshort is a short integer: 1
+myint is an integer: 20
+mylong is a long integer: 9999
+mystring is a string: supercalifragilisticexpialidocious
+myintArray is -1 and -1
+
+satan# rmmod hello-5
+Goodbye, world 5
+
+satan# insmod hello-5.o mylong=hello
+hello-5.o: invalid argument syntax for mylong: 'h'
+</screen>
+
+</sect1>
+
+
+
+
+
+<sect1><title>Modules Spanning Multiple Files</title>
+
+	<indexterm><primary>source files</primary><secondary>multiple</secondary></indexterm>
+	<indexterm><primary>__NO_VERSION__</primary></indexterm>
+	<indexterm><primary>module.h</primary></indexterm>
+	<indexterm><primary>version.h</primary></indexterm>
+	<indexterm><primary>kernel\_version</primary></indexterm>
+	<indexterm><primary>ld</primary></indexterm>
+	<indexterm><primary>elf_i386</primary></indexterm>
+
+	<para>Sometimes it makes sense to divide a kernel module between several source files.  In this case, you need to:</para>
+
+	<orderedlist>
+
+		<listitem><para>In all the source files but one, add the line <command>#define __NO_VERSION__</command>. This is important
+			because <filename role="headerfile">module.h</filename> normally includes the definition of
+			<varname>kernel_version</varname>, a global variable with the kernel version the module is compiled for.  If you need
+			<filename role="headerfile">version.h</filename>, you need to include it yourself, because <filename
+			role="headerfile">module.h</filename> won't do it for you with <varname>__NO_VERSION__</varname>.</para></listitem>
+
+		<listitem><para>Compile all the source files as usual.</para></listitem>
+
+		<listitem><para>Combine all the object files into a single one.  Under x86, use <command>ld -m elf_i386 -r -o &lt;module
+			name.o&gt; &lt;1st src file.o&gt; &lt;2nd src file.o&gt;</command>.</para></listitem>
+
+	</orderedlist>
+
+	<para>The makefile will, once again, save us from having to get our hands dirty with compiling and linking the object files.</para>
+
+	<para>Here's an example of such a kernel module.</para>
+
+	<indexterm><primary>source file</primary><secondary>start.c</secondary></indexterm>
+
+<example><title>start.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/start.c" format="linespecific"/></inlinegraphic></programlisting></example>
+	<para>The next file:</para>
+
+	<indexterm><primary>source file</primary><secondary>stop.c</secondary></indexterm>
+
+
+<example><title>stop.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/stop.c" format="linespecific"/></inlinegraphic></programlisting></example>
+
+	<para>And finally, the makefile:</para>
+
+
+<example><title>Makefile</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/Makefile" format="linespecific"/></inlinegraphic></programlisting></example>
+
+</sect1>
+
+<sect1><title>Building modules for a precompiled kernel</title>
+
+	<indexterm><primary>source files</primary><secondary>multiple</secondary></indexterm>
+
+	<para>
+	Obviously, we strongly suggest you to recompile your kernel, so that you can enable a number of useful debugging features, such as
+	forced module unloading (<literal>MODULE_FORCE_UNLOAD</literal>): when this option is enabled, you can force the kernel to unload a module even  
+	when it believes it is unsafe, via a <command>rmmod -f module</command> command. This option can save you a lot of time and a number of reboots 
+	during the development of a module.
+	</para>
+
+	<para>
+	Nevertheless, there is a number of cases in which you may want to load your module into a precompiled running kernel, such as the ones shipped
+	with common Linux distributions, or a kernel you have compiled in the past. In certain circumstances you could require to compile and insert a 
+	module into a running kernel which you are not allowed to recompile, or on a machine that you prefer not to reboot.
+	If you can't think of a case that will force you to use modules for a precompiled kernel you
+	might want to skip this and treat the rest of this chapter as a big footnote.
+	</para>
+
+	<para>
+	Now, if you just install a kernel source tree, use it to compile your kernel module and you try to insert your module into the kernel,
+	in most cases you would obtain an error as follows:
+	</para>
+	
+	<screen>
+insmod: error inserting 'poet_atkm.ko': -1 Invalid module format
+	</screen>
+	
+	<para>
+	Less cryptical information are logged to <filename>/var/log/messages</filename>:
+	</para>
+	
+	<screen>
+Jun  4 22:07:54 localhost kernel: poet_atkm: version magic '2.6.5-1.358custom 686 
+REGPARM 4KSTACKS gcc-3.3' should be '2.6.5-1.358 686 REGPARM 4KSTACKS gcc-3.3'
+	</screen>
+
+	<para>
+	In other words, your kernel refuses to accept your module because version strings (more precisely, version magics) 
+	do not match. Incidentally, version magics are stored in the module object in the form of a static string, starting with 
+	<literal>vermagic:</literal>. 
+	Version data are inserted in your module when it is linked against the <filename>init/vermagic.o</filename> file.
+	To inspect version magics and other strings stored in a given module, issue the 
+	<command>modinfo module.ko</command> command:
+	</para>
+
+	<screen>
+[root@pcsenonsrv 02-HelloWorld]# modinfo hello-4.ko 
+license:        GPL
+author:         Peter Jay Salzman &lt;p@dirac.org&gt;
+description:    A sample driver
+vermagic:       2.6.5-1.358 686 REGPARM 4KSTACKS gcc-3.3
+depends:        
+	</screen>
+
+	<para>
+	To overcome this problem we could resort to the <command>--force-vermagic</command> option, but this solution is potentially unsafe, 
+	and unquestionably inacceptable in production modules.
+	Consequently, we want to compile our module in an environment which was identical to the one in which our precompiled kernel was built.
+	How to do this, is the subject of the remainder of this chapter.</para>
+
+	<para>
+	First of all, make sure that a kernel source tree is available, having exactly the same version as 
+	your current kernel. Then, find the configuration file which was used to compile your precompiled kernel. 
+	Usually, this is available in your current <filename>/boot</filename> directory, under a name like <filename>config-2.6.x</filename>. 
+	You may just want to copy it to your kernel source tree:
+	<command> cp /boot/config-`uname -r` /usr/src/linux-`uname -r`/.config</command>. </para>
+
+	<para>
+	Let's focus again on the previous error message: a closer look at the version magic strings suggests that, even with two configuration files
+	which are exactly the same, a slight difference in the version magic could be possible, and it is sufficient to prevent insertion of the module 
+	into the kernel.
+	That slight difference, namely the <literal>custom</literal> string which appears in the module's version magic and not in the kernel's one,
+	is due to a modification with respect to the original, in the makefile that some distribution include.
+	Then, examine your <filename>/usr/src/linux/Makefile</filename>, and make sure that the specified version information matches exactly the one used
+	for your current kernel. For example, you makefile could start as follows: </para>
+
+	<screen>
+VERSION = 2
+PATCHLEVEL = 6
+SUBLEVEL = 5
+EXTRAVERSION = -1.358custom
+...
+	</screen>
+
+	<para>
+	In this case, you need to restore the value of symbol <literal>EXTRAVERSION</literal> to <literal>-1.358</literal>. 
+	We suggest to keep a backup copy of the makefile used to compile your kernel available in <filename>/lib/modules/2.6.5-1.358/build</filename>.
+	A simple <command>cp /lib/modules/`uname -r`/build/Makefile /usr/src/linux-`uname -r`</command> should suffice.
+	Additionally, if you already started a kernel build with the previous (wrong) <filename>Makefile</filename>, 
+	you should also rerun <command>make</command>, or directly modify symbol <literal>UTS_RELEASE</literal> in file 
+	<filename>/usr/src/linux-2.6.x/include/linux/version.h</filename> according to contents of file
+	<filename>/lib/modules/2.6.x/build/include/linux/version.h</filename>, or overwrite the latter with the first.
+	</para>
+
+	<para>
+	Now, please run <command>make</command> to update configuration and version headers and objects:
+	</para>
+	<screen>
+[root@pcsenonsrv linux-2.6.x]# make
+CHK     include/linux/version.h
+UPD     include/linux/version.h
+SYMLINK include/asm -> include/asm-i386
+SPLIT   include/linux/autoconf.h -> include/config/*
+HOSTCC  scripts/basic/fixdep
+HOSTCC  scripts/basic/split-include
+HOSTCC  scripts/basic/docproc
+HOSTCC  scripts/conmakehash
+HOSTCC  scripts/kallsyms
+CC      scripts/empty.o
+...
+	</screen>
+	<para>
+	If you do not desire to actually compile the kernel, you can interrupt the build process (<command>CTRL-C</command>) just after the 
+	<literal>SPLIT</literal> line, because at that time, the files you need will be are ready.
+	Now you can turn back to the directory of your module and compile it: It will be built exactly according your current kernel settings,
+	and it will load into it without any errors.
+	</para>
+</sect1>
+
+<!--
+vim: tw=128
+-->

@@ -1,0 +1,49 @@
+#!/usr/bin/perl -w
+use strict;
+use diagnostics;
+
+my ($filename, $subdir, $in_comment);
+my $debug = 1;
+my $dir = "./lkmpg-examples";
+my $prog_start = '<programlisting><!\[CDATA\[';
+my $prog_end   = '\]\]><\/programlisting>';
+
+
+# If example source code directory doesn't exist, create it.
+#
+mkdir $dir if (! -d $dir);
+
+
+# Loop on each sgml file
+#
+foreach $filename (`ls [0-9]*.sgml`)
+{
+	chomp $filename;
+	$debug && print "Looking in $filename\n";
+	open(FP, "<$filename") || die "Couldn't open $filename for reading.";
+
+	while(<FP>)
+	{
+		# Don't extract code within comments.  Comments are there for a reason.
+		$in_comment = 1 if (/<!--/);
+		$in_comment = 0 if (/-->/);	
+
+		if (/$prog_start/ and not $in_comment)
+		{
+			# Get the directory name from the filename
+			#
+			$subdir = join "", $filename =~ /(.*)\.sgml/;
+			mkdir "$dir/$subdir" if (! -d "$dir/$subdir");
+
+			# Get the name of the program
+			$_ = <FP>;
+			m/\/\*  (.*\.[ch]).*/;
+			$debug && print "  found $+\n";
+
+			open(srcFP, ">$dir/$subdir/$+") || die "Couldn't open $dir/$subdir/$+ for writing";
+			print srcFP "$_";
+			while (($_ = <FP>) !~ /$prog_end/) { print srcFP "$_"; }
+		}
+	}
+
+}

@@ -1,0 +1,105 @@
+<sect1><title>Replacing <function>printk</function></title>
+
+	<indexterm><primary>printk</primary><secondary>replacing</secondary></indexterm> 
+
+
+	<para>In <xref linkend="usingx">, I said that X and kernel module programming don't mix.  That's true for developing kernel
+	modules, but in actual use, you want to be able to send messages to whichever
+	tty<footnote><para><emphasis>T</emphasis>ele<emphasis>ty</emphasis>pe, originally a combination keyboard-printer used to
+	communicate with a Unix system, and today an abstraction for the text stream used for a Unix program, whether it's a physical
+	terminal, an xterm on an X display, a network connection used with telnet, etc.</para></footnote> the command to load the
+	module came from.</para>
+
+	<indexterm><primary>current task</primary></indexterm>
+	<indexterm><primary>task</primary><secondary>current</secondary></indexterm>
+	<indexterm><primary>tty_structure</primary></indexterm>
+	<indexterm><primary>struct</primary><secondary>tty</secondary></indexterm>
+
+	<para>The way this is done is by using <varname>current</varname>, a pointer to the currently running task, to get the current
+	task's <structname>tty</structname> structure.  Then, we look inside that <structname>tty</structname> structure to find a
+	pointer to a string write function, which we use to write a string to the tty.</para>
+
+	<indexterm><primary>source file</primary><secondary>print_string.c</secondary></indexterm>
+
+
+<example><title>print_string.c</title>
+<programlisting><![CDATA[
+/*  print_string.c - Send output to the tty you're running on, regardless of whether it's
+ *     through X11, telnet, etc.  We do this by printing the string to the tty associated
+ *     with the current task.
+ */
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/sched.h>    // For current
+#include <linux/tty.h>      // For the tty declarations
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Peter Jay Salzman");
+
+
+void print_string(char *str)
+{
+   struct tty_struct *my_tty;
+   my_tty = current->tty;           // The tty for the current task
+
+   /* If my_tty is NULL, the current task has no tty you can print to (this is possible,
+    * for example, if it's a daemon).  If so, there's nothing we can do.
+    */
+   if (my_tty != NULL) { 
+
+      /* my_tty->driver is a struct which holds the tty's functions, one of which (write)
+       * is used to write strings to the tty.  It can be used to take a string either
+       * from the user's memory segment or the kernel's memory segment.
+       *
+       * The function's 1st parameter is the tty to write to, because the same function
+       * would normally be used for all tty's of a certain type.  The 2nd parameter
+       * controls whether the function receives a string from kernel memory (false, 0) or
+       * from user memory (true, non zero).  The 3rd parameter is a pointer to a string.
+       * The 4th parameter is the length of the string.
+       */
+      (*(my_tty->driver).write)(
+         my_tty,                 // The tty itself
+         0,                      // We don't take the string from user space
+         str,                    // String
+         strlen(str));           // Length
+
+      /* ttys were originally hardware devices, which (usually) strictly followed the
+       * ASCII standard.  In ASCII, to move to a new line you need two characters, a
+       * carriage return and a line feed.  On Unix, the ASCII line feed is used for both
+       * purposes - so we can't just use \n, because it wouldn't have a carriage return
+       * and the next line will start at the column right after the line feed. 
+       *
+       * BTW, this is why text files are different between Unix and MS Windows.  In CP/M
+       * and its derivatives, like MS-DOS and MS Windows, the ASCII standard was strictly
+       * adhered to, and therefore a newline requirs both a LF and a CR.
+       */
+      (*(my_tty->driver).write)(my_tty, 0, "\015\012", 2);
+   }
+}
+
+
+int print_string_init(void)
+{
+   print_string("The module has been inserted.  Hello world!");
+   return 0;
+}
+
+
+void print_string_exit(void)
+{
+   print_string("The module has been removed.  Farewell world!");
+}  
+
+
+module_init(print_string_init);
+module_exit(print_string_exit);
+]]></programlisting>
+</example>
+
+
+</sect1>
+
+
+
+<!--
+vim: tw=128
+-->

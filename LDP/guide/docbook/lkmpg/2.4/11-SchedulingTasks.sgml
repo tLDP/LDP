@@ -1,0 +1,217 @@
+<sect1><title>Scheduling Tasks</title>
+
+	<indexterm><primary>scheduling tasks</primary></indexterm>
+	<indexterm><primary>tasks</primary><secondary>scheduling</secondary></indexterm>
+	<indexterm><primary>housekeeping</primary></indexterm>
+	<indexterm><primary>crontab</primary></indexterm>
+
+	<para>Very often, we have <quote>housekeeping</quote> tasks which have to be done at a certain time, or every so often. If the
+	task is to be done by a process, we do it by putting it in the <filename>crontab</filename> file.  If the task is to be done
+	by a kernel module, we have two possibilities.  The first is to put a process in the <filename>crontab</filename> file which
+	will wake up the module by a system call when necessary, for example by opening a file. This is terribly inefficient, however
+	-- we run a new process off of <filename>crontab</filename>, read a new executable to memory, and all this just to wake up a
+	kernel module which is in memory anyway.</para>
+
+	<indexterm><primary>task</primary></indexterm>
+	<indexterm><primary>tq_struct</primary></indexterm>
+	<indexterm><primary>queue_task</primary></indexterm>
+	<indexterm><primary>tq_timer</primary></indexterm>
+
+	<para>Instead of doing that, we can create a function that will be called once for every timer interrupt.  The way we do this
+	is we create a task, held in a <structname>tq_struct</structname> structure, which will hold a pointer to the function.  Then,
+	we use <function>queue_task</function> to put that task on a task list called <structname>tq_timer</structname>, which is the
+	list of tasks to be executed on the next timer interrupt.  Because we want the function to keep on being executed, we need to
+	put it back on <structname>tq_timer</structname> whenever it is called, for the next timer interrupt.</para>
+
+	<indexterm><primary>rmmod</primary></indexterm>
+	<indexterm><primary>reference count</primary></indexterm>
+	<indexterm><primary>module_cleanup</primary></indexterm>
+
+	<para>There's one more point we need to remember here.  When a module is removed by <command>rmmod</command>, first its
+	reference count is checked.  If it is zero, <function>module_cleanup</function> is called.  Then, the module is removed from
+	memory with all its functions.  Nobody checks to see if the timer's task list happens to contain a pointer to one of those
+	functions, which will no longer be available.  Ages later (from the computer's perspective, from a human perspective it's
+	nothing, less than a hundredth of a second), the kernel has a timer interrupt and tries to call the function on the task list.
+	Unfortunately, the function is no longer there.  In most cases, the memory page where it sat is unused, and you get an ugly
+	error message.  But if some other code is now sitting at the same memory location, things could get <emphasis>very</emphasis>
+	ugly.  Unfortunately, we don't have an easy way to unregister a task from a task list.</para>
+
+	<indexterm><primary>sleep_on</primary></indexterm>
+	<indexterm><primary>module_sleep_on</primary></indexterm>
+
+	<para>Since <function>cleanup_module</function> can't return with an error code (it's a void function), the solution is to not
+	let it return at all.  Instead, it calls <function>sleep_on</function> or
+	<function>module_sleep_on</function><footnote><para>They're really the same.</para></footnote> to put the
+	<command>rmmod</command> process to sleep.  Before that, it informs the function called on the timer interrupt to stop
+	attaching itself by setting a global variable.  Then, on the next timer interrupt, the <command>rmmod</command> process will
+	be woken up, when our function is no longer in the queue and it's safe to remove the module.</para>
+
+	<indexterm><primary>source file</primary><secondary>sched.c</secondary></indexterm>
+
+
+<example><title>sched.c</title>
+<programlisting><![CDATA[
+/*  sched.c - scheduale a function to be called on every timer interrupt.
+ *
+ *  Copyright (C) 2001 by Peter Jay Salzman
+ */
+
+/* The necessary header files */
+
+/* Standard in kernel modules */
+#include <linux/kernel.h>                   /* We're doing kernel work */
+#include <linux/module.h>                   /* Specifically, a module */
+
+/* Deal with CONFIG_MODVERSIONS */
+#if CONFIG_MODVERSIONS==1
+#define MODVERSIONS
+#include <linux/modversions.h>
+#endif        
+
+/* Necessary because we use the proc fs */
+#include <linux/proc_fs.h>
+
+/* We scheduale tasks here */
+#include <linux/tqueue.h>
+
+/* We also need the ability to put ourselves to sleep and wake up later */
+#include <linux/sched.h>
+
+/* In 2.2.3 /usr/include/linux/version.h includes a macro for this, but
+ * 2.0.35 doesn't - so I add it here if necessary.
+ */
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) ((a)*65536+(b)*256+(c))
+#endif
+
+/* The number of times the timer interrupt has been called so far */
+static int TimerIntrpt = 0;
+
+/* This is used by cleanup, to prevent the module from being unloaded while
+ * intrpt_routine is still in the task queue
+ */
+static struct wait_queue *WaitQ = NULL;
+
+static void intrpt_routine(void *);
+
+/* The task queue structure for this task, from tqueue.h */
+static struct tq_struct Task = {
+   NULL,          /* Next item in list - queue_task will do this for us */
+   0,             /* A flag meaning we haven't been inserted into a task
+                   * queue yet 
+                   */
+   intrpt_routine, /* The function to run */
+   NULL            /* The void* parameter for that function */
+};
+
+/* This function will be called on every timer interrupt. Notice the void*
+ * pointer - task functions can be used for more than one purpose, each time 
+ * getting a different parameter.
+ */
+static void intrpt_routine(void *irrelevant)
+{
+   /* Increment the counter */
+   TimerIntrpt++;
+
+   /* If cleanup wants us to die */
+   if (WaitQ != NULL) 
+      wake_up(&WaitQ);               /* Now cleanup_module can return */
+   else
+      /* Put ourselves back in the task queue */
+      queue_task(&Task, &tq_timer);  
+}
+
+/* Put data into the proc fs file. */
+int procfile_read(char *buffer, 
+                  char **buffer_location, off_t offset, 
+                  int buffer_length, int zero)
+{
+   int len;  /* The number of bytes actually used */
+
+   /* It's static so it will still be in memory when we leave this function
+    */
+   static char my_buffer[80];  
+
+   static int count = 1;
+
+   /* We give all of our information in one go, so if the anybody asks us
+    * if we have more information the answer should always be no. 
+    */
+   if (offset > 0)
+      return 0;
+
+   /* Fill the buffer and get its length */
+   len = sprintf(my_buffer, "Timer called %d times so far\n", TimerIntrpt);
+   count++;
+
+   /* Tell the function which called us where the buffer is */
+   *buffer_location = my_buffer;
+
+   /* Return the length */
+   return len;
+}
+
+struct proc_dir_entry Our_Proc_File = {
+   0,  /* Inode number - ignore, it'll be filled by proc_register_dynamic */
+   5,                 /* Length of the file name */
+   "sched",           /* The file name */
+   S_IFREG | S_IRUGO, /* File mode - this is a regular file which can be
+                       * read by its owner, its group, and everybody else
+                       */
+   1,      /* Number of links (directories where the file is referenced) */
+   0, 0,             /* The uid and gid for the file - we give it to root */
+   80,               /* The size of the file reported by ls. */
+   NULL, /* functions which can be done on the inode (linking, removing,
+          * etc). - we don't * support any.
+          */
+   procfile_read,  /* The read function for this file, the function called
+									  * when somebody tries to read something from it.
+                    */
+   NULL /* We could have here a function to fill the file's inode, to
+         * enable us to play with permissions, ownership, etc.
+         */
+  }; 
+
+/* Initialize the module - register the proc file */
+int init_module()
+{
+   /* Put the task in the tq_timer task queue, so it will be executed at
+    * next timer interrupt
+    */
+   queue_task(&Task, &tq_timer);
+
+   /* Success if proc_register_dynamic is a success, failure otherwise */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,2,0)
+   return proc_register(&proc_root, &Our_Proc_File);
+#else
+   return proc_register_dynamic(&proc_root, &Our_Proc_File);
+#endif
+}
+
+/* Cleanup */
+void cleanup_module()
+{
+   /* Unregister our /proc file */
+   proc_unregister(&proc_root, Our_Proc_File.low_ino);
+  
+   /* Sleep until intrpt_routine is called one last time. This is necessary,
+    * because otherwise we'll deallocate the memory holding intrpt_routine
+    * and Task while tq_timer still references them.  Notice that here we
+    * don't allow signals to interrupt us. 
+    *
+    * Since WaitQ is now not NULL, this automatically tells the interrupt
+    * routine it's time to die.
+    */
+   sleep_on(&WaitQ);
+}  
+]]></programlisting>
+</example>
+
+
+</sect1>
+
+
+
+<!--
+vim: tw=128
+-->
