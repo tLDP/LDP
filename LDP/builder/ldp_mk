@@ -21,6 +21,7 @@ my($dcl)          = '';
 my($linuxdoc)     = 1;
 my($create_index) = 1;
 my($cmd, $fname, $fname_wo_ext, $txt_filter, $style, $s, $db_v, $x) = '';
+my(@flines)       = ();
 
 while(1) {
 
@@ -63,7 +64,7 @@ if( $style eq '' ) {
 
 # determine DTD 
 #
-open(FP_IN, "head -20 $fname | grep -i '\!doctype' |") || 
+open(FP_IN, "head -50 $fname | grep -i '\!doctype' |") || 
                die "\nldp_mk: ERROR - cannot determine DTD for $fname\n";
 $s = <FP_IN>;
 close(FP_IN);
@@ -148,7 +149,7 @@ if( $linuxdoc == 1 ) {
        "$_toolroot/$_jade/jade/jade -t sgml -i html -d $style $dcl $fname; " .
        "mv -f \*.html $fname_wo_ext/;" .
        "$_toolroot/$_jade/jade/jade -t sgml -i html -V nochunks " .
-                  "-d $style $dcl $fname > 00_" . "$fname_wo_ext.html";
+                  "-d $style $dcl $fname > 00_${fname_wo_ext}.html";
 }
 
 system($cmd);
@@ -169,6 +170,17 @@ if( $linuxdoc == 1 ) {
 
 } else {
 
+    open(F_IN, "00_${fname_wo_ext}.html");
+    $s = join('', <F_IN>);
+    close(F_IN);
+
+    # fix to place URLs in-line for text variant
+    #
+    open(F_OUT, "> TXT_${fname_wo_ext}.html");
+    $s =~ s/<A\s*HREF=\"(.*?)\"\s*TARGET=\"(.*?)\"\s*>(.*?)<\/A\s*>/<TT>[$1]<\/TT>\ $3/gm;
+    print F_OUT $s;
+    close(F_OUT);
+    
     if( $txt_filter =~ /lynx/i ) {
         $cmd = "lynx -dump ";
 
@@ -183,7 +195,8 @@ if( $linuxdoc == 1 ) {
         $cmd = "lynx -dump ";
     }
 
-    $cmd .= " 00_" . "$fname_wo_ext" . ".html > $fname_wo_ext.txt";
+    $cmd .= "TXT_${fname_wo_ext}.html > $fname_wo_ext.txt;" .
+            "rm -f TXT_${fname_wo_ext}.html";
 }
 
 system($cmd);
@@ -192,9 +205,9 @@ system($cmd);
 #
 if( -e "$fname_wo_ext.txt" ) {
 
-    my(@flines)    = ();
     my($def_blanks)= 3;
     my($count)     = 0;
+    @flines = ();
 
     open(CPIPE, "pwd |");
     $s = <CPIPE>; chop($s);
@@ -332,6 +345,9 @@ if( $linuxdoc == 1 ) {
     }
 }
 
+
+# cleanup
+system("rm -f index.sgml body.html title.html");
 
 print "\nldp_mk: completed...\n";
 
