@@ -1324,28 +1324,29 @@ class Tables(LampadasCollection):
         log(3, 'Creating doc_error_stats table')
         box = WOStringIO('<table class="box">\n' \
                          '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strerror|</th>\n' \
+                         '<tr><th class="collabel">|strid|</th>\n' \
+                             '<th class="collabel">|strerror|</th>\n' \
                              '<th class="collabel">|strtype|</th>\n' \
                              '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
                          '</tr>\n')
         stattable = stats['doc_error']
         odd_even = OddEven()
         for key in stattable.sort_by('label'):
             stat = stattable[key]
             error = errors[key]
+            errortype = errortypes[error.err_type_code]
             box.write('<tr class="%s"><td class="label">%s</td>\n' \
                           '<td>%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
+                          '<td>%s</td>\n' \
                           '<td align="right">%s</td>\n' \
                       '</tr>\n'
                       % (odd_even.get_next(),
                         stat.label, 
+                        errortype.name[uri.lang],
                         error.name[uri.lang], 
-                        stat.value, 
-                        fpformat.fix(stats['doc_error'].pct(key) * 100, 2)))
+                        stat.value))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
+                      '<td></td><td></td><td align="right">%s</td>\n' \
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
