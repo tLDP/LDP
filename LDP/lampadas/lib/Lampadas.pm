@@ -1623,10 +1623,11 @@ sub FreeNonfreeStatsTable {
 
 sub ClassStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
-	my $sql = "SELECT class_name, count(*) FROM class_i18n ci, document d WHERE d.pub_status = 'N' and ci.class_id=d.class_id AND ci.lang ='$language' GROUP BY class_name";
-	my $total = 0;
 	my $language = RequestedLanguage();
-	my $table = "<table class='box'>\n";
+	my $sql = "SELECT class_name, count(*) FROM class_i18n ci, document d WHERE d.pub_status = 'N' and ci.class_id=d.class_id and ci.lang='$language' GROUP BY class_name";
+	my $total = 0;
+	my $table = '';
+	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Classes</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
@@ -1716,9 +1717,9 @@ sub FormatDTDStatsTable {
 
 sub DetailedStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
+	my $language = RequestedLanguage();
 	my $sql = "SELECT class_name, dtd, format, count(*) FROM class_i18n ci, document d WHERE d.pub_status = 'N' AND ci.lang = '$language' AND ci.class_id=d.class_id GROUP BY class_name, dtd, format";
 	my $total = 0;
-	my $language = RequestedLanguage();
 	my $table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=5>Detailed Statistics</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
