@@ -325,7 +325,7 @@ class TableFactory:
 
         return box
 
-    def user(self, uri, user):
+    def user(self, uri):
         box = '<table class="box">\n'
         if uri.username > '':
             user = lampadas.users[uri.username]
