@@ -97,7 +97,7 @@ def document(req,
                             short_desc          = empty2None_str(short_desc))
 
     page.page[uri.lang] = page.page[uri.lang].replace('|tabdocs|', table)
-    uri = URI('doctable' + uri.lang_ext)
+    uri = URI('doctable' + referer_lang_ext(req))
     uri.base = '../../'
     html = page_factory.build_page(page, uri)
     

@@ -20,6 +20,7 @@
 # 
 
 from Config import config
+from globals import *
 from DataLayer import lampadas
 from URLParse import URI
 from Sessions import sessions
@@ -50,7 +51,7 @@ def login(req, username, password):
                     
             log(3, 'setting cookie')
             req.headers_out['Set-Cookie']='lampadas=' + session_id + '; path=/; expires=Wed, 09-Nov-2030 23:59:00 GMT'
-            uri = URI('logged_in')
+            uri = URI('logged_in' + referer_lang_ext(req))
             uri.base = '../../'
             return page_factory.page(uri)
         else:
@@ -67,6 +68,6 @@ def logout(req, username):
 
     log(3, 'clearing cookie')
     req.headers_out['Set-Cookie']='lampadas=foo; path=/; expires=Wed, 09-Nov-1980 23:59:00 GMT'
-    uri = URI('logged_out')
+    uri = URI('logged_out' + referer_lang_ext(req))
     uri.base = '../../'
     return page_factory.page(uri)
