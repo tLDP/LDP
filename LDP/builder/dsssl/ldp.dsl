@@ -105,7 +105,7 @@
   "../images/")
 
 (define %admon-graphics%
-  #f)
+  #t)
 
 (define %funcsynopsis-decoration%
   ;; make funcsynopsis look pretty
@@ -168,8 +168,7 @@
 
 (define (toc-depth nd)
   ;; more depth (2 levels) to toc; instead of flat hierarchy
-  ;; 2)
-  4)
+  2)
 
 (element emphasis
   ;; make role=strong equate to bold for emphasis tag
@@ -189,6 +188,7 @@
         (normalize "author")
         (normalize "editor")
         (normalize "copyright")
+        (normalize "pubdate")
         (normalize "revhistory")
         (normalize "abstract")
         (normalize "legalnotice")))
