@@ -8,3 +8,6 @@ CREATE TABLE document_notes (
 
 	PRIMARY KEY (note_id)
 );
+
+CREATE INDEX document_notes_upd_idx ON document_notes (updated);
+CREATE INDEX document_notes_ctd_idx ON document_notes (created);

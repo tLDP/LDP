@@ -6,3 +6,6 @@ CREATE TABLE config (
 
 	PRIMARY KEY (name)
 );
+
+CREATE INDEX config_upd_idx ON config (updated);
+CREATE INDEX config_ctd_idx ON config (created);

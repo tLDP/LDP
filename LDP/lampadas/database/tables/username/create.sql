@@ -14,3 +14,6 @@ CREATE TABLE username (
 
 	PRIMARY KEY (username)
 );
+
+CREATE INDEX username_upd_idx ON username (updated);
+CREATE INDEX username_ctd_idx ON username (created);

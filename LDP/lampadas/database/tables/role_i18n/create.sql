@@ -8,3 +8,6 @@ CREATE TABLE role_i18n(
 
 	PRIMARY KEY (role_code, lang)
 );
+
+CREATE INDEX role_i18n_upd_idx ON role_i18n (updated);
+CREATE INDEX role_i18n_ctd_idx ON role_i18n (created);

@@ -7,3 +7,7 @@ CREATE TABLE session (
 
 	PRIMARY KEY (username)
 );
+
+CREATE INDEX session_upd_idx ON session (updated);
+CREATE INDEX session_ctd_idx ON session (created);
+

@@ -8,3 +8,6 @@ CREATE TABLE topic
 
 	PRIMARY KEY (topic_code)
 );
+
+CREATE INDEX topic_upd_idx ON topic (updated);
+CREATE INDEX topic_ctd_idx ON topic (created);

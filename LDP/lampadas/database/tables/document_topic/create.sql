@@ -7,3 +7,6 @@ CREATE TABLE document_topic
 
 	PRIMARY KEY (doc_id, topic_code)
 );
+
+CREATE INDEX document_topic_upd_idx ON document_topic (updated);
+CREATE INDEX document_topic_ctd_idx ON document_topic (created);

@@ -7,3 +7,6 @@ CREATE TABLE block
 
 	PRIMARY KEY (block_code)
 );
+
+CREATE INDEX block_upd_idx ON block (updated);
+CREATE INDEX block_ctd_idx ON block (created);

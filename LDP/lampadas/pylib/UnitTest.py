@@ -38,7 +38,7 @@ from BaseClasses import *
 from Config import config
 from Database import db
 from Languages import languages
-from Docs import docs
+from Docs import docs, Doc
 from Users import users, User
 from Types import types
 from Licenses import licenses
@@ -47,8 +47,8 @@ from Formats import formats
 from PubStatuses import pub_statuses
 from Topics import topics
 from DocTopics import doctopics, DocTopics, DocTopic
-from DocErrs import DocErr
-from DocRatings import DocRating
+from DocErrs import docerrs, DocErr
+from DocRatings import docratings, DocRating
 from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
@@ -80,41 +80,50 @@ class testDocs(unittest.TestCase):
     def testDocs(self):
         log(3, 'testing Docs')
 
-        # Add
-        doc = docs.add('Test Document',
-                                'Test Doc',
-                                'howto',
-                                'xml',
-                                'docbook',
-                                '4.1.2',
-                                '1.0',
-                                '2002-04-04',
-                                'ISBN',
-                                'UTF-8',
-                                'N',
-                                'N',
-                                '2002-04-05',
-                                '2002-04-10',
-                                'N',
-                                'gfdl',
-                                '2.0',
-                                'Copyright Holder',
-                                'This is an abstract.',
-                                'This is a short description.',
-                                'EN',
-                                'fooseries',
-                                0,
-                                '2002-01-01 15:35:21',
-                                '2002-02-02 15:35:22',
-                                '2002-03-03 15:35:23',
-                                '2002-01-01 12:12:12')
+        doc = docs[50000]
+        assert doc==None, 'When calling docs[id] with a nonexistent id, I got back a doc!'
 
-        assert not doc==None
+        # Add
+        doc = Doc(docs)
+        doc.title                  = 'Test Document'
+        doc.short_title            = 'Test Doc'
+        doc.type_code              = 'howto'
+        doc.format_code            = 'xml'
+        doc.dtd_code               = 'docbook'
+        doc.dtd_version            = '4.1.2'
+        doc.version                = '1.0'
+        doc.last_update            = '2002-04-04'
+        doc.isbn                   = 'ISBN'
+        doc.encoding               = 'UTF-8'
+        doc.pub_status_code        = 'N'
+        doc.review_status_code     = 'N'
+        doc.tickle_date            = '2002-04-05'
+        doc.pub_date               = '2002-04-10'
+        doc.tech_review_staus_code = 'N'
+        doc.maintained             = 1
+        doc.maintainer_wanted      = 0
+        doc.license_code           = 'gfdl'
+        doc.license_version        = '2.0'
+        doc.copyright_holder       = 'Copyright Holder'
+        doc.abstract               = 'This is an abstract.'
+        doc.short_desc             = 'This is a short description.'
+        doc.rating                 = 5
+        doc.lang                   = 'EN'
+        doc.sk_seriesid            = 'fooseries'
+        doc.replaced_by_id         = 0
+        doc.lint_time              = '2002-01-01 15:35:21'
+        doc.mirror_time            = '2002-02-02 15:35:22'
+        doc.pub_time               = '2002-03-03 15:35:23'
+        doc.first_pub_date         = '2002-01-01 12:12:12'
+
+        doc = docs.add(doc)
+        assert doc.id > 0
         assert doc.title=='Test Document'
         assert doc.short_title=='Test Doc'
         assert doc.type_code=='howto'
         assert doc.format_code=='xml'
         assert doc.dtd_code=='docbook'
+        assert not doc==None
         
         title = doc.title
         doc.title = 'Foo'
@@ -122,8 +131,11 @@ class testDocs(unittest.TestCase):
         doc.save()
        
         # Delete
-        docs.delete(doc.id)
-        assert docs[doc.id]==None
+        doc_id = doc.id
+        docs.delete(doc_id)
+        
+        doc = docs[doc_id]
+        assert doc==None
 
         keys = docs.keys()
         for key in keys:
@@ -159,12 +171,13 @@ class testDocTopics(unittest.TestCase):
         remember_topics = doc.topics.keys()
         remember_count = doc.topics.count()
 #        print 'Clearing ' + str(remember_count) + ' topics...'
+        print doc.topics.keys()
         doc.topics.clear()
-        assert doc.topics.count()==0
+        assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         doc.topics.refresh_filters()
-        assert doc.topics.count()==0
+        assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         for topic_code in topics.keys():
-            doctopic = DocTopic()
+            doctopic = DocTopic(doctopics)
             doctopic.doc_id = doc.id
             doctopic.topic_code = topic_code
             doc.topics.add(doctopic)
@@ -174,11 +187,11 @@ class testDocTopics(unittest.TestCase):
         assert doc.topics.count()==topics.count(), 'Counts don\'t match: %s and %s ' % (doc.topics.count(), topics.count())
         for topic_code in doc.topics.keys():
             doc.topics.delete(topic_code)
-        assert doc.topics.count()==0
+        assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         count = 0
 #        print 'doctopics is: ' + str(doctopics)
         for topic_code in remember_topics:
-            doctopic = DocTopic()
+            doctopic = DocTopic(doctopics)
             doctopic.doc_id = doc.id
             doctopic.topic_code = topic_code
 #            print 'doc.topics is: ' + str(doc.topics) + ', parent is: ' + str(doc.topics.parent_collection)
@@ -207,14 +220,14 @@ class testDocErrs(unittest.TestCase):
                     assert error.doc_id==doc.id
                     assert error.err_id > 0
             else:
-                err = DocErr()
+                err = DocErr(docerrs)
                 err.doc_id =doc.id
                 err.err_id = ERR_NO_SOURCE_FILE
                 err.notes  = ''
                 doc.errors.add(err)
-                assert doc.errors.count()==1
+                assert doc.errors.count()==1, 'doc.errors.count() should be 1, but has ' + str(doc.errors.count()) + ' items.'
                 doc.errors.delete(ERR_NO_SOURCE_FILE)
-                assert doc.errors.count()==0
+                assert doc.errors.count()==0, 'doc.errors.count() should be 0, but has ' + str(doc.errors.count()) + ' items.'
         log(3, 'testing DocErrs done')
     
 
@@ -246,14 +259,14 @@ class testDocRatings(unittest.TestCase):
             doc = docs[dockey]
             assert not doc==None
             doc.ratings.clear()
-            assert doc.ratings.count()==0
-            assert doc.ratings.averge()==0
+            assert doc.ratings.count()==0, 'doc.ratings.count() should be 0, but has ' + str(doc.ratings.count()) + ' items.'
+            assert doc.ratings.average()==0
 
             # Add Userid: 1   Rating: 5   -- Avg: 5
 
-            docrating = DocRating()
+            docrating = DocRating(docratings)
             docrating.doc_id = doc.id
-            docrating.vote = 5
+            docrating.rating = 5
             docrating.username = 'david'
             doc.ratings.add(docrating)
             assert doc.ratings.count()==1
@@ -261,9 +274,9 @@ class testDocRatings(unittest.TestCase):
 
             # Add Userid: 2   Rating: 7   -- Avg: 6
             
-            docrating = DocRating()
+            docrating = DocRating(docratings)
             docrating.doc_id = doc.id
-            docrating.vote = 7
+            docrating.rating = 7
             docrating.username = 'admin'
             doc.ratings.add(docrating)
             assert doc.ratings.count()==2
@@ -273,7 +286,7 @@ class testDocRatings(unittest.TestCase):
         
             doc.ratings.delete('david')
             assert doc.ratings.count()==1
-            assert doc.rating==7
+            assert doc.ratings.average()==7
 
             # Clear again
 
@@ -386,10 +399,28 @@ class testUsers(unittest.TestCase):
         log(3, 'testing Users')
         assert not users==None
 
+        user = users['testuser']
+        if not user==None:
+            users.delete('testuser')
+
+        user = users['testuser']
+        assert user==None
+        
         count = users.count()
         assert count > 0
 
-        user = users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here')
+        user = User(users)
+        user.username    = 'testuser'
+        user.first_name  = 'j'
+        user.middle_name = 'random'
+        user.surname     = 'hacker'
+        user.email       = 'foo@example.com'
+        user.admin       = 1
+        user.sysadmin    = 1
+        user.password    = 'pw'
+        user.notes       = 'notes go here'
+        users.add(user)
+        user = users['testuser']
         assert not user==None
         assert user.username=='testuser'
         assert user.email=='foo@example.com'
@@ -403,8 +434,7 @@ class testUserDocs(unittest.TestCase):
 
     def testUserDocs(self):
         log(3, 'testing UserDocs')
-        user = User('david')
-        assert len(user.docs) > 0
+        user = users['david']
         assert user.docs.count() > 0
         assert not user.docs==None
         for key in user.docs.keys():

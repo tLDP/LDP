@@ -13,4 +13,5 @@ CREATE TABLE document_rev
 );
 
 CREATE INDEX document_rev_idx ON document_rev (doc_id);
-
+CREATE INDEX document_rev_upd_idx ON document_rev (updated);
+CREATE INDEX document_rev_ctd_idx ON document_rev (created);

@@ -6,3 +6,6 @@ CREATE TABLE dtd
 
 	PRIMARY KEY (dtd_code)
 );
+
+CREATE INDEX dtd_upd_idx ON dtd (updated);
+CREATE INDEX dtd_ctd_idx ON dtd (created);

@@ -92,10 +92,10 @@ class Database:
         if self.count(table)==0:
             return 0
         else:
-            return self.read_value('SELECT MAX(' + field + ') FROM ' + table)
+            return int(self.read_value('SELECT MAX(' + field + ') FROM ' + table))
         
     def next_id(self, table, field):
-        return self.max_id(table, field) + 1
+        return int(self.max_id(table, field)) + 1
 
     def runsql(self, sql, log=1):
         if config.log_sql and log==1:
@@ -104,10 +104,10 @@ class Database:
         cursor.execute(sql)
         return cursor.rowcount
 
-    def count(self, table, whereclause=''):
+    def count(self, table, where_clause=''):
         sql = 'SELECT COUNT(*) FROM ' + table
-        if whereclause > '':
-            sql = sql + ' WHERE ' + whereclause
+        if where_clause > '':
+            sql = sql + ' WHERE ' + where_clause
         return int(self.read_value(sql))
 
     def log(self, level, message, username='', doc_id='NULL'):

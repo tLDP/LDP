@@ -520,6 +520,7 @@ class Tables(LampadasCollection):
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th>|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th></tr>\n')
+        topics.calc_titles()
         keys = topics.sort_by('sort_order')
         dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
@@ -541,6 +542,7 @@ class Tables(LampadasCollection):
                          '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
                          '<tr><th class="collabel">|strtopic|</th>\n'
                          '    <th class="collabel">|straction|</th></tr>\n')
+        topics.calc_titles()
         keys = topics.sort_by('sort_order')
         dtkeys = doc.topics.keys('topic_code')
         odd_even = OddEven()
@@ -1289,6 +1291,7 @@ class Tables(LampadasCollection):
 
     def tabtopics(self, uri):
         log(3, 'Creating tabtopics table')
+        topics.calc_titles()
         topic = topics[uri.code]
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
@@ -1306,6 +1309,7 @@ class Tables(LampadasCollection):
 
     def tabtopic(self, uri):
         log(3, 'Creating tabtopic table')
+        topics.calc_titles()
         topic = topics[uri.code]
         box = '''<table class="box nontabular" width="100%%">
         <tr><th>%s</th></tr>

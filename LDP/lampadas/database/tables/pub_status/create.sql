@@ -7,3 +7,6 @@ CREATE TABLE pub_status
 	
 	PRIMARY KEY (pub_status_code)
 );
+
+CREATE INDEX pub_status_upd_idx ON pub_status (updated);
+CREATE INDEX pub_status_ctd_idx ON pub_status (created);

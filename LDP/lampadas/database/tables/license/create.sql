@@ -11,3 +11,6 @@ CREATE TABLE license
 
 	PRIMARY KEY (license_code)
 );
+
+CREATE INDEX license_upd_idx ON license (updated);
+CREATE INDEX license_ctd_idx ON license (created);

@@ -9,3 +9,6 @@ CREATE TABLE error_i18n
 
 	PRIMARY KEY (err_id, lang)
 );
+
+CREATE INDEX error_i18n_upd_idx ON error_i18n (updated);
+CREATE INDEX error_i18n_ctd_idx ON error_i18n (created);

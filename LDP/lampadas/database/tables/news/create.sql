@@ -7,3 +7,6 @@ CREATE TABLE news
 
 	PRIMARY KEY (news_id)
 );
+
+CREATE INDEX news_upd_idx ON news (updated);
+CREATE INDEX news_ctd_idx ON news (created);

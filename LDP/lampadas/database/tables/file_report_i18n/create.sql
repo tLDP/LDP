@@ -9,3 +9,6 @@ CREATE TABLE file_report_i18n
 
 	PRIMARY KEY (report_code, lang)
 );
+
+CREATE INDEX file_report_i18n_upd_idx ON file_report_i18n (updated);
+CREATE INDEX file_report_i18n_ctd_idx ON file_report_i18n (created);

@@ -9,3 +9,6 @@ CREATE TABLE dtd_i18n
 
 	PRIMARY KEY (dtd_code, lang)
 );
+
+CREATE INDEX dtd_i18n_upd_idx ON dtd_i18n (updated);
+CREATE INDEX dtd_i18n_ctd_idx ON dtd_i18n (created);

@@ -10,3 +10,6 @@ CREATE TABLE sourcefile_author
 );
 
 CREATE INDEX sourcefile_author_idx ON sourcefile_author (filename);
+
+CREATE INDEX sourcefile_author_upd_idx ON sourcefile_author (updated);
+CREATE INDEX sourcefile_author_ctd_idx ON sourcefile_author (created);

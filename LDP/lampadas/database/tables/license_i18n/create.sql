@@ -10,3 +10,6 @@ CREATE TABLE license_i18n
 
 	PRIMARY KEY (license_code, lang)
 );
+
+CREATE INDEX license_i18n_upd_idx ON license_i18n (updated);
+CREATE INDEX license_i18n_ctd_idx ON license_i18n (created);

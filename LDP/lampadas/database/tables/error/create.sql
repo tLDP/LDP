@@ -7,3 +7,6 @@ CREATE TABLE error
 
 	PRIMARY KEY (err_id)
 );
+
+CREATE INDEX error_upd_idx ON error (updated);
+CREATE INDEX error_ctd_idx ON error (created);

@@ -9,3 +9,6 @@ CREATE TABLE document_user (
 
 	PRIMARY KEY (doc_id, username, role_code)
 );
+
+CREATE INDEX document_user_upd_idx ON document_user (updated);
+CREATE INDEX document_user_ctd_idx ON document_user (created);

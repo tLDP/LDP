@@ -6,3 +6,6 @@ CREATE TABLE format
 
 	PRIMARY KEY (format_code)
 );
+
+CREATE INDEX format_upd_idx ON format (updated);
+CREATE INDEX format_ctd_idx ON format (created);

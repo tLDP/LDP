@@ -8,3 +8,6 @@ CREATE TABLE section_i18n
 
 	PRIMARY KEY (section_code, lang)
 );
+
+CREATE INDEX section_i18n_upd_idx ON section_i18n (updated);
+CREATE INDEX section_i18n_ctd_idx ON section_i18n (created);

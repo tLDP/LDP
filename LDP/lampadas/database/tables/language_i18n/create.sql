@@ -8,3 +8,6 @@ CREATE TABLE language_i18n
 
 	PRIMARY KEY (lang_code, lang)
 );
+
+CREATE INDEX language_i18n_upd_idx ON language_i18n (updated);
+CREATE INDEX language_i18n_ctd_idx ON language_i18n (created);

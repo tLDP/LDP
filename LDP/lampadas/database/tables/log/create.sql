@@ -7,8 +7,7 @@ CREATE TABLE log
 	created			TIMESTAMP	NOT NULL	DEFAULT now()
 );
 
-CREATE INDEX log_idx ON log (created);
+CREATE INDEX log_ctd_idx ON log (created);
 CREATE INDEX log_username_idx ON log (username);
 CREATE INDEX log_doc_id_idx ON log (doc_id);
 CREATE INDEX log_level_idx ON log (level);
-

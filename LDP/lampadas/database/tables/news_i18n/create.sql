@@ -10,3 +10,6 @@ CREATE TABLE news_i18n
 
 	PRIMARY KEY (news_id, lang)
 );
+
+CREATE INDEX news_i18n_upd_idx ON news_i18n (updated);
+CREATE INDEX news_i18n_ctd_idx ON news_i18n (created);

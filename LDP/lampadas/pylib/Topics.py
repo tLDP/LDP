@@ -41,10 +41,6 @@ class Topics(DataCollection):
                                 {'topic_desc':  {'data_type': 'string', 'attribute': 'description'}}])
         
 
-    def load(self):
-        DataCollection.load(self)
-        self.calc_titles()
-
     def calc_titles(self):
         for topic_code in self.sort_by('sort_order'):
             topic = self[topic_code]
@@ -63,9 +59,9 @@ class Topic(DataObject):
     to help them find a document on the subject in which they are interested.
     """
 
-    def load_row(self, row):
-        DataObject.load_row(self, row)
-        self.docs = doctopics.apply_filter(DocTopics, Filter(self, 'code', '=', 'topic_code'))
+    def __init__(self, parent=None):
+        DataObject.__init__(self, parent)
+        self.add_child('docs', doctopics.apply_filter(DocTopics, Filter(self, 'code', '=', 'topic_code')))
 
 topics = Topics()
 topics.load()

@@ -7,3 +7,6 @@ CREATE TABLE file_error
 
 	PRIMARY KEY (filename, err_id)
 );
+
+CREATE INDEX file_error_upd_idx ON file_error (updated);
+CREATE INDEX file_error_ctd_idx ON file_error (created);

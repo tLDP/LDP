@@ -7,3 +7,6 @@ CREATE TABLE document_collection
 	
 	PRIMARY KEY (doc_id, collection_code)
 );
+
+CREATE INDEX document_collection_upd_idx ON document_collection (updated);
+CREATE INDEX document_collection_ctd_idx ON document_collection (created);

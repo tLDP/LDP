@@ -7,3 +7,6 @@ CREATE TABLE template
 
 	PRIMARY KEY (template_code)
 );
+
+CREATE INDEX template_upd_idx ON template (updated);
+CREATE INDEX template_ctd_idx ON template (created);

@@ -8,3 +8,6 @@ CREATE TABLE document_rating
 
 	PRIMARY KEY (doc_id, username)
 );
+
+CREATE INDEX document_rating_upd_idx ON document_rating (updated);
+CREATE INDEX document_rating_ctd_idx ON document_rating (created);

@@ -71,7 +71,8 @@ class LampadasCollection:
         for key in self.data.keys():
             object = self[key]
             value = getattr(object, attribute)
-            keys.append(value)
+            if value not in keys:
+                keys.append(value)
         return keys
 
     def has_key(self, key, attribute=''):
@@ -139,6 +140,11 @@ class DataFields(LampadasCollection):
                 keys.append(key)
         return keys
 
+    def find_attribute(self, attribute):
+        for key in self.keys():
+            if self[key].attribute==attribute:
+                return self[key]
+
 class DataField:
 
     def __init__(self, field_name='', data_type='', attribute='', primary=0, nullable=1):
@@ -150,9 +156,20 @@ class DataField:
         if self.attribute=='':
             self.attribute = self.field_name
    
-    def __call__(self):
-        return self.attribute
-
+    def default(self):
+        if self.data_type in ('string', ''):      return ''
+        elif self.data_type in ('sequence', 'int', 'float'):  return 0
+        elif self.data_type=='time':              return ''
+        elif self.data_type=='date':              return ''
+        elif self.data_type=='bool':              return 0
+        elif self.data_type=='created':           return now_string()
+        elif self.data_type=='updated':           return None
+        elif self.data_type=='creator':           return None
+        elif self.data_type=='updater':           return None
+        else:
+            print 'Unrecognized type: ' + self.data_type
+            sys.exit(1)
+        
     def field_to_attr(self, value):
         if self.data_type in ('string', ''):      return trim(value)
         elif self.data_type in ('sequence', 'int', 'float'):  return safeint(value)
@@ -173,8 +190,8 @@ class DataField:
                 return 'NULL'
             else:
                 return str(value)
-        elif self.data_type=='bool':    return wsq(bool2tf(value))
         elif self.data_type=='string':  return wsq(str(value))
+        elif self.data_type=='bool':    return wsq(bool2tf(value))
         elif self.data_type=='date':    return wsq(str(value))
         elif self.data_type=='time':    return wsq(str(value))
         elif self.data_type=='created': return wsq(str(value))
@@ -190,7 +207,12 @@ class DataField:
 
 class DataCollection(LampadasCollection):
 
-    def __init__(self, parent_collection, object, table, indexfields, fields, i18nfields):
+    def __init__(self, parent_collection, object, table, indexfields, fields, i18nfields, cache_size=-1):
+        """
+        cache_size determines how many items are held in the collection cache.
+        0 means no caching at all; -1 means cache everything.
+        """
+         
         LampadasCollection.__init__(self)
         self.parent_collection = parent_collection
         self.child_collections = []
@@ -200,9 +222,10 @@ class DataCollection(LampadasCollection):
         self.indexfields = []
         self.fields      = []
         self.i18nfields  = []
-        self.map         = DataFields()
+        self.cache_size  = cache_size
 
         # All index files are *automatically* set to be primary
+        self.map         = DataFields()
         self.indexfields   = self.parse_fieldmap(indexfields)
         for key in self.map.keys():
             self.map[key].primary = 1
@@ -214,6 +237,120 @@ class DataCollection(LampadasCollection):
 
         self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
         self.updated = None
+
+    def __getitem__(self, key):
+        """If the collection has never been loaded, we load each object on demand. """
+        object = LampadasCollection.__getitem__(self, key)
+        if object==None:
+            object = self.object(self)
+            values = string.split(str(key), ' ')
+            i = 0
+            for field in self.indexfields:
+                data_field = self.map[field]
+                value = data_field.field_to_attr(values[i])
+                i += 1
+                setattr(object, data_field.attribute, value)
+            if object.load()==0:
+                return None
+            self[object.id] = object
+        object.cache_requested = now_string()
+        return object
+
+    def __setitem__(self, key, item):
+        if self.can_cache()==0:
+            return
+        elif self.cache_full()==1:
+            removed_count = 0
+            for key in self.sort_by('cache_requested'):
+                del self[key]
+                removed_count += 1
+                if removed_count==CACHE_REMOVAL_DELTA:
+                    break
+        item.cache_created = now_string()
+        self.data[key] = item
+
+    def keys(self, attribute=''):
+        if self.cache_unlimited()==1:
+            if not self.parent_collection==None:
+                self.refresh_filters()
+            return LampadasCollection.keys(self, attribute)
+
+        # If we're not searching for an attribute, do a quick scan of
+        # only the id fields. Let the db do DISTINCT.
+        keys = []
+        if attribute=='':
+            fields = []
+            for field in self.idfields:
+                data_field = self.map[field]
+                fields.append(data_field.field_name)
+            sql = 'SELECT DISTINCT ' + string.join(fields, ', ') + ' FROM ' + self.table + ' ' + self.where()
+            cursor = db.select(sql)
+            while (1):
+                row = cursor.fetchone()
+                if row==None: break
+                if len(self.idfields)==1:
+                    key = self.map[string.join(self.idfields)].field_to_attr(row[0])
+                else:
+                    key = ''
+                    i = 0
+                    for field in self.idfields:
+                        value = self.map[field].field_to_attr(row[i])
+                        key = key + ' ' + str(value)
+                        i += 1
+                    key = trim(key)
+                keys.append(key)
+        else:
+            for field in self.fields:
+                data_field = self.map[field]
+                if data_field.attribute==attribute:
+                    field_name = data_field.field_name
+            data_field = self.map[field_name]
+            sql = 'SELECT DISTINCT ' + field_name + ' FROM ' + self.table + ' ' + self.where()
+            cursor = db.select(sql)
+            while (1):
+                row = cursor.fetchone()
+                if row==None: break
+                key = data_field.field_to_attr(row[0])
+                keys.append(key)
+        return keys
+    
+    def count(self):
+        """Read from the database, because we might not have all data loaded."""
+
+        # db.count()'s where clause does not expect the word WHERE, so remove it first.
+        where_clause = self.where()
+        where_clause = where_clause.replace(' WHERE ', '')
+        return int(db.count(self.table, where_clause))
+
+    def can_cache(self):
+        return self.cache_size <> 0
+
+    def cache_full(self):
+        return self.cache_size==len(self.data)
+
+    def cache_unlimited(self):
+        return self.cache_size==-1
+        
+    def where(self):
+        """Examine the filters we have on us, and build an equivalent WHERE clause."""
+        where_string = ''
+        if self.parent_collection==None:
+            return ''
+
+        for filter in self.filters:
+            filter.refresh_value()
+            child_attr = filter.child_attr
+            value = filter.value
+            data_field = self.map.find_attribute(child_attr)
+            assert not data_field==None
+            value = data_field.attr_to_field(filter.value)
+            if where_string=='':
+                where_string = ' WHERE '
+            else:
+                where_string += ' AND '
+            where_string = where_string + data_field.field_name + filter.operator
+            where_string += value
+        return where_string
 
     def parse_fieldmap(self, map):
 
@@ -263,7 +400,9 @@ class DataCollection(LampadasCollection):
 
     def load(self, updated=''):
         if self.parent_collection==None:
-            #original_count = self.count()
+            # Do not load collection if current size has reached cache_size
+            if self.can_cache()==0 or self.cache_full()==1:
+                return
             self.updated = now_string()
             #print self.count()
             #print 'Loading ' + self.table + ' since ' + updated + '...'
@@ -295,22 +434,22 @@ class DataCollection(LampadasCollection):
             if len(self.i18nfields) > 0:
                 self.i18ntable = self.table + '_i18n'
                 self.load_i18n_table()
-            #print 'Done handling updates, count: ' + trim(self.count())
-            #if self.count() <> original_count:
-                #print 'Counts differ: ' + str(self.count()) + ' from original ' + str(original_count)
-                #self.refresh_children()
+            #print 'Done loading ' + self.table + ', count: ' + trim(self.count()) + ', len(self.data): ' + str(len(self.data))
         else:
             self.parent_collection.load(updated)
             self.refresh_filters()
 
     def load_table(self, where_clause=''):
-        cursor = db.select(self.select + where_clause)
+        sql = self.select + where_clause
+        #print sql
+        cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             object = self.object(self)
             object.load_row(row)
             self[object.id] = object
+            #print self.table + ', ' + str(object.id)
 
     def load_i18n_table(self, where_clause=''):
         for key in self.keys():
@@ -344,15 +483,22 @@ class DataCollection(LampadasCollection):
         else:
             self.parent_collection.add(object)
             self.refresh_filters()
+        return object
 
     def clear(self):
+        item_count = self.count()
         for key in self.keys():
             self.delete(key)
+            item_count = item_count - 1
+            assert item_count==self.count(), 'Just deleted an item, should have ' + str(item_count) + ' items, but have ' + str(self.count())
         self.refresh_filters()
 
     def delete(self, key):
         object = self[key]
         if self.parent_collection==None:
+            for child_key in object.child_collections.keys():
+                child_collection = object.child_collections[child_key]
+                child_collection.clear()
             object.delete()
             del self[key]
             #self.refresh_children()
@@ -403,13 +549,17 @@ class DataCollection(LampadasCollection):
         if filter.child_attr in filter_results.idfields:
             filter_results.idfields.remove(filter.child_attr)
             assert len(filter_results.idfields)==1
-            self.refresh_keys()
-        filter_results.refresh_filters()
         return filter_results
 
     def refresh_filters(self):
         # FIXME: Replace with the filter() function, which is much faster.
 
+        values = []
+        for filter in self.filters:
+            filter.refresh_value()
+            values.append(str(filter.value))
+            
+        #print self.table + '.refresh_filters(), ' + string.join(values, ' ')
         # Start with all of our parent's objects
         self.updated = self.parent_collection.updated
         self.data = {}
@@ -441,9 +591,15 @@ class DataCollection(LampadasCollection):
 
 class DataObject:
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         self.parent = parent
         self.md5 = ''
+        self.cache_created = ''
+        self.cache_requested = ''
+        for field in self.parent.allfields:
+            data_field = self.parent.map[field]
+            setattr(self, data_field.attribute, data_field.default())
+        self.child_collections = LampadasCollection()
 
     def calculate_md5(self):
         m = md5.new()
@@ -453,6 +609,14 @@ class DataObject:
             m.update(value)
         return m.hexdigest()
 
+    def add_child(self, child_name, child_collection):
+        setattr(self, child_name, child_collection)
+        self.child_collections[child_name] = child_collection
+    
+    def refresh_children(self):
+        for child in self.child_collections:
+            child.refresh_filters()
+            
     def where(self):
         where_string = ''
         for field in self.parent.indexfields:
@@ -479,7 +643,7 @@ class DataObject:
         for field in self.parent.allfields:
             map = self.parent.map[field]
             if map.data_type not in ('created', 'updated'):
-                value_list.append(map.attr_to_field(getattr(self, field)))
+                value_list.append(map.attr_to_field(getattr(self, map.attribute)))
         return string.join(value_list, ', ')
     
     def build_id(self, build_idfields=None):
@@ -509,13 +673,16 @@ class DataObject:
         self.select = self.parent.select + self.where()
         cursor = db.select(self.select)
         row = cursor.fetchone()
+        if row==None: return 0
         self.load_row(row)
+        return 1
 
     def load_row(self, row):
         i = 0
         for field in self.parent.allfields:
-            attribute = self.parent.map[field].attribute
-            value = self.parent.map[field].field_to_attr(row[i])
+            data_field = self.parent.map[field]
+            attribute = data_field.attribute
+            value = data_field.field_to_attr(row[i])
             setattr(self, attribute, value)
             i += 1
         self.id = self.build_id(self.parent.idfields)
@@ -551,6 +718,7 @@ class DataObject:
         
     def delete(self):
         sql = 'DELETE FROM ' + self.parent.table + self.where()
+        #print sql
         db.runsql(sql)
         db.commit()
         sql = 'INSERT INTO deleted(table_name, identifier) VALUES (%s, %s)' % (wsq(self.parent.table), wsq(str(self.build_id())))

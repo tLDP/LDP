@@ -9,3 +9,6 @@ CREATE TABLE review_status_i18n
 	
 	PRIMARY KEY (review_status_code, lang)
 );
+
+CREATE INDEX review_status_i18n_upd_idx ON review_status_i18n (updated);
+CREATE INDEX review_status_i18n_ctd_idx ON review_status_i18n (created);

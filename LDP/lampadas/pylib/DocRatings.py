@@ -42,7 +42,7 @@ class DocRatings(DataCollection):
         for key in self.keys():
             count += 1
             rating = self[key]
-            total += rating.vote
+            total += rating.rating
         if count==0:
             return 0
         return total/count

@@ -7,3 +7,6 @@ CREATE TABLE review_status
 
 	PRIMARY KEY (review_status_code)
 );
+
+CREATE INDEX review_status_upd_idx ON review_status (updated);
+CREATE INDEX review_status_ctd_idx ON review_status (created);

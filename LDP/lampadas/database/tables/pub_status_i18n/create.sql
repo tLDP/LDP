@@ -9,3 +9,6 @@ CREATE TABLE pub_status_i18n
 	
 	PRIMARY KEY (pub_status_code, lang)
 );
+
+CREATE INDEX pub_status_i18n_upd_idx ON pub_status_i18n (updated);
+CREATE INDEX pub_status_i18n_ctd_idx ON pub_status_i18n (created);

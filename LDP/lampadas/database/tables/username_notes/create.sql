@@ -8,3 +8,6 @@ CREATE TABLE username_notes
 
 	PRIMARY KEY (username, created)
 );
+
+CREATE INDEX username_notes_upd_idx ON username_notes (updated);
+CREATE INDEX username_notes_ctd_idx ON username_notes (created);

@@ -9,3 +9,6 @@ CREATE TABLE format_i18n
 
 	PRIMARY KEY (format_code, lang)
 );
+
+CREATE INDEX format_i18n_upd_idx ON format_i18n (updated);
+CREATE INDEX format_i18n_ctd_idx ON format_i18n (created);

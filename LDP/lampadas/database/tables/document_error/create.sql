@@ -8,3 +8,6 @@ CREATE TABLE document_error
 	
 	PRIMARY KEY (doc_id, err_id)
 );
+
+CREATE INDEX document_error_upd_idx ON document_error (updated);
+CREATE INDEX document_error_ctd_idx ON document_error (created);

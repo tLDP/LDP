@@ -36,3 +36,6 @@ CREATE TABLE stats (
 
 	PRIMARY KEY (date_entered)
 );
+
+CREATE INDEX stats_upd_idx ON stats (updated);
+CREATE INDEX stats_ctd_idx ON stats (created);

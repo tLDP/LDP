@@ -26,120 +26,35 @@ for the Lampadas system. All access to the underlying database should be
 performed through this layer.
 """
 
-# Modules
-
 from Globals import *
 from Config import config
 from Database import db
 from Log import log
 from BaseClasses import *
-from SourceFiles import sourcefiles
-from ErrorTypes import errortypes
-from Errors import errors
-from Languages import languages
-from DocTopics import doctopics, DocTopics
-from Encodings import encodings, Encodings
-from Types import types, Types
-from Roles import roles, Roles
-from Licenses import licenses, Licenses
-from DTDs import dtds, DTDs
-from Formats import formats, Formats
-from PubStatuses import pub_statuses, PubStatuses
-from ReviewStatuses import review_statuses, ReviewStatuses
-from Topics import topics, Topics
-from Collections import collections, Collections
-import string
-import os.path
+from DocUsers import docusers, DocUsers
 
-
-# UserDocs
-
-class UserDocs(LampadasCollection):
-    """
-    A collection object providing access to all user document associations.
-    """
-
-    def __init__(self, username):
-        self.data = {}
-        self.username = username
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE username=" + wsq(username)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            newUserDoc = UserDoc()
-            newUserDoc.load_row(row)
-            self.data[newUserDoc.doc_id] = newUserDoc
-
-
-    def add(self, doc_id, role_code, email, active):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document_user(doc_id, username, role_code, email, active) VALUES (" + str(doc_id) + ", " + wsq(self.username) + ", " + wsq(role_code) + ", " + wsq(email) + ", " + wsq(bool2tf(active)) +  " )"
-        assert db.runsql(sql)==1
-        db.commit()
-        newUserDoc = UserDoc()
-        self.data[doc_id] = newUserDoc
-    
-    def delete(self, doc_id):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'DELETE from document_user WHERE doc_id=' + str(doc_id) + ' AND username=' + wsq(self.username)
-        assert db.runsql(sql)==1
-        db.commit()
-        del self.data[doc_id]
-
-class UserDoc:
-    """
-    An association between a user and a document. This association defines the role
-    which the user plays in the production of the document.
-    """
-
-    def load_row(self, row):
-        self.doc_id		= row[0]
-        self.username	= trim(row[1])
-        self.role		= trim(row[2])
-        self.email		= trim(row[3])
-        self.active		= tf2bool(row[4])
-
-    def save(self):
-        """
-        FIXME: use cursor.execute(sql,params) instead! --nico
-        """
-        sql = "UPDATE document_user SET role=" + wsq(self.role) + ", email=" + wsq(self.email) + ", active=" + wsq(bool2tf(self.active)) + " WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
-        db.runsql(sql)
-        db.commit()
-
-
-# Users
-
-class Users:
+class Users(DataCollection):
     """
     A collection object providing access to registered users.
     """
 
-    def __getitem__(self, username):
-        user = User(username)
-        if user.username==username:
-            return User(username)
-        else:
-            return None
-
-    def count(self):
-        return db.read_value('SELECT count(*) from username')
-
-    def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ")"
-        assert db.runsql(sql)==1
-        db.commit()
-        user = self[username]
-        return user
-    
-    def delete(self, username):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'DELETE from username WHERE username=' + wsq(username)
-        assert db.runsql(sql)==1
-        db.commit()
+    def __init__(self):
+        DataCollection.__init__(self, None, User,
+                               'username',
+                               {'username':     {'data_type': 'string'}},
+                               [{'session_id':  {'data_type': 'string'}},
+                                {'first_name':  {'data_type': 'string'}},
+                                {'middle_name': {'data_type': 'string'}},
+                                {'surname':     {'data_type': 'string'}},
+                                {'email':       {'data_type': 'string'}},
+                                {'admin':       {'data_type': 'bool'}},
+                                {'sysadmin':    {'data_type': 'bool'}},
+                                {'password':    {'data_type': 'string'}},
+                                {'notes':       {'data_type': 'string'}},
+                                {'created':     {'data_type': 'created'}},
+                                {'updated':     {'data_type': 'updated'}}],
+                               [],
+                               cache_size=100)
 
     def is_email_taken(self, email):
         value = db.read_value('SELECT COUNT(*) FROM username WHERE email=' + wsq(email))
@@ -152,7 +67,6 @@ class Users:
 
         log(3, 'looking for user session: ' + session_id)
         if session_id > '':
-        # FIXME: use cursor.execute(sql,params) instead! --nico
             sql = 'SELECT username FROM username WHERE session_id=' + wsq(session_id)
             cursor = db.select(sql)
             row = cursor.fetchone()
@@ -182,52 +96,15 @@ class Users:
         keys.sort()
         return keys
         
-class User:
+class User(DataObject):
     """
     A user who is known by the system can login to manipulate documents
     and act on the database according to his rights.
     """
 
-    def __init__(self, username='') :
-        self.username       = ''
-        self.session_id     = ''
-        self.first_name     = ''
-        self.middle_name    = ''
-        self.surname        = ''
-        self.email          = ''
-        self.admin          = 0
-        self.sysadmin       = 0
-        self.password       = ''
-        self.notes          = ''
-        self.name           = ''
-
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes FROM username WHERE username=' + wsq(username)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None:
-            return
-        self.username       = trim(row[0])
-        self.session_id     = trim(row[1])
-        self.first_name     = trim(row[2])
-        self.middle_name    = trim(row[3])
-        self.surname        = trim(row[4])
-        self.email          = trim(row[5])
-        self.admin          = tf2bool(row[6])
-        self.sysadmin       = tf2bool(row[7])
-        self.password       = trim(row[8])
-        self.notes          = trim(row[9])
-        self.name           = trim(trim(self.first_name + ' ' + self.middle_name) + ' ' + self.surname)
-
-        self.docs = UserDocs(self.username)
-
-    def save(self):
-        """
-        FIXME: use cursor.execute(sql,params) instead! --nico
-        """
-        sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ' WHERE username=' + wsq(self.username)
-        db.runsql(sql)
-        db.commit()
+    def __init__(self, parent) :
+        DataObject.__init__(self, parent)
+        DataObject.add_child(self, 'docs', docusers.apply_filter(DocUsers, Filter(self, 'username', '=', 'username')))
 
     def can_edit(self, doc_id=None, username=None, news_id=None, page_code=None, string_code=None):
 
@@ -269,7 +146,6 @@ class User:
         return 0
 
 users = Users()
-
 
 # main
 if __name__=='__main__' :

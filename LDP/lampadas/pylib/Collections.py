@@ -18,6 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 from BaseClasses import *
+from DocCollections import doccollections, DocCollections
 
 class Collections(DataCollection):
     """A collection object of all document collections."""
@@ -32,7 +33,10 @@ class Collections(DataCollection):
 
 class Collection(DataObject):
     """A collection is an arbitrary set of documents."""
-    pass
+
+    def __init__(self, parent):
+        DataObject.__init__(self, parent)
+        DataObject.add_child(self, 'docs', doccollections.apply_filter(DocCollections, Filter(self, 'code', '=', 'collection_code')))
 
 collections = Collections()
 collections.load()

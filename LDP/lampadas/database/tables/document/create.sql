@@ -1,7 +1,7 @@
 CREATE TABLE document
 (
 	doc_id			INT4		NOT NULL,
-	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
+	lang			CHAR(2)				REFERENCES language(lang_code),
 	title			TEXT,
 	short_title		TEXT,
 	type_code		CHAR(20)			REFERENCES type(type_code),
@@ -37,3 +37,6 @@ CREATE TABLE document
 
 	PRIMARY KEY (doc_id)
 );
+
+CREATE INDEX document_upd_idx ON document (updated);
+CREATE INDEX document_ctd_idx ON document (created);

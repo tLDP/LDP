@@ -7,3 +7,6 @@ CREATE TABLE collection
 
 	PRIMARY KEY (collection_code)
 );
+
+CREATE INDEX collection_upd_idx ON collection (updated);
+CREATE INDEX collection_ctd_idx ON collection (created);

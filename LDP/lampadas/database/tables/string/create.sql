@@ -7,4 +7,5 @@ CREATE TABLE string
 	PRIMARY KEY (string_code)
 );
 
-
+CREATE INDEX string_upd_idx ON string (updated);
+CREATE INDEX string_ctd_idx ON string (created);

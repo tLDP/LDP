@@ -9,3 +9,6 @@ CREATE TABLE type_i18n
 
 	PRIMARY KEY (type_code, lang)
 );
+
+CREATE INDEX type_i18n_upd_idx ON type_i18n (updated);
+CREATE INDEX type_i18n_ctd_idx ON type_i18n (created);

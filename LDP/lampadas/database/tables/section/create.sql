@@ -8,3 +8,6 @@ CREATE TABLE section
 
 	PRIMARY KEY (section_code)
 );
+
+CREATE INDEX section_upd_idx ON section (updated);
+CREATE INDEX section_ctd_idx ON section (created);

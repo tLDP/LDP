@@ -34,6 +34,10 @@ import htmlentitydefs
 
 VERSION = '0.9.5-cvs'
 
+# How many items to clear from a cache when it is full
+# and we're adding another object to it.
+CACHE_REMOVAL_DELTA     = 10
+
 # Document errors
 ERR_NO_SOURCE_FILE      = 001
 ERR_NO_PRIMARY_FILE     = 002
@@ -271,7 +275,14 @@ def html_decode(text):
 
 def escape_tokens(text):
     return text.replace('|', '\|')
-   
+
+def unique_keys(keys):
+    new_keys = []
+    for key in keys:
+        if key not in new_keys:
+            new_keys.append(key)
+    return new_keys
+
 def string_match(text1, text2):
     """Determines if the strings match except for whitespace and line breaks, etc."""
 

@@ -9,3 +9,6 @@ CREATE TABLE string_i18n
 
 	PRIMARY KEY (string_code, lang)
 );
+
+CREATE INDEX string_i18n_upd_idx ON string_i18n (updated);
+CREATE INDEX string_i18n_ctd_idx ON string_i18n (created);

@@ -5,3 +5,6 @@ CREATE TABLE role(
 
 	PRIMARY KEY (role_code)
 );
+
+CREATE INDEX role_upd_idx ON role (updated);
+CREATE INDEX role_ctd_idx ON role (created);

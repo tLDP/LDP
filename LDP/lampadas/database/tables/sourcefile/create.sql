@@ -17,3 +17,6 @@ CREATE TABLE sourcefile
 	
 	PRIMARY KEY (filename)
 );
+
+CREATE INDEX sourcefile_upd_idx ON sourcefile (updated);
+CREATE INDEX sourcefile_ctd_idx ON sourcefile (created);

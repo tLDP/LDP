@@ -34,7 +34,7 @@ XSLTPROC_PARAMS = ''
 from BaseClasses import *
 from Globals import *
 from Docs import docs
-from DocErrs import DocErr
+from DocErrs import docerrs, DocErr
 from SourceFiles import sourcefiles
 from Languages import languages
 from Config import config
@@ -397,7 +397,7 @@ class Project:
 
                     # Abort if the command returns an exit code.
                     if exit_status<>0:
-                        docerr = DocErr()
+                        docerr = DocErr(docerrs)
                         docerr.doc_id = self.doc.id
                         docerr.err_id = ERR_MAKE_EXIT_STATUS
                         docerr.notes = str(exit_status) + ': ' + cmd_split
@@ -410,7 +410,7 @@ class Project:
                         err_text = fh.read()
                         fh.close()
                         if err_text > '':
-                            docerr = DocErr()
+                            docerr = DocErr(docerrs)
                             docerr.doc_id = self.doc.id
                             docerr.err_id = ERR_MAKE_STDERR
                             docerr.notes = cmd_split + '\n\n' + err_text
@@ -423,7 +423,7 @@ class Project:
                     filestat = os.stat(self.workdir + command.output_to)
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
-                        docerr = DocErr()
+                        docerr = DocErr(docerrs)
                         docerr.doc_id = self.doc.id
                         docerr.err_id = ERR_MAKE_ZERO_LENGTH
                         docerr.notes = cmd_split

@@ -9,3 +9,6 @@ CREATE TABLE collection_i18n
 
 	PRIMARY KEY (collection_code, lang)
 );
+
+CREATE INDEX collection_i18n_upd_idx ON collection_i18n (updated);
+CREATE INDEX collection_i18n_ctd_idx ON collection_i18n (created);

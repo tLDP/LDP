@@ -7,3 +7,6 @@ CREATE TABLE stats_cdf (
 	created			TIMESTAMP	NOT NULL	DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL	DEFAULT now()
 );
+
+CREATE INDEX stats_cdf_upd_idx ON stats_cdf (updated);
+CREATE INDEX stats_cdf_ctd_idx ON stats_cdf (created);

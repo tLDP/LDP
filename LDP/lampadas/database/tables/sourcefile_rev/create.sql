@@ -13,3 +13,6 @@ CREATE TABLE sourcefile_rev
 );
 
 CREATE INDEX sourcefile_rev_idx ON sourcefile_rev (filename);
+
+CREATE INDEX sourcefile_rev_upd_idx ON sourcefile_rev (updated);
+CREATE INDEX sourcefile_rev_ctd_idx ON sourcefile_rev (created);

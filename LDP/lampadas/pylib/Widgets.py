@@ -352,9 +352,10 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
+        doc_lang_keys = docs.keys('lang')
         keys = languages.sort_by_lang('name', lang)
         for key in keys:
-            if docs.languages[key] > 0:
+            if key in doc_lang_keys:
                 language = languages[key]
                 assert not language==None
                 combo.write("<option ")

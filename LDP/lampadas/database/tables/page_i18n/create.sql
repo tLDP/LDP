@@ -11,3 +11,6 @@ CREATE TABLE page_i18n
 
 	PRIMARY KEY (page_code, lang)
 );
+
+CREATE INDEX page_i18n_upd_idx ON page_i18n (updated);
+CREATE INDEX page_i18n_ctd_idx ON page_i18n (created);
