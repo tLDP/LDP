@@ -1,6 +1,7 @@
 CREATE TABLE topic
 (
-	topic_num		INT4		NOT NULL,
+	topic_code	CHAR(20)	NOT NULL,
+	topic_num	INT4		NOT NULL,
 
-	PRIMARY KEY (topic_num)
+	PRIMARY KEY (topic_code)
 );

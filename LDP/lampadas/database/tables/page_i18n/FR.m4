@@ -73,6 +73,11 @@ insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
 	Confidentialit&eacute;
 ])
 
+insert([topic], [View Topic], [View Topic],
+[
+    |tabsubtopics|
+])
+
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|

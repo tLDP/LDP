@@ -1,11 +1,9 @@
 CREATE TABLE topic_i18n
 (
-	topic_num		INT4		NOT NULL
-				REFERENCES topic(topic_num),
-	lang			CHAR(2)		NOT NULL
-				REFERENCES language(isocode),
-	topic_name		TEXT		NOT NULL,
-	topic_description	TEXT,
+	topic_code		CHAR(20)	NOT NULL	REFERENCES topic(topic_code),
+	lang			CHAR(2)		NOT NULL	REFERENCES language(isocode),
+	topic_name		TEXT		NOT NULL, 
+	topic_desc		TEXT,
 
-	PRIMARY KEY (topic_num, lang)
+	PRIMARY KEY (topic_code, lang)
 );

@@ -10,5 +10,6 @@ insert(lampadas,    default, help,      2)
 insert(copyright,   default, help,      3)
 insert(privacy,     default, help,      4)
 
+insert(topic,       default, none,      0)
 insert(editdoc,     default, none,      0)
 insert(404,         default, none,      0)

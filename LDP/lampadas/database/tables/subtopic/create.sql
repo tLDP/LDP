@@ -1,10 +1,8 @@
 CREATE TABLE subtopic
 (
-	topic_num		INT4		NOT NULL
-				REFERENCES topic(topic_num),
+	subtopic_code		CHAR(20)	NOT NULL,
 	subtopic_num		INT4		NOT NULL,
-	subtopic_name		TEXT		NOT NULL,
-	subtopic_description	TEXT,	
+	topic_code		CHAR(20)	NOT NULL	REFERENCES topic(topic_code),
 
-	PRIMARY KEY (topic_num, subtopic_num)
+	PRIMARY KEY (subtopic_code)
 );

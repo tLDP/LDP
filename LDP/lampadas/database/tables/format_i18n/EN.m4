@@ -1,0 +1,7 @@
+insert(1,   SGML,       [Standard Generalized Markup Language])
+insert(2,   XML,        [Portable Document Format])
+insert(3,   Text,       [Plain Text])
+insert(4,   XML,        [Extensible Markup Language])
+insert(5,   LaTeX,      [LaTeX])
+insert(6,   WikiText,   [WikiText])
+insert(7,   Texinfo,    [Texinfo, the official documentation format of the GNU Project.])

@@ -172,6 +172,11 @@ insert([privacy], [Privacy Policy], [Privacy],
     <p>We will not spam you or add you to any mailing lists without your consent.
 ])
 
+insert([topic], [View Topic], [View Topic],
+[
+    |tabsubtopics|
+])
+
 insert([editdoc], [Edit Document Meta-data], [Edit Document],
 [
     |tabeditdoc|

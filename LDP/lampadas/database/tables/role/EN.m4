@@ -1,0 +1,7 @@
+insert(A)
+insert(M)
+insert(C)
+insert(V)
+insert(T)
+insert(E)
+insert(F)

@@ -40,6 +40,7 @@ tabs =	audience \
 	string \
 	string_i18n \
 	subtopic \
+	subtopic_i18n \
 	template \
 	topic \
 	topic_i18n \

@@ -1,0 +1,7 @@
+insert(A)
+insert(C)
+insert(D)
+insert(N)
+insert(P)
+insert(R)
+insert(W)
