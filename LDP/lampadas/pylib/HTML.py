@@ -332,7 +332,7 @@ class TableFactory:
         box = box + '<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strformat|</th><td>' + combo_factory.format(doc.format_code, uri.lang) + '</td>\n'
-        box = box + '<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + ' ' + '<input type=text name=dtd_version value="' + doc.dtd_version + '"></td>\n'
+        box = box + '<th class="label">|strdtd|</th><td>' + combo_factory.dtd(doc.dtd_code, uri.lang) + '<input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n'
         box = box + '<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
@@ -798,14 +798,6 @@ class TableFactory:
         subtopic = lampadas.subtopics[uri.code]
         box = '<table class="navbox"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
-        box = box + '<tr><td><ol>\n'
-        keys = subtopic.docs.sort_by('title')
-        for key in keys:
-            doc = subtopic.docs[key]
-            if doc.subtopic.topic_code==uri.code and doc.lang==uri.lang:
-                box = box + '<li><a href="/doc/' + str(doc.id) + '">\n'
-                box = box + doc.title + '</a>\n'
-        box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         return box
 
