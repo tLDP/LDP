@@ -34,7 +34,7 @@ from URLParse import URI
 from DataLayer import *
 from SourceFiles import sourcefiles
 from WebLayer import lampadasweb
-from Tables import tables
+from Tables import tables, tablemap
 from Widgets import widgets
 from Lintadas import lintadas
 from Sessions import sessions
@@ -265,8 +265,8 @@ class PageFactory:
                     newstring = tables.tabtopics(uri)
                 elif token=='tabtopic':
                     newstring = tables.tabtopic(uri)
-                elif token=='tabdocs':
-                    newstring = tables.doctable(uri, lang=uri.lang)
+#                elif token=='tabdocs':
+#                    newstring = tables.doctable(uri, lang=uri.lang)
                 elif token=='tabdocs_block':
                     newstring = tables.doctable(uri, lang=uri.lang, layout='block')
                 elif token=='tabmaint_wanted':
@@ -338,17 +338,21 @@ class PageFactory:
                 elif token=='tabdocument_tabs':
                     newstring = tables.tabdocument_tabs(uri)
             
-                # Blocks and Strings
+                # Tables, Blocks and Strings
                 if newstring==None:
-                    block = lampadasweb.blocks[token]
-                    if block==None:
-                        string = lampadasweb.strings[token]
-                        if string==None:
-                            log(1, 'Could not replace token ' + token)
+                    tablegen = tablemap[token]
+                    if tablegen==None:
+                        block = lampadasweb.blocks[token]
+                        if block==None:
+                            string = lampadasweb.strings[token]
+                            if string==None:
+                                log(1, 'Could not replace token ' + token)
+                            else:
+                                newstring = string.string[uri.lang]
                         else:
-                            newstring = string.string[uri.lang]
+                            newstring = block.block
                     else:
-                        newstring = block.block
+                        newstring = tablegen(uri)
                 
                 # Just use the token if the token was not found
                 if newstring==None:

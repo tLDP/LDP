@@ -1464,5 +1464,29 @@ class Tables(LampadasCollection):
         return box.get_value()
 
 
+class Table:
+
+    def __init__(self, code, method):
+        self.code   = code
+        self.method = method
+
+    def __call__(self, uri):
+        return self.method(uri)
+   
+class DocTable(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'doctable', self.method)
+
+    def method(self, uri):
+        return tables.doctable(uri)
+
+class TableMap(LampadasCollection):
+
+    def __init__(self):
+        self.data = {}
+        self['tabdocs'] = DocTable()
+
 tables = Tables()
+tablemap = TableMap()
 
