@@ -10,6 +10,7 @@
 # 
 
 use File::Basename;
+use HTML::Entities;
 
 my($txtfile, $dbfile) = '';
 
@@ -118,6 +119,13 @@ sub proc_txt {
 		$line =~ s/^q:/Q:/;
 		$line =~ s/^a:/A:/;
 
+		# encode entities
+		#
+#		while ($line =~ //) {
+#		}
+#		decode_entities($line);
+		encode_entities($line);
+		
 		# inline docbook
 		#
 		# ulink
@@ -140,7 +148,11 @@ sub proc_txt {
 			} else {
 				$linkname = $link;
 			}
-			
+
+			# kill quotes, they mess us up
+			# 
+			$link =~ s/'/%27/g;
+
 			# namespaces are handled differently
 			#
 			print "$link\n" if ($verbose);
@@ -190,13 +202,6 @@ sub proc_txt {
 			$line =~ s/'''/<emphasis role='bold'>/;
 			$line =~ s/'''/<\/emphasis>/;
 		}
-
-		# filename
-		# 
-#		while ($line =~ /\[.*?\]/) {
-#			$line =~ s/\[/<filename>/;
-#			$line =~ s/\]/<\/filename>/;
-#		}
 
 		# this block defines DocBook structures that won't be broken up with 
 		# paragraphs when we hit empty lines:
@@ -366,6 +371,9 @@ sub proc_txt {
 			$line = "<answer><para>" . $line;
 			$answer = 1;
 			$para = 1;
+
+		} elsif ($line =~ /^\s*----\s*$/) {
+			$line = '';
 
 		# para
 		#
