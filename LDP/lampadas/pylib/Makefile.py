@@ -90,10 +90,10 @@ class Makefile:
                                       'all:\tbuild\n\n' \
                                       'rebuild:\tclean build\n\n' \
                                       'build:\tdbsgml xml tidyxml html index text omf\n\n' \
-                                      'publish:\n' \
-                                      '\tcp -p %s ..\n' \
-                                      '\tcp -p %s ..\n' \
-                                      '\tcp -p %s ..\n\n' \
+                                      'publish:\tbuild\n' \
+                                      '\tcp -up %s ..\n' \
+                                      '\tcp -up %s ..\n' \
+                                      '\tcp -up %s ..\n\n' \
                                       'clean:\n'
                                       % ('*.html', txtfile, omffile))
                 if sourcefile.format_code<>'text':
