@@ -896,7 +896,8 @@ class Tables(LampadasCollection):
     def recent_news(self, uri):
         log(3, 'Creating recent news')
         box = WOStringIO('''<table class="box" width="100%">
-        <tr><th>|strdate|</th><th>|strnews|</th></tr>\n''')
+        <tr><th colspan="2">|strrecentnews|</th></tr>
+        <tr><th class="collabel">|strdate|</th><th class="collabel">|strnews|</th></tr>\n''')
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
