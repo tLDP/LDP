@@ -9,7 +9,7 @@ CREATE TABLE document_rev
 	initials		CHAR(3)		NOT NULL,
 	notes			TEXT,
 
-	PRIMARY KEY (rev_id)
+	PRIMARY KEY (doc_id, rev_id)
 );
 
 ALTER TABLE document_rev

@@ -377,6 +377,7 @@ while (@row = $authors_result->fetchrow) {
   if ( $role eq "Co-Author" ) { print '<option selected>Co-Author</option>' } else { print '<option>Co-Author</option>' }
   if ( $role eq "Maintainer" ) { print '<option selected>Maintainer</option>' } else { print '<option>Maintainer</option>' }
   if ( $role eq "Converter" ) { print '<option selected>Converter</option>' } else { print '<option>Converter</option>' }
+  if ( $role eq "Translator" ) { print '<option selected>Translator</option>' } else { print '<option>Translator</option>' }
   print "</select></td>\n";
 
   print "<td valign=top><a href='maintainer_edit.pl?maintainer_id=$maintainer_id'>$maintainer_name</a></td>\n";
@@ -404,6 +405,7 @@ print '<option>Author</option>';
 print '<option>Co-Author</option>';
 print '<option>Maintainer</option>';
 print '<option>Converter</option>';
+print '<option>Translator</option>';
 print "</select></td>\n";
 
 print "<td valign=top>";

@@ -43,14 +43,14 @@ print "<table>\n";
 print "<tr><th>Status</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
-  print "<td>" . $row[0] . "</td>\n";
+  print "<th>" . $row[0] . "</th>\n";
   print "<td align=right>" . $row[1] . "</td>\n";
   $pct = sprintf( '%3.2f', $row[1] / $document_total * 100 );
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $row[1];
 }
-print "<tr><td>Total</td><td align=right>$total</td></tr>";
+print "<tr><th>Total</th><td align=right>$total</td></tr>";
 print "</table>\n";
 
 print "<p>Only documents marked &quot;Active&quot; are represented in the following statistics.\n";
@@ -74,7 +74,7 @@ while (@row = $result->fetchrow) {
   $license =~ s/\s+$//;
   $count   = $row[1];
   print "<tr>\n";
-  print "<td>$license</td>\n";
+  print "<th>$license</th>\n";
   print "<td align=right>$count</td>\n";
   $pct = sprintf( '%3.2f', $count / $document_count * 100 );
   print "<td align=right>$pct%</td>\n";
@@ -91,7 +91,7 @@ while (@row = $result->fetchrow) {
     $nonfree_count += $count;
   }
 }
-print "<tr><td>Total</td><td align=right>$total</td></tr>";
+print "<tr><th>Total</th><td align=right>$total</td></tr>";
 print "</table>\n";
 
 $free_pct = sprintf( '%3.2f', $free_count / $total * 100 );
@@ -100,10 +100,10 @@ $unknown_pct = sprintf( '%3.2f', $unknown_count / $total * 100 );
 
 print "<p><table>\n";
 print "<tr><th>Type</th><th align=right>Count</th><th align=right>Percent</th></tr>\n";
-print "<tr><td>Free*</td><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
-print "<tr><td>Non-Free</td><td align=right>$nonfree_count</td><td align=right>$nonfree_pct</td></tr>\n";
-print "<tr><td>Unknown</td><td align=right>$unknown_count</td><td align=right>$unknown_pct</td></tr>\n";
-print "<tr><td>Total</td><td align=right>$total</td></tr>";
+print "<tr><th>Free*</th><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
+print "<tr><th>Non-Free</th><td align=right>$nonfree_count</td><td align=right>$nonfree_pct</td></tr>\n";
+print "<tr><th>Unknown</th><td align=right>$unknown_count</td><td align=right>$unknown_pct</td></tr>\n";
+print "<tr><th>Total</th><td align=right>$total</td></tr>";
 print "</table>\n";
 
 print "<p>*Free licenses include GFDL, GPL, OPL, and PD.\n";
@@ -120,14 +120,14 @@ print "<table>\n";
 print "<tr><th>Class</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
-  print "<td>" . $row[0] . "</td>\n";
+  print "<th>" . $row[0] . "</th>\n";
   print "<td align=right>" . $row[1] . "</td>\n";
   $pct = sprintf( '%3.2f', $row[1] / $document_count * 100 );
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $row[1];
 }
-print "<tr><td>Total</td><td align=right>" . $total . "</td></tr>";
+print "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
 print "</table>\n";
 
 
@@ -143,14 +143,14 @@ print "<table>\n";
 print "<tr><th>Format</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
-  print "<td>" . $row[0] . "</td>\n";
+  print "<th>" . $row[0] . "</th>\n";
   print "<td align=right>" . $row[1] . "</td>\n";
   $pct = sprintf( '%3.2f', $row[1] / $document_count * 100 );
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $row[1];
 }
-print "<tr><td>Total</td><td align=right>" . $total . "</td></tr>";
+print "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
 print "</table>\n";
 
 
@@ -166,14 +166,14 @@ print "<table>\n";
 print "<tr><th>DTD</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
-  print "<td>" . $row[0] . "</td>\n";
+  print "<th>" . $row[0] . "</th>\n";
   print "<td align=right>" . $row[1] . "</td>\n";
   $pct = sprintf( '%3.2f', $row[1] / $document_count * 100 );
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $row[1];
 }
-print "<tr><td>Total</td><td align=right>" . $total . "</td></tr>";
+print "<tr><th>Total</th><td align=right>" . $total . "</td></tr>";
 print "</table>\n";
 
 print "<p><hr>";
@@ -192,14 +192,14 @@ while (@row = $result->fetchrow) {
   $count  = $row[2];
   $pct = sprintf( '%3.2f', $count / $document_count * 100 );
   print "<tr>\n";
-  print "<td>$format</td>\n";
-  print "<td>$dtd</td>\n";
+  print "<th>$format</th>\n";
+  print "<th>$dtd</th>\n";
   print "<td align=right>$count</td>\n";
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $count;
 }
-print "<tr><td>Total</td><td></td><td align=right>" . $total . "</td></tr>";
+print "<tr><th>Total</th><td></td><td align=right>" . $total . "</td></tr>";
 print "</table>\n";
 
 print "<p><hr>";
@@ -215,16 +215,16 @@ print "<table>\n";
 print "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
 while (@row = $result->fetchrow) {
   print "<tr>\n";
-  print "<td>" . $row[0] . "</td>\n";
-  print "<td>" . $row[1] . "</td>\n";
-  print "<td>" . $row[2] . "</td>\n";
+  print "<th>" . $row[0] . "</th>\n";
+  print "<th>" . $row[1] . "</th>\n";
+  print "<th>" . $row[2] . "</th>\n";
   print "<td align=right>" . $row[3] . "</td>\n";
   $pct = sprintf( '%3.2f', $row[3] / $document_count * 100 );
   print "<td align=right>" . $pct . "%</td>\n";
   print "</tr>\n";
   $total = $total + $row[3];
 }
-print "<tr><td>Total</td><td></td><td></td><td align=right>" . $total . "</td></tr>";
+print "<tr><th>Total</th><td></td><td></td><td align=right>" . $total . "</td></tr>";
 print "</table>\n";
 
 
@@ -263,7 +263,7 @@ while (@row = $result->fetchrow) {
 
 print "<table>\n";
 print "<tr><th>Statistic</th><th>Value</th></tr>";
-print "<tr><td>Average Age Since Last Update</td><td>&nbsp;";
+print "<tr><th>Average Age Since Last Update</th><td>&nbsp;";
 printf "%i", $avg_age;
 print " days</td></tr>";
 print "</table>\n";

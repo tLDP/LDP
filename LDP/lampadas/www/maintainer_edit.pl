@@ -37,14 +37,16 @@ system("./navbar.pl");
 
 print "<p>ID: $maintainer_id";
 print "<form name=edit method=POST action='maintainer_save.pl'>";
-printf "<p>\n";
 print "<input type=hidden name=maintainer_id value=$maintainer_id></input>";
-printf "<p>\n";
+printf "<p><table><tr><th>Name</th><th>Email</th></tr>";
+print "</tr>\n";
+print "<tr><td>\n";
 print 'Name: <input type=text name="maintainer_name" size=30 value="' . $maintainer_name . '"></input><br>';
-printf "<p>\n";
+printf "</td><td>\n";
 print 'Email: <input type=text name="email" size=30 value="' . $email . '"></input><br>';
-printf "<p>\n";
+print "</td><td>\n";
 print "<input type=submit value=Save>";
+print "</td></tr></table>\n";
 print "</form>";
 
 $docs_result = $conn->exec("SELECT document.doc_id, document.title, class, pub_status.pub_status_name, document_maintainer.role, document_maintainer.active, document_maintainer.email, document.url FROM document_maintainer, document, pub_status WHERE document_maintainer.maintainer_id = $maintainer_id AND document.pub_status = pub_status.pub_status AND document_maintainer.doc_id = document.doc_id ORDER BY document.title");

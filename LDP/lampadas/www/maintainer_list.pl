@@ -32,6 +32,7 @@ print "<h1>LDP Maintainers</h1>\n";
 system("./navbar.pl");
 
 print "<p><table border=0>\n";
+print "<tr><th>Name</th><th>Email</th></tr>\n";
 while (@row = $result->fetchrow) {
   $maintainer_id = $row[0];
   $maintainer_name = $row[1];

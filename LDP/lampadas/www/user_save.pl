@@ -27,6 +27,8 @@ $admin = 'f' unless ($admin eq 't');
 $editor_id	= param('editor_id');
 $editor_id = 0 unless ($editor_id);
 $password	= param('password');
+$password	=~ s/^\s+//;
+$password	=~ s/\s+$//;
 
 
 $conn=Pg::connectdb("dbname=$dbmain");

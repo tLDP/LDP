@@ -32,14 +32,18 @@ print "<h1>LDP Editors</h1>\n";
 system("./navbar.pl");
 
 print "<p><table border=0>\n";
+print "<tr><th>Name</th><th>Email</th></tr>\n";
 while (@row = $result->fetchrow) {
   $editor_id = $row[0];
   $editor_name = $row[1];
+  $editor_email = $row[2];
   if ( $editor_name eq "" ) { $editor_name = 'J. Doe' }
-  $email = $row[2];
-  print "<tr><td>";
+  print "<tr><td>\n";
   print a({href=>"editor_edit.pl?editor_id=$editor_id"},"$editor_name");
-  print "</td>";
+  print "</td>\n";
+  print "<td>\n";
+  print a({href=>"mailto\:$editor_email"},"$editor_email");
+  print "</td>\n";
   print "</tr>";
   $count++;
 }
