@@ -249,13 +249,14 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|
-    |tabdocfiles|
-    |tabdocusers|
-    |tabdocversions|
-    |tabdoctopics|
-    |tabdocnotes|
-    |tabdocerrors|
-], 1)
+    <p>|tabdocfiles|
+    <p>|tabdocfileerrors|
+    <p>|tabdocusers|
+    <p>|tabdocversions|
+    <p>|tabdoctopics|
+    <p>|tabdocnotes|
+    <p>|tabdocerrors|
+], 2])
 
 insert([404], [Introuvable], [Introuvable],
 [
@@ -317,3 +318,7 @@ insert([cvslog], [CVS Log], [],
     |tabcvslog|
 ], 1)
 
+insert([errors], [Error List], [],
+[
+    |taberrors|
+], 0)

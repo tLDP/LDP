@@ -32,6 +32,7 @@ from Config import config
 from Log import log
 from DataLayer import lampadas
 import os
+import string
 
 
 # Constants
@@ -44,11 +45,21 @@ ERR_FILE_NOT_WRITABLE = 2
 ERR_NO_SOURCE_FILE = 3
 ERR_NO_PRIMARY_FILE = 4
 ERR_TWO_PRIMARY_FILES = 5
-
+ERR_FILE_NOT_READABLE = 6
 
 # Lintadas
 
 class Lintadas:
+
+    # This is a list of file extensions and the file types
+    # they represent.
+    extensions = {
+        'sgml': 'sgml',
+        'xml':  'xml',
+        'wt':   'wikitext',
+        'txt':  'text',
+        'texi': 'texinfo',
+    }
 
     def check_all(self):
         keys = lampadas.docs.keys()
@@ -56,95 +67,16 @@ class Lintadas:
             self.check(key)
     
     def check(self, doc_id):
+        """
+        Check for errors at the document level.
+        """
+
         log(3, 'Running Lintadas on document ' + str(doc_id))
         doc = lampadas.docs[doc_id]
         assert not doc==None
         doc.errors.clear()
 
-        self.check_files(doc_id)
-        self.check_maintained(doc_id)
-
-        doc.save()
-        log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
-
-    def check_files(self, doc_id):
-        doc = lampadas.docs[doc_id]
-
-        if doc.files.count()==0:
-            self.add_error(doc_id, ERR_NO_SOURCE_FILE)
-            return
-
-        top = 0
-
-        keys = doc.files.keys()
-        for key in keys:
-            file = doc.files[key]
-
-            if file.top > 0:
-                top = top + 1
-
-            if file.local==0:
-                log(3, 'Skipping remote file ' + key)
-                continue
-                
-            log(3, 'Checking filename ' + key)
-            if not os.access(config.cvs_root + file.filename, os.F_OK):
-                self.add_error(doc_id, ERR_FILE_NOT_FOUND)
-
-            # Determine file format
-            self.filename = file.filename.upper()
-            if self.filename[-5:]=='.SGML':
-                FileFormat = "SGML"
-                DocFormat = 'SGML'
-            elif self.filename[-4:]=='.XML':
-                FileFormat = "XML"
-                DocFormat = 'XML'
-            elif self.filename[-3:]=='.WT':
-                FileFormat = 'WIKI'
-                DocFormat = 'WIKI'
-            else:
-                FileFormat = ''
-                DocFormat = ''
-
-            formatkeys = lampadas.formats.keys()
-            for formatkey in formatkeys:
-                if lampadas.formats[formatkey].name['EN']==FileFormat:
-                    file.Formatid = formatkey
-                if lampadas.formats[formatkey].name['EN']==DocFormat:
-                    doc.Formatid = formatkey
-            
-            log(3, 'file format is ' + FileFormat)
-            
-            # Determine DTD for SGML and XML files
-            if FileFormat=='XML' or FileFormat=='SGML':
-                dtd_version = ''
-                try:
-                    command = 'grep -i DOCTYPE ' + config.cvs_root + file.filename + ' | head -n 1'
-                    grep = os.popen(command, 'r')
-                    dtd_version = grep.read()
-                except IOError:
-                    pass
-
-                dtd_version = dtd_version.upper()
-                if dtd_version.count('DOCBOOK') > 0:
-                    doc.dtd_code = 'DocBook'
-                elif dtd_version.count('LINUXDOC') > 0:
-                    doc.dtd_code = 'LinuxDoc'
-                else:
-                    doc.dtd_code = ''
-
-            log(3, 'doc dtd is ' + doc.dtd_code)
-
-            file.save()
-
-        if top==0:
-            self.add_error(doc_id, ERR_NO_PRIMARY_FILE)
-
-        if top > 1:
-            self.add_error(doc_id, ERR_TWO_PRIMARY_FILES)
-
-    def check_maintained(self, doc_id):
-        doc = lampadas.docs[doc_id]
+        # See if the document is maintained
         maintained = 0
         keys = doc.users.keys()
         for key in keys:
@@ -153,10 +85,110 @@ class Lintadas:
                 maintained = 1
         doc.maintained = maintained
 
-    def add_error(self, doc_id, err_id):
-        log(2, 'Error: ' + str(err_id))
-        doc = lampadas.docs[doc_id]
-        doc.errors.add(err_id)
+        # Flag an error against the *doc* if there are no files.
+        if doc.files.count()==0:
+            doc.errors.add(ERR_NO_SOURCE_FILE)
+        else:
+
+            # Count the number of top files. There muse be exactly one.
+            # This takes advantage of the fact that true=1 and false=0.
+            top = 0
+            keys = doc.files.keys()
+            for key in keys:
+                top = top + doc.files[key].top
+            if top==0:
+                doc.errors.add(ERR_NO_PRIMARY_FILE)
+            if top > 1:
+                doc.errors.add(ERR_TWO_PRIMARY_FILES)
+
+            # When we check a doc, we also check its files
+            self.check_files(doc.files)
+
+        doc.save()
+        log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
+
+    def check_files(self, files):
+        """
+        Checks for errors at the individual file level.
+        """
+
+        keys = files.keys()
+        for key in keys:
+            file = files[key]
+            file.errors.clear()
+
+            # Do not check remote files.
+            if file.local==0:
+                log(3, 'Skipping remote file ' + key)
+                continue
+            
+            log(3, 'Checking filename ' + key)
+            filename = config.cvs_root + file.filename
+            
+            # If file the is missing, flag error and stop.
+            if os.access(filename, os.F_OK)==0:
+                file.errors.add(ERR_FILE_NOT_FOUND)
+                continue
+
+            # If file is not readable, flag error and top.
+            if os.access(filename, os.R_OK)==0:
+                file.errors.add(ERR_FILE_NOT_READABLE)
+                continue
+
+            # Determine file format.
+            file_extension = string.lower(string.split(filename, '.')[-1])
+            if self.extensions.has_key(file_extension) > 0:
+                file.format_code = self.extensions[file_extension]
+            
+            # Determine DTD for SGML and XML files
+            if file.format_code=='xml' or file.format_code=='sgml':
+                file.dtd = self.read_file_dtd(filename)
+
+
+            # FIXME: need a way to keep track of who is managing these fields.
+            # Probably it should be managed by Lampadas, but allow the user
+            # the ability to override it with their setting.
+            
+            file.save()
+
+
+    def read_file_dtd(self, filename):
+        """
+        Determines a file's DTD and DTD version if possible.
+        Returns a tuple, (DTD, VERSION).
+        """
+        
+        dtd_code = ''
+        fh = open(filename, 'r', 1)
+        line = fh.readline()
+        while line:
+            line = line.upper()
+            pos = line.find('DOCTYPE')
+            if pos > 0:
+                if line.count('DOCBOOK') > 0:
+                    dtd_code = 'DocBook'
+                elif line.count('LINUXDOC') > 0:
+                    dtd_code = 'LinuxDoc'
+                break
+            line = fh.readline()
+        fh.close()
+        return dtd_code
+
+        dtd_version = ''
+        try:
+            command = 'grep -i DOCTYPE ' + filename + ' | head -n 1'
+            grep = os.popen(command, 'r')
+            dtd_version = grep.read()
+        except IOError:
+            pass
+
+        dtd_version = dtd_version.upper()
+        if dtd_version.count('DOCBOOK') > 0:
+            doc.dtd_code = 'DocBook'
+        elif dtd_version.count('LINUXDOC') > 0:
+            doc.dtd_code = 'LinuxDoc'
+        else:
+            doc.dtd_code = ''
 
 
 lintadas = Lintadas()
@@ -177,6 +209,7 @@ def main():
         lintadas.check_all()
     else:
         for doc_id in docs:
+            print "Running on document " + str(doc_id)
             lintadas.check(int(doc_id))
 
 def usage():

@@ -24,7 +24,6 @@ from globals import *
 from Config import config
 from DataLayer import lampadas
 from HTML import page_factory
-from Lintadas import lintadas
 from Log import log
 from mod_python import apache
 
@@ -42,8 +41,6 @@ def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, typ
     doc = lampadas.docs[newdoc_id]
     doc.users.add(username)
     
-    lintadas.check(newdoc_id)
-
     redirect(req, '/editdoc/' + str(newdoc_id))
 
 def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
@@ -78,7 +75,6 @@ def document(req, username, doc_id, title, url, ref_url, pub_status_code, type_c
     doc.lang                    = lang
     doc.abstract                = abstract
     doc.save()
-    lintadas.check(int(doc_id))
     go_back(req)
 
 def newdocument_user(req, doc_id, username, active, role_code, email, action):
@@ -88,14 +84,12 @@ def newdocument_user(req, doc_id, username, active, role_code, email, action):
     else:
         doc = lampadas.docs[int(doc_id)]
         doc.users.add(username, role_code, email, int(active))
-        lintadas.check(doc.id)
         go_back(req)
     
 def document_user(req, doc_id, username, active, role_code, email, action, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.users.delete(username)
-        lintadas.check(doc.id)
         go_back(req)
     else:
         docuser = doc.users[username]
@@ -103,33 +97,28 @@ def document_user(req, doc_id, username, active, role_code, email, action, delet
         docuser.role_code = role_code
         docuser.email = email
         docuser.save()
-        lintadas.check(doc.id)
         go_back(req)
     
-def newdocument_file(req, doc_id, filename, top, format_code, action):
+def newdocument_file(req, doc_id, filename, top, format_code=''):
     doc = lampadas.docs[int(doc_id)]
     doc.files.add(doc_id, filename, int(top), format_code)
-    lintadas.check(int(doc_id))
     go_back(req)
     
 def document_file(req, doc_id, filename, top, format_code, action, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.files.delete(filename)
-        lintadas.check(int(doc_id))
         go_back(req)
     else:
         file = doc.files[filename]
         file.top = int(top)
         file.format_code = format_code
         file.save()
-        lintadas.check(int(doc_id))
         go_back(req)
     
 def newdocument_version(req, doc_id, version, pub_date, initials, notes, action):
     doc = lampadas.docs[int(doc_id)]
     doc.versions.add(version, pub_date, initials, notes)
-    lintadas.check(int(doc_id))
     go_back(req)
     
 def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, action, delete=''):

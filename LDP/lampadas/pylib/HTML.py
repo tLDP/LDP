@@ -33,6 +33,7 @@ from Log import log
 from URLParse import URI
 from DataLayer import *
 from WebLayer import lampadasweb
+from Lintadas import lintadas
 from Sessions import sessions
 
 import commands
@@ -291,6 +292,7 @@ class TableFactory:
             return '|blknopermission|'
 
         if uri.id > 0:
+            lintadas.check(uri.id)
             doc = lampadas.docs[uri.id]
             box = '<form method=GET action="data/save/document" name="document">'
         else:
@@ -423,7 +425,10 @@ class TableFactory:
             box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + file.filename + '">\n'
             box = box + '<tr>\n'
-            box = box + '<td>' + file.filename + '</td>\n'
+            if file.errors.count() > 0:
+                box = box + '<td class="error">' + file.filename + '</td>\n'
+            else:
+                box = box + '<td>' + file.filename + '</td>\n'
             box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
             box = box + '<td>'  + combo_factory.format(file.format_code, uri.lang) + '</td>\n'
             box = box + '<td><input type=checkbox name="delete">|strdelete|</td>\n'
@@ -432,7 +437,7 @@ class TableFactory:
             box = box + '</tr>\n'
             box = box + '</form>\n'
         box = box + '<form method=GET action="data/save/newdocument_file" name="document_file">'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<input name="doc_id" type=hidden value="' + str(doc.id) + '">\n'
         box = box + '<tr>\n'
         box = box + '<td><input type=text name="filename" size=30 style="width:100%"></td>\n'
         box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
@@ -571,6 +576,46 @@ class TableFactory:
         return box
 
 
+    def errors(self, uri, user):
+        """
+        Builds a complete list of all errors reported by Lintadas.
+        It uses docerrors() and docfileerrors(), and just concatenates
+        all of their contents.
+        """
+
+        if not user:
+            return '|blknopermission|'
+
+        log(3, 'Creating errors table')
+        doc_ids = lampadas.docs.sort_by('title')
+        box = ' '
+        for doc_id in doc_ids:
+            doc = lampadas.docs[doc_id]
+
+            # Only display docs the user has rights to.
+            if user.can_edit(doc_id=doc_id)==0:
+                continue
+            if doc.lang==uri.lang:
+                show_doc = 0
+                show_files = 0
+                if doc.errors.count() > 0:
+                    show_doc = 1
+                else:
+                    filenames = doc.files.keys()
+                    for filename in filenames:
+                        if doc.files[filename].errors.count() > 0:
+                            show_files = 1
+                            break
+                if show_doc==1 or show_files==1:
+                    box = box + '<h1>' + doc.title + '</h1>'
+                    uri.id = doc_id
+                if show_doc==1:
+                    box = box + '<p>' + self.docerrors(uri, user)
+                if show_files==1:
+                    box = box + '<p>' + self.docfileerrors(uri, user)
+        return box
+
+
     def docerrors(self, uri, user):
         if not user:
             return '|blknopermission|'
@@ -586,15 +631,45 @@ class TableFactory:
         box = box + '<th class="collabel">|strid|</th>\n'
         box = box + '<th class="collabel">|strerror|</th>\n'
         box = box + '</tr>\n'
-        doc = lampadas.docs[uri.id]
         err_ids = doc.errors.sort_by('date_entered')
         for err_id in err_ids:
             docerror = doc.errors[err_id]
             error = lampadas.errors[err_id]
             box = box + '<tr>\n'
-            box = box + '<td>' + docerror.date_entered + '</td>\n'
+            box = box + '<td>' + str(docerror.err_id) + '</td>\n'
             box = box + '<td>' + error.name[uri.lang] + '</td>\n'
             box = box + '</tr>\n'
+        box = box + '</table>\n'
+        return box
+
+
+    def docfileerrors(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
+        log(3, 'Creating docfileerrors table')
+        doc = lampadas.docs[uri.id]
+        box = ''
+        box = box + '<table class="box" width="100%">'
+        box = box + '<tr><th colspan="3">|strfileerrs|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strid|</th>\n'
+        box = box + '<th class="collabel">|strfilename|</th>\n'
+        box = box + '<th class="collabel">|strerror|</th>\n'
+        box = box + '</tr>\n'
+        filenames = doc.files.sort_by('filename')
+        for filename in filenames:
+            file = doc.files[filename]
+            err_ids = file.errors.sort_by('date_entered')
+            for err_id in err_ids:
+                fileerror = file.errors[err_id]
+                error = lampadas.errors[err_id]
+                box = box + '<tr>\n'
+                box = box + '<td>' + str(fileerror.err_id) + '</td>\n'
+                box = box + '<td>' + error.name[uri.lang] + '</td>\n'
+                box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -617,9 +692,9 @@ class TableFactory:
         box = '<table class="box"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
-                box = box + '<td>' + letter + '</td>\n'
+                box = box + '<th>' + letter + '</th>\n'
             else:
-                box = box + '<td><a href="' + uri.filename + '/' + letter + '">' + letter + '</a></td>\n'
+                box = box + '<th><a href="' + uri.filename + '/' + letter + '">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
         return box
         
@@ -1146,6 +1221,8 @@ class PageFactory:
                     newstring = self.tablef.doctopics(uri, build_user)
                 if token=='tabdocerrors':
                     newstring = self.tablef.docerrors(uri, build_user)
+                if token=='tabdocfileerrors':
+                    newstring = self.tablef.docfileerrors(uri, build_user)
                 if token=='tabdocnotes':
                     newstring = self.tablef.docnotes(uri, build_user)
                 if token=='tabcvslog':
@@ -1170,6 +1247,8 @@ class PageFactory:
                     newstring = self.tablef.tabsessions(uri, build_user)
                 if token=='tabmailpass':
                     newstring = self.tablef.tabmailpass(uri)
+                if token=='taberrors':
+                    newstring = self.tablef.errors(uri, build_user)
             
                 # Blocks and Strings
                 # 

@@ -2,6 +2,7 @@ insert(newdocument,         default,    user,       1,  t,  f,  f)
 
 insert(users,               default,    admin,      1,  f,  t,  f)
 insert(user,                default,    admin,      2,  f,  t,  f)
+insert(errors,              default,    admin,      3,  f,  t,  f)
 
 insert(sessions,            default,    sysadmin,   1,  f,  f,  t)
 

@@ -13,3 +13,7 @@ insert(4,
 insert(5,
   [Multiple primary files],
   [More than one file is designated as primary.])
+insert(6,
+  [File not readable],
+  [The file exists, but Lampadas cannot read it.])
+

@@ -83,8 +83,11 @@ class Database:
         cursor.execute(sql)
         return cursor.rowcount
 
-    def count(self, table):
-        return int(self.read_value('SELECT COUNT(*) FROM ' + table))
+    def count(self, table, whereclause=''):
+        sql = 'SELECT COUNT(*) FROM ' + table
+        if whereclause > '':
+            sql = sql + ' WHERE ' + whereclause
+        return int(self.read_value(sql))
 
     def commit(self):
         log(3, 'Committing database')

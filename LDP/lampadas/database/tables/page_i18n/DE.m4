@@ -338,13 +338,14 @@ insert([subtopic], [Liste der Unterthemen], [],
 insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
 [
     |tabeditdoc|
-    |tabdocfiles|
-    |tabdocusers|
-    |tabdocversions|
-    |tabdoctopics|
-    |tabdocnotes|
-    |tabdocerrors|
-], 1)
+    <p>|tabdocfiles|
+    <p>|tabdocfileerrors|
+    <p>|tabdocusers|
+    <p>|tabdocversions|
+    <p>|tabdoctopics|
+    <p>|tabdocnotes|
+    <p>|tabdocerrors|
+], 2)
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
 [
@@ -416,3 +417,8 @@ insert([cvslog], [CVS Log], [],
 [
     |tabcvslog|
 ], 1)
+
+insert([errors], [Error List], [],
+[
+    |taberrors|
+], 0)

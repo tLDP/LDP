@@ -37,6 +37,7 @@ from Config import config
 from Database import db
 from Log import log
 import string
+import os.path
 
 
 # Lampadas
@@ -200,8 +201,9 @@ class Docs(LampadasCollection):
             doc.notes.doc_id = doc.id
             self[doc.id] = doc
         self.load_errors()
-        self.load_files()
         self.load_users()
+        self.load_files()
+        self.load_file_errors()
         self.load_versions()
         self.load_ratings()
         self.load_topics()
@@ -219,7 +221,7 @@ class Docs(LampadasCollection):
             docerr.load_row(row)
             doc.errors[docerr.err_id] = docerr
 
-    def load_files(self):
+    def load_users(self):
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user"
         cursor = db.select(sql)
         while (1):
@@ -231,7 +233,8 @@ class Docs(LampadasCollection):
             docuser.load_row(row)
             doc.users[docuser.username] = docuser
 
-    def load_users(self):
+
+    def load_files(self):
         sql = "SELECT doc_id, filename, top, format_code FROM document_file"
         cursor = db.select(sql)
         while (1):
@@ -242,6 +245,24 @@ class Docs(LampadasCollection):
             docfile = DocFile()
             docfile.load_row(row)
             doc.files[docfile.filename] = docfile
+
+
+    def load_file_errors(self):
+        doc_ids = self.keys()
+        sql = 'SELECT filename, err_id, date_entered FROM file_error'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            filename = trim(row[0])
+            for doc_id in doc_ids:
+                doc = self[doc_id]
+                if doc.files[filename]:
+                    fileerr = FileErr()
+                    fileerr.load_row(row)
+                    doc.files[filename].errors[fileerr.err_id] = fileerr
+                    break
+
 
     def load_versions(self):
         sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev"
@@ -332,8 +353,8 @@ class Doc:
     A document in any format, whether local or remote.
     """
 
-    def __init__(self, id=None):
-        self.id                      = 0
+    def __init__(self, id=0):
+        self.id                      = id
         self.title                   = ''
         self.type_code               = ''
         self.format_code             = ''
@@ -371,7 +392,7 @@ class Doc:
         self.topics.doc_id           = self.id
         self.notes                   = DocNotes()
         self.notes.doc_id            = self.id
-        if id==None: return
+        if id==0: return
         self.load(id)
 
     def load(self, id):
@@ -448,6 +469,9 @@ class DocErrs(LampadasCollection):
             doc_err.load_row(row)
             self.data[doc_err.err_id] = doc_err
 
+    def count(self):
+        return db.count('document_error','doc_id=' + str(self.doc_id))
+        
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "DELETE FROM document_error WHERE doc_id=" + str(self.doc_id)
@@ -500,10 +524,26 @@ class DocFiles(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newDocFile = DocFile()
-            newDocFile.load_row(row)
-            self.data[newDocFile.filename] = newDocFile
+            docfile = DocFile()
+            docfile.load_row(row)
+            docfile.errors.filename = docfile.filename
+            self.data[docfile.filename] = docfile
+        self.load_errors()
 
+    def load_errors(self):
+        sql = 'SELECT filename, err_id, date_entered FROM file_error'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            filename     = trim(row[0])
+            err_id       = row[1]
+            date_entered = time2str(row[2])
+            file = self[filename]
+            fileerr = FileErr()
+            fileerr.load_row(row)
+            file.errors[fileerr.err_id] = fileerr
+            
     def add(self, doc_id, filename, top, format_code=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'INSERT INTO document_file (doc_id, filename, top, format_code) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ')'
@@ -512,6 +552,7 @@ class DocFiles(LampadasCollection):
         file = DocFile()
         file.doc_id = doc_id
         file.filename = filename
+        file.errors.filename = filename
         file.top = top
         file.format_code = format_code
         if file.filename[:5]=='http:' or file.filename[:4]=='ftp:' or file.filename[:5]=='file:':
@@ -522,6 +563,8 @@ class DocFiles(LampadasCollection):
         self.data[file.filename] = file
         
     def delete(self, filename):
+        file = self[filename]
+        file.errors.clear()
         sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id) + " AND filename=" + wsq(filename)
         db.runsql(sql)
         db.commit()
@@ -539,24 +582,98 @@ class DocFile:
     An association between a document and a file.
     """
 
-    import os.path
+    def __init__(self, filename=''):
+        self.filename = filename
+        self.errors = FileErrs()
+        self.errors.filename = self.filename
+        if filename=='': return
+        self.load(filename)
 
+    def load(self, filename):
+        sql = 'SELECT filename, err_id, date_entered FROM file_error WHERE filename=' + wsq(filename)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
+        self.errors = FileErrs(self.filename)
+    
     def load_row(self, row):
         self.doc_id      = row[0]
         self.filename    = trim(row[1])
-        self.top     = tf2bool(row[2]) 
+        self.top         = tf2bool(row[2]) 
         self.format_code = trim(row[3])
         if self.filename[:5]=='http:' or self.filename[:4]=='ftp:' or self.filename[:5]=='file:':
             self.local = 0
         else:
             self.local = 1
-        self.file_only	= self.os.path.split(self.filename)[1]
-        self.basename	= self.os.path.splitext(self.file_only)[0]
+        self.file_only	= os.path.split(self.filename)[1]
+        self.basename	= os.path.splitext(self.file_only)[0]
+        self.errors.filename = self.filename
         
     def save(self):
         sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
         db.runsql(sql)
         db.commit()
+
+
+# FileErrs
+
+class FileErrs(LampadasCollection):
+    """
+    A collection object providing access to all file errors, as identified by the
+    Lintadas subsystem.
+    """
+
+    def __init__(self, filename=''):
+        self.data = {}
+        self.filename = filename
+        if filename > '':
+            self.load()
+
+    def load(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT filename, err_id, date_entered FROM file_error WHERE filename=" + wsq(self.filename)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            file_err = FileErr()
+            file_err.load_row(row)
+            self.data[file_err.err_id] = file_err
+
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM file_error WHERE filename=" + wsq(self.filename)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
+
+    def count(self):
+        return db.count('file_error','filename=' + wsq(self.filename))
+        
+# FIXME: Try instantiating a FileErr object, then adding it to the *document*
+# rather than passing all these parameters here. --nico
+
+    def add(self, err_id):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "INSERT INTO file_error(filename, err_id) VALUES (" + wsq(self.filename) + ", " + str(err_id) + ')'
+        assert db.runsql(sql)==1
+        file_err = FileErr()
+        file_err.filename = self.filename
+        file_err.err_id = err_id
+        file_err.date_entered = now_string()
+        self.data[file_err.err_id] = file_err
+        db.commit()
+
+class FileErr:
+    """
+    An error filed against a document by the Lintadas subsystem.
+    """
+
+    def load_row(self, row):
+        self.filename     = trim(row[0])
+        self.err_id       = safeint(row[1])
+        self.date_entered = time2str(row[2])
 
 
 # DocUsers

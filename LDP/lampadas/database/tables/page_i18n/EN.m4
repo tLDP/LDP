@@ -376,12 +376,13 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
     <p>|tabdocfiles|
+    <p>|tabdocfileerrors|
     <p>|tabdocusers|
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
     <p>|tabdocerrors|
-], 1)
+], 2)
 
 insert([404], [Error 404, Page Not Found], Error,
 [
@@ -450,3 +451,7 @@ insert([cvslog], [CVS Log], [],
     |tabcvslog|
 ], 1)
 
+insert([errors], [Error List], [],
+[
+    |taberrors|
+], 1)
