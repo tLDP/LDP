@@ -14,7 +14,7 @@
 
 <!-- Change this to the path to where you have installed Norman
      Walsh's XSL stylesheets -->
-<xsl:import href="/docbook/xsl/html/chunk.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/xhtml/chunk.xsl"/>
 
 <!-- Imports the common LDP customization layer. -->
 <xsl:import href="ldp-html-common.xsl"/>
