@@ -4,7 +4,7 @@
 #
 package Wt2Db;
 
-$VERSION = '0.2';
+$VERSION = '0.3';
 
 use File::Basename;
 use HTML::Entities;
@@ -19,7 +19,6 @@ use Exporter;
 	ProcessEnd,
 	Buffer,
 	Reset,
-	Usage
 	);
 
 # These keep track of which constructs we're in the middle of
@@ -71,8 +70,8 @@ sub ProcessFile {
 	# 
 	if ($txtfile) {
 		if( !(-r $txtfile) ) {
-			print "txt2db: ERROR cannot read $f ($!)\n\n";
-			&usage(1);
+			print "wt2db: ERROR cannot read $f ($!)\n\n";
+			exit(1);
 		} else {
 			$fh = new FileHandle;
 			open $fh, "<$txtfile" or die "Cannot open $txtfile ($!)\n";
@@ -174,10 +173,10 @@ sub ProcessLine {
 		} elsif ($link =~ /^ldp:/) {
 			$linkname =~ s/^ldp://;
 			$link =~ s/^ldp://;
-			$tempfile = "/tmp/txt2db-" . $rand;
+			$tempfile = "/tmp/wt2db-" . $rand;
 			$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
 			system("$cmd");
-			open(URL, "$tempfile") || die "txt2db: cannot open temporary file ($!)\n\n";
+			open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
 			$link = "";
 			while ($url_line = <URL>) {
 				$url_line =~ s/\n//;
@@ -558,16 +557,5 @@ sub splittitle {
 	$title =~ s/^\s+//;
 	$id =~ s/\s+$//;
 	$id =~ s/^\s+//;
-}
-
-sub Usage {
-	my $error = shift;
-	print "Usage: wt2db [OPTIONS] {FILE]\n";
-	print "\n";
-	print "Options:\n";
-	print "-o, --output-to    write to the specified file.\n";
-	print "-v, --verbose      show diagnostic output.\n";
-	print "-h, --help         show this usage message.\n";
-	exit($error);
 }
 1;

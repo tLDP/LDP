@@ -3,24 +3,26 @@
 ## Makefile for the wt2db Perl module.
 ##
 ## Copyright (c) 2001, 2002, David Merrill. All rights reserved.
-## This code is free software; you can redistribute it and/or modify
-## it under the same terms as Perl itself.
+## This code is Free Software; you can redistribute it and/or modify
+## it under the GNU General Public License. See COPYING for details.
 ##
 
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
 
-    NAME          => 'Wt2Db',
-    AUTHOR        => 'David Merrill <david@lupercalia.net>',
-    ABSTRACT      => 'Converts WikiText documents into DocBook XML.',
-    NOECHO        => '',
-    VERSION_FROM  => 'lib/Wt2Db.pm',
-    EXE_FILES	  => 'wt2db',
-    PREREQ_PM     => { 
-                       'File::Basename'	=> 0,
-		       'HTML::Entities'	=> 0,
-		       'FileHandle'	=> 0,
-                     },
-
+    NAME            => 'Wt2Db',
+    AUTHOR          => 'David Merrill <david@lupercalia.net>',
+    ABSTRACT        => 'Converts WikiText documents into DocBook XML.',
+    NOECHO          => '',
+    VERSION_FROM    => 'lib/Wt2Db.pm',
+    EXE_FILES	    => [ qw( wt2db ) ],
+    PREREQ_PM       => { 
+                         'File::Basename'	=> 0,
+		         'HTML::Entities'	=> 0,
+		         'FileHandle'	=> 0,
+                       },
+    MAN1PODS        => {
+                         "doc/wt2db.pod"  => 'blib/man1/wt2db.1',
+                       },
 );
