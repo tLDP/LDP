@@ -28,6 +28,7 @@ from WebLayer import lampadasweb
 from Log import log
 import urlparse
 import os
+import string
 
 AVAILABLE_LANG = lampadas.languages.keys()
 #AVAILABLE_LANG = ['FR','EN','ES']
@@ -52,11 +53,13 @@ class URI:
 
         self.force_lang = 0
               
-        self.filename = "home"
+        self.page_code = "home"
 
         # If the URL specifies a user, doc, etc., it is stored in one
         # of these attributes.
         self.username = ''
+        self.filename = ''
+        self.code = ''
         self.id = 0
         self.code = ''
         self.letter = ''
@@ -64,7 +67,7 @@ class URI:
         # Any of the above is duplicated here as a string.
         # Ugly, but this way we can read data easily
         # w/o caring what type might be there.
-        self.data = ''
+        self.data = []
 
         self.uri = uri
         self.base = uri
@@ -84,10 +87,13 @@ class URI:
         if path in ('', '/'):
             path='home.html'
 
-        # Discard initial /
+        # Discard initial and terminal /
         if len(path) > 0:
             if path[-1]=='/':
                 path = path[:-1]
+        if len(path) > 0:
+            if path[0]=='/':
+                path = path[1:]
 
         # Discard .html extension
         if len(path) > 5:
@@ -103,33 +109,38 @@ class URI:
                     self.lang_ext = '.' + lang.lower() + '.html'
                     path = path[:-3]
 
-        # Split the path
-        self.filename, self.data = os.path.split(path)
-        
-        # If there was no data, move data into filename
-        if self.filename in ('', '/'):
-            self.filename = self.data
-            self.data = ''
+        # Split up the path
+        if path.count('/')==0:
+            self.page_code = path
         else:
-            self.path, self.filename = os.path.split(self.filename)
+            data = path.split('/')
+            self.page_code = data[0]
+            self.data = data[1:]
 
-        # Discard initial /
-        if len(self.filename) > 0:
-            if self.filename[0]=='/':
-                self.filename = self.filename[1:]
-
-        page = lampadasweb.pages[self.filename]
+        page = lampadasweb.pages[self.page_code]
         if page==None:
+            print "ERROR"
             self.printdebug()
-            
-        if page.data in ('doc',):
-            self.id = int(self.data)
-        elif page.data in ('topic', 'subtopic', 'type'):
-            self.code = self.data
-        elif page.data in ('user',):
-            self.username = self.data
-        elif page.data in ('letter',):
-            self.letter = self.data
+            return
+        
+        # If the page specifies that it includes an object,
+        # read the identifier for the object.
+        for item in page.data:
+            if item in ('doc',):
+                self.id = int(self.data[0])
+                self.data = self.data[1:]
+            elif item in ('topic', 'subtopic', 'type', 'report'):
+                self.code = self.data[0]
+                self.data = self.data[1:]
+            elif item in ('user',):
+                self.username = self.data[0]
+                self.data = self.data[1:]
+            elif item in ('letter',):
+                self.letter = self.data[0]
+                self.data = self.data[1:]
+            elif item in ('filename',):
+                self.filename = string.join(self.data, '/')
+                break
 
     def printdebug(self):
         print "URI: [%s]"                % self.uri
@@ -138,7 +149,7 @@ class URI:
         print "Server: [%s]"             % self.server
         print "Port: [%s]"               % self.port
         print "Path: [%s]"               % self.path
-        print "Filename: [%s]"           % self.filename
+        print "Page Code: [%s]"          % self.page_code
         print "Language: [%s]"           % self.lang
         print "Language Extension: [%s]" % self.lang_ext
         print "Parameter: [%s]"          % self.parameter
@@ -146,6 +157,7 @@ class URI:
         print "ID: [%s]"                 % self.id
         print "Code [%s]"                % self.code
         print "Letter: [%s]"             % self.letter
+        print "Filename: [%s]"           % self.filename
         print "Data: [%s]"               % self.data
 
 

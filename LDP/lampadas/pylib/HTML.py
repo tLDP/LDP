@@ -35,7 +35,6 @@ from DataLayer import *
 from WebLayer import lampadasweb
 from Lintadas import lintadas
 from Sessions import sessions
-
 import commands
 import string
 import sys
@@ -457,7 +456,7 @@ class TableFactory:
             if file.errors.count() > 0:
                 box = box + '<td class="error">' + file.filename + '</td>\n'
             else:
-                box = box + '<td>' + file.filename + '</td>\n'
+                box = box + '<td><a href="/file_reports/' + file.filename + '">' + file.filename + '</a></td>\n'
             box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
             box = box + '<td>'  + combo_factory.format(file.format_code, uri.lang) + '</td>\n'
             box = box + '''
@@ -650,7 +649,6 @@ class TableFactory:
                     box = box + '<p>' + self.docfileerrors(uri, user)
         return box
 
-
     def docerrors(self, uri, user):
         if not user:
             return '|blknopermission|'
@@ -677,6 +675,57 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
+    def filereports(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
+        log(3, 'Creating filereports table')
+        box = ''
+        box = box + '<table class="box" width="100%">'
+        box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
+        report_codes = lampadasweb.file_reports.sort_by('name')
+        for report_code in report_codes:
+            report = lampadasweb.file_reports[report_code]
+            box = box + '<tr>\n'
+            box = box + '<td><a href="/file_report/' + report.code + '/' + uri.filename + '">' + report.name[uri.lang] + '</a></td>\n'
+            box = box + '<td>' + report.description[uri.lang] + '</td>\n'
+            box = box + '</tr>\n'
+        box = box + '</table>\n'
+        return box
+
+    def filereport(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
+        log(3, 'Creating filereport table')
+
+        # Build and execute the command
+        report = lampadasweb.file_reports[uri.code]
+        command = report.command
+
+        fh = open('/tmp/lampadas_filename.txt', 'w')
+        fh.write(uri.filename + '\n')
+        fh.close()
+        
+        child_stdin, child_stdout, child_stderr  = os.popen3(command)
+        stdout = child_stdout.read()
+        stderr = child_stderr.read()
+        child_stdin.close()
+        child_stdout.close()
+        child_stderr.close()
+
+        box = ''
+        box = box + '<table class="box" width="100%">'
+        box = box + '<tr><th>' + report.name[uri.lang] + '</th></tr>\n'
+        box = box + '<tr><td><h2>|stroutput|</h2><pre>' + stdout + '</pre></td></tr>\n'
+        box = box + '<tr><td><h2>|strerrors|</h2><pre>' + stderr + '</pre></td></tr>\n'
+        box = box + '<tr><td><h2>|strcommand|</h2><pre>' + command + '</pre></td></tr>\n'
+        box = box + '</table>\n'
+        return box
 
     def docfileerrors(self, uri, user):
         if not user:
@@ -1133,7 +1182,7 @@ class TableFactory:
                 else:
                     add_data = ''
                 box.write('<a href="/%s%s.%s.html">%s</a><br>\n'
-                          % (uri.filename,
+                          % (uri.page_code,
                              add_data,
                              language.code.lower(),
                              language.name[uri.lang]))
@@ -1162,7 +1211,7 @@ class PageFactory:
 
     def page_exists(self, key):
         uri = URI(key)
-        if uri.path=='' and lampadasweb.pages[uri.filename]:
+        if uri.path=='' and lampadasweb.pages[uri.page_code]:
             return 1
         return
 
@@ -1172,7 +1221,7 @@ class PageFactory:
             build_user = lampadas.users[session.username]
             log(3, 'build_user: ' + build_user.username)
 
-        page = lampadasweb.pages[uri.filename]
+        page = lampadasweb.pages[uri.page_code]
         if page==None:
             page = lampadasweb.pages['404']
         assert not page==None
@@ -1240,6 +1289,8 @@ class PageFactory:
                     newstring = uri.code
                 if token=='uri.base':
                     newstring = uri.base
+                if token=='uri.filename':
+                    newstring = uri.filename
 
 
                 # Configuration information
@@ -1345,6 +1396,10 @@ class PageFactory:
                     newstring = self.tablef.doctopics(uri, build_user)
                 if token=='tabdocerrors':
                     newstring = self.tablef.docerrors(uri, build_user)
+                if token=='tabfile_reports':
+                    newstring = self.tablef.filereports(uri, build_user)
+                if token=='tabfile_report':
+                    newstring = self.tablef.filereport(uri, build_user)
                 if token=='tabdocfileerrors':
                     newstring = self.tablef.docfileerrors(uri, build_user)
                 if token=='tabdocnotes':

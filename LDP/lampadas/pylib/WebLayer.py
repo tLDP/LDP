@@ -128,7 +128,7 @@ class Page:
         self.section_code	 = trim(row[1])
         self.sort_order      = safeint(row[2])
         self.template_code	 = trim(row[3])
-        self.data            = trim(row[4])
+        self.data            = trim(row[4]).split()
         self.only_registered = tf2bool(row[5])
         self.only_admin      = tf2bool(row[6])
         self.only_sysadmin   = tf2bool(row[7])
@@ -236,17 +236,54 @@ class NewsItem:
             self.news[lang] = trim(row[1])
 
 
+# NewsItems
+
+class FileReports(LampadasCollection):
+
+    def __init__(self):
+        self.data = {}
+        sql = 'SELECT report_code, command FROM file_report'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            report = FileReport()
+            report.load_row(row)
+            self[report.code] = report
+        sql = 'SELECT report_code, lang, report_name, report_desc FROM file_report_i18n'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            report_code = trim(row[0])
+            lang = trim(row[1])
+            report = self[report_code]
+            report.name[lang] = trim(row[2])
+            report.description[lang] = trim(row[3])
+
+class FileReport:
+
+    def __init__(self):
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
+
+    def load_row(self, row):
+        self.code    = trim(row[0])
+        self.command = trim(row[1])
+
+
 # WebLayer
 
 class LampadasWeb:
 
     def __init__(self):
-        self.blocks     = Blocks()
-        self.sections   = Sections()
-        self.pages      = Pages()
-        self.strings    = Strings()
-        self.templates  = Templates()
-        self.news       = NewsItems()
+        self.blocks       = Blocks()
+        self.sections     = Sections()
+        self.pages        = Pages()
+        self.strings      = Strings()
+        self.templates    = Templates()
+        self.news         = NewsItems()
+        self.file_reports = FileReports()
 
 
 lampadasweb = LampadasWeb()

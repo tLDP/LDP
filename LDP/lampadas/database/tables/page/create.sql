@@ -4,7 +4,7 @@ CREATE TABLE page
 	section_code	CHAR(12),
 	sort_order	INT4		NOT NULL,
 	template_code	CHAR(12)	NOT NULL,
-	data		CHAR(12),
+	data		CHAR(40),
 	only_registered	BOOLEAN		DEFAULT False,
 	only_admin	BOOLEAN		DEFAULT False,
 	only_sysadmin	BOOLEAN		DEFAULT False,

@@ -338,9 +338,14 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([cvslog], [CVS Log], [],
+insert([file_reports], [File Reports], [],
 [
-    |tabcvslog|
+    |tabfile_reports|
+], 1)
+
+insert([file_report], [File Report], [],
+[
+    |tabfile_report|
 ], 1)
 
 insert([errors], [Error List], [],
