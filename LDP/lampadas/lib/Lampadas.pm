@@ -26,6 +26,7 @@ use Exporter;
 	Users,
 	User,
 	UserDocs,
+	UserFiles,
 	UserNotes,
 	AddUserNote,
 
@@ -215,10 +216,9 @@ sub User {
 }
 
 sub UserDocs {
-	my $self = shift;
-	my $user_id = shift;
+	my ($self, $user_id) = @_;
 	my %docs = ();
-	$sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
+	my $sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$doc_id				= $row[0];
@@ -233,6 +233,19 @@ sub UserDocs {
 		$docs{$doc_id}{email}		= &trim($row[8]);
 	}
 	return %docs;
+}
+
+sub UserFiles {
+	my ($self, $user_id) = @_;
+	my %userfiles = ();
+	my $recordset = $DB->Recordset("SELECT doc_id, filename FROM document_file df, document_user du WHERE df.doc_id=du.doc_id AND du.user_id=$user_id AND du.active='t'");
+	while (@row = $recordset->fetchrow) {
+		$doc_id		= &trim($row[0]);
+		$filename	= &trim($row[1]);
+		$userfiles{$filename}{doc_id}	= $doc_id;
+		$userfiles{$filename}{filename}	= $filename;
+	}
+	return %userfiles;
 }
 
 sub UserNotes {
@@ -369,8 +382,19 @@ sub AddDocFile {
 
 sub SaveDocFile {
 	my ($self, $doc_id, $oldfilename, $filename) = @_;
-	my $sql = "UPDATE document_file SET filename=" . wsq($filename) . " WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
-	$DB->Exec($sql);
+	my $insecure = 0;
+	$insecure++ if ($filename =~ /\.\./);
+	my $root = $filename;
+#	$root =~ s/\/.*//;
+#	$insecure++ unless (($root eq 'faq')
+#			 or ($root eq 'guide')
+#			 or ($root eq 'howto')
+#			 or ($root eq 'ref')
+#			 );
+	unless ($insecure) {
+		my $sql = "UPDATE document_file SET filename=" . wsq($filename) . " WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
+		$DB->Exec($sql);
+	}
 }
 
 sub DelDocFile {
@@ -644,9 +668,7 @@ sub ReadCookie {
 }
 
 sub StartPage {
-	my $self = shift;
-	my $title = shift;
-	my $cookie = shift;
+	my ($self, $title, $cookie) = @_;
 
 	if ($cookie) {
 		print $CGI->header(-cookie=>$cookie,-expires=>'now');
@@ -1377,7 +1399,7 @@ sub DocTable {
 	$doctable .= LicenseCombo($foo, $doc{license});
 	$doctable .= "</td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Published</th><td><input type=text name=pub_date size=10 value='$doc{pub_date}'></td>";
+	$doctable .= "<th align=right>Pub Date</th><td><input type=text name=pub_date size=10 value='$doc{pub_date}'></td>";
 	$doctable .= "<th align=right>Updated</th><td><input type=text name=last_update size=10 value='$doc{last_update}'></td>";
 	$doctable .= "<th align=right>Version</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
@@ -1653,7 +1675,7 @@ sub DocVersionsTable {
 	
 	$table .= "<table style='width:100%' class='box'>\n";
 	$table .= "<tr><th colspan=6>Document Versions</th></tr>\n";
-	$table .= "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
+	$table .= "<tr><th>Version</th><th>Date</th><th>Initials</th><th colspan=3>Notes</th></tr>";
 	foreach $key (sort { $docversions{$a}{pub_date} cmp $docversions{$b}{pub_date} } keys %docversions) {
 		$table .= "<tr>";
 		$table .= "<form method=POST action='document_rev_save.pl'>";
@@ -1663,7 +1685,7 @@ sub DocVersionsTable {
 		$table .= "<td valign=top><input type=text name=version width=12 size=12 value='$docversions{$key}{version}'></input></td>\n";
 		$table .= "<td valign=top><input type=text name=pub_date width=12 size=12 value='$docversions{$key}{pub_date}'></input></td>\n";
 		$table .= "<td valign=top><input type=text name=initials width=5 size=5 value='$docversions{$key}{initials}'></input></td>\n";
-		$table .= "<td><textarea name=notes rows=3 style='width:100%' wrap>$docversions{$key}{notes}</textarea>\n";
+		$table .= "<td style='width:100%'><textarea name=notes rows=3 style='width:100%' wrap>$docversions{$key}{notes}</textarea>\n";
 		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td valign=top><input type=submit value=Save></td>\n";
 		$table .= "</form>";
@@ -1694,9 +1716,13 @@ sub DocFilesTable {
 	my %docfiles = DocFiles($foo, $doc_id);
 	my $table = '';
 	$table .= "<table class='box'>\n";
-	$table .= "<tr><th colspan=3>Document Files</th></tr>\n";
+	$table .= "<tr><th colspan=4>Document Files</th></tr>\n";
 	foreach $filename (sort keys %docfiles) {
-		$table .= "<tr><td>\n";
+		$table .= "<tr>\n";
+		$table .= "<td>\n";
+		$table .= "<a href='file_edit.pl?filename=$filename'>" . EditImage() . "</a>";
+		$table .= "</td>\n";
+		$table .= "<td>\n";
 		$table .= "<form method=POST action='document_file_save.pl'>";
 		$table .= "<input type=hidden name=doc_id value=$doc_id>";
 		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
@@ -1706,7 +1732,9 @@ sub DocFilesTable {
 		$table .= "<td><input type=submit value=Save></td>\n";
 		$table .= "</form></td></tr>\n";
 	}
-	$table .= "<tr><td>\n";
+	$table .= "<tr>\n";
+	$table .= "<td></td>\n";
+	$table .= "<td>\n";
 	$table .= "<form method=POST action='document_file_add.pl'>";
 	$table .= "<input type=hidden name=doc_id value=$doc_id>";
 	$table .= "<input type=text name='filename' size=40 style='width:100%'></input>\n";
@@ -1833,13 +1861,15 @@ sub DocRatingTable {
 	my ($self, $doc_id) = @_;
 	my $vote_count	= $DB->Value("SELECT COUNT(*) FROM doc_vote WHERE doc_id=$doc_id");
 	my $vote	= $DB->Value("SELECT vote FROM doc_vote WHERE doc_id=$doc_id AND user_id=" . CurrentUserID());
-	$table .= "<table class='box'><tr><th colspan=3>Document Rating</th></tr>\n";
-	$table .= "<form action='document_vote_save.pl' method=POST>\n";
+	$table .= "<table class='box'>\n";
+	$table .= "<form action='document_vote_save.pl' method=GET>\n";
+	$table .= "<tr><th colspan=3>Document Rating</th></tr>\n";
 	$table .= "<input type=hidden name=doc_id value=$doc_id>\n";
 	$table .= "<tr><th>Ratings</th><td>$vote_count</td>\n";
 	$table .= "<td rowspan=3>\n";
 	$table .= "You can rate each document on a scale from 1 to 10, where 1 is very poor and 10 is excellent.\n";
 	$table .= "Your vote is averaged with the votes of others to obtain a rating for the document.\n";
+	$table .= "<p>Enter a vote of 0 to remove your vote.";
 	$table .= "</td>\n";
 	$table .= "</tr>\n";
 	$table .= "<tr><th>Average</th><td>" . BarGraphTable($foo, $doc{rating}) . "</td></tr>\n";
@@ -2046,7 +2076,7 @@ sub HeaderBox {
 	$table .= "<th>$project Lampadas System</th>";
 	$table .= "</tr></table>\n";
 	
-	$table .= "<table class='title' style='width:100%'><tr>\n";
+	$table .= "<table class='title'><tr>\n";
 	$table .= "<td><h1>$title</h1></td>\n";
 	$table .= "<td align=right>\n";
 	if ($currentuser_id) {

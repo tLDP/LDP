@@ -1,5 +1,5 @@
 #! /usr/bin/perl
-
+#
 use Lampadas;
 $L = new Lampadas;
 
