@@ -1,18 +1,18 @@
 m4_dnl name                 template    menu    order   data                dyn reg adm sysadmin
-insert(my,                  default,    user,       1,  [],                 t,  t,  f,  f)
-insert(newdocument,         default,    user,       2,  [],                 t,  t,  f,  f)
+insert(index,               splash,     [],         0,  [],                 f,  f,  f,  f)
+
+insert(home,                index,      main,       1,  [],                 f,  f,  f,  f)
+insert(my,                  default,    main,       2,  [],                 t,  t,  f,  f)
+insert(doctable,            default,    main,       3,  [],                 f,  f,  f,  f)
+insert(search,              default,    main,       5,  [],                 t,  f,  f,  f)
                                                                                 
+m4_dnl  Admin Menu
 insert(users,               default,    admin,      1,  [letter],           t,  f,  t,  f)
 insert(user,                default,    admin,      2,  [user],             t,  f,  t,  f)
-insert(errors,              default,    admin,      3,  [],                 t,  f,  t,  f)
-                                                                                
-insert(sessions,            default,    sysadmin,   1,  [],                 t,  f,  f,  t)
-                                                                                
-insert(index,               splash,     main,       1,  [],                 f,  f,  f,  f)
-insert(home,                index,      main,       2,  [],                 f,  f,  f,  f)
-insert(doctable,            default,    main,       3,  [],                 f,  f,  f,  f)
-insert(search,              default,    main,       4,  [],                 t,  f,  f,  f)
-                                                                                
+insert(sessions,            default,    admin,      3,  [],                 t,  f,  f,  t)
+insert(errors,              default,    admin,      4,  [],                 t,  f,  t,  f)
+insert(newdocument,         default,    admin,      5,  [],                 t,  t,  f,  f)
+
 insert(news,                default,    news,       1,  [],                 f,  f,  f,  f)
                                                                                 
 insert(staff,               default,    volunteer,  1,  [],                 f,  f,  f,  f)

@@ -1,7 +1,6 @@
 insert(user,        [Benutzer])
-insert(admin,       [Adminstratoren])
-insert(sysadmin,    [System-Administratoren])
 insert(main,        [Hauptmenü])
+insert(admin,       [Adminstratoren])
 insert(news,        [Neuigkeiten])
 insert(volunteer,   [Freiwillige])
 insert(help,        [Hilfemenü])
