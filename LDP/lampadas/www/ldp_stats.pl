@@ -13,7 +13,7 @@ $conn=Pg::connectdb("dbname=$dbmain");
 
 print header;
 
-print "<html><head><title>LDP Statistics</title><link rel=stylesheet href='/default.css' type='text/css'>";
+print "<html><head><title>LDP Statistics</title><link rel=stylesheet href='/ldp.css' type='text/css'>";
 print "<body>";
 
 print "<h2>Statistics</h2>\n\n";
