@@ -1,4 +1,5 @@
-m4_define(insert, [INSERT INTO document(doc_id, lang, title, version, isbn,
+m4_define(insert,
+[INSERT INTO document(doc_id, lang, title, version, isbn,
 type_code, format_code, dtd_code, dtd_version,
 license_code, abstract,
 url, ref_url,
