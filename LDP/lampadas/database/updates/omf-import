@@ -1,0 +1,118 @@
+#! /usr/bin/python
+# 
+# This file is part of the Lampadas Documentation System.
+# 
+# Copyright (c) 2000, 2001, 2002 David Merrill <david@lupercalia.net>.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+from Globals import *
+#from DataLayer import lampadas
+import sys
+import os
+import fnmatch
+from xml.dom.minidom import parse
+
+IGNORE_NODES = ('omf',
+                'resource',
+                'subject',
+                'format',
+                '#text')
+
+class OMF:
+
+    def __init__(self):
+        self.title = ''
+        self.categories = []
+        self.filename = ''
+        self.lang = ''
+        
+    def read_dom(self, dom):
+        for node in dom.childNodes:
+            self.handle_node(node)
+
+    def handle_node(self, node):
+        if node.nodeName in IGNORE_NODES:
+            pass
+        elif node.nodeName=='title':
+            self.title = self.get_node_text(node)
+        elif node.nodeName=='category':
+            self.categories = self.categories + [self.get_node_text(node)]
+        elif node.nodeName=='identifier':
+            self.filename = self.get_attribute_text(node, 'url')
+        elif node.nodeName=='language':
+            self.lang = self.get_attribute_text(node, 'code')
+        else:
+            print 'ERROR, unrecognized element: %s' % node.nodeName
+            
+        for child in node.childNodes:
+            self.handle_node(child)
+        
+    def get_node_text(self, node):
+        value = ''
+        for child in node.childNodes:
+            if child.nodeType==node.TEXT_NODE:
+                value = value + child.data
+        value = trim(value)
+        return value
+        
+    def get_attribute_text(self, node, name):
+        value = ''
+        if node.hasAttributes:
+            len = node.attributes.length
+            for item in range(len):
+                attribute = node.attributes.item(item)
+                if attribute.name==name:
+                    value = attribute.value
+        return value
+
+    def print_debug(self):
+        print 'title:      %s' % self.title
+        print 'categories: %s' % self.categories
+        print 'filename:   %s' % self.filename
+        print 'language:   %s' % self.lang
+
+def callback(arg, directory, filenames):
+    for filename in filenames:
+        if fnmatch.fnmatch(filename, arg):
+            print 'Reading omf: %s/%s' % (directory, filename)
+            omf = OMF()
+            dom = parse(directory + '/' + filename)
+            omf.read_dom(dom)
+            if omf.filename > '':
+                omf.filename = 'file://' + directory + '/' + omf.filename
+            omf.print_debug()
+
+            # Not all versions of Python do garbage collection
+            # on circular references, so unlink dom manually.
+            dom.unlink()
+
+def usage():
+    print """Usage: gnome-import [FROM-DIR] [TO-DB]
+
+    FROM-DIR is a file directory where we start recursively processing
+    OMF files.
+    """
+    sys.exit()
+
+
+# Options passed on the command line
+if len(sys.argv) <> 2:
+    usage()
+gnome_dir = sys.argv[1]
+
+# Read in the omf files.
+os.path.walk(gnome_dir, callback, '*.omf')
+
