@@ -1,2 +1,138 @@
 <SECT1 ID="radius"><TITLE>Radius authentication using LDAP</TITLE>
-<PARA></PARA></SECT1>
+
+<PARA>A Radius Server, is a daemon for un*x operating systems which allows one
+to set up (guess what!) a radius protocol server, which is usually used for
+authentication and accounting of dial-up users. To use server, you also need a
+correctly setup client which will talk to it, usually a terminal server or a PC
+with appropriate which emulates it (PortSlave, radiusclient etc). [From the
+freeradius FAQ] </PARA>
+
+<PARA>Radius has its own database of users, anyway, since this information is
+already contained in LDAP, it will be more convenient to use it!</PARA>
+
+<PARA>There are several freeware Radius server, the one that has good support
+for LDAP is the FreeRadius server (<ULINK
+URL="http://www.freeradius.org">http://www.freeradius.org</ULINK>), it is still
+a development version, anyway the LDAP module works fine.</PARA>
+
+<SECT2><TITLE>FreeRadius Radiusd configuration</TITLE>
+
+<PARA>Once you have installed the server you have to configure it using the
+configuration files, that are located under <FILENAME>/etc/raddb</FILENAME> (or
+<FILENAME>/usr/local/etc/raddb</FILENAME>) </PARA>
+
+<PARA>In the <FILENAME>radiusd.conf</FILENAME> file edit : </PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+[...omissis]
+# Uncomment this if you want to use ldap (Auth-Type = LDAP)
+# Also uncomment it in the authenticate{} block below
+        ldap {
+                server   = ldap.yourorg.com
+                #login    = "cn=admin,o=My Org,c=US"
+                #password = mypass
+                basedn   = "ou=users,dc=yourorg,dc=com"
+                filter   = "(&(objectclass=posixAccount)(uid=%u))"
+        }
+
+[...omissis]
+
+# Authentication types, Auth-Type = System and PAM for now.
+authenticate {
+        pam
+        unix
+#       sql
+#       sql2  
+# Uncomment this if you want to use ldap (Auth-Type = LDAP)
+        ldap
+}
+[...omissis]
+</PROGRAMLISTING></PARA> 
+
+
+
+
+<PARA>Also edit the <FILENAME>dictionary</FILENAME> file:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+[...omissis]
+#
+#       Non-Protocol Integer Translations
+#
+
+VALUE           Auth-Type               Local                   0
+VALUE           Auth-Type               System                  1
+VALUE           Auth-Type               SecurID                 2
+VALUE           Auth-Type               Crypt-Local             3
+VALUE           Auth-Type               Reject                  4
+VALUE           Auth-Type               ActivCard               4
+VALUE           Auth-Type               LDAP                    5
+[...omissis]
+</PROGRAMLISTING></PARA> 
+
+
+<PARA> And the <FILENAME>users</FILENAME> file to have a default authorization
+entry:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+[...omissis]
+DEFAULT        	Auth-Type := LDAP
+		Fall-Through = 1
+[...omissis]
+</PROGRAMLISTING></PARA> 
+
+<PARA>If you alreay set up an LDAP server for Un*x accounts management, this
+is enough.</PARA>
+
+<PARA>On the LDAP server ensure also that the radius server can read the all
+the posixAccount attributes (expecially <FILENAME>uid</FILENAME> and
+<FILENAME>userpassword</FILENAME>).</PARA>  </SECT2>
+
+<SECT2><TITLE>Testing Radius Authentication</TITLE>
+
+<PARA>To test everything server start <FILENAME>radiusd</FILENAME> in debugging
+mode:</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+/usr/local/sbin/radiusd  -X -A
+</PROGRAMLISTING></PARA> 
+
+<PARA>Then use the <FILENAME>radtest</FILENAME> program whith a syntax like</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+radtest username "password" radius.yourorg.com 1 testing123 
+</PROGRAMLISTING></PARA> 
+
+<PARA>If everything went fine you should receive an Acces-Accept packet from the
+Radius server.</PARA>
+
+<PARA>You can also use stunnel in client mode to provide SSL in the connection
+between the Radius server and the LDAPS server. For details on SSL refer to
+<XREF LINKEND="ssl">.</PARA>
+
+</SECT2>
+
+<SECT2><TITLE>Sample CISCO IOS Configuration</TITLE>
+
+<PARA>Just for completeness, here is a sample Cisco IOS configuration. Anyway,
+this is outside the purpose of the HOWTO so it may not suit your needs.</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+[...omissis]
+aaa new-model
+aaa authentication login default radius enable
+aaa authentication ppp default radius
+aaa authorization network radius
+[...omissis]
+radius-server host 192.168.10.1
+radius-server timeout 10
+radius-server key cisco
+[...omissis]
+</PROGRAMLISTING></PARA>
+
+<NOTE><PARA>Almost all NAS use port 1645 for radius, check it out and configure
+the server appropriately.</PARA></NOTE> 
+
+</SECT2> 
+
+</SECT1>
