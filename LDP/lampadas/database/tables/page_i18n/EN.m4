@@ -1,6 +1,21 @@
-insert([home], [|project|], [Home], 
+insert([admin], [Admin Page], [],
 [
-    <p>Welcome to |project|.
+    <p>Admin tools.
+])
+
+insert([sysadmin], [Sysadmin Page], [],
+[
+    <p>Sysadmin tools.
+])
+
+insert([my], [My |strprojectshort|], [],
+[
+    |session_user_docs|
+])
+
+insert([home], [|strproject|], [Home], 
+[
+    <p>Welcome to |strproject|.
 
     <p>This site is based on a development version of the Lampadas Document Management System
     from <a href="http://www.tldp.org">The Linux Documentation Project</a>
@@ -16,7 +31,7 @@ insert([news], [Latest News], [],
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |project|], [Contributing to |projectshort|],
+insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
 [
     As a member of this Lampadas community, you can collaborate with
     hundreds or even thousands of others to produce documentation,
@@ -74,7 +89,7 @@ insert([contribute], [Contributing to |project|], [Contributing to |projectshort
     </ul>
 ])
 
-insert([about], [About |project|], [About |projectshort|],
+insert([about], [About |strproject|], [About |strprojectshort|],
 [
     Replace this text with information about your project.
 ])

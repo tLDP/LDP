@@ -1,4 +1,19 @@
-insert([home], [|project|], [Home],
+insert([admin], [Admin Page], [],
+[
+    <p>Admin tools.
+])
+
+insert([sysadmin], [Sysadmin Page], [],
+[
+    <p>Sysadmin tools.
+])
+
+insert([my], [My |strprojectshort|], [],
+[
+    |session_user_docs|
+])
+
+insert([home], [|strproject|], [Home],
 [
 	<p>Ce syst&egrave;me est en cours de d&eacute;veloppement. Son code est modifi&eacute; en permanence ce qui le rend instable.
 
@@ -10,7 +25,7 @@ insert([doctable], [Table des docs], [Table des docs],
 	|tabdocs|
 ])
 
-insert([news], [|project| News], [|projectshort| News],
+insert([news], [|strproject| News], [|strprojectshort| News],
 [
 	|tabrecentnews|
 ])
@@ -48,7 +63,7 @@ insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampad
 	</ul>
 ])
 
-insert([about], [A propos de |project|], [A propos de |projectshort|],
+insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
 [
 	Remplacez ce texte par la description de votre projet.
 ])
