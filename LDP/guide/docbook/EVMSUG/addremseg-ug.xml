@@ -1,0 +1,379 @@
+<chapter id="evmsassignseg"><title>Adding and removing a segment manager</title>
+<para> This chapter discusses when to use a segment manager, what the different types of segment managers are, how to add a segment manager to a disk, and how to remove a
+segment manager. </para>		
+<sect1 id="whenassign"><title>When to add a segment manager</title>
+	<para>Adding a segment manager to a disk allows the disk to be subdivided into 
+	smaller storage objects called disk segments. The 
+	<command>add</command> command causes a 
+	segment manager to create appropriate metadata and expose freespace 
+	that the segment manager  
+	finds on the disk. You need to add segment managers when you 
+	have a new disk or 
+	when you are switching from one partitioning scheme to another. </para>
+<para>EVMS displays disk segments as the following types: </para>
+	<itemizedlist><listitem><para>Data: a set of contiguous sectors that has been allocated 
+		from a disk and can be used to construct a volume or object.</para></listitem>
+
+		<listitem><para>Freespace: a set of contiguous sectors that are unallocated 
+		or not in use. Freespace can be used to create a segment.</para></listitem>
+
+		<listitem><para>Metadata: a set of contiguous sectors that contain 
+		information needed by the segment manager.</para></listitem>
+	</itemizedlist>
+</sect1>
+<sect1 id="smtypes"><title>Types of segment managers</title>
+	<para>There are seven types of segment managers in EVMS: DOS, GPT, S/390, Cluster,  BSD, MAC, and BBR. </para>
+	<sect2 id="defaultseg"><title>DOS Segment Manager</title>
+		<para>The most
+		commonly used segment manager is the DOS Segment Manager. This plug-in
+		provides support for traditional DOS disk partitioning. The 
+		DOS Segment Manager also recognizes and supports the following variations 
+		of the DOS partitioning scheme:
+		<itemizedlist><listitem><para>OS/2:  an OS/2 disk has additional metadata 
+		sectors that contain information needed to reconstruct disk segments.</para></listitem>
+			<listitem><para>Embedded partitions: support for BSD, SolarisX86, and UnixWare  
+			is sometimes found embedded in primary DOS partitions. 
+			The DOS Segment Manager  recognizes and supports these 
+			slices as disk segments.</para></listitem></itemizedlist></para>
+	</sect2>
+	<sect2 id="gptseg"><title>GUID Partitioning Table (GPT) Segment Manager</title>
+	    <para>The GUID Partitioning Table (GPT) Segment Manager handles the 
+		new GPT partitioning scheme 
+		on IA-64 machines. The Intel 
+		<citetitle>Extensible Firmware Interface Specification</citetitle>
+ 		requires that firmware be able to discover partitions and produce logical devices that 
+		correspond to disk partitions.  The partitioning scheme described in 
+		the specification is called GPT due to the extensive use of 
+		Globally Unique Identifier (GUID) tagging. GUID is a 128 bit long 
+		identifier, also referred to as a Universally Unique Identifier (UUID).   
+		As described in the Intel <citetitle>Wired For Management Baseline Specification</citetitle>,  
+		a GUID is a combination of  time and space fields that produce an 
+		identifier that is unique across an entire UUID space.  
+		These identifiers are used extensively on GPT partitioned disks 
+		for tagging entire disks and individual partitions. 
+		GPT partitioned disks serve several functions, such as:</para>
+	    	<itemizedlist>
+	      		<listitem><para>keeping a primary and backup copy of metadata</para>
+	      		</listitem>
+	      		<listitem><para>replacing msdos partition nesting by allowing many partitions</para>
+	      		</listitem>
+	      		<listitem><para>using 64 bit logical block addressing</para>
+	      		</listitem>
+	      		<listitem><para>tagging partitions and disks with GUID descriptors</para>
+	      		</listitem>
+	    	</itemizedlist>
+		
+		<para>The GPT Segment Manager scales better to large disks. It provides more redundancy with added reliability and uses unique names. However, the GPT Segment Manager is not compatible with DOS, OS/2, or Windows&reg;. </para></sect2>
+			
+	<sect2 id="s390sm"><title>S/390 Segment Manager</title>
+		<para>The S/390 Segment Manager is used exclusively on System/390 
+		mainframes.  The S/390 Segment Manager has the ability to recognize 
+		various disk layouts found on an S/390 machine, and provide 
+		disk segment support for this architecture. The two most common disk 
+		layouts are Linux Disk Layout (LDL) and Common Disk Layout (CDL). </para>
+
+		<para>The principle difference between LDL and CDL is that an LDL disk 
+		cannot be further subdivided. An LDL disk will produce a single metadata 
+		disk segment and a single data disk segment. There is no freespace on an 
+		LDL disk, and you cannot delete or re-size the data segment. A CDL disk can 
+		be subdivided into multiple data disk segments 
+		because it contains metadata that is missing from an LDL disk, specifically 
+		the Volume Table of Contents (vtoc) information.</para>
+
+		<para>The S/390 Segment  Manager is the only segment manager plug-in 
+		capable of understanding the unique S/390 disk layouts. The S/390 Segment Manager 
+		cannot be added or removed from a disk. </para></sect2>
+
+<sect2><title>Cluster segment manager</title>
+<para>The cluster segment manager (CSM) supports high availability clusters.  When the
+CSM is added to a shared storage disk, it writes metadata on the disk that:</para>
+
+<itemizedlist>
+<listitem><para>provides a unique disk ID (guid)</para></listitem>
+<listitem><para>names the EVMS container the disk will reside within</para></listitem>
+<listitem><para>specifies the cluster node (nodeid) that owns the disk</para></listitem>
+<listitem><para>specifies the cluster (clusterid)</para></listitem>
+</itemizedlist>
+
+<para>This metadata allows the CSM to build containers for supporting failover situations.
+It does so by constructing an EVMS container object that consumes all shared disks
+discovered by the CSM and belonging to the same container.  These shared storage
+disks are consumed by the container and a single data segment is produced by the
+container for each consumed disk.  A failover of the EVMS resource is
+accomplished by simply reassigning the CSM container to the standby cluster node and
+having that node re-run its discovery process.</para>
+<para>Adding disks to CSM containers implies that only disk storage objects are
+acceptable to the CSM.  This is an important aspect of the CSM.  Other segment
+managers can be embedded within storage objects and used to further subdivide them. 
+However, the CSM cannot add any other kind of storage object to a CSM container
+because the container is meant to be a disk group and the entire disk group is
+reassigned during a failover.  So, the CSM only accepts disks when constructing
+containers.  This is important to remember when adding the CSM to a disk.  If you
+choose <command>Add</command> and the CSM does not appear in the list of selectable plug-ins when you know you have a disk, you should look at the Volume list and see if the disk has
+already been listed as a compatibility volume.  If you simply delete the volume, the disk will
+become an available object and the CSM will then appear in the list of plug-ins
+because it now has an available disk that it can add to a container.</para>
+</sect2>
+
+<sect2><title>BSD segment manager</title>
+<para>BSD refers to the Berkeley Software Distribution UNIX&reg; operating system.  The EVMS
+BSD segment manager is responsible for recognizing and producing EVMS segment
+storage objects that map BSD partitions.  A BSD disk may have a slice table in the
+very first sector on the disk for compatibility purposes with other operating systems.
+For example, a DOS slice table might be found in the usual MBR sector.  The BSD disk
+would then be found within a disk slice that is located using the compatibility slice table.
+However, BSD has no need for the slice table and can fully dedicate the disk to
+itself by placing the disk label in the very first sector.  This is called a &quot;fully dedicated
+disk&quot; because BSD uses the entire disk and does not provide a compatibility slice table.
+The BSD segment manager recognizes such &quot;fully dedicated disks&quot; and provides mappings for
+the BSD partitions.</para>
+</sect2>
+
+<sect2><title>MAC segment manager</title>
+<para>Apple-partitioned disks use a disk label that is recognized by the MAC segment
+manager.  The MAC segment manager recognizes the disk label during discovery and 
+creates EVMS
+segments to map the MacOS disk partitions.</para>
+</sect2>
+
+<sect2><title>BBR segment manager</title>
+<para>The bad block replacement (BBR) segment manager enhances the reliability of
+a disk by remapping bad storage blocks.  When BBR is added to a disk, it writes
+metadata on the disk that:</para>
+<itemizedlist>
+<listitem><para>reserves replacement blocks</para></listitem>
+<listitem><para>maps bad blocks to reserved blocks</para></listitem>
+</itemizedlist>
+<para>Bad blocks occur when an I/O error is detected for a write operation.
+When this happens, I/O normally fails and the failure code is returned to the
+calling program code.  BBR detects failed write operations and remaps the I/O to a
+reserved block on the disk.  Afterward, BBR restarts the I/O using the reserve block.</para>
+<para>Every block of storage has an address, called a logical block address, or LBA.
+When BBR is added to a disk, it provides two critical functions: remap and recovery.
+When an I/O operation is sent to disk, BBR inspects the LBA in the I/O command to see
+if the LBA has been remapped to a reserve block due to some earlier I/O error.
+If BBR finds a mapping between the LBA and a reserve block, it updates the I/O
+command with the LBA of the reserve block before sending it on to the disk.
+Recovery occurs when BBR detects an I/O error and remaps the bad block to a 
+reserve block.  The new LBA mapping is saved in BBR metadata so that subsequent
+I/O to the LBA can be remapped.</para>
+</sect2>
+	
+</sect1>
+
+<sect1 id="assignsegex"><title>Adding a segment manager to an existing disk</title>
+	<para>When you add a segment manager to a disk, the segment manager 
+	needs to change the basic 
+	layout of the disk. This change means that some sectors are 
+	reserved for metadata and the remaining sectors are
+  made available for creating data disk segments. Metadata sectors 
+	are written to disk to save information
+	needed by the segment manager;  previous information found on the 
+	disk is lost. Before adding a 
+	segment manager to an existing disk, you must remove any existing 
+	volume management structures, including any previous segment manager.</para>
+
+	
+</sect1>
+
+<sect1 id="assignsegnew"><title>Adding a segment manager to a new disk</title>
+	<para>When a new disk is added to a system,
+	the disk usually contains no data and has not
+	  been partitioned. If this is the case, the disk shows up in EVMS as a compatibility volume because 
+	  EVMS cannot tell if the disk is being used as a volume. To add a segment manager to the disk so that it 
+	can be subdivided into smaller disk segment objects, tell EVMS that the disk is not a
+	compatibility volume by deleting the volume information.</para> 
+
+	<para>If the new disk was moved from another system, chances are good that the disk already contains 
+	metadata. If the disk does contain metadata, the disk shows up in EVMS with storage objects that 
+	were produced from the existing metadata. Deleting these objects will allow you to add a different 
+	segment manager to the disk, and you lose any old data. </para>
+</sect1>
+	
+<sect1 id="assignex"><title>Example: add a segment manager</title>
+<para>This section shows how to add 
+a segment manager with EVMS.</para>
+
+	<para>EVMS initially displays the
+	physical disks it sees as volumes. Assume that you have added a new 
+	disk to the system that EVMS 
+	sees as <filename>sde</filename>. 
+	This disk contains no data and has not been subdivided 
+	(no partitions). EVMS assumes that this 
+	disk is a compatibility volume known as <filename>/dev/evms/sde</filename>. </para>
+
+
+
+<blockquote><example><title>Add the DOS Segment Manager</title>
+<para>Add the DOS Segment Manager to disk <filename>sde</filename>.</para></example></blockquote>
+	
+	<note><title>NOTE</title>
+<para>In the following example, the DOS Segment
+		Manager creates two segments on the disk:
+		a metadata segment known as <filename>sde_mbr</filename>, and a
+		segment to represent the available space on
+		the drive, <filename>sde_freespace1</filename>. This freespace
+		segment (<filename>sde_freespace1</filename>) can be 
+		divided into
+		other segments because it represents space on
+		the drive that is not in use.</para></note>
+
+
+<sect2 id="assignseggui"><title>Using the EVMS GUI</title>
+
+<para>To add the DOS Segment Manager to <filename>sde</filename>, first 
+remove the volume, <filename>/dev/evms/sde</filename>:</para>
+
+<orderedlist>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu>
+<guimenuitem>Delete</guimenuitem>
+<guimenuitem>Volume</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Select <filename>/dev/evms/sde</filename>.</para></listitem>
+<listitem><para>Click <guibutton>Delete</guibutton>.</para></listitem>
+
+</orderedlist>
+<para>Alternatively, you can remove the volume through the GUI context sensitive menu:</para>
+
+<orderedlist>
+<listitem><para>From the <guimenuitem>Volumes tab</guimenuitem>, right click <filename>/dev/evms/sde</filename>.</para></listitem>
+<listitem><para>Click <guibutton>Delete</guibutton>.</para></listitem>
+</orderedlist>
+
+<para>After the volume is removed, add the DOS Segment Manager:</para>
+
+<orderedlist>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu>
+<guimenuitem>Add</guimenuitem>
+<guimenuitem>Segment Manager to Storage Object</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Select <guilabel>DOS Segment Manager</guilabel>.</para></listitem>
+<listitem><para>Click <guibutton>Next</guibutton>.</para></listitem>
+<listitem><para>Select <guilabel>sde</guilabel></para></listitem>
+
+<listitem><para>Click <guibutton>Add</guibutton></para></listitem>
+</orderedlist>
+</sect2>
+
+<sect2 id="assignsegncur"><title>Using Ncurses</title>
+<para>To add the DOS Segment Manager to <filename>sde</filename>, first remove the 
+volume <filename>/dev/evms/sde</filename>:</para>
+<orderedlist>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu><guimenuitem>Delete</guimenuitem>
+<guimenuitem>Segment Manager to Storage Object</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Select <filename>/dev/evms/sde</filename>.</para></listitem>
+<listitem><para>Activate <guibutton>Delete</guibutton>.</para></listitem>
+
+</orderedlist>
+
+<para>Alternatively, you can remove the volume through the context sensitive menu:</para>
+<orderedlist>
+<listitem><para>From the Logical Volumes view, press <keycap>Enter</keycap> on 
+<filename>/dev/evms/sde</filename>.</para>
+</listitem>
+<listitem><para>Activate <guibutton>Delete</guibutton>.</para>
+</listitem>
+
+</orderedlist>
+
+<para>After the volume is removed, add the DOS Segment Manager:</para>
+<orderedlist>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu><guimenuitem>Add</guimenuitem>
+<guimenuitem>Segment Manager to Storage Object</guimenuitem></menuchoice></para></listitem>
+<listitem><para>Select <guilabel>DOS Segment Manager</guilabel>.</para></listitem>
+<listitem><para>Activate <guibutton>Next</guibutton>.</para></listitem>
+<listitem><para>Select <guilabel>sde</guilabel>.
+</para></listitem>
+<listitem><para>Activate <guibutton>Add</guibutton>.</para></listitem>
+</orderedlist>
+	</sect2>
+
+
+<sect2 id="assignsegcli"><title>Using the CLI</title>
+
+<para>To add the DOS Segment Manager to sde, first tell EVMS that this disk is not a 
+volume and is available for use:</para>
+		
+		<programlisting>Delete:/dev/evms/sde</programlisting>
+	
+
+<para>Next, add the DOS Segment Manager to sde by typing the following:</para>
+
+	<programlisting>Add:DosSegMgr={},sde</programlisting>
+
+		  
+</sect2>	
+
+ </sect1>
+<sect1 id="removeseg"><title>Removing a segment manager</title>
+<para>When a segment manager is removed from a disk, the disk can be reused by
+other plug-ins.  The <command>remove</command> command causes the segment manager to remove its
+partition or slice table from the disk, leaving the raw disk storage object that then
+becomes an available EVMS storage object.  As an available storage object,
+the disk is free to be used by any plug-in when storage objects are created or expanded.
+You can also add any of the segment managers to the available disk storage object
+to subdivide the disk into segments.</para>
+<para>Most segment manager plug-ins check to determine if any of the segments are still in
+use by other plug-ins or are still part of volumes.  If a segment manager determines
+that there are no disks from which it can safely remove itself, it will not be listed
+when you use the <command>remove</command> command.  In this case, you should delete the
+volume or storage object that is consuming segments from the disk you want to reuse.</para>
+
+</sect1>
+<sect1 id="rmvex"><title>Example: remove a segment manager</title>
+<para>This section shows how to remove 
+a segment manager with EVMS.</para>
+
+<blockquote><example><title>Remove the DOS Segment Manager</title>
+<para>Remove the DOS Segment Manager from disk <filename>sda</filename>.</para></example></blockquote>
+	
+	<note><title>NOTE</title>
+<para>In the following example, the DOS Segment
+		Manager has one primary partition on disk <filename>sda</filename>.
+		The segment is a compatibility volume known as
+		<filename>/dev/evms/sda1</filename>.</para></note>
+
+
+<sect2 id="removeseggui"><title>Using the EVMS GUI context sensitive menu</title>
+
+<para>Follow these steps to remove a segment manager with the GUI context sensitive menu:</para>
+
+<orderedlist>
+<listitem><para>From the <guimenuitem>Volumes</guimenuitem> tab, right click <filename>/dev/evms/sda1</filename>..</para></listitem>
+<listitem><para>Click <guibutton>Delete</guibutton>.</para></listitem>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu>
+<guimenuitem>Remove</guimenuitem>
+<guimenuitem>Segment Manager from Storage Object</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Select <guimenuitem>DOS Segment Manager, sda</guimenuitem>.</para></listitem>
+<listitem><para>Click <guibutton>Remove</guibutton>.</para></listitem>
+</orderedlist>
+
+</sect2>
+
+<sect2 id="removesegcur"><title>Using Ncurses</title>
+<para>Follow these steps to remove a segment manager with the Ncurses interface:</para>
+<orderedlist>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu><guimenuitem>Delete</guimenuitem>
+<guimenuitem>Volume</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Select <filename>/dev/evms/sda1</filename>.</para></listitem>
+<listitem><para>Click <guibutton>Delete</guibutton>.</para></listitem>
+<listitem><para>Select <menuchoice><guimenu>Actions</guimenu><guimenuitem>Remove</guimenuitem>
+<guimenuitem>Segment Manager from Storage Object</guimenuitem></menuchoice>.</para></listitem>
+<listitem><para>Click <guibutton>Remove</guibutton>.</para></listitem>
+
+</orderedlist>
+
+	</sect2>
+
+
+<sect2 id="removesegcli"><title>Using the CLI</title>
+
+<para>Follow these steps to remove a segment manager with the CLI:</para>
+		
+		<programlisting>Delete:/dev/evms/sda1</programlisting>
+	
+		<programlisting>Remove: sda</programlisting>  
+</sect2>	
+
+ </sect1>
+
+</chapter>
+
