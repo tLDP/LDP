@@ -103,7 +103,7 @@ sub proc_txt {
 	#
 	open(TXT, "$f") || die "txt2db: cannot open $f ($!)\n";
 	while (<TXT>) {
-		$originalline = <TXT>;
+		$originalline = $_;
 		$line = $originalline;
 		$linenumber++;
 
@@ -289,6 +289,9 @@ sub proc_txt {
 				print "txt2db: ERROR unterminated '[[' tag on line $linenumber.\n";
 				exit(1);
 			}
+
+			# separate link url from link name
+			#
 			$link = $line;
 			$link =~ s/.*?\[\[//;
 			$link =~ s/\]\].*?$//;
@@ -296,26 +299,24 @@ sub proc_txt {
 				$linkname = $link;
 				$link =~ s/\|.+$//;
 				$linkname =~ s/^\S+\|//;
-			} elsif ($link =~ /mailto:/) {
-				$linkname = $link;
-				$linkname =~ s/mailto://;
 			} else {
 				$linkname = $link;
 			}
-
-			# LDP links
+			
+			# namespaces are handled differently
 			#
-			if ($link =~ /^ldp:/) {
+			if ($link =~ /mailto:/) {
+				$linkname = $link;
+				$linkname =~ s/mailto://;
+			} elsif ($link =~ /^ldp:/) {
 				$link =~ s/^ldp://;
 				$linkname =~ s/^ldp://;
 				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O /tmp/name-to-url.txt");
 				open(URL, "/tmp/name-to-url.txt") || die "txt2db: cannot open temporary file ($!)\n";
-				$ldp_url = <URL>;
+				$link = <URL>;
 				close(URL);
-				$line =~ s/\[\[.*?\]\]/<ulink url='$ldp_url'><citetitle>$linkname<\/citetitle><\/ulink>/;
-			} else {
-				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
-			}
+			}			
+			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		}
 
 		# emphasis
