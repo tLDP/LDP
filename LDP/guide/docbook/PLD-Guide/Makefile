@@ -11,4 +11,6 @@ valid:
 
 # draft with xslt tools
 draft:
-	xsltproc -o index.html /usr/share/sgml/docbook/xsl-stylesheets-1.49/html/docbook.xsl PLD-Guide.xml
+	SGML_CATALOG_FILES=/etc/sgml/catalog \
+	xsltproc --nonet --catalogs -o index.html \
+	/usr/share/sgml/docbook/xsl-stylesheets-1.49/html/docbook.xsl PLD-Guide.xml
