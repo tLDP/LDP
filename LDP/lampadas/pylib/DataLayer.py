@@ -12,12 +12,15 @@ performed through this layer.
 
 import Config
 import Database
+import Log
 from string import strip
 from types import StringType
 
 Config = Config.Config()
 DB = Database.Database()
 DB.Connect(Config.DBType, Config.DBName)
+Log = Log.Log()
+Log.Truncate()
 
 class LampadasList:
 	"""
@@ -74,6 +77,30 @@ class LampadasCollection:
 		return len(self.col)
 
 
+# Lampadas
+
+class Lampadas:
+	"""
+	This is the top level container class for all Lampadas objects.
+	While you can also create User, Doc, and other classes independently,
+	this class can be instantiated and all those objects accessed as part
+	of a single object hierarchy.
+
+	Using this method gives you complete data caching capabilities and a
+	single, global access route to all Lampadas data.
+	"""
+	
+	def __init__(self):
+		self.Docs = Docs()
+		self.Users = Users()
+
+	def User(self, UserID):
+		return User(UserID)
+
+	def Doc(self, DocID):
+		return Doc(DocID)
+
+
 # Users
 
 class Users:
@@ -82,14 +109,14 @@ class Users:
 	"""
 
 	def Count(self):
-		return DB.Value('select count(*) from username')
+		return DB.Value('SELECT count(*) from username')
 
 	def Add(self, Username, FirstName, MiddleName, Surname, Email, IsAdmin, IsSysadmin, Password, Notes, Stylesheet):
-		self.id = DB.Value('select max(user_id) from username') + 1
+		self.id = DB.Value('SELECT max(user_id) from username') + 1
 		self.sql = "INSERT INTO username (user_id, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + str(self.id) + ", " + wsq(Username) + ", " + wsq(FirstName) + ", " + wsq(MiddleName) + ", " + wsq(Surname) + ", " + wsq(Email) + ", " + wsq(bool2tf(IsAdmin)) + ", " + wsq(bool2tf(IsSysadmin)) + ", " + wsq(Password) + ", " + wsq(Notes) + ", " + wsq(Stylesheet) + ")"
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
-		return DB.Value('select max(user_id) from username')
+		return DB.Value('SELECT max(user_id) from username')
 	
 	def Del(self, id):
 		self.sql = ('DELETE from username WHERE user_id=' + str(id))
@@ -103,8 +130,8 @@ class User:
 	"""
 
 	def __init__(self, id) :
-		self.cursor = DB.Cursor()
-		self.cursor.execute('SELECT user_id, username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE user_id=' + str(id))
+		self.sql = 'SELECT user_id, username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE user_id=' + str(id)
+		self.cursor = DB.Select(self.sql)
 		data = self.cursor.fetchone()
 		self.ID		= data[0]
 		self.Username	= trim(data[1])
@@ -131,8 +158,8 @@ class Docs(LampadasCollection):
 	"""
 
 	def __init__(self):
-		self.cursor = DB.Cursor()
-		self.cursor.execute("SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document")
+		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+		self.cursor = DB.Select(self.sql)
 		while (1):
 			data = self.cursor.fetchone()
 			if data == None: break
@@ -141,11 +168,11 @@ class Docs(LampadasCollection):
 			self.col[newDoc.ID] = newDoc
 
 	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
-		self.id = DB.Value('select max(doc_id) from document') + 1
+		self.id = DB.Value('SELECT max(doc_id) from document') + 1
 		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
-		self.NewID = DB.Value('select max(doc_id) from document')
+		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
 		newDoc = Doc(self.NewID)
 		self.col[self.NewID] = newDoc
 		return self.NewID
@@ -164,8 +191,8 @@ class Doc:
 
 	def __init__(self, id=None):
 		if id == None: return
-		self.cursor = DB.Cursor()
-		self.cursor.execute("SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id))
+		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+		self.cursor = DB.Select(self.sql)
 		data = self.cursor.fetchone()
 		self.__load__(data)
 
@@ -209,8 +236,8 @@ class UserDocs(LampadasList):
 	def __init__(self, UserID):
 		assert not UserID == None
 		self.UserID = UserID
-		self.cursor = DB.Cursor()
-		self.cursor.execute("SELECT doc_id, user_id, role, email, active FROM document_user WHERE user_id=" + str(self.UserID))
+		self.sql = "SELECT doc_id, user_id, role, email, active FROM document_user WHERE user_id=" + str(self.UserID)
+		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
@@ -235,19 +262,13 @@ class UserDoc:
 	An association between a user and a document.
 	"""
 
-	DocID	= None
-	UserID	= None
-	Role	= None
-	Email	= None
-	Active	= None
-
 	def __init__(self, UserID=None, DocID=None):
 		self.UserID = UserID
 		self.DocID = DocID
 		if DocID == None: return
 		if UserID == None: return
-		self.cursor = DB.Cursor()
-		self.cursor.execute("SELECT doc_id, user_id, role, email, active FROM document_user WHERE doc_id=" + str(DocID) + " AND user_id=" + str(UserID))
+		self.sql = "SELECT doc_id, user_id, role, email, active FROM document_user WHERE doc_id=" + str(DocID) + " AND user_id=" + str(UserID)
+		self.cursor = DB.Select(self.sql)
 		row = self.cursor.fetchone()
 		self.__load__(row)
 

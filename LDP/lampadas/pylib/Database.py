@@ -9,9 +9,11 @@ This module generates a Database object for accessing a back-end RDBMS
 # Modules ##################################################################
 
 import pyPgSQL
+import Log
 
+Log = Log.Log()
 
-# Database ###############################################################
+# Database
 
 class UnknownDBException(Exception):
 	pass
@@ -39,7 +41,14 @@ class Database:
 	def Cursor(self):
 		return self.db.connection.cursor()
 
+	def Select(self, sql):
+		Log(sql)
+		self.cursor = self.db.connection.cursor()
+		self.cursor.execute(sql)
+		return self.cursor
+
 	def Value(self, sql):
+		Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		self.value = self.cursor.fetchone()
@@ -47,6 +56,7 @@ class Database:
 		return self.value
 
 	def Exec(self, sql):
+		Log(sql)
 		self.cursor = self.db.connection.cursor()
 		self.cursor.execute(sql)
 		return self.cursor.rowcount
