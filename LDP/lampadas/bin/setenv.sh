@@ -24,13 +24,16 @@ export LAMPADAS_SQL="$LAMPADAS_ROOT/database/tables"
 export LAMPADAS_DATA="$LAMPADAS_SQL"
 
 # generated files that are not automatically deleted after use
-export LAMPADAS_SPOOL=/tmp
+export LAMPADAS_SPOOL=/tmp/`whoami`
 
 # database name to connect to. see psql(1)
 export LAMPADAS_DB=lampadas
 
 # account running the http server
-export LAMPADAS_WWW_USER="www-data"
+export LAMPADAS_WWW_USER=www-data
+
+# postgres account used to create tables
+export LAMPADAS_DB_USER=lampadas
 
 # used by bin/lampadasweb to find the file lampadas.conf
 export LAMPADAS_ETC="$LAMPADAS_ROOT/conf"
@@ -64,7 +67,7 @@ export PYTHONPATH="$PYTHONPATH\:$LAMPADAS_LIB"
 #
 
 # http://docbook.org/xml/4.1.2/docbookx.dtd
-export LAMPADAS_XML_DTD_412=
+export LAMPADAS_XML_DTD_412="/usr/share/sgml/docbook/dtd/xml/4.1.2/docbookx.dtd"
 
 # ISO 8879:1986//ENTITIES Numeric and Special Graphic//EN//XML
-export LAMPADAS_XML_ISO_NUM=
+export LAMPADAS_XML_ISO_NUM="/usr/share/sgml/entities/xml-iso-entities-8879.1986/ISOnum.ent"
