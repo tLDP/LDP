@@ -28,6 +28,9 @@ class LampadasList:
     Base class for Lampadas list objects.
 
     Classes based on this one emulate lists, with additional methods.
+
+    FIXME: I don't think this class is needed. Why not just using a list ?
+    -- nico
     """
 
     def __init__(self):

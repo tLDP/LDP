@@ -34,6 +34,8 @@ def wsq(astring):
 
     This routine also replaces null strings ('') with the word "NULL",
     so empty strings are not stored into the database.
+
+    FIXME: the Python DB-API 2.0 says we do not need this wsq function !
     """
     
     if astring==None:

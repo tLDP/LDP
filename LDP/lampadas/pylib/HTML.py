@@ -23,8 +23,32 @@ Lampadas HTML Primitives Module
 
 This module generates HTML primitives and web pages for the WWW front-end
 to the Lampadas system.
+
+FIXME: string concatenation is kinda slow. Use class WOStringIO instead.
+As in
+
+buf = WOStringIO()
+buf.write('some piece of <HTML>')
+buf.write('some other %s' % 'variable-value')
+buf.get_value()
+
+N.B: same interface as StringIO.
+
+--nico
 """
 
+class WOStringIO :
+    "Write-Only pure python extra fast buffer"
+
+    def __init__(self,s='') :
+        self.data = [s]
+
+    def write(self,s) :
+        self.data.append(s)
+
+    def get_value(self) :
+        return ''.join(self.data)
+    
 # Modules ##################################################################
 
 from Globals import *
