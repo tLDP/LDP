@@ -8,6 +8,19 @@
 
 <xsl:param name="html.stylesheet" select="'linux-ip.css'"/>
 
+
+<!--
+  Tried chunk.tocs.and.lots, and got a main page with revision history
+  and abstract.  Not quite what I had hoped.
+
+  <xsl:param name="chunk.tocs.and.lots" select="1"/>
+
+  Appears to be used by the LDP stylesheets, on which this is based
+
+  <xsl:param name="chunk.first.sections" select="1"/>
+
+  -->
+
 <xsl:template match="ulink" name="ulink">
   <xsl:variable name="link">
     <a class="nonlocal">
