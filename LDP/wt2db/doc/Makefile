@@ -24,10 +24,12 @@ install:	all
 	$(INSTALLDIR) $(DOC_DIR)
 	$(INSTALLDOC) wt2db.html $(DOC_DIR)/wt2db.html
 
-# Publishes the documentation on the official LDP homepage for wt2db.
-# You *do* have to enter the password to publish it.
+# Publishes the documentation on the official LDP homepage.
+# This assumes you're running on an iBiblio machine and have a symlink
+# to the root of the LDP site at ~/LDP.
+#
 publish: html
-	scp wt2db.html dmerrill@login.ibiblio.org:/export/sunsite/users/dmerrill/LDP/wt2db/index.html
+	cp -p wt2db.html ~/LDP/wt2db/index.html
 
 clean:
 	rm -f wt2db.1
