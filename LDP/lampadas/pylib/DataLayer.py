@@ -116,6 +116,7 @@ class Lampadas:
 		self.Docs.Load()
 		self.Languages	= Languages()
 		self.Strings	= Strings()
+		self.Topics	= Topics()
 		self.Users	= Users()
 
 	def User(self, UserID):
@@ -161,7 +162,6 @@ class Class:
 			newClassI18n.Load(self.row)
 			self.I18n[newClassI18n.Lang] = newClassI18n
 
-# ClassI18n
 
 class ClassI18n:
 
@@ -552,6 +552,52 @@ class StringI18n:
 	def Load(self, row):
 		self.Lang		= row[0]
 		self.Text		= trim(row[1])
+
+
+# Topics
+
+class Topics(LampadasCollection):
+	"""
+	A collection object of all topics.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT topic_num FROM topic"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newTopic = Topic()
+			newTopic.Load(row)
+			self.data[newTopic.Num] = newTopic
+
+
+class Topic:
+
+	def __init__(self, TopicNum=None):
+		self.I18n = {}
+		if TopicNum==None: return
+		self.Num = TopicNum
+
+	def Load(self, row):
+		self.Num = trim(row[0])
+		self.sql = "SELECT lang, topic_name, topic_description FROM topic_i18n string_i18n WHERE topic_num=" + wsq(self.Num)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newTopicI18n = TopicI18n()
+			newTopicI18n.Load(self.row)
+			self.I18n[newTopicI18n.Lang] = newTopicI18n
+
+
+class TopicI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+		self.Description	= trim(row[2])
 
 	
 # Users

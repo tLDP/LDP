@@ -193,6 +193,13 @@ class testDocVersions(unittest.TestCase):
 		assert found == 1
 			
 
+class testLanguages(unittest.TestCase):
+
+	def testLanguages(self):
+		assert L.Languages['EN'].Name == 'English'
+		assert L.Languages['FR'].Name == 'French'
+		assert L.Languages.Count() == 136
+
 class testStrings(unittest.TestCase):
 
 	def testStrings(self):
@@ -200,13 +207,17 @@ class testStrings(unittest.TestCase):
 		assert L.Strings.Count() > 0
 		assert not L.Strings['header'] == None
 		assert L.Strings['test'].I18n['EN'].Text == 'Test Text'
-	
-class testLanguages(unittest.TestCase):
 
-	def testLanguages(self):
-		assert L.Languages['EN'].Name == 'English'
-		assert L.Languages['FR'].Name == 'French'
-		assert L.Languages.Count() == 136
+class testTopics(unittest.TestCase):
+
+	def testTopics(self):
+		assert not L.Topics == None
+		assert L.Topics.Count() > 0
+		keys = L.Topics.keys()
+		for key in keys:
+			Topic = L.Topics[key]
+			assert Topic.Num > 0
+			assert Topic.I18n['EN'].Name > ''
 
 class testUsers(unittest.TestCase):
 
