@@ -94,10 +94,10 @@ class Config:
 
     def read_var(self, section, name):
         if not self.config.has_section(section) :
-            raise ConfigFileReadErrorException("File '" + CONF_FILE + "' is missing or does not contain a '" + section + "' section")
+            raise ConfigFileReadErrorException("File '" + self.config_file + "' is missing or does not contain a '" + section + "' section")
 
         if not self.config.has_option(section, name):
-            raise ConfigFileReadErrorException("Can't read option '" + name + "' from " + CONF_FILE)
+            raise ConfigFileReadErrorException("Can't read option '" + name + "' from " + self.config_file)
 
         return self.config.get(section, name)
 
