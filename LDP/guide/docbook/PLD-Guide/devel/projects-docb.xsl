@@ -2,14 +2,13 @@
 <xsl:stylesheet version="1.0" 
 		xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:template match="/project-list">
-    <para>
-      <xsl:apply-templates select="project" />
-    </para>
+    <xsl:apply-templates select="project" />
   </xsl:template>
 
   <xsl:output indent="yes" />
 
   <xsl:template match="project">
+    <para>
     <table>
       <title><xsl:value-of select="name"/></title>
       <tgroup cols="2">
@@ -34,6 +33,7 @@
        </tbody>
       </tgroup>
     </table>
+    </para>
   </xsl:template>
 
   <xsl:template match="maintainer">
