@@ -11,6 +11,8 @@ $message = '';
 # Read parameters
 $doc_id       = param('doc_id');
 
+$currentuser = $query->remote_user();
+
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 
@@ -65,15 +67,8 @@ while (@row = $votes_result->fetchrow) {
   $vote_total = $vote_total + $vote;
 }
 if ($vote_count > 0) {
-$vote_avg = $vote_total / $vote_count;
+	$vote_avg = $vote_total / $vote_count;
 }
-
-$votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $votes_result->resultStatus;
-@row = $votes_result->fetchrow;
-$vote = $row[0];
-
-
 
 print header(-expires=>'now');
 
@@ -82,11 +77,9 @@ print "<link rel=stylesheet href='../ldp.css' type='text/css'>";
 print "</head>";
 print "<body>";
 
-print "<h1>$title</h1>\n";
+print "<h1>$title ($doc_id)</h1>\n";
 
 system("./navbar.pl");
-
-#print "<p>ID: $doc_id";
 
 print "<form method=POST action='document_save.pl' name='edit'>\n";
 print "<input type=hidden name=doc_id value='$doc_id'>\n";
@@ -644,6 +637,11 @@ for ( $i = 1; $i <= 10; $i++ ) {
   print ">&nbsp;&nbsp;&nbsp;</td>\n";
 }
 print "</tr></table>\n";
+
+$votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id and username='$currentuser'");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $votes_result->resultStatus;
+@row = $votes_result->fetchrow;
+$vote = $row[0];
 
 print "<p>You can rate each document on a scale from 1 to 10, where 1 is very poor and 10 is excellent.\n";
 print "Your vote is averaged with the votes of others to obtain a rating for the document.\n";

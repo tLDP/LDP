@@ -59,7 +59,11 @@ $sql = "SELECT COUNT(*) as active_maintainers FROM document_maintainer WHERE doc
 $result=$conn->exec($sql);
 @row = $result->fetchrow;
 $active_maintainers = $row[0];
-if ( $active_maintainers > 0 ) { $maintained = "t" } else { $maintained = "f" }
+if ($active_maintainers) {
+	$maintained = "t"
+} else {
+	$maintained = "f"
+}
 $sql = "UPDATE document SET maintained='$maintained' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 

@@ -33,6 +33,7 @@ $chkMAINTAINED   = param('chkMAINTAINED');
 $chkLICENSE      = param('chkLICENSE');
 $chkVERSION      = param('chkVERSION');
 $chkFILENAME     = param('chkFILENAME');
+$chkRATING       = param('chkRATING');
 
 $SORT1     = param('strSORT1');
 $SORT2     = "";
@@ -83,6 +84,7 @@ $MAINTAINED = "";
 $LICENSE = "";
 $VERSION = "";
 $FILENAME = "";
+$RATING = "";
 
 # Translate them into checked phrases for checkboxes and WHERE clauses
 $WHERE = "WHERE class in (''";
@@ -112,6 +114,7 @@ if ( $chkMAINTAINED eq "on" ) { $MAINTAINED = "checked "; }
 if ( $chkLICENSE eq "on" ) { $LICENSE = "checked "; }
 if ( $chkVERSION eq "on" ) { $VERSION = "checked "; }
 if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
+if ( $chkRATING eq "on" ) { $RATING = "checked "; }
 
 # connect to the database
 $conn=Pg::connectdb("dbname=$dbmain");
@@ -168,6 +171,7 @@ print "<input type=checkbox $MAINTAINED name=chkMAINTAINED>Maintained<br>\n";
 print "<input type=checkbox $LICENSE name=chkLICENSE>License<br>\n";
 print "<input type=checkbox $VERSION name=chkVERSION>Version<br>\n";
 print "<input type=checkbox $FILENAME name=chkFILENAME>Filename<br>\n";
+print "<input type=checkbox $RATING name=chkRATING>Rating<br>\n";
 print "</td>\n";
 
 print "<td valign=top>\n";
@@ -186,6 +190,7 @@ if ( $SORT1 eq "url" ) { print '<option selected value="url">URL</option>'; } el
 if ( $SORT1 eq "maintained" ) { print '<option selected value="maintained">Maintained</option>'; } else { print '<option value="maintained">Maintained</option>' }
 if ( $SORT1 eq "license" ) { print '<option selected value="license">License</option>'; } else { print '<option value="license">License</option>' }
 if ( $SORT1 eq "filename" ) { print '<option selected value="filename">Filename</option>'; } else { print '<option value="filename">Filename</option>' }
+if ( $SORT1 eq "rating" ) { print '<option selected value="rating">Rating</option>'; } else { print '<option value="rating">Rating</option>' }
 print "</select><br>";
 print "</td>\n";
 
@@ -240,6 +245,7 @@ print "<tr><th>Title</th>";
 if ( $STATUS ) { print "<th>Status</th>"; }
 if ( $REVIEWSTATUS ) { print "<th>Review Status</th>"; }
 if ( $TECHSTATUS ) { print "<th>Tech Status</th>"; }
+if ( $RATING ) { print "<th>Rating</th>"; }
 if ( $MAINTAINED ) { print "<th>Maintained</th>"; }
 if ( $LICENSE ) { print "<th>License</th>"; }
 if ( $VERSION ) { print "<th>Version</th>"; }
@@ -255,7 +261,7 @@ print "</tr>\n";
 
 
 # load the tuples
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename";
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename, rating";
 $sql .= " FROM document,";
 $sql .= " pub_status,";
 $sql .= " review_status lr,";
@@ -291,6 +297,7 @@ while (@row = $result->fetchrow) {
   $license                 = $row[13];
   $version                 = $row[14];
   $filename                = $row[15];
+  $rating                  = $row[16];
   print "<tr>";
   print "<td>";
   print a({href=>"document_edit.pl?doc_id=$doc_id"},"$title");
@@ -299,6 +306,7 @@ while (@row = $result->fetchrow) {
   if ( $STATUS) { print "<td>$pub_status_name</td>"; }
   if ( $REVIEWSTATUS) { print "<td>$review_status_name</td>"; }
   if ( $TECHSTATUS) { print "<td>$tech_review_status_name</td>"; }
+  if ( $RATING) { print "<td>$rating</td>"; }
   if ( $MAINTAINED ) { print "<td>$maintained</td>"; }
   if ( $LICENSE ) { print "<td>$license</td>"; }
   if ( $VERSION ) { print "<td>$version</td>"; }
