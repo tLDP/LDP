@@ -32,14 +32,14 @@ def handler(req):
             session_id = str(cookie)
             username = lampadas.users.find_session_user(session_id)
             if username > '':
+                sessions.load()
                 session = sessions[username]
                 if session:
-                    session.refresh()
+                    session.refresh(req.connection.remote_addr[0])
                 else:
                     sessions.add(username, req.connection.remote_addr[0])
         else:
             session_id = ''
-
 
         send_HTML(req, page_factory.page(req.uri, session_id))
     return apache.OK

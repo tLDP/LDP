@@ -78,8 +78,8 @@ class Session:
     def __init__(self, username):
         self.username = username
    
-    def refresh(self):
-        sql = 'UPDATE session SET timestamp=now() WHERE username=' + wsq(self.username)
+    def refresh(self, ip_address):
+        sql = 'UPDATE session SET timestamp=now(), ip_address=' + wsq(ip_address) + ' WHERE username=' + wsq(self.username)
         updated = db.runsql(sql)
         db.commit()
         if updated==0:
