@@ -103,7 +103,7 @@ insert(strdetails,          [Details])
 insert(strfiles,            [Dateien])
 insert(strversions,         [Versionen])
 insert(strnotes,            [Anmerkungen])
-insert(strtranslations,     [Translations]) m4_dnl FIXME
+insert(strtranslations,     [Übersetzungen])
 insert(strall,              [Alles])
-insert(strrecentnews,       [Recent News])  m4_dnl FIXME
-insert(strreplacedby,       [Replaced By])  m4_dnl FIXME
+insert(strrecentnews,       [Aktuelle Nachrichten])
+insert(strreplacedby,       [Ersetzt durch])
