@@ -80,6 +80,10 @@
 (define %graphic-default-extension% 
   "gif")
 
+(define %section-autolabel%
+  ;; For enumerated sections (1.1, 1.1.1, 1.2, etc.)
+  #t)
+
 (define (toc-depth nd)
   2)
 
