@@ -11,7 +11,7 @@ echo "Choose one of the following persons:"
 echo
 echo "[E]vans, Roland"
 echo "[J]ones, Mildred"
-echo "[Smith], Julie"
+echo "[S]mith, Julie"
 echo "[Z]ane, Morris"
 echo
 

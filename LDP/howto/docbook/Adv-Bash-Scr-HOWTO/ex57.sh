@@ -12,7 +12,7 @@ done
 
 # Now, take care of files containing all manner of whitespace.
 find . -name "* *" -exec rm -f {} \;
-# The "{}" references the paths of all the files that "find" finds.
+# The path name of the file that "find" finds replaces the "{}".
 # The '\' ensures that the ';' is interpreted literally, as end of command.
 
 exit 0

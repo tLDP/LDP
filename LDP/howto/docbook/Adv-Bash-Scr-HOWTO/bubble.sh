@@ -23,7 +23,7 @@ exchange()
   return
 }  
 
-declare -a Countries  # Declare array.
+declare -a Countries  # Declare array, optional here since it's initialized below.
 
 Countries=(Netherlands Ukraine Zair Turkey Russia Yemen Syria Brazil Argentina Nicaragua Japan Mexico Venezuela Greece England Israel Peru Canada Oman Denmark Wales France Kashmir Qatar Liechtenstein Hungary)
 # Couldn't think of one starting with X (darn).

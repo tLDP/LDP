@@ -21,7 +21,16 @@ echo '$hello'
 
 # Notice the effect of different types of quoting.
 
-# ------------------------------------------------
+# --------------------------------------------------------------
+
+# It is permissible to set multiple variables on the same line,
+# separated by white space. Careful, this may reduce legibility.
+
+var1=variable1  var2=variable2  var3=variable3
+echo
+echo "var1=$var1   var2=$var2  var3=$var3"
+
+# --------------------------------------------------------------
 
 echo; echo
 

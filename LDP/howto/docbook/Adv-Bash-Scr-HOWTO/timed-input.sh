@@ -22,7 +22,7 @@ PrintAnswer()
 TimerOn()
 {
   sleep $TIMELIMIT && kill -s 14 $$ &
-  # Waits XXX seconds, then sends sigalarm to script.
+  # Waits 3 seconds, then sends sigalarm to script.
 }  
 
 Int14Vector()

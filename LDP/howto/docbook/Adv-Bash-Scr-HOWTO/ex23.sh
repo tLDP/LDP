@@ -8,8 +8,7 @@ do
  echo $a
 done
 
-# 'in list' missing, therefore
-# operates on '$#'
+# 'in list' missing, therefore operates on '$*'
 # (command-line argument list)
 
 exit 0

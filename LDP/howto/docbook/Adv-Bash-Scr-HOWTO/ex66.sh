@@ -11,6 +11,7 @@ area[51]=UFOs
 # Some members of the array can be left uninitialized.
 # Gaps in the array are o.k.
 
+
 echo -n "area[11] = "
 echo ${area[11]}
 echo -n "area[13] = "
@@ -37,5 +38,44 @@ echo -n "area[6] = "
 echo ${area[6]}
 # This doesn't work because
 # adding an integer to a string is not permitted.
+
+echo
+echo
+echo
+
+# -----------------------------------------------------------------
+# Another array, "area2".
+# Another way of assigning array variables...
+# array_name=( XXX YYY ZZZ ... )
+
+area2=( zero one two three four)
+
+echo -n "area2[0] = "
+echo ${area2[0]}
+# Aha, zero-based indexing (first element of array is [0], not [1]).
+
+echo -n "area2[1] = "
+echo ${area2[1]}  # [1] is second element of array.
+# -----------------------------------------------------------------
+
+
+echo
+echo
+echo
+
+# -----------------------------------------------
+# Yet another array, "area3".
+# Yet another way of assigning array variables...
+# array_name=([xx]=XXX [yy]=YYY ...)
+
+area3=([17]=seventeen [24]=twenty-four)
+
+echo -n "area3[17] = "
+echo ${area3[17]}
+
+echo -n "area3[24] = "
+echo ${area3[24]}
+# -----------------------------------------------
+
 
 exit 0
