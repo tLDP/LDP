@@ -6,6 +6,7 @@
 # 
 package Lampadas;
 
+use strict;
 use Lampadas::Database;
 use HTML::Entities;
 use HTTP::SimpleLinkChecker;
@@ -13,150 +14,151 @@ use HTTP::SimpleLinkChecker;
 use CGI qw(:standard);
 use Exporter;
 
-@ISA	= qw(Exporter);
-@EXPORT	= qw(
-	new,
-	Param,
-	Config,
+my @ISA	= qw(Exporter);
+my @EXPORT	= qw(
+		new,
+		Param,
+		Config,
 
-	RequestedLanguage,
-	CurrentUserID,
-	CurrentUser,
-	Admin,
-	SysAdmin,
-	Maintainer,
+		RequestedLanguage,
+		CurrentUserID,
+		CurrentUser,
+		Admin,
+		SysAdmin,
+		Maintainer,
 
-	Users,
-	User,
-	UserDocs,
-	UserFiles,
-	UserNotes,
-	AddUserNote,
+		Users,
+		User,
+		UserDocs,
+		UserFiles,
+		UserNotes,
+		AddUserNote,
 
-	Docs,
-	Doc,
-	AddDoc,
-	SaveDoc,
-	Lintadas,
-	LintadasDoc,
+		Docs,
+		Doc,
+		AddDoc,
+		SaveDoc,
+		Lintadas,
+		LintadasDoc,
 
-	DocFiles,
-	AddDocFile,
-	SaveDocFile,
-	DocErrors,
-	DocUsers,
-	DocTopics,
-	DocNotes,
-	DocVersions,
-	AddDocVersion,
-	SaveDocVersion,
-	DelDocVersion,
+		DocFiles,
+		AddDocFile,
+		SaveDocFile,
+		DocErrors,
+		DocUsers,
+		DocTopics,
+		DocNotes,
+		DocVersions,
+		AddDocVersion,
+		SaveDocVersion,
+		DelDocVersion,
 	
-	Roles,
-	Classes,
-	PubStatuses,
-	ReviewStatuses,
-	Licenses,
-	Topics,
-	Topic,
-	SaveTopic,
-	Subtopics,
-	SaveSubtopic,
-	Formats,
-	DTDs,
-	Stylesheets,
-	Strings,
-	String,
-	AddString,
-	SaveString,
-	DelString,
-	Errors,
-	AddError,
+		Roles,
+		Classes,
+		PubStatuses,
+		ReviewStatuses,
+		Licenses,
+		Topics,
+		Topic,
+		SaveTopic,
+		Subtopics,
+		SaveSubtopic,
+		Formats,
+		DTDs,
+		Stylesheets,
+		Strings,
+		String,
+		AddString,
+		SaveString,
+		DelString,
+		Errors,
+		AddError,
 	
-	DocCount,
-	DocCountByClass,
-	DocCountByPubStatus,
+		DocCount,
+		DocCountByClass,
+		DocCountByPubStatus,
 
-	StartPage,
-	EndPage,
+		StartPage,
+		EndPage,
 
-	RoleCombo,
-	ClassCombo,
-	PubStatusCombo,
-	ReviewStatusCombo,
-	TechReviewStatusCombo,
-	LicenseCombo,
-	TopicCombo,
-	SubtopicCombo,
-	FormatCombo,
-	DTDCombo,
-	CSSCombo,
+		RoleCombo,
+		ClassCombo,
+		PubStatusCombo,
+		ReviewStatusCombo,
+		TechReviewStatusCombo,
+		LicenseCombo,
+		TopicCombo,
+		SubtopicCombo,
+		FormatCombo,
+		DTDCombo,
+		CSSCombo,
 
-	UsersTable,
-	UserTable,
-	NewUserTable,
-	UserDocsTable,
-	UserNotesTable,
-	DocsTable,
-	DocTable,
-	DocVersionsTable,
-	DocErrorsTable,
-	DocFilesTable,
-	DocUsersTable,
-	DocTopicsTable,
-	DocRatingTable,
-	DocNotesTable,
-	StringsTable,
-	ErrorsTable,
-	TopicsTable,
-	TopicTable,
-	SubtopicsTable,
-	TopicDocsTable,
-	MessagesTable,
-	NavBar,
+		UsersTable,
+		UserTable,
+		NewUserTable,
+		UserDocsTable,
+		UserNotesTable,
+		DocsTable,
+		DocTable,
+		DocVersionsTable,
+		DocErrorsTable,
+		DocFilesTable,
+		DocUsersTable,
+		DocTopicsTable,
+		DocRatingTable,
+		DocNotesTable,
+		StringsTable,
+		ErrorsTable,
+		TopicsTable,
+		TopicTable,
+		SubtopicsTable,
+		TopicDocsTable,
+		MessagesTable,
+		NavBar,
 
-	PubStatusStatsTable,
-	LicenseStatsTable,
-	FreeNonfreeStatsTable,
-	ClassStatsTable,
-	FormatStatsTable,
-	DTDStatsTable,
-	FormatDTDStatsTable,
-	DetailedStatsTable,
-	MiscStatsTable,
+		PubStatusStatsTable,
+		LicenseStatsTable,
+		FreeNonfreeStatsTable,
+		ClassStatsTable,
+		FormatStatsTable,
+		DTDStatsTable,
+		FormatDTDStatsTable,
+		DetailedStatsTable,
+		MiscStatsTable,
 	
-	BarGraphTable,
+		BarGraphTable,
 
-	NavBox,
-	UserBox,
-	TopicsBox,
-	HeaderBox,
-	LoginBox,
-	AdminBox,
-	EditImage,
+		NavBox,
+		UserBox,
+		TopicsBox,
+		HeaderBox,
+		LoginBox,
+		AdminBox,
+		EditImage,
 
-	Login,
-	Logout,
-	AddUser,
-	SaveUser,
-	AddMessage,
-	Mail,
+		Login,
+		Logout,
+		AddUser,
+		SaveUser,
+		AddMessage,
+		Mail,
 
-	CVSUpdate,
+		CVSUpdate,
 );
 
-$CGI	= new CGI;
-$DB	= new Lampadas::Database;
+my $CGI	= new CGI;
+my $DB	= new Lampadas::Database;
 
 # Initialize global variables
 #
-$VERSION = '0.1';
-$currentuser_id = 0;
-%currentuser = ();
+my $VERSION = '0.1';
+my $currentuser_id = 0;
+my %currentuser = ();
 &ReadCookie;
 
-@messages = ();			# System messages, displayed on the next page
-$debug = 0;			# Set this to 1 to get debugging messages
+my @messages = ();			# System messages, displayed on the next page
+my $debug = 0;			# Set this to 1 to get debugging messages
+my $foo;
 
 sub new {
 	my $that = shift;
@@ -185,14 +187,14 @@ sub RequestedLanguage {
 	my ($self, $languagestring) = @_;
 	$languagestring = $CGI->http('Accept-language') unless ($languagestring);
 	my @languages = split(/,/, $languagestring);
-	my $langval, $maxlangval, $lang, $maxlang;
-	$maxlang = 'EN';	# default to English
-	$maxlangval = 0;
+	my $maxlang = 'EN';	# default to English
+	my $maxlangval = 0;
+	my $language;
 	foreach $language (@languages) {
-		$lang = uc(substr($language,0,2));
+		my $lang = uc(substr($language,0,2));
 		if ($DB->Value("SELECT COUNT(*) FROM class_i18n WHERE lang='$lang'")) {
 			if ($language =~ /q=/) {
-				$langval = $language;
+				my $langval = $language;
 				$langval =~ s/^.*q=//;
 				if ($langval > $maxlangval) {
 					$maxlangval = $langval;
@@ -239,8 +241,9 @@ sub Users {
 	my %users = ();
 	my $sql = "SELECT user_id, username, first_name, middle_name, surname, email, admin, sysadmin FROM username";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$user_id = $row[0];
+		my $user_id = $row[0];
 		$users{$user_id}{id}		= $row[0];
 		$users{$user_id}{username}	= &trim($row[1]);
 		$users{$user_id}{first_name}	= &trim($row[2]);
@@ -280,8 +283,9 @@ sub UserDocs {
 	my %docs = ();
 	my $sql = "SELECT d.doc_id, d.title, d.class_id, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$doc_id				= $row[0];
+		my $doc_id			= $row[0];
 		$docs{$doc_id}{id}		= $doc_id;
 		$docs{$doc_id}{title}		= &trim($row[1]);
 		$docs{$doc_id}{class_id}	= &trim($row[2]);
@@ -299,9 +303,10 @@ sub UserFiles {
 	my ($self, $user_id) = @_;
 	my %userfiles = ();
 	my $recordset = $DB->Recordset("SELECT df.doc_id, filename FROM document_file df, document_user du WHERE df.doc_id=du.doc_id AND du.user_id=$user_id AND du.active='t'");
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$doc_id		= &trim($row[0]);
-		$filename	= &trim($row[1]);
+		my $doc_id	= &trim($row[0]);
+		my $filename	= &trim($row[1]);
 		$userfiles{$filename}{doc_id}	= $doc_id;
 		$userfiles{$filename}{filename}	= $filename;
 	}
@@ -310,13 +315,14 @@ sub UserFiles {
 
 sub UserNotes {
 	my ($self, $user_id) = @_;
-	my $usernotes = ();
+	my %usernotes = ();
 	my $sql = "SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$date_entered	= &trim($row[0]);
-		$notes		= &trim($row[1]);
-		$username	= &trim($row[2]);
+		my $date_entered	= &trim($row[0]);
+		my $notes		= &trim($row[1]);
+		my $username		= &trim($row[2]);
 		$usernotes{$date_entered}{notes}	= $notes;
 		$usernotes{$date_entered}{username}	= $username;
 	}
@@ -333,8 +339,9 @@ sub Docs {
 	my %docs = ();
 	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
 	my $result = $DB->Recordset($sql);
+	my @row;
 	while (@row = $result->fetchrow) {
-		$doc_id	= $row[0];
+		my $doc_id	= $row[0];
 		$docs{$doc_id}{id}			= &trim($row[0]);
 		$docs{$doc_id}{title}			= &trim($row[1]);
 		$docs{$doc_id}{class_id}		= &trim($row[2]);
@@ -364,6 +371,7 @@ sub Doc {
 	my $doc_id = shift;
 	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
 	my @row = $DB->Row("$sql");
+	my %doc = ();
 	$doc{id}			= &trim($row[0]);
 	$doc{title}			= &trim($row[1]);
 	$doc{class_id}			= &trim($row[2]);
@@ -425,6 +433,7 @@ sub SaveDoc {
 sub Lintadas {
 	my $self = @_;
 	my %docs = Docs();
+	my $doc_id;
 	foreach $doc_id (keys %docs) {
 		LintadasDoc($foo, $doc_id);
 	}
@@ -433,6 +442,7 @@ sub Lintadas {
 sub LintadasDoc {
 	my ($self, $doc_id) = @_;
 	my $cvsroot = Config($foo, 'cvs_root');
+	my %doc = Doc($foo, $doc_id);
 
 	$DB->Exec("DELETE from document_error WHERE doc_id=$doc_id");
 
@@ -456,13 +466,17 @@ sub LintadasDoc {
 	$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
 	$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
 	my %docfiles = DocFiles($foo, $doc_id);
+	my $key;
 	foreach $key (keys %docfiles) {
 		$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
-		$filename = $cvsroot . $key;
+		my $filename = $cvsroot . $key;
 		if (-e $filename) {
 			if (-r $filename) {
 				my $format = '';
-				$fileext = $filename;
+				my $dtd_version;
+				my $dtd;
+				my $readmetadata;
+				my $fileext = $filename;
 				$fileext =~ s/^.*\.//;
 				if ($fileext =~ /SGML/i) {
 					$format = 'SGML';
@@ -523,9 +537,10 @@ sub DocFiles {
 	my %docfiles = ();
 	my $sql = "SELECT filename, format FROM document_file WHERE doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$filename	= &trim($row[0]);
-		$format		= &trim($row[1]);
+		my $filename	= &trim($row[0]);
+		my $format		= &trim($row[1]);
 		$docfiles{$filename}{filename}	= $filename;
 		$docfiles{$filename}{format}	= $format;
 	}
@@ -565,6 +580,7 @@ sub DocErrors {
 	my $sql = "SELECT error FROM document_error WHERE doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
 	my $count = 0;
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$count++;
 		$docerrors{$count}{error} = &trim($row[0]);
@@ -577,10 +593,11 @@ sub DocUsers {
 	my %docusers = ();
 	my $sql = "SELECT document_user.user_id, role, document_user.email, active, username, first_name, middle_name, surname FROM document_user, username WHERE document_user.user_id = username.user_id AND doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$user_id	= $row[0];
-		$role		= &trim($row[1]);
-		$key		= $user_id . $role;
+		my $user_id	= $row[0];
+		my $role	= &trim($row[1]);
+		my $key		= $user_id . $role;
 		$docusers{$key}{id}		= &trim($row[0]);
 		$docusers{$key}{role}		= &trim($row[1]);
 		$docusers{$key}{email}		= &trim($row[2]);
@@ -599,8 +616,9 @@ sub DocTopics {
 	my %doctopics = ();
 	my $sql = "SELECT dt.topic_num, dt.subtopic_num, t.topic_name, s.subtopic_name FROM topic t, subtopic s, document_topic dt WHERE t.topic_num = s.topic_num AND dt.topic_num = s.topic_num AND dt.subtopic_num = s.subtopic_num AND dt.doc_id = $doc_id";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$key = $row[0] . '.' . $row[1];
+		my $key = $row[0] . '.' . $row[1];
 		$doctopics{$key}{topic_num}	= $row[0];
 		$doctopics{$key}{subtopic_num}	= $row[1];
 		$doctopics{$key}{topic_name}	= &trim($row[2]);
@@ -614,12 +632,13 @@ sub DocNotes {
 	my %docnotes = ();
 	my $sql = "SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id = u.user_id AND n.doc_id = $doc_id ORDER BY n.date_entered";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$date_entered	= &trim($row[0]);
-		$notes		= &trim($row[1]);
-		$notes		=~ s/</&lt;/;
-		$notes		=~ s/>/&gt;/;
-		$username	= &trim($row[2]);
+		my $date_entered	= &trim($row[0]);
+		my $notes		= &trim($row[1]);
+		$notes			=~ s/</&lt;/;
+		$notes			=~ s/>/&gt;/;
+		my $username		= &trim($row[2]);
 		$docnotes{$date_entered}{notes}		= $notes;
 		$docnotes{$date_entered}{username}	= $username;
 	}
@@ -632,8 +651,9 @@ sub DocVersions {
 	my %docversions = ();
 	my $sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id = $doc_id ORDER BY pub_date, version";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$rev_id = $row[0];
+		my $rev_id = $row[0];
 		$docversions{$rev_id}{rev_id}	= &trim($row[0]);
 		$docversions{$rev_id}{version}	= &trim($row[1]);
 		$docversions{$rev_id}{pub_date}	= &trim($row[2]);
@@ -670,8 +690,9 @@ sub Roles {
 	my %roles = ();
 	my $sql = "SELECT role FROM role";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$role = &trim($row[0]);
+		my $role = &trim($row[0]);
 		$roles{$role} = $role;
 	}
 	return %roles;	
@@ -682,12 +703,13 @@ sub Classes {
 	my $language = RequestedLanguage();
 	my $sql = "SELECT class_id, lang, class_name, class_description FROM class_i18n WHERE lang=" . wsq($language);
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$class_id		= &trim($row[0]);
-		$lang			= &trim($row[1]);
-		$classname		= &trim($row[2]);
-		$classdescription	= &trim($row[3]);
-		$key			= $class_id;
+		my $class_id		= &trim($row[0]);
+		my $lang		= &trim($row[1]);
+		my $classname		= &trim($row[2]);
+		my $classdescription	= &trim($row[3]);
+		my $key			= $class_id;
 		$classes{$key}{id}		= $class_id;
 		$classes{$key}{lang}		= $lang;
 		$classes{$key}{name}		= $classname;
@@ -700,10 +722,11 @@ sub PubStatuses {
 	my %pubstatuses = ();
 	my $sql = "SELECT pub_status, pub_status_name, pub_status_desc FROM pub_status";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$pubstatus	= &trim($row[0]);
-		$pubstatusname	= &trim($row[1]);
-		$pubstatusdesc	= &trim($row[2]);
+		my $pubstatus		= &trim($row[0]);
+		my $pubstatusname	= &trim($row[1]);
+		my $pubstatusdesc	= &trim($row[2]);
 		$pubstatuses{$pubstatus}{name} = $pubstatusname;
 		$pubstatuses{$pubstatus}{description} = $pubstatusdesc;
 	}
@@ -714,9 +737,10 @@ sub ReviewStatuses {
 	my %reviewstatuses = ();
 	my $sql = "SELECT review_status, review_status_name FROM review_status";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$reviewstatus		= &trim($row[0]);
-		$reviewstatusname	= &trim($row[1]);
+		my $reviewstatus		= &trim($row[0]);
+		my $reviewstatusname	= &trim($row[1]);
 		$reviewstatuses{$reviewstatus}{name} = $reviewstatusname;
 	}
 	return %reviewstatuses;
@@ -726,8 +750,9 @@ sub Licenses {
 	my %licenses = ();
 	my $sql = "SELECT license FROM license";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$license = &trim($row[0]);
+		my $license = &trim($row[0]);
 		$licenses{$license} = $license;
 	}
 	return %licenses;
@@ -737,10 +762,11 @@ sub Topics {
 	my %topics = ();
 	my $sql = "SELECT topic_num, topic_name, topic_description FROM topic";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$topicnum	= &trim($row[0]);
-		$topicname	= &trim($row[1]);
-		$topicdesc	= &trim($row[2]);
+		my $topicnum	= &trim($row[0]);
+		my $topicname	= &trim($row[1]);
+		my $topicdesc	= &trim($row[2]);
 		$topics{$topicnum}{num}		= $topicnum;
 		$topics{$topicnum}{name}	= $topicname;
 		$topics{$topicnum}{description}	= $topicdesc;
@@ -754,9 +780,9 @@ sub Topic {
 	my $sql = "SELECT topic_num, topic_name, topic_description FROM topic WHERE topic_num=$topic_num";
 	my $recordset = $DB->Recordset($sql);
 	my @row = $recordset->fetchrow;
-	$topicnum	= &trim($row[0]);
-	$topicname	= &trim($row[1]);
-	$topicdesc	= &trim($row[2]);
+	my $topicnum	= &trim($row[0]);
+	my $topicname	= &trim($row[1]);
+	my $topicdesc	= &trim($row[2]);
 	$topic{num}		= $topicnum;
 	$topic{name}		= $topicname;
 	$topic{description}	= $topicdesc;
@@ -765,7 +791,7 @@ sub Topic {
 
 sub SaveTopic {
 	my ($self, $topic_num, $topic_name, $topic_description) = @_;
-	$sql = "UPDATE topic SET topic_name=" . wsq($topic_name) . ", topic_description=" . wsq($topic_description) . " WHERE topic_num=$topic_num";
+	my $sql = "UPDATE topic SET topic_name=" . wsq($topic_name) . ", topic_description=" . wsq($topic_description) . " WHERE topic_num=$topic_num";
 	$DB->Exec($sql);
 }
 
@@ -775,14 +801,15 @@ sub Subtopics {
 	my $sql = "SELECT topic.topic_num, topic_name, topic_description, subtopic_num, subtopic_name, subtopic_description from subtopic, topic WHERE subtopic.topic_num = topic.topic_num";
 	$sql .= " AND topic.topic_num = $topic_num" if ($topic_num);
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$topicnum	= &trim($row[0]);
-		$topicname	= &trim($row[1]);
-		$topicdesc	= &trim($row[2]);
-		$subtopicnum	= &trim($row[3]);
-		$subtopicname	= &trim($row[4]);
-		$subtopicdesc	= &trim($row[5]);
-		$key		= $topicnum . '.' . $subtopicnum;
+		my $topicnum		= &trim($row[0]);
+		my $topicname		= &trim($row[1]);
+		my $topicdesc		= &trim($row[2]);
+		my $subtopicnum		= &trim($row[3]);
+		my $subtopicname	= &trim($row[4]);
+		my $subtopicdesc	= &trim($row[5]);
+		my $key			= $topicnum . '.' . $subtopicnum;
 		$subtopics{$key}{topicnum}	= $topicnum;
 		$subtopics{$key}{topicname}	= $topicname;
 		$subtopics{$key}{topicdesc}	= $topicdesc;
@@ -802,9 +829,10 @@ sub Formats {
 	my %formats = ();
 	my $sql = "SELECT format, format_name FROM format";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$format		= &trim($row[0]);
-		$formatname	= &trim($row[1]);
+		my $format		= &trim($row[0]);
+		my $formatname	= &trim($row[1]);
 		$formats{$format}{name}	= $formatname;
 	}
 	return %formats;
@@ -814,8 +842,9 @@ sub DTDs {
 	my %dtds = ();
 	my $sql = "SELECT dtd FROM dtd";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$dtd		= &trim($row[0]);
+		my $dtd			= &trim($row[0]);
 		$dtds{$dtd}{dtd}	= $dtd;
 	}
 	return %dtds;
@@ -825,8 +854,9 @@ sub Stylesheets {
 	my %stylesheets = ();
 #	my @filenames = `cd css; ls *.css`;
 	my @filenames = `cd ../css; ls *.css`;
+	my $filename;
 	foreach $filename (@filenames) {
-		$stylesheet = $filename;
+		my $stylesheet = $filename;
 		chomp $stylesheet;
 		$stylesheets{$stylesheet}{stylesheet}	= $stylesheet;
 	}
@@ -837,48 +867,54 @@ sub Strings {
 	my ($self, $language) = @_;
 	$language = RequestedLanguage() unless ($language);
 	my %strings = ();
-	my $sql = "SELECT string_id, lang, string FROM string_i18n WHERE lang='$language'";
+	my $sql = "SELECT string_code, lang, string FROM string_i18n WHERE lang='$language'";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$string_id	= $row[0];
-		$lang		= $row[1];
-		$string		= &trim($row[2]);
-		$key		= $string_id . $lang;
-		$strings{$key}{id}	= $string_id;
-		$strings{$key}{lang}	= $lang;
-		$strings{$key}{string}	= $string;
+		my $string_code	= &trim($row[0]);
+		my $lang	= $row[1];
+		my $string	= &trim($row[2]);
+		$strings{$string_code}{code}	= $string_code;
+		$strings{$string_code}{lang}	= $lang;
+		$strings{$string_code}{string}	= $string;
 	}
 	return %strings;
 }
 
 sub String {
-	my ($self, $string_id) = @_;
+	my ($self, $string_code) = @_;
 	my $language = RequestedLanguage();
-	my $string = $DB->Value("SELECT string FROM string_i18n WHERE string_id=$string_id AND lang='$language'");
+	my $string = $DB->Value("SELECT string FROM string_i18n WHERE string_code='$string_code' AND lang='$language'");
 	return $string;
 }
 
 sub AddString {
-	my ($self, $lang, $string) = @_;
-	my $string_id = $DB->Value("SELECT MAX(string_id) FROM string");
-	$string_id++;
-	$sql = "INSERT INTO string(string_id) VALUES($string_id)";
+	my ($self, $string_code, $lang, $string) = @_;
+	my $sql = "INSERT INTO string(string_code) VALUES('$string_code')";
 	$DB->Exec($sql);
-	$sql = "INSERT INTO string_i18n(string_id, lang, string) VALUES($string_id, '$lang', " . wsq($string) . ")";
+	$sql = "INSERT INTO string_i18n(string_code, lang, string) VALUES('$string_code', '$lang', " . wsq($string) . ")";
 	$DB->Exec($sql);
 }
 
 sub SaveString {
-	my ($self, $string_id, $lang, $string) = @_;
-	$sql = "UPDATE string_i18n SET string=" .wsq($string) . " WHERE string_id=$string_id AND lang='$lang'";
+	my ($self, $original_code, $string_code, $lang, $string) = @_;
+	my $sql;
+	if ($original_code ne $string_code) {
+		$sql = "INSERT INTO string(string_code) VALUES ('$string_code')";
+		$DB->Exec($sql);
+		$sql = "UPDATE string_i18n SET string_code='$string_code' WHERE string_code='$original_code'";
+		$DB->Exec($sql);
+		DelString($foo, $original_code);
+	}
+	$sql = "UPDATE string_i18n SET string=" .wsq($string) . " WHERE string_code='$string_code' AND lang='$lang'";
 	$DB->Exec($sql);
 }
 
 sub DelString {
-	my ($self, $string_id, $lang) = @_;
-	$sql = "DELETE FROM string_i18n WHERE string_id=$string_id AND lang='$lang'";
+	my ($self, $string_code, $lang) = @_;
+	my $sql = "DELETE FROM string_i18n WHERE string_code='$string_code'";
 	$DB->Exec($sql);
-	$sql = "DELETE FROM string WHERE string_id=$string_id";
+	$sql = "DELETE FROM string WHERE string_code='$string_code'";
 	$DB->Exec($sql);
 }
 
@@ -887,9 +923,10 @@ sub Errors {
 	my $sql = "SELECT doc_id, error FROM document_error";
 	my $recordset = $DB->Recordset($sql);
 	my $count = 0;
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$doc_id	= &trim($row[0]);
-		$error	= &trim($row[1]);
+		my $doc_id	= &trim($row[0]);
+		my $error	= &trim($row[1]);
 		$count++;
 		$errors{$count}{doc_id}	= $doc_id;
 		$errors{$count}{error}	= $error;
@@ -917,8 +954,8 @@ sub DocCountByPubStatus {
 }
 
 sub ReadCookie {
-	$session_id = $CGI->cookie('lampadas_session');
-	$currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'");
+	my $session_id = $CGI->cookie('lampadas_session');
+	my $currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'");
 	if ($currentuser_id) {
 		%currentuser = User($foo, $currentuser_id);
 	}
@@ -974,6 +1011,7 @@ sub EndPage {
 	print "<p><hr>\n";
 	print "<p><center>\n";
 	print Config($foo, 'copyright');
+	print String($foo, 'footer');
 	print "</center>\n";
 	print "<br>";
 	print "</body>\n";
@@ -986,6 +1024,7 @@ sub RoleCombo {
 	my $selected = shift;
 	my %roles = Roles();
 	my $rolecombo = "<select name='role'>\n";
+	my $role;
 	foreach $role (sort keys %roles) {
 		if ($selected eq $role) {
 			$rolecombo .= "<option selected>$role</option>\n";
@@ -1003,6 +1042,7 @@ sub ClassCombo {
 	my $language = RequestedLanguage();
 	my %classes = Classes();
 	my $classcombo = "<select name='class_id'>\n";
+	my $class_id;
 	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
 		if ($selected eq $class_id) {
 			$classcombo .= "<option value='$class_id' selected>$classes{$class_id}{name}</option>\n";
@@ -1019,6 +1059,7 @@ sub PubStatusCombo {
 	my $selected = shift;
 	my %pubstatuses = PubStatuses();
 	my $pubstatuscombo = "<select name='pub_status'>\n";
+	my $pubstatus;
 	foreach $pubstatus (sort { $pubstatuses{$a}{name} cmp $pubstatuses{$b}{name} } keys %pubstatuses) {
 		if ($selected eq $pubstatus) {
 			$pubstatuscombo .= "<option value='$pubstatus' selected>$pubstatuses{$pubstatus}{name}</option>\n";
@@ -1036,6 +1077,7 @@ sub ReviewStatusCombo {
 	my %reviewstatuses = ReviewStatuses();
 	my $reviewstatuscombo = "<select name='review_status'>\n";
 	$reviewstatuscombo .= "<option></option>\n";
+	my $reviewstatus;
 	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
 		if ($selected eq $reviewstatus) {
 			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
@@ -1053,6 +1095,7 @@ sub TechReviewStatusCombo {
 	my %reviewstatuses = ReviewStatuses();
 	my $reviewstatuscombo = "<select name='tech_review_status'>\n";
 	$reviewstatuscombo .= "<option></option>\n";
+	my $reviewstatus;
 	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
 		if ($selected eq $reviewstatus) {
 			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
@@ -1070,6 +1113,7 @@ sub LicenseCombo {
 	my %licenses = Licenses();
 	my $licensecombo = "<select name='license'>\n";
 	$licensecombo .= "<option></option>\n";
+	my $license;
 	foreach $license (sort keys %licenses) {
 		if ($selected eq $license) {
 			$licensecombo .= "<option selected>$license</option>\n";
@@ -1086,6 +1130,7 @@ sub TopicCombo {
 	my $selected = shift;
 	my %topics = Topics();
 	my $topiccombo = "<select name='topic'>\n";
+	my $topic;
 	foreach $topic (sort { $a <=> $b } keys %topics) {
 		if ($selected eq $topic) {
 			$topiccombo .= "<option value='$topic' selected>$topics{$topic}{num}. $topics{$topic}{name}</option>\n";
@@ -1102,6 +1147,7 @@ sub SubtopicCombo {
 	my $selected = shift;
 	my %subtopics = Subtopics();
 	my $subtopiccombo = "<select name='topic'>\n";
+	my $subtopic;
 	foreach $subtopic (sort { $subtopics{$a}{topicnum} * 100 + $subtopics{$a}{num} <=> $subtopics{$b}{topicnum} * 100 + $subtopics{$b}{num} } keys %subtopics) {
 		if ($selected eq $subtopic) {
 			$subtopiccombo .= "<option value='$subtopic' selected>$subtopics{$subtopic}{topicnum}.$subtopics{$subtopic}{num}. $subtopics{$subtopic}{topicname}: $subtopics{$subtopic}{name}</option>\n";
@@ -1119,6 +1165,7 @@ sub FormatCombo {
 	my %formats = Formats();
 	my $formatcombo = "<select name='format'>\n";
 	$formatcombo .= "<option></option>\n";
+	my $format;
 	foreach $format (sort keys %formats) {
 		if ($selected eq $format) {
 			$formatcombo .= "<option selected>$format</option>\n";
@@ -1134,6 +1181,7 @@ sub StylesheetCombo {
 	my ($self, $selected) = @_;
 	my %stylesheets = Stylesheets();
 	my $stylesheetcombo = "<select name='stylesheet'>\n";
+	my $stylesheet;
 	foreach $stylesheet (sort keys %stylesheets) {
 		$stylesheet =~ s/\.css//;
 		if ($selected eq $stylesheet) {
@@ -1152,6 +1200,7 @@ sub DTDCombo {
 	my %dtds = DTDs();
 	my $dtdcombo = "<select name='dtd'>\n";
 	$dtdcombo .= "<option></option>\n";
+	my $dtd;
 	foreach $dtd (sort keys %dtds) {
 		if ($selected eq $dtd) {
 			$dtdcombo .= "<option selected>$dtd</option>\n";
@@ -1167,6 +1216,8 @@ sub UsersTable {
 	my $table = "<table class='box'>\n";
 	my %users = Users();
 	$table .= "<tr><th>Username</th><th>Name</th><th>Email</th><th>Admin</th><th>SysAdmin</th></tr>\n";
+	my $key;
+	my $count = 0;
 	foreach $key (sort { uc($users{$a}{username}) cmp uc($users{$b}{username}) } keys %users) {
 		$table .= "<tr><td>" . a({href=>"user_edit.pl?user_id=$users{$key}{id}"},"$users{$key}{username}") . "</td>";
 		$table .= "<td>$users{$key}{name}</td>\n";
@@ -1280,6 +1331,7 @@ sub UserDocsTable {
 	$table .= "<th>Role</th>";
 	$table .= "<th>Active</th>";
 	$table .= "<th>Feedback Email</th></tr>\n";
+	my $doc;
 	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
 		$table .= "<tr>";
 		$table .= "<td valign=top>";
@@ -1307,6 +1359,7 @@ sub UserNotesTable {
 	$table .= "<form name=notes method=POST action='user_note_add.pl'>\n";
 	$table .= "<tr><th colspan=3>User Notes</th></tr>\n";
 	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
+	my $date_entered;
 	foreach $date_entered (sort keys %usernotes) {
 		$table .= "<tr>\n";
 		$table .= "<td valign=top>$date_entered</td>\n";
@@ -1335,8 +1388,9 @@ sub DocsTable {
 	my $mypub_status = Param($foo,'strSTATUS');
 	$mypub_status = "N" unless ($mypub_status);
 	my %myclasses = ();
+	my $class_id;
 	foreach $class_id (keys %classes) {
-		$param = "chkCLASS" . $class_id;
+		my $param = "chkCLASS" . $class_id;
 		if (Param($foo, "$param") eq 'on') {
 			$myclasses{$class_id} = 1;
 		}
@@ -1344,47 +1398,47 @@ sub DocsTable {
 
 	# Optional Fields
 	#
-	$chkSTATUS       = Param($foo,'chkSTATUS');
-	$chkCLASS        = Param($foo,'chkCLASS');
-	$chkFORMAT       = Param($foo,'chkFORMAT');
-	$chkDTD          = Param($foo,'chkDTD');
-	$chkPUBDATE      = Param($foo,'chkPUBDATE');
-	$chkLASTUPDATE   = Param($foo,'chkLASTUPDATE');
-	$chkTICKLEDATE   = Param($foo,'chkTICKLEDATE');
-	$chkREVIEWSTATUS = Param($foo,'chkREVIEWSTATUS');
-	$chkTECHSTATUS   = Param($foo,'chkTECHSTATUS');
-	$chkURL          = Param($foo,'chkURL');
-	$chkMAINTAINED   = Param($foo,'chkMAINTAINED');
-	$chkLICENSE      = Param($foo,'chkLICENSE');
-	$chkVERSION      = Param($foo,'chkVERSION');
-	$chkRATING       = Param($foo,'chkRATING');
+	my $chkSTATUS       = Param($foo,'chkSTATUS');
+	my $chkCLASS        = Param($foo,'chkCLASS');
+	my $chkFORMAT       = Param($foo,'chkFORMAT');
+	my $chkDTD          = Param($foo,'chkDTD');
+	my $chkPUBDATE      = Param($foo,'chkPUBDATE');
+	my $chkLASTUPDATE   = Param($foo,'chkLASTUPDATE');
+	my $chkTICKLEDATE   = Param($foo,'chkTICKLEDATE');
+	my $chkREVIEWSTATUS = Param($foo,'chkREVIEWSTATUS');
+	my $chkTECHSTATUS   = Param($foo,'chkTECHSTATUS');
+	my $chkURL          = Param($foo,'chkURL');
+	my $chkMAINTAINED   = Param($foo,'chkMAINTAINED');
+	my $chkLICENSE      = Param($foo,'chkLICENSE');
+	my $chkVERSION      = Param($foo,'chkVERSION');
+	my $chkRATING       = Param($foo,'chkRATING');
 
-	$SORT	= Param($foo,'strSORT');
-	$SORT	= "title" unless ($SORT);
+	my $SORT	= Param($foo,'strSORT');
+	$SORT		= "title" unless ($SORT);
 
-	$strSTATUS = Param($foo,'strSTATUS');
+	my $strSTATUS = Param($foo,'strSTATUS');
+
+	my $reload = Param($foo,'Reload');
 
 	# if we're not reloading, or aren't a maintainer, the default is to show only Active ('N') documents.
 	unless (($reload eq 'Reload') or (Maintainer())) {
 		$strSTATUS = 'N';
 	}
 
-	$reload = Param($foo,'Reload');
-
-	$STATUS = "";
-	$CLASS = "";
-	$FORMAT = "";
-	$DTD = "";
-	$PUBDATE = "";
-	$LASTUPDATE = "";
-	$TICKLEDATE = "";
-	$REVIEWSTATUS = "";
-	$TECHSTATUS = "";
-	$URL = "";
-	$MAINTAINED = "";
-	$LICENSE = "";
-	$VERSION = "";
-	$RATING = "";
+	my $STATUS = "";
+	my $CLASS = "";
+	my $FORMAT = "";
+	my $DTD = "";
+	my $PUBDATE = "";
+	my $LASTUPDATE = "";
+	my $TICKLEDATE = "";
+	my $REVIEWSTATUS = "";
+	my $TECHSTATUS = "";
+	my $URL = "";
+	my $MAINTAINED = "";
+	my $LICENSE = "";
+	my $VERSION = "";
+	my $RATING = "";
 
 	if ( $chkSTATUS eq "on" ) { $STATUS = "checked "; }
 	if ( $chkCLASS eq "on" ) { $CLASS = "checked "; }
@@ -1410,6 +1464,7 @@ sub DocsTable {
 	$table .= "</tr>";
 	$table .= "<tr><td align=center valign=top>\n";
 	$table .= "<table><tr><td>";
+	my $class_id;
 	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
 		my $name = 'chkCLASS' . $class_id;
 		my $value = Param($foo, $name);
@@ -1496,23 +1551,24 @@ sub DocsTable {
 	#
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan='2'>Title</th>";
-	$table .= "<th>Status</th>" if (Param($foo, chkSTATUS));
-	$table .= "<th>Review</th>" if (Param($foo, chkREVIEWSTATUS));
-	$table .= "<th>Tech Status</th>" if (Param($foo, chkTECHSTATUS));
-	$table .= "<th>Rating</th>" if (Param($foo, chkRATING));
-	$table .= "<th>Maintained</th>" if (Param($foo, chkMAINTAINED));
-	$table .= "<th>License</th>" if (Param($foo, chkLICENSE));
-	$table .= "<th>Version</th>" if (Param($foo, chkVERSION));
-	$table .= "<th>Class</th>" if (Param($foo, chkCLASS));
-	$table .= "<th>Format</th>" if (Param($foo, chkFORMAT));
-	$table .= "<th>DTD</th>" if (Param($foo, chkDTD));
-	$table .= "<th>Pub Date</th>" if (Param($foo, chkPUBDATE));
-	$table .= "<th>Last Update</th>" if (Param($foo, chkLASTUPDATE));
-	$table .= "<th>Tickle Date</th>" if (Param($foo, chkTICKLEDATE));
-	$table .= "<th>URL</th>" if (Param($foo, chkURL));
+	$table .= "<th>Status</th>" if (Param($foo, 'chkSTATUS'));
+	$table .= "<th>Review</th>" if (Param($foo, 'chkREVIEWSTATUS'));
+	$table .= "<th>Tech Status</th>" if (Param($foo, 'chkTECHSTATUS'));
+	$table .= "<th>Rating</th>" if (Param($foo, 'chkRATING'));
+	$table .= "<th>Maintained</th>" if (Param($foo, 'chkMAINTAINED'));
+	$table .= "<th>License</th>" if (Param($foo, 'chkLICENSE'));
+	$table .= "<th>Version</th>" if (Param($foo, 'chkVERSION'));
+	$table .= "<th>Class</th>" if (Param($foo, 'chkCLASS'));
+	$table .= "<th>Format</th>" if (Param($foo, 'chkFORMAT'));
+	$table .= "<th>DTD</th>" if (Param($foo, 'chkDTD'));
+	$table .= "<th>Pub Date</th>" if (Param($foo, 'chkPUBDATE'));
+	$table .= "<th>Last Update</th>" if (Param($foo, 'chkLASTUPDATE'));
+	$table .= "<th>Tickle Date</th>" if (Param($foo, 'chkTICKLEDATE'));
+	$table .= "<th>URL</th>" if (Param($foo, 'chkURL'));
 	$table .= "</tr>\n";
 
-	my $sort = Param($foo, strSORT);
+	my $sort = Param($foo, 'strSORT');
+	my @docids;
 	if ($sort eq 'class') {
 		@docids = sort { $classes{$docs{$a}{class_id}}{name} cmp $classes{$docs{$b}{class_id}}{name} } keys %docs;
 	} elsif ($sort eq 'rating') {
@@ -1542,11 +1598,13 @@ sub DocsTable {
 	} else {
 		@docids = sort { &sortTitle($docs{$a}{title}) cmp &sortTitle($docs{$b}{title}) } keys %docs;
 	}
-	
+
+	my $doc_id;
 	foreach $doc_id (@docids) {
 
 		if (scalar keys %myclasses) {
 			my $classok = 0;
+			my $class_id;
 			foreach $class_id (keys %myclasses) {
 				if ($docs{$doc_id}{class_id} eq $class_id) {
 					$classok = 1;
@@ -1587,21 +1645,21 @@ sub DocsTable {
 		} else {
 			next;
 		}
-		$table .= "<td>$pubstatuses{$docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, chkSTATUS));
-		$table .= "<td>$reviewstatuses{$docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, chkREVIEWSTATUS));
-		$table .= "<td>$reviewstatuses{$docs{$doc_id}{tech_review_status}}{name}</td>" if (Param($foo, chkTECHSTATUS));
-		$table .= "<td>$docs{$doc_id}{rating}</td>" if (Param($foo, chkRATING));
-		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, chkMAINTAINED));
-		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, chkLICENSE));
-		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, chkVERSION));
-		$table .= "<td>$classes{$docs{$doc_id}{class_id}}{name}</td>" if (Param($foo, chkCLASS));
-		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, chkFORMAT));
-		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, chkDTD));
-		$table .= "<td>$docs{$doc_id}{pub_date}</td>" if (Param($foo, chkPUBDATE));
-		$table .= "<td>$docs{$doc_id}{last_update}</td>" if (Param($foo, chkLASTUPDATE));
-		if (Param($foo, chkTICKLEDATE)) {
-			$tickle_date = $docs{$doc_id}{tickle_date};
-			$date = `date -I`;
+		$table .= "<td>$pubstatuses{$docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, 'chkSTATUS'));
+		$table .= "<td>$reviewstatuses{$docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, 'chkREVIEWSTATUS'));
+		$table .= "<td>$reviewstatuses{$docs{$doc_id}{tech_review_status}}{name}</td>" if (Param($foo, 'chkTECHSTATUS'));
+		$table .= "<td>$docs{$doc_id}{rating}</td>" if (Param($foo, 'chkRATING'));
+		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, 'chkMAINTAINED'));
+		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, 'chkLICENSE'));
+		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, 'chkVERSION'));
+		$table .= "<td>$classes{$docs{$doc_id}{class_id}}{name}</td>" if (Param($foo, 'chkCLASS'));
+		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, 'chkFORMAT'));
+		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, 'chkDTD'));
+		$table .= "<td>$docs{$doc_id}{pub_date}</td>" if (Param($foo, 'chkPUBDATE'));
+		$table .= "<td>$docs{$doc_id}{last_update}</td>" if (Param($foo, 'chkLASTUPDATE'));
+		if (Param($foo, 'chkTICKLEDATE')) {
+			my $tickle_date = $docs{$doc_id}{tickle_date};
+			my $date = `date -I`;
 			if ($date gt $tickle_date) {
 				$table .= "<td><font color=red>$tickle_date</font></td>";
 			} else {
@@ -1609,7 +1667,7 @@ sub DocsTable {
 			}
 		}
 	
-		$table .= "<td>$docs{$doc_id}{url}</td>" if (Param($foo, chkURL));
+		$table .= "<td>$docs{$doc_id}{url}</td>" if (Param($foo, 'chkURL'));
 		$table .= "</tr>\n";
 	}
 	$table .= "</table>\n";
@@ -1636,13 +1694,10 @@ sub sortTitle {
 
 sub DocTable {
 	my ($self, $doc_id) = @_;
+	my %doc = ();
 	if ($doc_id) {
 		my %doc = Doc($foo, $doc_id);
 		LintadasDoc($foo, $doc_id);
-#	} else {
-#		my %doc = ();
-#		$doc{dtd} = "DocBook";
-#		$doc{format} = "XML";
 	}
 	my $doctable = '';
 	$doctable .= "<table style='width:100%' class='box'>\n";
@@ -1739,11 +1794,12 @@ sub PubStatusStatsTable{
 	$table .= "<tr><th colspan=3>Publication Status Statistics</th></tr>\n";
 	$table .= "<tr><th>Status</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
 		$table .= "<td align=right>" . $row[1] . "</td>\n";
-		$pct = sprintf( '%3.2f', $row[1] / $document_total * 100 );
+		my $pct = sprintf( '%3.2f', $row[1] / $document_total * 100 );
 		$table .= "<td align=right>" . $pct . "%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $row[1];
@@ -1761,14 +1817,15 @@ sub LicenseStatsTable {
 	$table .= "<tr><th colspan=3>License Statistics</th></tr>\n";
 	$table .= "<tr><th>License</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$license = $row[0];
+		my $license = $row[0];
 		$license =~ s/\s+$//;
-		$count   = $row[1];
+		my $count   = $row[1];
 		$table .= "<tr>\n";
 		$table .= "<th>$license</th>\n";
 		$table .= "<td align=right>$count</td>\n";
-		$pct = sprintf( '%3.2f', $count / $active_count * 100 );
+		my $pct = sprintf( '%3.2f', $count / $active_count * 100 );
 		$table .= "<td align=right>$pct%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $count;
@@ -1782,6 +1839,9 @@ sub FreeNonfreeStatsTable {
 	my $active_count = DocCountByPubStatus($foo, "'N'");
 	my $sql = "SELECT l.free, COUNT(*) FROM document d, license l WHERE d.license = l.license GROUP BY free";
 	my $recordset = $DB->Recordset($sql);
+	my $free_count;
+	my $nonfree_count;
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		if ($row[0] eq 't') {
 			$free_count = $row[1];
@@ -1815,11 +1875,12 @@ sub ClassStatsTable {
 	$table .= "<tr><th colspan=3>Classes</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
 		$table .= "<td align=right>" . $row[1] . "</td>\n";
-		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		my $pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
 		$table .= "<td align=right>" . $pct . "%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $row[1];
@@ -1837,11 +1898,12 @@ sub FormatStatsTable {
 	$table .= "<tr><th colspan=3>Format Statistics</th></tr>\n";
 	$table .= "<tr><th>Format</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
 		$table .= "<td align=right>" . $row[1] . "</td>\n";
-		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		my $pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
 		$table .= "<td align=right>" . $pct . "%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $row[1];
@@ -1859,11 +1921,12 @@ sub DTDStatsTable {
 	$table .= "<tr><th colspan=3>DTD Statistics</th></tr>\n";
 	$table .= "<tr><th>DTD</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
 		$table .= "<td align=right>" . $row[1] . "</td>\n";
-		$pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
+		my $pct = sprintf( '%3.2f', $row[1] / $active_count * 100 );
 		$table .= "<td align=right>" . $pct . "%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $row[1];
@@ -1881,11 +1944,12 @@ sub FormatDTDStatsTable {
 	$table .= "<tr><th colspan=4>Format and DTD Statistics</th></tr>\n";
 	$table .= "<tr><th>Format</th><th>DTD</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$format = $row[0];
-		$dtd    = $row[1];
-		$count  = $row[2];
-		$pct = sprintf( '%3.2f', $count / $active_count * 100 );
+		my $format = $row[0];
+		my $dtd    = $row[1];
+		my $count  = $row[2];
+		my $pct = sprintf( '%3.2f', $count / $active_count * 100 );
 		$table .= "<tr>\n";
 		$table .= "<th>$format</th>\n";
 		$table .= "<th>$dtd</th>\n";
@@ -1908,13 +1972,14 @@ sub DetailedStatsTable {
 	$table .= "<tr><th colspan=5>Detailed Statistics</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
 	my $recordset = $DB->Recordset($sql);
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
 		$table .= "<th>" . $row[0] . "</th>\n";
 		$table .= "<th>" . $row[1] . "</th>\n";
 		$table .= "<th>" . $row[2] . "</th>\n";
 		$table .= "<td align=right>" . $row[3] . "</td>\n";
-		$pct = sprintf( '%3.2f', $row[3] / $active_count * 100 );
+		my $pct = sprintf( '%3.2f', $row[3] / $active_count * 100 );
 		$table .= "<td align=right>" . $pct . "%</td>\n";
 		$table .= "</tr>\n";
 		$total = $total + $row[3];
@@ -1931,6 +1996,7 @@ sub MiscStatsTable {
 	my $count = 0;
 	my $avg_age   = 0;
 	my ($year2, $month2, $day2) = Today();
+	my @row;
 	while (@row = $recordset->fetchrow) {
 		my $last_update = $row[0];
 		if (($last_update) && ($last_update ne "1970-01-01" )) {
@@ -1960,6 +2026,7 @@ sub BarGraphTable {
 	my $graph = '';
 	if ($value) {
 		$graph .= "<table class='bargraph'>\n";
+		my $i;
 		for ( $i = 1; $i <= 10; $i++ ) {
 			$graph .= "<td class='";
 			if ( $value >= $i ) { $graph .= "baron" } else { $graph .= "baroff" }
@@ -1980,6 +2047,7 @@ sub DocVersionsTable {
 	$table .= "<table style='width:100%' class='box'>\n";
 	$table .= "<tr><th colspan=6>Document Versions</th></tr>\n";
 	$table .= "<tr><th>Version</th><th>Date</th><th>Initials</th><th colspan=3>Notes</th></tr>";
+	my $key;
 	foreach $key (sort { $docversions{$a}{pub_date} cmp $docversions{$b}{pub_date} } keys %docversions) {
 		$table .= "<tr>";
 		$table .= "<form method=POST action='document_rev_save.pl'>";
@@ -2021,6 +2089,7 @@ sub DocErrorsTable {
 	my $table = '';
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th>Document Errors</th></tr>\n";
+	my $key;
 	foreach $key (keys %docerrors) {
 		$table .= "<tr><td>$docerrors{$key}{error}</td></tr>\n";
 	}
@@ -2034,6 +2103,7 @@ sub DocFilesTable {
 	my $table = '';
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=5>Document Files</th></tr>\n";
+	my $filename;
 	foreach $filename (sort keys %docfiles) {
 		$table .= "<tr>\n";
 		$table .= "<td>\n";
@@ -2071,6 +2141,7 @@ sub DocUsersTable {
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=6>Document Contributors</th></tr>\n";
 	$table .= "<tr><th>Status</th><th>Role</th><th>Name</th><th>Feedback Email</th><th colspan=2>Action</th></tr>";
+	my $key;
 	foreach $key (sort keys %docusers) {
 		$table .= "<tr>";
 		$table .= "<form method=POST action='document_user_save.pl'>";
@@ -2123,17 +2194,18 @@ sub DocUsersTable {
 
 	$table .= "<td valign=top>";
 
-	$sql = "SELECT user_id, first_name, middle_name, surname FROM username ORDER BY first_name, middle_name, surname";
-	$authors_result = $DB->Recordset($sql);
+	my $sql = "SELECT user_id, first_name, middle_name, surname FROM username ORDER BY first_name, middle_name, surname";
+	my $authors_result = $DB->Recordset($sql);
 
 	$table .= "<select name=user_id\n";
 	$table .= "<option>\n";
+	my @row;
 	while (@row = $authors_result->fetchrow) {
-		$user_id = $row[0];
-		$first_name	= &trim($row[1]);
-		$middle_name	= &trim($row[2]);
-		$surname	= &trim($row[3]);
-		$name = &trim(&trim("$first_name $middle_name") . " " . $surname);
+		my $user_id = $row[0];
+		my $first_name	= &trim($row[1]);
+		my $middle_name	= &trim($row[2]);
+		my $surname	= &trim($row[3]);
+		my $name = &trim(&trim("$first_name $middle_name") . " " . $surname);
 		$table .= "<option value=$user_id>$name</option>\n"
 	}
 	$table .= "</select>\n";
@@ -2155,6 +2227,7 @@ sub DocTopicsTable {
 	my $table = "<table class='box'>";
 	$table .= "<tr><th colspan=2>Document Topics</th></tr>\n";
 	$table .= "<tr><th>Topic</th><th>Action</th></tr>\n";
+	my $key;
 	foreach $key (keys %doctopics) {
   		$table .= "<tr>\n";
 		$table .= "<form method=POST action='document_topic_del.pl'>\n";
@@ -2184,7 +2257,8 @@ sub DocRatingTable {
 	my ($self, $doc_id) = @_;
 	my $vote_count	= $DB->Value("SELECT COUNT(*) FROM doc_vote WHERE doc_id=$doc_id");
 	my $vote	= $DB->Value("SELECT vote FROM doc_vote WHERE doc_id=$doc_id AND user_id=" . CurrentUserID());
-	$table .= "<table class='box'>\n";
+	my %doc = Doc($foo, $doc_id);
+	my $table .= "<table class='box'>\n";
 	$table .= "<form action='document_vote_save.pl' method=GET>\n";
 	$table .= "<tr><th colspan=3>Document Rating</th></tr>\n";
 	$table .= "<input type=hidden name=doc_id value=$doc_id>\n";
@@ -2210,6 +2284,7 @@ sub DocNotesTable {
 	$table .= "<form name=notes method=POST action='document_note_add.pl'>\n";
 	$table .= "<tr><th colspan=3>Document Notes</th></tr>\n";
 	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
+	my $date_entered;
 	foreach $date_entered (sort keys %docnotes) {
 		$table .= "<tr>\n";
 		$table .= "<td valign=top>$date_entered</td>\n";
@@ -2233,15 +2308,16 @@ sub StringsTable {
 	my %strings = Strings();
 	my $table = '';
 	$table .= "<table class='box'>\n";
-	$table .= "<tr><th>ID</th><th colspan=3>String ($language)</th></tr>\n";
-	foreach $key (sort { $strings{$a}{id} <=> $strings{$b}{id} } keys %strings) {
-		next unless ($strings{$key}{lang} eq $language);
+	$table .= "<tr><th>Code</th><th colspan=3>String ($language)</th></tr>\n";
+	my $string_code;
+	foreach $string_code (sort keys %strings) {
+		next unless ($strings{$string_code}{lang} eq $language);
 		$table .= "<form name='string' action='string_save.pl'>\n";
-		$table .= "<input type='hidden' name='string_id' value='$strings{$key}{id}'>\n";
-		$table .= "<input type='hidden' name='lang' value='$strings{$key}{lang}'>\n";
+		$table .= "<input type='hidden' name='lang' value='$strings{$string_code}{lang}'>\n";
+		$table .= "<input type='hidden' name='original_code' value='$string_code'>\n";
 		$table .= "<tr>\n";
-		$table .= "<th>$strings{$key}{id}</th>\n";
-		$table .= "<td style='width:100%'><textarea name='string' style='width:100%' cols=20 rows=10 wrap>$strings{$key}{string}</textarea></td>\n";
+		$table .= "<td><input name='string_code' value='$string_code'></input></td>\n";
+		$table .= "<td style='width:100%'><textarea name='string' style='width:100%' cols=20 rows=10 wrap>$strings{$string_code}{string}</textarea></td>\n";
 		$table .= "<td><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td><input type=submit value='Save'></td>\n";
 		$table .= "</tr>\n";
@@ -2250,7 +2326,7 @@ sub StringsTable {
 	$table .= "<form name='string' action='string_add.pl'>\n";
 	$table .= "<input type='hidden' name='lang' value='$language'>\n";
 	$table .= "<tr>\n";
-	$table .= "<th></th>\n";
+	$table .= "<td><input name='string_code'></input></td>\n";
 	$table .= "<td style='width:100%'><textarea name='string' style='width:100%' cols=20 rows=10 wrap></textarea></td>\n";
 	$table .= "<td></td>\n";
 	$table .= "<td><input type=submit value='Add'></td>\n";
@@ -2267,8 +2343,9 @@ sub ErrorsTable {
 	my $table = '';
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th>Document</th><th>Error</th></tr>\n";
+	my $key;
 	foreach $key (sort { $docs{$errors{$a}{doc_id}}{title} cmp $docs{$errors{$b}{doc_id}}{title} } keys %errors) {
-		$doc_id = $errors{$key}{doc_id};
+		my $doc_id = $errors{$key}{doc_id};
 		$table .= "<tr>";
 		$table .= "<td><a href='document_edit.pl?doc_id=$doc_id'>$docs{$doc_id}{title}</a></td>\n";
 		$table .= "<td>$errors{$key}{error}</td>\n";
@@ -2283,6 +2360,7 @@ sub TopicsTable {
 	my %topics = Topics();
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Topics</th></tr>\n";
+	my $topic_num;
 	foreach $topic_num (sort { $a <=> $b } keys %topics) {
 		$table .= "<tr><td align='right'>" . $topics{$topic_num}{num} . "</td>\n";
 		$table .= "<td><a href='subtopic_list.pl?topic_num=$topic_num'>$topics{$topic_num}{name}</a></td>\n";
@@ -2309,11 +2387,12 @@ sub TopicTable {
 }
 
 sub SubtopicsTable {
-	my ($self, $subtopic_num) = @_;
+	my ($self, $topic_num) = @_;
 	my %subtopics = Subtopics($foo, $topic_num);
 	my %topic = Topic($foo, $topic_num);
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>$topic{name}</th></tr>\n";
+	my $subtopic_num;
 	foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
 		$table .= "<tr><td align='right'>" . $subtopics{$subtopic_num}{num} . '</td><td>' . $subtopics{$subtopic_num}{name} . "</td>\n";
 		$table .= "<td>$subtopics{$subtopic_num}{description}</td></tr>\n";
@@ -2347,21 +2426,22 @@ sub TopicDocsTable {
 	$sql .= "FROM topic, subtopic, document_topic, document ";
 	$sql .= "WHERE topic.topic_num = subtopic.topic_num and topic.topic_num = document_topic.topic_num and subtopic.subtopic_num = document_topic.subtopic_num and document_topic.doc_id = document.doc_id AND document.pub_status='N' ";
 	$sql .= "ORDER BY topic_num, subtopic_num, title";
-	$recordset=$DB->Recordset($sql);
+	my $recordset=$DB->Recordset($sql);
 
-	$last_topic_num = 0;
-	$last_subtopic_num = 0;
+	my $last_topic_num = 0;
+	my $last_subtopic_num = 0;
 	my $table = "<table>\n";
+	my @row;
 	while (@row = $recordset->fetchrow) {
-		$topic_num		= $row[0];
-		$topic_name		= &trim($row[1]);
-		$subtopic_num		= $row[2];
-		$subtopic_name		= &trim($row[3]);
-		$doc_id			= $row[4];
-		$title			= &trim($row[5]);
-		$topic_description	= &trim($row[6]);
-		$subtopic_description	= &trim($row[7]);
-		$url			= &trim($row[8]);
+		my $topic_num			= $row[0];
+		my $topic_name			= &trim($row[1]);
+		my $subtopic_num		= $row[2];
+		my $subtopic_name		= &trim($row[3]);
+		my $doc_id			= $row[4];
+		my $title			= &trim($row[5]);
+		my $topic_description		= &trim($row[6]);
+		my $subtopic_description	= &trim($row[7]);
+		my $url				= &trim($row[8]);
 		if ($topic_num != $last_topic_num) {
 			$table .= "<tr><td>";
 			$table .= "<a href='topic_edit.pl?topic_num=$topic_num'>" . EditImage() . "</a>" if (Admin());
@@ -2460,9 +2540,11 @@ sub TopicsBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Topics</th></tr>\n";
 	print "<tr><td>\n";
+	my $topic_num;
 	foreach $topic_num (sort { $a <=> $b } keys %topics) {
 		print "<p>" if ($topic_num != 1);
 		print "<a href='topic_list.pl#$topic_num'>$topics{$topic_num}{name}</a><br>\n";
+		my $subtopic_num;
 		foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
 			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
 				print "&nbsp;&nbsp;<a href='topic_list.pl#$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
@@ -2475,7 +2557,7 @@ sub TopicsBox {
 
 sub HeaderBox {
 	my ($foo, $title) = @_;
-	my $project = Config($foo, project);
+	my $project = Config($foo, 'project');
 	my $table = "<table class = 'header'><tr>\n";
 	$table .= "<th>$project Lampadas System</th>";
 	$table .= "</tr></table>\n";
@@ -2598,7 +2680,7 @@ sub AddUser {
 	my ($self, $username, $first_name, $middle_name, $surname, $email, $admin, $sysadmin, $password, $notes) = @_;
 	my $message = '';
 	if ($username and $email) {
-		$count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
+		my $count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
 		if ($count) {
 			$message = "The username you requested, '$username', is already taken.\n";
 		} else {
@@ -2614,7 +2696,7 @@ sub AddUser {
 				my $user_id = $DB->Value("SELECT MAX(user_id) FROM username");
 				$user_id++;
 				$DB->Exec("INSERT INTO username(user_id, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes) VALUES ($user_id, " . wsq($username) . ", " . wsq($first_name) . ", " . wsq($middle_name) . ", " . wsq($surname) . ", " . wsq($email) . ", " . wsq($admin) . ", " . wsq($sysadmin) . ", " . wsq($password) . ", " . wsq($notes) . ")");
-				%newuser = User($foo, $user_id);
+				my %newuser = User($foo, $user_id);
 				if ($newuser{username} eq $username) {
 					StartPage($foo, 'Account Created');
 					Mail($foo, $email, 'Lampadas Password', "Your Lampadas password is $password");

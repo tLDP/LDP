@@ -11,6 +11,7 @@ unless (($L->CurrentUserID() eq $user_id) or ($L->Admin())) {
 }
 
 $L->StartPage("My Lampadas");
+print $L->String('user-home');
 print $L->UserDocsTable($user_id);
 $L->EndPage();
 

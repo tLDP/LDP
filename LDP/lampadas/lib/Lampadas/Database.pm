@@ -4,19 +4,22 @@
 # 
 package Lampadas::Database;
 
+use strict;
+
 use Pg;
 use Exporter;
 use FileHandle;
 
-@ISA	= qw(Exporter);
-@EXPORT	= qw(
-	new,
-	Row,
-	Value,
-	Exec);
+my @ISA	= qw(Exporter);
+my @EXPORT	= qw(
+		new,
+		Row,
+		Value,
+		Exec);
 
-$conn;
-$debug = 0;
+my $conn;
+my $debug = 0;
+my $foo;
 
 sub _initialize {
 	$conn=Pg::connectdb("dbname=lampadas");
@@ -50,7 +53,7 @@ sub Value {
 	my $self = shift;
 	my $sql = shift;
 	my @row = Row($foo, $sql);
-	$value = $row[0];
+	my $value = $row[0];
 	$value =~ s/\s+$//;
 	return $value;
 }
