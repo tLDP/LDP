@@ -3,10 +3,11 @@
 <title> Modem-HOWTO
 <author>David S.Lawyer
   <tt><url url="mailto:dave@lafn.org"></tt>
-<date> v0.26, March 2003 
+<date> v0.27, May 2003 
 
 <!--
 Change log:  + => added more info  ++ => added new topic
+v0.27 May 2003: "Flow control" improved
 v0.26 March 2003: USB clarity improved, v.92 modem "on hold" supported?,
 3Com AT codes
 v0.25 September 2002: Must restart minicom after configuring it unless
@@ -180,7 +181,7 @@ send me any other info that you think belongs in this document.
 Your problem might be solved in the latest version.  It will be
 available to browse and/or download at LDP mirror sites.  For a list
 of such sites see: <url url="http://www.tldp.org/mirrors.html"> If you
-only want to quickly compare the date of this the version v0.26, March 2003  with
+only want to quickly compare the date of this the version v0.27, May 2003  with
 the date of the latest version go to: <url
 url="http://www.tldp.org/HOWTO/Modem-HOWTO.html">
 
@@ -188,15 +189,17 @@ url="http://www.tldp.org/HOWTO/Modem-HOWTO.html">
 <p> For a full revision history going back to the first version see
 the source file (in linuxdoc format) at <url
 url="http://www.ibiblio.org/pub/linux/docs/HOWTO/other-formats/sgml/Modem-HOWTO.sgml.gz">.
-
-v0.26 March 2003: USB clarity improved, v.92 modem "on hold" supported?,
-3Com AT codes
-v0.25 September 2002: Must restart minicom after configuring it unless
-you used the -s option.  HCF is not an all-software modem as was
-incorrectly claimed.  Better clarity for "Quick Install" and 56k
-modems.  Does my PC have a modem?<newline>
-v0.24 June 2002: new callback link, "You are already online" error, 
+<itemize>
+<item>v0.27 May 2003: "Flow control" improved
+<item>v0.26 March 2003: USB clarity improved, v.92 modem "on hold" supported?,
+ 3Com AT codes
+<item>v0.25 September 2002: Must restart minicom after configuring it unless
+ you used the -s option.  HCF is not an all-software modem as was
+ incorrectly claimed.  Better clarity for "Quick Install" and 56k
+ modems.  Does my PC have a modem?<newline>
+<item>v0.24 June 2002: new callback link, "You are already online" error, 
  fixed several typos reported by Francesco Ronconi<newline>
+</itemize>
 
 <sect1> What is a Modem ? <label id="what_is_modem">
 <p> A modem is a device that lets one send digital signals over an
@@ -911,7 +914,9 @@ Sept. '00: data flow diagram
 Dec. '00 flow control +
 July '01 done -> down
 Feb. '02 4k buffer -> 8k
-Feb '03: UARTs with auto flow control.  Rewrite of Flow Control.
+Feb. '03: UARTs with auto flow control.  Rewrite of Flow Control.
+Mar. '03: Flip buffer (the 4th buffer)
+Apr. '03: flow control clarity, RTS -> CTS re modems
 -->
 <!-- ifdef MODEM_ -->
 <p> You don't have to understand the basics to use and install a
@@ -1105,21 +1110,21 @@ incoming bytes and the small buffer may overflow (overrun) resulting
 in a loss of data bytes.
 
 <!-- ifdef MODEM_ -->
-For an external modem, there may be no way (such as flow control) to stop
-the flow rapidly enough to prevent this.  For an internal modem the
-16-byte FIFO buffer is on the same card and a good modem will not
-write to it if it's full.  Thus a good internal modem will not overrun
-the 16-byte buffers but it may need to use <ref id="M-M_flow_c"
-name="Modem-to-Modem Flow Control"> to prevent the modem itself from
-being overrun.  This is one advantage of an internal modem over an
-external.  <!-- ifdef MODEM end -->
+For an external modem, there may be no way (such as flow control) to
+stop the flow rapidly enough to prevent such an overrun.  For an
+internal modem, the 16-byte FIFO buffer is on the same card and a good
+modem will not write to it if it's full.  Thus a good internal modem
+will not overrun the 16-byte buffers but it may need to use <ref
+id="M-M_flow_c" name="Modem-to-Modem Flow Control"> to prevent the
+modem itself from being overrun.  This is one advantage of an internal
+modem over an external.  <!-- ifdef MODEM end -->
 
 Interrupts are also issued when the serial port has just sent out all
-of its bytes from its small transmit buffer out the external cable.
-It then has space for 16 more outgoing bytes.  The interrupt is to
-notify the CPU of that fact so that it may put more bytes in the small
-transmit buffer to be transmitted.  Also, when a modem control line
-changes state, an interrupt is issued.
+of its bytes from its small transmit FIFO buffer out the external
+cable.  It then has space for 16 more outgoing bytes.  The interrupt
+is to notify the CPU of that fact so that it may put more bytes in the
+small transmit buffer to be transmitted.  Also, when a modem control
+line changes state, an interrupt is issued.
 
 The buffers mentioned above are all hardware buffers.  The serial port
 also has large buffers in main memory.  This will be explained later
@@ -1257,7 +1262,7 @@ almost full, the modem sends a stop signal to the serial port.  The
 serial port passes on the stop signal on to the device driver and the
 115.2k bps flow is halted.  Then the modem continues to send out data
 at 33.6k bps drawing on the data it previous accumulated in its
-buffer.  Since nothing is coming into the buffer, the level of bytes
+buffer.  Since nothing is coming into this buffer, the number of bytes
 in it starts to drop.  When almost no bytes are left in the buffer,
 the modem sends a start signal to the serial port and the 115.2k flow
 from the computer to the modem resumes.  In effect, flow control
@@ -1266,77 +1271,79 @@ which is significantly less than the "on" flow rate of 115.2k bps.
 This is "start-stop" flow control.
 
 In the above simple example it was assumed that the modem did no data
-compression.  This would be true when the modem is sending a file
+compression.  This could happen when the modem is sending a file
 which is already compressed and can't be compressed further.  Now
 let's consider the opposite extreme where the modem is compressing the
 data with a high compression ratio.  In such a case the modem might
 need an input flow rate of say 115.2k bps to provide an output (to the
 phone line) of 33.6k bps (compressed data).  This compression ratio is
-3.43 (115.2/33.6).   In this case the modem is able to compress and
-the 115.2 bps PC-to-modem flow and send the same data (in compressed
-form) out the phone line at 33.6bps.  There's no need for flow control
-here so long as the compression ratio remains higher that 3.43.  But
-the compression ratio varies from second to second and is likely to
-drops below 3.43.  Thus, some of the time flow control is needed to
-slow down the average flow on the 115.2 bps PC-to-modem cable.  The
-flow is stopped and started so that the average flow is usually lower
-than the "on" flow of 115.2 bps.
+3.43 (115.2/33.6).   In this case the modem is able to compress the
+115.2 bps PC-to-modem flow and send the same data (in compressed form)
+out the phone line at 33.6bps.  There's no need for flow control here
+so long as the compression ratio remains higher that 3.43.  But the
+compression ratio varies from second to second and if it should drop
+below 3.43, flow control will be needed 
 
-In the above example the modem was an external modem.  But the same
+In the above example, the modem was an external modem.  But the same
 situation exists (as of early 2003) for most internal modems.  There is
 still a speed limit on the PC-to-modem speed even though this flow
 doesn't take place over an external cable.  This makes the internal
 modems compatible with the external modems.
 
-In the above example of flow control the flow was from the computer to
+In the above example of flow control, the flow was from the computer to
 a modem.  But there is also flow control which is used for the
 opposite direction of flow: from a modem (or other device) to a
-computer.  Each direction of flow involve 3 buffers: 1. in the modem
-2. in the UART chip (called FIFOs) 3. in main memory managed by the
+computer.  Each direction of flow involves 3 buffers: 1. in the modem
+2. in the UART chip (called FIFOs) and 3. in main memory managed by the
 serial driver.  Flow control protects all buffers (except the FIFOs)
 from overflowing.  
 
-Under Linux, the small UART FIFO buffers are not protected in this way
-but rely instead on a fast response to the interrupts they issue.
-Some UART chips can be set to do hardware flow control to protect
-their FIFOs but Linux (as of early 2003) doesn't seem to support it.
-FIFO stand for "First In, First Out" which is the way it handles bytes
-in a queue.  All the 3 buffers use the FIFO rule but only one of them
-is named "FIFO".   This is the essence of flow control but there
-are still some more details.
+Under Linux, the small UART FIFO buffers are not protected by flow
+control but instead rely on a fast response to the interrupts they
+issue.  Some UART chips can be set to do hardware flow control to
+protect their FIFOs but Linux (as of early 2003) doesn't seem to
+support it.  FIFO stand for "First In, First Out" which is the way it
+handles bytes in a queue.  All the 3 buffers use the FIFO rule but
+only the one in the UART is named "FIFO".   This is the essence of flow
+control but there are still some more details.
 
 <!-- ifdef MODEM_ -->
 If you have set the highest PC-to-modem speed, you may not need flow
-control in the direction from the modem to a PC.  For complex example
-of a case where it's needed see "Complex Flow Control Example" in the
-Serial-HOWTO.  To slow down this incoming flow, your modem must tell
-the other modem to stop sending.  See <ref id="M-M_flow_c"
+control in the direction from the modem to a PC.  For a complex
+example of a case where it's needed see "Complex Flow Control Example"
+in the Serial-HOWTO.  To slow down this incoming flow, your modem must
+tell the other modem to stop sending.  See <ref id="M-M_flow_c"
 name="Modem-to-Modem Flow Control">.
 <!-- ifdef MODEM end -->
 
 
 
 <sect2> Hardware vs. Software Flow Control
-<p> If feasible it's best to use "hardware" flow control that uses two
+<p> If feasible, it's best to use "hardware" flow control that uses two
 dedicated "modem control" wires to send the "stop" and "start"
 signals.  Hardware flow control at the serial port works like this:
 The two pins, RTS (Request to send) and CTS (Clear to send) are used.
 When the computer is ready to receive date it asserts RTS by putting a
-positive voltage on the RTS pin (meaning "request to send to me").
+positive voltage on the RTS pin (meaning "Request To Send to me").
 When the computer is not able to receive any more bytes, it negates
 RTS by putting a negative voltage on the pin saying: "stop sending to
 me".  The RTS pin is connected by the serial cable to another pin on
 the modem, printer, terminal, etc.  This other pin's only function is
-to receive the signal.  
+to receive the signal.
 
-For the case of a modem this "other" pin will be the modem's RTS pin
-(same pin label as the PC).  But for a printer or terminal, it will be
-a CTS pin and requires "crossover" or "null modem" cable so as to
-connect the CTS pin at one end with the RTS pin at the other end.  For
-a modem, a straight-thru cable is used.  For the opposite direction of
-flow a similar scheme is used.  For a modem, the CTS pin is used to
-send the flow control signal and the RTS pin a receive it.  For a
-non-modem, the roles of the RTS and CTS pins are interchanged.
+For the case of a modem this "other" pin will be the modem's RTS pin.
+But for a printer, another PC, or a non-modem device, it's usually a
+CTS pin so a "crossover" or "null modem" cable is required.  This
+cable connects the CTS pin at one end with the RTS pin at the other
+end (two wires since each end of the cable has a CTS pin).  For a
+modem, a straight-thru cable is used.
+
+For the opposite direction of flow a similar scheme is used.  For a
+modem, the CTS pin is used to send the flow control signal to the CTS
+pin on the PC.  For a non-modem, the RTS pin sends the signal.  Thus
+modems and non-modems have the roles of their RTS and CTS pins
+interchanged.  Some non-modems such as dumb terminals may use other
+pins for flow control such as the DTR pin instead of RTS.
 
 Software flow control uses the main receive and transmit wires to send
 the start and stop signals.  It uses the ASCII control characters DC1
@@ -1354,7 +1361,7 @@ modem (hardware) and software support
 <sect2> Symptoms of No Flow Control
 <p> Understanding flow-control theory can be of practical use.  For
 example I used my modem to access the Internet and it seemed to work
-fine.  But after a few months I tried to send out long files from my PC
+fine.  But after a few months, I tried to send out long files from my PC
 and a huge amount of retries and errors resulted but it finally
 succeeded.  Receiving in the other direction (from my ISP to me) worked
 fine.  The problem turned out to be a modem with flow control disabled.
@@ -1370,12 +1377,10 @@ string an enable-flow-control command.
 
 <sect2> Modem-to-Modem Flow Control <label id="M-M_flow_c">
 <p> This is the flow control of the data sent over the telephone lines
-between two modems.  Practically speaking, it only exists when you
-have error correction enabled.  Actually, even without error
-correction it's possible to enable software flow control between
-modems but it may interfere with sending binary data so it's not often
-used.
-<!-- ifdef MODEM end -->
+between two modems.  It works as long as error correction is enabled.
+Actually, even without error correction it's possible to enable
+software flow control between modems but it may interfere with sending
+binary data so it's not often used.  <!-- ifdef MODEM end -->
 
 <sect1> Data Flow Path; Buffers
 <p>It's been mention that there are 3 buffers for each direction of
@@ -1384,10 +1389,10 @@ of larger buffers inside a device connected to the serial port (such
 as a modem), and a pair of buffers (say 8k) in main memory.
 When an application program sends bytes to the serial port they first
 get stashed in the transmit serial port buffer in main memory.  The
-pair consists of both the transmit buffer and a receive buffer for
-the opposite direction of byte-flow.  Here's an example diagram for
-the case of browsing the Internet with a browser.  Transmit data flow
-is left to right while receive flow is right to left.  There is a
+other member of the pair consists of a receive buffer for the
+opposite direction of byte-flow.  Here's an example diagram for the
+case of browsing the Internet with a browser.  Transmit data flow is
+left to right while receive flow is right to left.  There is a
 separate buffer for each direction of flow.
 
 <verb>
@@ -1420,11 +1425,13 @@ though this program stops, the computer does not necessarily stop
 computing since it may switch to running other processes while it's
 waiting at a flow control stop.
 
-The above was a little oversimplified in two ways.  First, some UARTs
+The above was a little oversimplified in three ways.  First, some UARTs
 can do automatic hardware flow control which can stop the transmission
 out of the FIFO buffers if needed (not yet supported by Linux).
 Second, while an application process is waiting to write to the
-transmit buffer, it could possibly perform other tasks.
+transmit buffer, it could possibly perform other tasks.  Third, the
+serial driver (located between the memory buffer and the FIFO) has
+it's own buffer (in main memory) used to process characters.
 
 <!-- ifdef MODEM_ -->
 <sect1> Modem Commands
@@ -2633,7 +2640,9 @@ Nov. 2002 Debian's /var/lib/serial.conf
 are some minor differences, depending on which HOWTO it appears in.
 
 <sect2> Introduction
-<p> If you have a Laptop (PCMCIA) don't use <tt/setserial/ until you
+<p> The setserial program doesn't seem to work with serial ports used
+with linmodems such as ttySHCF0.
+If you have a Laptop (PCMCIA) don't use <tt/setserial/ until you
 read <ref id="laptops_" name="Laptops: PCMCIA">.  <tt/setserial/ is a
 program which allows you to tell the device driver software the I/O
 address of the serial port, which interrupt (IRQ) is set in the port's
@@ -3311,7 +3320,7 @@ used with modems for dial-in: <tt/mgetty/, <tt/uugetty/, <tt/getty_em/,
 and <tt/agetty/.  A brief overview is given in the following
 subsections.  <tt/agetty/ is the weakest of the four and it's mainly
 for use with directly connected text-terminals. <tt/mgetty/ has
-support for fax and voice mail but <tt/Uugetty/ doesn't.  <tt/mgetty/
+support for fax and voice mail but <tt/uugetty/ doesn't.  <tt/mgetty/
 allegedly lacks a few of the features of <tt/uugetty/.  <tt/getty_em/
 is a simplified version of <tt/uugetty/.  Thus <tt/mgetty/ is likely
 your best choice unless you are already familiar with <tt/uugetty/ (or
@@ -3327,10 +3336,10 @@ etc.  But if you read the man page (type: man getty), it might
 disclose which getty it is.  This should be the getty program with
 path <tt>/sbin/getty.</tt>
 
-<sect2> Getty "exits" after login (and can respawn)
-<!-- getty_seq.H begin (in MM, TT)
+<sect2> How getty respawns
+<!-- getty_seq.D begin (in MM, TT)
 This is the sequence of events that happens after getty starts up.
-<sect2> Getty "exits" after login (and can respawn).
+<sect2> How getty respawns
 -->
 <p>After you log in you will notice (by using "top", "ps -ax", or
 "ptree") that the getty process is no longer running.  What happened
@@ -3346,7 +3355,7 @@ replaces the login process.  Note that one process replaces another
 and that the bash shell process originally started as the getty
 process.  The implications of this will be explained below.
 
-Now in the /etc/inittab file getty is supposed to respawn (restart) if
+Now in the /etc/inittab file, getty is supposed to respawn (restart) if
 killed.  It says so on the line that calls getty.  But if the bash shell
 (or the login process) is killed, getty respawns (restarts).  Why?
 Well, both the login process and bash are replacements for getty and
@@ -3374,14 +3383,14 @@ in existence long before <tt/mgetty/.  Both are for use with modems
 but mgetty is best (unless you already are committed to <tt/uugetty/).
 <tt/mgetty/ may be also used for directly connected terminals.  In
 addition to allowing dialup logins, <tt/mgetty/ also provides FAX
-support and auto PPP detection.  It permits dialing out when mgetty is
-waiting for an incoming phone call.  There is a supplemental program
-called <tt/vgetty/ which handles voicemail for some modems.
-<tt/mgetty/ documentation is fair (except for voice mail), and is not
-supplemented in this HOWTO.  To automatically start PPP one must edit
-/etc/mgetty/login.conf to use "AutoPPP" (has example).  You can find
-the latest information on <tt/mgetty/ at <htmlurl
-url="http://www.leo.org/&tilde;doering/mgetty/"
+support, auto PPP detection, and caller-id support.  It permits
+dialing out when mgetty is waiting for an incoming phone call.  There
+is a supplemental program called <tt/vgetty/ which handles voicemail
+for some modems.  <tt/mgetty/ documentation is fair (except for voice
+mail), and is not supplemented in this HOWTO.  To automatically start
+PPP one must edit /etc/mgetty/login.conf to use "AutoPPP" (has
+example).  You can find the latest information on <tt/mgetty/ at
+<htmlurl url="http://www.leo.org/&tilde;doering/mgetty/"
 name="http://www.leo.org/&tilde;doering/mgetty/"> and <url
 url="http://alpha.greenie.net/mgetty/">
 
@@ -3629,7 +3638,7 @@ url="http://www.stokely.com/unix.serial.port.resources/callback.html">
 <p> Voice mail is like an answering machine run by a computer.
 To do this you must have a modem that supports "voice" and supporting
 software.  Instead of storing the messages on tape, they are stored in
-digital format on a disk.  When a person phones you, they hear a
+digital format on a hard-drive.  When a person phones you, they hear a
 "greeting" message and can then leave a message for you.  More
 advanced systems would have caller-selectable mail boxes and
 caller-selectable messages to listen to.  Free software is available in
@@ -3643,29 +3652,23 @@ The other, more advanced, but currently poorly documented, is
 widely distributed <tt/mgetty/  program.  It supports ZyXEL-like voice
 modem commands.  In the Debian distribution, you must get the
 mgetty-voice package in addition to the mgetty package and mgetty-doc
-package.  Obsolete documentation has been removed from mgetty but
-replacement documentation is lacking (except if you use the -h (help)
-option when running certain programs, etc.).  But one sees postings
-about using it on the mgetty newsgroup.  See <ref id="mgetty_"
-name="About mgetty">.  It seems that <tt/vgetty/ is currently not very
-stable but it's successfully being used and development of it
-continues.  If this is the latest version of this HOWTO can someone
-who is familiar with vgetty please let me know its current status.
+package.
 
 <sect1> Simple Manual Dial-In <label id="manual_dialin">
-<p> This is really doing it manually!  There's a way to answer a call
-without bothering to edit any configuration files for dial-in or
-enabling getty but the caller can't login.  To do this you run a
-terminal program such as minicom.  Make sure it's connected to your
-modem by typing "AT &lt;enter&gt;" and expect "OK".  Then wait for the
-call.  Then you really answer the call manually by typing "ATA" when
-the phone is ringing.  This doesn't run getty and the caller can't
-login.  But if the caller is calling in with a terminal program they
-may type a message to your screen (and conversely).  You both may send
-files back and forth by using the commands built into the terminal
-programs (such as minicoms).  Another way to answer such a call would be
-to type say "ATS0=3" just before the call comes in to enable the modem
-to auto-answer on the third ring.
+<p> This is really doing it manually!  It doesn't even permit the
+caller to login but the caller may "chat" with you, etc.  It's a way
+to answer a call without bothering to edit any configuration files for
+dial-in or enabling getty.  To do it you run a terminal program such
+as minicom.  Make sure it's connected to your modem by typing "AT
+&lt;enter&gt;" and expect "OK".  Then wait for the call.  Then you
+really answer the call manually by typing "ATA" when the phone is
+ringing.  This doesn't run getty and the caller can't login.  But if
+the caller is calling in with a terminal program they may type a
+message to your screen (and conversely).  You both may send files back
+and forth by using the commands built into the terminal programs (such
+as minicom).  Another way to answer such a call would be to type say
+"ATS0=3" just before the call comes in to enable the modem to
+auto-answer on the third ring.
 
 This is one way to crudely transfer files with someone on a MS Windows
 PC who uses HyperTerminal or Terminal (for Windows 3.x or DOS).  These
@@ -3680,15 +3683,15 @@ preliminary test before setting up dial-in.
 
 <sect1> Complex GUI Dial-In, VNC
 <p> At the opposite extreme to the simple (but labor intensive) manual
-dial-in is one that results in GUI graphical interface to the Linux
-PC.  This generally requires that a network running TCP/IP protocol exist
-between the two computers.  One way to get such a "network" is to
-dial-out to a PC set for dial-in and then run PPP on the phone line.
-PPP will use TCP/IP protocol encapsulated inside the PPP packets.
-Both sides must run PPP and mgetty can be configured to start PPP as
-soon as the caller does.  The caller may use a PPP-dialer program just
-like they were dialing an ISP.  Programs such as wvdial, eznet, or
-chat scripts should do it.
+dial-in described above, is one that results in GUI graphical
+interface to the Linux PC.  This generally requires that a network
+running TCP/IP protocol exist between the two computers.  One way to
+get such a "network" is to dial-out to a PC set for dial-in and then
+run PPP on the phone line.  PPP will use TCP/IP protocol encapsulated
+inside the PPP packets.  Both sides must run PPP and mgetty can be
+configured to start PPP as soon as the caller does.  The caller may
+use a PPP-dialer program just like they were dialing an ISP.  Programs
+such as wvdial, eznet, or chat scripts should do it.
 
 Instead of this tiny network over a phone connection a much larger
 network (the entire world) is reached via an ISP.  For their
