@@ -37,6 +37,7 @@ $insect2 = 0;
 $insect3 = 0;
 $insect44 = 0;
 $intable = 0;
+$inmultitable = 0;
 $inrow = 0;
 $incol = 0;
 $infirstcol = 0;
@@ -57,6 +58,7 @@ $saveline = "";
 $badbracketlines = 0;
 $badbracketstartline = 0;
 $seekend = "";
+$suppresscommands = 0;	# NO COMMAND EXPANSION
 $literalend = "";
 $literal = "";
 
@@ -195,6 +197,8 @@ $replacement = "";
 	'@end table'			=>'TABLEEND',
 	'@vtable'			=>'TABLE',
 	'@end vtable'			=>'TABLEEND',
+	'@multitable'			=>'MULTITABLE',
+	'@end multitable'		=>'TABLEEND',
 	'@tex'				=>'SEEKEND',
 	'@titlepage'			=>'SEEKEND',
 	'@top'				=>'SECT1',		# sectioning commands
@@ -218,31 +222,62 @@ $replacement = "";
 	'@appendixsubsubsec'		=>'SECT3',
 );
 
-# these are one-for-one string substitutions
+# These are one-for-one string substitutions
 # 
-# most of them are ISO-8879 codes for international characters,
-# used by HTML as well as XML, but there are exceptions.
-# There is one special case, "@@", which is the escaped form of @.
+# Many of them are replaced by ISO-8879 codes for international characters,
+# used by HTML as well as XML. See that spec for more information.
+# (One version is at http://www.w3.org/TR/html4/sgml/entities.html)
+# 
+# There are special cases, e.g. "@@", which is the escaped form of @.
 # We do not handle @@ here, because it has to come after all other
 # @-commands have been processed.
+#
+# These commands can have {} following them, but if so the whole
+# construction must be listed, e.g., @AA{}.
 # 
 # It's fine to replace these with nothing if you want them to be
 # simply dropped on the floor.
 #
-# I keep these in general alphabetical order, except that @end tags
-# are put right after their opening form.
-#
-# Note: Neither side needs to be escaped.
+# Neither side needs to be escaped.
 #
 %substitutions = (
-#	'@@'			=>'@',
+#	'@@'			=>'@',		# handled specially to simplify parsing
 #	'@\{'			=>'{',
 #	'@\}'			=>'}',
+	
+	'@-'			=>'&macr;',	# punctuation and typographic characters
 	'@.'			=>'.',
 	'@!'			=>'!',
-	'@*'			=>'',
+	'@?'			=>'?',
+	'@exclamdown{}'		=>'&iexcl;',
+	'@questiondown{}'	=>'&iquest;',
+	'@pounds{}'		=>'&pound;',
+	'@bullet{}'		=>'*',
+	'@copyright{}'		=>'&copy;',
+	'@dots{}'		=>'&hellip;',
+	'@minus{}'		=>'-',
+	'@TeX{}'		=>'TeX',
+	'@enddots'		=>'&hellip;',
+
+	'@:'			=>'',		# text layout, has no meaning in DocBook
+	'@='			=>'',		# which is a semantic language.
+	'@*'			=>'',		# Layout issues are handled in XSLT.
 	'@s'			=>' ',
-	'@"A'			=>'&Auml;',
+	'@center'		=>'',
+	'@group'		=>'',
+	'@end group'		=>'',
+	'@noindent'		=>'',
+	'@refill'		=>'',
+	
+	# accented characters
+	#
+	# Note that glyphs we cannot support in DocBook are represented by
+	# an appended character.
+	#
+	# Since this is so very similar to the @definfoenclose style of
+	# custom highlighting, they are handled in that section.
+	#
+	'@"A'			=>'&Auml;',		# umlaut
 	'@"E'			=>'&Euml;',
 	'@"I'			=>'&Iuml;',
 	'@"O'			=>'&Ouml;',
@@ -252,7 +287,7 @@ $replacement = "";
 	'@"i'			=>'&iuml;',
 	'@"o'			=>'&ouml;',
 	'@"u'			=>'&uuml;',
-	'@' . "'" . 'A'		=>'&Aacute;',
+	'@' . "'" . 'A'		=>'&Aacute;',		# acute accent
 	'@' . "'" . 'E'		=>'&Eacute;',
 	'@' . "'" . 'I'		=>'&Iacute;',
 	'@' . "'" . 'O'		=>'&Oacute;',
@@ -262,23 +297,7 @@ $replacement = "";
 	'@' . "'" . 'i'		=>'&iacute;',
 	'@' . "'" . 'o'		=>'&oacute;',
 	'@' . "'" . 'u'		=>'&uacute;',
-	'@,{c}'			=>'&cedil;',
-	'@-'			=>'&macr;',
-	'@\.'			=>'.',
-	'@:'			=>'',
-	'@='			=>'',
-	'@\?'			=>'?',
-	'@^A'			=>'&Acirc;',
-	'@^E'			=>'&Ecirc;',
-	'@^I'			=>'&Icirc;',
-	'@^O'			=>'&Ocirc;',
-	'@^U'			=>'&Ucirc;',
-	'@^a'			=>'&acirc;',
-	'@^e'			=>'&ecirc;',
-	'@^i'			=>'&icirc;',
-	'@^o'			=>'&ocirc;',
-	'@^u'			=>'&ucirc;',
-	'@`A'			=>'&Agrave;',
+	'@`A'			=>'&Agrave;',		# grave accent
 	'@`E'			=>'&Egrave;',
 	'@`I'			=>'&Igrave;',
 	'@`O'			=>'&Ograve;',
@@ -288,7 +307,17 @@ $replacement = "";
 	'@`i'			=>'&igrave;',
 	'@`o'			=>'&ograve;',
 	'@`u'			=>'&ugrave;',
-	'@~A'			=>'&Atilde;',
+	'@^A'			=>'&Acirc;',		# circumflex
+	'@^E'			=>'&Ecirc;',
+	'@^I'			=>'&Icirc;',
+	'@^O'			=>'&Ocirc;',
+	'@^U'			=>'&Ucirc;',
+	'@^a'			=>'&acirc;',
+	'@^e'			=>'&ecirc;',
+	'@^i'			=>'&icirc;',
+	'@^o'			=>'&ocirc;',
+	'@^u'			=>'&ucirc;',
+	'@~A'			=>'&Atilde;',		# tilde
 	'@~E'			=>'&Etilde;',
 	'@~I'			=>'&Itilde;',
 	'@~O'			=>'&Otilde;',
@@ -298,17 +327,42 @@ $replacement = "";
 	'@~i'			=>'&itilde;',
 	'@~o'			=>'&otilde;',
 	'@~u'			=>'&utilde;',
-	'@center'		=>'',
-	'@equiv'		=>'&equiv;',
-	'@group'		=>'',
-	'@end group'		=>'',
-	'@exclamdown'		=>'&iexcl;',
-	'@noindent'		=>'',
-	'@refill'		=>'',
+	'@=A'			=>'A&macr;',		# macron
+	'@=E'			=>'E&macr;',
+	'@=I'			=>'I&macr;',
+	'@=O'			=>'O&macr;',
+	'@=U'			=>'U&macr;',
+	'@=a'			=>'a&macr;',
+	'@=e'			=>'e&macr;',
+	'@=i'			=>'i&macr;',
+	'@=o'			=>'o&macr;',
+	'@=u'			=>'u&macr;',
+
+	# other international characters and ligatures
+	#
+	'@L{}'			=>'L',			# Polish suppressed L/l
+	'@l{}'			=>'l',			# (currently unsupported)
+	'@AA{}'			=>'&Aring;',
+	'@aa{}'			=>'&aring;',
+	'@AE{}'			=>'&AElig;',		# ligatures
+	'@ae{}'			=>'&aelig;',
+	'@OE{}'			=>'&OElig;',
+	'@oe{}'			=>'&oelig;',
+	'@O'			=>'&Oslash;',
+	'@o'			=>'&oslash;',
+	'@,{c}'			=>'&cedil;',		# cedilla (yes, this is strange)
+	
+	'@error{}'		=>'error-->',		# glyphs used in examples
+	'@equiv{}'		=>'&equiv;',
+	'@expansion{}'		=>'==>',
+	'@point{}'		=>'-!-',
+	'@print{}'		=>'-|',
+	'@result{}'		=>'=&gt;',
 );
 
-# these are inline tags that require some kind of programmatic control
-# because they do strange things.
+# these are additional inline tags that always have {} following them.
+# The replacement strings are triggers that they require some kind of
+# programmatic control because they do strange things.
 # 
 %specsubstitutions = (
 	'@anchor'		=>'ANCHOR',
@@ -316,20 +370,8 @@ $replacement = "";
 	'@uref'			=>'UREF',
 	'@xref'			=>'XREF',
 	'@pxref'		=>'PXREF',
-	'@bullet'		=>'*',
+	'@inforef'		=>'XREF',
 	'@kbd'			=>'KBD',
-	'@AA'			=>'&Aring;',
-	'@aa'			=>'&aring;',
-	'@AE'			=>'&AElig;',
-	'@ae'			=>'&aelig;',
-	'@copyright'		=>'&copy;',
-	'@dots'			=>'&hellip;',
-	'@minus'		=>'-',
-	'@O'			=>'&Oslash;',
-	'@o'			=>'&oslash;',
-	'@result'		=>'=&gt;',
-	'@TeX'			=>'TeX',
-	'@enddots'		=>'&hellip;',
 );
 
 # These are special block wrapping tags. When we hit one of these,
@@ -341,8 +383,8 @@ $replacement = "";
 # want any <para> tags to go inside them, not outside.
 # 
 %blocks = (
-	'\@quotation\b'		=>'<blockquote>',
-	'\@end quotation'	=>'</blockquote>',
+	'@quotation'		=>'<blockquote>',
+	'@end quotation'	=>'</blockquote>',
 );
 
 # these are inline @-Commands which are replaced by a set of tags instead of one-for-one
@@ -350,8 +392,11 @@ $replacement = "";
 #
 # there is also a special case, the "blank" tag, which does what you'd think.
 # It removes the existing tag, but doesn't add the wrapper.
+#
+# Note that you can nest tags here by separating with commas.
 # 
-# Example: @code{foo} becomes <literal>foo</literal>.
+# Examples: @code{foo} becomes <literal>foo</literal>.
+#           @footnote{foo} becomes <footnote><para>foo</para></footnote>.
 #
 %tags = (
 	'@acronym'		=>'abbrev',
@@ -360,23 +405,42 @@ $replacement = "";
 	'@code'			=>'literal',
 	'@command'		=>'command',
 	'@dfn'			=>"emphasis role='bold'",
+	'@dmn'			=>'',
 	'@key'			=>'keycap',
 	'@email'		=>'email',
 	'@emph'			=>'emphasis',
 	'@env'			=>'envvar',
-	'@footnote'		=>'footnote',
+	'@footnote'		=>'footnote, para',
 	'@file'			=>'filename',
 	'@i'			=>'emphasis',
+	'@option'		=>'option',
 	'@samp'			=>'literal',
 	'@sc'			=>'',
+	'@strong'		=>"emphasis role='bold'",
 	'@t'			=>'programlisting',
+	'@r'			=>'',
 	'@var'			=>'literal',
 	'@w'			=>'',
 );
 
 # this is where definfoenclose definitions go, and they are processed last
 # 
-%definfos = ();
+# Note: Some built-in TeXInfo accents can be seen as a kind of custom highlighting,
+# since they cannot be displayed by a special glyph but are instead rendered
+# by appending a character. Those glyphs are handled here.
+#
+# Note also that the "@" is not used here.
+#
+%definfos = (
+	'dotaccent'		=>',.',			# overdot accent
+	'H'			=>',"',			# Hungarian long umlaut
+	'ringaccent'		=>',*',			# ring accent
+	'tieaccent'		=>',|',			# tie-after accent
+	'u'			=>',(',			# breve accent
+	'ubaraccent'		=>',_',			# underbar accent
+	'udotaccent'		=>'.,',			# underdot accent
+	'v'			=>',&lt;',		# tie-after accent
+);
 
 # and this is where macros are stored
 #
@@ -415,6 +479,9 @@ while (1) {
 	} elsif (($ARGV[0] eq '-o') or ($ARGV[0] eq '--output-to')) {
 		shift(@ARGV);
 		$outputfile = $ARGV[0];
+	} elsif (($ARGV[0] eq '-L') or ($ARGV[0] eq '--runon')) {
+		shift(@ARGV);
+		$maxrunonlines = $ARGV[0];
 	} elsif (($ARGV[0] eq '-l') or ($ARGV[0] eq '--log-to')) {
 		shift(@ARGV);
 		$logfile = $ARGV[0];
@@ -545,10 +612,8 @@ LINE:	while ($line = <$fh>) {
 		$line =~ s/&/&amp;/g;		# do first, before writing new amps
 		$line =~ s/\</&lt;/g;
 		$line =~ s/\>/&gt;/g;
-		
-		$line =~ s/\@\@/DCM_AT/g;	# temporary, so @-commands parse later
-		$line =~ s/\@\{/DCM_LB/g;
-		$line =~ s/\@\}/DCM_RB/g;
+	
+		&markspecial;			# hide @@, @{, @} to ease parsing
 
 		# keep reading until we have only complete tags
 		# 
@@ -610,7 +675,7 @@ LINE:	while ($line = <$fh>) {
 				$macrotext .= $line;
 				$macrolinecount++;
 				if ($macrolinecount >= 10) {
-					exit(1);
+					&raiseerror("runon macro");
 				}
 			}
 		} else {
@@ -668,10 +733,12 @@ LINE:	while ($line = <$fh>) {
 				&message("table format: $tableformat") if ($verbose > 2);
 				&table;
 				$infirstcol = 0;
+			} elsif ($action eq 'MULTITABLE') {
+				&multitable;
 			} elsif ($action eq 'TABLEEND') {
 				&closetable;
 			} elsif ($action eq 'INDEX') {
-				&message("indexing not yet supported") if ($verbose);
+				&message("indexing not yet supported") if ($verbose > 1);
 			} elsif ($action eq 'DEFINFOENCLOSE') {
 				&definfoenclose;
 			} elsif ($action eq 'SET') {
@@ -733,7 +800,7 @@ sub writefile {
 sub matchpattern {
 	$pattern = "";
 	foreach $key (keys %patterns) {
-		$pattern = quotemeta($key);
+		$pattern = quotemeta($key) . '\b';
 		if ($line =~ /^$pattern\b/) {
 			return ($pattern, $patterns{$key});
 		}
@@ -745,6 +812,7 @@ sub matchpattern {
 #
 sub matchblock {
 	foreach $key (keys %blocks) {
+		$key = quotemeta($key) . '\b';
 		if ($line =~ /$key/) {
 			return ($key, $blocks{$key});
 		}
@@ -754,6 +822,27 @@ sub matchblock {
 # the rest are all inline processing
 #
 sub convertinline {
+
+	# do no command substitutions when in an example
+	#
+	if ($suppresscommands) {
+		&message("commands suppressed") if ($verbose > 2);
+		$line =~ s/DCM_AT/\@\@/gi;	# like unmarkspecial, but backs all
+		$line =~ s/DCM_LB/\@\{/gi;	# the way out.
+		$line =~ s/DCM_RB/\@\}/gi;
+		return;
+	}
+	
+	# character-level substitutions.
+	# must come first, so tags like @ringaccent{} aren't seen
+	# by the @-command interpreter, which would not recognize
+	# them and would generate an error.
+	#
+	for $key (keys %substitutions) {
+		$key = quotemeta($key);
+		$line =~ s/$key/$substitutions{$key}/g
+	}
+	
 TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 	
 		$command = $line;
@@ -811,18 +900,26 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		# 
 		if (exists $tags{$tag}) {
 			&message("matched docbook wrapper tag $tag") if ($verbose >2);
-			$replacement = $tags{$tag};
-			$replacement = '' if (($replacement eq 'programlisting') and ($literalend));
-			if ($replacement) {
-				($tag, $attributes) = split(/ /, $replacement);
+			@dbtags = split(',', $tags{$tag});
+			$dbopen = '';
+			$dbclose = '';
+
+			foreach $dbtag (@dbtags) {
+				$dbtag = &trim($dbtag);
+
+				# TeXinfo allows nexted literals, DocBook does not.
+				# 
+				next if (($dbtag eq 'programlisting') and ($literalend));
+
+				($tag, $attributes) = split(/ /, $dbtag);
 				if ($attributes) {
-					$replacement = "\<$tag $attributes\>$contents\<\/$tag\>";
+					$dbopen .= "\<$tag $attributes\>";
 				} else {
-					$replacement = "\<$tag\>$contents\<\/$tag\>";
+					$dbopen .= "\<$tag\>";
 				}
-			} else {
-				$replacement = $contents;
+				$dbclose = "\<\/$tag\>" . $dbclose;
 			}
+			$replacement = $dbopen . $contents . $dbclose;
 			&replaceinline;
 			next TAG;
 		}
@@ -852,20 +949,21 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		}
 		
 		&raiseerror("cannot resolve $command");
-		$replacement = "ERROR";
-		&replaceinline;
 	}
 	
-	# fix character-level substitutions.
-	#
-	for $key (keys %substitutions) {
-		$key = quotemeta($key);
-		$line =~ s/$key/$substitutions{$key}/g
-	}
+	&unmarkspecial;
+}
+
+sub markspecial {
+	$line =~ s/\@\@/DCM_AT/g;
+	$line =~ s/\@\{/DCM_LB/g;
+	$line =~ s/\@\}/DCM_RB/g;
+}
+
+sub unmarkspecial {
 	$line =~ s/DCM_AT/\@/gi;
 	$line =~ s/DCM_LB/\{/gi;
 	$line =~ s/DCM_RB/\}/gi;
-
 }
 
 sub replaceinline {
@@ -883,6 +981,9 @@ sub replacespecsubst {
 	my @keycaps;
 	my $mykeys;
 
+# TODO: These are nearly the same, so we should really consolidate this
+# 	section sooner or later into one set of code.
+#
 	if ($replacement eq 'REF') {
 		&message("making xref on line $line") if ($verbose > 1);
 		$link = $contents;
@@ -914,11 +1015,7 @@ sub replacespecsubst {
 		$linkname = &trim($linkname);
 		$linkname = $link unless ($linkname);
 		&message("xref, contents: $contents, link: $link, linkname: $linkname") if ($verbose > 1);
-		if ($nodelevels{$link}) {
-			$replacement = "\<xref linkend='$link' endterm='$link-title'\/\>";
-		} else {
-			$replacement = "\<link linkend='$link'\>$linkname\<\/link\>";
-		}
+		$replacement = "See \<link linkend='$link'\>$linkname\<\/link\>";
 	} elsif ($replacement eq 'ANCHOR') {
 		$link = $contents;
 		$link = &anchorfix($link);
@@ -955,6 +1052,7 @@ sub replacespecsubst {
 		}
 		$replacement = $mykeys;
 	} else {
+		&raiseerror("Unrecognized special substitution code: $specsubstitutions{$tag}");
 		$replacement = $specsubstitutions{$tag};
 	}
 }
@@ -1044,11 +1142,6 @@ sub writeline {
 	my $temp = &trim($line);
 	
 	&convertinline;
-#	unless (&bracketsmatch($line)) {
-#		&raiseerror("brackets do not match in line: $line");
-#		last;
-#	}
-
 	unless ($literal) {
 		if ($temp eq '') {
 			&closeformalpara;
@@ -1061,6 +1154,7 @@ sub writeline {
 			}
 		}
 	}
+	&message("OUT: $line") if ($verbose > 1);
 	$buf .= $line . "\n";
 	if (($linenumber % 1000 == 0) and ($inabstract == 0)) {
 		print $outfh $buf;
@@ -1239,7 +1333,33 @@ sub sect4 {
 	&message("node: $nodename level to $nodelevels{$nodename}");
 }
 
+sub multitable {
+	my @columnwidths = ();
+	my $colspecs = '';
+
+	&closepara;
+	&closetable;
+	$line =~ s/\@\w+\s+//;
+
+	# fractional column widths are supported
+	# but prototypes are ignored, as DocBook will do the same
+	# thing automatically without them.
+	# 
+	if ($line =~ /\@columnfractions/) {
+		$line =~ s/\@columnfractions\s+//;
+		@columnwidths = split(/ /, $tableformat);
+		foreach $columnwidth (@columnwidths) {
+			$columnwidth =~ s/\.//;
+			$columnwidth .= '0' if (length($columnwidth) < 2);
+			$colspecs .= "\<colspec colwidth='$columnwidth\*'\/\>";
+		}
+	}
+	$buf .= '<informaltable><tgroup cols=' . "'" . scalar @columnwidths . "'" . "\>\n";
+	$buf .= '<tbody>' . "\n";
+}
+	
 sub table {
+	&closepara;
 	&closetable;
 	$buf .= '<informaltable><tgroup cols=' . "'2'" . '><tbody>' . "\n";
 	$intable = 1;
@@ -1310,6 +1430,7 @@ sub para {
 }
 
 sub literal {
+	$suppresscommands = 1;
 	if ($pattern =~ /\bformat\b/) {
 		$literal = 'programlisting';
 		$buf .= '<programlisting>' . "\n";
@@ -1322,6 +1443,8 @@ sub literal {
 	} elsif ($pattern =~ /\bsmallexample\b/) {
 		$literal = 'programlisting';
 		$buf .= '<programlisting>';
+	} else {
+		&raiseerror("Unrecognized literal: $pattern");
 	}
 }
 
@@ -1367,6 +1490,7 @@ sub closesect3 {
 
 sub closesect4 {
 	&closeformalpara;
+	&closetable;
 	if ($insect4) {
 		if ($inappendix) {
 			$buf .= '</sect3>' . "\n\n";
@@ -1443,6 +1567,7 @@ sub closeliteral {
 	if ($literal) {
 		$buf .= '</' . $literal . '>' . "\n";
 		$literal = '';
+		$suppresscommands = 0;
 	}
 }
 
@@ -1544,7 +1669,6 @@ sub bracketsmatch {
 		&message("unmatched \{\} (left: $left, right: $right) on line $line") if ($verbose > 1);
 		if ($badbracketlines >= $maxrunonlines) {
 			&raiseerror("Mismatched brackets starting on line $badbracketstartline: $line");
-			exit(1);
 		}
 	}
 	return ($right == $left);	
@@ -1603,6 +1727,7 @@ sub usage {
 	print "-f, --file FILE        read from file rather than STDIN.\n";
 	print "-o, --output-to FILE   write to file rather than STDOUT.\n";
 	print "-l, --log-to FILE      write status messages to file rather than STDOUT.\n";
+	print "-L, --runon            set runon line limit (default=20)\n";
 	print "-v, --verbose          show diagnostic output.\n";
 	print "                       use twice for lots of detail.\n";
 	print "                       use thrice for insane amounts of detail.\n";
