@@ -50,3 +50,6 @@ dist:
 	pwd=`pwd`; \
 	dir=`basename $$pwd`; \
 	tar -C .. -X exclude -vzcf lampadas-$$today.tar.gz $$dir
+
+update: ; cvs -z9 update -d -P > update.cvs
+diff: ; cvs -z9 diff > diff.cvs

@@ -6,7 +6,7 @@ m4_dnl  it in translations when the translation is up to date.
 m4_dnl  "menu_name" is the short name of the page, which is
 m4_dnl  typically listed in sidebar menus.
 
-insert([index], [|strproject|], [Splash Page],
+insert([index], [|strproject|], [Splash-Seite],
 [
     |tabsplashlanguages|
 ], 0)
@@ -90,7 +90,7 @@ insert([contribute], [Mitarbeit bei |strproject|],
 [
     Als Mitglied der Lampadas-Gemeinde arbeiten Sie mit
     hunderten oder gar tausenden Anderen zusammen an Dokumentation
-    die über\'s Netz weltweit veröffentlicht wird.
+    die über's Netz weltweit veröffentlicht wird.
 
     <p>Lampadas soll weltweite Mitarbeit so einfach wie möglich machen.
     Wir können viele Arten von Hilfe brauchen.
