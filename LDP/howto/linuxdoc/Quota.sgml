@@ -4,8 +4,8 @@
 
 <title>Quota mini-HOWTO
 <author>Ralf van Dooren <tt/r.vdooren@snow.nl/
-<date>v0.2, January 2002 
-<abstract>Preamble: This document is copyleft by Ralf van Dooren (r.vdooren@snow.nl).
+<date>v0.3, April 2002 
+<abstract>Preamble: This document is written by Ralf van Dooren (r.vdooren@snow.nl).
  Original text and setup of this document is copyleft-ed by Albert M.C. Tam, many thanks to him 
  for this initial mini-HOWTO. 
 
@@ -23,19 +23,18 @@
  This document describes how to enable file system quota on a Linux host,
  assigning quota for users and groups, as well as the usage of miscellaneous
  quota commands. It is intended for users running kernel 2.x (recently tested
- on Red Hat 7.2 running kernel 2.4.xx) Users running older kernels may need
- to upgrade to a newer kernel version in order to take advantage of quota. 
+ on kernel 2.4.17). 
+<p>
  Feel free to send feedbacks or comments to r.vdooren@snow.nl if you find an
  error, or if any information is missing. I appreciate it.
 </abstract>
 <sect>What is Quota?
 <p>
-
 Quota allows you to specify limits on two aspects of disk storage: the
  number of inodes a user or a group of users may possess; and the number of
  disk blocks that may be allocated to a user or a group of users.
-
-The idea behind quota is that users are forced to stay under their disk
+<p>
+ The idea behind quota is that users are forced to stay under their disk
  consumption limit, taking away their ability to consume unlimited disk space
  on a system. Quota is handled on a per user, per file system basis. If there
  is more than one file system which a user is expected to create files, then
@@ -43,11 +42,15 @@ The idea behind quota is that users are forced to stay under their disk
 <sect>Current Status of Quota on Linux
 <p>
 
-Quota support has been integrated into kernel since version 1.3.8x I heard.
- Now it is part of the 2.0 release of the Linux kernel. If your system doesn't
- support quota, I really recommend an upgrade.
+Currently, there are some major changes in the way quota works. There are two 
+different setups. The tools works the same, but there's a difference in used files. This 
+document describes the setup and operation of the _new_ quota setup. As the new setup 
+of quota is not in the regular kernel source, this setup needs some patching. We will describe this
+patching and installation of the linuxquota package. If you already have the quota software installed
+on your system, you may or may not have to install this patch and package. You can email me if 
+you have any questions about this. I'll try to include a overview of Linux distro's and it's implications
+in a later version of this document.
 
-Currently, quota works for ext2 type file system only. 
 <sect>Requirements for Using Quota on Linux
 <p>
 <sect1>Kernel
@@ -60,26 +63,53 @@ The 2.x kernel source is available from
 <p>
 
 Depending on the Linux distribution you have, you may, or may not have
- the quota softwares installed on your system. If you don't, then download the
- quota software source from 
-<code>ftp://ftp.funet.fi/pub/Linux/tools/quota-1.31.tar.gz
+the quota softwares installed on your system. The most recent version of quota
+is available through SourceForge and is in active development. You can reach the
+homepage of the quota-development at
+
+<code>http://www.sourceforge.net/projects/linuxquota
 </code>
+<p>
 <sect>Quota Setup on Linux - Part I: The Configuration
 <p>
+<sect1>Patch the kernel 
+
+<p>Download the patch for your kernel at:
+
+<code>
+ftp://atrey.karlin.mff.cuni.cz/pub/local/jack/quota/
+</code>
+<p>
+Choose your kernel version and download the patch. Patch your kernel with the 'patch' command.
+
 <sect1>Reconfigure your kernel
 <p>
 
 Reconfigure your kernel and add quota support by typing y to:
 <code>Quota support (CONFIG_QUOTA) [n] y
 </code>
+
+<p>Via `make menuconfig` of `make xconfig` you can find the option to support quota 
+under the Filesystems-menu.
+
+Make sure the new kernel will be used when rebooting the system.
+
 <sect1>Compile and install the quota softwares
 <p>
-Most Linux distributions can help you installing the quota package. If not, or 
-if you don't want to use this, you can download the latest version of the quota software source from
-<code>ftp://ftp.funet.fi/pub/Linux/tools/quota-1.31.tar.gz
-</code>
+If the quota package is already in your Linux distribution, you don't have to install the quota
+software. If the quota package is not available in your Linux distribution, or if you wan't to
+install the most recent version, you can download the latest version of the quota software source from 
+the location mentioned above.
 <p>
-Compile and install the quota software.
+When downloaded do: 
+<code>$ gzip -dc <downloaded file> | tar xvf 
+$ cd quota-tools  (or whatever directory the software is put in)
+$ ./configure
+$ make
+$ su
+# make install
+
+</code>
 
 <sect1>Modify your system init script to check quota and turn quota on at boot
  time
@@ -129,35 +159,20 @@ Need both user quota and group quota support on a file system?
 <code>/dev/hda1       /       ext2    defaults        1       1
 /dev/hda2       /usr    ext2    defaults,usrquota,grpquota       1   1
 </code>
-<sect1>Create quota record "quota.user" and "quota.group"
-<p>
 
-Both quota record files, quota.user and quota.group, should be owned by
- root, and read-write permission for root and none for anybody else.
-
-Login as root. Go to the root of the partition you wish to enable quota,
- then create quota.user and quota.group by doing:
-<code>touch /partition/quota.{user,group} 
-chmod 600 /partition/quota.{user,group} 
-</code>
 <sect1>Activate the quota system
 <p>
-To activate the quota software you can reboot the system for the changes you have made to take effect.
-
-A better alternative is to execute the system init script you just created. 
-This will initialize the quota database. If you do a `ls -la /partition/quota.*` you will 
-notice that the file sizes are no longer of size zero. This will tell you that quota is working.
-
-Also note that subsequent partitions you wish to enable quota in the future
- only require step 4, 5, and 6.
+To activate the quota software you have to reboot the system for the changes you have made 
+to take effect. The new kernel with quota support will be loaded and the startup scripts you've 
+just created will be executed. At first run, quotacheck will generate the appropiate files to maintain
+the quota databases.
 
 <sec1>Add quotacheck to crontab
 
 <p>
-Quotacheck should be running periodically, e.g. weekly. Add the following line to your root's crontab:
+Although quota should work with periodical checks, it sometimes helps to run quotacheck periodically, e.g. weekly. Add the following line to your root's crontab:
 <code>0 3 * * 0 /sbin/quotacheck -avug
 </code>
-
 
 <sect>Quota Setup on Linux - Part II: Assigning Quota for Users and Groups
 <p>
@@ -172,14 +187,14 @@ Here's an example. I have a user with the login id bob on my system.  The
  environment variable) to edit quota for user bob on each partition that has
  quota enabled:
 <code>Quotas for user bob: 
-/dev/hda2: blocks in use: 2594, limits (soft = 5000, hard = 6500) 
+/dev/hda3: blocks in use: 2594, limits (soft = 5000, hard = 6500) 
          inodes in use: 356, limits (soft = 1000, hard = 1500)
 </code>
 
 "blocks in use" is the total number of blocks (in kilobytes) a user has
  consumed on a partition.
 
-"inodes in use" is the total number of files a user has on a partition.
+"inodes in use" is the total number of inodes a user has consumed on a partition.
 <sect1>Assigning quota for a particular group
 <p>
 
@@ -234,7 +249,7 @@ Change the 0 days part to any length of time you feel reasonable. I personally
 <p>
 
 Quotacheck is used to scan a file system for disk usages, and updates the
- quota record file "quota.user" to the most recent state. I recommend running
+ quota record file "aquota.user" to the most recent state. I recommend running
  quotacheck at system bootup, and via cronjob periodically (say, every week?).
 <sect1>Repquota
 <p>
