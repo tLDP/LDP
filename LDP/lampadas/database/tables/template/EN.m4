@@ -19,7 +19,7 @@ insert(default,
             <td class="sidebar">
               |tabmenus|
               |tabtopics|
-              |tabclasses|
+              |tabtypes|
               |tablanguages|
             </td>
             <td class="body">
@@ -59,7 +59,7 @@ insert(index,
             <td class="sidebar">
               |tabmenus|
               |tabtopics|
-              |tabclasses|
+              |tabtypes|
               |tablanguages|
             </td>
             <td class="body">

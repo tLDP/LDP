@@ -1,6 +1,6 @@
 CREATE TABLE format
 (
-	format_id	INT4	NOT NULL,
+	format_code	CHAR(20)	NOT NULL,
 
-	PRIMARY KEY (format_id)
+	PRIMARY KEY (format_code)
 );

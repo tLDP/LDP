@@ -181,7 +181,7 @@ insert([logged_out], [Logged Out], [],
     <p>You have been logged out of the system.
 ])
 
-insert([class], [|class.name|], [],
+insert([type], [|type.name|], [],
 [
-    |tabclassdocs|
+    |tabtypedocs|
 ])
