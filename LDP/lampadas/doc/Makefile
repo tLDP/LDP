@@ -35,10 +35,10 @@ html:	Lampadas.html
 index:	index.html
 
 index.html:	Lampadas.xml
-	xsltproc --nonet --novalid ../xsl/lampadas-html-chunk.xsl Lampadas.xml
+	xsltproc ../xsl/lampadas-html-chunk.xsl Lampadas.xml
 
 Lampadas.html:	Lampadas.xml
-	xsltproc --nonet --novalid ../xsl/lampadas-html.xsl Lampadas.xml > Lampadas.html
+	xsltproc ../xsl/lampadas-html.xsl Lampadas.xml > Lampadas.html
 	
 Lampadas.xml:	Lampadas.wt
 	wt2db -x Lampadas.wt -o Lampadas.xml
