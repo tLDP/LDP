@@ -34,6 +34,8 @@ while (@row = $result->fetchrow) {
   $email = $row[2];
   print "<tr><td>";
   print a({href=>"maintainer_edit.pl?maintainer_id=$maintainer_id"},"$maintainer_name");
+  print "</td><td>\n";
+  if ( $email ) { print a({href=>"mailto:$email"}, "$email") }
   print "</td>";
   print "</tr>";
   $count++;

@@ -52,7 +52,7 @@ printf "<p>\n";
 print "<input type=submit value=Save>";
 print "</form>";
 
-$docs_result = $conn->exec("SELECT document.doc_id, document.title, class, pub_status.pub_status_name, document_maintainer.role, document_maintainer.active, document_maintainer.email FROM document_maintainer, document, pub_status WHERE document_maintainer.maintainer_id = $maintainer_id AND document.pub_status = pub_status.pub_status AND document_maintainer.doc_id = document.doc_id ORDER BY document.title");
+$docs_result = $conn->exec("SELECT document.doc_id, document.title, class, pub_status.pub_status_name, document_maintainer.role, document_maintainer.active, document_maintainer.email, document.url FROM document_maintainer, document, pub_status WHERE document_maintainer.maintainer_id = $maintainer_id AND document.pub_status = pub_status.pub_status AND document_maintainer.doc_id = document.doc_id ORDER BY document.title");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $docs_result->resultStatus;
 
 print "<h2>Documents</h2>\n";
@@ -67,9 +67,13 @@ while (@row = $docs_result->fetchrow) {
   $active = $row[5];
   if ( $active eq 't' ) { $active = "Active" } else { $active = "Inactive" }
   $feedback_email = $row[6];
+  $url = $row[7];
+
   print "<tr>";
   print "<form method=POST action='document_maintainer_save.pl'>\n";
-  print "<td valign=top><a href='document_edit.pl?doc_id=$doc_id'>$title</a></td>\n";
+  print "<td valign=top><a href='document_edit.pl?doc_id=$doc_id'>$title</a>\n";
+  if ( $url ) { print " <a href=$url>Go!</a>" }
+  print "</td>\n";
   print "<td valign=top>$class</td>\n";
   print "<td valign=top>$pub_status_name</td>\n";
   print "<td valign=top>$role</td>\n";
