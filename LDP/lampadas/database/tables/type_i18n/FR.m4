@@ -13,7 +13,7 @@ insert(programguide, [Programmer\'s Guide],
 insert(adminguide, [Administrator\'s Guide],
   [Documentation for system administrators.])
 insert(intro, [Intro],
-  [Un document d''introduction convient particuli&egrave;rement bien aux d&eacute;butants.])
+  [Un document d\'introduction convient particuli&egrave;rement bien aux d&eacute;butants.])
 insert(manpage, [Manual Page],
   [A traditional form of documentation for UNIX systems.])
 insert(article, [Article],
