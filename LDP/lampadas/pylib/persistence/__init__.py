@@ -1,12 +1,11 @@
-__name__ = 'persistence'
+#!/usr/bin/python
 
-__doc__ = """
-This package provides persistent objects. It relies on the datamanager package
-to do the actual database work.
+"""
+This package provides base classes for persistent objects.
+It relies on the datamanager package to do the actual database work.
 
-These objects don't have a lot of functionality -- they only inteded for
-shuttling data to and from the database. They should be subclassed
-elsewhere to provide role-specific behaviors.
+These objects don't have a lot of functionality -- they only exist
+so they can be subclassed elsewhere to provide role-specific behaviors.
 """
 
 # Load the various modules' classes here for convenience.

@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """
 This module implements the base classes upon which all the individual
 data managers are built.
@@ -113,16 +115,16 @@ class DataTable(LampadasCollection):
 
     def load_row(self, object, row):
         if len(self.key_list) > 1:
-            object.object_id = ''
+            object.key = ''
         for key in self.field_list:
             field = self.fields[key]
             value = field.field_to_attr(row[field.index])
             setattr(object, field.attribute, value)
             if field.key_field==1:
                 if len(self.key_list)==1:
-                    object.object_id = value
+                    object.key = value
                 else:
-                    object.object_id = trim(object.object_id + ' ' + str(value))
+                    object.key = trim(object.key + ' ' + str(value))
         object.in_database = 1
         object.changed = 0
 
@@ -160,17 +162,21 @@ class DataManager(DataTable):
         return self.get_sql(self.table.select)
         
     def get_sql(self, sql):
-        dict = LampadasCollection()
+        set = DataSet(self.dms)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             object = self.row_to_object(row)
-            dict[object.object_id] = object
-        return dict
+            set[object.key] = object
+        return set
+
+    def new(self):
+        object = self.object_class(self.dms)
+        return object
 
     def row_to_object(self, row):
-        object = self.object_class()
+        object = self.new()
         self.table.load_row(object, row)
         return object
 
@@ -185,7 +191,7 @@ class DataManager(DataTable):
                 field = self.table.fields[key]
                 if field.data_type=='created':  # The database is responsible for setting the timestamp.
                     continue
-                if field.key_field==1:
+                if field.data_type=='sequence': # When inserting, always increment the value.
                     new_id = db.next_id(self.name, field.field_name)
                     setattr(object, field.attribute, new_id)
                 value = field.attr_to_field(getattr(object, field.attribute))
@@ -218,7 +224,66 @@ class DataManager(DataTable):
         for key in self.table.key_list:
             data_field = self.table.fields[key]
             value = data_field.attr_to_field(getattr(object, data_field.attribute))
-            wheres.append(data_field.field_name + '=' + data_field.attr_to_field(value))
+            wheres.append(data_field.field_name + '=' + value)
         where = ' WHERE ' + string.join(wheres, ' AND ')
         sql = 'DELETE FROM %s %s' % (self.table.name, where)
         db.runsql(sql)
+
+    def delete_by_keys(self, filters):
+        set = self.get_by_keys(filters)
+        for key in set.keys():
+            object = set[key]
+            self.delete(object)
+    
+    def clear(self, set):
+        for key in set.keys():
+            self.delete(set[key])
+
+class DataSet(LampadasCollection):
+
+    def __init__(self, dms):
+        super(DataSet, self).__init__()
+        self.dms = dms
+
+    def average(self, attribute):
+        """Returns the average of the requested attribute."""
+
+        if self.count()==0:
+            return 0
+            
+        total = 0
+        for key in self.keys():
+            object = self[key]
+            value = getattr(object, attribute)
+            total = total + value
+        return total / self.count()
+
+    def max(self, attribute):
+        """
+        Returns the maximum value of the requested attribute.
+        
+        This method only supports numeric attributes.
+        Returns 0 if there are no objects in the set.
+        """
+
+        maximum = 0
+        for key in self.keys():
+            object = self[key]
+            value = getattr(object, attribute)
+            maximum = max(maximum, value)
+        return maximum
+
+    def min(self, attribute):
+        """
+        Returns the maximum value of the requested attribute.
+        
+        This method only supports numeric attributes.
+        Returns 0 if there are no objects in the set.
+        """
+
+        minimum = 0
+        for key in self.keys():
+            object = self[key]
+            value = getattr(object, attribute)
+            minimum = min(minimum, value)
+        return minimum

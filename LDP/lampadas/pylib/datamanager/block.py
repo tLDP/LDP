@@ -1,5 +1,5 @@
 from Globals import YES, NO
-from base import DataManager
+from datamanager.base import DataManager
        
 class Block(DataManager):
 
