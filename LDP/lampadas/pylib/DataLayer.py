@@ -326,7 +326,7 @@ class Docs(LampadasCollection):
         db.commit()
         doc = Doc(self.id)
         self[self.id] = doc
-        return self.id
+        return doc
     
     def delete(self, id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -540,7 +540,7 @@ class DocFiles(LampadasCollection):
             count = count + self[key].errors.count()
         return count
 
-    def add(self, doc_id, filename, top, format_code=None):
+    def add(self, doc_id, filename, top, format_code=None, dtd_code=None, dtd_version=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'INSERT INTO document_file (doc_id, filename, top, format_code, dtd_code, dtd_version) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ', ' + wsq(dtd_code) + ', ' + wsq(dtd_version) + ')'
         assert db.runsql(sql)==1
@@ -557,6 +557,7 @@ class DocFiles(LampadasCollection):
             file.local = 1
         file.save()
         self.data[file.filename] = file
+        return file
         
     def delete(self, filename):
         file = self[filename]
@@ -765,7 +766,7 @@ class DocUser:
     def load_row(self, row):
         self.doc_id    = row[0]
         self.username  = trim(row[1])
-        self.role_code = tf2bool(row[2]) 
+        self.role_code = trim(row[2]) 
         self.email     = trim(row[3])
         self.active    = tf2bool(row[4])
         

@@ -136,36 +136,36 @@ class ComboFactory:
         combo.write("</select>\n")
         return combo.get_value()
 
-    def dtd(self, value, lang):
-        combo = WOStringIO('<select name="dtd_code">\n' \
-                           '<option></option>')
-        keys = lampadas.dtds.sort_by('dtd_code')
-        for key in keys:
-            dtd = lampadas.dtds[key]
-            assert not dtd==None
-            combo.write("<option ")
-            if dtd.dtd_code==value:
-                combo.write("selected ")
-            combo.write("value='%s'>%s</option>\n"
-                        % (dtd.dtd_code,dtd.dtd_code))
-        combo.write("</select>\n")
-        return combo.get_value()
-    
-    def format(self, value, lang):
-        combo = WOStringIO('<select name="format_code">\n' \
-                           '<option></option>')
-        keys = lampadas.formats.sort_by_lang('name', lang)
-        for key in keys:
-            format = lampadas.formats[key]
-            assert not format==None
-            combo.write("<option ")
-            if format.code==value:
-                combo.write("selected ")
-            combo.write("value='" + str(format.code) + "'>")
-            combo.write(format.name[lang])
-            combo.write("</option>\n")
-        combo.write("</select>")
-        return combo.get_value()
+#    def dtd(self, value, lang):
+#        combo = WOStringIO('<select name="dtd_code">\n' \
+#                           '<option></option>')
+#        keys = lampadas.dtds.sort_by('dtd_code')
+#        for key in keys:
+#            dtd = lampadas.dtds[key]
+#            assert not dtd==None
+#            combo.write("<option ")
+#            if dtd.dtd_code==value:
+#                combo.write("selected ")
+#            combo.write("value='%s'>%s</option>\n"
+#                        % (dtd.dtd_code,dtd.dtd_code))
+#        combo.write("</select>\n")
+#        return combo.get_value()
+#    
+#    def format(self, value, lang):
+#        combo = WOStringIO('<select name="format_code">\n' \
+#                           '<option></option>')
+#        keys = lampadas.formats.sort_by_lang('name', lang)
+#        for key in keys:
+#            format = lampadas.formats[key]
+#            assert not format==None
+#            combo.write("<option ")
+#            if format.code==value:
+#                combo.write("selected ")
+#            combo.write("value='" + str(format.code) + "'>")
+#            combo.write(format.name[lang])
+#            combo.write("</option>\n")
+#        combo.write("</select>")
+#        return combo.get_value()
 
     def language(self, value, lang):
         combo = WOStringIO("<select name='lang'>\n")
@@ -344,8 +344,7 @@ class TableFactory:
             box.write('<td>'  + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n')
         else:
             box.write('<td></td>\n')
-        box.write('<th class="label">|strdtd|</th><td>' + doc.dtd_code + '</td>\n')
-        box.write(' <input type=text name=dtd_version size=6 value="' + doc.dtd_version + '"></td>\n')
+        box.write('<th class="label">|strdtd|</th><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n')
         box.write('<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
@@ -403,7 +402,7 @@ class TableFactory:
             box = box + '<td><input type=text name=pub_date value="' + version.pub_date + '"></td>\n'
             box = box + '<td><input type=text name=initials size=3 maxlength=3 value="' + version.initials + '"></td>\n'
             box = box + '<td style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + version.notes + '</textarea></td>\n'
-            box = box + '<td><input type=checkbox name="delete">Del</td>\n'
+            box = box + '<td><input type=checkbox name="delete">|strdel|</td>\n'
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'
@@ -522,7 +521,7 @@ class TableFactory:
             box = box + '<td>' + combo_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
             box = box + '<td>' + combo_factory.role(docuser.role_code, uri.lang) + '</td>\n'
             box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></td>\n'
-            box = box + '<td><input type=checkbox name="delete">Del</td>\n'
+            box = box + '<td><input type=checkbox name="delete">|strdel|</td>\n'
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
             box = box + '</tr>\n'
             box = box + '</form>\n'

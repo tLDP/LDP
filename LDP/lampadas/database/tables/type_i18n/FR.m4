@@ -24,3 +24,5 @@ insert(spec, [Specification],
   [The specification for a standard, such as those from the World Wide Web Consortium.])
 insert(tutorial, [Tutorial],
   [A tutorial or getting started document.])
+insert(manual, [Application Manual],
+    [An application' official User\'s Manual.])

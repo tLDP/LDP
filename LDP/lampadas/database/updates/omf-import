@@ -19,7 +19,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 from Globals import *
-#from DataLayer import lampadas
 import sys
 import os
 import fnmatch
@@ -29,33 +28,59 @@ IGNORE_NODES = ('omf',
                 'resource',
                 'subject',
                 'format',
+                'person',
                 '#text')
+
+class Creator:
+
+    def __init__(self):
+        self.firstname = ''
+        self.lastname = ''
+        self.email = ''
 
 class OMF:
 
     def __init__(self):
         self.title = ''
-        self.categories = []
+        self.description = ''
+        self.type = ''
         self.filename = ''
         self.lang = ''
+        self.categories = []
+        self.creators = []
         
     def read_dom(self, dom):
         for node in dom.childNodes:
             self.handle_node(node)
 
     def handle_node(self, node):
+        node.nodeName = string.lower(node.nodeName)
         if node.nodeName in IGNORE_NODES:
             pass
         elif node.nodeName=='title':
             self.title = self.get_node_text(node)
+        elif node.nodeName=='description':
+            self.description = self.get_node_text(node)
+        elif node.nodeName=='type':
+            self.type = self.get_node_text(node)
         elif node.nodeName=='category':
             self.categories = self.categories + [self.get_node_text(node)]
         elif node.nodeName=='identifier':
             self.filename = self.get_attribute_text(node, 'url')
         elif node.nodeName=='language':
             self.lang = self.get_attribute_text(node, 'code')
+        elif node.nodeName=='creator':
+            creator = Creator()
+            self.creators = self.creators + [creator]
+        elif node.nodeName=='firstname' and node.parentNode.nodeName=='person' and node.parentNode.parentNode.nodeName=='creator':
+            self.creators[-1].firstname = self.get_node_text(node)
+        elif node.nodeName=='lastname' and node.parentNode.nodeName=='person' and node.parentNode.parentNode.nodeName=='creator':
+            self.creators[-1].lastname = self.get_node_text(node)
+        elif node.nodeName=='email' and node.parentNode.nodeName=='person' and node.parentNode.parentNode.nodeName=='creator':
+            self.creators[-1].lastname = self.get_node_text(node)
         else:
             print 'ERROR, unrecognized element: %s' % node.nodeName
+            sys.exit(1)
             
         for child in node.childNodes:
             self.handle_node(child)
@@ -79,10 +104,12 @@ class OMF:
         return value
 
     def print_debug(self):
-        print 'title:      %s' % self.title
-        print 'categories: %s' % self.categories
-        print 'filename:   %s' % self.filename
-        print 'language:   %s' % self.lang
+        print 'title:       %s' % self.title
+        print 'type:        %s' % self.type
+        print 'description: %s' % self.description
+        print 'categories:  %s' % self.categories
+        print 'filename:    %s' % self.filename
+        print 'language:    %s' % self.lang
 
 def callback(arg, directory, filenames):
     for filename in filenames:
@@ -100,19 +127,24 @@ def callback(arg, directory, filenames):
             dom.unlink()
 
 def usage():
-    print """Usage: gnome-import [FROM-DIR] [TO-DB]
+    print """Usage: gnome-import [OMF-DIR] [FILESPEC}
 
-    FROM-DIR is a file directory where we start recursively processing
+    OMF-DIR is a directory where we start recursively processing
     OMF files.
+
+    FILESPEC is the glob used to scan files, e.g., *.omf.
+    Your shell might require you to wrap it in quotes to avoid
+    glob expansion.
     """
     sys.exit()
 
 
 # Options passed on the command line
-if len(sys.argv) <> 2:
+if len(sys.argv) <> 3:
     usage()
 gnome_dir = sys.argv[1]
+filespec = sys.argv[2]
 
 # Read in the omf files.
-os.path.walk(gnome_dir, callback, '*.omf')
+os.path.walk(gnome_dir, callback, filespec)
 

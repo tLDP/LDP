@@ -28,6 +28,7 @@ document_error table.
 
 # Modules ##################################################################
 
+from Globals import *
 from Config import config
 from Log import log
 from DataLayer import lampadas
@@ -84,7 +85,7 @@ class Lintadas:
         maintained = 0
         for username in usernames:
             docuser = doc.users[username]
-            if docuser.active==1 and docuser.role_code=='author' or docuser.role_code=='maintainer':
+            if docuser.active==1 and (docuser.role_code=='author' or docuser.role_code=='maintainer'):
                 maintained = 1
         doc.maintained = maintained
 
@@ -155,15 +156,15 @@ class Lintadas:
 
                 # Determine DTD for SGML and XML files
                 if file.format_code=='xml' or file.format_code=='sgml':
-                    file.dtd, file.dtd_version = self.read_file_dtd(filename)
+                    file.dtd_code, file.dtd_version = self.read_file_dtd(filename)
                 else:
-                    file.dtd = 'N/A'
+                    file.dtd_code = 'N/A'
                     file.dtd_version = ''
                 
                 # If this was the top file, post to document.
                 if file.top==1:
                     doc.format_code = file.format_code
-                    doc.dtd = file.dtd
+                    doc.dtd_code = file.dtd_code
                     doc.dtd_version = file.dtd_version
 
                 # FIXME: need a way to keep track of who is managing these fields.
@@ -184,27 +185,32 @@ class Lintadas:
         dtd_code, dtd_version = '', ''
         try:
             fh = open(filename, 'r', 1)
-            line = fh.readline()
-            while line:
+            while (1):
+                line = fh.readline()
+                if line=='':
+                    break
                 line = line.upper()
                 pos = line.find('DOCTYPE')
                 if pos > 0:
-                    dbpos = line.find('DOCBOOK')
-                    ldpos = line.find('LINUXDOC')
-                    if dbpos > 0:
+                    pos = line.find('DOCBOOK')
+                    if pos > 0:
                         dtd_code = 'DocBook'
-                        pos = dbpos + 9
-                    elif ldpos > 0:
-                        dtd_code = 'LinuxDoc'
-                        pos = ldpos + 10
-                    if dtd_code > '':
-                        if line.find('XML') > 0:
-                            pos = pos + 4
-                        pos2 = line.find('//', pos)
-                        if pos2 > 0:
-                            dtd_version = line[pos:pos2]
-                            break
-                line = fh.readline()
+                        line = trim(line[pos + 7:])
+                        if line[:3]=='XML':
+                            line = trim(line[3:])
+                        if line[0]=='V':
+                            line = line[1:]
+                            pos = line.find('//')
+                            if pos > 0:
+                                dtd_version = line[:pos]
+                                break
+                    else:
+                        pos = line.find('LINUXDOC')
+                        if pos > 0:
+                            dtd_code = 'LinuxDoc'
+                            line = trim(line[pos + 8:])
+                        else:
+                            continue
             fh.close()
 
         except IOError:
