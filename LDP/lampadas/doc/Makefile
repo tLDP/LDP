@@ -29,10 +29,10 @@ clean:
 	rm -rf Lampadas.xml
 
 index.html:	Lampadas.xml
-	xsltproc /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/chunk.xsl Lampadas.xml
+	xsltproc --nonet --novalid ../xsl/lampadas-html-chunk.xsl Lampadas.xml
 
 Lampadas.html:	Lampadas.xml
-	xsltproc /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl Lampadas.xml > Lampadas.html
+	xsltproc --nonet --novalid ../xsl/lampadas-html.xsl Lampadas.xml > Lampadas.html
 	
 Lampadas.xml:	Lampadas.wt
 	wt2db -x Lampadas.wt -o Lampadas.xml
@@ -48,4 +48,7 @@ lampadasweb.8:	lampadasweb.sgml
 
 lampadas.conf.5:	lampadas.conf.sgml
 	docbook-to-man $< > $@
+
+preview:	Lampadas.html
+	galeon Lampadas.html
 
