@@ -60,4 +60,5 @@ install: all
 		done
 
 clean:
-
+	rm defaults.sql
+	rm table_order.mak
