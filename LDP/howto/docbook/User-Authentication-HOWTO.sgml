@@ -1,0 +1,664 @@
+<!doctype article public "-//OASIS//DTD DocBook V3.1//EN"
+ [ <!entity header system "header.sgml"> 
+]>
+
+<article>
+ <artheader>
+  <title>
+  User Authentication HOWTO
+ </title>
+ <pubdate>
+  2000/05/02
+ </pubdate>
+ <author>
+  <firstname>Peter</firstname><surname>Hernberg</surname>
+ </author>
+ <abstract>
+ <para>
+  Explains how user and group information is stored and how users are authenticated on a Linux system (PAM), and how to secure you system's user authentication.
+ </para>
+ </abstract>
+ <keywordset>
+  <keyword>User Authentication</keyword> 
+  <keyword>user</keyword> 
+  <keyword>password</keyword> 
+  <keyword>PAM</keyword> 
+  <keyword>NIS</keyword> 
+  <keyword>/etc/passwd</keyword> 
+  <keyword>/etc/shadow</keyword> 
+  <keyword>/etc/group</keyword> 
+  <keyword>/etc/gshadow</keyword>
+ </keywordset>
+ </artheader>
+ <sect1>
+  <title>
+  Introduction
+ </title>
+  <sect2>
+   <title>
+   How this document came to be
+  </title>
+  <para>
+   When trying to add a number of (mostly unnecessary :) network services to my existing home network, I kept running into the problem of authentication, so I decided to figure out how authentication works on linux systems, write a HOWTO, and call it my senior project. I hope this document helps you understand this often-forgotten, but very important, aspect of system administration.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   New versions
+  </title>
+  <para>
+   When I get my domain up running properly, you'll be able to find the newest version of this document there. Until then, http://www.linuxdoc.org/ will have to suffice.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   Feedback
+  </title>
+  <para>
+   Comments, corrections, suggestions, flames, and flying saucer sightings can be sent to petehern@yahoo.com. 
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   Version History
+  </title>
+  <para>
+   v0.1 (May 13, 2000) first version (not released).
+  </para>
+  <para>
+  v0.3 (May 14, 2000) revised (not released).
+  </para>
+  <para>
+  v0.5 (May 15, 2000) added section on securing pam, added resources section (not released).
+  </para>
+  <para>
+  v0.7 (May 15, 2000) revised; ready for release.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   Copyrights and Trademarks
+  </title>
+  <para>
+   (c) 2000 Peter Hernberg
+  </para>
+  <para>
+   This manual may be reproduced in whole or in part, without fee, subject to the following restrictions: 
+  </para>
+  <itemizedlist>
+   <listitem>
+   <para>
+   The copyright notice above and this permission notice must be preserved complete on all complete or partial copies 
+   </para>
+  </listitem>
+   <listitem>
+   <para>
+   Any translation or derived work must be approved by the author in writing before distribution. 
+   </para>
+  </listitem>
+   <listitem>
+   <para>
+   If you distribute this work in part, instructions for obtaining the complete version of this manual must be included, and a means for obtaining a complete version provided. 
+   </para>
+  </listitem>
+   <listitem>
+   <para>
+   Small portions may be reproduced as illustrations for reviews or quotes in other works without this permission notice if proper citation is given. Exceptions to these rules may be granted for academic purposes: Write to the author and ask. These restrictions are here to protect us as authors, not to restrict you as learners and educators. Any source code (aside from the SGML this document was written in) in this document is placed under the GNU General Public License, available via anonymous FTP from the GNU archive. 
+   </para>
+  </listitem>
+  </itemizedlist>
+  </sect2>
+  <sect2>
+   <title>
+   Acknowledgements and Thanks
+  </title>
+  <para>
+   Thanks to my family for putting up with me for 18 years. Thanks to the Debian folks for making such a sweet distro for me to play with. Thanks to <ulink url="http://www.cgr.org/">CGR</ulink> for paying me to be a geek. Thanks to Sandy Harris for his helpful suggestions. Finally, I'd like thank the makers of ramen noodles, because I don't know how I'd live without them.
+  </para>
+  </sect2>
+  <sect2>
+   <title>Assumptions about the reader</title>
+   <para>
+    For the purpose of this document, it is assumed that the reader is comfortably with executing commands at the command line and editing text configuration files.
+   </para>
+  </sect2>
+ </sect1>
+ <sect1>
+  <title>
+  How User Information is Stored on Your System
+ </title>
+  <sect2>
+   <title>
+   <filename>/etc/passwd</filename>
+  </title>
+  <para>
+   On almost all linux distributions (and commercial *nixes as well), user information is stored in <filename>/etc/passwd</filename>, a text file which contains the user's login, their encrypted password, a unique numerical user id (called the uid), a numerical group id (called the gid), an optional comment field (usually containing such items as their real name, phone number, etc.), their home directory, and their preferred shell. A typical entry in <filename>/etc/passwd</filename> looks something like this:
+  </para>
+  <programlisting>
+  pete:K3xcO1Qnx8LFN:1000:1000:Peter Hernberg,,,1-800-FOOBAR:/home/pete:/bin/bash
+  </programlisting>
+  <para>
+   As you can see, it's pretty straight-forward. Each entry contains the six fields I described above, with each field separated by a colon. If this were as complex as user authentication got, there would be no need for this HOWTO.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   Shadow passwords
+  </title>
+  <para>
+   Looking at your <filename>/etc/passwd</filename>, it's likely that you actually saw something like this:
+  </para>
+  <programlisting>
+  pete:x:1000:1000:Peter Hernberg,,,1-800-FOOBAR:/home/pete:/bin/bash
+  </programlisting>
+  <para>
+   Where did the encrypted password go? Before I tell you where it went, a bit explanation is required. 
+  </para>
+  <para>
+   The <filename>/etc/passwd</filename> file, which contains information about all users, including their encrypted password, is readable by all users, making it possible for any user to get the encrypted password of everyone on the system. Though the passwords are encrypted, password-cracking programs are widely available. To combat this growing security threat, shadow passwords were developed.
+   </para>
+   <para>
+    When a system has shadow passwords enabled, the password field in <filename>/etc/passwd</filename> is replaced by an "x" and the user's real encrypted password is stored in <filename>/etc/shadow</filename>. Because <filename>/etc/shadow</filename> is only readable by the root user, malicious users cannot crack their fellow users' passwords. Each entry in <filename>/etc/shadow</filename> contains the user's login, their encrypted password, and a number of fields relating to password expiration. A typical entry looks like this:
+   </para>
+   <programlisting>
+    pete:/3GJllg1o4152:11009:0:99999:7:::
+   </programlisting> 
+  </sect2>
+  <sect2>
+   <title>
+   <filename>/etc/group</filename> and <filename>/etc/gshadow</filename>
+  </title>
+  <para>
+   Group information is stored in <filename>/etc/group</filename>. The format is similar to that of <filename>/etc/passwd</filename>, with the entries containing fields for the group name, password, numerical id (gid), and a comma-separated list of group members. An entry in <filename>/etc/group</filename> looks like this:
+  </para>
+  <programlisting>
+   pasta:x:103:spagetti,fettucini,linguine,vermicelli
+  </programlisting>
+  <para>
+   As you can see from the "x" in the password field, group passwords can be shadowed as well. Although groups almost never have their own passwords, it is worth noting that shadowed group password information is stored in <filename>/etc/gshadow</filename>.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   MD5 encrypted passwords
+  </title>
+  <para>
+   Traditionally, unix passwords were encrypted with the standard crypt() function. (For more information on the crypt() function, see the crypt(3) manpage.) As computers grew faster, passwords encrypted with this function became easier to crack. As the internet emerged, tools for distributed the task of password-cracking across multiple hosts became available. Many newer distributions ship with the option of encrypting passwords with the stronger MD5 hash algorithm. (For more information on the MD5 hash algorithm, consult RFC 1321.) While MD5 passwords will not eliminate the threat of password cracking, they will make cracking your passwords much more difficult. 
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+    Sifting through the mess
+  </title>
+  <para>
+   As you can see, there are a number of different ways user authentication information can be stored on your system (shadow passwords without MD5 encryption, <filename>/etc/passwd</filename> passwords with MD5 encryption, etc.). How do programs like <application>login</application> and <application>su</application> know how to verify your password? Worse yet, what if you wanted to change the way passwords are stored on your system? How will programs that need your password know that passwords are stored differently? PAM is the answer.
+  </para>
+  </sect2>
+ </sect1>
+ <sect1>
+  <title>
+  PAM (Pluggable Authentication Modules)
+ </title>
+ <para>
+  Pluggable authentication modules are at the core of user authentication in any modern linux distribution. 
+ </para>
+  <sect2>
+   <title>
+   Why
+  </title>
+  <para>
+   Back in the good old days of linux, if a program, such as <application>su</application>, <application>passwd</application>, <application>login</application>, or <application>xlock</application>, needed to authenticate a user, it would simply read the necessary information from <filename>/etc/passwd</filename>. If it needed to change the users' password, it would simply edit <filename>/etc/passwd</filename>. This simple but clumsy method presented numerous problems for system administrators and application developers. As MD5 and shadow passwords became increasingly popular, each program requiring user authentication had to know how to get the proper information when dealing with a number of different schemes. If you wanted to change your user authentication scheme, all these programs had to be recompiled. PAM eliminates this mess by enabling programs to transparently authenticate users, regardless of how user information is stored.
+  </para>
+  </sect2>
+  <sect2>
+   <title>
+   What
+  </title>
+  <para>
+   Quoting from the <ulink url="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam.html">Linux-PAM System Administrator's Guide</ulink>: "It is the purpose of the Linux-PAM project to separate the development of privilege granting software from the development of secure and appropriate authentication schemes. This is accomplished by providing a library of functions that an application may use to request that a user be authenticated." With PAM, it doesn't matter whether your password is stored in /etc/passwd or on a server in Hong Kong. When a program needs to authenticate a user, PAM provides a library containing the functions for the proper authentication scheme. Because this library is loaded dynamically, changing authentication schemes can be done by simply editing a configuration file.
+  </para>
+  <para>
+   Flexibility is one of PAM's greatest strengths. PAM can be configured to deny certain programs the right to authenticate users, to only allow certain users to be authenticated, to warn when certain programs attempt to authenticate, or even to deprive all users of login privileges. PAM's modular design gives you complete control over how users are authenticated.
+  </para>
+  <sect3>
+   <title>
+   Distributions that support pam.
+  </title>
+  <para>
+  Nearly all popular distributions have supported PAM for some time. Here's an incomplete list of distributions that support PAM:
+  </para>
+  <itemizedlist>
+   <listitem>
+    <para>Redhat since version 5.0</para>
+   </listitem>
+   <listitem>
+    <para>Mandrake since 5.2</para>
+   </listitem>
+   <listitem>
+    <para>Debian since version 2.1 (partial support in 2.1 -- complete support in 2.2)</para>
+   </listitem>
+   <listitem>
+    <para>Caldera since version 1.3</para>
+   </listitem>
+   <listitem>
+    <para>Turbolinux since version 3.6</para>
+   </listitem>
+   <listitem>
+    <para>SuSE since version 6.2</para>
+   </listitem>
+  </itemizedlist>
+  <para>
+   This list is certainly incomplete and possibly inaccurate. I'd appreciate it if you sent any corrections or additions to this list to <email>petehern@yahoo.com</email>.
+  </para>
+  </sect3>
+  <sect3>
+   <title>
+   Installing PAM
+  </title>
+  <para>
+   Installing PAM from scratch is long process, beyond the scope of this HOWTO. If PAM isn't installed on your system, you're probably running such an old version of your distribution that there are many other reasons to upgrade. If you really want to do it yourself, then you're certainly not the sort of person who needs any help from me. For all these reasons, I'm going to assume that you already have PAM installed. 
+  </sect2
+  <sect2>
+   <title>
+   How
+  </title>
+  <para>
+   Enough talk, let's dig in.
+  </para>
+  <sect3>
+   <title>
+   PAM configuration files
+  </title>
+  <para>
+   PAM configuration files are stored in the <filename class="directory">/etc/pam.d/</filename> directory. (If you don't have <filename class="directory">/etc/pam.d/</filename> directory, don't worry, I'll cover that in the next section)  Let's go over there and take look.
+  </para>
+  <programlisting>
+  <prompt>~$ </prompt><userinput>cd /etc/pam.d</userinput>
+  <prompt>/etc/pam.d/$ </prompt><userinput>ls</userinput>
+  chfn	chsh	login	other	passwd	su	xlock
+  <prompt>/etc/pam.d/$ </prompt>
+  </programlisting>
+  <para>
+  Your system may have a few more or a few less files in this directory, depending on what's installed on your system. Whatever the details, you probably saw a file for each of the programs on your system that authenticate users. As you probably already guessed, each file contains the PAM authentication configuration for the program it's named after (except for the <filename>other</filename> file, which we'll talk about in a little bit). Let's take a look the PAM configuration file for passwd (I've condensed the file for the sake of simplicity):
+  </para>
+  <programlisting>
+  <prompt>/etc/pam.d/$ </prompt><userinput>cat login</userinput>
+  # PAM configuration for login
+  auth       requisite  pam_securetty.so
+  auth       required   pam_nologin.so
+  auth       required   pam_env.so
+  auth       required   pam_unix.so nulok
+  account    required   pam_unix.so
+  session    required   pam_unix.so
+  session    optional   pam_lastlog.so
+  password   required   pam_unix.so nullok obscure min=4 max=8
+  </programlisting>
+  <para>
+   Before dig into this file, I must mention a little something.
+  </para>
+  </sect3>
+  <sect3>
+   <title>
+   A little something
+  </title>
+  <para>
+   A small percentage are probably thinking, "Oh no! I don't have a /etc/pam.d directory! Your list of distributions says that my distribution includes PAM, but I can't find that directory. Without PAM, my life is empty and meaningless! What can I do?" Don't worry, all is not lost. If you know that your distribution includes PAM, but you have no <filename class="directory">/etc/pam.d/</filename> directory, then your PAM configuration is stored in <filename>/etc/pam.conf</filename>. Rather than being spread across several files, all your PAM configuration is stored in a single file. This adds a little twist to PAM  configuration, but the proper adjustments are pointed out in section 3.3.4. 
+  </para>
+  </sect3>
+  <sect3>
+   <title>
+   Configuration syntax
+  </title>
+  <para>
+   PAM configuration files have the following syntax:
+  </para>
+  <programlisting>
+  type  control  module-path  module-arguments
+  </programlisting>
+  <para>
+   Using the login configuration file (see above) as an example let's take a look a the syntax for PAM configuration files:
+  </para>
+  <variablelist>
+   <title>PAM configuration tokens</title>
+   <varlistentry><term><token>type</token></term>
+    <listitem><para>
+     The type token tells PAM what type of authentication is to be used for this module. Modules of the same type can be "stacked", requiring a user to meet multiple requirements to be authenticated. PAM recognizes four types:
+    </para>
+     <variablelist>
+      <varlistentry><term>account<term>
+       <listitem><para>
+        Determines whether the user is allowed to access the service, whether their passwords has expired, etc.
+       </para></listitem>
+      </varlistentry>
+      <varlistentry><term>auth</term>
+       <listitem><para>
+        Determines whether the user is who they claim to be, usually by a password, but perhaps by a more sophistcated means, such as biometrics.
+       </para></listitem>
+      </varlistentry>
+      <varlistentry><term>password</term>
+       <listitem><para>
+        Provides a mechanism for the user to change their authentication. Again, this usually their password.
+       </para></listitem>
+      </varlistentry>
+      <varlistentry><term>session</term>
+       <listitem><para>
+        Things that should be done before and/or after the user is authenticed. This might included things such as mounting/unmounting the user home directory, logging their login/logout, and restricting/unrestricting the services available to the user.
+       </para></listitem>
+      </varlistentry>
+     </variablelist>
+     <para>
+      In the login config file, we see at least one entry for each type. Since this the program that allows user to login (hence the name :), it's understandable that it needs to access all of the different types of authentication.
+     </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry><term><token>control</token></term>
+    <listitem><para>
+     The control token tells PAM what should be done in if authentication by this module fails. PAM recognizes four control types:
+    </para>
+    <variablelist>
+     <varlistentry><term>requisite<term>
+      <listitem><para>
+       Failure to authenticate via this module results in immediate denial of authentication.
+      </para>
+     </varlistentry>
+     <varlistentry><term>required<term>
+      <listitem><para>
+       Failure also results in denial of authentication, although PAM will still call all the other modules listed for this service before denying authentication.
+      </para></listitem>
+     </varlistentry>
+     <varlistentry><term>sufficient</term>
+      <listitem><para>
+       If authentication by this module is successful, PAM will grant authentication, even if a previous required module failed.
+      </para></listitem>
+     </varlistentry>
+     <varlistentry><term>optional</term>
+       <listitem><para>
+        Whether this module succeeds or fails is only significant if it is the only module of its type for this service.
+       </para></listitem>
+      </varlistentry>
+     </variablelist>
+     <para>
+       In the configuration file for login, we see nearly all of the different control types. Most of the required modules are pam_unix.so (the main authentication module), the single requisite module is pam_securetty.so (checks make sure the user is logging in on a secure console), and the only optional module is pam_lastlogin.so (the module that retrieves information on the user's most recent login).
+      </para>
+     </listitem>
+    </varlistentry>
+    <varlistentry><term><token>module-path</token></term>
+     <listitem><para>
+      The module-path tells PAM which module to use and (optionally) where to find it. Most configurations only contain the module's name, as is the case in our login configuration file. When this is the case, PAM looks for the modules in the default PAM module directory, normally <filename class="directory">/usr/lib/security</filename>. However, if your linux distribution conforms to the Linux Filesystem standard, PAM modules can be found in <filename class="directory">/lib/security</filename>.
+     </para></listitem>
+    </varlistentry>
+    <varlistentry><term><token>module-arguments</token></term>
+     <listitem><para>
+      The module-arguments are arguments to be passed to the module. Each module has its own arguments. For example, in our login configuration, the "nulok" ("null ok", argument being passed to pam_unix.so module, indicating the a blank ("null") password is acceptable ("ok"). 
+     </para></listitem>
+    </varlistentry>
+   </variablelist>
+  </sect3>
+  <sect3>
+   <title><filename>pam.conf</filename> configuration</title>
+   <para>
+    If your PAM configuration is stored in <filename>/etc/pam.conf</filename> rather than <filename class="directory">/etc/pam.d/</filename>, PAM configuration lines are a bit different. Rather than each service having its own configuration file, all configurations are stored in <filename>/etc/pam.conf</filename> with the service name as the first token in a configuration line. For example, the following line in <filename>/etc/pam.d/login</filename>:
+    </para>
+    <programlisting>
+    auth       required   pam_unix.so nulok
+    </programlisting>
+    <para>
+     would become the following line in <filename>/etc/pam.conf</filename>:
+    </para>
+    <programlisting>
+    login	auth       required   pam_unix.so nulok
+    </programlisting>
+    <para>
+     Except for this minor difference, all the rest of the PAM syntax applies.
+    </para>
+   </sect3>
+  </sect2>
+  <sect2
+   <title>Getting more information</title>
+   <para>
+    For more information on configuring PAM and complete PAM module reference, consult the <ulink url="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam.html">Linux-PAM System Administrator's Guide</ulink>. This guide serves as a thorough and up-to-date reference on PAM configuration.
+   </para>
+  </sect2>
+ </sect1>
+ <sect1>
+  <title>Securing User Authentication</title>
+  <para>
+   Many linux distributions ship with user authentication that is not adequately secure. This section discusses some of the ways you make user authentication secure on your system. While doing these things will make your system more secure, do not be so naive as to think they make you invulnerable.
+  </para>
+  <sect2>
+   <title>A strong <filename>/etc/pam.d/other</filename></title>
+   <para>
+    All of the files in <filename class="directory">/etc/pam.d/</filename> contain the configuration for a particular service. The notable exception to this rule is the <filename>/etc/pam.d/other</filename> file. This file contains the configuration for any services which do not have their own configuration file. For example, is the (imaginary) <application>xyz</application> service attempted authentication PAM would look for a <filename>/etc/pam.d/xyz</filename> file. Not finding one, authentication for <application>xyz</application> would be determined by the <filename>/etc/pam.d/other</filename> file. Since <filename>/etc/pam.d/other</filename> is the configuration to which PAM services fallback, it is important that it is secure. We will discuss two secure configurations of <filename>/etc/pam.d/other</filename>, one which is quite nearly paranoid and which is gentler.
+   </para>
+   <sect3>
+    <title>A paranoid configuration</title>
+    <para>
+     A paranoid configuration of <filename>/etc/pam.d/other</filename> is as follows:
+    </para>
+    <programlisting>
+    auth	required	pam_deny.so 
+    auth	required	pam_warn.so 
+    account	required	pam_deny.so 
+    account	required	pam_warn.so 
+    password	required	pam_deny.so 
+    password	required	pam_warn.so 
+    session	required	pam_deny.so 
+    session	required	pam_warn.so
+    </programlisting>
+    <para>
+     With this configuration, whenever an unknown service attempts to access any of the four configuration types, PAM denies authentication (via the pam_deny.so module) and then logs a syslog warning (via the pam_warn.so module). Short of a bug in PAM, this configuration is brutally secure. The only problem with that brutality is it may cause problems if your accidentally delete the configuration of another service. If your <filename>/etc/pam.d/login</filename> was mistakenly deleted, no one would be able to login!
+    </para>
+   </sect3>
+   <sect3>
+    <title>A kinder configuration</title>
+    <para>
+     Here's configuration that isn't quite so mean:
+    </para>
+    <programlisting>
+    auth	required	pam_unix.so 
+    auth	required	pam_warn.so 
+    account	required	pam_unix.so 
+    account	required	pam_warn.so 
+    password	required	pam_deny.so 
+    password	required	pam_warn.so 
+    session	required	pam_unix.so 
+    session	required	pam_warn.so
+    </programlisting>
+    <para>
+     This configuration will allow an unknown service to authenticate (via the pam_unix.so module), although it will not allow it to change the user's password. Although it allows authentication by unknown services, it logs a syslog warning whenever such a service attempts authentication.
+    </para>
+   </sect3>
+   <sect3>
+    <title>Choosing a <filename>/etc/pam.d/other</filename></title>
+    <para>
+     I would strongly reccomend that you implement the first <filename>/etc/pam.d/other</filename> configuration unless you have a very good reason not to. It always a good idea to be 'secure by default'. If you ever do need to grant a new service authentication privileges, you can simply create a PAM configuration file for that service.
+    </para>
+   </sect3>
+  </sect2>
+  <sect2>
+   <title>Disabling logins for user with null passwords</title>
+   <para>
+    On most linux systems, there a number of "dummy" user accounts, used to assign privileges to certain system services like ftp, webservers, and mail gateways. Having these accounts allows your system to be more secure, because if these services are compromised, an attacker will only gain the limited privileges available to the dummy account, rather than the full privileges of a service running as root. However, allowing these dummy account login privileges is a security risk, as they usually have blank (null) passwords. The configuration option that enables null passwords is the "nullok" module-argument. You'll want remove this argument from any modules of 'auth' type for services that allow login. This is usually the login service, may also include services like rlogin and ssh. Hence, the following line in <filename>/etc/pam.d/login</filename>:
+   </para>
+   <programlisting>
+   auth		required	pam_unix.so	nullok
+   </programlisting>
+   <para>
+    should be changed to:
+   </para>
+   <programlisting>
+   auth		required	pam_unix.so
+   </programlisting>
+  </sect2>
+  <sect2>
+   <title>Disable unused services</title>
+   <para>
+    Looking at the files in <filename class="directory">/etc/pam.d/</filename>, you'll probably see configuration files for a number of programs you don't use and maybe even a few you've never heard of. Although allowing authentication to these services probably won't open any huge security holes, you're better off denying them authentication. The best way to disable PAM authentication for these programs is to rename these files. Not finding the file named after the service requesting authentication, PAM will fallback to the (hopefully) very secure <filename>/etc/pam.d/other</filename>. If you later find that you need one of these programs, you can simply rename the file to its original name and everything will work as it was intended.
+   </para>
+  </sect2>
+  <sect2>
+   <title>Password-cracking tools</title>
+   <para>
+    While password-cracking tools can be by attackers used to compromise a system, they can also be used by system administrators as proactive tool to ensure the strength of passwords on their system. The two most commonly used password-cracking tools are "crack" and "John the Ripper". Crack is probably included in your facorite distribution. John the Ripper can be obtained from <ulink url="http://www.false.com/security/john/index.html">http://www.false.com/security/john/index.html</ulink>. Run the tools against your password database and you'll probably be surprised with what they come up with.
+   </para>
+   <para>
+    Additionally, there is a PAM module which utilizes the crack library to check the strength of a users password whenever it changed. When this module is installed, the user can only change their password to one which meets the minimum password strength.
+   </para>
+  </sect2>
+  <sect2>
+   <title>Shadow and MD5 passwords</title>
+   <para>
+    As was discussed in the first section of this document, Shadow and MD5 passwords can make your system more secure. During the installation procedure, most modern distributions will ask whether you want to install MD5 and/or Shadow passwords. Unless you have a good reason not to, you should enable these. The process of converting from non-shadowed/non-MD5 passwords is a complicated process, and is beyond the scope of this document. The <ulink url="http://www.linuxdoc.org/HOWTO/Shadow-Password-HOWTO.html">Shadow Password HOWTO</ulink> is outdated, but it might be of some help.
+   </para>
+  </sect2>
+ </sect1>
+ <sect1>
+  <title>Tying it all together</title>
+  <para>
+   In this section, I'll give a simple example which ought to help tie together what's in the previous section.
+  </para>
+  <sect2>
+   <title>Apache + mod_auth_pam</title>
+   <para>
+    As our example, we'll install and configure mod_auth_pam, an Apache module that allows you to use authenticate users of your webserver using PAM. For the purpose of this example, I'll assume you have apache installed. If it's not installed already you should be able find installation packages from your distributor.
+   </para>
+  <sect2>
+   <title>Our example</title>
+   <para>
+    Our goal will be to configure a restricted area of our webserver, a <filename class="directory">family/</filename> directory, to authenticate users via PAM. This directory contains private family information, and should only be accessible to members of the user group family.
+   </para>
+  </sect2>
+  <sect2>
+   <title>Installing mod_auth_pam</title>
+   <para>
+    First, you'll want to download mod_auth_pam from <ulink url="http://blank.pages.de/pam/mod_auth_pam/">http://blank.pages.de/pam/mod_auth_pam/</ulink>. The following commands will compile mod_auth_pam (you must be logged in as root):
+   </para>
+   <programlisting>
+   <prompt>~#</prompt> <userinput>tar xzf mod_auth_pam.tar.gz</userinput>
+   <prompt>~#</prompt> <userinput>cd mod_auth_pam-1.0a</userinput>
+   <prompt>~/mod_auth_pam-1.0a#</prompt> <userinput>make</userinput>
+   <prompt>~/mod_auth_pam-1.0a#</prompt> <userinput>make install</userinput>
+   </programlisting>
+   <para>
+    If you have any trouble installing the mod_auth_pam module, make sure you've installed your distributions apache-dev package. After you've installed mod_auth_pam, you'll need to restart apache. Apache can usually by restarted by typing the following command (again, you must be root):
+   </para>
+   <programlisting>
+   <prompt>~#</prompt> <userinput>/etc/init.d/apache restart</userinput>
+   </programlisting>
+   </sect2>
+   <sect2>
+    <title>Configuring PAM</title>
+    <para>
+     PAM configuration for Apache is stored in <filename>/etc/pam.d/httpd</filename>. The default configuration (which was installed when you installed mod_auth_pam) is secure, but it uses a module (<filename>pam_pwdb.so</filename>) which may not be available on many systems. (Besides, configuring it from scratch will be fun!) So delete the <filename>/etc/pam.d/httpd</filename> file, and let's start fresh.
+    </para>
+    <sect3>
+     <title>Deciding how to configure PAM</title>
+     <para>
+      If we're going to configure how PAM deals with Apache's authentication requests, we need to figure out exactly what we need PAM to check for. First, we want PAM to make sure the user's password matches their password in the standard unix password database. This sounds like the 'auth' type and the <filename>pam_unix.so</filename> module. We'll want the module's control type to be set to 'required', so authentication will fail without a correct password. Here's what the first line of our <filename>/etc/pam.d/httpd</filename> looks like:
+     </para>
+     <programlisting>
+     auth	required	pam_unix.so
+     </programlisting>
+     <para>
+      Secondly, we must make sure that the users account is valid (i.e. their password has not expired or any such nastiness). This is the 'account' type and is also provided by the <filename>pam_unix.so</filename> module. Again, we'll set this module's control type to 'required'. After adding this line, our <filename>/etc/pam.d/httpd</filename> configuration looks like this:
+     </para>
+     <programlisting>
+     auth	required	pam_unix.so
+     account	required	pam_unix.so
+     </programlisting>
+     <para>
+      It's not terribly sophisticated, but it does the job. It ought to be a good start for learning how to configure PAM services.
+     </para>
+    </sect3
+   </sect2>
+   <sect2>
+    <title>Configuring Apache</title>
+    <para>
+     Now that PAM is configured to authenticate apache's requests, we'll configure apache to properly utilize PAM authentication to restrict access to the <filename class="directory">family/</filename> directory. To do so, add the following lines to your <filename>httpd.conf</filename> (usually stored in <filename class="directory">/etc/apache/</filename> or <filename class="directory">/etc/httpd</filename>):
+    </para>
+    <programlisting>
+    &lt;Directory /var/www/family&gt;
+    AuthPAM_Enabled on
+    AllowOverride None
+    AuthName "Family Secrets"
+    AuthType "basic"
+    require group family
+    &lt;/Directory&gt;
+    </programlisting>
+    <para>
+     You may need to replace <filename class="directory">/var/www/</filename> with the default location of web documents, which is often <filename class="directory">/home/httpd/</filename>. Wherever that is, you'll need to create the <filename class="directory">family</filename> directory.
+    </para>
+    <para>
+     Before we test our setup, I'll to take a moment to explain the Apache configuration you just entered. The &lt;Directory&gt; directive is used to encapsulate configuration data for this directory. Inside this directive, we've enabled PAM authentication ("AuthPAM_enabled on"), turned off any overriding of this configuration ("AllowOverride none"), named this authentication zone "Family Secrets" ("AuthName "Family Secrets""), set the http authentication (not the PAM authentication) type to the default ("AuthType "basic""), and required the user group family ("require group family").
+   </sect2>
+   <sect2>
+    <title>Testing our setup</title>
+    <para>
+     Now that we've got everything setup up properly, it's time to revel in our success. Fire up your favorite web browser and head over to http://your-domain/family/ (replacing your-domain with, well, your domain). You are now an uber-authenticator!
+    </sect2>
+ </sect1>
+ <sect1>
+  <title>Resources</title>
+  <para>
+   There are a number of resources, both online and offline, where you can more information about user authentication. If you know of any resources that ought to be added to this list, drop me a line at <email>petehern@yahoo.com</email>
+  </para>
+  <sect2>
+   <title>PAM</title>
+   <itemizedlist>
+    <listitem><para>
+     <ulink url="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam.html">Linux-PAM System Administrator's Guide</ulink>
+    </para></listitem>
+    <listitem><para>
+     <ulink url="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam_modules.html">Linux-PAM Module Writer's Manual</ulink>
+    </para></listitem>
+    <listitem><para>
+     <ulink url="http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/pam_modules.html">Linux-PAM Application Developer's Manual</ulink>
+    </para></listitem>
+   </itemizedlist>
+  </sect2>
+  <sect2>
+   <title>General Security</title>
+   <itemizedlist>
+    <listitem><para>
+     <ulink url="http://www.linuxsecurity.com/">linuxsecurity.com</ulink>
+    </para></listitem>
+    <listitem><para>
+     <ulink url="http://www.securitywatch.com">securitywatch.com</ulink>
+    </para></listitem>
+    <listitem><para>
+     <ulink url="http://www.linuxdoc.org/HOWTO/Security-HOWTO.html">Security HOWTO</ulink>
+    </para></listitem>
+    <listitem><para>
+     <ulink url="http://packetstorm.securify.com">Packetstorm</ulink>
+    </para></listitem>
+   </itemizedlist>
+  </sect2>
+  <sect2>
+   <title>Offline Documentation</title>
+   <para>
+    A lot of information can be gathered from your system's manual pages. The following are some manpages relating to user authentication. The number in parentheses refers to the manpage section. To view the passwd(5) manpage, you would enter <userinput>man 5 passwd</userinput>.
+   </para>
+   <itemizedlist>
+    <listitem><para>
+     <citerefentry><refentrytitle>passwd</refentrytitle><manvolnum>5</manvolnum></citerefentry>
+    </para></listitem>
+    <listitem><para>
+     <citerefentry><refentrytitle>crypt</refentrytitle><manvolnum>3</manvolnum></citerefentry>
+    </para></listitem>
+    <listitem><para>
+     <citerefentry><refentrytitle>pam.d</refentrytitle><manvolnum>5</manvolnum></citerefentry>
+    </para></listitem>
+    <listitem><para>
+     <citerefentry><refentrytitle>group</refentrytitle><manvolnum>5</manvolnum></citerefentry>
+    </para></listitem>
+    <listitem><para>
+     <citerefentry><refentrytitle>shadow</refentrytitle><manvolnum>5</manvolnum></citerefentry>
+    </para></listitem>
+   </itemizedlist>
+  </sect2>
+ </sect1>
+ <sect1>
+  <title>Conclusion</title>
+  <para>
+   I hope you found this HOWTO helpful. If you have any questions, comments, or suggestions, I'd love to hear from you. You can email me at <email>petehern@yahoo.com</email>.
+</article>
