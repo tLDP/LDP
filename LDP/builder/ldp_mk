@@ -16,15 +16,17 @@ if($ARGV[0] eq '') {
 my($_toolroot)    = $ENV{'SGML_TOOLROOT'} ||
                              '/export/sunsite/users/gferg/toolroot';
 my($_jade)        = 'jade-1.2.1';
+my($dtd)          = 'SGML';
+my($dcl)          = '';
 my($linuxdoc)     = 1;
 my($create_index) = 1;
-my($cmd, $fname, $fname_wo_ext, $txt_filter, $style, $s, $db_v) = '';
+my($cmd, $fname, $fname_wo_ext, $txt_filter, $style, $s, $db_v, $x) = '';
 
 while(1) {
 
      if ($ARGV[0] eq "-style") {
          shift(@ARGV);
-         $style = ($ARGV[0] + 0);
+         $style = $ARGV[0];
          shift(@ARGV);
      } elsif ($ARGV[0] eq "-txt") {
          shift(@ARGV);
@@ -39,10 +41,14 @@ while(1) {
 }
 $fname = $ARGV[(@ARGV + 0) - 1];
 $fname_wo_ext = $fname;
-if( $fname =~ /\.sgml$/ ) {
+if( $fname =~ /\.[\w]+ml$/ ) {
     $fname_wo_ext =~ s/\.[\w]+$//;
 } else {
-    $fname .= "\.sgml";
+    if( -e "$fname.sgml" ) {
+        $fname .= "\.sgml";
+    } else {
+        $fname .= "\.xml";
+    }
 }
 if( !(-e "$fname") ) {
       print "\nldp_mk: ERROR - cannot find/read $fname\n";
@@ -59,7 +65,7 @@ if( $style eq '' ) {
 
 # determine DTD 
 #
-open(FP_IN, "head $fname | grep -i '\!doctype' |") || 
+open(FP_IN, "head -20 $fname | grep -i '\!doctype' |") || 
                die "\nldp_mk: ERROR - cannot determine DTD for $fname\n";
 $s = <FP_IN>;
 close(FP_IN);
@@ -67,6 +73,9 @@ close(FP_IN);
 if( $s eq '' ) {
     die "\nldp_mk: cannot determine DTD for $fname\n";
 }
+
+
+
 if( $s =~ /linuxdoc/i ) {
 
     $linuxdoc = 1;
@@ -80,11 +89,17 @@ if( $s =~ /linuxdoc/i ) {
 
     # do not override any various SGML catalog file settings
     #
+    if( $s =~ /\ xml\ /i ) {
+        $dtd = 'XML';
+        $x   = 'x';
+        $dcl = "${_toolroot}/${_jade}/pubtext/xml.dcl";
+    }
+
     if( $ENV{'SGML_CATALOG_FILES'} eq '' ) {
-        $s = ($db_v =~ /3/ ? "$_toolroot/dtd/docbook_31/catalog:" :
-                             "$_toolroot/dtd/docbook_41/catalog:")   .
-             "$_toolroot/dsssl/docbook/catalog:"  .
-             "$_toolroot/jade-1.2.1/dsssl/catalog";
+        $s = ($db_v =~ /3/ ? "${_toolroot}/dtd/docbook${x}_31/catalog:" :
+                             "${_toolroot}/dtd/docbook${x}_41/catalog:")   .
+             "${_toolroot}/dsssl/docbook/catalog:"  .
+             "${_toolroot}/${_jade}/dsssl/catalog";
         $ENV{'SGML_CATALOG_FILES'} = $s;
     }
 
@@ -93,18 +108,19 @@ if( $s =~ /linuxdoc/i ) {
     }
 
     $linuxdoc = 0;
-    print "\nldp_mk: $fname is DocBook (vers. $db_v) SGML\n";
+    print "\nldp_mk: $fname is DocBook (vers. $db_v) $dtd\n";
 }
 
 
-# create the SGML index...
+# create the index...
 #
 if( $linuxdoc == 0 && $create_index == 1 ) {
 
-    print "\nldp_mk: creating SGML index from $fname...\n";
+    print "\nldp_mk: creating index from $fname...\n";
 
-    $cmd = "$_toolroot/mkindex/collateindex.pl -N -o index.sgml; " .
-      "$_toolroot/$_jade/jade/jade -t sgml -V html-index -d $style $fname ; " .
+    $cmd = 
+      "$_toolroot/mkindex/collateindex.pl -N -o index.sgml; " .
+      "$_toolroot/$_jade/jade/jade -t sgml -V html-index -d $style $dcl $fname ; " .
       "$_toolroot/mkindex/collateindex.pl -g -t Index -i doc-index " .
       "-o index.sgml HTML.index;" .
       "rm -f HTML.index";
@@ -122,10 +138,11 @@ if( $linuxdoc == 1 ) {
 
 } else {
 
-    $cmd = "$_toolroot/$_jade/jade/jade -t sgml -i html -d $style $fname; " .
-           "mv -f \*.html $fname_wo_ext/;" .
-           "$_toolroot/$_jade/jade/jade -t sgml -i html -V nochunks " .
-              "-d $style $fname > 00_" . "$fname_wo_ext.html";
+    $cmd = 
+       "$_toolroot/$_jade/jade/jade -t sgml -i html -d $style $dcl $fname; " .
+       "mv -f \*.html $fname_wo_ext/;" .
+       "$_toolroot/$_jade/jade/jade -t sgml -i html -V nochunks " .
+                  "-d $style $dcl $fname > 00_" . "$fname_wo_ext.html";
 }
 
 system($cmd);
@@ -176,6 +193,9 @@ if( -e "$fname_wo_ext.txt" ) {
     open(CPIPE, "pwd |");
     $s = <CPIPE>; chop($s);
     my($pat) = 'file://localhost' . $s . '/';
+    $pat =~ s/\+/\\+/g;
+    my($pat2) = $fname_wo_ext;
+    $pat2 =~ s/\+/\\+/g;
     close(CPIPE);
 
     open(HFILE, "+< $fname_wo_ext.txt") || 
@@ -188,7 +208,7 @@ if( -e "$fname_wo_ext.txt" ) {
            }
            if ($count <= $def_blanks) {
                $_ =~ s/$pat//g;
-               $_ =~ s/00_$fname_wo_ext/$fname_wo_ext/g;
+               $_ =~ s/00_$pat2/$pat2/g;
                push(@flines, $_);
            }
     }
@@ -261,12 +281,8 @@ if( !(-e "$fname_wo_ext-html.tar.gz") ) {
 print "\nldp_mk: creating SGML package...\n";
 
 $cmd = "cp $fname ldp_mk_tmp; gzip -f ldp_mk_tmp; " .
-       "mv -f ldp_mk_tmp.gz $fname_wo_ext.sgml.gz";
+       "mv -f ldp_mk_tmp.gz $fname_wo_ext." . lc($dtd) . ".gz";
 system($cmd);
-
-if( !(-e "$fname_wo_ext.sgml.gz") ) {
-   print "\nldp_mk: WARNING - could not create $fname_wo_ext.sgml.gz\n";
-}
 
 
 # if LinuxDoc, create DocBook SGML...
@@ -276,7 +292,7 @@ if( $linuxdoc == 1 ) {
     print "\nldp_mk: creating DocBook from LinuxDoc...\n";
 
     $ENV{'SGML_CATALOG_FILES'} =
-                 "$_toolroot/dtd/docbook.cat:$_toolroot/$_jade/dsssl/catalog";
+           "$_toolroot/dtd/docbook.cat:$_toolroot/$_jade/dsssl/catalog";
 
     $cmd = "$_toolroot/$_jade/sgmlnorm/sgmlnorm " .
                  "$_toolroot/ld2db/docbook.dcl $fname > EX_$fname ;" .
