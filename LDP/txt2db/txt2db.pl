@@ -173,13 +173,13 @@ sub proc_txt {
 			$line =~ s/^Q://;
 			&trimline;
 			&splittitle;
-			$line = "<question><para>" . $title . "</para></question>\n";
+			if ($id eq '') {
+				$line = "<question><para>" . $title . "</para></question>\n";
+			} else {
+				$line = "<question id='$id'><para>" . $title . "</para></question>\n";
+			}
 			unless ($qandaentry == 1) {
-				if ($id eq '') {
-					$line = "<qandaentry>\n" . $line;
-				} else {
-					$line = "<qandaentry id='$id'>\n" . $line;
-				}
+				$line = "<qandaentry>\n" . $line;
 				$qandaentry = 1;
 			}
 			if ($qandaset == 0) {
