@@ -32,6 +32,8 @@ xml:	Lampadas.xml
 
 html:	Lampadas.html
 
+index:	index.html
+
 index.html:	Lampadas.xml
 	xsltproc --nonet --novalid ../xsl/lampadas-html-chunk.xsl Lampadas.xml
 
