@@ -54,7 +54,7 @@ def newdocument(req, username, doc_id,
           tech_review_status_code, license_code, license_version,
           copyright_holder, abstract, short_desc, lang, sk_seriesid,
           int('0' + replaced_by_id),
-          lint_time, pub_time, mirror_time)
+          lint_time, pub_time, mirror_time, '')
 
     # Add the current user as the author of the document
     doc.users.add(username)

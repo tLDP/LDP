@@ -254,7 +254,7 @@ class Tables(LampadasCollection):
                      self.bar_graph(doc.rating, 10, uri.lang),
                      widgets.format_code(metadata.format_code, uri.lang, css_class=format_code_class),
                      widgets.dtd_code(metadata.dtd_code, uri.lang, css_class=dtd_code_class),
-                     widgets.dtd_version(metadata.dtd_version, uri.lang, css_class=dtd_version_class),
+                     widgets.dtd_version(metadata.dtd_version, css_class=dtd_version_class),
                      widgets.lang(doc.lang, uri.lang),
                      widgets.tf('maintainer_wanted', doc.maintainer_wanted),
                      widgets.license_code(doc.license_code, uri.lang),
@@ -400,14 +400,17 @@ class Tables(LampadasCollection):
                          widgets.filemode(sourcefile.filemode)))
         
         # Add a new docfile
-        box.write('<tr><form method=GET action="|uri.base|data/save/newdocument_file" name="document_file">\n'
+        box.write('<tr><td class="sectionlabel" colspan="6">|stradd_docfile|</td></tr>'
+                  '<tr><form method=GET action="|uri.base|data/save/newdocument_file" name="document_file">\n'
                   '<input name="doc_id" type="hidden" value="%s">\n'
                   '<td colspan="6"><input type="text" name="filename" size="30" style="width:100%%"></td></tr>\n'
-                  '<tr><td class="label">|strprimary|</td><td colspan="5">%s</td>\n'
-                  '<td><input type="submit" name="action" value="|stradd|"></td></tr>\n'
+                  '<tr><td class="label">|strprimary|</td><td colspan="4">%s</td>\n'
+                  '<td>%s</td></tr>\n'
                   '</form>\n'
                   '</table>\n'
-                  % (doc.id, widgets.tf('top', (doc.files.count()==0))))
+                  % (doc.id,
+                     widgets.tf('top', (doc.files.count()==0)),
+                     widgets.add()))
         return box.get_value()
         
     def viewdocusers(self, uri):
