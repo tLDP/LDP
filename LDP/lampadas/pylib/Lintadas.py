@@ -11,7 +11,7 @@ document_error table.
 # Modules ##################################################################
 
 import DataLayer
-
+import os
 
 # Constants
 
@@ -20,6 +20,7 @@ import DataLayer
 
 L = DataLayer.Lampadas()
 
+cvs_root = L.Config('cvs_root')
 
 # Lintadas
 
@@ -28,9 +29,9 @@ class Lintadas:
 	def CheckAllDocs(self):
 		keys = L.Docs.keys()
 		for key in keys:
-			self.CheckDocument(key)
+			self.CheckDoc(key)
 	
-	def CheckDocument(self, DocID):
+	def CheckDoc(self, DocID):
 		Doc = L.Docs[DocID]
 		Doc.Errors.Clear()
 
@@ -38,20 +39,50 @@ class Lintadas:
 		keys = Doc.Files.keys()
 		for key in keys:
 
+			File = Doc.Files[key]
+
 			# Determine file format
-			ext = Doc.Files[key].Filename[-5:]
+			ext = File.Filename[-5:]
 			ext = ext.upper()
 			if ext == '.SGML':
-				Doc.Files[key].Format = "SGML"
+				File.Format = "SGML"
+				Doc.Format = 'SGML'
 			elif ext[-4:] == '.XML':
-				Doc.Files[key].Format = "XML"
+				File.Format = "XML"
+				Doc.Format = 'XML'
 			elif ext[-3:] == '.WT':
-				Doc.Files[key].Format = 'WIKI'
+				File.Format = 'WIKI'
+				Doc.Format = 'WIKI'
 			else:
-				Doc.Files[key].Format = ''
-			Doc.Files[key].Save()
+				File.Format = ''
+				Doc.Format = ''
 
+			# Determine DTD for SGML and XML files
+			if File.Format == 'XML' or File.Format == 'SGML':
+				DTDVersion = ''
+				try:
+					command = 'grep -i DOCTYPE ' + cvs_root + File.Filename + ' | head -n 1'
+					grep = os.popen(command, 'r')
+					DTDVersion = grep.read()
+				except IOError:
+					pass
+
+				DTDVersion = DTDVersion.upper()
+				if DTDVersion.count('DOCBOOK') > 0:
+					Doc.DTD = 'DocBook'
+				elif DTDVersion.count('LINUXDOC') > 0:
+					Doc.DTD = 'LinuxDoc'
+				else:
+					Doc.DTD = ''
+
+
+			Doc.Save()
+			File.Save()
+
+
+# When run at the command line, all checks are performed on all documents.
 
 if __name__ == "__main__":
 	Lintadas = Lintadas()
 	Lintadas.CheckAllDocs()
+#	Lintadas.CheckDoc(469)
