@@ -43,7 +43,7 @@ EXTENSIONS = {
     'sh':   'shell',
 }
 
-METADATA_FORMATS = ('sgml', 'xml')
+METADATA_FORMATS = ('sgml', 'xml', 'wikitext')
 
 
 class SourceFiles(LampadasCollection):
@@ -92,6 +92,7 @@ class SourceFiles(LampadasCollection):
         sourcefile = SourceFile(filename)
         sourcefile.errors.filename = filename
         sourcefile.calc_filenames()
+	sourcefile.read_metadata()
         self.data[filename] = sourcefile
         return sourcefile
 
@@ -257,10 +258,10 @@ class SourceFile:
         flags = re.I | re.M | re.S
 
         # Read the document header
-        header = ''
+        header = WOStringIO()
         while (1):
             line = fh.readline()
-            header += line
+            header.write(line)
             
             # Stop at the end of the header or EOF.
             if re.search('</ARTICLEINFO>', line, flags): break
@@ -269,6 +270,9 @@ class SourceFile:
             if line=='':
                 break
         fh.close()
+
+	# Convert header into a regular string for searching
+	header = header.get_value()
 
         # Look for DocType declaration
         m = re.search('<.*?DOCTYPE(.*?)>(.*)', header, flags)

@@ -46,7 +46,6 @@ def run_lintadas(req, doc_id):
 
     lintadas.check_doc(doc.id)
     lintadas.check_files(doc.id)
-    lintadas.import_doc_metadata(doc.id)
     go_back(req)
 
 def run_mirror(req, doc_id):
@@ -57,7 +56,6 @@ def run_mirror(req, doc_id):
     if doc.lint_time=='':
         lintadas.check_doc(doc.id)
         lintadas.check_files(doc.id)
-        lintadas.import_doc_metadata(doc.id)
     if doc.lint_time=='':
         return error("Error inspecting document " + doc_id)
         
@@ -74,7 +72,6 @@ def run_publish(req, doc_id):
     if doc.lint_time=='':
         lintadas.check_doc(doc.id)
         lintadas.check_files(doc.id)
-        lintadas.import_doc_metadata(doc.id)
     if doc.lint_time=='':
         return error("Error inspecting document " + doc_id)
         
