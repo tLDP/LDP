@@ -225,5 +225,15 @@
   <xsl:apply-templates mode="titlepage.mode" select="./affiliation"/>
 </xsl:template>
 
+<!-- NOT IN LDP.DSL. Format Q and A labels. 
+     Added by dcm 2003-05-19. -->
+
+<xsl:template match="question" mode="label.markup">
+  <xsl:text>Q</xsl:text>
+</xsl:template>
+
+<xsl:template match="answer" mode="label.markup">
+  <xsl:text>A</xsl:text>
+</xsl:template>
 
 </xsl:stylesheet>
