@@ -55,7 +55,7 @@ insert([home], [|strproject|], [Home],
     account.
 ])
 
-insert([doctable], [DocTable], [],
+insert([doctable], [Documentenliste], [],
 [
     |tabdocs|
 ])
@@ -65,7 +65,7 @@ insert([news], [Neuigkeiten], [],
     |tabrecentnews|
 ])
 
-insert([staff], [Team], [],
+insert([staff], [Projektteam], [],
 [
     Führen Sie hier die Mitglieder Ihres Projekteams an.
 ])
@@ -142,7 +142,7 @@ insert([wishlist], [Dokumentwunschliste], [],
     |tabwishlist|
 ])
 
-insert([pending], [Dokumentwarteschlange], [],
+insert([pending], [Dokumente in Arbeit], [],
 [
     |tabpending|
 ])
@@ -272,6 +272,7 @@ insert([privacy], [Datenschutz], [],
     Werbe-E-Mails schicken ("spam") noch Sie bei E-Mailverteilern eintragen.
 ])
 
+m4_dnl FIXME: there has to be German expression for it
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|

@@ -1,6 +1,12 @@
-insert(W, Wishlist,     [A document that has been proposed or requested, but not yet written.])
-insert(P, Pending,      [A work in progress, but which is not yet available.])
-insert(C, Cancelled,    [Development was cancelled before publication.])
-insert(N, Active,       [Currently available.])
-insert(A, Archived,     [Still available, but only as an archive for historic reasons.])
-insert(D, Deleted,      [No longer available, even as an archive.])
+insert(W, [Wunschliste],
+[Dokument wurde vorgeschlagen oder verlangt, aber noch nicht geschrieben.])
+insert(P, [In Arbeit],
+[Arbeit am Dokument hat begonnen, ist aber noch nicht fertig.])
+insert(C, [Storniert],
+[Entwicklung wurde noch vor der Veröffentlichung storniert.])
+insert(N, [Aktiv],
+[Zur Zeit verfügbar.])
+insert(A, [Archiviert],
+[Noch verfügbar, aber nur aus historischen Gründen.])
+insert(D, [Gelöscht],
+[Nicht mehr verfügbar, auch nicht archiviert.])
