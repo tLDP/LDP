@@ -585,7 +585,7 @@ while (@row = $notes_result->fetchrow) {
   print "<tr><td valign=top>$date_entered</td><td valign=top>$username</td><td valign=top>$notes</td></tr>\n";
 }
 print "<tr><td colspan=2 align=right>To add a note, type the note, then click Save.</td>\n";
-print "<td><textarea name=note rows=10 cols=40></textarea>\n";
+print "<td><textarea name=note rows=10 cols=40 wrap></textarea>\n";
 print "<input type=hidden name=doc_id value=$doc_id>\n";
 print "<input type=submit value='Save'></td>\n";
 print "</tr>";
