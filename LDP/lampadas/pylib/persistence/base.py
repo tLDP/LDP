@@ -1,12 +1,12 @@
-__name__ = 'base'
-__doc__ = """
+"""
 This is the base class upon which all persistent objects are built.
 """
 
 class Persistence(object):
     """
-    Subclassed to "object" so we can use the new (in Python 2.2) __getattribute__
-    hook. This hook lets us know when a data member has been altered.
+    Subclassed to "object" so we can use the new (in Python 2.2)
+    __getattribute__ hook that lets us know when a data member has been
+    altered.
     """
     
     IGNORE_CHANGE_ATTRIBUTES = ('changed', 'in_database')
