@@ -31,6 +31,8 @@ while users_line != '' :
 		users_splitted[0]+'@tldp.org')
 	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/staff/allow ' +
 		users_splitted[0]+'@tldp.org')
+	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/lampadas-commits/allow ' +
+		users_splitted[0]+'@tldp.org')
 
 	# take next line from users file
 	users_line = users_in.readline()
