@@ -1,0 +1,554 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+<article class="whitepaper" id="index" lang="en">
+  <artheader> 
+
+	 <title>A Linux <keycap>Backspace</keycap>/<keycap>Delete</keycap> White
+	 Paper</title>
+
+	 <author> 
+		<firstname>Sebastiano</firstname> 
+		<surname>Vigna</surname> 
+		<affiliation> 
+		  <address><email>vigna@acm.org</email></address>
+		</affiliation> 
+	 </author> 
+
+	 <revhistory>
+      <revision>
+		  <revnumber>v1.0</revnumber> <date>5 September 2000</date>
+		  <revremark>
+            First release
+         </revremark>
+      </revision>
+      <revision>
+		  <revnumber>v1.1</revnumber> <date>13 September 2000</date>
+		  <revremark>
+            Added tcsh fixes
+         </revremark>
+      </revision>
+      <revision>
+		  <revnumber>v1.2</revnumber> <date>15 October 2000</date>
+		  <revremark>
+            Updated. Added "What If Nothing Works" section.
+         </revremark>
+      </revision>
+	 </revhistory>
+
+
+  </artheader>
+  
+  <sect1 id="intro">
+	 <title>Introduction</title> 
+
+	 <para>Every Linux user has been sooner or later trapped in a situation in
+	 which having working <keycap>Backspace</keycap> and <keycap>Delete</keycap>
+	 keys on the console and on X seemed impossible. This paper explains why
+	 this happens and suggests solutions. The notions given here are essentially
+	 distribution-independent: due to the widely different content of system
+	 configuration files in each distribution, I will try to give the reader
+	 enough knowledge to think up his/her own fixes, if necessary.</para>
+
+	 <para>I assume that the <keycap>Backspace</keycap> key should go back one
+	 character and then erase the character under the cursor. On the other hand,
+	 the <keycap>Delete</keycap> key should delete the character under the
+	 cursor, without moving it. If you think that the function of the two keys
+	 should be exchanged, in spite of the fact that most keyboards feature an
+	 arrow pointing to the <emphasis>left</emphasis> (<keycap>&larr;</keycap>)
+	 on the <keycap>Backspace</keycap> key, then this paper will not give you
+	 immediate solutions, but certainly you may find the explanations given here
+	 useful.</para>
+
+	 <para>Another assumption is that the fixes should alter only local (user)
+	 files. No standard part of the distribution should be altered. Finally,
+	 this document discusses how to set up your system so that applications get
+	 the right events. If an application decides to interpret such events in an
+	 idiosyncratic way, the only possible fix is to reconfigure the
+	 application.</para>
+  </sect1>
+
+  <sect1 id="actions">
+	 <title>How Keys Are Turned Into Actions</title> 
+
+	 <para>When a key is pressed on the keyboard, a number of hardware and
+	 software components cooperate so as to guarantee that the intended meaning
+	 of the key (e.g., emitting a certain character) matches the actual
+	 behaviour of the key. I will concentrate on the software side (as our
+	 control on the hardware part is nonexistent), and in particular, for the
+	 time being, on the events related to console output.</para>
+
+	 <orderedlist>
+		<listitem>
+		  <para>Hitting a key causes raw keyboard <firstterm>scancodes</firstterm>
+		  to be generated; these scancodes are then transformed in a
+		  <firstterm>keycode</firstterm>.  On an i386 system, usually the key
+		  <keycap>Backspace</keycap> emits <keycode>14</keycode> and the key
+		  <keycap>Delete</keycap> emits <keycode>111</keycode>.</para>
+		</listitem>
+
+		<listitem>
+		  <para>The keycodes are translated by the keyboard library into a
+		  <firstterm>keyboard symbol (keysym)</firstterm> using the keyboard
+		  definition loaded by the user. If you look into your keyboard database
+		  (e.g., under Red Hat Linux, in <filename>/usr/lib/kbd/</filename>),
+		  you'll discover several definitions for different computers, different
+		  layouts and possibly different interpretations of the same keys (e.g.,
+		  one could desire that the two <keycap>Alt</keycap> keys really behave
+		  as distinct modifiers). The Linux console keyboard layout assigns
+		  keysym <keysym>Delete</keysym> to keycode 14 and keysym
+		  <keysym>Remove</keysym> to keycode 111. This may seem strange, but the
+		  Linux console emulates a VT102 terminal, and this is the way things
+		  work in that realm.</para>
+		</listitem>
+
+		<listitem>
+		  <para>Our journey has still to come to an end. Console applications
+		  read <acronym>ASCII</acronym> sequences, not keysyms. So the console
+		  must read keysyms and translate them into <acronym>ASCII</acronym>
+		  sequences that suitably encode the keys. Of course this operation must
+		  be performed in a way that is understandable by applications. For
+		  instance, on the Linux console the <keysym>Delete</keysym> keysym is
+		  mapped to the <acronym>ASCII</acronym> code 127 (<symbol>DEL</symbol>),
+		  the <keysym>Remove</keysym> keysym on a suitable escape sequence, and
+		  the <keysym>BackSpace</keysym> keysym to <acronym>ASCII</acronym> code
+		  8 (<symbol>BS</symbol>).</para>
+		</listitem>
+
+		<listitem>
+		  <para>Finally, we must in a sense roll back to what we had before and
+		  translate the <acronym>ASCII</acronym> sequences generated by each key
+		  into a <firstterm>key capability</firstterm>. This goal is reached by a
+		  <firstterm>terminal database</firstterm>, which contains, for each kind
+		  of terminal, a reverse mapping from sequences of characters to key
+		  capabilities (which are essentially a subset of the keysyms).</para>
+		  
+		  <note>
+			 <para>Unfortunately, there are two <quote>standard</quote> terminal
+			 databases, <application>termcap</application> and
+			 <application>terminfo</application>. Depending on your distribution,
+			 you could be using either one of them, or the database could even
+			 depend on the application. Our discussion will concentrate on the
+			 more modern <application>terminfo</application> database, but the
+			 suggested fixes take both into consideration. </para>
+		  </note>
+
+		  <para>For instance, on the Linux console <keycap>F1</keycap> generates
+		  an escape followed by <literal>[[A</literal>, which can be translated
+		  to the capability <literal>key_f1</literal> by looking into the
+		  terminal-database entry of the console (try <userinput>infocmp
+		  linux</userinput> if you want to have a look at the entry). A very good
+		  and thorough discussion of terminal databases can be found in
+		  <acronym>GNU</acronym>'s <application>termcap</application>
+		  manual. Usually Linux applications use the newer
+		  <application>terminfo</application> database, contained in the
+		  <application>ncurses</application> package.</para>
+
+		  <para>Maybe at this point not surprisingly, the Linux console terminfo
+		  entry maps <symbol>DEL</symbol> to the <literal>kbs</literal>
+		  (backspace key) capability, and escape followed by
+		  <literal>[3~</literal> to the <literal>kdch1</literal>
+		  (<quote>delete-one-char</quote> key) capability. Even if you could
+        find strange that the <keycap>Backspace</keycap> key emits a <symbol>DEL</symbol>,
+        the terminal database puts everything back into its right place, and correctly
+        behaving applications will interpret <symbol>DEL</symbol> as the capability
+        <literal>kbs</literal>, thus deleting the character to the left of the cursor.</para>
+		</listitem>
+	 </orderedlist>
+  </sect1>
+
+  <sect1 id="why">
+	 <title>Why It Doesn't (Always) Work</title>
+	 
+	 <para>I hope the basic problem is clear at this point: there is a
+	 bottleneck between the keyboard and the applications, that is, the fact
+	 that they can only communicate by <acronym>ASCII</acronym> sequences. So
+	 special keys must be first translated from keysyms to sequences, and then
+	 from sequences to key capabilities. Since different consoles have different
+	 ideas about what this translation can look like, we need a terminal
+	 database. The system would work flawlessly, except for a small problem: not
+	 everyone uses it.
+	 </para>
+
+	 <para>More precisely, many application <emphasis>do not use</emphasis> the
+	 terminal database (or at least not all of it), and consider
+	 <symbol>BS</symbol> and <symbol>DEL</symbol> <acronym>ASCII</acronym> codes
+	 with an intended meaning: thus, without looking at the database, they
+	 assign them semantics (usually, of course, the semantics is removing the
+	 character before or under the cursor). So now our beautiful scheme is
+	 completely broken (as every Linux user is bitterly aware). For instance,
+	 the <application>bash</application> assumes that <symbol>DEL</symbol>
+	 should do a <action>backward-delete-char</action>, that is,
+	 backspace. Hence, on a fresh install the <keycap>Backspace</keycap>
+	 key works on the console as expected, but just because of two twists in a
+	 row! Of course, the <keycap>Delete</keycap> key does not work. This happens
+	 because the <application>bash</application> does not look into the terminal
+	 database for the <literal>kdch1</literal> capability.</para> 
+
+	 <para>Just to illustrate how things have become entangled, consider the
+	 <command>fix_bs_and_del</command> script provided with the Red Hat
+	 distribution (and maybe others). It assigns on-the-fly the
+	 <keysym>BackSpace</keysym> keysym to the <keycap>Backspace</keycap> key,
+	 and the <keysym>Delete</keysym> keysym to the <keycap>Delete</keycap>
+	 key. Now the shell works! Unfortunately, all programs relying on the
+	 correct coupling of keysym generation and terminal database mappings are
+	 now not working at all, as the <keysym>Delete</keysym> keysym is mapped to
+	 <symbol>DEL</symbol>, and the latter to the <literal>kbs</literal> key
+	 capability by the terminfo database, so in such programs both keys produce
+	 backspacing.</para>
+
+  </sect1>
+
+  <sect1 id="X">
+	 <title>X</title>
+
+	 <para>The situation under X is not really different. There is just a
+	 different layer, that is, the X window system translates the scancodes into
+	 its own keysyms, which are much more varied and precise than the console
+	 ones, and feeds them into applications (by the way, this is the reason why
+	 <application>XEmacs</application> is not plagued by the problem: X
+	 translates keycode 14 to keysym <keysym>BackSpace</keysym> and keycode 111
+	 to keysym <keysym>Delete</keysym>, and then the user can easily assign to
+	 those keysyms the desired behaviour). Of course, a terminal emulator
+	 program (usually a VT100 emulator in the X world) must translate the
+	 X keysyms into ASCII sequences, so we are again in our sore
+	 business.</para>
+
+	 <para>More in detail, <application>xterm</application> behaves exactly like
+	 the console (i.e., it emits the same <acronym>ASCII</acronym> sequences),
+	 but, for instance, <application>gnome-terminal</application> emits
+	 <symbol>BS</symbol> for <keycap>Backspace</keycap> and <symbol>DEL</symbol>
+	 for <keycap>Delete</keycap>. The real fun starts when you realise that by
+	 default they use the <emphasis>same</emphasis> terminal-database entry, so
+	 the fact that the <literal>kbs</literal> capability is associated to an
+	 <acronym>ASCII</acronym> <symbol>DEL</symbol> makes all correctly behaving
+	 applications produce the same behaviour for the <keycap>Backspace</keycap>
+	 and <keycap>Delete</keycap> keys in
+	 <application>gnome-terminal</application>. The simple statement
+	 <screen>bash$ export TERM=gnome</screen> can solve the problem in this case for
+	 correctly behaving applications. Well, not always, because your system
+	 could lack an entry in the terminal database named
+	 <literal>gnome</literal>, in particular if it is not particularly up-to-date.</para>
+	 
+  </sect1>
+  
+  <sect1 id="writing">
+	 <title>What You Should Do When Writing Applications</title> 
+
+	 <para>When you write a console application, be kind to the user and try to
+	 understand what comes from the standard input using the following fallback
+	 chain:</para>
+	 <orderedlist>
+		<listitem>
+		  <para>open the right <application>terminfo</application> entry, and try
+		  to process the sequence so as to discover whether it has a particular
+		  meaning on the current terminal; if so, use the
+		  <application>terminfo</application> semantics;</para>
+		</listitem>
+		<listitem>
+		  <para>use the <acronym>ASCII</acronym> intended meaning on line feeds,
+		  newlines, tab characters and, of course, <symbol>BS</symbol> and
+		  <symbol>DEL</symbol>. Crossing your finger could also be useful.</para>
+		</listitem>
+	 </orderedlist>
+  </sect1>
+
+  <sect1 id="system">
+	 <title>What You Should Do On Your System</title>
+
+	 <para>Note again that the main issue that confuses people trying to fix
+	 their system is that usually they are fixing thing in the wrong
+	 place. Since the parts that work often just work by chance, trying to fix the
+	 system assuming something is broken will usually lead to change correct
+	 settings into incorrect settings.</para>
+
+	 <sect2>
+		<title>What Needs to Be Done</title>
+
+		<sect3>
+		  <title>Distinguishing Between Emulators</title> 
+		  
+		  <para>The first step towards a clean solution is to get rid of the
+		  confusion between <application>gnome-terminal</application> and
+		  <application>xterm</application>, and, more generally, between
+		  different terminal emulators. Theoretically, the option
+		  <literal>termname</literal> should allow the user to set the
+		  <envar>TERM</envar> variable to a more sensible name, for instance
+		  <literal>gnome</literal>. However, as of
+		  <application>gnome-terminal</application> 1.2.1 the option does not
+		  work.</para>
+		  
+		  <para>The idea here is to exploit the fact that
+		  <application>gnome-terminal</application> sets the
+		  <envar>COLORTERM</envar> variable to
+		  <literal>gnome-terminal</literal>. Thus, by adding a simple test to the
+		  shell configuration files we can fix the <envar>TERM</envar>
+		  variable.</para>
+		</sect3>
+		
+		<sect3>
+		  <title>Fixing the Terminal Database</title>
+		
+		  <para>Our problem now is that the terminal database could lack an entry
+		  named <literal>gnome</literal> (this happens on a number of
+		  <application>termcap</application> and
+		  <application>terminfo</application> versions). Recent
+		  <application>terminfo</application> databases have an entry, but since
+		  <application>gnome-terminal</application> essentially emulates
+		  <application>xterm</application> modulo a couple of keys, it is
+		  possible to automagically generate a brand new correct entry. This will
+		  fix the behaviour of all correct applications using the terminal
+		  database.</para>
+
+		</sect3>
+
+		<sect3>
+		  <title>Fixing the Shell Behaviour</title>
+		
+		  <para>The <application>readline</application> library used by the
+		  <application>bash</application> and by many other programs to read the
+		  input line can be customized so to recognize specific sequences of
+		  characters. The customization can also depend on the
+		  <envar>TERM</envar> variable, so once we can distinguish terminals we
+		  can do fine tuning of the keyboard.</para>
+
+		  <para>Moreover, if you want <application>less</application> and other
+		  application that do raw line input to work correctly, you must convince
+		  the shell that under <application>gnome-terminal</application> the
+		  erase character is <symbol>BS</symbol>, and not <symbol>DEL</symbol>
+		  (in the other case the <keycap>Backspace</keycap> key is already
+		  emitting <symbol>DEL</symbol>, so we do not have to do anything). This
+		  can be done using the command <command>stty</command>.</para>
+		</sect3>
+		  
+	 </sect2>
+
+	 <sect2>
+		<title>How to Do It</title>
+
+		<caution>
+		  <para>These fixes have some drawbacks. First, they work only for the
+		  specified terminals. Second, in theory (but this is unlikely to happen)
+		  they could confuse the <application>readline</application> library on
+		  other terminals. Both limitations are however mostly harmless.</para>
+		</caution>
+	 
+		<para>First of all, check with <userinput>infocmp gnome</userinput>
+		whether you already have a <literal>gnome</literal> entry in your
+		<application>terminfo</application> (we will fix
+		<application>termcap</application> later). If the entry does not exist,
+		the following command
+
+<programlisting>
+bash$ tic <(infocmp xterm |\
+        sed 's/xterm|/gnome|/' |\
+        sed 's/kbs=\\177,/kbs=^H,/' |\
+        sed 's/kdch1=\\E\[3~,/kdch1=\\177,/')
+</programlisting>
+
+will create a correct one in <filename>~/.terminfo</filename>. If the same
+command is launched by the root, it will generate the entry in the global
+database (you can override this behaviour by setting <envar>TERMINFO</envar> to
+<filename>~/.terminfo</filename>).</para>
+		
+		<para>Now, add add the following snippet to
+		<filename>~/.inputrc</filename><footnote id=addinputrc><para>On older
+		version of the <application>bash</application>, you must remember to set
+		<envar>INPUTRC</envar> suitably, for instance adding
+		<programlisting>export INPUTRC=~/.inputrc</programlisting> to your
+		<filename>~/.profile</filename> (or whichever file is read just by login
+		shells).</para></footnote>:
+
+<programlisting>
+"\e[3~": delete-char
+
+$if term=gnome
+DEL: delete-char
+$endif
+</programlisting>
+
+		The first line makes the <keycap>Delete</keycap> key work on the console
+		and on <application>xterm</application>, and with a bit of luck it should
+		not interfere with other terminals. The other conditional assignment
+		makes <application>gnome-terminal</application> work <emphasis>given that
+		the <envar>TERM</envar> variable is set correctly</emphasis>. To
+		guarantee this, add
+
+<programlisting>
+if [ "$COLORTERM" = "gnome-terminal" ]
+then
+    export TERM=gnome
+fi
+
+if [ "$TERM" = "gnome" ]
+then
+    export TERMCAP=$(infocmp -C gnome | grep -v '^#' | \
+                    tr '\n\t' '  ' | sed 's/\\  //g' | sed s/::/:/g)
+    stty erase ^H
+fi
+</programlisting>
+
+to your <filename>~/.bashrc</filename> configuration file<footnote><para>More
+precisely, to the shell configuration file that is read in every shell, not
+only in login shells. The right file depend on startup sequence of your
+<application>bash</application>.</para></footnote>. The assignments are executed
+only under <application>gnome-terminal</application>: the first
+<command>export</command> sets correctly the <envar>TERM</envar> variable, the
+second one creates a local <application>termcap</application> entry deriving it
+from the terminfo one<footnote><para>However, as
+<application>terminfo</application> entries gets bigger and bigger, this method
+could generate too large a <application>termcap</application>
+entry.</para></footnote>, and finally we use <command>stty</command> to
+instruct the shell that the erase character is really <symbol>BS</symbol>.
+</para>
+
+
+
+		<note>
+		  <para>If you have a Red Hat older than 6.0, then you must add also
+
+<programlisting>
+$if term=xterm
+DEL: delete-char
+$endif
+</programlisting>
+
+to your <filename>~/.inputrc</filename> file and
+
+<programlisting>
+if [ "$TERM" = "xterm" ]
+then
+    stty erase ^H
+fi
+</programlisting>
+
+to your  <filename>~/.bashrc</filename> file. The keyboard policy of Red Hat
+changed with 6.0 in a backward-incompatible way, so there is nothing you can do
+about this.</para>
+		</note>
+
+		<note>
+		  <para>Later versions or different distribution could have
+		fixes already in place in the system-wide
+<filename>/etc/inputrc</filename> configuration file, as it happens, for
+instance, in Red Hat 7.0. In this case you can eliminate redundant lines from
+your <filename>~/.inputrc</filename>. Moreover, later versions of
+<application>gnome-terminal</application> could implement the
+<literal>termname</literal> option correctly. In this case, a cleaner way of
+getting the <envar>TERM</envar> variable set correctly is to invoke 
+<application>gnome-terminal</application> with <command>gnome-terminal
+--termname=gnome</command> (and you can eliminate the check on the
+<envar>COLORTERM</envar> variable).</para>
+		</note>
+
+		</sect2>
+
+	 <sect2>
+		<title>Fixing for <application>tcsh</application></title>
+		<para>In the case of the <application>tcsh</application>, the fixes go
+all in <filename>~/.tcshrc</filename>:
+
+<programlisting width=93>
+bindkey "^[[3~" delete-char
+
+if ($?COLORTERM) then
+   if ($COLORTERM == "gnome-terminal") then
+      setenv TERM gnome
+   endif
+endif
+
+if ($?TERM) then
+   if ($TERM == "gnome") then
+      setenv TERMCAP \
+       "`infocmp -C gnome | grep -v '^#' | tr '\n\t' '  ' | sed 's/\\  //g' | sed s/::/:/g`"
+      bindkey "\177" delete-char
+      stty erase ^H
+   endif
+endif
+</programlisting>
+
+</para>
+
+		<note>
+		  <para>Of course, if you have a Red Hat older than 6.0, then you must add also
+<programlisting>
+if ($?TERM) then
+   if ($TERM == "xterm") then
+      bindkey "\177" delete-char
+      stty erase ^H
+   endif
+endif
+</programlisting>
+
+to your <filename>~/.tcshrc</filename> file.
+</para>
+		</note>
+
+	 </sect2>
+
+  </sect1>
+
+
+  <sect1 id="notwork">
+	 <title>What If Nothing Works</title>
+
+	 <para>The first thing to do is understanding which <acronym>ASCII</acronym>
+	 codes are produced by a certain key. The following C one-liner
+<programlisting>
+void main(void) {int c; while(c = getchar()) printf("%d %02X\n", c, c);}
+</programlisting>
+may help you. Put the line into a file named <filename>ascii.c</filename>,
+compile it with <command>gcc ascii.c -o ascii</command>, type
+<command>./ascii</command> and press a key followed by <keycap>RETURN</keycap>.
+The program will display the decimal and hexadecimal codes of the
+<acronym>ASCII</acronym> sequence produced (you may want to do a <command>stty
+erase ^-</command> first to get really all the codes).
+</para>
+	 
+	 <para>Once you know which sequences are produced, you must check the
+	 current <application>terminfo</application> entry with
+	 <command>infocmp</command> (don't be scared by the amount of information
+	 printed!) and be sure that the <literal>kbs</literal> and
+	 <literal>kdch1</literal> capabilities correspond to the right sequences
+	 (that is, the one produced by the respective keys).</para>
+
+	 <para>If there is a mismatch, there can be several different reason: wrong
+	 content of the <envar>TERM</envar> variable, wrong entry of the terminal
+	 database, wrong terminal emulation under X. I hope at this point you have
+	 enough information to dig the solution autonomously.</para>
+
+	 <note>
+		<para>If different applications behave in different ways, it is likely
+		that some of them are using the terminal database correctly, and some are
+		not. Remember that the fact that the keys produce the right behaviour in
+		a certain application does not mean that the application is using
+		correctly the terminal database&mdash;they could work just by chance. If you
+		want to have an independent check, you can try whether the
+		<ulink url="http://freshmeat.net/projects/ne/"><command>ne</command></ulink>
+		editor works. <command>ne</command> uses all terminal capabilities,
+		including <literal>kbs</literal> and <literal>kdch1</literal>, and uses
+		intended meaning only as a last resource.</para>
+	 </note>
+  </sect1>
+
+  <sect1 id="concl">
+	 <title>Conclusions</title>
+
+	 <para>The fixes suggested here should solve to a large extent the problem
+	 of deleting text you wrote (however, they do not help in creating other
+	 text <literal>:)</literal>).</para>
+
+	 <para>There is a small bug in the whole setting: if you start
+	 <application>xterm</application> from
+	 <application>gnome-terminal</application>, it will get <envar>TERM</envar>
+	 set to <literal>gnome</literal>. This inconvenience is, of course,
+	 harmless, and it will be solved as soon as it will be possible to start
+	 <application>gnome-terminal</application> with <envar>TERM</envar> suitably
+	 set.</para>
+
+	 <para>Finally, it should be noted that the fixes will not work for broken
+	 applications (for instance, applications ignoring the
+	 <literal>kbs</literal> key capability). There is little to do in this case,
+	 as fixing for one broken application will likely break all well-behaving
+	 ones.</para>
+	 
+  </sect1>
+</article>
