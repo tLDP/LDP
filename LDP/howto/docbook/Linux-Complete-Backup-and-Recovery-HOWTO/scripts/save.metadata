@@ -3,7 +3,7 @@
 # A script to save certain meta-data off to the boot partition. Useful for
 # restoration.
 
-# Time-stamp: <2002-08-23 16:30:05 ccurley save.metadata>
+# Time-stamp: <2003-01-19 18:12:29 root save.metadata>
 
 # Copyright 2000 through the last date of modification, Charles Curley.
 
@@ -23,6 +23,17 @@
 
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
+
+# 2003 01 08: We now age the output from rpm -VA to make back
+# comparisons easier.
+
+# The loop that creates directories now has the -p option for mkdir,
+# which means you can create parents on the fly if they don't already
+# exist.
+
+# initrd is now in the list of directories to create automatically.
+
+# We now exclude more stuff when building the tarballs.
 
 # 2002 07 01: Went to bzip2 to compress the archives, for smaller
 # results. This is important in a 100MB ZIP disk. Also some general
@@ -78,25 +89,67 @@ fi
 export zip="/mnt/zip";		# Where we will put archives
 #  export save="/mnt/save";
 
-echo "saving hard drive info"
+RPMVABACKS=/etc			# where we keep our backups
+RPMVAROOT=rpmVa			# The root name of the pg backups
+ANC=${RPMVABACKS}/${RPMVAROOT}.anc	# name for the oldest (ancient) backup
+OLD=${RPMVABACKS}/${RPMVAROOT}.old	# name for the middling oldest backup
+NEW=${RPMVABACKS}/${RPMVAROOT}.txt	# name for the newest backup
+
+if [ -f ${ANC} ]; then
+echo "Deleting ${ANC}"
+rm ${ANC}
+fi
+
+if [ -f ${OLD} ]; then
+echo "Aging ${OLD}"
+mv ${OLD} ${ANC}
+fi
+
+if [ -f ${NEW} ]; then
+echo "Aging ${NEW}"
+mv ${NEW} ${OLD}
+fi
+
+
+# Now we save hard drive information. Run make.fdisk on each hard
+# drive in the order in which it mounted from the root partition. That
+# is, run it first on the hard drive with your root partition, then
+# any hard drives that mount to the first hard drive, then any hard
+# drives that mount to those. For example, if your root partition is
+# on /dev/sdc, run "make.fdisk /dev/sdc" first.
+
+# The reason for this is that make.fdisk produces a script to make
+# mount points and then mount the appropriate partition to them during
+# first stage restore. Mount points must be created on the partition
+# where they will reside. The partitions must be mounted in this
+# order. For example, if your /var and /var/ftp are both separate
+# partitions, then you must mount /, create /var, then mount /var,
+# then create /var/ftp. The order in which the script "first.stage"
+# runs the mounting scripts is based on their time of creation.
+
+# If necessary, put a line, "sleep 1" between calls to make.fdisk.
+
+echo "Saving hard drive info"
 make.fdisk /dev/hda
 
 # back up RPM metadata
 
 echo "Verifying RPMs."
 
-rpm -Va > /etc/rpmVa.txt
+rpm -Va | sort +2 -t ' ' > ${NEW}
 
 echo "Finished verifying RPMs; now mounting the ZIP drive."
 
 # Make sure we have the ZIP drive mounted.
 umount $zip
 modprobe ppa			# Driver for 100MB parallel port ZIP disk
-mount /dev/sda1			# It should have ext2fs on partition 1.
+mount $zip			# It should have ext2fs on partition 1.
 
 # clean it all out
 rm -r $zip/*
 mkdir $zip/lost+found
+
+echo "`hostname` bare metal ZIP disk, created `date`" > $zip/README.txt
 
 echo "Building the ZIP drive backups."
 
@@ -109,24 +162,22 @@ fdisk -l /dev/hda > $zip/fdisk.hda
 ls -al /mnt > $zip/ls.mnt.txt
 ls -al / > $zip/ls.root.txt
 
-mkdir $zip/etc;
-cp -p /etc/* $zip/etc
-
 cd /
 
 # Build our minimal archives on the ZIP disk. These appear to be
 # required so we can restore later on.
 
 crunch boot boot
-crunch root root
-crunch etc etc
+crunch root root --exclude boot/.cpan --exclude root/.mozilla
+crunch etc etc --exclude etc/samba --exclude X11
 crunch lib lib
 
 crunch usr.sbin usr/sbin
-crunch usr.bin usr/bin
+crunch usr.bin usr/bin --exclude usr/bin/emacs --exclude usr/bin/emacs-21.2 --exclude usr/bin/emacsclient --exclude usr/bin/emacs-nox --exclude usr/bin/gs --exclude usr/bin/pine --exclude usr/bin/gimp-1.2 --exclude usr/bin/doxygen --exclude usr/bin/postgres --exclude usr/bin/gdb --exclude usr/bin/kmail --exclude usr/bin/splint --exclude usr/bin/odbctest --exclude usr/bin/php --exclude usr/bin/xchat --exclude usr/bin/gnucash --exclude usr/bin/pdfetex  --exclude usr/bin/pdftex --exclude usr/bin/smbcacls --exclude usr/bin/evolution-calendar --exclude usr/bin/xpdf --exclude usr/bin/xmms
 crunch sbin sbin
 crunch bin bin
 crunch dev dev
+crunch kerberos usr/kerberos/lib/
 
 # Now optional saves.
 
@@ -135,7 +186,7 @@ crunch dev dev
 
 # save these so we can use ssh for restore. *crack* for RH 7.0 login
 # authentication.
-crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto* 
+crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto*
 
 # save the scripts we used to create the ZIP disk and the ones we will
 # use to restore it.
@@ -158,4 +209,5 @@ find $zip -iname "*.bz2" | xargs bunzip2 -t
 #  mkdir $save/zip
 #  cp -pr $zip $save
 
+du -hs ${zip}*
 df -m
