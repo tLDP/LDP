@@ -1,3 +1,6 @@
+DELETE FROM error_i18n;
+DELETE FROM error;
+
 INSERT INTO error (err_id) VALUES (1);
 INSERT INTO error (err_id) VALUES (2);
 
