@@ -1,13 +1,15 @@
 DROP TABLE username;
 
 CREATE TABLE username (
-	username	CHAR(20)	NOT NULL,
+	user_id		INT4		NOT NULL,
+	username	CHAR(20)	NOT NULL UNIQUE,
+	session_id	CHAR(20),
 	first_name	CHAR(20),
 	surname		CHAR(20),
-	maintainer_id	INT4,
 	email		TEXT,
 	admin		BOOLEAN,
-	editor_id	INT4,
+	password	CHAR(12),
+	notes		TEXT,
 
-	PRIMARY KEY (username)
+	PRIMARY KEY (user_id)
 );
