@@ -5,12 +5,12 @@ insert([home], [Le Lampadas], [Le Lampadas],
 	<p>Merci de ne pas envoyer de rapport de bogue pour le moment
 ])
 
-insert([doctable], [Table des docs],
+insert([doctable], [Table des docs], [Table des docs],
 [
-	|tabdocstable|
+	|tabdocs|
 ])
 
-insert([news], [News], [News],
+insert([news], [|project| News], [|projectshort| News],
 [
 	|tabnews|
 ])
@@ -61,9 +61,6 @@ insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
 	incluant auteurs, &eacute;diteurs, experts techniques et lecteurs,
 	qui collaborent et partagent des informations.
 
-	<p>See <a href="contribute">Contribuer &agrave; Lampadas</a>.
-
-	<p>...
 ])
 
 insert([copyright], [Le Copyright], [Le Copyright],

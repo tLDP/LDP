@@ -8,10 +8,10 @@ insert([home], [Lampadas], [Home],
 
 insert([doctable], [DocTable], DocTable,
 [
-    |tabdocstable|
+    |tabdocs|
 ])
 
-insert([news], [News], [News],
+insert([news], [|project| News], [|projectshort| News],
 [
     |tabnews|
 ])
@@ -94,10 +94,7 @@ insert([lampadas], [About Lampadas], About Lampadas,
     includes authors, editors, technical experts, and readers all working
     together to produce documentation, and to share information with each other.
 
-    <p>See <a href="contribute">Contributing to |project|</a> for information on
-    how you can assist.
-
-    <h2>Why Lampadas?</h2>
+    <h1>Why Lampadas?</h1>
 
     <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas as the name
     of the Bene Gesserit teaching planet, which plays a role in the final book,

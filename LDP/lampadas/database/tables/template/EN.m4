@@ -10,12 +10,18 @@ insert(default,
 	    <table class="layout" style="width:100%">
 	      <tr><td colspan=2>|header|</td></tr>
 	      <tr>
-		<td width="200" valign="top">
-            |tabmenus|
-        </td>
-		<td valign="top">|body|</td>
+            <td width="200" valign="top">
+              <table class="margin"><tr><td>
+                |tabmenus|
+              </td></tr></table>
+            </td>
+            <td valign="top" class="body">
+              <table class="body"><tr><td>
+                |body|
+              </td></tr></table>
+            </td>
 	      </tr>
-	      <tr><td colspan=2>|footer|</td></tr>
+	    <tr><td colspan=2>|footer|</td></tr>
 	    </table>
 	  </body>
 	</html>

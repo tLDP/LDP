@@ -20,6 +20,8 @@ tables =  audience block \
 	language \
 	language_i18n \
 	license \
+	news \
+	news_i18n \
 	notes \
 	page \
 	page_i18n \
