@@ -23,6 +23,7 @@ CREATE TABLE document
 	abstract		TEXT,
 	rating			REAL,
 	lang			CHAR(2),
+	sk_seriesid		CHAR(36),
 
 	PRIMARY KEY (doc_id)
 );
