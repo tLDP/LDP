@@ -12,6 +12,7 @@ my($level1,
    $level3,
    $orderedlist,
    $listitem,
+   $itemizedlist,
    $para,
    $qandaset,
    $qandaentry,
@@ -90,6 +91,7 @@ sub proc_txt {
 		# blank lines
 		if ($line eq '') {
 			&closenonsect;
+			&closelists;
 			next;
 		}
 
@@ -123,6 +125,10 @@ sub proc_txt {
 			next;
 		}
 
+		# capitalize hints that can be entered in lowercase
+		$line =~ s/^q:/Q:/;
+		$line =~ s/^a:/A:/;
+
 		if ($line =~ /^===/) {
 			&close3;
 			&splittitle;
@@ -151,7 +157,7 @@ sub proc_txt {
 			}
 			$level1 = 1;
 		} elsif ($line =~ /^#/) {
-#			&closeqandaset;
+			&closeitemizedlist;
 			if ($orderedlist == 0) {
 				$buf .= "\n<orderedlist>\n";
 				$orderedlist = 1;
@@ -163,13 +169,14 @@ sub proc_txt {
 			$listitem = 1;
 			$para = 1;
 		} elsif ($line =~ /^\*/) {
-#			&closeqandaset;
-			if ($list == 0) {
-				$buf .= "\n<simplelist>\n";
-				$list = 1;
+			&closeorderedlist;
+			if ($itemizedlist == 0) {
+				$buf .= "\n<itemizedlist>\n";
+				$itemizedlist = 1;
 			}
 			&closelistitem;
 			$line =~ s/^\*//;
+			&trimline;
 			$line =~ s/^/\n<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
@@ -219,7 +226,6 @@ sub proc_txt {
 			$link = $line;
 			$link =~ s/^.*?\[\[//;
 			$link =~ s/\]?\].*$//;
-			print "link=$link\n";
 			if ( $link =~ /\|/) {
 				$linkname = $link;
 				$link =~ s/\|.+$//;
@@ -242,8 +248,10 @@ sub proc_txt {
 
 		# filename
 		#
-		$line =~ s/\[/<filename>/;
-		$line =~ s/\]/<\/filename>/;
+		while ($line =~ /\[.*?\]/) {
+			$line =~ s/\[/<filename>/;
+			$line =~ s/\]/<\/filename>/;
+		}
 
 		$buf .= $line;
 	}
@@ -270,7 +278,7 @@ sub close2 {
 
 sub close3 {
 	&closeorderedlist;
-	&closelist;
+	&closeitemizedlist;
 	&closepara;
 	&closeqandaset;
 	if ($level3 == 1) {
@@ -282,8 +290,16 @@ sub close3 {
 sub closenonsect {
 	&closepara;
 	&closeorderedlist;
-	&closelist;
+	&closeitemizedlist;
 #	&closeqandaentry;
+}
+
+sub closelistitem {
+	&closepara;
+	if ($listitem == 1 ) {
+		$buf .= "</listitem>\n";
+		$listitem = 0;
+	}
 }
 
 sub closeorderedlist {
@@ -295,21 +311,18 @@ sub closeorderedlist {
 	}
 }
 
-sub closelist {
+sub closeitemizedlist {
 	&closepara;
 	&closelistitem;
-	if ($list == 1 ) {
-		$buf .= "</simplelist>\n";
-		$list = 0;
+	if ($itemizedlist == 1 ) {
+		$buf .= "</itemizedlist>\n";
+		$itemizedlist = 0;
 	}
 }
 
-sub closelistitem {
-	&closepara;
-	if ($listitem == 1 ) {
-		$buf .= "</listitem>\n";
-		$listitem = 0;
-	}
+sub closelists {
+	&closeitemizedlist;
+	&closeorderedlist;
 }
 
 sub closeanswer {
