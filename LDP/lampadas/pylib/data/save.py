@@ -162,33 +162,61 @@ def newdocument_note(req, doc_id, notes, creator):
     doc.notes.add(notes, creator)
     go_back(req)
     
-def newuser(req, username, email, first_name, middle_name, surname):
+def newaccount(req, username, email, first_name, middle_name, surname):
+    """
+    This routine is for when a user requests an account.
+    """
     
     if username=='':
         return page_factory.page('username_required')
 
     user = lampadas.users[username]
-    if user.username>'':
+    if user:
         return page_factory.page('user_exists')
     if lampadas.users.is_email_taken(email):
         return page_factory.page('email_exists')
 
-    # establish random password, 10 characters
-    # 
+    password = random_password()
+    mail_password(email, password)
+    lampadas.users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
+    return page_factory.page('account_created')
+
+def random_password():
+    """
+    Establishes a random password, 10 characters long.
+    """
+    
     chars = string.letters + string.digits
     password = ''
     for x in range(10):
         password += whrandom.choice(chars)
 
-    lampadas.users.add(username, first_name, middle_name, surname, email, 'f', 'f', password, '', 'default')
+def mail_password(email, password):
+    """
+    Mails the password to the user.
+    """
 
-    # mail the password to the new user
-    # 
     server = smtplib.SMTP(config.smtp_server)
     server.set_debuglevel(1)
     server.sendmail(config.admin_email, email, 'Your password is ' + password)
     server.quit()
-    return page_factory.page('account_created')
+
+def newuser(req, username, email, first_name, middle_name, surname, stylesheet, password, admin, sysadmin, notes):
+    """
+    This routine is for when an administrator manually adds an account.
+    """
+
+    if username=='':
+        return page_factory.page('username_required')
+
+    user = lampadas.users[username]
+    if user:
+        return page_factory.page('user_exists')
+    if lampadas.users.is_email_taken(email):
+        return page_factory.page('email_exists')
+
+    lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
+    redirect(req, '/user/' + username)
 
 def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
     user = lampadas.users[username]

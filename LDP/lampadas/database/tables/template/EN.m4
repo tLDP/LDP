@@ -12,7 +12,7 @@ insert(default,
 	    <table class="layout">
 	      <tr>
             <td>
-              |header|
+              |blkheader|
             </td>
 	      </tr>
         </table>
@@ -32,7 +32,7 @@ insert(default,
 	    <table class="layout">
 	      <tr>
             <td>
-              |footer|
+              |blkfooter|
             </td>
 	      </tr>
         </table>
@@ -54,7 +54,7 @@ insert(index,
 	    <table class="layout">
 	      <tr>
             <td>
-              |header|
+              |blkheader|
             </td>
 	      </tr>
         </table>
@@ -78,7 +78,7 @@ insert(index,
 	    <table class="layout">
 	      <tr>
             <td>
-              |footer|
+              |blkfooter|
             </td>
 	      </tr>
         </table>

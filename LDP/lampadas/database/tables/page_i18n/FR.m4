@@ -32,6 +32,22 @@ insert([home], [|strproject|], [Home],
 	<p>Ce syst&egrave;me est en cours de d&eacute;veloppement. Son code est modifi&eacute; en permanence ce qui le rend instable.
 
 	<p>Merci de ne pas envoyer de rapport de bogue pour le moment
+
+    <p>This demo site provides the following users. Log in as one of
+    them to see the site through their eyes!
+
+    <ul>
+        <li>sysadmin - the SUPERUSER, who manages the system.</li>
+        <li>admin - the Site Administrator, who manages the content.</li>
+        <li>english - an English-speaking user.</li>
+        <li>french - a French-speaking user.</li>
+        <li>german - a German-speaking user.</li>
+        <li>korean - a Korean-speaking user.</li>
+    </ul>
+
+    <p>All of these accounts use the password &quot;password&quot;.
+    Log in as one of them, and check it out, or apply for your own
+    account.
 ])
 
 insert([doctable], [Table des docs], [Table des docs],
@@ -228,7 +244,7 @@ insert([account_created], [Account Created], [],
     Please check your email.
 ])
 
-insert([user], [|user_name|], [],
+insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
 ])

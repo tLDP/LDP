@@ -285,6 +285,11 @@ class TableFactory:
         return str(value) + '/' + str(max)
 
     def doc(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         if uri.id > 0:
             doc = lampadas.docs[uri.id]
             box = '<form method=GET action="data/save/document" name="document">'
@@ -346,7 +351,12 @@ class TableFactory:
         box = box + '</form>\n'
         return box
 
-    def docversions(self, uri):
+    def docversions(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating docversions table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -388,7 +398,12 @@ class TableFactory:
         return box
         
 
-    def docfiles(self, uri):
+    def docfiles(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -429,7 +444,12 @@ class TableFactory:
         return box
         
 
-    def docusers(self, uri):
+    def docusers(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating docusers table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -472,7 +492,12 @@ class TableFactory:
         return box
         
 
-    def doctopics(self, uri):
+    def doctopics(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating doctopics table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -510,6 +535,11 @@ class TableFactory:
 
 
     def docnotes(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating docnotes table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -541,7 +571,12 @@ class TableFactory:
         return box
 
 
-    def docerrors(self, uri):
+    def docerrors(self, uri, user):
+        if not user:
+            return '|blknopermission|'
+        elif user.can_edit(doc_id=uri.id)==0:
+            return '|blknopermission|'
+
         log(3, 'Creating docerrors table')
         doc = lampadas.docs[uri.id]
         box = ''
@@ -592,23 +627,38 @@ class TableFactory:
     
 
     def user(self, uri, build_user):
-        box = '<table class="box">\n'
+        if not build_user:
+            return '|blknopermission|'
+        elif build_user.can_edit(username=uri.username)==0:
+            return '|blknopermission|'
+
         if uri.username > '':
             user = lampadas.users[uri.username]
-            box = box + '<form method=GET action="data/save/user" name="user">\n'
+            if user==None:
+                return '|blknotfound|'
+            box = '<form method=GET action="data/save/user" name="user">\n'
         else:
             user = User()
-            box = box + '<form method=GET action="data/save/newuser" name="user">\n'
-        box = box + '<input name="username" type=hidden value=' + uri.username + '></input>\n'
+            box = '<form method=GET action="data/save/newuser" name="user">\n'
+        box = box + '<table class="box">\n'
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
-        box = box + '<tr><th class="label">|strusername|</th><td>' + uri.username + '</td>\n'
+        box = box + '<tr><th class="label">|strusername|</th>'
+        if user.username=='':
+            box = box + '<td><input type=text name="username"></td>\n'
+        else:
+            box = box + '<td><input name="username" type=hidden value=' + uri.username + '>' + uri.username + '</td>\n'
         box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
-        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name size="15" value="' + user.first_name + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname size="15" value="' + user.surname + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email size="15" value="' + user.email + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></input></td></tr>\n'
-        box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password size="12"></input></td></tr>\n'
+        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name size="15" value="' + user.first_name + '"></td></tr>\n'
+        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></td></tr>\n'
+        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname size="15" value="' + user.surname + '"></td></tr>\n'
+        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email size="15" value="' + user.email + '"></td></tr>\n'
+        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
+        box = box + '<tr><th class="label">'
+        if user.username=='':
+            box = box + '|strnewpassword|'
+        else:
+            box = box + '|strpassword|'
+        box = box + '</th><td><input type=text name=password size="12"></td></tr>\n'
         if build_user and build_user.admin > 0 or build_user.sysadmin > 0:
             box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
             box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
@@ -616,8 +666,8 @@ class TableFactory:
             box = box + '<tr><th class="label">|stradmin|</th><td>' + bool2yesno(user.admin) + '</td></tr>\n'
             box = box + '<tr><th class="label">|strsysadmin|</th><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
-        box = box + '</form>\n'
         box = box + '</table>\n'
+        box = box + '</form>\n'
         return box
         
     def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
@@ -828,8 +878,8 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><td class="label">|strusername|</td><td><input type=text name=username size=12></input></td></tr>\n'
-            box = box + '<tr><td class="label">|strpassword|</td><td><input type=password name=password size=12></input></td></tr>\n'
+            box = box + '<tr><td class="label">|strusername|</td><td><input type=text name=username size=12></td></tr>\n'
+            box = box + '<tr><td class="label">|strpassword|</td><td><input type=password name=password size=12></td></tr>\n'
             box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
             box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
             box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
@@ -977,19 +1027,34 @@ class PageFactory:
                 # 
                 if token=='user.username':
                     user = lampadas.users[uri.username]
-                    newstring = user.username
+                    if not user:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = user.username
                 if token=='user.name':
                     user = lampadas.users[uri.username]
-                    newstring = user.name
+                    if not user:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = user.name
                 if token=='type.name':
                     type = lampadas.types[uri.code]
-                    newstring = type.name[uri.lang]
+                    if not type:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = type.name[uri.lang]
                 if token=='topic.name':
                     topic = lampadas.topics[uri.code]
-                    newstring = topic.name[uri.lang]
+                    if not topic:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = topic.name[uri.lang]
                 if token=='topic.description':
                     topic = lampadas.topics[uri.code]
-                    newstring = topic.description[uri.lang]
+                    if not topic:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = topic.description[uri.lang]
 
                 # Tables
                 # 
@@ -1008,15 +1073,15 @@ class PageFactory:
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri, build_user)
                 if token=='tabdocfiles':
-                    newstring = self.tablef.docfiles(uri)
+                    newstring = self.tablef.docfiles(uri, build_user)
                 if token=='tabdocusers':
-                    newstring = self.tablef.docusers(uri)
+                    newstring = self.tablef.docusers(uri, build_user)
                 if token=='tabdocversions':
-                    newstring = self.tablef.docversions(uri)
+                    newstring = self.tablef.docversions(uri, build_user)
                 if token=='tabdoctopics':
-                    newstring = self.tablef.doctopics(uri)
+                    newstring = self.tablef.doctopics(uri, build_user)
                 if token=='tabdocerrors':
-                    newstring = self.tablef.docerrors(uri)
+                    newstring = self.tablef.docerrors(uri, build_user)
                 if token=='tabdocnotes':
                     newstring = self.tablef.docnotes(uri, build_user)
                 if token=='tabcvslog':

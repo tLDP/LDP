@@ -49,6 +49,7 @@ class URI:
         self.anchor = ""
         
         self.filename = "home"
+        self.username = ''
         self.id = 0
         self.code = ''
         self.letter = ''

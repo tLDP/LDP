@@ -1270,7 +1270,11 @@ class Users:
     """
 
     def __getitem__(self, username):
-        return User(username)
+        user = User(username)
+        if user.username==username:
+            return User(username)
+        else:
+            return None
 
     def count(self):
         return db.read_value('SELECT count(*) from username')
@@ -1310,7 +1314,7 @@ class User:
     and act on the database according to his rights.
     """
 
-    def __init__(self, username) :
+    def __init__(self, username='') :
         self.username       = ''
         self.session_id     = ''
         self.first_name     = ''
@@ -1353,10 +1357,12 @@ class User:
         db.runsql(sql)
         db.commit()
 
-    def can_edit(self, doc_id=None):
+    def can_edit(self, doc_id=None, username=None):
         if self.admin > 0 or self.sysadmin > 0:
             return 1
         if doc_id and self.docs.has_key(doc_id):
+            return 1
+        if username and username==self.username:
             return 1
         return 0
         

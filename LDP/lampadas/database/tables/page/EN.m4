@@ -2,6 +2,7 @@ insert(newdocument,         default,    user,       1,  t,  f,  f)
 
 insert(admin,               default,    admin,      1,  f,  t,  f)
 insert(users,               default,    admin,      2,  f,  t,  f)
+insert(user,                default,    admin,      3,  f,  t,  f)
 
 insert(sysadmin,            default,    sysadmin,   1,  f,  f,  t)
 
@@ -36,7 +37,6 @@ insert(user_exists,         default,    none,       0,  f,  f,  f)
 insert(username_required,   default,    none,       0,  f,  f,  f)
 insert(email_exists,        default,    none,       0,  f,  f,  f)
 insert(account_created,     default,    none,       0,  f,  f,  f)
-insert(user,                default,    none,       0,  f,  f,  f)
 insert(logged_in,           default,    none,       0,  f,  f,  f)
 insert(logged_out,          default,    none,       0,  f,  f,  f)
 insert(type,                default,    none,       0,  f,  f,  f)

@@ -35,6 +35,22 @@ insert([home], [|strproject|], [Home],
     Dokumentenverwaltungssystems Lampadas welches im Rahmen des
     <a href="http://www.tldp.org">Linux-Dokumentations-Projekts</a>
     entwickelt wird.
+
+    <p>This demo site provides the following users. Log in as one of
+    them to see the site through their eyes!
+
+    <ul>
+        <li>sysadmin - the SUPERUSER, who manages the system.</li>
+        <li>admin - the Site Administrator, who manages the content.</li>
+        <li>english - an English-speaking user.</li>
+        <li>french - a French-speaking user.</li>
+        <li>german - a German-speaking user.</li>
+        <li>korean - a Korean-speaking user.</li>
+    </ul>
+
+    <p>All of these accounts use the password &quot;password&quot;.
+    Log in as one of them, and check it out, or apply for your own
+    account.
 ])
 
 insert([doctable], [DocTable], [],
@@ -365,7 +381,7 @@ insert([account_created], [Benutzerkonto angelegt], [],
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ])
 
-insert([user], [|user.name|], [],
+insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
 ])

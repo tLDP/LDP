@@ -304,7 +304,7 @@ insert([newuser], [New User], [],
 [
     <p>To create a new user account, fill out this form.
     <p>
-    <form name="newuser" action="data/save/newuser" method=GET>
+    <form name="newuser" action="data/save/newaccount" method=GET>
         <table class="box">
             <tr>
                 <td class="label">*Username</td>
@@ -400,7 +400,7 @@ insert([account_created], [Account Created], [],
     Please check your email.
 ])
 
-insert([user], [|user.name|], [],
+insert([user], [Edit User Record], [Add User],
 [
     |tabuser|
 ])
