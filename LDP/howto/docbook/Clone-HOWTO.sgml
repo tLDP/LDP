@@ -1,0 +1,535 @@
+<!doctype article public "-//OASIS//DTD DocBook V4.1//EN">
+<article id="index">
+	<articleinfo>
+		<title>HOWTO Clone Disk Images on Linux Booted from a Network</title>
+		<authorgroup>
+			<author>
+				<firstname>Guilherme</firstname>
+				<surname>Tupynamb&aacute;</surname>
+				<affiliation>
+					<address>
+						<email>gtupy (at) uol.com.br</email>
+					</address>
+				</affiliation>
+			</author>
+		</authorgroup>
+		<pubdate>2002-09-09</pubdate>
+		<revhistory>
+			<revision>
+				<revnumber>0.3</revnumber>
+				<date>2002-09-24</date>
+				<authorinitials>gct</authorinitials>
+				<revremark>Review suggestions incorporated</revremark>
+			</revision>
+			<revision>
+				<revnumber>0.2</revnumber>
+				<date>2002-09-23</date>
+				<authorinitials>jyg</authorinitials>
+				<revremark>Minor revisions</revremark>
+			</revision>
+			<revision>
+				<revnumber>0.1</revnumber>
+				<date>2002-09-09</date>
+				<authorinitials>gct</authorinitials>
+				<revremark>First draft.</revremark>
+			</revision>
+		</revhistory>
+		<abstract>
+			<para>This document describes a setup that allows a machine to boot Linux from BOOTP/TFTP, using the Grub boot loader, and save and restore disk and partition images to and from a TFTP server.</para>
+		</abstract>
+	</articleinfo>
+	<sect1 id="legal">
+		<title>Legal Notices</title>
+		<sect2>
+			<title>Disclaimer</title>
+			<para>This article assumes that the reader using the described setup is familiar with the technical concepts and commands. If you are not comfortable issuing the commands in this document or don't understand the clone script, don't try these instructions.</para>
+			<para>Additionally, if you do not know the difference between <filename>/dev/hda</filename> and <filename>/dev/hda1</filename>, please do not use this HOWTO. This may be the difference between restoring a partition and losing all your data. Please note that I take no responsibility for anything that may go wrong, even if the error resulting from any incorrectness in this article.</para>
+			<para>For the purpose of this document, the RedHat 7.3 distribution has been used in both server and client. Although this shouldn't make great difference, no test has been made on other distributions or custom setups.</para>
+		</sect2>
+		<sect2>
+			<title>Copyright</title>
+			<para>Copyright (c) 2002 Guilherme Tupynamb&aacute;</para>
+			<para>Permission is granted to copy, distribute and/or modify this document under the terms of the <ulink url="http://www.gnu.org/copyleft/fdl.html">GNU Free Documentation License (GFDL)</ulink>, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts. The clone script is licensed in the terms of the <ulink url="http://www.gnu.org/copyleft/gpl.html">GNU General Public License (GPL)</ulink>.</para>
+		</sect2>
+		<sect2>
+			<title>Feedback</title>
+			<para>Comments on this article will be highly appreciated. Direct your comments to <email>gtupy (at) uol.com.br</email>.</para>
+		</sect2>
+	</sect1>
+	<sect1 id="introduction">
+		<title>Introduction</title>
+		<sect2>
+			<title>Why clone disk images</title>
+			<para>The main reason to clone disk images is to ease the installation of an operating system and a basic set of applications over a large number of machines. One standard machine is prepared and its pristine image is saved to be restored on other machines saving efforts and simplifying procedures.</para>
+		</sect2>
+		<sect2>
+			<title>Why boot from a network</title>
+			<para>Booting from hard disk would limit the possibilities of copying images. It wouldn't be possible, for instance, to safely copy to and from a partition mounted by the booted operating system. Also, the operating system may not be Linux, in which case free options to clone are not available.</para>
+		</sect2>
+		<sect2>
+			<title>Network boot process overview</title>
+			<para>The client machine boots from a Grub floppy disk. Then, using the Grub BOOTP support, it gets an IP address from a DHCP server. Next, the client machine downloads the kernel and initrd images from the TFTP server. Once the initrd image is mounted in memory, the initialization script is run, making use of the programs and files stored in this image. This script allows block devices contents to be saved in the TFTP server, and contents from the TFTP server to be written to the block devices.</para>
+		</sect2>
+	</sect1>
+	<sect1 id="setting-up">
+		<title>Setting up DHCP and TFTP servers</title>
+		<para>A DHCP server is required to provide IP addresses for the clients when booting Grub (BOOTP) and later when booting Linux. A TFTP server is required to make the boot images available on the network for Linux to boot. The TFTP server is also necessary to make it possible to save and restore the disk images.</para>
+		<sect2>
+			<title>Setting up DHCP</title>
+			<para>Details on DHCP are beyond the scope of this article. The <quote>Linux Networking HOWTO</quote> has a chapter on DHCP.</para>
+			<para>Setting up DHCP is very easy, but if you are in a network environment administered by someone else, it's advisable to use a preexisting DHCP server. If you "own" the network then you can follow this procedure.</para>
+			<para>Install DHCP, if not installed, from the rpm package, normally found in Linux distributions:</para>
+			<programlisting>
+<prompt># </prompt>rpm -ihv dhcp-*.rpm
+			</programlisting>
+			<para>Edit the <filename>/etc/dhcpd.conf</filename> file to configure DHCP service. In our setup, the server has IP address 10.0.0.1 and provides IP addresses up to 253 clients. Configure <filename>/etc/dhcpd.conf</filename> according to your environment:</para>
+			<programlisting>
+#/etc/dhcpd.conf
+server-identifier dhcp.clonedomain.com;
+default-lease-time	172800;
+max-lease-time		604800;
+option domain-name	"clonedomain.com";
+subnet 10.0.0.0 netmask 255.255.255.0 {
+	range dynamic-bootp 10.0.0.2 10.0.0.254;
+}
+			</programlisting>
+			<para>Start the dhcpd server:</para>
+			<para><command>/etc/rc.d/init.d/dhcpd start</command>.</para>
+		</sect2>
+		<sect2>
+			<title>Setting up TFTP</title>
+			<para>Setting up TFTP is almost as easy as DHCP.</para>
+			<para>First install from the rpm package:</para>
+			<programlisting>
+<prompt># </prompt>rpm -ihv tftp-server-*.rpm
+			</programlisting>
+			<para>Create a directory for the files:</para>
+			<programlisting>
+<prompt># </prompt>mkdir /tftpboot
+<prompt># </prompt>chown nobody:nobody /tftpboot
+			</programlisting>
+			<para>The directory <filename class="directory">/tftpboot</filename> is owned by user <varname>nobody</varname>, because this is the default user id set up by tftpd to access the files.</para>
+			<para>Edit the file <filename>/etc/xinetd.d/tftp</filename> to look like the following:</para>
+			<programlisting>
+service tftp
+{
+	socket_type	= dgram
+	protocol	= udp
+	wait		= yes
+	user		= root
+	server		= /usr/sbin/in.tftpd
+	server_args	= -c -s /tftpboot
+	disable		= no
+	per_source	= 11
+	cps		= 100 2
+}
+			</programlisting>
+			<para>The changes from the default file are the parameter <parameter>disable = no</parameter> (to enable the service) and the server argument <parameter>-c</parameter>. This argument allows for the creation of files, which is necessary if you want to save boot or disk images. You may want to make TFTP read only in normal operation.</para>
+			<para>Then reload xinetd:</para>
+			<para><command>/etc/rc.d/init.d/xinetd reload</command></para>
+			<para>You can use the <command>tftp</command> command, available from the tftp (client) rpm package, to test the server. At the tftp prompt, you can issue the commands <command>put</command> and <command>get</command>.</para>
+		</sect2>
+		<sect2>
+			<title>Using different servers</title>
+			<para>It is possible to use different servers for DHCP and TFTP. This may be necessary if using a preexisting DHCP server. You can configure the <parameter>next-server</parameter> parameter in DHCP to point to the TFTP server or you can use the command <command>tftpserver</command> in Grub.</para>
+		</sect2>
+	</sect1>
+	<sect1 id="preparing">
+		<title>Preparing boot files</title>
+		<para>Now that the server is set up, you need to prepare the files to make the client boot. Two files are necessary: the kernel and the init ramdisk (initrd) which will be mounted by the kernel as the root file system. This document assumes that the procedures outlined in this section and the next are made in the client machine. Normally, when saving and restoring disk images, there is no need to have Linux installed on a local hard disk. To deploy disk images to a number of machines, start by installing a Linux distribution on one machine for each model. Use DHCP and have TFTP client to test the setup made in the previous section. Unless otherwise noted, commands are issued in the <command>bash</command> shell by the user <varname>root</varname> in a working directory.</para>
+		<sect2>
+			<title>Kernel</title>
+			<para>Identify the compressed kernel file:</para>
+			<programlisting>
+<prompt># </prompt>cd /boot
+<prompt># </prompt>ls vmlinuz-$(uname -r)
+vmlinuz-2.4.18-3
+			</programlisting>
+			<para>The version may vary, according to your system. Upload this file to the TFTP server, renaming it to <filename>vmlinuz</filename>:</para>
+			<programlisting>
+<prompt># </prompt>tftp 10.0.0.1
+<prompt>tftp> </prompt>binary
+<prompt>tftp> </prompt>put vmlinuz-2.4.18-3 vmlinuz
+Sent 1030147 bytes in 2.3 seconds
+<prompt>tftp> </prompt>quit
+			</programlisting>
+			<para>You may want to keep the file name, or have different names for different hardware models or kernel versions. We use the same names for the kernel and initrd so we don't have to make another boot floppy disk after changing the kernel or the initrd images.</para>
+		</sect2>
+		<sect2>
+			<title>Files on initrd</title>
+			<para>Next, make the root file system image for the client. The full listing of the files is in <xref linkend="initrdfiles">.</para>
+			<para>These files have been taken from a working system as a minimum configuration for having powerful shell (<command>bash</command>), client network utilities (<command>dhcpcd</command> and <command>tftp</command>), and copying and compressing utilities (<command>dd</command>, <command>gzip</command>). Administrative commands (<command>mknod</command>, <command>mount</command>, <command>fdisk</command> and <command>insmod</command>) are also present.</para>
+			<para>In the working directory create a file named <filename>initrd.lst</filename> and put these file names on it. To check the existence of these files in your system, run the following command:</para>
+			<programlisting>
+<prompt># </prompt>ls -d $(&lt;initrd.lst) &gt; /dev/null
+			</programlisting>
+			<para>You should get an error output like this:</para>
+			<programlisting>
+ls: /bin/clone: No such file or directory
+ls: /bin/tftp: No such file or directory
+ls: /lib/3c59x.o: No such file or directory
+			</programlisting>
+			<para>The first error is a script to be created in the working directory. The second error is the program <command>tftp</command> found in the directory <filename class="directory">/usr/bin</filename> instead of <filename class="directory">/bin</filename>. The third is the network interface card module (probably not yours) found in the directory <filename class="directory">/lib/modules/$(uname -r)/kernel/drivers/net</filename>.</para>
+			<para>These three files will be discussed in upcoming sections separately soon. If there are other missing files, check for lack of installation or differences in version, distribution or hardware. Adjust the list to match your system.</para>
+		</sect2>
+		<sect2>
+			<title>Packing initrd</title>
+			<para>The next step is to make the image. A size of 4 Mbytes was enough to hold the files in our setup. You may increase this size if necessary.</para>
+			<programlisting>
+<prompt># </prompt>dd if=/dev/zero of=initrd bs=1024 count=4096
+4096+0 records in
+4096+0 records out
+<prompt># </prompt>yes | mkfs initrd
+mke2fs 1.27 (8-Mar-2002)
+initrd is not a block special device.
+Proceed anyway? (y,n) Filesystem label=
+blah blah blah...
+<prompt># </prompt>mkdir mnt
+<prompt># </prompt>mount -o loop initrd mnt/
+<prompt># </prompt>egrep -v "clone|3c59x|tftp" initrd.lst | cpio -pdm mnt
+4876 blocks
+			</programlisting>
+			<para>Now the three files excluded by the <command>egrep</command> command. Copy the <filename>tftp</filename> program from <filename class="directory">/usr/bin</filename> to the image directory:</para>
+			<programlisting>
+<prompt># </prompt>cp -p /usr/bin/tftp mnt/bin/
+			</programlisting>
+			<para>Identify the proper module for your network interface card. Use the output of the commands <command>lspci</command> and <command>lsmod</command> to identify the file, which resides in the directory <filename class="directory">/lib/modules/$(uname -r)/kernel/drivers/net</filename>.</para>
+			<note><para>Whenever you see a reference to <emphasis>3c59x</emphasis>, use the name of the module suited for your case.</para></note>
+			<programlisting>
+<prompt># </prompt>cp -p /lib/modules/$(uname -r)/kernel/drivers/net/3c59x.o mnt/lib/
+			</programlisting>
+			<para>Edit the clone script found in <xref linkend="clonescript">, changing the variables as explained in <xref linkend="running">. Make it executable and copy it to the image directory:</para>
+			<programlisting>
+<prompt># </prompt>chmod +x clone
+<prompt># </prompt>cp -p clone mnt/bin/
+			</programlisting>
+			<para>Unmount, compress, and send the initrd image.</para>
+			<programlisting>
+<prompt># </prompt>umount mnt/
+<prompt># </prompt>gzip initrd
+<prompt># </prompt>tftp 10.0.0.1
+<prompt>tftp> </prompt>binary
+<prompt>tftp> </prompt>put initrd.gz
+Sent 1155530 bytes in 2.8 seconds
+<prompt>tftp> </prompt>quit
+			</programlisting>
+		</sect2>
+	</sect1>
+	<sect1 id="booting">
+		<title>Booting from Grub floppy disk</title>
+		<para>The next step is to make a boot floppy disk using Grub. GNU Grub is the GRand Unified Bootloader. It can handle BOOTP and TFTP, so it can boot from network.</para>
+		<sect2>
+			<title>Grub menu file</title>
+			<para>In the working directory create a file named <filename>grub.conf</filename> with the following content:</para>
+			<programlisting>
+default=0
+timeout=1
+title Clone
+	bootp
+	root (nd)
+	kernel /vmlinuz rw root=/dev/ram ramdisk_size=4096 init=/bin/clone
+	initrd /initrd.gz
+			</programlisting>
+			<para>In the last four lines are the Grub commands to boot from network:</para>
+			<itemizedlist>
+				<listitem>
+					<para><command>bootp</command>, to get an IP address from the DHCP server.</para>
+				</listitem>
+				<listitem>
+					<para><command>root (nd)</command>, to set the root in the network (TFTP server). An alternative TFTP server could be set before this command using the command <command>tftpserver</command> <parameter>&lt;tftp server&gt;</parameter>.</para>
+				</listitem>
+				<listitem>
+					<para><command>kernel</command>, to specify the kernel file and its parameters:</para>
+					<itemizedlist>
+						<listitem>
+							<para><parameter>rw</parameter>, to specify writable mounting of the root file system.</para>
+						</listitem>
+						<listitem>
+							<para><parameter>root</parameter>, to specify where to mount the root file system (in ram memory).</para>
+						</listitem>
+						<listitem>
+							<para><parameter>ramdisk_size</parameter>, to specify the ram disk size. 4096 (kbytes) is the default size but if you needed a greater image, change this parameter accordingly.</para>
+						</listitem>
+						<listitem>
+							<para><parameter>init</parameter>, to specify (our script) as the first program to run in user mode (in the absence of <command>init</command> and <command>sh</command>).</para>
+						</listitem>
+					</itemizedlist>
+				</listitem>
+				<listitem>
+					<para><command>initrd</command> to specify the file holding the image of the root file system.</para>
+				</listitem>
+			</itemizedlist>
+		</sect2>
+		<sect2>
+			<title>Compiling Grub with network support</title>
+			<para>To compile Grub, first download the source tarball from <ulink url="http://www.gnu.org/software/grub/">the Grub web site</ulink> and unpack it. Run <command>configure</command> specifying the menu file you just created and the network interface card model. Run <command>make</command> as usual.</para>
+			<programlisting>
+<prompt># </prompt>tar xzf grub-0.92.tar.gz
+<prompt># </prompt>cd grub-0.92
+<prompt># </prompt>./configure --enable-preset-menu=../grub.conf --enable-3c90x
+<prompt># </prompt>make
+			</programlisting>
+			<para>Again, where you see <emphasis>3c90x</emphasis> put the model of your network interface card. First check if it is supported by Grub.</para>
+		</sect2>
+		<sect2>
+			<title>Making the boot floppy disk</title>
+			<para>Once Grub is compiled, the image of the boot floppy disk is the concatenation of the files <filename>stage1/stage1</filename> and <filename>stage2/stage2</filename>. To make the floppy disk run:</para>
+			<programlisting>
+<prompt># </prompt>cat stage1/stage1 stage2/stage2 | dd of=/dev/fd0
+			</programlisting>
+			<para>You should now have a boot floppy disk.</para>
+		</sect2>
+	</sect1>
+	<sect1 id="running">
+		<title>Running the clone script</title>
+			<para>The clone script, shown in <xref linkend="clonescript">, is not essential. You can make <parameter>init=/bin/bash</parameter> as a kernel parameter and end up with a shell from where you can run the available commands and programs.</para>
+			<para>The script is presented here to show the commands in a formal way and to propose a way to reduce the possibility of damages resulting from mistyping. You have to change the variables <varname>tftp_server</varname>, <varname>nic_module</varname>, <varname>major_a</varname>, <varname>family_a</varname> and <varname>image_a</varname> according to your environment and application.</para>
+			<para>Please note that the arrays <varname>major_a</varname> and <varname>family_a</varname> are corresponding. Wrong major number for a given family name will mislead the user. You can locate the major and minor numbers of the devices of interest (whole disks and partitions) by listing the <filename class="directory">/dev</filename> directory. The major and minor number are where the size of a regular file is, in the output of the command <command>ls -l</command>, separated by a comma.</para>
+			<programlisting>
+<prompt># </prompt>ls -l /dev/fd0 /dev/hda /dev/hda1 /dev/hdc
+brw-rw----    1 root     disk       2,   0 Apr 11 11:25 /dev/fd0
+brw-rw----    1 root     disk       3,   0 Apr 11 11:25 /dev/hda
+brw-rw----    1 root     disk       3,   1 Apr 11 11:25 /dev/hda1
+brw-rw----    1 root     disk      22,   0 Apr 11 11:25 /dev/hdc
+			</programlisting>
+			<para>The command <command>set -e</command> instructs the shell to abort the script should any command return non-zero code. The message<quote>Kernel panic: Attempted to kill init!</quote> will follow, as in case of normal end. Don't panic! This is normal, given the circumstances. Just turn off the computer. Press <keycombo><keysym>Ctrl</keysym><keysym>Alt</keysym><keysym>Del</keysym></keycombo> to have a smooth reboot <emphasis>before</emphasis> exiting the script to avoid this ugly message.</para>
+			<para>The command <command>insmod</command> will load the network interface module and the command <command>dhcpcd</command> will start DHCP client. Note that the fact that Grub used DHCP during its boot has nothing to do with Linux doing the same.</para>
+			<para>The script makes a big loop and, for each iteration, it asks for one of three operations: <command>Copy from network to device</command>, <command>Copy from device to network</command> or <command>Run fdisk</command>. Then the script asks which block device to use. The array <varname>major_a</varname> holds the major number for the block devices allowed to be used and the array <varname>family_a</varname> the respective names for the device families. Next, the script asks the minor number of the block device to be used.</para>
+		<sect2>
+			<title>Saving and restoring disk images</title>
+			<para>If one of the copy operations is selected, the script asks for the name of the image to be saved or restored. The image name is limited to the elements of the array <varname>image_a</varname>. A named pipe with the same name as the image is created if doesn't exist. Finally, <command>dd</command> and <command>tftp</command> are invoked simultaneously to transfer the image. Unlike regular <command>ftp</command>, <command>tftp</command> puts and gets named pipes just like regular files.</para>
+		</sect2>
+		<sect2>
+			<title>Using fdisk</title>
+			<para>If <command>fdisk</command> command is selected it is invoked for the block device. <command>fdisk</command> is normally run for the whole disk as opposed to one partition. Note that what normally is called <filename>/dev/hda</filename> will be called <filename>/dev/hda0</filename> by the clone script. The input of <command>fdisk</command> could be put in the script to make automatic creation of partitions if desired.</para>
+		</sect2>
+	</sect1>
+	<sect1 id="extending">
+		<title>Extending the solution</title>
+		<sect2>
+			<title>Saving and restoring files instead of file systems</title>
+			<para>If you don't want to save a whole disk image just the files within the file system, you can use a similar solution but with <command>tar</command> or <command>cpio</command> instead of <command>dd</command>. Also you need to mount the file system. More commands should be added to the clone script as shown below.</para>
+			<programlisting>
+<prompt># </prompt>mkdir /mnt
+<prompt># </prompt>mount ${device_name} /mnt
+<prompt># </prompt>mknod ${image} p
+<prompt># </prompt>tftp ${tftp_server} <<-EOT &
+binary
+put ${image}
+EOT
+tar czf ${image}
+			</programlisting>
+			<para>or</para>
+			<programlisting>
+<prompt># </prompt>tftp ${tftp_server} <<-EOT &
+binary
+get ${image}
+EOT
+tar xzf ${image}
+			</programlisting>
+			<para>You have to put the <command>mkdir</command> and <command>tar</command> programs in the initrd image so that the script can use them.</para>
+		</sect2>
+		<sect2>
+			<title>Setting up the master boot record</title>
+			<para>In a situation where you used this setup to reorganize and resize your partitions, you may end up with a disk that doesn't boot. Running the <command>setup</command> command from Grub (including the <command>grub</command> program in the image) should resolve the situation. See the Grub documentation for details.</para>
+		</sect2>
+		<sect2>
+			<title>Loading necessary modules</title>
+			<para>Depending on your kernel, additional modules may be necessary to access some block devices like SCSI devices. Just put the necessary modules in the <filename class="directory">/lib</filename> directory of the initrd image and the correspondent <command>insmod</command> commands in the clone script. The same applies for file systems. If, for instance, you want save the files instead of the image of a <emphasis>fat</emphasis> file system you will need the <filename>fat.o</filename> and <filename>vfat.o</filename> modules.</para>
+		</sect2>
+		<sect2>
+			<title>Predefined operations on <filename>grub.conf</filename></title>
+			<para>The Grub menu file <filename>grub.conf</filename> may be customized to present a few copy options or even execute a predefined operation such as repartitioning the disk and retrieving specified images from network. Again, you can use the concepts presented here to achieve a specific application.</para>
+		</sect2>
+	</sect1>
+	<appendix id="initrdfiles">
+		<title>List of files on initrd</title>
+		<programlisting>
+/bin/
+/bin/bash
+/bin/clone
+/bin/dd
+/bin/gzip
+/bin/mknod
+/bin/mount
+/bin/tftp
+/dev/
+/dev/console
+/dev/null
+/etc/
+/etc/dhcpc/
+/etc/hosts
+/etc/nsswitch.conf
+/etc/protocols
+/etc/services
+/lib/
+/lib/3c59x.o
+/lib/i686/
+/lib/i686/libc-2.2.5.so
+/lib/i686/libc.so.6
+/lib/ld-2.2.5.so
+/lib/ld-linux.so.2
+/lib/libdl-2.2.5.so
+/lib/libdl.so.2
+/lib/libnss_files-2.2.5.so
+/lib/libnss_files.so.2
+/lib/libtermcap.so.2
+/lib/libtermcap.so.2.0.8
+/proc/
+/sbin/
+/sbin/dhcpcd
+/sbin/fdisk
+/sbin/insmod
+/tmp/
+/var/
+/var/run/
+		</programlisting>
+	</appendix>
+	<appendix id="clonescript">
+		<title>Clone script</title>
+		<programlisting>
+#!/bin/bash
+
+set -e
+
+export PATH=/sbin:/bin
+
+tftp_server=10.0.0.1
+nic_module=3c59x.o
+major_a=(2 3 22)
+family_a=(fd hda hdc)
+image_a=(img0001 img0002 img0003 img0004)
+
+operation_a=(	"Copy from network to device" \
+		"Copy from device to network" \
+		"Run fdisk")
+
+mount -t proc proc /proc
+insmod /lib/${nic_module}
+/sbin/dhcpcd
+
+while true; do \
+	[ ! -z "${image}" ] && unset image
+	echo
+	echo "Clone Menu"
+	echo
+	echo "Operation"
+	echo
+	PS3="Choose operation (1-${#operation_a[*]}): "
+	select operation in "${operation_a[@]}"; do \
+		[ -z "${operation}" ] && continue
+		echo
+		echo $REPLY - $operation
+		echo
+		break
+	done
+
+	echo "Device Family"
+	echo
+	PS3="Choose device family (1-${#family_a[*]}): "
+	select family in "${family_a[@]}"; do \
+		[ -z "${family}" ] && continue
+		echo
+		echo $REPLY - $family
+		echo
+		break
+	done
+
+	major_i=$[REPLY-1]
+	major=${major_a[$major_i]}
+
+	echo "Minor Number"
+	echo
+	PS3="Choose minor number (0-255): "
+	echo -n "$PS3" >&2
+	read minor
+	minor=$[minor%256]
+	echo
+	echo $minor
+	echo
+
+	if [ "${operation}" != "${operation_a[2]}" ]; then \
+		echo "Image"
+		echo
+		PS3="Choose image (1-${#image_a[*]}): "
+		select image in "${image_a[@]}"; do \
+			[ -z "${image}" ] && continue
+			echo
+			echo $REPLY - $image
+			echo
+			break
+		done
+		image_i=$[REPLY-1]
+		image=${image_a[${image_i}]}
+	fi
+
+	echo
+	echo -e "Operation:\t$operation"
+	device_name=/dev/${family_a[${major_i}]}${minor}
+	echo -e "Device:\t\t${device_name} ($major, $minor)"
+	[ ! -z "${image}" ] && echo -e "Image:\t\t${image}"
+	echo
+
+	echo "Confirmation"
+	echo
+	PS3="Ok/Cancel (1-2): "
+	select ok in Ok Cancel; do \
+		[ -z "${ok}" ] && continue
+		echo
+		echo $REPLY - $ok
+		echo
+		break
+	done
+	if [ "${ok}" = "Ok" ]; then \
+		if [ ! -b ${device_name} ]; then \
+			echo "Creating ${device_name}"
+			mknod ${device_name} b ${major} ${minor}
+		fi
+		if [ ! -z "${image}" ]; then \
+			if [ ! -p ${image} ]; then \
+				echo "Creating pipe"
+				mknod ${image} p
+			fi
+		fi
+		if [ "${operation}" = "${operation_a[0]}" ]; then \
+			tftp ${tftp_server} <<-EOT &
+			binary
+			get ${image}
+			EOT
+			gzip -c -d < ${image} | dd of=${device_name}
+		elif [ "${operation}" = "${operation_a[1]}" ]; then \
+			tftp ${tftp_server} <<-EOT &
+			binary
+			put ${image}
+			EOT
+			dd if=${device_name} | gzip -c > ${image}
+		elif [ "${operation}" = "${operation_a[2]}" ]; then \
+			fdisk ${device_name}
+		fi
+		echo
+	fi
+
+	echo "Continuation"
+	echo
+	PS3="Continue/Exit (1-2): "
+	select new in Continue Exit; do \
+		[ -z "${new}" ] && continue
+		echo
+		echo $REPLY - $new
+		echo
+		break
+	done
+	[ "${new}" = "Exit" ] && break
+done
+exit 0
+		</programlisting>
+	</appendix>
+	<bibliography id="references">
+		<title>References</title>
+		<biblioentry xreflabel="grub">
+		<title>GRUB</title>
+		<address>http://www.gnu.org/software/grub/</address>
+		</biblioentry>
+	</bibliography>
+</article>
+
