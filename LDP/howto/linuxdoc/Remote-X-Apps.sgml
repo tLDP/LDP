@@ -1,0 +1,739 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>Remote X Apps mini-HOWTO
+
+<author><htmlurl url="http://www.xs4all.nl/~zweije/"
+    name="Vincent Zweije">, <htmlurl url="mailto:zweije@xs4all.nl"
+    name="zweije@xs4all.nl">
+
+<date>11 July 2000
+
+<abstract>
+
+This mini-HOWTO describes how to run remote X applications.  That is, how
+to have an X program display on a different computer than the one it's
+running on.  Or conversely: how to make an X program run on a different
+computer than the one you're sitting at.  The focus of this mini-HOWTO
+is on security.  This mini-HOWTO also contains information on running
+X applications locally, but with a different user-id.
+
+</abstract>
+
+<toc>
+
+<sect> Introduction
+
+<p>
+This mini-HOWTO is a guide how to do remote X applications.  It was
+written for several reasons.
+<enum>
+<item> Many questions have appeared on usenet on how to run a remote
+    X application.
+<item> I see many, many hints of ``use <tt/xhost +hostname/'' or even
+    ``<tt/xhost +/'' to allow X connections. <bf/This is ridiculously
+    insecure/, and there are better methods.
+<item> I do not know of a simple document that describes the options you
+    <em/do/ have. Please inform me <htmlurl url="mailto:zweije@xs4all.nl"
+    name="zweije@xs4all.nl"> if you know more.
+</enum>
+
+This document has been written with unix-like systems in mind. If either
+your local or remote operating system are of another flavour, you may
+find here how things work. However, you will have to translate examples
+yourself to apply to your own system(s).
+
+The most recent version of this document is always available on
+WWW at <htmlurl url="http://www.xs4all.nl/~zweije/xauth.html"
+name="http://www.xs4all.nl/&tilde;zweije/xauth.html">. It
+is also available as the Linux Remote X Apps mini-HOWTO at
+<htmlurl url="http://sunsite.unc.edu/LDP/HOWTO/mini/Remote-X-Apps"
+name="http://sunsite.unc.edu/LDP/HOWTO/mini/Remote-X-Apps">. Linux
+(mini-)HOWTOs are available by http or ftp from <htmlurl
+url="http://sunsite.unc.edu/LDP/HOWTO/HOWTO-INDEX-2.html"
+name="sunsite.unc.edu">.
+
+This is version 0.6.3. No guarantees, only good intentions. I'm open
+to suggestions, ideas, additions, useful pointers, (typo) corrections,
+etc... I want this to remain a simple readable document, though, in the
+best-meant HOWTO style. Flames to <tt>/dev/null</tt>.
+
+Contents last updated on 11 July 2000 by <htmlurl
+url="http://www.xs4all.nl/~zweije/index.html" name="Vincent Zweije">
+
+<sect> Related Reading
+
+<p>
+A related document on WWW is ``What to do when Tk says that your display
+is insecure'', <htmlurl url="http://ce-toolkit.crd.ge.com/tkxauth/"
+name="http://ce-toolkit.crd.ge.com/tkxauth/">. It was written by <htmlurl
+url="http://ce-toolkit.crd.ge.com/people/kennykb.html" name="Kevin
+Kenny">. It suggests a similar solution to X authentication to that in
+this document (xauth). However, Kevin aims more at using xdm to steer
+xauth for you.
+
+The X System Window System Vol. 8 X ``Window System Administrator's
+Guide'' from <htmlurl url="http://www.ora.com/" name="O'Reilly and
+Associates"> has also been brought to my attention as a good source of
+information. Unfortunately, I've not been able to check it out.
+
+Yet another document much like the one you're reading
+now, titled ``Securing X Windows'', is available at <htmlurl
+url="http://ciac.llnl.gov/ciac/documents/ciac2316.html"
+name="http://ciac.llnl.gov/ciac/documents/ciac2316.html">.
+
+Also check out usenet newsgroups, such as <tt/comp.windows.x/,
+<tt/comp.os.linux.x/, and <tt/comp.os.linux.networking/.
+
+<sect> The Scene
+
+<p>
+You're using two computers. You're using the X window system of the first
+to type to and look at. You're using the second to do some important
+graphical work. You want the second to show its output on the display
+of the first. The X window system makes this possible.
+
+Of course, you need a network connection for this. Preferably a fast
+one; the X protocol is a network hog. But with a little patience
+and suitable protocol compression, you can even run applications
+over a modem. For X protocol compression, you might want to check
+out dxpc <htmlurl url="http://www.vigor.nu/dxpc/"
+name="http://www.vigor.nu/dxpc/"> or LBX
+<url url="http://www.paulandlesley.org/faqs/LBX-HOWTO.html"
+name="http://www.paulandlesley.org/faqs/LBX-HOWTO.html"> (also
+known as the <htmlurl url="http://sunsite.unc.edu/LDP/HOWTO/mini/LBX"
+name="LBX mini-HOWTO">).
+
+You must do two things to achieve all this:
+
+<enum>
+
+<item> Tell the local display (the server) to accept connections from
+    the remote computer.
+
+<item> Tell the remote application (the client) to direct its output to
+    your local display.
+
+</enum>
+
+<sect> A Little Theory
+
+<p>
+The magic word is <tt/DISPLAY/. In the X window system, a display consists
+(simplified) of a keyboard, a mouse and a screen. A display is managed
+by a server program, known as an X server. The server serves displaying
+capabilities to other programs that connect to it.
+
+A display is indicated with a name, for instance:
+
+<itemize>
+
+<item> <tt/DISPLAY=light.uni.verse:0/
+
+<item> <tt/DISPLAY=localhost:4/
+
+<item> <tt/DISPLAY=:0/
+
+</itemize>
+
+The display consists of a hostname (such as <tt/light.uni.verse/ and
+<tt/localhost/), a colon (<tt/:/), and a sequence number (such as <tt/0/
+and <tt/4/). The hostname of the display is the name of the computer
+where the X server runs. An omitted hostname means the local host. The
+sequence number is usually 0 -- it can be varied if there are multiple
+displays connected to one computer.
+
+If you ever come across a display indication with an extra <tt/.n/
+attached to it, that's the screen number. A display can actually have
+multiple screens. Usually there's only one screen though, with number
+<tt/n=0/, so that's the default.
+
+Other forms of <tt/DISPLAY/ exist, but the above will do for our purposes.
+
+For the technically curious:
+<itemize>
+
+<item> <tt/hostname:D.S/ means screen <tt/S/ on display <tt/D/ of host
+       <tt/hostname/; the X server for this display is listening at TCP
+       port <tt/6000+D/.
+
+<item> <tt>host/unix:D.S</tt> means screen <tt/S/ on display <tt/D/
+       of host <tt/host/; the X server for this display is listening
+       at UNIX domain socket <tt>/tmp/.X11-unix/XD</tt> (so it's only
+       reachable from <tt/host/).
+
+<item> <tt/:D.S/ is equivalent to <tt>host/unix:D.S</tt>, where <tt/host/
+       is the local hostname.
+
+</itemize>
+
+<sect> Telling the Client
+
+<p>
+The client program (for instance, your graphics application) knows
+which display to connect to by inspecting the <tt/DISPLAY/ environment
+variable. This setting can be overridden, though, by giving the client
+the command line argument <tt/-display hostname:0/ when it's started. Some
+examples may clarify things.
+
+Our computer is known to the outside as light, and we're in domain
+uni.verse. If we're running a normal X server, the display is known as
+<tt/light.uni.verse:0/. We want to run the drawing program xfig on a remote
+computer, called <tt/dark.matt.er/, and display its output here on light.
+
+Suppose you have already telnetted into the remote computer,
+<tt/dark.matt.er/.
+
+If you have csh running on the remote computer:
+
+<tscreen><verb>
+dark% setenv DISPLAY light.uni.verse:0
+dark% xfig &
+</verb></tscreen>
+
+or alternatively:
+
+<tscreen><verb>
+dark% xfig -display light.uni.verse:0 &
+</verb></tscreen>
+
+If you have sh running on the remote computer:
+
+<tscreen><verb>
+dark$ DISPLAY=light.uni.verse:0
+dark$ export DISPLAY
+dark$ xfig &
+</verb></tscreen>
+
+or, alternatively:
+
+<tscreen><verb>
+dark$ DISPLAY=light.uni.verse:0 xfig &
+</verb></tscreen>
+
+or, of course, also:
+
+<tscreen><verb>
+dark$ xfig -display light.uni.verse:0 &
+</verb></tscreen>
+
+It seems that some versions of telnet automatically transport the
+<tt/DISPLAY/ variable to the remote host. If you have one of those,
+you're lucky, and you don't have to set it by hand. If not, most versions
+of telnet do transport the <tt/TERM/ environment variable; with some
+judicious hacking it is possible to piggyback the <tt/DISPLAY/ variable
+on to the <tt/TERM/ variable.
+
+The idea with piggybacking is that you do some scripting to achieve
+the following: before telnetting, attach the value of <tt/DISPLAY/
+to <tt/TERM/.  Then telnet out.  At the remote end, in the applicable
+<tt/.*shrc/ file, read the value of <tt/DISPLAY/ from <tt/TERM/.
+
+<sect> Telling the Server
+
+<p>
+The server will not accept connections from just anywhere. You don't want
+everyone to be able to display windows on your screen. Or read what you
+type -- remember that your keyboard is part of your display!
+
+Too few people seem to realise that allowing access to your display poses
+a security risk. Someone with access to your display can read and write
+your screens, read your keystrokes, and read your mouse actions.
+
+Most servers know two ways of authenticating connections to it: the
+host list mechanism (xhost) and the magic cookie mechanism (xauth).
+Then there is ssh, the secure shell, that can forward X connections.
+
+<sect1> Xhost
+
+<p>
+Xhost allows access based on hostnames. The server maintains a list
+of hosts which are allowed to connect to it. It can also disable host
+checking entirely. Beware: this means no checks are done, so <em/every/
+host may connect!
+
+You can control the server's host list with the xhost program. To use
+this mechanism in the previous example, do:
+
+<tscreen><verb>
+light$ xhost +dark.matt.er
+</verb></tscreen>
+
+This allows all connections from host <tt/dark.matt.er/. As soon as
+your X client has made its connection and displays a window, for safety,
+revoke permissions for more connections with:
+
+<tscreen><verb>
+light$ xhost -dark.matt.er
+</verb></tscreen>
+
+You can disable host checking with:
+
+<tscreen><verb>
+light$ xhost +
+</verb></tscreen>
+
+This disables host access checking and thus allows <em/everyone/
+to connect. You should <em/never/ do this on a network on which you
+don't trust <em/all/ users (such as Internet). You can re-enable host
+checking with:
+
+<tscreen><verb>
+light$ xhost -
+</verb></tscreen>
+
+xhost - by itself does <em/not/ remove all hosts from the access list
+(that would be quite useless - you wouldn't be able to connect from
+anywhere, not even your local host).
+
+<em/Xhost is a very insecure mechanism./ It does not distinguish between
+different users on the remote host. Also, hostnames (addresses actually)
+can be spoofed. This is bad if you're on an untrusted network (for
+instance already with dialup PPP access to Internet).
+
+<sect1> Xauth
+
+<p>
+Xauth allows access to anyone who knows the right secret. Such a secret
+is called an authorization record, or a magic cookie. This authorization
+scheme is formally called MIT-MAGIC-COOKIE-1.
+
+The cookies for different displays are stored together in
+<tt>&tilde;/.Xauthority</tt>.  Your <tt>&tilde;/.Xauthority</tt> must be inaccessible
+for group/other users.  The xauth program manages these cookies, hence
+the nickname xauth for the scheme.
+
+On starting a session, the server reads a cookie from the file that
+is indicated by the <tt/-auth/ argument. After that, the server only
+allows connections from clients that know the same cookie. When the
+cookie in <tt>&tilde;/.Xauthority</tt> changes, <em/the server will not pick
+up the change/.
+
+Newer servers can generate cookies on the fly for clients that ask for
+it. Cookies are still kept inside the server though; they don't end up
+in <tt>&tilde;/.Xauthority</tt> unless a client puts them there. According to
+David Wiggins:
+
+<quote>
+A further wrinkle was added in X11R6.3 that you may be interested in. Via
+the new SECURITY extension, the X server itself can generate and return
+new cookies on the fly. Furthermore, the cookies can be designated
+``untrusted'' so that applications making connections with such cookies
+will be restricted in their operation. For example, they won't be able
+to steal keyboard/mouse input, or window contents, from other trusted
+clients. There is a new ``generate'' subcommand to xauth to make this
+facility at least possible to use, if not easy.
+</quote>
+
+Xauth has a clear security advantage over xhost. You can limit access to
+specific users on specific computers. It does not suffer from spoofed
+addresses as xhost does. And if you want to, you can still use xhost
+next to it to allow connections.
+
+<sect2> Making the Cookie
+
+<p>
+If you want to use xauth, you must start the X server with the <tt/-auth
+authfile/ argument. If you use the startx script, that's the right place
+to do it. Create the authorization record as below in your startx script.
+
+Excerpt from <tt>/usr/X11R6/bin/startx</tt>:
+
+<tscreen><verb>
+mcookie|sed -e 's/^/add :0 . /'|xauth -q
+xinit -- -auth "$HOME/.Xauthority"
+</verb></tscreen>
+
+Mcookie is a tiny program in the util-linux package,
+primary site <htmlurl url="ftp://ftp.math.uio.no/pub/linux/"
+name="ftp://ftp.math.uio.no/pub/linux/">.  Alternatively, you
+can use md5sum to massage some random data (from, for instance,
+<tt>/dev/urandom</tt> or <tt/ps -axl/) into cookie format:
+
+<tscreen><verb>
+dd if=/dev/urandom count=1|md5sum|sed -e 's/^/add :0 . /'|xauth -q
+xinit -- -auth "$HOME/.Xauthority"
+</verb></tscreen>
+
+If you can't edit the startx script (because you aren't root), get
+your system administrator to set up startx properly, or let him set up
+xdm instead. If he can't or won't, you can make a <tt>&tilde;/.xserverrc</tt>
+script.  If you have this script, it is run by xinit instead of the real
+X server. Then you can start the real X server from this script with the
+proper arguments. To do so, have your <tt>&tilde;/.xserverrc</tt> use the magic
+cookie line above to create a cookie and then exec the real X server:
+
+<tscreen><verb>
+#!/bin/sh
+mcookie|sed -e 's/^/add :0 . /'|xauth -q
+exec /usr/X11R6/bin/X "$@" -auth "$HOME/.Xauthority"
+</verb></tscreen>
+
+If you use xdm to manage your X sessions, you can use
+xauth easily.  Define the DisplayManager.authDir resource in
+<tt>/etc/X11/xdm/xdm-config</tt>.  Xdm will pass the <tt/-auth/ argument
+to the X server when it starts.  When you then log in under xdm, xdm
+puts the cookie in your <tt>&tilde;/.Xauthority</tt> for you.  See xdm(1)
+for more information. For instance, my <tt>/etc/X11/xdm/xdm-config</tt>
+has the following line in it:
+
+<tscreen><verb>
+DisplayManager.authDir: /var/lib/xdm
+</verb></tscreen>
+
+<sect2> Transporting the Cookie
+
+<p>
+Now that you have started your X session on the server host
+<tt/light.uni.verse/ and have your cookie in <tt>&tilde;/.Xauthority</tt>, you
+will have to transfer the cookie to the client host, <tt/dark.matt.er/.  There are several ways to do this.
+
+<sect3> Shared Home Directories
+
+<p>
+The easiest is when your home directories on light and dark are
+shared. The <tt>&tilde;/.Xauthority</tt> files are the same, so the
+cookie is transported instantaneously.  However, there's a catch: when
+you put a cookie for <tt/:0/ in <tt>&tilde;/.Xauthority</tt>, dark will
+think it's a cookie for itself instead of for light.  You must use an
+explicit host name when you create the cookie; you can't leave it out.
+You can install the same cookie for both <tt/:0/ and <tt/light:0/ with
+this little piece of sed wizardry:
+
+<tscreen><verb>
+#!/bin/sh
+mcookie|sed -e 's/^/add :0 . /' -e p -e "s/:/$HOST&/"|xauth -q
+exec /usr/X11R6/bin/X "$@" -auth "$HOME/.Xauthority"
+</verb></tscreen>
+
+<sect3> By the Remote Shell, <tt/rsh/
+
+<p>
+If the home directories aren't shared, you can transport the cookie by
+means of rsh, the remote shell:
+
+<tscreen><verb>
+light$ xauth nlist "${HOST}:0" | rsh dark.matt.er xauth nmerge -
+</verb></tscreen>
+
+<enum>
+
+<item> Extract the cookie from your local <tt>&tilde;/.Xauthority</tt>
+(<tt/xauth nlist :0/).
+
+<item> Transfer it to dark.matt.er (<tt/| rsh dark.matt.er/).
+
+<item> Put it in the <tt>&tilde;/.Xauthority</tt> there (<tt/xauth nmerge -/).
+
+</enum>
+
+<p>
+Notice the use of <tt/${HOST}/.  You need to transport the cookie that is
+explicitly associated with the local host.  A remote X application would
+interpret a display value of <tt/:0/ as referring to the remote machine,
+which is not what you want!
+
+<sect3> Manually, by Telnet
+
+<p>
+It's possible that rsh doesn't work for you. Besides that, rsh also has a
+security drawback (spoofed host names again, if I remember correctly). If
+you can't or don't want to use rsh, you can also transfer the cookie
+manually, like:
+
+<tscreen><verb>
+light$ echo $DISPLAY
+:0
+light$ xauth list $DISPLAY
+light/unix:0 MIT-MAGIC-COOKIE-1 076aaecfd370fd2af6bb9f5550b26926
+light$ rlogin dark.matt.er
+Password:
+dark% setenv DISPLAY light.uni.verse:0
+dark% xauth
+Using authority file /home/zweije/.Xauthority
+xauth> add light.uni.verse:0 . 076aaecfd370fd2af6bb9f5550b26926
+xauth> exit
+Writing authority file /home/zweije/.Xauthority
+dark% xfig &
+[15332]
+dark% logout
+light$
+</verb></tscreen>
+
+See also rsh(1) and xauth(1x) for more information.
+
+<sect3> Automating the Telnet Way
+
+<p>
+It may be possible to piggyback the cookie on the <tt/TERM/ or
+<tt/DISPLAY/ variable when you do a telnet to the remote host.  This would
+go the same way as piggybacking the <tt/DISPLAY/ variable on the <tt/TERM/
+variable.  See section 5: Telling the Client.  You're on own here from
+my point of view, but I'm interested if anyone can confirm or deny this.
+
+Notice, however, that environment variables can be observed by others on
+some unices, and you won't be able to prevent the cookie in <tt/$TERM/
+from showing up if people are looking for it.
+
+<sect2> Using the Cookie
+
+<p>
+An X application on dark.matt.er, such as xfig above, will automatically
+look in <tt>&tilde;/.Xauthority</tt> there for the cookie to authenticate
+itself with.
+
+<p>
+There's a little wrinkle when using <tt/localhost:D/.  X client
+applications translate <tt/localhost:D/ into <tt>host/unix:D</tt> for
+the purpose of cookie retrieval.  Effectively, this means that a cookie
+for <tt/localhost:D/ in your <tt>~/.Xauthority</tt> has <em/no/ effect.
+
+If you think about it, it's only logical.  The interpretation of
+<tt/localhost/ depends entirely on the machine on which it's interpreted.
+It would give a horrible mess when you have a shared home directory,
+such as through NFS, with several hosts all interfering with each
+other's cookies.
+
+<sect1> Ssh
+
+<p>
+Authority records are transmitted over the network with no encryption.
+If you're even worried someone might snoop on your connections, use ssh,
+the secure shell. It will do X forwarding over encrypted connections.  And
+besides, it's great in other ways too.  It's a good structural improvement
+to your system.  Just visit <htmlurl url="http://www.ssh.org/"
+name="http://www.ssh.org/">, the ssh home page.
+
+Who knows anything else on authentication schemes or encrypting X
+connections?  Maybe kerberos?
+
+<sect> X Applications from Another User-id
+
+<p>
+Suppose you want to run a graphical configuration tool that requires
+root privileges.  However, your X session is running under your usual
+account.  It may seem strange at first, but the X server will <em/not/
+allow the tool to access your display.  How is this possible when root
+can normally do anything?  And how do you work around this problem?
+
+<p>
+Let's generalise to the situation where you want to an X appliation
+under a user-id <tt/clientuser/, but the X session was started
+by <tt/serveruser/.  If you have read the section on cookies,
+it is clear why <tt/clientuser/ cannot access your display:
+<tt>~clientuser/.Xauthority</tt> does not contain the right magic
+cookie for accessing the display.  The right cookie is found in
+<tt>~serveruser/.Xauthority</tt>.
+
+<sect1> Different Users on the Same Host
+
+<p>
+Of course, anything that works for remote X also works for X from
+a different user-id as well (particularly <tt/slogin localhost -l
+clientuser/).  It's just that the client host and the server host happen
+to be the same.  However, when both hosts are the same, there are some
+shortcuts for transferring the magic cookie.
+
+<p>
+We'll assume that you use <tt/su/ to switch user-ids.  Basically, what
+you have to do is write a script that will call <tt/su/, but wraps the
+command that <tt/su/ executes with some code that does the necessary
+things for remote X.  These necessary things are setting the <tt/DISPLAY/
+variable and transferring the magic cookie.
+
+<p>
+Setting <tt/DISPLAY/ is relatively easy; it just means defining
+<tt/DISPLAY="$DISPLAY"/ before running the su command argument.  So you
+could just do:
+
+<tscreen><verb>
+su - clientuser -c "env DISPLAY=$DISPLAY clientprogram &"
+</verb></tscreen>
+
+<p>
+This doesn't work yet, because we still have to transfer the cookie.
+We can retrieve the cookie using <tt/xauth list "$DISPLAY"/.  This command
+happens to list the cookie in a format that's suitable for feeding back
+to the <tt/xauth add/ command; just what we need!
+
+We shall want to pass the cookie through a pipe.  Unfortunately, it
+isn't easy to pass something through a pipe to the <tt/su/ command,
+because <tt/su/ wants to read the password from its standard input.
+Fortunately again, in a shell script we can joggle some file descriptors
+around, and get it done.
+
+So we write a script around this, parameterizing by <tt/clientuser/
+and <tt/clientprogram/.  Let's improve the script a little while we're
+at it, making it less readable but more robust.  It looks like this:
+
+<tscreen><verb>
+#!/bin/sh
+
+if [ $# -lt 2 ]
+then echo "usage: `basename $0` clientuser command" >&2
+     exit 2
+fi
+
+CLIENTUSER="$1"
+shift
+
+# FD 4 becomes stdin too
+exec 4>&0
+
+xauth list "$DISPLAY" | sed -e 's/^/add /' | {
+
+    # FD 3 becomes xauth output
+    # FD 0 becomes stdin again
+    # FD 4 is closed
+    exec 3>&0 0>&4 4>&-
+
+    exec su - "$CLIENTUSER" -c \
+         "xauth -q <&3
+          exec env DISPLAY='$DISPLAY' "'"$SHELL"'" -c '$*' 3>&-"
+
+}
+</verb></tscreen>
+
+I think this is portable and works well enough in most circumstances.
+The only shortcoming I can think of right now is that, due to using
+<tt/'$*'/, single quotes in <tt/command/ will mess up quoting in the
+<tt/su/ command argument (<tt/'$*'/).  If there's anything else seriously
+wrong with it, please drop me an email.
+
+<p>
+Call the script <tt>/usr/local/bin/xsu</tt>, and you can do:
+
+<tscreen><verb>
+xsu clientuser 'command &'
+</verb></tscreen>
+
+<p>
+Can't be much easier, unless you get rid of the password.  Yes, there
+are ways for that too (<tt/sudo/), but this is not the place for that.
+
+<sect1> Client User Is Root
+
+<p>
+Obviously, anything that works for non-root client users is going to
+work for root as well.  However, with root you can make it even easier,
+because root can read anyone's <tt>~/.Xauthority</tt> file.  There's no
+need to transfer the cookie.  All you have to do is set <tt/DISPLAY/, and
+point <tt/XAUTHORITY/ to <tt>~serveruser/.Xauthority</tt>.  So you can do:
+
+<tscreen><verb>
+su - -c "exec env DISPLAY='$DISPLAY' \
+                  XAUTHORITY='${XAUTHORITY-$HOME/.Xauthority}' \
+                  command"
+</verb></tscreen>
+
+<p>
+Putting it into a script would give something like:
+
+<tscreen><verb>
+#!/bin/sh
+if [ $# -lt 1 ]
+then echo "usage: `basename $0` command" >&2
+     exit 2
+fi
+su - -c "exec env DISPLAY='$DISPLAY' \
+                  XAUTHORITY='${XAUTHORITY-$HOME/.Xauthority}' \
+                  "'"$SHELL"'" -c '$*'"
+</verb></tscreen>
+
+<p>
+Call the script <tt>/usr/local/bin/xroot</tt>, and you can do:
+
+<tscreen><verb>
+xroot 'control-panel &'
+</verb></tscreen>
+
+<p>
+Although, if you've set up <tt/xsu/ already, there's no real reason to
+do this.
+
+<sect> Running a Remote Window Manager
+
+<p>
+A window manager (like <tt/twm/, <tt/wmaker/, or <tt/fvwm95/) is an
+application like any other.  The normal procedure should work.
+
+<p>
+Well, almost.  At most one window manager can be running on a display at
+any time.  If you are already running a local window manager, you cannot
+start the remote one (it will complain and exit).  You have to kill
+(or simply quit) the local one first.
+
+<p>
+Unfortunately, many X session scripts end with an
+
+<tscreen><verb>
+exec window-manager-of-choice
+</verb></tscreen>
+
+and this means that when the (local) window manager exits, your session
+exits, and the X system (xdm or xinit) considers your session over and
+effectively logs you out.
+
+<p>
+You have to jump through a few extra hoops, but it can be done and
+it's not too difficult.  Just play with your session script (normally
+<tt>~/.xsession</tt> or <tt>~/.xinitrc</tt>) to get it as you want it.
+
+<p>
+Beware that a window manager often provides ways to run new programs,
+and that these will run on the local machine.  That is, local to where
+the window manager runs.  If you run a remote window manager, it will
+spawn remote applications, and this may not be what you want.  Of course,
+they still display on the display that is local to you.
+
+<sect> Troubleshooting
+
+<p>
+The first time you try to run a remote X application, it usually does
+not work. Here are a few common error messages, their probable causes,
+and solutions to help you on your way.
+
+<tscreen><verb>
+xterm Xt error: Can't open display:
+</verb></tscreen>
+
+There is no <tt/DISPLAY/ variable in the environment, and you didn't
+tell the application with the <tt/-display/ flag either. The application
+assumes the empty string, but that is syntactically invalid. To solve
+this, be sure that you set the <tt/DISPLAY/ variable correctly in the
+environment (with <tt/setenv/ or <tt/export/ depending on your shell).
+
+<tscreen><verb>
+_X11TransSocketINETConnect: Can't connect: errno = 101
+xterm Xt error: Can't open display: love.dial.xs4all.nl:0
+</verb></tscreen>
+
+Errno 101 is ``Network is unreachable''.  The application could not make
+a network connection to the server.  Check that you have the correct
+<tt/DISPLAY/ set, and that the server machine is reachable from your
+client (it should be, after all you're probably logged in to the server
+and telnetting to the client).
+
+<tscreen><verb>
+_X11TransSocketINETConnect: Can't connect: errno = 111
+xterm Xt error: Can't open display: love.dial.xs4all.nl:0
+</verb></tscreen>
+
+Errno 111 is ``Connection refused''.  The server machine you're trying
+to connect to is reachable, but the indicated server does not exist
+there. Check that you are using the right host name and the right
+display number.
+
+<tscreen><verb>
+Xlib: connection to ":0.0" refused by server
+Xlib: Client is not authorized to connect to Server
+xterm Xt error: Can't open display: love.dial.xs4all.nl:0.0
+</verb></tscreen>
+
+The client could make a connection to the server, but the server does
+not allow the client to use it (not authorized). Make sure that you have
+transported the correct magic cookie to the client, and that it has not
+expired (the server uses a new cookie when a new session starts).
+
+</article>
