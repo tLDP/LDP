@@ -15,9 +15,17 @@
     </affiliation>
    </author>
   </authorgroup>
-  <pubdate>2001-12-21</pubdate>
+  <pubdate>2002-01-26</pubdate>
 
   <revhistory>
+     <revision>
+       <revnumber>1.1</revnumber>
+       <date>2002-01-26</date>                
+       <authorinitials>dpg</authorinitials>
+       <revremark>
+             corrections, host_status, odd dxfer_len
+       </revremark>
+     </revision>
      <revision>
        <revnumber>1.0</revnumber>
        <date>2001-12-21</date>                
@@ -30,6 +38,7 @@
 		
   <copyright>
    <year>2001</year>
+   <year>2002</year>
    <holder>Douglas Gilbert</holder>
   </copyright>
 
@@ -96,23 +105,23 @@ A summary of the sg driver history is as follows:
 documentation is available in abridged form
 [<ulink url="http://www.torque.net/sg/p/scsi-generic.txt">
 <literal>www.torque.net/sg/p/scsi-generic.txt</literal></ulink>]
-<footnote><para>
-This document is found in the lk 2.2 series in the
-<filename>/usr/src/linux/Documentation/scsi-generic.txt</filename> file.
-</para></footnote>
 and a longer form
 [<ulink url="http://www.torque.net/sg/p/scsi-generic_long.txt">
 <literal>www.torque.net/sg/p/scsi-generic_long.txt</literal></ulink>].
 </para></listitem>
-<listitem><para>sg version 3 in the linux kernel 2.4 series. The latest
-version of this document can be found at
+<listitem><para>sg version 3 in the linux kernel 2.4 series. 
+</para></listitem>
+</itemizedlist>
+This document can be found at the Linux Documentation Project's site at
+<ulink url="http://www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/">
+<literal>www.linuxdoc.org/HOWTO/SCSI-Generic-HOWTO/</literal></ulink> .
+It is available in plain text and pdf renderings at that site.
+A (possibly later) version of this document can be found at
 <ulink url="http://www.torque.net/sg/p/sg_v3_ho.html">
 <literal>www.torque.net/sg/p/sg_v3_ho.html</literal></ulink>.
 That is a single html page; drop the ".html" extension for multi-page
 html. There are also postscript, pdf and rtf renderings from the original
 SGML (docbook) file at the same location.
-</para></listitem>
-</itemizedlist>
 </para>
 <para>
 A more general description of the Linux SCSI subsystem of which sg is a
@@ -121,7 +130,7 @@ part can be found in the
 <literal>SCSI-2.4-HOWTO</literal></ulink>.
 </para>
 <para>
-This document was last modified on 21st December 2001.
+This document was last modified on 26th January 2002.
 </para>
 </chapter>
 		
@@ -376,6 +385,10 @@ really want non-blocking operation (e.g. for command queuing) then don't
 use SG_IO; use the write() read() sequence instead.
 </para>
 <para>
+For more information about normal (or indirect), direct and mmap-ed IO
+see <xref linkend="dmmio"> .
+</para>
+<para>
 Currently the sg driver uses one Linux major device number (char 21)
 which in the lk 2.4 series limits it to handling 256 SCSI devices.
 Any attempt to attach more than this number will rejected with a
@@ -562,10 +575,16 @@ The type of iovec_count is unsigned short.
     associated with the command. The direction of the transfer is indicated
     by 'dxfer_direction'. If 'dxfer_len' is zero then no data transfer
     takes place.
+<footnote><para>
+Some HBA - SCSI device combinations have difficulties with an odd valued 
+dxfer_len . In some cases the operation succeeds but a DID_ERROR host status
+is returned. So unless there is a good reason, applications that want 
+maximum portability should avoid an odd valued dxfer_len .
+</para></footnote>
 </para>
 <para>
     If iovec_count is non-zero then 'dxfer_len' should be equal to the sum
-    of iov_len lengths. If not, the minimum of the 2 is the transfer length.
+    of iov_len lengths. If not, the minimum of the two is the transfer length.
 The type of dxfer_len is unsigned int.
 </para>
 </sect1>
@@ -615,7 +634,7 @@ The type of cmdp is unsigned char * .
     from the "auto-sense" mechanism in the SCSI mid-level driver. This
     mechanism detects a CHECK_CONDITION status and issues a REQUEST SENSE
     command and conveys its response back as the "sense buffer".
-The type of cmdp is unsigned char * .
+The type of sbp is unsigned char * .
 </para>
 </sect1>
 
@@ -838,7 +857,7 @@ The type of sb_len_wr is unsigned char .
     The 'host_status' field has the following values whose #defines mimic
     those which are only visible within the kernel (with the "SG_ERR_"
     removed from the front of each define). A copy of these defines can be
-    found in sg_err.h (see the utilities section):
+    found in sg_err.h (see <xref linkend="sg3_utils">):
 <itemizedlist>
 <listitem><para>
      SG_ERR_DID_OK [0x00] NO error
@@ -864,14 +883,23 @@ commands will yield this error code if a 16 byte command is passed to
 a SCSI device they control.
 </para></listitem>
 <listitem><para>
-     SG_ERR_DID_PARITY [0x06] Parity error
+     SG_ERR_DID_PARITY [0x06] Parity error. Older SCSI parallel buses
+     have a parity bit for error detection. This probably indicates
+     a cable or termination problem.
 </para></listitem>
 <listitem><para>
-     SG_ERR_DID_ERROR [0x07] Internal error [DMA underrun on aic7xxx]
+     SG_ERR_DID_ERROR [0x07] Internal error detected in the host adapter.
+     This may not be fatal (and the command may have succeeded). The
+     aic7xxx and sym53c8xx adapter drivers sometimes report this for
+     data underruns or overruns. 
+<footnote><para>
+In some cases the sym53cxx driver reports a DID_ERROR when it internally
+rounds up an odd transfer length by 1. This is an example of a "non-error".
+</para></footnote>
 </para></listitem>
 <listitem><para>
      SG_ERR_DID_RESET [0x08] The SCSI bus (or this device) has been reset. 
-Any SCSI device on a SCSI bus is capable of instigating reset.
+Any SCSI device on a SCSI bus is capable of instigating a reset.
 </para></listitem>
 <listitem><para>
      SG_ERR_DID_BAD_INTR [0x09] Got an interrupt we weren't expecting
@@ -890,15 +918,15 @@ The type of host_status is unsigned short .
 <sect1>
 <title>driver_status</title>
 <para>
-    One driver can potentially control several hosts. For example Advansys
-    provide one Linux adapter driver that controls all adapters made by that
-    company - if 2 of more Advansys adapters are in 1 machine, then 1 driver
-    controls both.
-    When ('driver_status' &amp; SG_ERR_DRIVER_SENSE) is true the 'sense_buffer'
-    is also output. The 'driver_status' field has the following values whose
-    #defines mimic those which are only visible within the kernel (with the
-    "SG_ERR_" removed from the front of each define). A copy of these defines
-    can be found in sg_err.h (see the utilities section):
+One driver can potentially control several host adapters. For example 
+Advansys provide one Linux adapter driver that controls all adapters made
+by that company - if 2 of more Advansys adapters are in 1 machine, then 1 
+driver controls both.
+When ('driver_status' &amp; SG_ERR_DRIVER_SENSE) is true the 'sense_buffer'
+is also output. The 'driver_status' field has the following values whose
+#defines mimic those which are only visible within the kernel (with the
+"SG_ERR_" removed from the front of each define). A copy of these defines
+can be found in sg_err.h (see the utilities section):
 <itemizedlist>
 <listitem><para>
         SG_ERR_DRIVER_OK [0x00] Typically no suggestion
@@ -978,7 +1006,7 @@ The type of resid is int .
     command was sent until sg is informed that it is complete. For i386
     machines the granularity is 10ms while on alpha machines it is 1ms.
     This value is rounded toward zero.
-The type of resid is unsigned int .
+The type of duration is unsigned int .
 </para>
 </sect1>
 
@@ -1070,8 +1098,8 @@ The filename should be a sg device file name as discussed in the
 <xref linkend="interface">.
 Flags can be a number of the following or-ed together:
 <itemizedlist>
-<listitem><para>O_RDONLY  permits system calls other than write() to be 
-executed.
+<listitem><para>O_RDONLY  restricts operations to read()s and ioctl()s 
+(i.e. can't use write() ).
 </para></listitem>
 <listitem><para>O_RDWR  permits all system calls to be executed. 
 </para></listitem>
@@ -1135,9 +1163,11 @@ Returns a file descriptor if >= 0 , otherwise -1 implies an error.
 <formalpara><title>write(int sg_fd, const void * buffer, size_t count)</title>
 <para>
 The action of write() with a control block based on struct sg_header is
-discussed in the earlier document: <filename>scsi-generic.txt</filename>
-(v2). This section describes the action of write() when it is given a control 
-block based on struct sg_io_hdr.
+discussed in the earlier document: 
+<ulink url="http://www.torque.net/sg/p/scsi-generic.txt">
+<literal>www.torque.net/sg/p/scsi-generic.txt</literal></ulink>
+(i.e the sg version 2 documentation). This section describes the action of 
+write() when it is given a control block based on struct sg_io_hdr.
 </para>
 </formalpara>
 <para>
@@ -1188,9 +1218,11 @@ not from the sg_io_hdr object given to the corresponding read() ).
 <formalpara><title>read(int sg_fd, void * buffer, size_t count)</title>
 <para>
 The action of read() with a control block based on struct sg_header is
-discussed in the earlier document: <filename>scsi-generic.txt</filename>
-(v2). This section describes the action of read() when it is given a 
-control block based on struct sg_io_hdr.
+discussed in the earlier document: 
+<ulink url="http://www.torque.net/sg/p/scsi-generic.txt">
+<literal>www.torque.net/sg/p/scsi-generic.txt</literal></ulink>
+(i.e. the sg version 2 documentation). This section describes the action of 
+read() when it is given a control block based on struct sg_io_hdr.
 </para>
 </formalpara>
 <para>
@@ -1305,10 +1337,11 @@ int flags, int sg_fd, off_t offset)</title>
 This system call returns a pointer to the beginning of the reserved buffer
 associated with the sg file descriptor 'sg_fd'. The 'start' argument is
 a hint to the kernel and is ignored by this driver; best set it to 0.
-The 'length' argument should be less than 8 MB. If it exceeds the
+The 'length' argument should be less than or equal to the size of the
+reserved buffer associated with 'sg_fd'. If it exceeds the
 reserved buffer size (after 'length' has been rounded up to a page size
-multiple) then MAP_FAILED is returned an ENOMEM is placed in errno. The
-'prot' argument should either be PROT_READ of (PROT_READ | PROT_WRITE).
+multiple) then MAP_FAILED is returned and ENOMEM is placed in errno. The
+'prot' argument should either be PROT_READ or (PROT_READ | PROT_WRITE).
 The 'flags' argument should contain MAP_SHARED. In a sense, the user
 application is "sharing" data with the sg driver. The MAP_PRIVATE flag
 does not play well with compiler optimization flags such as '-O2'.
@@ -1335,7 +1368,7 @@ to the next page size multiple.
 <para>
 Mmap-ed IO is requested by setting (or or-ing in) the SG_FLAG_MMAP_IO
 constant into the flag member of the the sg_io_hdr structure prior to
-a call to write() of ioctl(SG_IO). The logic to do mmap-ed IO _assumes_
+a call to write() or ioctl(SG_IO). The logic to do mmap-ed IO _assumes_
 that an appropriate mmap() call has been made by the application. In
 other words it does not check. 
 <footnote><para>
@@ -1589,7 +1622,7 @@ The default it the original sg driver was not to allow commands to be
 queued on the same file descriptor (actually it was more restrictive,
 commands could not be queued on a SCSI device). The version 2 sg driver
 kept this action as its default (for backward compatibility) and offered
-these ioctl()s to change and monitor the command queuing state
+these ioctl()s to change and monitor the command queuing state.
 </para>
 </formalpara>
 </sect1>
@@ -1601,9 +1634,10 @@ these ioctl()s to change and monitor the command queuing state
 The third argument is assumed to point to an int. The default value is 0.
 If this call is made pointing to an int greater than 0 then any SCSI
 request that is issued that results in the SCSI status of CHECK_CONDITION
-(or COMMAND_TERMINATED) will cause a message to be sent log (and perhaps
-the console). The message is information derived from the sense buffer
-(i.e. the SCSI error message) and it is prefixed with "sg_cmd_done_bh".
+(or COMMAND_TERMINATED) will cause a message to be sent to the log (and
+perhaps the console). The message is information derived from the sense
+buffer (i.e. the SCSI error message) and it is prefixed with 
+"sg_cmd_done_bh".
 </para>
 </formalpara>
 <para>
@@ -1680,7 +1714,7 @@ adapters setting has been overridden by SG_SET_FORCE_LOW_DMA,1 .
       <title>SG_NEXT_CMD_LEN</title>
 <formalpara><title>SG_NEXT_CMD_LEN 0x2283</title>
 <para>
-This ioctl() is note required with sg_io_hdr structure since command length
+This ioctl() is not required with sg_io_hdr structure since command length
 is set explicitly for every command.
 Assumes 3rd argument is pointing to an int. The value of the int (if > 0)
 will be used as the SCSI command length of the next SCSI command sent to
@@ -1836,8 +1870,8 @@ this SCSI bus, especially if it was in the middle of an operation,
 </para></listitem>
 <listitem><para>SG_SCSI_RESET_HOST (0x3): issues a reset to the host that
 controls the SCSI bus that contains the device associated with the
-current sg file descriptor. This operation can have a adverse effect
-on any SCSI device the is connected to this host.
+current sg file descriptor. This operation can have an adverse effect
+on any SCSI device that is connected to this host.
 </para></listitem>
 </itemizedlist>
 The reset options are in ascending order of severity. Not all levels
@@ -2119,7 +2153,7 @@ capability in which case the CPU is used to copy the data.
 </para></footnote>
 data into kernel buffers that the sg driver manages. The sg driver will 
 then copy the contents of its buffers into the user space. [This sequence
-is reversed for a write operation (towards a device). While this double 
+is reversed for a write operation (towards a device)]. While this double 
 handling of data is obviously inefficient it does decouple some hardware 
 issues from user applications. For these and historical reasons the 
 "double-buffered" IO remains the default for the sg driver.
@@ -2136,7 +2170,8 @@ SCSI adapter is busy DMA-ing data into.
 <sect1 id="dio">
       <title>Direct IO</title>
 <para>
-Direct IO uses the kiobuf mechanism [see LDD2] to manipulate memory 
+Direct IO uses the kiobuf mechanism [see the <link linkend="ldd2">Linux
+Device Drivers</link> book] to manipulate memory 
 allocated within the user space so that a lower level (adapter) driver
 can DMA directly to or from that user space memory. Since the user
 can give a different data buffer to each SCSI command passed through
@@ -2182,9 +2217,13 @@ Prior to sg 3.1.18 the direct IO code was commented out with the
 "SG_ALLOW_DIO" define. In sg 3.1.18 (available for lk 2.4.2 and later)
 the direct IO code is active but is defaulted off by a run time value.
 This value can be accessed via the "proc" file system at
-/proc/scsi/sg/allow_dio . Direct IO is enabled when a user with root
-permissions writes "1" to that file: 
-<command>echo 1 > /proc/scsi/sg/allow_dio</command> .
+<filename>/proc/scsi/sg/allow_dio</filename> .  Direct IO is enabled when 
+a user with root permissions writes "1" to that file: 
+<command>echo 1 > /proc/scsi/sg/allow_dio</command> . If SG_FLAG_DIRECT_IO
+is set in sg_io_hdr::flags but <filename>/proc/scsi/sg/allow_dio</filename>
+holds "0" then indirect IO will be performed (and this is indicated by
+((sg_io_hdr::info &amp; SG_INFO_DIRECT_IO_MASK) == SG_INFO_INDIRECT_IO) 
+after the request is completed).
 </para>
 </sect1>
 
@@ -2206,7 +2245,8 @@ read from the device in inaccessible. Also once mmap() has been called
 on a file descriptor then all subsequent calls to ioctl(SG_SET_RESERVED_SIZE)
 will yield EBUSY.
 </para></footnote>
-to doing mmap-ed IO. An application indicates that it wants mmap-ed on
+to doing mmap-ed IO. For more details on the mmap() see 
+<xref linkend="mmap">. An application indicates that it wants mmap-ed on
 a SCSI request by setting the SG_FLAG_MMAP_IO value in 'flags'.
 </para>
 <para>
@@ -2320,7 +2360,7 @@ present (and one is present after it) then a line of "-1" entries is
 output. Each entry is separated by a whitespace (currently a tab):
 <programlisting>
 host            host number (indexes 'hosts' table, origin 0)
-chan            channel number of device (is this every non-zero?)
+chan            channel number of device
 id              SCSI id of device
 lun             Logical Unit number of device
 type            SCSI type (e.g. 0->disk, 5->cdrom, 6->scanner)
@@ -2550,9 +2590,6 @@ timing and testing: sg_rbuf, sg_test_rwbuf, sg_read, sg_turs and sg_debug,
 <listitem><para>
 example programs: sg_simple1..4 and sg_simple16,
 </para></listitem>
-<listitem><para>
-miscellaneous programs: isosize.
-</para></listitem>
 </itemizedlist>
 </para>
 <para>
@@ -2583,8 +2620,8 @@ at <ulink url="http://www.torque.net/sg">
 <literal>www.torque.net/sg</literal></ulink>. There are tarballs and
 both source and binary rpm packages. At the time of writing the latest
 sg3_utils tarball is at 
-<ulink url="http://www.torque.net/sg/p/sg3_utils-0.96.tgz">           
-<literal>www.torque.net/sg/p/sg3_utils-0.96.tgz</literal></ulink>.
+<ulink url="http://www.torque.net/sg/p/sg3_utils-0.97.tgz">           
+<literal>www.torque.net/sg/p/sg3_utils-0.97.tgz</literal></ulink>.
 There is a README file in that tarball that should be examined for
 up to date information. The more important utility commands (e.g.
 sg_dd) have "man" pages.
@@ -2644,8 +2681,9 @@ data of the form &lt;a_sg_header_obj [ + data_to_read]>.
 </para>
 <para>
 This interface is fully described in the
-<filename>/usr/src/linux/Documentation/scsi-generic.txt</filename> 
-file found in the lk 2.2 series kernel source [after lk 2.2.6].
+<ulink url="http://www.torque.net/sg/p/scsi-generic.txt">
+<literal>www.torque.net/sg/p/scsi-generic.txt</literal></ulink>
+file which documents the sg version 2 driver.
 </para>
 <para>
 Since many Linux applications use this interface, it is still supported
@@ -2659,10 +2697,10 @@ any problems running old applications atop this newer driver.
       <title>Programming example</title>
 <para>
 This appendix contains an example program. It is an abridged version of
-sg_simple2.c found in the sg3_utils package. It send a SCSI INQUIRY
-command to the nominated sg device and prints out some of the response
-or outputs error information. Hopefully showing the error processing does
-not cloud what is being illustrated.
+sg_simple2.c found in the <link linkend="sg3_utils">sg3_utils</link> 
+package. It send a SCSI INQUIRY command to the nominated sg device and 
+prints out some of the response or outputs error information. Hopefully 
+showing the error processing does not cloud what is being illustrated.
 <programlisting>
 
 #include &lt;unistd.h>
@@ -2761,6 +2799,11 @@ int main(int argc, char * argv[])
 
 </programlisting>
 </para>
+<para>
+The sg_simple4.c program is an example of using mmap-ed IO in the sg3_utils
+package. An example of using direct IO can be found in sg_rbuf.c in the
+same package.
+</para>
 </appendix>
 
 <appendix id="debugging">
@@ -2839,6 +2882,7 @@ The most recent version of that document can be found at
 <literal>www.torque.net/scsi/SCSI-2.4-HOWTO</literal></ulink> .
 </para>
 <para>
+<anchor id="ldd2">
 To understand the inner workings of device drivers there is a fine book
 called "Linux Device Drivers", second edition by Alessandro Rubini and 
 Jonathan Corbet published by O'Reilly [ISBN 0-596-00008-1]. The authors 
