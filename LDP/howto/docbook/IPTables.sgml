@@ -114,9 +114,286 @@ some conenction types. (FTP and IRC at the moment)</para>
      cover compiling and/or installing IPTables. Usually this is pre-installed
      with a 2.4.x distro and if not then please consult the Netfilter website
      for more information.</para></listitem>
+     <listitem><para>Basic knowledge about networking; ports, packets, etc.
+     </para></listitem>
    </itemizedlist>
 
-</sect1> 
+</sect1>
 
+<sect1 id="commands">
+<title>Essential IPTables commands</title>
+<para>There are tens upon tens of commands and switches for IPTables, this 
+section is a must read it shows you the vital commands for use in this HOWTO.
+They are listed below:</para>
+
+   <itemizedlist>
+      <listitem><para>-t &lt;table&gt;: This specifies the table to work on. If
+      -t is ommited then the "filter" table is specified.</para></listitem> 
+      <listitem><para>-L &lt;chain&gt;: List all rules in the specified chain.
+      If the chain is not specified it lists all chains and rules in the
+      current table.</para></listitem>
+      <listitem><para>-F &lt;chain&gt;: Flushes the specified chain of all 
+      rules. Again, if no chain is specified it flushes all rules in all chains
+      in the current table.</para></listitem>
+      <listitem><para>-X &lt;chain&gt;: This removes the specified user-defined
+      chain. If no chain is specified it deletes all user-defined chains in the
+      current table. (Note: You cannot delete a chain referenced to by another
+      rule.)</para></listitem>
+      <listitem><para>-N &lt;chain&gt;: This creates a new user-defined chain
+      for you to add rules to.</para></listitem>
+      <listitem><para>-A &lt;chain&gt &lt;rule&gt;: This appends a rule to the 
+      end of the specified chain. Rules are explained later.</para></listitem>
+      <listitem><para>-D &lt;chain&gt; &lt;number&gt;: Deletes the rule at 
+      position "number" in the specified chain.</para></listitem>
+      <listitem><para>-P &lt;chain&gt; &lt;policy&gt;: Changes the policy for 
+      "chain" to "policy".</para></listitem>
+   </itemizedlist>
+
+   <para>That is the main commands outlined, the rest of the commands are 
+   well documented in the man page IPTABLES(8). It also contains the flags
+   for useage in rules. I won't list them here because there are too many.
+   </para>
+
+</sect1>
+
+<sect1 id="tables">
+<title>Tables, Chains and the like</title>
+<para>There are two main definitons that need to be set out here. The first 
+is a table. Tables contain a set of chains, either built-in or user-defined. 
+The main two tables you will encounter are the "filter" table and the "nat" 
+table.</para>
+
+<para>Chains are lists of rules that a packet traverses. When a packet enters
+a chain the packet is checked against each criteria, if it is met then the 
+packet's fate is determined by the "target" flag. (Explained later in detail).
+</para>
+
+<sect2>
+<title>The Filter Table</title>
+<para>I am going to explain each table and chain before I show a diagram of the
+overall system. The is so you can understand what each part does without having
+to refer back to this section while looking at the diagram.</para>
+
+<para>The first table we meet is the filter table. This is the table you 
+encounter if you type <command>iptables -L</command> (-L means list). If you 
+actually enter this command you will encounter a display similar to this:
+</para>
+
+<screen>
+[root@enterprise matt]# iptables -L                 
+                                 
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+</screen>
+
+<sect3>
+<title>The INPUT chain</title>
+
+<para>We'll start with the INPUT chain first. When packets enter the system
+they are checked for routing, if the packet is inbound to the local machine
+(in this case to <emphasis>enterprise</emphasis>) then the packet is sent
+down the INPUT chain.</para>
+
+<para>In it's current state the chain is wide open. This is due to the policy.
+When the Tables are initalised each policy is set to ACCEPT, the policy defines
+what happens when a packet meets none of the rules in the chain. To use an
+analogy it is what happens if it drops off the end of the chain.</para>
+
+<para>The case in question has the policy ACCEPT. This is in fact a target that
+can be used in a rule, so as not to repeat myself targets are explain in a 
+later section.</para>
+
+<para>The INPUT chain is the chain that you will most want to secure on your
+machine. This is the rule to use to block (or open) ports on the local machine.
+Anything accepted in the chain will make it to your network server daemons, 
+anything dropped will not.</para>
+
+</sect3>
+
+<sect3>
+<title>The FORWARD chain</title>
+<para>The FORWARD chain is also an important chain, especially if you plan on
+masquerading or NAT'ing your conenctions. As with the INPUT chain the packets 
+appear here after routing but when the routing specifies that the packet is 
+bound for a machien on the network other than itself.</para>
+
+<para>For instance, if you are using Masquerading and a incoming packet from
+the internet enters the network interface the packet would be processed by the
+routing information and enter the FORWARD chain as it is bound for another
+machine. If the packet is accepted (or is accpeted by policy) then it proceeds
+to the destination (and possibly into its INPUT chain if its running Linux), if
+however it is dropped then it proceeds no further and it is dumped into the
+nearest blackhole.</para>
+
+</sect3>
+
+<sect3>
+<title>The OUTPUT chain</title>
+<para>The OUTPUT chain is the final built-in chain in the filter table. It 
+governs the outgoing packets once they have been transmitted into the network
+layer by the computer daemons. As with the other chains anythign accepted will
+be allowed passage out to the big-wide-world and dropped packets appear 
+alongside their rejected brothers (or sisters).</para>
+</sect3>
+
+</sect2>
+
+<sect2>
+<title>The NAT table</title>
+<para>The NAT (Network Address Translation) table is not accessible by default.
+Firstly, if you have the netfilter code compiled as modules then you may have
+to do a <command>modprobe iptable_nat</command>. Secondly to access any of the
+chains in the NAT table iptables must be invoked with the <command>-t 
+nat</command> option. Eg:</para>
+
+<para><command>iptables -t nat -L</command></para>
+
+<para>This table is the other super-handy table that we will use. All packets
+traverse the chains in here before entering the filter table and before the
+packets from the filter table leave the computer. I think a little more 
+explanation here is in order. The typical default NAT tables output is listed
+below:</para>
+
+<screen>
+[root@enterprise matt]# iptables -t nat -L     
+                                           
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination   
+</screen>
+
+<para>I shall concentrate on the PREROUTING and POSTROUTING chains in this
+table (as I'm not yet sure on what the OUTPUT is for, please mail me if you
+can help).</para>
+
+<sect3>
+<title>The PREROUTING chain</title>
+<para>The PREROUTING chain....you remember where I said before that all the
+packets are routed then enter the FORWARD/INPUT/OUTPUT chains?? Well the 
+PREROUTING chain is where the packets traverse <emphasis role="strong">BEFORE
+</emphasis> they get routed. If for instance you wanted to make all packets
+destined for port 80 on the local machine (10.0.0.1) actually appear on port 
+81 of 10.0.0.2 then you would insert the DNAT rule here.</para>
+
+<para>This is also the best place to check for simple spoofing, things like
+local, private IP addresses (10.0.0.x, 192.0.0.x, etc) appearing on the 
+internet side of your machine is obviously wrong and can be dropped quicker
+than you can say "distributed denial-of-service attack".</para>
+
+<para>Finally, this is the ONLY place that incoming NAT (Destination NAT, DNAT)
+can be performed. This is so the packets can be mangled to force then down the
+FORWARD chain instead of the INPUT where they would be lost.</para>
+
+</sect3>
+
+<sect3>
+<title>The POSTROUTING chain</title>
+<para>This chain is also very important, (else why would I mention it!!), it
+governs the handling of packets after they have been routed and are about to be
+spat out of an network adapter.</para>
+
+<para>The major use for this chain is to allow IP masquerading or Source NAT.
+There is a slight difference. IP Masquerading is made specially for all us
+people with Dynamic IP address. When the interface is taken down the IP Masq
+tries to make sure all connections are closed, this is logical is it is 
+unlikely you will have the same IP when the adapter comes live again.</para>
+
+<para>Source NAT is different, it leave ports open. This is made for Static IP
+based conenctions, if for some reason your interface dies then when it goes 
+live again it will have to same IP. So, if there have been no timeouts and all
+applications still _assume_ they are connected they carry on as usual.</para>
+
+</sect3>
+
+</sect2>
+
+<sect2>
+<title>The Diagram!!</title>
+<screen>
+            ________        _____           _________
+Incoming   /        \      /     \         /         \    Outgoing
+       -->|PREROUTING|--->|FORWARD|-------|POSTROUTING|----->
+           \________/      \_____/         \_________/
+               |                                |
+               v                               ____
+              ___                             /    \
+             /   \                           |OUTPUT|
+            |INPUT|                           \____/
+             \___/                              ^
+               |                                |
+                -------> Local Process -------->
+
+</screen>
+
+</sect2>
+
+</sect1>
+
+<sect1>
+<title>Packet Filtering</title>
+<para>This is where you find out how to firewall off you local machine. It will
+involved some of the theory from above to I adive reading it before proceeding.
+</para>
+
+<sect2>
+<title>Target (-j) ACCEPT,DROP,REJECT,etc</title>
+<para>When I was talking above about accepting, dropping and the like I wasn't
+just using a phrase. The -j flag in rules specifies what target the rule has,
+in layman speak (I know I needed it) it's what happens when the packet matches
+the rule concerned. If you had the following command:</para>
+
+<para><command>iptables -A INPUT -p tcp --dport 80 -j ACCEPT</command></para>
+<para>This would instruct any packet that has made it to that rule and that is
+on port 80 to be accepted.</para>
+
+<sect3>
+<title>Target: ACCEPT</title>
+<para>This is what is says, it allows a matching packet to continue unhindered.
+Also, once a packet has been accpeted it no longer traverses the chain. So if 
+the above chain allows a packet it is universally allowed. A moral is in this
+tale!! If you have any mission critical filters to be tested on all packets
+before any are allowed then put them at the top of the chain</para>
+</sect3>
+
+<sect3>
+<title>Target: DROP</title>
+<para>This is the exact opposite of ACCEPT, if the packet matches a filter that
+targets to a DROP then the packet is dumped into oblivion and is never seen 
+again. Please beware, DROP is a stealth DROP. If a packet is DROPed then NO
+response is returned to say it failed, you program will just sit around till it
+times out.</para>
+</sect3>
+
+<sect3>
+<title>Target: REJECT</title>
+<para>This is similar to DROP, firstly in the netfilter code it is created as
+a seperate module (ipt_REJECT.o) and as such needs to be at the very least
+compiled if not modprobe'd. Compared to DROP the only difference it a REJECTed
+packet has a response sent to the originator saying that it failed. I tend to
+use DROP as its stealthy but REJECT has its uses.</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>Default Policies</title>
+<para>Policies, Policies!! This could be a major security hole on you machine.
+The default policies come set to ACCEPT andif you've read the above stuff then
+you will find that this means ANY packet can get in, out or through your 
+network. </para>
+
+</sect2>
+
+</sect1>
 
 </article>
