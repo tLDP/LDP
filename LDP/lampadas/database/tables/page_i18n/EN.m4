@@ -527,7 +527,7 @@ insert([news_edit], [Edit News], [],
     |tabnewsitem|
 ])
 
-insert([page_edit], [Edit Page], [],
+insert([page_edit], [Edit Web Page], [],
 [
     |tabpage|
 ])
@@ -635,12 +635,12 @@ insert([addnews], [Add News], [],
     |tabnewsitem|
 ], 1)
 
-insert([pages], [Page List], [],
+insert([pages], [Web Page List], [],
 [
     |tabpages|
 ], 1)
 
-insert([addpage], [Add Page], [],
+insert([addpage], [Add Web Page], [],
 [
     |tabpage|
 ], 1)

@@ -6,9 +6,9 @@ insert(my,                   default,    main,       2,  [],                 t, 
 insert(doctable,             default,    main,       3,  [],                 f,  f,  f,  f)
 insert(search,               default,    main,       4,  [],                 t,  f,  f,  f)
                                                                                  
-insert(users,                default,    admin,      1,  [letter],           t,  f,  t,  f)
-insert(adduser,              default,    admin,      2,  [],                 t,  f,  t,  f)
-insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)
+insert(sessions,             default,    admin,      1,  [],                 t,  f,  f,  t)
+insert(users,                default,    admin,      2,  [letter],           t,  f,  t,  f)
+insert(adduser,              default,    admin,      3,  [],                 t,  f,  t,  f)
 insert(errors,               default,    admin,      4,  [],                 t,  f,  t,  f)
 insert(adddocument,          default,    admin,      5,  [],                 t,  t,  t,  f)
 insert(news,                 default,    admin,      6,  [],                 f,  f,  t,  f)
