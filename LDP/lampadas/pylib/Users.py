@@ -106,6 +106,9 @@ class User(DataObject):
         DataObject.__init__(self, parent)
         DataObject.add_child(self, 'docs', docusers.apply_filter(DocUsers, Filter(self, 'username', '=', 'username')))
 
+    def name(self):
+        return trim(trim(self.first_name + ' ' + self.middle_name) + ' ' + self.surname)
+
     def can_edit(self, doc_id=None, username=None, news_id=None, page_code=None, string_code=None):
 
         # Sysadmin can do anything
