@@ -1,0 +1,111 @@
+<sect1 id="ch07-checkfs">
+<title>Creating the checkfs script</title>
+<?dbhtml filename="checkfs.html" dir="chapter07"?>
+
+<para>Create the <filename>/etc/init.d/checkfs</filename> script by running
+the following command:</para>
+
+<para><screen><userinput>cat &gt; /etc/init.d/checkfs &lt;&lt; "EOF"</userinput>
+#!/bin/sh
+# Begin /etc/init.d/checkfs
+
+#
+# Include the functions declared in the /etc/init.d/functions file
+#
+
+source /etc/init.d/functions
+
+#
+# Activate all the swap partitions declared in the /etc/fstab file
+#
+
+echo -n "Activating swap..."
+/sbin/swapon -a
+evaluate_retval
+
+#
+# If the /fastboot file exists we don't want to run the partition checks
+#
+
+if [ -f /fastboot ]
+then
+        echo "Fast boot, no file system check"
+else
+
+#
+# Mount the root partition read-only (just in case the kernel mounts it
+# read-write and we don't want to run fsck on a read-write mounted 
+# partition).
+#
+
+        /bin/mount -n -o remount,ro /
+        if [ $? = 0 ]
+        then
+
+#
+# If the /forcefsck file exists we want to force a partition check even 
+# if the partition was unmounted cleanly the last time
+#
+
+                if [ -f /forcefsck ]
+                then
+                        echo -n "/forcefsck exists, forcing "
+                        echo "file system check"
+                        force="-f"
+                else
+                        force=""
+                fi
+
+#
+# Check all the file systems mentioned in /etc/fstab that have the
+# fs_passno value set to 1 or 2 (the 6th field. See man fstab for more
+# info)
+#
+
+                echo "Checking file systems..."
+                /sbin/fsck $force -a -A -C -T
+
+#
+# If something went wrong during the checks of one of the partitions,
+# fsck will exit with a return value greater than 1. If this is
+# the case we start sulogin so you can repair the damage manually
+#
+
+                if [ $? -gt 1 ]
+                then
+                        $FAILURE
+                        echo
+                        echo -n "fsck failed. Please repair your file "
+                        echo "systems manually by running /sbin/fsck"
+                        echo "without the -a option"
+                        echo
+                        echo -n "Please note that the root file system " 
+                        echo "is currently mounted in read-only mode."
+                        echo
+                        echo -n "I will start sulogin now. When you  "
+                        echo "logout I will reboot your system."
+                        echo
+                        $NORMAL
+                        /sbin/sulogin
+                        /sbin/reboot -f
+                else
+                        print_status success
+                fi
+
+        else
+
+#
+# If the remount to read-only mode didn't work abort the fsck and print
+# an error
+#
+
+                echo -n "Cannot check root file system because it "
+                echo "could not be mounted in read-only mode."
+        fi
+fi
+
+# End /etc/init.d/checkfs
+<userinput>EOF</userinput></screen></para>
+
+</sect1>
+

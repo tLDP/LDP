@@ -1,0 +1,166 @@
+<sect1 id="ch07-ethnet">
+<title>Creating the ethnet script</title>
+<?dbhtml filename="ethnet.html" dir="chapter07"?>
+
+<para>This section only applies if a user is going to configure a network card.
+If not, this section can be skipped.</para>
+
+<para>Create the <filename>/etc/init.d/ethnet</filename> script by running the
+following command:</para>
+
+<para><screen><userinput>cat &gt; /etc/init.d/ethnet &lt;&lt; "EOF"</userinput>
+#!/bin/sh
+# Begin /etc/init.d/ethnet
+#
+# Main script by Gerard Beekmans - gerard@linuxfromscratch.org
+# GATEWAY check by Jean-François Le Ray - jfleray@club-internet.fr
+# "Specify which IF to use to reach default GATEWAY" by 
+#     Graham Cantin - gcantin@pacbell.net
+#
+
+#
+# Include the functions declared in the /etc/init.d/functions file
+# and the variables from the /etc/sysconfig/network file.
+#
+
+source /etc/init.d/functions
+source /etc/sysconfig/network
+
+case "$1" in
+        start)
+
+#
+# Obtain all the network card configuration files
+#
+
+        for interface in $(/bin/ls /etc/sysconfig/nic-config/ifcfg* | \
+            grep -v ifcfg-lo)
+        do
+#
+# Load the variables from that file
+#
+
+            source $interface
+#
+# If the ONBOOT variable is set to yes, process this file and bring the
+# interface up.
+#
+
+            if [ "$ONBOOT" == yes ]
+            then
+                echo -n "Bringing up the $DEVICE interface..."
+                /sbin/ifconfig $DEVICE $IP broadcast $BROADCAST \
+                    netmask $NETMASK
+                evaluate_retval
+            fi
+        done
+
+#
+# If the /etc/sysconfig/network file contains a GATEWAY variable, set
+# the default gateway and the interface through which the default
+# gateway can be reached.
+#
+
+            if [ "$GATEWAY" != "" ]; then
+                echo -n "Setting up routing for $GATEWAY_IF interface..."
+                /sbin/route add default gateway $GATEWAY \
+                        metric 1 dev $GATEWAY_IF
+                evaluate_retval
+            fi
+                ;;
+
+        stop)
+
+#
+# Obtain all the network card configuration files
+#
+
+        for interface in $(/bin/ls /etc/sysconfig/nic-config/ifcfg* | \
+            grep -v ifcfg-lo)
+        do
+#
+# Load the variables from that file
+#
+
+            source $interface
+#
+# If the ONBOOT variable is set, process the file and bring the
+# interface down
+#
+
+            if [ $ONBOOT == yes ]
+            then
+                echo -n "Bringing down the $DEVICE interface..."
+                /sbin/ifconfig $DEVICE down
+                evaluate_retval
+            fi
+        done
+                ;;
+
+        restart)
+                $0 stop
+                sleep 1
+                $0 start
+                ;;
+        *)
+                echo "Usage: $0 {start|stop|restart}"
+                exit 1
+                ;;
+esac
+
+# End /etc/init.d/ethnet
+<userinput>EOF</userinput></screen></para>
+
+<sect2>
+<title>Adding default gateway to /etc/sysconfig/network</title>
+
+<para>If a default gateway is required to be setup, the 
+following command does that:</para>
+
+<para><screen><userinput>cat &gt;&gt; /etc/sysconfig/network &lt;&lt; "EOF"</userinput>
+GATEWAY=192.168.1.2
+GATEWAY_IF=eth0
+<userinput>EOF</userinput></screen></para>
+
+<para>GATEWAY and GATEWAY_IF need to be changed to match the network setup.
+GATEWAY contains the address of the default gateway, and GATEWAY_IF
+contains the network interface through which that default gateway can
+be reached.</para>
+
+</sect2>
+
+<sect2>
+<title>Creating NIC configuration files</title>
+
+<para>Which interfaces are brought up and down by the ethnet script depends on
+the files in the /etc/sysconfig/nic-config directory. This
+directory should contain files in the form of ifcfg-x where x is an
+identification number (or whatever a user named it).</para>
+
+<para>First the nic-config directory is created by running:</para>
+
+<para><screen><userinput>mkdir /etc/sysconfig/nic-config</userinput></screen></para>
+
+<para>Now, new files are created in that directory containing the following.
+The following command creates a sample file ifcfg-eth0:</para>
+
+<para><screen><userinput>cat &gt; /etc/sysconfig/nic-config/ifcfg-eth0 &lt;&lt; "EOF"</userinput>
+ONBOOT=yes
+DEVICE=eth0
+IP=192.168.1.1
+NETMASK=255.255.255.0
+BROADCAST=192.168.1.255
+<userinput>EOF</userinput></screen></para>
+
+<para>Of course, the values of those four variables have to be changed 
+in every file to
+match the proper setup. Usually NETMASK and BROADCAST will remain the
+same, just the DEVICE and IP variables will change per network interface. If 
+the ONBOOT variable is set to yes, the ethnet script will bring it up 
+during boot up of the system. If set to anything else but yes it will be 
+ignored by the ethnet script and thus not brought up.</para>
+
+</sect2>
+
+</sect1>
+

@@ -1,0 +1,251 @@
+<sect1 id="ch07-rc">
+<title>Creating the rc script</title>
+<?dbhtml filename="rc.html" dir="chapter07"?>
+
+<para>The first main boot script is the <filename>/etc/init.d/rc</filename> 
+script. Create the <filename>/etc/init.d/rc</filename> script by running the
+following command:</para>
+
+<para><screen><userinput>cat &gt; /etc/init.d/rc &lt;&lt; "EOF"</userinput>
+#!/bin/sh
+# Begin /etc/init.d/rc
+#
+# By Jason Pearce  - jason.pearce@linux.org
+# Modified by Gerard Beekmans - gerard@linuxfromscratch.org
+# print_error_msg based on ideas by Simon Perreault -
+# nomis80@videotron.ca
+#
+
+#
+# Include the functions declared in the /etc/init.d/functions file
+#
+
+source /etc/init.d/functions
+
+#
+# The print_error_msg function prints an error message when an unforeseen
+# error occurred that wasn't trapped for some reason by a evaluate_retval
+# call or error checking in different ways.
+
+print_error_msg()
+{
+
+        echo
+        $FAILURE
+        echo -n "You should not read this error message. It means "
+        echo "that an unforeseen error "
+        echo -n "took place and subscript $i exited with "
+        echo "a return value "
+        echo -n "of $error_value for an unknown reason. If you're able "
+        echo "to trace this error down "
+        echo -n "to a bug in one of the files provided by this book, "
+        echo "please be so kind to "
+        echo -n "inform us at lfs-dev@linuxfromscratch.org"
+        $NORMAL
+        echo
+        echo
+        echo "Press a key to continue..."
+        read
+
+}
+
+#
+# If you uncomment the debug variable below none of the scripts will be
+# executed, just the script name and parameters will be echo'ed to the
+# screen so you can see how the scripts are called by rc.
+#
+
+# Un-comment the following for debugging.
+# debug=echo
+
+#
+# Start script or program.
+# 
+startup() {
+
+        $debug "$@"
+
+}   
+
+#
+# Ignore CTRL-C only in this shell, so we can interrupt subprocesses.
+#
+
+trap ":" INT QUIT TSTP
+
+#
+# Now find out what the current and what the previous runlevel are. The
+# $RUNLEVEL variable is set by init for all it's children. This script
+# runs as a child of init.
+#
+
+runlevel=$RUNLEVEL
+
+#
+# Get first argument. Set new runlevel to this argument. If no runlevel
+# was passed to this script we won't change runlevels.
+#
+
+[ "$1" != "" ] &amp;&amp; runlevel=$1
+if [ "$runlevel" = "" ]
+then
+        echo "Usage: $0 &lt;runlevel&gt;" &gt;&amp;2
+        exit 1
+fi
+
+#
+# The same goes for $PREVLEVEL (see above for $RUNLEVEL). previous will
+# be set to the previous run level. If $PREVLEVEL is not set it means
+# that there is no previous runlevel and we'll set previous to N.
+#
+
+previous=$PREVLEVEL
+[ "$previous" = "" ] &amp;&amp; previous=N
+
+export runlevel previous
+
+#
+# Is there an rc directory for the new runlevel?
+#
+
+if [ -d /etc/rc$runlevel.d ]
+
+then
+
+#
+# If so, first collect all the K* scripts in the new run level.
+#
+
+        if [ $previous != N ]
+        then
+                for i in /etc/rc$runlevel.d/K*
+                do
+                [ ! -f $i ] &amp;&amp; continue
+
+#
+# the suffix variable will contain the script name without the leading
+# Kxxx
+#
+
+                        suffix=${i#/etc/rc$runlevel.d/K[0-9][0-9][0-9]}
+#
+# If there is a start script for this K script in the previous runlevel
+# determine what it's full path is
+#
+            previous_start=/etc/rc$previous.d/S[0-9][0-9][0-9]$suffix
+#
+# If there was no previous run level it could be that something was
+# started in rcS.d (sysinit level) so we'll determine the path for that
+# possibility as well.
+#
+
+                        sysinit_start=/etc/rcS.d/S[0-9][0-9][0-9]$suffix
+
+#
+# Stop the service if there is a start script in the previous run level 
+# or in the sysinit level. If previous_start or sysinit_start do not 
+# exist the 'continue' command is run which causes the script to abort
+# this iteration of the for loop and continue with the next iteration.
+# This boils down to that it won't run the commands after the next two
+# lines and start over from the top of this for loop. See man bash for
+# more info on this.
+#
+
+                        [ ! -f $previous_start ] &amp;&amp;
+                        [ ! -f $sysinit_start ] &amp;&amp; continue
+
+#
+# If we found previous_start or sysinit_start, run the K script
+#
+
+                        startup $i stop
+                        error_value=$?
+#
+# If the return value of the script is not 0, something went wrong with
+# error checking inside the script. the print_error_msg function will be
+# called and the message plus the return value of the K script will be
+# printed to the screen
+#
+
+                        if [ $error_value != 0 ]
+                        then
+                                print_error_msg 
+                        fi
+
+                done
+        fi
+
+#
+# Now run the START scripts for this runlevel.
+#
+
+        for i in /etc/rc$runlevel.d/S*
+        do
+                [ ! -f $i ] &amp;&amp; continue
+
+                if [ $previous != N ]
+        then
+#
+# Find start script in previous runlevel and stop script in this
+# runlevel.
+#
+
+                        suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9][0-9]}
+                        stop=/etc/rc$runlevel.d/K[0-9][0-9][0-9]$suffix
+                previous_start=/etc/rc$previous.d/S[0-9][0-9][0-9]$suffix
+#
+# If there is a start script in the previous level and no stop script in 
+# this level, we don't have to re-start the service; abort this
+# iteration and start the next one.
+#
+
+                        [ -f $previous_start ] &amp;&amp; [ ! -f $stop ] &amp;&amp; 
+                        continue
+                fi
+
+                case "$runlevel" in
+                        0|6)
+
+#
+# levels 0 and 6 are halt and reboot levels. We don't really start
+# anything here so we call with the 'stop' parameter
+#
+
+                                startup $i stop
+                                error_value=$?
+#
+# If the return value of the script is not 0, something went wrong with
+# error checking inside the script. the print_error_msg function will be
+# called and the message plus the return value of the K script will be
+# printed to the screen
+#
+
+                                if [ $error_value != 0 ]
+                                then
+                                        print_error_msg
+                                fi
+                                ;;
+                        *)
+                                startup $i start
+                                error_value=$?
+#
+# If the return value of the script is not 0, something went wrong with
+# error checking inside the script. the print_error_msg function will be
+# called and the message plus the return value of the K script will be
+# printed to the screen
+#
+
+                                if [ $error_value != 0 ]
+                                then
+                                        print_error_msg
+                                fi
+                                ;;
+                esac
+        done
+fi
+
+# End /etc/init.d/rc
+<userinput>EOF</userinput></screen></para>
+
+</sect1>
+
