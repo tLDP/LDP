@@ -26,7 +26,12 @@ $doc_id   = param('doc_id');
 $username = $query->remote_user();
 
 $note     = param('note');
-$note     =~ s/\'/\'\'/;
+while ($note =~ /\'/) {
+	$note =~ s/\'/a1s2d3f4/;
+}
+while ($note =~ /a1s2d3f4/) {
+	$note     =~ s/a1s2d3f4/\'\'/;
+}
 
 $conn=Pg::connectdb("dbname=$dbmain");
 $sql = "INSERT INTO notes (doc_id, date_entered, username, notes) values ($doc_id, now(), '$username', '$note')";

@@ -44,6 +44,14 @@ $tech_review_status = param('tech_review_status');
 $maintained    = param('maintained');
 $license       = param('license');
 $abstract      = param('abstract');
+while ($abstract =~ /\'/) {
+	$abstract      =~ s/\'/a1s2d3f4/;
+}
+while ($abstract =~ /a1s2d3f4/) {
+	$abstract      =~ s/a1s2d3f4/\'\'/;
+}
+
+$version       =~ s/\'/\'\'/;
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
