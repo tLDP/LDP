@@ -66,9 +66,8 @@ class Sessions(LampadasCollection):
     def delete(self, username):
         sql = 'DELETE FROM session WHERE username=' + wsq(username)
         db.runsql(sql)
-
         db.commit()
-        del self.data[username]
+        del self[username]
 
     def count(self):
         return db.read_value('SELECT COUNT(*) FROM session')
@@ -79,6 +78,16 @@ class Session:
     def __init__(self, username):
         self.username = username
    
+    def refresh(self):
+        sql = 'UPDATE session SET timestamp=now() WHERE username=' + wsq(self.username)
+        updated = db.runsql(sql)
+        db.commit()
+        if updated==0:
+            log(3, self.username + '\'s session expired, recreating it.')
+            sql = 'INSERT INTO session(username) VALUES (' + wsq(self.username) + ')'
+            db.runsql(sql)
+            db.commit()
+
 
 sessions = Sessions()
 

@@ -185,6 +185,4 @@ class WOStringIO:
         return ''.join(self.data)
    
 if __name__=='__main__':
-    print now_string()
-    print time2str('2002-02-02 04:04:04xxx')
-
+    pass

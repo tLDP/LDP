@@ -1360,11 +1360,6 @@ class User:
         db.runsql(sql)
         db.commit()
 
-    def refresh_session(self):
-        sql = 'UPDATE session SET timestamp=' + wsq(now_string()) + ' WHERE username=' + wsq(self.username)
-        db.runsql(sql)
-        db.commit()
-
     def can_edit(self, doc_id=None, username=None):
         if self.admin > 0 or self.sysadmin > 0:
             return 1
