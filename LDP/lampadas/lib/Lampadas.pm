@@ -602,11 +602,12 @@ sub StartPage {
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
 	HeaderBox($foo, $title);
-	print "</td><tr>\n";
-	print "<tr><td colspan=2>\n";
-	ErrorsTable();
-	print "</td><tr>\n";
-
+	print "</td></tr>\n";
+	if (scalar @errors) {
+		print "<tr><td colspan=2>\n";
+		ErrorsTable();
+		print "</td><tr>\n";
+	}
 	print "<tr><td valign=top width='200'>\n";
 	LoginBox() unless ($currentuser_id);
 	AdminBox() if (Maintainer());
@@ -1870,8 +1871,8 @@ sub NavBar {
 sub NavBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Menu</th></tr>\n";
-	print "<tr><td><a href='topic_list.pl'>Edit Topics</a></td></tr>\n";
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
+	print "<tr><td><a href='topic_list.pl'>Topics List</a></td></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "</table>\n";
 }

@@ -194,10 +194,6 @@ if ($preview) {
 		print $line;
 	}
 	close(HTML);
-	
-	print LOG "HTML display of $htmlfile complete.\n";
-	
-
 }
 
 sub printheader {

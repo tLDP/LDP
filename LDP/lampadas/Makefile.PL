@@ -4,7 +4,8 @@
 ##
 ## Copyright (c) 2000, 2001, 2002, David Merrill. All rights reserved.
 ## This code is free software; you can redistribute it and/or modify
-## it under the same terms as Perl itself.
+## it under the terms of the GNU General Public License. See the COPYING
+## file for details.
 ##
 
 use ExtUtils::MakeMaker;
