@@ -17,9 +17,19 @@
 
 </author>
 
-<pubdate>?</pubdate>
+<pubdate>2004-01-05</pubdate>
 
 <revhistory>
+   <revision>
+        <revnumber>v1.05</revnumber>
+        <date>2004-01-05</date>
+        <authorinitials>bjh</authorinitials>
+        <revremark>
+            Add information on module.h and -DMODULE.
+            Fix tldb.org to tldp.org.
+            Add information on kallsyms.
+            </revremark>
+        </revision>
    <revision>
         <revnumber>v1.04</revnumber>
         <date>2003-10-10</date>
@@ -640,8 +650,26 @@ What <command>insmod</command> is telling you is that it looked in
 LKM would have -- the kernel version with which the LKM was intended
 to be used -- and it didn't find it.  We know now that the reason it
 didn't find it is that the file isn't an LKM.  See
-<xref linkend="modinfo">.
+<xref linkend="modinfo"> for information on how you can see what
+<command>insmod</command> is seeing and confirm that the file is not
+in fact an LKM.
 </para>
+<para>
+If this is a module you created yourself with the intention of it
+being an LKM, the next question you have is: Why isn't an LKM?  The
+most usual cause of this is that you did not include
+<filename>linux/module.h</filename> at the top of your source code
+and/or did not define the <literal>MODULE></literal>MODULE macro.
+<literal>MODULE</literal> is intended to be set via the compile
+command (<literal>-DMODULE</literal>) and determine whether the
+compilation produces an LKM or an object file for binding into the
+base kernel.  If your module is like most modern modules and can by
+built <emphasis>only</emphasis> as an LKM, then you should just define
+it in your source code (<literal>#define MODULE</literal>) before you
+include <filename>include/module.h</filename>.
+</para>
+
+
 </sect2> 
 
 
@@ -1844,6 +1872,76 @@ the persistent data.
 <para>
 <literal>__insmod_</literal><varname>name</varname><literal>_P</literal><varname>length</varname>
 </para>
+</sect2>
+
+<sect2>
+<title>
+Debugging Symbols
+</title>
+<para>
+There is another kind of symbol that relates to an LKM: kallsyms
+symbols.  These are not exported symbols; they do not show up in
+<filename>proc/ksyms</filename>.  They refer to addresses in the
+kernel that are nobody's business except the module they are in, and
+are not meant to be referenced by anything except a debugger.  Kdb,
+the kernel debugger that comes with the Linux kernel, is one user of
+kallsyms symbols.
+</para>
+
+<para>
+The kallsyms facility works for both the base kernel and LKMs.  For the
+base kernel, you select it when you build the base kernel, with the 
+CONFIG_KALLSYMS configuration option.  When you do that, the kernel
+contains a kallsyms symbol for all the symbols in the base kernel
+object files.  You know your base kernel is participating in the kallsyms
+facility if you see the symbol <literal>__start___kallsyms</literal>
+in <filename>/proc/ksyms</filename>.
+</para>
+
+<para>
+For an LKM, you decide at load time whether it will contain kallsyms
+symbols.  You include the kallsyms definitions in the data you pass to
+the <literal>init_module</literal> system call to load the LKM.
+<command>insmod</command> does this if either 1) you specify the
+<literal>--kallsyms</literal> option, or 2) <command>insmod</command>
+determines, by looking at <filename>/proc/ksyms</filename>, that the
+base kernel is participating in the kallsyms facility.  The kallsyms that
+<command>insmod</command> defines are all the symbols in the LKM
+object file.  To wit, those are the symbols you see when you run
+<command>nm</command> on the LKM object file.
+</para>
+
+<para>
+Each loaded LKM that is participating in kallsyms has its own kallsyms
+symbol table.  When the base kernel is participating in the kallsyms
+facility, the individual LKM kallysms symbol tables are linked into a
+master symbol table so that a debugger can look up a symbol anywhere
+in the kernel.  When the base kernel is not participating in kallsyms,
+a debugger must look explicitly at a particular LKM to find symbols
+for that LKM.  Kdb, for one, cannot do this.  So the basic rule is: If
+you're going to do any kernel debugging, use CONFIG_KALLSYMS.
+</para>
+
+<para>
+Note that the <literal>__kallsyms</literal> section has nothing to do
+with LKMs.  That's a section in the base kernel object module.  The
+base kernel doesn't have the luxury of something as high-level as
+sophisticated as <command>insmod</command> to load it, so it needs
+that extra object file section to facilitate its participation in
+kallsyms.
+</para>
+<para>
+Similarly, the program <command>kallsyms</command> has nothing to do with
+LKMs.  It is what creates the <literal>__kallsyms</literal> section.
+</para>
+
+<para>
+There is another kind of debugging symbol -- the kind that
+<command>gcc</command> creates with its <literal>-g</literal> option.
+These are unrelated to the kallsyms facility.  They do not get loaded
+into kernel memory.  Kdb does not use them.  But Kgdb (which gets
+information both from kernel memory and source and object files) does.
+</para>
 
 </sect2>
 <sect2 id="memalloc">
@@ -1937,7 +2035,7 @@ for adding this information in the future).
 Writing Your Own Loadable Kernel Module
 </title>
 <para>
-<ulink url="http://tldb.org/LDP/lkmpg"><citetitle>The Linux Kernel
+<ulink url="http://tldp.org/LDP/lkmpg"><citetitle>The Linux Kernel
 Module Programming Guide</citetitle></ulink> by Ori Pomerantz is a
 complete explanation of writing your own LKM.  This book is also
 available in print.
@@ -2104,7 +2202,7 @@ that, you will pass parameters to them via the kernel "command line,"
 which in its most basic form means via a prompt at boot time.
 <citetitle>The BootPrompt HOWTO</citetitle> by Paul Gortmaker
 <email>Paul.Gortmaker@anu.edu.au</email> will help you with that.  It
-is available from the <ulink url="http://www.tldb.org">Linux
+is available from the <ulink url="http://www.tldp.org">Linux
 Documentation Project</ulink>.
 </para>
 <para>
@@ -6552,7 +6650,7 @@ know so maybe the next reader can be saved the trouble you had.
 </para>
 <para>
 The source for this document is DocBook SGML, and is available from
-the <ulink url="http://www.tldb.org">Linux Documentation
+the <ulink url="http://www.tldp.org">Linux Documentation
 Project</ulink>.
 </para>
 </sect1>
