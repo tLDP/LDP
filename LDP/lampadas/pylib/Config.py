@@ -39,6 +39,8 @@ class Config:
     """
 
     config_file = ''
+    project_name = ''
+    project_short = ''
     db_type = ''
     db_name = ''
     db_host = ''
@@ -65,7 +67,7 @@ class Config:
         import ConfigParser
         import os
 
-	msg = ''
+    	msg = ''
         self.config = ConfigParser.ConfigParser()
         self.config_file = os.getenv('LAMPADAS_ETC')
         if self.config_file==None:
@@ -77,6 +79,8 @@ class Config:
 
         self.config.readfp(open(self.config_file))
 
+        self.project_name   = self.read_var('MAIN', 'project_name')
+        self.project_short  = self.read_var('MAIN', 'project_short')
         self.db_type        = self.read_var('DB', 'dbtype')
         self.db_name        = self.read_var('DB', 'dbname')
         self.db_host        = self.read_var('DB', 'dbhost')
@@ -110,6 +114,8 @@ class Config:
 
     def debug(self):
         text = 'config_file=' + self.config_file + '\n'
+        text += 'project_name=' + self.project_name + '\n'
+        text += 'project_short=' + self.project_short + '\n'
         text += 'db_type=' + self.db_type + '\n'
         text += 'db_name=' + self.db_name + '\n'
         text += 'db_host=' + self.db_host + '\n'
