@@ -14,6 +14,7 @@ share a data cache.
 
 from Globals import *
 from BaseClasses import LampadasCollection
+import time
 
 class Cache(LampadasCollection):
 
@@ -48,7 +49,7 @@ class Cache(LampadasCollection):
     def add(self, object):
         """Adds the object to the cache."""
 #        print 'Caching object ' + str(object) + ', ' + str(object.key)
-        object.last_access = now_string()
+        object.last_access = time.time()
         self[object.key] = object
         self.adjust_size()
 
@@ -61,7 +62,7 @@ class Cache(LampadasCollection):
         """Returns the requested object, and updates its access time."""
         object = self[key]
         if object:
-            object.last_access = now_string()
+            object.last_access = time.time()
             self.hits += 1
         else:
             self.misses += 1

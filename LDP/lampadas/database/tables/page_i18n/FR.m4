@@ -444,7 +444,7 @@ insert([user_exists], [Utilisateur Existe], [],
     <p>That username is already taken. Please select another username and try again.
 ])
 
-insert([username_required], [Nom d'utilisateur nécessaire] [],
+insert([username_required], [Nom d'utilisateur nécessaire], [],
 [
     <p>Username is a required field. Please enter a username and try again.
 ])

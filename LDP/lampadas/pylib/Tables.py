@@ -24,7 +24,6 @@ from Log import log
 from BaseClasses import *
 from Docs import docs, Doc
 from Users import users, User
-from WebLayer import lampadasweb
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
@@ -843,7 +842,7 @@ class Tables(LampadasCollection):
             users = dms.username.get_by_keys([['username', 'like', uri.letter]])
             odd_even = OddEven()
             for key in users.keys():
-                user = users[username]
+                user = users[key]
                 box.write('<tr class="%s"><td><a href="|uri.base|user/%s|uri.lang_ext|">%s</a></td><td>%s</td><td>%s</a></td></tr>\n'
                           % (odd_even.get_next(), user.username, EDIT_ICON_SM, user.username, user.name))
         box.write('</table>\n')
@@ -1124,7 +1123,7 @@ class Tables(LampadasCollection):
 
         # The DocTable can carry along its own search form that stays in sync
         # for filtering the data. Insert it here if show_search was passed in.
-        if show_search==1 and lampadasweb.static==0:
+        if show_search==1 and STATIC==0:
             box.write(self.tabsearch(uri, title=title,
                                           short_title=short_title,
                                           pub_status_code=pub_status_code,
@@ -1216,19 +1215,18 @@ class Tables(LampadasCollection):
                          '<tr><td>' % section.name[uri.lang])
         for key in section.pages.keys():
             page = section.pages[key]
-            if page.section_code==section.code:
-                if lampadasweb.static and page.only_dynamic:
-                    continue
-                if page.only_registered and sessions.session==None:
-                    continue
-                if page.only_admin and (sessions.session==None or sessions.session.user.admin==0):
-                    continue
-                if page.only_sysadmin and (sessions.session==None or sessions.session.user.sysadmin==0):
-                    continue
-                menu_name = page.menu_name[uri.lang]
-                menu_name = menu_name.replace(' ', '&nbsp;')
-                box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
-                    % (page.code, menu_name))
+            if STATIC and page.only_dynamic:
+                continue
+            if page.only_registered and sessions.session==None:
+                continue
+            if page.only_admin and (sessions.session==None or sessions.session.user.admin==0):
+                continue
+            if page.only_sysadmin and (sessions.session==None or sessions.session.user.sysadmin==0):
+                continue
+            menu_name = page.menu_name[uri.lang]
+            menu_name = menu_name.replace(' ', '&nbsp;')
+            box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
+                % (page.code, menu_name))
         box.write('</td></tr></table>\n')
         return box.get_value()
 
@@ -1237,15 +1235,15 @@ class Tables(LampadasCollection):
         box = WOStringIO('')
         sections = dms.section.get_all()
         menu_separator = ''
-        for key in sections.sort_by('sort_order')
+        for key in sections.sort_by('sort_order'):
             section = sections[key]
-            if lampadasweb.static and section.static_count()==0:
+            if STATIC and section.static_count==0:
                 continue
-            if section.nonregistered_count()==0 and (sessions.session==None):
+            if section.nonregistered_count==0 and (sessions.session==None):
                 continue
-            if section.nonadmin_count()==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
                 continue
-            if section.nonsysadmin_count()==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
                 continue
             box.write(menu_separator + self.section_menu(uri, section.code))
             menu_separator = '<p>'
@@ -1255,15 +1253,15 @@ class Tables(LampadasCollection):
         log(3, 'Creating sitemap')
         box = WOStringIO('')
         sections = dms.section.get_all()
-        for key in sections.sort_by('sort_order')
+        for key in sections.sort_by('sort_order'):
             section = sections[key]
-            if section.static_count()==0 and lampadasweb.static:
+            if section.static_count==0 and STATIC:
                 continue
-            if section.nonregistered_count()==0 and sessions.session==None:
+            if section.nonregistered_count==0 and sessions.session==None:
                 continue
-            if section.nonadmin_count()==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
                 continue
-            if section.nonsysadmin_count()==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
                 continue
 
             odd_even = OddEven()
@@ -1271,7 +1269,7 @@ class Tables(LampadasCollection):
                       % section.name[uri.lang])
             for pagekey in section.pages.sort_by('sort_order'):
                 page = section.pages[pagekey]
-                if page.only_dynamic and lampadasweb.static:
+                if page.only_dynamic and STATIC:
                     continue
                 if page.only_registered or page.only_admin or page.only_sysadmin > 0:
                     if sessions.session==None: continue
@@ -1377,7 +1375,7 @@ class Tables(LampadasCollection):
         return self.doctable(uri, collection_code=uri.code)
 
     def navlogin(self, uri):
-        if lampadasweb.static==1:
+        if STATIC==1:
             return ''
         if sessions.session:
             log(3, 'Creating active user box')

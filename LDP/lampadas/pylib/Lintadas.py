@@ -35,17 +35,13 @@ This module works closely with the
 from Globals import *
 from Config import config
 from Log import log
-from Docs import docs
-from SourceFiles import sourcefiles
-from DocErrs import DocErr
-from DocFiles import docfiles
 import os
 import stat
 import string
 import time
 
+from CoreDM import dms
 
-# Lintadas
 
 class Lintadas:
     """
@@ -53,20 +49,18 @@ class Lintadas:
 
     NOTE: You must always check files *before* checking documents,
     so that the file meta-data is up to date. Checking the documents
-    will pull the top file's meta-data over into the document.
-
-    Alternatively, you can call import_docs_metadata() at any time
-    to only upload meta-data from files to documents.
+    will pull the top file's meta-data over into the document,
+    if there is no conflicting value already set for the document.
     """
 
     # FIXME: These should be loaded from a configuration file so they
     # are easily configurable by the administrator.
 
-    def remove_duplicate_metadata(self):
-    
-        for doc_id in docs.keys():
-            doc = self[doc_id]
-            doc.remove_duplicate_metadata()
+    def update_metadata(self):
+        docs = dms.document.get_all()
+        for key in docs.keys():
+            doc = docs[key]
+            doc.update_metadata()
 
     def check_files(self, doc_id=None):
         """Checks files for errors. Checks all files by default, but you can
@@ -74,23 +68,24 @@ class Lintadas:
 
         # Decide which files to check for errors.
         if doc_id==None:
-            keys = sourcefiles.keys()
+            sourcefiles = dms.sourcefile.get_all()
+            keys = sourcefiles.keys('filename')
         else:
-            doc= docs[doc_id]
-            keys = doc.files.keys()
+            doc = dms.document.get_by_id(doc_id)
+            keys = doc.files.keys('filename')
             
         # Check the files for errors.
         for key in keys:
             self.check_file(key)
             
     def check_docs(self):
-        keys = docs.keys()
-        for key in keys:
+        docs = dms.document.get_all()
+        for key in docs.keys():
             self.check_doc(key)
     
     def check_file(self, filename):
         log(3, 'Running Lintadas on file ' + filename)
-        sourcefile = sourcefiles[filename]
+        sourcefile = dms.sourcefile.get_by_id(filename)
 
         # CLear out errors before checking
         sourcefile.errors.clear()
@@ -135,20 +130,18 @@ class Lintadas:
         """
 
         log(3, 'Running Lintadas on document ' + str(doc_id))
-        doc = docs[int(doc_id)]
-        filenames = doc.files.keys()
-        usernames = doc.users.keys()
+        doc = dms.document.get_by_id(doc_id)
        
         # See if the document is maintained
         maintained = 0
-        for username in usernames:
-            docuser = doc.users[username]
+        for key in doc.users.keys():
+            docuser = doc.users[key]
             if docuser.active==1 and (docuser.role_code=='author' or docuser.role_code=='maintainer'):
                 maintained = 1
         doc.maintained = maintained
 
         # Clear any existing errors
-        doc.errors.clear('doc')
+        doc.errors.delete_by_keys([['err_type_code', '=', 'doc']])
 
         # If document is not active or archived, do not flag
         # any errors against it.
@@ -157,7 +150,7 @@ class Lintadas:
 
         # Flag an error against the *doc* if there are no files.
         if doc.files.count()==0:
-            err = DocErr(docfiles)
+            err = doc.errors.new()
             err.doc_id = doc.id
             err.err_id = ERR_NO_SOURCE_FILE
             err.notes = ''
@@ -167,17 +160,17 @@ class Lintadas:
             # Count the number of top files. There muse be exactly one.
             # This takes advantage of the fact that true=1 and false=0.
             top = 0
-            for filename in filenames:
-                if doc.files[filename].top:
+            for key in doc.files.keys():
+                if doc.files[key].top:
                     top = top + 1
             if top==0:
-                err = DocErr(docfiles)
+                err = doc.errors.new()
                 err.doc_id = doc.id
                 err.err_id = ERR_NO_PRIMARY_FILE
                 err.notes = ''
                 doc.errors.add(err)
             if top > 1:
-                err = DocErr(docfiles)
+                err = doc.errors.new()
                 err.doc_id = doc.id
                 err.err_id = ERR_TWO_PRIMARY_FILES
                 err.notes = ''

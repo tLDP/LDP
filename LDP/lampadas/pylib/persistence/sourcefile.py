@@ -8,10 +8,10 @@ class Sourcefile(Persistence):
 
     def __getattr__(self, attribute):
         if attribute=='documents':
-            self.documents = self.dms.document_file.get_by_keys([['sourcefile', '=', self.filename]])
+            self.documents = self.dms.document_file.get_by_keys([['filename', '=', self.filename]])
             return self.documents
         elif attribute=='errors':
-            self.errors = self.dms.file_error.get_by_keys([['sourcefile', '=', self.filename]])
+            self.errors = self.dms.file_error.get_by_keys([['filename', '=', self.filename]])
             return self.errors
         elif attribute=='dtd':
             self.dtd = self.dms.dtd.get_by_id(self.dtd_code)

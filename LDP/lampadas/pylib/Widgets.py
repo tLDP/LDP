@@ -26,8 +26,6 @@ This module generates HTML primitives.
 
 from Globals import *
 from Log import log
-from Docs import docs
-from Languages import languages
 import re
 import string
 
@@ -262,7 +260,6 @@ class Widgets:
         types = dms.type.get_all()
         for key in types.sort_by('sort_order'):
             type = types[key]
-            assert not type==None
             combo.write("<option ")
             if type.code==value:
                 combo.write("selected ")
@@ -273,10 +270,9 @@ class Widgets:
 
     def doc_id(self, value, lang):
         combo = WOStringIO("<select name='doc'>\n")
-        keys = docs.sort_by('title')
-        for key in keys:
+        docs = dms.document.get_all()
+        for key in docs.sort_by('title'):
             doc = docs[key]
-            assert not doc==None
             if doc.lang==lang or lang==None:
                 combo.write("<option ")
                 if doc.id==value:
@@ -302,10 +298,9 @@ class Widgets:
 
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
-        keys = docs.sort_by_metadata('title')
-        for key in keys:
+        docs = dms.document.get_all()
+        for key in docs.sort_by('title'):
             doc = docs[key]
-            metadata = doc.metadata()
             combo.write("<option ")
             if doc.sk_seriesid==value:
                 combo.write("selected ")
@@ -313,24 +308,33 @@ class Widgets:
                 combo.write('value="%s">%s</option>\n'
                             % (str(doc.sk_seriesid), doc.short_title + ' (' + doc.lang + ')'))
             else:
+                title = doc.title
+                if title=='':
+                    topfile = document.top_file
+                    if topfile:
+                        title = topfile.title
                 combo.write('value="%s">%s</option>\n'
-                            % (str(doc.sk_seriesid), metadata.title[:40] + ' (' + doc.lang + ')'))
+                            % (str(doc.sk_seriesid), title[:40] + ' (' + doc.lang + ')'))
         combo.write("</select>\n")
         return combo.get_value()
 
     def replaced_by_id(self, value, view=0):
+        docs = dms.document.get_all()
         if view==1:
             doc = docs[value]
             if doc:
-                return doc.title
+                title = doc.title
+                if title=='':
+                    topfile = document.top_file
+                    if topfile:
+                        title = topfile.title
+                return title
             return ''
 
         combo = WOStringIO('<select name="replaced_by_id">\n')
         combo.write('<option></option>\n')
-        keys = docs.sort_by('title')
-        for key in keys:
+        for key in docs.sort_by('title'):
             doc = docs[key]
-            metadata = doc.metadata()
             combo.write("<option ")
             if doc.id==value:
                 combo.write("selected ")
@@ -338,8 +342,13 @@ class Widgets:
                 combo.write("value='%s'>%s</option>\n"
                             % (str(doc.id),doc.short_title))
             else:
+                title = doc.title
+                if title=='':
+                    topfile = document.top_file
+                    if topfile:
+                        title = topfile.title
                 combo.write("value='%s'>%s</option>\n"
-                            % (str(doc.id),metadata.title[:40]))
+                            % (str(doc.id), title[:40]))
         combo.write("</select>\n")
         return combo.get_value()
 
@@ -349,12 +358,10 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
-        doc_lang_keys = docs.keys('lang')
-        keys = languages.sort_by_lang('name', lang)
-        for key in keys:
-            if key in doc_lang_keys:
-                language = languages[key]
-                assert not language==None
+        languages = dms.language.get_all()
+        for key in languages.sort_by_lang('name', lang):
+            language = languages[key]
+            if language.documents.count() > 0:
                 combo.write("<option ")
                 if language.code==value:
                     combo.write("selected ")
@@ -366,11 +373,10 @@ class Widgets:
 
     def new_page_lang(self, page_code, lang):
         combo = WOStringIO("<select name='lang'>\n")
+        languages = dms.language.get_all()
         page = dms.page.get_by_id(page_code)
-        keys = languages.sort_by_lang('name', lang)
-        for key in keys:
+        for key in languages.sort_by_lang('name', lang):
             language = languages[key]
-            assert not language==None
             if language.supported==1 and key not in page.title.keys():
                 combo.write("<option value='" + language.code + "'>")
                 combo.write(language.name[lang])
@@ -380,11 +386,10 @@ class Widgets:
 
     def new_news_lang(self, news_id, lang):
         combo = WOStringIO("<select name='lang'>\n")
+        languages = dms.language.get_all()
         news = dms.news.get_by_id(news_id)
-        keys = languages.sort_by_lang('name', lang)
-        for key in keys:
+        for key in languages.sort_by_lang('name', lang):
             language = languages[key]
-            assert not language==None
             if language.supported==1 and key not in news.headline.keys():
                 combo.write("<option value='" + language.code + "'>")
                 combo.write(language.name[lang])
@@ -394,11 +399,10 @@ class Widgets:
 
     def new_string_lang(self, string_code, lang):
         combo = WOStringIO("<select name='lang'>\n")
+        languages = dms.language.get_all()
         webstring = dms.webstring.get_by_id(string_code)
-        keys = languages.sort_by_lang('name', lang)
-        for key in keys:
+        for key in languages.sort_by_lang('name', lang):
             language = languages[key]
-            assert not language==None
             if language.supported==1 and key not in webstring.string.keys():
                 combo.write("<option value='" + language.code + "'>")
                 combo.write(language.name[lang])
@@ -407,6 +411,7 @@ class Widgets:
         return combo.get_value()
 
     def lang(self, value, lang, allow_null=1, allow_unsupported=1, view=0):
+        languages = dms.language.get_all()
         if view==1:
             language = languages[value]
             if language:
@@ -419,10 +424,8 @@ class Widgets:
                 combo.write('<option selected></option>')
             else:
                 combo.write('<option></option>')
-        keys = languages.sort_by_lang('name', lang)
-        for key in keys:
+        for key in languages.sort_by_lang('name', lang):
             language = languages[key]
-            assert not language==None
             if allow_unsupported==1 or language.supported==1:
                 combo.write("<option ")
                 if language.code==value:

@@ -27,8 +27,8 @@ This module generates statistical information about the Lampadas system.
 from Globals import *
 from BaseClasses import *
 from Log import log
-from Docs import docs
 
+from CoreDM import dms
 
 class Stats(LampadasCollection):
     """Calculates various statistical data about the system and documents."""
@@ -55,15 +55,23 @@ class Stats(LampadasCollection):
         self.reset()
 
         # Calculate document statistics by iterating through them.
-        for doc_id in docs.keys():
-            doc = docs[doc_id]
-            metadata = doc.metadata()
+        docs = dms.document.get_all()
+        for key in docs.keys():
+            doc = docs[key]
+            topfile = doc.top_file
+
+            format_code = doc.format_code
+            if format_code=='' and topfile:
+                format_code = topfile.format_code
+            dtd_code = doc.dtd_code
+            if dtd_code=='' and topfile:
+                dtd_code = topfile.dtd_code
 
             # Increment document counts
             self['general'].inc('doc_count')
             self['pub_status'].inc(doc.pub_status_code)
-            self['doc_format'].inc(metadata.format_code)
-            self['doc_dtd'].inc(metadata.dtd_code)
+            self['doc_format'].inc(format_code)
+            self['doc_dtd'].inc(dtd_code)
             self['doc_lang'].inc(doc.lang)
             
             # Increment error counts
@@ -88,8 +96,8 @@ class Stats(LampadasCollection):
                         self['pub_time'].inc(pub_time)
                         
                         if doc.pub_time > '':
-                            self['pub_doc_format'].inc(metadata.format_code)
-                            self['pub_doc_dtd'].inc(metadata.dtd_code)
+                            self['pub_doc_format'].inc(format_code)
+                            self['pub_doc_dtd'].inc(dtd_code)
                             self['pub_doc_lang'].inc(doc.lang)
 
 

@@ -184,7 +184,7 @@ class DataManager(DataTable):
             field_name, operator, value = filter
             data_field = self.table.fields[field_name]
             if operator.upper()=='LIKE':
-                wheres.append(field_name + ' LIKE ' + data_field.attr_to_field(value + '%'))
+                wheres.append('upper(' + field_name + ') LIKE ' + data_field.attr_to_field(value.upper() + '%'))
             else:
                 wheres.append(field_name + operator + data_field.attr_to_field(value))
         where = ' WHERE ' + string.join(wheres, ' AND ')
@@ -335,6 +335,10 @@ class DataSet(LampadasCollection):
 
     def new(self):
         return self.dms.new()
+
+    def save(self):
+        for key in self.keys():
+            self[key].save()
 
     def add(self, object):  
         self.dms.save(object)

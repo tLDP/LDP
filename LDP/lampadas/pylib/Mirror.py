@@ -28,25 +28,24 @@ local Lampdas system.
 # Modules ##################################################################
 
 from Globals import *
-from Docs import docs
-from SourceFiles import sourcefiles
 from Log import log
 from Config import config
 import urllib
 import os
 
-from CoreDMs import dms
+from CoreDM import dms
 
 class Mirror:
 
     def mirror_all(self):
         log(3, 'Mirroring all documents')
+        docs = dms.document.get_all()
         for dockey in docs.sort_by('id'):
             self.mirror(dockey)
 
     def mirror(self, doc_id):
         log(3, 'Mirroring document ' + str(doc_id))
-        doc = docs[doc_id]
+        doc = dms.document.get_by_id(doc_id)
 
         if doc.lint_time=='':
             return
@@ -64,18 +63,21 @@ class Mirror:
             os.mkdir(logdir)
 
         # Do not attempt to mirror a document which has document or file errors.
-        if doc.errors.count('doc') > 0 or doc.files.error_count() > 0:
+        file_errors = 0
+        for key in doc.files.keys():
+            docfile = doc.files[key]
+            file_errors = file_errors + docfile.sourcefile.errors.count()
+        if doc.errors.count([['err_type_code', '=', 'doc']]) > 0 or file_errors > 0:
             print 'Not mirroring document ' + str(doc.id) + '; it has errors.'
             return
 
         # Clear mirroring errors before adding new ones.
-        doc.errors.clear('mirror')
+        doc.errors.delete_by_keys([['err_type_code', '=', 'mirror']])
         
         # Decide if the document is remote or local
         docremote = 0
-        filekeys = doc.files.keys()
-        for filekey in filekeys:
-            if sourcefiles[filekey].local==0:
+        for key in doc.files.keys():
+            if doc.files[key].sourcefile.local==0:
                 docremote = 1
         
         # FIXME: Actually use a field to indicate that these records are
@@ -84,10 +86,7 @@ class Mirror:
         # If document has a single remote file,
         # delete list of local files.
         if docremote==1:
-            filekeys = doc.files.keys()
-            for filekey in filekeys:
-                if sourcefiles[filekey].local==1:
-                    doc.files[filekey].delete()
+            doc.files.delete_by_keys([['local', '=', 1]])
 
         # mirror all files into cache, whether from remote
         # or local storage
@@ -98,9 +97,9 @@ class Mirror:
         #   file://foo.org/foo.sgml             Local, but outside CVS
         #   howto/docbook/big-memory-howto.sgml In CVS tree
         # 
-        for filekey in filekeys:
-            docfile     = doc.files[filekey]
-            sourcefile  = sourcefiles[filekey]
+        for key in doc.files.keys():
+            docfile     = doc.files[key]
+            sourcefile  = docfile.sourcefile
             filename    = sourcefile.localname
             file_only   = sourcefile.file_only
             workname    = workdir + file_only
@@ -138,10 +137,11 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
-#        command = 'lampadas-filter ' + workdir
-#        os.system(command)
-        
-        if doc.errors.count('mirror')==0 and doc.files.error_count()==0:
+        file_errors = 0
+        for key in doc.files.keys():
+            docfile = doc.files[key]
+            file_errors = file_errors + docfile.sourcefile.errors.count()
+        if doc.errors.count([['err_type_code', '=', 'mirror']])==0 and file_errors==0:
             doc.mirror_time = now_string()
         doc.files.save()
         doc.save()

@@ -37,3 +37,16 @@ class Document(Persistence):
             return self.top_file
         else:
             raise AttributeError('No such attribute %s' % attribute)
+
+    def update_metadata(self):
+        topfile = self.top_file
+        if topfile:
+            if self.title=='':       self.title       = topfile.title
+            if self.format_code=='': self.format_code = topfile.format_code
+            if self.dtd_code=='':    self.dtd_code    = topfile.dtd_code
+            if self.dtd_version=='': self.dtd_version = topfile.dtd_version
+            if self.abstract=='':    self.abstract    = topfile.abstract
+            if self.version=='':     self.version     = topfile.version
+            if self.pub_date=='':    self.pub_date    = topfile.pub_date
+            if self.isbn=='':        self.isbn        = topfile.isbn
+            if self.encoding=='':    self.encoding    = topfile.encoding

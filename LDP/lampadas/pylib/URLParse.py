@@ -149,7 +149,6 @@ class URI:
                 data = data[1:]
             elif item in ('collection', 'topic', 'type', 'report', 'page', 'string'):
                 self.code = data[0]
-                print 'Loading code: ' + self.code
                 data = data[1:]
             elif item in ('user',):
                 self.username = data[0]

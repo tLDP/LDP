@@ -32,7 +32,6 @@ from Config import config
 from Log import log
 from URLParse import URI
 
-from Docs import docs
 from Tables import tables, tablemap
 from Widgets import widgets
 from Sessions import sessions
@@ -47,7 +46,6 @@ import fpformat
 
 from CoreDM import dms
 
-# PageFactory
 
 class PageFactory:
 
@@ -222,19 +220,25 @@ class PageFactory:
 
                 # Embedded Document
                 elif token=='doc.title':
-                    doc = docs[uri.id]
-                    metadata = doc.metadata()
-                    if not doc:
+                    doc = dms.document.get_by_id(uri.id)
+                    if doc==None:
                         newstring = '|blknotfound|'
                     else:
-                        newstring = metadata.title
+                        newstring = doc.title
+                        if newstring=='':
+                            topfile = doc.top_file
+                            if topfile:
+                                newstring = topfile.title
                 elif token=='doc.abstract':
-                    doc = docs[uri.id]
-                    metadata = doc.metadata()
-                    if not doc:
+                    doc = dms.document.get_by_id(uri.id)
+                    if doc==None:
                         newstring = '|blknotfound|'
                     else:
-                        newstring = metadata.abstract
+                        newstring = doc.abstract
+                        if newstring=='':
+                            topfile = doc.top_file
+                            if topfile:
+                                newstring = topfile.abstract
                 
                 # Navigation Boxes
                 elif token=='navlogin':
@@ -373,7 +377,6 @@ class PageFactory:
 page_factory = PageFactory()
 
 def benchmark(url, reps):
-    from Docs import docs
     for x in range(0, reps):
         page = page_factory.page(url)
 
@@ -399,7 +402,6 @@ def main():
                 profile.run('benchmark("' + arg + '", ' + str(profile_reps) + ')', 'profile_stats')
                 p = pstats.Stats('profile_stats')
                 p.sort_stats('time').print_stats()
-
             else:
                 print page_factory.page(URI(arg))
     else:

@@ -551,7 +551,7 @@ insert([user_exists], [Benutzername bereits vorhanden], [],
     anderen Namen und probieren Sie es erneut.
 ])
 
-insert([username_required], [Benutzername erforderlich] [],
+insert([username_required], [Benutzername erforderlich], [],
 [
     <p>Das Feld "Benutzername" ist zwingend notwendig.
     Tragen Sie bitte einen Namen ein und probieren Sie es erneut.

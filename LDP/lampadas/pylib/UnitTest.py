@@ -46,8 +46,8 @@ dms.set_object_classes(persistence)
 print 'Preloading data...'
 blocks = dms.document.get_all()
 collections = dms.collection.get_all
-docs = dms.document.get_all()
-dtds = dms.dtd.get_all()
+docs = dms.document.get_by_keys([['doc_id', '<=', 10000]])
+dtds = dms.dtd.get_by_keys([['dtd_code', '<>', 'FOO_DTD']])
 encodings = dms.encoding.get_all()
 errors = dms.error.get_all()
 error_types = dms.error_type.get_all()
@@ -244,6 +244,7 @@ class testDocErrs(unittest.TestCase):
                     err = errors[docerr.err_id]
                     assert not err==None
                     assert err.id==docerr.err_id
+                    assert err.err_type_code==docerr.err_type_code
             else:
                 newerr = dms.document_error.new()
                 newerr.doc_id =doc.id
@@ -256,6 +257,21 @@ class testDocErrs(unittest.TestCase):
         log(3, 'testing DocErrs done')
     
 
+class testSourcefiles(unittest.TestCase):
+
+    def testSourcefiles(self):
+        log (3, 'testing Sourcefiles')
+        for key in sourcefiles.keys():
+            sourcefile = sourcefiles[key]
+            for key in sourcefile.documents.keys():
+                docfile = sourcefile.documents[key]
+                assert docfile.filename==sourcefile.filename
+            for key in sourcefile.errors.keys():
+                docerr = sourcefile.errors[key]
+                assert docerr.filename==sourcefile.filename
+        log (3, 'testing Sourcefiles done')
+
+        
 class testDocFiles(unittest.TestCase):
 
     def testDocFiles(self):
@@ -271,6 +287,7 @@ class testDocFiles(unittest.TestCase):
                 assert docfile.doc_id==doc.id
                 assert docfile.filename > ''
                 assert docfile.filename==sourcefile.filename
+                assert docfile.filename==docfile.sourcefile.filename
         log(3, 'testing DocFiles done')
 
 
@@ -351,6 +368,9 @@ class testLicenses(unittest.TestCase):
         assert licenses.count() > 0
         for key in licenses.keys():
             license = licenses[key]
+            assert license.short_name['EN'] > ''
+            assert license.name['EN'] > ''
+            assert license.description['EN'] > ''
         log(3, 'testing Licenses done')
 
 
@@ -483,6 +503,39 @@ class testUserDocs(unittest.TestCase):
         log(3, 'testing UserDocs done')
 
 
+class testSections(unittest.TestCase):
+
+    def testUserDocs(self):
+        log(3, 'testing Sections')
+        for key in sections.keys():
+            section = sections[key]
+            assert section.static_count > -1
+            assert section.nonregistered_count > -1
+            assert section.nonadmin_count > -1
+            assert section.nonsysadmin_count > -1
+            assert section.name['EN'] > ''
+        log(3, 'testing Sections done')
+
+
+class testPages(unittest.TestCase):
+
+    def testPages(self):
+        log(3, 'testing Pages')
+        for key in pages.keys():
+            page = pages[key]
+            assert page.menu_name['EN'] > ''
+            assert page.title['EN'] > ''
+            assert page.page['EN'] > ''
+            assert page.version['EN'] > ''
+            if page.section_code > '':
+                assert not page.section==None
+                assert page.section.code==page.section_code
+            if page.template_code > '':
+                assert not page.template==None
+                assert page.template.code==page.template_code
+        log(3, 'testing Pages done')
+
+        
 class testURLParse(unittest.TestCase):
     """
     FIXME: not all attributes of the URI object are tested... is this ok? --nico
