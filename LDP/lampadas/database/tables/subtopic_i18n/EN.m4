@@ -1,15 +1,30 @@
-insert(getting_started,       [Getting Started],                            [Information of use to people who are just getting started with Linux.])
-insert(switching,             [Switching from Other Operating Systems],     [Information for people using who are used to other operating systems.])
-insert(distributions,         [Distributions],                              [Information about individual vendors\' distributions, such as Red Hat, SuSE, Debian, and others.])
-insert(installation,          [System Installation],                        [Information about installing your Linux system.])
-insert(kernel,                [Kernel],                                     [Information about the Linux kernel, the core of the Linux OS.])
-insert(booting,               [Boot Loaders and Booting the OS],            [Information about how your Linux system boots.])
-insert(parallel_processing,   [Parallel Processing],                        [Information about multiprocessor systems.])
-insert(partitions_filesys,    [Partitions and Filesystems],                 [Information about Ext2, Ext3, JFS, XFS, ReiserFS and other filesystems.])
-insert(raid,                  [RAID],                                       [Information about RAID (Redundant Array of Inexpensive Disks) disk subsystems.])
-insert(printing,              [Printing],                                   [Information about LPD, CUPS, and other UNIX printing systems.])
-insert(shells,                [Shells],                                     [Information about xterm, konsole, gnome terminal and other terminal emulators.])
-insert(misc_linux,            [Miscellaneous],                              [Miscellaneous Linux OS information.])
+insert(getting_started,       [Getting Started],
+[Information of use to people who are just getting started with Linux.])
+insert(switching,             [Switching from Other Operating Systems],
+[Information for people using who are used to other operating systems.])
+insert(distributions,         [Distributions],
+[Information about individual vendors\' distributions, ]m4_dnl
+[such as Red Hat, SuSE, Debian, and others.])
+insert(installation,          [System Installation],
+[Information about installing your Linux system.])
+insert(kernel,                [Kernel],
+[Information about the Linux kernel, the core of the Linux OS.])
+insert(booting,               [Boot Loaders and Booting the OS],
+[Information about how your Linux system boots.])
+insert(parallel_processing,   [Parallel Processing],
+[Information about multiprocessor systems.])
+insert(partitions_filesys,    [Partitions and Filesystems],
+[Information about Ext2, Ext3, JFS, XFS, ReiserFS and other filesystems.])
+insert(raid,                  [RAID],
+[Information about RAID (Redundant Array of Inexpensive Disks) ]m4_dnl
+[disk subsystems.])
+insert(printing,              [Printing],
+[Information about LPD, CUPS, and other UNIX printing systems.])
+insert(shells,                [Shells],
+[Information about xterm, konsole, gnome terminal and ]m4_dnl
+[other terminal emulators.])
+insert(misc_linux,            [Miscellaneous],
+[Miscellaneous Linux OS information.])
 insert(benchmarking,          [Benchmarking],                               [])
 insert(clustering,            [Clustering],                                 [])
 insert(backup,                [Backup],                                     [])
@@ -88,4 +103,3 @@ insert(misc_lang,             [Miscellaneous],                              [])
 insert(authoring,             [Authoring and Documentation],                [])
 insert(advocacy,              [Linux Advocacy and Community Involvement],   [])
 insert(hobbies,               [Hobbies and Special Interests],              [])
-
