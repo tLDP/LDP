@@ -15,6 +15,7 @@
 <author>
   <firstname>Ian</firstname>
   <surname>Hakes</surname>
+  <email>db2howto@gmail.com</email>
 </author>
 <author>
   <firstname>Rory</firstname>
@@ -40,6 +41,13 @@
         <date>2005-01-06</date>
         <authorinitials>idmh</authorinitials>
         <revremark>Fixed typos in Red Hat 2.6 Enhancements section
+        </revremark>
+      </revision>
+      <revision>
+        <revnumber>1.1.1</revnumber>
+        <date>2005-01-25</date>
+        <authorinitials>idmh</authorinitials>
+        <revremark>Added Gentoo install instructions (provided by Dan Scott)
         </revremark>
       </revision>
     </revhistory>
@@ -1656,7 +1664,245 @@ it can mess up DB2 UDB functionality by changing world readable
 directories (like /home/db2inst1/sqllib/) that are necessary to run DB2
 UDB to non-world readable. If you find that DB2 UDB is not working
 properly, investigate your
-security settings.</para></sect3></sect2></sect1>
+security settings.</para></sect3></sect2>
+<sect2><title>Gentoo (2005-01-17)</title>
+<para>Note that IBM does not officially support this distribution for
+DB2 UDB V8.2. Any problems you encounter using this distribution must be
+replicated on a supported distribution before IBM Support will help you
+resolve the issue.</para>
+<para>These notes are based on a single-partition installation on the 
+2.6.9-gentoo-r13 kernel (2005-01-17). Following the 
+<ulink url="http://publib.boulder.ibm.com/infocenter/db2help/index.jsp?topic=/com.ibm.db2.udb.doc/start/t0006833.htm">manual install</ulink> 
+instructions in the DB2 Information Center, we use the RPM method of 
+installing DB2 UDB V8.2, through a modified <computeroutput>db2_install</computeroutput> 
+script. This is just one of many ways you could accomplish this task, but this method 
+has been tested (at least once) and it works.</para>
+<sect3><title>Pre-installation notes</title>
+<para>Emerge the rpm package and any of its pre-requisites:
+<screen>emerge rpm</screen>
+If you want to run a multiple-partition environment, you will need to emerge either the pdksh or ksh package.
+</para></sect3>
+<sect3><title>Installation notes</title>
+<para>
+Gentoo uses the latest version of the GNU coreutils package of utilities, which 
+includes the <computeroutput>tail</computeroutput> command. The DB2 install script 
+(<computeroutput>db2_install</computeroutput>) and several instance administration 
+shell scripts rely on deprecated command line arguments to <computeroutput>tail</computeroutput> 
+that have been removed entirely from the latest GNU <computeroutput>coreutils</computeroutput> version 
+of <computeroutput>tail</computeroutput>. Therefore, you must copy the contents of the install CD 
+and modify the <computeroutput>db2_install</computeroutput> script before you can successfully run the install.
+</para><para>
+The RPM packages supplied with the DB2 install CD contain dependency listings that cannot 
+be satisfied inside a Gentoo environment, because Gentoo does not use RPM as a native 
+packaging method. To overcome these dependencies, you also need to modify the <computeroutput>db2_install</computeroutput> 
+script to ignore dependencies and force the installation of DB2 onto your system. 
+</para><para>
+Perform the following steps to modify the <computeroutput>db2_install</computeroutput> script 
+for the required <computeroutput>tail</computeroutput> and <computeroutput>rpm</computeroutput> 
+changes and install the product:</para>
+<orderedlist>
+<listitem>
+<para>(Skip this step if you downloaded a tarball containing the DB2 install code.) 
+Assuming you want to copy the contents of the DB2 install CD to a subdirectory named "cdrom" in 
+your home directory, issue the following command:
+<screen>cp -r /mnt/cdrom/* ~/cdrom</screen></para>
+</listitem>
+<listitem>
+<para>Open the ~/cdrom/db2/linux/db2_install script in your text editor and modify the following lines</para>
+<para>
+From:
+<screen>output_df="`df -k ${dirname2?} | tail -1`"</screen>
+</para>
+<para>
+To:
+<screen>output_df="`df -k ${dirname2?} | tail -n -1`"</screen>
+</para>
+<para>
+From:
+<screen>( rpm -ivh  ${INSTDEV?}/${pkg?}${RPMEXTN?} 2>&1; \ 
+   echo $? > ${TMPRC?} ) | tee -a ${DB2INSTLOG?}</screen>
+</para>
+<para>
+To:
+<screen>( rpm --force --nodeps -ivh  ${INSTDEV?}/${pkg?}${RPMEXTN?} 2>&1; \ 
+   echo $? > ${TMPRC?} ) | tee -a ${DB2INSTLOG?}</screen>
+</para>
+</listitem>
+<listitem>
+<para>Change to the ~/cdrom directory and issue the following command as root:
+<screen>./db2_install</screen>
+</para>
+</listitem>
+<listitem>
+<para>The DB2 installer prompts you to enter the keyword of the product you want to install. 
+for example, issuing the <computeroutput>db2_inst</computeroutput> command for the DB2 UDB Express 
+Edition for Linux install displays the following screen:
+<screen>
+Specify one or more of the following keywords, 
+separated by spaces, to install DB2 products.
+
+ Keyword        Product Description
+ DB2.EXP        DB2 UDB Express Edition for LINUX
+
+Enter "help" to redisplay product names.
+
+Enter "quit" to exit.
+
+***********************************************************
+DB2.EXP
+</screen>
+</para>
+</listitem>
+</orderedlist>
+<para>
+The DB2 installer will now install many RPM packages into the /opt/IBM/db2/V8.1/ directory. 
+</para>
+</sect3>
+<sect3><title>Post-installation notes</title>
+<para>Now that you have installed DB2, you need to create the groups, users, 
+DB2 Administration Server instance, and database instance for your database. 
+The following instructions create users and groups with the default names 
+used in the DB2 documentation (dasadm1, db2inst1, db2fenc1).
+</para>
+<orderedlist>
+<listitem>
+<para>As root, create the required groups:
+<screen>
+groupadd -g 999 db2iadm1
+groupadd -g 998 db2fadm1
+groupadd -g 997 dasadm1
+</screen>
+</para>
+</listitem>
+<listitem>
+<para>As root, create the required users and assign them to their corresponding groups:
+<screen>
+useradd -u 1004 -g db2iadm1 -m -d /home/db2inst1 db2inst1 
+useradd -u 1003 -g db2fadm1 -m -d /home/db2fenc1 db2fenc1 
+useradd -u 1002 -g dasadm1 -m -d /home/dasusr1 dasusr1
+</screen></para>
+</listitem>
+<listitem>
+<para>Before you can create the DB2 Administration Server and database instance, you have 
+to modify the db2iutil library to update calls to the <computeroutput>tail</computeroutput> 
+command to the current GNU syntax. As root, open the /opt/IBM/db2/V8.1/instance/db2iutil 
+file in an editor and make the following changes (or apply the changes to the file using 
+the patch utility):
+<screen>
+--- db2iutil.orig       2005-01-17 07:05:58.000000000 -0500
++++ db2iutil    2005-01-17 07:06:32.000000000 -0500
+@@ -327,7 +327,7 @@
+     fi
+ 
+     # Get output of the "df" command
+-    output_df="`df -k  ${dirname2?} | tail -1`"
++    output_df="`df -k  ${dirname2?} | tail -n 1`"
+     # On some platforms, the filesystem is on the previous line causing us
+     # one less token for awk to find.
+     free_space_in_fs=`echo ${output_df?} | awk '{if ($4 !~ /%/) {print $4} else
+ {print $3}}'`
+@@ -382,7 +382,7 @@
+     rm -f ${TMPFILE3?}
+ 
+     # Get the name of the filesystem where dir $dirname2 resides.
+-    df -k ${dirname2?} | tail +2 > ${TMPFILE3?}
++    df -k ${dirname2?} | tail -n +2 > ${TMPFILE3?}
+ 
+     # There must be only one line in TMPFILE3 file
+     lcount=`wc -l ${TMPFILE3?} | awk '{print $1}'`
+@@ -394,7 +394,7 @@
+             chk_fsystype 22
+         stop_prog 1
+     fi
+-    fsname=`awk '{print $NF}' ${TMPFILE3?} | tail -1`
++    fsname=`awk '{print $NF}' ${TMPFILE3?} | tail -n 1`
+ 
+     rm -f ${TMPFILE3?}
+     foundit=${FALSE?}
+@@ -879,7 +879,7 @@
+         ${DB2VER_V2?})
+             # Dir of DB2 V2 instances
+             if [ -f ${DB2V2ILIST?} ]; then
+-                tail +2 ${DB2V2ILIST?} > ${TMPFILE3?}
++                tail -n +2 ${DB2V2ILIST?} > ${TMPFILE3?}
+                 if [ -s ${TMPFILE3?} ]; then
+                     for iname in `cat ${TMPFILE3?}`; do
+                         db2ilist=${db2ilist?}" ${iname?}"
+@@ -891,7 +891,7 @@
+         ${DB2VER_DJ?})
+             # Dir of DB2 V2 instances
+             if [ -f ${DJV211ILIST?} ]; then
+-                tail +2 ${DJV211ILIST?} > ${TMPFILE3?}
++                tail -n +2 ${DJV211ILIST?} > ${TMPFILE3?}
+                 if [ -s ${TMPFILE3?} ]; then
+                     for iname in `cat ${TMPFILE3?}`; do
+                         db2ilist=${db2ilist?}" ${iname?}"
+</screen>
+</para>
+</listitem>
+<listitem>
+<para>Create the DB2 Administration Server: 
+<screen>/opt/IBM/db2/V8.1/instance/dascrt -u dasadm1
+</screen>
+</para>
+<para>Create the DB2 database instance:
+<screen>/opt/IBM/db2/V8.1/instance/db2icrt -a server -u db2fenc1 db2inst1 
+</screen>
+</para>
+</listitem>
+</orderedlist>
+<sect4><title>
+Enabling remote connections</title>
+<para>When you perform a manual install of DB2, the installer does not automatically 
+set up the communication protocols for your DB2 server. To enable connections to your 
+DB2 server from remote clients, perform the following steps:
+</para>
+<orderedlist>
+<listitem>
+<para>Set the port on which DB2 should communicate. Ensure that you select a port that 
+is not blocked by a firewall or used by another service defined in the /etc/services file. 
+To set the communications port, update the DB2 database manager configuration variable 
+SVCENAME. For example, to set the communications port to 50055, issue the following command 
+as the instance user ("db2inst1", if you've been using the defaults):
+<screen>db2 update dbm cfg using svcename 50055</screen>
+</para>
+</listitem>
+<listitem>
+<para>Set the DB2 communications protocol registry variable to define the protocol 
+supported by the server. Typically the only protocol you would use is TCP/IP, so issue 
+the following command as the instance user ("db2inst1" if you've been using the defaults):
+<screen>db2set DB2COMM=tcpip</screen>
+</para>
+</listitem>
+<listitem>
+<para>Restart the database instance to enable the settings to take effect.
+<screen>
+db2stop
+db2start
+</screen>
+</para>
+</listitem>
+</orderedlist>
+<para>
+You should now be able to catalog and connect to your Gentoo server from a remote client.
+</para>
+</sect4>
+<sect4><title>
+Running the DB2 Control Center and other DB2 GUI tools
+</title>
+<para>To run the DB2 Control Center or other DB2 GUI tools, you must install the IBM 
+Software Developers' Kit for Java. This RPM is included in the DB2 install CD-ROM in 
+the /db2/linux/Java-1.4/ directory. To install the IBM Software Developers' Kit for 
+Java, change to the root directory of the CD-ROM and issue the following command as root:
+<screen>
+rpm --force --nodeps -ivh db2/linux/Java-1.4/IBMJava2-SDK-1.4.1-2.0.i386.rpm
+</screen>
+</para><para>
+Log in as the db2inst1 and invoke the DB2 Control Center:
+<screen>db2cc</screen>
+</para></sect4>
+</sect3></sect2>
+</sect1>
 <sect1 id='help'><title>Installing the DB2 UDB Information Center</title>
 <para>The new DB2 UDB Information Center is a new initiative from IBM to
 improve the documentation delivery system in Version 8.2. It's based on
