@@ -5,6 +5,6 @@ $L = new Lampadas;
 
 $project = $L->Config('project');
 $L->StartPage("Welcome");
-print "Welcome to the $project Lampadas System.";
+print $L->String(1);
 $L->EndPage();
 

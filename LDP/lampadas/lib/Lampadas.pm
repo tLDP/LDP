@@ -65,18 +65,20 @@ use Exporter;
 	Formats,
 	DTDs,
 	Stylesheets,
+	Strings,
+	String,
+	AddString,
+	SaveString,
+	DelString,
 	Errors,
 	AddError,
-
+	
 	DocCount,
 	DocCountByClass,
 	DocCountByPubStatus,
 
 	StartPage,
 	EndPage,
-
-	MessagesTable,
-	NavBar,
 
 	RoleCombo,
 	ClassCombo,
@@ -104,11 +106,14 @@ use Exporter;
 	DocTopicsTable,
 	DocRatingTable,
 	DocNotesTable,
+	StringsTable,
 	ErrorsTable,
 	TopicsTable,
 	TopicTable,
 	SubtopicsTable,
 	TopicDocsTable,
+	MessagesTable,
+	NavBar,
 
 	PubStatusStatsTable,
 	LicenseStatsTable,
@@ -826,6 +831,55 @@ sub Stylesheets {
 		$stylesheets{$stylesheet}{stylesheet}	= $stylesheet;
 	}
 	return %stylesheets;
+}
+
+sub Strings {
+	my ($self, $language) = @_;
+	$language = RequestedLanguage() unless ($language);
+	my %strings = ();
+	my $sql = "SELECT string_id, lang, string FROM string_i18n WHERE lang='$language'";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$string_id	= $row[0];
+		$lang		= $row[1];
+		$string		= &trim($row[2]);
+		$key		= $string_id . $lang;
+		$strings{$key}{id}	= $string_id;
+		$strings{$key}{lang}	= $lang;
+		$strings{$key}{string}	= $string;
+	}
+	return %strings;
+}
+
+sub String {
+	my ($self, $string_id) = @_;
+	my $language = RequestedLanguage();
+	my $string = $DB->Value("SELECT string FROM string_i18n WHERE string_id=$string_id AND lang='$language'");
+	return $string;
+}
+
+sub AddString {
+	my ($self, $lang, $string) = @_;
+	my $string_id = $DB->Value("SELECT MAX(string_id) FROM string");
+	$string_id++;
+	$sql = "INSERT INTO string(string_id) VALUES($string_id)";
+	$DB->Exec($sql);
+	$sql = "INSERT INTO string_i18n(string_id, lang, string) VALUES($string_id, '$lang', " . wsq($string) . ")";
+	$DB->Exec($sql);
+}
+
+sub SaveString {
+	my ($self, $string_id, $lang, $string) = @_;
+	$sql = "UPDATE string_i18n SET string=" .wsq($string) . " WHERE string_id=$string_id AND lang='$lang'";
+	$DB->Exec($sql);
+}
+
+sub DelString {
+	my ($self, $string_id, $lang) = @_;
+	$sql = "DELETE FROM string_i18n WHERE string_id=$string_id AND lang='$lang'";
+	$DB->Exec($sql);
+	$sql = "DELETE FROM string WHERE string_id=$string_id";
+	$DB->Exec($sql);
 }
 
 sub Errors {
@@ -2173,6 +2227,39 @@ sub DocNotesTable {
 	return $table;
 }
 
+sub StringsTable {
+	my ($self) = @_;
+	my $language = RequestedLanguage();
+	my %strings = Strings();
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th>ID</th><th colspan=3>String ($language)</th></tr>\n";
+	foreach $key (sort { $strings{$a}{id} <=> $strings{$b}{id} } keys %strings) {
+		next unless ($strings{$key}{lang} eq $language);
+		$table .= "<form name='string' action='string_save.pl'>\n";
+		$table .= "<input type='hidden' name='string_id' value='$strings{$key}{id}'>\n";
+		$table .= "<input type='hidden' name='lang' value='$strings{$key}{lang}'>\n";
+		$table .= "<tr>\n";
+		$table .= "<th>$strings{$key}{id}</th>\n";
+		$table .= "<td style='width:100%'><textarea name='string' style='width:100%' cols=20 rows=10 wrap>$strings{$key}{string}</textarea></td>\n";
+		$table .= "<td><input type=checkbox name=chkDel>Del</td>";
+		$table .= "<td><input type=submit value='Save'></td>\n";
+		$table .= "</tr>\n";
+		$table .= "</form>";
+	}
+	$table .= "<form name='string' action='string_add.pl'>\n";
+	$table .= "<input type='hidden' name='lang' value='$language'>\n";
+	$table .= "<tr>\n";
+	$table .= "<th></th>\n";
+	$table .= "<td style='width:100%'><textarea name='string' style='width:100%' cols=20 rows=10 wrap></textarea></td>\n";
+	$table .= "<td></td>\n";
+	$table .= "<td><input type=submit value='Add'></td>\n";
+	$table .= "</tr>\n";
+	$table .= "</form>";
+	$table .= "</table>";
+	return $table;
+}
+
 sub ErrorsTable {
 	my ($self) = @_;
 	my %errors = Errors();
@@ -2436,6 +2523,7 @@ sub AdminBox {
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
 	if (SysAdmin()) {
 		print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
+		print "<tr><td><a href='string_edit.pl'>Edit Strings</a></td></tr>\n";
 	}
 	print "</td></tr></table>\n";
 }

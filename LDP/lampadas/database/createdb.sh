@@ -23,6 +23,8 @@ psql lampadas -qf review_status.sql
 psql lampadas -qf role.sql
 psql lampadas -qf stats.sql
 psql lampadas -qf stats_cdf.sql
+psql lampadas -qf string.sql
+psql lampadas -qf string_i18n.sql
 psql lampadas -qf subtopic.sql
 psql lampadas -qf topic.sql
 psql lampadas -qf username.sql

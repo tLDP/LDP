@@ -22,6 +22,8 @@ ALTER TABLE doc_vote		ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES
 ALTER TABLE doc_vote		ADD CONSTRAINT user_id_fk	FOREIGN KEY (user_id)			REFERENCES username(user_id);
 ALTER TABLE notes		ADD CONSTRAINT doc_id_fk	FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE notes		ADD CONSTRAINT creator_id_fk	FOREIGN KEY (creator_id)		REFERENCES username(user_id);
+ALTER TABLE string_i18n		ADD CONSTRAINT string_id_fk	FOREIGN KEY (string_id)			REFERENCES string(string_id);
+ALTER TABLE string_i18n		ADD CONSTRAINT string_lang_fk	FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE subtopic		ADD CONSTRAINT topic_num_fk	FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
 ALTER TABLE username_notes	ADD CONSTRAINT user_id_fk	FOREIGN KEY (user_id)			REFERENCES username(user_id);
 ALTER TABLE username_notes	ADD CONSTRAINT creator_id_fk	FOREIGN KEY (creator_id)		REFERENCES username(user_id);

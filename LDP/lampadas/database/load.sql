@@ -21,6 +21,8 @@ copy review_status from '/tmp/lampadas_review_status.txt';
 copy role from '/tmp/lampadas_role.txt';
 copy stats from '/tmp/lampadas_stats.txt';
 copy stats_cdf from '/tmp/lampadas_stats_cdf.txt';
+copy string from '/tmp/lampadas_string.txt';
+copy string_i18n from '/tmp/lampadas_string_i18n.txt';
 copy subtopic from '/tmp/lampadas_subtopic.txt';
 copy topic from '/tmp/lampadas_topic.txt';
 copy username from '/tmp/lampadas_username.txt';

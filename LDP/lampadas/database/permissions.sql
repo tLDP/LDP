@@ -21,6 +21,8 @@ GRANT ALL ON review_status TO "www-data";
 GRANT ALL ON role TO "www-data";
 GRANT ALL ON stats TO "www-data";
 GRANT ALL ON stats_CDF to "www-data";
+GRANT ALL ON string TO "www-data";
+GRANT ALL ON string_i18n TO "www-data";
 GRANT ALL ON subtopic TO "www-data";
 GRANT ALL ON topic TO "www-data";
 GRANT ALL ON username TO "www-data";
