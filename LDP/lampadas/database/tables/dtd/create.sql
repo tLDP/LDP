@@ -1,6 +1,6 @@
 CREATE TABLE dtd
 (
-	dtd			CHAR(12)	NOT NULL,
+	dtd_code		CHAR(12)	NOT NULL,
 
-	PRIMARY KEY (dtd)
+	PRIMARY KEY (dtd_code)
 );

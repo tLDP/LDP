@@ -45,21 +45,21 @@ import os
 class Lintadas:
 
 	def CheckAllDocs(self):
-		keys = lampadas.Docs.keys()
+		keys = lampadas.docs.keys()
 		for key in keys:
 			self.CheckDoc(key)
 	
-	def CheckDoc(self, DocID):
-		log(3, 'Running Lintadas on document ' + str(DocID))
-		Doc = lampadas.Docs[int(DocID)]
+	def CheckDoc(self, doc_id):
+		log(3, 'Running Lintadas on document ' + str(doc_id))
+		Doc = lampadas.docs[int(doc_id)]
 		assert not Doc==None
-		Doc.Errs.Clear()
+		Doc.errs.Clear()
 
 		# Test document files
-		keys = Doc.Files.keys()
+		keys = Doc.files.keys()
 		for key in keys:
 
-			File = Doc.Files[key]
+			File = Doc.files[key]
 
 			if File.IsLocal:
 				log(3, 'Checking filename ' + key)
@@ -82,38 +82,38 @@ class Lintadas:
 				FileFormat = ''
 				DocFormat = ''
 
-			formatkeys = lampadas.Formats.keys()
+			formatkeys = lampadas.formats.keys()
 			for formatkey in formatkeys:
-				if lampadas.Formats[formatkey].I18n['EN'].Name==FileFormat:
-					File.FormatID = formatkey
-				if lampadas.Formats[formatkey].I18n['EN'].Name==DocFormat:
-					Doc.FormatID = formatkey
+				if lampadas.formats[formatkey].I18n['EN'].Name==FileFormat:
+					File.Formatid = formatkey
+				if lampadas.formats[formatkey].I18n['EN'].Name==DocFormat:
+					Doc.Formatid = formatkey
 			
 			log(3, 'file format is ' + FileFormat)
 			
 			# Determine DTD for SGML and XML files
 			if FileFormat=='XML' or FileFormat=='SGML':
-				DTDVersion = ''
+				dtd_version = ''
 				try:
 					command = 'grep -i DOCTYPE ' + config.cvs_root + File.Filename + ' | head -n 1'
 					grep = os.popen(command, 'r')
-					DTDVersion = grep.read()
+					dtd_version = grep.read()
 				except IOError:
 					pass
 
-				DTDVersion = DTDVersion.upper()
-				if DTDVersion.count('DOCBOOK') > 0:
-					Doc.DTD = 'DocBook'
-				elif DTDVersion.count('LINUXDOC') > 0:
-					Doc.DTD = 'LinuxDoc'
+				dtd_version = dtd_version.upper()
+				if dtd_version.count('DOCBOOK') > 0:
+					Doc.dtd_code = 'DocBook'
+				elif dtd_version.count('LINUXDOC') > 0:
+					Doc.dtd_code = 'LinuxDoc'
 				else:
-					Doc.DTD = ''
+					Doc.dtd_code = ''
 
-			log(3, 'doc dtd is ' + Doc.DTD)
+			log(3, 'doc dtd is ' + Doc.dtd_code)
 
-			Doc.Save()
-			File.Save()
-		log(3, 'Lintadas run on document ' + str(DocID) + ' complete')
+			Doc.save()
+			File.save()
+		log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 
 lintadas = Lintadas()
 

@@ -125,3 +125,28 @@ def trim(astring):
     return temp.strip()
 
 
+class WOStringIO:
+    """
+    Write-Only pure python extra fast buffer.
+
+    String concatenation is kinda slow. Use class WOStringIO instead:
+    
+    buf = WOStringIO()
+    buf.write('some piece of <HTML>')
+    buf.write('some other %s' % 'variable-value')
+    buf.get_value()
+
+    N.B: same interface as StringIO.
+
+    --nico
+    """
+
+    def __init__(self,s='') :
+        self.data = [s]
+
+    def write(self,s) :
+        self.data.append(s)
+
+    def get_value(self) :
+        return ''.join(self.data)
+    

@@ -88,75 +88,75 @@ class testDocs(unittest.TestCase):
 
     def testDocs(self):
         log(3, 'testing Docs')
-        assert not lampadas.Docs==None
-        assert lampadas.Docs.count() > 0
+        assert not lampadas.docs==None
+        assert lampadas.docs.count() > 0
 
         db.runsql("DELETE FROM document where title='testharness'")
         db.commit()
     
-        self.OldID = db.read_value('SELECT max(doc_id) from document')
-        self.NewID = lampadas.Docs.add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
-        assert self.NewID > 0
-        assert self.OldID + 1==self.NewID
+        self.Oldid = db.read_value('SELECT max(doc_id) from document')
+        self.Newid = lampadas.docs.add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
+        assert self.Newid > 0
+        assert self.Oldid + 1==self.Newid
         
-        self.Doc = lampadas.Doc(self.NewID)
+        self.Doc = lampadas.docs[self.Newid]
         assert not self.Doc==None
-        assert self.Doc.ID==self.NewID
-        assert self.Doc.Title=='testharness'
-        assert self.Doc.FormatID==1
+        assert self.Doc.id==self.Newid
+        assert self.Doc.title=='testharness'
+        assert self.Doc.Formatid==1
         
-        lampadas.Docs.Del(self.NewID)
-        self.NewID = db.read_value('SELECT MAX(doc_id) from document')
-        assert self.NewID==self.OldID
+        lampadas.docs.Del(self.Newid)
+        self.Newid = db.read_value('SELECT MAX(doc_id) from document')
+        assert self.Newid==self.Oldid
 
-        keys = lampadas.Docs.keys()
+        keys = lampadas.docs.keys()
         for key in keys:
-            self.Doc = lampadas.Docs[key]
-            assert self.Doc.ID==key
+            self.Doc = lampadas.docs[key]
+            assert self.Doc.id==key
         log(3, 'testing Docs done')
 
     def testMapping(self):
         log(3, 'testing Docs Mapping')
-        self.Doc = lampadas.Docs[100]
+        self.Doc = lampadas.docs[100]
         assert not self.Doc==None
-        assert not self.Doc.Title==''
-        assert self.Doc.ID==100
-        self.Doc = lampadas.Docs[2]
-        assert self.Doc.ID==2
+        assert not self.Doc.title==''
+        assert self.Doc.id==100
+        self.Doc = lampadas.docs[2]
+        assert self.Doc.id==2
         log(3, 'testing Docs Mapping done')
 
-    def testSave(self):
-        log(3, 'testing Docs Save')
-        self.Doc = lampadas.Docs[100]
-        self.Title = self.Doc.Title
-        self.Doc.Title = 'Foo'
-        assert self.Doc.Title=='Foo'
-        self.Doc.Save()
-        self.Doc2 = lampadas.Docs[100]
-        assert self.Doc2.Title=='Foo'
+    def test_save(self):
+        log(3, 'testing doc.save()')
+        self.Doc = lampadas.docs[100]
+        self.title = self.Doc.title
+        self.Doc.title = 'Foo'
+        assert self.Doc.title=='Foo'
+        self.Doc.save()
+        self.Doc2 = lampadas.docs[100]
+        assert self.Doc2.title=='Foo'
         
-        self.Doc.Title = self.Title
-        assert self.Doc.Title==self.Title
-        self.Doc.Save()
-        self.Doc2 = lampadas.Docs[100]
-        assert self.Doc2.Title==self.Title
-        log(3, 'testing Docs Save done')
+        self.Doc.title = self.title
+        assert self.Doc.title==self.title
+        self.Doc.save()
+        self.Doc2 = lampadas.docs[100]
+        assert self.Doc2.title==self.title
+        log(3, 'testing doc.save done')
 
 
 class testDocErrs(unittest.TestCase):
 
     def testDocErrs(self):
         log(3, 'testing DocErrs')
-        keys = lampadas.Docs.keys()
+        keys = lampadas.docs.keys()
         for key in keys:
-            Doc = lampadas.Docs[key]
+            Doc = lampadas.docs[key]
             assert not Doc==None
             if Doc.Errs.count() > 0:
                 log("found a doc with errors")
                 for Err in Doc.Errs:
                     assert not Err==None
-                    assert Err.DocID==Doc.ID
-                    assert Err.ErrID > 1
+                    assert Err.doc_id==Doc.id
+                    assert Err.Errid > 1
         log(3, 'testing DocErrs done')
     
 
@@ -164,14 +164,14 @@ class testDocFiles(unittest.TestCase):
 
     def testDocFiles(self):
         log(3, 'testing DocFiles')
-        Doc = lampadas.Docs[100]
+        Doc = lampadas.docs[100]
         assert not Doc==None
-        assert Doc.Files.count() > 0
-        keys = Doc.Files.keys()
+        assert Doc.files.count() > 0
+        keys = Doc.files.keys()
         for key in keys:
-            File = Doc.Files[key]
+            File = Doc.files[key]
             if File==None: break
-            assert File.DocID==Doc.ID
+            assert File.doc_id==Doc.id
             assert File.Filename > ''
         log(3, 'testing DocFiles done')
 
@@ -180,27 +180,27 @@ class testDocRatings(unittest.TestCase):
 
     def testDocRatings(self):
         log(3, 'testing DocRatings')
-        Doc = lampadas.Docs[100]
+        Doc = lampadas.docs[100]
         assert not Doc==None
         Doc.Ratings.Clear()
         assert Doc.Ratings.count()==0
         assert Doc.Rating==0
 
-        # Add UserID: 1   Rating: 5   -- Avg: 5
+        # Add Userid: 1   Rating: 5   -- Avg: 5
 
         Doc.Ratings.add(1, 5)
         assert Doc.Ratings.count()==1
         assert Doc.Ratings.Average==5
         assert Doc.Rating==5
 
-        # Add UserID: 2   Rating: 7   -- Avg: 6
+        # Add Userid: 2   Rating: 7   -- Avg: 6
         
         Doc.Ratings.add(2, 7)
         assert Doc.Ratings.count()==2
         assert Doc.Ratings.Average==6
         assert Doc.Rating==6
 
-        # Del UserID: 1
+        # Del Userid: 1
     
         Doc.Ratings.Del(1)
         assert Doc.Ratings.count()==1
@@ -220,19 +220,19 @@ class testDocVersions(unittest.TestCase):
 
     def testDocVersions(self):
         log(3, 'testing DocVersions')
-        keys = lampadas.Docs.keys()
+        keys = lampadas.docs.keys()
         found = 0
         for key in keys:
-            Doc = lampadas.Docs[key]
+            Doc = lampadas.docs[key]
             assert not Doc==None
-            if Doc.Versions.count() > 0:
+            if Doc.versions.count() > 0:
                 found = 1
-                vkeys = Doc.Versions.keys()
+                vkeys = Doc.versions.keys()
                 for vkey in vkeys:
-                    Version = Doc.Versions[vkey]
-                    assert not Version==None
-                    assert Version.PubDate > ''
-                    assert Version.Initials > ''
+                    version = Doc.versions[vkey]
+                    assert not version==None
+                    assert version.PubDate > ''
+                    assert version.Initials > ''
         assert found==1
         log(3, 'testing DocVersions done')
 
@@ -246,12 +246,12 @@ class testLicenses(unittest.TestCase):
         log(3, 'testing Licenses done')
 
 
-class testDTDs(unittest.TestCase):
+class test_dtds(unittest.TestCase):
 
-    def testDTDs(self):
+    def test_dtdss(self):
         log(3, 'testing DTDs')
-        assert lampadas.DTDs.count() > 0
-        assert not lampadas.DTDs['DocBook']==None
+        assert lampadas.dtds.count() > 0
+        assert not lampadas.dtds['DocBook']==None
         log(3, 'testing DTDs done')
 
 
@@ -259,12 +259,12 @@ class testFormats(unittest.TestCase):
 
     def testFormats(self):
         log(3, 'testing Formats')
-        assert lampadas.Formats.count() > 0
-        assert not lampadas.Formats[1]==None
-        assert not lampadas.Formats[1].I18n==None
-        assert not lampadas.Formats[1].I18n['EN']==None
-        assert lampadas.Formats[1].I18n['EN'].Name > ''
-        assert lampadas.Formats[1].I18n['EN'].Description > ''
+        assert lampadas.formats.count() > 0
+        assert not lampadas.formats[1]==None
+        assert not lampadas.formats[1].I18n==None
+        assert not lampadas.formats[1].I18n['EN']==None
+        assert lampadas.formats[1].I18n['EN'].Name > ''
+        assert lampadas.formats[1].I18n['EN'].Description > ''
         log(3, 'testing Formats done')
 
 
@@ -286,13 +286,13 @@ class testPubStatuses(unittest.TestCase):
 
     def testPubStatuses(self):
         log(3, 'testing PubStatuses')
-        assert not lampadas.PubStatuses==None
-        assert lampadas.PubStatuses.count() > 0
-        assert not lampadas.PubStatuses['A']==None
-        assert not lampadas.PubStatuses['A'].I18n==None
-        assert not lampadas.PubStatuses['A'].I18n['EN']==None
-        assert lampadas.PubStatuses['A'].I18n['EN'].Name > ''
-        assert lampadas.PubStatuses['A'].I18n['EN'].Description > ''
+        assert not lampadas.pub_statuses==None
+        assert lampadas.pub_statuses.count() > 0
+        assert not lampadas.pub_statuses['A']==None
+        assert not lampadas.pub_statuses['A'].I18n==None
+        assert not lampadas.pub_statuses['A'].I18n['EN']==None
+        assert lampadas.pub_statuses['A'].I18n['EN'].Name > ''
+        assert lampadas.pub_statuses['A'].I18n['EN'].Description > ''
         log(3, 'testing PubStatuses done')
         
 
@@ -320,20 +320,20 @@ class testUsers(unittest.TestCase):
         db.runsql("DELETE FROM username where email='foo@example.com'")
         db.commit()
     
-        self.OldID = db.read_value('SELECT MAX(user_id) from username')
-        self.NewID = lampadas.Users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
-        assert self.NewID > 0
-        assert self.OldID + 1==self.NewID
+        self.Oldid = db.read_value('SELECT MAX(user_id) from username')
+        self.Newid = lampadas.Users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
+        assert self.Newid > 0
+        assert self.Oldid + 1==self.Newid
         
-        self.User = lampadas.User(self.NewID)
+        self.User = lampadas.User(self.Newid)
         assert not self.User==None
-        assert self.User.ID==self.NewID
+        assert self.User.id==self.Newid
         assert self.User.Username=='testuser'
         assert self.User.Email=='foo@example.com'
         
-        lampadas.Users.Del(self.NewID)
-        self.NewID = db.read_value('SELECT MAX(user_id) from username')
-        assert self.NewID==self.OldID
+        lampadas.Users.Del(self.Newid)
+        self.Newid = db.read_value('SELECT MAX(user_id) from username')
+        assert self.Newid==self.Oldid
         log(3, 'testing Users done')
 
 
@@ -347,8 +347,8 @@ class testUserDocs(unittest.TestCase):
         assert not self.User.Docs==None
         for UserDoc in self.User.Docs:
             assert not UserDoc==None
-            assert not UserDoc.DocID==None
-            assert UserDoc.DocID > 0
+            assert not UserDoc.doc_id==None
+            assert UserDoc.doc_id > 0
             assert UserDoc.Active==1 or UserDoc.Active==0
         log(3, 'testing UserDocs done')
 
@@ -363,10 +363,10 @@ class testUserDocs(unittest.TestCase):
         assert not self.User.Docs==None
         for UserDoc in self.User.Docs:
             assert not UserDoc==None
-            assert not UserDoc.DocID==None
-            assert UserDoc.DocID > 0
+            assert not UserDoc.doc_id==None
+            assert UserDoc.doc_id > 0
             assert UserDoc.Active==1 or UserDoc.Active==0
-            assert UserDoc.ID==UserDoc.DocID
+            assert UserDoc.id==UserDoc.doc_id
         log(3, 'testing UserDocs done')
 
 

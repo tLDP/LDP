@@ -46,20 +46,20 @@ class Makefile:
 
     def write_all(self):
         log(3, 'Writing Makefile for all documents')
-        for dockey in lampadas.Docs.keys():
+        for dockey in lampadas.docs.keys():
             self.write_doc(dockey)
         self.write_main_makefile()
 
-    def write_doc(self, DocID):
-        log(3, 'Writing Makefile for document ' + str(DocID))
-        self.Doc = lampadas.Docs[DocID]
+    def write_doc(self, doc_id):
+        log(3, 'Writing Makefile for document ' + str(doc_id))
+        self.Doc = lampadas.docs[doc_id]
         
         # Determine where files live
         # 
-        self.cachedir   = config.cache_dir + str(self.Doc.ID) + '/'
+        self.cachedir   = config.cache_dir + str(self.Doc.id) + '/'
         self.write_makefile(self.Doc, self.cachedir)
         
-        log(3, 'Writing Makefile for document ' + str(DocID) + ' complete.')
+        log(3, 'Writing Makefile for document ' + str(doc_id) + ' complete.')
         
 
     def write_makefile(self, doc, dir):
@@ -67,8 +67,8 @@ class Makefile:
         Writes a Makefile to convert the source files into DocBook XML.
         """
 
-        for file in doc.Files.keys():
-            File = doc.Files[file]
+        for file in doc.files.keys():
+            File = doc.files[file]
             if File.is_primary:
                 dbsgmlfile = File.basename + '.db.sgml'
                 xmlfile = File.basename + '.xml'
@@ -78,21 +78,21 @@ class Makefile:
                 omffile = File.basename + '.omf'
                 
                 Makefile = 'xmlfile = ' + xmlfile + "\n\n"
-                if File.FormatID==1 and doc.DTD=='DocBook':
+                if File.Formatid==1 and doc.dtd_code=='DocBook':
                     Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + File.file_only + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID==1 and doc.DTD=='LinuxDoc':
+                elif File.Formatid==1 and doc.dtd_code=='LinuxDoc':
                     Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/' + "\n"
                     Makefile = Makefile + 'BUILD_XML = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + File.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
                     Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log; '
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID==4 and doc.DTD=='DocBook':
+                elif File.Formatid==4 and doc.dtd_code=='DocBook':
                     pass
-                elif File.FormatID==3:
+                elif File.Formatid==3:
                     Makefile = Makefile + 'BUILD_XML = wt2db -n -s ' + File.file_only + ' -o ' + dbsgmlfile + " 2>>wt2db.log; "
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID==6:
+                elif File.Formatid==6:
                     Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + File.file_only + ' -o ' + xmlfile + " 2>>wt2db.log; "
-                elif File.FormatID==7:
+                elif File.Formatid==7:
                     Makefile = Makefile + 'BUILD_XML = texi2db -f ' + File.file_only + ' -o ' + xmlfile + " 2>>texi2db.log; "
                 else:
                     continue
@@ -107,7 +107,7 @@ class Makefile:
                 Makefile = Makefile + "all:\tbuild\n\n"
                 
                 Makefile = Makefile + "build:\txml html index txt omf\n\n"
-                if File.FormatID==4 and doc.DTD=='DocBook':
+                if File.Formatid==4 and doc.dtd_code=='DocBook':
                     Makefile = Makefile + "xml:\n\n"
                 else:
                     Makefile = Makefile + "xml:\t" + xmlfile + "\n\n"
@@ -159,12 +159,12 @@ class Makefile:
         cleanmake = ''
         rebuildmake = ''
         makeneeded = 0
-        for docid in lampadas.Docs.keys():
-            Doc = lampadas.Docs[docid]
-            for file in Doc.Files.keys():
-                File = Doc.Files[file]
+        for docid in lampadas.docs.keys():
+            Doc = lampadas.docs[docid]
+            for file in Doc.files.keys():
+                File = Doc.files[file]
                 if File.is_primary:
-                    if (File.FormatID==1 and Doc.DTD=='DocBook') or (File.FormatID==1 and Doc.DTD=='LinuxDoc') or File.FormatID==3 or File.FormatID==6 or File.FormatID==7:
+                    if (File.Formatid==1 and Doc.dtd_code=='DocBook') or (File.Formatid==1 and Doc.dtd_code=='LinuxDoc') or File.Formatid==3 or File.Formatid==6 or File.Formatid==7:
                         makeneeded = 1
                         docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
                         xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"

@@ -36,27 +36,27 @@ def document(req, doc_id, title, url, ref_url, pub_status_code, type_code,
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
 
-    doc = lampadas.Docs[int(doc_id)]
+    doc = lampadas.docs[int(doc_id)]
     if doc==None:
         return error("Cannot find document " + str(doc_id))
 
-    doc.Title                   = title
-    doc.URL                     = url
-    doc.HomeURL                 = ref_url
-    doc.PubStatusCode           = pub_status_code
+    doc.title                   = title
+    doc.url                     = url
+    doc.home_url                = ref_url
+    doc.pub_status_code         = pub_status_code
     doc.type_code               = type_code
-    doc.ReviewStatusCode        = review_status_code
-    doc.TechReviewStatusCode    = tech_review_status_code
+    doc.review_status_code      = review_status_code
+    doc.tech_review_status_code = tech_review_status_code
     doc.maintainer_wanted       = int(maintainer_wanted)
     doc.license_code            = license_code
-    doc.PubDate                 = pub_date
-    doc.LastUpdate              = last_update
-    doc.Version                 = version
-    doc.TickleDate              = tickle_date
-    doc.ISBN                    = isbn
-    doc.Lang                    = lang
-    doc.Abstract                = abstract
-    doc.Save()
+    doc.pub_date                = pub_date
+    doc.last_update             = last_update
+    doc.version                 = version
+    doc.tickle_date             = tickle_date
+    doc.ibsn                    = isbn
+    doc.lang                    = lang
+    doc.abstract                = abstract
+    doc.save()
     referer = req.headers_in['referer']
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY

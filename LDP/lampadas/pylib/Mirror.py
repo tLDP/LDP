@@ -45,28 +45,28 @@ class Mirror:
 
     def mirror_all(self):
         log(3, 'Mirroring all documents')
-        for dockey in lampadas.Docs.keys():
+        for dockey in lampadas.docs.keys():
             self.mirror_doc(dockey)
 
-    def mirror_doc(self, DocID):
-        log(3, 'Mirroring document ' + str(DocID))
-        self.Doc = lampadas.Docs[DocID]
+    def mirror_doc(self, doc_id):
+        log(3, 'Mirroring document ' + str(doc_id))
+        self.Doc = lampadas.docs[doc_id]
         
         # decide if the document is remote
         #
         self.is_remote = 0
-        filekeys = self.Doc.Files.keys()
+        filekeys = self.Doc.files.keys()
         for filekey in filekeys:
-            if not self.Doc.Files[filekey].IsLocal:
+            if not self.Doc.files[filekey].IsLocal:
                 self.is_remote = 1
         
         # delete list of local files if document is remote
         #
         if self.is_remote:
-                filekeys = self.Doc.Files.keys()
+                filekeys = self.Doc.files.keys()
                 for filekey in filekeys:
-                    if self.Doc.Files[filekey].IsLocal:
-                        self.Doc.Files[filekey].Del()
+                    if self.Doc.files[filekey].IsLocal:
+                        self.Doc.files[filekey].Del()
 
         # mirror all files into cache, whether from remote
         # or local storage
@@ -79,11 +79,11 @@ class Mirror:
             
             # create cache directory for this document
             # 
-            self.cachedir = config.cache_dir + str(self.Doc.ID) + '/'
+            self.cachedir = config.cache_dir + str(self.Doc.id) + '/'
             if not self.os.access(self.cachedir, self.os.F_OK):
                 self.os.mkdir(self.cachedir)
 
-            self.File		= self.Doc.Files[filekey]
+            self.File		= self.Doc.files[filekey]
             self.filename	= self.File.Filename
             self.file_only	= self.File.file_only
             self.cachename	= self.cachedir + self.file_only
@@ -112,9 +112,9 @@ class Mirror:
             if self.unpack(self.cachedir, self.file_only):
                 for file in self.os.listdir(self.cachedir):
                     if file[-5:] <> '.html':
-                        self.Doc.Files.add(self.Doc.ID, file)
+                        self.Doc.files.add(self.Doc.id, file)
 
-        log(3, 'Mirroring document ' + str(DocID) + ' complete.')
+        log(3, 'Mirroring document ' + str(doc_id) + ' complete.')
         
 
     def unpack(self, dir, file):

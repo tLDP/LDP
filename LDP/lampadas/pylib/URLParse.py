@@ -137,7 +137,7 @@ class URI:
         print "Path: [" + self.path + "]"
         print "Language: [" + self.lang + "]"
         print "Forced Language: [" + str(self.force_lang) + "]"
-        print "ID [" + str(self.id) + "]"
+        print "ID: [" + str(self.id) + "]"
         print "Code [" + str(self.code) + "]"
         print "Format [" + str(self.format) + "]"
         print "Filename: [" + self.filename + "]"

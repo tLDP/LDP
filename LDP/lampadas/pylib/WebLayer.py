@@ -167,7 +167,7 @@ class String:
     Each string is Unicode text, that can be used in a web page.
     """
 
-    def __init__(self, StringCode=None):
+    def __init__(self, string_code=None):
         self.string = LampadasCollection()
 
     def load(self, row):

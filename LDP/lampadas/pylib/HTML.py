@@ -23,32 +23,8 @@ Lampadas HTML Primitives Module
 
 This module generates HTML primitives and web pages for the WWW front-end
 to the Lampadas system.
-
-FIXME: string concatenation is kinda slow. Use class WOStringIO instead.
-As in
-
-buf = WOStringIO()
-buf.write('some piece of <HTML>')
-buf.write('some other %s' % 'variable-value')
-buf.get_value()
-
-N.B: same interface as StringIO.
-
---nico
 """
 
-class WOStringIO :
-    "Write-Only pure python extra fast buffer"
-
-    def __init__(self,s='') :
-        self.data = [s]
-
-    def write(self,s) :
-        self.data.append(s)
-
-    def get_value(self) :
-        return ''.join(self.data)
-    
 # Modules ##################################################################
 
 from Globals import *
@@ -111,61 +87,61 @@ class ComboFactory:
 
     def doc(self, value, lang):
         combo = "<select name='doc'>\n"
-        keys = lampadas.Docs.sort_by_lang('Title', lang)
+        keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
-            doc = lampadas.Docs[key]
+            doc = lampadas.docs[key]
             assert not doc==None
-            if doc.Lang==lang or lang==None:
+            if doc.lang==lang or lang==None:
                 combo = combo + "<option "
-                if doc.ID==value:
+                if doc.id==value:
                     combo = combo + "selected "
-                combo = combo + "value='" + str(doc.ID) + "'>"
-                combo = combo + doc.Title
+                combo = combo + "value='" + str(doc.id) + "'>"
+                combo = combo + doc.title
                 combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
     def sk_seriesid(self, value, lang):
         combo = "<select name='sk_seriesid'>\n"
-        keys = lampadas.Docs.sort_by_lang('Title', lang)
+        keys = lampadas.docs.sort_by_lang('title', lang)
         for key in keys:
-            doc = lampadas.Docs[key]
+            doc = lampadas.docs[key]
             assert not doc==None
-            if doc.Lang==lang or lang==None:
+            if doc.lang==lang or lang==None:
                 combo = combo + "<option "
                 if doc.sk_seriesid==value:
                     combo = combo + "selected "
                 combo = combo + "value='" + str(doc.sk_seriesid) + "'>"
-                combo = combo + doc.Title
+                combo = combo + doc.title
                 combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
     def dtd(self, value, lang):
         combo = "<select name='dtd'>\n"
-        keys = lampadas.DTDs.sort_by_lang('DTD', lang)
+        keys = lampadas.dtds.sort_by_lang('DTD', lang)
         for key in keys:
-            dtd = lampadas.DTDs[key]
+            dtd = lampadas.dtds[key]
             assert not dtd==None
             combo = combo + "<option "
-            if dtd.DTD==value:
+            if dtd.dtd_code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + dtd.DTD + "'>"
-            combo = combo + dtd.DTD
+            combo = combo + "value='" + dtd.dtd_code + "'>"
+            combo = combo + dtd.dtd_code
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
     
     def format(self, value, lang):
         combo = "<select name='format'>\n"
-        keys = lampadas.Formats.sort_by_lang('name', lang)
+        keys = lampadas.formats.sort_by_lang('name', lang)
         for key in keys:
-            format = lampadas.Formats[key]
+            format = lampadas.formats[key]
             assert not format==None
             combo = combo + "<option "
-            if format.ID==value:
+            if format.id==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(format.ID) + "'>"
+            combo = combo + "value='" + str(format.id) + "'>"
             combo = combo + format.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
@@ -208,9 +184,9 @@ class ComboFactory:
             page = lampadasweb.pages[key]
             assert not page==None
             combo = combo + "<option "
-            if Page.Code==value:
+            if Page.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(page.Code) + "'>"
+            combo = combo + "value='" + str(page.code) + "'>"
             combo = combo + page.title[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
@@ -218,14 +194,14 @@ class ComboFactory:
 
     def pub_status(self, value, lang):
         combo = "<select name='pub_status_code'>\n"
-        keys = lampadas.PubStatuses.sort_by('sort_order')
+        keys = lampadas.pub_statuses.sort_by('sort_order')
         for key in keys:
-            PubStatus = lampadas.PubStatuses[key]
+            PubStatus = lampadas.pub_statuses[key]
             assert not PubStatus==None
             combo = combo + "<option "
-            if PubStatus.Code==value:
+            if PubStatus.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(PubStatus.Code) + "'>"
+            combo = combo + "value='" + str(PubStatus.code) + "'>"
             combo = combo + PubStatus.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
@@ -233,30 +209,30 @@ class ComboFactory:
         
     def review_status(self, value, lang):
         combo = "<select name='review_status_code'>\n"
-        keys = lampadas.ReviewStatuses.sort_by('sort_order')
+        keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
-            ReviewStatus = lampadas.ReviewStatuses[key]
-            assert not ReviewStatus==None
+            review_status = lampadas.review_statuses[key]
+            assert not review_status==None
             combo = combo + "<option "
-            if ReviewStatus.Code==value:
+            if review_status.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
-            combo = combo + ReviewStatus.name[lang]
+            combo = combo + "value='" + str(review_status.code) + "'>"
+            combo = combo + review_status.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
     def tech_review_status(self, value, lang):
         combo = "<select name='tech_review_status_code'>\n"
-        keys = lampadas.ReviewStatuses.sort_by('sort_order')
+        keys = lampadas.review_statuses.sort_by('sort_order')
         for key in keys:
-            ReviewStatus = lampadas.ReviewStatuses[key]
-            assert not ReviewStatus==None
+            review_status = lampadas.review_statuses[key]
+            assert not review_status==None
             combo = combo + "<option "
-            if ReviewStatus.Code==value:
+            if review_status.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
-            combo = combo + ReviewStatus.name[lang]
+            combo = combo + "value='" + str(review_status.code) + "'>"
+            combo = combo + review_status.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -284,82 +260,82 @@ class TableFactory:
 
     def doc(self, uri):
         if uri.id:
-            doc = lampadas.Docs[uri.id]
+            doc = lampadas.docs[uri.id]
             box = '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
             box = '<form method=GET action="data/save/newdocument" name="document">'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         
         box = box + '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
         box = box + '<tr>\n'
-        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
+        box = box + '<th class="label">|strtitle|</th><td colspan=5><input type=text name="title" size=60 style="width:100%" value="' + doc.title + '"></td>\n'
         box = box + '</tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="label">'
-        if doc.URL:
-            box = box + '<a href="' + doc.URL + '">|strurl|</a>'
+        if doc.url:
+            box = box + '<a href="' + doc.url + '">|strurl|</a>'
         else:
             box = box + '|strurl|'
-        box = box + '</th><td colspan=5><input type=text name="url" size=60 style="width:100%" value="' + doc.URL + '"></td>'
+        box = box + '</th><td colspan=5><input type=text name="url" size=60 style="width:100%" value="' + doc.url + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">'
 
-        if doc.HomeURL:
-            box = box + '<a href="' + doc.HomeURL + '">|strhome_url|</a>'
+        if doc.home_url:
+            box = box + '<a href="' + doc.home_url + '">|strhome_url|</a>'
         else:
             box = box + '|strhome_url|'
-        box = box + '</th><td colspan=5><input type=text name="ref_url" size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
+        box = box + '</th><td colspan=5><input type=text name="ref_url" size=60 style="width:100%" value="' + doc.home_url + '"></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strstatus|</th><td>'
-        box = box + combo_factory.pub_status(doc.PubStatusCode, uri.lang)
+        box = box + combo_factory.pub_status(doc.pub_status_code, uri.lang)
         box = box + '</td>\n'
         box = box + '<th class="label">|strtype|</th><td>\n'
         box = box + combo_factory.type(doc.type_code, uri.lang)
         box = box + '</td>\n'
         box = box + '<th class="label">|strmaintained|</th><td>\n'
-        if doc.Maintained:
+        if doc.maintained:
             box = box + '|stryes|'
         else:
             box = box + '|strno|'
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strwriting|</th><td>'
-        box = box + combo_factory.review_status(doc.ReviewStatusCode, uri.lang)
+        box = box + combo_factory.review_status(doc.review_status_code, uri.lang)
         box = box + '</td>\n'
         box = box + '<th class="label">|straccuracy|</th><td>'
-        box = box + combo_factory.tech_review_status(doc.TechReviewStatusCode, uri.lang)
+        box = box + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang)
         box = box + '</td>\n'
         box = box + '<th class="label">|strlicense|</th><td>'
         box = box + combo_factory.license(doc.license_code, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" size=10 value="' + doc.PubDate + '"></td>'
-        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" size=10 value="' + doc.LastUpdate + '"></td>'
-        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" size=10 value="' + doc.Version + '"></td>'
+        box = box + '<th class="label">|strpub_date|</th><td><input type=text name="pub_date" size=10 value="' + doc.pub_date + '"></td>'
+        box = box + '<th class="label">|strupdated|</th><td><input type=text name="last_update" size=10 value="' + doc.last_update + '"></td>'
+        box = box + '<th class="label">|strversion|</th><td><input type=text name="version" size=10 value="' + doc.version + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" size=10 value="' + doc.TickleDate + '"></td>'
-        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" size=14 value="' + doc.ISBN + '"></td>'
+        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" size=10 value="' + doc.tickle_date + '"></td>'
+        box = box + '<th class="label">|strisbn|</th><td><input type=text name="isbn" size=14 value="' + doc.isbn + '"></td>'
         box = box + '<th class="label">|strrating|</th>\n'
         box = box + '<td>'
-        box = box + self.bar_graph(doc.Rating, 10, uri.lang)
+        box = box + self.bar_graph(doc.rating, 10, uri.lang)
         box = box + '</td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strformat|</th><td>'
-        box = box + lampadas.Formats[doc.format_code].name[uri.lang]
+        box = box + lampadas.formats[doc.format_code].name[uri.lang]
         box = box + '</td>'
         box = box + '<th class="label">|strdtd|</th><td>'
-        box = box + doc.DTD + ' ' + doc.DTDVersion
+        box = box + doc.dtd_code + ' ' + doc.dtd_version
         box = box + '</td>'
         box = box + '<th class="label">|strlanguage|</th><td>'
-        box = box + combo_factory.language(doc.Lang, uri.lang)
+        box = box + combo_factory.language(doc.lang, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th class="label">|strmaintainer_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
+        box = box + '<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n'
         box = box + '<td></td><td></td>'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th class="label">|strabstract|</th>'
-        box = box + '<td colspan=5><textarea name="abstract" rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
+        box = box + '<td colspan=5><textarea name="abstract" rows=6 cols=40 style="width:100%" wrap>' + doc.abstract + '</textarea></td>\n'
         box = box + '</tr>\n'
         box = box + '<tr><td></td><td><input type=submit name="save" value="|strsave|"></td></tr>\n'
         box = box + '</table>\n'
@@ -368,7 +344,7 @@ class TableFactory:
         return box
 
     def cvslog(self, uri):
-        doc = lampadas.Docs[uri.id]
+        doc = lampadas.docs[uri.id]
         box = '<table class="box">\n'
         box = box + '<tr><th>|strcvslog|</th></tr>\n'
         box = box + '<tr><td>\n'
@@ -400,7 +376,7 @@ class TableFactory:
         box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password></input></td></tr>\n'
         box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
         box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
-        box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
+        box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
         box = box + '</form>\n'
         box = box + '</table>\n'
         return box
@@ -408,23 +384,23 @@ class TableFactory:
     def doctable(self, uri, user, type_code=None, subtopic_code=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
-        keys = lampadas.Docs.sort_by("Title")
+        keys = lampadas.docs.sort_by("title")
         for key in keys:
-            doc = lampadas.Docs[key]
-            if doc.Lang==uri.lang:
+            doc = lampadas.docs[key]
+            if doc.lang==uri.lang:
                 ok = 1
                 if type_code and doc.type_code <> type_code:
                     ok = 0
                 if subtopic_code:
                     subtopic = lampadas.subtopics[subtopic_code]
-                    if subtopic.docs[doc.ID]==None:
+                    if subtopic.docs[doc.id]==None:
                         ok = 0
                 if ok > 0:
                     box = box + '<tr><td>'
-                    if user and user.can_edit(doc_id=doc.ID):
-                        box = box + '<a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a>'
+                    if user and user.can_edit(doc_id=doc.id):
+                        box = box + '<a href="editdoc/' + str(doc.id) + '/">' + EDIT_ICON + '</a>'
                     box = box + '</td>\n'
-                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                     box = box + '</tr>\n'
         box = box + '</table>'
         return box
@@ -518,12 +494,12 @@ class TableFactory:
         box = '<table class="navbox"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>' + subtopic.description[uri.lang] + '</td></tr>\n'
         box = box + '<tr><td><ol>\n'
-        keys = subtopic.docs.sort_by('Title')
+        keys = subtopic.docs.sort_by('title')
         for key in keys:
             doc = subtopic.docs[key]
-            if doc.subtopic.topic_code==uri.code and doc.Lang==uri.lang:
-                box = box + '<li><a href="/doc/' + str(doc.ID) + '">\n'
-                box = box + doc.Title + '</a>\n'
+            if doc.subtopic.topic_code==uri.code and doc.lang==uri.lang:
+                box = box + '<li><a href="/doc/' + str(doc.id) + '">\n'
+                box = box + doc.title + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -598,11 +574,11 @@ class TableFactory:
     def user_docs(self, uri, user):
         log(3, 'Creating user_docs table')
         box = '<table class="navbox"><tr><th>|session_name|</th></tr>\n'
-        keys = user.docs.sort_by_lang('Title', uri.lang)
+        keys = user.docs.sort_by_lang('title', uri.lang)
         for key in keys:
             box = box + '<tr><td>\n'
             userdoc = user.docs[key]
-            box = box + '<a href="/doc/' + userdoc.ID + '">' + usrdoc.title[uri.lang] + '</a>\n'
+            box = box + '<a href="/doc/' + userdoc.id + '">' + usrdoc.title[uri.lang] + '</a>\n'
             box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -794,15 +770,32 @@ class PageFactory:
 page_factory = PageFactory()
 combo_factory = ComboFactory()
 
-def profile():
-    import profile
+profile_reps = 100
 
-    profile.run('page_factory.page("home")')
-    
+def benchmark(url, reps):
+    for x in range(0, reps):
+        page = page_factory.page(url)
+
 def main():
+    import profile
+    
     if len(sys.argv[1:]):
+        profile_it = 0
+        reps_flag = 0
         for arg in sys.argv[1:]:
-            print page_factory.page(arg)
+            if reps_flag:
+                profile_reps = int(arg)
+                reps_flag = 0
+            elif arg=='-p' or arg=='--profile':
+                profile_it = 1
+            elif arg=='-r' or arg=='--reps':
+                reps_flag = 1
+            elif profile_it > 0:
+                print 'Profiling, ' + str(profile_reps) + ' repetitions...'
+                page = page_factory.page(arg)
+                profile.run('benchmark("' + arg + '", ' + str(profile_reps) + ')')
+            else:
+                print page_factory.page(arg)
     else:
         profile()
 

@@ -23,45 +23,6 @@ These base classes are subclassed by other Lampadas objects,
 but are never instantiated directly.
 """
 
-class LampadasList:
-    """
-    Base class for Lampadas list objects.
-
-    Classes based on this one emulate lists, with additional methods.
-
-    FIXME: I don't think this class is needed. Why not just using a list ?
-    -- nico
-    """
-
-    def __init__(self):
-        self.list = []
-
-    def __len__(self):
-        return len(self.list)
-        
-    def __getitem__(self, key):
-        try:
-            item = self.list[key]
-        except KeyError:
-            item = None
-        return item
-
-    def __setitem__(self, key, value):
-        self.list[key] = value
-    
-    def __delitem__(self, key):
-        del self.list[key]
-
-    def items(self):
-        return self.list.items()
-
-    def append(self, item):
-        self.list.append(item)
-        
-    def count(self):
-        return len(self.list)
-
-
 class LampadasCollection:
     """
     Base class for Lampadas dictionaries or collection objects.

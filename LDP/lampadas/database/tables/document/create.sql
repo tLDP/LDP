@@ -5,7 +5,7 @@ CREATE TABLE document
 	title			TEXT		NOT NULL,
 	type_code		CHAR(20)	NOT NULL	REFERENCES type(type_code),
 	format_code		CHAR(20)			REFERENCES format(format_code),
-	dtd			CHAR(12)			REFERENCES dtd(dtd),
+	dtd_code		CHAR(12)			REFERENCES dtd(dtd_code),
 	dtd_version		CHAR(12),
 	version			CHAR(12),
 	last_update		DATE,
