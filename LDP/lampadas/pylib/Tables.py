@@ -991,7 +991,7 @@ class Tables(LampadasCollection):
             # Filter documents according to parameters passed in
             # by the calling routine.
             if username > '':
-                if doc.users[username]==None:
+                if username not in doc.users.keys('username'):
                     continue
             if lang > '':
                 if doc.lang <> lang:
