@@ -13,7 +13,7 @@ $error = 0;
 
 # runtime options
 # 
-$maxerrors = 10;
+$maxerrors = 1;
 $verbose = 0;
 $outputtype = "HTML";
 $maxrunonlines = 20;
@@ -35,16 +35,13 @@ $inappendix = 0;
 $insect1 = 0;
 $insect2 = 0;
 $insect3 = 0;
-$insect44 = 0;
-$intable = 0;
-$inmultitable = 0;
-$inrow = 0;
-$incol = 0;
-$infirstcol = 0;
-$tableformat = "";
-$inorderedlist = 0;
-$initemizedlist = 0;
-$inlistitem = 0;
+$insect4 = 0;
+@nest = ();	# stack, tracks nested structures 'table', 'multi', 'itemized', 'ordered'
+@inrow = ();
+@incol = ();
+@infirstcol = ();
+@tableformat = ();
+@initem = ();
 $informalpara = 0;
 $inpara = 0;
 
@@ -58,9 +55,8 @@ $saveline = "";
 $badbracketlines = 0;
 $badbracketstartline = 0;
 $seekend = "";
-$suppresscommands = 0;	# NO COMMAND EXPANSION
-$literalend = "";
-$literal = "";
+$literalend = "";		# tag that will end the block during which there is no command expansion
+$literal = "";			# inline literal tag we're inside of
 
 # here, we hold onto meta-data that we will need to build
 # the article or book header structures.
@@ -143,20 +139,39 @@ $replacement = "";
 	'@alias'			=>'ALIAS',
 	'@author'			=>'META',
 	'@bye'				=>'BYE',
-	'@c'				=>'DROPLINE',
-	'@cindex'			=>'INDEX',
+	'@c'				=>'COMMENT',
 	'@clear'			=>'CLEAR',
-	'@comment'			=>'DROPLINE',
+	'@comment'			=>'COMMENT',
 	'@contents'			=>'DROPLINE',
+	'@defcodeindex'			=>'DROPLINE',		# TODO
+	'@deffn'			=>'DEFFN',
+	'@end deffn'			=>'DROPLINE',
+	'@deffnx'			=>'DEFFN',
+	'@end deffnx'			=>'DROPLINE',
+	'@defmac'			=>'DEFFN',
+	'@end defmac'			=>'DROPLINE',
+	'@defmacx'			=>'DEFFN',
+	'@end defmacx'			=>'DROPLINE',
+	'@defun'			=>'DEFFN',
+	'@end defun'			=>'DROPLINE',
+	'@defunx'			=>'DEFFN',
+	'@end defunx'			=>'DROPLINE',
 	'@defindex'			=>'DROPLINE',		# TODO
 	'@definfoenclose'		=>'DEFINFOENCLOSE',
+	'@defspec'			=>'DEFFN',
+	'@end defspec'			=>'DROPLINE',
 	'@dircategory'			=>'DROPLINE',
 	'@direntry'			=>'SEEKEND',
 	'@display'			=>'LITERALBLOCK',
 	'@enumerate'			=>'ORDEREDLIST',
 	'@end enumerate'		=>'ORDEREDLISTEND',
 	'@example'			=>'LITERALBLOCK',
+	'@footnotestyle'		=>'DROPLINE',
 	'@format'			=>'LITERALBLOCK',
+	'@flushleft'			=>'DROPLINE',
+	'@end flushleft'		=>'DROPLINE',
+	'@flushright'			=>'DROPLINE',
+	'@end flushright'		=>'DROPLINE',
 	'@headings'			=>'DROPLINE',
 	'@html'				=>'SEEKEND',
 	'@end html'			=>'DROLINE',
@@ -181,26 +196,36 @@ $replacement = "";
 	'@end itemize'			=>'ITEMIZEDLISTEND',
 	'@item'				=>'ITEM',
 	'@itemx'			=>'ITEM',
+	'@lisp'				=>'LITERALBLOCK',
 	'@macro'			=>'MACRO',
+	'@majorheading'			=>'SECT1',
 	'@menu'				=>'SEEKEND',		# TODO
+	'@opindex'			=>'DROPLINE',		# TODO
+	'@need'				=>'DROP2',
 	'@node'				=>'NODE',
 	'@page'				=>'DROPLINE',
+	'@paragraphindent'		=>'DROPLINE',
 	'@printindex'			=>'DROPLINE',		# TODO
 	'@set'				=>'SET',
 	'@setchapternewpage'		=>'DROPLINE',	
 	'@setfilename'			=>'META',
 	'@settitle'			=>'META',
+	'@shorttitlepage'		=>'DROPLINE',
 	'@smallbook'			=>'DROPLINE',
 	'@smallexample'			=>'LITERALBLOCK',
 	'@sp'				=>'DROPLINE',
 	'@table'			=>'TABLE',
 	'@end table'			=>'TABLEEND',
-	'@vtable'			=>'TABLE',
-	'@end vtable'			=>'TABLEEND',
 	'@multitable'			=>'MULTITABLE',
 	'@end multitable'		=>'TABLEEND',
+	'@summarycontents'		=>'DROPLINE',
+	'@syncodeindex'			=>'DROPLINE',		# TODO
 	'@tex'				=>'SEEKEND',
 	'@titlepage'			=>'SEEKEND',
+	'@verbatim'			=>'LITERALBLOCK',
+	'@vtable'			=>'TABLE',
+	'@end vtable'			=>'TABLEEND',
+	
 	'@top'				=>'SECT1',		# sectioning commands
 	'@chapter'			=>'SECT1',
 	'@section'			=>'SECT2',
@@ -211,7 +236,6 @@ $replacement = "";
 	'@unnumberedsec'		=>'SECT2',
 	'@unnumberedsubsec'		=>'SECT3',
 	'@unnumberedsubsubsec'		=>'SECT4',
-	'@majorheading'			=>'SECT1',
 	'@chapheading'			=>'SECT1',
 	'@heading'			=>'SECT2',
 	'@subheading'			=>'SECT3',
@@ -220,6 +244,14 @@ $replacement = "";
 	'@appendixsec'			=>'SECT1',
 	'@appendixsubsec'		=>'SECT2',
 	'@appendixsubsubsec'		=>'SECT3',
+	
+	'@cindex'			=>'DROPLINE',		# TODO (temporary placement)
+	'@findex'			=>'DROPLINE',
+	'@kindex'			=>'DROPLINE',
+	'@pindex'			=>'DROPLINE',
+	'@tindex'			=>'DROPLINE',
+	'@vindex'			=>'DROPLINE',
+
 );
 
 # These are one-for-one string substitutions
@@ -240,6 +272,11 @@ $replacement = "";
 #
 # Neither side needs to be escaped.
 #
+# The array is for sorting keys.
+# They are sorted in descending order and then iterated, to make sure
+# @ss comes before @s, so we replace them correctly later.
+#
+@substitutionkeys = ();
 %substitutions = (
 #	'@@'			=>'@',		# handled specially to simplify parsing
 #	'@\{'			=>'{',
@@ -257,7 +294,7 @@ $replacement = "";
 	'@dots{}'		=>'&hellip;',
 	'@minus{}'		=>'-',
 	'@TeX{}'		=>'TeX',
-	'@enddots'		=>'&hellip;',
+	'@enddots{}'		=>'&hellip;',
 
 	'@:'			=>'',		# text layout, has no meaning in DocBook
 	'@='			=>'',		# which is a semantic language.
@@ -272,10 +309,9 @@ $replacement = "";
 	# accented characters
 	#
 	# Note that glyphs we cannot support in DocBook are represented by
-	# an appended character.
-	#
-	# Since this is so very similar to the @definfoenclose style of
-	# custom highlighting, they are handled in that section.
+	# an appended character. Since this is so very similar to the
+	# @definfoenclose style of custom highlighting, they are handled
+	# in that section.
 	#
 	'@"A'			=>'&Auml;',		# umlaut
 	'@"E'			=>'&Euml;',
@@ -318,15 +354,11 @@ $replacement = "";
 	'@^o'			=>'&ocirc;',
 	'@^u'			=>'&ucirc;',
 	'@~A'			=>'&Atilde;',		# tilde
-	'@~E'			=>'&Etilde;',
-	'@~I'			=>'&Itilde;',
+	'@~N'			=>'&Ntilde;',
 	'@~O'			=>'&Otilde;',
-	'@~U'			=>'&Utilde;',
 	'@~a'			=>'&atilde;',
-	'@~e'			=>'&etilde;',
-	'@~i'			=>'&itilde;',
+	'@~n'			=>'&ntilde;',
 	'@~o'			=>'&otilde;',
-	'@~u'			=>'&utilde;',
 	'@=A'			=>'A&macr;',		# macron
 	'@=E'			=>'E&macr;',
 	'@=I'			=>'I&macr;',
@@ -348,8 +380,9 @@ $replacement = "";
 	'@ae{}'			=>'&aelig;',
 	'@OE{}'			=>'&OElig;',
 	'@oe{}'			=>'&oelig;',
-	'@O'			=>'&Oslash;',
-	'@o'			=>'&oslash;',
+	'@O{}'			=>'&Oslash;',
+	'@o{}'			=>'&oslash;',
+	'@ss{}'			=>'&szlig;',
 	'@,{c}'			=>'&cedil;',		# cedilla (yes, this is strange)
 	
 	'@error{}'		=>'error-->',		# glyphs used in examples
@@ -358,6 +391,9 @@ $replacement = "";
 	'@point{}'		=>'-!-',
 	'@print{}'		=>'-|',
 	'@result{}'		=>'=&gt;',
+	
+	'@tab'			=>'</entry><entry>',
+
 );
 
 # these are additional inline tags that always have {} following them.
@@ -370,7 +406,7 @@ $replacement = "";
 	'@uref'			=>'UREF',
 	'@xref'			=>'XREF',
 	'@pxref'		=>'PXREF',
-	'@inforef'		=>'XREF',
+	'@inforef'		=>'INFOREF',
 	'@kbd'			=>'KBD',
 );
 
@@ -406,10 +442,12 @@ $replacement = "";
 	'@command'		=>'command',
 	'@dfn'			=>"emphasis role='bold'",
 	'@dmn'			=>'',
+	'@dotless'		=>'',			# not yet supported, just discarded
+	'@dotless'		=>'',
 	'@key'			=>'keycap',
 	'@email'		=>'email',
 	'@emph'			=>'emphasis',
-	'@env'			=>'envvar',
+	'@env'			=>'envar',
 	'@footnote'		=>'footnote, para',
 	'@file'			=>'filename',
 	'@i'			=>'emphasis',
@@ -425,7 +463,7 @@ $replacement = "";
 
 # this is where definfoenclose definitions go, and they are processed last
 # 
-# Note: Some built-in TeXInfo accents can be seen as a kind of custom highlighting,
+# Note: Some built-in Texinfo accents can be seen as a kind of custom highlighting,
 # since they cannot be displayed by a special glyph but are instead rendered
 # by appending a character. Those glyphs are handled here.
 #
@@ -512,45 +550,45 @@ $verbose = 3 if ($verbose > 3);
 &message("insanity mode on.") if ($verbose ==3);
 
 if ($outputtype eq 'HTML') {
-	$patterns{'@ifhtml'}	= 'DROPLINE';
+	$patterns{'@ifhtml'}		= 'DROPLINE';
 	$patterns{'@end ifhtml'}	= 'DROPLINE';
-	$patterns{'@ifinfo'}	= 'SEEKEND';
+	$patterns{'@ifinfo'}		= 'SEEKEND';
 	$patterns{'@end ifinfo'}	= 'DROPLINE';
 	$patterns{'@iftex'}		= 'SEEKEND';
-	$patterns{'@end iftex'}	= 'DROPLINE';
-	$patterns{'@ifnothtml'}	= 'SEEKEND';
+	$patterns{'@end iftex'}		= 'DROPLINE';
+	$patterns{'@ifnothtml'}		= 'SEEKEND';
 	$patterns{'@end ifnothtml'}	= 'DROPLINE';
-	$patterns{'@ifnotinfo'}	= 'DROPLINE';
+	$patterns{'@ifnotinfo'}		= 'DROPLINE';
 	$patterns{'@end ifnotinfo'}	= 'DROPLINE';
-	$patterns{'@ifnottex'}	= 'DROPLINE';
+	$patterns{'@ifnottex'}		= 'DROPLINE';
 	$patterns{'@end ifnottex'}	= 'DROPLINE';
 	&message("including HTML text") if ($verbose);
 } elsif ($outputtype eq 'INFO') {
-	$patterns{'@ifhtml'}	= 'SEEKEND';
+	$patterns{'@ifhtml'}		= 'SEEKEND';
 	$patterns{'@end ifhtml'}	= 'DROPLINE';
-	$patterns{'@ifinfo'}	= 'DROPLINE';
+	$patterns{'@ifinfo'}		= 'DROPLINE';
 	$patterns{'@end ifinfo'}	= 'DROPLINE';
 	$patterns{'@iftex'}		= 'SEEKEND';
-	$patterns{'@end iftex'}	= 'DROPLINE';
-	$patterns{'@ifnothtml'}	= 'DROPLINE';
+	$patterns{'@end iftex'}		= 'DROPLINE';
+	$patterns{'@ifnothtml'}		= 'DROPLINE';
 	$patterns{'@end ifnothtml'}	= 'DROPLINE';
-	$patterns{'@ifnotinfo'}	= 'SEEKEND';
+	$patterns{'@ifnotinfo'}		= 'SEEKEND';
 	$patterns{'@end ifnotinfo'}	= 'DROPLINE';
-	$patterns{'@ifnottex'}	= 'DROPLINE';
+	$patterns{'@ifnottex'}		= 'DROPLINE';
 	$patterns{'@end ifnottex'}	= 'DROPLINE';
 	&message("including INFO text") if ($verbose);
 } elsif ($outputtype eq 'TEX') {
-	$patterns{'@ifhtml'}	= 'SEEKEND';
+	$patterns{'@ifhtml'}		= 'SEEKEND';
 	$patterns{'@end ifhtml'}	= 'DROPLINE';
-	$patterns{'@ifinfo'}	= 'SEEKEND';
+	$patterns{'@ifinfo'}		= 'SEEKEND';
 	$patterns{'@end ifinfo'}	= 'DROPLINE';
 	$patterns{'@iftex'}		= 'DROPLINE';
-	$patterns{'@end iftex'}	= 'DROPLINE';
-	$patterns{'@ifnothtml'}	= 'DROPLINE';
+	$patterns{'@end iftex'}		= 'DROPLINE';
+	$patterns{'@ifnothtml'}		= 'DROPLINE';
 	$patterns{'@end ifnothtml'}	= 'DROPLINE';
-	$patterns{'@ifnotinfo'}	= 'DROPLINE';
+	$patterns{'@ifnotinfo'}		= 'DROPLINE';
 	$patterns{'@end ifnotinfo'}	= 'DROPLINE';
-	$patterns{'@ifnottex'}	= 'SEEKEND';
+	$patterns{'@ifnottex'}		= 'SEEKEND';
 	$patterns{'@end ifnottex'}	= 'DROPLINE';
 	&message("including TEX text") if ($verbose);
 }
@@ -563,6 +601,8 @@ if ($outputfile) {
 while (<DATA>) {
 	$template .= $_;
 }
+
+@substitutionkeys = sort {$b cmp $a} keys %substitutions;
 
 &processfile ("$requestedfile");
 
@@ -615,6 +655,18 @@ LINE:	while ($line = <$fh>) {
 	
 		&markspecial;			# hide @@, @{, @} to ease parsing
 
+		# We have to handle some @-commands on the line when they appear,
+		# even if waiting for some wrapper command to complete:
+		#
+		# e.g., @footer{foo bar
+		#               @cindex baz
+		#               blah blah}
+		#               
+		($pattern, $action) = &matchpattern();
+		if ($action eq 'DROPLINE') {
+			next LINE;
+		}
+
 		# keep reading until we have only complete tags
 		# 
 		if ($saveline) {
@@ -640,6 +692,7 @@ LINE:	while ($line = <$fh>) {
 				&raiseerror("include file $includefile not found.");
 			}
 		} elsif ($literalend) {
+			&message("End literal block") if ($verbose > 2);
 			if ($line =~ /$literalend/) {
 				$literalend = '';
 				&closeliteral;
@@ -654,6 +707,8 @@ LINE:	while ($line = <$fh>) {
 				next LINE;
 			} elsif ($action eq 'DROPLINE') {
 				next LINE;
+			} elsif ($action eq 'DROP2') {
+				$line =~ s/\@\w+\s+\w+\s*//;
 			}
 			if ($line =~ /\@end\s+macro/) {
 				#save macro
@@ -681,7 +736,6 @@ LINE:	while ($line = <$fh>) {
 		} else {
 			($pattern, $action) = &matchblock();
 			if ($action) {
-				&message("matched block $pattern") if ($verbose > 2);
 				&closepara;
 				$buf .= $action;
 				next LINE;
@@ -689,13 +743,20 @@ LINE:	while ($line = <$fh>) {
 			($pattern, $action) = &matchpattern();
 			if ($action eq 'DROPLINE') {
 				next LINE;
+			} elsif ($action eq 'DROP2') {
+				$line =~ s/\@\w+\s+\w+\s*//;
+				&writeconverted;
+			} elsif ($action eq 'COMMENT') {
+				&comment;
+				&writeline;
+				next LINE;
 			} elsif ($action eq 'SEEKEND') {
 				$seekend = $pattern;
 				$seekend =~ s/\@/\@end /;
 			} elsif ($action eq 'LITERALBLOCK') {
 				$literalend = $pattern;
 				$literalend =~ s/\@/\@end /;
-				&literal;
+				&literalblock;
 			} elsif ($action eq 'ALIAS') {
 				&alias;
 			} elsif ($action eq 'MACRO') {
@@ -717,6 +778,8 @@ LINE:	while ($line = <$fh>) {
 			} elsif ($action eq 'PARA') {
 				&closeformalpara;
 				&para;
+			} elsif ($action eq 'DEFFN') {
+				&deffn;
 			} elsif ($action eq 'ORDEREDLIST') {
 				&orderedlist;
 			} elsif ($action eq 'ORDEREDLISTEND') {
@@ -727,12 +790,13 @@ LINE:	while ($line = <$fh>) {
 				&closeitemizedlist;
 			} elsif ($action eq 'ITEM') {
 				&item;
+				&writeconverted;
 			} elsif ($action eq 'TABLE') {
-				$tableformat = $line;
-				$tableformat =~ s/^\@\w+\s+//;
-				&message("table format: $tableformat") if ($verbose > 2);
 				&table;
-				$infirstcol = 0;
+				$line =~ s/^\@\w+\s+//;
+				$tableformat[-1] = $line;
+				&message("table format: $tableformat[-1]") if ($verbose > 2);
+				$infirstcol[-1] = 0;
 			} elsif ($action eq 'MULTITABLE') {
 				&multitable;
 			} elsif ($action eq 'TABLEEND') {
@@ -755,22 +819,13 @@ LINE:	while ($line = <$fh>) {
 			} elsif ($action eq 'ERROR') {
 				&raiseerror("Hit ERROR tag with $pattern on $line");
 			} elsif ($action eq '') {
-				if ($intable) {
-					&message("table: $line") if ($verbose > 2);
-					($pattern, $action) = &matchpattern();
-					if ($action eq 'TABLEEND') {
-						&closetable;
-						$infirstcol = 0;
-					} else {
-						if ($infirstcol) {
-							&closetablecol;
-							&tablecol;
-							$infirstcol = 0;
-						}
-						&writeline;
-					}
-				} else {
+				if ($nest[-1] eq 'table') {		# multitables just write the line
+					&tableline;
+				}
+				if ($literal) {
 					&writeline;
+				} else {
+					&writeconverted;
 				}
 			} else {
 				&raiseerror("Unknown action: $action on command $pattern");
@@ -812,9 +867,10 @@ sub matchpattern {
 #
 sub matchblock {
 	foreach $key (keys %blocks) {
-		$key = quotemeta($key) . '\b';
-		if ($line =~ /$key/) {
-			return ($key, $blocks{$key});
+		$pattern = quotemeta($key);
+		if ($line =~ /$pattern/) {
+			&message("matched block $pattern") if ($verbose > 2);
+			return ($pattern, $blocks{$key}) unless ($line =~ /$pattern\w/);
 		}
 	}
 }
@@ -822,27 +878,6 @@ sub matchblock {
 # the rest are all inline processing
 #
 sub convertinline {
-
-	# do no command substitutions when in an example
-	#
-	if ($suppresscommands) {
-		&message("commands suppressed") if ($verbose > 2);
-		$line =~ s/DCM_AT/\@\@/gi;	# like unmarkspecial, but backs all
-		$line =~ s/DCM_LB/\@\{/gi;	# the way out.
-		$line =~ s/DCM_RB/\@\}/gi;
-		return;
-	}
-	
-	# character-level substitutions.
-	# must come first, so tags like @ringaccent{} aren't seen
-	# by the @-command interpreter, which would not recognize
-	# them and would generate an error.
-	#
-	for $key (keys %substitutions) {
-		$key = quotemeta($key);
-		$line =~ s/$key/$substitutions{$key}/g
-	}
-	
 TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 	
 		$command = $line;
@@ -853,17 +888,13 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		$tagplain =~ s/\@//;
 		$contents = $command;
 		$contents =~ s/.*\{(.*)\}/\1/;
-		&message("line:     $line") if ($verbose > 1);
-		&message("command:  $command") if ($verbose > 2);
-		&message("tag:      $tag") if ($verbose > 2);
-		&message("tagplain: $tagplain") if ($verbose > 2);
-		&message("contents: $contents") if ($verbose > 2);
+		&message("CMD: $command, tag: $tag, tagplain: $tagplain, contents: $contents") if ($verbose > 2);
 
-		# substitutions (only @{} type will get caught here)
+		# substitutions (we only want to catch @{} type tags here)
 		# 
-		if (exists $substitutions{$tag}) {
+		if (exists $substitutions{$tag . '{}'}) {
 			&message("matched character substitution $tag") if ($verbose >2);
-			$replacement = $substitutions{$tag};
+			$replacement = $substitutions{$tag . '{}'};
 			&replaceinline;
 			next TAG;
 		}
@@ -907,9 +938,15 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 			foreach $dbtag (@dbtags) {
 				$dbtag = &trim($dbtag);
 
-				# TeXinfo allows nexted literals, DocBook does not.
+				# Texinfo allows nexted literals, DocBook does not.
 				# 
-				next if (($dbtag eq 'programlisting') and ($literalend));
+				if (($dbtag eq 'programlisting')
+				 or ($dbtag eq 'literal')
+				 or ($dbtag eq 'filename')
+				 or ($dbtag eq 'option')) {
+					$contents =~ s/\<literal\>//g;
+					$contents =~ s/\<\/literal\>//g;
+				}
 
 				($tag, $attributes) = split(/ /, $dbtag);
 				if ($attributes) {
@@ -950,8 +987,25 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		
 		&raiseerror("cannot resolve $command");
 	}
+
+	# character-level substitutions.
+	# must come last, so tags like @samp{} don't have the @s replaced
+	# with a space, etc.
+	#
+	# This uses a presorted array of keys in descending order,
+	# so we see @ss before @s, etc.
+	#
+	for $key (@substitutionkeys) {
+		$pattern = quotemeta($key);
+		$line =~ s/$pattern/$substitutions{$key}/g;
+	}
 	
-	&unmarkspecial;
+	# We should have found *all* @-commands by now.
+	# If any are still hanging around, we have a problem.
+	#
+	if ($line =~ /\@/) {
+		&raiseerror("Unrecognized @-command in $line");
+	}
 }
 
 sub markspecial {
@@ -973,57 +1027,41 @@ sub replaceinline {
 }
 
 sub replacespecsubst {
-	my $anchor;
-	my $link;
-	my $linkname;
+	my $link = '';
+	my $linktitle = '';
 	my $keystring;
 	my @keycombos;
 	my @keycaps;
 	my $mykeys;
 
-# TODO: These are nearly the same, so we should really consolidate this
-# 	section sooner or later into one set of code.
-#
 	if ($replacement eq 'REF') {
-		&message("making xref on line $line") if ($verbose > 1);
-		$link = $contents;
-		$linktitle = &trim($link);
-		$link = &anchorfix($link);
-		&message("link: $link, title; $linktitle") if ($verbose > 2);
-		&raiseerror("NO ANCHOR in $line") unless ($link);
-		$replacement = "\<link linkend='$link'\>$linktitle\<\/link\>";
-		&message("made xref to tag $link on line: $line") if ($verbose > 1);
+		$replacement = &crossref();
 	} elsif ($replacement eq 'PXREF') {
-		$link = $contents;
-		($link, $linkname) = split(/,/, $link);
-		$link = &trim($link);
-		$linkname = &trim($linkname);
-		$linkname = $link unless ($linkname);
-		$replacement = "see \<ulink url='$link'\>$linkname\<\/ulink\>";
-		&message("ulink: $link, linkname: $linkname, line: $line") if ($verbose > 2);
+		$replacement = "see " . &crossref();
 	} elsif ($replacement eq 'UREF') {
-		$link = $contents;
-		($link, $linkname) = split(/,/, $link);
+		($link, $linktitle) = split(/,/, $contents);
 		$link = &trim($link);
-		$linkname = &trim($linkname);
-		$linkname = $link unless ($linkname);
-		$replacement = "\<ulink url='$link'\>$linkname\<\/ulink\>";
-		&message("ulink: $link, linkname: $linkname, line: $line") if ($verbose > 2);
+		$linktitle = &trim($linktitle);
+		$linktitle = $link unless ($linktitle);
+		$replacement = "\<ulink url='$link'\>$linktitle\<\/ulink\>";
+		&message("ulink: $link, linktitle: $linktitle") if ($verbose > 2);
 	} elsif ($replacement eq 'XREF') {
-		($link, $linkname, $foo, $foo) = split(/,/, $contents);
-		$link = &anchorfix(&trim($link));
-		$linkname = &trim($linkname);
-		$linkname = $link unless ($linkname);
-		&message("xref, contents: $contents, link: $link, linkname: $linkname") if ($verbose > 1);
-		$replacement = "See \<link linkend='$link'\>$linkname\<\/link\>";
+		$replacement = "See " . &crossref();
+	} elsif ($replacement eq 'INFOREF') {
+		$replacement = "See " . &inforef();
 	} elsif ($replacement eq 'ANCHOR') {
 		$link = $contents;
 		$link = &anchorfix($link);
 		$replacement = "<anchor id='$link'\/\>";
 	} elsif ($replacement eq 'KBD') {
 		$keystring = $contents;
-			
-		# I found at least one case where <keycap> is already here:
+		
+		# nested literals not allowed in DocBook
+		#
+		$keystring =~ s/\<literal\>//g;
+		$keystring =~ s/\<\/literal\>//g;
+		
+		# I found there is at least one case where <keycap> is already here:
 		# @kbd{gTop<keycap>RET</keycap>}, in the info manual.
 		# If we have those, throw away the keycap tags and hyphenate,
 		# so we can keycombo properly.
@@ -1055,6 +1093,86 @@ sub replacespecsubst {
 		&raiseerror("Unrecognized special substitution code: $specsubstitutions{$tag}");
 		$replacement = $specsubstitutions{$tag};
 	}
+}
+
+######################
+# TEXINFO STRUCTURES #
+######################
+
+sub crossref {
+	my $anchor;
+	my $link;
+	my $linkname;
+	my $linktitle;
+	my $infofile;
+	my $manualtitle;
+	my $title;
+	my $crossref = '';
+	
+	($link, $linkname, $linktitle, $infofile, $manualtitle) = split(/,/, $contents);
+	$link = &trim($link);
+	$linktitle = &trim($linktitle);
+	$linkname = &trim($linkname);
+	$infofile = &trim($infofile);
+	$manualtitle = &trim($manualtitle);
+
+	# build the title that will display in the output
+	#
+	$title = $linktitle;
+	$title .= ': ' if ($title and ($linkname or $infofile));
+	$title .= "($infofile)" if ($infofile);
+	$title .= ' ' if (($title) and ($linkname));
+	$title .= $linkname if ($linkname);
+	
+	# Try to pull in the node title if we've already seen it but it
+	# isn't specified in the cross reference.
+	#
+	# If not, we can only display the node name, which is not very good
+	# but the best we can do without writing a two-pass engine.
+	# 
+	if (($link) and !($title)) {
+		$title = $nodetitlelookup{$link};
+		$title = $link unless ($title);
+	}
+
+	
+	if ($infofile) {
+		&message("link to another info file, replacing with text") if ($verbose > 1);
+		$crossref = $title;
+	} else {
+		$anchor = &anchorfix($link);
+		$crossref = "<link linkend='$anchor'>$title</link>";
+		&message("made xref to tag $anchor") if ($verbose > 1);
+	}
+	return $crossref;
+}
+
+sub inforef {
+	my $anchor;
+	my $link;
+	my $linkname;
+	my $infofile;
+	my $title;
+	my $inforef = '';
+	
+	($link, $linkname, $infofile) = split(/,/, $contents);
+	$link = &trim($link);
+	$linkname = &trim($linkname);
+	$infofile = &trim($infofile);
+
+	$title .= "($infofile)" if ($infofile);
+	$title .= $linkname if ($linkname);
+	$title = $link unless ($title);
+	
+	if ($infofile) {
+		&message("link to another info file, replacing with text") if ($verbose > 1);
+		$crossref = $title;
+	} else {
+		$anchor = &anchorfix($link);
+		$crossref = "<link linkend='$anchor'>$title</link>";
+		&message("made xref to tag $anchor") if ($verbose > 1);
+	}
+	return $crossref;
 }
 
 sub anchorfix {
@@ -1109,6 +1227,87 @@ sub anchorfix {
 	return &trim($anchor);
 }
 
+sub deffn {
+	my $category;
+	my $name;
+	my $arguments;
+	my $argument;
+	my $indeffn = 0;
+	my $indefun = 0;
+	my $indefspec = 0;
+	my $indefmac = 0;
+
+	if ($line =~ /\@deffn/) {
+ 		$indeffn = 1;
+		$line =~ s/\@deffn\w*//;
+		&message("deffn found") if ($verbose > 1);
+	} elsif ($line =~ /\@defun/) {
+		$indefun = 1;
+		$line =~ s/\@defun\w*//;
+		&message("defun found") if ($verbose > 1);
+	} elsif ($line =~ /\@defspec/) {
+		$indefspec = 1;
+		$line =~ s/\@defspec\w*//;
+		&message("defspec found") if ($verbose > 1);
+	} elsif ($line =~ /\@defmac/) {
+		$indefmac = 1;
+		$line =~ s/\@defmac\w*//;
+		&message("defmac found") if ($verbose > 1);
+	} else {
+		&raiseerror("Unrecognized function definition");
+	}
+	
+	&convertinline;
+
+	# DocBook does not allow nested literal tags
+	# 
+	$line =~ s/\<literal\>//g;
+	$line =~ s/\<\/literal\>//g;
+	$line = &trim($line);
+
+	# function category names can have spaces. When they do, the name is enclosed in braces:
+	#
+	# @deffn {Interactive Command} isearch-forward
+	# @defun foo bar
+	# @defspec foovar (@var(var))
+	#
+	if ($line =~ /\{/) {
+		&message("function category name enclosed in braces"); # if ($verbose > 2);
+		($category, $line) = split(/}/, $line);
+		$category =~ s/\{//;
+		($name, $arguments) = split(/ /, $line, 2);
+	} else {
+		if ($indeffn) {
+			&message("function category name not enclosed in braces") if ($verbose > 2);
+			($category, $name, $arguments) = split(/\s/, $line, 3);
+		} elsif ($indefun) {
+			$category = 'Function';
+			($name, $arguments) = split(/ /, $line, 2);
+		} elsif ($indefspec) {
+			$category = 'Special Form';
+			($name, $arguments) = split(/ /, $line, 2);
+		} elsif ($indefmac) {
+			$category = 'Macro';
+			($name, $arguments) = split(/ /, $line, 2);
+		} else {
+			&raiseerror("Unrecognized function type");
+		}
+	}
+	&message("category: $category, name: $name, arguments: $arguments") if ($verbose > 1);
+	$line = $category . ': <funcsynopsis><funcprototype>';
+	&writeconverted;
+	$line = '<funcdef><function>' . $name . '</function>';
+	&writeline;
+	$line = '</funcdef>';
+	&writeline;
+	foreach $argument (split(' ', $arguments)) {
+		$line = '<paramdef><parameter>' . $argument . '</parameter></paramdef>';
+		&writeline;
+	}
+	$line = '</funcprototype></funcsynopsis>';
+	&writeline;
+}
+
 #############
 # META-DATA #
 #############
@@ -1129,8 +1328,14 @@ sub meta {
 sub metaarg {
 	my $pattern = $_[0];
 	if ($line =~ /$pattern/) {
+		$line =~ s/$pattern//;
+		&convertinline;
+		&unmarkspecial;
 		$_[1] = $line;
-		$_[1] =~ s/$pattern//;
+		&message("set $pattern to $line") if ($verbose > 2);
+		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -1138,22 +1343,26 @@ sub metaarg {
 # WRITE OUTPUT #
 ################
 
-sub writeline {
+sub writeconverted {
 	my $temp = &trim($line);
 	
-	&convertinline;
-	unless ($literal) {
-		if ($temp eq '') {
-			&closeformalpara;
-		} else {
-			unless (($inpara) or ($intable)) {
-				if (($nodename) and ($nodeinit == 0)) {
-					&initnode;
-				}
-				&para;
+	if ($temp eq '') {
+		&closeformalpara;
+	} else {
+		unless (($inpara) or ($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
+			if (($nodename) and ($nodeinit == 0)) {
+				&guessnodelevel;
 			}
+			&para;
 		}
 	}
+	
+	&convertinline;
+	&writeline;
+}
+
+sub writeline {
+	&unmarkspecial;
 	&message("OUT: $line") if ($verbose > 1);
 	$buf .= $line . "\n";
 	if (($linenumber % 1000 == 0) and ($inabstract == 0)) {
@@ -1162,9 +1371,9 @@ sub writeline {
 	}
 }
 
-##############################################
-# STRUCTURAL TEXINFO -> DOCBOOK TRANSLATIONS #
-##############################################
+#########
+# NODES #
+#########
 
 # this is for when the source never set a position for this node in the
 # chapter-style hierarchy, which we use.
@@ -1172,9 +1381,13 @@ sub writeline {
 # We have to make a best guess based on the node's settings,
 # so put it right under whoever it calls the "up" node.
 # 
-sub initnode {
+sub guessnodelevel {
+	return if ($nodeinit);
+	&message("guessing node level") if ($verbose > 2);
+
 	my $parentname = $nodeup;
 	my $parentlevel = $nodelevels{$parentname};
+
 	if ($parentlevel == "A") {
 		&sect1;
 	} elsif ($parentlevel == 1) {
@@ -1188,18 +1401,25 @@ sub initnode {
 	}
 }
 
+# Sets up node variables.
+#
+# The node isn't actually created until we hit some text in it.
+#
 sub node {
+	&message("setting up node $nodename") if ($verbose > 2);
 	$line =~ s/\@node\s+?//;
 	&convertinline;
+	&unmarkspecial;
 	($nodename, $nodenext, $nodeprev, $nodeup) = split(/,/, $line);
 	$nodename = &trim($nodename);
-	$nodeid = &anchorfix($nodename);
+	$nodetitle = $nodename;
 	$nodeprev = &trim($nodeprev);
 	$nodenext = &trim($nodenext);
 	$nodeup   = &trim($nodeup);
+	$nodeid = &anchorfix($nodename);
 	$nodeinit = 0;
 
-	&message("Name: $nodename Next: $nodenext Previous: $nodeprev Up: $nodeup") if ($verbose > 1);
+	&message("Node: $nodename") if ($verbose);
 	&closeformalpara;
 	if ($inabstract) {
 		$inabstract = 0;
@@ -1213,132 +1433,142 @@ sub node {
 		print $outfh $template . "\n";
 		$buf = "";
 	}
+}
+
+# Creates the node
+#
+sub initnode {
+	$nodeid = 0 if (exists $nodeanchors{uc($nodename)});
+	if ($nodeinit) {
+		$nodeid = 0;
+		return;
+	}
+	&message("initiating node $nodename") if ($verbose > 2);
 	$nodenames{$nodename} = $nodename;
 	$nodenexts{$nodename} = $nodenext;
 	$nodeprevs{$nodename} = $nodeprev;
 	$nodeups{$nodename} = $nodeup;
-	
+	$nodeanchors{$nodename} = $nodeid if ($nodeid);
+	$nodetitlelookup{$nodeid} = $nodename;
+	$nodeinit = 1;
 }
 
-# Avoid having two nodes with the same title.
-# The first one wins.
-#
-sub avoiddupnode {
-	if (exists $nodeanchors{uc($nodename)}) {
-		&message("discarding duplicate anchor: $nodeid") if ($verbose > 2);
-		$nodeid = 0;
-	} else {
-		&message("storing anchor: $nodeid") if ($verbose > 2);
-		$nodeanchors{uc($nodename)} = $nodeid;
-	}
-}
+####################
+# DOCBOOK SECTIONS #
+####################
 
 sub appendix {
 	&closeappendix;
-	&avoiddupnode;
+	$line =~ s/^\@\w+\s+//;
+	&convertinline;
+	&initnode;
+	&unmarkspecial;
+	$nodetitle = $line;
 	if ($nodeid) {
-		$buf .= "\<appendix id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+		$buf .= "\<appendix id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle<\/title\>\n";
 	} else {
-		$buf .= "\<appendix\>\<title\>$nodename\<\/title\>\n";
+		$buf .= "\<appendix\>\<title\>$nodetitle\<\/title\>\n";
 	}
 	$inappendix = 1;
-	$nodeinit = 1;
-	$nodelevels{$nodename} = "A";
-	&message("node: $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect1 {
+	&message("opening up sect1") if ($verbose > 2);
 	&closesect1;
-	&avoiddupnode;
+	$line =~ s/^\@\w+\s+//;
+	&initnode;
+	&convertinline;
+	&unmarkspecial;
+	$nodetitle = $line;
 	if ($nodeid) {
-		$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+		$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 	} else {
-		$buf .= "\<sect1\>\<title\>$nodename\<\/title\>\n";
+		$buf .= "\<sect1\>\<title\>$nodetitle\<\/title\>\n";
 	}
 	$insect1 = 1;
-	$nodeinit = 1;
-	$nodelevels{$nodename} = 1;
-	&message("node: $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect2 {
 	&closesect2;
-	&avoiddupnode;
+	$line =~ s/^\@\w+\s+//;
+	&initnode;
+	&convertinline;
+	&unmarkspecial;
+	$nodetitle = $line;
 	if ($inappendix) {
 		if ($nodeid) {
-			$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect1\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect1\>\<title\>$nodetitle\<\/title\>\n";
 		}
 		$nodelevels{$nodename} = 1;
 	} else {
 		if ($nodeid) {
-			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect2\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect2\>\<title\>$nodetitle\<\/title\>\n";
 		}
 		$nodelevels{$nodename} = 2;
 	}
 	$insect2 = 1;
-	$nodeinit = 1;
-	$nodelevels{$nodename} = 2;
-	&message("node: $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect3 {
 	&closesect3;
-	&avoiddupnode;
+	$line =~ s/^\@\w+\s+//;
+	&initnode;
+	&convertinline;
+	&unmarkspecial;
+	$nodetitle = $line;
 	if ($inappendix) {
 		if ($nodeid) {
-			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect2\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect2\>\<title\>$nodetitle\<\/title\>\n";
 		}
 		$nodelevels{$nodename} = 2;
 	} else {
 		if ($nodeid) {
-			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect3\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect3\>\<title\>$nodetitle\<\/title\>\n";
 		}
 		$nodelevels{$nodename} = 3;
 	}
 	$insect3 = 1;
-	$nodeinit = 1;
-	$nodelevels{$nodename} = 3;
-	&message("node: $nodename level to $nodelevels{$nodename}") if ($verbose > 0);
 }
 
 sub sect4 {
 	&closesect4;
-	&avoiddupnode;
+	$line =~ s/^\@\w+\s+//;
+	&initnode;
+	&convertinline;
+	&unmarkspecial;
+	$nodetitle = $line;
 	if ($inappendix) {
 		if ($nodeid) {
-			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect3\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect3\>\<title\>$nodetitlee\<\/title\>\n";
 		}
 		$nodelevels{$nodename} = 3;
 	} else {
 		if ($nodeid) {
-			$buf .= "\<sect4 id='$nodeid'\>\<title id='$nodeid-title'\>$nodename\<\/title\>\n";
+			$buf .= "\<sect4 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 		} else {
-			$buf .= "\<sect4\>\<title\>$nodename\<\/title\>\n";
+			$buf .= "\<sect4\>\<title\>$nodetitle\<\/title\>\n";
 		}
-		$nodelevels{$nodename} = 4;
+		$nodelevels{$nodename} = 4444;
 	}
 	$insect4 = 1;
-	$nodeinit = 1;
-	$nodelevels{$nodename} = 4;
-	&message("node: $nodename level to $nodelevels{$nodename}");
 }
 
 sub multitable {
-	my @columnwidths = ();
+	my @colwidths = ();
+	my $colcount = 0;
 	my $colspecs = '';
 
 	&closepara;
-	&closetable;
 	$line =~ s/\@\w+\s+//;
 
 	# fractional column widths are supported
@@ -1346,70 +1576,118 @@ sub multitable {
 	# thing automatically without them.
 	# 
 	if ($line =~ /\@columnfractions/) {
+		&message("starting multicolumn table") if ($verbose > 1);
 		$line =~ s/\@columnfractions\s+//;
-		@columnwidths = split(/ /, $tableformat);
-		foreach $columnwidth (@columnwidths) {
-			$columnwidth =~ s/\.//;
-			$columnwidth .= '0' if (length($columnwidth) < 2);
-			$colspecs .= "\<colspec colwidth='$columnwidth\*'\/\>";
+		@colwidths = split(/\s+/, $line);
+		$colcount = scalar @colwidths;
+		foreach $colwidth (@colwidths) {
+			$colwidth =~ s/\.//;
+			$colwidth .= '0' if (length($colwidth) < 2);
+			$colspecs .= "\<colspec colwidth='$colwidth\*'\/\>\n";
 		}
+	} else {
+		$colcount = scalar split(/\{/, $line) - 1;
 	}
-	$buf .= '<informaltable><tgroup cols=' . "'" . scalar @columnwidths . "'" . "\>\n";
+	if (($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
+		&closetablecol;
+		$buf .= '<entrytbl cols=' . "'" . $colcount . "'" . "\>\n";
+	} else {
+		$buf .= '<informaltable><tgroup cols=' . "'" . $colcount . "'" . "\>\n";
+	}
+	$buf .= "$colspecs\n" if ($colspecs);
 	$buf .= '<tbody>' . "\n";
+	push @nest, 'multi';
+	push @incol, 0;
+	push @inrow, 0;
+	push @infirstcol, 0;
+	push @initem, 0;
+	push @tableformat, '';
 }
 	
 sub table {
 	&closepara;
-	&closetable;
-	$buf .= '<informaltable><tgroup cols=' . "'2'" . '><tbody>' . "\n";
-	$intable = 1;
+
+	if (($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
+		&closetablecol;
+		$buf .= '<entrytbl cols=' . "'2'" . '><tbody>' . "\n";
+	} else {
+		$buf .= '<informaltable><tgroup cols=' . "'2'" . '><tbody>' . "\n";
+	}
+	push @nest, 'table';
+	push @incol, 0;
+	push @inrow, 0;
+	push @infirstcol, 0;
+	push @initem, 0;
+	push @tableformat, '';
 }
 
 sub tablerow {
 	&closetablerow;
 	$buf .= '<row>';
-	$inrow = 1;
+	$inrow[-1] = 1;
 }
 
 sub tablecol {
 	&closetablecol;
 	$buf .= '<entry>';
-	$incol = 1;
+	$incol[-1] = 1;
+}
+
+sub tableline {
+	&message("table: $line") if ($verbose > 2);
+#	if ($nest[-1] eq 'multi') {
+#		$line =~ s/\@tab/\<\/entry\>\<entry\>/;
+#	} else {
+	if ($nest[-1] ne 'multi') {
+		if ($infirstcol[-1]) {
+			&closetablecol;
+			&tablecol;
+			$infirstcol[-1] = 0;
+		}
+	}
 }
 
 sub orderedlist {
 	&closeformalpara;
 	$buf .= '<orderedlist>';
-	$inorderedlist = 1;
+	push @nest, 'ordered';
+	push @initem, 0;
 }
 
 sub itemizedlist {
 	&closeformalpara;
 	$buf .= '<itemizedlist>';
-	$initemizedlist = 1;
+	push @nest, 'itemized';
+	push @initem, 0;
 }
 
 sub item {
-	if ($intable) {
+	$line =~ s/\@item\w*\s*//;
+	if ($nest[-1] eq 'table') {
 		&message("table item: $line") if ($verbose > 2);
-		unless ($infirstcol) {
+		unless ($infirstcol[-1]) {
 			&tablerow;
 			&tablecol;
-			$infirstcol = 1;
+			$infirstcol[-1] = 1;
 		}
-		$line =~ s/\@item\w*?\s+//;
 		$line = &trim($line);
-		$line = $tableformat . "\{$line\}" unless ($tableformat eq '@asis');
-		writeline;
-	} else {
+		$line = $tableformat[-1] . "\{$line\}" unless ($tableformat[-1] eq '@asis');
+	} elsif ($nest[-1] eq 'multi') {
+		&message("multitable item: $line") if ($verbose > 2);
+		&tablerow;
+		&tablecol;
+		$line =~ s/\s*\@tab\s*/\<\/entry\>\<entry\>/g;
+	} elsif (($nest[-1] eq 'ordered') or ($nest[-1] eq 'itemized')) {
 		&listitem;
+	} else {
+		&raiseerror("item tag found, but we're not in a list. Nest depth: " . scalar @nest);
 	}
 }
 
 sub listitem {
 	&closelistitem;
 	$buf .= '<listitem>';
-	$inlistitem = 1;
+	$initem[-1] = 1;
 }
 
 sub formalpara {
@@ -1420,7 +1698,6 @@ sub formalpara {
 	#$buf .= "\<formalpara id='$id'\>\<title\>$title\<\/title\>\n\<para\>";
 	$informalpara = 1;
 	$inpara = 1;
-	$nodeinit = 1;
 }
 
 sub para {
@@ -1429,18 +1706,29 @@ sub para {
 	$inpara = 1;
 }
 
-sub literal {
-	$suppresscommands = 1;
+sub literalblock {
 	if ($pattern =~ /\bformat\b/) {
+		&message("start programlisting") if ($verbose > 2);
 		$literal = 'programlisting';
 		$buf .= '<programlisting>' . "\n";
-	} elsif ($pattern =~ /\bdisplay\b/) {
-		$literal = 'screen';
-		$buf .= '<screen>';
 	} elsif ($pattern =~ /\bexample\b/) {
+		&message("start programlisting") if ($verbose > 2);
 		$literal = 'programlisting';
 		$buf .= '<programlisting>';
+	} elsif ($pattern =~ /\blisp\b/) {
+		&message("start programlisting") if ($verbose > 2);
+		$literal = 'programlisting';
+		$buf .= '<programlisting>';
+	} elsif ($pattern =~ /\bdisplay\b/) {
+		&message("start screen") if ($verbose > 2);
+		$literal = 'screen';
+		$buf .= '<screen>';
 	} elsif ($pattern =~ /\bsmallexample\b/) {
+		&message("start programlisting") if ($verbose > 2);
+		$literal = 'programlisting';
+		$buf .= '<programlisting>';
+	} elsif ($pattern =~ /\bverbatim\b/) {
+		&message("start programlisting") if ($verbose > 2);
 		$literal = 'programlisting';
 		$buf .= '<programlisting>';
 	} else {
@@ -1448,9 +1736,16 @@ sub literal {
 	}
 }
 
+sub comment {
+	$line =~ s/$pattern//;
+	$line =~ s/--/-/g;
+	$line = "<!-- " . $line . " -->";
+}
+
 sub closeappendix {
 	&closesect1;
 	if ($inappendix) {
+		&message("closing appendix") if ($verbose > 2);
 		$buf .= '</appendix>' . "\n";
 		$inappendix = 0;
 	}
@@ -1459,6 +1754,7 @@ sub closeappendix {
 sub closesect1 {
 	&closesect2;
 	if ($insect1) {
+		&message("closing sect1") if ($verbose > 2);
 		$buf .= '</sect1>' . "\n\n";
 		$insect1 = 0;
 	}
@@ -1467,6 +1763,7 @@ sub closesect1 {
 sub closesect2 {
 	&closesect3;
 	if ($insect2) {
+		&message("closing sect2") if ($verbose > 2);
 		if ($inappendix) {
 			$buf .= '</sect1>' . "\n\n";
 		} else {
@@ -1479,6 +1776,7 @@ sub closesect2 {
 sub closesect3 {
 	&closesect4;
 	if ($insect3) {
+		&message("closing sect3") if ($verbose > 2);
 		if ($inappendix) {
 			$buf .= '</sect2>' . "\n\n";
 		} else {
@@ -1490,8 +1788,9 @@ sub closesect3 {
 
 sub closesect4 {
 	&closeformalpara;
-	&closetable;
+	&closenest;
 	if ($insect4) {
+		&message("closing sect4") if ($verbose > 2);
 		if ($inappendix) {
 			$buf .= '</sect3>' . "\n\n";
 		} else {
@@ -1501,50 +1800,78 @@ sub closesect4 {
 	}
 }
 
+sub closenest {
+	my $runaway = 0;
+	while (scalar @nest) {
+		&closetable;
+		&closeorderedlist;
+		&closeitemizedlist;
+		$runaway++;
+		&raiseerror("Runaway nesting") if ($runaway >= 100);
+	}
+}
+
 sub closetable {
 	&closetablerow;
-	if ($intable) {
-		$buf .= '</tbody></tgroup></informaltable>' . "\n";
-		$intable = 0;
+	if (($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
+		&message("closing table") if ($verbose > 2);
+		if (($nest[-2] eq 'table') or ($nest[-2] eq 'multi')) {
+			$buf .= '</tbody></entrytbl>' . "\n";
+		} else {
+			$buf .= '</tbody></tgroup></informaltable>' . "\n";
+		}
+		pop @nest;
+		pop @incol;
+		pop @inrow;
+		pop @infirstcol;
+		pop @initem;
+		pop @tableformat;
 	}
 }
 
 sub closetablerow {
 	&closetablecol;
-	if ($inrow) {
+	if ($inrow[-1]) {
+		&message("closing table row") if ($verbose > 2);
 		$buf .= '</row>' . "\n";
-		$inrow = 0;
+		$inrow[-1] = 0;
 	}
 }
 
 sub closetablecol {
-	if ($incol) {
+	if ($incol[-1]) {
+		&message("closing table column") if ($verbose > 2);
 		$buf .= '</entry>' . "\n";
-		$incol = 0;
+		$incol[-1] = 0;
 	}
 }
 
 sub closeorderedlist {
 	&closelistitem;
-	if ($inorderedlist) {
+	if ($nest[-1] eq 'ordered') {
+		&message("closing ordered list") if ($verbose > 2);
 		$buf .= '</orderedlist>' . "\n";
-		$inorderedlist = 0;
+		pop @nest;
+		pop @initem;
 	}
 }
 
 sub closeitemizedlist {
 	&closelistitem;
-	if ($initemizedlist) {
+	if ($nest[-1] eq 'itemized') {
+		&message("closing itemized list") if ($verbose > 2);
 		$buf .= '</itemizedlist>' . "\n";
-		$initemizedlist = 0;
+		pop @nest;
+		pop @initem;
 	}
 }
 
 sub closelistitem {
 	&closeformalpara;
-	if ($inlistitem) {
+	if ((($nest[-1] eq 'ordered') or (@nest[-1] eq 'itemized')) and (@initem[-1])) {
+		&message("closing list item") if ($verbose > 2);
 		$buf .= '</listitem>' . "\n";
-		$inlistitem = 0;
+		$initem[-1] = 0;
 	}
 }
 
@@ -1567,7 +1894,6 @@ sub closeliteral {
 	if ($literal) {
 		$buf .= '</' . $literal . '>' . "\n";
 		$literal = '';
-		$suppresscommands = 0;
 	}
 }
 
@@ -1580,7 +1906,7 @@ sub set {
 	my ($name,
 	    $value);
 
-	($foo, $name, $value) = split(/\s+/, $line);
+	($foo, $name, $value) = split(/\s+/, $line, 3);
 	$value = 1 unless ($value);
 	$setvalues{$name} = $value;
 	&message("set $name to $value") if ($verbose > 1);
@@ -1640,15 +1966,6 @@ sub definfoenclose {
 	$replacement =  $prefix. ',' . $suffix;
 	$definfos{$name} = $replacement;
 	&message("custom definfoenclosure: \[$name\] \[$prefix\] \[$suffix\]") if (verbose > 1);
-}
-
-###########
-# INDEXES #
-###########
-
-sub defindex {
-	$line =~ s/^\@defindex\s+//;
-	$indexes{$line} = 1;
 }
 
 ####################
@@ -1731,7 +2048,7 @@ sub usage {
 	print "-v, --verbose          show diagnostic output.\n";
 	print "                       use twice for lots of detail.\n";
 	print "                       use thrice for insane amounts of detail.\n";
-	print "-e, --max-errors MAX   show diagnostic output.\n";
+	print "-e, --max-errors MAX   abort after this many errors. Default is 1.\n";
 	print "                       use '--max-errors 0' to disable.\n";
 	print "-h, --help             show this usage message and exit.\n";
 	print "    --version          show the program version and exit.\n";
