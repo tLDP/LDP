@@ -177,7 +177,7 @@ class DataField:
         elif self.data_type=='created': return wsq(str(value))
         elif self.data_type=='updated': return wsq(now_string())
         else:
-            print 'ERROR: Unrecognized data type definition, see DataObject.save()'
+            print 'ERROR: Unrecognized data type definition, see DataObject.attr_to_field()'
             print 'Table= ' + self.parent.table
             print 'Data= ' + str(key)
             print 'Data Type (INVALID): ' + str(data_type)
@@ -208,6 +208,7 @@ class DataCollection(LampadasCollection):
         self.idfields      = self.indexfields[:]
 
         self.select = 'SELECT ' + string.join(self.allfields, ', ') + ' FROM ' + self.table
+        self.updated = None
 
     def parse_fieldmap(self, map):
 
@@ -252,15 +253,52 @@ class DataCollection(LampadasCollection):
             print 'Data= ' + str(map)
             sys.exit(1)
 
-    def load(self):
-        LampadasCollection.__init__(self)
-        self.load_table()
-        if len(self.i18nfields) > 0:
-            self.i18ntable = self.table + '_i18n'
-            self.load_i18n_table()
+    def reload(self):
+        self.load(self.updated)
 
-    def load_table(self):
-        cursor = db.select(self.select)
+    def load(self, updated=''):
+        if self.parent_collection==None:
+            #original_count = self.count()
+            self.updated = now_string()
+            #print self.count()
+            #print 'Loading since ' + updated + '...'
+            if updated > '':
+                sql = 'SELECT identifier FROM deleted WHERE table_name=' + wsq(self.table) + ' AND deleted >= ' + wsq(updated)
+                #print sql
+                cursor = db.select(sql)
+                while (1):
+                    row = cursor.fetchone()
+                    if row==None: break
+                    identifier = row[0]
+                    id_type = 'int'
+                    for field in self.indexfields:
+                        if self.map[field].data_type in ('string',):
+                            id_type = 'string'
+                    if id_type=='int':
+                        identifier = int(identifier)
+                    else:
+                        identifier = trim(identifier)
+                    #print 'Object identifier: ' + str(identifier) + ' has been deleted.'
+                    object = self[identifier]
+                    id = object.build_id(self.idfields)
+                    self.delete(id)
+                #print 'Done handling deletions, count: ' + trim(self.count())
+                where_clause = ' WHERE updated >= ' + wsq(updated)
+            else:
+                where_clause = ''
+            self.load_table(where_clause)
+            if len(self.i18nfields) > 0:
+                self.i18ntable = self.table + '_i18n'
+                self.load_i18n_table()
+            #print 'Done handling updates, count: ' + trim(self.count())
+            #if self.count() <> original_count:
+                #print 'Counts differ: ' + str(self.count()) + ' from original ' + str(original_count)
+                #self.refresh_children()
+        else:
+            self.parent_collection.load(updated)
+
+    def load_table(self, where_clause=''):
+        cursor = db.select(self.select + where_clause)
         while (1):
             row = cursor.fetchone()
             if row==None: break
@@ -268,12 +306,12 @@ class DataCollection(LampadasCollection):
             object.load_row(row)
             self[object.id] = object
 
-    def load_i18n_table(self):
+    def load_i18n_table(self, where_clause=''):
         for key in self.keys():
             object = self[key]
             for field in self.i18nfields:
                 setattr(object, self.map[field].attribute, LampadasCollection())
-        sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields, ', ') + ' FROM ' + self.i18ntable + ' ORDER BY ' + string.join(self.indexfields, ', ')
+        sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields, ', ') + ' FROM ' + self.i18ntable + where_clause + ' ORDER BY ' + string.join(self.indexfields, ', ')
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -291,23 +329,26 @@ class DataCollection(LampadasCollection):
             db.commit()
             object.id = object.build_id(self.idfields)
             self[object.id] = object
-            self.refresh_children()
+            #self.refresh_children()
         else:
             self.parent_collection.add(object)
+            self.refresh_filters()
 
     def clear(self):
         for key in self.keys():
             self.delete(key)
+        self.refresh_filters()
 
     def delete(self, key):
         object = self[key]
         if self.parent_collection==None:
             object.delete()
             del self[key]
-            self.refresh_children()
+            #self.refresh_children()
         else:
             id = object.build_id(self.parent_collection.idfields)
             self.parent_collection.delete(id)
+            self.refresh_filters()
         
     def refresh_keys(self):
         for key in self.keys():
@@ -354,6 +395,7 @@ class DataCollection(LampadasCollection):
         # FIXME: Replace with the filter() function, which is much faster.
 
         # Start with all of our parent's objects
+        self.updated = self.parent_collection.updated
         self.data = {}
         for key in self.parent_collection.keys():
             object = self.parent_collection[key]
@@ -414,13 +456,18 @@ class DataObject:
                 value_list.append(map.attr_to_field(getattr(self, field)))
         return string.join(value_list, ', ')
     
-    def build_id(self, idfields):
+    def build_id(self, build_idfields=None):
         # Build an identifier.
         # If there are multiple id fields, build a string representation instead.
 
         # FIXME: Subtle problem, an object can have more than one id if it belongs
         # to more than one collection with different keys! Not a propblem as long
         # as users of the value always get it recalculated before using it.
+
+        if build_idfields==None:
+            idfields = self.parent.idfields
+        else:
+            idfields = build_idfields
         if len(idfields)==1:
             map = self.parent.map[idfields[0]]
             id = getattr(self, map.attribute)
@@ -472,6 +519,8 @@ class DataObject:
         
     def delete(self):
         sql = 'DELETE FROM ' + self.parent.table + self.where()
+        db.runsql(sql)
+        sql = 'INSERT INTO deleted(table_name, identifier) VALUES (%s, %s)' % (wsq(self.parent.table), wsq(str(self.build_id())))
         db.runsql(sql)
 
 class Filter:

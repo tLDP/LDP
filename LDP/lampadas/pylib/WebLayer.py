@@ -88,10 +88,6 @@ class Section:
     def load_row(self, row):
         self.code		      = trim(row[0])
         self.sort_order       = safeint(row[1])
-        self.static_count    = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_dynamic=' + wsq('f') + ''))
-        self.nonregistered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_registered=' + wsq('f') + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
-        self.nonadmin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
-        self.nonsysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_sysadmin=' + wsq('f') + ''))
         sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -100,6 +96,17 @@ class Section:
             lang = row[0]
             self.name[lang] = trim(row[1])
 
+    def static_count(self):
+        return int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_dynamic=' + wsq('f') + ''))
+
+    def nonregistered_count(self):
+        return int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_registered=' + wsq('f') + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
+
+    def nonadmin_count(self):
+        return int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
+    
+    def nonsysadmin_count(self):
+        return int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_sysadmin=' + wsq('f') + ''))
 
 # Pages
 

@@ -71,26 +71,27 @@ class Docs(DataCollection):
                                 {'first_pub_date':          {'data_type': 'date'}}],
                                [])
                  
-    def load(self):
-        DataCollection.load(self)
-        self.languages = LampadasCollection()
-        for key in self.keys():
-            doc = self[key]
-            self.adjust_lang_count(doc.lang, 1)
-            doc.errors.doc_id   = doc.id
-            doc.files.doc_id    = doc.id
-            doc.users.doc_id    = doc.id
-            doc.versions.doc_id = doc.id
-            doc.ratings.doc_id  = doc.id
-            doc.notes.doc_id    = doc.id
-        self.load_errors()
-        self.load_users()
-        self.load_docfiles()
-        self.load_versions()
-        self.load_ratings()
-        self.load_topics()
-        self.load_collections()
-        self.load_notes()
+    def load(self, updated=''):
+        DataCollection.load(self, updated)
+        if updated=='':
+            self.languages = LampadasCollection()
+            for key in self.keys():
+                doc = self[key]
+                self.adjust_lang_count(doc.lang, 1)
+                doc.errors.doc_id   = doc.id
+                doc.files.doc_id    = doc.id
+                doc.users.doc_id    = doc.id
+                doc.versions.doc_id = doc.id
+                doc.ratings.doc_id  = doc.id
+                doc.notes.doc_id    = doc.id
+            self.load_errors()
+            self.load_users()
+            self.load_docfiles()
+            self.load_versions()
+            self.load_ratings()
+            self.load_topics()
+            self.load_collections()
+            self.load_notes()
 
     def load_errors(self):
         sql = "SELECT doc_id, err_id, created, notes FROM document_error"

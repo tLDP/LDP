@@ -939,6 +939,7 @@ class Tables(LampadasCollection):
         elif layout=='expanded':
             box = WOStringIO('')
 
+        docs.reload()
         keys = docs.sort_by("title")
         odd_even = OddEven()
         for key in keys:
@@ -1216,13 +1217,13 @@ class Tables(LampadasCollection):
         menu_separator = ''
         for key in keys:
             section = lampadasweb.sections[key]
-            if lampadasweb.static and section.static_count==0:
+            if lampadasweb.static and section.static_count()==0:
                 continue
-            if section.nonregistered_count==0 and (sessions.session==None):
+            if section.nonregistered_count()==0 and (sessions.session==None):
                 continue
-            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count()==0 and (sessions.session==None or sessions.session.user.admin==0):
                 continue
-            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count()==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
                 continue
             box.write(menu_separator + self.section_menu(uri, section.code))
             menu_separator = '<p>'
@@ -1235,13 +1236,13 @@ class Tables(LampadasCollection):
         page_codes = lampadasweb.pages.sort_by('sort_order')
         for section_code in section_codes:
             section = lampadasweb.sections[section_code]
-            if section.static_count==0 and lampadasweb.static:
+            if section.static_count()==0 and lampadasweb.static:
                 continue
-            if section.nonregistered_count==0 and sessions.session==None:
+            if section.nonregistered_count()==0 and sessions.session==None:
                 continue
-            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+            if section.nonadmin_count()==0 and (sessions.session==None or sessions.session.user.admin==0):
                 continue
-            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+            if section.nonsysadmin_count()==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
                 continue
 
             odd_even = OddEven()
