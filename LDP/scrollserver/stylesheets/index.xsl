@@ -17,7 +17,8 @@
   <h1>Welcome to ScrollServer</h1>
 
   <p>You can use ScrollServer to browse and search help files that are installed
-    in the ScrollKeeper database on your computer.
+    in the <a href="http://scrollkeeper.sourceforge.net">ScrollKeeper</a> database
+    on your computer.
     Someday you will also be able to view online ScrollServer databases.
   </p>
 
