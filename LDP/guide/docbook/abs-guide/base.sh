@@ -1,10 +1,11 @@
-:
+#!/bin/bash
 ##########################################################################
 # Shellscript:	base.sh - print number to different bases (Bourne Shell)
 # Author     :	Heiner Steven (heiner.steven@odn.de)
 # Date       :	07-03-95
 # Category   :	Desktop
 # $Id$
+# ==> Above line is RCS ID info.
 ##########################################################################
 # Description
 #

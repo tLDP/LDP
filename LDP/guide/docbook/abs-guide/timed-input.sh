@@ -1,9 +1,10 @@
 #!/bin/bash
 # timed-input.sh
 
-# TMOUT=3            useless in a script
+# TMOUT=3    Also works, as of newer versions of Bash.
 
-TIMELIMIT=3  # Three seconds in this instance, may be set to different value.
+
+TIMELIMIT=3  # Three seconds in this instance. May be set to different value.
 
 PrintAnswer()
 {

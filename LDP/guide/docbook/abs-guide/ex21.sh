@@ -77,7 +77,6 @@ echo
 SPOTS=6   # Modulo 6 gives range 0 - 5.
           # Incrementing by 1 gives desired range of 1 - 6.
           # Thanks, Paulo Marcel Coelho Aragao, for the simplification.
-ZERO=0
 die1=0
 die2=0
 

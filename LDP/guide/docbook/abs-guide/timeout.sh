@@ -1,8 +1,8 @@
 #!/bin/bash
 # timeout.sh
 
-# Written by Stephane Chazelas,
-# and modified by the document author.
+#  Written by Stephane Chazelas,
+#+ and modified by the document author.
 
 INTERVAL=5                # timeout interval
 
@@ -11,7 +11,7 @@ timedout_read() {
   varname=$2
   old_tty_settings=`stty -g`
   stty -icanon min 0 time ${timeout}0
-  eval read $varname      # or just    read $varname
+  eval read $varname      # or just  read $varname
   stty "$old_tty_settings"
   # See man page for "stty".
 }
@@ -19,9 +19,9 @@ timedout_read() {
 echo; echo -n "What's your name? Quick! "
 timedout_read $INTERVAL your_name
 
-# This may not work on every terminal type.
-# The maximum timeout depends on the terminal.
-# (it is often 25.5 seconds).
+#  This may not work on every terminal type.
+#  The maximum timeout depends on the terminal.
+#+ (it is often 25.5 seconds).
 
 echo
 

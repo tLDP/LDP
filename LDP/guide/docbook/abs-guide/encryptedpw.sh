@@ -18,7 +18,7 @@ Username=bozo           # Change to suit.
 pword=/home/bozo/secret/password_encrypted.file
 # File containing encrypted password.
 
-Filename=`basename $1`  # Strips pathname out of file name
+Filename=`basename $1`  # Strips pathname out of file name.
 
 Server="XXX"
 Directory="YYY"         # Change above to actual server name & directory.
@@ -41,6 +41,6 @@ put $Filename
 bye
 End-Of-Session
 # -n option to "ftp" disables auto-logon.
-# "bell" rings 'bell' after each file transfer.
+# Note that "bell" rings 'bell' after each file transfer.
 
 exit 0

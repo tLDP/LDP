@@ -1,8 +1,10 @@
 #!/bin/bash
-
+# realname.sh
+#
 # From username, gets "real name" from /etc/passwd.
 
-ARGCOUNT=1  # Expect one arg.
+
+ARGCOUNT=1       # Expect one arg.
 E_WRONGARGS=65
 
 file=/etc/passwd
@@ -14,9 +16,9 @@ then
   exit $E_WRONGARGS
 fi  
 
-file_excerpt ()  # Scan file for pattern, the print relevant portion of line.
+file_excerpt ()  # Scan file for pattern, then print relevant portion of line.
 {
-while read line  # while does not necessarily need "[ condition]"
+while read line  # "while" does not necessarily need "[ condition ]"
 do
   echo "$line" | grep $1 | awk -F":" '{ print $5 }'  # Have awk use ":" delimiter.
 done

@@ -1,11 +1,13 @@
 #! /bin/bash
 # is-spammer.sh: Identifying spam domains
+
+# $Id$
+# Above line is RCS ID info.
 #
 #  This is a simplified version of the "is_spammer.bash
 #+ script in the Contributed Scripts appendix.
 
 # is-spammer &lt;domain.name&gt;
-# $Id$
 
 # Uses an external program: 'dig'
 # Tested with version: 9.2.4rc5

@@ -9,6 +9,6 @@ zzz23EndOfMessagezzz23
 
 # Could have been done more efficiently by
 #         wall &lt;message-file
-# However, saving a message template in a script saves work.
+# However, embedding the message template in a script saves work.
 
 exit 0

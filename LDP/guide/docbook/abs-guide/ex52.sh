@@ -1,8 +1,9 @@
 #!/bin/bash
+# Uudecodes all uuencoded files in current working directory.
 
 lines=35        # Allow 35 lines for the header (very generous).
 
-for File in *   # Test all the files in the current working directory...
+for File in *   # Test all the files in $PWD.
 do
   search1=`head -$lines $File | grep begin | wc -w`
   search2=`tail -$lines $File | grep end | wc -w`
@@ -22,7 +23,9 @@ done
 #+ into thinking it is a uuencoded file,
 #+ because it contains both "begin" and "end".
 
-# Exercise:
-# Modify this script to check for a newsgroup header.
+#  Exercise:
+#  --------
+#  Modify this script to check each file for a newsgroup header,
+#+ and skip to next if not found.
 
 exit 0

@@ -1,5 +1,7 @@
 #!/bin/bash
 # life.sh: "Life in the Slow Lane"
+# Version 2: Patched by Daniel Albers
+#+           to allow non-square grids as input.
 
 # ##################################################################### #
 # This is the Bash script version of John Conway's "Game of Life".      #
@@ -20,7 +22,7 @@
 # 3) A dead cell with 3 living neighbors becomes alive (a "birth").     #
 SURVIVE=2                                                               #
 BIRTH=3                                                                 #
-# 4) All other cases result in dead cells.                              #
+# 4) All other cases result in a dead cell for the next generation.     #
 # ##################################################################### #
 
 
@@ -40,10 +42,13 @@ ALIVE1=.
 DEAD1=_
                  # Represent living and "dead" cells in the start-up file.
 
+#  ---------------------------------------------------------- #
 #  This script uses a 10 x 10 grid (may be increased,
 #+ but a large grid will will cause very slow execution).
 ROWS=10
 COLS=10
+#  Change above two variables to match grid size, if necessary.
+#  ---------------------------------------------------------- #
 
 GENERATIONS=10          #  How many generations to cycle through.
                         #  Adjust this upwards,
@@ -71,7 +76,7 @@ declare -a current
 display ()
 {
 
-alive=0                 # How many cells "alive".
+alive=0                 # How many cells "alive" at any given time.
                         # Initially zero.
 
 declare -a arr
@@ -86,7 +91,7 @@ for ((i=0; i<$element_count; i++))
 do
 
   # Insert newline at end of each row.
-  let "rowcheck = $i % ROWS"
+  let "rowcheck = $i % COLS"
   if [ "$rowcheck" -eq 0 ]
   then
     echo                # Newline.
@@ -131,7 +136,7 @@ then
 fi  
 
 row=$2
-let "left = $row * $ROWS"             # Left limit.
+let "left = $row * $COLS"             # Left limit.
 let "right = $left + $COLS - 1"       # Right limit.
 
 if [ "$1" -lt "$left" -o "$1" -gt "$right" ]
@@ -190,7 +195,7 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
   let "top = $cell_number - $COLS - 1"    # Set up cell neighborhood.
   let "center = $cell_number - 1"
   let "bottom = $cell_number + $COLS - 1"
-  let "r = $cell_number / $ROWS"
+  let "r = $cell_number / $COLS"
 
   for ((i=0; i<$ROW_NHBD; i++))           # Traverse from left to right. 
   do
@@ -264,6 +269,8 @@ done
 
 
 # let "generation += 1"   # Increment generation count.
+# Why was the above line commented out?
+
 
 # Set variable to pass as parameter to "display" function.
 avar=`echo ${array[@]}`   # Convert array back to string variable.
@@ -333,8 +340,20 @@ echo
 exit 0
 
 # --------------------------------------------------------------
-# The grid in this script has a "boundary problem".
+
+# The grid in this script has a "boundary problem."
 # The the top, bottom, and sides border on a void of dead cells.
 # Exercise: Change the script to have the grid wrap around,
-# +         so that the left and right sides will "touch",      
+# +         so that the left and right sides will "touch,"      
 # +         as will the top and bottom.
+#
+# Exercise: Create a new "gen0" file to seed this script.
+#           Use a 12 x 16 grid, instead of the original 10 x 10 one.
+#           Make the necessary changes to the script,
+#+          so it will run with the altered file.
+#
+# Exercise: Modify this script so that it can determine the grid size
+#+          from the "gen0" file, and set any variables necessary
+#+          for the script to run.
+#           This would make unnecessary any changes to variables
+#+          in the script for an altered grid size.

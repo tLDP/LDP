@@ -36,3 +36,8 @@ cat "$@" | tr "a-z" "A-Z" | tr "A-Z" "$key"
 #+ using only pencil and paper.
 
 exit 0
+
+#  Exercise:
+#  --------
+#  Modify the script so that it will either encrypt or decrypt,
+#+ depending on command-line argument(s).

@@ -5,6 +5,7 @@
 #+ to incoming directory at Sunsite/UNC (ibiblio.org).
 #  Filename.tar.gz is the tarball itself.
 #  Filename.lsm is the descriptor file.
+#  Sunsite requires "lsm" file, otherwise will bounce contributions.
 
 
 E_ARGERROR=65
@@ -30,7 +31,7 @@ ftp -n $Server &lt;&lt;End-Of-Session
 
 user anonymous "$Password"
 binary
-bell                # Ring 'bell' after each file transfer
+bell                             # Ring 'bell' after each file transfer.
 cd $Directory
 put "$Filename.lsm"
 put "$Filename.tar.gz"

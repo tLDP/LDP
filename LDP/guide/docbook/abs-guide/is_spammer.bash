@@ -1,5 +1,8 @@
 #!/bin/bash
+
 # $Id$
+# Above line is RCS info.
+
 # The latest version of this script is available from ftp://ftp.morethan.org.
 #
 # Spammer-identification
