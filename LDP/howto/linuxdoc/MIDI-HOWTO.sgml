@@ -1,0 +1,441 @@
+<!doctype linuxdoc system>
+<article>
+<title>The Linux MIDI-HOWTO 
+<author>By Phil Kerr, <tt/phil@plus24.com/ 
+<date>v1.00, January 2002
+<abstract>
+This document describes the hardware, software and procedures needed to
+play and sequence using MIDI under Linux.
+</abstract>
+
+<toc>
+<sect>Introduction.
+<p>
+It covers:
+<itemize> 
+<item>Configuring your MIDI interface
+<item>Playing MIDI files
+<item>Sequencing
+<item>Controlling external MIDI equipment
+<item>MIDI controlled software based sound synthesis
+</itemize>
+
+<sect1>Scope of document<p>
+This document's primary focus is the use of a MIDI interface to play external MIDI equipment.  
+
+<sect>Copyright of this document.<p>
+
+This HOWTO is copyrighted 2002 Phil Kerr. <p>
+
+This document is distributed under the terms of the GNU Free Documentation License. You should have received a copy along with it. If not, it is available from: 
+<p>
+<url url="http://www.fsf.org/licenses/fdl.html">. 
+
+<sect>Where to get this document.<p>
+
+The official version of this document can be obtained from the Linux Documentation Project <url url="http://www.linuxdoc.org/">.
+
+The homepage for the most recent version of this HOWTO is:  <url url="http://www.midi-howto.com">
+
+<sect>Acknowledgments.<p>
+
+This HOWTO is an expansion of the MIDI-SB mini-HOWTO written by Hideki Saito.  Many thanks for his contribution to the Linux community. 
+
+<sect>Disclaimer.<p>
+
+Use the information in this document at your own risk. 
+
+I disavow any potential liability for the contents of this document. 
+
+Use of the concepts, examples, and/or other content of this document is entirely at your own risk.  
+
+All copyrights are owned by their owners, unless specifically noted otherwise.  
+
+Use of a term in this document should not be regarded as affecting the validity of any trademark or service mark.
+
+Naming of particular products or brands should not be seen as endorsements.
+
+You are strongly recommended to take a backup of your system before major installation and backups at regular intervals.
+
+<sect>Background to MIDI.
+<p>
+
+MIDI is a set of hardware and software protocols used by electronic musical instruments to communicate.   It was first released in 1982 and has become the de-facto communication standard between electronic musical instruments.  The protocol specifies the physical hardware parameters for the cable and interfaces, and provides a well defined set of communication protocols to exchange musical and timing data.
+
+Prior to MIDI there were several analogue, and later basic digital, connection protocols.  The earliest, circa. 1974, would transmit note information as a voltage though a wire from one keyboard to another.  Later, 1980 - 1981,  Roland created a basic digital protocol.  The MIDI Manufacturers Association (MMA), working with the equipment manufacturers, defined a standard protocol and physical connection which allowed equipment from all complying manufacturers to connect and communicate with each other.
+
+>From 1985 MIDI interfaces started to appear on home computers and soon after sequencing programs appeared.
+
+
+<sect>Configuring MIDI devices.
+<p>
+
+<sect1>Configuring and debugging<p>
+
+MIDI devices can be integrated into the soundcard or be a separate device.  External MIDI interfaces may be attached to either the serial or USB port.
+<p>
+The first *and most important* thing you should do is check if your card is supported!
+<p>
+<url url="http://www.alsa-project.org/src/soundcards.html">
+<p>
+<url url="http://www.4front-tech.com/osshw.html">
+
+Configuring MIDI devices varies with Linux distributions.  At it's most simplest a well supported card may be configured when you install the OS.   
+
+The Linux Kernel includes the OSS drivers, although some distributions use Alsa, and most distributions provide a configuration tool (mostly for soundcards, but if you are using the MIDI port of a sound card it should be configured).  Under RedHat you would use sndconfig, under SuSE yast, and Mandrake, DrakConf. 
+
+If none of the above tools will configure your MIDI interface, or you are experiencing problems, the following steps should be taken:
+
+Does lsmod show any MIDI related modules?  Here's a typical output.
+<code>
+[root@mega /root]# lsmod
+Module                  Size  Used by
+lockd                  32208   1  (autoclean)
+sunrpc                 54640   1  (autoclean) [lockd]
+autofs                  9456   2  (autoclean)
+usb-ohci               12624   0  (unused)
+usbcore                43632   1  [usb-ohci]
+hisax                 470096   0  (autoclean) (unused)
+isdn                  104208   0  (autoclean) [hisax]
+slhc                    4544   0  (autoclean) [isdn]
+eepro100               16144   1  (autoclean)
+
+#---- Soundcard modules
+    opl3                   11376   2 
+    mad16                   7968   1 
+    ad1848                 16848   1  [mad16]
+    sb                     34752   1  [mad16]
+    uart401                 6384   1  [mad16 sb]
+    sound                  58368   0  [opl3 mad16 ad1848 sb uart401]
+
+soundlow                 464   0  [sound]
+soundcore               2800   6  [sb sound]
+nls_cp437               3952   2  (autoclean)
+vfat                    9408   1  (autoclean)
+fat                    30432   1  (autoclean) [vfat]
+ide-scsi                7664   0 
+</code>
+
+Look for mpu401, olp3, uart401 and oss.  
+
+If you are using USB devices don't forget to check if the USB modules are there.
+
+
+To check the config cat the sndstat file:
+
+<code>
+[root@mega /root]# cat /dev/sndstat 
+OSS/Free:3.8s2++-971130
+Load type: Driver loaded as a module
+Kernel: Linux mega 2.2.17-21mdk #1 Thu Oct 5 13:16:08 CEST 2000 i686
+Config options: 0
+
+Installed drivers: 
+
+Card config: 
+
+Audio devices:
+0: MAD16 WSS (82C930) (DUPLEX)
+
+Synth devices:
+0: Yamaha OPL3
+
+Midi devices:
+0: Mad16/Mozart
+
+Timers:
+0: System clock
+
+Mixers:
+0: MAD16 WSS (82C930)
+</code>
+
+We see here that the MIDI device is a mad16 and this is listed in the lsmod output above.
+
+
+If you see nothing related to MIDI check the contents of your /etc/modules.conf file.
+
+<code>
+[root@mega /root]# cat /etc/modules.conf
+alias net-pf-4 ipx 
+pre-install pcmcia_core /etc/rc.d/init.d/pcmcia start 
+alias usb-interface usb-ohci 
+alias parport_lowlevel parport_pc 
+alias block-major-11 scsi_hostadapter 
+pre-install plip modprobe parport_pc ; echo 7 > /proc/parport/0/irq 
+alias scsi_hostadapter ide-scsi 
+alias eth0 eepro100 
+alias eth1 hisax 
+
+#---- Soundcard
+    alias sound-slot-0 mad16 
+    options sound dmabuf=1 
+    alias midi opl3 
+    options opl3 io=0x388 
+    options sb support=1 
+    options mad16 io=0x530 irq=5 dma=0 dma16=1 mpu_io=0x300 mpu_irq=7 joystick=1
+</code>
+
+Here's the output of /proc/modules to check to see if the MIDI modules are loaded into the Kernel.
+
+<code>
+[root@mega /proc]# cat modules
+0000-001f : dma1
+0020-003f : pic1
+0040-005f : timer
+0060-006f : keyboard
+0070-007f : rtc
+0080-008f : dma page reg
+00a0-00bf : pic2
+00c0-00df : dma2
+00f0-00ff : fpu
+0170-0177 : ide1
+01f0-01f7 : ide0
+02f8-02ff : serial(auto)
+
+#---- MIDI device
+    0300-0303 : MPU-401 UART
+
+0376-0376 : ide1
+0388-038b : Yamaha OPL3
+03c0-03df : vga+
+03f6-03f6 : ide0
+03f8-03ff : serial(auto)
+0530-0533 : MAD16 WSS config
+0534-0537 : MAD16 WSS
+de00-de1f : Intel Speedo3 Ethernet
+f000-f007 : ide0
+f008-f00f : ide1
+</code> 
+ 
+You should see something similar to the above.  If not you'll need to install MIDI drivers.
+
+If you are going to be using ALSA divers, I suggest a good read of Valentijn Sessink's Alsa-sound-mini-HOWTO which can be found at the link below:
+
+<url url="http://www.linuxdoc.org/HOWTO/mini/Alsa-sound.html">
+
+
+<sect1>Latency.<p>
+
+MIDI is a real-time protocol and latency issues are a serious problem. 
+
+There are now several developers working on improving the latency times and improvements in the Kernel are making Linux a fine platform for MIDI.
+
+Although stock Linux distributions may run fine, pro set-ups should apply low-latency patches.  More information can be found here:
+
+<url url="http://www.gardena.net/benno/linux/audio/">
+
+<sect>Software.
+<p>
+
+Interest in Linux based MIDI is growing and this list will probably not reflect the true amount of MIDI software available, but should provide a reasonable selection of applications.<p>
+If you are developing, or know of, any other MIDI apps not listed here please drop me a note.<p>
+
+<sect1>Drivers<p>
+
+<sect2>Alsa Driver<p>
+
+The Advanced Linux Sound Architecture is composed of several parts. The first is a fully modularized sound driver which supports module autoloading, devfs, isapnp autoconfiguration, and gives complete access to analog audio, digital audio, control, mixer, synthesizer, DSP, MIDI, and timer components of audio hardware. It also includes a fully-featured kernel-level sequencer, a full compatibility layer for OSS/Free applications, an object-oriented C library which covers and enhances the ALSA kernel driver functionality for applications (client/server, plugins, PCM sharing/multiplexing, PCM metering, etc.), an interactive configuration program for the driver, and some simple utilities for basic management. 
+
+<url url="http://www.alsa-project.org/">
+
+<sect2>OSS<p>
+
+OSS provides sound card drivers for most popular sound cards under Linux and FreeBSD. These drivers support digital audio, MIDI, synthesizers, and mixers found on sound cards. These sound drivers comply with the Open Sound System API specification. OSS provides a user-friendly GUI which makes the installation of sound drivers and configuration of sound cards very simple. It supports over 200 brand name sound cards, and provides automatic sound card detection, Plug-n-Play support, support for PCI audio soundcards, and support for full duplex audio. 
+
+<url url="http://www.opensound.com/">
+
+
+<sect2>Notemidi<p>
+
+Notemidi is a device driver for MIDI output via the RS-232 serial port on notebook/laptop computers. Notemidi can be used with the MIDIator MS-124W interface, Roland Sound Canvas sound modules, or Yamaha MU-x series sound modules. 
+
+<url url="http://www.michaelminn.com/linux/notemidi">
+
+<sect1>MIDI file players
+<p>
+
+<sect2>KMid<p>
+
+KMid is an X11 / KDE based midi player for Linux and FreeBSD. It displays the text of karaoke files and changes its colour as it is being played so that the tune can be easily followed. KMid uses /dev/sequencer as output device supporting external synths, AWE , FM and GUS cards. 
+
+<url url="http://perso.wanadoo.es/antlarr/kmid.html">
+
+<sect2>Pmidi<p>
+
+Pmidi is a straightforward command line program to play Midi files through the ALSA sequencer. 
+
+<url url="http://www.parabola.demon.co.uk/alsa/pmidi.html">
+
+<sect2>TiMidity++<p>
+
+TiMidity is a MIDI to WAVE converter that uses Gravis Ultrasound(*)-compatible patch files to generate digital audio data from General MIDI files. The audio data can be played through any sound device or stored on disk. On a fast machine, music can be played in real time. 
+
+<url url="http://www.goice.co.jp/member/mo/timidity/">
+
+
+<sect1>Sequencers
+<p>
+
+<sect2>Brahms<p>
+
+Brahms is a sequencer and music notation program with several editing methods so far including Score-, Pianoroll-, Drum-, and Mastertrack Editors. For C++ programmers, it is easy to implement further editors by deriving from a general editor-class. MIDI Import and Export is also implemented. In combination with aRts-0.3.4, one can play wave-files and make use of the midibus to send midi-events to the software synthesizer. 
+<p>
+Formerly known as KooBase
+
+<url url="http://brahms.sourceforge.net/"> 
+
+<sect2>Anthem<p>
+
+Anthem is an advanced open source MIDI sequencer. Anthem allows you to record, edit and playback music using a sophisticated and acclaimed object oriented song technology.
+
+<url url="http://anthem.sourceforge.net/">
+
+<sect2>Jazz++<p>
+
+JAZZ++ is a full featured, audio capable midi sequencer for Linux and Windows.
+
+<url url="http://www.jazzware.com/cgi-bin/Zope.cgi/jazzware/">
+
+<sect2>Linux Ultimate Music Editor<p>
+
+UltiMusE-LX (the Ultimate Music Editor) is a composing program. No, it doesn't compose for you; it's a "word processor" for music.  You draw sheet music on the screen using the mouse and/or computer keyboard. Up to 16 parts or voices fit on up to seven staves (staffs).  Most standard musical notations are supported, as are MIDI instrument patch changes, events, and real-time clocks. 
+
+<url url="http://hometown.aol.com/knudsenmj/myhomepage/umuselx.htm">
+
+<sect2>Melys<p>
+
+Melys is a Midi sequencer application for the Advanced Linux Sound Architecture (ALSA). Melys uses the sequencer support of ALSA, along with the GNOME libraries to produce a powerful and easy to use sequencer. 
+
+<url url="http://www.parabola.demon.co.uk/melys/">
+
+<sect2>MidiMountain Sequencer<p>
+MidiMountain is a sequencer to edit standard MIDI files. Its easy-to-use interface should help beginners to edit and create MIDI songs (sequences), and it is designed to edit every definition known to standard MIDI files and the MIDI transfer protocol, from easy piano roll editing to changing binary system exclusive messages. 
+
+<url url="http://www.midimountain.com/">
+
+<sect2>MusE<p>
+
+MusE is a Qt 2.1-based MIDI sequencer for Linux with editing and recording capabilities. While the sequencer is playing you can edit events in realtime with the pianoroll editor or the score editor. Recorded MIDI events can be grouped as parts and arranged in the arrange editor. 
+
+<url url="http://muse.seh.de/">
+
+<sect2>Rosegarden<p>
+
+Rosegarden is an integrated MIDI sequencer and musical notation editor.
+
+<url url="http://www.all-day-breakfast.com/rosegarden/">
+
+
+<sect1>MIDI Trackers
+<p>
+
+<sect2>tektracker<p>
+
+ttrk (tektracker) is a console MIDI sequencer with a tracker-style step editor. It is built for live playing, with convenient track mute buttons and loop control.  ttrk supports both sending and syncing to MIDI clock pulses. 
+
+<url url="http://div8.net/ttrk/">
+
+<sect2>ShakeTracker
+<p>
+ShakeTracker aims to be a fully-featured MIDI sequencer with a tracker interface. It currently works well and supports most tracker effects. Anyone who has used Impulse Tracker before will feel at home, and for the new users, a simple but extensive help system is provided. Most commands and shortcuts resemble their tracker counterparts.
+
+<url url="http://reduz.com.ar/shaketracker/">
+
+<sect1>Drum editors
+<p>
+
+<sect2>DrumPatterns<p>
+
+DrumPatterns is a free, open source, web oriented drum patterns generator, whose purpose is to help teach drum patterns. It can teach the rudiments as well as advanced rhythms. It can output characters, score, or Midi, and includes hours of samples. 
+
+<url url="http://www.linux-france.org/prj/drumpatterns/index-en.html">
+
+<sect1>Patch editors
+<p>
+
+<sect2>JSynthLib<p>
+
+JSynthLib is an Open Source Universal Synthesizer Patch Editor / Librarian written in the Java Language. The project aims to eventually provide support for all existing Synthesizers by providing methods and documentation which allow users to develop drivers and editors for unsupported synths and contribute them to the project.
+
+<sect1>Software synths
+<p>
+
+Spiral Synth is a physically modeled polyphonic analogue synthesizer. It is capable of creating the kind of sounds made by hardware analogue synths, the noises used in electronic music. You can also use it to make stranger sounds too. MIDI is supported, and it uses the standard OSS/Free sound output (/dev/dsp). 
+
+<url url="http://www.pawfal.org/SpiralSynth/">
+
+<sect2>UltraMaster Juno-6<p>
+
+UltraMaster Juno-6 is a faithful virtual reproduction of a Roland Juno-6 Polyphonic Synthesizer. It features realtime 64-bit internal ULTRANALOG wave synthesis, an early 80's style arpeggiator and chorus, and 100s of patches to save your own custom settings. All parameters can be controlled in realtime, via on-screen GUI or external MIDI controllers. 
+
+<url url="http://www.ultramaster.com/juno6/index.html">
+
+<sect1>Plugins
+<p>
+
+<sect2>xmms-midi<p>
+
+Adds midi file support for x11amp (via timidity). A crude mixer interface is provided via the configuration dialog. 
+
+<url url="http://ban.joh.cam.ac.uk/~cr212/xmms-midi/">
+
+
+<sect1>Development<p>
+
+<sect2>sfront<p>
+
+Sfront compiles MPEG 4 Structured Audio (MP4-SA) bitstreams into efficient C programs that generate audio when executed. MP4-SA is a standard for normative algorithmic sound, that combines an audio signal processing language (SAOL) with score languages (SASL, and the legacy MIDI File Format). Under Linux, sfront supports real-time, low-latency audio input/output, local MIDI input from soundcards, and networked MIDI input using RTP and SIP. A SIP server hosted on the Berkeley campus manages sessions. The website includes an online book about MP4-SA. 
+
+<url url="http://www.cs.berkeley.edu/~lazzaro/sa/index.html">
+
+<sect2>jMax<p>
+
+jMax allows one to interactively design dataflow circuits. The basic data types that can go through are integers, symbols, lists, etc. It is an event-driven system and has been used for MIDI processing. A second part of the system (DSP) allows a continuous signal to flow through a circuit, which is most useful for PCM sound (ie. microphone, sound files, etc). The system is extensible by using shared libraries, you may add data processor types, data types, GUI elements, device types, and more. Data processors may also be designed as circuits and reused. 
+<p>
+
+<url url="http://www.ircam.fr/equipes/temps-reel/jmax/">
+
+<sect2>TSE3
+<p>
+
+TSE3 is a powerful open source sequencer engine written in C++. It is a 'sequencer engine' because it provides the actual driving force elements of a sequencer but provides no form of user interface.  Sequencer applications or multimedia presentation packages will incorporate the TSE3 libraries to provide a user with MIDI sequencing facilities.
+
+<url url="http://TSE3.sourceforge.net/">
+
+<sect2>KeyKit
+<p>
+
+KeyKit is a multi-tasking interpreted programming language (inspired by awk) designed exclusively for realtime and algorithmic MIDI manipulation. KeyKit's GUI provides several dozen tools for algorithmic music experimentation, including a multi-track sequencer and drum pattern editor. The GUI and all tools are completely written in the KeyKit language itself. This allows users to add new tools and operations to the existing tools, even while the system is running.
+
+<url url="http://nosuch.com/keykit/">
+
+<sect>Useful Links.
+<p>
+
+Below is a list of links to sites and resources covering MIDI and Linux. 
+
+<url url="http://www.bright.net/~dlphilp/linuxsound/"> Sound & MIDI Software For Linux.  A huge resource of MIDI and Audio related information.<p>
+
+<url url="http://www.linuxdj.com/audio/lad/"> Linux Audio Developers mailing list.  For developer related discussion.
+
+<url url="http://www.linuxdj.com/audio/quality"> The Linux Audio Quality HOWTO.  A good section on MIDI cards, essential reading for building a Linux studio. 
+
+<url url="http://www.alsa-project.org/"> Alsa Project
+
+<url url="http://www.4front-tech.com/"> OSS
+
+<url url="http://www.gardena.net/benno/linux/audio/"> Low Latancy patches
+
+<url url="http://ccrma-www.stanford.edu/~craig/articles/linuxmidi/"> Introduction to MIDI programming in Linux.  Craig Stuart Sapp covers writing basic MIDI utilities in C/C++.  A great primer.
+
+<sect>Feedback.
+<p>
+
+As ever, a HOWTO is a work in progress.  You are encouraged to give feedback on new applications and other interesting developments with MIDI under Linux.
+
+MIDI cards are, by their wide variety, sometimes difficult to configure as they have various levels of driver support.  Your best source of reference for problems are newsgroups, if you get stuck please try searching the Linux Audio mailing lists.  
+
+
+</article>
+
