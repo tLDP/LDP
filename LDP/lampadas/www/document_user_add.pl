@@ -16,7 +16,7 @@ $email		= $L->Param('email');
 
 unless ($L->Admin()){
 	%userdocs = $L->UserDocs($L->CurrentUserID());
-	unless ($userdocs{$doc_id) {
+	unless ($userdocs{$doc_id}) {
 		$L->Redirect("wrongpermission.pl");
 	}
 }
