@@ -22,7 +22,9 @@
 The URLParse module deciphers a Lampadas URL into its component parts.
 The API is documented in the Lampadas Programmer's Guide. A summary:
 
-[Language/][doc/<ID>[/<format>]|author/<ID>|$topic/$class]
+/doc/<ID>[/<format>]
+/author/<ID>
+/$topic/$class
 """
 
 import string
@@ -54,7 +56,7 @@ class URI:
         self.language = "EN"
         self.force_lang = 0
         self.path = ""
-        self.service = ""
+#        self.service = ""
         self.format = ""
         self.filename = "home"
         self.id = 0
@@ -94,27 +96,19 @@ class URI:
                 self.force_lang = 1
 
         if len(temp) > 0:
-            if temp[0] == 'doc' or temp[0] == 'editdoc':
-            # FIXME:
-            # 
-            # This really should eb using only a single attribute, 'Filename'.
-            # The 'doc' kludge should use a regular page which then embeds document
-            # content.
-                if temp[0] == 'doc':
-                    self.service = temp[0]
-                    self.filename = ''
-                else:
-                    self.service = ''
-                    self.filename = temp[0]
+            
+            if temp[0] == 'editdoc':
+#                self.service = ''
+                self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-                    temp = temp[1:]
-                    if len(temp) > 0:
-                        if temp[0] == 'xml' or temp[0] == 'html' or temp[0] == 'omf':
-                            self.format = temp[0]
-                        else:
-                            self.filename = temp[0]
+#                    temp = temp[1:]
+#                    if len(temp) > 0:
+#                        if temp[0] == 'xml' or temp[0] == 'html' or temp[0] == 'omf':
+#                            self.format = temp[0]
+#                        else:
+#                            self.filename = temp[0]
             else:
                 if len(temp) == 1:
                     self.path = '/'
@@ -134,7 +128,7 @@ class URI:
         print "Path: [" + self.path + "]"
         print "Language: [" + self.language + "]"
         print "Forced Language: [" + str(self.force_lang) + "]"
-        print "Service: [" + self.service+ "]"
+#        print "Service: [" + self.service+ "]"
         print "ID [" + str(self.id) + "]"
         print "Format [" + str(self.format) + "]"
         print "Filename: [" + self.filename + "]"

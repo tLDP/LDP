@@ -371,16 +371,16 @@ class testUserDocs(unittest.TestCase):
             assert UserDoc.ID == UserDoc.DocID
         log(3, 'testing UserDocs done')
 
+
 class testURLParse(unittest.TestCase):
 
-    def check_uri(self, url, protocol, server, port, path, language, forcelang, service, id, format, filename, parameter, anchor):
+    def check_uri(self, url, protocol, server, port, path, language, forcelang, id, format, filename, parameter, anchor):
         uri = URI(url)
         assert uri.protocol     == protocol
         assert uri.server       == server
         assert uri.port         == port
         assert uri.language     == language
         assert uri.force_lang   == forcelang
-        assert uri.service      == service
         assert uri.id           == id
         assert uri.format       == format
         assert uri.filename     == filename
@@ -388,20 +388,19 @@ class testURLParse(unittest.TestCase):
         assert uri.anchor       == anchor
         
     def testURLParse(self):
-        #               uri                         protocol    server          port    path    language    forcelang   service id  format  filename    parameter   anchor
-        self.check_uri('',                          '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('/',                         '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('/home',                     '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('FR',                        '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('FR/',                       '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('FR/home',                   '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('/doc',                      '',         '',             '',     '/',    'EN',       0,          'doc',  0,  '',     '',         '',         '')
-        self.check_uri('/doc/1',                    '',         '',             '',     '/',    'EN',       0,          'doc',  1,  '',     '',         '',         '')
-        self.check_uri('/doc/1/xml',                '',         '',             '',     '/',    'EN',       0,          'doc',  1,  'xml',  '',         '',         '')
-        self.check_uri('ES/doc/1/xml',              '',         '',             '',     '/',    'ES',       1,          'doc',  1,  'xml',  '',         '',         '')
-        self.check_uri('/ES/doc/1/xml',             '',         '',             '',     '/',    'ES',       1,          'doc',  1,  'xml',  '',         '',         '')
-        self.check_uri('http://localhost:8000',     'http',     'localhost',    '8000', '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
-        self.check_uri('http://localhost/doc/1',    'http',     'localhost',    '',     '/',    'EN',       0,          'doc',  1,  '',     '',         '',         '')
+        #               uri                                     protocol    server          port    path    language    forcelang   id  format  filename    parameter   anchor
+        self.check_uri('',                                      '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
+        self.check_uri('/',                                     '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
+        self.check_uri('/home',                                 '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
+        self.check_uri('FR',                                    '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
+        self.check_uri('FR/',                                   '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
+        self.check_uri('FR/home',                               '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
+        self.check_uri('/editdoc/1',                            '',         '',             '',     '/',    'EN',       0,          1,  '',     'editdoc',  '',         '')
+        self.check_uri('ES/editdoc/1',                          '',         '',             '',     '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
+        self.check_uri('http://localhost:8000',                 'http',     'localhost',    '8000', '/',    'EN',       0,          0,  '',     'home',     '',         '')
+        self.check_uri('http://localhost/editdoc/1',            'http',     'localhost',    '',     '/',    'EN',       0,          1,  '',     'editdoc',  '',         '')
+        self.check_uri('http://localhost/ES/editdoc/1',         'http',     'localhost',    '',     '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
+        self.check_uri('http://localhost:8000/ES/editdoc/1',    'http',     'localhost',    '8000', '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
        
 
 if __name__ == "__main__":

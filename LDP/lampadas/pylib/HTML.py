@@ -324,11 +324,8 @@ class PageFactory:
 
     def page_exists(self, key):
         uri = URI(key)
-        if uri.path == '':
-            if uri.service == 'doc':
-                return 1
-            elif lampadasweb.pages[uri.filename]:
-                return 1
+        if uri.path == '' and lampadasweb.pages[uri.filename]:
+            return 1
         return
 
     def page(self, key):
@@ -336,15 +333,11 @@ class PageFactory:
         uri.printdebug()
         log(3, 'Serving language ' + uri.language)
         
-        if uri.service == 'doc':
-            if uri.format == '':
-                html = self.doc_page(uri)
-        else:
-            page = lampadasweb.pages[uri.filename]
-            if page == None:
-                page = lampadasweb.pages['404']
-            assert not page == None
-            html = self.build_page(page, uri)
+        page = lampadasweb.pages[uri.filename]
+        if page == None:
+            page = lampadasweb.pages['404']
+        assert not page == None
+        html = self.build_page(page, uri)
 
         return html
     
@@ -426,34 +419,6 @@ class PageFactory:
         html = html.replace('DCM_PIPE', '|')
     
         log(3, 'Page built ' + page.code)
-        return html
-
-    def doc_page(self, uri):
-        lang  = uri.language
-        doc = lampadas.Docs[uri.id]
-        if doc == None:
-            html = "Error, could not locate document " + str(uri.id)
-        else:
-            cachedir = config.cache_dir + str(uri.id) + '/'
-            
-            files = doc.Files
-            if files.Count() == 0:
-                html = 'No file to process'
-            elif files.Count() > 1:
-                html = 'Only single files supported right now'
-            else:
-                command = 'cd ' + cachedir + '; make index'
-                os.system(command)
-                
-                if uri.filename == '':
-                    uri.filename = 'index.html'
-                
-                if os.access(cachedir + uri.filename, os.F_OK):
-                    fh = open(cachedir + uri.filename)
-                    html = fh.read()
-                    fh.close()
-                else:
-                    html = 'Document cannot be found'
         return html
 
 
