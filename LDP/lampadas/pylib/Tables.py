@@ -1954,7 +1954,7 @@ class TabPage(Table):
                                             widgets.tf('only_registered', page.only_registered),
                                             widgets.tf('only_admin', page.only_admin),
                                             widgets.tf('only_sysadmin', page.only_sysadmin),
-                                            widgets.data(string.join(page.data)),
+                                            widgets.data(page.data),
                                             widgets.adjust_sort_order()
                                            ))
 
