@@ -185,3 +185,9 @@ insert([type], [|type.name|], [],
 [
     |tabtypedocs|
 ])
+
+insert([cvslog], [CVS Log], [],
+[
+    |tabcvslog|
+])
+

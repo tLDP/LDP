@@ -99,7 +99,7 @@ class URI:
         # contain an object and display its attributes.
         # 
         if len(temp) > 0:
-            if temp[0]=='editdoc':
+            if temp[0]=='editdoc' or temp[0]=='cvslog':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:

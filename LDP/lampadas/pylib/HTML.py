@@ -343,6 +343,19 @@ class TableFactory:
 
         return box
 
+    def cvslog(self, uri):
+        doc = lampadas.Docs[uri.id]
+        box = '<table class="box">\n'
+        box = box + '<tr><th>|strcvslog|</th></tr>\n'
+        box = box + '<tr><td>\n'
+        cvsdir = config.cvs_root + str(doc.id)
+
+        # FIXME: finish this.
+
+        box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        return box
+
     def user(self, uri):
         box = '<table class="box">\n'
         if uri.username > '':
@@ -699,6 +712,8 @@ class PageFactory:
                     newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri)
+                if token=='tabcvslog':
+                    newstring = self.tablef.cvslog(uri)
                 if token=='tabuser':
                     newstring = self.tablef.user(uri)
                 if token=='tabmenus':

@@ -29,4 +29,4 @@ insert(user,                default,    none,       0,  f,  f,  f)
 insert(logged_in,           default,    none,       0,  f,  f,  f)
 insert(logged_out,          default,    none,       0,  f,  f,  f)
 insert(type,                default,    none,       0,  f,  f,  f)
-
+insert(cvslog,              default,    none,       0,  f,  f,  f)
