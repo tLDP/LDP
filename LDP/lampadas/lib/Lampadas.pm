@@ -790,7 +790,6 @@ sub StartPage {
 		push @messages, "UserName: " . $currentuser{username};
 	}
 
-	print "Requested Language: " . RequestedLanguage() . "<p>";
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
 	HeaderBox($foo, $title);
