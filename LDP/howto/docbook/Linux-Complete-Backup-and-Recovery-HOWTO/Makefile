@@ -1,9 +1,9 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2002-01-27 13:35:23 ccurley Makefile>
+# Time-stamp: <2002-01-27 14:36:59 ccurley Makefile>
 
-# All the scripts we incorporate into the HOWTO
-# SCRIPTS = cooked/back.up.all cooked/back.up.all.ssh cooked/dev.hda cooked/get.tester cooked/make.dev.hda cooked/make.fdisk cooked/restore.all cooked/restore.all.ssh cooked/restore.metadata cooked/restore.tester cooked/save.metadata
+# All the scripts we incorporate into the HOWTO. Script names must
+# match [a-z]*
 SCRIPTS = `echo scripts/[a-z]* | sed "s/scripts\///g"`
 
 # The base name of the document
@@ -36,16 +36,15 @@ $(DOCUMENT)/index.html: $(DOCUMENT).sgml scripts
 	mv $(DOCUMENT) $(DOCUMENT).junk
 	mkdir $(DOCUMENT)
 	cd $(DOCUMENT) ; /usr/bin/jade -t sgml -i html $(indexdsl) $(dslhtml) ../$(DOCUMENT).sgml
-#	cp -rp *.png $(DOCUMENT)
-# 	cp -rp images $(DOCUMENT)
 
-# this target makes is easier to type as a target name. OK, I'm lazy.
+# this target makes it easier to type as a target name. OK, I'm lazy.
 chunky: $(DOCUMENT)/index.html
 
 
 $(DOCUMENT).smooth.html: $(DOCUMENT).sgml scripts
 	/usr/bin/jade -V nochunks -t sgml -i html $(indexdsl) $(dslhtml) $(DOCUMENT).sgml > $(DOCUMENT).smooth.html
 	cp -rp images ..
+	rm -r ../images/CVS	# don't copy the CVS directory, thank you.
 smooth: $(DOCUMENT).smooth.html
 
 html: chunky smooth
@@ -99,6 +98,7 @@ ship: all
 	-rm -r $(INSTALL) $(INSTALL)/../images
 	cp -rp $(DOCUMENT) $(INSTALL)/
 	cp -rp images $(INSTALL)/..
+	rm -r $(INSTALL)/../images/CVS # Don't give out the CVS data
 
 	# PDF and PS versions for download
 	cp -p  $(DOCUMENT).pdf $(DOCUMENT).ps $(INSTALL)/
@@ -116,7 +116,7 @@ ship: all
 	mv $(DOCUMENT).chunky.html.tar.bz2  $(INSTALL)/
 
 	# The source for download
-	cd .. ; tar -cvf $(DOCUMENT).tar $(DOCUMENT)/README `find $(DOCUMENT)/scripts ! -name "*~" ! -type d ` $(DOCUMENT)/$(DOCUMENT).sgml $(DOCUMENT)/buildscript $(DOCUMENT)/Makefile $(DOCUMENT)/images
+	cd .. ; tar -cvf $(DOCUMENT).tar $(DOCUMENT)/README `find $(DOCUMENT)/scripts -name "[a-z]*" ! -name "*~" ! -type d ` $(DOCUMENT)/$(DOCUMENT).sgml $(DOCUMENT)/buildscript $(DOCUMENT)/Makefile $(DOCUMENT)/images/*.gif
 	cd .. ; bzip2 -9 $(DOCUMENT).tar
 	cd .. ; mv $(DOCUMENT).tar.bz2  $(INSTALL)/
 	ls -l $(INSTALL)
