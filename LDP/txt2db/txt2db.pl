@@ -12,7 +12,9 @@ my($level1,
    $level3,
    $orderedlist,
    $listitem,
-   $para);
+   $para,
+   $qandaset,
+   $qandaentry);
 
 my($line);
 my($id, $title);
@@ -59,7 +61,6 @@ open(DB, "> $dbfile") || die "txt2db: cannot write to $dbfile ($!)\n";
 print DB $buf, "\n";
 close(DB);
 
-print "txt2db: created $dbfile from $txtfile\n";
 exit(0);
 
 # -----------------------------------------------------------
@@ -87,9 +88,9 @@ sub proc_txt {
 			next;
 		}
 
-		# pass DocBook right on through
+		# pass DocBook right on through -- must be in <para> or <sect?> tags
 		#
-		if ($line =~ /^</) {
+		if (($line =~ /^<para/) or ($line =~ /^<sect/)) {
 			&closenonsect;
 
 			$tag = $line;
@@ -145,6 +146,7 @@ sub proc_txt {
 			}
 			$level1 = 1;
 		} elsif ($line =~ /^#/) {
+			&closeqandaset;
 			if ($orderedlist == 0) {
 				$buf .= "\n<orderedlist>\n";
 				$orderedlist = 1;
@@ -155,6 +157,7 @@ sub proc_txt {
 			$listitem = 1;
 			$para = 1;
 		} elsif ($line =~ /^\*/) {
+			&closeqandaset;
 			if ($list == 0) {
 				$buf .= "\n<simplelist>\n";
 				$list = 1;
@@ -164,9 +167,23 @@ sub proc_txt {
 			$line =~ s/^/\n<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
-		}
-		else {
-			&closeorderedlist;
+		} elsif ($line =~ /^Q:/) {
+			$line =~ s/^Q://;
+			$line = "<question><para>" . $line . "</para></question>\n";
+			unless ($qandaentry == 1) {
+				$line = "<qandaentry>\n" . $line;
+				$qandaentry = 1;
+			}
+			if ($qandaset == 0) {
+				$line = "<qandaset>\n". $line;
+				$qandaset = 1;
+			}
+			
+		} elsif ($line =~ /^A:/) {
+			$line =~ s/^A://;
+			$line = "<answer><para>" . $line . "</para></answer>\n";
+		} else {
+			&closeqandaset;
 			if ( $para == 0 ) {
 				$line =~ s/^/<para>/;
 				$para = 1;
@@ -174,6 +191,8 @@ sub proc_txt {
 				$line .= " ";
 			}
 		}
+
+		# inline docbook
 
 		# ulink
 		# 
@@ -230,6 +249,7 @@ sub close3 {
 	&closeorderedlist;
 	&closelist;
 	&closepara;
+	&closeqandaset;
 	if ($level3 == 1) {
 		$buf .= "</sect3>\n";
 		$level3 = 0;
@@ -240,6 +260,7 @@ sub closenonsect {
 	&closepara;
 	&closeorderedlist;
 	&closelist;
+	&closeqandaentry;
 }
 
 sub closeorderedlist {
@@ -268,6 +289,21 @@ sub closelistitem {
 	}
 }
 
+sub closeqandaentry {
+	if ($qandaentry == 1) {
+		$buf .= "</qandaentry>\n";
+		$qandaentry = 0;
+	}
+}
+
+sub closeqandaset {
+	&closeqandaentry;
+	if ($qandaset == 1) {
+		$buf .= "</qandaset>\n";
+		$qandaset = 0;
+	}
+}
+
 sub closepara {
 	if ($para == 1) {
 		$buf .= "</para>\n";
@@ -281,7 +317,7 @@ sub splittitle {
 	$title = $line;
 	$id = "";
 	if ($line =~ /\|/) {
-		$title =~ s/\|\w+//;
+		$title =~ s/\|.+//;
 		$id = $line;
 		$id =~ s/^.+\|//;
 	}
