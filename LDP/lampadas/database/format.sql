@@ -7,6 +7,3 @@ CREATE TABLE format
 
 	PRIMARY KEY (format)
 );
-
-GRANT SELECT on format to webuser;
-

@@ -56,6 +56,3 @@ ALTER TABLE document
 ADD CONSTRAINT dtd_fk
 FOREIGN KEY (dtd)
 REFERENCES dtd(dtd);
-
-GRANT SELECT ON document TO webuser;
-GRANT UPDATE ON document TO webuser;

@@ -9,5 +9,3 @@ CREATE TABLE topic
 
 	PRIMARY KEY (topic_num)
 );
-
-GRANT ALL on topic to webuser;

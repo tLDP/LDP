@@ -10,8 +10,6 @@ CREATE TABLE subtopic
 	PRIMARY KEY (topic_num, subtopic_num)
 );
 
-GRANT ALL on subtopic to webuser;
-
 ALTER TABLE subtopic
 ADD CONSTRAINT topic_num_fk
 FOREIGN KEY (topic_num)

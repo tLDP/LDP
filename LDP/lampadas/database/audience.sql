@@ -8,8 +8,6 @@ CREATE TABLE audience (
 	PRIMARY KEY (audience)	
 );
 
-GRANT ALL on audience to webuser;
-
 INSERT INTO audience ( audience, audience_level, audience_description ) VALUES ('NOVICE', 1, 'Novice');
 INSERT INTO audience ( audience, audience_level, audience_description ) VALUES ('BEGINNER', 2, 'Beginners');
 INSERT INTO audience ( audience, audience_level, audience_description ) VALUES ('INTERMEDIATe', 3, 'Intermediate Users');

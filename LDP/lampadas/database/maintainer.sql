@@ -7,7 +7,3 @@ CREATE TABLE maintainer (
 
 	PRIMARY KEY (maintainer_id)	
 );
-
-GRANT SELECT on maintainer to webuser;
-GRANT UPDATE on maintainer to webuser;
-GRANT INSERT on maintainer to webuser;

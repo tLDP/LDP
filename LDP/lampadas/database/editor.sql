@@ -8,5 +8,3 @@ CREATE TABLE editor (
 
 	PRIMARY KEY (editor_id)
 );
-
-GRANT ALL on editor to webuser;

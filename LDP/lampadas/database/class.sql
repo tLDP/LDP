@@ -7,5 +7,3 @@ CREATE TABLE class
 
 	PRIMARY KEY (class)
 );
-
-GRANT SELECT on class to webuser;

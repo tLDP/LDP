@@ -27,7 +27,3 @@ ALTER TABLE document_maintainer
 ADD CONSTRAINT role_fk
 FOREIGN KEY (role)
 REFERENCES role(role);
-
-GRANT SELECT on document_maintainer to webuser;
-GRANT UPDATE on document_maintainer to webuser;
-GRANT DELETE on document_maintainer to webuser;

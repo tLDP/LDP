@@ -6,5 +6,3 @@ CREATE TABLE editor_role(
 
 	PRIMARY KEY (editor_role)
 );
-
-GRANT ALL on editor_role to webuser;

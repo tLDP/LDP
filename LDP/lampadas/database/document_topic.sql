@@ -9,8 +9,6 @@ CREATE TABLE document_topic
 	PRIMARY KEY (doc_id, topic_num, subtopic_num)
 );
 
-GRANT ALL on document_topic to webuser;
-
 ALTER TABLE document_topic
 ADD CONSTRAINT doc_id_fk
 FOREIGN KEY (doc_id)

@@ -5,5 +5,3 @@ CREATE TABLE role(
 
 	PRIMARY KEY (role)
 );
-
-GRANT SELECT on role to webuser;

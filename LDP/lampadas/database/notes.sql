@@ -11,6 +11,3 @@ ALTER TABLE notes
 ADD CONSTRAINT doc_id_fk
 FOREIGN KEY (doc_id)
 REFERENCES document(doc_id);
-
-GRANT SELECT on notes to webuser;
-GRANT INSERT on notes to webuser;

@@ -8,6 +8,3 @@ CREATE TABLE pub_status
 	
 	PRIMARY KEY (pub_status)
 );
-
-GRANT SELECT on pub_status to webuser;
-

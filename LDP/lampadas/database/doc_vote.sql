@@ -9,5 +9,3 @@ CREATE TABLE doc_vote
 
 	PRIMARY KEY (doc_id, username)
 );
-
-GRANT ALL on doc_vote to webuser;

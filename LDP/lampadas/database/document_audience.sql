@@ -6,5 +6,3 @@ CREATE TABLE document_audience (
 	
 	PRIMARY KEY (doc_id, audience)
 );
-
-GRANT ALL on document_audience to webuser;
