@@ -1333,7 +1333,40 @@ Hello, World
 </table>
 <para>If you enter a number with less than three digits as an argument to <command>chmod</command>, omitted characters are replaced with zeros starting from the left.  There is actually a fourth digit on Linux systems, that precedes the first three and sets special access modes.  Everything about these and many more are located in the Info pages.</para>
 </sect3>
-<sect3 id="sect_03_04_02_02"><title>The file mask</title>
+<sect3 id="sect_03_04_02_02"><title>Logging on to another group</title>
+<para>When you type <command>id</command> on the command line, you get a list of all the groups that you can possibly belong to, preceded by your user name and ID and the group name and ID that you are currently connected with.  However, on many Linux systems you can only be actively logged in to one group at the time.  By default, this active or <emphasis>primary group</emphasis> is the one that you get assigned from the <filename>/etc/passwd</filename> file.  The fourth field of this file holds users' primary group ID, which is looked up in the <filename>/etc/group</filename> file.  An example:</para>
+<screen>
+<prompt>asim:~&gt;</prompt> <command>id</command>
+uid=501(asim) gid=501(asim) groups=100(users),501(asim),3400(web)
+
+<prompt>asim:~&gt;</prompt> <command>grep <parameter>asim</parameter> <filename>/etc/passwd</filename></command>
+asim:x:501:501:Asim El Baraka:/home/asim:/bin/bash
+
+<prompt>asim:~&gt;</prompt> <command>grep <parameter>501</parameter> <filename>/etc/group</filename></command>
+asim:x:501:
+</screen>
+<para>The fourth field in the line from <filename>/etc/passwd</filename> contains the value <quote>501</quote>, which represents the group <emphasis>asim</emphasis> in the above example.  From <filename>/etc/group</filename> we can get the name matching this group ID.  When initially connecting to the system, this is the group that <emphasis>asim</emphasis> will belong to.</para>
+<note><title>User private group scheme</title>
+<para>In order to allow more flexibility, most Linux systems follow the so-called <emphasis>user private group scheme</emphasis>, that assigns each user primarily to his or her own group.  This group is a group that only contains this particular user, hence the name <quote>private group</quote>.  Usually this group has the same name as the user login name, which can be a bit confusing.</para> 
+</note>
+<para>Apart from his own private group, user <emphasis>asim</emphasis> can also be in the groups <emphasis>users</emphasis> and <emphasis>web</emphasis>.  Because these are secondary groups to this user, he will need to use the <command>newgrp</command> to log into any of these groups.  In the example, <emphasis>asim</emphasis> needs to create files that are owned by the group <emphasis>web</emphasis>.</para>
+<screen>
+<prompt>asim:/var/www/html&gt;</prompt> <command>newgrp <parameter>web</parameter></command>
+
+<prompt>asim:/var/www/html&gt;</prompt> <command>id</command>
+uid=501(asim) gid=3400(web) groups=100(users),501(asim),3400(web)
+</screen>
+<para>When <emphasis>asim</emphasis> creates new files now, they will be in group ownership of the group <emphasis>web</emphasis> instead of being owned by the group <emphasis>asim</emphasis>:</para>
+<screen>
+<prompt>asim:/var/www/html&gt;</prompt> <command>touch <filename>test</filename></command>
+
+<prompt>asim:/var/www/html&gt;</prompt> <command>ls <option>-l</option> <filename>test</filename></command>
+-rw-rw-r--  1 asim web   0 Jun 10 15:38 test
+</screen>
+<para>Loggin in to a new group prevents you from having to use <command>chown</command> (see <xref linkend="sect_03_04_02_04" />) or calling your system administrator to change ownerships for you.</para>
+<para>See the manpage for <command>newgrp</command> for more information.</para>
+</sect3>
+<sect3 id="sect_03_04_02_03"><title>The file mask</title>
 <para>When a new file is saved somewhere, it is first subjected to the standard security procedure.  Files without permissions don't exist on Linux.  The standard file permission is determined by the <emphasis>mask</emphasis> for new file creation.  The value of this mask can be displayed using the <command>umask</command> command:</para>
 <screen>
 <prompt>bert:~&gt;</prompt> <command>umask</command>
@@ -1353,7 +1386,7 @@ drwxrwxr-x    2 bert    bert		4096 Feb 28 13:45 newdir/
 <prompt>bert:~&gt;</prompt> <command>ls -l newfile</command>
 -rw-rw-r--    1 bert    bert		   0 Feb 28 13:52 newfile
 </screen>
-
+<para>If you log in to another group using the <command>newgrp</command> command, the mask remains unchanged.  Thus, if it is set to <emphasis>002</emphasis>, files and directories that you create while being in the new group will also be accessible to the other members of that group; you don't have to use <command>chmod</command>.</para>
 <para>The <emphasis>root</emphasis> user usually has stricter default file creation permissions:</para>
 <screen>
 [root@estoban root]# umask
@@ -1362,8 +1395,8 @@ drwxrwxr-x    2 bert    bert		4096 Feb 28 13:45 newdir/
 <para>These defaults are set system-wide in the shell resource configuration files, for instance <filename>/etc/bashrc</filename> or <filename>/etc/profile</filename>.  You can change them in your own shell configuration file, see <xref linkend="chap_07" /> on customizing your shell environment.</para>
 
 </sect3>
-<sect3 id="sect_03_04_02_03"><title>Changing user and group ownership</title>
-<para>When a file is owned by the wrong user or group, the error can be repaired with the <command>chown</command> (change owner) and <command>chgrp</command> (change group) commands.  Changing file ownership is a frequent task in environments where files need to be shared in a group.  Both commands are very flexible, as you can find out by using the <option>--help</option> option.</para>
+<sect3 id="sect_03_04_02_04"><title>Changing user and group ownership</title>
+<para>When a file is owned by the wrong user or group, the error can be repaired with the <command>chown</command> (change owner) and <command>chgrp</command> (change group) commands.  Changing file ownership is a frequent system administrative task in environments where files need to be shared in a group.  Both commands are very flexible, as you can find out by using the <option>--help</option> option.</para>
 <para>The <command>chown</command> command can be applied to change both user and group ownership of a file, while <command>chgrp</command> only changes group ownership.  Of course the system will check if the user issuing one of these commands has sufficient permissions on the file(s) she wants to change.</para>
 <para>In order to only change the user ownership of a file, use this syntax:</para>
 <cmdsynopsis><command>chown <parameter>newuser</parameter> <filename>file</filename></command></cmdsynopsis>
@@ -1396,10 +1429,12 @@ uid=1304(jacky) gid=(1304) groups=1304(jacky),2034(pproject)
 </screen>
 <para>This way, users in the group <emphasis>project</emphasis> will be able to work on this file.  Users not in this group have no business with it at all.</para>
 <para>Both <command>chown</command> and <command>chgrp</command> can be used to change ownership recursively, using the <option>-R</option> option.  In that case, all underlying files and subdirectories of a given directory will belong to the given user and/or group.</para>
-
+<note><title>Restrictions</title>
+<para>On most systems, the use of the <command>chown</command> and <command>chgrp</command> commands is restricted for non-privileged users.  If you are not the administrator of the system, you can not change user nor group ownerships for security reasons.  If the usage of these commands would not be restricted, malicious users could assign ownership of files to other users and/or groups and change behavior of those users' environments and even cause damage to other users' files.</para>
+</note>
 </sect3>
 
-<sect3 id="sect_03_04_02_04"><title>Special modes</title>
+<sect3 id="sect_03_04_02_05"><title>Special modes</title>
 <para>For the system admin to not be bothered solving permission problems all the time, special access rights can be given to entire directories, or to separate programs.  There are three special modes:</para>
 <itemizedlist>
 <listitem><para>Sticky bit mode: After execution of a job, the command is kept in the system memory.  Originally this was a feature used a lot to save memory, but these days memory is inexpensive, so it is not used anymore for its optimizing capabilities on single files.  When applied to an entire directory, however, the sticky bit has a different meaning.  In that case, a user can only change files in this directory when she is the user owner of the file or when the file has appropriate permissions.  This feature is used on directories like <filename>/var/tmp</filename>, that have to be accessible for everyone, but where it is not appropriate for users to change or delete each other's data.  The sticky bit is indicated by a <emphasis>t</emphasis> at the end of the file permission field:</para>
