@@ -1,0 +1,212 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>The Winmodems-and-Linux HOWTO
+<author>Alexandre J., alexandre12@mageos.com
+<date>v1.0, April 2000
+<abstract>
+This document helps users having a Winmodem for getting it working under Linux.
+</abstract>
+
+<toc>
+
+<sect>What are Winmodems ?<p>
+<sect1>They are modems...<p>
+A Winmodem, like other modems, is used for accessing to phone services, as BBS, Internet, Voice Phone, Fax, etc. It is raccorded to a phone line and is caracterized by its speed. If you want to learn more about modems, I report you to the Modems-HOWTO. 
+<sect1>...not as real modems are !<p>
+But they are WINmodems. That is, they need Windows to work. Why ? Simply because they are stupid. They need a special software, a driver, to accomplice their complete task. Who says software says OS, and the drivers included with the modem are, at 99%, exclusively for the MS-Windows platform. But with the democratization of Linux, some manufacturers, like LT or Motorola, decided to create a linux driver for their modems. But they have not understand linux philosophy: the drivers they provide works, of course, but they are 'Closed Source'. They are free, at the sense of the price, but not under the GPL. It means that the sources are not available. <p>
+So, some 'hackers' decided to make an Open Source driver, but they do not know a lot about their modems, because manufacturers don't want to communicate the specifications of their modems, so the OpenSource drivers are often in the alpha or beta status. <p>
+<sect1>How to know I have a Winmodem?<p>
+1. Try to get the name of the serial port where your modem is connected (under Windows or MSDOS, example: COM1 COM2, ...). <p>
+The name of your modem under Linux is /dev/ttySx, where x is the number of the serial port under DOS, - 1. <
+Example: Under DOS: COM1, under Linux ttySx, with x=1-1, so ttyS0<p>
+2nd example: Under DOS: COM3, under Linux ttyS2<p>
+and so on<p>
+
+2. Make a symlink from /dev/ttySx to /dev/modem, by typing
+<code>
+rm -f /dev/modem<p>
+ln -s /dev/ttySx /dev/modem
+</code>
+
+3. Download and install the minicom package. Then run 'minicom -s'. <p>
+Choose 'Serial Port Setup', type 'A' for setting 'Serial Device', delete all the line, and type '/dev/modem'. Then validate by [Enter]. Type [Esc], and choose 'save setup as dfl, then choose 'Exit'. <p>
+Wait a little time, then type 'AT' if the modem answers 'OK' then you have NOT a Winmodem, you have a standard modem...<p>
+If the initialisation time takes too long, then you have a Winmodem. Use this document for try making it useful. Log in as root.<p>
+
+4. Exit from Minicom by typing CTRL+A, then X. <p>
+
+
+<sect>ISA or PCI ?<p>
+<sect1>PCI ?<p>
+Ok, now we have a Winmodem... But there are two types of Winmodems: ISA or PCI. For making the things harder, the two interfaces are pretty different. So, we'll now test if we have a PCI or ISA modem. First, you must configure your kernel. During the make *config, you must answer 'yes' to the following questions: <p>
+
+<itemize>
+<item>In Loadable module support: 'Enable loadable module support (CONFIG_MODULES)', and 'Set version information on all modules for symbols (CONFIG_MODVERSIONS)' (note that you must have the modutils package installed ; See the Kerneld-HOWTO)
+<item>In General setup: <p>
+'PCI support' (CONFIG_PCI)<p>
+Choose 'Any' in 'PCI Access Mode' (CONFIG_PCI_GOBIOS)<p>
+'PCI quirks' (CONFIG_PCI_QUIRKS)<p>
+'Backward compatible /proc/pci' (CONFIG_PCI_OLD_PROC)<p>
+<item>In Filesystems<p>
+'/proc filesystem support' (CONFIG_PROC_FS)<p>
+</itemize>
+If you have never recompiled your kernel, maybe the kernel of your distribution will contains this. If you want to recompile it and you have never done it, read the Kernel-HOWTO. <p>
+<p>
+Now, we assume that your new kernel is installed. <p>
+<p>
+Now run 'cat /proc/pci'. If you see the name of your modem in the lines returned by the command then you have a PCI Winmodem. Jump to 'Installing the driver'<p>
+
+<sect1>or ISA ?<p>
+If you don't find it, maybe you have an ISA modem. How to be sure ?<p>
+ISA support is not assumed by the Kernel (the 2.4.* kernel will do it, but it is yet in a not-stable version...). It is a third-party software, named isapnp, who does it. First you must be sure that you have this package installed. If not install it by downloading the isapnptools package. <p>
+Once isapnptools is installed, we'll run a special program, pnpdump, who inspects your computer for finding ISA devices. Then it tries to guess the resources used by the devices and prints them to a file, /etc/isapnp.conf. Then you edit this file and run an other program, isapnp, which reads the isapnp.conf file and auto configure your devices. <p>
+<p>
+Eh ? It sounds hard ? Then follow these steps: <p>
+<p>
+1. Run 'pnpdump > /etc/isapnp.conf'. <p>
+2. Edit it with your favourite text editor<p>
+3. Locate the section where your modem is described. <p>
+4. Uncomment some lines in the file (Remove the # at the beginning of the line. You need: <p>
+1 line '(IO 0 ...)'<p>
+1 line '(INT 0 ...)'<p>
+1 line '(DMA 0 ...)'<p>
+1 line '(DMA 1 ...)'<p>
+1 line '(IO 1...)'<p>
+5. Remove the '(CHECK)' in all uncommented IO lines<p>
+6. Run 'isapnp /etc/isapnp.conf'. If you get errors, edit the file isapnp.conf and try changing parameters, help you with the error message. If you get no errors, edit isapnp.conf and uncomment the '(ACT Y)' line in the secton of your modem. Then re-run 'isapnp /etc/isapnp.conf'. It must answer you " [[Name of your modem]] Enabled OK"<p>
+7. Add 'isapnp /etc/isapnp.conf' to your /etc/rc.d/rc.local, by typing 'echo "isapnp /etc/isapnp.conf" >> /etc/rc.d/rc.local'. It is useful for auto-configuring your devices at each startup<p>
+<p>
+If it can help , here is an extract of my /etc/isapnp.conf file (I have commented this file, and original file comments are preceded by ##)<p>
+
+<code>
+
+# Snip details ...
+## (DEBUG)
+(READPORT 0x0203)
+(ISOLATE PRESERVE)
+(IDENTIFY *)
+(VERBOSITY 2)
+(CONFLICT (IO FATAL)(IRQ FATAL)(DMA FATAL)(MEM FATAL)) # or WARNING
+
+# Identification of my modem card
+
+## Card 1: (serial identifier e2 00 00 01 00 05 50 c3 1e)
+## Vendor Id GVC5005, Serial Number 256, checksum 0xE2.
+## Version 1.0, Vendor version 0.1
+## ANSI string -->LT Win Modem<--
+##
+## Logical device id HSM0140
+##     Device support I/O range check register
+#
+
+# We want to configure the GVC5005/256 card
+
+(CONFIGURE GVC5005/256 (LD 0
+
+# I/O Base address 0x03f8, with a range of 8
+(IO 0 (SIZE 8) (BASE 0x03f8) )
+# IRQ 4
+(INT 0 (IRQ 4 (MODE +E)))
+# DMA 5
+(DMA 0 (CHANNEL 5))
+# DMA 7
+(DMA 1 (CHANNEL 7))
+# I/O Base Address 2  0x0100, range 8
+(IO 1 (SIZE 8) (BASE 0x0100) )
+# Name of the card
+ (NAME "GVC5005/256[0]{LT Win Modem        }")
+# Activitate it
+(ACT Y)
+# End configuration
+))
+
+######## The parameters for my other ISA devices ##############
+ 
+## Returns all cards to the "Wait for Key" state
+(WAITFORKEY)
+
+</code>
+
+<sect>Installing a modem driver<p>
+You have not to read this section entirely; just read one matching with your modem. For the moment, it just describes how to install a LT Modem, using the Lucent and OpenSource driver. If you have written or used an other Winmodem driver, Open or Closed Source, you can email me (alexandre12@mageos.com), and I will include it in this section. <p>
+<p>
+<sect1>The LT WinModem (from Lucent)<p>
+URL: http://www.linmodems.org/linux568.zip<p>
+Author: Lucent Technologies<p>
+License: Non-GPL<p>
+Supports: ISA/PCI modems, with a Lucent chipsets (Mars family)<p>
+Features: Kernel module; simulate a serial port. Does PPP, Fax and Voice<p>
+Current version (as far as I know): 5.68<p>
+Documentation: README<p>
+Requires: A 2.2.12 or higher RedHat kernel; loadable module support<p>
+How-to-use: Unzip the package ('unzip linux568.zip'), and run ./ltinst. That's all !<P>
+Problems: <p>
+<itemize><p>
+<item>'insmod: ltmodem: Unresolved symbol(s) *****': You have not a kernel matching with ltmodem. Get the 2.2.12 kernel from ftp.kernel.org, compile and install it
+<item>'Warning: kernel version mismatch...": It is simply because ou have not the 2.2.12-20 kernel. It's only a warning, and it doesn't make the modem failing
+<item>'ltmodem: init_module: device or resource busy': 
+	<itemize>
+	<item>You have no lt modem or compliant installed
+	<item>If you have a ISA modem, it is not configured by isapnp
+	<item>If you have a PCI modem, the PCI support in the kernel was not configured
+	</itemize>
+</itemize>
+
+<sect1>The LTMODEM program (OpenSource driver)<p>
+URL: http://www.close-u-net.com<p>
+Authors: Richard Close and Pavel Machek<p>
+License: GPL<P>
+Supports: ISA/PCI modems, with Lucent chipsets (Mars family)<p>
+Feature: User-space driver; does Voice calls; does not PPP (V90)<p>
+Current version (as far as I know): 0.9.2<p>
+Documentation: README<p>
+Requires: GNU C Compiler, automake<p>
+How-to-use: <p>
+<itemize><p>
+<item>PCI: make ; make install - Then use the 'ltmodem' program to communicate with the modem
+<item>ISA: (read the README.ISA file) mv Makefile Makefile.PCI ; mv Makefile.ISA Makefile ; edit config.h and change for the correct values for your modem (I/O Address, DMA, IRQ) ; make ; make install - The use 'ltmodem' program to communicate with the modem. <p>
+</itemize>
+Problems: <p>
+<itemize>
+	<item>"Sorry, I can't found any modem...": <p>
+		<itemize>
+		<item>You have not LT modem
+		<item>You have an ISA modem not configured by isapnp
+		<item>You have an ISA modem configured ; but ltmodem was not compiled as ISA
+		<item>You have a PCI modem with no PCI support included in the kernel
+		<item>You have a PCI modem and a compliant kernel, but ltmodem was not compiled as PCI
+</itemize>
+</itemize>
+
+<sect>The end...<p>
+<sect1>Licence, Copyright<p>
+    Copyright (C) 2000  Alexandre J. <p>
+    This program is free software; you can redistribute it and/or modify<p>
+    it under the terms of the GNU General Public License as published by<p>
+    the Free Software Foundation; either version 2 of the License, or<p>
+    (at your option) any later version.<p>
+<p>
+    This program is distributed in the hope that it will be useful,<p>
+    but WITHOUT ANY WARRANTY; without even the implied warranty of<p>
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<p>
+    GNU General Public License for more details.<p>
+<p>
+    You should have received a copy of the GNU General Public License<p>
+    along with this program; if not, write to the Free Software<p>
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA<p>
+
+<sect1>Contact<p>
+If you have any ideas about this document, pleace email me: alexandre12@mageos.com. <p>
+<sect1>Resources<p>
+<itemize>
+<item>The Linmodems project home page: http://www.linmodems.org<p>
+<item>The LTModem project home page: http://www.close-u-net.com<p>
+<item>The Lucent Technologies home page: http://www.lucent.com<p>
+<item>The Linux Kernel: http://www.kernel.org<p>
+<item>The isapnptools home page: http://www.roestock.demon.co.uk/isapnptools<p>
+<item>The LDP Home Page (for getting HOWTOs): http://www.redhat.com/mirrors/LDP<p>
+</itemize>
+
+</article>
