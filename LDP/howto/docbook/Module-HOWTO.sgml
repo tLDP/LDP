@@ -17,9 +17,19 @@
 
 </author>
 
-<pubdate>21 May 2002</pubdate>
+<pubdate>3 July 2003</pubdate>
 
 <revhistory>
+   <revision>
+        <revnumber>v1.03</revnumber>
+        <date>2003-07-03</date>
+        <authorinitials>bjh</authorinitials>
+        <revremark>
+            Update on kernels that don't load into vmalloc space.
+            Add explanation of &quot;deleted&quot; state of an LKM.
+            Explain GPLONLY.
+            </revremark>
+        </revision>
    <revision>
         <revnumber>v1.02</revnumber>
         <date>2002-05-21</date>
@@ -910,6 +920,61 @@ unload the LKM.  In this case, the LKM ought to provide you with some
 custom interface, and some documentation, to determine when the LKM is
 free to be unloaded.
 </para>
+<para>
+Do not confuse use count with &quot;dependencies&quot;, which are
+described below.
+</para>
+<para>
+Here is another example, with more information:
+<screen>
+lp                      5280   0 (unused)
+parport_pc              7552   1
+parport                 7600   1 [lp parport_pc]
+</screen>
+The stuff in square brackets (&quot;[lp parport_pc]&quot;) describes
+dependencies.  Here, the modules <literal>lp</literal> and
+<literal>parport_pc</literal> both refer to addresses within module
+<literal>parport</literal> (via external symbols that
+<literal>parport</literal> exports).  So <literal>lp</literal> and
+<literal>parport_pc</literal> are &quot;dependent&quot; on (and are
+&quot;dependencies of&quot; <literal>parport</literal>.
+</para>
+<para>
+You cannot unload an LKM that has dependencies.  But you can remove those
+dependencies by unloading the dependent LKMs.
+</para>
+<para>
+The &quot;(unused)&quot; legend means the LKM has never been used,
+i.e. it has never been in a state where it could not be unloaded.  The
+kernel tracks this information for one simple reason: to assist in
+automatic LKM unloading policy.  In a system where LKMs are loaded and
+unloaded automatically (see <xref linkend=autoload>), you don't want
+to automatically load an LKM and then, before the guy who needed it
+loaded has a chance to use it, unload it because it is not in use.
+</para>
+
+<para>
+Here is something you won't normally see:
+<screen>
+mydriver                8154   0 (deleted)
+</screen>
+This is an LKM that is in &quot;deleted&quot; state.  It's something of a
+misnomer -- what it means is that the LKM is in the process of being 
+unloaded.  You can no longer load LKMs that depend on it, but it's still
+present in the system.  Unloading an LKM is usually close to instantaneous,
+so if you see this status, you probably have a broken LKM.  Its cleanup
+routine probably got into an infinite loop or stall or crashed (causing a
+kernel oops).  If that's the case, the only way to clear this status is to
+reboot.
+</para>
+<para>
+There are similar statuses &quot;initializing&quot; and
+&quot;uninitialized&quot;.
+</para>
+<para>
+The legend &quot;(autoclean)&quot; refers to the autoclean flag,
+discussed in <xref linkend=autoload>.
+</para>
 </sect2>
 
 <sect2 id=modlocation>
@@ -953,6 +1018,7 @@ to get the system up to the point that it can mount other filesystems.
 <Title>
 Unresolved Symbols
 </Title>
+<para>
 The most common and most frustrating failure in loading an LKM is a bunch
 of error messages about unresolved symbols, like this:
 <screen>
@@ -963,17 +1029,20 @@ of error messages about unresolved symbols, like this:
 </screen>
 There are actually a bunch of different problems that result in this
 symptom.  In any case, you can get closer to the problem by looking at
-<file>/proc/ksyms</file> and confirming that the symbols in the
+<filename>/proc/ksyms</filename> and confirming that the symbols in the
 message are indeed not in the list.
+</para>
 
 <sect2>
 <title>
 Some LKMs Prerequire Other LKMs
 </title>
-On reason you get this is because you have not loaded another
+<para>
+One reason you get this is because you have not loaded another
 LKM that contains instructions or data that your LKM needs to access.
 A primary purpose of <command>modprobe</command> is to avoid this
 failure.  See <xref linkend="intelligent">.
+</para>
 </sect2>
 
 
@@ -1142,6 +1211,7 @@ at the top.
 <title>
 SMP symbols
 </title>
+<para>
 Besides the checksum mentioned above, the symbol version prefix contains
 &quot;smp&quot; if the symbol is defined in or referenced by code that was
 built for symmetric multiprocessing (SMP) machines.  That means it was
@@ -1149,18 +1219,25 @@ built for use on a system that may have more than one CPU.  You choose
 whether to build in SMP capability or not via the Linux kernel configuration
 process (<command>make config</command>, etc.), to wit with the
 CONFIG_SMP configuration option.
+</para>
 
+<para>
 So if you use symbol versioning, you will get unresolved symbols if the
 base kernel was built with SMP capability and the LKM you're inserting was
 not, or vice versa.
+</para>
 
+<para>
 If you don't use symbol versioning, never mind.
+</para>
 
+<para>
 Note that there's generally no reason to omit SMP capability from a
 kernel, even if you have only one CPU.  Just because the capability is
 there doesn't mean you have to have multiple CPUs.  However, there are
 some machines on which the SMP-capable kernel will not boot because it
 reaches the conclusion that there are zero CPUs!
+</para>
 
 </sect2>
 
@@ -1168,11 +1245,14 @@ reaches the conclusion that there are zero CPUs!
 <title>
 You Are Not Licensed To Access The Symbol
 </title>
+<para>
 The copyright owners of some kernel code license their programs to the
 public to make and use copies, but only in restricted ways.  For
 example, the license may say you may only call your copy of the
 program from a program which is similarly licensed to the public.
+</para>
 
+<para>
 (Is that confusing?  Here's an example:  Bob writes an LKM that provides
 data compression subroutines to other LKMs.  He licenses his program
 to the public under the GNU Public License (GPL).  According to some
@@ -1180,18 +1260,40 @@ interpretations, that license says if you make a copy of Bob's LKM,
 you can't allow Mary's LKM to call its compression subroutines 
 if Mary does not supply her source code to the world too.  The idea is to
 encourage Mary to open up her source code).
+</para>
 
+<para>
 To support and enforce such a license, the licensor can cause his
-program to export symbols that contain the string &quot;GPLONLY&quot;.
-The Linux interface header files are set up so that they will not
-generate references to GPLONLY symbols unless the programmer who
-includes the header files puts something in his code to state
-explicitly that he licenses his program under the GPL (General Public
-License) or equivalent.
-
-You shouldn't ordinarily see this failure.  It means the LKM source code
-was written in a way that it will never load into any Linux kernel, so
+program to export symbols under a special name that is the real name
+of the symbol plus the prefix &quot;GPLONLY&quot;.  A naive loader 
+of a client LKM would not be able to resolve those symbols.  Example:
+Bob's LKM provides the service bobsService() and declares it to be
+a GPL symbol.  The LKM consequently exports bobsService() under the
+name GPLONLY_bobsService.  If Mary's LKM refers to bobsService, the
+naive loader will not be able to find it, so will fail to load Mary's
+LKM.
+</para>
+<para>
+However, a modern version of <command>insmod</command> knows to check
+for GPLONLY_bobsService if it can't find bobsService.  But the modern
+<command>insmod</command> will refuse to do so unless Mary's LKM
+declares that it is licensed to the public under GPL.
+</para>
+<para>
+The purpose of this appears to be to prevent anyone from accidentally
+violating a license (or from credibly claiming that he accidentally
+violated the license).  It is not difficult to circumvent the
+restriction if you want to.
+</para>
+<para>
+If you see this failure, it is probably because you're using an old
+loader (<command>insmode</command>) that doesn't know about GPLONLY.
+</para>
+<para>
+The only other cause would be that the LKM author wrote the source
+code in such a way that it will never load into any Linux kernel, so
 there would be no point in the author distributing it.
+</para>
 
 </sect2>
 
@@ -1219,8 +1321,8 @@ For most systems, the ATA disk device driver must be bound into the
 base kernel because the root filesystem is on an ATA disk
 <footnote><para>You probably know this type of disk as
 &quot;IDE&quot;.  Strictly speaking, IDE is an incorrect appelation.
-IDE refers to the &quot;Integrated Drive Electronics&quot; which all
-modern disk drives, notably all SCSI disk drives, use.  The first IDE
+IDE refers to the &quot;Integrated Drive Electronics&quot; technology which all
+modern disk drives, notably including all SCSI disk drives, use.  The first IDE
 drives in common usage were ATA, and the names kind of got confused.
 ATA, like SCSI, is a precise specification of electrical signals,
 commands, etc.  </para></footnote> and the kernel cannot mount the
@@ -1230,7 +1332,7 @@ filesystem to be an LKM, here's how to do it with Initrd:
 </para>
 <para>
 "Initrd" is the name of the "initial ramdisk" feature of Linux.  With
-this, you have your loader (probably LILO) load a filesystem into
+this, you have your loader (probably LILO or Grub) load a filesystem into
 memory (as a ramdisk) before starting the kernel.  When it starts the
 kernel, it tells it to mount the ramdisk as the root filesystem.  You
 put the disk device driver for your real root filesystem and all the
@@ -1645,11 +1747,12 @@ that.
 </para>
 <para>
 The base kernel contains within its prized contiguous domain a large
-expanse of reusable memory -- the kmalloc pool.  In Linux 2.4, at
-the end of 2001, there was a proposal to make the module loader try
-first to get contiguous memory from that pool into which to load an
-LKM and only if a large enough space was not available, go to the
-vmalloc space.  That function may be in some versions of Linux.
+expanse of reusable memory -- the kmalloc pool.  In some versions of
+Linux, the module loader tries first to get contiguous memory from
+that pool into which to load an LKM and only if a large enough space
+was not available, go to the vmalloc space.  Andi Kleen submitted code
+to do that in Linux 2.5 in October 2002.  He claims the difference is
+in the several per cent range.
 </para>
 
 </sect2>
@@ -1773,7 +1876,7 @@ void cleanup_module()
 
 <sect2>
 <title>
-Rubini &nbsp; Corbet: Linux Device Drivers
+Rubini &amp Corbet: Linux Device Drivers
 </title>
 <para>
 The most popular book on writing device drivers is O'Reilly's
@@ -3780,8 +3883,9 @@ Parameters:
 </para>
 <para>
 You may repeat the <parameter>options</parameter> and
-<parameter>full_duplex</parameter></para> parameters once per network
-adapter, for up to 8 network adapter.
+<parameter>full_duplex</parameter> parameters once per network
+adapter, for up to 8 network adapter.  
+</para>
 
 <para>
 This driver can drive the following chipsets:
