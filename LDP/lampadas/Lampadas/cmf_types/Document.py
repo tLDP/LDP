@@ -12,7 +12,7 @@ from Products.CMFCore import CMFCorePermissions
 
 from Products.CMFCore.PortalContent import PortalContent
 
-from utils import unique_options
+from Products.Lampadas.utils import unique_options
 
 
 def addLampadasDocument(self, id, **kwargs):
