@@ -1,0 +1,1259 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article lang="en">
+<artheader>
+
+<title>LAMP HOWTO</title>
+<author>
+        <firstname>David</firstname>
+        <surname>Lechnyr, MSW, MCSE+I, CNE</surname>
+        <affiliation>
+                <address><email>david@lechnyr.com</email></address>
+        </affiliation>
+</author>
+
+<revhistory>
+<revision>
+        <revnumber>3.05</revnumber>
+        <date>2003-07-01</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>MySQL configuration updates, PHP5/Apache2 comments, PHP Superglobals</revremark>
+</revision>
+<revision>
+        <revnumber>3.0</revnumber>
+        <date>2003-06-01</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>Major updates &amp; conversion to SGML -- enjoy! :-)</revremark>
+</revision>
+<revision>
+        <revnumber>2.0</revnumber>
+        <date>2002-12-15</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>Added sections: imapd, mm, mhash, mcrypt</revremark>
+</revision>
+<revision>
+        <revnumber>1.0</revnumber>
+        <date>2001-11-08</date>
+        <authorinitials>drl</authorinitials>
+        <revremark>Initial draft</revremark>
+</revision>
+</revhistory>
+
+<abstract>
+<para>
+The goal of this document is to provide assistance in building a Linux-based Apache, MySQL and PHP webserver, affectionately known as <command>LAMP</command>. We'll also cover the optional installation of bells and whistles including, but not limited to, secure imapd/ipop3d, OSSP-mm shared memory, mhash/mcrypt encryption and so forth. Many documents assist you in building Apache with another single package, but for using more than one package the waters start to get a little murky and the instructions start to contradict. Hopefully this document will alleviate some of these issues.</para>
+</abstract>
+</artheader>
+
+<sect1 id="apache-part1">
+<title>Apache</title>
+
+<para><ulink url="http://httpd.apache.org">Apache</ulink> 
+is an HTTP server designed as a plug-in replacement for the NCSA HTTP server. It fixes numerous bugs in the NCSA server and includes many frequently requested new features, and has an API which allows it to be extended to meet users' needs more easily. Apache is the most popular web server in the known universe; over half of the servers on the Internet are running Apache or one of its variants.</para>
+
+<sect2 id="apache2">
+<title>Apache 1.3 vs. Apache 2.x</title>
+<para>This document covers the installation of Apache 1.3.x.  Currently, both PHP 4 and 5 support for Apache 2.0 is <command>experimental</command> and not recommended by the PHP team.  The main issue is thread safety, which requires a lot of code verification time and effort.  See <ulink url="http://www.php.net/manual/en/install.apache2.php">http://www.php.net/manual/en/install.apache2.php</ulink> for specifics.</para>
+</sect2>
+
+<sect2 id="apachepgp">
+<title>Verify PGP signature</title>
+<para>It's recommended that you verify the PGP key for the Apache package before doing anything else. Download the Apache PGP KEY file from <ulink url="http://www.apache.org/dist/httpd/KEYS">http://www.apache.org/dist/httpd/KEYS</ulink> and run:</para>
+
+<screen>
+bash$ gpg --import KEYS
+bash$ gpg --verify apache-1.3.x.tar.gz.asc
+</screen>
+
+<para>If you receive a message like, "Good signature from user..." then all is well. The warnings about trust relationships can be ignored.</para>
+</sect2>
+
+<sect2 id="apacheprep">
+<title>Initial Preparation</title>
+<para>Next, we need to configure the source tree for Apache first before installing any of the other associated programs.</para>
+
+<screen>
+bash$ tar xzf apache-1.3.x.tar.gz
+ $ cd apache-1.3.x
+ $ ./configure
+</screen>
+
+<para>You'll get a warning message about compiling with default settings; don't worry; we will do the actual configuration of apache later. This is just a preliminary configure, required just to get things going. Without this, some of your other packages won't install into the apache source tree correctly. You'll also need to create an <emphasis>apache</emphasis> user and group if you want to run Apache as a user other than root, which is highly recommended.</para>
+</sect2>
+</sect1>
+
+<sect1 id="mysql">
+<title>MySQL</title>
+
+<para><ulink url="http://www.mysql.com">MySQL</ulink> 
+is a fast, multi-threaded, multi-user and robust SQL (Structured Query Language) database server.  It provides a nifty API which makes it easy to integrate into other applications, including PHP.</para>
+
+<para>If you don't install MySQL, then PHP will use its own bundled SQL engine (SQLlite starting with PHP5).  This is probably not what you want.</para>
+
+<sect2 id="mysql4">
+<title>MySQL 3.23 vs 4.0</title>
+
+<para>This document covers the installation of MySQL 3.23.  While listed as in &quot;production&quot; status, MySQL 4 is still relatively new to the playing field and there may be unknown issues when interacting with other software packages (as we're doing here).</para></sect2>
+
+<sect2 id="mysqlpgp">
+<title>Verify PGP signature</title>
+<para>After you have downloaded the MySQL source code, you should make sure it is intact and has not been tampered with.  You can obtain a copy of MySQL AB's public PGP key and verify the package by running the following commands.  Do not be alarmed about any messages about it not finding a &quot;valid trust path&quot;; this message is harmless.</para>
+
+<screen>
+bash$ gpg --keyserver www.keyserver.net --recv-keys 0x5072E1F5
+bash$ gpg --verify mysql-[version].tar.gz.asc mysql-[version].tar.gz
+gpg: Signature made Sat May 17 10:25:18 2003 PDT using DSA key ID 5072E1F5
+gpg: Good signature from "MySQL Package signing key (www.mysql.com) &lt;build@mysql.com&gt;"
+</screen>
+</sect2>
+
+<sect2 id="installmysql">
+<title>Installation</title>
+<para>Noteworthy configuration parameters include:</para>
+
+<screen>
+CC=gcc				Use gcc as your c compiler
+
+CXX=gcc				Use gcc as your c++ compiler instead of g++.  This has the 
+				advantage of not linking in libg++ and libstdc++, which
+				has been known to cause strange problems with MySQL.
+				Using libg++/libstdc++ also increases the size of the
+				mysqld binary without giving you any added benefits.
+
+--enable-local-infile		Enable the "LOAD DATA LOCAL" command in the MySQL server.
+				Note that using this has some security implications and it's
+				best to specify this from your mysql client at run time if you
+				need it.  See http://www.mysql.com/doc/en/LOAD_DATA_LOCAL.html
+				If in doubt, don't use this option.  Thanks to Michael Smith 
+				for providing the info on this!
+
+--without-bench			Do not compile the set of benchmarking tests.  Unless you will
+				specifically be using these, using this option will speed up
+				your build time.
+
+--with-extra-charsets=none	This builds a faster MySQL server by only using the ISO-8859-1
+				(Latin1) characterset.  Unless you are using a language other
+				than English, this is a good option to select.
+
+--disable-shared		Do not build a shared libmysqlclient.so library.  If your
+				build fails and complains about not being able to create this
+				file, using this switch is a good work-around.
+
+--enable-thread-safe-client	Build the MySQL client binary with suport for threads.
+</screen>
+
+<para>Add a user and group for <command>mysqld</command> to run as:</para>
+
+<screen>
+bash# groupadd mysql
+bash# useradd -g mysql mysql
+</screen>
+
+<para>To build using gcc-3.2 or later:</para>
+
+<screen>
+bash$ tar xzf mysql-[version].tar.gz
+bash$ cd mysql-[version]
+bash$ CFLAGS="-O3 -march=pentium3" \
+	CC=gcc \
+	CXX=gcc \
+	CXXFLAGS="-O3 -march=pentium3 -felide-constructors -fno-exceptions -fno-rtti" \
+	./configure \
+	--prefix=/usr/local/mysql \
+	--with-client-ldflags=-all-static \
+	--with-extra-charsets=none \
+	--without-bench \
+	--without-debug \
+	--without-readline \
+	--with-mysqld-user=mysql \
+	--enable-assembler \
+	--enable-thread-safe-client \
+	--mandir=/usr/local/man \
+	--infodir=/usr/local/info
+bash$ make
+bash# make install
+bash# ln -s /usr/local/mysql/bin/* /usr/local/bin/
+</screen>
+
+<para>Using <command>ldconfig(8)</command>, update your shared libraries:</para>
+
+<screen>
+bash# echo "/usr/local/mysql/lib/mysql" >> /etc/ld.so.conf
+bash# ldconfig -v
+</screen>
+
+<para>Change ownership of the MySQL binaries to root and ownership of the data
+directory to the user that you will run <command>mysqld</command> as:</para>
+
+<screen>
+bash# chown -R root.mysql  /usr/local/mysql
+bash# chown -R mysql /usr/local/mysql/var
+</screen>
+
+<para>Create the MySQL the configuration files:</para>
+
+<screen>
+bash# cp support-files/*.cnf /etc/
+bash# cp support-files/my-medium.cnf /etc/my.cnf
+</screen>
+
+<para>If this is your <command>first-time</command> installation of MySQL, you'll need to set up the initial mysql database,
+which contains all database privilege information, and establish a mysqld root password.</para>
+
+<screen>
+bash# scripts/mysql_install_db
+bash# mysqladmin -u root -p password 'new-password'
+bash# mysqladmin -u root -h &lt;hostname&gt; -p password 'new-password'
+</screen>
+
+<para>To start MySQL by hand, run:</para>
+
+<screen>
+bash# /usr/local/mysql/bin/safe_mysqld --user=mysql &amp;
+</screen>
+
+<para>To have MySQL start automatically when your system boots, 
+copy <command>support-files/mysql.server</command> to the location where your system has its startup files.  You'll need to <command>chmod 755</command> it, of course.  For example, under Slackware you could rename it to rc.mysql and add something like the following to your startup scripts:</para>
+
+<screen>
+if [ -x /etc/rc.d/rc.mysql ]; then
+        echo "Starting MySQL: /etc/rc.d/rc.mysql start"
+        . /etc/rc.d/rc.mysql start
+fi
+</screen>
+
+<para>If you plan to run MySQL and Apache on the same server, you can disable the networking options in MySQL since you'll never need them (everything's on the same server).  This is generally considered a good idea since it cuts down on security issues across the network, and is probably what you want.  Edit the mysql.server startup script and make sure to add <command>--skip-networking</command> to the <command>safe_mysqld</command> command.</para>
+
+</sect2>
+
+<sect2 id="mysqlbackup">
+<title>Disaster Recovery</title>
+<para>To backup your MySQL database, you should run something similar to this:</para>
+
+<screen>
+bash# mysqldump --all-databases -p &gt; all_databases.sql
+bash# chown root.root all_databases.sql
+bash# chmod 400 all_databases.sql
+</screen>
+
+<para>You can automate this to a small degree using an interactive backup script (below).  Note that you should <command>never</command> place the MySQL root password in any configuration file (which is why it's interactive)!</para>
+
+<screen>
+#!/bin/sh
+
+TODAY=`date +%Y-%m-%d`
+
+if [ ! -d /var/adm/mysql ]; then
+        mkdir -p /var/adm/mysql
+fi
+
+chmod 700 /var/adm/mysql
+cd /var/adm/mysql
+/usr/local/mysql/bin/mysqldump --all-databases -p > all_databases-$TODAY.sql
+gzip -9 all_databases-$TODAY.sql
+chmod 400 all_databases*
+
+if [ -f /root/.mysql_history ]; then
+        rm -f /root/.mysql_history
+fi
+</screen>
+
+<para>To restore your database from a backup file, you can use:</para>
+
+<screen>
+bash# mysql &lt; all_databases.sql
+</screen>
+</sect2>
+
+<sect2 id="mysqlperf">
+<title>Optimization</title>
+<para>To analyze, check and optimize (respectively) your tables, you can run something like the following (below).  Note that you should back up your database prior to running any type of maintenance!</para>
+<screen>
+bash$ mysqlcheck --all-databases -avp
+bash$ mysqlcheck --all-databases -cvp
+bash$ mysqlcheck --all-databases -ovp
+</screen>
+
+<para>If you want to perform a more in-depth optimization of your tables  
+<footnote><para><ulink url="http://www.mysql.com/doc/en/Maintenance_regimen.html">http://www.mysql.com/doc/en/Maintenance_regimen.html</ulink></para></footnote> 
+you can try:</para>
+<screen>
+bash# cd /usr/local/mysql/var
+bash# myisamchk --fast --silent */*.MYI
+bash# myisamchk -r --silent --sort-index -O sort_buffer_size=16M */*.MYI
+bash# myisamchk --fast --silent */*.MYI
+</screen>
+
+<para>You should check your tables at least once per week for any corruption. You can
+use something like the following in your system's crontab file:</para>
+
+<screen>
+35 0 * * 0 /path/to/myisamchk --fast --silent /path/to/datadir/*/*.MYI
+</screen>
+
+<para>You can increase MySQL performance on Linux by running the following from your server startup scripts:</para>
+
+<screen>
+if [ -f /proc/sys/fs/file-max ]; then
+	echo 65536 &gt; /proc/sys/fs/file-max
+fi
+if [ -f /proc/sys/fs/dquot-max ]; then
+	echo 8192 &gt; /proc/sys/fs/dquot-max
+fi
+if [ -f /proc/sys/fs/super-max ]; then
+	echo 1024 &gt; /proc/sys/fs/super-max
+fi
+</screen>
+
+<para>You should also add the following to /etc/my.cnf:</para>
+
+<screen>
+[safe_mysqld]
+	open-files-limit=8192
+</screen>
+
+<para>On a Linux 2.4 SMP machine, you can add the <command>renice -20 $$</command> command to <command>safe_mysqld</command>
+to increase performance.</para>
+
+
+
+<para>To create an index on a column that you reference frequently using WHERE statements, you can use:</para>
+
+<screen>mysql&gt; ALTER TABLE mytable ADD INDEX (existing-column-name)</screen>
+
+<para>It's worth noting that, according to the INSTALL-SOURCE document in the MySQL source code,
+MySQL database files run particularly well on a ReiserFS-formatted Linux partition.</para>
+</sect2>
+
+<sect2 id="mysqldbase">
+<title>Sample Database Creation &amp; Permissions</title>
+<para>Most books talk about creating a database, but touch very lightly on setting appropriate <emphasis>permissions</emphasis> for the table.
+First, create the <emphasis>database</emphasis> that you wish to use:</para>
+
+<screen>
+mysqladmin create niftydatabase -u root -p
+</screen>
+
+<para>Now that you have the database, you need to set up some basic security permissions that govern how it can be accessed. Enter the mysql program and change to the <emphasis>mysql</emphasis> security database:</para>
+
+<screen>
+bash$ mysql -u root -p
+mysql&gt; USE mysql
+</screen>
+
+<para>Now, we can get down to business. If you want to grant more than just the ability to select items, <emphasis>make the changes in the 'db' database.</emphasis> Otherwise you'll be granting access to other databases that you don't want the account to have access to.</para>
+
+<screen>
+mysql&gt; INSERT INTO user (Host, User, Password) VALUES('localhost','niftyguest',password('niftypassword'));
+mysql&gt; INSERT INTO host (Host,Db) VALUES('localhost','niftydatabase');
+mysql&gt; INSERT INTO db (Host, Db, User, Select_priv) VALUES('localhost','niftydatabase','niftyguest','Y');
+mysql&gt; exit
+
+bash$ mysqladmin reload -u root -p
+</screen>
+</sect2>
+</sect1>
+
+<sect1 id="openssl">
+<title>OpenSSL</title>
+<para><ulink url="http://www.openssl.org/source/">OpenSSL</ulink> 
+is an Open Source toolkit that implements Secure Sockets Layer (SSL v2/v3) and Transport Layer Security (TLS v1) protocols along with a robust cryptography library. By itself, OpenSSL won't do much. Its chief benefit is to other applications which can take advantage of the functions it provides. Specifically, OpenSSL is a "toolkit" that includes:</para>
+
+<itemizedlist>
+<listitem><para>libssl.a -- The SSLv2, SSLv3, and TLSv1 raw code</para></listitem>
+<listitem><para>libcrypto.a -- General encryption routines for encryption ciphers (libdes, RC4/2, Blowfish, IDEA), Message Digests (MD5/2,
+SHA0/2, MDC2), Public Keys (RSA, DSA, Diffie-Hellman), X.509v3 certificates (encrypting/decrypting via private key), and
+various other encodings &amp; routines.</para></listitem>
+<listitem><para>openssl -- A command line tool that can be used to access OpenSSL routines</para></listitem></itemizedlist>
+
+<para>Of interest, the <emphasis>no-threads</emphasis> argument prevents building in support for multi-threaded applications. In the case of Apache 1.3.x, this is actually quite handy as it does not use threads in the first place. This prevents the performance overhead (memory/time) relating to these locking mechanisms from happening and thus being wasted. The <emphasis>-fPIC</emphasis> option is not needed unless you are planning on using mod_ssl as a Dynamic Shared Object (DSO), which is not covered by this document.</para> 
+
+<para>Remember, run ./config and not ./configure!  If the script failes to detect your operating system and compiler, you can instead run ./Configure and select the operating system and compiler that matches your setup. Next, running make will build the libraries libcrypto.a and libssl.a and the OpenSSL binary itself. This will take some time to complete. To run make test, you'll need to have <command>bc(1)</command>, the Unix calculator, installed; otherwise, skip that step.</para>
+
+<screen>
+bash$ ./config no-threads shared
+bash$ make
+bash$ make test
+bash# make install
+bash# echo "/usr/local/ssl/lib" >> /etc/ld.so.conf
+bash# ldconfig -v
+</screen>
+</sect1>
+
+<sect1 id="modssl">
+<title>mod_ssl</title>
+<para><ulink url="http://www.modssl.org/source/">modssl</ulink>
+allows you to add SSL support to Apache 1.3.x.  Here, we will apply the mod_ssl source extension and source patches to the Apache source tree. The actual installation of mod_ssl is done when you install Apache. If you don't yet have your SSL certificate yet, you can skip the --with-crt and --with-key directives as we'll address this later.</para>
+
+<screen>
+bash$ tar xzf mod_ssl-2.8.x-1.3.y.tar.gz
+bash$ cd mod_ssl-2.8.x-1.3.y
+bash$ ./configure \
+--with-apache=../apache-1.3.x \
+--with-crt=/etc/ssl/certs/server.crt \
+--with-key=/etc/ssl/certs/server.key
+</screen>
+
+<para>That's it for this portion. Once you have finished installing the rest of Apache from this document, your default httpd.conf file will have some SSL commands as well.  At a minimum, you'll definately want to tell Apache where your Server Certificate and Server Key are located:</para>
+
+<screen>
+SSLCertificateFile	/etc/ssl/certs/server.crt
+SSLCertificateKeyFile	/etc/ssl/certs/server.key
+</screen>
+
+<para>If you wanted to adjust some of the other parameters, a good first step would be to disable SSL version 2, which is not as secure as SSL version 3:</para>
+
+<screen>
+SSLProtocol	all -SSLv2
+</screen>
+
+<para>To tell your server to only allow strong encryption connections, you could try:</para>
+
+<screen>
+SSLCipherSuite	HIGH:MEDIUM
+</screen>
+
+<para>A step down from this, but still somewhat secure, would be to disable all Export Ciphers (EXP),  Null (empty), and SSLv2 ciphers.</para>
+
+<screen>
+SSLCipherSuite	ALL:!ADA:RC4+RSA:+HIGH:+MEDIUM:+LOW:!EXP:!NULL:!SSLv2
+</screen>
+
+<para>If you decide to build Apache with OSSM mm (shared memory) support, you'll be able to take advantage of RAM-based session caches instead of disk-based ones.  You can make the modifications here:</para>
+
+<screen>
+SSLMutex		sem
+SSLSessionCache		shm:/usr/local/apache/logs/ssl_gcache_data(512000)
+</screen>
+
+<para>If you have <filename>/dev/urandom</filename> support on your system, you can use this instead of <filename>/dev/random</filename> for seeding your Pseudo Random Number Generator (PRNG) of the SSL library.  <filename>/dev/random</filename> is not always sufficient for generating enough entropy, which translates to very long connection times (to generate the entropy to establish the connection).</para>
+
+<screen>
+SSLRandomSeed startup	file:/dev/urandom 1024
+SSLRandomSeed connect	file:/dev/urandom 1024
+</screen>
+
+<para>Regardless, when you establish your SSL directories, make sure to <emphasis>enable</emphasis> SSL!</para>
+
+<screen>&lt;Directory	"/usr/local/apache/ssldocs"&gt;
+SSLRequireSSL
+Options None
+Order allow, deny
+Allow from all
+&lt;/Directory&gt;
+</screen>
+</sect1>
+
+<sect1 id="imapd">
+<title>imapd</title>
+<para><ulink url="ftp://ftp.cac.washington.edu/imap/">imapd</ulink> 
+is a POP3/IMAP server from the folks at the University of Washington. As an added bonus, it provides access via SSL if configured correctly for use with OpenSSL.</para>
+
+<sect2 id="imapdbkgrnd">
+<title>Background</title>
+<para>Setting up imapd can be really frustrating. Actually, I take that back; setting up <emphasis>secure</emphasis> imapd is the frustrating bit. This is mostly due to the apparent lack of any customer-service talent from the folks who produce imapd. Reading the documentation is akin to an experience with a lurking singular, sinister attitude of mind. For example:</para>
+
+<blockquote>
+<attribution>imapd/docs/SSLBUILD</attribution>
+<para>We can NOT provide you with support in building/installing OpenSSL, or in obtaining certificates. If you need help in doing this, try the contacts mentioned in the OpenSSL README.</para>
+</blockquote>
+
+<para>Never mind the vagueness with &amp;the contacts&amp; or the lack of said references in the OpenSSL README. Most of what they implement, they implement well. But where it doesn't work on the client end, or where it relies on outside sources (i.e., the <emphasis>not us</emphasis> syndrome), they deflect, deny, and blame others for not following the "official IMAP standards". Given that type of tone, I have to agree with the following philosophy regarding such things:</para>
+
+<blockquote>
+<attribution>Alan Cox</attribution>
+<para>
+Take TCP for example. The TCP protocol is specified in a series of documents. If you make a formally correct implementation of the base TCP RFC you won't even make connections. Much of the flow control behaviour, the queueing and the detail is learned only by being directly part of the TCP implementing community. You can read all the scientific papers you like, it will not make you a good TCP implementor.
+</para>
+</blockquote>
+</sect2>
+
+<sect2 id="imapdprereq">
+<title>Prerequisites</title>
+<para>First, modify your mail spool permissions:</para>
+
+<screen>
+bash# chmod 1777 /var/spool/mail
+</screen>
+
+<para>Update <command>/etc/services</command> with:</para>
+
+<screen>
+imaps 993/tcp
+pop3s 995/tcp
+</screen>
+
+<para>Update <command>/etc/inetd.conf</command> with:</para>
+
+<screen>
+pop3s stream tcp nowait.100 root /usr/sbin/ipop3d ipop3d
+imaps stream tcp nowait.100 root /usr/sbin/imapd imapd
+</screen>
+</sect2>
+
+<sect2 id="imapdinstall">
+<title>Installation</title>
+<para>Current versions of imapd are now built with TLS/SSL encryption support by default.
+To build, you'll need to examine the file <filename>Makefile</filename> to find your system
+type.  In this example, we'll build it for Linux (slx):</para>
+
+<screen>
+bash# make slx
+bash# cp imapd/imapd /usr/sbin
+bash# cp ipopd/ipop3d /usr/sbin
+</screen>
+
+<para>To provide imap/pop3/nntp support for PHP, you'll need to copy the following file to your system:</para>
+
+<screen>
+cp -fa c-client/c-client.a /usr/local/lib/libc-client.a
+cp -fa c-client/linkage.h c-client/os_slx.h /usr/local/include/
+ln -fs /usr/local/include/os_slx.h /usr/local/include/osdep.h
+cp src/osdep/unix/env_unix.h /usr/local/include/
+cd src/c-client
+cp -fa c-client.h imap4r1.h rfc822.h mail.h env.h fs.h \
+	ftl.h misc.h nl.h nntp.h smtp.h tcp.h \
+	/usr/local/include
+</screen>
+
+<para>Generate your <command>PEM Private Key</command>. Essentially, the same file as your RSA Private Key, but saved in a different format.</para>
+
+<screen>
+bash# /usr/local/ssl/bin/openssl rsa -outform PEM -in example.com.key -out example.com.pem
+</screen>
+
+<para>Generate your <command>PEM Public Key</command>. For this to work, you need to have either purchased or signed your own CRT certificate.</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# cat example.com.pem example.com.crt &gt; imapd.pem
+bash# chmod 400 imapd.pem
+bash# ln -s imapd.pem ipop3d.pem
+</screen>
+</sect2>
+</sect1>
+
+<sect1 id="mm">
+<title>OSSP mm</title>
+<para><ulink url="http://www.ossp.org/pkg/lib/mm/">OSSP mm</ulink> 
+is a 2-layer abstraction library which simplifies the usage of shared memory between forked (and this way strongly related) processes under Unix platforms. On the first layer it hides all platform dependent implementation details (allocation and locking) when dealing with shared memory segments and on the second layer it provides a high-level malloc(3)-style API for a convenient and well known way to work with data structures inside those shared memory segments.  Installing OSSP mm allows both mod_ssl and PHP to use a high-performance RAM-based session cache instead of a disk-based one.</para>
+
+<screen>
+bash$ ./configure --prefix=/usr --enable-static --enable-shared
+bash$ make
+bash$ make test
+bash# make install
+</screen>
+
+<para>OSSP mm allows you to do really neat things with SSL-enabled Apache. For example, if you compile Apache+EAPI with shared memory (MM) support, you can edit your httpd.conf file and make the following changes:</para>
+
+<screen>
+SSLSessionCache	shm:/usr/local/apache/logs/ssl_gcache_data(512000)
+SSLSessionCacheTimeout 300
+</screen>
+
+<para>This makes use of a high-performance hash table inside a shared memory segment in RAM. This cache is an optional facility which speeds up parallel request processing and helps to avoid unneccessary session handshakes. The path is just a hook to the shared memory (shm) along with the appoximate size in bytes listed in parenthesis. The timeout is listed in seconds and is the default setting if not specified.</para>
+</sect1>
+
+<sect1 id="crypto">
+<title>Crytographic/Hash Libraries</title>
+
+<sect2 id="mhash">
+<title>Mhash</title>
+<para><ulink url="http://mhash.sourceforge.net">Mhash</ulink> is a library which provides a uniform interface to a large number of hash algorithms.  These algorithms can be used to compute checksums, message digests, and other signatures.</para>
+
+<screen>
+bash$ ./configure
+bash$ make
+bash$ make check
+bash# make install
+</screen>
+<para>Next, make sure that <filename>/usr/local/lib</filename> exists in <filename>/etc/ld.so.conf</filename> and run:</para>
+
+<screen>
+bash# ldconfig -v
+</screen>
+</sect2>
+
+<sect2 id="libmcrypt">
+<title>Libmcrypt</title>
+<para><ulink url="http://mcrypt.hellug.gr/lib/index.html">Libmcrypt</ulink> is a library that provides uniform interface to access several encryption algorithms, and is used primarily by mcrypt (see below).</para>
+
+<screen>
+bash$ ./configure
+bash$ make
+bash$ make check
+bash# make install
+</screen>
+<para>Next, make sure that <filename>/usr/local/lib</filename> exists in <filename>/etc/ld.so.conf</filename> and run:</para>
+
+<screen>
+bash# ldconfig -v
+</screen>
+</sect2>
+
+<sect2 id="mcrypt">
+<title>Mcrypt</title>
+
+<sect3 id="mcryptinstall">
+<title>Installation</title>
+<para><ulink url="http://mcrypt.hellug.gr/mcrypt/">Mcrypt</ulink> enables add-on support of string encryption and decryption, which is much broader and more efficient than PHP's own cryptographic code. This is mainly used for saving sensitive data to disk that you need to decrypt at a later time. If you only want to encrypt (and not decrypt) strings, or aren't interested in the advanced cryptographic functions this module profides, skip this feature and use the built-in PHP function crypt() instead.  Installation of mcrypt requires mhash and libmcrypt.</para>
+
+<screen>
+bash$ ./configure
+bash$ make
+bash$ make check
+bash# make install
+</screen>
+
+<para>Next, make sure that <filename>/usr/local/lib</filename> exists in <filename>/etc/ld.so.conf</filename> and run:</para>
+
+<screen>
+bash# ldconfig -v
+</screen>
+</sect3>
+
+<sect3 id="mcryptex">
+<title>Mcrypt Example</title>
+
+<para>A good use of Mcrypt under PHP is to encrypt/decrypt passwords.  Here's an example that should get you pointed in the right direction:</para>
+
+<screen>
+&lt;?php
+
+// Our ultra-secret key that no one knows
+$mcrypt_key     = "Is It Not Nifty?";
+
+function encrypt_me ($secret) {
+		global $mcrypt_key;
+
+		// Choose our encryption module and mode
+		$mcrypt_module = mcrypt_module_open(MCRYPT_TripleDES, "", MCRYPT_MODE_CBC, "");
+
+		// Create our Initialization Vector (IV), a temporary, ultra-secret key as well
+		srand((float) microtime() * 1000000);
+		$mcrypt_iv = mcrypt_create_iv(mcrypt_enc_get_iv_size($mcrypt_module), MCRYPT_RAND);
+
+		// Create the buffers that Mcrypt needs to do any encryption
+		mcrypt_generic_init($mcrypt_module, $mcrypt_key, $mcrypt_iv);
+
+		// Encrypt our data and make it portable
+		$encrypted_data = mcrypt_generic($mcrypt_module, $secret);
+		$encrypted_data = base64_encode ($encrypted_data);
+
+		// Make our IV portable as well (we'll need it to decrypt later)
+		$mcrypt_iv = base64_encode($mcrypt_iv);
+
+		// Close all buffers and modules
+		mcrypt_generic_end($mcrypt_module);
+
+		return($encrypted_data . "::Fluffy::" . $mcrypt_iv);
+}
+
+function decrypt_me ($secret) {
+		global $mcrypt_key;
+
+		// Extract our encrypted data
+		$encrypted_data = preg_replace("/::Fluffy::.*$/", "", $secret);
+		$encrypted_data = base64_decode($encrypted_data);
+
+		// Extract our IV
+		$mcrypt_iv = preg_replace("/^.*::Fluffy::/", "", $secret);
+		$mcrypt_iv = base64_decode($mcrypt_iv);
+
+		// Choose our encryption module and mode
+		$mcrypt_module = mcrypt_module_open(MCRYPT_TripleDES, "", MCRYPT_MODE_CBC, "");
+
+		// Create the buffers that Mcrypt needs to do any encryption
+		mcrypt_generic_init($mcrypt_module, $mcrypt_key, $mcrypt_iv);
+
+		// Decrypt our data
+		$decrypted_data = mdecrypt_generic($mcrypt_module, $encrypted_data);
+
+		// Close all buffers and modules
+		mcrypt_generic_end($mcrypt_module);
+
+		return($decrypted_data);
+}
+
+?&gt;
+</screen>
+</sect3>
+</sect2>
+</sect1>
+
+<sect1 id="php">
+<title>PHP</title>
+<para><ulink url="http://www.php.net">PHP</ulink> 
+is a widely-used general-purpose scripting language that is especially suited for Web development and can be embedded into HTML.</para>
+
+<para>This document covers the installation of PHP 4.x.  While available in beta form, PHP 5 is still experimental and not recommended for production environments.</para>
+
+<sect2 id="php5">
+<title>PHP4 vs. PHP5</title>
+<para>This document covers PHP version 4.x.  PHP version 5 is currently in beta status and is not recommended for production environments.</para> 
+</sect2>
+
+<sect2 id="phpinstall">
+<title>Installation</title>
+<para>Note that some of these parameters require some common sense. For example, if you specify <command>--with-mysql=/usr/local/mysql</command>, then you'd better have already installed MySQL!</para>
+
+
+<screen>
+--disable-debug			This is recommended by the PHP team
+
+--enable-inline-optimization	This is also recommended by the PHP team if you have "lots of memory"
+				and are using gcc as your compiler.
+
+--enable-memory-limit		Allows you to control the maximum amount of memory that a script can
+				use.  This helps to prevent buffer overflows (security)
+
+--enable-force-cgi-redirect	Prevent direct access to the PHP CGI binary
+
+--with-mysql=[PATH]		This will use the bundled MySQL library unless you specify the path to
+				your MySQL base installation.
+
+--with-imap			Allows PHP to use the UW-IMAP c-client library to provide IMAP/POP3
+				support.
+
+--with-imap-ssl			Allows for secure IMAP/POP3 SSL support. Since password are sent
+				unencrypted without this, it's a good idea.
+
+--with-mhash			Enables the interface hooks to the Mhash encryption functions.
+
+--with-mcrypt			Enables add-on support of string encryption and decryption, which is
+				much broader and more efficient than PHP's own cryptographic code.
+				This is mainly used for saving sensitive data to disk that you need to
+				decrypt at a later time. If you only want to encrypt (and not decrypt)
+				strings, or aren't interested in the advanced cryptographic functions
+				this module profides, skip this feature and use the built-in PHP
+				function crypt() instead.
+
+--with-mm			Allows you to use OSSP mm for shared-memory session storage via RAM
+				instead of your hard drive. If you've got extra RAM to spare and
+				intend to use sessions, say yes.
+
+--with-sysvsem			Enable System V sempahore (specialized file locking to prevent
+				simultaneous access) support.
+
+--with-apache			This builds PHP to work with Apache. Just say yes.
+
+--with-xml			Include XML parsing ability.
+</screen>
+
+<para>To begin, issue the following commands:</para>
+
+<screen>
+bash$ CFLAGS="-O2 -march=i686" \
+	./configure \
+	--with-config-file-path=/etc \
+	--with-mysql=/usr/local/mysql \
+	--with-apache=../apache_1.3.x \
+	--with-openssl \
+	--with-imap \
+	--with-imap-ssl \
+	--with-mm \
+	--with-mcrypt \
+	--with-mhash \
+	--enable-memory-limit \
+	--enable-inline-optimization \
+	--enable-sysvsem \
+	--disable-debug \
+	--enable-force-cgi-redirect \
+	--with-xml
+bash$ make
+bash# make install
+</screen>
+
+<para>It's necessary to create the php.ini configuration file next:</para>
+
+<screen>
+bash# cp php.ini-recommended php.ini-dist /etc
+bash# cp php.ini-recommended /etc/php.ini
+</screen>
+</sect2>
+
+<sect2 id="phpsuperglobals">
+<title>Security &amp; PHP Superglobals</title>
+
+<para><emphasis>"Avoid strange women and temporary variables."</emphasis> -- Anonymous</para>
+
+<para>A few years ago, my wife and I decided to go on a skiing trip up north. To reserve skiing equipment, you had to give 24 hours advance notice using the ski lodge's on-line website. The
+catch was that my wife had asked me to make the reservations 23 hours before the deadline.</para>
+<para>So I got to thinking, and examined the online website, which would not let you make any reservations within the 24 hour timeframe. However, once you selected an appropriate date, I noticed
+that the URL was:</para>
+<screen><command>https://www.somewhere.com/reservations.php?date=01-23-01</command></screen>
+<para>It occurred to me that, while they had locked down security on what dates I could choose from, the final value was placed into a <command>GET</command> statement at the end of the web
+address. I modified the web address to use "date=01-22-01" and indeed, our skies were waiting for us first thing the next morning (we paid for them, of course).</para>
+<para>This innocent yet practical example is just one of the dangers we have to be aware of when using any programming language that can be used in ways that we did not intend, which leads us
+into our discussion on PHP Superglobals.</para>
+<para>Forms</para>
+<para>To understand Superglobals, it is <emphasis>critical</emphasis> that you understand how data is passed from one web page to another (e.g., forms). Specifically, you must be aware of two methods known
+as GET and POST. You should also probably be familiar with the HTML &lt;FORM&gt; statement (a good reference is
+<ulink url="http://www.w3.org/TR/html401/interact/forms.html">http://www.w3.org/TR/html401/interact/forms.html</ulink>).</para>
+<para>You've probably seen something like this before:</para>
+
+<screen>
+&lt;form name="form1" method="post" action="process.php"&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;Please enter your name:&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="yourname" /&gt;&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="button" name="Submit" value="Submit" /&gt;&lt;/p&gt;
+ &lt;/form&gt;
+</screen>
+
+<para>This is standard, nothing-fancy HTML form code that asks for some information and then submits the data to the file "process.php" . &nbsp;The critical bit here is the
+<command>method</command> declaration, which tells the form <command>how</command> to submit the data, for which we need to digress for a moment or two (hold your breath):</para>
+<para>For those that recall the early days of HTML, forms were provided by means of the &lt;ISINDEX&gt; HTML tag. By inserting this tag into the HEAD of your HTML documents, a text field appeaed
+where you could fill out input. As the new HTML+ standard evolved, a &lt;FORM&gt; tag was designed and could be used with a METHOD attribute of GET, POST, or PUT. &nbsp;So, this leaves us
+with a few different ways to send our data.</para>
+<para>GET</para>
+<para>With GET, variables and their values are sent in the header of the URL request appended as part of the URL itself. &nbsp;The limitation is that web addresses (URLs) are limited to 8,192
+characters; if the amount of data is too long, it will be truncated. Also, even with an SSL connection, the data is not encrypted since it is part of the web address.</para>
+<para>For example, a web page might have a form statement like this:</para>
+
+<screen>
+&lt;form name="form1" <command>method="get"</command> action="process.php"&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;Please enter your name, e-mail address, and a comment:&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="yourname" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="email" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="comment" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="button" name="Submit" value="Submit" /&gt;&lt;/p&gt;
+ &lt;/form&gt;
+</screen>
+
+<para>When you clicked <emphasis>Submit</emphasis>, your web browser would take the values you filled out in the form and redirect you to this web address:</para>
+<screen><command>http://www.fluffygerbil.com/process.php?yourname=fred+smith&amp;email=fred@nowhere.com&amp;comment=I+have+no+comment</command></screen>
+<para>Notice how the values of the form are part of the web address itself? That's the essence of GET.</para>
+<para>For the curious, what is actually sent in the <emphasis>raw</emphasis> HTTP transmission to accomplish this transaction is:</para>
+<screen>
+GET /process.php?yourname=fred+smith&amp;email=fred@nowhere.com&amp;comment=I+have+no+comment HTTP/1.0
+Accept: image/gif, image/x-xbitmap, image/jpeg, */*
+Accept-Language: en-us
+User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; Q312461)
+Host: www.fluffygerbils.com
+Connection: keep-alive
+</screen>
+
+<para>POST</para>
+<para>With <command>POST,</command> the variables and their values are sent in the body of the URL request, not the header. &nbsp;The advantages of this type of data transmission is that there is
+no limit to the size of the data being sent since it is contained in the body of the HTTP request, not the header. &nbsp;Also, if you're using an SSL connection, the data will be encrypted
+too, what a deal. ;-)
+&nbsp;For example, a web page that has a form statement like:</para>
+
+<screen>
+&lt;form name="form1" <command>method="post"</command> action="process.php"&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;Please enter your name, e-mail address, and a comment:&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="yourname" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="email" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="text" name="comment" /&gt;&lt;/p&gt;
+ &nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;input type="button" name="Submit" value="Submit" /&gt;&lt;/p&gt;
+ &lt;/form&gt;
+</screen>
+
+<para>When you clicked <emphasis>Submit</emphasis>, your web browser would take the values you filled out in the form and redirect you to this web address:</para>
+<screen><command>http://www.fluffygerbil.com/process.php</command></screen>
+<para>Notice how the values of the form are <emphasis>not</emphasis> part of the web address itself? That's the essence of PUT.</para>
+<para>For the curious, what is actually sent in the <emphasis>raw</emphasis> HTTP transmission to accomplish this transaction is:</para>
+<screen>
+POST /process.php HTTP/1.0
+Accept: image/gif, image/x-xbitmap, image/jpeg, */*
+Accept-Language: en-us
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; Q312461)
+Host: www.fluffygerbils.com
+Content-Length: 94
+Pragma: no-cache
+Connection: keep-alive
+
+yourname=fred+smith
+email=fred@nowhere.com
+comment=I+have+no+comment
+</screen>
+
+<para>So, why is all this background information useful? When you install PHP 4.2.2 or later, you might happen to notice that when compiling PHP, it states:</para>
+
+<screen>
++--------------------------------------------------------------------+
+|                          *** NOTE ***                              |
+|            The default for register_globals is now OFF!            |
+|                                                                    |
+| If your application relies on register_globals being ON, you       |
+| should explicitly set it to on in your php.ini file.               |
+| Note that you are strongly encouraged to read                      |
+| http://www.php.net/manual/en/security.registerglobals.php          |
+| about the implications of having register_globals set to on, and   |
+| avoid using it if possible.                                        |
++--------------------------------------------------------------------+
+</screen>
+
+<para>This means that PHP will be <emphasis>ultra-paranoid</emphasis> about the data that is passed to it, and will require that you state which <emphasis>method</emphasis> the data should be coming from.</para>
+
+<para>Which brings us to <command>Superglobals</command>, a relatively new concept to PHP. For example, the above diagram presents a slight problem: If you're working with the variable $yourname,
+how do you know that during your script it hasn't been redefined by one of these six other methods of variable assignment by someone attempting to hack into your script? For example, imagine
+having someone who has managed to upload a PHP script to your webserver that performs the following (<ulink url="http://packetstormsecurity.nl/web/php.hidden-vars.txt">php exploit</ulink> by Daniel
+Phoenix):</para>
+
+<screen>
+&lt;?php
+	setcookie("test","../../../../../../etc/passwd");
+	echo "cookie inserted";
+?&gt;
+</screen>
+
+<para>Wouldn't it be great to have a way to isolate variables based on how the data gets assigned to it in the first place? Superglobals allow you to specify which variables <command>received by
+a specific method</command> should be used.</para>
+<para>Superglobals are PHP's attempt at helping you determine where a particular value comes from. If you haven't heard of this new feature as of PHP 4.1.0, you'll want to start adapting to it.
+Most PHP training books don't touch this subject, so you will need to be aware of how to transition to this new input method. Ultimately, you should re-visit your /usr/local/lib/php.ini file
+and make the following change:</para>
+
+<screen>
+register_globals = Off
+</screen>
+
+<para>This will prevent the ability for any user-submitted variable to be injected into your PHP code and can reduce the amount of variable poisoning a potential attacker may inflict. They will
+have to take the additional time to forge submissions, and your internal variables are effectively isolated from user submitted data. If a user then tried to fill out a form, the server
+wouldn't assign any data to the global variables <command>$name</command>, <command>$email</command>, or <command>$comment</command>. Instead, it would divide up the data into the following hashed arrays:</para>
+
+<screen>
+$_POST['name']
+$_POST['email']
+$_POST['comment']
+</screen>
+
+<para>The main Superglobal arrays are:</para>
+
+<itemizedlist>
+<listitem><para>$_GET['variable'] - Variables provided to the script via HTTP GET. Analogous to the deprecated HTTP_GET_VARS array</para></listitem>
+<listitem><para>$_POST['variable'] - Variables provided to the script via HTTP POST. Analogous to the deprecated $HTTP_POST_VARS array</para></listitem>
+</itemizedlist>
+
+<para>The other, less-common Superglobal arrays are:</para>
+
+<itemizedlist>
+<listitem><para>$_COOKIE['variable'] - Variables provided to the script via HTTP cookies. Analogous to the deprecated $HTTP_COOKIE_VARS array</para></listitem>
+<listitem><para>$_REQUEST['variable'] - Variables provided to the script via any user input mechanism (GET, POST, COOKIE) and which therefore cannot be trusted.</para></listitem>
+<listitem><para>$_GLOBALS['variable'] - Contains a reference to every variable which is currently available within the global scope of the script. The keys of this array are the names of the
+global variables.</para></listitem>
+<listitem><para>$_SERVER['variable'] - Variables set by the web server or otherwise directly related to the execution environment of the current script. Analogous to the deprecated
+$HTTP_SERVER_VARS array</para></listitem>
+<listitem><para>$_FILES['variable'] - Variables provided to the script via HTTP post file uploads. Analogous to the deprecated $HTTP_POST_FILES array</para></listitem>
+<listitem><para>$_ENV['variable'] - Variables provided to the script via the environment. Analogous to the deprecated $HTTP_ENV_VARS array</para></listitem>
+<listitem><para>$_SESSION['variable'] - Variables which are currently registered to a script's session. Analogous to the deprecated $HTTP_SESSION_VARS array</para></listitem></itemizedlist>
+<para>For more details, see <ulink url="http://www.php.net/manual/en/reserved.variables.php">http://www.php.net/manual/en/reserved.variables.php</ulink>.</para>
+<para>So instead of <command>$name</command> being set to "John", you would either have <command>$_GET['name'] = "John"</command> or possibly <command>$_POST['name'] = "John"</command> depending on how the form
+data was submitted. The advantage is that you will know:</para>
+<itemizedlist>
+<listitem><para>$name can never be faked; if your script sets its value, that's the value!</para></listitem>
+<listitem><para>The $_GET and $_POST arrays help you to determine if the user appended the data as part of the URL or as part of the request body; therefore you don't have to worry about having a form
+accepting POST data and having the values change by someone sending a hacked URL with GET data appended to the URL. This will make sense shortly, so hang on...</para></listitem>
+<listitem><para>These 'superglobals' allow you to 'compartmentalize' not only your variable's values, but how the values were provided to the server in the first place. Someone attempting to hack into
+your server will have a very difficult time bypassing this.</para></listitem></itemizedlist>
+
+<para>Additional Resources</para>
+<itemizedlist>
+<listitem><para><ulink url="http://softwaredev.earthweb.com/script/article/0,,12063_918141,00.html">On the Security of PHP</ulink>, by Jordan Dimov</para></listitem>
+<listitem><para><ulink url="http://www.cgisecurity.com/lib/studyinscarlet.txt">A Study In Scarlet: Exploiting Common Vulnerabilities in PHP Applications</ulink>, by Shaun Clowes</para></listitem>
+</itemizedlist>
+
+</sect2>
+</sect1>
+
+<sect1 id="apache-part2">
+<title>Bringing it all Together</title>
+<para>This is where we tie all our various and assorted parts into the final product. You can use static or dynamic (DSO) modules; here we're focused on static modules. The philosophy is simple: <emphasis>Only compile in what you need, and nothing more</emphasis>! Below are a few specifics worth mentioning.  For in-depth information, review Apache's src/Configuration.tmpl file.</para>
+
+<screen>
+--enable-module=speling		This module attempts to correct misspellings of URLs that
+				users might have entered, by ignoring capitalisation and
+				by allowing up to one misspelling
+
+--disable-module=include	Prevents the ability to parse Server Side Includes (SSI)
+
+--disable-module=imap		This has nothing to do with e-mail. This refers to imagemap
+				files. If you don't know what this is, you don't need it.
+
+--disable-module=negotiation	Prevents dynamic document presentation based on client-supplied
+				preferences. For example, multiple pages of the same page in
+				different languages
+
+--disable-module=status		Prevents server activity and performance from being published
+				on a HTML page
+
+--disable-module=userdir	Prevents user-specific home directories, such as 
+				http://www.myserver.com/~johndoe
+
+--disable-rule=SSL_COMPAT	Build the final code of mod_ssl without backward compatibility
+				code for Apache-SSL 1.x, mod_ssl 2.0.x, Sioux 1.x and
+				Stronghold 2.x
+
+--enable-rule=SSL_SDBM		The SSL_SDBM rule controls whether the built-in SDBM library
+				should be used instead of a custom defined or vendor supplied
+				DBM library. Enable this to force the use of SDBM in case the
+				vendor DBM library is buggy or restricts the data sizes too
+				dramatically.
+
+SSL_BASE=SYSTEM			Tells Apache to use the system-installed OpenSSL libraries.
+
+EAPI_MM=SYSTEM			This should be added after the SSL_BASE declaration when
+				configuring Apache in the final step if you want to support
+				shared memory RAM-based session support for SSL sessions
+				(instead of hard drive based).
+</screen>
+
+<para>Then the actual configuration of the source tree:</para>
+
+<screen>
+bash$ EAPI_MM=SYSTEM SSL_BASE=SYSTEM \
+	CFLAGS="-O2 -march=i686" \
+	./configure \
+	--prefix=/usr/local/apache \
+	--enable-module=ssl \
+	--enable-module=speling \
+	--disable-module=include \
+	--disable-module=imap \
+	--disable-module=negotiation \
+	--disable-module=status \
+	--disable-module=userdir \
+	--disable-rule=SSL_COMPAT \
+	--enable-rule=SSL_SDBM \
+	--activate-module=src/modules/php4/libphp4.a \
+	--server-uid=apache \
+	--server-gid=apache
+</screen>
+
+<para>Review the output to make sure all went as planned. Next, to build Apache:</para>
+
+<screen>
+bash$ make
+</screen>
+
+<para>If this is a new installation of Apache, run:</para>
+
+<screen>
+bash# make install
+bash# chmod 0511 /usr/local/apache/bin/httpd
+</screen>
+
+<para>Otherwise, if you are upgrading an existing installation of Apache, run the following command and then see <ulink url="http://httpd.apache.org/docs/misc/security_tips.html">http://httpd.apache.org/docs/misc/security_tips.html</ulink> if you've previously modified any of the default permissions on your apache files:</para>
+
+<screen>
+bash# cp src/httpd /usr/local/apache/bin/
+bash# chmod 0511 /usr/local/apache/bin/httpd
+</screen>
+
+<para>Edit /etc/apache/httpd.conf and add (if it's not already there):</para>
+
+<screen>
+AddType application/x-httpd-php .php .php3
+AddType application/x-httpd-php-source .phps
+</screen>
+
+<para>It would probably be a good idea to review the SSL configuration options available in your shiny new httpd.conf file, which are discussed at <ulink url= "http://www.modssl.org/docs/2.8/ssl_reference.html">http://www.modssl.org/docs/2.8/ssl_reference.html</ulink></para>
+</sect1>
+
+<sect1 id="apache-part3">
+<title>Running Your Shiny New Apache</title>
+<para>Start normal Apache only, without SSL:</para>
+
+<screen>
+/usr/local/apache/bin/apachectl start
+</screen>
+
+<para>Start SSL-Aware Apache:</para>
+
+<screen>
+/usr/local/apache/bin/apachectl startssl
+</screen>
+
+<para>Abruptly stop Apache, which will affect anyone currently connected to your web page:</para>
+
+<screen>
+/usr/local/apache/bin/apachectl stop
+</screen>
+
+<para>Gracefully restart (and as a result, reread your apache config file) Apache, which will invisibly (to anyone viewing your web page) restart your server. When making configuration changes, this is probably the option you want:</para>
+
+<screen>
+/usr/local/apache/bin/apachectl graceful
+</screen>
+</sect1>
+
+<sect1 id="certificates">
+<title>SSL Certificates &amp; Keys</title>
+
+<para>In a nutshell, all the ambiguity of SSL keys can be boiled down to one golden rule: the goal of all key generation for running a SSL server is to create the two following files:</para>
+
+<screen>
+/usr/local/ssl/certs/server.key
+/usr/local/ssl/certs/server.crt
+</screen>
+
+<para>The first file we can create ourselves; the second file we can either purchase (which will be recognized by most browsers) or create for free (which won't be recognized by most browsers and requires the user to not be thrown by the error message).  Most of this section describes how to generate the first file.</para>
+
+<sect2 id="overview">
+<title>Overview</title>
+<para>First, "Certificate Authority" requires a bit of a definition for the uninitiated. A Certificate Authority (CA) is either an official organization, like VeriSign (<ulink url="http://digitalid.verisign.com/server/apacheNotice.htm">http://digitalid.verisign.com/server/apacheNotice.htm</ulink>) and Thawte Consulting at <ulink url="http://www.thawte.com">http://www.thawte.com</ulink>, or a fake organization that you create yourself. Yes, it seems silly to create a request to submit to yourself to be approved by yourself to send back a certificate to yourself.  But, it has to be done unless you submit to a real organization. What's the difference? Web browsers and e-mail clients typically already <emphasis>know</emphasis> about official certificate authorities, whereas they don't know who <emphasis>you</emphasis> are. It's part security-related, part money-making. Take your pick. If you are primarily supporting non-tech-savvy folks, pay the money and go for the official certificate authority bit and save yourself having to answer lots of questions and touch each computer to install your own certificate authority file. There really is no difference in the security provided.</para>
+ 
+<itemizedlist>
+<listitem><para>example.key - Your RSA Private Key. Should be 1024 bits in length. No one should have access to this file other than yourself. RSA is a public-key encryption technology developed by RSA Data Security, Inc. The acronym stands for Rivest, Shamir, and Adelman, the inventors of the technique. The RSA algorithm is based on the fact that there is no efficient way to factor very large numbers. Deducing an RSA key, therefore, requires an extraordinary amount of computer processing power and time. You will never want to delete this key. chmod 0400.</para></listitem>
+<listitem><para>example.pem - Your PEM (Privacy Enhanced Mail) Private Key. This is a copy of your RSA Private Key, but saved in a different format. You don't have to keep this key after you've set things up, and is only required if you want SSL-imapd/ipop3d. chmod 0400.</para></listitem>
+<listitem><para>example.com.csr - Your CSR (Certificate Signing Request) file. This is what you
+need to submit to request your official SSL certificate. Once you have your official SSL certificate, you can archive this
+file. You don't have to keep this key after you've set things up. chmod 0400.</para></listitem>
+<listitem><para>example.crt - Your CRT (CeRTificate) Public Key. This is what you get from a
+Certificate Authority - your "SSL Certificate" - without this, you can't do web SSL. You will never want to delete this key.
+chmod 0400</para></listitem>
+<listitem><para>imapd.pem - Your PEM (Privacy Enhanced Mail) Public Key. This is actually just a copy of your
+PEM Private Key and your CRT Public Key concatenated into a single file. Without this, you can't do SSL e-mail. You will never
+want to delete this key. chmod 0400</para></listitem>
+<listitem><para>ipop3d.pem - This should be a soft link to imapd.pem, or a copy of the same file. You will
+never want to delete this key.</para></listitem></itemizedlist>
+</sect2>
+
+<sect2 id="validcert">
+<title>Using a Valid Certificate Authority</title>
+<para>This is done in two steps:  Generating your server request, and sending it to a valid certificate authority.
+(Hint: It is not unlike the relationship between server and client).  For any time you are prompted for <command>Common Name</command>,
+it is critical that you specify your web server address minus the http:// bit (e.g., www.fluffygerbils.com).</para>
+
+<para>First we create our own <command>private server key</command>:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl genrsa -des3 -out server.key 1024
+bash# chmod 400 server.key
+</screen>
+
+<para>Then we create our own server <command>certificate request (CSR)</command>:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl req -new -key server.key -out server.csr
+</screen>
+
+<para>Finally, you need to submit your server.crt request to a valid certificate authority to be signed.</para>
+</sect2>
+
+<sect2 id="owncert">
+<title>Creating your own Certificates</title>
+
+<para>This is done in two steps:  Pretending to be a <command>Certificate Authority</command>, and then issuing
+yourself a server certificate signed by your own Certificate Authority.
+(Hint: It is not unlike the relationship between server and client).  For any time you are prompted for <command>Common Name</command>,
+it is critical that you specify your web server address minus the http:// bit (e.g., www.fluffygerbils.com).</para>
+
+<para>First, to pretending to be a Certificate Authority (CA), we need to do this:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl genrsa -des3 -out ca.key 1024
+bash# chmod 400 ca.key
+bash# openssl req -new -x509 -days 365 -key ca.key -out ca.crt
+bash# mkdir ca.db.certs
+bash# echo '01' &gt; ca.db.serial
+bash# cp /dev/null ca.db.index
+</screen>
+
+<para>And create the following file in <command>/usr/local/ssl/certs/ca.config</command>:</para>
+
+<screen>
+[ ca ]
+default_ca              = CA_own
+[ CA_own ]
+dir                     = .
+certs                   = $dir
+new_certs_dir           = $dir/ca.db.certs
+database                = $dir/ca.db.index
+serial                  = $dir/ca.db.serial
+RANDFILE                = $dir/ca.db.rand
+certificate             = $dir/ca.crt
+private_key             = $dir/ca.key
+default_days            = 365
+default_crl_days        = 30
+default_md              = md5
+preserve                = no
+policy                  = policy_anything
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+</screen>
+
+<para>Next, we create our own <command>private server key</command>:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl genrsa -des3 -out server.key 1024
+bash# chmod 400 server.key
+</screen>
+
+<para>Then we create our own server <command>certificate request (CSR)</command>:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl req -new -key server.key -out server.csr
+</screen>
+
+<para>Finally, we sign our own request:</para>
+
+<screen>
+bash# cd /usr/local/ssl/certs
+bash# openssl ca -config ca.config -out server.crt -infiles server.csr
+bash# openssl verify -CAfile ca.crt server.crt
+</screen>
+</sect2>
+</sect1>
+
+<sect1 id="resources">
+<title>Additional Resources</title>
+<itemizedlist>
+<listitem><para><ulink url="http://www.analog.cx/">Analog</ulink> - The most popular, or at least realistic, web logfile analyzer in the
+world.</para></listitem>
+<listitem><para><ulink url="http://www.apachetoolbox.com/">Apache Toolbox</ulink></para></listitem>
+<listitem><para><ulink url="http://www.apacheweek.com/">Apache Week</ulink></para></listitem>
+<listitem><para><ulink url="http://www.washington.edu/imap/IMAP-FAQs/index.html">IMAP Toolkit Frequently Asked Questions</ulink></para></listitem>
+<listitem><para><ulink url="http://www.modssl.org/docs/2.8/">mod-ssl User Manual</ulink></para></listitem></itemizedlist>
+</sect1>
+
+<sect1 id="about">
+<title>About this Document</title>
+<para>Copyright (c) 2003 David Lechnyr. Redistribution and use, with or without modification, are permitted provided that the copyright notice, this list of conditions and the following disclaimer be included.</para>
+<para>THIS DOCUMENTATION IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.</para>
+
+<para>This document was lovingly handcrafted on a Dell Latitude C400 laptop running Slackware Linux 9.0, in case anyone asks.</para>
+</sect1>
+
+</article>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-namecase-general:t
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:nil
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
+
