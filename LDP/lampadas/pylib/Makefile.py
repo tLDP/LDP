@@ -75,6 +75,7 @@ class Makefile:
                 log(3, 'Found top file: ' + file.filename)
                 dbsgmlfile = file.basename + '.db.sgml'
                 xmlfile = file.basename + '.xml'
+                tidyxmlfile = file.basename + '.tidy.xml'
                 htmlfile = file.basename + '.html'
                 indexfile = 'index.html'
                 txtfile = file.basename + '.txt'
@@ -92,24 +93,24 @@ class Makefile:
                     Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/\n'
                     Makefile = Makefile + 'BUILD_DOCBOOK = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + file.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
                     Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log\n'
-                    Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
+                    Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log\n"
 
                 # DocBook XML
                 elif file.format_code=='xml' and doc.dtd_code=='DocBook':
-                    Makefile = Makefile + 'BUILD_XML = '
+                    pass
 
                 # WikiText
                 elif file.format_code=='wikitext':
                     Makefile = Makefile + 'BUILD_XML = wt2db -n -s ' + file.file_only + ' -o ' + dbsgmlfile + " 2>>wt2db.log; "
-                    Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
+                    Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log\n"
 
                 # Text
                 elif file.format_code=='text':
-                    Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + file.file_only + ' -o ' + xmlfile + " 2>>wt2db.log; "
+                    Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + file.file_only + ' -o ' + xmlfile + " 2>>wt2db.log\n"
 
                 # Texinfo
                 elif file.format_code=='texinfo':
-                    Makefile = Makefile + 'BUILD_XML = texi2db -f ' + file.file_only + ' -o ' + xmlfile + " 2>>texi2db.log; "
+                    Makefile = Makefile + 'BUILD_XML = texi2db -f ' + file.file_only + ' -o ' + xmlfile + " 2>>texi2db.log\n"
 
                 # Unrecognized
                 else:
@@ -119,8 +120,7 @@ class Makefile:
                     log(3, 'unrecognized format code: ' + file.format_code)
                     continue
                     
-                Makefile = Makefile + 'tidy -config /etc/lampadas/tidyrc -quiet -f tidy.log -modify ' + xmlfile + "\n"
-                
+                Makefile = Makefile + 'BUILD_TIDY_XML = tidy -config /etc/lampadas/tidyrc -quiet -f tidy.log < ' + xmlfile + ' > ' + tidyxmlfile + '\n'
                 Makefile = Makefile + "BUILD_HTML = xsltproc --param quiet 1 --maxdepth 100 " + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + xmlfile + ' > ' + htmlfile + " 2>>xsltproc.log\n"
                 Makefile = Makefile + "BUILD_INDEX = xsltproc --param quiet 1 --maxdepth 100 " + XSLTPROC_PARAMS + ' ' + config.xslt_chunk + ' ' + xmlfile + " 2>>xsltproc.log\n"
                 Makefile = Makefile + "BUILD_TXT = lynx --dump --nolist " + htmlfile + ' > ' + txtfile + " 2>>lynx.log\n"
@@ -143,6 +143,7 @@ class Makefile:
                 else:
                     Makefile = Makefile + "xml:\t" + xmlfile + "\n\n"
 
+                Makefile = Makefile + "tidyxml:\t" + tidyxmlfile + "\n\n"
                 Makefile = Makefile + "html:\t" + htmlfile + "\n\n"
                 Makefile = Makefile + "index:\t" + indexfile + "\n\n"
                 Makefile = Makefile + "txt:\t" + txtfile + "\n\n"
@@ -153,26 +154,34 @@ class Makefile:
                     Makefile = Makefile + '\t$(BUILD_DOCBOOK)\n\n'
                     Makefile = Makefile + xmlfile + ":\t" + dbsgmlfile + "\n"
                     Makefile = Makefile + "\t$(BUILD_XML)\n\n"
+                elif file.format_code=='xml' and doc.dtd_code=='DocBook':
+                    Makefile = Makefile + xmlfile + ':\n'
+                    Makefile = Makefile + "\t$(BUILD_XML)\n\n"
+
                 else:
                     Makefile = Makefile + xmlfile + ":\t" + file.file_only + "\n"
                     Makefile = Makefile + "\t$(BUILD_XML)\n\n"
 
-                Makefile = Makefile + htmlfile + ":\t" + xmlfile + "\n"
+                Makefile = Makefile + tidyxmlfile + ":\t" + xmlfile + "\n"
+                Makefile = Makefile + "\t$(BUILD_TIDY_XML)\n\n"
+
+                Makefile = Makefile + htmlfile + ":\t" + tidyxmlfile + "\n"
                 Makefile = Makefile + "\t$(BUILD_HTML)\n\n"
 
-                Makefile = Makefile + indexfile + ":\t" + xmlfile + "\n"
+                Makefile = Makefile + indexfile + ":\t" + tidyxmlfile + "\n"
                 Makefile = Makefile + "\t$(BUILD_INDEX)\n\n"
 
                 Makefile = Makefile + txtfile + ":\t" + htmlfile + "\n"
                 Makefile = Makefile + "\t$(BUILD_TXT)\n\n"
 
-                Makefile = Makefile + omffile + ":\t" + xmlfile + "\n"
+                Makefile = Makefile + omffile + ":\t" + tidyxmlfile + "\n"
                 Makefile = Makefile + "\t$(BUILD_OMF)\n\n"
 
                 Makefile = Makefile + "clean:\n"
                 Makefile = Makefile + "\trm -f " + dbsgmlfile + "\n"
                 if doc.format_code<>'xml':
                     Makefile = Makefile + "\trm -f " + xmlfile + "\n"
+                Makefile = Makefile + "\trm -f " + tidyxmlfile + "\n"
                 Makefile = Makefile + "\trm -f " + htmlfile + "\n"
                 Makefile = Makefile + "\trm -f " + indexfile + "\n"
                 Makefile = Makefile + "\trm -f expanded.sgml\n"
@@ -189,6 +198,7 @@ class Makefile:
     def write_main_makefile(self):
         docsmake = ''
         docbookmake = ''
+        tidyxmlmake = ''
         xmlmake = ''
         htmlmake = ''
         indexmake = ''
@@ -208,6 +218,7 @@ class Makefile:
                         rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) rebuild 2>>make.log\n"
                         docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) all 2>>make.log\n"
                         docbookmake = docbookmake + '\tcd ' + str(docid) + '; $(MAKE) xml 2>>make.log\n'
+                        tidyxmlmake = tidyxmlmake + "\tcd " + str(docid) + "; $(MAKE) tidyxml 2>>make.log\n"
                         xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) xml 2>>make.log\n"
                         htmlmake = htmlmake + "\tcd " + str(docid) + "; $(MAKE) html 2>>make.log\n"
                         indexmake = indexmake + "\tcd " + str(docid) + "; $(MAKE) index 2>>make.log\n"
@@ -222,6 +233,7 @@ class Makefile:
             Makefile = Makefile + "docs:\n" + docsmake + "\n\n"
             Makefile = Makefile + "docbook:\n" + docbookmake + "\n\n"
             Makefile = Makefile + "xml:\n" + xmlmake + "\n\n"
+            Makefile = Makefile + "tidyxml:\n" + tidyxmlmake + "\n\n"
             Makefile = Makefile + "html:\n" + htmlmake + "\n\n"
             Makefile = Makefile + "index:\n" + indexmake + "\n\n"
             Makefile = Makefile + "txt:\n" + txtmake + "\n\n"
