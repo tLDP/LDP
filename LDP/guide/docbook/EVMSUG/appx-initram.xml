@@ -1,0 +1,407 @@
+
+
+
+
+
+<appendix id="appxinitram"><title>Building an init-ramdisk to use with EVMS</title>
+
+<para>EVMS versions 1.9.0 and later perform volume discovery in user space and
+communicate with kernel drivers to activate the volumes.   This process presents
+a problem with having the root file system on an EVMS volume.  In order for the
+root file system volume to be activated, the EVMS tools must be running.  However,
+in order to access the EVMS tools, the root file system must be mounted.</para>
+<para>The solution to this dilemma is to use an initial ramdisk (initrd).  An initrd is a
+ram-based device that acts as a temporary root file system at boot time and provides
+the ability to run programs and load modules that are necessary to activate the true
+root file system.  Thus, in order to have your root file system on an EVMS volume, you
+need to create and use an initrd.</para>
+<para>The following sections provide instructions for creating a new initrd image for use
+with EVMS.</para>
+
+<sect1 id="instbuildemvs"><title>Build and install EVMS</title>
+<para>Follow the normal EVMS installation instructions for configuring your kernel
+and building the EVMS tools.  See <xref linkend="evmscmuse"/> or the INSTALL file in
+the EVMS package for more information.</para>
+</sect1>
+
+<sect1 id="kernsup"><title>Kernel support for initrd</title>
+<para>Before you can start creating the initrd, make sure your kernel
+supports ramdisks.  You can verify that your kernel supports ramdisks
+when the kernel is being configured; if it does not support ramdisks, you
+change the settings so that the kernel does support ramdisks.</para>
+<para>Start the kernel configuration:</para>
+<programlisting>cd /usr/src/linux
+make xconfig</programlisting>
+<para>On the Main Menu screen, under the section for Block Devices, check
+to see if "RAM disk support" and "Initial RAM disk (initrd) support" 
+are supported (a "Y" should be in the field before each entry).  
+If they are not supported, enter a "Y" for "RAM disk support" and 
+"Initial RAM disk (initrd) support."</para>
+<programlisting>Main Menu
+-Block Devices
+&lt;Y>RAM disk support
+&lt;Y>Initial RAM disk (initrd) support</programlisting>
+
+<para>This support must be built statically into the kernel.  Building RAM disk support
+as a module will not work.  The &quot;Default RAM disk size&quot; option is not important at
+this time, because it can be modified with a command-line option to the kernel.</para>
+<para>Save your kernel configuration and rebuild and reinstall your kernel.</para>
+</sect1>
+
+<sect1><title>Build the initrd image</title>
+<para>The next step is to build the actual ramdisk image, which is 
+described in the following subsections.  
+The important thing to remember is that any program that needs to 
+run from the initrd needs to be copied to the initrd.  
+In addition, any shared libraries that are needed by programs that run 
+from the initrd need to be copied to the initrd as well.</para>
+
+<sect2 id="createnewinitrd"><title>Create a new, blank initrd</title>
+
+<para>Start by creating a new initrd image with an ext2 file system.
+The following example creates the initrd image at 
+<filename>/boot/initrd-evms</filename>.  
+You can choose to use a different file name if you wish.</para>
+
+<para>The size of the initrd in the following example is 16 MB.  
+You can make the initrd larger or smaller by adjusting the &quot;count&quot; 
+value.  
+The minimum size needed for all the required EVMS tools and supporting 
+libraries is about 11 MB.  
+If you are installing kernel modules to your initrd (see step 3-H below) 
+or other non-EVMS programs, the size might need to be increased.</para>
+<programlisting>dd if=/dev/zero of=/boot/initrd-evms bs=1M count=16
+mke2fs -F -m 0 -b 1024 /boot/initrd-evms</programlisting>
+</sect2>
+
+<sect2><title>Mount the initrd</title>
+<para>In order to copy all the required files to the initrd, the initrd must be mounted
+through a loopback device.  To mount the initrd through a loopback device requires
+that you have loopback support compiled in your kernel (or as a kernel module).
+See the &quot;Block Devices&quot; menu in the kernel configuration for more information
+about loopback.</para>
+<programlisting>mkdir /mnt/initrd
+mount -t ext2 -o loop /boot/initrd-evms /mnt/initrd</programlisting>
+</sect2>
+
+<sect2><title>Set up the basic directory structure</title>
+<para>Use the following commands to create several basic directories that 
+are required on the initrd:</para>
+<programlisting>cd /mnt/initrd
+mkdir bin dev etc lib proc sbin var
+cd var
+mkdir lock log</programlisting>
+</sect2>
+
+<sect2><title>Copy helpful utilities</title>
+<para>The script that runs in the initrd requires a few common command-line utilities, which
+you can create with the following commands:</para>
+<programlisting>cd /bin
+cp -a bash cat echo expr grep mount sh umount /mnt/initrd/bin
+cd /etc
+cp fstab /mnt/initrd/etc</programlisting>
+</sect2>
+
+<sect2><title>Copy supporting libraries</title>
+<para>The utilities from the previous step, along with the EVMS tools, require a few
+common shared libraries.  You can create these shared libraries with the following
+commands:</para>
+<programlisting>cd /lib
+cp -a ld-* /mnt/initrd/lib
+cp -a libc-* libc.* /mnt/initrd/lib
+cp -a libdl-* libdl.* /mnt/initrd/lib
+cp -a libpthread* /mnt/initrd/lib
+cp -a libtermcap* /mnt/initrd/lib</programlisting>
+<para>It is possible that some of the utilities (bash in particular) require additional
+libraries.  Use the <command>ldd</command> command to determine if you need additional 
+libraries copied to your initrd.  For example, output from 
+the <command>ldd /bin/bash</command> command provides a list similar to the following:</para>
+<programlisting>libtermcap.so.2 =&gt; /lib/libtermcap.so.2 (0x40020000)
+libdl.so.2 =&gt; /lib/libdl.so.2 (0x40024000)
+libc.so.6 =&gt; /lib/libc.so.6 (0x40027000)
+/lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x4000000)</programlisting>
+<para>All libraries listed by <command>ldd</command> need to be copied to the 
+<filename>/lib</filename> directory on the initrd.</para>
+</sect2>
+
+<sect2><title>Copy the EVMS tools</title>
+<para>Several EVMS libraries and a couple of executables need to be copied
+to the initrd.
+First, you need to locate where the EVMS libraries were installed.  By default,
+these libraries are installed in <filename>/lib</filename>.  If you specified a different
+prefix or <filename>libdir</filename> when you configured EVMS, the libraries might be located in a
+different directory.  It is important that these libraries be installed in the same
+location on the initrd as they are on your real system.  For example, if the libraries
+installed in <filename>/lib</filename>, the libraries need to be copied to <filename>/lib</filename> on the initrd;
+If the libraries are installed in <filename>/usr/lib</filename>, they need to be copied to <filename>/usr/lib</filename> on the initrd.</para>
+<para>The following example assumes the libraries are installed in <filename>/lib</filename>.  Only
+the shared libraries (.so) need to be copied.  The static versions (.a) are not
+needed on the initrd.</para>
+<programlisting>cd /lib
+cp -a libevms*so* /mnt/initrd/lib
+cp -a libdlist*so* /mnt/initrd/lib</programlisting>
+<para>Next, copy the plug-in libraries to the initrd.  The plug-ins are always installed
+in the <filename>evms</filename> subdirectory of the directory where <filename>libevms</filename> is installed.</para>
+<para>Not all of the plug-ins need to be copied to the initrd.  Several plug-ins are
+only for interfacing with the file system utilities and are not necessary at boot time.
+Other plug-ins are only for interfacing with clustering packages, which cannot be
+started until the regular boot process.</para>
+<para>The following is a list of the specific plug-ins that do not need to be installed:</para>
+<itemizedlist>
+<listitem><para>csm</para></listitem>
+<listitem><para>ext2</para></listitem>
+<listitem><para>ha</para></listitem>
+<listitem><para>jfs</para></listitem>
+<listitem><para>reiser</para></listitem>
+<listitem><para>replace</para></listitem>
+<listitem><para>rsct</para></listitem>
+<listitem><para>swap</para></listitem>
+<listitem><para>xfs</para></listitem>
+</itemizedlist>
+<para>Create and change directory to <filename>/lib/evms</filename>:</para>
+<programlisting>mkdir /mnt/initrd/lib/evms
+cd /lib/evms</programlisting>
+<para>Copy the contents of the <filename>/lib/evms</filename> directory, minus the plug-ins 
+listed earlier that
+do not need to be installed, to <filename>/mnt/initrd/lib/evms</filename>:</para>
+<programlisting>for foo in aix bbr bsd disk dos drivelink gpt lvm md os2 s390 snapshot sparse
+do
+  cp -a *$foo* /mnt/initrd/lib/evms
+done</programlisting>
+<para>Next, copy the activation program to the initrd.  The full user interfaces are
+not needed, because the only thing the initrd does is activate the volumes.
+Unlike the EVMS libraries, the exact location of this program in the initrd is not
+important, so it can simply go in <filename>sbin</filename>:</para>
+<programlisting>cd /sbin
+cp evms_activate /mnt/initrd/sbin
+cp get_dev_num /mnt/initrd/sbin</programlisting>
+<para>Finally, if you have an <filename>/etc/evms.conf</filename> file installed, you should copy it to
+the initrd so that EVMS uses the correct options during activation.  (However,
+if you have an <filename>/etc/evms.conf</filename> file but have never modified it for your system, it should still have all the default values and does not necessarily need to
+be installed on the initrd.)</para>
+<programlisting>cd /etc
+cp evms.conf /mnt/initrd/etc</programlisting>
+</sect2>
+
+<sect2 id="setupdiskdev"><title>Set up disk devices</title>
+<para>The initrd needs to be set up to reflect the disk devices that are on your system.
+EVMS needs to find the disks in order to activate the volumes.</para>
+<para>Before setting up the disk devices on the initrd, determine if you are
+using <filename>devfs</filename>.  If you are not sure, you can quickly check for the file
+<filename>/dev/.devfsd</filename>.  If <filename>/dev/.devfsd</filename> exists, you are running <filename>devfs</filename>.  
+You can also
+check your kernel configuration in the &quot;Filesystems&quot; menu.  If
+&quot;/dev file system support&quot; and &quot;Automatically mount at boot&quot; are enabled, you are
+running <filename>devfs</filename>.</para>
+
+<sect3><title>devfs users</title>
+<para>Because <filename>devfs</filename> runs automatically within the initrd, you do not need to
+manually copy the device files to the initrd.  However, <filename>devfs</filename> does need to be
+mounted within the initrd for it to work properly.  There are two ways to accomplish this:</para>
+<itemizedlist>
+<listitem><para>In the kernel configuration, in the &quot;Filesystems&quot; menu, set the
+&quot;Automatically mount at boot time&quot; option.  With this option set, <filename>devfs</filename> will be
+automatically mounted on <filename>/dev</filename> when the initrd is loaded.</para></listitem>
+<listitem><para>Manually mount <filename>devfs</filename> from the <command>linuxrc</command> script before running
+<command>evms_activate</command>.  See <xref linkend="writelinuxrc"/> for more details.</para></listitem>
+</itemizedlist>
+
+</sect3>
+
+<sect3><title>devfsd users</title>
+<para>EVMS does not require <filename>devfs</filename> users to run <filename>devfsd</filename>.  
+However, if you do run
+<filename>devfsd</filename>, you also need to run it on the initrd to ensure that all disks and segments
+are discovered with the same names on both the initrd and the real system.  Thus, if
+you run <filename>devfsd</filename>, you need to copy the <filename>devfsd</filename> program and 
+<filename>config</filename> file to the initrd, as
+follows:</para>
+<programlisting>cd /sbin
+cp devfsd /mnt/initrd/sbin
+cd /etc
+cp devfsd.conf /mnt/initrd/etc</programlisting>
+<para>Next, examine the <filename>devfsd.conf</filename> file (the one you just copied to the ramdisk) with
+a text editor.  First look for a line like this:</para>
+<programlisting>LOOKUP.* MODLOAD</programlisting>
+<para>Also in the <filename>devfsd</filename> file, look for a line that begins with RESTORE.  This line
+specifies a directory where <filename>devfsd</filename> stores changes to 
+the <filename>/dev</filename> file system.  Create this
+directory in your initrd.  For example, if your <filename>devfsd.conf</filename> file contains the line
+&quot;RESTORE /dev-state,&quot; issue the following commands to prevent error messages from
+being generated when <filename>devfsd</filename> starts within the initrd:</para>
+<programlisting>cd /mnt/initrd
+mkdir dev-state</programlisting>
+</sect3>
+
+<sect3><title>Non-devfs users</title>
+<para>Because <filename>devfs</filename> is not running and mounted within the initrd, you need to
+manually copy the necessary device node files to the initrd.  If you only have IDE
+or SCSI disks, the following commands should be sufficient.  If you specifically
+know which disks are on your system, you can copy only those device files.</para>
+<programlisting>cd /dev
+cp -a hd[a-z] /mnt/initrd/dev</programlisting>
+<para>In addition to the disk devices, you also need a console device:</para>
+<programlisting>cp -a console /mnt/initrd/dev</programlisting>
+
+</sect3>
+</sect2>
+
+<sect2 id="copykernmods"><title>Copy kernel modules</title>
+<para>If you have any kernel modules that need to be loaded in order for EVMS to
+run, those modules need to be copied to the initrd.  In particular, if you build your
+IDE or SCSI drivers, the Device Mapper or MD/Software-RAID drivers, or any
+required file systems as modules, they need to be present on the initrd so they
+can be loaded before you run EVMS and try to mount the root file system.</para>
+<para>If you build all of the necessary drivers and file systems statically into the
+kernel, you can skip this step.  Skipping this step is the recommended approach so
+that you avoid any possible problems that might be caused by required modules missing
+from the initrd.</para>
+<para>When copying the kernel modules, it is probably safest to copy the entire
+module directory so as not to miss any modules that might be needed on the initrd:</para>
+<programlisting>mkdir /mnt/initrd/lib/modules
+cd /lib/modules
+cp -a x.y.z /mnt/initrd/lib/modules</programlisting>
+<para>x.y.z is the version of the kernel that will be running EVMS and the initrd.
+</para>
+<para>In addition, you will need the module-loading utilities, and probably the module
+configuration file:</para>
+<programlisting>cd /sbin
+cp modprobe /mnt/initrd/sbin
+cd /etc
+cp modules.conf /mnt/initrd/etc</programlisting>
+</sect2>
+
+<sect2 id="writelinuxrc"><title>Write the linuxrc script</title>
+<para>At this point, all of the necessary files, programs, and libraries should be on
+the initrd.  The only thing remaining is the <filename>linuxrc</filename> script.
+When the kernel mounts the initrd, it tries to run a script called <filename>linuxrc</filename>, in the root of
+the initrd.  This script performs all the actions necessary for the initrd, and prepares the
+root device so that it can be mounted when the initrd exits.</para>
+<para>A sample <filename>linuxrc</filename> script is provided in the <filename>doc</filename> directory of the EVMS source package.
+You can use this script as a starting point.</para>
+<para>Copy the <command>linuxrc</command> sample to your initrd:</para>
+<programlisting>cd /usr/src/evms-2.0.0/doc
+cp linuxrc /mnt/initrd</programlisting>
+<para>Open the <filename>linuxrc</filename> sample script in your favorite text editor.  The following paragraphs
+provide a brief explanation of what the <command>linuxrc</command> does at boot time and offer suggestions for
+modifying the script for your system.</para>
+<itemizedlist>
+<listitem><para>The first section tries to mount <filename>devfs</filename>.  You only need to
+uncomment this section if you are running <filename>devfs</filename> and do not automatically mount
+devfs on <filename>/dev</filename> (see <xref linkend="setupdiskdev"/> for more details).</para></listitem>
+<listitem><para>The next section tries to start the <filename>devfs</filename> daemon.  If <filename>devfs</filename>
+is not running or <filename>devfsd</filename> is not present, this section is skipped.</para></listitem>
+<listitem><para>The next section mounts the <filename>proc</filename> file system.
+EVMS looks in the <filename>/proc</filename> file system to find the location of the
+Device Mapper driver.  Also, later parts of the <filename>linuxrc</filename> script try to
+access <filename>/proc</filename> in order to properly set the root file system device.</para></listitem>
+<listitem><para>The next section loads the kernel modules.  If you did not copy any
+kernel modules to your initrd (<xref linkend="copykernmods"/>), you can leave this section commented out.
+If you need to load kernel modules from the initrd, this is the place to do it.  Use
+the <command>modprobe</command> command for each module that needs to be loaded.
+A few examples have been provided within the section.</para></listitem>
+<listitem><para>The next section is where EVMS runs and activates all of the volumes.</para></listitem>
+<listitem><para>The next section examines the kernel command line for a parameter
+that specifies the root volume.  More information about how to set up this
+parameter is included in <xref linkend="setupbootloader"/>.  Device Mapper
+dynamically allocates all device numbers, which means it is possible that the
+root volume specified to LILO or GRUB might have a different number when the
+initrd runs than when the system was last running.  In order to make sure the
+correct volume is mounted as root, the <filename>linuxrc</filename> script must determine what the
+desired root volume name is, determine the number for that device, and set
+that value in the appropriate file in <filename>/proc</filename>.</para></listitem>
+<listitem><para>Finally, the <filename>/proc</filename> file system can be unmounted.  
+Also, <filename>devfs</filename>
+can be unmounted (but only if it was mounted at the start of the script).</para></listitem>
+</itemizedlist>
+<para>When the <filename>linuxrc</filename> script completes, the kernel automatically tries to
+mount the root file system, and the initrd is removed from memory.</para>
+
+</sect2>
+
+<sect2><title>Unmount the initrd image</title>
+<para>The contents of the initrd should now be complete and you can unmount it.</para>
+</sect2>
+
+<sect2><title>Compress the initrd image</title>
+<para>To conserve space, compress the initrd image:</para>
+<programlisting>gzip /boot/initrd-evms</programlisting>
+</sect2>
+
+</sect1>
+
+<sect1 id="setupbootloader"><title>Set up the boot loader</title>
+<para>In order to actually use the initrd at boot time, the boot-loader must know the location
+of the initrd so it can tell the kernel where to load it from.  There are also some other changes
+that the boot loader needs to know about in order to successfully mount your EVMS
+volume as the root file system.  The procedure is slightly different for LILO and GRUB, the
+two main boot loaders used with Linux.</para>
+
+<sect2><title>LILO procedure</title>
+<para>LILO uses the file <filename>/etc/lilo.conf</filename> as its configuration file.  Edit
+the file with a text editor.  If you have not already done so, add an image section
+for the kernel you will be using with EVMS.  The section should look something like this:</para>
+<programlisting>image = /boot/vmlinuz-2.4.20 # Replace with your kernel image
+  label = 2.4.20  #Any label you'd like to use
+  read-only
+  initrd = /boot/initrd-evms.gz  # The compressed initrd you just created
+  append = &quot;ramdisk=16384 root=/dev/evms/Root&quot;</programlisting>
+<para>The last line (beginning with &quot;append&quot;) in this section is very important.  The line specifies
+parameters that are passed to the kernel command line.  The &quot;ramdisk&quot; option
+overrides the default ramdisk size.  This value is in kilobytes and needs to be
+at least as big as the initrd image you created in step <xref linkend="createnewinitrd"/>.  Thus, if your initrd
+image is 20 MB, you need to set this value to 20 * 1024 = 20480.</para>
+<para>The &quot;root&quot; option in the &quot;append&quot; line is not only a parameter to the kernel
+but also an indicator to the <filename>linuxrc</filename> script (<xref linkend="writelinuxrc"/>) so it can determine the name of
+your root file system and use it to tell the kernel the actual root device after the
+volumes have been activated.  Obviously, you should set this option to the actual
+name of your root volume.</para>
+<para>After updating <filename>/etc/lilo.conf</filename>, run <command>lilo</command> to install the boot-loader.</para>
+</sect2>
+
+<sect2><title>GRUB procedure</title>
+<para>GRUB uses the file <filename>/boot/grub/menu.lst</filename> as its configuration file.
+Edit this file with a text editor.  If you have not already, add a menu item for the kernel
+you will be using with EVMS.  The menu item should look something like this:</para>
+<programlisting>title 2.4.20	# Any label you'd like to use
+  kernel (hd0,0)/vmlinuz-2.4.20 root=/dev/evms/Root ramdisk=16384
+	# Replace with the name of your kernel image.
+	# See the Grub documentation for which (hdx,y)
+	# value to use.
+  initrd (hd0,0)/initrd-evms.gz	# The compressed initrd image you just created</programlisting>
+<para>The extra information after the kernel image name is very important.
+These are parameters that are passed to the kernel command line.  
+The &quot;ramdisk&quot; option
+overrides the default ramdisk size.  This value is in kilobytes and needs to be
+at least as big as the initrd image you created in <xref linkend="createnewinitrd"/>.  Thus, if your initrd
+image is 20 MB, you need to set this value to 20 * 1024 = 20480.</para>
+<para>The &quot;root&quot; option in the &quot;kernel&quot; line is not only a parameter to the kernel
+but also an indicator to the <filename>linuxrc</filename> script (<xref linkend="writelinuxrc"/>) so it can determine the name of
+your root file system and use it to tell the kernel the actual root device after the
+volumes have been activated.  Obviously, you should set this option to the actual
+name of your root volume.</para>
+</sect2>
+
+</sect1>
+
+<sect1><title>Update the file system configuration</title>
+<para>Because the goal of creating the initrd is to use an EVMS volume as your
+root file system, you also need to update the <filename>fstab</filename> file.  Edit <filename>/etc/fstab</filename> with a text editor.
+There should be an entry in the file similar to the following:</para>
+<programlisting>/dev/evms/RootVolume   /   ext2  defaults   1   1</programlisting>
+<para>Replace <filename>RootVolume</filename> with the actual name of your root volume, and 
+<filename>ext2</filename> with
+the appropriate type for the root file system.</para>
+</sect1>
+
+<sect1><title>Reboot the system</title>
+<para>The kernel has been built with the appropriate support, the initrd image has
+been constructed, and the boot-loader has been configured.  You are now
+ready to reboot your system using your EVMS volume as the root file system.</para>
+<para>In general, you should still run <command>evms_activate</command> during your regular boot scripts.
+Even though the volumes will already be activated, running <command></command>evms_activate
+makes sure the device files in <filename>/dev/evms</filename> correctly reflect the device numbers
+assigned by Device Mapper.</para>
+</sect1>
+
+</appendix>

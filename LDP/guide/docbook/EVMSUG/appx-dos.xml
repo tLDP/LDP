@@ -1,0 +1,325 @@
+
+
+<appendix id="appxdos"><title>The DOS link plug-in</title>
+
+<para>The DOS plug-in is the most commonly used EVMS segment manager
+plug-in.  The DOS plug-in supports DOS disk partitioning as well as:</para>
+<itemizedlist>
+<listitem>
+<para>OS/2 partitions that require extra metadata sectors.</para>
+</listitem>
+<listitem>
+<para>Embedded partition tables: SolarisX86, BSD, and UnixWare.</para>
+</listitem>
+</itemizedlist>
+
+<para>The DOS plug-in reads metadata and constructs segment storage
+objects that provide mappings to disk partitions.
+</para>
+
+
+<sect1 id="DOShow"><title>How the DOS plug-in is implemented</title>
+<para>The DOS plug-in provides compatibility with DOS partition tables.
+The plug-in produces EVMS segment storage objects that map primary partitions
+described by the MBR partition table and logical partitions
+described by EBR partition tables.
+</para>
+
+<para>DOS partitions have names that are constructed from two pieces
+of information:</para>
+
+<itemizedlist>
+<listitem>
+<para>The device they are found on.</para>
+</listitem>
+<listitem>
+<para>The partition table entry that provided the information.</para>
+</listitem>
+</itemizedlist>
+
+<para>Take, for example, partition name <filename>hda1</filename>, which 
+describes a partition that is found on device <filename>hda</filename> 
+in the MBR partition table.
+DOS partition tables can hold four entries.
+Partition numbers 1-4 refer to MBR partition records.  Therefore, our
+example is telling us that partition <filename>hda1</filename> is described
+by the very first partition record entry in the MBR partition table.
+Logical partitions, however, are different than primary partitions.
+EBR partition tables are scattered across a disk but are linked together
+in a chain that is first located using an extended partition record found
+in the MBR partition table.
+Each EBR partition table contains a partition record that describes a logical
+partition on the disk.
+The name of the logical partition reflects its position in the EBR chain.
+Because the MBR partition table reserves numerical names 1-4, the very
+first logical partition is always named 5.
+The next logical partition, found by following the EBR chain, is called 6,
+and so forth.
+So, the partition <filename>hda5</filename> is a logical partition that is
+described by a partition record in the very first EBR partition table.
+</para>
+
+<para>While discovering DOS partitions, the DOS plug-in also looks for
+OS/2 DLAT metadata to further determine if the disk is an OS/2 disk.
+An OS/2 disk has additional metadata and the metadata is validated during
+recovery.
+This information is important for the DOS plug-in to know because an OS/2 
+disk must maintain additional partition information.  (This is why the 
+DOS plug-in asks, when being assigned to a disk, if the disk is a
+Linux disk or an OS/2 disk.)  The DOS plug-in needs to know how much
+information must be kept on the disk and what kind of questions it should
+ask the user when obtaining the information.
+</para>
+
+<para>
+An OS/2 disk can contain compatibility volumes as well as logical volumes.
+A compatibility volume is a single partition with an assigned drive
+letter that can be mounted.  An OS/2 logical volume is a drive link of 1
+or more partitions that have software bad-block relocation at the
+partition level.
+</para>
+
+<para>
+Embedded partitions, like those found on a SolarisX86 disk or a BSD
+compatibility disk, are found within a primary partition.
+Therefore, the DOS plug-in inspects primary partitions that it has
+just discovered to further determine if any embedded partitions exist.
+Primary partitions that hold embedded partition tables have partition
+type fields that indicate this. 
+For example, a primary partition of type 0xA9 probably has a BSD partition
+table that subdivides the primary partition into BSD partitions.
+The DOS plug-in looks for a BSD disk label and BSD data partitions in the
+primary partition.
+If the DOS plug-in finds a BSD disk label, it exports the BSD partitions.  Because
+this primary partition is actually just a container that holds the BSD
+partitions, and not a data partition itself, it is not exported by the
+DOS plug-in.
+Embedded partitions are named after the primary partition they were
+discovered within.  As an example, <filename>hda3.1</filename> is
+the name of the first embedded partition found within primary partition
+<filename>hda3</filename>.
+</para>
+</sect1>
+
+<sect1 id="assignDOS"><title>Assigning the DOS plug-in</title>
+<para>
+Assigning a segment manager to a disk means that you want the plug-in
+to manage partitions on the disk.
+In order to assign a segment manager to a disk, the plug-in needs to 
+create and maintain the appropriate metadata, which is accomplished
+through the "disk type" option.
+When you specify the "disk type" option and choose
+Linux or OS/2, the plug-in knows what sort of metadata it needs to keep
+and what sort of questions it should ask when creating partitions.
+</para>
+
+<para>
+An additional OS/2 option is the "disk name" option, by which you can 
+provide a name for the disk that will be saved in OS/2 metadata and that
+will be persistent across reboots.
+</para>
+</sect1>
+
+<sect1 id="creatingDOS"><title>Creating DOS partitions</title>
+<para>
+There are two basic DOS partition types:</para>
+
+<orderedlist>
+<listitem>
+<para>A primary partition, which is described by a partition record
+in the MBR partition table.</para>
+</listitem>
+<listitem>
+<para>A logical partition, which is described by a partition record
+in the EBR partition table.</para>
+</listitem>
+</orderedlist>
+
+<para>Every partition table has room for four partition records; however,
+there are a few rules that impose limits on this.
+</para>
+
+<para>
+An MBR partition table can hold four primary partition records unless you
+also have logical partitions.
+In this case, one partition record is used to describe an extended
+partition and the start of the EBR chain that in turn describes
+logical partitions.
+</para>
+
+<para>
+Because all logical partitions must reside in the extended partition, you
+cannot allocate room for a primary partition within the extended partition 
+and you
+cannot allocate room for a logical partition outside or adjacent to this area.
+</para>
+
+<para>
+Lastly, an EBR partition table performs two functions:</para>
+
+<orderedlist>
+<listitem>
+<para>It describes a logical partition and therefore uses a partition
+record for this purpose.</para>
+</listitem>
+<listitem>
+<para>It uses a partition record to locate the next EBR partition table.</para>
+</listitem>
+</orderedlist>
+<para>
+EBR partition tables use at most two entries.</para>
+
+<para>
+When creating a DOS partition, the options you are presented with depend
+on the kind of disk you are working with.  However, both OS/2 disks and
+Linux disks require that you choose a freespace segment on the disk
+within which to create the new data segment.  The create options are:</para>
+
+<variablelist>
+
+<varlistentry><term>size</term>
+<listitem>
+<para>The size of the partition you are creating.
+Any adjustments that are needed for alignment are performed by the
+DOS plug-in and the resulting size might differ slightly from the
+value you enter.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>offset</term>
+<listitem>
+<para>Lets you skip sectors and
+start the new partition within the freespace area by specifying a
+sector offset.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>type</term>
+<listitem>
+<para>Lets you enter a partition type or choose from a list of
+partition types; for example, native Linux.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>primary</term>
+<listitem>
+<para>Lets you  choose between creating a primary or logical partition.
+Due to the rules outlined above, you might or might not have a choice.
+The DOS plug-in can determine if a primary or logical partition can be
+created in the freespace area you chose and disable this choice.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>bootable</term>
+<listitem>
+<para>Lets you  enable the sys_ind flag field in a primary partition
+and disable it when creating a logical partition.
+The sys_ind flag field identifies the active primary partition for booting.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+Additional OS/2 options are the following:</para>
+
+<variablelist>
+
+<varlistentry><term>partition name</term>
+<listitem>
+<para>
+An OS/2 partition can have a name, like Fred or Part1.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>volume name</term>
+<listitem>
+<para>
+OS/2 partitions belong to volumes, either
+compatibility or logical, and volumes have names.  However, because
+the DOS plug-in is not a logical volume manager, it cannot actually
+create OS/2 logical volumes.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>drive letter</term>
+<listitem>
+<para>You can specify the drive letter for an OS/2 partition, but it
+is not a required field.  Valid drive letters are: C,D...Z.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+</sect1>
+
+<sect1 id="expandDOS"><title>Expanding DOS partitions</title>
+<para>
+A partition is a physically contiguous run of sectors on a disk.
+You can expand a partition by adding unallocated sectors to the initial
+run of sectors on the disk.  Because the partition must remain physically
+contiguous, a partition can only be expanded by growing into an unused
+area on the disk.
+These unused areas are exposed by the DOS plug-in as freespace segments.
+Therefore, a data segment is only expandable if a freespace segment
+immediately follows it.  Lastly, because a DOS partition must end on a
+cylinder boundary, DOS segments are expanded in
+cylinder size increments.  This means that if the DOS segment you want
+to expand is followed by a freespace segment, you might be unable to
+expand the DOS segment if the freespace segment is less than a cylinder
+in size.
+</para>
+<para>
+There is one expand option, as follows:</para>
+
+<variablelist>
+<varlistentry><term>size</term>
+<listitem>
+<para>
+This is the amount by which you want to expand the data segment.  The amount must
+be a multiple of the disk's cylinder size.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="shrinkDOS"><title>Shrinking DOS partitions</title>
+
+<para>
+A partition is shrunk when sectors are removed from the end of the
+partition.
+Because a partition must end on a cylinder boundary, a partition is
+shrunk by removing cylinder amounts from the end of the segment.</para>
+
+<para>
+There is one shrink option, as follows:</para>
+
+<variablelist>
+<varlistentry><term>size</term>
+<listitem>
+<para>The amount by which you want to reduce the size of the segment.
+Because a segment ends on a cylinder boundary, this value must be
+some multiple of the disk's cylinder size.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+</sect1>
+
+<sect1 id="deleteDOS"><title>Deleting partitions</title>
+
+<para>You can delete an existing DOS data segment as long as it is not
+currently a compatibility volume, an EVMS volume, or consumed by another
+EVMS plug-in.
+No options are available for deleting partitions.
+</para>
+</sect1>
+</appendix>

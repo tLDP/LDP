@@ -1,0 +1,199 @@
+
+
+
+<appendix id="appxsnap"><title>The LVM plug-in</title>
+
+<para>The LVM plug-in combines storage objects into groups called containers.
+From these containers, new storage objects can be created, with a variety of
+mappings to the consumed objects.  Containers allow the storage capacity of
+several objects to be combined, allow additional storage to be added in the future,
+and allow for easy resizing of the produced objects.</para>
+<sect1 id="lvmimp"><title>How LVM is implemented</title>
+<para>The Linux LVM plug-in is compatible with volumes and volume groups from
+the original Linux LVM tools from Sistina Software.  The original LVM is based on the
+concept of volume groups.  A volume group (VG) is a grouping of physical volumes 
+(PVs), which are usually disks or disk partitions.  The volume group is not directly
+usable as storage space; instead, it represents a pool of available storage.
+You create logical volumes (LVs) to use this storage.  The storage space of the LV can 
+map to one or more of the group's PVs.</para>
+<para>The Linux LVM concepts are represented by similar concepts in the EVMS LVM plug-in.
+A volume group is called a container, and the logical volumes that are produced are
+called regions.  The physical volumes can be disks, segments, or other regions.
+Just as in the original LVM, regions can map to the consumed objects in a variety of ways.</para>
+</sect1>
+
+<sect1 id="containerops"><title>Container operations</title>
+
+<sect2 id="createlvmconts"><title>Creating LVM containers</title>
+
+<para>Containers are created with an initial set of objects.  In the LVM plug-in, the
+objects can be disks, segments, or regions.  LVM has two options for creating containers.
+The value of these options cannot be changed after the container has been created.  The
+options are:</para>
+<variablelist>
+<varlistentry><term>name</term>
+<listitem><para>The name of the new container.</para></listitem>
+</varlistentry>
+
+<varlistentry><term>pe_size</term>
+<listitem><para>The physical extent (PE) size, which is the granularity with which regions can be created.  The default is 16 MB.  Each region must have a whole number of extents.  
+Also, each region can have only up to 65534 extents.  Thus, the PE size for the container
+limits the maximum size of a region in that container.  With the default PE size, an LVM
+region can be, at most 1 TB.  In addition, each object consumed by the container must
+be big enough to hold at least five extents.  Thus, the PE size cannot be arbitrarily large.  Choose wisely.</para></listitem>
+</varlistentry>
+
+</variablelist>
+</sect2>
+
+<sect2><title>Adding objects to LVM containers</title>
+<para>You can add objects to existing LVM containers in order to increase the pool of
+storage that is available for creating regions.  A single container can consume up to 256
+objects.  Because the name and PE size of the containers are set when the container is
+created, no options are available when you add new objects to a container.  Each object
+must be large enough to hold five physical extents.  If an object is not large enough to
+satisfy this requirement, the LVM plug-in will not allow the object to be added to the container.
+</para>
+</sect2>
+
+
+<sect2><title>Removing objects from LVM containers</title>
+<para>You can remove a consumed object from its container as long as no regions
+are mapped to that object.  The LVM plug-in does not allow objects that are in use to
+be removed their their container.  If an object must be removed, you can delete or
+shrink regions, or move extents, in order to free the object from use.</para>
+<para>No options are available for removing objects from LVM containers.</para>
+
+</sect2>
+
+<sect2><title>Deleting LVM containers</title>
+<para>You can delete a container as long as the container does not have any produced
+regions.  The LVM plug-in does not allow containers to be deleted if they have any
+regions.  No options are available for deleting LVM containers.</para>
+</sect2>
+</sect1>
+
+<sect1><title>Region operations</title>
+
+<sect2><title>Creating LVM regions</title>
+<para>You create LVM regions from the freespace in LVM containers.  If there is at least
+one extent of freespace in the container, you can create a new region.</para>
+<para>The following options are available for creating LVM regions:</para>
+
+<variablelist>
+<varlistentry><term>name</term>
+<listitem><para>The name of the new region.</para></listitem>
+</varlistentry>
+
+<varlistentry><term>extents</term>
+<listitem><para>The number of extents to allocate to the new region.  A new region must
+have at least one extent and no more than the total available free extents in the container,
+or 65534 (whichever is smaller).  If you use the <filename>extents</filename> option, the appropriate value
+for the size option is automatically calculated.  By default, a new region uses all
+available extents in the container.</para></listitem>
+</varlistentry>
+
+
+<varlistentry><term>size</term>
+<listitem><para>The size of the new region.  This size must be a multiple of the
+container's PE size.  If you use the <filename>size</filename> option, the appropriate value for the
+extents options is automatically calculated.  By default, a new region uses all
+available freespace in the container.</para>
+</listitem></varlistentry>
+
+<varlistentry><term>stripes</term>
+<listitem><para>If the container consumes two or more objects, and each object has
+unallocated extents, then the new region can be striped across multiple objects.
+This is similar to RAID-0 striping and achieves an increased amount of I/O
+throughput across multiple objects.  This option specifies how many objects the
+new region should be striped across.  By default, new regions are not striped, and
+this value is set to 1.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>stripe_size</term>
+<listitem><para>The granularity of striping.  The default value is 16 KB.  Use this option
+only if the <filename>stripes</filename> option is greater than 1.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>contiguous</term>
+<listitem><para>This option specifies that the new region must be allocated on a single
+object, and that the extents on that object must be physically contiguous.  By default,
+this is set to false, which allows regions to span objects.  This option cannot be used
+if the <filename>stripes</filename> option is greater than 1.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>pv_names</term>
+<listitem><para>A list of names of the objects the new region should map to.  By default,
+this list is empty, which means all available objects will be used to allocate space
+to the new region.</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+</sect2>
+
+<sect2><title>Expanding LVM regions</title>
+<para>You can expand an existing LVM region if there are unused extents in the
+container.  If a region is striped, you can expand it only by using free space on
+the objects it is striped across.  If a region was created with the contiguous option,
+you can only expand it if there is physically contiguous space following the
+currently allocated space.</para>
+<para>The following options are available for expanding LVM regions:</para>
+
+<variablelist>
+<varlistentry><term>add_extents</term>
+<listitem><para>The number of extents to add to the region.  If you specify this
+option, the appropriate value for the add_size option is automatically
+calculated.  By default, the region will expand to use all free extents in the
+container.</para></listitem>
+</varlistentry>
+
+<varlistentry><term>add_size</term>
+<listitem><para>The amount of space to add to the region.  If you specify this option,
+the appropriate value for the add_extents option is automatically calculated.
+By default, the region will expand to use all freespace in the container.</para></listitem>
+</varlistentry>
+
+<varlistentry><term>pv_names</term>
+<listitem><para>A list of names of the objects to allocate the additional space from.
+By default,  this list is empty, which means all available objects will be used to
+allocate new space to the region.</para></listitem>
+
+</varlistentry>
+</variablelist>
+</sect2>
+
+<sect2><title>Shrinking LVM regions</title>
+<para>You can shrink an existing LVM region by removing extents from the end of the
+region.  Regions must have at least one extent, so regions cannot be shrunk to zero.</para>
+<para>The following options are available when shrinking LVM regions.  Because regions
+are always shrunk by removing space from the end of the region, a list of objects
+cannot be specified in this command.</para>
+
+<variablelist>
+<varlistentry><term>remove_extents</term>
+<listitem><para>The number of extents to remove from the region.  If you specify this option,
+the appropriate value for the <filename>remove_size</filename> option is automatically calculated.  By
+default, one extent is removed from the region.</para>
+</listitem></varlistentry>
+
+<varlistentry><term>remove_size</term>
+<listitem><para>The amount of space to shrink the region by.  If you specify this option,
+the appropriate value for the <filename>remove_extents</filename> option is automatically calculated.</para></listitem>
+</varlistentry>
+
+</variablelist>
+</sect2>
+
+<sect2><title>Deleting LVM regions</title>
+<para>You can delete an existing LVM region as long as it is not currently a 
+compatibility volume, an EVMS volume, or consumed by another EVMS plug-in.
+No options are available for deleting LVM regions.</para>
+</sect2>
+
+</sect1>
+	      
+</appendix>
