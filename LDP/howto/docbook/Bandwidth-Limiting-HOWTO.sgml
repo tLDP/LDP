@@ -1,0 +1,518 @@
+<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+
+<article id="Bandwidth-Limiting-HOWTO">
+
+  <articleinfo>
+    <title>Bandwidth Limiting HOWTO</title>
+
+    <author>
+       <firstname>Tomasz</firstname>
+       <surname>Chmielewski</surname>
+       <affiliation>
+          <address><email>tch@writemail.com</email> </address>
+       </affiliation>
+    </author>
+
+    <revhistory>
+       <revision>
+         <revnumber>0.1</revnumber>
+         <date>2000-05-02</date>
+         <authorinitials>tc</authorinitials>
+         <revremark>
+           Initial release.
+         </revremark>
+       </revision>
+    </revhistory>
+
+    <abstract>
+       <para>This document describes how to set up your Linux server
+       to limit download bandwidth or incoming traffic and how to use
+       your internet link more efficiently.</para>
+    </abstract>
+  </articleinfo>
+
+<sect1 id="intro">
+<title>Introduction</title>
+<para>The purpose of this guide is to provide an easy solution for limiting incoming
+traffic, thus preventing our LAN
+users from consuming all the bandwidth of our internet link.</para>
+<para>This is useful when our internet link is slow or our LAN users
+download tons of mp3s and the newest Linux distro's *.iso files.</para>
+<sect2>
+<title>New versions of this document</title>
+<para>You can always view the latest version of this document on the World
+Wide Web at the 
+URL <ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+<para>New versions of this document will also be uploaded to various Linux
+WWW and FTP sites, including the LDP home page at
+<ulink url="http://www.linuxdoc.org">http://www.linuxdoc.org</ulink>.</para>
+</sect2>
+<sect2>
+<title>Disclaimer</title>
+<para>Neither the author nor the distributors, or any other contributor of
+this HOWTO are in any way responsible for physical, financial, moral or any
+other type of damage incurred by following the suggestions in this text.</para>
+</sect2>
+<sect2 id="copyright">
+<title>Copyright and License</title>
+<para>This document is copyright 2001 by Tomasz Chmielewski, and is 
+released under the terms of the GNU Free Documentation License,
+which is hereby incorporated by reference. </para>
+</sect2>
+<sect2>
+<title>Feedback and corrections</title>
+<para>If you have questions or comments about this document, please feel free
+to mail Tomasz Chmielewski at <ulink url="mailto:tch@writemail.com"><citetitle>tch@writemail.com</citetitle></ulink>. I welcome any suggestions
+or criticisms. If you find a mistake or a typo in this document (and you will
+find a lot of them, as English is not my native language), please let me know
+so I can correct it in the next version. Thanks.</para>
+</sect2>
+</sect1>
+
+<sect1 id="prep">
+<title>Before We Start</title>
+<para>Let's imagine the following situation:</para>
+<itemizedlist>
+<listitem><para>We have 115,2 kbits/s ppp (modem) internet link (115,2/10
+= 11,5 kbytes/s); yes, there are such types of connection! With eth connections
+(network card) we divide 115,2 by 8; with ppp we divide by 10, because
+of start/stop bits (8 + 1 + 1 = 10).</para>
+</listitem>
+<listitem><para>We have some LAN stations and their users are doing bulk downloads
+all the time.</para>
+</listitem>
+<listitem><para>We want web pages to open fast, no matter how
+many dowloads are happening.</para>
+</listitem>
+<listitem><para>Our internet interface is <command>ppp0</command>.</para>
+</listitem>
+<listitem><para>Our LAN interface is <command>eth0</command>.</para>
+</listitem>
+<listitem><para>Our network is 192.168.1.0/24</para>
+</listitem>
+</itemizedlist>
+<sect2>
+<title>What do we need</title>
+<para>Believe it or not, shaping the incoming traffic is an easy
+task and you don't have to read tons of books about routing or queuing algorithms.
+</para>
+<para>To make it work, we need at least Squid proxy; if we want to fine tune
+it, we will have to get familiar with ipchains or iptables and CBQ.</para>
+<para>To test our efforts, we can install IPTraf.</para>
+</sect2>
+<sect2>
+<title>How does it work?</title>
+<para>Squid is probably the most advanced HTTP proxy server available for Linux.
+It can help us save bandwidth in two ways:</para>
+<itemizedlist>
+<listitem><para>The first is a main characteristic of proxy servers -- they keep downloaded
+web pages, pictures, and other objects in memory or on a disk. So, if two people are 
+requesting the same web page, it isn't downloaded from the internet,
+but from the local proxy. </para>
+</listitem>
+<listitem><para>Apart from normal caching, Squid has a special feature called delay
+pools. Thanks to delay pools, it is possible to limit internet traffic in a
+reasonable way, depending on so-called 'magic words', existing in any given
+URL. For example, a magic word could be '.mp3', '.exe' or '.avi', etc.
+Any distinct part of a URL (such as .avi) can be defined as a magic word.</para>
+</listitem>
+</itemizedlist>
+<para>With that, we can tell the Squid to download these kinds of files at a
+specified speed (in our example, it will be about 5 kbytes/s). If our
+LAN users download files at the same time, they will be downloaded
+at about 5 kbytes/s altogether, leaving remaining bandwidth for web pages,
+e-mail, news, irc, etc.</para>
+<para>Of course, the Internet is not only used for downloading files via web
+pages (http or ftp). Later on, we will deal with limiting bandwidth for Napster,
+Realaudio, and other possibilities.</para>
+</sect2></sect1>
+
+<sect1 id="install">
+<title>Installing and Configuring Necessary Software</title>
+<para>Here, I will explain how to install the necessary software
+so that we can limit and test the bandwidth usage.</para>
+<sect2>
+<title>Installing Squid with the delay pools feature</title>
+<para>As I mentioned before, Squid has a feature called delay pools, which
+allows us to control download bandwidth. Unfortunately, in most distributions,
+Squid is shipped without that feature.</para>
+<para>So if you have Squid already installed, I must disappoint you -- you
+need to uninstall it and do it once again with delay pools enabled in the
+way I explain below. </para>
+<orderedlist>
+<listitem><para>To get maximum performance from our Squid proxy, it's best
+to create a separate partition for its cache, called /cache/. Its size should
+be about 300 megabytes, depending on our needs.</para>
+<para>If you don't know how to make a separate partition, you can create the 
+/cache/ directory on
+a main partition, but Squid performance can suffer a bit.</para>
+</listitem>
+<listitem><para>We add a safe 'squid' user:
+</para>
+<para><literal># useradd -d /cache/ -r -s /dev/null squid >/dev/null 2>&amp;1
+</literal></para>
+<para>No one can log in as squid, including root.
+</para>
+</listitem>
+<listitem><para>We download Squid sources from http://www.squid-cache.org
+</para>
+<para>When I was writing this HOWTO, the latest version was Squid 2.4 stable
+1:</para>
+<para><ulink url="http://www.squid-cache.org/Versions/v2/2.4/squid-2.4.STABLE1-src.tar.gz">
+http://www.squid-cache.org/Versions/v2/2.4/squid-2.4.STABLE1-src.tar.gz</ulink></para>
+</listitem>
+<listitem><para>We unpack everything to <literal>/var/tmp</literal>:</para>
+</listitem>
+<listitem><para><literal># tar xzpf squid-2.4.STABLE1-src.tar.gz</literal></para>
+</listitem>
+<listitem><para>We compile and install Squid (everthing is in one line):</para>
+<para><literal># ./configure --prefix=/opt/squid --exec-prefix=/opt/squid
+--enable-delay-pools --enable-cache-digests --enable-poll --disable-ident-lookups
+--enable-truncate --enable-removal-policies</literal></para>
+<para><literal># make all</literal></para>
+<para><literal># make install</literal></para>
+</listitem>
+</orderedlist>
+</sect2>
+<sect2>
+<title>Configuring Squid to use the delay pools feature</title>
+<orderedlist>
+<listitem><para>Configure our squid.conf file (located under /opt/squid/etc/squid.conf):
+</para>
+<programlisting>#squid.conf
+#Every option in this file is very well documented in the original squid.conf file
+#and on http://www.visolve.com/squidman/Configuration%20Guide.html
+
+#
+#The ports our Squid will listen on
+http_port 8080
+icp_port 3130
+#cgi-bins will not be cached
+acl QUERY urlpath_regex cgi-bin \?
+no_cache deny QUERY
+#Memory the Squid will use. Well, Squid will use far more than that.
+cache_mem 16 MB
+#250 means that Squid will use 250 megabytes of disk space
+cache_dir ufs /proxy 250 16 256
+redirect_rewrites_host_header off
+cache_replacement_policy GDSF
+acl localnet src 192.168.1.0/255.255.255.0
+acl localhost src 127.0.0.1/255.255.255.255
+acl Safe_ports port 80 443 210 119 70 21 1025-65535
+acl CONNECT method CONNECT
+acl all src 0.0.0.0/0.0.0.0
+http_access allow localnet
+http_access allow localhost
+http_access deny !Safe_ports
+http_access deny CONNECT
+http_access deny all
+maximum_object_size 3000 KB
+store_avg_object_size 50 KB
+ 
+#all our LAN users will be seen by external servers
+#as if they all use Mozilla on Linux :)
+anonymize_headers deny User-Agent
+fake_user_agent Mozilla/5.0 (X11; U; Linux 2.4.4 i686)
+ 
+#To make our connection even faster, we put a line similar
+#to the one below. Don't forget to change the server to your closest!
+#Measure pings, traceroutes and so on.
+#Make sure that http and icp ports are correct
+#cache_peer w3cache.icm.edu.pl parent 8080 3130 no-digest default
+ 
+#This is useful when we want to use the Cache Manager
+#copy cachemgr.cgi to cgi-bin of your www server
+cache_mgr your@email
+cachemgr_passwd secret_password all
+ 
+#This is a name of a user our Squid will work as
+cache_effective_user squid
+cache_effective_group squid
+ 
+log_icp_queries off
+buffered_logs on
+ 
+ 
+#####DELAY POOLS
+#This is the most important part for shaping incoming traffic with Squid
+#For detailed description see squid.conf file or docs at http://www.squid-cache.org
+ 
+#We don't want to limit downloads on our local network
+acl magic_words1 url_regex -i 192.168
+ 
+#We want to limit downloads of these type of files
+#Put this all in one line
+acl magic_words2 url_regex -i ftp .exe .mp3 .vqf .tar.gz .gz .rpm .zip .rar .avi .mpeg .mpe .mpg .qt
+.ram .rm .iso .raw .wav
+#We don't block .html, .gif, .jpg and similar files, because they
+#generally don't consume much bandwidth
+ 
+#We have two different delay_pools
+delay_pools 2
+ 
+#First delay pool
+#W don't want to delay our local traffic
+#There are three pool classes; here we will deal only with the second
+delay_class 1 2
+ 
+#-1/-1 mean that there are no limits
+delay_parameters 1 -1/-1 -1/-1
+ 
+#magic_words1: 192.168
+delay_access 1 allow magic_words1
+ 
+#Second delay pool
+#we want to delay downloading files mentioned in magic_words2
+delay_class 2 2
+ 
+#The numbers here are values in bytes;
+#we must remember that Squid doesn't consider start/stop bits
+#6000/150000 are values for the whole network
+#5000/150000 are values for the single IP
+#after downloaded files exceed about 150000 bytes,
+#they will continue to download at about 5000 bytes/s
+ 
+delay_parameters 2 6000/150000 5000/150000
+delay_access 2 allow magic_words2
+ 
+#EOF</programlisting>
+<para>OK, when we have configured everything, we must make sure everything under <filename>
+/opt/squid</filename> and <filename>/cache</filename> directories belongs
+to user 'squid'. </para>
+<para><command># chown -R squid:squid /opt/squid/</command></para>
+<para><command># chown -R squid:squid /cache/</command></para>
+<para>or</para>
+<para><command># chown -R squid.squid /opt/squid/</command></para>
+<para><command># chown -R squid.squid /cache/</command></para>
+<para>Now everything is ready to run Squid. When we do it for the first time,
+we have to create its cache directories: </para>
+<para><command># /opt/squid/usr/bin/squid -z</command></para>
+<para>We run Squid and check if everything is working. A good tool to do that
+is IPTraf; you can find it on <ulink url="http://freshmeat.net">http://freshmeat.net
+</ulink>. Make sure you have set the appropriate proxy in your web browsers (192.168.1.1,
+port 8080 in our example): </para>
+<para><command># /opt/squid/usr/bin/squid</command></para>
+<para>If everything is working, we add <filename>/opt/squid/usr/bin/squid
+</filename> line to the end of our initializing scripts. Usually, it can
+be <filename>/etc/rc.d/rc.local</filename>. </para>
+<para>Other helpful options in Squid may be:</para>
+<para><command># /opt/squid/usr/bin/squid -k reconfigure</command> (it reconfigures
+Squid if we made any changes in its squid.conf file)</para>
+<para><command># /opt/squid/usr/bin/squid -help</command> :) self-explanatory
+</para>
+<para>You can also copy <filename>cachemgr.cgi</filename> to the cgi-bin directory
+of your WWW server.</para>
+</listitem>
+</orderedlist>
+</sect2>
+<sect2>
+<title>Solving remaining problems</title>
+<para>OK, we have installed Squid and configured it to use delay pools. I
+bet nobody wants to be restricted, especially our clever LAN users. They will
+likely try to avoid our limitations, just to download their favourite mp3s
+a little faster (and thus causing your headache).</para>
+<para>I assume that you use IP-masquerade on your LAN so that your users
+can use IRC, ICQ, e-mail, etc. That's OK, but we must make
+sure that our LAN users will use our delay pooled Squid to access web pages
+and use <filename>ftp</filename>.</para>
+<para>We can solve most of these problems by using <filename>ipchains</filename> (Linux
+2.2.x kernels) or <filename>iptables</filename> (Linux 2.4.x kernels).</para>
+<sect3>
+<title>Linux 2.2.x kernels (ipchains)</title>
+<para>We must make sure that nobody will try to cheat and use a proxy
+server other than ours. Public proxies usually run on 3128 and 8080 ports:</para>
+<para><command>/sbin/ipchains -A input -s ! 192.168.1.1 -d ! 192.168.1.1 3128
+-p TCP -j REJECT</command></para>
+<para><command>/sbin/ipchains -A input -s ! 192.168.1.1 -d ! 192.168.1.1 8080
+-p TCP -j REJECT</command></para>
+<para>We must also make sure that nobody will try to cheat and connect to the
+internet directly (IP-masquerade) to download web pages:</para>
+<para><command>/sbin/ipchains -A input -s ! 192.168.1.1 -d ! 192.168.1.1 http
+-p TCP -j REDIRECT 8080</command></para>
+<para><command>/sbin/ipchains -A input -s ! 192.168.1.1 -d ! 192.168.1.1 https
+-p TCP -j REDIRECT 8080</command></para>
+<para>If everything is working, we add these lines to the end of our initializing
+scripts. Usually, it can be <literal>/etc/rc.d/rc.local</literal>.</para>
+<para>We might think to block <filename>ftp</filename> traffic (ports
+20 and 21) to force our LAN users to use Squid, but it's not a good idea
+for at least two reasons:</para>
+<itemizedlist>
+<listitem><para>Squid is a http proxy with <filename>ftp</filename> support,
+not a real <filename>ftp</filename> proxy. It can download from <filename>
+ftp</filename>, it can also upload to some <filename>ftp</filename>, but it
+can't delete/change name of files on remote <filename>ftp</filename> servers.
+</para>
+<para>When we block ports 20 and 21, we won't be able to delete/change name
+of files on remote <filename>ftp</filename> servers.</para>
+</listitem>
+<listitem><para>IE5.5 has a bug (at least mine has) -- it doesn't use a proxy
+to retrieve the <filename>ftp</filename> directory. Instead it connects directly
+via IP-masquerade.</para>
+<para>When we block ports 20 and 21, we won't be able to browse through <filename>
+ftp</filename> directories, using IE5.5.</para>
+</listitem>
+</itemizedlist>
+<para>So, we will block excessive <filename>ftp</filename>
+downloads using other methods. We will deal with it in chapter 4.</para>
+</sect3>
+<sect3>
+<title>Linux 2.4.x kernels (iptables)</title>
+<para>FIXME: Unfortunately, I don't know much about IP-tables, please help
+:(((</para>
+</sect3></sect2></sect1>
+
+<sect1 id="cbq">
+<title>Dealing with Other Bandwidth-consuming Protocols Using CBQ</title>
+<para>We must remember that our LAN users can spoil our efforts from chapter
+3, if they use Napster or Realaudio. We must also remember that we didn't
+block <filename>ftp</filename> traffic in section 3.3.</para>
+<para>We will achieve it in a different way -- not by limiting downloading directly,
+but rather, indirectly. If our internet device is <literal>ppp0</literal>
+and LAN device is <literal>eth0</literal>, we will limit outgoing traffic
+on interface <literal>eth0</literal>, and thus, limit incoming traffic to <literal>
+ppp0</literal>.</para>
+<para>To do it, we will get familiar with CBQ and <filename>cbq.init</filename>
+script. You can obtain it from <ulink url="ftp://ftp.equinox.gu.net/pub/linux/cbq/">
+ftp://ftp.equinox.gu.net/pub/linux/cbq/</ulink>. Download <filename>cbq.init-v0.6.2
+</filename> and put it in<filename> /etc/rc.d/</filename>.</para>
+<para>You will also need <filename>iproute2</filename> installed. It comes
+with every Linux distribution.</para>
+<para>Now look in your <filename>/etc/sysconfig/cbq/</filename> directory.
+There, you should have an example file, which should work with <filename>cbq.init
+</filename>. If it isn't there, you probably don't have it compiled in your
+kernel.</para>
+<sect2>
+<title>FTP</title>
+<para>In chapter 3, we didn't block ftp for two reasons -- so that we could do uploads, 
+and so
+that users with buggy IE5.5 could browse through <filename>ftp</filename>
+directories. In all, our web browsers and <filename>ftp</filename> programs
+should make downloads via our Squid proxy and <filename>ftp</filename> uploads/renaming/deleting
+should be made via IP-masquerade.</para>
+<para>We create a file called <filename>cbq-10.ftp-network</filename> in the <filename>
+/etc/sysconfig/cbq/</filename> directory:</para>
+<para><command># touch /etc/sysconfig/cbq/cbq-10.ftp-network</command></para>
+<para>We insert the following lines into it:</para>
+<programlisting>DEVICE=eth0,10Mbit,1Mbit
+RATE=10Kbit
+WEIGHT=1Kbit
+PRIO=5
+RULE=:20,192.168.1.0/24
+RULE=:21,192.168.1.0/24</programlisting>
+<para>You will find the description of thses lines in <filename>cbq.init-v0.6.2 file
+</filename>.</para>
+<para>When you start <filename>/etc/rc.d/cbq.init-v.0.6.2</filename> script,
+it will read your configuration, which is in <filename>/etc/sysconfig/cbq/</filename>:
+</para>
+<para><command># /etc/rc.d/cbq.init-v.0.6.2 start</command></para>
+<para>If everything is working, we add <filename>/etc/rc.d/cbq.init-v.0.6.2 start
+</filename> to the end of your initializing scripts. Usually, it can
+be <filename>/etc/rc.d/rc.local</filename>.</para>
+<para>Thanks to this command, your server will not send <filename>ftp</filename> data
+through <filename>eth0</filename> faster than 10kbits/s, and thus will not
+download <filename>ftp</filename> data faster than 10kbits/s. Your LAN users
+will see that it's more efficient to use Squid proxy for doing <filename>
+ftp</filename> downloads. They will be also able to browse <filename>ftp</filename>
+directories using their buggy IE5.5.</para>
+<para>There is also another bug in IE5.5 - when you right click on a file
+in a <filename>ftp</filename> directory then select 'Copy To Folder',
+the file is downloaded not through proxy, but directly through IP-masquerade,
+thus omitting Squid with delay pools.</para>
+</sect2>
+<sect2>
+<title>Napster, Realaudio, Windows Media and other issues</title>
+<para>Here, the idea is the same as with <filename>ftp</filename>; we just
+add another port and set a different speed.</para>
+<para>We create file called <filename>cbq-50.napster-network</filename> in the <filename>
+/etc/sysconfig/cbq/</filename> directory:</para>
+<para><command># touch /etc/sysconfig/cbq/cbq-50.napsterandlive</command></para>
+<para>Put these lines into that file:</para>
+<programlisting>DEVICE=eth0,10Mbit,1Mbit
+RATE=50Kbit
+WEIGHT=5Kbit
+PRIO=5
+#Windows Media Player
+RULE=:1755,192.168.1.0/24
+#Real Player uses TCP port 554 or UDP ports near 3369, I don't know exactly
+RULE=:554,192.168.1.0/24
+RULE=:3360,192.169.1.0/24:3380
+#Napster uses ports 6699 and 6700, maybe some other?
+RULE=:6699,192.168.1.0/24:6799
+#Add any other ports you want; you can easily check
+#ports that programs use with IPTraf
+#RULE=:from_port,192.168.1.0/24:to_port
+
+</programlisting>
+</sect2></sect1>
+
+<sect1 id="faq">
+<title>Frequently Asked Questions</title>
+<sect2>
+<title>Is it possible to limit bandwidth on a per-user basis with delay pools?
+</title>
+<para>Yes. Look inside the original <filename>squid.conf</filename> file and
+check the Squid documentation on <ulink url="http://www.squid-cache.org">http://www.squid-cache.org
+</ulink></para>
+</sect2>
+<sect2>
+<title>Is it possible to limit bandwidth on a per-user basis with <command>
+cbq.init</command> script?</title>
+<para>Yes. Look inside this script; there are some examples.</para>
+</sect2>
+<sect2>
+<title>Delay pools are stupid; why can't I download something at full speed
+when the network is used only by me?</title>
+<para>Unfortunately, you can't do much about it.</para>
+<para>The only thing you can do is to use <command>cron</command> and reconfigure
+it, for example, at 1.00 am, so that Squid won't use delay pools, then reconfigure
+it again, let's say at 7.30 am, to use delay pools.</para>
+</sect2>
+<sect2>
+<title>CBQ is stupi; why can't I download something at full speed when the
+network is used only be me?</title>
+<para>Lucky you, it's possible!</para>
+<para>There are to ways to achieve it.</para>
+<para>The first is the easy one, similar to the solution we made with Squid. To
+do that, just look inside the <command>cbq.init</command><?Pub Caret> script.
+</para>
+<para>The second way is harder, but more intelligent. You can read about it in the Linux
+2.4 Advanced Routing HOWTO.</para>
+</sect2></sect1>
+
+<sect1 id="misc">
+<title>Miscellaneous</title>
+<sect2>
+<title>Useful resources</title>
+<para>Squid Web Proxy Cache</para>
+<para><ulink url="http://www.squid-cache.org">http://www.squid-cache.org</ulink></para>
+<para>Squid 2.4 Stable 1 Configuration manual</para>
+<para><ulink url="http://www.visolve.com/squidman/Configuration%20Guide.html">
+http://www.visolve.com/squidman/Configuration%20Guide.html</ulink></para>
+<para><ulink url="http://www.visolve.com/squidman/Delaypool%20parameters.htm">
+http://www.visolve.com/squidman/Delaypool%20parameters.htm</ulink></para>
+<para>Squid FAQ</para>
+<para><ulink url="http://www.squid-cache.org/Doc/FAQ/FAQ-19.html#ss19.8">
+http://www.squid-cache.org/Doc/FAQ/FAQ-19.html#ss19.8</ulink></para>
+<para>cbq-init script</para>
+<para><ulink url="ftp://ftp.equinox.gu.net/pub/linux/cbq/">ftp://ftp.equinox.gu.net/pub/linux/cbq/
+</ulink></para>
+<para>Linux 2.4 Advanced Routing HOWTO</para>
+<para><ulink url="http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html">
+http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html
+</ulink></para>
+<para>Traffic control (in Polish)</para>
+<para><ulink url="http://ceti.pl/~kravietz/cbq/">http://ceti.pl/~kravietz/cbq/
+</ulink></para>
+<para>Securing and Optimizing Linux Red Hat Edition - A Hands on Guide</para>
+<para><ulink url="http://www.linuxdoc.org/guides.html">http://www.linuxdoc.org/guides.html
+</ulink></para>
+<para>IPTraf</para>
+<para><ulink url="http://cebu.mozcom.com/riker/iptraf/">http://cebu.mozcom.com/riker/iptraf/
+</ulink></para>
+<para>IPCHAINS</para>
+<para><ulink url="http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.html">
+http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.html
+</ulink></para>
+</sect2>
+</sect1>
+</article>
