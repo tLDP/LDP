@@ -2,7 +2,7 @@
 <article>
 <title>Large Disk HOWTO
 <author>Andries Brouwer, <tt/aeb@cwi.nl/
-<date>v2.2u, 12 March 2001
+<date>v2.2x, 30 Aug 2001
 
 
 <abstract>
@@ -86,6 +86,8 @@ configuration file <tt>/etc/lilo.conf</tt>.
 If you have a recent LILO (version 21.4 or later),
 the keyword <tt>lba32</tt> will usually allow booting from
 anywhere on the disk, that is, the 1024 cylinder limit is gone.
+(Of course, LILO is a bit fragile, and the use of a different
+bootloader might be more convenient.)
 
 There may be geometry problems that can be solved by giving
 an explicit geometry to kernel/LILO/fdisk.
@@ -518,7 +520,70 @@ have a Linux-only disk. Be careful when the disk is shared with DOS.
 Use the commands <tt>cfdisk -Ps /dev/hdx</tt> and <tt>cfdisk -Pt /dev/hdx</tt>
 to look at the partition table of <tt>/dev/hdx</tt>.
 
+<sect1>The last cylinder<p>
+Many old IBM PS/2 systems used disks with a defect map written
+to the end of the disk. (Bit 0x20 in the control word of the
+<htmlurl name="disk parameter table"
+url="http://www.win.tue.nl/~aeb/linux/hdtypes/hdtypes-2.html"> is set.)
+Therefore, FDISK would not use the last cylinder. Just to be sure, the BIOS
+often already reports the size of the disk as one cylinder smaller than
+reality, and that may mean that two cylinders are lost.
+Newer BIOSes have several disk size reporting functions, where internally
+one calls the other. When both subtract 1 for this reserved cylinder and
+also FDISK does so, then one may lose three cylinders.
+These days all of this is irrelevant, but this may provide an explanation
+if one observes that different utilities have slightly different opinions
+about the disk size.
 
+<sect1>Cylinder boundaries<p>
+A well-known claim says that partitions should start and end
+at cylinder boundaries.
+<p>
+Since "disk geometry" is something without objective existence,
+different operating systems will invent different geometries
+for the same disk. One often sees a translated geometry like */255/63
+used by one and an untranslated geometry like */16/63 used by another OS.
+Thus, it may be impossible to align partitions to cylinder boundaries
+according to each of the the various ideas about the size of a cylinder
+that one's systems have. Also different Linux kernels may assign
+different geometries to the same disk.
+Also, enabling or disabling the BIOS of a SCSI card may change the
+fake geometry of the connected SCSI disks.
+<p>
+Fortunately, for Linux there is no alignment requirement at all.
+(Except that some semi-broken installation software likes to be very sure
+that all is OK; thus, it may be impossible to install RedHat 7.1
+on a disk with unaligned partitions because DiskDruid is unhappy.)
+<p>
+People report that it is easy to create nonaligned partitions
+in Windows NT, without any noticeable bad effects.
+<p>
+But MSDOS 6.22 has an alignment requirement. Extended partition sectors
+that are not on a cylinder boundary are ignored by its FDISK.
+The system itself is happy with any alignment, but interprets
+relative starting addresses as if relative to an aligned address:
+The starting address of a logical partition is given relative not
+to the address of the extended partition sector that describes it,
+but relative to the start of the cylinder that contains that sector.
+(So, it is not surprising that also PartitionMagic requires alignment.)
+<p>
+What is the definition of alignment?
+MSDOS 6.22 FDISK will do the following:
+1. If the first sector of the cylinder is a partition
+table sector, then the rest of the track is unused,
+and the partition starts with the the next track.
+This applies to sector 0 (the MBR) and the partition table sectors
+preceding logical partitions.
+2. Otherwise, the partition starts at the first sector of the
+cylinder. Also the extended partition starts at a cylinder boundary.
+The <tt>cfdisk</tt> man page says that old versions of DOS did not
+align partitions.
+<p>
+Use of partition type 85 for the extended partition makes it invisible
+to DOS, making sure that only Linux will look inside.
+<p>
+As an aside: on a Sparc, the boot partition must start on a cylinder
+boundary (but there is no requirement on the end).
 
 <sect>
 Translation and Disk Managers
@@ -1132,6 +1197,7 @@ on big disks. The usual solution is to keep the disk entirely
 out of the BIOS setup. But this may be feasible only if the
 disk is not your boot disk.
 <p>
+<sect2>Clip to 2.1 GB<p>
 The first serious limit was the 4096 cylinder limit (that is,
 with 16 heads and 63 sectors/track, 2.11 GB).
 For example, a Fujitsu MPB3032ATU 3.24 GB disk has default geometry
@@ -1147,7 +1213,9 @@ and then report a clipped geometry like 4092/16/63 or 4096/16/63, but still
 report full LBAcapacity. Such disks will work well, and use full capacity
 under Linux, regardless of jumper settings.
 <p>
+<sect2>Clip to 33 GB
 <label id="jumperbig">
+<p>
 A more recent limit is <ref id="verylarge" name="the 33.8 GB limit">.
 Linux kernels older than 2.2.14 / 2.3.21 need a patch to be able to cope with
 IDE disks larger than this.
@@ -1166,6 +1234,7 @@ as a 33.8 GB disk, and then reports geometry 16383/16/63 like any big disk,
 but LBAcapacity 66055248 (corresponding to 65531/16/63, or 4111/255/63).
 Similar things hold for recent large Maxtor disks.
 <p>
+<sect3>Maxtor<p>
 With the jumper present, both the geometry (16383/16/63) and the size
 (66055248) are conventional and give no information about the actual size.
 Moreover, attempts to access sector 66055248 and above yield I/O errors.
@@ -1188,7 +1257,9 @@ On recent Maxtor drives the call <tt>setmax -d 0 /dev/hdX</tt> will
 give you max capacity again. However, on slightly older drives a
 firmware bug does not allow you to use <tt>-d 0</tt>, and
 <tt>setmax -d 255 /dev/hdX</tt> returns you to almost full capacity.
+For Maxtor D540X-4K, see below.
 <p>
+<sect3>IBM<p>
 For IBM things are worse: the jumper really clips capacity
 and there is no software way to get it back. The solution is
 not to use the jumper but use <tt>setmax -m 66055248 /dev/hdX</tt>
@@ -1201,6 +1272,25 @@ you go back to the first machine and are in the same situation as
 with jumpered Maxtor disks: booting works, and after getting past
 the BIOS either a patched kernel or a <tt>setmax -d 0</tt>
 gets you full capacity.
+<p>
+<sect3>Maxtor D540X-4K<p>
+The Maxtor Diamond Max drives 4K080H4, 4K060H3, 4K040H2 (aka D540X-4K)
+are identical to the drives 4D080H4, 4D060H3, 4D040H2 (aka D540X-4D),
+except that the jumper settings differ. A Maxtor FAQ specifies the
+Master/Slave/CableSelect settings for them, but the capacity clip jumper
+for the "4K" drives seems to be undocumented. Nils Ohlmeier reports that
+he experimentally finds that it is the J42 jumper ("reserved for
+factory use") closest to the power connector.
+(The "4D" drives use the J46 jumper, like all other Maxtor drives.)
+<p>
+However, it may be that this undocumented jumper acts like the IBM jumper:
+the machine boots correctly, but the disk has been clipped to 33 GB
+and <tt>setmax -d 0</tt> does not help to get full capacity back.
+And the IBM solution works: do not use any disk-clipping jumpers, but
+first put the disk in a machine with non-broken BIOS, soft-clip it
+with <tt>setmax -m 66055248 /dev/hdX</tt>, then put it back in the
+first machine, and after booting run <tt>setmax -d 0 /dev/hdX</tt>
+to get full capacity again.
 
 <sect>
 The Linux 65535 cylinder limit
@@ -1213,6 +1303,10 @@ Once one recognizes what the problem is, it is easily avoided.
 <sect1>
 IDE problems with 34+ GB disks
 <label id="verylarge">
+<p>
+(Below a discussion of Linux kernel problems. BIOS problems
+and jumpers that clip capacity were discussed
+<ref id="jumperbig" name="above">.)
 <p>
 Drives larger than 33.8 GB will not work with kernels older than
 2.2.14 / 2.3.21.
@@ -1443,4 +1537,3 @@ On the other hand, this filesystem can have at most 1024000 files
 (more than enough), against 4096000 (too much) earlier. 
 
 </article>
-
