@@ -1,14 +1,16 @@
 <!doctype linuxdoc system>
-
 <article>
 <title>The Linux Serial HOWTO
 <author>David S.Lawyer  
   <tt><htmlurl url="mailto:dave@lafn.org" name="dave@lafn.org"></tt>
   original by Greg Hankins 
-<date>v2.06, 2 March 2000
+
+<date> v2.07 May 2000 
 
 <!--  Change log:
-v2.06 more on multiport, not 3-3 for null modem, butter -> buffer,
+v2.07 Apr. locking methods, clarity re uart protocol, sticky parity
+v2.06 2 March 2000 more on multiport, not 3-3 for null modem, 
+ butter -> buffer,
 v2.05 Vern's & my url, ref to multiport modem cards
 v2.04 duplicate info removed from setserial
 v2.03 ttyS minor is 4, not 5
@@ -39,19 +41,20 @@ v1.12 July 1998: reissue of old doc (v1.11).  Added more info on Winmodems.
 
 <p> This HOWTO covers basic info on the Serial Port and multiport
 serial cards.  Information specific to modems and text-terminals has
-been moved to Modem-HOWTO and Text-Terminal-HOWTO.  Info on getty has
-been also moved to these HOWTOs since mgetty and uugetty are best for
-modems while agetty is best for text-terminals.  If you are dealing
-with a modem, text terminal, or printer, then you may not need to
-consult this HOWTO.  But if you are using the serial port for some
-other device, using a multiport serial card, trouble-shooting the
-serial port itself, or want to understand more technical details of
-the serial port, then you may want to use this HOWTO as well as some
-of the other HOWTOs.  (See <ref id="related_howtos" name="Related
-HOWTO's">)  This HOWTO lists info on various multiport serial cards
-since they may be used for either modems or text-terminals.  This
-HOWTO addresses Linux running on Intel x86 hardware, although it might
-be valid for other architectures.
+been moved to Modem-HOWTO and Text-Terminal-HOWTO.  Info on getty (the
+program that runs the login process or the like) has been also moved
+to these HOWTOs since mgetty and uugetty are best for modems while
+agetty is best for text-terminals.  If you are dealing with a modem,
+text terminal, or printer, then you may not need to consult this
+HOWTO.  But if you are using the serial port for some other device,
+using a multiport serial card, trouble-shooting the serial port
+itself, or want to understand more technical details of the serial
+port, then you may want to use this HOWTO as well as some of the other
+HOWTOs.  (See <ref id="related_howtos" name="Related HOWTO's">)  This
+HOWTO lists info on various multiport serial cards since they may be
+used for either modems or text-terminals.  This HOWTO addresses Linux
+running on Intel x86 hardware, although it might be valid for other
+architectures.
 
 <sect1> Copyright, Disclaimer, & Credits
 <sect2>Copyright
@@ -86,6 +89,10 @@ current maintainer.
 likely a number of errors in this document.  Please let me know about
 them.  Since this is free documentation, it should be obvious that I
 cannot be held legally responsible for any errors.
+
+<sect2>Trademarks.
+<p> Any brand names (starts with a capital letter) should be assumed to
+be a trademark).  Such trademarks belong to their respective owners.
 <!-- copyright.H end -->
 
 
@@ -123,7 +130,8 @@ sites see: <url url="http://metalab.unc.edu/LDP/mirrors.html">.
 Various formats are available.  If you only want to quickly check the
 date of the latest version look at <url
 url="http://metalab.unc.edu/LDP/HOWTO/Serial-HOWTO.html"> and compare
-it to this version: v2.05, 1 January 2000
+it to this version: v2.07 May 2000 .  New in this version is: locking methods, clarity re uart protocol,
+ sticky parity. 
 
 <sect1> Related HOWTO's re the Serial Port <label id="related_howtos">
 <p> Modems, Text-Terminals, some printers, and other peripherals often
@@ -178,18 +186,22 @@ built-in serial port so when you install one inside your PC it's as if
 you just installed another serial port in your PC.
 
 <sect> How the Hardware Transfers Bytes <label id="how_hdw_xfers">
+
+<p> Below is an introduction to the topic, but for a more advance
+treatment of it see <ref id="fifo_" name="FIFOs">.
+
 <sect1> Transmitting 
 <p> Transmitting is sending bytes out of the serial port away from the
-computer.  The first explanation given here will be grossly
-oversimplified.  Then more detail will be added in later explanations.
-When the computer wants to send a byte out the serial port the CPU
-sends the byte on the bus inside the computer to the I/O address of
-the serial port.  The serial port takes the byte, and sends it out one
-bit at a time (a serial bit-stream) on the transmit pin of the serial
-connector.  For what a bit (and byte) look like electrically see <ref
-id="volt_shape" name="Voltage Waveshapes">.  Everything in this
-section is about transmission of bytes (and not about reception which
-uses another set of hardware inside the serial port).
+computer.  Once you understand transmitting, receiving is easy to
+understand since it's similar.  The first explanation given here will
+be grossly oversimplified.  Then more detail will be added in later
+explanations.  When the computer wants to send a byte out the serial
+port (to the external cable) the CPU sends the byte on the bus inside
+the computer to the I/O address of the serial port.  The serial port
+takes the byte, and sends it out one bit at a time (a serial
+bit-stream) on the transmit pin of the serial cable connector.  For what a
+bit (and byte) look like electrically see <ref id="volt_shape"
+name="Voltage Waveshapes">.
 
 Here's a replay of the above in a little more detail (but still very
 incomplete).  Most of the work at the serial port is done by the UART
@@ -198,19 +210,18 @@ program (running on the CPU) sends a byte to the serial port"s I/O
 address.  This byte gets into a 1-byte "transmit shift register" in
 the serial port.  From this shift register bits are taken from the
 byte one-by-one and sent out bit-by-bit on the serial line.  Then when
-the last bit has been sent the shift register needs another byte to
-send it could ask the CPU to send it another byte.  Thus would be
-simple but it would likely introduce delays since the CPU might not be
-able to get the byte immediately.  After all, the CPU is usually doing
-other things besides just handling the serial port.  
+the last bit has been sent and the shift register needs another byte
+to send it could just ask the CPU to send it another byte.  Thus would
+be simple but it would likely introduce delays since the CPU might not
+be able to get the byte immediately.  After all, the CPU is usually
+doing other things besides just handling the serial port.  
 
-A way to eliminate delays of getting a byte into the shift register is
-to arrange things so that the CPU gets the byte before the shift
-register needs it and stores it in a serial port buffer (in hardware).
-Then when the shift register has sent out its byte and needs a new
-byte immediately, the serial port hardware just transfers the next
-byte from its own buffer to the shift register.  No need to call the
-CPU to do this.
+A way to eliminate such delays is to arrange things so that the CPU
+gets the byte before the shift register needs it and stores it in a
+serial port buffer (in hardware).  Then when the shift register has
+sent out its byte and needs a new byte immediately, the serial port
+hardware just transfers the next byte from its own buffer to the shift
+register.  No need to call the CPU to fetch a new byte.
 
 The size of this serial port buffer was originally only one byte, but
 today it is usually 16 bytes (more in higher priced serial ports).
@@ -219,15 +230,16 @@ supplied with bytes so that when the shift register needs a byte to
 transmit it will always find one there (unless there are no more bytes
 to send).  This is done by contacting the CPU using an interrupt.  
 
-For the old fashioned one-byte buffer it works like this.  When the
+First we'll explain the case of the old fashioned one-byte buffer,
+since 16-byte buffers work similarly (but are more complex).  When the
 shift register grabs the byte out of the buffer and the buffer needs
 another byte, it sends an interrupt to the CPU by putting a voltage on
 a dedicated wire on the computer bus.  Unless the CPU is doing
 something very important, the interrupt forces it to stop what it was
 doing and start running a program which will supply another byte to
-the port's buffer.  Thus the purpose of this buffer is to keep a ready
-supply of bytes (waiting to be sent) queued in hardware so that there
-will be no gaps in transmission of bytes out the serial port.
+the port's buffer.  The purpose of this buffer is to keep an extra
+byte (waiting to be sent) queued in hardware so that there will be no
+gaps in the transmission of bytes out the serial port cable.
 
 Once the CPU gets the interrupt, it will know who sent the interrupt
 since there is a dedicated interrupt wire for each serial port (unless
@@ -237,30 +249,31 @@ has happened.  It finds out that the serial's transmit buffer is empty
 and waiting for another byte.  So if there are more bytes to send, it
 sends the next byte to the serial port's I/0 address.  This next byte
 should arrive when the previous byte is still in the transmit shift
-register and still being transmitted bit-by-bit.  
+register and is still being transmitted bit-by-bit.  
 
 In review, when a byte has been fully transmitted out the transmit
 wire of the serial port and the shift register is now empty the
 following 3 things happen almost simultaneously:
 
 <enum> 
-<item> Another new byte is moved from the transmit buffer into
+<item> The next byte is moved from the transmit buffer into
 the transmit shift register 
 <item> The transmission of this new byte (bit-by-bit) begins
 <item> Another interrupt is issued to tell the device driver to send 
-another byte to the now empty transmit buffer
+yet another byte to the now empty transmit buffer
 </enum>
 
-We say that the serial port is interrupt driven.  Each time the serial
-port issues an interrupt, the CPU sends it another byte.  Once a byte
-has been sent to the transmit buffer by the CPU, then the CPU is free
-to pursue some other activity until it gets the next interrupt.  The
-serial port transmits bits at a fixed rate which is selected by the
-user (or an application program).  It's sometimes called the baud
-rate.  The serial port also adds extra bits to each byte (start, stop
-and perhaps parity bits) so there are often 10 bits sent per byte.
-At a rate (also called speed) of 19,200 bits per second (bps), there
-are thus 1,920 bytes/sec (and also 1,920 interrupts/sec).
+Thus we say that the serial port is interrupt driven.  Each time the
+serial port issues an interrupt, the CPU sends it another byte.  Once
+a byte has been sent to the transmit buffer by the CPU, then the CPU
+is free to pursue some other activity until it gets the next
+interrupt.  The serial port transmits bits at a fixed rate which is
+selected by the user (or an application program).  It's sometimes
+called the baud rate.  The serial port also adds extra bits to each
+byte (start, stop and perhaps parity bits) so there are often 10 bits
+sent per byte.  At a rate (also called speed) of 19,200 bits per
+second (bps), there are thus 1,920 bytes/sec (and also 1,920
+interrupts/sec).
 
 Doing all this is a lot of work for the CPU.  This is true for many
 reasons.  First, just sending one 8-bit byte at a time over a 32-bit
@@ -273,43 +286,45 @@ various checks to find out what happened.  The same interrupt could
 mean that a character was received, one of the control lines changed
 state, etc.
 
-One improvement has been the enlargement of the buffer size of the
-serial port.  Most serial ports today have 16-byte buffers instead of
-just 1-byte buffers.  This means that when the CPU gets an interrupt
-it gives the serial port up to 16 new bytes to transmit.  This is
-fewer interrupts to service but data must still be transferred one
-byte at a time over a wide bus.  The 16-byte buffer is actually a FIFO
-(First In First Out) queue.  For a repetition of some of the above
-plus a few more details see <ref id="fifo_" name="FIFOs">.
+A major improvement has been the enlargement of the buffer size of the
+serial port from 1-byte to 16-bytes.  This means that when the CPU
+gets an interrupt it gives the serial port up to 16 new bytes to
+transmit.  This is fewer interrupts to service but data must still be
+transferred one byte at a time over a wide bus.  The 16-byte buffer is
+actually a FIFO (First In First Out) queue and is often called a FIFO.
+See <ref id="fifo_" name="FIFOs"> for details about the FIFO along
+with a repeat of some of the above info.
 
 <sect1> Receiving
 <p> Receiving bytes by a serial port is similar to sending them only
 it's in the opposite direction.  It's also interrupt driven.  For the
-obsolete type of serial port with 1-byte buffers, when a byte is
-fully received it goes into the 1-byte receive buffer.  Then the port
-gives the CPU an interrupt to tell it to pick up that byte so that the
-serial port will have room for storing the byte which is currently
-being received.  For newer serial ports with 16-byte buffers, this
-interrupt (to fetch the bytes) may be sent after 14 bytes are in the
-receive buffer.  The CPU then stops what it was doing, runs the
-interrupt service routine, and picks up 1 to 16 bytes from the port.
-For an interrupt sent when the 14th byte has been received, there
-could be 16 bytes to get if 2 more bytes have arrived since the
-interrupt.  But if 3 more bytes should arrive (instead of 2), then the
-16 byte buffer will overrun.
+obsolete type of serial port with 1-byte buffers, when a byte is fully
+received from the external cable it goes into the 1-byte receive
+buffer.  Then the port gives the CPU an interrupt to tell it to pick
+up that byte so that the serial port will have room for storing the
+next byte which is currently being received.  For newer serial ports
+with 16-byte buffers, this interrupt (to fetch the bytes) may be sent
+after 14 bytes are in the receive buffer.  The CPU then stops what it
+was doing, runs the interrupt service routine, and picks up 14 to 16
+bytes from the port.  For an interrupt sent when the 14th byte has
+been received, there could be 16 bytes to get if 2 more bytes have
+arrived since the interrupt.  But if 3 more bytes should arrive
+(instead of 2), then the 16-byte buffer will overrun.  It also may
+pick up less than 14 bytes by setting it that way or due to timeouts.
+See <ref id="fifo_" name="FIFOs"> for more details. 
 
 <sect1> The Large Serial Buffers
-<p> We've talked about small (1 or 16 byte) serial port hardware
+<p> We've talked about small 16-byte serial port hardware
 buffers but there are also much larger buffers in main memory.  When
-the CPU takes bytes (1 to 16) out of the receive buffer of the
-hardware, it puts them into a huge (say 8k-byte) receive buffer in
-main memory.  Then a program that is getting bytes from the serial
-port takes the bytes it's receiving out of that large buffer (using a
+the CPU takes some bytes out of the receive buffer of the hardware, it
+puts them into a much larger (say 8k-byte) receive buffer in main
+memory.  Then a program that is getting bytes from the serial port
+takes the bytes it's receiving out of that large buffer (using a
 "read" statement in the program).  A similar situation exists for
 bytes that are to be transmitted.  When the CPU needs to fetch some
 bytes to be transmitted it takes them out of a large (8k-byte)
-transmit buffer in main memory and puts them into the small transmit
-buffer (1 or 16 bytes) in the hardware.
+transmit buffer in main memory and puts them into the small 16-byte
+transmit buffer in the hardware.
 
 <sect> Serial Port Basics <label id="basics_">
 <!-- basics.H  begin   <sect> Serial Port & Modem Basics -->
@@ -798,7 +813,7 @@ as the I/O device).  Other methods are DMA (direct memory access) on
 the ISA bus and  what is about the same as DMA (only much faster):
 "bus mastering" on the PCI bus.  These methods are a lot faster than
 those used for the serial port.  Thus the conventional serial port
-with it's interrupt driven (every 14 bytes) interface and single bytes
+with its interrupt driven (every 14 bytes) interface and single bytes
 transfers on a bus which could accommodate 4 (or 8) bytes at a time is
 not suited for very high speed I/O.
 
@@ -808,38 +823,40 @@ not suited for very high speed I/O.
 <p> Multiport serial cards install in a slot in a PC on the ISA or PCI
 bus.  Instead of being called "... cards" they are also called "...
 adapters" or "... boards".  Each such card provides you with many
-serial ports.  They were commonly used for connecting up many
-terminals/modems to serial ports but are now mostly obsolete for use
-with modems.  
+serial ports.  Today they are commonly used for the control of
+external devices (including automation for both industry and the
+home).  They can connect to computer servers for the purpose of
+monitoring/controlling the server from a remote location.  They were
+once mainly used for connecting up many terminals and/or modems to
+serial ports.  They are still used this way but a modem used with it
+has the same limitation of ordinary modems: It can't send at over
+33.6k even if it is a 56k modem.
 
-For modem communication today, many "modem" chips are mounted
-on a single card and connect up to phone lines that carry multiple
-calls (in digital format) on a single circuit.  Such "modems" are called
-"digital modems" and the phone line interface is called a "...
-concentrator".  Since a "digital modem" converts digital to digital
-since it interfaces with a digital phone line, it is not really a
-modem at all.  Thus the word "modem" is often missing from the name.
-Such systems are either stand-alone proprietary servers or are
-implemented in a PC by special cards (no longer called "multiport").
-Digi calls one such card a "remote access server concentrator
-adapter".  Brief mention of multiport modem cards may be found in
-Modem-HOWTO but concentrators are not covered.
+Thus if someone dials in to you (reaches your multiport serial card
+from a modem plugged into the card) they will not be able to go above
+33.6k in either direction, even if they use a 56k modem.  To go above
+33.6k for dial-in requires that you have a digital connection to the
+telephone line.  The serial port is no longer used for this case.
+Thus serial multiport cards are now obsolete for use by ISPs or anyone
+that needs to allow others to dial-in to them at 56k (over 33.6k).
+See Modem-HOWTO: Modem Pools, Digital Modems.
 
-Now back to the multiport serial cards.  Each card has a number of
-external connecters (DB-25 or RJ45 (telephone-like)) so that one may
-connect up a number of devices (modems, terminals, etc.).  Each such
-physical device would then be connected to its own serial port.  Since
-the space on the external-facing part of the card is limited there is
-often not enough room for all the serial port connectors.  To solve
-this problem, the connectors may be on the ends of cables which come
-out (externally) from the card (octopus cable).  These connectors may
-also be on a little box which is connected by a cable to the multiport
-card.
+Each multiport card has a number of external connecters (DB-25 or RJ45
+(telephone-like)) so that one may connect up a number of devices
+(modems, terminals, etc.).  Each such physical device would then be
+connected to its own serial port.  Since the space on the
+external-facing part of the card is limited there is often not enough
+room for all the serial port connectors.  To solve this problem, the
+connectors may be on the ends of cables which come out (externally)
+from the card (octopus cable).  These connectors may also be on a
+little box which is connected by a cable to the multiport card.
 
 Dumb ones are not too much different than ordinary serial ports.  They
 are interrupt driven and the CPU of the computer does most all the
 work servicing them.  They usually have a system of sharing a single
-interrupt for all the ports.  For this they usually require special
+interrupt for all the ports.  This doesn't decrease the load on the
+CPU since the single interrupt will be sent to the CPU each time any
+of the ports needs servicing.  Such devices usually require special
 drivers that you must put into the kernel or activate by modifying
 source code.  
 
@@ -878,16 +895,16 @@ So, if you wanted to create devices for <tt>ttyS17</tt>, you would
 type:
 
 <tscreen><verb>
-linux# mknod -m 666 /dev/cua17 c 5 81
 linux# mknod -m 666 /dev/ttyS17 c 4 81
 </verb></tscreen>
-Note that ``64 + 17 = 81''.  Using the <tt/MAKEDEV/ script, you would 
-type:
+Note the "major" number is always 4 for ttyS devices (and 5 for the
+obsolete cua devices).  Also ``64 + 17 = 81''.  Using the <tt/MAKEDEV/
+script, you would type:
+
 <tscreen><verb>
 linux# cd /dev
 linux# ./MAKEDEV ttyS17
 </verb></tscreen>
-
 
 Besides the listing of various brands of multiports found in this
 HOWTO there is <url
@@ -934,13 +951,14 @@ support for them into the kernel.<newline>
 <item>Bell Technologies HUB6 (6 ports)
 <item>Boca BB-1004 (4 ports), BB-1008 (8 ports), BB-2016 (16 ports;
  See the mini-howto) * #
-<item>Boca IOAT66 or? ATIO66 (6 ports, Linux doesn't support it's IRQ
+<item>Boca IOAT66 or? ATIO66 (6 ports, Linux doesn't support its IRQ
  sharing ??  Uses odd-ball 10-cond RJ45-like connectors)
 <item>Boca 2by4 (4 serial ports, 2 parallel ports)
 <item>Byte Runner <url url="http://www.byterunner.com">
 <item>Computone ValuePort V4-ISA (AST FourPort compatible) *
 <item>Digi PC/8 (8 ports) #
 <item>Dolphin <url url="http://www.dolphinfast.com/sersol/">
+<item>Globetek <url url="http://www.globetek.com/">
 <item>GTEK BBS-550 (8 ports; See the mini-howto)
 <item>Hayes ESP (after kernel 2.1.15)
 <item>HUB-6 See Bell Technologies.
@@ -987,34 +1005,43 @@ models shown.  Also, parameters (such as the io and irq often need to
 be given to the module so you need to find instructions on this
 (possibly in the source code tree).  
 
+There are many different brands, each of which often offers many
+different cards.  No attempt is currently being made to list the cards
+here (and many listed may be obsolete).  So this list is a hodgepodge
+of both obsolete and the latest multiport brands/cards.   Contact
+information has been removed if it's available from the webpage.
+Driver information should also be available from the same webpage.
+Where there is no webpage, the cards are likely obsolete.  If you
+would like to put together a more complete list, let me know.
+
 <itemize>
-<item>Chase Research (UK based, ISA/PCI cards <newline>
-contact: <tt><url url="www.chaser.com"></tt><newline>
+<item>Chase Research (UK based, ISA/PCI cards)<newline>
+webpage: <tt><url url="www.chaser.com"></tt><newline>
 driver status: for 2.2 kernel.  Supported by Chase.
 
 <item>Comtrol RocketPort (36MHz ASIC; 4, 8, 16, 32, up to 128 ports)<newline>
- contact: <tt><htmlurl url="mailto:info@comtrol.com" 
- name="info@comtrol.com"></tt> or
- <tt><htmlurl url="http://www.comtrol.com" 
+ webpage: <tt><htmlurl url="http://www.comtrol.com" 
  name="http://www.comtrol.com"></tt><newline> 
- driver status: supported by Comtrol. rocket.o <newline>
+ driver status: supported by Comtrol.  rocket.o<newline>
         driver location: <tt><htmlurl 
  url="ftp://tsx-11.mit.edu/pub/linux/packages/comtrol"
  name="ftp://tsx-11.mit.edu/pub/linux/packages/comtrol"></tt>
 
 <item>Computone IntelliPort II (ISA, PCI and EISA busses up to 64 
  ports)<newline>
- contact: Michael H. Warfield, <url url="mailto:mhw@wittsend.com">,
-  <url url="http://www.computone.com"><newline>
- driver status: Beta<newline>
+ webpage: <url url="http://www.computone.com"><newline>
  driver location:
-  <url url="ftp://ftp.computone.com/PUB/Products/IntelliPortII/Linux/BETA">,
+  <url url="ftp://ftp.computone.com/PUB/Products/IntelliPortII/Linux/">,
  patch at <url 
   url="http://www.wittsend.com/computone/linux-2.2.10-ctone.patch.gz"><newline>
  mailing list: <url url="mailto:majordomo@lazuli.wittsend.com"> with 
   "subscribe linux-computone" in body<newline>
  note: Old ATvantage and Intelliport cards are not supported by Computone
 
+<item> Connecttech<newline>
+ website: <tt><url url="http://www.connecttech.com/porducts/products.html"></tt><newline>
+ driver location: <url url="ftp://ftp.connecttech.com/pub/linux/">
+ 
 <item>Cyclades<newline> 
  Cyclom-Y (Cirrus Logic CD1400 UARTs; 8 - 32 ports),<newline>
  Cyclom-Z (MIPS R3000; 8 - 64 ports)<newline>
@@ -1025,8 +1052,8 @@ driver status: for 2.2 kernel.  Supported by Chase.
  kernel since version 1.1.75: cyclades.o
 
 <item>Decision PCCOM8 (8 ports)<newline>
- contact: <tt><htmlurl url="mailto:pccom8@signum.se"
- name="pccom8@signum.se"></tt><newline>
+ contact: <tt><url url="mailto:info@cendio.se"></tt><newline>
+ website: none (defunct)
  driver location: <tt><htmlurl url="ftp://ftp.signum.se/pub/pccom8"
  name="ftp://ftp.signum.se/pub/pccom8"></tt>
  
@@ -1034,87 +1061,82 @@ driver status: for 2.2 kernel.  Supported by Chase.
  PC/Xe (12.5/16MHz 80186; 2, 4, or 8 ports),<newline>
  PC/Xr (16MHz IDT3041; 4 or 8 ports),<newline>
  PC/Xem (20MHz IDT3051; 8 - 64 ports)<newline>
- website: <tt><url url="http://www.dgii.com"></tt>
+ website: <tt><url url="http://www.dgii.com"></tt><newline>
  driver status: supported by Digi<newline>
  driver location: <tt><htmlurl 
  url="ftp://ftp.dgii.com/drivers/linux"
  name="ftp://ftp.dgii.com/drivers/linux"></tt> and 
- included in Linux kernel since version 2.0: epca.o
+ included in Linux kernel since version 2.0. epca.o
 
 <item>Digi COM/Xi (10MHz 80188; 4 or 8 ports)<newline>
  contact: Simon Park, <tt><htmlurl url="mailto:si@wimpol.demon.co.uk"
  name="si@wimpol.demon.co.uk"></tt><newline>
- driver status: ALPHA<newline>
+ driver status: ?<newline>
  note: Simon is often away from email for months at a time due to
  his job.  Mark Hatle, <url url="mailto:fray@krypton.mankato.msus.edu">
  has graciously volunteered to make the driver available if you need
  it.  Mark is not maintaining or supporting the driver.
 
 <item>Equinox SuperSerial Technology (30MHz ASIC; 2 - 128 ports)<newline>
- contact: <tt><htmlurl url="mailto:sales@equinox.com"
- name="sales@equinox.com"></tt> or <tt><htmlurl 
- url="http://www.equinox.com"
+ website: <tt><htmlurl url="http://www.equinox.com"
  name="http://www.equinox.com"></tt><newline>
  driver status: supported by Equinox<newline>
  driver location: <tt><htmlurl 
  url="ftp://ftp.equinox.com/library/sst" 
  name="ftp://ftp.equinox.com/library/sst"></tt>
- 
+
+<item>Globetek<newline>
+ website: <url url="http://www.globetek.com/products.shtml"><newline>
+ driver location: <url url="http://www.globetek.com/media/files/linux.tar.gz">
+
 <item>GTEK Cyclone (16C654 UARTs; 6, 16 and 32 ports),<newline>
  SmartCard (24MHz Dallas DS80C320; 8 ports),<newline>
  BlackBoard-8A (16C654 UARTs; 8 ports),<newline>
  PCSS (15/24MHz 8032; 8 ports)<newline>
- contact: <tt><htmlurl url="mailto:spot@gtek.com"
- name="spot@gtek.com"></tt> or <tt><htmlurl 
- url="http://www.gtek.com"
- name="http://www.gtek.com"></tt><newline>
+ website: <tt><htmlurl url="http://www.gtek.com" name="http://www.gtek.com">
+ </tt><newline>
  driver status: supported by GTEK<newline>
- driver location: <tt><htmlurl 
- url="ftp://ftp.gtek.com/pub"
+ driver location: <tt><htmlurl url="ftp://ftp.gtek.com/pub" 
  name="ftp://ftp.gtek.com/pub"></tt>
  
 <item>Hayes ESP (COM-bic; 1 - 8 ports)<newline> 
- contact: Andrew J. Robinson, <tt><htmlurl url="mailto:arobinso@nyx.net"
- name="arobinso@nyx.net"></tt> or
- <tt><htmlurl url="http://www.nyx.net/&tilde;arobinso"
- name="http://www.nyx.net/&tilde;arobinso"></tt><newline> driver
- status: Will be supported by Linux kernel (1998): esp.o.  Also
- supported by author<newline> driver location: <tt><htmlurl
- url="http://www.nyx.net/&tilde;arobinso"
- name="http://www.nyx.net/&tilde;arobinso"></tt> and included in Linux
- kernel since version 2.1.15.  Setserial 2.15+ supports.
+ website: <tt><htmlurl url="http://www.nyx.net/&tilde;arobinso"
+ name="http://www.nyx.net/&tilde;arobinso"></tt><newline>
+ driver status: Supported by Linux kernel (1998) since v. 2.1.15.
+ esp.o.  Setserial 2.15+ supports. Also supported by author<newline> 
+ driver location: <tt><htmlurl url="http://www.nyx.net/&tilde;arobinso"
+ name="http://www.nyx.net/&tilde;arobinso"></tt> 
 
 <item>Intelligent Serial Interface by Multi-Tech Systems<newline>
  PCI: 4 or 8 port.  ISA 8 port. DTE speed 460.8k<newline>
- <url url="http://www.multitech.com/products/">
+ webpage: <url url="http://www.multitech.com/products/">
 
 <item>Maxpeed SS (Toshiba; 4, 8 and 16 ports)<newline>
- contact: <tt><htmlurl url="mailto:info@maxpeed.com"
- name="info@maxpeed.com"></tt> or
- <tt><htmlurl url="http://www.maxpeed.com" 
+ website: <tt><htmlurl url="http://www.maxpeed.com" 
  name="http://www.maxpeed.com"></tt><newline>
  driver status: supported by Maxpeed<newline>
  driver location: <tt><htmlurl url="ftp://maxpeed.com/pub/ss" 
  name="ftp://maxpeed.com/pub/ss"></tt>
 
-<item> Microgate SyncLink ISA and PCI high speed multiprotocol serial
- synclink.o
+<item> Microgate SyncLink ISA and PCI high speed multiprotocol
+ serial.  Intended for synchronous HDLC.<newline>
+ website: <url
+ url="http://ww/microgate.com/products/sllinux/hdlcapi.htm"><newline>
+ driver status: supported by Microgate: synclink.o
  
 <item>Moxa C218 (12MHz 80286; 8 ports),<newline> 
  Moxa C320 (40MHz TMS320; 8 - 32 ports)<newline>
- contact: <tt><htmlurl url="mailto:info@moxa.com.tw"
- name="info@moxa.com.tw"></tt> or
- <tt><htmlurl url="http://www.moxa.com.tw" 
- name="http://www.moxa.com.tw"></tt><newline>
+ website: <tt><htmlurl url="http://www.moxa.com"
+ name="http://www.moxa.com"></tt><newline>
  driver status: supported by Moxa<newline>
- driver location: <tt><htmlurl 
- url="ftp://ftp.moxa.com.tw/drivers/c218-320/linux"
- name="ftp://ftp.moxa.com.tw/drivers/c218-320/linux"></tt>
- 
+ driver locations: <tt><url 
+ url="http://www.moxa.com/support/download/download.php3>"></tt>
+ <tt><url url="ftp://ftp.moxa.com/drivers/linux" ></tt>
+ (also from Taiwan at www.moxa.com.tw/...) where ... is the same as
+ above)
+
 <item>SDL RISCom/8 (Cirrus Logic CD180; 8 ports)<newline>
- contact: <tt><htmlurl url="sales@sdlcomm.com" 
- name="sales@sdlcomm.com"></tt> or <tt><htmlurl 
- url="http://www.sdlcomm.com" 
+ website: <tt><htmlurl url="http://www.sdlcomm.com" 
  name="http://www.sdlcomm.com"></tt><newline>
  driver status: supported by SDL<newline>
  driver location: <tt><htmlurl url="ftp://ftp.sdlcomm.com/pub/drivers"
@@ -1122,9 +1144,8 @@ driver status: for 2.2 kernel.  Supported by Chase.
  
 <item> Specialix SX (25MHz T225; 8? - 32 ports),<newline>
  SIO/XIO (20 MHz Zilog Z280; 4 - 32 ports)<newline>
- contact: <url url="mailto:R.E.Wolff@BitWizard.nl">,
- <url url="http://members.aa.net/~swear/pedia/kerneldocs/specialix.txt"><newline>
- driver status: BETA / Supported by Specialix<newline>
+ webpage: <url url="www.specialix.com/products/io/serialio.htm"><newline>
+ driver status: Supported by Specialix<newline>
  driver location: <url url="http://www.BitWizard.nl/specialix/"><newline>
  old driver location: <url 
  url="ftp://metalab.unc.edu/pub/Linux/kernel/patches/serial">
@@ -1145,6 +1166,9 @@ driver status: for 2.2 kernel.  Supported by Chase.
  url="ftp://ftp.stallion.com/drivers/ata5/Linux"
  name="ftp://ftp.stallion.com/drivers/ata5/Linux"></tt> and
  included in linux kernel since 1.3.27
+
+ <item>System Base
+ website: <url url="http://www.sysbas.com/">
 </itemize>		 
 
 <p>
@@ -1477,7 +1501,7 @@ not share them.  But there are situations where sharing is permitted
 such as with most multi-port boards.  Even when it is permitted, it
 may not be as efficient since every time a shared interrupt is given a
 check must be made to determine where it came from.  Thus if it's
-feasible, it's nice to allocate every device it's own interrupt.
+feasible, it's nice to allocate every device its own interrupt.
 
 Prior to kernel 2.2, serial IRQs could be shared with each other only
 for most multiport boards.  Starting with kernel 2.2 serial IRQs may
@@ -1655,7 +1679,7 @@ DOS/Windows.
 
 But how do you find out what the BIOS has done so that you set up the
 device drivers with this info?  The BIOS itself may provide some info,
-either in it's setup menus of via messages on the screen when you turn
+either in its setup menus of via messages on the screen when you turn
 on your computer.  See <ref id="io-irq_in_hdw" name="What is set in my
 serial port hardware?"
 
@@ -1724,20 +1748,20 @@ See the Modem-HOWTO section: "The cua Device".
 Dos/Windows use the COM name while the <tt/setserial/ program uses
 tty00, tty01, etc.  Don't confuse these with dev/tty0, dev/tty1, etc.
 which are used for the console (your PC monitor) but are not serial
-ports.  The dos names (COM1, etc.) and IO address is shown below for
-the "standard" case (but yours could be different).
+ports.  The table below is for the "standard" case (but yours could be
+different).
 
 <tscreen><verb>
-       set-				 		 IO
-dos   serial	      major minor	  major minor  address
-COM1  tty00  /dev/ttyS0  4,  64;  /dev/cua0  5,  64      3F8
-COM2  tty01  /dev/ttyS1  4,  65;  /dev/cua1  5,  65      2F8
-COM3  tty02  /dev/ttyS2  4,  66;  /dev/cua2  5,  66      3E8
-COM4  tty03  /dev/ttyS3  4,  67;  /dev/cua3  5,  67      2E8
+       				 		  IO
+ dos		major minor	  major minor  address
+COM1  /dev/ttyS0  4,  64;  /dev/cua0  5,  64      3F8
+COM2  /dev/ttyS1  4,  65;  /dev/cua1  5,  65      2F8
+COM3  /dev/ttyS2  4,  66;  /dev/cua2  5,  66      3E8
+COM4  /dev/ttyS3  4,  67;  /dev/cua3  5,  67      2E8
 </verb></tscreen>
-Note that all distributions should come with ttyS devices (and cua
-devices until cua is finally abolished).  You can
-verify this by typing: 
+Note that all distributions should come with ttyS devices (and many
+distributions have the obsolete cua device).  You can verify this by
+typing (don't feel bad if you don't find any obsolete cua devices): 
 
 <tscreen><verb>
 linux% ls -l /dev/cua*
@@ -1756,8 +1780,7 @@ There has been some discussion on the merits of <tt>/dev/mouse</tt>
 and <tt>/dev/modem</tt>.  The use of these links is discouraged.  In
 particular, if you are planning on using your modem for dialin you may
 run into problems because the lock files may not work correctly if you
-use <tt>/dev/modem</tt>. Use them if you like, but <em/be sure they
-point to the right device/.  However, if you change or remove this
+use <tt>/dev/modem</tt>.  However, if you change or remove this
 link, some applications might need reconfiguration.
 <!-- device_dir.H end -->
 
@@ -1775,7 +1798,7 @@ If you don't have a device, you will have to create it with the
 <tt/mknod/ command.  Example, suppose you needed to create devices 
 for <tt/ttyS0/:
 <tscreen><verb>
-linux# mknod -m 666 /dev/cua0 c 5 64
+linux# mknod -m 666 /dev/cua0 c 5 64 (cua devices are now obsolete)
 linux# mknod -m 666 /dev/ttyS0 c 4 64
 </verb></tscreen>
 You can use the <tt/MAKEDEV/ script, which lives in <tt>/dev</tt>.
@@ -1869,25 +1892,33 @@ think would be nice to use and then tell them to setserial.  However,
 if you know the I/O address but don't know the IRQ you may command
 setserial to attempt to determine the IRQ.  
 
-You can see a list of possible commands to use (but not the one-letter
-options such as -v for verbose which you should normally use when
-troubleshooting) by just typing <tt/setserial/ with no arguments.
+You can see a list of possible commands by just typing <tt/setserial/
+with no arguments.  This fails to show you the one-letter options such
+as -v for verbose which you should normally use when troubleshooting.
 Note that setserial calls an IO address a "port".  If you type:
 <tscreen><verb>
 setserial -g /dev/ttyS*
 </verb></tscreen> 
 you'll see some info about how that device driver is configured for
-your ports.  Add a -a to the option -g to see more.  In normal cases
-the hardware is set up the same way as "setserial" reports, but if you
-are having problems there is a good chance that "setserial" has it
-wrong.  In fact, you can run "setserial" and assign a purely
-fictitious I/O port address, any IRQ, and whatever uart type you would
-like to have.  Then the next time you type "setserial ..." it will
-display these bogus values without complaint.  Of course the serial
-port driver will not work correctly (if at all) with such bogus
-values.  Note that assignments made by setserial are lost when the PC
-is powered down so it is usually run automatically somewhere each time
-that Linux is booted.
+your ports.  Add a -a to the option -g to see more info although few
+people need to deal with (or understand) this additional info since
+the default settings you see usually work fine.  In normal cases the
+hardware is set up the same way as "setserial" reports, but if you are
+having problems there is a good chance that "setserial" has it wrong.
+In fact, you can run "setserial" and assign a purely fictitious I/O
+port address, any IRQ, and whatever uart type you would like to have.
+Then the next time you type "setserial ..." it will display these
+bogus values without complaint.  Of course the serial port driver will
+not work correctly (if at all) with such bogus values.  
+
+While assignments made by setserial are lost when the PC is powered
+off, a configuration file may restore them (or a previous
+configuration) when the PC is started up again.  In newer versions,
+what you change by setserial gets automatically saved to a
+configuration file.  In older versions, the configuration file only
+changes if you edit it manually so the configuration remains the same
+from boot to boot.  See <ref id="ss_conf_script" name="Configuration
+Scripts/Files">
 
 <sect2> Probing <label id="probing_ss">
 
@@ -1910,14 +1941,24 @@ supposedly no serial port at all at that I/O address.  Some cheap
 serial ports don't identify themselves correctly so if you see
 "<tt/unknown/" you still might have a serial port there.  
 
-Besides auto-probing for a uart type, setserial can auto-probe for IRQ's
-but this doesn't always work right either.  In versions of setserial
->= 2.15, your last probe test may be saved and put into the
-configuration file <tt>/etc/serial.conf</tt> which will be used next
-time you start Linux.  The script that runs <tt/setserial/ at
-boot-time does not usually probe, but you could change it so that it
-does but the earlier run of "setserial" by the serial module does
-probe for uarts only.  See the next section.
+Besides auto-probing for a uart type, setserial can auto-probe for
+IRQ's but this doesn't always work right either.  In versions of
+setserial >= 2.15, the results of your last probe test may be saved
+and put into the configuration file <tt>/etc/serial.conf</tt> which
+will be used next time you start Linux.  At boot-time when the serial
+module loads (or the like), a probe for UARTs is made automatically
+and reported on the screen.  But the IRQs shown may be wrong.  The
+second report of the same is the result of a script which usually does
+no probing and thus provides no reliable information as to how the
+hardware is actually set.  It only shows configuration date someone
+wrote into the script or data that got saved in /etc/serial.conf.
+
+It may be that two serial ports both have the same IO address set in
+the hardware.  Of course this is not permitted but it sometimes
+happens anyway.  Probing detects one serial port when actually there
+are two.  However if they have different IRQs, then the probe for IRQs
+may show IRQ = 0.  For me it only did this if I first used
+<tt/setserial/ to give the IRQ a ficticious value.
 
 <sect2> Boot-time Configuration <label id="sets_boot_time"> 
 <p> When the kernel loads the serial module (or if the "module
@@ -1936,7 +1977,7 @@ boot-time.  More info about how to handle this situation for your
 particular distribution might be found in file named "setserial..."
 or the like located in directory /usr/doc/ or /usr/share/doc/.
 
-<sect2> Configuration Scripts/Files
+<sect2> Configuration Scripts/Files <label id="ss_conf_script">
 <p> Your objective is to modify (or create) a script file in the /etc
 tree that runs setserial at boot-time.  Most distributions provide
 such a file (but it may not initially reside in the /etc tree).  In
@@ -2116,7 +2157,7 @@ the -a (all) for a short listing which shows how it's set different
 than normal.  Don't try to learn all the setting unless you want to
 become a serial guru.  Most of the defaults should work OK and some of
 the settings are needed only for certain obsolete dumb terminals made
-in the 1970's (but not much after that)
+in the 1970's.
 
 Whereas <tt/setserial/ only deals with actual serial ports, stty is
 used both for serial ports and for virtual terminals such as the standard
@@ -2127,13 +2168,12 @@ appear to actually do anything.
 Here are some of the items stty configures: speed (bits/sec), parity,
 bits/byte, # of stop bits, strip 8th bit?, modem control signals, flow
 control, break signal, end-of-line markers, change case, padding, beep
-if buffer overrun?, echo, allow background tasks to write to
-terminal?, define special (control) characters (such as what key to
-press for interrupt).  See the <tt/stty/ man or info page for more
-details.  Also see the man page: <tt/termios/ which covers the same
-options set by stty but (as of mid 1999) covers features which the
-stty man page fails to mention.  
-
+if buffer overrun?, echo what you type to the screen, allow background
+tasks to write to terminal?, define special (control) characters (such
+as what key to press for interrupt).  See the <tt/stty/ man or info
+page for more details.  Also see the man page: <tt/termios/ which
+covers the same options set by stty but (as of mid 1999) covers
+features which the stty man page fails to mention.  
 
 With some implementations of getty (getty_ps package), the commands
 that one would normally give to stty are typed into a getty
@@ -2153,50 +2193,59 @@ same thing) as the arguments to the stty command.
 <sect2> Using stty for a "foreign" terminal
 <p> Using <tt/stty/ to inspect or configure the terminal that you are
 currently using is easy.  Doing it for a different (foreign) terminal
-or serial port is tricky.  For example, let's say you are at the PC
-monitor (tty1) and want to use <tt/stty/ for the serial port ttyS2.
-You need to use the redirection operator &lt;.  First, be warned that
-if there is a terminal on ttyS2 and a shell running on that terminal,
-then what you see will likely be deceptive and trying to set it will
-not work.  See <ref id="2_term_interfaces" name="Two Interfaces at a
-Terminal"> to understand it.
+or serial port may be tricky.  For example, let's say you are at the
+PC monitor (tty1) and want to use <tt/stty/ to deal with the serial
+port ttyS2.  Prior to about 2000 you needed to use the redirection
+operator "<".  After 2000 (provided your version of setserial is >=
+1.17 and stty >= 2.0) there is an alternate method using the -F
+option.  This will work when the old redirection method fails.  Even
+with the latest versions be warned that if there is a terminal on
+ttyS2 and a shell is running on that terminal, then what you see will
+likely be deceptive and trying to set it will not work.  See <ref
+id="2_term_interfaces" name="Two Interfaces at a Terminal"> to
+understand it.
 
-Type ``stty -a &lt /dev/ttyS2'' to look at the settings of ttyS2.  Use
-the same redirection operator &lt to set ttyS2.  This makes ttyS2 the
-standard input to stty.  This gives the stty program a link to the
-"file" ttyS2 so that it may "read" it.  But instead of reading the
-bytes sent to ttyS2 as one might expect, it uses the link to find the
-configuration settings of the port so that it may read or change them.
-Some people try to use ``stty ... &gt /dev/ttyS2'' to set the
-terminal.  This will not do it.  Instead, it takes the message normal
-displayed by the stty command for the terminal you are on (say tty1)
-and sends this message to ttyS2.  But it doesn't change any settings
-for ttyS2.
+The new method is ``stty -F /dev/ttyS2 ...'' (or --file instead of F).
+If  ... is -a it displays all the stty settings.  The old redirection
+method (which still works in later versions) is to type ``stty ... &lt
+/dev/ttyS2''.   If the new method works but the old one hangs, it
+implies that the port is hung due to lack of a modem control line from
+being asserted.  Thus the old method is still useful for
+troubleshooting.  See the following subsection.
 
-Here's another problem with the redirection operator.  Sometimes when
-trying to use stty, the command hangs and nothing happens (you don't
-get a prompt for a next command even after hitting &lt;return&gt;).
-This is likely due to the port being stuck because it's waiting for
-one of the modem control lines to be asserted.  For example, unless
-you've set "clocal" to ignore modem control lines, then if no CD
-signal is asserted the port will not open and stty will not work for
-it.  A similar situation seems to exist for hardware flow control.
-If the cable for the port doesn't even have a conductor for the pin
-that needs to be asserted then there is no easy way to stop the hang.
+<sect3> Old redirection method
+<p> Here's a problem with the old redirection operator (which doesn't
+happen if you use the newer -F option instead).  Sometimes when trying
+to use stty, the command hangs and nothing happens (you don't get a
+prompt for a next command even after hitting &lt;return&gt;).  This is
+likely due to the port being stuck because it's waiting for one of the
+modem control lines to be asserted.  For example, unless you've set
+"clocal" to ignore modem control lines, then if no CD signal is
+asserted the port will not open and stty will not work for it (unless
+you use the newer -F option).  A similar situation seems to exist for
+hardware flow control.  If the cable for the port doesn't even have a
+conductor for the pin that needs to be asserted then there is no easy
+way to stop the hang.
 
-One way to try to get out of the above hang is to use a program on the
-port that will force it to operate even if the control lines say not
-to.  Then hopefully this program might set the port so it doesn't need
-the control signal in the future in order to open: clocal or -crtscts.
-To use "minicom" to do this you have to reconfigure minicom for
-another ttyS, etc, and then exit it and restart it.  Since you then
-have to reconfigure minicom again, it may be simpler to just reboot
-the PC.
+One way to try to get out of the above hang is to use the newer -F
+option and set "clocal" and/or "crtscts".  If you don't have the -F
+option then you may try to run program on the port that will force it
+to operate even if the control lines say not to.  Then hopefully this
+program might set the port so it doesn't need the control signal in
+the future in order to open: clocal or -crtscts.  To use "minicom" to
+do this you have to reconfigure minicom for another ttyS, etc, and
+then exit it and restart it.  Since you then have to reconfigure
+minicom again, it may be simpler to just reboot the PC.
 
-Versions starting with 1.17 (still not released as of mid 1999) will
-no longer need to use redirection (&lt;) but instead will use ``stty
-... -F /dev/ttyS2'' (or --file instead of F) etc.  This should force
-the port to open and avoid the 2nd problem with redirection.
+The old redirection method makes ttyS2 the standard input to stty.
+This gives the stty program a link to the "file" ttyS2 so that it may
+"read" it.  But instead of reading the bytes sent to ttyS2 as one
+might expect, it uses the link to find the configuration settings of
+the port so that it may read or change them.  Some people tried to use
+``stty ... &gt /dev/ttyS2'' to set the terminal.  This will not do it.
+Instead, it takes the message normal displayed by the stty command for
+the terminal you are on (say tty1) and sends this message to ttyS2.
+But it doesn't change any settings for ttyS2.
 
 <sect2> Two interfaces at a terminal <label id="2_term_interfaces">
 <p> When using a shell (such as bash) with command-line-editing
@@ -2237,9 +2286,9 @@ course it's a setting not allowed in raw mode).
 
 This situation can create problems.  For example, suppose you corrupt
 your terminal interface and to restore it you go to another terminal
-and "stty sane &lt;dev/ttyS1" to restore it.  It will not work!  Of
-course you can try to type "stty sane ..." at the terminal that is
-corrupted but you can't see what you typed.  All the above not
+and "stty -F dev/ttyS1 sane" (or the like) to restore it.  It will not
+work!  Of course you can try to type "stty sane ..." at the terminal
+that is corrupted but you can't see what you typed.  All the above not
 only applies to dumb terminals but to virtual terminals used on a PC
 Monitor as well as to the terminal windows in X.  In other words, it
 applies to almost everyone who uses Linux.  Luckily, a file that runs
@@ -2379,6 +2428,89 @@ modem is on.  This may improve the serial throughput on your system.
 The <tt/irqtune/ FAQ is at <url url="http://www.best.com/~cae/irqtune"
 name="http://www.best.com/~cae/irqtune">
 
+<sect> Locking Out Others
+<sect1> Introduction
+<p> When you are using a serial port, you may want to prevent others
+from using it at the same time.  However there may be cases where you
+do want others to use it, such as sending you an important message if
+you are using a text-terminal.
+
+There are various ways of preventing others (or other processes) from
+using your serial port when you are using it (locking).  This should
+all happen automatically but it's important to know about this if it
+gives you trouble.  If a program is abnormally exited or the PC
+is abruptly turned off (by pulling the plug, etc.) your serial port
+might wind up locked.  Even if the lock remains, it's usually
+automatically removed when you want to use the serial port again.
+But in rare cases it isn't.  That's when you need to understand what
+happened.
+
+One way to implement locking is to design the kernel to handle it but
+Linux thus far has shunned this solution (with an exception involving
+the cua device which is now obsolete).  Two solutions used by Linux
+is to: 
+<enum>
+<item> create lock-files
+<item> modify the permissions and/or owners of devices such as /dev/ttyS2
+</enum>
+
+<sect1>Lock-Files <label id="lockfiles_">
+<p>
+A lock-file is simply a file created to mean that a particular device is
+in use.  They are kept in <tt>/var/lock</tt>.  Formerly they were in
+<tt>/usr/spool/uucp</tt>.  Linux lock-files are sometimes named
+<tt/LCK../<EM/name/, where <EM/name/ is either a device name, or a
+UUCP site name.  Most processes (an exception is getty) create these locks so that they can
+have exclusive access to devices.  For instance if you dial out on
+your modem, a lock-file (or even more that one lockfile) will appear
+telling other processes that someone else is using the modem.  Lock
+files contain the PID of the process that has locked the device.  Note
+that if a process insists on using a device that is locked, it may
+ignore the lockfile and use the device anyway.  This is useful in
+sending a message to a text-terminal, etc.
+
+When a program wants to use a serial port but finds it locked with a
+lock-file it should check to see if the lock-file's PID is still in
+use.  If it's not it means that the lock is stale and it's OK to go
+ahead and use the port anyway (after removing the stale lock-file).
+Unfortunately, there may be some programs that don't do this and give
+up by telling you that a device is already in use when it really isn't.
+
+Problems can arise with lockfiles if the same device has two different
+names, resulting in lockfiles with different names that actually are
+the same device.  Formerly each physical serial port was known by
+two different device names: ttyS0 and cua0.  The lock checking
+software is aware of ttyS vs. cua but it's simpler now since cua has
+been eliminated.  Older versions may still use cua.  Using alternate
+names (such as /dev/modem for /dev/ttyS2) is asking for trouble.
+
+<sect1> Change Owners, Groups, and/or Permissions of Device Files
+<p> In order to use a device, you (or the program you run if you have
+"set user id") needs to have permission to read and write the device
+"file" in the /dev directory.  So a logical way to prevent others from
+using a device is to make yourself the temporary owner of the device
+and set permissions so that no one else can use it.  A program may do
+this for you.  A similar method can be used with the group of the
+device file.
+
+While lock files prevent other process from using the device, changing
+device file owners/permissions restricts other users (or the group) from using
+it.  One case is where the group is permitted to write to the port,
+but not to read from it.  Writing to the port might just mean a
+message sent to a text-terminal while reading means destructive
+reading.  The original process that needs to read the data may find
+data missing if another process has already read that data.  Thus a
+read can do more harm that a write since a read causes loss of data
+while a write only adds extra data.  That's a reason to allow writes
+but not reads.  This is exactly the opposite of the case for ordinary
+files where you allow others to read the file but not write (modify)
+it.  Use of a port normally requires both read and write permissions.
+
+A program that changes the device file attributes should undo these
+changes when it exits.  But if the exit is abnormal, then a device
+file may be left in such a condition that it gives the error
+"permission denied" when one attempts to use it again.
+
 <sect>Communications Programs And Utilities<label id="comms">
 <sect1> List of Software
 <p>
@@ -2419,7 +2551,8 @@ available via FTP, if they didn't come with your distribution.
 
 <sect1>kermit and zmodem
 <p>
-To use zmodem with <tt/kermit/, add the following to your <tt/.kermrc/:
+To use zmodem with <tt/kermit/ (for ttyS3), add the following to your
+<tt/.kermrc/:
 <tscreen><verb>
 define rz !rz < /dev/ttyS3 > /dev/ttyS3
 define sz !sz \%0 > /dev/ttyS3 < /dev/ttyS3
@@ -2468,31 +2601,6 @@ have been updated to reflect the true state and all would be OK.
 There is a proposal to fix this by patching the serial driver.  But
 Should linux be patched to accommodate defective hardware, especially
 if this patch may impair performance of good hardware?
-
-<sect1>What Are Lock Files ? <label id="lockfiles_">
-<p>
-A lock file is simply a file saying that a particular device is in use.  
-They are kept in <tt>/var/lock</tt>.  Formerly they were in
-<tt>/usr/spool/uucp</tt>.  Linux lock files are named
-<tt/LCK../<EM/name/, where <EM/name/ is either a device name, or a
-UUCP site name.  Certain processes create these locks so that they can
-have exclusive access to devices.  For instance if you dial out on
-your modem, a lock will appear telling other processes that someone is
-using the modem already.  Locks mainly contain the PID of the process
-that has locked the device.  Most programs look at the lock, and try
-to determine if that lock is still valid by checking the process table
-for the process that has locked the device.  If the lock is found to
-be valid, the program (should) exit.  If not, some programs remove the
-stale lock, and use the device, creating their own lock in the
-process.  Other programs just exit and tell you that the device is in
-use.
-
-Having the same physical serial port known by two different device
-names (such as ttyS0 and cua0) could cause problems.  The lock
-checking software is aware of ttyS vs. cua but it will make things
-simpler in this regard by the planned elimination of cua.  In other
-cases, assigning an alternate name to the same device is asking for
-trouble.
 
 <sect>Troubleshooting <label id="trouble_shoot">
 <p> See Modem-HOWTO for troubleshooting related to modems or getty for
@@ -2556,22 +2664,36 @@ indicate if they are positive (1) or negative (0).  See section <ref
 id="serial_mon" name="Serial Monitoring/Diagnostics">
 
 <!-- currently in <sect>Troubleshooting -->
-<!-- troubleshooting.H begin -->
+<!-- troubleshooting.H begin 
+Change Log: 
+Apr. 00: 2 ports on same address		-->
 <sect1> The following subsections are in both the Serial and Modem HOWTOs:
 
 <sect1> My Serial Port is Physically There but Can't be Found 
 <label id="cant_find_port">
-<p> If a device (such as a modem) works on a serial port, then
-obviously the port has been found.  If it doesn't work at all, then
+<p> If a device (such as a modem) give evidence of working, then the
+serial port that it's on has been found.  If it doesn't work at all, then
 you need to make sure your serial port can be found.  
 
-Check the BIOS menus and BIOS messages.  If it's an ISA bus PnP serial
-port, try "pnpdump --dumpregs" and/or see Plug-and-Play-HOWTO.  For
-the PCI bus use lspci.  You may try probing with setserial.  See <ref
-id="probing_ss" name="Probing"> If nothing seems to get thru the port
-it may be there but have a bad interrupt.  See <ref id="slow_"
-name="Extremely Slow: Text appears on the screen slowly after long
-delays">.
+Check the BIOS menus and BIOS messages.  For the PCI bus use lspci.  
+If it's an ISA bus PnP serial port, try "pnpdump --dumpregs" and/or
+see Plug-and-Play-HOWTO.  Using "scanport" will scan all ISA bus ports
+and may discover an unknown port that could be a serial port (but it
+doesn't probe the port).  It could hang your PC.  You may try probing
+with setserial.  See <ref id="probing_ss" name="Probing">.  If
+nothing seems to get thru the port it may be accessible but have a bad
+interrupt.  See <ref id="slow_" name="Extremely Slow: Text appears on
+the screen slowly after long delays">.
+
+If two ports have the same IO address then probing it will erroneously
+indicate only one port.  Plug-and-play detection will find both ports
+so this should only be a problem if at least one port is not
+plug-and-play.  All sorts of errors may be reported/observed for
+devices on "sharing" a port but the fact that there are two devices on
+the same a port doesn't seem to get detected (except hopefully by
+you).  If the IRQs are different then probing for IRQs with setserial
+might "detect" this situation by failing to detect an IRQ.  See <ref
+id="probing_ss" name="Probing">. 
 
 <sect1> Extremely Slow: Text appears on the screen slowly after long delays 
  <label id="slow_">
@@ -2613,8 +2735,9 @@ hardware.
 
 What you need to do is to check how the hardware is set by checking
 jumpers or using PnP software to check how the hardware is actually
-set.  For PnP run either "pnpdump --dumpregs" or run "lspci".  Compare
-this to how Linux (e.g. "setserial") thinks the hardware is set.
+set.  For PnP run either "pnpdump --dumpregs" (if ISA bus) or run
+"lspci" (if PCI bus).  Compare this to how Linux (e.g. "setserial")
+thinks the hardware is set.
 
 <sect1> Somewhat Slow: I expected it to be a few times faster
 <p> One reason may be that whatever is on the serial port (such as a
@@ -2705,19 +2828,18 @@ supposedly busy (in use) or that a resource it needs (such as an IRQ)
 is supposedly being used by another device.  Sometimes it actually is
 "busy" but in other cases it erroneously appears to be "busy".
 
-
-
-``resource busy'' often means (example for <tt/ttyS2/) ``You can't use
-<tt/ttyS2/ since another device is using ttyS2's interrupt.'' The potential
-interrupt conflict is inferred from what "setserial" thinks.  A more
-accurate error message would be ``Can't use <tt/ttyS2/ since the setserial
-data (and kernel data) indicates that another device is using <tt/ttyS2/'s
-interrupt''.  If two devices use the same IRQ and you start up only
-one of the devices, everything is OK because there is no conflict yet.
-But when you next try to start the second device (without quitting the
-first device) you get a "... resource busy" error message.  This is
-because the kernel only keeps track of what IRQs are actually in use
-and conflicts don't happen unless the devices are in use (open).
+The ``resource busy'' part often means (example for <tt/ttyS2/) ``You
+can't use <tt/ttyS2/ since another device is using ttyS2's
+interrupt.'' The potential interrupt conflict is inferred from what
+"setserial" thinks.  A more accurate error message would be ``Can't
+use <tt/ttyS2/ since the setserial data (and kernel data) indicates
+that another device is using <tt/ttyS2/'s interrupt''.  If two devices
+use the same IRQ and you start up only one of the devices, everything
+is OK because there is no conflict yet.  But when you next try to
+start the second device (without quitting the first device) you get a
+"... resource busy" error message.  This is because the kernel only
+keeps track of what IRQs are actually in use and conflicts don't
+happen unless the devices are in use (open).
 
 There are two cases.  There may be a real interrupt conflict that is
 being avoided.  But if setserial has it wrong, there may be no reason
@@ -2733,9 +2855,16 @@ messages for the serial ports.  2. Hope that the file that runs
 again.
 
 If you think you know what IRQ <tt/ttyS2/ is using then you may look
-at /proc/interrupts to find what else is using this IRQ.  You might
-also want to double check that any suspicious IRQs shown here (and by
-"setserial") are correct (the same as set in the hardware).
+at /proc/interrupts to find what else is currently using this IRQ.
+You might also want to double check that any suspicious IRQs shown
+here (and by "setserial") are correct (the same as set in the
+hardware).  A way to test whether or not it is a potential interrupt
+conflict is to set the IRQ to 0 (polling) using "setserial".  Then if
+the busy message goes away, it was likely a potential interrupt
+conflcit.  It's not a good idea to leave it permanently set at 0 since
+more CPU resources will be used.
+
+
 
 <sect1> Troubleshooting Tools
 <p> These are some of the programs you might want to use in
@@ -2839,7 +2968,7 @@ id="interrupt_" name="Interrupts">.  If a serial port has one IRQ set
 in the hardware but a different one set in the device driver, the
 device driver will not catch any interrupts sent by the serial port.
 Since the serial port uses interrupts to call its driver to service
-the port (fetching bytes from it's 16-byte receive buffer or putting
+the port (fetching bytes from its 16-byte receive buffer or putting
 another 16-bytes in its transmit buffer) one might expect that the
 serial port would not work at all.  
 
@@ -2975,14 +3104,14 @@ data in byte sized pieces, which is conveniently also the size of
 ASCII characters. 
 
 Say you have a terminal hooked up to your PC.  When you type a
-character, the terminal gives that character to it's transmitter (also
+character, the terminal gives that character to its transmitter (also
 a UART).  The transmitter sends that byte out onto the serial line,
 one bit at a time, at a specific rate.  On the PC end, the receiving
 UART takes all the bits and rebuilds the (parallel) byte and puts it
 in a buffer.
 
 Along with converting between serial and parallel, the UART does some
-other things as a byproduct (side effect) of it's primary task.  The
+other things as a byproduct (side effect) of its primary task.  The
 voltage used to represent bits is also converted (changed).  Extra
 bits (called start and stop bits) are added to each byte before it is
 transmitted.  See the Serial-HOWTO section, ``Voltage Waveshapes'' for
@@ -3330,24 +3459,26 @@ stop bits are used (since this would make the total number of bits too
 large: 12 bits total after adding the start bit).
 
 The parity may be set to odd, even or none (mark and space parity may
-be options on some terminals).  With odd parity, the parity bit is
-selected so that the number of 1-bits in a byte, including the parity
-bit, is odd.  If a such a byte gets corrupted by a bit being flipped,
-the result is an illegal byte of even parity.  This error will be
-detected and if it's an incoming byte to the terminal an
-error-character symbol will appear on the screen.  Even parity works
-in a similar manner with all legal bytes (including the parity bit)
-having an even number of 1-bits.  During set-up, the number of bits
-per character usually means only the number of data bits per byte (7
-for true ASCII and 8 for various ISO character sets).
+be options on some terminals or other serial devices).  With odd
+parity, the parity bit is selected so that the number of 1-bits in a
+byte, including the parity bit, is odd.  If a such a byte gets
+corrupted by a bit being flipped, the result is an illegal byte of
+even parity.  This error will be detected and if it's an incoming byte
+to the terminal an error-character symbol will appear on the screen.
+Even parity works in a similar manner with all legal bytes (including
+the parity bit) having an even number of 1-bits.  During set-up, the
+number of bits per character usually means only the number of data
+bits per byte (7 for true ASCII and 8 for various ISO character sets).
 
 A "mark" is a 1-bit (or logic 1) and a "space" is a 0-bit (or logic
 0).  For mark parity, the parity bit is always a one-bit.  For space
-parity it's always a zero-bit.  Mark or space parity only wastes
-bandwidth and should be avoided if feasible.  "No parity" means that
-no parity bit is added.   For terminals that don't permit 9 bit bytes,
-"no parity" must be selected when using 8 bit character sets since
-there is no room for a parity bit.
+parity it's always a zero-bit.  Mark or space parity (also known as
+"sticky parity") only wastes bandwidth and should be avoided if
+feasible.  The <tt/stty/ command can't set sticky parity but it's
+supported by serial hardware and can be dealt with by programming in
+C.  "No parity" means that no parity bit is added.   For terminals
+that don't permit 9 bit bytes, "no parity" must be selected when using
+8 bit character sets since there is no room for a parity bit.
 
 <sect1> Forming a Byte (Framing)
 <p> In serial transmission of bytes via EIA-232 ports, the low-order
@@ -3426,7 +3557,7 @@ computers for Linux.
 <sect1> EIA-485
 <p> This is like EIA-422 (balanced).  It is half-duplex.  It's not
 just point-to-point but may be used for a multidrop LAN (up to 32
-nodes).  There are no connector specs
+nodes).  There are no connector specs.
 
 <sect1> EIA-530
 <p> EIA-530-A (balanced but can also be used unbalanced) at 2Mbits/s
