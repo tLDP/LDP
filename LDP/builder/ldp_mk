@@ -1,0 +1,180 @@
+#!/usr/bin/perl
+#
+# ldp_mk <file>.sgml
+#
+# create all various output forms needed for the LDP from SGML file
+#
+
+if($ARGV[0] eq '') {
+   die "\nusage: ldp_mk <file>.sgml\n";
+}
+
+my($_toolroot) = $ENV{'SGML_TOOLROOT'} || '/export/sunsite/users/gferg/toolroot';
+my($_jade)     = 'jade-1.2.1';
+my($linuxdoc)  = 1;
+my($cmd, $fname, $fname_wo_ext) = '';
+
+$fname = $ARGV[0];
+$fname_wo_ext = $fname;
+if( $fname =~ /\.sgml$/ ) {
+    $fname_wo_ext =~ s/\.[\w]+$//;
+} else {
+    $fname .= "\.sgml";
+}
+if( !(-e "$fname") ) {
+   die "ldp_mk: Error - cannot find/read $fname\nusage: ldp_mk <file>.sgml\n";
+}
+
+
+# determine DTD 
+#
+open(FP_IN, "grep -i '\!doctype' $fname |") || 
+               die "ldp_mk: cannot determine DTD for $fname\n";
+$cmd = <FP_IN>;
+close(FP_IN);
+if( $cmd eq '' ) {
+   die "ldp_mk: cannot determine DTD for $fname\n";
+}
+if( $cmd =~ /linuxdoc/i ) {
+    $linuxdoc = 1;
+    print "\nldp_mk: $fname is LinuxDoc SGML\n";
+} else {
+    $linuxdoc = 0;
+    $ENV{'SGML_CATALOG_FILES'} =
+      "$_toolroot/dtd/catalog:$_toolroot/dsssl/docbook/catalog:$_toolroot/jade-1.2.1/dsssl/catalog";
+    print "\nldp_mk: $fname is DocBook SGML\n";
+}
+
+
+# create HTML version
+#
+print "\nldp_mk: creating HTML from $fname...\n";
+
+if( $linuxdoc == 1 ) {
+    $cmd = "$_toolroot/sgml-tools/bin/sgml2html -c latin $fname";
+} else {
+    $cmd = "mkdir $fname_wo_ext; cd $fname_wo_ext; " .
+           "$_toolroot/$_jade/jade/jade -t sgml -i html " .
+              "-d $_toolroot/dsssl/docbook/html/ldp.dsl#html ../$fname; " .
+           "cd ..;" .
+           "$_toolroot/$_jade/jade/jade -t sgml -i html -V nochunks " .
+              "-d $_toolroot/dsssl/docbook/html/ldp.dsl#html $fname >" .
+              "00_" . "$fname_wo_ext.html";
+}
+
+system($cmd);
+if( ($linuxdoc == 1 && !(-e "$fname_wo_ext.html"))
+    ||
+    ($linuxdoc == 0 && !(-e "$fname_wo_ext/index.html")) ) {
+   die "ldp_mk: Error - could not create HTML: $fname_wo_ext\n";
+}
+
+
+# create PLAIN TEXT version
+#
+print "\nldp_mk: creating plain text from $fname...\n";
+
+if( $linuxdoc == 1 ) {
+    $cmd = "$_toolroot/sgml-tools/bin/sgml2txt -c latin -f $fname";
+} else {
+    $cmd = "lynx -dump 00_" . "$fname_wo_ext" . ".html > $fname_wo_ext.txt";
+}
+system($cmd);
+if( !(-e "$fname_wo_ext.txt") ) {
+   die "ldp_mk: Error - could not create TXT: $fname_wo_ext.txt\n";
+}
+
+
+# clean-up PLAIN TEXT version
+#
+$cmd = "cat $fname_wo_ext.txt|$_toolroot/sgml-tools/bin/cutblank >ldp_mk_tmp;" .
+       "mv -f ldp_mk_tmp $fname_wo_ext.txt";
+system($cmd);
+
+
+# create PDF/PS versions
+#
+# Note that we use the HTML in one big file for better PDF/PS quality
+#
+print "\nldp_mk: creating PDF from $fname...\n";
+
+if( $linuxdoc == 1 ) {
+    system("$_toolroot/sgml_ld_1html $fname");
+}
+
+if( !(-e "00_$fname_wo_ext.html") ) {
+   die "ldp_mk: Error - HTML file 00_$fname_wo_ext.html not found\n";
+}
+$cmd = "$_toolroot/htmldoc/bin/htmldoc --size universal -t pdf -f " .
+       "$fname_wo_ext.pdf 00_" . "$fname_wo_ext.html; " .
+       "$_toolroot/htmldoc/bin/htmldoc --size universal -t ps -f " .
+       "$fname_wo_ext.ps  00_" . "$fname_wo_ext.html";
+system($cmd);
+
+if( !(-e "$fname_wo_ext.pdf") ) {
+   die "ldp_mk: Error - htmldoc could not create $fname_wo_ext.pdf\n";
+}
+if( !(-e "$fname_wo_ext.ps") ) {
+   die "ldp_mk: Error - htmldoc could not create $fname_wo_ext.ps\n";
+}
+
+
+# perform the packaging steps
+#
+print "\nldp_mk: creating HTML package...\n";
+if( $linuxdoc == 1 ) {
+    $cmd = "tar -cvf $fname_wo_ext-html.tar $fname_wo_ext\*.html; " .
+           "gzip $fname_wo_ext-html.tar";
+} else {
+    $cmd = "tar -cvf $fname_wo_ext-html.tar $fname_wo_ext/\*; " .
+           "gzip $fname_wo_ext-html.tar";
+}
+system($cmd);
+if( !(-e "$fname_wo_ext-html.tar.gz") ) {
+   die "ldp_mk: Error - could not create package $fname_wo_ext-html.tar.gz\n";
+}
+
+print "\nldp_mk: creating SGML package...\n";
+$cmd = "cp $fname ldp_mk_tmp; gzip ldp_mk_tmp; " .
+       "mv -f ldp_mk_tmp.gz $fname_wo_ext.sgml.gz";
+system($cmd);
+if( !(-e "$fname_wo_ext.sgml.gz") ) {
+   die "ldp_mk: Error - could not create package $fname_wo_ext.sgml.gz\n";
+}
+
+print "\nldp_mk: creating PS package...\n";
+$cmd = "gzip $fname_wo_ext.ps";
+system($cmd);
+if( !(-e "$fname_wo_ext.ps.gz") ) {
+   die "ldp_mk: Error - could not create package $fname_wo_ext.sgml.gz\n";
+}
+
+
+# if LinuxDoc, create DocBook SGML...
+#
+if( $linuxdoc == 1 ) {
+
+    print "\nldp_mk: creating DocBook from LinuxDoc...\n";
+
+    $ENV{'SGML_CATALOG_FILES'} =
+                 "$_toolroot/dtd/docbook.cat:$_toolroot/$_jade/dsssl/catalog";
+
+    $cmd = "$_toolroot/$_jade/sgmlnorm/sgmlnorm " .
+                 "$_toolroot/ld2db/docbook.dcl $fname > EX_$fname ;" .
+           "$_toolroot/$_jade/jade/jade -t sgml " .
+                 "-c $_toolroot/ld2db/catalog "   .
+                 "-d $_toolroot/ld2db/ld2db.dsl#db EX_$fname > DB_$fname ;" .
+           "rm -f EX_$fname";
+    system($cmd);
+
+    if( !(-e "DB_$fname") ) {
+        print "\nnldp_mk: Warning: could not create DocBook file: DB_$fname\n";
+    } else {
+        $cmd = "gzip DB_$fname";
+        system($cmd);
+    }
+}
+
+
+exit(0);
+
