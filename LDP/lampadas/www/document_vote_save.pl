@@ -1,55 +1,38 @@
 #! /usr/bin/perl
+#
+use Lampadas;
+use Lampadas::Database;
 
-use CGI qw(:standard);
-use Pg;
+$L = new Lampadas;
+$DB = new Lampadas::Database;
 
-$query = new CGI;
-$dbmain = "ldp";
-@row;
-
-$conn=Pg::connectdb("dbname=$dbmain");
-
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, user_id FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
-	exit;
+unless ($L->CurrentUserID()) {
+	$L->Redirect("wrongpermission.pl");
 }
-$user_id	= $row[2];
 
-$doc_id	= param('doc_id');
-$vote	= param('vote');
+$user_id	= $L->CurrentUserID();
+$doc_id		= $L->Param('doc_id');
+$vote		= $L->Param('vote');
 
-$sql = "DELETE FROM doc_vote WHERE doc_id=$doc_id AND user_id='$user_id'";
-$result=$conn->exec($sql);
+$DB->Exec("DELETE FROM doc_vote WHERE doc_id=$doc_id AND user_id='$user_id'");
 
-# Only allow votes 1 - 10. Zero votes mean remove my vote.
+# Only allow votes 1 - 10. Voting 0 means remove my vote.
 # 
 if ($vote) {
-	$sql = "INSERT INTO doc_vote(doc_id, user_id, vote) values ($doc_id, $user_id, $vote)";
-	$result=$conn->exec($sql);
+	if ($vote > 10) {
+		$L->StartPage();
+		print "Ratings must be between 1 to 10.";
+		$L->EndPage()
+	} else {
+		$sql = "INSERT INTO doc_vote(doc_id, user_id, vote) values ($doc_id, $user_id, $vote)";
+		$DB->Exec($sql);
+	}
 }
 
-# Read the votes
-$votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $votes_result->resultStatus;
-$vote_count = 0;
-$vote_total = 0;
-$vote_avg   = 0;
-while (@row = $votes_result->fetchrow) {
-  $vote = $row[0];
-  $vote_count++;
-  $vote_total = $vote_total + $vote;
-}
-if ($vote_count > 0) {
-$vote_avg = $vote_total / $vote_count;
-}
+# Update the average rating.
+#
+$vote_avg = $DB->Value("SELECT AVG(vote) FROM doc_vote WHERE doc_id = $doc_id");
+$DB->Exec("UPDATE document SET rating=$vote_avg WHERE doc_id=$doc_id");
 
-$sql = "UPDATE document SET rating=$vote_avg WHERE doc_id=$doc_id";
-$conn->exec("$sql");
-
-print $query->redirect("document_edit.pl?doc_id=$doc_id");
+$L->Redirect("document_edit.pl?doc_id=$doc_id");
 

@@ -32,6 +32,7 @@ use Exporter;
 
 	DocUsers,
 	DocTopics,
+	DocNotes,
 	DocVersions,
 	AddDocVersion,
 	SaveDocVersion,
@@ -67,9 +68,12 @@ use Exporter;
 	UserDocsTable,
 	DocTable,
 	NewDocTable,
+	BarGraphTable,
 	DocVersionsTable,
 	DocUsersTable,
 	DocTopicsTable,
+	DocRatingTable,
+	DocNotesTable,
 	
 	NavBox,
 	TitleBox,
@@ -300,6 +304,27 @@ sub DocTopics {
 	return %doctopics;
 }
 
+sub DocNotes {
+	my ($self, $doc_id) = @_;
+	my %docnotes = ();
+	my $sql = "SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id = u.user_id AND n.doc_id = $doc_id ORDER BY n.date_entered";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$date_entered	= &trim($row[0]);
+		$notes		= &trim($row[1]);
+		$notes		=~ s/</&lt;/;
+		$notes		=~ s/>/&gt;/;
+		$username	= &trim($row[2]);
+#		print "date_entered $date_entered\n";
+#		print "notes: $notes\n";
+#		print "username: $username\n";
+		$docnotes{$date_entered}{notes}		= $notes;
+		$docnotes{$date_entered}{username}	= $username;
+#		print "read back: $docnotes{$date_entered}{notes}\n";
+	}
+	return %docnotes;
+}
+
 sub DocVersions {
 	my $self = shift;
 	my $doc_id = shift;
@@ -495,7 +520,6 @@ sub StartPage {
 	}
 	
 	TitleBox($title);
-#	NavBar();
 	Errors();
 	print "<table width='100%'><tr><td valign=top width='180'>\n";
 	LoginBox() unless ($currentuser_id);
@@ -514,6 +538,7 @@ sub EndPage {
 	print "</center>\n";
 	print "</body>\n";
 	print "</html>\n";
+	exit;
 }
 
 sub RoleCombo {
@@ -820,17 +845,7 @@ sub DocTable {
 	$doctable .= "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$doc{isbn}'></td>";
 	$doctable .= "<th align=right>Rating</th>\n";
 	$doctable .= "<td>";
-	if ( $doc{rating} > 0 ) {
-		$doctable .= "<table class='bargraph'>\n";
-		for ( $i = 1; $i <= 10; $i++ ) {
-			$doctable .= "<td class='";
-			if ( $doc{rating} >= $i ) { $doctable .= "baron" } else { $doctable .= "baroff" }
-			$doctable .= "'>&nbsp;&nbsp;</td>\n";
-		}
-		$doctable .= "</tr></table>\n";
-	} else {
-		$doctable .= "Not rated";
-	}
+	$doctable .= BarGraphTable($foo, $doc{rating});
 	$doctable .= "</td>\n";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Abstract</th>";
@@ -856,10 +871,10 @@ sub DocTable {
 
 sub NewDocTable {
 	my $newdoctable = '';
-	$newdoctable .= "<table class='newdoctable'>\n";
+	$newdoctable .= "<table class='box'>\n";
 	$newdoctable .= "<form method=POST action='document_add.pl'>\n";
 	$newdoctable .= "<input type=hidden name=caller value='document_list.pl'>\n";
-	$newdoctable .= "<tr><th colspan=2>Document Details</th></tr>\n";
+	$newdoctable .= "<tr><th colspan=2>New Document Details</th></tr>\n";
 	$newdoctable .= "<tr><th>Title:</th><td><input type=text name=title size=60 width=60></td></tr>\n";
 	$newdoctable .= "<tr><th>Status:</th><td>" . PubStatusCombo($foo, "N") . "</td></tr>\n";
 	$newdoctable .= "<tr><th>Class:</th><td>" . ClassCombo() . "</td></tr>\n";
@@ -869,6 +884,23 @@ sub NewDocTable {
 	$newdoctable .= "</form>\n";
 	$newdoctable .=	"</table>\n";
 	return $newdoctable;
+}
+
+sub BarGraphTable {
+	my ($self, $value) = @_;
+	my $graph = '';
+	if ($value) {
+		$graph .= "<table class='bargraph'>\n";
+		for ( $i = 1; $i <= 10; $i++ ) {
+			$graph .= "<td class='";
+			if ( $value >= $i ) { $graph .= "baron" } else { $graph .= "baroff" }
+			$graph .= "'>&nbsp;&nbsp;</td>\n";
+		}
+		$graph .= "</tr></table>\n";
+	} else {
+		$graph .= "Not rated";
+	}
+	return $graph;
 }
 
 sub DocVersionsTable {
@@ -1022,6 +1054,50 @@ sub DocTopicsTable {
 	$table .= "<td valign=top><input type=submit value=Add></td>\n";
 	$table .= "</form>\n";
 	$table .= "</tr></table>\n";
+	return $table;
+}
+
+sub DocRatingTable {
+	my ($self, $doc_id) = @_;
+	my $vote_count	= $DB->Value("SELECT COUNT(*) FROM doc_vote WHERE doc_id=$doc_id");
+	my $vote	= $DB->Value("SELECT vote FROM doc_vote WHERE doc_id=$doc_id AND user_id=" . CurrentUserID());
+	$table .= "<table class='box'><tr><th colspan=3>Document Rating</th></tr>\n";
+	$table .= "<form action='document_vote_save.pl' method=POST>\n";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>\n";
+	$table .= "<tr><th>Ratings</th><td>$vote_count</td>\n";
+	$table .= "<td rowspan=3>\n";
+	$table .= "You can rate each document on a scale from 1 to 10, where 1 is very poor and 10 is excellent.\n";
+	$table .= "Your vote is averaged with the votes of others to obtain a rating for the document.\n";
+	$table .= "</td>\n";
+	$table .= "</tr>\n";
+	$table .= "<tr><th>Average</th><td>" . BarGraphTable($foo, $doc{rating}) . "</td></tr>\n";
+	$table .= "<tr><th>Your Rating</th><td><input name=vote type=text size=2 width=2 value=$vote></input>\n";
+	$table .= "<input type=submit value='Rate'></td>\n";
+	$table .= "</form>";
+	$table .= "</tr></table>";
+	return $table;	
+}
+
+sub DocNotesTable {
+	my ($self, $doc_id) = @_;
+	my %docnotes = DocNotes($foo, $doc_id);
+	my $table = "<table class='box'>\n";
+	$table .= "<form name=notes method=POST action='document_note_add.pl'>\n";
+	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";
+	foreach $date_entered (sort keys %docnotes) {
+		$table .= "<tr>\n";
+		$table .= "<td valign=top>$date_entered</td>\n";
+		$table .= "<td valign=top>$docnotes{$date_entered}{username}</td>\n";
+		$table .= "<td valign=top>$docnotes{$date_entered}{notes}</td>\n";
+		$table .= "</tr>\n";
+	}
+	$table .= "<tr><td colspan=2 align=right>To add a note, type the note, then click Save.</td>\n";
+	$table .= "<td><textarea name=notes rows=10 cols=40 wrap></textarea>\n";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>\n";
+	$table .= "<input type=submit value='Save'></td>\n";
+	$table .= "</tr>";
+	$table .= "</table>\n";
+	$table .= "</form>";
 	return $table;
 }
 

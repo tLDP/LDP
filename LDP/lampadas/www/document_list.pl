@@ -9,7 +9,6 @@ $L = new Lampadas;
 $dbmain='ldp';
 @row;
 $count = 0;
-$query = new CGI;
 
 # Read parameters
 #
@@ -39,8 +38,8 @@ $chkVERSION      = $L->Param('chkVERSION');
 $chkFILENAME     = $L->Param('chkFILENAME');
 $chkRATING       = $L->Param('chkRATING');
 
-$SORT     = $L->Param('strSORT');
-$SORT = "Title" unless ($SORT);
+$SORT	= $L->Param('strSORT');
+$SORT	= "Title" unless ($SORT);
 
 $strSTATUS = $L->Param('strSTATUS');
 
@@ -193,9 +192,6 @@ if ($L->Maintainer()) {
 print "</tr></table>\n";
 print "<input type=submit name=Reload value=Reload>\n";
 
-# connect to the database
-$conn=Pg::connectdb("dbname=$dbmain");
-
 if ($L->Maintainer()) {
 	print "<input type=submit value='MyDocuments' name=MyDocuments>\n";
 }
@@ -241,6 +237,9 @@ $sql .= " AND url > ''" unless ($L->Maintainer());
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
 $sql = $sql . " ORDER BY $SORT";
 #print "<tr><td colspan=20>$sql</td></tr>";
+
+# connect to the database
+$conn=Pg::connectdb("dbname=$dbmain");
 
 $result=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
