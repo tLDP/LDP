@@ -11,16 +11,6 @@ install: all
 	$(INSTALLDIR) $(modprefix)/Lampadas
 	$(INSTALLMOD) *.py  $(modprefix)/Lampadas
 	$(INSTALLMOD) Lampadas.pth  $(modprefix)
-	cd data; $(MAKE) install
 
 clean:
 	rm -f *.pyc
-	rm -f profile_stats
-	cd data; $(MAKE) clean
-	cd datamanager; $(MAKE) clean
-	cd dataset; $(MAKE) clean
-	cd persistence; $(MAKE) clean
-	cd html; $(MAKE) clean
-
-diff:
-	cvs -z9 diff -u | less
