@@ -1,0 +1,1483 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+
+<book lang="en">
+	<bookinfo>
+  		<title>Kernel Rebuild Guide</title>
+		<pubdate>2004-04-18</pubdate>
+		<authorgroup>
+			<author>
+				<firstname>Kwan</firstname>
+				<surname>Lowe</surname>
+				<affiliation>
+					<orgname>Digital Hermit</orgname>
+					<address><email>kwan@digitalhermit.com</email></address>
+				</affiliation>
+			</author>
+		</authorgroup>
+
+  		<revhistory>
+			<revision>
+				<revnumber>1.0</revnumber>
+				<date>2004-4-18</date>
+				<authorinitials>kll</authorinitials>
+				<revremark>An initial revision to gather feedback.</revremark>
+			</revision>
+		</revhistory>
+
+		<abstract>
+			<para>
+				This is a guide to building the 2.4.x and 2.6.0 Linux kernels.
+				It is intended for moderately experienced Linux users who are 
+				interested in learning more about the kernel and the rebuild
+				process.
+			</para>
+		</abstract>
+
+		<keywordset>
+			<keyword>kernel</keyword>
+			<keyword>rebuild</keyword>
+		</keywordset>
+
+	</bookinfo>
+
+	<dedication id="dedication">
+		<title>Dedication</title>
+		<para>To penguin lovers everywhere...</para>
+	</dedication> <!-- dedication -->
+
+
+<chapter id="intro">
+	<title>Introduction</title>
+
+
+	<section id="why-rebuild">
+		<title>Why Rebuild?</title>
+		<para>
+			Why rebuild the kernel? The main reason was once to optimize the
+			kernel to your environment (hardware and usage patterns). With
+			modern hardware there is rarely a need to recompile unless there
+			is a particular feature of a new kernel that you must have. The
+			performance gains are probably not noticeable unless specific
+			benchmarks are being run. 
+		</para>
+		<para>
+			This said, the newest Linux kernel (2.6.0test9 as of this writing)
+			has noticeable improvements for the typical desktop user as a result
+			of the improved scheduling system in the new kernel. Even for older
+			kernels, rebuilding is often necessary for low memory situations,
+			esoteric hardware, and in cases where every ounce of performance must
+			be extracted.
+		</para> 
+		<para>
+			This guide covers the steps necessary to build both the 2.4.x and 2.6.x
+			series of kernels. Because the process is quite different from one version
+			to the next, the versions are separated by chapters. 
+		</para>
+
+	</section> <!-- why-rebuild -->
+
+
+	<section id="section-intro">
+		<title>What is the kernel?</title>
+		<para>
+			The Linux kernel is often likened to the conductor in an orchestra. Among 
+			other things, it makes sure that all other processes in the system work
+			together coherently. Though it is only a small part of the operating system,
+			the kernel has the most important job of keeping everything else synchronized.
+		</para>
+	</section> <!-- section-intro -->
+
+	<!-- You'll want to use something more descriptive than section2 for 
+		the section name. The idea is that you can re-arrange sections
+		and refer to them by keyword rather than number. -->
+</chapter> <!-- Intro -->
+
+<chapter id="preparation">
+	<title>Preparation</title>
+	<section id="hardware-requirements">
+		<title>Hardware Requirements</title>
+
+		<para>
+			Hardware requirements can differ greatly between kernel versions, and indeed,
+			within versions depending upon the configuration. Though the Linux 2.4.x kernel
+			can boot with as little as 8M of RAM, a more realistic number is about 64M. 
+			As of this writing, the published minimum hardware required for the typical distribution
+			is about 128M RAM, 2G of hard drive space, and 200MhZ Pentium or equivalent CPU.
+			To actually build the kernel, however, requires a little extra hardware. The 
+			kernel sources themselves will occupy anywhere from 40M to 80M of filesystem space. 
+			To build them requires a minimum of 400M of drive space for all the interim files.
+			The actual kernel and included modules will require anywhere from 4M for an almost 
+			useless, bare minimum kernel to about 40M fully loaded.
+			<footnote>
+				<para>
+					I have successfully installed a serviceable machine on an original Pentium 100, 
+					64M RAM, and 1.2G of drive space. A full build of the 2.6.0test9 kernel took 
+					approximately 4 hours to complete.
+				</para>
+			</footnote>
+			Luckily, the kernel does not need to be built on the same machine on which it
+			will be deployed. This means that you can compile and package your kernel on 
+			a more robust machine and then install on the minimal system.
+		</para>
+	</section>
+
+	<section id="software-requirements">
+		<title>Software Requirements</title>
+		<para>
+			The minimum software versions for a kernel build are found in the 
+			<filename>./Documentation/Changes</filename>
+			file of the installed sources. They are as follows:
+
+		2.4.x series
+		<programlisting>
+		o  Gnu C                  2.91.66     # gcc --version
+		o  Gnu make               3.77        # make --version
+		o  binutils               2.9.1.0.25  # ld -v
+		o  util-linux             2.10o       # fdformat --version
+		o  modutils               2.4.2       # insmod -V
+		o  e2fsprogs              1.19        # tune2fs
+		o  reiserfsprogs          3.x.0b      # reiserfsck 2>&1|grep reiserfsprogs
+		o  pcmcia-cs              3.1.21      # cardmgr -V
+		o  PPP                    2.4.0       # pppd --version
+		o  isdn4k-utils           3.1pre1     # isdnctrl 2>&1|grep version
+
+		</programlisting>
+
+		2.6.x series
+		<programlisting>
+		o  Gnu C                  2.95.3       # gcc --version
+		o  Gnu make               3.78         # make --version
+		o  binutils               2.12         # ld -v
+		o  util-linux             2.10o        # fdformat --version
+		o  module-init-tools      0.9.10       # depmod -V
+		o  e2fsprogs              1.29         # tune2fs 
+		o  jfsutils               1.1.3        # fsck.jfs -V
+		o  reiserfsprogs          3.6.3        # reiserfsck -V 2>&1|grep reiserfsprogs
+		o  xfsprogs               2.1.0        # xfs_db -V
+		o  pcmcia-cs              3.1.21       # cardmgr -V
+		o  quota-tools            3.09         # quota -V
+		o  PPP                    2.4.0        # pppd --version
+		o  isdn4k-utils           3.1pre1      # isdnctrl 2>&1|grep version
+		o  nfs-utils              1.0.5        # showmount --version
+		o  procps                 3.1.13       # ps --version
+		o  oprofile               0.5.3        # oprofiled --version
+		</programlisting>
+		
+		A common sticking point on distributions transitioning between
+		2.4.x and 2.6.x kernels is the <filename>module-init-tools</filename>
+		package which must be updated to work with the 2.6.x kernel. Also,
+		be aware that the underlying version of glibc, the GNU libc
+		package, is implied. If you are upgrading from particularly old
+		distributions then you will likely need to upgrade glibc itself.
+
+		<footnote>
+			<para>
+			On an RPM based system you can query a minimal version with a
+			command such as:
+			<screen>
+			<prompt>$ </prompt><command>rpm -q --requires gcc|grep glibc</command>
+			</screen>
+			</para>
+		</footnote>
+		
+		</para>
+	</section>
+
+	<section id="determine-hardware">
+		<title>Determine Current Hardware</title>
+		<para>
+			Once you have determined that your hardware and software meet the minimum
+			requirements for the kernel build, we will need to collect more detailed 
+			information about the system. This is needed during the configuration process
+			when we decide which hardware will be supported under our new kernel. Among
+			the information we will gather include: Processor, Drive type and Controller 
+			(SCSI, IDE), Ethernet devices, Graphics and Sound Cards, USB HUB.
+		</para>
+
+		<para>
+			We start by running the <filename>/sbin/lspci</filename> utility to print
+			information about our hardware:
+
+		<screen>
+			<prompt>$ </prompt><command>/sbin/lspci</command>
+		</screen>
+
+		<programlisting>
+		00:00.0 Host bridge: Silicon Integrated Systems [SiS] 735 Host (rev 01)
+		00:01.0 PCI bridge: Silicon Integrated Systems [SiS] 5591/5592 AGP
+		00:02.0 ISA bridge: Silicon Integrated Systems [SiS] 85C503/5513
+		00:02.2 USB Controller: Silicon Integrated Systems [SiS] 7001 (rev 07)
+		00:02.3 USB Controller: Silicon Integrated Systems [SiS] 7001 (rev 07)
+		00:02.5 IDE interface: Silicon Integrated Systems [SiS] 5513 [IDE] (rev d0)
+		00:02.7 Multimedia audio controller: SiS7012 PCI Audio Accelerator (rev a0)
+		00:03.0 Ethernet controller: [SiS] SiS900 10/100 Ethernet (rev 90)
+		01:00.0 VGA compatible controller: ATI Technologies Inc Rage 128 RF/SG AGP
+		</programlisting>
+
+		Next, we must determine our processor type if not known. Some Linux systems 
+		contain a <filename>/proc</filename> filesystem that allows a user to view 
+		raw information about the system. If <filename>/proc</filename> exists you
+		can issue the following command to get CPU information:
+
+		<screen>
+			<prompt>$ </prompt><command>cat /proc/cpuinfo</command>
+		</screen>
+		<programlisting>
+
+		processor       : 0
+		vendor_id       : AuthenticAMD
+		cpu family      : 6
+		model           : 6
+		model name      : AMD Athlon(tm) XP 1800+
+		stepping        : 2
+		cpu MHz         : 1526.870
+		cache size      : 256 KB
+		fdiv_bug        : no
+		hlt_bug         : no
+		f00f_bug        : no
+		coma_bug        : no
+		fpu             : yes
+		fpu_exception   : yes
+		cpuid level     : 1
+		wp              : yes
+		flags           : fpu vme de pse tsc msr pae mce cx8 sep mtrr pge 
+		bogomips        : 3047.42
+		</programlisting>
+		</para>
+	</section>
+
+	<section id="download">
+		<title>Acquiring the Sources</title>
+
+		<para>
+		There are many ways to acquire the Linux kernel sources. If you are using a
+		packaged distribution then most likely the distributor will bundle a kernel
+		source package. These are installable via the package installation method,
+		whether RPM, apt, YAST, portage, etc.. If you decide to go this route, please 
+		consult your distributions documentation for specifics. 
+		</para>
+		<para>
+		The other option is to use the <quote>pristine</quote> sources, either the
+		<quote>official</quote> sources from Linus Torvalds himself, or one of the
+		regularly maintained trees from people such as Alan Cox, Robert Love, et al..
+		These sources are often on the bleeding-edge of kernel development, full of
+		new features and untested code. 
+		</para>
+		<para>
+		Untested code? This is a feature of the distributed development model of Linux
+		and Open Source (??) in general. The traditional model of a software release is
+		somewhat antithetical to this model, as new code must be released to allow 
+		all developers to test and improve the code. However, because Linux is used in 
+		production environments throughout world it is necessary to separate the unstable
+		development tree from the tested, stable tree. This is done through the version
+		number of the kernel. There are three main numbers associated with the kernel --
+		the Major, Minor, and PatchLevel fields. The Major number rarely changes, and
+		then only when/if the entire architecture is revamped. The Minor number changes
+		more frequently, perhaps once every couple years. Kernels with an odd Minor number 
+		are considered unstable, testing branches. Even Minor numbers are generally rock
+		solid. The PatchLevel is updated frequently, sometimes more than once a week in
+		extreme cases. 
+		</para>
+		<para>
+		To recap, you can build either from your distribution's modified kernel sources
+		or from the stable or unstable branch of the offical sources. If you are making
+		minor modifications to the configuration it is perhaps safest to install your
+		distributor's version. These kernels usually include stability and feature 
+		patches that may be missing from the stock kernels. For example, some distributors
+		will include low-latency or security patches and do the more difficult work of
+		integrating these into their system. The downside is that the distributors tend
+		to lag the bleeding-edge kernels. If you would like to test the improved 
+		responsiveness of the 2.6.0 tree then you will need to build from source.
+		</para>
+	</section> 
+
+
+	<section id="download-source">
+		<title>Download the Source</title>
+
+		<para>
+		Though the latest sources are always available from <ulink url="http://kernel.org">
+		<citetitle>http://kernel.org</citetitle></ulink>, to be kind to the Internet, always 
+		use one of the mirrors listed at <ulink url="http://kernel.org/mirrors">
+		<citetitle>http://kernel.org/mirrors</citetitle></ulink>. In general, geographically
+		close mirrors will tend to be fastest. You can either browse the sites with an
+		Internet browser or with a dedicated FTP client.
+		</para>
+		<para>
+		You will see several links to <filename>/pub/linux</filename> on
+		the mirror site. Select the <filename>kernel</filename> directory,
+		then the kernel version that you would like to install. As of
+		this writing, 2.4.22 is the latest stable version and 2.6.0 is in
+		pre-release state. Once you select a kernel version you will see
+		several files.
+
+		<programlisting>
+		ChangeLog-2.6.0-test9          25-Oct-2003 14:51    41k  
+		LATEST-IS-2.6.0-test9          25-Oct-2003 14:51     0k  
+		linux-2.6.0-test9.tar.bz2.sign 25-Oct-2003 15:14     1k  
+		linux-2.6.0-test9.tar.gz       25-Oct-2003 15:14  39.7M  
+		linux-2.6.0-test9.tar.gz.sign  25-Oct-2003 15:14     1k  
+		linux-2.6.0-test9.tar.sign     25-Oct-2003 15:14     1k  
+		patch-2.6.0-test9.bz2.sign     25-Oct-2003 15:14     1k  
+		patch-2.6.0-test9.gz           25-Oct-2003 15:14   123k  
+		patch-2.6.0-test9.gz.sign      25-Oct-2003 15:14     1k  
+		patch-2.6.0-test9.sign         25-Oct-2003 15:14     1k  	
+		</programlisting>
+
+		The Changelog files detail the differences between versions. The
+		linux- files are the compressed sources for the entire Linux kernel.
+		Most sites will contain both gzip and bzip packages. The bzip
+		packages tend to be about 20% smaller than the GZIP versions, so
+		it is usually the best option since all modern Linux distributions contain
+		BZIP utilities. Finally, the patch files are a list of differences
+		between versions of the kernel. If you have previously downloaded
+		an earlier source package you will only need to download the much
+		smaller patch file to bring those up to date. We will discuss patch application
+		in the next section. There are also some <filename>.sign</filename> files
+		that contain MD5 sum information.  (elaborate md5)
+		</para>
+
+		<para>
+		The <ulink url="http://kernel.org"><citetitle>http://kernel.org</citetitle>
+		</ulink> website is not the only place to retrieve patches. Many other vendors
+		and individuals have developed patches to improve aspects of the kernel's
+		performance, support new hardware, or introduce features that are too esoteric
+		or experimental to make it to the stock kernel. For example, kernel hacker
+		Robert Love had developed the <emphasis>pre-emptible</emphasis> kernel 
+		modifications that made dramatic improvements to the responsiveness of a Linux
+		system. These patches were not part of the standard 2.4.x kernel but were of
+		such usefulness that they were officially adopted into the 2.6.0 series. For
+		the most part these third-party patches are stable but do use your judgment when
+		downloading and applying them.
+		</para>
+	</section>
+
+	<section id="extract-patch">
+		<title>Extract and Patch</title>
+		<para>
+		Once you have retrieved the kernel sources and patches, you will need to
+		extract them and apply the patches. The pristine 2.4.x and 2.6.x sources can be
+		built as a regular, unprivileged user and this is recommended. 
+			<footnote>
+			<para>
+			Distributions will often install the kernel sources into     
+			<filename>/usr/src/linux</filename>. To build in this directory
+			will require root access. Note that there are usually two source packages --
+			one called something like <filename>kernel-source-VERSION-i386.rpm</filename>
+			and another called <filename>kernel-VERSION.src.rpm</filename>. You can generally
+			rebuild the <filename>src.rpm</filename> as an unpriveleged user.
+			</para>
+			</footnote>
+		</para>
+	
+		<para>	
+		We will begin by creating a directory to hold all the source tarballs and patches,
+		then proceed to extract the sources. For these examples we will assume that you 
+		have previously downloaded an earlier release of the kernel and will now need to
+		patch to bring it up to the current version.
+
+		<screen>
+			<prompt>$ </prompt><command>mkdir src</command>
+			<prompt>$ </prompt><command>cd src</command>
+		</screen>
+
+		If your Linux sources are in BZIP compressed format (that is, end with a 
+		<filename>.bz2</filename> extenstion, then use the following command:
+		<screen>
+			<prompt>$ </prompt><command>tar xfvj /path/to/linux-2.6.0-test7.tar.bz2</command>
+		</screen>
+
+		Otherwise, use the options for GZIP compressed data:
+
+		<screen>
+			<prompt>$ </prompt><command>tar xfvz /path/to/linux-2.6.0-test7.tar.gz</command>
+		</screen>
+
+		You should see a list of filenames scroll by as they are being extracted. Verify that
+		the new kernel source directory is created:
+
+		<screen>
+			<prompt>$ </prompt><command>ls -l</command>
+		</screen>
+		<programlisting>
+		total 4
+		drwxr-xr-x   18 kwan   users   4096 Oct  8 15:24 linux-2.6.0-test7
+		-rw-r--r--    1 kwan   users 276260 Nov 15 02:05 patch-2.6.0-test8.gz
+		-rw-r--r--    1 kwan   users 126184 Nov 15 02:07 patch-2.6.0-test9.gz
+		</programlisting>
+
+		Next we must apply the patches in order. Patch files are created by the 
+		<filename>diff</filename> program, and can selectively modify one or more files
+		by adding, deleting, or modifying lines in the source code. Because they contain only
+		the differences between files it is usually a lot faster (and better for the Internet
+		in general) if you patch to the current release. (TBF unclear). Appendix TBF shows
+		a typical patch file. Like the kernel sources, the patch files are also compressed. 
+
+		<screen>
+			<prompt>$ </prompt><command>gunzip patch-2.6.0-test8.gz</command>
+			<prompt>$ </prompt><command>gunzip patch-2.6.0-test9.gz</command>
+			<prompt>$ </prompt><command>ls -l</command>
+		</screen>
+		<programlisting>
+		-rw-r--r--    1 kwan  users  1072806 Nov 15 02:05 patch-2.6.0-test8
+		-rw-r--r--    1 kwan  users   486902 Nov 15 02:07 patch-2.6.0-test9
+		</programlisting>
+
+		Once the patches are uncompressed we can apply them to the kernel sources. Remember
+		that it is important to apply them in order. 
+		<screen>
+			<prompt>$ </prompt><command>cd linux-2.6.0-test7</command>
+			<prompt>$ </prompt><command>patch -p1 &lt;../patch-2.6.0.test8</command>
+			<prompt>$ </prompt><command>patch -p1 &lt;../patch-2.6.0.test9</command>
+		</screen>
+	
+		If it is successful you will see messages similar to the following scroll by:
+
+		<programlisting>
+		patching file Documentation/filesystems/jfs.txt
+		patching file Documentation/filesystems/xfs.txt
+		patching file Documentation/ia64/fsys.txt
+		patching file Documentation/ide.txt
+		patching file Documentation/x86_64/boot-options.txt
+		patching file Makefile
+		</programlisting>
+
+		If unsuccessful you will get a warning and be prompted for a file to patch. If 
+		this occurs, press <keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>
+		to break out of the patch utility and verify that you are using the correct
+		patch and applying them in the correct order. 
+		</para>
+		<para>
+		Once all the patches are applied you might consider backing up the directory. 
+			
+		<screen>
+			<prompt>$ </prompt><command>cd ..</command>
+			<prompt>$ </prompt><command>mv linux-2.6.0-test7 linux-2.6.0-test9</command>
+			<prompt>$ </prompt><command>tar cfvj linux-2.6.0-test9.tar.bz2 linux-2.6.0-test9</command>
+		</screen>
+		</para>
+	</section>
+</chapter>
+
+<chapter id="configuration">
+	<title>Configuration</title>
+	<section id="configuration-intro">
+		<title>The Configuration Process</title>
+		<para>
+			The configuration process is the most strenous portion of the kernel
+			rebuild process. In this step you are deciding which features will be 
+			included in the final kernel and it can require lots of hardware
+			knowledge. In truth, it is not too onerous. The current kernels have
+			graphical configuration programs and though not perfect, provide help
+			screens for most of the configuration options.
+		</para>
+		<para>
+			Many changes were made to the configuration subsystem in the 2.6.0 kernel
+			series. It is easier to add modules and much more robust than before.
+			It has also changed dramatically in appearance especially when using the
+			X-based configuration tool, xconfig.  For this reason the configuration 
+			steps for the different branches have been split into two sections in this 
+			chapter. 
+		</para>
+		<para>
+			As mentioned, both configuration tools provide context sensitive help 
+			screens for the different options. Because this help is readily available
+			to the user (and more importantly, because there are several hundred
+			options) this guide will only cover a fraction of the choices. 
+		</para>
+	</section>
+
+	<section id="module-or-static">
+		<title>Compile Modules or Static</title>
+		<para>
+			One of the first choices you will make is whether or not to build device
+			support directly into the kernel or as a module. In the early days of Linux,
+			when module support was in its infancy, it is possible that static (i.e.,
+			compiled in) drivers were faster. With any modern CPU the time to load and
+			unload the modules and the memory required for the module loader subsystem
+			is negligible even to benchmarking utilities. Some devices, notably the disk
+			controller, can be built directly into the kernel in order to simplify 
+			the boot process. 
+
+			<footnote>
+				<para>
+		  		This is a relative thing. The initrd utility is robust and easy to
+				use. Bootloaders have also improved to the point that little effort
+				is saved by using static kernels. My two cents.
+				</para>
+			</footnote>
+		</para>
+		<para>
+			You may also choose to disable some options entirely. Though you will not have any
+			performance increases, there are advantages to disabling features that are not
+			required. For one, the compile times will be drastically reduced depending on 
+			which subsystem is disabled. For another, the final kernel and installed modules
+			will require less space. On modern hard drives of 40G, 60G, and even 250G, an
+			extra 20M or so is negligible but is significant on embedded or older systems.
+			The disadvantage is that you will not have support for those features until you
+			recompile the kernel. One other thing to keep in mind, as noted in
+			KERNELTRAP.ORG (http://www.kerneltrap.org/node/view/799):
+
+		<blockquote>
+			<attribution>kerneltrap.org</attribution>
+			<literallayout>
+			Having unnecessary drivers will make the kernel bigger, and can under some 
+			circumstances lead to problems: probing for a nonexistent controller card may 
+			confuse your other controllers.
+			</literallayout>
+		</blockquote>
+
+		</para>
+</section>
+
+	<section id="change-patchlevel">
+		<title>Assign Unique Name</title>
+		<para>
+		We have so far extracted and patched the Linux sources. During our preparation
+		we had also determined what hardware is installed in the system so that we will
+		know which modules will need compilation. Before we proceed to actually configuring
+		the kernel there are a couple minor but important details to complete. 
+		</para>
+		<para>
+		Inside the Linux source directory is the default <filename>Makefile</filename>. This
+		file is used by the <application>make</application> utility to compile the Linux
+		sources. The first few lines of the <filename>Makefile</filename> contains some
+		versioning information:
+
+		<programlisting>
+		VERSION = 2
+		PATCHLEVEL = 4
+		SUBLEVEL = 22
+		EXTRAVERSION = -1
+		</programlisting>
+
+		Note that there is an additional EXTRAVERSION field. To prevent overwriting any
+		existing kernel modules on the system we will change this EXTRAVERSION to something
+		unique. When the final installation steps are run, kernel module files will then get
+		written to 
+		<filename>/lib/modules/$VERSION.$PATCHLEVEL.$SUBLEVEL-$EXTRAVERSION.</filename>
+		</para>
+	</section>
+	<section id="backup-config">
+		<title>Backup <filename>.config</filename></title>
+		<para>
+		Finally, before we begin, please note that the configuration choices are kept in the
+		<filename>../linux/.config</filename> file. If you have not already run any configurations 
+		this fill will not exist. If you have, and would like to save your configuration, copy the 
+		<filename>.config</filename> to another file:
+
+		<screen>
+			<prompt>$ </prompt><command>cd linux</command>
+			<prompt>$ </prompt><command>cp .config config.save</command>
+		</screen>
+
+		If you are using the sources from a vendor then the default configuration
+		files are usually included in the <filename>configs</filename> or in the
+		<filename>./arch/i386/defconfig</filename> (for i386 machines) file. You
+		can use these configurations as a starting point for your customizations.
+		The <filename>.config</filename> <emphasis>will</emphasis> be overwritten
+		in the next step, so do make a backup before proceeding!
+		</para>
+			
+		<para>
+		We begin the configuration by wiping out all previous configurations
+		and resetting the source directory to a pristine state. The main
+		reason for doing this is that some files do not automatically get
+		rebuilt which can lead to failed builds, or at worst, a buggy kernel.
+
+		<screen>
+			<prompt>$ </prompt><command>make mrproper</command>
+		</screen>
+
+		In the 2.4.x series, a few dozen lines of <command>rm -f</command> commands 
+		will appear as all generated files get removed. The 2.6.0 process is less noisy and
+		returns only a few CLEAN messages. Please note that it is generally safe to omit 
+		the <command>make mrproper</command> step during subsequent rebuilds. 
+
+		</para>
+		<para>
+		As of this writing (December 15, 2003), the 2.4.x kernel is in wide deployment.
+		The 2.6.0 has just been released to the world. Though the configuration and
+		build procedures are quite similar, there are enough differences to warrant
+		separate sections for each kernel. If you are building a 2.6.0 series kernel,
+		skip to <xref linkend="configuration-2-6">. Otherwise, proceed to the next section,
+		<xref linkend="configuration-2-4">.
+		</para>
+	
+	</section>
+
+	<section id="configuration-2-4">
+		<title>Configuring the 2.4.x kernels</title>
+	
+		<para>
+		Our next step is to run the configuration utility. In the 2.4.x kernels there are 
+		four main frontends: config, oldconfig, menuconfig, xconfig.  We choose one 
+		configuration method and run it with, for example:
+
+		<screen>
+			<prompt>$ </prompt><command>make config</command>
+		</screen>
+
+		</para>
+		<para>
+		<command>config</command> is the least user-friendly option as it merely presents 
+		a series of questions that must be answered sequentially. Alas, if an error is made 
+		you must begin the process from the top. Pressing <keycap>Enter</keycap> will accept
+		the default entry which is in upper case.
+		</para>
+		<para>
+		<command>oldconfig</command> will read the defaults from an existing 
+		<filename>.config</filename> and rewrite necessary links and files. Use this option
+		if you've made minor changes to source files or need to script the rebuild process.
+		Note that <command>oldconfig</command> will only work within the
+		same major version of the kernel. You <emphasis>cannot</emphasis>,
+		for example, use a 2.4.x <filename>.config</filename> with the
+		2.6.x kernel.
+		</para>
+		<para>
+		<command>menuconfig</command> is an <emphasis>ncurses</emphasis> based frontend.
+		Your system must have the <filename>ncurses-devel</filename> libraries installed
+		in order to use this utility. As the help text at the top of the screen indicates,
+		use the arrow keys to navigate the menu. Press <keycap>Enter</keycap> to select
+		sub-menus. Press the highlighted letter on each option to jump directly to that option.
+		To build an option directly into the kernel, press <keycap>Y</keycap>. To disable an
+		option entirely, press <keycap>N</keycap>. To build an option as a loadable module,
+		press <keycap>M</keycap>. You can also access content-specific help screens by 
+		pressing <keycap>?</keycap> on each page or selecting <command>HELP</command> from
+		the lower menu. <xref linkend="menuconfig-graphic"> shows an example screen.
+		<footnote>
+			<para>
+			I have noticed some minor screen corruption when using menuconfig in 
+			slightly non-standard terminals. Though it functions normally some of the
+			menu entries may be difficult to read until the screen is refreshed.
+			</para>
+		</footnote>
+				
+		<figure id="menuconfig-graphic">
+			<title>make menuconfig</title>
+			<mediaobject>
+				<imageobject>
+				<imagedata fileref="images/menuconfig.eps" format="eps" scale=25 scalefit="1">
+				</imageobject>
+				<imageobject><imagedata fileref="images/menuconfig.jpg" format="jpg"></imageobject>
+					<textobject><phrase>make menuconfig example graphic</phrase></textobject>
+					<caption><para></para></caption>
+			</mediaobject>
+		</figure>
+		</para>
+
+		<para>
+		<command>xconfig</command>, as the name suggests, is an <application>X Window</application>
+		based frontend. It requires the TCL/TK and X libraries to work, and of course, an X server.
+		<xref linkend="xconfig-graphic"> shows an example screen.
+			
+		<figure id="xconfig-graphic">
+			<title>make xconfig</title>
+				<mediaobject>
+			<imageobject>
+					<imagedata fileref="images/xconfig.eps" format="eps" scale=25 scalefit="1">
+				</imageobject>
+				<imageobject><imagedata fileref="images/xconfig.jpg" format="jpg"></imageobject>
+				<textobject><phrase>make xconfig example graphic</phrase></textobject>
+				<caption><para></para></caption>
+			</mediaobject>
+		</figure>
+		</para>
+
+		<para>
+		For the purposes of this next section we will assume that <command>make xconfig</command>
+		is used. The options are identical otherwise. As mentioned, there are literally hundreds
+		of configuration options and this precludes us from listing every one of them. If you 
+		are unsure of an option use the online help or consult the kernel documentation found
+		in the <filename>../linux/Documentation</filename> directory. We begin by typing:
+
+		<screen>
+			<prompt>$ </prompt><command>make xconfig</command>
+		</screen>
+
+		The main configuration menu will appear. Selecting an item will bring up another window
+		with further options. These in turn can spawn other sub-menus. 
+
+		<variablelist>
+			<varlistentry>
+				<term>Code Maturity Level Options</term>
+				<listitem>
+					<para>
+					This option allows configuration of alpha-quality software. It is best
+					to disable this option if the kernel is intended for a stable production
+					system. If you require an experimental feature in the kernel, such as
+					a driver for new hardware, then enable this option but be aware that 
+					it <quote>may not meet the normal level of reliability</quote> as tested
+					code. 
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Loadable Module Support</term>
+				<listitem>
+					<para>
+						You will almost certainly want to enable module support. If you
+						will need third-party kernel modules you will also need to
+						enable <emphasis>Set Version Information on All Module Symbols</emphasis>.	
+					 </para>
+					</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Processor Type and Features</term>
+				<listitem>
+					<para>
+						This is perhaps the most important option to choose. In the Preparation
+						section we determined our processor type by examining 
+						<filename>/proc/cpuinfo</filename> and we use that information here to
+						select the appropriate processor. Included in this submenu are features
+						such as <emphasis>Low Latency Scheduling</emphasis> which can improve
+						desktop responsiveness, <emphasis>Symmetric Multi-processing Support</emphasis>
+						for machines with multiple CPUs, and <emphasis>High Memory Support</emphasis>
+						for machines with more than 1G of RAM. Laptop users can also benefit from
+						the <emphasis>CPU Frequency Scaling</emphasis> feature.
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>General Setup</term>
+				<listitem>
+					<para>
+						Choices for <acronym>PCI</acronym>, <acronym>ISA</acronym>,
+						<acronym>PCMCIA</acronym> and other architectural support such as 
+						<emphasis>Advanced Power Management</emphasis> are found here.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term>Memory Technology Devices</term>
+				<listitem>
+					<para>
+						<acronym>MTD</acronym> devices include <productname>Compact Flash</productname>
+						devices. Some digital cameras will require this support.
+						</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Block Devices</term>
+				<listitem>
+					<para>
+						The Block Device section contains options for floppy and hard drives,
+						including parallel port devices, tape drives and <acronym>RAID</acronym>
+						controllers. Important options include loopback device support, which
+						allows mounting on disk images, and initrd support, which is needed to
+						preload drivers necessary to boot the system.
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Multi-Device support (<acronym>RAID</acronym> and <acronym>LVM</acronym>)</term>
+				<listitem>
+					<para>
+						Important for servers, these options include <acronym>RAID</acronym> support
+						for combining multiple disks. Note that this option is not needed for 
+						certain hardware <acronym>RAID</acronym> that function below the operating
+						system level. <acronym>LVM</acronym> is a useful subsystem that allows,
+						among other things, dynamic resizing of filesystems.	
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term><acronym>ATA/IDE/MFM/RLL</acronym> support.</term>
+				<listitem>
+					<para>
+						This section includes options for <acronym>IDE/ATAPI</acronym> chipsets,
+						including performance tweaks such as <acronym>DMA</acronym>. Most systems
+						will need this support.
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term>Cryptography Support (CryptoAPI)</term>
+				<listitem>
+					<para>
+						Useful options include Loopback Crypto Support, which allows encrypted
+						filesystem images to be mounted. Even with full access to the PC, 
+						loopback encryption can help safeguard data.
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term>Networking Options</term>
+				<listitem>
+					<para>
+					 	Many choices are available for networking. <acronym>TCP/IP</acronym>,
+						<acronym>IP</acronym> tunneling, packet filtering, <acronym>IPv4</acronym>
+						and <acronym>IPv6</acronym>, routing support and network QoS are among
+						the most useful. If your kernel is intended for a dedicated firewall or
+						router device then the options here can significantly improve performance.
+						Read the online and kernel documentation.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term><acronym>SCSI</acronym> Support</term>
+				<listitem>
+					<para>
+						<acronym>SCSI</acronym> support is needed for not only true 
+						<acronym>SCSI</acronym> devices, but also for <acronym>IDE</acronym>
+						<acronym>CDR/W</acronym> drives in <acronym>SCSI</acronym> emulation
+						mode. If your root filesystem is mounted on a <acronym>SCSI</acronym>
+						disk then you must build support directly into the kernel and not as
+						a module. 
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term>Character Devices</term>
+				<listitem>
+					<para>
+						Dozens of options are available here, including support for many
+						serial and parallel devices, hardware sensors (for system monitors),
+						mice, joysticks and <acronym>DRM</acronym>. Many of the options can
+						be safely disabled without problem.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term>File Systems</term>
+				<listitem>
+					<para>
+						It is a good idea to build support for your root filesystem directly
+						into the kernel. Though the <application>initrd</application> utilities
+						can get around the chicken-and-egg boot problem, it is generally safer
+						and easier to just build the fs modules directly. Many options can also
+						be safely disabled if you have no use for the feature.
+					</para>
+				</listitem>
+			</varlistentry>
+		</variablelist>
+	</para>	
+	<para>
+		Once all the configuration changes have been made you can go ahead and save settings.
+		By default the configuration is placed in the <filename>.config</filename> file
+		in the topmost directory. Because this file is deleted in <command>make mrproper</command>
+		and is also hidden, it is a good idea to use the <emphasis>Save to Alternate File</emphasis>
+		before exiting. It will prompt for another save location. Enter something outside of the
+		source tree and with a useful name such as <filename>kernel-2.4.22-lowlatency.config</filename>. 	
+		Once this is done, exit the configuration menu. You will be prompted to save the
+		configuration again. Select <command>Yes</command> and continue. 
+	</para>
+	<para>
+		The configuration for the 2.4.x kernel is now complete. You may now skip to 
+		<xref linkend="building">.
+	</para>
+	</section>
+
+	<section id="configuration-2-6">
+	<title>Configuring the 2.6.x kernels</title>
+		<para>
+		Our next step is to run the configuration utility. On the 2.6.x kernels there
+		are four main frontend programs: config, menuconfig, and xconfig. 
+		</para>
+		<para>
+		<command>config</command> is the least user-friendly option as it merely presents 
+		a series of questions that must be answered sequentially. Alas, if an error is made 
+		you must begin the process from the top. Pressing <keycap>Enter</keycap> will accept
+		the default entry which is in upper case.
+		</para>
+		<para>
+		<command>oldconfig</command> will read the defaults from an existing 
+		<filename>.config</filename> and rewrite necessary links and files. Use this option
+		if you've made minor changes to source files or need to script the rebuild process.
+		</para>
+		<para>
+		<command>menuconfig</command> is an <emphasis>ncurses</emphasis> based frontend.
+		Your system must have the <filename>ncurses-devel</filename> libraries installed
+		in order to use this utility. As the help text at the top of the screen indicates,
+		use the arrow keys to navigate the menu. Press <keycap>Enter</keycap> to select
+		sub-menus. Press the highlighted letter on each option to jump directly to that option.
+		To build an option directly into the kernel, press <keycap>Y</keycap>. To disable an
+		option entirely, press <keycap>N</keycap>. To build an option as a loadable module,
+		press <keycap>M</keycap>. You can also access content-specific help screens by 
+		pressing <keycap>?</keycap> on each page or selecting <command>HELP</command> from
+		the lower menu. <xref linkend="menuconfig-graphic"> shows an example screen from
+		the 2.4.x kernel series.
+		</para>
+		<para>
+		<command>xconfig</command> is a graphical frontend using <application>qconf</application>
+		by Roman Zippel. It requires the <application>qt</application> and X libraries to 
+		build and use. The interface is intuitive and customizable. Online help is automatically
+		shown for each kernel configuration option. It also can show dependency information for
+		each module which can help diagnose build errors. <xref
+		linkend="xconfig26-graphic"> shows an
+		example of the <command>xconfig</command> screen. 
+
+		From the online help:
+		<blockquote>
+			<attribution>qconf help</attribution>
+			<literallayout>
+			For each option, a blank box indicates the feature is disabled, a check
+			indicates it is enabled, and a dot indicates that it is to be compiled
+			as a module. Clicking on the box will cycle through the three states.
+			If you do not see an option (e.g., a device driver) that you believe
+			should be present, try turning on Show All Options under the Options menu.
+			Although there is no cross reference yet to help you figure out what other
+			options must be enabled to support the option you are interested in, you can
+			still view the help of a grayed-out option.
+			</literallayout>
+		</blockquote>
+
+		<figure id="xconfig26-graphic">
+			<title>make xconfig</title>
+			<mediaobject>
+				<imageobject>
+					<imagedata fileref="images/xconfig2_6.eps" format="eps" scale=45 scalefit="1">
+				</imageobject>
+				<imageobject><imagedata fileref="images/xconfig2_6.jpg" format="jpg"></imageobject>
+				<textobject><phrase>make xconfig example graphic</phrase></textobject>
+				<caption><para></para></caption>
+			</mediaobject>
+		</figure>
+		</para>
+		<para>
+		Once you have decided which configuration option to use, start the process with 
+		<command>make</command> followed by either <command>config</command>, 
+		<command>menuconfig</command>, or <command>xconfig</command>. For example:
+
+		<screen>
+		 	<prompt>$ </prompt><command>make menuconfig</command>
+		</screen>
+
+		The system will take a few moments to build the configuration utility. Next you
+		will be presented with the configuration menus. Though similar to the 2.4.x series,
+		the 2.6.x menu is more logically organized with better grouping of sub-modules.
+		Following are some of the top level configuration options in the 2.6 kernel.
+		</para>
+		
+	<para>
+		<variablelist>
+			<varlistentry>
+				<term>Code Maturity Level Options</term>
+				<listitem>
+					<para>
+						This option allows configuration of alpha-quality software or obsoleted
+						drivers. It is best to disable this option if the kernel is intended for 
+						a stable production system. If you require an experimental feature in the 
+						kernel, such as a driver for new hardware, then enable this option but be 
+						aware that it <quote>may not meet the normal level of reliability</quote> 
+						as more regorously tested code. 
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term>General Setup</term>
+				<listitem>
+					<para>
+						This section contains options for <command>sysctl</command> support,
+						a feature allowing run-time configuration of the kernel. A new feature,
+						kernel <filename>.config</filename> support, allows the complete 
+						kernel configuration to be viewed during run-time. This addresses 
+						many requests to be able to see what features were compiled into
+						the kernel.
+					</para>
+				</listitem>
+			</varlistentry>
+
+			<varlistentry>
+				<term>Loadable Module Support</term>
+				<listitem>
+					<para>
+						You will almost certainly want to enable module support. If you
+						will need third-party kernel modules you will also need to
+						enable <emphasis>Set Version Information on All Module Symbols</emphasis>.	
+					 </para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Processor Type and Features</term>
+				<listitem>
+					<para>
+						This is perhaps the most important configuration choice. In the Preparation
+						section we determined our processor type by examining 
+						<filename>/proc/cpuinfo</filename> and we use that information here to
+						select the appropriate processor. Included in this submenu are features
+						such as <emphasis>Preemptible Kernel</emphasis> which can improve
+						desktop responsiveness, <emphasis>Symmetric Multi-processing Support</emphasis>
+						for machines with multiple CPUs, and <emphasis>High Memory Support</emphasis>
+						for machines with more than 1G of RAM. 
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Power Management Options</term>
+				<listitem>
+					<para>
+						Found here are options for <acronym>ACPI</acronym> and <acronym>CPU</acronym>
+						Frequency Scaling which can dramatically improve laptop power usage. Read 
+						the <filename>Documentation/power</filename> file for more information.
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Bus Options (<acronym> PCI, PCMCIA, EISA, MCA, ISA</acronym>)</term>
+				<listitem>
+					<para>
+						Here are found options for all system bus devices. On modern machines
+						the <acronym>ISA</acronym> and <acronym>MCA</acronym> support can often
+						be disabled. 
+					</para>
+				</listitem>
+			</varlistentry>
+			<varlistentry>
+				<term>Executable File Formats</term>
+				<listitem>
+					<para>
+						Interesting features here include the kernel support for miscellaneous
+						binaries, which can allow seamless operation of non-Linux binaries
+						with a little userland help.
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term>Device Drivers</term>
+				<listitem>
+					<para>
+						All the configuration options that were previously scattered throughout
+						the 2.4.x menus are now neatly organized under this option. Features
+						such as <acronym>SCSI</acronym> support, graphic card optimizations,
+						sound, <acronym>USB</acronym> and other hardware are configured here.
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term>File Systems</term>
+				<listitem>
+					<para>
+						Found here are options for which filesystems are supported by the 
+						kernel such as <acronym>EXT2</acronym> and ReiserFS. It is best to
+						build support for the root filesystems directly into the kernel rather
+						than as a module. 
+					</para>
+				</listitem>
+			</varlistentry>
+			
+			<varlistentry>
+				<term>Security Options</term>
+				<listitem>
+					<para>
+						Interesting options here include support for <acronym>NSA</acronym>
+						Security Enhanced Linux and other, somewhat experimental, features
+						to increase security.
+					</para>
+				</listitem>
+			</varlistentry>
+		</variablelist>
+	</para>
+
+	</section>
+
+</chapter> <!-- configuration -->
+
+<chapter id="building">
+	<title>Build</title>
+	<section id="make-dep-clean">
+		<title>Dependencies</title>
+		<para>
+		The next step is to create the necessary include files and generate dependency information. This
+		step is only required for the 2.4.x kernel tree. 
+		<screen>
+			<prompt>$</prompt><command>make dep</command>
+		</screen>
+
+		Lots of messages will scroll by. Depending on the speed of your machine and on
+		what options you chose, this may take several minutes to complete. Once the dependency 
+		information is created we can clean up some miscellaneous object files. This step
+		is required for all versions of the kernel.
+
+		<screen>
+			<prompt>$</prompt><command>make clean</command>
+		</screen>
+
+		</para>
+	</section>
+
+	<section id="make-image">
+		<title>Build the Kernel</title>
+		<para>
+		We are now (finally) ready to start the actual kernel build. At the prompt type:
+
+		<screen>
+			<prompt>$</prompt><command>make bzImage</command>
+		</screen>
+
+		As the Kbuild documentation states:
+		<blockquote>
+			<attribution>Kbuild 2.4 Documentation</attribution>
+			<literallayout>
+			Some computers won't work with 'make bzImage', either due to hardware
+			problems or very old versions of lilo or loadlin. If your kernel image
+			is small, you may use 'make zImage', 'make zdisk', or 'make zlilo'
+			on these systems.
+			</literallayout>
+		</blockquote>
+
+
+		<footnote>
+			<para>
+			The difference between 'zImage' files and 'bzImage' files is that
+			'bzImage' uses a different layout and a different loading algorithm,
+			and thus has a larger capacity. Both files use gzip compression. The
+			'bz' in 'bzImage' stands for 'big zImage', not for 'bzip'!
+			</para>
+		</footnote>
+
+		On an Athlon 1800XP, building the bzImage took approximately seven
+		minutes for a moderately configured kernel. On a Pentium 100 used as a 
+		baseline, a similar configuration took almost 45 minutes. If you are not 
+		in a hurry you may want to start the build on a console while you continue to work. 
+
+		The main difference between the 2.4 and 2.6 trees is the amount of information
+		presented on the screen. Much less information is displayed with 2.6.0 making
+		errors and warnings easier to spot.
+
+		If everything went correctly then the new kernel should exist in 
+		<filename>./arch/$ARCH/boot</filename>. For example, on IA32 
+		systems we can verify this with:
+
+		<screen>
+			<prompt>$</prompt><command>ls -l arch/i386/boot</command>
+		</screen>
+
+	
+		</para>
+	</section>
+
+	<section id="make-modules">
+		<title>Build the Modules</title>
+		<para>
+
+		There is one more step needed for the build process, however. You have created the 
+		kernel, but now you need to create all the loadable modules if you have them
+		configured.  Be aware that typical distribution kernels tend to have almost every
+		feature installed, plus a few others for good measure. These can typically take
+		and hour or so to build on our Athlon XP1800. The stock kernels are somewhat 
+		leaner by default and take, on average, 25 minutes to compile. To build the modules
+		we run:
+
+		<screen>
+			<prompt>$ </prompt><command>make modules</command>
+		</screen>
+
+		Again, lots of messages will scroll by on the screen. Here also the 2.6.0 series
+		is less talkative, outputting only summary information. Once the modules are built
+		they can be installed. If you were building as a non-privileged user you will now 
+		need to switch to root to complete this next step:
+
+		<screen>
+			<prompt>$ </prompt><command>su</command>
+			password:
+			<prompt>$ </prompt><command>make modules_install</command>
+		</screen>
+
+		The freshly baked modules will be copied into <filename>/lib/modules/KERNEL_VERSION</filename>.
+
+		</para>
+	</section>
+
+	<section id="mkinitrd">
+		<title>Create Initial RAMDisk</title>
+		<para>
+			If you have built your main boot drivers as modules (e.g., SCSI host
+			adapter, filesystem, RAID drivers) then you will need to create an 
+			initial RAMdisk image. The initrd is a way of sidestepping the chicken
+			and egg problem of booting -- drivers are needed to load the root
+			filesystem but the filesystem cannot be loaded because the drivers
+			are on the filesystem.  As the manpage for <command>mkinitrd</command>
+			states:
+
+		<blockquote>
+			<attribution>MKINITRD(8)</attribution>
+			<literallayout>
+	       mkinitrd creates filesystem images which are suitable for use as Linux initial
+	       ramdisk(initrd) images. Such images are often used for preloading  the
+	       block device modules (such as IDE, SCSI or RAID) which are needed to access the
+	       root filesystem. mkinitrd automatically loads filesystem  modules (such as
+	       ext3 and jbd), IDE modules,all scsi_hostadapter entries in /etc/modules.conf,
+	       and raid modules if the systems root partition is on raid, which makes it
+	       simple to build and use kernels using modular device drivers.
+			</literallayout>
+		</blockquote>
+
+			To create the initrd, do the following:
+			<screen>
+				<prompt>$ </prompt><command>mkinitrd /boot/initrd-2.6.0.img 2.6.0</command>
+			</screen>
+
+			Some versions of mkinitrd may require other options to specify
+			the location of the new kernel. On SuSe 9.0, for example, the
+			following syntax is required:
+
+			<screen>
+				<prompt>$ </prompt><command>mkinitrd -k vmlinux-VERSION -i initrd-VERSION</command>
+			</screen>
+
+			<footnote>
+				<para>
+				At this writing there are some issues with the modules.conf when moving
+				from 2.4 to 2.6 kernels. Some module names have changed which seems to 
+				cause glitches with initrd. 
+				</para>
+			</footnote>
+		</para>
+	</section>
+
+			
+	<section id="troubleshooting">
+		<title>Troubleshooting Build Failures</title>
+		<para>
+			If your build fails with a signal 11 error it is most likely because of
+			hardware problems; often the culprit is failing memory. Unfortunately,
+			the BIOS memory check is close to useless in detecting intermittent
+			memory failures. Even dedicated memory checkers do not stress memory
+			as much as gcc running a kernel build. One way to tell if hardware is
+			at fault is to restart the 'make bzImage' process. If you can get a
+			little further before failing again then it is a hardware error. There
+			are several possible way to try to correct these.
+		</para>
+		<para>
+			Try changing your memory settings in the BIOS to more conservative
+			levels. For example, change to SLOW or NORMAL instead of FAST. Verify
+			that all the fans are working correctly.
+			<footnote>
+				<para> 
+				For a long while, I thought that the xmatrix screensaver was
+				crashing my machine because of the numerous core dumps I would
+				discover in my home directory. It turned out that xmatrix was
+				cpu intensive. Unknown to me, the CPU fan on this machine had
+				failed. Everything was fine until xmatrix started, causing the
+				processor to overheat, eventually leading to a crash.
+				</para>
+			</footnote>
+			 Swap out the memory. One trick is to specify less memory than is
+			 actually installed by passing values to the kernel on boot. This
+			 prevents the kernel from accessing all the memory in the machine,
+			 and could help diagnose bad SIMMs or SDRAMs.
+		</para>
+		<para>
+			If instead the 'make' fails at the same point each time, then it is a
+			configuration error. These usually result from not enabling a feature
+			that is required by another. For example, IP Firewalling requires
+			TCP/IP. If the prerequisite is not enabled, the build will fail. You
+			may also get errors if you select the wrong processor or are using
+			either a very old or development compiler.
+		</para>
+		<para>
+			Also keep in mind that the kernel is highly sensitive to the versions
+			of the build tools such as the compiler and linker. Double check that
+			your tools and libraries are the minimum <emphasis>required</emphasis>,
+			not <emphasis>suggested</emphasis> for a clean build.
+		</para>
+	</section>
+</chapter>
+
+<chapter>
+ 	<title>Installation</title>
+	<section id="installation">
+		<title>Copy the Kernel and System.map</title>
+		<para>
+		Once your kernel is created, you can prepare it for use. From the
+		<filename>./linux</filename> directory, copy the kernel and 
+		<filename>System.map</filename> file to /boot. In the following
+		examples change KERNEL_VERSION to the version of your kernel.
+		<footnote>
+		<para>
+			Jerome Walter offers the following information for PowerPPC
+			plaforms:
+			
+			On a PowerPC (PreP architecture). To make the system bootable, one 
+			needs to copy the bzImage file into the special partition (PreP Boot 
+			Partition type 41), dusing dd. Assuming that the so called partition 
+			is named /dev/sda1, the command should look like :
+			<screen>
+			<prompt>$ </prompt><command>dd if=bzImage-you-have-just-done.img of=/dev/sda1</command>
+			</screen>
+
+			People should be warned that if their partition is too small, the
+			bzImage will not fit, and the boot procedure will fail.
+		</para>
+		</footnote>
+
+		<screen>
+			<prompt>$ </prompt><command>cp arch/i386/boot/bzImage /boot/bzImage-KERNEL_VERSION</command>
+			<prompt>$ </prompt><command>cp System.map /boot/System.map-KERNEL_VERSION</command>
+			<prompt>$ </prompt><command>ln -s /boot/System.map-KERNEL_VERSION /boot/System.map</command>
+		</screen>
+		</para>
+
+		<para>
+		The next step is to configure your bootloader. The bootloader is the
+		first program that runs when a computer is booted. For this document it is
+		assumed that you are running an IA32 system with a standard PC BIOS. If
+		you are running the <productname><acronym>LiLO</acronym></productname>
+		bootloader skip to the <xref linkend="lilo-configuration"> otherwise
+		proceed to <xref linkend="grub-configuration">.
+		</para>
+		<para>
+		FIXME: Need information on non-IA32 bootloaders!!
+		</para>
+	</section>
+
+
+	<section id="grub-configuration">
+		<title>GrUB Configuration</title>
+		<para>
+		GrUB is beginning to supplant LiLO as the bootloader of choice in more 
+		recent Linux distributions. It is generally more flexible and a lot more
+		forgiving of system errors. For example, LiLO generally requires that an alternate boot
+		disk is used if the kernel configuration renders the system unbootable 
+		Grub allows <quote>on-the-fly</quote> modification of kernel location, 
+		boot parameters, kernel to boot, etc..	
+		</para>
+		<para>
+		Once you have copied the bzImage and System.map to <filename>/boot</filename>,
+		edit the grub configuration file located in <filename>/boot/grub/menu.lst</filename>.
+		On some distributions <filename>/etc/grub.conf</filename> is a symbolic link to
+		this file. 
+
+		<programlisting>
+		# Note that you do not have to rerun grub after making changes to this file
+		#boot=/dev/hda
+		default=0
+		timeout=10
+		title Red Hat Linux (2.4.20-24.9)
+			root (hd0,1)
+			kernel /boot/vmlinuz-2.4.20-24.9 ro root=LABEL=/
+			initrd /boot/initrd-2.4.20-24.9.img
+		title Red Hat Linux (2.4.20-20.9)
+			root (hd0,1)
+			kernel /boot/vmlinuz-2.4.20-20.9 ro root=LABEL=/
+			initrd /boot/initrd-2.4.20-20.9.img
+		</programlisting>
+
+		Edit the file to include your new kernel information. Keep in mind that GrUB counts
+		starting from 0, so (hd0,1) references the first controller, <emphasis>second</emphasis>
+		partition. If you have created an initial RAMdisk be sure to include it here too. 
+		A typical configuration may look something like this:
+
+		<programlisting>
+		title Test Kernel (2.6.0)
+			root (hd0,1)
+			kernel /boot/bzImage-2.6.0 ro root=LABEL=/
+			initrd /boot/initrd-2.6.0.img
+		</programlisting>
+		</para>
+	</section>
+
+	<section id="lilo-configuration">
+		<title>LiLO Configuration</title>
+		<para>
+		LiLO is an older bootloader. Its configuration file is located in 
+		<filename>/etc/lilo.conf</filename> on most systems. Unlike GrUB,
+		any changes to lilo.conf will not be set until the lilo program is
+		rerun. 
+		
+		<programlisting>
+		boot=/dev/hda
+		map=/boot/map
+		install=/boot/boot.b
+		default=test-2.6.0
+		keytable=/boot/us.klt
+		lba32
+		prompt
+		timeout=50
+		message=/boot/message
+		menu-scheme=wb:bw:wb:bw
+		image=/boot/vmlinuz
+			label=linux
+			root=/dev/hda3
+			append=" ide1=autotune ide0=autotune"
+			read-only
+		  
+		image=/boot/bzImage-2.6.0
+			label=test-2.6.0
+			root=/dev/hda2
+			read-only
+		</programlisting>  
+
+		The important sections are the <emphasis>image=/boot/bzImage</emphasis> and 
+		the <emphasis>default=test-2.6.0</emphasis> options. Notice that you can have 
+		several image sections in the lilo.conf, allowing multiple configurations.
+		Install the new kernel by running the lilo program.
+
+  		<screen>
+		<prompt>$ </prompt><command> /sbin/lilo</command>
+		</screen>
+
+		If you are installing and testing the kernel remotely, you can
+		instead specify to LiLO that the new kernel is loaded only for the next
+		boot by using the following syntax:
+		<screen>
+		<prompt>$ </prompt><command> /sbin/lilo -R test-2.6.0</command>
+		</screen>
+
+
+		Messages will appear showing the newly added kernel with an asterisk marking
+		the default image. If you get errors, consult the lilo documentation for the
+		correct syntax.
+		</para>
+	</section>
+</chapter>
+
+<appendix id="about">
+	<title>Feedback</title>
+	<section id="about-feedback">
+		<title>Comments and corrections</title>
+
+			<para>
+				The current maintainer of this <citetitle>HOWTO</citetitle>
+				is <author><firstname>Kwan</firstname>
+				<surname>Lowe</surname></author>.  Please send corrections,
+				additions, comments and criticisms to
+				<email>kwan@digitalhermit.com</email>.
+			</para>
+
+			<para>
+				The maintainer would also appreciate e-mails from people that
+				have sucessfully used this <citetitle>HOWTO</citetitle> to
+				configure and use the DocBook .  Please state the
+				version of the <citetitle>HOWTO</citetitle> you used (see the cover
+				page), your <systemitem class="osname">Linux</systemitem>
+				distribution and its version.
+			</para>
+
+			<para>
+				The <citetitle>HOWTO</citetitle>'s maintainer is not a
+				professional writer.  If you find some parts of this
+				<citetitle>HOWTO</citetitle> difficult to comprehend then let the
+				maintainer know.
+			</para>
+	</section> <!-- about-feedback -->
+</appendix> <!-- about -->
+
+
+<colophon id="colophon">
+
+	<para>
+		Written in DocBook 4.1 <acronym>SGML</acronym>.
+		<application>Vim</application> was
+		used to create the <acronym>SGML</acronym> source file. The
+		<acronym>HTML</acronym>, <productname>PostScript</productname> and
+		<productname><acronym>PDF</acronym></productname> output was
+		generated from the DocBook source by the Linux Documentation
+		Project.
+	</para>
+
+</colophon> <!-- colophon -->
+
+</book>
+
