@@ -1,0 +1,1184 @@
+<appendix id="inst-theory">
+    <title>PLD Anti-interactive Installer Docs</title>
+    <authorgroup>
+      <author>
+	<firstname>Rafal</firstname>
+	<surname>Kleger-Rudomin</surname>
+      </author>
+    </authorgroup>
+    <abstract>
+      <para>
+	It is worth to realize that installation process is nothing really special.
+	It consists of three steps, basically:
+	<orderedlist>
+	  <listitem>
+	    <para>
+	      Preparing filesystem (create partitions on disk/disks, format them etc.)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Installation of rpm packages
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Setting up bootloader
+	    </para>
+	  </listitem>
+	</orderedlist>
+      </para>
+      <para>
+	Can the installation be dangerous? Talking about real dangers I mean
+	damaging hardware. Can the broken software damage a hardware? Hmm...:
+	<orderedlist>
+	  <listitem>
+	    <para>
+	      Too high frequency of video input signal could damage old monitors.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Probably it is possible to make hard disks useless with some
+	      strange formatting (??)
+	    </para>
+	  </listitem>
+	</orderedlist>
+      </para>
+      <para>
+	All dangers related to data are not really a dangers: it is obvious
+	that responsible admin/user does not install new operating system
+	in presence of disks that contain precious data, without backing them up
+	first!
+      </para>
+      <caution>
+	<para>
+	  If you want to use this installer you would better assume that all data
+	  on all disks in your system will be lost! Therefore make a backup first
+	  and prepare rescue disks...
+	</para>
+      </caution>
+    </section>
+
+  <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+  <section>
+    <title>Installer Idea - for those who want to understand</title>
+    <section>
+      <title>Intro - why noninteractive?</title>
+      <para>
+	Most existing installers for various operating systems are designed to
+	be used  interactively.  They role  is to assist user (possibly newbie
+	user) during whole installation process. They usually also allows some
+	configuration of newly installed system.
+      </para>
+      <para>
+	However, interactive installers have some disadvantages: 
+	<orderedlist>
+	  <listitem>
+	    <para>
+	      they absorb user attention during all instalation time
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      they do not (usually) allow repeating the same installation process 
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      they do not allow to perform installation automatically
+	    </para>
+	  </listitem>
+	</orderedlist>
+
+	Noniteractive installers    (e.g kickstart from RH)  do  not have those
+	disadvantages (they have others ;) ).
+      </para>
+      <para>
+	PLD installer will be basically noniteractive, but will also offer
+	some additional interactive features. Nevertheless it is crucial to
+	be able to duplicate installation noninteractively. 
+      </para>
+      <para>
+	
+	<itemizedlist>
+	  <title>Planned features</title>
+	  <listitem>
+	    <para>run from single boot diskette or bootable cdrom</para>
+	  </listitem>
+	  <listitem>
+	    <para>installation from net (ftp/http), nfs, cdrom, disk</para>
+	  </listitem>
+	  <listitem>
+	    <para>installation on more than one disks/partitions</para>
+	  </listitem>
+	</itemizedlist>
+
+      </para>
+    </section>
+
+    <section>
+      <title>Concepts</title>
+      <para>
+	There is a bunch of concepts I follow in installer design:
+	
+	<itemizedlist>
+	  <listitem>
+	    <para>Batch mode installation process</para>
+	    <para>
+	      Idea is simple: The installation process itself should
+	      be performed automatically, without any user
+	      intervention.  Batch installer reads special file that
+	      user prepared before. User can create this file in arbitrary way
+	      althrough some facility is provided - it is text mode <emphasis>UI</emphasis>.
+	      Before the real installation starts, installer
+	      validates the input file with <emphasis>validator</emphasis>.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Reusability of install specifications</para>
+	    <para>
+	      File <filename>installer.conf</filename> may be saved
+	      and used to install system on the same machine again or
+	      used to perform batch installation on similar machines
+	      (nice feature e.g for computer sets vendors, admins of
+	      school computer laboratories, etc).
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Separation of install / configure
+	    </para>
+	    <para>
+	      UI+batch-installer are reponsible for
+	      <emphasis>installation</emphasis>. <emphasis>Configuration</emphasis> 
+	      of newly installed box (either before or after first boot) is another piece
+	      of cake.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>Separation of <emphasis>installer setup</emphasis> 
+	      / <emphasis>installed box configuration</emphasis></para>
+	    <para>
+	      There are three kind of configuration data:
+	      <orderedlist>
+		<listitem>
+		  <para>
+		    Installer system configuration (what modules to load, path to 
+		    source of distibution, sometimes also basic net config). 
+		    It is stored in <filename>installer.conf</filename>
+		  </para>
+		</listitem>
+		<listitem>
+		  <para>
+		    Installation specification (where to install, what
+		    partitions create), stored also in
+		    <filename>installer.conf</filename></para>
+		</listitem>
+		<listitem>
+		  <para>
+		    Newly installed linux box configuration - handled by metaconfigurator
+		  </para>
+		</listitem>
+	      </orderedlist>
+	      To be able  to perform installation we  have to setup installer first:
+	      depending  on  source  of installation, it   may  require loading some
+	      kernel  modules, and optionally some network  configuration.   
+	      That is point 1) above.
+	      Note that in most installations  the we would  expect that 3) inherits
+	      the data  from 1) (e.g  we want network config in  linux box to be set
+	      based  on that used during installation),  but it not necessarily need
+	      to be the    case (e.g we want    to assign static ip   address during
+	      installation, but we want linux box use dhcp).
+	      Of course UI should help to share these settings by default.
+	    </para>
+	    <para>
+	      Note that in general case the installed system could be
+	      run on machine other than that used during installation
+	      process - it is possible to install system onto the disk(s) that
+	      will be then put into another machine.  Of course in
+	      that case any autodetection e.g. for devices, would not
+	      have sense.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+	    <para>
+	      Pre-setup of installer/box and one step batch installation
+	    </para>
+	    <para>
+	      As regards specyfing configuration, as much as possible should be done
+	      before batch-installer is launched. Things like partitioning scheme and
+	      set of packages to install should be possibly specified
+	      before running batch installer.
+	    </para>
+	    <para>	    
+	      Batch installer should be run once and do job with no user intevention
+	      and without  any qestions. Only exception  is an error:  in that case,
+	      after  fixing  <filename>installer.conf</filename>,  
+	      batch-installer should  be invoked once
+	      again and be able to  start working  with the beginning   
+	      - no reparation  in the
+	      middle of work should be performed.
+	      This is generally true as long as you use <literal>make_new</literal> or
+	      <literal>use_existing</literal> options that will be discussed later
+	    </para>
+	  </listitem>
+	</itemizedlist>
+
+      </para>
+    </section>
+
+    <section>
+      <title>Design</title>
+      <para>	
+	<orderedlist>
+	  <title>Main components</title>
+	  <listitem>
+	    <para>
+	      UI - text mode user interface. This is the interactive
+	      part used to prepare "batch installation driver file"
+	      (saved in <literal>/etc/installer.conf</literal> on bootdisk
+	      filesystem). It is responsible for assisting user to
+	      create good installer.conf, possibly checking and
+	      validating as much as possible to increase the
+	      probability of succesfull batch installation.</para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Batch installer - this is main installer, it reads
+	      <filename>installer.conf</filename> and does the following: check as much as
+	      possible to prevent from future problems, prepare
+	      destination disks, install packages, install
+	      bootloader</para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Metaconfigurator - it is rather a separate module, not
+	      part of installer itself and will not be discussed here
+	    </para>
+	  </listitem>
+	</orderedlist>
+
+	Apart the above elements, installer usually needs some medium
+	- either bootable diskette or cdrom (maybe some day
+	<quote>click this address to install PLD</quote> from running
+	system will be also possible ;)) ).
+
+
+      </para>
+    </section>
+
+    <section>
+      <title>Installation process overview</title>
+      <para>
+	What are things installer must do? This section is a general summary.
+      </para>
+      <para>
+	<variablelist>
+	  <title>Some basic terms I use</title>
+	  <varlistentry>
+	    <term>distribution</term>
+	    <listitem>
+	      <para>
+		Set of rpm packages to install.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>source</term>
+	    <listitem>
+	      <para>
+		Source of distibution - a place where installer can find
+		<emphasis>distribution</emphasis> and some special 
+		<filename>.tar.gz</filename> packages used by installer.
+		Depending of the type of installation, source can be
+		a cdrom, disk partition, nfs volume or ftp/http location.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>dest</term>
+	    <listitem>
+	      <para>
+		Destination filesystem that the distribution will be installed onto.
+		Dest is composed of destination partitions. User specifies what 
+		partitions on what disks will be used. Partitions can be created
+		by installer from scratch, or the existing ones may be used.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>initrd</term>
+	    <listitem>
+	      <para>
+		Installer filesystem. After booting from bootkette/cdrom
+		the installer system does not use any disk device - it is loaded
+		into <emphasis>initial ramdisk</emphasis> (initrd) - 
+		4MB virtual disk.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+      <para>
+
+	The whole installation process consists of several steps.
+	The general list is here, divided into stages, related
+	to avaliability of certain resources:
+
+	<variablelist>
+	  <title>Stages of instalation</title>
+	  <varlistentry>
+	    <term>Stage 1 (have <emphasis>initrd</emphasis> only)</term>
+	    <listitem>
+	      <para>
+	      <orderedlist>
+		<listitem>
+		  <para>
+		    configure installer system: hardware modules, networking (if necessary)
+		  </para>
+		</listitem>
+		<listitem>
+		  <para>
+		    get to the source (mount cdrom/disk/nfs_share or enable fetching
+		    files via net)</para>
+		</listitem>
+	      </orderedlist>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>Stage 2 (have <emphasis>source</emphasis>)</term>
+	    <listitem>
+	      <para>
+	      <orderedlist>
+		<listitem>
+		  <para>fetch some additional tools needed to prepare dest from source</para>
+		</listitem>
+		<listitem>
+		  <para>create partitions on disks</para>
+		</listitem>
+		<listitem>
+		  <para>prepare filesystems on partitions</para>
+		</listitem>
+		<listitem>
+		  <para>mount entire dest</para>
+		</listitem>
+	      </orderedlist>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term>Stage 3 (have <emphasis>dest</emphasis>)</term>
+	    <listitem>
+	      <para>
+	      <orderedlist>
+		<listitem>
+		  <para>fetch rpm packages manager (now it can be placed on dest to save initrd space)</para>
+		</listitem>
+		<listitem>
+		  <para>install rpm packages</para>
+		</listitem>
+	      </orderedlist>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	</variablelist>
+
+	The next step would be configuring linux box (not covered yet)
+
+      </para>
+    </section>
+    <section>
+      <title>Initrd system</title>
+      <para>
+	Bootdisk is a medium for installer. After booting from
+	boot diskette or cdrom you get the minimal system, with root filesystem
+	on <emphasis>initrd</emphasis>.
+	I will call it <emphasis>bootdisk</emphasis>.</para>
+      <para>
+	Tools avaliable on bootdisk include:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      Simplified versions od popular editors (provided by <command>e3</command> 
+	      package): <command>vi</command>, <command>emacs</command>, 
+	      <command>pico</command>, <command>ne</command>, <command>ws</command>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Berkeley <command>ash</command> shell
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Lot of basic unix tools provided by <command>busybox</command>
+	      (like <command>test</command>, <command>ps</command>, <command>tar</command>, <command>mount</command>). 
+	      Type <command>busybox</command> to get a list.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Set of necessary kernel modules stored in <filename>/lib/modules/</filename>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      On the net-oriented bootdisks there are also: <command>ip</command>
+	      utility (from iproute2 package), and <command>snarf</command> - simple net fetcher.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+	The rest of tools that are needed to complete the installation 
+	are copied/downloaded from &lt;source>/inst directory - they are
+	packaged into <filename>.tar.gz</filename> packages, 
+	e.g. <filename>parted-pkg.tar.gz</filename>, <filename>ext2-pkg.tar.gz</filename>. 
+	Note that getting them it is possible in Stage 2 and 3 only.
+      </para>
+    </section>
+    <section>
+      <title>/etc/installer.conf</title>
+      <section>
+	<title>Overview</title>
+	<para>
+	  File <filename>/etc/installer.conf</filename> is the main file
+	  controlling installation process. It resides on installer
+	  system (<emphasis>initrd</emphasis>). The file can be edited by hand from installer
+	  system, using simple editors (vi, emacs, pico), created by UI,
+	  or created in any other way.  It is also possible to prepare
+	  /etc/installer.conf on another machine 
+
+	  (see <linkend="unattended">unattended version</link>).
+
+      </para>
+      <para>
+	Config file has simple syntax. It consists of 
+	<literal>variable=value</literal> lines. Spaces around
+	<quote>=</quote> are not allowed.  Value can be surrounded by
+	single or double quotes (if the value is a space-separated
+	list, the quotes are mandatory)
+      </para>
+      <para>
+	As you might guess, it is shell syntax. Keeping config file
+	in that form allows shell scripts to include the file directly.
+      </para>
+      <para>
+	The file consists of four main sections, 
+	related to particular parts of installation:
+	
+	  <itemizedlist>
+	    <listitem>
+	      <para>Info about <emphasis>source</emphasis> (variables starting with <literal>source_</literal>)</para>
+	    </listitem>
+	    <listitem>
+	      <para><emphasis>Network</emphasis> configuration - only if source is net or nfs (variables starting with <literal>net_</literal>)</para>
+	    </listitem>
+	    <listitem>
+	      <para><emphasis>Dest</emphasis> setup (variables starting with <literal>dest_</literal>)</para>
+	    </listitem>
+	    <listitem>
+	      <para>Installation of RPM <emphasis>packages</emphasis> (variables starting with <literal>pkgs_</literal>)</para>
+	    </listitem>
+	  </itemizedlist></para>
+	<para>
+	  Detailed specification of the file may be found in <xref linkend="conf-spec"/>.
+	</para>
+      </section>
+
+      <section>
+	<title>Examples</title>
+	<para>
+	  See <filename>batch-installer/installer.conf*</filename> files
+	  for examples.</para>
+	<para>
+	  Example config for installing from ide cdrom, on first ide had disk:
+	</para>
+	<para>
+	  <programlisting>
+source=cdrom
+source_device=auto
+source_filesystem=iso9660
+source_dir=auto
+
+dest_devices="/dev/hda"
+dest_devices_actions="make_new"
+dest_devices_modules=""
+
+# First partition:
+dest_part1_device="/dev/hda"
+dest_part1_size="100% of free"
+dest_part1_filesystem="ext2"
+dest_part1_format_partition="yes"
+dest_part1_mnt_point="/"
+dest_part1_options="defaults"
+dest_part1_format_options=""
+
+# Second partition:
+dest_part2_device="/dev/hda"
+dest_part2_size="30"
+dest_part2_filesystem="swap"
+dest_part2_format_partition="yes"
+dest_part2_mnt_point="swap"
+dest_part2_options="defaults"
+dest_part2_format_options=""
+
+pkgs_installer="poldek"
+	  </programlisting>
+	</para>
+
+      </section>
+      
+    </section>
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+    <section>
+      <title>Installer step-by-step</title>
+      <section>
+	<title>Overview</title>
+	<para>
+	  Installation process is driven by several scripts,
+	  launched subsequently by main <command>installer</command> script.
+	  Particular scripts are discussed in next sections in the order they
+	  are normally invoked.
+	</para>
+      </section>
+      <section>
+	<title><command>installer-validate</command></title>
+	<para>
+	  This is simple validator of <filename>/etc/installer.conf</filename>.
+	  If the file is incorrect, validator tells what's wrong, and returns non-zero
+	  exit status.
+	</para>
+	<para>
+	  This script is invoked by <command>installer</command>, but it is
+	  also used by general setup UI (<command>ui-main</command>) to assist you
+	  during general setup process.
+	</para>
+      </section>
+      <section>
+	<title><command>installer-prep</command></title>
+	<para>
+	  This script prepares installer system to be able to get o source, and to be able to 
+	  run <command>installer-dest</command>:
+	  it loads kernel modules needed to get to source media, sets up the network 
+	  (if necessary), and finally loads modules and programs needed by installer-dest 
+	  (like reiserfs.o or mke2fs).</para>
+	<para>
+	  After succesfull running, the installation is in Stage 2 (we have source, and 
+	  can fetch additional packages from it).</para>
+	<note>
+	  <para>
+	    To save inird space, all modules that was on bootdisk initiall are deleted
+	    from initrd after script succesfully get to the source you requested.
+	    Therefore it is not possible to change source after you succesfully
+	    attach to the one selected.
+	  </para>
+	</note>   
+      </section>
+      <section>
+	<title><command>installer-dest</command></title>
+	<para>
+	  This is responsible for preparing destination filesystem.
+	  First it deletes existing partitions on destination disks (if
+	  <literal>make_new</literal> action given). Then it creates new ones
+	  (unless <literal>use_existing</literal> given) and makes filesystems on them.
+	  Finally, it mounts whole filesystem in /dest directory.</para>
+	<para>
+	  If you do not use <literal>make_new_using_free_space</literal> for any disk,
+	  you may run <command>installer-dest</command> repeatedly - it checks and unmounts
+	  all /dest partitions before and then prepares /dest once again.
+	</para>
+      </section>
+      <section>
+	<title><command>installer-pkgs</command></title>
+	<para>
+	  As you might expect this does RPM package installation.
+	  The script loads/fetches proper <filename>.tar.gz</filename> packages
+	  containing RPM installer of you choice (poldek or wuch), and then
+	  tells installer to install set of packages listed in 
+	  <filename>/etc/installer.pkgs</filename>.</para>
+      </section>
+      <section>
+	<title><command>installer-boot</command></title>
+	<para>
+	  This is script responsible for installing bootloader.
+	  It is temporary.
+	  Will be obsoleted by rc-boot support in kernel package!!!!!!
+	</para>
+      </section>
+
+    </section>
+
+  <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+  <section>
+    <title>Installer Reference - for those who want to develop</title>
+    <section id="conf-spec">
+      <title>installer.conf specification</title>
+      <section>
+	<title>Source</title>
+	<para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>source</literal></term>
+	      <listitem>
+		<para>
+		  Type of source. Allowed values: <quote>net</quote> (ftp, http), 
+		  <quote>nfs</quote>, <quote>cdrom</quote>, <quote>disk</quote>.
+		  Example: <literal>source="nfs"</literal>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    
+	    <varlistentry>
+	      <term><literal>source_device</literal></term>
+	      <listitem>
+		<para>
+		  Depending on the value of <literal>source</literal> it should be:
+		</para>
+		<para>
+		  <itemizedlist>
+		    <listitem>
+		      <para>
+			<literal>cdrom</literal>: valid cdrom device, e.g. <literal>/dev/hdc</literal>
+			or <literal>auto</literal> (detect first IDE cdrom)
+		      </para>
+		    </listitem>
+		    <listitem>
+		      <para><literal>disk</literal>: valid disk partition, e.g. <literal>/dev/hdb2</literal></para>
+		    </listitem>
+		    <listitem>
+		      <para>
+			<literal>net</literal>: address of ftp/http server, example: <literal>ftp://ftp.pld.org.pl/PLD-1.0/i686/</literal>.
+			(must be numerical if no dns given in net section)
+		      </para>
+		    </listitem>
+		    <listitem>
+		      <para>
+			<literal>nfs</literal>: volume name, e.g. <literal>my.nfs:/pub/PLD-1.0</literal>
+			(must be numerical if no dns given in net section)
+		      </para>
+		    </listitem>
+		  </itemizedlist>
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    
+	    <varlistentry>
+	      <term><literal>source_filesystem</literal></term>
+	      <listitem>
+		<para>
+		  If <literal>source=disk</literal> it should contain filesystem type
+		  of <literal>source_device</literal> (e.g. <quote>ext2</quote>, <quote>vfat</quote>).
+		  For <literal>cdrom</literal> it should be <quote>iso9660</quote>, 
+		  for <literal>net</literal> - <quote>net</quote>, 
+		  for <literal>nfs</literal> - <quote>nfs</quote>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><literal>source_dir</literal></term>
+	      <listitem>
+	      <para>
+		  Path to the source on <literal>source_device</literal>
+		  (should point on directory containing
+		  <filename>RPMS</filename> and
+		  <filename>inst</filename>). If <literal>source=net</literal>,
+		  <literal>source_device</literal> and <literal>source_dir</literal> 
+		  are concatenated
+		  therefore you may leave <literal>source_dir</literal>
+		  empty and specify full path in
+		  <literal>source_device</literal>.</para>
+		<para>
+		  For <literal>disk</literal> or <literal>cdrom</literal> the value auto
+		  may be specified - tells installer to find the proper PLD/{RPMS,installer}
+		  structure.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	  
+	</para>
+      </section>
+      <section>
+	<title>Net</title>
+	<para>
+	  If the <literal>source</literal> is <quote>net</quote> or <quote>nfs</quote>
+	  one must have at least one network device to get to source.
+	The device will be configured by installer (particulary 
+	  <command>installer-dest</command> script). Therefore some additional info
+	  is necessary:
+	<variablelist>
+
+	  <varlistentry>
+	    <term><literal>net_device</literal></term>
+	    <listitem>
+	      <para>
+		Name of net device to use. In most cases (single ethernet adapter) 
+		it will be <quote>eth0</quote>. If you have
+		more than one device it may be necessary 
+		to let the bootdisk kernel find it first (e.g. type
+		<literal>pld ether=0,0,eth1</literal> on bootdisk boot prompt)
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>net_device_module</literal></term>
+	    <listitem>
+		<para>
+		  The kernel module that supports your net device.  For
+		  example: <quote>3c509</quote> is a 3Com 509 Ethernet
+		  adapter. If you have some no-name card and do not know
+		  its type, it is very likely it is compatible with
+		  NE2000 ISA (<quote>ne2000</quote>) or NE2000 PCI
+		  (<quote>ne2k-pci</quote>).</para>
+		<para>
+		  Special value <quote>auto</quote> tells installer
+		  to try to detect card type and load appropriate value
+		  (works for PCI cards)
+		</para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>net_device_module_options</literal></term>
+	    <listitem>
+	      <para>
+		List of extra options to be given to <command>modprobe</command>
+		program, whe loading module, like <quote>irq=xx io=yy</quote>, etc.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+
+	  <varlistentry>
+	    <term><literal>net_ipaddr</literal></term>
+	    <listitem>
+	      <para>
+		Addres of machine. May be static, like <quote>192.168.0.3</quote>
+		or <quote>dhcp</quote>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>net_prefix</literal></term>
+	    <listitem>
+	      <para>
+		Net prefix (replacement for netmask). Most common one is:
+		<quote>24</quote> (netmask 255.255.255.0).
+		You may also set <quote>auto</quote>, and 
+		let the installer-prep to guess it if you have typical network.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>net_gateway</literal></term>
+	    <listitem>
+	      <para>
+		Address of local gateway. May be empty if you are going to connect
+		to nfs or net server in local net only.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+
+	  <varlistentry>
+	    <term><literal>net_dns</literal></term>
+	    <listitem>
+	      <para>
+		List of dns servers e.g. <literal>"192.168.1.1 195.116.199.146"</literal>.
+		May be left empty (in that case all addresses must be specified 
+		in numerical form)
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	</variablelist>
+      </para>
+      </section>
+      <section>
+	<title>Dest</title>
+      <para>
+	Dest configuration consist of two parts: one is short, general
+	part, second consist of series of per-parition configurations.
+	General part include:
+	<variablelist>
+	  <varlistentry>
+	    <term><literal>dest_devices</literal></term>
+	    <listitem>
+	      <para>
+		A list of all devices (disks) that will 
+		take part in creating dest filesystem.
+		E.g. <quote>/dev/hda /dev/hdc</quote>
+		means that this two disks will be involved.
+		In common cases, I suppose, this list will be limited to one
+		disk only. e.g. <quote>/dev/hda</quote>
+	      </para>
+	      <para>
+	       In order to install on hardware RAID device, you should
+	       pass its name as name or regular disk. For example to
+	       install on COMPAQ Smart RAID (supported by cpqarray.o module)
+	       pass <quote>/dev/ida/c0d0</quote> here, and to install
+	       on Mylex DAC960 (supported by DAC960.o module) pass
+	       <quote>/dev/rd/c0d0</quote>. Other hardware RAIDs are not
+	       supported. cpqarray/EISA is not supported, as there is currently 
+	       no way to pass it arguments. Devices in <filename>/dev/ida|rd</filename> 
+	       are created during installation.
+	      </para>
+	      <para>
+	       No special devices have to be passed in order to install on
+	       software RAID (beside ones that RAID partitions resides on).
+	      </para>
+	    </listitem>
+
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>dest_devices_actions</literal></term>
+	    <listitem>
+	      <para>
+		The list of actions that should be performed
+		for partitions on each disk specified in 
+		<literal>dest_devices</literal>.
+		Possible actions include:
+		<itemizedlist>
+		  <listitem>
+		    <para>make_new</para>
+		    <para>
+		      Create new partitions on given disk,
+		      existing partitions (if any) are deleted
+		    </para>
+		  </listitem>
+		  <listitem>
+		    <para>make_new_using_free_space</para>
+		    <para>
+		      Create new partitions on given disk, trying to
+		      use free space at bottom of disk (if any).
+		      No existing partitions are deleted.
+		      Installation will fail if existing partitions
+		      occupy entire disk space.
+		    </para>
+		  </listitem>
+		  <listitem>
+		    <para>use_existing</para>
+		    <para>
+		      Use existing partions, do not create or delete anything.
+		      You may choose to prepare disk "by hand" and then
+		      run installer, or you may have disk already
+		      paritioned correctly, then this option would be useful.
+		    </para>
+		  </listitem>
+		</itemizedlist>
+		Example: <programlisting>
+dest_devices="/dev/hda /dev/hdc"
+dest_devices_actions="make_new use_existing"
+</programlisting>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>scsi_hostadapters</literal></term>
+	    <listitem>
+	      <para>
+		Extra kernel modules needed to support dest_devices (or to source
+		if you are installing from SCSI cdrom or disk). It is space delimated
+		list of modules to load. It can be also single word <literal>auto</literal>
+		which instructs the installer to automagicly detect it.
+	      </para>
+	      <para>
+	        If you want to install <emphasis>from</emphasis> SCSI, you need to 
+		make specialized bootdisk using <command>mkinstaller</command> command. 
+		See appropiate section in this documentation. 
+		Installation <emphasis>to</emphasis> SCSI is supported out of the box.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	</variablelist>
+	The second part of dest specification is per-partition config.
+	Each partition config starts with <literal>dest_partX_</literal>
+	where X is number (1,2,3...). When specyfing multiple
+	partitions, be sure you did not missed any number (e.g 1,3,4),
+	because installer starts with 1 and processes subsequent numbers
+	until no variables are found for given number.
+      </para>
+      <para>	
+	The X numbers are used only within installer to distinguish
+	configs. They are not related to partion numers within disks 
+	(e.g. /dev/hda2). Partition numbers that will be created by installer
+	are assigned automatically.
+      </para>
+      <para>
+	Options are:
+	
+	<variablelist>
+	  <varlistentry>
+	    <term><literal>dest_partX_mnt_point</literal></term>
+	    <listitem>
+	      <para>
+		Mount point. The <quote>name</quote> of partition.
+		At least one partition must be specified: <quote>/</quote>
+		Another partition examples: <quote>swap</quote>,
+		<quote>/home</quote>, <quote>/usr</quote>, <quote>/var/spool</quote>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_device</literal></term>
+	    <listitem>
+	      <para>
+		Disk to put partion onto, e.g. <quote>/dev/hda</quote>. The disk must be
+		already specified in in <literal>dist_devices</literal> list.
+		If the action for given disk is use_existing, proper partition number
+		must be specified too, e.g. <quote>/dev/hda1</quote>.
+	      </para>
+	      <para>
+	        This entry is crucial for installation over software RAID.
+		You need to tell the installer from which devices to make given
+	        RAID array. Example entry might look like this:
+		<programlisting>
+dest_part5_device=/dev/md0:raid5,/dev/sda2,/dev/sdb1,/dev/sdc1,/dev/sdd1:spare,chunk_size=256
+		</programlisting>
+		this means to make /dev/md0 device, using RAID level 5 (see 
+		Software-RAID HOWTO), from 4 SCSI disks, using sdd1 as a 
+		spare disk. Also strip size is set up to 256 instead of default 128.
+		We first have /dev/mdX, then a colon (:), raid level description 
+		(use raidl for linear raid, raid0, raid1, raid4 and raid5 are 
+		all allowed), and then comma separated devices and options. You can 
+		make one raid over another, like this:
+		<programlisting>
+dest_part12_device=/dev/md4:raidl,/dev/md0,/dev/md1,/dev/md2,/dev/md3
+		</programlisting>
+		however note, that raids are created in order, first /dev/md0, then /dev/md1
+		and so on, so this is invalid:
+		<programlisting>
+dest_part12_device=/dev/md0:raidl,/dev/md1,/dev/md2
+		</programlisting>
+		(installer would try to make /dev/md0, from non-yet-existing /dev/md1
+		and /dev/md2). Allowed options:
+		<itemizedlist>
+		 <listitem>
+		  <para>
+		   parity_algorithm={left,right}-{,a}symmethric, 
+		   default: left-symmethric, this can only be given for raid5
+		  </para>
+		 </listitem>
+		 <listitem>
+		  <para>
+                   chunk_size=N, in kB, default: 32, expect raid5, where 128 is the default.
+		  </para>
+		 </listitem>
+		 <listitem>
+		  <para>
+                   persistent_superblock=0, default 1
+		  </para>
+		 </listitem>
+		 <listitem>
+		  <para>
+		   just_start=1, defaults to 0, just do <command>raidstart</command>, no 
+		   <command>mkraid</command>.
+		  </para>
+		 </listitem>
+		</itemizedlist>
+	      </para>
+ 	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_size</literal></term>
+	    <listitem>
+	      <para>
+		Size of partition that will be created.
+		Size can be specified in three ways:
+		<itemizedlist>
+		  <listitem>
+		    <para>absolute value in megabytes, e.g. <quote>500</quote></para>
+		  </listitem>
+		  <listitem>
+		    <para>part of all avaliable space (in percents), e.g. <quote>20% of all</quote></para>
+		  </listitem>
+		  <listitem>
+		    <para>part of rest - space that left (in percents), e.g. <quote>100% of free</quote></para>
+		  </listitem>
+		</itemizedlist>
+		If this partiton will not be created (existing one is used)
+		this variable is not recognized, and should be empty.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_filesystem</literal></term>
+	    <listitem>
+	      <para>
+		The filesystem that will be created on given partition 
+		(or existing filesystem if partition already exists, and you 
+		do not want to format it). Possible values include
+		<literal>ext2</literal>, <literal>swap</literal>,
+		<literal>reiserfs</literal> and special entry for RAID
+		<literal>md</literal>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_format_partition</literal></term>
+	    <listitem>
+	      <para>
+		Create filesystem on given partition?
+		In most cases should be <quote>yes</quote>. 
+		Only exception is when you use existing partition with data
+		and you do not want them to be erased - then set it to <quote>no</quote>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_format_options</literal></term>
+	    <listitem>
+	      <para>
+		Extra commandline arguments that will be passed
+		to the proper make filesystem program
+		(e.g. <command>mke2fs</command>). May be left blank.
+		<note>
+		 <para>
+		   stride=X ext2 option for RAID drives is computed
+		   and added automagicly, unless specified here.
+		 </para>
+		</note>
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><literal>dest_partX_options</literal></term>
+	    <listitem>
+	      <para>
+		Extra options that will be used to mount partition
+		(<filename>/etc/fstab</filename> options).  Leaving it
+		blank means use <quote>defaults</quote>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	</variablelist>
+      </para>
+      </section>
+      <section>
+	<title>Pkgs</title>
+	<para>
+	  The next section of file is <literal>pkgs</literal> section. So far there is only two 
+	  variables here:
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>pkgs_installer</literal></term>
+	      <listitem>
+		<para>
+		  Program used to install rpm packages.
+		  So far only <command>poldek</command> program is supported
+		  so you may choose from <quote>poldek</quote>, or <quote>poldek</quote>
+		  or maybe ...
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term><literal>pkgs_install_docs</literal></term>
+	      <listitem>
+		<para>
+		  Whatever to install documentation. (doesn't work yet).
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	  List of packages to install is flat text file stored in 
+	  <filename>/etc/installer.pkgs</filename>. It can be easly created
+	  using UI and groups of packages.
+	</para>
+      </section>
+
+      <section>
+	<title>Boot</title>
+	<para>
+	  The last section of file is <literal>boot</literal> section. So far there is only one 
+	  variable here:
+	  <variablelist>
+	    <varlistentry>
+	      <term><literal>boot_loader</literal></term>
+	      <listitem>
+		<para>
+		  This determines whatever to install bootloader, and which
+		  one choose. It can be just <literal>lilo</literal>, which
+		  means to install lilo, or empty (don't install bootloader).
+		  Grub will be supported soon.
+		  <!--
+		  This determines where the bootloader will be installed.
+		  Currently allowed values is <literal>mbr</literal>, or empty
+		  value that means no installation of bootloader should be 
+		  performed.
+		  -->
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+
+	  
+	</para>
+      </section>
+
+
+    </section>
+  </section>
+
+  <section>
+    <title>Administrativia</title>
+    <section>
+      <title>History of installer</title>
+      <para></para>
+    </section>
+    <section>
+      <title>Authors and contributors</title>
+      <para>
+	<itemizedlist>
+	  <title>People who were involved, or who helped:</title>
+	  <listitem>
+	    <para>Pawel Gajda</para>
+	    <para>Wrote <command>poldek</command></para>
+	  </listitem>
+	  <listitem>
+	    <para>Rafal Kleger-Rudomin</para>
+	    <para>Wrote batch installer, UI and this manual</para>
+	  </listitem>
+	  <listitem>
+	    <para>Pawel Kolodziej</para>
+	    <para>Wrote <literal>wuch</literal></para>
+	  </listitem>
+	  <listitem>
+	    <para>Michal Moskal</para>
+	    <para>Wrote fine <command>dml</command>, one of batch-installer architects, contibuted many parts of installer</para>
+	  </listitem>
+	  <listitem>
+	    <para>Sergiusz Pawlowicz</para>
+	    <para>Inspired me with batch installation idea, and helped testing bootdisk</para>
+	  </listitem>
+	  <listitem>
+	    <para>Sebastian Zagrodzki</para>
+	    <para>The author if first working installer, called prowizorka.
+	      Also added support for console on serial port to bootdisk, and instruction how to use
+	      it (in this manual)</para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+    </section>
+  </section>
+
+</appendix>
+
