@@ -177,6 +177,22 @@
      (make element gi: "STRONG" (process-children))
      (make element gi: "EM" (process-children))))
 
+(define (book-titlepage-recto-elements)
+  ;; elements on a book's titlepage
+  ;; note: added revhistory to the default list
+  (list (normalize "title")
+        (normalize "subtitle")
+        (normalize "graphic")
+        (normalize "mediaobject")
+        (normalize "corpauthor")
+        (normalize "authorgroup")
+        (normalize "author")
+        (normalize "editor")
+        (normalize "copyright")
+        (normalize "revhistory")
+        (normalize "abstract")
+        (normalize "legalnotice")))
+
 (define (article-titlepage-recto-elements)
   ;; elements on an article's titlepage
   ;; note: added othercredit to the default list
@@ -230,6 +246,54 @@
         ""
         (node-list-first titles))))
 
+
+;; Redefinition of $verbatim-display$
+;; Origin: dbverb.dsl
+;; Different foreground and background colors for verbatim elements
+;; Author: Philippe Martin (feloy@free.fr) 2001-04-07
+
+(define ($verbatim-display$ indent line-numbers?)
+  (let ((verbatim-element (gi))
+        (content (make element gi: "PRE"
+                       attributes: (list
+                                    (list "CLASS" (gi)))
+                       (if (or indent line-numbers?)
+                           ($verbatim-line-by-line$ indent line-numbers?)
+                           (process-children)))))
+    (if %shade-verbatim%
+        (make element gi: "TABLE"
+              attributes: (shade-verbatim-attr-element verbatim-element)
+              (make element gi: "TR"
+                    (make element gi: "TD"
+                          (make element gi: "FONT" 
+                                attributes: (list
+                                             (list "COLOR" (car (shade-verbatim-element-colors
+                                                                 verbatim-element))))
+                                content))))
+        content)))
+
+;;
+;; Customize this function
+;; to change the foreground and background colors
+;; of the different verbatim elements
+;; Return (list "foreground color" "background color")
+;;
+(define (shade-verbatim-element-colors element)
+  (case element
+    (("SYNOPSIS") (list "#000000" "#6495ed"))
+    (("PROGRAMLISTING") (list "#000000" "#98FB98"))
+    ;; ...
+    ;; Add your verbatim elements here
+    ;; ...
+    (else (list "#32CD32" "#000000"))))
+
+(define (shade-verbatim-attr-element element)
+  (list
+   (list "BORDER" "0")
+   (list "BGCOLOR" (car (cdr (shade-verbatim-element-colors element))))
+   (list "WIDTH" ($table-width$))))
+
+;; End of $verbatim-display$ redefinition
 
 </style-specification-body>
 </style-specification>
