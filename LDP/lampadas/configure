@@ -1,0 +1,211 @@
+#!/bin/bash
+
+DOCBOOK_DIR=/usr/share/sgml/docbook
+
+#
+# check
+#
+check()
+{
+  local mode=$1; shift
+  local name=$1; shift
+  local error=$1; shift
+
+  if [ "${mode}" = "quiet" ]; then
+    "$@"
+  else
+    echo -n "Checking ${name} ... "
+    if "$@"; then
+      echo "Ok"
+      return 0
+    fi
+    echo "No"
+    [ -n "${error}" ] && echo "ERROR: ${error}"
+    [ "${mode}" = "exit" ] && exit -1
+    return 1
+  fi
+}
+
+#
+# check_file
+#
+check_file()
+{
+  check "$1" "$2" "$3" test -r "$2"
+}
+
+which_test()
+{
+  local file=$( which "$@" 2> /dev/null )
+  [ -x "${file}" ]
+}
+
+#
+# check_which
+#
+check_which()
+{
+  check "$1" "$2" "Can't find $2 in \$PATH"  which_test "$2"
+}
+
+#
+# identify_dist
+#
+identify_dist()
+{
+  DIST_NAME=redhat
+  DIST_FILE=/etc/redhat-release
+  check_file quiet ${DIST_FILE} && return 0
+
+  DIST_NAME=debian
+  DIST_FILE=/etc/debian_version
+  check_file quiet ${DIST_FILE} && return 0
+
+  DIST_NAME=suse
+  DIST_FILE=/etc/SuSE-release
+  check_file quiet ${DIST_FILE} && return 0
+
+  DIST_NAME=unknown
+  unset DIST_FILE
+  return 1
+}
+
+#
+# check_redhat
+#
+check_dist_redhat()
+{
+  local dir=${DOCBOOK_DIR}/xsl-stylesheets/html
+  local error="'docbook-style-xsl' is not installed."
+
+  xmldir=$( ls ${DOCBOOK_DIR} | sed -n -e '
+	/xml-dtd-4.1.2/ {
+		p
+		q
+	}
+' )
+
+  XML_DTD_412=${DOCBOOK_DIR}/${xmldir}/docbookx.dtd
+  check_file exit ${XML_DTD_412} ${error}
+
+  HTML_CHUNK=${dir}/chunk.xsl
+  check_file exit ${HTML_CHUNK} ${error}
+
+  HTML_DOCBOOK=${dir}/docbook.xsl
+  check_file exit ${HTML_DOCBOOK} ${error}
+}
+
+#
+# check_debian
+#
+check_dist_debian()
+{
+  local dir=${DOCBOOK_DIR}/stylesheet/xsl/nwalsh/html
+  local error="'docbook-xsl-stylesheets' is not installed."
+
+  XML_DTD_412=${DOCBOOK_DIR}/dtd/xml/4.1.2/docbookx.dtd
+  check_file exit ${XML_DTD_412} "'docbook-xml' is not installed."
+
+  HTML_CHUNK=${dir}/chunk.xsl
+  check_file exit ${HTML_CHUNK} ${error}
+
+  HTML_DOCBOOK=${dir}/docbook.xsl
+  check_file exit ${HTML_DOCBOOK} ${error}
+}
+
+#
+# check_suse
+#
+check_dist_suse()
+{
+  local diir=/usr/share/doc/packages/docbook-xsl-stylesheets/html
+  local error="'docbook-xsl-stylesheets' is not installed."
+
+  XML_DTD_412=/usr/share/sgml/db41xml/docbookx.dtd
+  check_file exit ${XML_DTD_412} "'docbook_4' is not installed."
+
+  HTML_CHUNK=${dir}/chunk.xsl
+  check_file exit ${HTML_CHUNK} ${error}
+
+  HTML_DOCBOOK=${dir}/docbook.xsl
+  check_file exit ${HTML_CHUNK} ${error}
+}
+
+#
+# patch_xsl
+#
+patch_xsl()
+{
+  local prefix='^\([[:space:]]*<xsl:import[[:space:]]*href=\"\)'
+  local postfix='\(\".*\)$'
+
+  for file in xsl/*.xsl; do
+    echo -n "Patching ${file} ..."
+    sed -e "s|${prefix}.*\/chunk.xsl${postfix}|\1${HTML_CHUNK}\2|" \
+	-e "s|${prefix}.*\/docbook.xsl${postfix}|\1${HTML_DOCBOOK}\2|" \
+    	${file} > ${file}.tmp
+    if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
+      echo "No."
+      return 1
+    fi
+    echo "Ok"
+  done
+  return 0
+}
+
+#
+# check_html_parser
+#
+check_html_parser()
+{
+  echo -n "Checking perl module HTML::Parser ... "
+  perl <<EOF 2> /dev/null
+    use HTML::Parser;
+    use HTML::Entities;
+    print "Ok.\n";
+    exit 0
+EOF
+  [ $? == 0 ] && return 0
+  echo "No."
+  echo "ERROR: HTML-Parser is not installed (required for wt2db)."
+  case ${DIST_NAME} in
+    debian) pkg=libhtml-parser-perl ;;
+    redhat) pkg=perl-HTML-Parser ;;
+    suse) pkg=perl-HTML-Parser ;;
+  esac
+  [ -n "${pkg}" ] && echo "The package is called '${pkg}'."
+  return 1
+}
+
+#
+#
+#
+patch_setenv()
+{
+  local file=$1
+  local prefix='^[[:space:]]*export[[:space:]]*LAMPADAS_'
+
+  echo -n "Patching ${file} ... "
+  sed -e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
+  	${file} > ${file}.tmp
+  if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
+    echo "No."
+    return 1
+  fi
+  echo "Ok"
+  return 0
+}
+
+#
+# main
+#
+identify_dist
+echo "Identified this installation as '${DIST_NAME}'."
+cat ${DIST_FILE}
+check_dist_${DIST_NAME} || exit -1
+check_which exit perl
+check_which exit xsltproc
+check_html_parser || exit -1
+check_which exit wt2db
+patch_xsl || exit -1
+patch_setenv bin/setenv.sh || exit -1

@@ -52,3 +52,6 @@ export LAMPADAS_LIB="$LAMPADAS_ROOT/pylib"
 
 # PYTHONPATH
 export PYTHONPATH="$PYTHONPATH\:$LAMPADAS_LIB"
+
+# DocBook SYSTEM identifiers
+export LAMPADAS_XML_DTD_412="http://docbook.org/xml/4.1.2/docbookx.dtd"
