@@ -1,0 +1,544 @@
+<chapter id="evmsuginstall"><title>Downloading and Installing EVMS </title>
+<para>This chapter helps you make informed decisions about how you want to install and configure your EVMS system. In order to get the best understanding of the different options and steps for installing EVMS, read this chapter in its entirety before you begin the process.</para>
+
+<sect1 id="beforebegin"><title>Preparing Your System</title>
+<para>You will need to make several 
+	choices when installing EVMS, such as how you want to build EVMS and which 
+	capabilities you want to enable. You will also need you will need to make sure 
+	that you have a kernel source tree.  The following sections explain these choices and 
+	guide you through the installation process.</para>
+
+	<sect2 id="selectcapabilities"><title>Choosing Capabilities</title>	    
+		<para>EVMS has many capabilities. Certain options you choose during install 
+		allow EVMS to be compatible with logical volumes from Linux
+		LVM, AIX LVM, and OS/2 LVM, as well as Linux MD/Software
+		RAID. EVMS also has unique features, 
+		such as bad block relocation. If
+		you do not know which capabilities you want to use, turn
+		on kernel support for all the options. You can decide
+		which ones to use after the Engine and user-space
+		administration tools are installed.</para>
+
+		<sect3 id="mdsjupport"><title>MD Support</title>
+			<para>If you choose to turn
+			on EVMS MD support, <emphasis>do not </emphasis>enable native MD support (in the
+			<guimenuitem>Multi-device Support</guimenuitem> menu). MD
+			rewrites its metadata from within the kernel, and if both
+			systems recognize the same volume, it could cause metadata
+			corruption.</para>
+		</sect3>
+
+		<sect3 id="lvmsupport"><title>EVMS Linux LVM</title>
+			<para>If you choose to
+			turn on EVMS Linux LVM support, you can enable native Linux
+			LVM support. Avoid mounting the same volume through
+			both systems at the same time, or you could cause volume data
+			corruption. Also, if you use one system to make a change to
+			a volume or group configuration, you might need to reboot for
+			the other system to fully recognize the changes.</para>
+		</sect3>
+		
+		
+	</sect2>
+
+
+
+
+	<sect2 id="buildingopt"><title>Selecting Building Options</title>
+		<para>You have the option of building EVMS as kernel
+		modules instead of compiling EVMS directly into the kernel.
+		However, if you choose to build EVMS as modules, EVMS will not automatically
+		perform discovery at kernel boot time. You will need to load the
+		necessary kernel modules from user-space using <command>insmod
+		</command> or <command>modprobe</command>. Then, use the
+		<command>evms_rediscover</command> utility to tell EVMS to
+		discover the logical volumes. </para>
+
+		<para>If you decide to build EVMS as kernel modules, and you
+		want your root file-system on an EVMS volume, you must use an
+		init-ramdisk during boot. See <xref linkend="INITRD"/> for instructions on adding 
+		EVMS support to your init-ramdisk .
+		</para>
+
+		<note><title>NOTE</title>
+		<para>If you choose to build EVMS as
+		kernel modules, you will need to compile all EVMS plug-ins as
+		modules. If you compile some plug-ins as modules and some
+		plug-ins directly into the kernel, the plug-ins that are in the
+		kernel will perform automatic boot-time discovery, without the
+		remaining plug-ins being active. This inconsistency could produce 
+		incorrect volumes. It is strongly recommended that you not build EVMS as modules without 
+		adding support to your EVMS ramdisk. EVMS configurations built as modules that do not 
+		have support in the ramdisk do not allow EVMS to offer the usual protections against corrupting 
+		data</para></note>
+
+		<para>If you have built the plug-ins as
+		modules, and do not wish to mount your root
+		file system
+		using EVMS, simply add entries in your
+		<filename>init</filename> scripts to
+		load all the necessary EVMS modules and run the 
+		<command>evms_rediscover</command>
+		utility. You should run the rediscover early in
+		the boot scripts before the <filename>/etc/fstab</filename> file is
+		processed.</para>	</sect2>
+
+	<sect2 id="kernelsource"><title>Kernel Source Tree</title>
+		<para>To install EVMS, you will need to add EVMS support to your Linux 
+		kernel. Currently,
+		EVMS support is not included in the main Linux kernel.
+		EVMS patches for the kernel are included in the EVMS package on the 
+		<ulink url="http://www.sourceforge.net/projects/evms/">EVMS project website</ulink>. The current
+		EVMS package contains a patch against both the 2.4 and
+		2.5 kernel series.</para>
+
+		<note><title>NOTE</title>
+			<para>EVMS will not work with 2.3, 2.2, or earlier kernel series.
+			</para></note>
+
+		<para>If you do not have a Linux kernel source tree,
+		you can obtain one from <ulink url="http://www.kernel.org/">The Linux Kernel Archives </ulink>. 
+		The current recommended
+		kernel to use is 2.4.19, but most 2.4 series kernels will
+		work. </para>
+	</sect2>
+
+
+
+</sect1>
+
+
+<sect1 id="DOWNLOADING">
+	<title>Downloading EVMS</title>
+	<para>To install EVMS, download the latest version EVMS  
+	 (<filename>evms-1.2.0.tar.gz</filename>) from the 
+	<ulink url="http://www.sourceforge.net/projects/evms/">EVMS project homepage</ulink>. This
+	file contains source code patches for the Linux kernel and 
+	source code for all necessary user-space administration tools.</para>
+				
+	<para>After downloading the file,
+	<command>untar</command> it in the appropriate
+	place, using the following command:</para>		
+
+<programlisting>
+<![CDATA[
+cd /usr/src 
+tar xvzf evms-1.2.0.tar.gz
+]]>
+</programlisting>
+
+	<note><title>NOTE</title>
+	<para>The command
+	above assumes the file will be untarred in
+	<filename>/usr/src</filename>. You can substitute another directory.</para></note>
+</sect1>
+			
+
+<sect1 id="PATCHING">
+	<title>Patching the Kernel</title>
+	<para>You must apply three patches to your kernel tree
+	to include EVMS support: 
+	<itemizedlist>
+		<listitem><para>a patch specific to
+		your version of the kernel. </para></listitem>
+
+		<listitem><para>a patch that includes
+		all the EVMS specific source code.</para></listitem>
+
+		<listitem><para>a patch that adds
+		code to allow the filesystems to perform flushing and
+		locking when certain volume configuration changes take
+		place. This third patch is necessary only when
+		you want to take SnapShot volumes of journaling
+		filesystems, such as JFS, ReiserFS,  ext3, and XFS.</para></listitem>
+		</itemizedlist></para>
+
+
+	<para>To apply the patches to the kernel, complete the following steps:
+	<orderedlist>
+		<listitem><para>Determine which kernel version
+		you are using.</para></listitem>
+				
+		<listitem><para>Find the appropriate patch in the
+		<filename>kernel</filename> directory of the EVMS
+		package. This example will use a system running kernel 
+		 2.4.19, and a
+		kernel source tree in <filename>/usr/src/linux</filename>. 
+		<note><title>NOTE</title>
+<para>If your kernel source tree is in a different location,
+		you will need to make the appropriate changes to these instructions.</para></note>
+		</para></listitem>
+
+		<listitem><para>Apply the first patch to your
+		kernel tree by typing the following commands:
+
+<programlisting>
+<![CDATA[
+cd /usr/src/linux
+patch -p1 < /usr/src/evms-/kernel/evms-linux-2.4.19-common-files.patch
+]]>
+</programlisting>
+		</para></listitem>
+
+		<listitem><para>From the same directory as the
+		previous step, type the following command to
+		apply the actual EVMS code to any 2.4 kernel tree:
+
+<programlisting>
+<![CDATA[
+patch -p1 < /usr/src/evms-/kernel/evms-1.2.0-linux-2.4.patch
+]]>
+</programlisting>
+			</para>					
+
+		<para>If you are running a 2.5 kernel, substitute
+		<filename>evms-1.2.0-linux-2.5.patch</filename>
+		in the command above.</para>
+		</listitem>
+
+		<listitem><para>To apply the optional VFS Locking Patch, remain in the
+		<filename>/usr/src/linux</filename> directory, and type the following command:
+<programlisting>
+<![CDATA[
+patch -p1 < /usr/src/evms-1.2.0/kernel/linux-2.4.19-VFS-lock.patch
+]]>
+</programlisting></para></listitem>			
+</orderedlist></para>
+				
+		<para>Distributions make modifications to the Linux kernel
+		that are sometimes incompatible with the code in EVMS.
+		If you are patching a kernel from a 
+		distribution, the above commands might produce patch
+		failures, and you might need to manually patch the
+		affected files. To make the installation easier, it is
+		recommended that you start with a clean kernel from
+		kernel.org.</para>
+
+</sect1>
+				
+<sect1 id="configuring">
+	<title>Configuring the Kernel</title>
+	<para>After patching the kernel, configure it with EVMS support. To
+	configure the kernel, complete the following steps:</para>
+
+	<orderedlist>
+		<listitem><para>Type the following command:
+<programlisting>make xconfig</programlisting>
+
+<note><title>NOTE</title>
+<para>You can also use <command>config</command> or
+		<command>menuconfig</command> if you don't have an Xwindow system.</para></note></para>
+
+		
+
+		<para>If you are using an Xwindow system, the following window appears. </para>
+
+		<figure><title>xconfig Window</title>
+		<mediaobject><imageobject><imagedata fileref="linux_config.png" format="PNG"/></imageobject>
+		<textobject><phrase>xconfig Window</phrase></textobject></mediaobject></figure>				
+		</listitem>
+
+		<listitem><para>To enable EVMS support, select 
+		<guimenuitem>Enterprise Volume Management
+		System</guimenuitem>. The following window appears.</para>
+		<figure><title>Linux Kernel Configuration Window</title>
+		<mediaobject><imageobject><imagedata fileref="evms_config.png" format="PNG"/></imageobject>
+		<textobject><phrase>Linux Kernel Configuration Window</phrase>
+		</textobject></mediaobject></figure>	
+		<note><title>NOTE</title>
+
+		<para>If you are configuring EVMS as
+		modules, you can click the <guibutton>Help</guibutton> button beside each 
+		module to see the name of each kermel module.</para></note></listitem>			
+				
+		<listitem><para>Select <option>y</option> for the first three 
+		options: <option>EVMS Kernel Runtime</option>, <option>EVMS Local Device Manager</option>, and 
+		<option>EVMS DOS Segment Manager</option>. These options are the bare minimum for EVMS.
+		The remaining options add additional capabilities to EVMS.</para>
+		
+<note><title>NOTE</title>
+<para>The options you select in this step are the ones you selected in <xref linkend="selectcapabilities"/>.</para></note>
+				
+		</listitem>				
+
+		<listitem><para>Select <option>y</option> for all additional options 
+		you want to configure for EVMS.  </para>
+		<note><title>NOTE</title>
+
+		<para>If you are configuring EVMS as modules, 
+		select <option>m</option> for the first three options and all remaining 
+		capabilities you wish to add.</para></note></listitem>
+	</orderedlist>
+				
+	<para>Continue configuring your kernel as required for your
+	system and hardware. For general instructions on configuring
+	and compiling a Linux kernel, please see <ulink url="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html">			<citetitle>The Kernel HOWTO</citetitle></ulink>.</para>
+
+	<para>When you have finished configuring your
+	kernel, choose <guibutton>Save and Exit</guibutton> to quit
+	the kernel configuration.</para>
+</sect1>	
+				
+			  
+<sect1 id="buildinstall">
+<title>Building and Installing the New Kernel</title>
+
+	<para>After you have configured the kernel, you will need to
+	build and install a new kernel image. There are slight variations for different architectures,
+	but the general steps are the same. For example, on Intel&reg; machines you could run 
+	<command>lilo</command> to install the new kernel image. However , on S/390 machines, you 
+	would run <command>zipl</command> to install the new kernel image. The following instructions 
+	are based on an installation using an Intel machine. </para>
+
+	<orderedlist>
+		<listitem><para>Build the kernel :
+<programlisting>
+<![CDATA[
+make dep clean bzImage modules modules_install
+]]>
+</programlisting>
+		</para></listitem>
+
+		<listitem><para>Copy the new kernel to the <filename>/boot</filename> directory.</para>
+
+		<programlisting>
+<![CDATA[
+cp /usr/src/linux/arch/i386/boot/bzImage /boot/vmlinuz-evms
+]]>
+</programlisting>
+		<note><title>NOTE</title>
+		<para>The command above assumes the file will be named 
+		<filename>vmlinuz-evms</filename>, you can substitute 
+		another name.</para></note></listitem>
+
+
+<listitem><para>Open the file for the boot loader with your favorite editor. 
+	The LILO boot loader information is in <filename>etc/lilo.conf</filename>. 
+	The GRUB boot loader information is in <filename>boot/menu.list</filename>.</para></listitem>
+
+		<listitem><para>Update the boot loader information as follows:
+<programlisting>
+<![CDATA[
+	image=/boot/vmlinuz-evms
+	label=EVMS
+	append="root=/dev/evms/hda1"
+]]>
+</programlisting>
+
+
+		<note><title>NOTE</title>
+		<para>In order to have your boot partition on an EVMS controlled volume and use LILO, 
+		you must have an EVMS patched version of 
+		LILO or a version since 22.3.2. </para></note>
+		</para></listitem>
+	
+		<listitem><para>Run your boot loader to install the new kernel image.</para>
+	
+		<note><title>NOTE</title>
+		<para>If you installed your kernel as modules skip to 
+		<xref linkend="INSTALLENGINE"/>. You will also need to 
+		complete <xref linkend="INITRD"/> after building the engine.</para></note></listitem>
+
+		<listitem><para>Re-boot your machine and choose the new
+		kernel image to run with EVMS support.</para></listitem>
+	</orderedlist>
+</sect1>
+
+<!-- Installing the Engine -->		
+<sect1 id="INSTALLENGINE">
+<title>Installing the Engine</title>
+
+<para>The EVMS Engine consists of  the user-space plug-ins and interfaces as well as a stand-alone
+library, dlist, that the Engine uses for linked-list management.</para>
+
+	<sect2 id="installsource"><title>Installing from Source</title>
+   <orderedlist>
+	<listitem><para>To build and install the Engine from source, type the following commands:</para>
+
+<programlisting>
+cd /usr/src/evms-1.2.0/engine
+autoconf
+
+</programlisting>
+
+		<note><title>NOTE</title>
+		<para>The command <command>autoconf</command> 
+		is necessary only for code taken directly from CVS.
+		However, using this command will not affect the build or
+		installation if your code is not taken directly from CVS.</para></note>
+	</listitem>
+
+
+
+	<listitem><para>Select the appropriate options for your configuration.
+	<note><title>NOTE</title>
+		<para>A list of options can be found by typing 
+		<programlisting>./configure -h</programlisting></para></note>
+	</para>
+	</listitem>
+
+		<listitem><para>Configure your engine:
+<programlisting>
+./configure [--options]
+</programlisting></para></listitem>
+				
+	<listitem><para>Type the following commands: 
+<programlisting>
+make
+make install
+ldconfig
+</programlisting>
+	</para>
+	<para>Unless you specified other directories in Step 3, the
+	following list describes where files will be installed
+	on your system:
+	      <itemizedlist>
+		<listitem><para>The core Engine library will be installed in
+		<filename>/usr/local/lib</filename>.</para></listitem>
+
+<listitem><para>The core dlist library will be installed in
+		<filename>/usr/local/lib</filename>.</para></listitem>
+	
+	 	<listitem><para>All plug-in libraries will be installed in
+		<filename>/usr/local/lib/evms</filename>.</para></listitem>			
+
+		<listitem><para>All user interface binaries will be installed
+		in <filename>/usr/local/sbin</filename>.</para></listitem>
+    	  </itemizedlist></para>
+	</listitem>
+
+	<listitem><para>Add the Engine library path to your
+	<varname>LD_LIBRARY_PATH</varname> environment variable, or to
+	your <filename>/etc/ld.so.conf</filename> file. Do not add the
+	plug-in library path because the Engine will dynamically load
+	these libraries directly.</para></listitem>
+    </orderedlist>
+
+<para>Begin using EVMS by typing <command>evmsgui</command> 
+to start the GUI, <command>evmsn</command> to
+start the Ncurses UI, or <command>evms</command> to start the
+command line interpreter.</para>
+
+</sect2>
+
+	<sect2 id="INSTALLRPM"><title>Installing the Engine RPM</title>
+	<para>You can download an RPM with the latest compiled engine
+	binaries and libraries. This RPM is available on the project
+	<ulink url="http://www.sourceforge.net/projects/evms/">web site</ulink> along with the 
+	source code package. The RPM is a
+	generic i386 RPM that should install on any system that uses
+	the RPM.</para>
+				
+	<para>If you install the EVMS RPM, you will still need to
+	patch your kernel with EVMS support. </para> 
+	</sect2>					
+
+	<sect2 id="INSTALLDEBIAN"><title>Installing the EVMS Debian Packages</title>
+	<para>Debian packages of EVMS are maintained by Matt Zimmerman
+	at the <ulink url="http://www.debian.org">Debian</ulink> website.
+	You can download these packages for the <ulink url="http://packages.debian.org/testing/admin/evms.html">Woody
+	</ulink> (testing) release, or for the 
+	<ulink url="http://packages.debian.org/unstable/admin/evms.html">Sid</ulink> (unstable) release.</para>
+
+	<para>For the Debian package you should patch and recompile your kernel in order to use
+	EVMS. Debian has a packaged version of the EVMS kernel patches,
+	that includes instructions for patching and building your kernel.</para>
+	</sect2>
+
+
+</sect1> 
+
+<!-- init ramdisk -->			
+<sect1 id="INITRD"><title>Loading Modules with an Init-Ramdisk</title>
+	<para>If you built your EVMS kernel
+	plug-ins as modules and want your root
+	file system mounted on an EVMS volume (the only recommended way of using EVMS 
+	built as kernel modules), you must add EVMS support
+	to your init-ramdisk. If you do not have an
+	init-ramdisk, general instructions for creating one are in the kernel source
+	tree in the file <filename>Documentation/initrd.txt</filename>. Some 					distributions include utilities for creating init-ramdisks. (See your distribution
+	for details.) If you do not want to use an
+	init-ramdisk but want your root filesystem on an EVMS volume, you should 
+	compile all EVMS support directly into the kernel.</para>
+
+	<para>To modify your init-ramdisk,
+	decompress it using <command>gunzip</command> and mount it through a loopback
+	device. The following steps walk you through modifying your
+	init-ramdisk. The following commands are based on
+	the assumption that the init-ramdisk is mounted on <filename>/mnt/loop</filename>.</para>
+
+	<orderedlist>
+		<listitem><para>Once the init-ramdisk is mounted, copy the EVMS kernel modules
+		to it.</para>
+<programlisting>
+<![CDATA[
+mkdir -p /mnt/loop/lib/modules/2.4.19/kernel/drivers/evms
+cp /lib/modules/2.4.19/kernel/drivers/evms/*.o \
+   /mnt/loop/lib/modules/2.4.19/kernel/drivers/evms
+]]>
+</programlisting>
+		<note><title>NOTE</title>
+		<para>In the previous code, 2.4.19 is the
+		recommended version of the kernel. You can replace this version number with your kernel version.</para></note>
+		</listitem> 
+
+		<listitem><para>Copy the
+		<command>evms_rediscover</command>
+		utility to the init-ramdisk. If you
+		are not using devfs, copy the
+		<command>evms_devnode_fixup</command> utility
+		as well.</para>
+<programlisting>
+<![CDATA[
+cp /usr/local/sbin/evms_rediscover /mnt/loop/bin
+cp /usr/local/sbin/evms_devnode_fixup /mnt/loop/bin
+]]>
+</programlisting>
+			
+		<note><title>NOTE</title>
+		<para><command>evms_rediscover</command> and <command>evms_devnode_fixup</command>
+		are statically linked with the necessary libraries and will not need any additional dynamic
+		libraries added to the init-ramdisk.</para></note>
+		</listitem>
+
+		<listitem><para>Edit the
+		<filename>linuxrc</filename> script on your
+		init-ramdisk so that it loads all of the EVMS kernel
+		modules and calls <command>evms_rediscover</command>,
+		followed by <command>evms_ devnode_fixup</command> (if you are not
+		running devfs).</para></listitem>
+
+		<listitem><para>Add the following lines to the
+		<filename>linuxrc</filename> script. These
+		lines should be added to the
+		<filename>linuxrc</filename> script before the
+		root file system is mounted, so the root volume
+		will be discovered and available.</para>
+<programlisting>
+insmod evms
+insmod evms_passthru
+insmod ldev_mgr
+insmod dos_part
+# Add insmod commands for all EVMS modules copied in the step above.
+evms_rediscover
+evms_devnode_fixup	# If not running devfs
+</programlisting>
+			
+
+<note><title>NOTE</title>
+<para>For the 2.5 kernel replace <filename>insmod dos_part</filename> with 
+<filename>insmod dos</filename> in the script above.</para></note>			</listitem></orderedlist>
+
+			
+		     </sect1>	
+
+</chapter>
+
+
+
+
+
+
+
+
+
