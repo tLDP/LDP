@@ -28,6 +28,10 @@ clean:
 	rm -f *.html
 	rm -rf Lampadas.xml
 
+xml:	Lampadas.xml
+
+html:	Lampadas.html
+
 index.html:	Lampadas.xml
 	xsltproc --nonet --novalid ../xsl/lampadas-html-chunk.xsl Lampadas.xml
 
