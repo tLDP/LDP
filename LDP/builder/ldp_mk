@@ -53,7 +53,9 @@ if( !(-e "$fname") ) {
 if( $txt_filter eq '' ) {
     $txt_filter = 'lynx';
 }
-
+if( $style eq '' ) {
+    $style = "$_toolroot/dsssl/docbook/html/ldp.dsl#html";
+}
 
 # determine DTD 
 #
@@ -102,13 +104,10 @@ if( $linuxdoc == 0 && $create_index == 1 ) {
     print "\nldp_mk: creating SGML index from $fname...\n";
 
     $cmd = "$_toolroot/mkindex/collateindex.pl -N -o index.sgml; " .
-           "$_toolroot/$_jade/jade/jade -t sgml -V html-index " .
-              "-d $_toolroot/dsssl/docbook/html/ldp.dsl#html " .
-              ($style ne '' ? "-d $style " : '') .
-              "$fname ; " .
-           "$_toolroot/mkindex/collateindex.pl -g -t Index " .
-              "-i doc-index -o index.sgml HTML.index;" .
-           "rm -f HTML.index";
+      "$_toolroot/$_jade/jade/jade -t sgml -V html-index -d $style $fname ; " .
+      "$_toolroot/mkindex/collateindex.pl -g -t Index -i doc-index " .
+      "-o index.sgml HTML.index;" .
+      "rm -f HTML.index";
     system($cmd);
 }
 
@@ -123,15 +122,10 @@ if( $linuxdoc == 1 ) {
 
 } else {
 
-    $cmd = "$_toolroot/$_jade/jade/jade -t sgml -i html " .
-              "-d $_toolroot/dsssl/docbook/html/ldp.dsl#html " .
-              ($style ne '' ? "-d $style " : '') .
-              "$fname; " .
+    $cmd = "$_toolroot/$_jade/jade/jade -t sgml -i html -d $style $fname; " .
            "mv -f \*.html $fname_wo_ext/;" .
            "$_toolroot/$_jade/jade/jade -t sgml -i html -V nochunks " .
-              "-d $_toolroot/dsssl/docbook/html/ldp.dsl#html " .
-              ($style ne '' ? "-d $style " : '') .
-              " $fname > 00_" . "$fname_wo_ext.html";
+              "-d $style $fname > 00_" . "$fname_wo_ext.html";
 }
 
 system($cmd);
@@ -149,7 +143,6 @@ print "\nldp_mk: creating plain text from $fname...\n";
 if( $linuxdoc == 1 ) {
 
     $cmd = "$_toolroot/sgml-tools/bin/sgml2txt -c latin -f $fname";
-    system($cmd);
 
 } else {
 
@@ -168,41 +161,46 @@ if( $linuxdoc == 1 ) {
     }
 
     $cmd .= " 00_" . "$fname_wo_ext" . ".html > $fname_wo_ext.txt";
-    system($cmd);
-
-    # patch the text file; especially needed w/lynx
-    #
-    if( -e "$fname_wo_ext.txt" ) {
-
-       my($pat) = 'file://localhost/export/sunsite/users/gferg/howto/';
-
-       open(HFILE, "+< $fname_wo_ext.txt") || 
-                          die "\nldp_mk: cannot open: $fname_wo_ext.txt";
-       my(@flines) = <HFILE>;
-
-       for($i=0; $i < (@flines + 0); $i++) {
-           $flines[$i] =~ s/$pat//g;
-           $flines[$i] =~ s/00_$fname_wo_ext/$fname_wo_ext/g;
-       }
-
-       seek(HFILE,0,0);
-       print HFILE @flines;
-       truncate(HFILE, tell(HFILE));
-       close(HFILE);
-    }
 }
 
-if( !(-e "$fname_wo_ext.txt") ) {
+system($cmd);
 
-      print "\nldp_mk: WARNING - could not create TXT: $fname_wo_ext.txt\n";
+# patch the text file; especially needed w/lynx
+#
+if( -e "$fname_wo_ext.txt" ) {
+
+    my(@flines)    = ();
+    my($def_blanks)= 3;
+    my($count)     = 0;
+
+    open(CPIPE, "pwd |");
+    $s = <CPIPE>; chop($s);
+    my($pat) = 'file://localhost' . $s . '/';
+    close(CPIPE);
+
+    open(HFILE, "+< $fname_wo_ext.txt") || 
+                           die "\nldp_mk: cannot open: $fname_wo_ext.txt";
+    while(<HFILE>) {
+           if (length($_) == 1) {
+               $count++;
+           } else {
+               $count = 0;
+           }
+           if ($count <= $def_blanks) {
+               $_ =~ s/$pat//g;
+               $_ =~ s/00_$fname_wo_ext/$fname_wo_ext/g;
+               push(@flines, $_);
+           }
+    }
+
+    seek(HFILE,0,0);
+    print HFILE @flines;
+    truncate(HFILE, tell(HFILE));
+    close(HFILE);
 
 } else {
 
-      # clean-up PLAIN TEXT version
-      #
-      $cmd = "cat $fname_wo_ext.txt|$_toolroot/sgml-tools/bin/cutblank >" .
-             "ldp_mk_tmp; mv -f ldp_mk_tmp $fname_wo_ext.txt";
-      system($cmd);
+    print "\nldp_mk: WARNING - could not create TXT: $fname_wo_ext.txt\n";
 }
 
 
