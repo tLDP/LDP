@@ -56,6 +56,7 @@ ReviewStatusCombo();
 #TopicDocsTable();
 #Lintadas();
 #DocErrorsTable(1);
+Errors();
 
 print "All tests run.\n\n";
 
@@ -429,4 +430,12 @@ sub Lintadas {
 sub DocErrorsTable {
 	my $doc_id = shift;
 	print $L->DocErrorsTable($doc_id);
+}
+
+sub Errors {
+	my %errors = $L->Errors();
+	foreach $key (keys %errors) {
+		print "doc_id: $errors{$key}{doc_id}, error: $errors{$key}{error}\n";
+	}
+	print "\n";
 }

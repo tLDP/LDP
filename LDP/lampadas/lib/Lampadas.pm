@@ -59,6 +59,7 @@ use Exporter;
 	SaveSubtopic,
 	Formats,
 	DTDs,
+	Errors,
 
 	DocCount,
 	DocCountByClass,
@@ -67,7 +68,7 @@ use Exporter;
 	StartPage,
 	EndPage,
 
-	ErrorsTable,
+	MessagesTable,
 	NavBar,
 
 	RoleCombo,
@@ -89,6 +90,7 @@ use Exporter;
 	DocsTable,
 	DocTable,
 	DocVersionsTable,
+	DocErrorsTable,
 	DocFilesTable,
 	DocUsersTable,
 	DocTopicsTable,
@@ -123,7 +125,7 @@ use Exporter;
 	Logout,
 	AddUser,
 	SaveUser,
-	AddError,
+	AddMessage,
 	Mail,
 );
 
@@ -137,7 +139,7 @@ $currentuser_id = 0;
 %currentuser = ();
 &ReadCookie;
 
-@errors = ();			# System errors, displayed on the next page
+@messages = ();			# System messages, displayed on the next page
 $debug = 0;			# Set this to 1 to get debugging messages
 
 sub new {
@@ -676,7 +678,7 @@ sub SaveSubtopic {
 
 sub Formats {
 	my %formats = ();
-	my $sql = "select format, format_name from format";
+	my $sql = "SELECT format, format_name FROM format";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$format		= &trim($row[0]);
@@ -688,13 +690,28 @@ sub Formats {
 
 sub DTDs {
 	my %dtds = ();
-	my $sql = "select dtd from dtd";
+	my $sql = "SELECT dtd FROM dtd";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$dtd		= &trim($row[0]);
 		$dtds{$dtd}{dtd}	= $dtd;
 	}
 	return %dtds;
+}
+
+sub Errors {
+	my %errors = ();
+	my $sql = "SELECT doc_id, error FROM document_error";
+	my $recordset = $DB->Recordset($sql);
+	my $count = 0;
+	while (@row = $recordset->fetchrow) {
+		$doc_id	= &trim($row[0]);
+		$error	= &trim($row[1]);
+		$count++;
+		$errors{$count}{doc_id}	= $doc_id;
+		$errors{$count}{error}	= $error;
+	}
+	return %errors;
 }
 
 sub DocCount {
@@ -724,7 +741,7 @@ sub StartPage {
 
 	if ($cookie) {
 		print $CGI->header(-cookie=>$cookie,-expires=>'now');
-		push @errors, "cookie: $cookie" if ($debug);
+		push @messages, "cookie: $cookie" if ($debug);
 	} else {
 		print $CGI->header(-expires=>'now');
 	}
@@ -736,17 +753,17 @@ sub StartPage {
 	print "<body><a name='top'>\n";
 
 	if ($debug) {
-		push @errors, "UserID: $currentuser_id";
-		push @errors, "UserName: " . $currentuser{username};
+		push @messages, "UserID: $currentuser_id";
+		push @messages, "UserName: " . $currentuser{username};
 	}
 	
 	print "<table style='width:100%' class='layout'>\n";
 	print "<tr><td colspan=2>\n";
 	HeaderBox($foo, $title);
 	print "</td></tr>\n";
-	if (scalar @errors) {
+	if (scalar @messages) {
 		print "<tr><td colspan=2>\n";
-		ErrorsTable();
+		MessagesTable();
 		print "</td><tr>\n";
 	}
 	print "<tr><td valign=top width='200'>\n";
@@ -1090,6 +1107,7 @@ sub DocsTable {
 	my %classes = Classes();
 	my %pubstatuses = PubStatuses();
 	my %reviewstatuses = ReviewStatuses();
+	
 
 	my $mypub_status = Param($foo,'strSTATUS');
 	$mypub_status = "N" unless ($mypub_status);
@@ -1707,7 +1725,6 @@ sub MiscStatsTable {
 	}
 	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=2>Miscellaneous Statistics</th></tr>";
-	$table .= "<tr><th>Statistic</th><th>Value</th></tr>";
 	$table .= "<tr><th>Average Age Since Last Update</th><td>&nbsp;";
 	$table .= sprintf("%i", $avg_age);
 	$table .= " days</td></tr>";
@@ -2110,12 +2127,12 @@ sub TopicDocsTable {
 	return $table;
 }
 
-sub ErrorsTable {
+sub MessagesTable {
 	my $message = '';
-	if (scalar @errors) {
+	if (scalar @messages) {
 		print "<table><tr><td>\n";
-		while (scalar @errors) {
-			my $error = pop @errors;
+		while (scalar @messages) {
+			my $error = pop @messages;
 			$message = $error . "<p>" . $message;
 		}
 		print "<p>$message\n";
@@ -2239,16 +2256,16 @@ sub Login {
 	my $self = shift;
 	my $title = shift;
 	my $username = $CGI->param('username');
-	push @errors, "Param('username'): " . $username if ($debug);
+	push @messages, "Param('username'): " . $username if ($debug);
 	my $password = $CGI->param('password');
-	push @errors, "Param('password'): " . $password if ($debug);
+	push @messages, "Param('password'): " . $password if ($debug);
 	my $count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
 	if ($count) {
-		push @errors, "Found the user" if ($debug);
+		push @messages, "Found the user" if ($debug);
 		my $foundpw = $DB->Value("SELECT password FROM username WHERE username='$username'");
 		if ($password eq $foundpw) {
 
-			push @errors, "Password matched" if ($debug);
+			push @messages, "Password matched" if ($debug);
 			# Load settings, since cookie won't be read until the next page
 			#
 			$currentuser_id = $DB->Value("SELECT user_id FROM username WHERE username='$username'");
@@ -2346,9 +2363,9 @@ sub SaveUser {
 	}
 }
 
-sub AddError {
-	my ($self, $error) = @_;
-	push @errors, $error;
+sub AddMessage {
+	my ($self, $message) = @_;
+	push @messages, $message;
 }
 
 sub Redirect {
@@ -2375,7 +2392,7 @@ sub Mail {
 		    message	=> $message,
 		    smtp	=> $smtp);
 	unless (&Mail::Sendmail::sendmail(%mail)) {
-		push @errors, "Error sending mail"
+		push @messages, "Error sending mail"
 	}
 }
 

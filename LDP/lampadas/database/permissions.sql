@@ -8,6 +8,7 @@ GRANT ALL ON	document TO "www-data";
 GRANT SELECT ON document TO root;
 GRANT ALL ON	document_audience TO "www-data";
 GRANT ALL ON	document_error TO "www-data";
+GRANT ALL ON	document_file TO "www-data";
 GRANT ALL ON	document_rev TO "www-data";
 GRANT SELECT on document_rev to root;
 GRANT ALL ON	document_topic TO "www-data";
