@@ -18,6 +18,19 @@
 
       <revhistory>
          <revision>
+            <revnumber>0.5</revnumber>
+            <date>2003-02-10</date>
+            <authorinitials>ajl</authorinitials>
+            <revremark>
+               Updated Redhat initscript information for 7.0 and above;
+               Added information on removing a partition table from a
+                 disk if pvcreate fails;
+               Default PE size is 32MB now;
+               Updated method for snapshotting under XFS.
+            </revremark>
+          </revision>
+
+         <revision>
             <revnumber>0.4</revnumber>
             <date>2002-12-16</date>
             <authorinitials>ajl</authorinitials>
@@ -1071,8 +1084,23 @@ exit 0
 
       <sect1><title>Redhat</title>
          <para>
-            For Redhat 7.0 and 7.1, you should not need to modify any
-            initscripts to enable LVM at boot time.
+            For Redhat 7.0 and up, you should not need to modify any
+            initscripts to enable LVM at boot time if LVM is built into the
+            kernel.  If LVM is built as a module, it may be necessary to
+            modify <filename>  /etc/rc.d/rc.sysinit </filename> to load the
+            LVM module before the section that reads:
+<screen># LVM initialization, take 2 (it could be on top of RAID)
+if [ -e /proc/lvm -a -x /sbin/vgchange -a -f /etc/lvmtab ]; then
+        action $"Setting up Logical Volume Management:" /sbin/vgscan &&
+        /sbin/vgchange -a y
+        fi</screen>
+           <note>
+             <para>
+             This init script fragment is from RedHat 7.3 - other versions
+             of Redhat may look slightly different.
+             </para>
+           </note>
+
          </para>
 
          <para>
@@ -1604,6 +1632,27 @@ image=/boot/vmlinux-2.4.9lvm
                      This creates a volume group descripter at the start of
                      disk.
                   </para>
+                </listitem>
+
+                <listitem>
+                  <para>
+                    If you get an error that LVM can't initialize a
+                    disk with a partition table on it, first make sure
+                    that the disk you are operating on is the correct
+                    one. If you are very sure that it is, run the
+                    following:
+                    <warning> <title>DANGEROUS</title>
+                      <para>
+                      The following commands will destroy the
+                      partition table on the disk being operated on.
+                      Be very sure it is the correct disk.
+                      </para>
+                    </warning>
+<screen>
+# dd if=/dev/zero of=/dev/diskname bs=1k count=1
+# blockdev --rereadpt /dev/diskname
+</screen>
+                  </para>
                </listitem>
             </itemizedlist>
 
@@ -1650,7 +1699,7 @@ image=/boot/vmlinux-2.4.9lvm
 
          <para>
             You can also specify the extent size with this command if the
-            default of 4MB is not suitable for you with the '-s' switch.  In
+            default of 32MB is not suitable for you with the '-s' switch.  In
             addition you can put some limits on the number of physical or
             logical volumes the volume can have.
          </para>
@@ -2693,6 +2742,17 @@ lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</computerout
 
                </screen>
             </para>
+            
+            <note>
+              <para>
+                If the snapshot is of an XFS filesystem, the xfs_freeze
+                command should be used to quiesce the filesystem before
+                creating the snapshot. (if the filesystem is mounted)
+                <screen>
+<command># xfs_freeze -f /mnt/point; lvcreate -L592M -s -n dbbackup /dev/ops/databases; xfs_freeze -u /mnt/point </command>
+                </screen>
+              </para>
+            </note>
 
             <warning><title>Full snapshot are automatically disabled</title>
                <para>
@@ -2714,11 +2774,20 @@ lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</computerout
                
             <para>
                If you are using XFS as the filesystem you will need to add the
-               <option>nouuid</option> and <option>norecovery</option> options
+               <option>nouuid</option> option
                to the mount command:
                <screen>
-<command># mount /dev/ops/dbbackup /mnt/ops/dbbackup -onouuid,norecovery,ro</command>
+<command># mount /dev/ops/dbbackup /mnt/ops/dbbackup -onouuid,ro</command>
                </screen>
+               <note>
+                 <para>
+                 Previously, the norecovery option was suggested to allow the 
+                 mounting of
+                 XFS snapshots.  It has been recommended not to use this
+                 option, but to instead use xfs_freeze to quiesce the
+                 filesystem before creating the snapshot.
+                 </para>
+               </note>
             </para>
          </sect2>
 
@@ -3102,16 +3171,23 @@ Writing superblocks and filesystem accounting information: done</computeroutput>
             <para>
                Having your root filesystem on LVM can significantly complicate
                upgrade procedures (depending on your distribution) so it should
-               not be attempted lightly.
+               not be attempted lightly.  Particularly, you must consider how
+               you will insure that the LVM kernel module (if you do not have
+               LVM compiled into the kernel) as well as the vgscan/vgchange
+               tools are available before, during, and after the upgrade.
             </para>
          </warning>
 
          <warning><title>Recovery Complications</title>
             <para>
                Having your root filesystem on LVM can significantly complicate
-               recovery of damaged filesystems.  Be sure to make regular
-               backups and have an alternative boot method that allows for
-               recovery of LVM.
+               recovery of damaged filesystems.  If you lose your initrd, it
+               will be very difficult to boot your system.  You will need to
+               have a recover disk that contains the kernel, LVM module, and
+               LVM tools, as well as any tools necessary to recover a
+               damaged filesystem.
+               Be sure to make regular backups and have an up-to-date
+               alternative boot method that allows for recovery of LVM. 
                <!-- FIXME: Add a section on how to do this -->
             </para>
          </warning>
