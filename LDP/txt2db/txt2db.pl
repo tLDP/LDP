@@ -112,7 +112,7 @@ sub proc_txt {
 		if ($line eq '') {
 			if ($noparadepth == 0) {
 				&closenonsect;
-				&closelists;
+#				&closelists;
 				next;
 			}
 		}
@@ -249,8 +249,6 @@ sub proc_txt {
 			#
 			$line = $originalline;
 
-		# structured docbook
-		#
 		# sect3
 		#
 		} elsif ($line =~ /^===/) {
@@ -301,6 +299,8 @@ sub proc_txt {
 			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
+		} elsif ($line = '/#') {
+			&closeorderedlist;
 
 		# itemizedlist
 		#
@@ -316,6 +316,8 @@ sub proc_txt {
 			$line =~ s/^/<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
+		} elsif ($line = '/*') {
+			&closeitemizedlist;
 
 		# question
 		#
