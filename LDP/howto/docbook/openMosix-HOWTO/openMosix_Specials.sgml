@@ -1,0 +1,351 @@
+<CHAPTER ID="Specials">
+<TITLE>Special Cases </TITLE>
+<SECT1><TITLE>Laptops and PCMCIA Cards</TITLE>
+<PARA>
+Using the current set of RPM's (and hopefully also .deb packages) putting 
+openMosix on a laptop does not differ from other installation.
+Actually the only issues you can run into are problems with autodiscovery and promiscious mode, as documented 
+elsewhere in this HOWTO.
+</para>
+<para>
+However this part might still come in handy when you want to compile 
+openMosix on 
+a laptop that requires PCMCIA support.  It has not been updated recently, but it might be helpful.
+
+</PARA>
+
+<PARA>
+ 
+     If you are installing openMosix on a Laptop, you will have to recompile
+     the PCMCIA sources, because they are distributed as a separate
+     package and not as kernel modules. On a Suse 7.1 machine, in theory, 
+     this should work by 
+     installing the packages and then running
+
+<PROGRAMLISTING>
+        rpm -ba /usr/src/packages/SPECS/pcmcia.spec
+</PROGRAMLISTING>
+	
+     as described in the SuSE manual [on page 358 of the German
+     edition]. However, the script tends to get confused by the
+     location of the libraries of the vanilla version and the Mosix
+     version, so after running the above line, you will have to go to
+     the sources in /usr/src/kernel-modules/pcmcia and run 
+
+<PROGRAMLISTING>
+        make config
+</PROGRAMLISTING>
+
+     When prompted for the "Module install directory", change the
+     default setting of "/lib/modules/2.2.19" to
+     
+<PROGRAMLISTING>
+        /lib/modules/2.2.19-mosix
+</PROGRAMLISTING>
+
+     Then run "make" and "make install", which should put the pcmcia
+     modules in /lib/modules/2.2.19-mosix/pcmcia . Note that you must be
+     running the Mosix kernel before you recompile the pcmcia sources.
+
+</PARA>
+</SECT1>
+<SECT1><TITLE>Disk-less nodes</TITLE>
+<PARA>
+
+At first you have to setup a DHCP-server which answers the DHCP-request
+for an ip-address when a disk-less client boots. This DHCP-Server (i call it
+master in this HOWTO) acts additional as an NFS-server which exports the
+whole client-file-systems so the disk-less- cluster-nodes (i call them
+slaves in this HOWTO) can grab this FS (file-system) for booting as soon as
+it has its ip.  Just run a "normal"-MOSIX setup on the master-node. Be
+sure you included NFS-server-support in your kernel-configuration. There
+are two kinds (or maybe a lot more) types of NFS:
+
+<programlisting>
+kernel-nfs
+or
+nfs-daemon
+</programlisting>
+
+It does not matter which one you use but my experiences shows to use
+kernel-nfs in "older" kernels (like 2.2.18) and daemon-nfs in "newer"
+ones.  The NFS in newer kernels sometimes does not work properly.  If your
+master-node is running with the new MOSIX-kernel start with one file-system
+as slave-node. Here the steps to create it: Calculate at least 300-500 MB
+for each slave. Create an extra directory for the whole cluster-file-system
+and make a symbolic-link to /tftpboot. (The /tftpboot-directory or link is
+required because the slaves searches for a directory named
+/tftpboot/ip-address-of-slave for booting. You can change this only by
+editing the kernel-sources) Then create a directory named like the ip of
+the first slave you want to configure, e.g.  mkdir /tftpboot/192.168.45.45
+Depending on the space you have on the cluster-filesystem now copy the
+whole filesystem from the master-node to the directory of the first slave.  
+If you have less space just copy:
+
+<programlisting>
+/bin
+/usr/bin
+/usr/sbin
+/etc
+/var
+</programlisting>
+
+You can configure that the slave gets the rest per NFS later.
+Be sure to create empty directories for the mount-points.
+The filesystem-structure in /tftpboot/192.168.45.45/ has to be similar to 
+/ on the master.
+
+<programlisting>
+/tftpboot/192.168.45.45/etc/HOSTNAME                    //insert the hostname of the slave
+/tftpboot/192.168.45.45/etc/hosts                       //insert the hostname+ip of the slave
+</programlisting>
+
+Depending on your distribution you have to change the ip-configuration of 
+the slave :
+
+<programlisting>
+/tftpboot/192.168.45.45/etc/rc.config
+/tftpboot/192.168.45.45/etc/sysconfig/network
+/tftpboot/192.168.45.45/etc/sysconfig/network-scripts/ifcfg-eth0
+</programlisting>
+
+Change the ip-configuration for the slave as you like.
+
+Edit the file
+
+<programlisting>
+/tftpboot/192.168.45.45/etc/fstab               //the FS the slave will get per NFScoresponding to
+/etc/exports                                    //the FS the master will export to the slaves
+</programlisting>
+
+e.g. for a slave fstab:
+
+<programlisting>
+master:/tftpboot/192.168.88.222  /       nfs     hard,intr,rw    0 1
+none    /proc   nfs     defaults        0 0
+master:/root     /root   nfs     soft,intr,rw    0 2
+master:/opt      /opt    nfs     soft,intr,ro    0 2
+master:/usr/local        /usr/local      nfs     soft,intr,ro    0 2
+master:/data/      /data nfs     soft,intr,rw    0 2
+master:/usr/X11R6        /usr/X11R6      nfs     soft,intr,ro    0 2
+master:/usr/share        /usr/share      nfs     soft,intr,ro    0 2
+master:/usr/lib        /usr/lib      nfs     soft,intr,ro    0 2
+master:/usr/include        /usr/include      nfs     soft,intr,ro    0 2
+master:/cdrom        /cdrom      nfs     soft,intr,ro    0 2
+master:/var/log  /var/log        nfs     soft,intr,rw    0 2
+</programlisting>
+
+
+e.g. for a master exports:
+
+<programlisting>
+/tftpboot/192.168.45.45       	*(rw,no_all_squash,no_root_squash)
+/usr/local  			*(rw,no_all_squash,no_root_squash)
+/root			        *(rw,no_all_squash,no_root_squash)
+/opt			        *(ro)
+/data			        *(rw,no_all_squash,no_root_squash)
+/usr/X11R6      		*(ro)
+/usr/share		  	*(ro)
+/usr/lib			*(ro)
+/usr/include		      	*(ro)
+/var/log		        *(rw,no_all_squash,no_root_squash)
+/usr/src		        *(rw,no_all_squash,no_root_squash)
+</programlisting>
+
+
+If you mount /var/log (rw) from the NFS-server you have on central 
+log-file! (it worked very well for me. just "tail -f /var/log/messages" on 
+the master and you always know what is going on)
+
+</para>
+<para>
+
+The cluster-filesystem for your first slave will be ready now. Configure
+the slave-kernel now. If you have the same hardware on your cluster you
+can reuse the configuration of the master-node. Change the configuration
+for the slave like the following:
+
+<programlisting>
+CONFIG_IP_PNP_DHCP=y
+and
+CONFIG_ROOT_NFS=y
+</programlisting>
+
+Use as less modules as possible (maybe no modules at all) because the 
+configuration is a bit tricky.
+Now (it is well described in the Beowulf-HOWTO) you have to create a 
+nfsroot-device.
+It is only used for patching the slave-kernel to boot from NFS.
+
+<programlisting>
+mknod /dev/nfsroot b 0 255
+rdev bzImage /dev/nfsroot
+</programlisting>
+
+Here "bzImage" has to be your diskless-slave-kernel you find it in 
+/usr/src/linux-version/arch/i386/boot after successful compilation.
+
+Then you have to change the root-device for that kernel
+
+
+<programlisting>
+rdev -o 498 -R bzImage 0
+</programlisting>
+
+and copy the kernel to a floppy-disk
+   
+<programlisting>
+dd if=bzImage of=/dev/fd0
+</programlisting>
+
+Now you are nearly ready! You just have to configure DHCP on the master. 
+You need the MAC-address (hardware address) of the network card of your 
+first slave.
+</PARA>
+<PARA>
+
+The easiest way to get this address is to boot the client with the already 
+created boot-floppy (it will fail but it will tell you its MAC-address). If 
+the kernel was configured alright for the slave the system should come up 
+from the floppy, booting the diskless-kernel, detecting its network-card 
+and sending an DHCP- and ARP request. It will tell you its hardware address 
+during that moment! It looks like : 68:00:10:37:09:83.
+  
+Edit the file /etc/dhcp.conf like the following sample:
+
+<programlisting>
+option subnet-mask 255.255.255.0;
+default-lease-time 6000;
+max-lease-time 72000;
+subnet 192.168.45.0 netmask 255.255.255.0 {
+     range 192.168.45.253 192.168.45.254;
+     option broadcast-address 192.168.45.255;
+     option routers 192.168.45.1;
+}  
+host firstslave
+{
+     hardware ethernet 68:00:10:37:09:83;
+     fixed-address firstslave;
+     server-name "master";
+}
+</programlisting>
+  
+Now you can start DHCP and NFS with their init scripts:
+
+<programlisting>
+/etc/init.d/nfsserver start
+/etc/init.d/dhcp start
+</programlisting>
+  
+You got it!! It is (nearly) ready now!
+  </para>
+<para>
+Boot your first-slave with the boot-floppy (again). It should work now.
+Shortly after recognizing its network-card the slave gets its ip-address 
+from the DHCP-server and its root-filesystem (and the rest) per NFS.
+  </para>
+<para>
+You should notice that modules included in the slave-kernel-config must 
+exist on the
+master too, because the slaves are mounting the /lib-directory from the 
+master. So they
+use the same modules (if any).
+  </para>
+<para>
+  
+It will be easier to update or install additional libraries or 
+applications if you mount
+as much as possible from the master. On the other hand if all slaves have 
+their own complete
+filesystem in /tftpboot your cluster may be a bit faster because of not so 
+many read/write
+hits on the NFS-server.
+  </para>
+<para>
+  
+You have to add a .rhost file in /root (for user root) on each 
+cluster-member which should look like this:
+<programlisting>  
+node1   root
+node2   root
+node3   root
+....
+</programlisting>
+  
+You also have to enable remote-login per rsh in the /etc/inetd.conf. You 
+should have these two lines in it
+</para>
+<para>
+  
+if your linux-distribution uses inetd:
+
+<programlisting>  
+shell   stream  tcp     nowait  root    /bin/mosrun mosrun -l -z /usr/sbin/tcpd in.rshd -L
+login   stream  tcp     nowait  root    /bin/mosrun mosrun -l -z /usr/sbin/tcpd in.rlogind
+</programlisting>  
+
+
+And for xinetd:
+
+<programlisting>  
+service shell
+{
+socket_type     = stream
+protocol        = tcp
+wait            = no
+user            = root
+server          = /usr/sbin/in.rshd
+server_args     = -L
+}
+service login
+{
+socket_type     = stream
+protocol        = tcp
+wait            = no
+user            = root
+server          = /usr/sbin/in.rlogind
+server_args     = -n
+}
+</programlisting>
+
+  
+You have to restart inetd afterwards so that it reads the new 
+configuration.
+ 
+<programlisting>  
+/etc/init.d/inetd restart
+</programlisting>  
+  
+or
+  
+There may be another switch in your distribution-configuration-utility 
+where you can configure the security of the system. Change it to "enable 
+remote root login". Do not use this in insecure environments!!! Use SSH 
+instead of RSH! You can use MOSIXVIEW with RSH or SSH.
+Configuring SSH for remote login without password is a bit tricky. Take a 
+look at the "HOWTO use MOSIX/MOSIXVIEW with SSH?" at this website.
+If you want to copy files to a node in this diskless-cluster you have now 
+two possibilities. You can use rcp or scp for copying remote or you can 
+use just cp and copy files on the master to the cluster-filesystem of one 
+node. The following two commands are equal:
+
+<programlisting>
+rcp /etc/hosts 192.168.45.45./etc
+cp /etc/hosts /tftpboot/192.168.45.45/etc/
+</programlisting>
+
+</para>
+<Para>
+Off course you can also reproduce these steps but use PXE boot rather than 
+a floppy.  
+
+</PARA>
+</SECT1>
+<!--
+<SECT1><TITLE>Very large clusters</TITLE>
+<PARA>
+</PARA>
+</SECT1>
+-->
+</CHAPTER>
+

@@ -1,0 +1,374 @@
+<CHAPTER ID="Problems">
+<TITLE>Common Problems</TITLE>
+<sect1><title>Introduction</title>
+<para>Although most of the issues in this chapter could be a part of the FAQ. There where the FAQ will give a 
+short <quote>how to solve</quote> answer,  we have taken a closer look at them 
+and explained why they are problems and how to solve them.
+</para>
+</sect1>
+<SECT1>
+<TITLE>My processes won't migrate</TITLE>
+<PARA>
+<emphasis>Help  process XYZ doesn't migrate.  </emphasis>
+
+Moshe Bar explains below why some processes migrate and why some don't.
+But before that you can always look in /proc/$pid/, there often is a 
+<emphasis>cantmove</emphasis> file which will tell you why a certain 
+process can't migrate.
+</para>
+<para>
+Processes can also be locked.  
+You can check if a process is locked with:
+<programlisting>
+cat /proc/$PID/lock</programlisting>
+where $PID is the processid of the process in question.
+
+</para>
+<para>
+Now  listen to what  Moshe himself has to say about this 
+topic.
+
+</para>
+<para>Often people have the same kernel but on a different 
+distribution, say a mixed environment of RedHat and Debian ,rc 
+scripts from different distros tend to start openmosix 
+differently.    Some implementations completely modify 
+/etc/inittab to start all daemons (and their children) with 
+<programlisting>mosrun -h</programlisting>. So that they won't migrate.  
+Therefore all these processes have a 1 in 
+/proc/pid/lock  when you start. You can force them to migrate 
+by writing a 0 to this file .</para> <para>
+
+
+
+Ok, this simple program should always migrate if launched more times than
+number of local CPUs. So for a 2-way SMP system, starting this program 3
+times will start migration if the other nodes in the cluster have at least
+the same speed like the local ones:
+
+<programlisting>
+int main() {
+    unsigned int i;
+    while (1) {
+        i++;
+    }
+    return 0;
+}
+</programlisting>
+
+On a Pentium 800Mhz CPU it takes quite a while to overflow.
+
+</para>
+<PAra>
+
+
+
+This sample program with content like this will never migrate:
+
+<programlisting>
+<![CDATA[
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+...
+
+key_t key; /* key to be passed to shmget() */
+int shmflg; /* shmflg to be passed to shmget() */
+int shmid; /* return value from shmget() */
+int size; /* size to be passed to shmget() */
+
+...
+
+key = ...
+size = ...
+shmflg) = ...
+
+if ((shmid = shmget (key, size, shmflg)) == -1) {
+   perror("shmget: shmget failed"); exit(1); } else {
+   (void) fprintf(stderr, "shmget: shmget returned %d\n", shmid);
+   exit(0);
+  }
+...
+]]>
+</programlisting>
+
+</PARA>
+<PARa>
+
+Program using pipes like this do migrate nicely:
+
+
+<programlisting>
+
+int pdes[2];
+
+pipe(pdes);
+if ( fork() == 0 )
+  { /* child */
+                                 close(pdes[1]); /* not required */
+                                 read( pdes[0]); /* read from parent */
+                                 .....
+                 }
+else
+                 { close(pdes[0]); /* not required */
+                                 write( pdes[1]); /* write to child */
+                                 .....
+                 }
+</programlisting>
+
+<emphasis>MODIFIED</emphasis>
+Programs using pthreads since version 2.4.17 don't migrate, however they 
+don't segfault anymore.
+
+
+<programlisting>
+<![CDATA[
+//
+// Very simple program demonstrating the use of threads.
+//
+// Command-line argument is P (number of threads).
+//
+// Each thread writes "hello" message to standard output, with
+//   no attempt to synchronize.  Output will likely be garbled.
+//
+#include <iostream>
+#include <cstdlib>              // has exit(), etc.
+#include <unistd.h>             // has usleep()
+#include <pthread.h>            // has pthread_ routines
+
+// declaration for function to be executed by each thread
+void * printHello(void * threadArg);
+
+// ---- Main program -------------------------------------------------
+
+int main(int argc, char* argv[]) {
+
+  if (argc < 2) {
+    cerr << "Usage:  " << argv[0] << " numThreads\n";
+    exit(EXIT_FAILURE);
+  }
+  int P = atoi(argv[1]);
+
+  // Set up IDs for threads (need a separate variable for each
+  //   since they're shared among threads).
+  int * threadIDs = new int[P];
+  for (int i = 0; i < P; ++i)
+    threadIDs[i] = i;
+
+  // Start P new threads, each with different ID.
+  pthread_t * threads = new pthread_t[P];
+  for (int i = 0; i < P; ++i)
+    pthread_create(&threads[i], NULL, printHello,
+                   (void *) &threadIDs[i]);
+
+  // Wait for all threads to complete.
+  for (int i = 0; i < P; ++i)
+    pthread_join(threads[i], NULL);
+
+  // Clean up and exit.
+  delete [] threadIDs;
+  delete [] threads;
+  cout << "That's all, folks!\n";
+  return EXIT_SUCCESS;
+}
+
+// ---- Code to be executed by each thread ---------------------------
+
+// pre:  *threadArg is an integer "thread ID".
+// post:  "hello" message printed to standard output.
+//        return value is null pointer.
+void * printHello(void * threadArg) {
+  int * myID = (int *) threadArg;
+  cout << "hello, world, ";
+  // pointless pause, included to make the effects of
+  //   synchronization (or lack thereof) more obvious
+  usleep(10);
+  cout << "from thread " << *myID << endl;
+  pthread_exit((void* ) NULL);
+}
+]]>
+
+
+</programlisting>
+
+
+
+Programs using all kinds of file descriptors, including sockets do migrate
+(sockets are not migrated with the process however, files are migrated if
+using oMFS/DFSA)
+</PARA>
+<PARA>
+
+(all above code is by Moshe  as Moshe Bar or by Moshe as CTO of Qlusters, Inc.)
+
+</PARA>
+
+<PARA>Please also refer to the man pages of openMosix , they also give an 
+adequate explanation why processes don't migrate.
+
+</PARA>
+<PARA>
+If for some reason your processes stay locked while they shouldn't. You 
+can try to allow locked processes to migrate by simply putting
+
+<programlisting>
+# tell shells to allow subprocs to migrate to other nodes
+echo 0 > /proc/self/lock
+</programlisting>
+
+into
+<quote>/etc/profile
+</quote>
+Warning : this fix will allow <emphasis>all</emphasis> process to migrate 
+not just the ones you want. To only allow specific process to migrate 
+use 'mosrun  -l' to unlock only the desired process.
+
+
+</PARA></SECT1>
+
+
+
+
+<!-- 
+<SECT1>
+<TITLE>setpe reports</TITLE>
+<PARA>
+</PARA>
+</SECT1>
+-->
+<SECT1>
+<TITLE>I don't see all my nodes</TITLE>
+<PARA>
+
+First of all , are you using the same kernel version on each machine ? 
+The 'same-kernel' refers to the version. You can build different kernel 
+images of the same source version to meet the hardware/software needs of a 
+given node.
+However you wil need toe make sure that when you install openMosix 
+on your cluster, all your machines should have the openmosix-x.x.x-y 
+kernel installed, in contrast to having one machine running 
+openmosix-x.x.z-x, another running openmosix-x.x.x-y, another running 
+openmosix x.x.x-z, and so on and so forth
+
+
+</para>
+<para>
+
+When you run mosmon, press t to see the total of machines running. Does 
+it warn you that mosix is not running?
+</para>
+<PARA>
+
+If yes, then make sure your machine's ip is included in /etc/mosix.map 
+(don't use 127.0.0.1 - if your machine's ip is such, then you probably 
+have problems with your dhcp server/nameserver). If it does not tell you 
+that mosix is not running, see what machines show up. Do you see only your 
+machine?
+</para>
+<para>
+
+If yes, then your machine is most likely running a firewall and is not 
+letting openmosix through.
+</para>
+<para>
+
+If not, then the problem is most likely with the machine that doesn't show 
+up.
+
+Also: Do you have two nic cards on a node? then you have to edit the 
+/etc/hosts file to have a line that has the following format 
+<programlisting>
+non-cluster_ip  cluster-hostname.cluster-domain cluster-hostname
+</programlisting>
+
+You 
+might also 
+need to set up a routing table, which is a whole different subject. 
+</para>
+<para>
+Maybe you used different kernel-parameters on each machine? Especially if 
+you use the 'Support clusters with a complex network topology' option you 
+should take care that you use the same value for the also appearing option 
+'Maximum network-topology complexity support' on each machine.
+
+
+ </PARA> 
+</SECT1>
+
+<SECT1>
+<TITLE>
+I often get errors: No such process
+</TITLE>
+
+<PARA>
+I often get the error <programlisting>bash: child setpgid (4061 to 4061): No such process</programlisting>
+what does this mean ? 
+
+</PARA>
+<PARA>
+The above line meas that the shell you were using 
+has acutallly migrated
+to another node ?
+This printout from bash is caused by a bug in old version of
+openmosix, but a fix has been commited.
+(Muli Ben-Yehuda mulix@actcom.co.il)
+
+</PARA>
+</SECT1>
+
+<SECT1><TITLE>DFSA ? MFS ? </TITLE>
+<PARA>People often get confused about what exactly MFS and DFSA 
+are.  
+As discussed before in the howto MFS is the feature of openMosix 
+that enables you access to remote filesystems as if those 
+filesystems were locally mounted.  They are mostly mounted on 
+/mfs . A common misunderstanding is that you need MFS in order 
+to have openMosix working, this is not true, however it can make 
+things easier.  
+
+
+ </para> <para>
+With DFSA enabled, system calls  will be executed on the remote 
+node withouth migrating the process back to it's home node. This 
+behaviour (direct filesystem access) causes processes migratiing 
+to the data and not the other way around (which is common).  If 
+DFSA is not enabled MfS is "just" a non-caching 
+network-filesystem.
+</para>
+<para>
+
+
+Very generally speaking, if you don't have DFSA turned on, each and 
+every I/O will go to the home node for execution. With DFSA turned on, 
+if the file happens to be residing on the node where the process finds 
+itself then the I/O will happen locally.
+
+</para> <para>
+
+A very common error is that people mix kernels with DFSA enabled 
+and disabled.  So one has to have a way to find out wether DFSA 
+is actually enabled. This information can be obtained by typing
+<programlisting>
+cat /proc/hpc/admin/version
+</programlisting>
+
+</PARA>
+</SECT1>
+<SECT1><TITLE>Python Troubles</TITLE>
+<PARA>
+Some people have reported problems with Python, closer research showed 
+that these problems were not with openMosix but rather with glibc 
+issues, however it seemed that issues manifested themselves especially 
+in openMosix.
+</para><para>
+One user solved the problem by removig /lib/i686/lib* on his machine and let 
+the applications link dynamically against /lib/libpthread (and other)
+However bugfixes in newer glibc versions combined with more recent openMosix 
+version seem to have solved these problems.
+
+
+</PARA>
+</sect1>
+</CHAPTER>
+

@@ -1,0 +1,191 @@
+<chapter id="Autodiscovery">
+<title>Autodiscovery</title>
+
+<sect1><title>Easy Configuration</title>
+
+<para>
+The auto-discovery daemon (omdiscd) provides a way to automatically configure 
+an openMosix cluster hence 
+eliminating the need of a /etc/mosix.map or similar manual 
+configurations.  
+Auto-discovery   uses multicast packages to 
+notify  other nodes that it is an openMosix node.
+This way adding an extra node to your mosix cluster means that you just 
+have to start the omdiscd on your machine and it will join the cluster.
+</para>
+<para>
+
+However there are some small requirements, Like with any openMosix cluster
+, you need to have networking configured correctly.  mainly the routing.  
+Without a default route, you must specify an interface to omdiscd with the
+-i option. Otherwise omdiscd will exit with an error like.
+
+
+<programlisting>
+Aug 31 20:41:49 localhost omdiscd[1290]: Unable to determine address of 
+default interface.  This may happen because there is no default route 
+configured.  Without a default route, an interface must be: Network is 
+unreachable 
+Aug 31 20:41:49 localhost omdiscd[1290]: Unable to initialize network.  
+Exiting. 
+</programlisting>
+
+An example of a correct routing is below
+<programlisting>
+[root@localhost log]# route -n 
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+10.0.0.0        0.0.0.0         255.0.0.0       U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         10.0.0.99       0.0.0.0         UG    0      0        0 eth0
+</programlisting>
+
+
+Basically from now on everything will get easier.  
+Just start 
+<programlisting>
+omdiscd
+</programlisting>
+
+And have a look at your logfiles you should see something similar to this
+ 
+<programlisting>
+Sep  2 10:00:49 oscar0 kernel: openMosix configuration changed: This is openMosix #2780 (of 6 configured)
+Sep  2 10:00:49 oscar0 kernel: openMosix #2780 is at IP address 192.168.10.220
+Sep  2 10:00:49 oscar0 kernel: openMosix #2638 is at IP address 192.168.10.78
+Sep  2 10:00:49 oscar0 kernel: openMosix #2646 is at IP address 192.168.10.86
+Sep  2 10:00:49 oscar0 kernel: openMosix #2627 is at IP address 192.168.10.67
+Sep  2 10:00:49 oscar0 kernel: openMosix #2634 is at IP address 192.168.10.74
+</programlisting>
+
+
+Congratulations , your openMosix cluster is now working.
+</para>
+<para>
+omdiscd has some other options that you can use.
+You can either run omdiscd as a daemon (default) or in the foreground 
+where output goes to the screen (standard output) 
+omdiscd -n .  An interface can be specified with the -i option.
+</para>
+<para>
+
+Now lets still have a short look at the other tool , it's showmap. This tool will show you the newly auto generated 
+openMosix map.
+<programlisting>
+[root@oscar0 root]# showmap
+My Node-Id: 0x0adc
+
+Base Node-Id Address          Count
+------------ ---------------- -----
+0x0adc       192.168.10.220   1
+0x0a4e       192.168.10.78    1
+0x0a56       192.168.10.86    1
+0x0a43       192.168.10.67    1
+0x0a4a       192.168.10.74    1
+</programlisting>
+
+</para>
+
+<para>
+Auto-discovery has some other features not listed here such as a routing
+mechanism for clusters with more than one network.  More detailed 
+information
+can be found in the README and DESIGN files in the user-land tools source
+tree.
+
+</para>
+<para>More recent versions of the openMosix rc scripts will first 
+verify wether an /etc/openmosix.map file or similar exists before 
+trying to use autoconfiguration. </para> </sect1>
+<sect1><title>Compiling auto-discovering</title>
+
+<para>
+If you are compiling autodiscovery from source you will need to make a 
+small modification to openmosix.c.
+
+One of the first lines will be 
+<programlisting>#define ALPHA
+</programlisting>
+You will need to put this in comment.
+
+If you want to have some more logging available to you you should 
+edit main.c to show 
+log_set_debug(DEBUG_TRACE_ALL);  (somewhere around line 84) 
+
+
+now run 
+
+<programlisting>
+
+% make clean
+% make
+</programlisting>
+</para>
+</sect1>
+<sect1><title>Troubleshooting autodiscovery</title>
+
+<para>
+Sometimes however autodiscovery does not function as you would like,  
+for example a node might not see multicast traffic from other nodes.
+ This has occurred with some
+ PCMCIA ethernet drivers.  One solution is to place the interface in 
+ promiscuous and or multicast mode as detailed below:
+
+
+<PROGRAMLISTING>
+Aug 31 20:45:58 localhost kernel: openMosix configuration changed: This is openMosix #98 (of 1 configured)
+Aug 31 20:45:58 localhost kernel: openMosix #98 is at IP address 10.0.0.98Aug 31 20:45:58 localhost omdiscd[1627]: Notified kernel to activate 
+openMosix  Aug 31 20:45:58 localhost kernel: Received an unauthorized information request from 10.0.0.99
+</PROGRAMLISTING>
+
+
+What you should to then is try to force your NIC
+ into promiscuous and/ 
+or multicast mode 
+manually. 
+<programlisting>
+ifconfig ethx promisc
+or
+ifconfig ethx multicast 
+</programlisting>
+You might also want to run 
+<programlisting>
+tcpdump -i eth0 ether multicast 
+</programlisting>
+which will have the same effect but you will now also be able to see the 
+packages yourself.
+
+</para>
+
+
+
+<para>
+
+<programlisting>
+Aug 31 22:14:43 inspon omdiscd[1422]: Simulated notification to activate openMosix
+[root@inspon root]# showmap
+My Node-Id: 0x0063
+
+Base Node-Id Address          Count
+------------ ---------------- -----
+0x0063       10.0.0.99        1
+[root@inspon root]# /etc/init.d/openmosix status
+OpenMosix is currently disabled
+[root@inspon root]# 
+</programlisting>
+
+If you see the <emphasis>simulated</emphasis> you have probably forgotten 
+to put the 
+
+<programlisting>#define ALPHA
+</programlisting>
+in comment.
+</para>
+
+<para>I have also noticed that autodiscovery does not work with FireWire 
+based network cards.
+</para>
+</sect1>
+
+</CHAPTER>
+

@@ -1,0 +1,410 @@
+<CHAPTER ID="Testing">
+<TITLE>(stress)Testing your openMosix installation</TITLE>
+<SECT1><TITLE>A small Test Script</TITLE>
+<PARA>
+The fastest way to  test your openMosix cluster is by creating a small 
+script with the following content.
+<PROGRAMLISTING>
+awk 'BEGIN {for(i=0;i<10000;i++)for(j=0;j<10000;j++);}' &
+</PROGRAMLISTING>
+I've saved it as test_mosix, now when I want to see If everything works I start op mosmon and I launch this script for a zillion times
+as in 
+<programlisting>
+for i in `ls /etc/` ; do ./test_mosix ; done 
+</programlisting>
+
+Now watch openMosix kicking in after a few seconds ... 
+ <mediaobject>
+    <imageobject>
+     <imagedata fileref="howto6.gif" format="gif">
+    </imageobject>
+   </mediaobject>
+Just pkill awk on the home node to kill'em all ;)
+
+
+</PARA>
+
+
+</SECT1>
+<SECT1><TITLE>Perl Proggie by Charles Nadeau
+</TITLE> <PARA> Perl program 
+to test an openMosix Cluster.
+</para>
+<para>
+
+Here is a is quick program I wrote to test an openMosix cluster. This is taken from a posting I made to the 
+openMosix-devel mailing list on March 6th, 2002:
+
+<quote>
+Charles  wrote this little program (in Perl) to stress test his  home cluster (3 P200MMX and a P166). It is a 
+program simulating different sets of stocks in a portfolio for a given period of time. The code is well documented and it 
+should be easy to add/remove stocks and change the average monthly yield and standard deviation for each stock. 
+Since the problem of portfolio optimization cannot be solved analytically, it simulate a lot of portfolios and 
+report the results at the end. 
+Please note that this program does not take stock correlation into account. It is 
+not finished yet but it's a good start. I plan to add more code at the end of the program to improve the reporting 
+format of the data (generating SVG graph on the fly). But the simulation part works very well. In order to take 
+advantage of the parallelism offered by openMosix, it uses the Perl module Parallel::?ForkManager (from CPAN) to 
+span threads that openMosix can then assign to all the machines of the cluster (it also require another module for 
+the statistical calculations, don't forget to install both, I provide the URLs in the comments of the code). Take a 
+look at it and tell me what you think. Cheers!
+</quote>
+</para>
+<para>
+<programlisting>
+#! /usr/bin/perl -w
+
+# this mill unlock this process and all tis childs
+sub unlock { 
+open (OUTFILE,">/proc/self/lock") || 
+die "Could not unlock myself!\n"; 
+print OUTFILE "0"; 
+} 
+
+unlock;
+
+# this will count the nodes
+sub cpucount {
+ $CLUSTERDIR="/proc/hpc/nodes/";
+ $howmany=0;
+ opendir($nodes, $CLUSTERDIR);
+ while(readdir($nodes)) {
+  $howmany++;
+ }
+
+ $howmany--;
+ $howmany--;
+ closedir ($nodes);
+ return $howmany;
+}
+
+my $processes=cpucount;
+$processes=$processes*3;
+
+print("starting $processes processes\n");
+
+#Portfolio.pl, version 0.1
+#Perl program that simulate a portfolios for various stock composition for a given period of time
+#We run various scenarios to find the mix of assets that give the best performance/risk ratio
+#This method is base on the book "The intelligent asset allocator" by William Bernstein
+#Can be used to test an OpenMosix cluster
+#This program is licensed under GPL
+#Author: Charles-E. Nadeau Ph.D., (c) 2002
+#E-mail address: charlesnadeau AT hotmail DOT com
+
+use Parallel::ForkManager; #We use a module to parallelize the calculation
+
+#Available at http://theoryx5.uwinnipeg.ca/mod_perl/cpan-search?filetype=%20distribution%20name%20or%20description;join=and;arrange=file;download=auto;stem=no;case=clike;site=ftp.funet.fi;age=;distinfo=2589
+
+use Statistics::Descriptive::Discrete; #A module providing statistical values
+
+#Available at http://theoryx5.uwinnipeg.ca/mod_perl/cpan-search?new=Search;filetype=%20distribution%20name%20or%20description;join=and;arrange=file;download=auto;stem=no;case=clike;site=ftp.funet.fi;age=;distinfo=2988
+
+srand; #We initialize the random number generator
+
+#Initializing constant
+$NumberOfSimulation=$processes;  #Number of simulation to run
+$NumberOfMonth=100000; #Number of month for wich to run the simulation
+$NumberOfStock=6; #Number of different stocks in the simulation
+
+#Portfolio to simulate
+#TODO: Read the stock details from a file
+$Stock[0][0]="BRKB"; #Stock ticker
+$Stock[0][1]=0.01469184; #Stock average monthly return
+$Stock[0][2]=0.071724934; #Stock average monthly standard deviation
+$Stock[1][0]="TEST "; #Stock ticker
+$Stock[1][1]=-0.01519; #Stock average monthly return
+$Stock[1][2]=0.063773903; #Stock average monthly standard deviation
+$Stock[2][0]="SPDR"; #Stock ticker
+$Stock[2][1]=0.008922718; #Stock average monthly return
+$Stock[2][2]=0.041688404; #Stock average monthly standard deviation
+$Stock[3][0]="BRKB"; #Stock ticker
+$Stock[3][1]=0.01469184; #Stock average monthly return
+$Stock[3][2]=0.071724934; #Stock average monthly standard deviation
+$Stock[4][0]="TEST "; #Stock ticker
+$Stock[4][1]=-0.01519; #Stock average monthly return
+$Stock[4][2]=0.063773903; #Stock average monthly standard deviation
+$Stock[5][0]="SPDR"; #Stock ticker
+$Stock[5][1]=0.008922718; #Stock average monthly return
+$Stock[5][2]=0.041688404; #Stock average monthly standard deviation
+
+
+
+
+my $pm = new Parallel::ForkManager($NumberOfSimulation); #Specify the number of threads to span
+
+$pm->run_on_start(
+  sub { my ($pid,$ident)=@_;
+  print "started, pid: $pid\n";
+  }
+);
+
+
+
+#We initialize the array that will contain the results
+@Results=();
+for $i (0..$NumberOfSimulation-1){
+	for $j (0..$NumberOfStock+3){
+		$Results[$i][$j]=0.0; #Equal to 0.0 to start
+	}
+}
+
+for $i (0..$NumberOfSimulation-1){ #Loop on the number of simulation to run
+	$Results[$i][0]=$i; #The first column of each line is the number of the simulation
+	$pm->start and next; #Start the thread
+
+		$TotalRatio=1; #The sum of the proprtion of each stock
+
+		#Here we calculate the portion of each investment in the portfolio for a given simulation
+		for $j (0..$NumberOfStock-2){ #We loop on all stock until the second to last one
+			#TODO: Replace rand by something from Math::TrulyRandom
+			$Ratio[$j]=rand($TotalRatio);
+			$Results[$i][$j+1]=$Ratio[$j]; #We store the ratio associated to this stock
+			$TotalRatio=$TotalRatio-$Ratio[$j];
+		}
+		$Ratio[$NumberOfStock-1]=$TotalRatio; #In order to have a total of the ratios equal to one, we set the last ratio to be the remainder
+		$Results[$i][$NumberOfStock]=$Ratio[$NumberOfStock-1]; #We store the ratio associated to this stock. Special case for the last stock
+
+		$InvestmentValue=1; #Initially the investment value is 1 time the initial capital amount.
+		my $stats=new Statistics::Descriptive::Discrete; #We initialize the module used to calculate the means and standard deviations
+
+		for $j (1..$NumberOfMonth){ #Loop on the number of months
+
+			$MonthlyGrowth[$j]=0.0; #By how much did we grow this month. Initially, no growth yet.
+
+			#We loop on each stock to find its monthly contribution to the yield 
+			for $k (0..$NumberOfStock-1){
+
+			$MonthlyGrowth[$j]=$MonthlyGrowth[$j]+($Ratio[$k]*((gaussian_rand()*$Stock[$k][2])+$Stock[$k][1])); #We had the growth for this stock to the stock already calculated for the preceding stocks
+			}
+
+			$stats->add_data($MonthlyGrowth[$j]); #Add the yield for this month so we can later on have the mean and standard deviation for this simulation
+			$InvestmentValue=$InvestmentValue*(1+$MonthlyGrowth[$j]); #Value of the Investment after this month
+		}
+		$Results[$i][$NumberOfStock+1]=$stats->mean(); #Calculate the average monthly growth
+		$Results[$i][$NumberOfStock+2]=$stats->standard_deviation(); #Calculate the standard deviation of the monthly growth
+
+	$pm->finish; #Finish the thread
+}
+$pm->wait_all_children; #We wait until all threads are finished
+
+#Printing the results
+print "Simulation ";
+for $j (0..$NumberOfStock-1){
+	print "Ratio$Stock[$j][0] ";
+}
+print "  Mean StdDev YieldRatio\n";
+for $i (0..$NumberOfSimulation-1){
+	printf "%10d ", $Results[$i][0];
+	for $j (1..$NumberOfStock){
+		printf "   %6.2f ",$Results[$i][$j];
+	}
+
+	if($Results[$i][$NumberOfStock+2]!=0) {
+		printf "%5.4f %5.4f    %5.4f\n", $Results[$i][$NumberOfStock+1], $Results[$i][$NumberOfStock+2], ($Results[$i][$NumberOfStock+1]/$Results[$i][$NumberOfStock+2]);
+
+	} else {
+		printf "%5.4f %5.4f    %5.4f\n", $Results[$i][$NumberOfStock+1], $Results[$i][$NumberOfStock+2], 0;
+
+	}
+}
+
+
+
+#Subroutines
+
+#Subroutine to generate two numbers normally distributed
+#From "The Perl Cookbook", recipe 2.10
+sub gaussian_rand {
+	my ($u1, $u2);
+	my $w;
+	my ($g1, $g2);
+
+	do {
+		$u1=2*rand()-1;
+		$u2=2*rand()-1;
+		$w=$u1*$u1+$u2*$u2;
+	} while ($w>=1 || $w==0); #There was an error in the recipe, I corrected it here
+
+	$w=sqrt(-2*log($w)/$w);
+	$g2=$u1*$w;
+	$g1=$u2*$w;
+	return wantarray ? ($g1,$g2) : $g1;
+
+}
+</programlisting>
+
+
+ </PARA> </SECT1> 
+<SECT1><TITLE>the openMosix stress-test
+
+
+
+
+</TITLE>
+
+ <PARA>
+by Matt Rechenburg
+</para>
+
+<sect2><title>
+General description</title>
+<para>
+This stress test is made to test an openMosix cluster + kernel. It will 
+perform several application + kernel tests for checking the stability and 
+other features of openMosix (e.g. process migration, mfs, ...). During 
+this test the cluster will be mostly loaded so you should stop other 
+running applications before starting it. When it finished it generates a 
+fully detailed report about each component which was tested.
+</para>
+</sect2>
+
+<sect2><title>Detailed description</title>
+<para>
+
+The openMosix stress-test runs several programs to check the functionality 
+of the whole system. In the following part you will find a description of 
+each test-application:
+<itemizedlist><listitem><para><emphasis>distkeygen</emphasis>:
+This applicaton is used to generate 4000 RSA key pairs with 1024 bits of 
+key length. It is destributed into as many processes as processors in your 
+openMosix cluster via fork.
+</para><para>
+Requires : gcc compiler and OpenSSL library
+Copyright (C) 2001 Ying-Hung Chen (GPL)
+http://www.yingternet.com/mosix
+</para></listitem>
+<listitem><para>
+<emphasis>portfolio</emphasis>
+'portfolio' is a perl program that simulate a portfolios for various stock 
+composition for a given period of time. This method is base on the book 
+"The intelligent asset allocator" by William Bernstein.
+</para>
+<para>
+This program is licensed under GPL
+Author: Charles-E. Nadeau Ph.D., (c) 2002
+E-mail address: charlesnadeau AT hotmail DOT com
+</para>
+</listitem>
+<listitem>
+<para><emphasis>eatmem </emphasis>:
+Simply calculates sin+sqrt from a value 1000000 times and outputs it 
+outputs the loop count to a file (which will grow a lot) This tests is 
+started as many times at once as many processors you have in your 
+openMosix cluster automatically.</para>
+</listitem>
+<listitem><para><emphasis>forkit</emphasis>:
+The 'forkit' test is similar to the 'eatmem' test but uses fork to create 
+multiple process (3*[processors_in_your_openMosix_cluster]) expect it does 
+not write to files.
+</para></listitem>
+<listitem>
+
+<para><emphasis>mfstest</emphasis>
+This will create a 10MB file and copy it to all nodes back and forth. It 
+is for checking the oMFS capabilities.</para>
+</listitem>
+<listitem>
+
+<para><emphasis> kernel syscall test</emphasis>:
+The Linux Test Project is a joint project with SGI, IBM, OSDL, and Bull 
+with a goal to deliver test suites to the open source community that 
+validate the reliability, robustness, and stability of Linux. The Linux 
+Test Project is a collection of tools for testing the Linux kernel and 
+related features. The goal is to improve the Linux kernel by bring test 
+automation to the kernel testing effort. Interested open source 
+contributors are encouraged to join the project.
+For more informations visit : http://ltp.sf.net
+</para>
+</listitem>
+<listitem><para><emphasis>
+moving</emphasis>:
+The 'moving.sh' will move the 'start_openMosix_test.sh' around each node 
+in your openMosix cluster while running the stress-test itself. So 
+'start_openMosix_test.sh' will migrate every minute to another node during 
+the test-run. Dependent on how long the test will run on your cluster it 
+will be migrated 20-40 times.
+</para></listitem></itemizedlist></para>
+</sect2>
+<sect2><title>Installing the strestest suite</title>
+<para>First of all download the rpm or source package from 
+<ulink url="http://www.openmosixview.com/omtest/"><citetitle>
+http://www.openmosixview.com/omtest/</citetitle></ulink>
+</para>
+<para>
+<itemizedlist><listitem><para><emphasis>using the source package :</emphasis></para>
+<para>
+      Unzip and untar the openMosix stress-test with the following 
+commands in e.g. /usr/local:
+<programlisting>
+          gunzip omtest.tar.gz
+          tar -xvf omtest.gz
+</programlisting>
+      Then 'cd' into the /usr/local/omtest directory and execute:
+<programlisting>
+          ./compile_tests.sh
+</programlisting>
+
+      This will install the required perl modules and compile the 
+test-programs.
+      The installation of these modules requires root-privileges.
+      Later you can run the openMosix stress-test also as a regular user.
+      (you maybe have to delete old temporary files from root's test-runs
+      in /tmp because you won't have the permission to overwrite it as 
+regular user)
+      You are ready to run the test now with the command:
+<programlisting>
+          ./start_openMosix_test.sh</programlisting>
+</para>
+</listitem>
+<listitem>
+
+<para><emphasis>using the RPM-package</emphasis></para><para>
+There are some requirements to be met when installing the omtest.rpm,
+you will need e.g expect and compat-libstdc++-7.3-2.96.110
+(If you are on RH 8.0) 
+
+
+      Just install the omtest.rpm with the following command:
+<programlisting>
+          rpm -ihv omtest.rpm
+</programlisting>
+      Now you can start the openMosix stress test with the command:
+<programlisting>
+          start_openMosix_test.sh
+</programlisting>
+
+      (The RPM-package will be installed in /usr/local/omtest)
+
+(Please not that the RPM wil allso install some perl modules).
+
+</para></listitem></itemizedlist>
+</para>
+
+</sect2>
+<sect2><title>Running the tests</title>
+<para>
+<programlisting>[root@dhcp51 omtest]# ./start_openMosix_test.sh
+
+
+starting the openMosix stress test now!
+
+the results will be saved in : /tmp/openMosix-stress-test-report-03/16/2003-11:27:02.txt
+
+oMFS is not mounted at /mfs! oMFS-test will be disabled.
+Please mount oMFS before running this openMosix-test
+You will find instructions how to configure and use oMFS at:
+http://howto.ipng.be/openMosix-HOWTO/x222.htm#AEN243
+
+
+(return to continue, ctrl-c for cancel)
+</programlisting>
+</para>
+</sect2>
+
+</SECT1>
+
+
+</CHAPTER>
+
+
