@@ -52,7 +52,10 @@ class Mirror:
     def mirror(self, doc_id):
         log(3, 'Mirroring document ' + str(doc_id))
         doc = lampadas.docs[doc_id]
-        
+
+        if doc.lint_time=='':
+            return
+
         # Create cache directories for this document,
         # even if we do nothing else.
         cachedir = config.cache_dir + str(doc.id) + '/'

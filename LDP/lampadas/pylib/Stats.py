@@ -43,6 +43,7 @@ class Stats(LampadasCollection):
         self['mirror_time'] = StatTable()
         self['pub_time'] = StatTable()
         self['doc_error'] = StatTable()
+        self['doc_format'] = StatTable()
         
     def calc(self):
         self.reset()
@@ -54,6 +55,7 @@ class Stats(LampadasCollection):
             # Increment document counts
             self['general'].inc('doc_count')
             self['pub_status'].inc(doc.pub_status_code)
+            self['doc_format'].inc(doc.format_code)
             
             # Increment error counts
             for key in doc.errors.sort_by('err_id'):

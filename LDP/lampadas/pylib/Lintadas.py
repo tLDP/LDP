@@ -215,6 +215,7 @@ class Lintadas:
             if top > 1:
                 doc.errors.add(ERR_TWO_PRIMARY_FILES)
 
+        doc.lint_time = now_string()
         doc.save()
         log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 

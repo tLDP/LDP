@@ -313,6 +313,8 @@ class PageFactory:
                     newstring = tables.tabpub_status_stats(uri)
                 elif token=='tabdoc_error_stats':
                     newstring = tables.tabdoc_error_stats(uri)
+                elif token=='tabdoc_format_stats':
+                    newstring = tables.tabdoc_format_stats(uri)
                 elif token=='tabdocument_tabs':
                     newstring = tables.tabdocument_tabs(uri)
             

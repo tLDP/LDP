@@ -861,7 +861,7 @@ class Tables(LampadasCollection):
                 if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                     box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
                 box.write('</td>\n<td>')
-                if doc.pub_time > '':
+                if (sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1) or doc.pub_time > '':
                     box.write('<a href="|uri.base|docdownloads/%s/">%s</a>' % (str(doc.id), DL_ICON))
                 box.write('</td>\n')
 
@@ -890,7 +890,7 @@ class Tables(LampadasCollection):
                 else:
                     block_editlink = '<td width="30" align="center"></td>\n'
 
-                if doc.pub_time > '':
+                if (sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1) or doc.pub_time > '':
                     block_viewlink = '<td width="30" align="center"><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + HTML_ICON_MED + '</a></td>\n'
                 else:
                     block_viewlink = '<td width="30" align="center"></td>\n'
@@ -1347,6 +1347,34 @@ class Tables(LampadasCollection):
                         stat.value))
         box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
                       '<td></td><td></td><td align="right">%s</td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+    def tabdoc_format_stats(self, uri):
+        log(3, 'Creating doc_format_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strdoc_format_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strformat|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_format']
+        odd_even = OddEven()
+        for key in lampadas.formats.sort_by_lang('name', uri.lang):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.formats[key].name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stats['doc_format'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
                   '</tr></table>'
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()

@@ -34,7 +34,7 @@ def newdocument(req, username, doc_id,
              version,
              review_status_code, tech_review_status_code,
              pub_date, last_update,
-             pub_time, mirror_time,
+             lint_time, pub_time, mirror_time,
              tickle_date, isbn,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
@@ -49,7 +49,7 @@ def newdocument(req, username, doc_id,
           tech_review_status_code, license_code, license_version,
           copyright_holder, abstract, short_desc, lang, sk_seriesid,
           int('0' + replaced_by_id),
-          pub_time, mirror_time)
+          lint_time, pub_time, mirror_time)
 
     # Add the current user as the author of the document
     doc.users.add(username)
@@ -66,7 +66,7 @@ def document(req, username, doc_id,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
              abstract, short_desc, sk_seriesid, replaced_by_id,
-             pub_time, mirror_time):
+             lint_time, pub_time, mirror_time):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
@@ -95,6 +95,7 @@ def document(req, username, doc_id,
     doc.short_desc              = short_desc
     doc.sk_seriesid             = sk_seriesid
     doc.replaced_by_id          = int('0' + replaced_by_id)
+    doc.lint_time               = lint_time
     doc.pub_time                = pub_time
     doc.mirror_time             = mirror_time
     doc.save()

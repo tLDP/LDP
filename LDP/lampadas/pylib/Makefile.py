@@ -274,7 +274,7 @@ class Project:
                 self.targets.add(utfxmlfile,     [xmlfile],              [Command('iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
                                                                           Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 # Everybody gets xml tidied before processing further
-                self.targets.add(tidyxmlfile,    [utfxmlfile],           [Command('tidy -config /etc/lampadas/tidyrc -quiet -f log/tidy.log ' + utfxmlfile, output_to=tidyxmlfile, errors_to='log/tidy.log', stderr_check=1)])
+                self.targets.add(tidyxmlfile,    [utfxmlfile],           [Command('tidy -config /etc/lampadas/tidyrc -quiet ' + utfxmlfile, output_to=tidyxmlfile, errors_to='log/tidy.log', stderr_check=1)])
 
                 # Now we have good DocBook XML, generate all outputs
                 self.targets.add(htmlfile,       [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + tidyxmlfile, output_to=htmlfile, errors_to='log/xsltproc.log', stderr_check=1)])

@@ -26,6 +26,7 @@ CREATE TABLE document
 	rating			REAL,
 	sk_seriesid		CHAR(36)	NOT NULL,
 	replaced_by_id		INT4,
+	lint_time		TIMESTAMP,
 	pub_time		TIMESTAMP,
 	mirror_time		TIMESTAMP,
 
