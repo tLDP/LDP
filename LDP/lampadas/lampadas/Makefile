@@ -9,5 +9,6 @@ start:	tap
 clean:
 	rm -f *.pyc
 	rm -f *.tap
+	rm -f *.log
 
 

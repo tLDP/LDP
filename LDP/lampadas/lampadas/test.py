@@ -12,7 +12,8 @@ from twisted.spread import pb
 
 def connected(perspective):
     print 'Connected.'
-    perspective.callRemote('get_block_by_code', code='blkheader').addCallbacks(success, failure)
+    perspective.callRemote('load').addCallbacks(success, failure)
+    perspective.callRemote('page').addCallbacks(success, failure)
 
 def connect_failure(error):
     print "Error connecting to ObjectService.."
@@ -26,6 +27,13 @@ def failure(error):
     print "Failed to obtain a block from the ObjectService."
     reactor.stop()
 
+def gotRoot(root):
+    print 'Got root: ', root
+    print dir(root)
+
+def gotNoRoot(error):
+    print 'Failed to obtain root: ', error
+
 pb.connect("localhost", # host name
            8790, # port number
            "guest", # identity name
@@ -36,4 +44,5 @@ pb.connect("localhost", # host name
            ).addCallbacks(connected, # what to do when we get connected
                           connect_failure) # and what to do when we can't
 
+pb.getObjectAt('localhost', 8790, 30).addCallbacks(gotRoot, gotNoRoot)
 reactor.run() # start the main loop

@@ -6,7 +6,7 @@ from twisted.spread import pb
 from twisted.cred.authorizer import DefaultAuthorizer
 
 class Options(usage.Options):
-    optParameters = [["port", "o", 8790,
+    optParameters = [["port", "p", 8790,
                       "Port to listen with ObjectService"]]
     
 def updateApplication(app, config):
