@@ -15,9 +15,11 @@
     This chapter will begin with the
     <link linkend="routing-intro">basics of IP routing with linux</link>,
     <link linkend="routing-local">routing to locally connected
-    destinations</link> and
+    destinations</link>,
     <link linkend="routing-default">routing to destinations through the
-    default gateway</link>.  Subsequent topics will include 
+    default gateway</link>, and
+    <link linkend="routing-forwarding">using linux as a router</link>.
+    Subsequent topics will include 
     <link linkend="routing-selection">the kernel's route selection
     algorithm</link>, the
     <link linkend="routing-cache">routing cache</link>,
@@ -496,6 +498,34 @@ default via 192.168.100.254 dev eth0</computeroutput>
       Service Provider's network.
     </para>
   </section>
+  <section id="routing-forwarding">
+    <title>Operating as a Router</title>
+    <para>
+      Operating as a router allows a linux machine to accept packets on one
+      interface and transmit them on another.  This is the nature of a router.
+      The process of accepting and transmitting IP packets is known as
+      forwarding.  IP forwarding is a requirement for many of the networking
+      techniques identified here.  Stateless NAT and firewalling, transparent
+      proxying and masquerading all require the support of IP forwarding in
+      order to function correctly.
+    </para>
+    <para>
+      The sysctl <filename>net/ipv4/ip_forward</filename> toggles the IP
+      forwarding functionality on a linux box.  Note that setting this sysctl
+      alters other routing-related sysctl entries, so it is wise to set this
+      first, and then alter other entries.
+      Frequently, an administrator will forget this simple and crucial detail
+      when configuring a new machine to operate as a router only to be
+      frustrated at the simple error.
+    </para>
+    <para>
+      The sysctl <filename>net/ipv4/conf/$DEV/forward</filename> defaults to
+      the value of <filename>net/ipv4/ip_forward</filename>, but can be
+      independently modified.  In order to allow forwarding of packets between
+      two interfaces while prohibiting such behaviour on a third interface,
+      this sysctl can be employed.
+    </para>
+  </section>
   <section id="routing-selection">
     <title>Route Selection</title>
     <para>
@@ -858,14 +888,14 @@ else
     </para>
     <para>
       Also refer to this
-      <ulink url="http://defiant.coinet.com/iproute2/ip-cref/node155.html">excerpt</ulink>
+      <ulink url="http://linux-ip.net/gl/ip-cref/node155.html">excerpt</ulink>
       from the &iproute2; command reference.
     </para>
   </section>
   <section id="routing-cache">
     <title>Routing Cache</title>
     <para>
-      The routing cache is also known as the forwarding information base.
+      The routing cache is also known as the forwarding information base (FIB).
       This term may be familiar to users of other routing systems.
     </para>
     <para>
@@ -1054,8 +1084,15 @@ else
   <section id="routing-tables">
     <title>Routing Tables</title>
     <para>
-      Linux kernel 2.2 and 2.4 support multiple routing tables.  Beyond the
-      two commonly used routing tables
+      Linux kernel 2.2 and 2.4 support multiple routing tables
+      <footnote>
+        <para>
+          The kernel must be compiled with the option
+          <constant>CONFIG_IP_MULTIPLE_TABLES=y</constant>.  This is common
+          in vendor and stock kernels, both 2.2 and 2.4.
+        </para>
+      </footnote>.
+      Beyond the two commonly used routing tables
       (<link linkend="routing-table-local">the local</link> and
       <link linkend="routing-table-main">main</link> routing tables), the
       kernel supports up to 252 additional routing tables.
@@ -1104,7 +1141,7 @@ else
     <para>
       For practical purposes, this means that (even) a single routing table can
       contain multiple routes to the same destination if the ToS differs
-      on each route
+      on each route or if the route applies to a different interface
       <footnote>
         <para>
           If somebody has used scope or oif as additional keys in a routing
@@ -1211,9 +1248,10 @@ else
           id="id-rtrt-user-text">
             <simpara>
               This is an example indicating that table 1 is known by the name
-              inr.ruhep.  Any references to <userinput>table ruhep</userinput>
-              in an <command>ip rule</command> or <command>ip route</command>
-              will substitue the value 1 for the word inr.ruhep.
+              inr.ruhep.  Any references to <userinput>table
+              inr.ruhep</userinput> in an <command>ip rule</command>
+              or <command>ip route</command> will substitue the
+              value 1 for the word inr.ruhep.
             </simpara>
         </callout>
       </calloutlist>
@@ -1230,12 +1268,225 @@ else
       <link linkend="tools-ip-route"><command>ip route</command></link>.
     </para>
     <para>
-      
     </para>
     <para>
     </para>
     <para>
     </para>
+    <section id="routing-table-entries">
+      <title>Routing Table Entries (Routes)</title>
+      <para>
+        Each routing table can contain an arbitrary number of route entries.
+        Aside from the
+        <link linkend="routing-table-local">local routing table</link>, which
+        is maintained by the kernel, and the
+        <link linkend="routing-table-main">main routing table</link> which is
+        partially maintained by the kernel, 
+        all routing tables are controlled by the administrator or routing
+        software.  All routes on a machine can be changed or removed
+        <footnote>
+          <para>
+            Once again, I recommend caution when altering the local routing
+            table.  Removing local route types from the local routing table
+            can break networking in strange and wonderful ways.
+          </para>
+        </footnote>.
+      </para>
+      <para>
+        Each of the following route types is available for use with
+        the <command>ip route</command> command.  Each route type causes a
+        particular sort of behaviour, which is identified in the textual
+        description.  Compare the route types described below with the
+        <link linkend="list-routing-rule-types">rule types</link> available
+        for use in the RPDB.
+      </para>
+      <variablelist id="list-routing-route-types">
+        <varlistentry id="list-routing-route-types-unicast">
+          <term>unicast</term>
+          <listitem>
+            <para>
+              A unicast route is the most common route in routing tables.
+              This is a typical route to a destination network address, which
+              describes the path to the destination.  Even complex routes,
+              such as nexthop routes are considered unicast routes.  If no
+              route type is specified on the command line, the route is
+              assumed to be a unicast route.
+            </para>
+            <example id="ex-list-route-unicast">
+              <title>unicast route types</title>
+              <programlisting>
+<userinput>ip route add unicast 192.168.0.0/24 via 192.168.100.5</userinput>
+<userinput>ip route add default via 193.7.255.1</userinput>
+<userinput>ip route add unicast default via 206.59.29.193</userinput>
+<userinput>ip route add 10.40.0.0/16 via 10.72.75.254</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-broadcast">
+          <term>broadcast</term>
+          <listitem>
+            <para>
+              This route type is used for link layer devices (such as ethernet
+              cards) which support the notion of a broadcast address.  This
+              route type is used only in the local routing table
+              <footnote>
+                <para>
+                  OK, I'm not absolutely sure you can't use the broadcast
+                  route in other routing tables, but I believe you can't.
+                  Testing forthcoming...
+                </para>
+              </footnote>
+              and is typically handled by the kernel.
+            </para>
+            <example id="ex-list-route-broadcast">
+              <title>broadcast route types</title>
+              <programlisting>
+<userinput>ip route add table local broadcast 10.10.20.255 dev eth0 proto kernel scope link src 10.10.20.67</userinput>
+<userinput>ip route add table local broadcast 192.168.43.31 dev eth4 proto kernel scope link src 192.168.43.14</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-local">
+          <term>local</term>
+          <listitem>
+            <para>
+              The kernel will add entries into the local routing table when
+              IP addresses are added to an interface.  This means that the IPs
+              are locally hosted IPs
+              <footnote>
+                <para>
+                  Ibid.  I'm not sure that local route types can be used
+                  in any routing table other than the local routing table.
+                  Testing forthcoming...
+                </para>
+              </footnote>.
+            </para>
+            <example id="ex-list-route-local">
+              <title>local route types</title>
+              <programlisting>
+<userinput>ip route add table local local 10.10.20.64 dev eth0 proto kernel scope host src 10.10.20.67</userinput>
+<userinput>ip route add table local local 192.168.43.12 dev eth4 proto kernel scope host src 192.168.43.14</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-nat">
+          <term>nat</term>
+          <listitem>
+            <para>
+              This route entry is added by the kernel in the local routing
+              table, when the user attempts to configure stateless NAT. See
+              <xref linkend="nat-stateless"/> for a fuller discussion of
+              network address translation in general.
+              <footnote>
+                <para>
+                  Ibid.  nat route types might be ineffectual outside
+                  the local routing table.  Testing forthcoming...
+                </para>
+              </footnote>.
+            </para>
+            <example id="ex-list-route-nat">
+              <title>nat route types</title>
+              <programlisting>
+<userinput>ip route add nat 193.7.255.184 via 172.16.82.184</userinput>
+<userinput>ip route add nat 10.40.0.0/16 via 172.40.0.0</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-unreachable">
+          <term>unreachable</term>
+          <listitem>
+            <para>
+              When a request for a routing decision returns a destination
+              with an unreachable route type, an ICMP unreachable is
+              generated and returned to the source address.
+            </para>
+            <example id="ex-list-route-unreachable">
+              <title>unreachable route types</title>
+              <programlisting>
+<userinput>ip route add unreachable 172.16.82.184</userinput>
+<userinput>ip route add unreachable 192.168.14.0/26</userinput>
+<userinput>ip route add unreachable 209.10.26.51</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-prohibit">
+          <term>prohibit</term>
+          <listitem>
+            <para>
+              When a request for a routing decision returns a destination with
+              a prohibit route type, the kernel generates an ICMP prohibited
+              to return to the source address.
+            </para>
+            <example id="ex-list-route-prohibit">
+              <title>prohibit route types</title>
+              <programlisting>
+<userinput>ip route add prohibit 10.21.82.157</userinput>
+<userinput>ip route add prohibit 172.28.113.0/28</userinput>
+<userinput>ip route add prohibit 209.10.26.51</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-blackhole">
+          <term>blackhole</term>
+          <listitem>
+            <para>
+              A packet matching a route with the route type blackhole is
+              discarded.  No ICMP is sent and no packet is forwarded.
+            </para>
+            <example id="ex-list-route-blackhole">
+              <title>blackhole route types</title>
+              <programlisting>
+<userinput>ip route add blackhole default</userinput>
+<userinput>ip route add blackhole 202.143.170.0/24</userinput>
+<userinput>ip route add blackhole 64.65.64.0/18</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+        <varlistentry id="list-routing-route-types-throw">
+          <term>throw</term>
+          <listitem>
+            <para>
+              The throw route type is a convenient route type which causes
+              a route lookup in a routing table to fail, returning the
+              <link linkend="routing-selection-adv">routing selection
+              process</link> to the RPDB.  This is useful when there are
+              additional routing tables.  Note that there is an implicit throw
+              if no default route exists in a routing table, so the route
+              created by the first command in the example is superfluous,
+              although legal.
+            </para>
+            <example id="ex-list-route-throw">
+              <title>throw route types</title>
+              <programlisting>
+<userinput>ip route add throw default</userinput>
+<userinput>ip route add throw 10.79.0.0/16</userinput>
+<userinput>ip route add throw 172.16.0.0/12</userinput>
+              </programlisting>
+            </example>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+      <para>
+        The power of these route types when combined with the
+        <link linkend="routing-rpdb">routing policy database</link> can hardly
+        be understated.  All of these route types can be used without the
+        RPDB, although the throw route doesn't make much sense outside of a
+        multiple routing table installation.
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+      <para>
+      </para>
+    </section>
     <section id="routing-table-local">
       <title>The Local Routing Table</title>
       <para>
@@ -1247,6 +1498,13 @@ else
         specification of broadcast address, necessary only for link layers
         which support broadcast addressing.  The second common type of entry
         in a local routing table is a route to a locally hosted IP.
+      </para>
+      <para>
+        The route types found in the local routing table
+        are <constant>local</constant>, <constant>nat</constant> and
+        <constant>broadcast</constant>.  These route types are not relevant in
+        other routing tables, and other route types cannot be used in the
+        local routing table.
       </para>
       <para>
         If the the machine has several IP addresses on one ethernet interface,
@@ -1341,15 +1599,134 @@ broadcast 192.168.254.255  proto kernel  scope link  src 192.168.254.254</comput
   <section id="routing-rpdb">
     <title>Routing Policy Database (RPDB)</title>
     <para>
-    </para>
-    <para>
       The routing policy database (RPDB) controls the order in which the
       kernel searches through the routing tables.  Each rule has a priority,
       and rules are examined sequentially from rule 0 through rule 32767.
     </para>
     <para>
+      When a new packet arrives for routing (assuming the routing cache
+      is empty), the kernel begins at the highest priority rule in the
+      RPDB--rule 0.  The kernel iterates over each rule in turn until the
+      packet to be routed matches a rule.  When this happens the kernel
+      follows the instructions in that rule.  Typically, this causes the
+      kernel to perform a route lookup in a specified routing table.  If a
+      matching route is found in the routing table, the kernel uses that
+      route.  If no such route is found, the kernel returns to traverse the
+      RPDB again, until every option has been exhausted.
     </para>
     <para>
+      The priority-based rule system provides a flexible way to define routes
+      while taking advantage of the traditional routing table concept.
+      For a complete picture of the entire route selection process including
+      the RPDB, see
+      <link linkend="routing-selection-adv">the section on routing
+      selection</link>.
+    </para>
+    <para>
+      There are a number of different rule types available for use in the
+      routing policy database.  These rule types have a striking similarity to
+      the
+      <link linkend="list-routing-route-types">route types</link> available
+      for route entries.
+    </para>
+    <variablelist id="list-routing-rule-types">
+      <varlistentry id="list-routing-rule-types-unicast">
+        <term>unicast</term>
+        <listitem>
+          <para>
+            A unicast rule entry is the most common rule type.  This rule type
+            simple causes the kernel to refer to the specified routing table
+            in the search for a route.  If no rule type is specified on the
+            command line, the rule is assumed to be a unicast rule.
+          </para>
+          <example id="ex-list-rule-unicast">
+            <title>unicast rule type</title>
+            <programlisting>
+<userinput>ip rule add unicast from 192.168.100.17 table 5</userinput>
+<userinput>ip rule add unicast iif eth7 table 5</userinput>
+<userinput>ip rule add unicast fwmark 4 table 4</userinput>
+            </programlisting>
+          </example>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-rule-types-nat">
+        <term>nat</term>
+        <listitem>
+          <para>
+            The nat rule type is required for correct operation of stateless
+            NAT.  This rule is typically coupled with a corresponding nat
+            route entry.  The RPDB nat entry causes the kernel to rewrite the
+            source address of an outbound packet.  See
+            <xref linkend="nat-stateless"/> for a fuller discussion of network
+            address translation in general.
+          </para>
+          <example id="ex-list-rule-nat">
+            <title>nat rule type</title>
+            <programlisting>
+<userinput>ip rule add nat 193.7.255.184 from 172.16.82.184</userinput>
+<userinput>ip rule add nat 10.40.0.0 from 172.40.0.0/16</userinput>
+            </programlisting>
+          </example>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-rule-types-unreachable">
+        <term>unreachable</term>
+        <listitem>
+          <para>
+            Any route lookup matching a rule entry with an unreachable rule
+            type will cause the kernel to generate an ICMP unreachable to
+            the source address of the packet.
+          </para>
+          <example id="ex-list-rule-unreachable">
+            <title>unreachable rule type</title>
+            <programlisting>
+<userinput>ip rule add unreachable iif eth2 tos 0xc0</userinput>
+<userinput>ip rule add unreachable iif wan0 fwmark 5</userinput>
+<userinput>ip rule add unreachable from 192.168.7.0/25</userinput>
+            </programlisting>
+          </example>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-rule-types-prohibit">
+        <term>prohibit</term>
+        <listitem>
+          <para>
+            Any route lookup matching a rule entry with a prohibit rule type
+            will cause the kernel to generate an ICMP prohibited to the source
+            address of the packet.
+          </para>
+          <example id="ex-list-rule-prohibit">
+            <title>prohibit rule type</title>
+            <programlisting>
+<userinput>ip rule add prohibit from 209.10.26.51</userinput>
+<userinput>ip rule add prohibit to 64.65.64.0/18</userinput>
+<userinput>ip rule add prohibit fwmark 7</userinput>
+            </programlisting>
+          </example>
+        </listitem>
+      </varlistentry>
+      <varlistentry id="list-routing-rule-types-blackhole">
+        <term>blackhole</term>
+        <listitem>
+          <para>
+            While traversing the RPDB, any route lookup which matches a rule
+            with the blackhole rule type will cause the packet to be dropped.
+            No ICMP will be sent and no packet will be forwarded.
+          </para>
+          <example id="ex-list-rule-blackhole">
+            <title>blackhole rule type</title>
+            <programlisting>
+<userinput>ip rule add blackhole from 209.10.26.51</userinput>
+<userinput>ip rule add blackhole from 172.19.40.0/24</userinput>
+<userinput>ip rule add blackhole to 10.182.17.64/28</userinput>
+            </programlisting>
+          </example>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      The routing policy database provides the core of functionality around
+      which the policy routing and advanced routing features can be built.
     </para>
   </section>
   <section id="routing-icmp">
