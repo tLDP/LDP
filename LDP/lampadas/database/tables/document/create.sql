@@ -30,6 +30,7 @@ CREATE TABLE document
 	pub_time		TIMESTAMP,
 	mirror_time		TIMESTAMP,
 	first_pub_date		TEXT,
+	deleted			BOOLEAN		DEFAULT False,
 	created			TIMESTAMP	NOT NULL DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 

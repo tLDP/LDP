@@ -97,7 +97,7 @@ class Tables(LampadasCollection):
         lintadas.check_doc(uri.id)
         metadata = doc.metadata()
 
-        box = WOStringIO('<table class="box" width="100%%">' \
+        box = WOStringIO('<table class="box nontabular" width="100%%">' \
                          '<tr><th colspan="6">|strdocdetails|</th></tr>'
                          '<tr><td class="label">|strtitle|</td><td colspan="5">%s</td></tr>\n'
                          '<tr><td class="label">|strshort_desc|</td><td colspan="5">%s</td></tr>\n'
@@ -158,7 +158,7 @@ class Tables(LampadasCollection):
         if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
-        box = WOStringIO('<table class="box" width="100%">' \
+        box = WOStringIO('<table class="box nontabular" width="100%">' \
                          '<tr><th colspan="6">|strdocdetails|</th></tr>')
                 
         if uri.id > 0:
@@ -816,7 +816,7 @@ class Tables(LampadasCollection):
         else:
             user = User()
             box = WOStringIO('<form method=GET action="/data/save/newuser" name="user">\n')
-        box.write('<table class="box" width="100%">\n'
+        box.write('<table class="box nontabular" width="100%">\n'
                   '<tr><th colspan=2>|struserdetails|</th></tr>\n'
                   '<tr><td class="label">|strusername|</td>')
         if user.username=='':
@@ -888,7 +888,7 @@ class Tables(LampadasCollection):
                  collection_code='',
                  columns={},
                  layout='compact',
-                 show_search=1
+                 show_search=0
                 ):
         """
         Creates a listing of all documents which fit the parameters passed in.
@@ -1058,9 +1058,9 @@ class Tables(LampadasCollection):
                     block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
 
                 # Finally, pull in the abstract.
-                block_abstract = '<td class="nontabular">' + html_encode(metadata.abstract) + '</td>'
+                block_abstract = '<td>' + html_encode(metadata.abstract) + '</td>'
 
-                box.write('<table class="box" width="100%%">\n' \
+                box.write('<table class="box nontabular" width="100%%">\n' \
                           '  <tr>%s</tr>\n' \
                           '  <tr>%s\n' \
                           '      %s\n' \
@@ -1280,7 +1280,7 @@ class Tables(LampadasCollection):
     def tabtopic(self, uri):
         log(3, 'Creating tabtopic table')
         topic = lampadas.topics[uri.code]
-        box = '''<table class="box" width="100%%">
+        box = '''<table class="box nontabular" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>%s</td><tr>
         </table>
@@ -1890,7 +1890,7 @@ class TabNews(Table):
 
     def method(self, uri):
         log(3, 'Creating recent news')
-        box = WOStringIO('<table class="box" width="100%">'
+        box = WOStringIO('<table class="box nontabular" width="100%">'
                          '<tr><th colspan="2">|strnews|</th></tr>')
         keys = lampadasweb.news.sort_by_desc('pub_date')
         items = 0
@@ -1902,13 +1902,9 @@ class TabNews(Table):
                 else:
                     edit_icon = ''
 
-# FIXME: This neat little CSS class, "nontabular" gives an expanded format of table,
-# instead of a compact list of rows. There are a lot of places that would benefit
-# from having this tag applied.
-
                 box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
-                          '<tr class="odd"><td class="nontabularlabel">%s</td>\n'
-                          '               <td class="nontabular">%s</td>\n'
+                          '<tr class="odd"><td class="label">%s</td>\n'
+                          '               <td>%s</td>\n'
                           '</tr>\n'
                           % (edit_icon,
                              news.headline[uri.lang],
@@ -1935,17 +1931,17 @@ class TabNewsItem(Table):
             news = lampadasweb.news[uri.id]
 
             box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
-                             '<table class="box"><tr><th colspan="3">|strnews|</th></tr>\n' \
+                             '<table class="box nontabular"><tr><th colspan="3">|strnews|</th></tr>\n' \
                              '<input type=hidden name="news_id" value="%s">\n' \
-                             '<tr><td class="nontabularlabel">|strpub_date|</td>\n' \
-                             '    <td class="nontabular"><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td class="nontabular"><input type=submit name="save" value="|strsave|"></td>\n' \
+                             '<tr><td class="label">|strpub_date|</td>\n' \
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (news.id, news.pub_date))
 
             # List the available translations
-            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
+            box.write('<table class="box nontabular" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
                       '<tr><th class="collabel">|strlanguage|</td>\n' \
                       '    <th class="collabel" colspan="2">|strnews|</th>' \
                       '</tr>')
@@ -1956,30 +1952,30 @@ class TabNewsItem(Table):
                     box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="nontabularlabel">%s</td>' \
-                              '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%" value="%s">\n' \
+                              '<tr class="%s"><td class="label">%s</td>' \
+                              '    <td><input type=text name="headline" width="40" style="width:100%%" value="%s">\n' \
                               ' <p><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
-                              '    <td class="nontabular"><input type=submit name="save" value="|strsave|"></td>\n' \
+                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                               '</tr></form>'
                               % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.headline[lang], news.news[lang]))
 
             # Add a new translation
             box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
                       '<input type=hidden name="news_id" value="%s">\n' \
-                      '<tr class="%s"><td class="nontabularlabel">%s</td>' \
-                      '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%">\n' \
+                      '<tr class="%s"><td class="label">%s</td>' \
+                      '    <td><input type=text name="headline" width="40" style="width:100%%">\n' \
                       ' <p><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
-                      '    <td class="nontabular"><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
                       '</tr></form>'
                       % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
             box.write('</table>')
         else:
             news = NewsItem()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
-                             '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
-                             '<tr class="odd"><td class="nontabularlabel">|strpub_date|</td>\n' \
-                             '    <td class="nontabular"><input type=text name="pub_date" value="%s"></td>\n' \
-                             '    <td class="nontabular" colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
+                             '<table class="box nontabular"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
+                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
+                             '    <td><input type=text name="pub_date" value="%s"></td>\n' \
+                             '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
                              '</tr>\n' \
                              '</table>\n' \
                              '</form>\n' % (news.pub_date))

@@ -167,7 +167,7 @@ class Collection:
         self.load()
 
     def load(self):
-        sql = 'SELECT collection_code, sort_order FROM collection HHERE collection_code=' + wsq(self.code)
+        sql = 'SELECT collection_code, sort_order FROM collection WHERE collection_code=' + wsq(self.code)
         cursor = db.select(sql)
         row = cursor.fetchone()
         if row==None: return

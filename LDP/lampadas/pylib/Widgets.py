@@ -86,7 +86,7 @@ class Widgets:
         return combo.get_value()
         
     def dtd_version(self, value, lang, css_class='', view=0):
-        input = WOStringIO('<input type="text" name="dtd_version" size="5" value="%s"%s>' % (value, css_class))
+        input = WOStringIO('<input type="text" name="dtd_version" size="8" maxlenth="20" value="%s"%s>' % (value, css_class))
         return input.get_value()
 
     def title(self, value, css_class='', view=0):

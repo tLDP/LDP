@@ -404,6 +404,15 @@ class NewsItem:
             self.pub_date = pub_date
         self.headline = LampadasCollection()
         self.news = LampadasCollection()
+        if id > 0:
+            self.load()
+
+    def load(self):
+        sql = 'SELECT news_id, pub_date FROM news WHERE news_id=' + str(self.id)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
 
     def load_row(self, row):
         self.id       = row[0]
