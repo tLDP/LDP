@@ -8,36 +8,36 @@ from Products.ExternalFile.CreationDialog import manage_add_via_gui, \
      create_standard_formpart, create_externalfile_formpart
 
 from Products.CMFCore.DirectoryView import registerDirectory
-from Products.CMFCore import utils
+from Products.CMFCore import utils, CMFCorePermissions
 
 from socket import gethostname
 
 factory_type_information = (
     {'id': 'CMF CVS File',
-     'content_icon': 'www/fish.gif',
      'meta_type': 'CMF CVS File',
+     'description': 'A file in a CVS repository.',
+     'content_icon': 'file_icon.gif',
+     'icon': 'file_icon.gif',
      'product': 'PloneCVSFile',
      'factory': 'addPloneCVSFile',
-     'immediate_view': 'index_html',
+     'immediate_view': 'metadata_edit_form',
      'actions': ({'id': 'view',
                   'name': 'View',
-                  'action': 'wikipage_view',
-                  'permissions': ('View CVS File',)},
-                 {'id': 'comment',
-                  'name': 'Comment',
-                  'action': 'wikipage_comment_form',
-                  'permissions': ('Add CVS File Comment',)},
+                  'action': 'file_view',
+                  'permissions': (CMFCorePermissions.View,)},
+                 {'id': 'download',
+                  'name': 'Download',
+                  'action': '',
+                  'permissions': (CMFCorePermissions.View,)},
                  {'id': 'edit',
                   'name': 'Edit',
-                  'action': 'wikipage_edit_form',
-                  'permissions': ('Edit CVS File',)},
-                 {'id': 'create',
-                  'name': 'Create',
-                  'category': 'folder',
-                  'action':'wikipage_create_form',
-                  'permissions': ('Create CVS File',),
-                  'visible': 0 },
-                 ),
+                  'action': 'file_edit_form',
+                  'permissions': (CMFCorePermissions.ModifyPortalContent,)},
+                 {'id': 'metadata',
+                  'name': 'Metadata',
+                  'action': 'metadata_edit_form',
+                  'permissions': (CMFCorePermissions.ModifyPortalContent,)},
+                 )
      },
     )
 

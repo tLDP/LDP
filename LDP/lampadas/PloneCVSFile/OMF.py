@@ -9,6 +9,8 @@ class OMF(DefaultDublinCoreImpl):
     """Mix-in class that provides OMF metadata, based on Dublin Core.
     """
 
+    __implements__ = DefaultDublinCoreImpl.__implements__
+
     security = ClassSecurityInfo()
 
     def __init__(self, 

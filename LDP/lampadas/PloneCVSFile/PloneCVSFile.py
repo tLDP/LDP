@@ -25,6 +25,7 @@ from Products.CMFCore.DynamicType import DynamicType
 
 # OFS imports
 from OFS.SimpleItem import SimpleItem
+from OFS import Image
 
 # OMF imports
 from OMF import OMF
@@ -117,20 +118,25 @@ def manage_lampadas(self, action, REQUEST=None):
 # CVSFile class
 ################################################################
 
-class PloneCVSFile(CVSFile, PortalContent, OMF):
+# PortalContent brings in: DynamicType, CMFCatalogAware, SimpleItem
+
+class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
 
     """Extended from CVSFile
     """
 
-    def __init__(self, id, title='', description='', relativeFilePath='foo.html'):
-        CVSFile.__init__(self, id, title, description, relativeFilePath)
-        OMF.__init__(self)
-       # , title=title, description-description)
+    __implements__ = (CVSFile.__implements__,
+                      PortalContent.__implements__,
+                      OMF.__implements__)
+    
+    isPortalContent = 1
+    _isPortalContent = 1
     
     meta_type = 'CMF CVS File'  # This is the name Zope will use for the Product in
                               # the "addProduct" list
 
-    __implements__ = ICVSFile
+    _isDiscussable = 1
+
 
     # This tuple defines a dictionary for each tab in the management interface
     # label = label of tab, action = url it links to
@@ -166,7 +172,7 @@ class PloneCVSFile(CVSFile, PortalContent, OMF):
 
     # CMF ATTRIBUTES
 
-    portal_type = 'CVS File'
+    portal_type = 'CMF CVS File'
     set = _security.setPermissionDefault
     set('Edit CVS File', ('Owner', 'Manager', 'Authenticated'))
     set('FTP Access', ('Owner', 'Manager', 'Authenticated'))
@@ -176,6 +182,11 @@ class PloneCVSFile(CVSFile, PortalContent, OMF):
     set = None
 
     manage_metadata = DTMLFile('dtml/omf_metadata', globals())
+    
+    def __init__(self, id, title='', description='', relativeFilePath='foo.html'):
+        CVSFile.__init__(self, id, title, description, relativeFilePath)
+        Image.File.__init__(self, id, title, relativeFilePath)
+        OMF.__init__(self)
     
     def inCMF(self):
         """Return true if this object is in a CMF portal.
