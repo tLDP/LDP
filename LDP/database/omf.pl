@@ -21,6 +21,7 @@ print '<omf>' . "\n";
 while (@row = $doc->fetchrow) {
 	$doc_id                  = $row[0];
 	$title                   = $row[1];
+	$title                   =~ s/\&/\&amp;/;
 	$pub_status_name         = $row[2];
 	$class                   = $row[3];
 	$class                   =~ s/\s+$//;
@@ -42,6 +43,7 @@ while (@row = $doc->fetchrow) {
 	$version                 =~ s/\s+$//;
 	$abstract                = $row[15];
 	$abstract                =~ s/\s+$//;
+	$abstract                =~ s/\&/\&amp;/;
 
 	print "<resource id='$doc_id'>\n";
 
@@ -51,6 +53,7 @@ while (@row = $doc->fetchrow) {
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
 	while (@maintainer_row = $maintainer->fetchrow) {
 		$maintainer_name = $maintainer_row[0];
+		$maintainer_name =~ s/\&/\&amp;/;
 		$maintainer_email = $maintainer_row[1];
 		print "  <creator>$maintainer_email ($maintainer_name)</creator>\n";
 	}
@@ -61,6 +64,7 @@ while (@row = $doc->fetchrow) {
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
 	while (@maintainer_row = $maintainer->fetchrow) {
 		$maintainer_name = $maintainer_row[0];
+		$maintainer_name =~ s/\&/\&amp;/;
 		$maintainer_email = $maintainer_row[1];
 		print "  <maintainer>$maintainer_email ($maintainer_name)</maintainer>\n";
 	}
@@ -71,6 +75,7 @@ while (@row = $doc->fetchrow) {
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
 	while (@maintainer_row = $maintainer->fetchrow) {
 		$maintainer_name = $maintainer_row[0];
+		$maintainer_name =~ s/\&/\&amp;/;
 		$maintainer_email = $maintainer_row[1];
 		print "  <contributor>$maintainer_email ($maintainer_name)</contributor>\n";
 	}
