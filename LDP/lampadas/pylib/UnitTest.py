@@ -72,8 +72,17 @@ class testUsers(unittest.TestCase):
 class testUserDocs(unittest.TestCase):
 
 	def setUp(self):
-		self.User = User(1)
+		self.User = DataLayer.User(1)
+		assert len(self.User.Docs) > 0
 		assert self.User.Docs.Count > 0
+
+	def testUserDocs(self):
+		assert not self.User.Docs == None
+		for UserDoc in self.User.Docs:
+			assert not UserDoc == None
+			assert not UserDoc.DocID == None
+			assert UserDoc.DocID > 0
+			assert UserDoc.Active == 1 or UserDoc.Active == 0
 
 
 class testDocs(unittest.TestCase):

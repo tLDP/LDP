@@ -19,6 +19,61 @@ Config = Config.Config()
 DB = Database.Database()
 DB.Connect(Config.DBType, Config.DBName)
 
+class LampadasList:
+	"""
+	Base class for Lampadas list objects, which are cached in RAM
+	for high performance.
+
+	Classes based on this one emulast lists, with additional methods.
+	"""
+
+	list = []
+
+	def __len__(self):
+		return len(self.list)
+
+	def __getitem__(self, key):
+		return self.list[key]
+
+	def __setitem__(self, key, value):
+		self.list[key] = value
+	
+	def __delitem__(self, key):
+		del self.list[key]
+
+	def keys(self):
+		return self.list.keys()
+
+	def items(self):
+		return self.list.items()
+
+	def append(self, item):
+		self.list.append(item)
+		
+	def Count(self):
+		return len(data)
+
+
+class LampadasCollection:
+	"""
+	Base class for Lampadas collection objects, which are cached in RAM
+	for high performance.
+
+	Classes based on this one become pseudo-dictionaries, providing
+	iteration and similar methods. This is done by providing a wrapper to
+	the built-in dictionary type. In Python 2.2, dictionaries will be
+	subclassable, so this can be rewritten to take advantage of that.
+	"""
+
+	col = {}
+
+	def __getitem__(self, id):
+		return self.col[id]
+	
+	def Count(self):
+		return len(self.col)
+
+
 # Users
 
 class Users:
@@ -65,23 +120,7 @@ class User:
 		self.Stylesheet	= trim(data[11])
 		self.Name	= trim(trim(self.FirstName + ' ' + self.MiddleName) + ' ' + self.Surname)
 
-
-class LampadasCollection:
-	"""
-	Base class for Lampadas collection objects, which are cached in RAM
-	for high performance.
-
-	Classes based on this one become pseudo-dictionaries, providing
-	iteration and similar methods.
-	"""
-
-	col = {}
-
-	def __getitem__(self, id):
-		return self.col[id]
-	
-	def Count(self):
-		return len(self.col)
+		self.Docs = UserDocs(self.ID)
 
 
 # Documents
@@ -160,6 +199,72 @@ class Doc:
 		DB.Commit()
 
 
+# UserDocs
+
+class UserDocs(LampadasList):
+	"""
+	A collection object providing access to all user document associations.
+	"""
+
+	def __init__(self, UserID):
+		assert not UserID == None
+		self.UserID = UserID
+		self.cursor = DB.Cursor()
+		self.cursor.execute("SELECT doc_id, user_id, role, email, active FROM document_user WHERE user_id=" + str(self.UserID))
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newUserDoc = UserDoc(UserID, row[0])
+			newUserDoc.__load__(row)
+			self.list = self.list + [newUserDoc]
+
+	def Add(self, DocID, Role, Email, Active):
+		self.sql = "INSERT INTO document_user(doc_id, user_id, role, email, active) VALUES (" + str(DocID) + ", " + str(self.UserID) + ", " + wsq(Role) + ", " + wsq(Email) + ", " + wsq(bool2tf(Active)) +  " )"
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+	
+	def Del(self, DocID):
+		self.sql = ('DELETE from document_user WHERE doc_id=' + str(DocID) + ' AND user_id=' + str(self.UserID))
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+		del self.col[DocID]
+
+
+class UserDoc:
+	"""
+	An association between a user and a document.
+	"""
+
+	DocID	= None
+	UserID	= None
+	Role	= None
+	Email	= None
+	Active	= None
+
+	def __init__(self, UserID=None, DocID=None):
+		self.UserID = UserID
+		self.DocID = DocID
+		if DocID == None: return
+		if UserID == None: return
+		self.cursor = DB.Cursor()
+		self.cursor.execute("SELECT doc_id, user_id, role, email, active FROM document_user WHERE doc_id=" + str(DocID) + " AND user_id=" + str(UserID))
+		row = self.cursor.fetchone()
+		self.__load__(row)
+
+	def __load__(self, row):
+		assert not row == None
+		self.DocID		= row[0]
+		self.UserID		= row[1]
+		self.Role		= trim(row[2])
+		self.Email		= trim(row[3])
+		self.Active		= tf2bool(row[4])
+
+	def Save(self):
+		self.sql = "UPDATE document_user SET role=" + wsq(self.Role) + ", email=" + wsq(self.Email) + ", active=" + wsq(bool2tf(self.Active)) + " WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+		DB.Exec(self.sql)
+		DB.Commit()
+
+
 def wsq(astring):
 	if astring == None:
 		return 'NULL'
@@ -189,9 +294,12 @@ def trim(astring):
 
 # main
 if __name__ == '__main__' :
-	print "This should start the unit tests"
+	print "Running unit tests..."
 	string = "foo"
-	assert wsq(string) == "'foo'", string
+	assert wsq(string) == "'foo'"
 	string = "it's"
-	assert wsq(string) == "'it''s'", string
+	assert wsq(string) == "'it''s'"
+	string = "it's that's"
+	assert wsq(string) == "'it''s that''s'"
+	print "End unit test run."
 	
