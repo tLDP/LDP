@@ -29,6 +29,8 @@ while users_line != '' :
 	import os
 	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/cvs-commits/allow ' + 
 		users_splitted[0]+'@tldp.org')
+	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/cvs-commits/allow ' +
+		users_splitted[0]+'@gabber.metalab.unc.edu')
 	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/staff/allow ' +
 		users_splitted[0]+'@tldp.org')
 	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/lampadas-commits/allow ' +
