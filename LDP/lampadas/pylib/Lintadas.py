@@ -39,6 +39,12 @@ import os
 
 # Globals
 
+ERR_FILE_NOT_FOUND = 1
+ERR_FILE_NOT_WRITABLE = 2
+ERR_NO_SOURCE_FILE = 3
+ERR_NO_PRIMARY_FILE = 4
+ERR_TWO_PRIMARY_FILES = 5
+
 
 # Lintadas
 
@@ -51,27 +57,39 @@ class Lintadas:
     
     def check(self, doc_id):
         log(3, 'Running Lintadas on document ' + str(doc_id))
-        doc = lampadas.docs[int(doc_id)]
+        doc = lampadas.docs[doc_id]
         assert not doc==None
-        doc.errs.clear()
+        doc.errors.clear()
 
-        self.check_files(doc)
-        self.check_maintained(doc)
+        self.check_files(doc_id)
+        self.check_maintained(doc_id)
 
         doc.save()
         log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
 
-    def check_files(self, doc):
+    def check_files(self, doc_id):
+        doc = lampadas.docs[doc_id]
+
+        if doc.files.count()==0:
+            self.add_error(doc_id, ERR_NO_SOURCE_FILE)
+            return
+
+        top = 0
+
         keys = doc.files.keys()
         for key in keys:
-
             file = doc.files[key]
 
-            if file.IsLocal:
-                log(3, 'Checking filename ' + key)
-            else:
+            if file.top > 0:
+                top = top + 1
+
+            if file.local==0:
                 log(3, 'Skipping remote file ' + key)
                 continue
+                
+            log(3, 'Checking filename ' + key)
+            if not os.access(config.cvs_root + file.filename, os.F_OK):
+                self.add_error(doc_id, ERR_FILE_NOT_FOUND)
 
             # Determine file format
             self.filename = file.filename.upper()
@@ -119,13 +137,26 @@ class Lintadas:
 
             file.save()
 
-    def check_maintained(self, doc):
-        if doc.users.count()==0:
-            doc.maintained = 0
-            log(3, 'Maintained')
-        else:
-            doc.maintained = 1
-            log(3, 'Unmaintained')
+        if top==0:
+            self.add_error(doc_id, ERR_NO_PRIMARY_FILE)
+
+        if top > 1:
+            self.add_error(doc_id, ERR_TWO_PRIMARY_FILES)
+
+    def check_maintained(self, doc_id):
+        doc = lampadas.docs[doc_id]
+        maintained = 0
+        keys = doc.users.keys()
+        for key in keys:
+            docuser = doc.users[key]
+            if docuser.active==1 and docuser.role_code=='author' or docuser.role_code=='maintainer':
+                maintained = 1
+        doc.maintained = maintained
+
+    def add_error(self, doc_id, err_id):
+        log(2, 'Error: ' + str(err_id))
+        doc = lampadas.docs[doc_id]
+        doc.errors.add(err_id)
 
 
 lintadas = Lintadas()

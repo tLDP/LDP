@@ -346,6 +346,7 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
     |tabdocversions|
     |tabdoctopics|
     |tabdocnotes|
+    |tabdocerrors|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,

@@ -323,6 +323,7 @@ insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
     |tabdocversions|
     |tabdoctopics|
     |tabdocnotes|
+    |tabdocerrors|
 ])
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,

@@ -197,6 +197,7 @@ insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;
     |tabdocversions|
     |tabdoctopics|
     |tabdocnotes|
+    |tabdocerrors|
 ])
 
 insert([404], [Introuvable], [Introuvable],

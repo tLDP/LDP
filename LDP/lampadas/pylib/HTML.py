@@ -540,6 +540,29 @@ class TableFactory:
         return box
 
 
+    def docerrors(self, uri):
+        log(3, 'Creating docerrors table')
+        doc = lampadas.docs[uri.id]
+        box = ''
+        box = box + '<table class="box">'
+        box = box + '<tr><th colspan="2">|strdocerrs|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strid|</th>\n'
+        box = box + '<th class="collabel">|strerror|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        err_ids = doc.errors.sort_by('date_entered')
+        for err_id in err_ids:
+            docerror = doc.errors[err_id]
+            error = lampadas.errors[err_id]
+            box = box + '<tr>\n'
+            box = box + '<td>' + docerror.date_entered + '</td>\n'
+            box = box + '<td>' + error.name[uri.lang] + '</td>\n'
+            box = box + '</tr>\n'
+        box = box + '</table>\n'
+        return box
+
+
     def cvslog(self, uri):
         doc = lampadas.docs[uri.id]
         box = '<table class="box">\n'
@@ -999,6 +1022,8 @@ class PageFactory:
                     newstring = self.tablef.docversions(uri)
                 if token=='tabdoctopics':
                     newstring = self.tablef.doctopics(uri)
+                if token=='tabdocerrors':
+                    newstring = self.tablef.docerrors(uri)
                 if token=='tabdocnotes':
                     newstring = self.tablef.docnotes(uri, build_user)
                 if token=='tabcvslog':

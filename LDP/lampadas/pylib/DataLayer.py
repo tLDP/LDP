@@ -68,6 +68,8 @@ class Lampadas:
         self.licenses.load()
         self.dtds            = DTDs()
         self.dtds.load()
+        self.errors          = Errors()
+        self.errors.load()
         self.formats         = Formats()
         self.formats.load()
         self.languages       = Languages()
@@ -206,7 +208,7 @@ class Docs(LampadasCollection):
             return
 
         # Delete dependent data first!
-        doc.errs.clear()
+        doc.errors.clear()
         doc.files.clear()
         doc.users.clear()
         doc.versions.clear()
@@ -248,7 +250,7 @@ class Doc:
         self.rating                  = 0
         self.lang                    = ''
         self.sk_seriesid             = ''
-        self.errs                    = DocErrs()
+        self.errors                  = DocErrs()
         self.files                   = DocFiles()
         self.users                   = DocUsers()
         self.versions                = DocVersions()
@@ -290,7 +292,7 @@ class Doc:
         self.rating                  = safeint(row[20])
         self.lang                    = trim(row[21])
         self.sk_seriesid             = trim(row[22])
-        self.errs                    = DocErrs(self.id)
+        self.errors                  = DocErrs(self.id)
         self.files                   = DocFiles(self.id)
         self.users                   = DocUsers(self.id)
         self.versions                = DocVersions(self.id)
@@ -320,14 +322,14 @@ class DocErrs(LampadasCollection):
         self.data = {}
         self.doc_id = doc_id
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, err_id FROM document_error WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, err_id, date_entered FROM document_error WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             doc_err = DocErr()
             doc_err.load_row(row)
-            self.data[doc_err.id] = doc_err
+            self.data[doc_err.err_id] = doc_err
 
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -339,14 +341,15 @@ class DocErrs(LampadasCollection):
 # FIXME: Try instantiating a DocErr object, then adding it to the *document*
 # rather than passing all these parameters here. --nico
 
-    def add(self, error_id):
+    def add(self, err_id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.doc_id) + ", " + wsq(error_id)
+        sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.doc_id) + ", " + str(err_id) + ')'
         assert db.runsql(sql)==1
         doc_err = DocErr()
         doc_err.doc_id = self.doc_id
-        doc_err.error_id = error_id
-        self.data[doc_err.id] = doc_err
+        doc_err.err_id = err_id
+        doc_err.date_entered = now_string()
+        self.data[doc_err.err_id] = doc_err
         db.commit()
 
 class DocErr:
@@ -355,8 +358,9 @@ class DocErr:
     """
 
     def load_row(self, row):
-        self.doc_id	  = row[0]
-        self.error_id = safeint(row[1])
+        self.doc_id	      = row[0]
+        self.err_id       = safeint(row[1])
+        self.date_entered = time2str(row[2])
 
 
 # DocFiles
@@ -390,6 +394,10 @@ class DocFiles(LampadasCollection):
         file.filename = filename
         file.top = top
         file.format_code = format_code
+        if file.filename[:5]=='http:' or file.filename[:4]=='ftp:' or file.filename[:5]=='file:':
+            file.local = 0
+        else:
+            file.local = 1
         file.save()
         self.data[file.filename] = file
         
@@ -418,10 +426,10 @@ class DocFile:
         self.filename    = trim(row[1])
         self.top     = tf2bool(row[2]) 
         self.format_code = trim(row[3])
-        if self.filename[:5]=='http:' or self.filename[:4]=='ftp:':
-            self.IsLocal = 0
+        if self.filename[:5]=='http:' or self.filename[:4]=='ftp:' or self.filename[:5]=='file:':
+            self.local = 0
         else:
-            self.IsLocal = 1
+            self.local = 1
         self.file_only	= self.os.path.split(self.filename)[1]
         self.basename	= self.os.path.splitext(self.file_only)[0]
         
@@ -526,12 +534,13 @@ class DocRatings(LampadasCollection):
         self.calc_average()
 
     def add(self, username, rating):
-        newDocRating = DocRating()
-        newDocRating.doc_id   = self.doc_id
-        newDocRating.username = username
-        newDocRating.rating   = rating
-        newDocRating.save()
-        self.data[newDocRating.username] = newDocRating
+        docrating = DocRating()
+        docrating.doc_id   = self.doc_id
+        docrating.username = username
+        docrating.date_entered = now_string()
+        docrating.rating   = rating
+        docrating.save()
+        self.data[docrating.username] = docrating
         self.calc_average()
 
     def delete(self, username):
@@ -570,7 +579,7 @@ class DocRating:
         assert not row==None
         self.doc_id       = row[0]
         self.username     = row[1]
-        self.date_entered = trim(row[2])
+        self.date_entered = time2str(row[2])
         self.rating       = row[3]
 
     def save(self):
@@ -854,23 +863,26 @@ class DTD:
 
 # Errs
 
-class Errs(LampadasCollection):
+class Errors(LampadasCollection):
     """
     A collection object of all errors that can be filed against a document.
     """
     
     def __init__(self):
         self.data = {}
+        
+    def load(self):
+        self.data = {}
         sql = "SELECT err_id FROM error"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            err = Err()
+            err = Error()
             err.load_row(row)
             self.data[err.id] = err
 
-class Err:
+class Error:
     """
     An error that can be filed against a document.
     """
@@ -880,16 +892,16 @@ class Err:
         self.description = LampadasCollection()
 
     def load_row(self, row):
-        self.id = trim(row[0])
+        self.id = row[0]
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + wsq(self.err_id)
+        sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + str(self.id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             lang                   = row[0]
             self.name[lang]        = trim(row[1])
-            self.description[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
 
 # Formats

@@ -43,3 +43,12 @@ insert(5, [Test Texinfo Administrator\'s Guide], [1.0], [],
 f, f, 0,
 NULL, NULL)
 
+insert(6, [Lampadas Developer\'s Guide], [], [],
+[adminguide], [wikitext], [N/A], [],
+[gfdl], [The Developer\'s Guide for the Lampadas Documentation System],
+[], [],
+[N], [U], [U],
+[2002-07-01], [2002-07-02], [2002-07-03],
+f, f, 0,
+NULL, NULL)
+

@@ -126,7 +126,7 @@ class testDocErrs(unittest.TestCase):
                 for err in doc.errs:
                     assert not err==None
                     assert err.doc_id==doc.id
-                    assert err.error_id > 1
+                    assert err.err_id > 1
         log(3, 'testing DocErrs done')
     
 
