@@ -2,7 +2,7 @@
 <article>
 
 <artheader>
-   <title>Apache WebDAV and LDAP HOWTO</title>
+   <title>Apache based WebDAV with LDAP and SSL HOWTO</title>
 
    <author>
       <firstname>Saqib</firstname>
@@ -16,8 +16,18 @@
 
    <revhistory>
       <revision>
+       <revnumber>v2.1</revnumber>
+         <date>2002-03-24</date>
+         <authorinitials>sa</authorinitials>
+          <revremark>
+		Refined the WebDAV Introduction and SSL section.
+         </revremark>
+      </revision>
+
+   
+      <revision>
        <revnumber>v2.0</revnumber>
-         <date>2002-03-22</date>
+         <date>2002-03-20</date>
          <authorinitials>sa</authorinitials>
           <revremark>
 		Added the SSL section
@@ -47,8 +57,8 @@
    </revhistory>
 
    <abstract>
-      <para>This document instructs how to install, configure, run
-      and maintain a finely-tuned Apache-based WebDAV server. </para>
+      <para>This document is an HOWTO on installing a Apache based WebDAV server with LDAP for authentication and SSL
+      encryption. </para>
    </abstract>
 </artheader>
 
@@ -87,12 +97,46 @@ A copy of the license is available at
 </para>
 
 
-<sect2><title>What is WebDAV</title>
+<sect2><title>What is WebDAV?</title>
 
 <para> WebDAV stands for Web enabled Distributed Authoring and
 Versioning.  It  provides a collaborative environment for users to
-edit/manage files on web-servers. Essentially DAV is an extension
+edit/manage files on web-servers. Technically DAV is an extension
 to the http protocol.  </para>
+
+<para>WebDAV introduces several new properties to the existing HTTP properties. A property in HTTP terminology 
+refers to the descriptive information about a file on the webserver. The properties that DAV introduces 
+are PROPFIND, PROPPATCH, MKCOL, PUT, COPY, MOVE, DELETE, LOCK, and obviously UNLOCK. The following is a brief 
+description of the properties introduced by DAV:</para>
+
+<para>PROPFIND - Retrieves the properties of file or resource on the web server. </para>
+<para>PROPPATCH - Sets the properties of a file or resource on the web server.</para>
+<para>MKCOL - Makes a collections of resources.</para>
+<para>PUT - Puts a resource/collection on the server.</para>
+<para>COPY - Copies a Resource/collection</para>
+<para>MOVE - Moves a Resource/collection</para>
+<para>DELETE - Deletes a Resource/collection</para>
+<para>LOCK - Locks a Resource for PROPPATCH, MKCOL, PUT, MOVE, and DELETE</para>
+<para>UNLOCK - Unlocks a resource</para>
+ 
+ <para>Remember these properties, as we will need them later in this tutorial.</para>
+
+</sect2>
+
+<sect2><title>Why use WebDAV?</title>
+<para>I ask, Why not? Who doesn't like distrtibuted authoring of the documents? Using WebDAV technology people throughout 
+the world can be working on the same document. With the locking mechanism that DAV provides, the person who is editing the resource 
+will lock it for editing. Others can read it but not modify it. When the person who is editing the document, is done editing,
+he/she will release the lock, and then others can modify the documents as well.</para>
+<para>Authentication to gain access to resources is available in HTTP. This HOWTO discusses using LDAP for authentication. 
+Permissions using groups and users in LDAP directory can be setup to control read/write access to various resources(documents)
+on the WebDAV server, so that you dont need to share passwords to work on the same documents</para>
+<para>If you are worried about people trying to sniff your traffic, and gain access to confidential data, then worry not
+- you can always use HTTP with SSL ver3. This is the best encryption available. This documents details on how to implement
+WebDAV server which uses SSL encryption for transferring data. </para>
+
+
+
 </sect2>
 
 <sect2><title>How does WebDAV work?</title>
@@ -159,7 +203,7 @@ please contact me on the following email address:
 </para>
 
 <para>
-If you have commentaries and/or suggestions, please let me know as well!  
+If you have comments and/or suggestions, please let me know as well!  
 </para>
 </sect2>
 
@@ -189,7 +233,12 @@ Please download the following packages.
             (LDAP module for LDAP)</para></listitem>
             
        <listitem><para><ulink url="http://www.openssl.org">OpenSSL</ulink>
-       	    (SSL for encryption)</para></listitem>
+       	    (SSL enginer for creating/managing certificates)</para></listitem>
+       	    
+       <listitem><para><ulink url="http://www.modssl.org/">mod_SSL</ulink>
+       	    (SSL Module for Apache)</para></listitem>
+       	    
+       	    
     </itemizedlist>
 
 
@@ -213,20 +262,16 @@ solution. </para>
 <para><command>$ su</command></para>
 
 <para> Now change to the directory where you placed the OpenLDAP
-(tar) source file into. (I use a temp directory, 
+(tar) source file, and extract the content. (I use a temp directory, 
 <filename>/tmp/download</filename>):  </para>
 
-<para><command># cd /tmp/download</command></para>
-
-<para> Extract the files using the gzip and tar utility:  </para>
-
-<para><command># gzip -d openldap-stable-xxxxxxx.tar.gz</command></para>
-<para><command># tar -xvf openldap-stable-xxxxxxx.tar</command></para>
-
-<para>Change to the NEW directory which was created during the
-extract.  </para>
-
-<para><command># cd openldap-x.x.xx</command></para>
+<para><screen>
+<command># cd /tmp/download</command>
+<command># gzip -d openldap-stable-xxxxxxx.tar.gz</command>
+<command># tar -xvf openldap-stable-xxxxxxx.tar</command>
+<command># cd openldap-x.x.xx</command>
+</screen>
+</para>
 
 <para> Now you can run "<command>configure</command>" for the
 openldap package.  "<command>configure</command>" has many command
@@ -268,22 +313,15 @@ for the lib files that will be used by the SSL module for apache.</para>
 
 <para>Now change to the directory where you placed the OpenSSL source code files</para>
 
-<para><command># cd /tmp/download</command></para>
-
-Unzip openssl source code gzip file
-
-<para><command>gzip -d openssl.x.x.gz</command></para>
-
-<para><command>tar -xvf openssl.x.x</command></para>
-
-<para><command>cd openssl.x.x</command></para>
-
-<para><command>make</command></para>
-
-<para><command>make test</command></para>
-
-<para><command>make install</command></para>
-
+<para><screen>
+<command># cd /tmp/download</command>
+<command># gzip -d openssl.x.x.gz</command>
+<command># tar -xvf openssl.x.x</command>
+<command># cd openssl.x.x</command>
+<command># make</command>
+<command># make test</command>
+<command># make install</command>
+</screen></para>
 </sect3>
 </sect2>
 
@@ -306,15 +344,14 @@ where you have the source files:  </para>
 <sect2><title>Configuring and Installing mod_dav</title>
 
 <para>As mentioned above mod_dav will be statically linked with the
-Apache installation.  Start by changing to the temp download
-directory: </para>
+Apache installation.  Start by extracting mod_dav files: </para>
 
-<para><command># cd /tmp/download </command></para>
-
-<para>Extract the files using the gzip and tar utilities:</para>
-
-<para><command># gzip -d mod_dav-1.x.x.tar.gz</command></para>
-<para><command># tar -xvf mod_dav-1.x.x.tar</command></para>
+<para><screen>
+<command># cd /tmp/download </command>
+<command># gzip -d mod_dav-1.x.x.tar.gz</command>
+<command># tar -xvf mod_dav-1.x.x.tar</command>
+</screen>
+</para>
 
 <para> Change to the NEW directory which was created during the
 extract: </para>
@@ -336,37 +373,38 @@ Apache tree during the make install step.</para>
 
 <sect2><title>Installing and configuring mod_auth_ldap</title>
 
-<para>Change back to the temp download directory:</para>
+<para>Change back to the temp download directory, and extract the mod_auth_ldap files:</para>
 
-<para><command># cd /tmp/download</command></para>
-
-<para>Extract the mod_auth_ldap files:</para>
-
-<para><command># gzip -d mod _auth_ldap.tar.gz</command></para>
-<para><command># tar -xvf mod_auth_ldap.tar</command></para>
+<para><screen>
+<command># cd /tmp/download</command>
+<command># gzip -d mod _auth_ldap.tar.gz</command>
+<command># tar -xvf mod_auth_ldap.tar</command>
+</screen>
+</para>
 
 <para>Now install the modauthldap files to the Apache source tree: </para>
 
-<para><command>cd apache_x.x.x</command></para>
-<para><command>mv ../modauthldap ./src/modules/ldap </command></para>
+<para><screen>
+<command>cd apache_x.x.x</command>
+<command>mv ../modauthldap ./src/modules/ldap </command>
+</screen></para>
 </sect2>
 
 <sect2><title>Installing and configuring mod_ssl</title>
 Now we willl need to configure the SSL module for Apache
 
-<para><command># cd /tmp/download </command></para>
-
-<command><para># gzip -d mod_ssl-2.x.x.tar.gz</command></para>
-
-<command><para># tar -xvf  mod_ssl-2.x.tar</command></para>
-
-<command><para># ./configure --with-apache=../apache_1.3.x.x</command></para>
-
+<para><screen>
+<command># cd /tmp/download </command>
+<command># gzip -d mod_ssl-2.x.x.tar.gz</command>
+<command># tar -xvf  mod_ssl-2.x.tar</command>
+<command># ./configure --with-apache=../apache_1.3.x.x</command>
+</screen>
+</para>
 </sect2>
 
 <sect2><title>Configuring and Installing Apache</title>
 
-<para> Finally we have reached the destination.  But not yet....... "The Journey is the Destination" (Jerry Garica of Grateful Dead)  </para>
+<para> Finally we have reached the destination.  But not yet....... <screen>"The Journey is the Destination" (Jerry Garica of Grateful Dead)</screen>  </para>
 
 <para> Now we are ready to compile and install Apache with WebDAV and
 LDAP authentication for DAV.  </para>
@@ -379,21 +417,40 @@ LDAP authentication for DAV.  </para>
 
 <para><command># cd apache-x.x.x</command></para>
 
-<para>and configure apache for the compilation with mod_dav 
-and mod_auth_ldap: </para>
+<para>Now set the variable SSL_BASE to the OpenSSL lib files. On tcsh it will be as following:</para>
+<para><screen>
+<command># setenv SSL_BASE /tmp/download/openssl-0.9.x</command>
+</screen></para> 
+
+<para>This will the compiler where to find the SSL LIB files.</para>
+
+<para>And now configure apache for the compilation with mod_dav, mod_auth_ldap, and mod_ssl: </para>
+
 
 <para><screen>
 <command>  # ./configure --prefix=/usr/local/apache \
+     --enable-module=ssl \
      --activate-module=src/modules/ldap/mod_auth_ldap.c \
-     --activate-module=src/modules/dav/libdav.a 
+     --activate-module=src/modules/dav/libdav.a \
+     --enable-shared=ssl 
      
      [...you can add more options here...] </command>
 </screen></para>
+ 
+<para>--enable-shared is an optional, it tells the configure to compile SSL as dynamic module. Depending on the
+services that you will be providing, you may or may not need dynamic compilation.</para>
  
 <para>Now compile the Apache and install it into the appropriate
 place: </para>
 
 <para><command># make </command></para>
+<para>Now create the SSL certification on the web server</para>
+<para><command># make certificate TYPE=custom</command></para>
+<para>Follow through the instructions, and you will have a certificate in no time. Remember CommonName is your 
+FQDN (Fully Qualified Domain Name) e.g. dav.yourcompany.com</para>
+<para>For details on creating and managing the SSL certificates, please read the section titled "Creating and Managing SSL certificates".</para>
+
+<para>Now install Apache into its own directory</para>
 <para><command># make install</command></para>
 </sect2>
 
@@ -509,7 +566,7 @@ the <filename>/usr/local/apache/conf/httpd.conf</filename> file.
 be writable by the WebServer process. In this example we assume
 WebServer is running under username '<emphasis>nobody</emphasis>'.
 This is usually the case. To check httpd is running under what user,
-please use '<command>ps -ef | grep httpd</command>'.  </para>
+please use '<screen><command>ps -ef | grep httpd</command></screen>'.  </para>
 
 <para>Create a test directory  called '<filename>DAVtest</filename>'
 under <filename>/usr/local/apache/htdocs</filename> :</para>
