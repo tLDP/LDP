@@ -16,8 +16,11 @@
 #  + <colspec colname="col0" align="center">
 #
 # Changes:
-#  20020119: Initial release
+#  20020119/PB: Initial release
+#  20020125/PB: Minor review
 #
+
+print STDERR "INF : Fix 'colspec' lines\n";
 
 while (<STDIN>) {
 	my $line = $_;
@@ -27,11 +30,14 @@ while (<STDIN>) {
 	#print "\n";
 
 	if ($line =~ /^<colspec/) {
-		print STDERR "INF: Find a 'colspec' line \n";
+		if ($line =~ /\/>$/) {
+			print STDERR "C";
 
-		# Substitute '/>' with '>'
-		$line =~ s/\/>$/>/g;
+			# Substitute '/>' with '>'
+			$line =~ s/\/>$/>/g;
+		};
 	};
 
        	print $line . "\n";
 };
+print STDERR "\n";

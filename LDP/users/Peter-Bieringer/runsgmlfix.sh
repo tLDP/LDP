@@ -14,6 +14,7 @@ FILE_LYX="Linux+IPv6-HOWTO.lyx"
 FILE_TMP="tmp.sgml"
 
 PROG_FIX_TABLETAG="sgmllyxtabletagfix.pl"
+PROG_FIX_QUOTE="sgmllyxquotefix.pl"
 
 if [ "$FILE_LYX" -nt "$FILE_SGML" ]; then
 	echo "ERR : LyX file '$FILE_LYX' is newer than SGML file '$FILE_SGML' - forgot to export?"
@@ -31,7 +32,7 @@ if [ -f "$FILE_TMP" ]; then
 fi
 
 echo "INF : Fix SGML now"
-cat "$FILE_SGML" | ./$PROG_FIX_TABLETAG >$FILE_TMP
+cat "$FILE_SGML" | ./$PROG_FIX_TABLETAG | ./$PROG_FIX_QUOTE >$FILE_TMP
 
 echo "INF : Remove old SGML file '$FILE_SGML'"
 rm "$FILE_SGML"
