@@ -45,3 +45,6 @@ docs:
 xsl:
 	cd xsl; $(MAKE) all
 
+dist:
+	today=`date "+%Y-%m-%d"`; \
+	tar -X exclude -vzcf lampadas-${today}.tar.gz .

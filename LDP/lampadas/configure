@@ -1,6 +1,7 @@
 #!/bin/bash
 
-DOCBOOK_DIR=/usr/share/sgml/docbook
+SGML_DIR=/usr/share/sgml
+DOCBOOK_DIR=${SGML_DIR}/docbook
 
 #
 # check
@@ -36,8 +37,8 @@ check_file()
 
 which_test()
 {
-  local file=$( which "$@" 2> /dev/null )
-  [ -x "${file}" ]
+  WHICH_FILE=$( which "$@" 2> /dev/null )
+  [ -x "${WHICH_FILE}" ]
 }
 
 #
@@ -75,18 +76,23 @@ identify_dist()
 #
 check_dist_redhat()
 {
-  local dir=${DOCBOOK_DIR}/xsl-stylesheets/html
-  local error="'docbook-style-xsl' is not installed."
-
-  xmldir=$( ls ${DOCBOOK_DIR} | sed -n -e '
+  dir=$( ls ${DOCBOOK_DIR} | sed -n -e '
 	/xml-dtd-4.1.2/ {
 		p
 		q
 	}
 ' )
 
-  XML_DTD_412=${DOCBOOK_DIR}/${xmldir}/docbookx.dtd
+  local dir=${DOCBOOK_DIR}/${dir}
+  local error="'docbook-dtds' is not installed."
+  XML_DTD_412=${dir}/docbookx.dtd
   check_file exit ${XML_DTD_412} ${error}
+
+  XML_ISO_NUM=${dir}/ent/iso-num.ent
+  check_file exit ${XML_ISO_NUM} ${error}
+
+  local dir=${DOCBOOK_DIR}/xsl-stylesheets/html
+  local error="'docbook-style-xsl' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
   check_file exit ${HTML_CHUNK} ${error}
@@ -100,11 +106,16 @@ check_dist_redhat()
 #
 check_dist_debian()
 {
-  local dir=${DOCBOOK_DIR}/stylesheet/xsl/nwalsh/html
-  local error="'docbook-xsl-stylesheets' is not installed."
-
+  # 2.2r6 = /usr/lib/sgml/dtd/docbook-xml/docbookx.dtd?
   XML_DTD_412=${DOCBOOK_DIR}/dtd/xml/4.1.2/docbookx.dtd
   check_file exit ${XML_DTD_412} "'docbook-xml' is not installed."
+
+  # 2.2r6 = /usr/lib/sgml/entities/iso-num.ent?
+  XML_ISO_NUM=${SGML_DIR}/entities/xml-iso-entities-8879.1986/ISOnum.ent
+  check_file exit ${XML_ISO_NUM} "'sgml-data' is not installed."
+
+  local dir=${DOCBOOK_DIR}/stylesheet/xsl/nwalsh/html
+  local error="'docbook-xsl-stylesheets' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
   check_file exit ${HTML_CHUNK} ${error}
@@ -118,11 +129,16 @@ check_dist_debian()
 #
 check_dist_suse()
 {
-  local diir=/usr/share/doc/packages/docbook-xsl-stylesheets/html
-  local error="'docbook-xsl-stylesheets' is not installed."
+  dir=${SGML_DIR}/db41xml
 
-  XML_DTD_412=/usr/share/sgml/db41xml/docbookx.dtd
+  XML_DTD_412=${dir}/docbookx.dtd
   check_file exit ${XML_DTD_412} "'docbook_4' is not installed."
+
+  XML_ISO_NUM=${dir}/ent/iso-num.ent
+  check_file exit ${XML_ISO_NUM} "'docbook_4' is not installed."
+
+  local dir=/usr/share/doc/packages/docbook-xsl-stylesheets/html
+  local error="'docbook-xsl-stylesheets' is not installed."
 
   HTML_CHUNK=${dir}/chunk.xsl
   check_file exit ${HTML_CHUNK} ${error}
@@ -140,7 +156,7 @@ patch_xsl()
   local postfix='\(\".*\)$'
 
   for file in xsl/*.xsl; do
-    echo -n "Patching ${file} ..."
+    echo -n "Patching ${file} ... "
     sed -e "s|${prefix}.*\/chunk.xsl${postfix}|\1${HTML_CHUNK}\2|" \
 	-e "s|${prefix}.*\/docbook.xsl${postfix}|\1${HTML_DOCBOOK}\2|" \
     	${file} > ${file}.tmp
@@ -186,7 +202,8 @@ patch_setenv()
   local prefix='^[[:space:]]*export[[:space:]]*LAMPADAS_'
 
   echo -n "Patching ${file} ... "
-  sed -e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
+  sed	-e "s|\(${prefix}XML_DTD_412=\).*|\1\"${XML_DTD_412}\"|" \
+  	-e "s|\(${prefix}XML_ISO_NUM=\).*|\1\"${XML_ISO_NUM}\"|" \
   	${file} > ${file}.tmp
   if [ $? != 0 ] || ! mv -f ${file}.tmp ${file}; then
     echo "No."
@@ -194,6 +211,41 @@ patch_setenv()
   fi
   echo "Ok"
   return 0
+}
+
+#
+# check_python_version
+#
+check_python_version()
+{
+  local python=$1
+
+  echo -n "${python} -V = "
+  local line=$( ( ${python} -V 2>&1 ) | sed -n "1 p" )
+  echo -n "${line} ... "
+
+  local version="${line#Python }"
+  if [ "${version}" != "${line}" ]; then
+    version="${version%%.*}"
+    if [ "${version}" -ge 2 ]; then
+      echo "Ok."
+      return 0
+    fi
+  fi
+  echo "No."
+  return 1
+}
+
+#
+# check_python
+#
+check_python()
+{
+  check_which exit python || return 1
+  check_python_version ${WHICH_FILE} && return 0
+
+  check_which exit python2 || return 1
+  check_python_version ${WHICH_FILE} && return 0
 }
 
 #
@@ -207,5 +259,7 @@ check_which exit perl
 check_which exit xsltproc
 check_html_parser || exit -1
 check_which exit wt2db
+check_python || exit -1
+
 patch_xsl || exit -1
 patch_setenv bin/setenv.sh || exit -1
