@@ -88,196 +88,229 @@ class Lampadas:
         self.users           = Users()
 
             
+# Licenses
+
+class Licenses(TableCollection):
+    """
+    A collection object of all licenses.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, License,
+                                 'license',
+                                 {'license_code': 'code'},
+                                 ['free', 'dfsg_free', 'osi_cert_free', 'url', 'sort_order'],
+                                 {'license_short_name': 'short_name', 'license_name': 'name', 'license_desc': 'description'})
+
+class License:
+    """
+    A documentation or software license.
+    """
+    pass
+
+
+# DTDs
+
+class DTDs(TableCollection):
+    """
+    A collection object of Document Type Definitions.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, DTD,
+                                 'dtd',
+                                 {'dtd_code': 'code'},
+                                 [],
+                                 {'dtd_name': 'name', 'dtd_desc': 'description'})
+
+class DTD:
+    """
+    A Data Type Definition, for SGML and XML documents.
+    """
+    pass
+
+
+# Formats
+
+class Formats(TableCollection):
+    """
+    A collection object of all formats.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, Format,
+                                 'format',
+                                 {'format_code': 'code'},
+                                 [],
+                                 {'format_name': 'name', 'format_desc': 'description'})
+
+class Format:
+    """
+    A file format, for document source files.
+    """
+    pass
+
+
+# PubStatuses
+
+class PubStatuses(TableCollection):
+    """
+    A collection object of all publication statuses.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, PubStatus,
+                                 'pub_status',
+                                 {'pub_status_code': 'code'},
+                                 'sort_order',
+                                 {'pub_status_name': 'name', 'pub_status_desc': 'description'})
+
+class PubStatus:
+    """
+    The Publication Status defines where in the publication process a
+    document is.
+    """
+    pass
+
+
+# ReviewStatuses
+
+class ReviewStatuses(TableCollection):
+    """
+    A collection object of all publication statuses.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, ReviewStatus,
+                                 'review_status',
+                                 {'review_status_code': 'code'},
+                                 'sort_order',
+                                 {'review_status_name': 'name', 'review_status_desc': 'description'})
+
+class ReviewStatus:
+    """
+    The Review Status defines where in the review process a
+    document is.
+    """
+    pass
+
+
+# Topics
+
+class Topics(TableCollection):
+    """
+    A collection object of all topics.
+    """
+    
+    def __init__(self):
+        TableCollection.__init__(self, Topic,
+                                 'topic',
+                                 {'topic_code': 'code'},
+                                 ['sort_order', 'parent_code'],
+                                 {'topic_name': 'name', 'topic_desc': 'description'})
+        
+
+    def load(self):
+        TableCollection.load(self)
+        self.calc_titles()
+
+    def calc_titles(self):
+        for topic_code in self.sort_by('sort_order'):
+            topic = self[topic_code]
+            topic.title = LampadasCollection()
+            parent_code = topic.parent_code
+            for lang in languages.supported_keys('EN'):
+                topic.title[lang] = ''
+                if parent_code > '':
+                    topic.title[lang] = self[parent_code].title[lang] + ': '
+                topic.title[lang] = topic.title[lang] + topic.name[lang]
+    
+class Topic:
+    """
+    Each document can be assigned an arbitrary number of topics.
+    The web interface allows a user to browse through document topics,
+    to help them find a document on the subject in which they are interested.
+    """
+    pass
+
 # Encodings
 
-class Encodings(LampadasCollection):
+class Encodings(TableCollection):
     """
     A collection object of all encodings.
     """
     
-    def load(self):
-        sql = "SELECT encoding FROM encoding"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            encoding = Encoding()
-            encoding.load_row(row)
-            self.data[encoding.encoding] = encoding
-
+    def __init__(self):
+        TableCollection.__init__(self, Encoding,
+                                 'encoding',
+                                 'encoding')
+                                 
 class Encoding:
     """
     A encoding is a way of representing characters.
     """
-
-    def __init__(self, encoding=''):
-        self.encoding = encoding
-
-    def load_row(self, row):
-        self.encoding = trim(row[0])
+    pass
 
 
 # Roles
 
-class Roles(LampadasCollection):
+class Roles(TableCollection):
     """
     A collection object of all roles.
     """
     
-    def load(self):
-        sql = "SELECT role_code FROM role"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            role = Role()
-            role.load_row(row)
-            self.data[role.code] = role
-        sql = "SELECT role_code, lang, role_name, role_desc FROM role_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            role_code = trim(row[0])
-            role = self[role_code]
-            lang = row[1]
-            role.name[lang] = trim(row[2])
-            role.description[lang] = trim(row[3])
-
+    def __init__(self):
+        TableCollection.__init__(self, Role,
+                                 'role',
+                                 {'role_code': 'code'},
+                                 [],
+                                 {'role_name': 'name', 'role_desc': 'description'})
 
 class Role:
     """
     A role is a way of identifying the role a user plays in the production
     of a document.
     """
-
-    def __init__(self, role_code=None):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if role_code==None: return
-        self.code = role_code
-
-    def load_row(self, row):
-        self.code       = trim(row[0])
+    pass
 
 
 # Collections
 
-class Collections(LampadasCollection):
+class Collections(TableCollection):
     """A collection object of all document collections."""
-    
-    def load(self):
-        sql = "SELECT collection_code, sort_order FROM collection"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            collection = Collection()
-            collection.load_row(row)
-            self.data[collection.code] = collection
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            collection_code = trim(row[0])
-            collection = self[collection_code]
-            lang = row[1]
-            collection.name[lang] = trim(row[2])
-            collection.description[lang] = trim(row[3])
+   
+    def __init__(self):
+        TableCollection.__init__(self, Collection,
+                                 'collection',
+                                 {'collection_code': 'code'},
+                                 'sort_order',
+                                 {'collection_name': 'name', 'collection_desc': 'description'})
 
 class Collection:
     """A collection is an arbitrary set of documents."""
-
-    def __init__(self, collection_code=''):
-        self.code = collection_code
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if collection_code=='': return
-        self.load()
-
-    def load(self):
-        sql = 'SELECT collection_code, sort_order FROM collection WHERE collection_code=' + wsq(self.code)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n WHERE collection_code=' + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[1]
-            self.name[lang] = trim(row[2])
-            self.description[lang] = trim(row[3])
-        
-    def load_row(self, row):
-        self.code       = trim(row[0])
-        self.sort_order = row[1]
+    pass
 
 
 # Types
 
-class Types(LampadasCollection):
+class Types(TableCollection):
     """
     A type object of all document classes (HOWTO, FAQ, etc).
     """
-    
-    def load(self):
-        sql = "SELECT type_code, sort_order FROM type"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            type = Type()
-            type.load_row(row)
-            self.data[type.code] = type
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            type_code = trim(row[0])
-            type = self[type_code]
-            lang = row[1]
-            type.name[lang] = trim(row[2])
-            type.description[lang] = trim(row[3])
 
+    def __init__(self):
+        TableCollection.__init__(self, Type,
+                                 'type',
+                                 {'type_code': 'code'},
+                                 'sort_order',
+                                 {'type_name': 'name', 'type_desc': 'description'})
 
 class Type:
     """
     A type is a way of identifying the type of a document, such as a
     User's Guide, a HOWTO, or a FAQ List.
     """
-
-    def __init__(self, type_code=''):
-        self.code = type_code
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-
-    def load(self):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        sql = 'SELECT type_code, sort_order FROM type WHERE type_code=' + wsq(self.code)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[1]
-            self.name[lang] = trim(row[2])
-            self.description[lang] = trim(row[3])
-
-    def load_row(self, row):
-        self.code       = trim(row[0])
-        self.sort_order = row[1]
+    pass
 
 
 # Documents
@@ -1290,346 +1323,6 @@ class DocNote:
         self.notes   = trim(row[2])
         self.creator = trim(row[3])
         self.created = time2str(row[4])
-
-
-# Licenses
-
-class Licenses(LampadasCollection):
-    """
-    A collection object of all licenses.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT license_code, free, dfsg_free, osi_cert_free, url, sort_order from license"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            license = License()
-            license.load_row(row)
-            self.data[license.code] = license
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT license_code, lang, license_short_name, license_name, license_desc FROM license_i18n'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            license_code = trim(row[0])
-            license      = self[license_code]
-            lang         = row[1]
-            license.short_name[lang]  = trim(row[2])
-            license.name[lang]        = trim(row[3])
-            license.description[lang] = trim(row[4])
-
-class License:
-    """
-    A documentation or software license.
-    """
-
-    def __init__(self, license_code='', free=0, dfsg_free=0, osi_cert_free=0, url='', sort_order=0):
-        self.code          = license_code
-        self.free          = free
-        self.dfsg_free     = dfsg_free
-        self.osi_cert_free = osi_cert_free
-        self.url           = url
-        self.sort_order    = sort_order
-        self.short_name    = LampadasCollection()
-        self.name          = LampadasCollection()
-        self.description   = LampadasCollection()
-
-    def load_row(self, row):
-        self.code          = trim(row[0])
-        self.free          = tf2bool(row[1])
-        self.dfsg_free     = tf2bool(row[2])
-        self.osi_cert_free = tf2bool(row[3])
-        self.url           = trim(row[4])
-        self.sort_order    = row[5]
-
-
-# DTDs
-
-class DTDs(LampadasCollection):
-    """
-    A collection object of Document Type Definitions.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = 'SELECT dtd_code from dtd'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            dtd = DTD()
-            dtd.load_row(row)
-            self.data[dtd.code] = dtd
-        sql = 'SELECT dtd_code, lang, dtd_name, dtd_desc FROM dtd_i18n'
-        cursor = db.select(sql)
-        while(1):
-            row = cursor.fetchone()
-            if row==None: break
-            dtd_code = trim(row[0])
-            dtd      = self[dtd_code]
-            lang     = row[1]
-            dtd.name[lang]        = trim(row[2])
-            dtd.description[lang] = trim(row[3])
-
-class DTD:
-    """
-    A Data Type Definition, for SGML and XML documents.
-    """
-
-    def __init__(self, dtd_code=''):
-        self.code = dtd_code
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if dtd_code=='': return
-        self.load()
-
-    def load(self):
-        sql = 'SELECT dtd_code FROM dtd WHERE dtd_code=' + wsq(dtd_code)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-        sql = 'SELECT dtd_code, lang, dtd_name, dtd_desc FROM dtd_i18n WHERE dtd_code=' + wsq(dtd_code)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        lang = row[1]
-        self.name[lang]        = trim(row[2])
-        self.description[lang] = trim(row[3])
-
-    def load_row(self, row):
-        self.code = trim(row[0])
-
-
-# Formats
-
-class Formats(LampadasCollection):
-    """
-    A collection object of all formats.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = 'SELECT format_code FROM format'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            format = Format()
-            format.load_row(row)
-            self.data[format.code] = format
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT format_code, lang, format_name, format_desc FROM format_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            format_code = trim(row[0])
-            format = self[format_code]
-            lang                   = row[1]
-            format.name[lang]        = trim(row[2])
-            format.description[lang] = trim(row[3])
-
-class Format:
-    """
-    A file format, for document source files.
-    """
-
-    def __init__(self):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-
-    def load_row(self, row):
-        self.code = trim(row[0])
-
-
-# PubStatuses
-
-class PubStatuses(LampadasCollection):
-    """
-    A collection object of all publication statuses.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT pub_status_code, sort_order FROM pub_status"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            newPubStatus = PubStatus()
-            newPubStatus.load_row(row)
-            self.data[newPubStatus.code] = newPubStatus
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT pub_status_code, lang, pub_status_name, pub_status_desc FROM pub_status_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            pub_status_code = trim(row[0])
-            pub_status = self[pub_status_code]
-            lang = row[1]
-            pub_status.name[lang] = trim(row[2])
-            pub_status.description[lang] = trim(row[3])
-
-class PubStatus:
-    """
-    The Publication Status defines where in the publication process a
-    document is.
-    """
-    
-    def __init__(self, pub_status_code=None):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if pub_status_code==None: return
-        self.code = pub_status_code
-
-    def load_row(self, row):
-        self.code       = trim(row[0])
-        self.sort_order = row[1]
-
-
-# ReviewStatuses
-
-class ReviewStatuses(LampadasCollection):
-    """
-    A collection object of all publication statuses.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT review_status_code, sort_order FROM review_status"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            review_status = ReviewStatus()
-            review_status.load_row(row)
-            self.data[review_status.code] = review_status
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT review_status_code, lang, review_status_name, review_status_desc FROM review_status_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            review_status_code = trim(row[0])
-            review_status = self[review_status_code]
-            lang = row[1]
-            review_status.name[lang] = trim(row[2])
-            review_status.description[lang] = trim(row[3])
-
-class ReviewStatus:
-    """
-    The Review Status defines where in the review process a
-    document is.
-    """
-    
-    def __init__(self, review_status_code=None):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if review_status_code==None: return
-        self.code = review_status_code
-
-    def load_row(self, row):
-        self.code       = trim(row[0])
-        self.sort_order = row[1]
-
-
-# Topics
-
-class Topics(LampadasCollection):
-    """
-    A collection object of all topics.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT parent_code, topic_code, sort_order FROM topic"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            topic = Topic()
-            topic.load_row(row)
-            self.data[topic.code] = topic
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            topic_code = trim(row[0])
-            topic = self[topic_code]
-            lang = row[1]
-            topic.name[lang] = trim(row[2])
-            topic.description[lang] = trim(row[3])
-        self.calc_titles()
-
-    def calc_titles(self):
-        for topic_code in self.sort_by('sort_order'):
-            topic = self[topic_code]
-            topic.title = LampadasCollection()
-            parent_code = topic.parent_code
-            for lang in languages.supported_keys('EN'):
-                topic.title[lang] = ''
-                if parent_code > '':
-                    topic.title[lang] = self[parent_code].title[lang] + ': '
-                topic.title[lang] = topic.title[lang] + topic.name[lang]
-    
-class Topic:
-    """
-    Each document can be assigned an arbitrary number of topics.
-    The web interface allows a user to browse through document topics,
-    to help them find a document on the subject in which they are interested.
-    """
-
-    def __init__(self, parent_code='', topic_code='', sort_order=0):
-        self.code        = topic_code
-        self.sort_order  = sort_order
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        self.parent_code = parent_code
-        self.docs = TopicDocs(topic_code)
-        if topic_code > '':
-            self.load()
-
-    def load(self):
-        sql = 'SELECT parent_code, topic_code, sort_order FROM topic WHERE topic_code=' + wsq(self.code)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n WHERE topic_code=' + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang = row[1]
-            self.name[lang] = trim(row[2])
-            self.description[lang] = trim(row[3])
-        
-    def load_row(self, row):
-        self.parent_code = trim(row[0])
-        self.code        = trim(row[1])
-        self.sort_order  = safeint(row[2])
-        self.docs        = TopicDocs(self.code)
 
 
 # SubtopicDocs
