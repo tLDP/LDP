@@ -43,7 +43,7 @@ esac
 
 echo
 
-# Exercise for the reader:
+# Exercise:
 # Change the above "case" statement to also accept "yes" and "Yes" as input.
 
 exit 0

@@ -7,16 +7,14 @@ ARGS=1
 E_BADARGS=65
 E_NOFILE=66
 
-if [ $# -ne $ARGS ]  # Correct number of arguments passed to script?
+if [ $# -ne "$ARGS" ]  # Correct number of arguments passed to script?
 then
   echo "Usage: `basename $0` filename"
   exit $E_BADARGS
 fi
 
-if [ -f "$1" ]       # Check if file exists.
+if [ ! -f "$1" ]       # Check if file exists.
 then
-  file_name=$1
-else
   echo "File \"$1\" does not exist."
   exit $E_NOFILE
 fi
@@ -24,7 +22,7 @@ fi
 
 
 ########################################################
-# main
+# main ()
 sed -e 's/\.//g'  -e 's/ /\
 /g' "$1" | tr 'A-Z' 'a-z' | sort | uniq -c | sort -nr
 #                           =========================
@@ -36,7 +34,8 @@ sed -e 's/\.//g'  -e 's/ /\
 #+ finally prefix occurrence count and sort numerically.
 ########################################################
 
-# Exercises for the reader:
+# Exercises:
+# ---------
 # 1) Add 'sed' commands to filter out other punctuation, such as commas.
 # 2) Modify to also filter out multiple spaces and other whitespace.
 # 3) Add a secondary sort key, so that instances of equal occurrence

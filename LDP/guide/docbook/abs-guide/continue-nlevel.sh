@@ -22,7 +22,7 @@ done
 
 echo; echo
 
-# Exercise for the reader:
+# Exercise:
 # Come up with a meaningful use for "continue N" in a script.
 
 exit 0

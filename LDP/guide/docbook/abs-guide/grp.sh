@@ -28,7 +28,7 @@ echo
 
 exit 0
 
-# Exercises for reader:
-# --------------------
+# Exercises:
+# ---------
 # 1) Add newlines to output, if more than one match in any given file.
 # 2) Add features.

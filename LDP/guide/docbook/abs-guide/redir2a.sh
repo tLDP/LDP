@@ -2,10 +2,10 @@
 
 # This is an alternate form of the preceding script.
 
-# Suggested by Heiner Steven
-# as a workaround in those situations when a redirect loop
-# runs as a subshell, and therefore variables inside the loop
-# do not keep their values upon loop termination.
+#  Suggested by Heiner Steven
+#+ as a workaround in those situations when a redirect loop
+#+ runs as a subshell, and therefore variables inside the loop
+# +do not keep their values upon loop termination.
 
 
 if [ -z "$1" ]

@@ -41,12 +41,12 @@ read answer
 PrintAnswer
 
 
-# Admittedly, this is a kludgy implementation of timed input,
-# but pretty much as good as can be done with Bash.
-# (Challenge to reader: come up with something better.)
+#  Admittedly, this is a kludgy implementation of timed input,
+#+ however the "-t" option to "read" simplifies this task.
+#  See "t-out.sh", below.
 
-# If you need something a bit more elegant...
-# consider writing the application in C or C++,
-# using appropriate library functions, such as 'alarm' and 'setitimer'.
+#  If you need something really elegant...
+#+ consider writing the application in C or C++,
+#+ using appropriate library functions, such as 'alarm' and 'setitimer'.
 
 exit 0

@@ -263,7 +263,8 @@ echo
 
 
 
-# Exercise for reader:
+# Exercise:
+# --------
 # Add code to test all the other string functions above.
 
 

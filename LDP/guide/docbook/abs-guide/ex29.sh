@@ -10,7 +10,8 @@ case "$Keypress" in
   *       ) echo "Punctuation, whitespace, or other";;
 esac  # Allows ranges of characters in [square brackets].
 
-# Exercise for the reader:
+# Exercise:
+# --------
 # As the script stands, # it accepts a single keystroke, then terminates.
 # Change the script so it accepts continuous input,
 # reports on each keystroke, and terminates only when "X" is hit.

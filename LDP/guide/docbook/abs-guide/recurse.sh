@@ -19,6 +19,6 @@ fi                 #  Each child script does the same, until
                    #+ a generated $i equals $MAXVAL.
 
 #  Using a "while" loop instead of an "if/then" test causes problems.
-#  Exercise for the reader: Explain why.
+#  Explain why.
 
 exit 0

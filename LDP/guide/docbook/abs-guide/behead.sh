@@ -18,7 +18,7 @@ else
 	done
 fi
 
-# ==> Exercise for the reader: Add error checking and other options.
+# ==> Exercise: Add error checking and other options.
 # ==>
 # ==> Note that the small sed script repeats, except for the arg passed.
 # ==> Does it make sense to embed it in a function? Why or why not?

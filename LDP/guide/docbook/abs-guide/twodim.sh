@@ -119,12 +119,12 @@ rotate         # Rotate it 45 degrees counterclockwise.
 
 # This is a rather contrived, not to mention kludgy simulation.
 #
-# Exercise #1 for the reader:
-# Rewrite the array loading and printing functions
-# in a more intuitive and elegant fashion.
+# Exercises:
+# ---------
+# 1)  Rewrite the array loading and printing functions
+#   + in a more intuitive and elegant fashion.
 #
-# Exercise #2:
-# Figure out how the array rotation functions work.
-# Hint: think about the implications of backwards-indexing an array.
+# 2)  Figure out how the array rotation functions work.
+#     Hint: think about the implications of backwards-indexing an array.
 
 exit 0

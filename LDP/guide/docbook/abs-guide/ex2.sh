@@ -36,12 +36,12 @@ fi
 #    *       ) lines=$1;;
 #    esac
 #
-#* Skip ahead to "Loops" to understand this.
+#* Skip ahead to "Loops" chapter to understand this.
 
 
 cd $LOG_DIR
 
-if [ `pwd` != "$LOG_DIR" ]  # or   if [ "$PWD" != "LOG_DIR" ]
+if [ `pwd` != "$LOG_DIR" ]  # or   if [ "$PWD" != "$LOG_DIR" ]
                             # Not in /var/log?
 then
   echo "Can't change to $LOG_DIR."

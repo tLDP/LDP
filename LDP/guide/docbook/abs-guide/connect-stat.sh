@@ -48,6 +48,7 @@ exit 0
 
 # As it stands, this script must be terminated with a Control-C.
 
-#    Exercises for the reader:
+#    Exercises:
+#    ---------
 #    Improve the script so it exits on a "q" keystroke.
 #    Make the script more user-friendly in other ways.

@@ -40,6 +40,7 @@ fi
   
 exit 0
 
-# Exercise for the reader (easy):
-# Convert this to an interactive script,
-# that is, have the script ask for input (two numbers).
+#  Exercise (easy):
+#  ---------------
+#  Convert this to an interactive script,
+#+ that is, have the script ask for input (two numbers).

@@ -7,10 +7,12 @@ else
   Filename=$1
 fi  
 
-line_count=`wc $Filename | awk '{ print $1 }'`  # Number of lines in target file.
-# Very contrived and kludgy, nevertheless shows that
-# it's possible to redirect stdin within a "for" loop...
-# if you're clever enough.
+line_count=`wc $Filename | awk '{ print $1 }'`
+#           Number of lines in target file.
+#
+#  Very contrived and kludgy, nevertheless shows that
+#+ it's possible to redirect stdin within a "for" loop...
+#+ if you're clever enough.
 #
 # More concise is     line_count=$(wc < "$Filename")
 

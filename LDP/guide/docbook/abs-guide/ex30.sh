@@ -58,8 +58,9 @@ esac
 
 echo
 
-# Exercise for the reader:
-# Change the script so it accepts continuous input,
-# instead of terminating after displaying just one address.
+#  Exercise:
+#  --------
+#  Change the script so it accepts continuous input,
+#+ instead of terminating after displaying just one address.
 
 exit 0

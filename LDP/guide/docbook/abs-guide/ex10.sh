@@ -8,7 +8,27 @@ then
   echo "0 is true."
 else
   echo "0 is false."
-fi
+fi            # 0 is true.
+
+echo
+
+echo "Testing \"1\""
+if [ 1 ]      # one
+then
+  echo "1 is true."
+else
+  echo "1 is false."
+fi            # 1 is true.
+
+echo
+
+echo "Testing \"-1\""
+if [ -1 ]     # minus one
+then
+  echo "-1 is true."
+else
+  echo "-1 is false."
+fi            # -1 is true.
 
 echo
 
@@ -18,7 +38,7 @@ then
   echo "NULL is true."
 else
   echo "NULL is false."
-fi
+fi            # NULL is false.
 
 echo
 
@@ -28,7 +48,7 @@ then
   echo "Random string is true."
 else
   echo "Random string is false."
-fi
+fi            # Random string is true.
 
 echo
 
@@ -39,7 +59,7 @@ then
   echo "Uninitialized variable is true."
 else
   echo "Uninitialized variable is false."
-fi
+fi            # Uninitialized variable is false.
 
 echo
 
@@ -49,11 +69,12 @@ then
   echo "Uninitialized variable is true."
 else
   echo "Uninitialized variable is false."
-fi
+fi            # Uninitialized variable is false.
 
 echo
 
-xyz=                        # Initialized, but set to null value.
+
+xyz=          # Initialized, but set to null value.
 
 echo "Testing \"-n \$xyz\""
 if [ -n "$xyz" ]
@@ -61,7 +82,7 @@ then
   echo "Null variable is true."
 else
   echo "Null variable is false."
-fi
+fi            # Null variable is false.
 
 
 echo
@@ -75,7 +96,7 @@ then
   echo "\"false\" is true." #+ and it tests true.
 else
   echo "\"false\" is false."
-fi
+fi            # "false" is true.
 
 echo
 
@@ -85,7 +106,8 @@ then
   echo "\"\$false\" is true."
 else
   echo "\"\$false\" is false."
-fi                          # Now, we get the expected result.
+fi            # "$false" is false.
+              # Now, we get the expected result.
 
 
 echo

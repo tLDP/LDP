@@ -73,5 +73,5 @@ do echo -n .
 done
 echo "On-line"
 
-# Exercise: Consider the strengths and weaknesses
-#           of each of these approaches.
+# Exercise: Discuss the strengths and weaknesses
+#           of each of these various approaches.

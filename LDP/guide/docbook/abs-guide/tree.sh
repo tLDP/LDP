@@ -71,4 +71,4 @@ done
 echo "Total directories = $numdirs"
 
 exit 0
-# ==> Challenge to reader: try to figure out exactly how this script works.
+# ==> Challenge: try to figure out exactly how this script works.

@@ -1,17 +1,17 @@
 #!/bin/bash
 
-SPEED=2    # May use higher speed if supported.
+SPEED=2          # May use higher speed if your hardware supports it.
 IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
-DEFAULTDIR=/opt
+DEFAULTDIR=/opt  # Make sure this directory exists.
 
 # Script to automate burning a CDR.
 
 # Uses Joerg Schilling's "cdrecord" package.
 # (http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html)
 
-# If this script invoked as an ordinary user, need to suid cdrecord
-# (chmod u+s /usr/bin/cdrecord, as root).
+#  If this script invoked as an ordinary user, need to suid cdrecord
+#+ (chmod u+s /usr/bin/cdrecord, as root).
 
 if [ -z "$1" ]
 then

@@ -45,7 +45,8 @@ check_date ()                 # Checks for invalid date(s) passed.
   [ "$day" -gt "$DIM" ] || [ "$month" -gt "$MIY" ] || [ "$year" -lt "$REFYR" ] && Param_Error
   # Exit script on bad value(s).
   # Uses "or-list / and-list".
-  # Exercise for the reader: Implement more rigorous date checking.
+  #
+  # Exercise: Implement more rigorous date checking.
 }
 
 

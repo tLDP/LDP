@@ -18,8 +18,9 @@ echo $a2
 echo; echo; echo
 
 exec 0<&6 6<&-
-# Now restore stdin from fd #6, where it had been saved,
-# and close fd #6 ( 6<&- ) to free it for other processes to use.
+#  Now restore stdin from fd #6, where it had been saved,
+#+ and close fd #6 ( 6<&- ) to free it for other processes to use.
+#
 # <&6 6<&-    also works.
 
 echo -n "Enter data  "

@@ -19,7 +19,7 @@ do
  echo -n "$a "
 done 
 
-# Exercise for the reader:
+# Exercise:
 # Why does loop print up to 20?
 
 echo; echo

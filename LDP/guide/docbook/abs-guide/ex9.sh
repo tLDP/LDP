@@ -20,7 +20,7 @@ hello=$a
 echo hello    # Not a variable reference, just the string "hello".
 
 echo $hello
-echo ${hello} #Identical to above.
+echo ${hello} # Identical to above.
 
 echo "$hello"
 echo "${hello}"
@@ -28,14 +28,14 @@ echo "${hello}"
 echo
 
 hello="A B  C   D"
-echo $hello
-echo "$hello"
-# Now,   echo $hello   and   echo "$hello"   give different results.
+echo $hello   # A B C D
+echo "$hello" # A B  C   D
+# As you see, echo $hello   and   echo "$hello"   give different results.
 # Quoting a variable preserves whitespace.
 
 echo
 
-echo '$hello'
+echo '$hello'  # $hello
 #  Variable referencing disabled by single quotes,
 #+ which causes the "$" to be interpreted literally.
 
@@ -67,7 +67,7 @@ numbers="one two three"
 other_numbers="1 2 3"
 # If whitespace within a variable, then quotes necessary.
 echo "numbers = $numbers"
-echo "other_numbers = $other_numbers"
+echo "other_numbers = $other_numbers"   # other_numbers = 1 2 3
 echo
 
 echo "uninitialized_variable = $uninitialized_variable"

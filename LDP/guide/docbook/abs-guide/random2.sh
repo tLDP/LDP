@@ -12,14 +12,14 @@ echo | awk "$AWKSCRIPT"
 exit 0
 
 
-# Exercises for the reader:
-# -------------------------
+# Exercises:
+# ---------
 
-# 1] Using a loop construct, print out 10 different random numbers.
+# 1) Using a loop construct, print out 10 different random numbers.
 #      (Hint: you must reseed the "srand()" function with a different seed
 #      in each pass through the loop. What happens if you fail to do this?)
 
-# 2] Using an integer multiplier as a scaling factor, generate random numbers 
+# 2) Using an integer multiplier as a scaling factor, generate random numbers 
 #    in the range between 10 and 100.
 
-# 3] Same as exercise #2, above, but generate random integers this time.
+# 3) Same as exercise #2, above, but generate random integers this time.

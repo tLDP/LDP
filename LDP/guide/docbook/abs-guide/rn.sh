@@ -2,8 +2,8 @@
 #
 # Very simpleminded filename "rename" utility (based on "lowercase.sh").
 #
-# The "ren" utility, by Vladimir Lanin (lanin@csd2.nyu.edu),
-# does a much better job of this.
+#  The "ren" utility, by Vladimir Lanin (lanin@csd2.nyu.edu),
+#+ does a much better job of this.
 
 
 ARGS=2
@@ -41,6 +41,7 @@ fi
 exit 0
 
 
-# Exercise for reader:
+# Exercise:
+# --------
 # What type of files will this not work on?
-# How to fix this?
+# How can this be fixed?

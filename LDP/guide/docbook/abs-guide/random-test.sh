@@ -57,7 +57,8 @@ print_result
 # Keep in mind that RANDOM is a pseudorandom generator,
 # and not a spectacularly good one at that.
 
-# Exercise for the reader (easy):
+# Exercise (easy):
+# ---------------
 # Rewrite this script to flip a coin 1000 times.
 # Choices are "HEADS" or "TAILS".
 

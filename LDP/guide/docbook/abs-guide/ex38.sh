@@ -3,8 +3,8 @@
 . data-file    # Load a data file.
 # Same effect as "source data-file", but more portable.
 
-# The file "data-file" must be present in current working directory,
-# since it is referred to by its 'basename'.
+#  The file "data-file" must be present in current working directory,
+#+ since it is referred to by its 'basename'.
 
 # Now, reference some data from that file.
 

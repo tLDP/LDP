@@ -16,7 +16,7 @@ echo -n "$n "
 
 : $[ n = $n + 1 ]
 #  ":" necessary because otherwise Bash attempts
-#+ to interpret "$((n = $n + 1))" as a command.
+#+ to interpret "$[ n = $n + 1 ]" as a command.
 # Works even if "n" was initialized as a string.
 echo -n "$n "
 

@@ -53,6 +53,5 @@ echo
 exit 0
 
 # This is an iterative implementation of the Q-series.
-# The more intuitive recursive implementation
-# is left as an exercise for the reader.
+# The more intuitive recursive implementation is left as an exercise.
 # Warning: calculating this series recursively takes a *very* long time.

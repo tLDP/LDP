@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Non-interactive use of 'vi' to edit a file.
-# (Will not work with 'vim', for some reason.)
 # Emulates 'sed'.
 
 E_BADARGS=65
@@ -25,7 +24,10 @@ ZZ
 x23LimitStringx23
 #----------End here document-----------#
 
-# Note that ^[ above is a literal escape
-# typed by Control-V Escape.
+#  Note that ^[ above is a literal escape
+#+ typed by Control-V &lt;Esc&gt;.
+
+#  Bram Moolenaar points out that this may not work with 'vim',
+#+ because of possible problems with terminal interaction.
 
 exit 0

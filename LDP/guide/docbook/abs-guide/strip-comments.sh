@@ -37,9 +37,9 @@ sed '
 # Easy to understand if you take several hours to learn sed fundamentals.
 
 
-# Need to add one more line to the sed script to deal with
-# case where line of code has a comment following it on same line.
-# This is left as a non-trivial exercise for the reader.
+#  Need to add one more line to the sed script to deal with
+#+ case where line of code has a comment following it on same line.
+#  This is left as a non-trivial exercise.
 
 # Also, the above code deletes lines with a "*/" or "/*",
 # not a desirable result.

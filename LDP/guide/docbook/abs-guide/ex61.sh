@@ -4,8 +4,7 @@
 # Range: 0 - 200
 # It's crude, but it works.
 
-# Extending the range and otherwise improving the script
-# is left as an exercise for the reader.
+# Extending the range and otherwise improving the script is left as an exercise.
 
 # Usage: roman number-to-convert
 
@@ -40,7 +39,8 @@ do
 done  
 
 return $number
-       # Exercise for the reader:
+       # Exercise:
+       # --------
        # Explain how this function works.
        # Hint: division by successive subtraction.
 }

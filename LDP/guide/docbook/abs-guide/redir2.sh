@@ -2,12 +2,12 @@
 
 if [ -z "$1" ]
 then
-  Filename=names.data  # Default, if no filename specified.
+  Filename=names.data       # Default, if no filename specified.
 else
   Filename=$1
 fi  
-# Filename=${1:-names.data}
-# can replace the above test (parameter substitution).
+#+ Filename=${1:-names.data}
+#  can replace the above test (parameter substitution).
 
 count=0
 
@@ -23,11 +23,12 @@ done <"$Filename"           # Redirects stdin to file $Filename.
 
 echo; echo "$count names read"; echo
 
-# Note that in some older shell scripting languages,
-# the redirected loop would run as a subshell.
+#  Note that in some older shell scripting languages,
+#+ the redirected loop would run as a subshell.
 # Therefore, $count would return 0, the initialized value outside the loop.
-# Bash and ksh avoid starting a subshell whenever possible,
-# so that this script, for example, runs correctly.
+#  Bash and ksh avoid starting a subshell whenever possible,
+# +so that this script, for example, runs correctly.
+#
 # Thanks to Heiner Steven for pointing this out.
 
 exit 0

@@ -96,6 +96,7 @@ rm -f ${TMPFILE}
 # ==> Finally, tempfile deleted (you may wish to copy it to a logfile).
 
 
-# ==> Exercises for reader:
+# ==> Exercises:
+# ==> ---------
 # ==> 1) Add error checking.
 # ==> 2) Add bells & whistles.

@@ -1,11 +1,10 @@
 #!/bin/bash
 # primes.sh: Generate prime numbers, without using arrays.
+# Script contributed by Stephane Chazelas.
 
 #  This does *not* use the classic "Sieve of Erastosthenes" algorithm,
 #+ but instead uses the more intuitive method of testing each candidate number
 #+ for factors (divisors), using the "%" modulo operator.
-#
-# Script contributed by Stephane Chazelas,
 
 
 LIMIT=1000                    # Primes 2 - 1000
@@ -31,7 +30,7 @@ Primes()
 
    Primes $n $@ $n            # Recursion outside loop.
                               # Successively accumulate positional parameters.
-			      # "$@" is the accumulating list of primes.
+                              # "$@" is the accumulating list of primes.
 }
 
 Primes 1
