@@ -27,6 +27,8 @@ from WebLayer import lampadasweb
 from Log import log
 from mod_python import apache
 import os
+import string
+
 
 # FIXME: Need permission checks on all of these routines!
 
@@ -251,4 +253,37 @@ def news_lang(req, news_id, lang, news):
 def newnews_lang(req, news_id, lang, news):
     newsitem = lampadasweb.news[int(news_id)]
     newsitem.add_lang(lang, news)
+    go_back(req)
+
+def newpage(req, page_code, sort_order, section_code, template_code,
+            only_dynamic, only_registered, only_admin, only_sysadmin, data):
+    page = lampadasweb.pages.add(page_code, int(sort_order), section_code, template_code, int(only_dynamic), int(only_registered), int(only_admin), int(only_sysadmin), string.split(data))
+    redirect(req, '../../page_edit/' + str(page.code) + referer_lang_ext(req))
+
+def page(req, page_code, sort_order, section_code, template_code,
+            only_dynamic, only_registered, only_admin, only_sysadmin, data):
+    page = lampadasweb.pages[page_code]
+    page.sort_order   = int(sort_order)
+    page.section_code = section_code
+    page.template_code = template_code
+    page.only_dynamic = int(only_dynamic)
+    page.only_registered = int(only_registered)
+    page.only_admin = int(only_admin)
+    page.only_sysadmin = int(only_sysadmin)
+    page.data = string.split(data)
+    page.save()
+    go_back(req)
+
+def page_lang(req, page_code, lang, title, menu_name, page, version):
+    webpage = lampadasweb.pages[page_code]
+    webpage.title[lang] = title
+    webpage.menu_name[lang] = menu_name
+    webpage.page[lang] = page
+    webpage.version[lang] = version
+    webpage.save()
+    go_back(req)
+
+def newpage_lang(req, page_code, lang, title, menu_name, page, version):
+    webpage = lampadasweb.pages[page_code]
+    webpage.add_lang(lang, title, menu_name, page, version)
     go_back(req)

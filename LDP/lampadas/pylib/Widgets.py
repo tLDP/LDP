@@ -27,6 +27,7 @@ This module generates HTML primitives.
 from Globals import *
 from Log import log
 from DataLayer import lampadas
+from WebLayer import lampadasweb
 from Languages import languages
 import re
 import string
@@ -40,7 +41,7 @@ class Widgets:
     """
 
     def title(self, value):
-        return WOStringIO('<input type=text name="title" style="width:100%%" value="%s">' % value).get_value()
+        return WOStringIO('<input type=text name="title" style="width:100%%" value="%s">' % escape_tokens(value)).get_value()
 
     def title_compressed(self, value):
         """
@@ -55,11 +56,17 @@ class Widgets:
     def short_title(self, value):
         return WOStringIO('<input type=text name="short_title" style="width:100%%" value="%s">' % value).get_value()
 
+    def menu_name(self, value):
+        return WOStringIO('<input type=text name="menu_name" style="width:100%%" value="%s">' % escape_tokens(value)).get_value()
+
     def abstract(self, value):
         return '<input type=text name="abstract" style="width:100%" value="' + value + '">'
 
     def short_desc(self, value):
         return '<input type=text name="short_desc" style="width:100%" value="' + value + '">'
+
+    def version(self, value):
+        return '<input type=text name="version" width="10" maxlength="10" value="' + value + '">'
 
     def pub_date(self, value):
         return '<input type=text name="pub_date" width="10" maxlength="10" value="' + value + '">'
@@ -79,7 +86,7 @@ class Widgets:
     def copyright_holder(self, value):
         return '<input type=text name="copyright_holder" width="20" value="' + value + '">'
 
-    def tf(self, name, value, lang):
+    def tf(self, name, value):
         if value==1:
             v1, v2 = ' selected', ''
         elif value==0:
@@ -385,4 +392,35 @@ class Widgets:
         else:
             return '|strunknown|'
 
+    def section_code(self, value, lang):
+        combo = WOStringIO('<select name="section_code">\n')
+        section_codes = lampadasweb.sections.sort_by('sort_order')
+        for section_code in section_codes:
+            section = lampadasweb.sections[section_code]
+            combo.write("<option ")
+            if section.code==value:
+                combo.write("selected ")
+            combo.write("value='" + section.code + "'>")
+            combo.write(section.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
+    def template_code(self, value):
+        combo = WOStringIO('<select name="template_code">\n')
+        template_codes = lampadasweb.templates.sort_by('code')
+        for template_code in template_codes:
+            template = lampadasweb.templates[template_code]
+            combo.write("<option ")
+            if template.code==value:
+                combo.write("selected ")
+            combo.write("value='" + template.code + "'>")
+            combo.write(template.code)
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+
+    def data(self, value):
+        return '<input type=text name="data" width="10"  maxlength="40" value="' + value + '">'
+        
 widgets = Widgets()

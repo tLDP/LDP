@@ -2,7 +2,7 @@ CREATE TABLE page
 (
 	page_code	CHAR(20)	NOT NULL,
 	section_code	CHAR(12),
-	sort_order	INT4		NOT NULL,
+	sort_order	INT4		NOT NULL DEFAULT 0,
 	template_code	CHAR(12)	NOT NULL,
 	data		CHAR(40),
 	only_dynamic	BOOLEAN		DEFAULT False,

@@ -59,7 +59,7 @@ class Languages(LampadasCollection):
     def supported_keys(self):
         if len(self.supported)==0:
             self.supported = []
-            for key in self.keys():
+            for key in self.sort_by('code'):
                 if self[key].supported==1:
                     self.supported = self.supported + [key]
         return self.supported

@@ -26,13 +26,14 @@ from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
-from WebLayer import lampadasweb, NewsItem
+from WebLayer import lampadasweb, Page, NewsItem
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
 from Stats import stats, Stat
 import os
 import fpformat
+import string
 
 
 # MimeType icons for downloadable formats. Not all are used yet.
@@ -152,7 +153,7 @@ class Tables(LampadasCollection):
         box.write('<td class="label">|strdtd|</td><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strlanguage|</td><td>' + widgets.lang(doc.lang, uri.lang) + '</td>\n')
-        box.write('<td class="label">|strmaint_wanted|</td><td>' + widgets.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strmaint_wanted|</td><td>' + widgets.tf('maintainer_wanted', doc.maintainer_wanted) + '</td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strlicense|</td><td>' + widgets.license_code(doc.license_code, uri.lang))
         box.write(' <input type="text" name=license_version size="6" value="' + doc.license_version + '"></td>\n')
@@ -253,7 +254,7 @@ class Tables(LampadasCollection):
             box.write('</tr>\n')
             box.write('<tr>\n')
             box.write('<td class="label">|strprimary|</td>')
-            box.write('<td>'  + widgets.tf('top', docfile.top, uri.lang) + '</td>\n')
+            box.write('<td>'  + widgets.tf('top', docfile.top) + '</td>\n')
             box.write('<td class="label">|strfilesize|</td>')
             box.write('<td>' + str(sourcefile.filesize) + '</td>\n')
             box.write('<td class="label">|strupdated|</td>')
@@ -296,7 +297,7 @@ class Tables(LampadasCollection):
         box.write('</tr>\n')
         box.write('<tr>\n')
         box.write('<td class="label">|strprimary|</td>')
-        box.write('<td>'  + widgets.tf('top', 0, uri.lang) + '</td>\n')
+        box.write('<td>'  + widgets.tf('top', 0) + '</td>\n')
         box.write('<td></td>\n')
         box.write('<td></td>\n')
         box.write('<td></td>\n')
@@ -344,7 +345,7 @@ class Tables(LampadasCollection):
                     box = box + '<td>' + docuser.username + '</td>\n'
             else:
                 box = box + '<td>' + docuser.username + '</td>\n'
-            box = box + '<td>' + widgets.tf('active', docuser.active, uri.lang) + '</td>\n'
+            box = box + '<td>' + widgets.tf('active', docuser.active) + '</td>\n'
             box = box + '<td>' + widgets.role_code(docuser.role_code, uri.lang) + '</td>\n'
             box = box + '<td><input type="text" name=email size="15" value="' +docuser.email + '"></td>\n'
             box = box + '<td><input type=checkbox name="delete">|strdel|</td>\n'
@@ -355,7 +356,7 @@ class Tables(LampadasCollection):
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + '<input type="text" name="username"></td>\n'
-        box = box + '<td>' + widgets.tf('active', 1, uri.lang) + '</td>\n'
+        box = box + '<td>' + widgets.tf('active', 1) + '</td>\n'
         box = box + '<td>' + widgets.role_code('', uri.lang) + '</td>\n'
         box = box + '<td><input type="text" name=email size="15"></td>\n'
         box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
@@ -736,12 +737,12 @@ class Tables(LampadasCollection):
                     box = box + '<tr><td class="label">|strpassword|</td><td>' + user.password + '</td></tr>\n'
             box = box + '<tr><td class="label">|strnewpassword|</td><td><input type="text" name=password size="12"></td></tr>\n'
         if sessions.session.user and (sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0):
-            box = box + '<tr><td class="label">|stradmin|</td><td>' + widgets.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
+            box = box + '<tr><td class="label">|stradmin|</td><td>' + widgets.tf('admin', user.admin) + '</td></tr>\n'
         else:
             box = box + '<input name="admin" type="hidden" value="' + str(user.admin) + '">\n'
             box = box + '<tr><td class="label">|stradmin|</td><td>' + bool2yesno(user.admin) + '</td></tr>\n'
         if sessions.session.user and sessions.session.user.sysadmin > 0:
-            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + widgets.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + widgets.tf('sysadmin', user.sysadmin) + '</td></tr>\n'
         else:
             box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
             box = box + '<tr><td class="label">|strsysadmin|</td><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
@@ -1380,8 +1381,8 @@ class Tables(LampadasCollection):
                widgets.type_code(type_code, uri.lang),
                widgets.topic_code(topic_code, uri.lang),
                widgets.username(username),
-               widgets.tf('maintained', maintained, uri.lang),
-               widgets.tf('maintainer_wanted', maintainer_wanted, uri.lang),
+               widgets.tf('maintained', maintained),
+               widgets.tf('maintainer_wanted', maintainer_wanted),
                widgets.doc_lang(lang, uri.lang),
                widgets.review_status_code(review_status_code, uri.lang),
                widgets.tech_review_status_code(tech_review_status_code, uri.lang),
@@ -1764,7 +1765,7 @@ class TabNews(Table):
         for key in keys:
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
-                if sessions.session and sessions.session.user.can_edit(news_id=uri.id)==1:
+                if sessions.session and sessions.session.user.can_edit(news_id=news.id)==1:
                     edit_icon = '<a href="|uri.base|news_edit/' + str(news.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>\n'
                 else:
                     edit_icon = ''
@@ -1773,7 +1774,7 @@ class TabNews(Table):
 # instead of a compact list of rows. There are a lot of places that would benefit
 # from having this tag applied.
 
-                box.write('''<tr class="%s"><td class="label">%s:</td><td class="nontabular">%s</td></tr>\n'''
+                box.write('<tr class="%s"><td class="label">%s:</td><td class="nontabular">%s</td></tr>\n'
                           % (odd_even.get_next(), edit_icon + news.pub_date, news.news[uri.lang]))
             items = items + 1
             if items==self.items:
@@ -1796,9 +1797,9 @@ class TabNewsItem(Table):
             news = lampadasweb.news[uri.id]
 
             box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
-                             '<table class="box"><tr><th colspan="5">|strnews|</th></tr>\n' \
+                             '<table class="box"><tr><th colspan="3">|strnews|</th></tr>\n' \
                              '<input type=hidden name="news_id" value="%s">\n' \
-                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
+                             '<tr><td class="label">|strpub_date|</td>\n' \
                              '    <td><input type=text name="pub_date" value="%s"></td>\n' \
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
@@ -1808,7 +1809,7 @@ class TabNewsItem(Table):
             # List the available translations
             box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
                       '<tr><th class="collabel">|strlanguage|</td>\n' \
-                      '    <th class="collabel" colspan="2">|strnews|</td>' \
+                      '    <th class="collabel" colspan="2">|strnews|</th>' \
                       '</tr>')
 
             odd_even = OddEven()
@@ -1818,7 +1819,7 @@ class TabNewsItem(Table):
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
                               '<tr class="%s"><td class="label">%s:</td>' \
-                              '    <td><textarea name="news" rows="6" cols="40" style="width:100%%">%s</textarea></td>' \
+                              '    <td><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
                               '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                               '</tr></form>'
                               % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.news[lang]))
@@ -1827,7 +1828,7 @@ class TabNewsItem(Table):
             box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
                       '<input type=hidden name="news_id" value="%s">\n' \
                       '<tr class="%s"><td>%s:</td>' \
-                      '    <td><textarea name="news" rows="6" cols="40" style="width:100%%"></textarea></td>' \
+                      '    <td><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
                       '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
                       '</tr></form>'
                       % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
@@ -1845,6 +1846,233 @@ class TabNewsItem(Table):
             
         return box.get_value()
         
+class TabPages(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pages', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating pages table')
+        box = WOStringIO('<table class="box" width="100%%">\n' \
+                         '<tr><th colspan="4">|strpages|</th></tr>\n' \
+                         '<tr><th class="collabel">|strpage_code|</th>\n' \
+                         '    <th class="collabel">|strtemplate|</th>\n' \
+                         '    <th class="collabel">|strsection|</th>\n' \
+                         '    <th class="collabel">|strname|</th>\n' \
+                         '</tr>\n')
+        keys = lampadasweb.pages.sort_by('code')
+        odd_even = OddEven()
+        items = 0
+        for key in keys:
+            page = lampadasweb.pages[key]
+            if not page.page[uri.lang]==None:
+                if sessions.session and sessions.session.user.can_edit(page_code=page.code)==1:
+                    edit_icon = '<a href="|uri.base|page_edit/' + str(page.code) + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a>\n'
+                else:
+                    edit_icon = ''
+                if page.section_code > '':
+                    section_name = lampadasweb.sections[page.section_code].name[uri.lang]
+                else:
+                    section_name = ''
+
+                box.write('<tr class="%s">\n' \
+                          '  <td>%s</td>\n' \
+                          '  <td>%s</td>\n' \
+                          '  <td>%s</td>\n' \
+                          '  <td><i>%s</i></td>\n' \
+                          '</tr>\n' \
+                          % (odd_even.get_next(),
+                             edit_icon + page.code,
+                             page.template_code,
+                             section_name,
+                             escape_tokens(page.menu_name[uri.lang])
+                            ))
+        box.write('</table>\n')
+        return box.get_value()
+
+class TabPage(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'page', self.method)
+
+    def method(self, uri):
+        if not sessions.session:
+            return '|blknopermission|'
+        elif sessions.session.user.can_edit(page_code=uri.code)==0:
+            return '|blknopermission|'
+
+        if uri.code > '':
+            page = lampadasweb.pages[uri.code]
+            
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/page">\n' \
+                             '<table class="box"><tr><th colspan="3">|strpage|: <i>%s</i></th></tr>\n' \
+                             '<input type=hidden name="page_code" value="%s">\n' \
+                             '<input type=hidden name="sort_order" value="%s">\n' \
+                             '<tr><td class="label">|strsection|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strtemplate|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_dynamic|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_registered|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_admin|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_sysadmin|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strurl_data|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr>\n' \
+                             '    <td></td>\n' \
+                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (escape_tokens(page.menu_name[uri.lang]),
+                                            page.code,
+                                            page.sort_order,
+                                            widgets.section_code(page.section_code, uri.lang),
+                                            widgets.template_code(page.template_code),
+                                            widgets.tf('only_dynamic', page.only_dynamic),
+                                            widgets.tf('only_registered', page.only_registered),
+                                            widgets.tf('only_admin', page.only_admin),
+                                            widgets.tf('only_sysadmin', page.only_sysadmin),
+                                            widgets.data(string.join(page.data))
+                                           ))
+
+            # List the available translations
+            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n')
+
+            for lang in languages.supported_keys():
+                if not page.page[lang]==None:
+                    box.write('<form method=GET action="|uri.base|data/save/page_lang">\n' \
+                              '<input type=hidden name="page_code" value="%s">\n' \
+                              '<input type=hidden name="lang" value="%s">\n' \
+                              '<tr><td class="sectionlabel" colspan="3">%s</td></tr>\n' \
+                              '<tr><td class="label">|strtitle|:</td>' \
+                              '    <td>%s</td>\n' \
+                              '    <td></td>' \
+                              '</tr>\n' \
+                              '<tr><td class="label">|strmenu_name|:</td>' \
+                              '    <td>%s</td>\n' \
+                              '    <td></td>' \
+                              '</tr>\n' \
+                              '<tr><td class="label">|strversion|:</td>' \
+                              '    <td>%s</td>\n' \
+                              '    <td></td>' \
+                              '</tr>\n' \
+                              '<tr><td class="label">|strpage|:</td>' \
+                              '    <td><textarea name="page" rows="20" cols="40" style="width:100%%">%s</textarea></td>\n' \
+                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                              '</tr></form>'
+                              % (page.code,
+                                 lang,
+                                 languages[lang].name[uri.lang],
+                                 widgets.title(page.title[lang]),
+                                 widgets.menu_name(page.menu_name[lang]),
+                                 widgets.version(page.version[lang]),
+                                 escape_tokens(page.page[lang])
+                                ))
+
+            # Add a new translation
+            box.write('<form method=GET action="|uri.base|data/save/newpage_lang">\n' \
+                      '<input type=hidden name="page_code" value="%s">\n' \
+                      '<tr><td class="sectionlabel" colspan="3">|stradd_translation|</td>' \
+                      '<tr><td class="label">|strlanguage|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strtitle|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strmenu_name|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strversion|:</td>' \
+                      '    <td>%s</td>\n' \
+                      '    <td></td>' \
+                      '</tr>\n' \
+                      '<tr><td class="label">|strpage|:</td>' \
+                      '    <td><textarea name="page" rows="20" cols="40" style="width:100%%"></textarea></td>\n' \
+                      '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
+                      '</tr></form>'
+                      % (page.code,
+                         widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0),
+                         widgets.title(''),
+                         widgets.menu_name(''),
+                         widgets.version('')
+                        ))
+            box.write('</table>')
+        else:
+            page = Page()
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/newpage">\n' \
+                             '<table class="box"><tr><th colspan="3">|stradd_page|</th></tr>\n' \
+                             '<tr><td class="label">|strpage_code|</td>\n' \
+                             '    <td><input type=text name="page_code"></td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strsort_order|</td>\n' \
+                             '    <td><input type=hidden name="sort_order"></td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strsection|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strtemplate|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_dynamic|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_registered|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_admin|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|stronly_sysadmin|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '<tr><td class="label">|strurl_data|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
+                             '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
+                             '</tr>\n' \
+                             '</table>\n' \
+                             '</form>\n' % (widgets.section_code(page.section_code, uri.lang),
+                                            widgets.template_code(page.template_code),
+                                            widgets.tf('only_dynamic', page.only_dynamic),
+                                            widgets.tf('only_registered', page.only_registered),
+                                            widgets.tf('only_admin', page.only_admin),
+                                            widgets.tf('only_sysadmin', page.only_sysadmin),
+                                            widgets.data(page.data)
+                                           ))
+
+            
+        return box.get_value()
+        
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -1855,6 +2083,8 @@ class TableMap(LampadasCollection):
         self['tabrecentnews'] = TabNews(items=10)
         self['tabnews'] = TabNews()
         self['tabnewsitem'] = TabNewsItem()
+        self['tabpage'] = TabPage()
+        self['tabpages'] = TabPages()
 
 tables = Tables()
 tablemap = TableMap()

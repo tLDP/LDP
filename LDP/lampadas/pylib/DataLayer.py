@@ -1601,7 +1601,8 @@ class User:
         db.commit()
 
     # News is handled only by admins, so just let that part handle them.
-    def can_edit(self, doc_id=None, username=None, news_id=None):
+    # Ditto for pages.
+    def can_edit(self, doc_id=None, username=None, news_id=None, page_code=None):
         if self.admin > 0 or self.sysadmin > 0:
             return 1
         if not doc_id==None:

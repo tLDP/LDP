@@ -355,6 +355,11 @@ insert([news_edit], [Edit News], [],
     |tabnewsitem|
 ])
 
+insert([page_edit], [Edit Page], [],
+[
+    |tabpage|
+])
+
 insert([404], [Introuvable], [Introuvable],
 [
 	Introuvable
@@ -441,7 +446,12 @@ insert([news], [News List], [],
     |tabnews|
 ], 1)
 
-insert([addnews], [|stradd_news|], [],
+insert([addnews], [Add News], [],
 [
     |tabnewsitem|
+], 1)
+
+insert([pages], [Page List], [],
+[
+    |tabpages|
 ], 1)

@@ -141,7 +141,7 @@ class URI:
             if item in ('doc', 'news'):
                 self.id = int(data[0])
                 data = data[1:]
-            elif item in ('collection', 'topic', 'type', 'report'):
+            elif item in ('collection', 'topic', 'type', 'report', 'page'):
                 self.code = data[0]
                 data = data[1:]
             elif item in ('user',):

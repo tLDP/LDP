@@ -32,6 +32,7 @@ from Globals import *
 from BaseClasses import *
 from Config import config
 from Database import db
+import string
 
 
 # Globals
@@ -110,17 +111,36 @@ class Pages(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newPage = Page()
-            newPage.load_row(row)
-            self.data[newPage.code] = newPage
+            page = Page()
+            page.load_row(row)
+            self.data[page.code] = page
+
+    def add(self, page_code, sort_order, section_code, template_code, only_dynamic, only_registered, only_admin, only_syasdmin, data):
+        sql = 'INSERT INTO page(page_code, sort_order, section_code, only_dynamic, only_registered, only_admin, only_syasdmin, data) '
+        sql += 'VALUES (' + wsq(page_code) + ', ' + str(sort_order) + ', ' + wsq(section_code) + ', ' + wsq(template_code) + ', ' + wsq(bool2tf(only_dynamic)) + ', ' + wsq(bool2tf(only_registered)) + ', ' + wsq(bool2tf(only_admin)) + ', ' + wsq(bool2tf(only_sysadmin)) + ', ' + wsq(string.join(data)) + ')'
+        db.runsql(sql)
+        db.commit()
+        page = Page(page_code)
+        self.data[page.code] = page
+
 
 class Page:
 
-    def __init__(self):
+    def __init__(self, page_code=''):
+        self.code = page_code
         self.title = LampadasCollection()
         self.menu_name = LampadasCollection()
         self.page = LampadasCollection()
+        self.version = LampadasCollection()
+        if page_code > '':
+            self.load()
 
+    def load(self):
+        sql = 'SELECT page_code, section_code, sort_order, template_code, data, only_dynamic, only_registered, only_admin, only_sysadmin FROM page WHERE page_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        if row==None: return
+        self.load_row(row)
+        
     def load_row(self, row):
         self.code            = trim(row[0])
         self.section_code	 = trim(row[1])
@@ -131,7 +151,7 @@ class Page:
         self.only_registered = tf2bool(row[6])
         self.only_admin      = tf2bool(row[7])
         self.only_sysadmin   = tf2bool(row[8])
-        sql = "SELECT lang, title, menu_name, page FROM page_i18n WHERE page_code=" + wsq(self.code)
+        sql = "SELECT lang, title, menu_name, page, version FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -140,8 +160,29 @@ class Page:
             self.title[lang] = trim(row[1])
             self.menu_name[lang] = trim(row[2])
             self.page[lang] = trim(row[3])
+            self.version[lang] = trim(row[4])
+
+            # if there's no menu_name, use the title by default
             if self.menu_name[lang]=='':
                 self.menu_name[lang] = self.title[lang]
+
+    def add_lang(self, lang, title, menu_name, page, version):
+        sql = 'INSERT INTO page_i18n(page_code, lang, title, menu_name, page, version) VALUES (' + wsq(self.code) + ', ' + wsq(lang) + ', ' + wsq(title) + ', ' + wsq(menu_name) + ', ' + wsq(page) + ', ' + wsq(version) + ')'
+        db.runsql(sql)
+        db.commit()
+        self.title[lang] = title
+        self.menu_name[lang] = menu_name
+        self.page[lang] = page
+        self.version[lang] = version
+
+    def save(self):
+        sql = 'UPDATE page SET section_code=' + wsq(self.section_code) + ', sort_order=' + str(self.sort_order) + ', template_code=' + wsq(self.template_code) + ', data=' + wsq(string.join(self.data)) + ', only_dynamic=' + wsq(bool2tf(self.only_dynamic)) + ', only_registered=' + wsq(bool2tf(self.only_registered)) + ', only_admin=' + wsq(bool2tf(self.only_admin)) + ', only_sysadmin=' + wsq(bool2tf(self.only_sysadmin)) + ' WHERE page_code=' + wsq(self.code)
+        db.runsql(sql)
+        db.commit()
+        for lang in self.title.keys():
+            sql = 'UPDATE page_i18n SET title=' + wsq(self.title[lang]) + ', menu_name=' + wsq(self.menu_name[lang]) + ', page=' + wsq(self.page[lang]) + ', version=' + wsq(self.version[lang]) + ' WHERE page_code=' + wsq(self.code) + ' AND lang=' + wsq(lang)
+            db.runsql(sql)
+            db.commit()
 
 
 # Strings
@@ -250,7 +291,7 @@ class NewsItem:
             self.news[lang] = trim(row[1])
 
     def add_lang(self, lang, news):
-        sql = 'INSERT INTO news_i18n(news_id, lang, news) VALUES(' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(news) + ')'
+        sql = 'INSERT INTO news_i18n(news_id, lang, news) VALUES (' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(news) + ')'
         db.runsql(sql)
         db.commit()
         self.news[lang] = news

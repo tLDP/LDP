@@ -527,6 +527,11 @@ insert([news_edit], [Edit News], [],
     |tabnewsitem|
 ])
 
+insert([page_edit], [Edit Page], [],
+[
+    |tabpage|
+])
+
 insert([404], [Error 404, Page Not Found], Error,
 [
     <p>I\'m sorry, but the page you requested does not exist.
@@ -620,7 +625,12 @@ insert([news], [News List], [],
     |tabnews|
 ], 1)
 
-insert([addnews], [|stradd_news|], [],
+insert([addnews], [Add News], [],
 [
     |tabnewsitem|
+], 1)
+
+insert([pages], [Page List], [],
+[
+    |tabpages|
 ], 1)

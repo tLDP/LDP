@@ -239,6 +239,9 @@ def html_encode(text):
         temp = temp.replace(char, '&' + entity + ';')
     return temp
 
+def escape_tokens(text):
+    return text.replace('|', '\|')
+    
 class WOStringIO:
     """
     Write-Only pure python extra fast buffer.
