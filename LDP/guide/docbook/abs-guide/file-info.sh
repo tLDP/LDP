@@ -1,11 +1,11 @@
 #!/bin/bash
 # fileinfo.sh
 
-FILES="/usr/sbin/privatepw
+FILES="/usr/sbin/accept
 /usr/sbin/pwck
-/usr/sbin/go500gw
+/usr/sbin/chroot
 /usr/bin/fakefile
-/sbin/mkreiserfs
+/sbin/badblocks
 /sbin/ypbind"     # List of files you are curious about.
                   # Threw in a dummy file, /usr/bin/fakefile.
 
@@ -22,6 +22,8 @@ do
 
   ls -l $file | awk '{ print $9 "         file size: " $5 }'  # Print 2 fields.
   whatis `basename $file`   # File info.
+  # Note that the whatis database needs to have been set up for this to work.
+  # To do this, as root run /usr/bin/makewhatis.
   echo
 done  
 

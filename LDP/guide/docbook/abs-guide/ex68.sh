@@ -1,11 +1,11 @@
 #!/bin/bash
-# sieve.sh
+# sieve.sh (ex68.sh)
 
 # Sieve of Eratosthenes
 # Ancient algorithm for finding prime numbers.
 
-# This runs a couple of orders of magnitude
-# slower than the equivalent C program.
+#  This runs a couple of orders of magnitude slower
+#+ than the equivalent program written in C.
 
 LOWER_LIMIT=1       # Starting with 1.
 UPPER_LIMIT=1000    # Up to 1000.
@@ -33,8 +33,8 @@ do
   Primes[i]=$PRIME
   let "i += 1"
 done
-# Assume all array members guilty (prime)
-# until proven innocent.
+#  Assume all array members guilty (prime)
+#+ until proven innocent.
 }
 
 print_primes ()
@@ -89,11 +89,14 @@ done
 }
 
 
+# ==============================================
+# main ()
 # Invoke the functions sequentially.
 initialize
 sift
 print_primes
 # This is what they call structured programming.
+# ==============================================
 
 echo
 
@@ -104,8 +107,8 @@ exit 0
 # ----------------------------------------------- #
 # Code below line will not execute.
 
-# This improved version of the Sieve, by Stephane Chazelas,
-# executes somewhat faster.
+#  This improved version of the Sieve, by Stephane Chazelas,
+#+ executes somewhat faster.
 
 # Must invoke with command-line argument (limit of primes).
 

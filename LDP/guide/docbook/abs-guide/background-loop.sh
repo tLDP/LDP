@@ -36,3 +36,7 @@ echo   # This 'echo' sometimes will not display.
 # The foreground loop preempts the background one.
 
 exit 0
+
+#  Nasimuddin Ansari suggests adding    sleep 1
+#+ after the   echo -n "$i"   in lines 6 and 14,
+#+ for some real fun.

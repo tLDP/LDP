@@ -4,10 +4,12 @@
 # No argument checking.
 #
 # You might wish to add something like:
+#
+# E_NOARGS=65
 # if [ -z "$1" ]
 # then
 #  echo "Usage: `basename $0` target-file"
-#  exit 65
+#  exit $E_NOARGS
 # fi
 
 
@@ -24,5 +26,8 @@ sed -e /^$/d "$1"
 
 #  Quoting the command-line arg permits
 #+ whitespace and special characters in the filename.
+
+#  Note that this script doesn't actually change the target file.
+#  If you need to do that, redirect its output.
 
 exit 0

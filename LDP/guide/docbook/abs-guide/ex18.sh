@@ -1,4 +1,5 @@
 #!/bin/bash
+# ex18.sh
 
 # Does a 'whois domain-name' lookup on any of 3 alternate servers:
 #                    ripe.net, cw.net, radb.net
@@ -10,15 +11,17 @@
 # ln -s /usr/local/bin/wh /usr/local/bin/wh-cw
 # ln -s /usr/local/bin/wh /usr/local/bin/wh-radb
 
+E_NOARGS=65
+
 
 if [ -z "$1" ]
 then
   echo "Usage: `basename $0` [domain-name]"
-  exit 65
+  exit $E_NOARGS
 fi
 
-case `basename $0` in
-# Checks script name and calls proper server
+# Check script name and call proper server.
+case `basename $0` in # Or:    case ${0##*/} in
     "wh"     ) whois $1@whois.ripe.net;;
     "wh-ripe") whois $1@whois.ripe.net;;
     "wh-radb") whois $1@whois.radb.net;;

@@ -11,7 +11,7 @@ then
   sed -e '/DOCUMENTATIONXX$/d'; exit $DOC_REQUEST; fi
 
 
-: << DOCUMENTATIONXX
+: &lt;&lt;DOCUMENTATIONXX
 List the statistics of a specified directory in tabular format.
 ---------------------------------------------------------------
 The command line parameter gives the directory to be listed.

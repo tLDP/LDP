@@ -22,7 +22,7 @@ printf "%s %s \n" $Message1 $Message2
 echo
 
 # ==========================================#
-# Simulation of C function, 'sprintf'.
+# Simulation of C function, sprintf().
 # Loading a variable with a formatted string.
 
 echo 
@@ -33,7 +33,7 @@ echo "Pi to 12 decimal places = $Pi12"
 Msg=`printf "%s %s \n" $Message1 $Message2`
 echo $Msg; echo $Msg
 
-# As it happens, the 'sprintf' function can now be accessed
-# as a loadable module to Bash, but this is not portable.
+#  As it happens, the 'sprintf' function can now be accessed
+#+ as a loadable module to Bash, but this is not portable.
 
 exit 0

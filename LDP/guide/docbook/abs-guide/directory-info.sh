@@ -33,7 +33,7 @@ declare -a \
 
 
 # Here document used as a comment block.
-: << LSfieldsDoc
+: &lt;&lt;LSfieldsDoc
 # # # # # List Filesystem Directory Information # # # # #
 #
 #	ListDirectory "FileGlob" "Field-Array-Name"
@@ -163,7 +163,7 @@ IsNumber()
 #	IndexList -if -of Field-Array-Filename Index-Array-Filename
 # # # # #
 
-: << IndexListDoc
+: &lt;&lt;IndexListDoc
 Walk an array of directory fields produced by ListDirectory
 
 Having suppressed the line breaks in an otherwise line oriented

@@ -17,7 +17,7 @@ else
 fi  
   
 #  Assumes all files in the target directory are MacPaint image files,
-# + with a ".mac" suffix.
+#+ with a ".mac" filename suffix.
 
 for file in $directory/*    # Filename globbing.
 do

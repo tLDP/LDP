@@ -4,7 +4,7 @@
 echo
 
 echo "Subshell level OUTSIDE subshell = $BASH_SUBSHELL"
-# Bash, version 3, adds the new         $BASH_SUBSELL variable.
+# Bash, version 3, adds the new         $BASH_SUBSHELL variable.
 echo
 
 outer_variable=Outer

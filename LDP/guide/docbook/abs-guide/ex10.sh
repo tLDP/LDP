@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#  Tip:
+#  If you're unsure of how a certain condition would evaluate,
+#+ test it in an if-test.
+
 echo
 
 echo "Testing \"0\""
@@ -109,6 +113,7 @@ else
 fi            # "$false" is false.
               # Now, we get the expected result.
 
+#  What would happen if we tested the uninitialized variable "$true"?
 
 echo
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # commentblock.sh
 
-: << COMMENTBLOCK
+: &lt;&lt;COMMENTBLOCK
 echo "This line will not echo."
 This is a comment line missing the "#" prefix.
 This is another comment line missing the "#" prefix.
@@ -20,7 +20,7 @@ echo "Exit value of above \"COMMENTBLOCK\" is $?."   # 0
 #  This saves having to put a "#" at the beginning of each line,
 #+ then having to go back and delete each "#" later.
 
-: << DEBUGXXX
+: &lt;&lt;DEBUGXXX
 for file in *
 do
  cat "$file"

@@ -4,14 +4,14 @@
 # Script by Troy Engel.
 # Used with permission.
  
-TCP_HOST=www.slashdot.org
-TCP_PORT=80   # Port 80 is http.
+TCP_HOST=www.dns-diy.com   # A known spam-friendly ISP.
+TCP_PORT=80                # Port 80 is http.
   
-# Try to connect. (Somewhat similar to a 'ping.') 
+# Try to connect. (Somewhat similar to a 'ping' . . .) 
 echo "HEAD / HTTP/1.0" >/dev/tcp/${TCP_HOST}/${TCP_PORT}
 MYEXIT=$?
 
-: << EXPLANATION
+: &lt;&lt;EXPLANATION
 If bash was compiled with --enable-net-redirections, it has the capability of
 using a special character device for both TCP and UDP redirections. These
 redirections are used identically as STDIN/STDOUT/STDERR. The device entries

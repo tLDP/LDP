@@ -22,6 +22,18 @@ echo "a (after --a) = $a"
 
 echo
 
+########################################################
+#  Note that, as in C, pre- and post-decrement operators
+#+ have slightly different side-effects.
+
+n=1; let --n && echo "True" || echo "False"  # False
+n=1; let n-- && echo "True" || echo "False"  # True
+
+#  Thanks, Jeroen Domburg.
+########################################################
+
+echo
+
 (( t = a<45?7:11 ))   # C-style trinary operator.
 echo "If a < 45, then t = 7, else t = 11."
 echo "t = $t "        # Yes!

@@ -79,4 +79,4 @@ done
 echo "On-line"
 
 # Exercise: Discuss the relative strengths and weaknesses
-#!          of each of these various approaches.
+#           of each of these various approaches.

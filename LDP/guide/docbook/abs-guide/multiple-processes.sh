@@ -58,7 +58,7 @@ trap - SIGRTMIN
 
 exit $?
 
-: << SCRIPT_AUTHOR_COMMENTS
+: &lt;&lt;SCRIPT_AUTHOR_COMMENTS
 I had the need to run a program, with specified options, on a number of
 different files, using a SMP machine. So I thought [I'd] keep running
 a specified number of processes and start a new one each time . . . one
