@@ -265,7 +265,7 @@ sub proc_txt {
 			$line =~ s/^A://;
 			&trimline;
 			&closeanswer;
-			$line = "<answer><para>" . $line . "\n";
+			$line = "<answer><para>" . $line;
 			$answer = 1;
 			$para = 1;
 
@@ -311,9 +311,9 @@ sub proc_txt {
 			} elsif ($link =~ /ldp:/) {
 				$link =~ s/^ldp://;
 				$linkname =~ s/^ldp://;
-
 				$tempfile = "/tmp/txt2db-" . $rand;
-				system("wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O $tempfile");
+				$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/name-to-url.pl?name=$link -O $tempfile";
+				system("$cmd");
 				open(URL, "$tempfile") || die "txt2db: cannot open temporary file ($!)\n";
 				$link = <URL>;
 				close(URL);
