@@ -1,22 +1,22 @@
-insert([404], [ES], [Error 404, Página No Encontrada], [Error], [<p>Disculpa, pero la página que has solicitado no exite.
+insert([404], [Error 404, Página No Encontrada], [Error], [<p>Disculpa, pero la página que has solicitado no exite.
 Si vienes de otro sitio, por favor notifica al webmaster del sitio
 acerca de que el vínculo es incorrecto o ha caducado. 
 <p>Si vienes de otra página del sistema Lampadas, posiblemente
 has encontrado un error.
 Si crees que ese es el caso, por favor envía un archivo
-de reporte de error a los desarolladores de Lampadas.], [0.0])
-insert([about], [ES], [Acerca de |strproject|], [Acerca de |strprojectshort|], [Reemplaza este texto con información de tu proyecto.], [0.0])
-insert([account_created], [ES], [Account Created], [], [<p>Your account has been created, and your password has been mailed to you.
+de reporte de error a los desarolladores de Lampadas.])
+insert([about], [Acerca de |strproject|], [Acerca de |strprojectshort|], [Reemplaza este texto con información de tu proyecto.])
+insert([account_created], [Account Created], [], [<p>Your account has been created, and your password has been mailed to you.
 Please check your email.
-], [0.0])
-insert([adddocument], [ES], [Add Document], [Add Document], [|tabeditdoc|], [0.0])
-insert([addnews], [ES], [|stradd_news|], [|stradd_news|], [|tabnewsitem|], [0.0])
-insert([addpage], [ES], [Agregar Página Web], [Agregar Página Web], [|tabpage|], [0.0])
-insert([addstring], [ES], [Agregar Cadena], [Agregar Cadena], [|tabstring|], [0.0])
-insert([adduser], [ES], [Agregar Usuario], [Agregar Usuario], [|tabuser|], [0.0])
-insert([collection], [ES], [|collection.name|], [], [|tabcollection|
-], [0.0])
-insert([contribute], [ES], [Contribuyendo con |strproject|], [Contribuyendo con |strprojectshort|], [<p>As a member of this Lampadas community, you can collaborate with
+])
+insert([adddocument], [Add Document], [Add Document], [|tabeditdoc|])
+insert([addnews], [|stradd_news|], [|stradd_news|], [|tabnewsitem|])
+insert([addpage], [Agregar Página Web], [Agregar Página Web], [|tabpage|])
+insert([addstring], [Agregar Cadena], [Agregar Cadena], [|tabstring|])
+insert([adduser], [Agregar Usuario], [Agregar Usuario], [|tabuser|])
+insert([collection], [|collection.name|], [], [|tabcollection|
+])
+insert([contribute], [Contribuyendo con |strproject|], [Contribuyendo con |strprojectshort|], [<p>As a member of this Lampadas community, you can collaborate with
 hundreds or even thousands of others to produce documentation,
 which can then be shared with others all around the world over the
 Web.
@@ -50,8 +50,8 @@ the platform upon which this site is based.
 languages. Translators are needed to translate it into additional
 languages.
 </li>
-</ul>], [0.0])
-insert([copyright], [ES], [Copyright], [Copyright], [<p>Lampadas está bajo  Copyright 2000, 2001, 2002 por David C. Merrill.
+</ul>])
+insert([copyright], [Copyright], [Copyright], [<p>Lampadas está bajo  Copyright 2000, 2001, 2002 por David C. Merrill.
 <p>
 Individual documents are copyrighted by their authors,
 and comments are owned by the poster.
@@ -80,9 +80,9 @@ All other trademarks are the trademarks of their respective owners.
 a bug report or a document annotation or other reader feedback you
 agree to release it into the Public Domain.
 This is so authors are free to integrate your comments into their
-documentation regardless of the document's license.], [0.0])
-insert([doctable], [ES], [Tabla de Documentos], [Tabla de Documentos], [|tabdocs|], [0.0])
-insert([document], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+documentation regardless of the document's license.])
+insert([doctable], [Tabla de Documentos], [Tabla de Documentos], [|tabdocs|])
+insert([document], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
 |tabeditdoc|
 <p>|tabdocerrors|
 <p>|tabeditdocfiles|
@@ -91,38 +91,38 @@ insert([document], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
 <p>|tabeditdocversions|
 <p>|tabeditdoctopics|
 <p>|tabeditdocnotes|
-<p>|tabdoctranslations|], [0.0])
-insert([document_admin], [ES], [|doc.title|], [], [|blkdocument_nav_bar|
+<p>|tabdoctranslations|])
+insert([document_admin], [|doc.title|], [], [|blkdocument_nav_bar|
 |tabdocadmin|
-], [0.0])
-insert([document_deleted], [ES], [Document Deleted], [Document Deleted], [The document has been deleted from the database.], [0.0])
-insert([document_errors], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+])
+insert([document_deleted], [Document Deleted], [Document Deleted], [The document has been deleted from the database.])
+insert([document_errors], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
 |tabdocerrors|
-<p>|tabdocfileerrors|], [0.0])
-insert([document_files], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+<p>|tabdocfileerrors|])
+insert([document_files], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
 <p>|tabfile_metadata|
-<p>|tabeditdocfiles|], [0.0])
-insert([document_main], [ES], [|doc.title|], [|doc.title|], [|tabdocument_tabs|
-|tabeditdoc|], [0.0])
-insert([document_notes], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
-|tabeditdocnotes|], [0.0])
-insert([document_revs], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
-|tabeditdocversions|], [0.0])
-insert([document_topics], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
-|tabeditdoctopics|], [0.0])
-insert([document_translation], [ES], [|doc.title|], [], [|blkdocument_nav_bar|
+<p>|tabeditdocfiles|])
+insert([document_main], [|doc.title|], [|doc.title|], [|tabdocument_tabs|
+|tabeditdoc|])
+insert([document_notes], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+|tabeditdocnotes|])
+insert([document_revs], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+|tabeditdocversions|])
+insert([document_topics], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+|tabeditdoctopics|])
+insert([document_translation], [|doc.title|], [], [|blkdocument_nav_bar|
 |tabdoctranslations|
-], [0.0])
-insert([document_users], [ES], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
-|tabeditdocusers|], [0.0])
-insert([email_exists], [ES], [Email Exists], [], [<p>That email address is already in the database.
+])
+insert([document_users], [|doc.title|], [|doc.title|], [|blkdocument_nav_bar|
+|tabeditdocusers|])
+insert([email_exists], [Email Exists], [], [<p>That email address is already in the database.
 If you already have an account but have forgotten your password,
 you can have it <a href="mailpass">mailed</a> to you.
-], [0.0])
-insert([errors], [ES], [Lista de Errores], [Lista de Errores], [|taberrors|], [0.0])
-insert([file_report], [ES], [File Report], [], [|tabfile_report|
-], [0.0])
-insert([home], [ES], [|strprojectshort| Página Principal], [Principal], [<p>¡Bienvenido a |strproject|¡.</p>
+])
+insert([errors], [Lista de Errores], [Lista de Errores], [|taberrors|])
+insert([file_report], [File Report], [], [|tabfile_report|
+])
+insert([home], [|strprojectshort| Página Principal], [Principal], [<p>¡Bienvenido a |strproject|¡.</p>
 
 <p>Este sitio es un demo del 
 <a href="|uri.base|lampadas|uri.lang_ext|">
@@ -148,10 +148,10 @@ que explica como trabaja el sistema.
 
 <p>Hay muchas maneras de buscar en los documentos que esán publicados aquí. Selecciona uno de ellos de los men&uacute;s de navegación a la izquierda.
 
-<p>|tabrecentnews|], [0.0])
-insert([index], [ES], [|strproject|], [Splash Page], [|tabsplashlanguages|
-], [0.0])
-insert([lampadas], [ES], [About Lampadas], [About Lampadas], [<p>This website is based on version |version| of the Lampadas Documentation Management System, a Free Software (GPL) platform developed by David Merrill (<a href="mailto:david@lupercalia.net">david@lupercalia.net</a>)
+<p>|tabrecentnews|])
+insert([index], [|strproject|], [Splash Page], [|tabsplashlanguages|
+])
+insert([lampadas], [About Lampadas], [About Lampadas], [<p>This website is based on version |version| of the Lampadas Documentation Management System, a Free Software (GPL) platform developed by David Merrill (<a href="mailto:david@lupercalia.net">david@lupercalia.net</a>)
 and others at <a href="http://www.tldp.org">The Linux Documentation Project</a>.
 
 <p>Lampadas is a powerful, flexible platform designed to support large documentation projects such as the LDP. It provides an interactive environment for writing, managing, publishing and reading documentation.
@@ -192,24 +192,24 @@ role in the final book, <i>Chapterhouse: Dune</i>. Before the planet can be dest
 "Torch" in ancient Greek.
 
 <p>In all of these senses, Lampadas seems an appropriate name for this project, which is created to facilitate sharing information
-from many people and many sources, and disseminating it widely to others.], [0.0])
-insert([logged_in], [ES], [Logged In], [], [<p>You have been logged into the system.
-], [0.0])
-insert([logged_out], [ES], [Logged Out], [], [<p>You have been logged out of the system.
-], [0.0])
-insert([maillists], [ES], [Listas de Correo], [Listas de Correo], [Lista aquí las listas de correo de tu proyecto.], [0.0])
-insert([mailpass], [ES], [Mail Password], [], [<p>Please enter your email address to have your
+from many people and many sources, and disseminating it widely to others.])
+insert([logged_in], [Logged In], [], [<p>You have been logged into the system.
+])
+insert([logged_out], [Logged Out], [], [<p>You have been logged out of the system.
+])
+insert([maillists], [Listas de Correo], [Listas de Correo], [Lista aquí las listas de correo de tu proyecto.])
+insert([mailpass], [Mail Password], [], [<p>Please enter your email address to have your
 password mailed to you.
 <p>|tabmailpass|
-], [0.0])
-insert([maint_wanted], [ES], [Se Busca Responsable de Mantenimiento], [Se Busca Responsable de Mantenimiento], [|tabmaint_wanted|], [0.0])
-insert([my], [ES], [Mi Página Personal], [Mi Página Personal], [<p>Esta es tu página personal.</p>
+])
+insert([maint_wanted], [Se Busca Responsable de Mantenimiento], [Se Busca Responsable de Mantenimiento], [|tabmaint_wanted|])
+insert([my], [Mi Página Personal], [Mi Página Personal], [<p>Esta es tu página personal.</p>
 <p>Esta tabla lista todos los documentos en los que te has ofrecido de voluntario para contribuir:</p></p>
-<p>|session_user_docs|</p>], [0.0])
-insert([news], [ES], [Lista de Noticias], [Lista de Noticias], [|tabnews|], [0.0])
-insert([news_edit], [ES], [Edit News], [], [|tabnewsitem|
-], [0.0])
-insert([newuser], [ES], [New User], [], [<p>To create a new user account, fill out this form.
+<p>|session_user_docs|</p>])
+insert([news], [Lista de Noticias], [Lista de Noticias], [|tabnews|])
+insert([news_edit], [Edit News], [], [|tabnewsitem|
+])
+insert([newuser], [New User], [], [<p>To create a new user account, fill out this form.
 <p>
 <form name="newuser" action="data/save/newaccount" method=GET>
 <table class="box">
@@ -242,36 +242,36 @@ value="Create Account!"></td>
 </table
 </form>
 <p>*Required Fields
-], [0.0])
-insert([omf], [ES], [OpenSource Meta-data Framework XML Output], [OMF XML Output], [|tabomf|], [0.0])
-insert([page_edit], [ES], [Edit Web Page], [Edit Web Page], [|tabpage|], [0.0])
-insert([pages], [ES], [Lista de Páginas Web], [Lista de Páginas Web], [|tabpages|], [0.0])
-insert([password_mailed], [ES], [Password Mailed], [], [<p>Your password has been mailed to you.
+])
+insert([omf], [OpenSource Meta-data Framework XML Output], [OMF XML Output], [|tabomf|])
+insert([page_edit], [Edit Web Page], [Edit Web Page], [|tabpage|])
+insert([pages], [Lista de Páginas Web], [Lista de Páginas Web], [|tabpages|])
+insert([password_mailed], [Password Mailed], [], [<p>Your password has been mailed to you.
 If you continue to have problems logging in, please write
 the site administrator for assistance.
-], [0.0])
-insert([pending], [ES], [Documentos Pendientes], [Documentos Pendientes], [|tabpending|], [0.0])
-insert([privacy], [ES], [Política de Privacidad], [Política de Privacidad], [<p>Nuestro cometido es ayudarte a mantener tu privacidad mientras estás en línea. Puedes usar este sitio sin divulgar información personal. 
+])
+insert([pending], [Documentos Pendientes], [Documentos Pendientes], [|tabpending|])
+insert([privacy], [Política de Privacidad], [Política de Privacidad], [<p>Nuestro cometido es ayudarte a mantener tu privacidad mientras estás en línea. Puedes usar este sitio sin divulgar información personal. 
 <p>Como sea, debido a la naturaleza del sistema, algunas características requieren registrarse.
 Para registrarte, debes proveer tu dirección de email. Requerímos
 una dirección de email para prevenir ciertos tipos de Ataque de Denegación de Servicio (Denial of Service, DoS). Toda la demás información es opcional.
 <p>Tu información es usada sólmante en la operación de este sitio. Ninguna información personal tuya será divulgada a una tercera persona.
-<p>No te mandaremos basura a tu mail o te agregaremos a ninguna lista de correo sin tu consentimiento.], [0.0])
-insert([recentnews], [ES], [Noticias Recientes], [Noticias Recientes], [|tabrecentnews|], [0.0])
-insert([resources], [ES], [Otros Recursos], [Otros Recursos], [Próximamente recursos en español
+<p>No te mandaremos basura a tu mail o te agregaremos a ninguna lista de correo sin tu consentimiento.])
+insert([recentnews], [Noticias Recientes], [Noticias Recientes], [|tabrecentnews|])
+insert([resources], [Otros Recursos], [Otros Recursos], [Próximamente recursos en español
 <ul>
 <li><a href="http://www.dictionary.com">Dictionary.com</a>, an online dictionary.
 <li><a href="http://www.thesaurus.com">Thesaurus.com</a>, an online thesaurus.
 <li><a href="http://www.webopedia.com">Webopedia.com</a>, an online dictionary
 and search engine for computer and internet technology.
-</ul>], [0.0])
-insert([search], [ES], [Search], [Search], [|tabsearch|], [0.0])
-insert([sessions], [ES], [Sesiones de Usuarios], [Sesiones de Usuarios], [|tabsessions|], [0.0])
-insert([sitemap], [ES], [Mapa del Sitio], [Mapa del Sitio], [|tabsitemap|], [0.0])
-insert([sourcefile], [ES], [Source File], [Source File], [|tabfile_reports|
-<p>|tabfile_metadata|], [0.0])
-insert([staff], [ES], [Miembros], [Miembros], [Lista a los miembros del grupo de tu proyecto aquí.], [0.0])
-insert([stats], [ES], [Estadísticas Actuales], [Estadísticas Actuales], [<h1>Estadísticas Globales de Documentos</h1>
+</ul>])
+insert([search], [Search], [Search], [|tabsearch|])
+insert([sessions], [Sesiones de Usuarios], [Sesiones de Usuarios], [|tabsessions|])
+insert([sitemap], [Mapa del Sitio], [Mapa del Sitio], [|tabsitemap|])
+insert([sourcefile], [Source File], [Source File], [|tabfile_reports|
+<p>|tabfile_metadata|])
+insert([staff], [Miembros], [Miembros], [Lista a los miembros del grupo de tu proyecto aquí.])
+insert([stats], [Estadísticas Actuales], [Estadísticas Actuales], [<h1>Estadísticas Globales de Documentos</h1>
 |tabpub_status_stats|
 <p>Estas estadísticas incluyen todos los documentos en la base de datos, sin tener en cuenta su estado.
 <p>|tabdoc_format_stats|
@@ -296,15 +296,15 @@ insert([stats], [ES], [Estadísticas Actuales], [Estadísticas Actuales], [<h1>E
 <p>La siguiente tabla da estadísticas en muchos documentos meta-datos:
 <p>|tabpub_doc_format_stats|
 <p>|tabpub_doc_dtd_stats|
-<p>|tabpub_doc_lang_stats|], [0.0])
-insert([string_edit], [ES], [Editar Cadena], [Editar Cadena], [|tabstring|], [1.0])
-insert([strings], [ES], [Lista de Cadenas], [Lista de Cadenas], [|tabstrings|], [0.0])
-insert([topic], [ES], [View Topic], [], [|tabtopics|
+<p>|tabpub_doc_lang_stats|])
+insert([string_edit], [Editar Cadena], [Editar Cadena], [|tabstring|], [1.0])
+insert([strings], [Lista de Cadenas], [Lista de Cadenas], [|tabstrings|])
+insert([topic], [View Topic], [], [|tabtopics|
 <p>|tabtopicdocs|
-], [0.0])
-insert([type], [ES], [|type.name|], [], [|tabtypedocs|
-], [0.0])
-insert([unmaintained], [ES], [Documentos sin Mantenimiento], [Documentos sin Mantenimiento], [<p>Si quieres mantener uno de esos documentos sin mantenimiento, por favor sigue estos pasos:
+])
+insert([type], [|type.name|], [], [|tabtypedocs|
+])
+insert([unmaintained], [Documentos sin Mantenimiento], [Documentos sin Mantenimiento], [<p>Si quieres mantener uno de esos documentos sin mantenimiento, por favor sigue estos pasos:
 <ul>
 <li>Contacta al autor original. Si no está listado, consulta el documento.
 Asegúrate que el autor ya no desea mantener el document en cuestión. 
@@ -320,17 +320,17 @@ empezar a mantenerlo.
 <p>Es posible que un documento pueda ser listado aquí de manera errónea. 
 Si encuentras un error, por favor notifícalo al administrador del sitio
 en el momento, así podremos corregir el problema.
-<p>|tabunmaintained|], [0.0])
-insert([user], [ES], [|user.username| - |user.name|], [], [|tabuser|
+<p>|tabunmaintained|])
+insert([user], [|user.username| - |user.name|], [], [|tabuser|
 <p>|user.docs|
-], [0.0])
-insert([user_exists], [ES], [User Exists], [], [<p>That username is already taken. Please select another username and try again.
-], [0.0])
-insert([username_required], [ES], [Username Required], [<p>Username is a required field. Please enter a username and try again.
-], [1], [0.0])
-insert([users], [ES], [Lista de Usuarios], [Lista de Usuarios], [|tabletters|
-|tabusers|], [0.0])
-insert([view_document], [ES], [|doc.title|], [|doc.title|], [|tabviewdoc|
+])
+insert([user_exists], [User Exists], [], [<p>That username is already taken. Please select another username and try again.
+])
+insert([username_required], [Username Required], [<p>Username is a required field. Please enter a username and try again.
+], [1])
+insert([users], [Lista de Usuarios], [Lista de Usuarios], [|tabletters|
+|tabusers|])
+insert([view_document], [|doc.title|], [|doc.title|], [|tabviewdoc|
 <p>|tabdocerrors|
 <p>|tabviewdocfiles|
 <p>|tabviewdocfileerrors|
@@ -338,5 +338,5 @@ insert([view_document], [ES], [|doc.title|], [|doc.title|], [|tabviewdoc|
 <p>|tabviewdocversions|
 <p>|tabviewdoctopics|
 <p>|tabviewdocnotes|
-<p>|tabdoctranslations|], [0.0])
-insert([wishlist], [ES], [Documentos Pendientes], [Documentos Pendientes], [|tabwishlist|], [0.0])
+<p>|tabdoctranslations|])
+insert([wishlist], [Documentos Pendientes], [Documentos Pendientes], [|tabwishlist|])
