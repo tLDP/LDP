@@ -30,11 +30,13 @@ This module provides configuration information from lampadas.conf.
 # BaseConfig ###############################################################
 
 class ConfigFileReadError(Exception) :
-    pass
+    """
+    Exception raised when a problem occurs while reading the config file.
+    """
     
 class Config:
     """
-    Object that stores configuration parameters
+    Object that stores configuration parameters.
     """
 
     def __init__(self) :
@@ -134,7 +136,7 @@ class Config:
 
 def get_config_filepath() :
     """
-    Returns filepath of config file. Respects LAMPADAS_ETC env variable.
+    Returns filepath of config file. Uses LAMPADAS_ETC env variable.
     """
     import os
 
@@ -149,6 +151,12 @@ def get_config_filepath() :
     return filename
 
 class ConfigReader :
+    """
+    Config Reader. Create an instance and feed it an open config file
+    by calling read_config.
+
+    >>> config = ConfigReader().read_config(open('filename.conf'))
+    """
     
     def __init__(self) :
         import ConfigParser
@@ -198,6 +206,9 @@ class ConfigReader :
         return c
 
     def _read_var(self, section, name):
+        """
+        Private. Do not use.
+        """
         if not self.parser.has_section(section) :
             raise ConfigFileReadError("Section %s is missing"%section)
 
