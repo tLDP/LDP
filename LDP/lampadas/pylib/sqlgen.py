@@ -67,12 +67,14 @@ class SQLGenerator :
         sql='INSERT INTO %s ( %s ) VALUES ( %s )' % (table, keys, values)
         return sql
 
-    def select(self,table,dict) :
+    def select(self,table,dict=None) :
         """
         table : name of the table
         dict :  dictionnary that will be used as in cursor.execute(sql,dict)
 
         >>> s = SQLGenerator()
+        >>> s.select('test')
+        'SELECT * FROM test'
         >>> s.select('test',{})
         'SELECT * FROM test'
         >>> s.select('test',{'nom':'dupont'})
@@ -80,9 +82,10 @@ class SQLGenerator :
         >>> s.select('test',{'nom':'dupont','prenom':'jean'})
         'SELECT * FROM test WHERE nom = %(nom)s AND prenom = %(prenom)s'
         """
-        sql='SELECT * FROM %s' % table
-        where = self.where(dict.keys())
-        if where : sql = sql + ' WHERE %s' % where
+        if dict :
+            sql='SELECT * FROM %s WHERE %s' % (table,self.where(dict.keys()))
+        else :
+            sql='SELECT * FROM %s' % table
         return sql
 
     def delete(self,table,dict) :
