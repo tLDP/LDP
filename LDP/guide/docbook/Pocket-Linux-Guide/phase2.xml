@@ -5,12 +5,13 @@
   <sect1>
     <title>Analysis</title>
 
-    <para>One of the drawbacks in the previous phase of the project was that
+    <para>One of the drawbacks in the prototype phase of the project was that
     the diskset was not all that useful. The only commands that worked were
     the ones built into the BASH shell. We could improve our root disk by
-    installing commands like cat, ls, mv, rm and so on. Unfortunately, we are
-    short on space. The current root disk has no shared libraries so each
-    binary would have to be statically linked just like the BASH shell. A lot
+    installing commands like <command>cat</command>, <command>ls</command>,
+    <command>mv</command>, <command>rm</command> and so on. Unfortunately, we
+    are short on space. The current root disk has no shared libraries so each
+    utility would have to be statically-linked just like the BASH shell. A lot
     of big binaries together with a static shell will rapidly exceed the tiny
     1.44M of available disk space. So our main goal in this phase should be to
     maximize space savings on the root disk and pave the way for expanded
@@ -31,25 +32,36 @@
 
       <para>First, in order to use shared libraries we will need to rebuild
       the BASH shell. This time we will configure it without using the
-      &#34;--enable-static-link&#34; option. Once BASH is rebuilt we need to
-      figure out which libraries it is linked with and be sure to include them
-      on the root disk. The &#34;ldd&#34; command makes this job easy. By
-      typing &#34;ldd bash&#34; on the command-line we can see a list of all
-      the shared libraries that BASH uses. As long as all these libraries are
-      copied to the root disk, the new BASH build should work fine.</para>
+      <option>--enable-static-link</option> option. Once BASH is rebuilt we
+      need to figure out which libraries it is linked with and be sure to
+      include them on the root disk. The <command>ldd</command> command makes
+      this job easy. By typing <command>ldd bash</command> on the command-line
+      we can see a list of all the shared libraries that BASH uses. As long as
+      all these libraries are copied to the root disk, the new BASH build
+      should work fine.</para>
     </sect2>
 
     <sect2>
       <title>Stripped Binaries</title>
 
       <para>Next, we should strip any binaries that get copied to the root
-      disk. The manpage for strip does not give much description of what it
-      does other than to say, &#34;strip discards all symbols from the object
-      files.&#34; A vast majority of these symbols are for debugging. While
-      these debugging symbols are very helpful to programmers working to
-      improve the code, they do not do much for the average end-user other
-      than take up more disk space. Since space is at a premium on a floppy
-      disk, we should definitely strip all of the binaries.</para>
+      disk. The manpage for <command>strip</command> does not give much
+      description of what it does other than to say, &#34;strip discards all
+      symbols from the object files.&#34; It seems like removing pieces of a
+      binary would render it useless, but this is not the case. The reason it
+      works is because a large number of these discarded symbols are used for
+      debugging. While debugging symbols are very helpful to programmers
+      working to improve the code, they do not do much for the average
+      end-user other than take up more disk space. And since space is at a
+      premium, we should definitely remove as many symbols as possible from
+      BASH and any other binaries before we copy over them to the ramdisk.</para>
+
+      <para>The process of stripping files to save space also works with
+      shared library files. But when stripping libraries it is important to
+      use the <option>--strip-unneeded</option> option so as not to break
+      them. Using <option>--strip-unneeded</option> shrinks the file size, but
+      leaves the symbols needed for relocation intact which is something that
+      shared libraries need to function properly.</para>
     </sect2>
 
     <sect2>
@@ -62,22 +74,28 @@
       the ramdisk approach. It seems logical that if the root filesystem is
       going to be run from a ramdisk, it may as well be built on a ramdisk.
       All we have to do is create a second extended filesystem on a ramdisk
-      device, mount it and copy files to it. (Note: For this to work, we need
-      to make sure the kernel is configured with ramdisk support and a default
-      size of 4,096K. If this is not the case we will know right away, because
-      the filesystem creation and mounting of the ramdisk will fail.) Once the
-      filesystem is populated with all the files that the root disk needs, we
-      simply unmount it, compress it and write it out to floppy.</para>
+      device, mount it and copy files to it. Once the filesystem is populated
+      with all the files that the root disk needs, we simply unmount it,
+      compress it and write it out to floppy.</para>
+
+      <note>
+        <para>For this to work, we need to make sure the kernel is configured
+        with ramdisk support and a default size of 4,096K. If the ramdisk size
+        is something other than 4096K this can be fixed by adding the line
+        &#34;ramdisk=4096&#34; to the development system&#39;s
+        <filename>lilo.conf</filename> file. The lilo.conf(5) man page
+        provides additional information.</para>
+      </note>
     </sect2>
   </sect1>
 
   <sect1>
     <title>Construction</title>
 
-    <para>This section is written using ramdisk seven (/dev/ram7) to build the
-    root image. There is nothing particularly special about ramdisk seven and
-    it is possible to use any of the other available ramdisks provided they
-    are not already in use.</para>
+    <para>This section is written using ramdisk seven (<filename>/dev/ram7</filename>)
+    to build the root image. There is nothing particularly special about
+    ramdisk seven and it is possible to use any of the other available
+    ramdisks provided they are not already in use.</para>
 
     <sect2>
       <title>Create a ramdisk</title>
@@ -102,9 +120,13 @@
 
       <para><programlisting><prompt>bash#</prompt> ldd bash</programlisting></para>
 
-      <para>Note the output from the ldd command. It will most likely show
-      that these library files are required for BASH: <filename>/lib/libdl.so.2</filename>,
-      <filename>/lib/libc.so.6</filename> &#38; <filename>/lib/ld-linux.so.2</filename></para>
+      <para>Note the output from the <command>ldd</command> command. It should
+      look similar to the example below.</para>
+
+      <screen>bash# ldd bash
+  libdl.so.2 =&#62; /lib/libdl.so.2 (0x4001d000)
+  libc.so.6 =&#62; /lib/libc.so.6 (0x40020000)
+  /lib/ld-linux.so.2 =&#62; /lib/ld-linux.so.2 (0x40000000)</screen>
     </sect2>
 
     <sect2>
@@ -114,9 +136,18 @@
 <prompt>bash#</prompt> cp bash /mnt/bin
 <prompt>bash#</prompt> ln -s bash /mnt/bin/sh
 <prompt>bash#</prompt> mkdir /mnt/lib
-<prompt>bash#</prompt> cp /lib/libdl.so.2 /mnt/lib
-<prompt>bash#</prompt> cp /lib/libc.so.6 /mnt/lib
-<prompt>bash#</prompt> cp /lib/ld-linux.so.2 /mnt/lib</programlisting></para>
+<prompt>bash#</prompt> strip -o /lib/libdl.so.2 /mnt/lib/libdl.so.2
+<prompt>bash#</prompt> strip -o /lib/libc.so.6 /mnt/lib/libc.so.6
+<prompt>bash#</prompt> strip -o /lib/ld-linux.so.2 /mnt/lib/ld-linux.so.2
+<prompt>bash#</prompt> chmod +x /mnt/lib/*</programlisting><note><para>Using
+      <command>strip -o</command> might seem an odd way to copy library files
+      from the development system to the ramdisk. What it does is strip the
+      symbols while the file is in transit from the source location to the
+      destination. This has the effect of stripping symbols from the library
+      on the ramdisk without altering the libraries on the development system.
+      Unfortunately file permissions are lost when copying libraries this way
+      which is why the <command>chmod +x</command> command is then used to set
+      the execute flag on all of the libraries on the rootdisk.</para></note></para>
     </sect2>
 
     <sect2>
@@ -129,7 +160,9 @@
     <sect2>
       <title>Compress the ramdisk image</title>
 
-      <para><programlisting><prompt>bash#</prompt> umount /dev/ram7
+      <para><programlisting><prompt>bash#</prompt> cd /
+<prompt>bash#</prompt> umount /dev/ram7
+<prompt>bash#</prompt> sync
 <prompt>bash#</prompt> dd if=/dev/ram7 of=~/phase2-image bs=1k
 <prompt>bash#</prompt> gzip -9 ~/phase2-image</programlisting></para>
     </sect2>
@@ -158,7 +191,7 @@
         </listitem>
 
         <listitem>
-          <para>At the LILO prompt, type &#34;<userinput>bootdisk init=/bin/sh</userinput>&#34;
+          <para>At the LILO prompt, type <userinput>bootdisk init=/bin/sh</userinput>
           and press <keycap>Enter</keycap>.</para>
         </listitem>
 
