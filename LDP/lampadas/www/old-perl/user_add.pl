@@ -9,8 +9,9 @@ $middle_name	= $L->Param('middle_name');
 $surname	= $L->Param('surname');
 $email		= $L->Param('email');
 $admin		= $L->Param('admin');
+$sysadmin	= $L->Param('sysadmin');
 
-$message = $L->AddUser($username, $first_name, $middle_name, $surname, $email, $admin, '');
+$message = $L->AddUser($username, $first_name, $middle_name, $surname, $email, $admin, $sysadmin, '');
 $L->StartPage("Creating New Account");
 print $message;
 $L->EndPage();

@@ -23,6 +23,7 @@ use Exporter;
 	CurrentUserID,
 	CurrentUser,
 	Admin,
+	SysAdmin,
 	Maintainer,
 
 	Users,
@@ -40,6 +41,8 @@ use Exporter;
 	LintadasDoc,
 
 	DocFiles,
+	AddDocFile,
+	SaveDocFile,
 	DocErrors,
 	DocUsers,
 	DocTopics,
@@ -209,12 +212,19 @@ sub CurrentUser {
 
 sub Admin {
 	return 0 unless CurrentUserID();
+	return 1 if (SysAdmin());
 	return $currentuser{admin};
+}
+
+sub SysAdmin {
+	return 0 unless CurrentUserID();
+	return $currentuser{sysadmin};
 }
 
 sub Maintainer {
 	return 0 unless (CurrentUserID());
 	return 1 if (Admin());
+	return 1 if (SysAdmin());
 	return 1 if ($DB->Value("SELECT COUNT(*) FROM document_user WHERE active='t' AND user_id=" . CurrentUserID())); 
 	return 0;
 }
@@ -222,7 +232,7 @@ sub Maintainer {
 sub Users {
 	my $self = shift;
 	my %users = ();
-	my $sql = "SELECT user_id, username, first_name, middle_name, surname, email, admin FROM username";
+	my $sql = "SELECT user_id, username, first_name, middle_name, surname, email, admin, sysadmin FROM username";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$user_id = $row[0];
@@ -234,6 +244,7 @@ sub Users {
 		$users{$user_id}{name}		= &trim(&trim($users{$user_id}{first_name} . ' ' . $users{$user_id}{middle_name}) . ' ' . $users{$user_id}{surname});
 		$users{$user_id}{email}		= &trim($row[5]);
 		$users{$user_id}{admin}		= &yn2bool($row[6]);
+		$users{$user_id}{sysadmin}	= &yn2bool($row[7]);
 	}
 	return %users;
 }
@@ -242,7 +253,7 @@ sub User {
 	my $self = shift;
 	my $user_id = shift;
 	my %user = ();
-	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, notes, stylesheet FROM username WHERE user_id=$user_id";
+	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, sysadmin, notes, stylesheet FROM username WHERE user_id=$user_id";
 	my @row = $DB->Row("$sql");
 	$user{id}		= $user_id;
 	$user{username}		= &trim($row[0]);
@@ -252,9 +263,9 @@ sub User {
 	$user{name}		= &trim(&trim($user{first_name} . ' ' . $user{middle_name}) . ' ' . $user{surname});
 	$user{email}		= &trim($row[4]);
 	$user{admin}		= &yn2bool($row[5]);
-	$user{notes}		= &trim($row[6]);
-	$user{stylesheet}	= &trim($row[7]);
-
+	$user{sysadmin}		= &yn2bool($row[6]);
+	$user{notes}		= &trim($row[7]);
+	$user{stylesheet}	= &trim($row[8]);
 	return %user;
 }
 
@@ -282,7 +293,7 @@ sub UserDocs {
 sub UserFiles {
 	my ($self, $user_id) = @_;
 	my %userfiles = ();
-	my $recordset = $DB->Recordset("SELECT doc_id, filename FROM document_file df, document_user du WHERE df.doc_id=du.doc_id AND du.user_id=$user_id AND du.active='t'");
+	my $recordset = $DB->Recordset("SELECT df.doc_id, filename FROM document_file df, document_user du WHERE df.doc_id=du.doc_id AND du.user_id=$user_id AND du.active='t'");
 	while (@row = $recordset->fetchrow) {
 		$doc_id		= &trim($row[0]);
 		$filename	= &trim($row[1]);
@@ -518,8 +529,12 @@ sub DocFiles {
 
 sub AddDocFile {
 	my ($self, $doc_id, $filename) = @_;
-	my $sql = "INSERT INTO document_file (doc_id, filename) VALUES ($doc_id, " . wsq($filename) . ")";
-	$DB->Exec($sql);
+	my $insecure = 0;
+	$insecure++ if ($filename =~ /\.\./);
+	unless ($insecure) {
+		my $sql = "INSERT INTO document_file (doc_id, filename) VALUES ($doc_id, " . wsq($filename) . ")";
+		$DB->Exec($sql);
+	}
 }
 
 sub SaveDocFile {
@@ -527,12 +542,6 @@ sub SaveDocFile {
 	my $insecure = 0;
 	$insecure++ if ($filename =~ /\.\./);
 	my $root = $filename;
-#	$root =~ s/\/.*//;
-#	$insecure++ unless (($root eq 'faq')
-#			 or ($root eq 'guide')
-#			 or ($root eq 'howto')
-#			 or ($root eq 'ref')
-#			 );
 	unless ($insecure) {
 		my $sql = "UPDATE document_file SET filename=" . wsq($filename) . " WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
 		$DB->Exec($sql);
@@ -1103,12 +1112,13 @@ sub DTDCombo {
 sub UsersTable {
 	my $table = "<table class='box'>\n";
 	my %users = Users();
-	$table .= "<tr><th>Username</th><th>Name</th><th>Email</th><th>Admin</th></tr>\n";
+	$table .= "<tr><th>Username</th><th>Name</th><th>Email</th><th>Admin</th><th>SysAdmin</th></tr>\n";
 	foreach $key (sort { uc($users{$a}{username}) cmp uc($users{$b}{username}) } keys %users) {
 		$table .= "<tr><td>" . a({href=>"user_edit.pl?user_id=$users{$key}{id}"},"$users{$key}{username}") . "</td>";
 		$table .= "<td>$users{$key}{name}</td>\n";
 		$table .= "<td>$users{$key}{email}</td>\n";
 		$table .= "<td>" . bool2yn($users{$key}{admin}) . "</td>\n";
+		$table .= "<td>" . bool2yn($users{$key}{sysadmin}) . "</td>\n";
 		$table .= "</tr>";
 		$count++;
 	}
@@ -1139,6 +1149,15 @@ sub UserTable {
 	if (&Admin()) {
 		$table .= "<tr><th>Admin</th><td><select name='admin'>\n";
 		if ($user{admin}) {
+			$table .= "<option selected value='t'>Yes</option>\n";
+			$table .= "<option value='f'>No</option>\n";
+		} else {
+			$table .= "<option value='t'>Yes</option>\n";
+			$table .= "<option selected value='f'>No</option>\n";
+		}
+		$table .= "</select></td></tr>\n";
+		$table .= "<tr><th>SysAdmin</th><td><select name='sysadmin'>\n";
+		if ($user{sysadmin}) {
 			$table .= "<option selected value='t'>Yes</option>\n";
 			$table .= "<option value='f'>No</option>\n";
 		} else {
@@ -1566,10 +1585,10 @@ sub DocTable {
 	if ($doc_id) {
 		my %doc = Doc($foo, $doc_id);
 		LintadasDoc($foo, $doc_id);
-	} else {
-		my %doc = ();
-		$doc{dtd} = "DocBook";
-		$doc{format} = "XML";
+#	} else {
+#		my %doc = ();
+#		$doc{dtd} = "DocBook";
+#		$doc{format} = "XML";
 	}
 	my $doctable = '';
 	$doctable .= "<table style='width:100%' class='box'>\n";
@@ -1636,16 +1655,18 @@ sub DocTable {
 	$doctable .= "<td>";
 	$doctable .= BarGraphTable($foo, $doc{rating});
 	$doctable .= "</td>\n";
-	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right>Format</th><td>";
-	$doctable .= $doc{format};
-	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD</th><td>";
-	$doctable .= $doc{dtd};
-	$doctable .= "</td>";
-	$doctable .= "<th align=right>DTD Ver</th><td>";
-	$doctable .= $doc{dtd_version};
-	$doctable .= "</td>";
+	if ($doc_id) {
+		$doctable .= "</tr>\n<tr>\n";
+		$doctable .= "<th align=right>Format</th><td>";
+		$doctable .= $doc{format};
+		$doctable .= "</td>";
+		$doctable .= "<th align=right>DTD</th><td>";
+		$doctable .= $doc{dtd};
+		$doctable .= "</td>";
+		$doctable .= "<th align=right>DTD Ver</th><td>";
+		$doctable .= $doc{dtd_version};
+		$doctable .= "</td>";
+	}
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Abstract</th>";
 	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=40 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
@@ -2330,7 +2351,9 @@ sub UserBox {
 		print "<tr><th>\n";
 		if ($currentuser_id) {
 			print "$currentuser{name}";
-			if (Admin()) {
+			if (SysAdmin()) {
+				print " (SysAdmin)";
+			} elsif (Admin()) {
 				print " (Admin)";
 			} elsif (Maintainer()) {
 				print " (Maintainer)";
@@ -2411,7 +2434,9 @@ sub AdminBox {
 	print "<tr><td><a href='error_list.pl'>View All Errors</a></td></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
-	print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
+	if (SysAdmin()) {
+		print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
+	}
 	print "</td></tr></table>\n";
 }
 
@@ -2482,7 +2507,7 @@ sub Logout {
 
 sub AddUser {
 	use String::Random;
-	my ($self, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes) = @_;
+	my ($self, $username, $first_name, $middle_name, $surname, $email, $admin, $sysadmin, $password, $notes) = @_;
 	my $message = '';
 	if ($username and $email) {
 		$count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
@@ -2500,7 +2525,7 @@ sub AddUser {
 				}
 				my $user_id = $DB->Value("SELECT MAX(user_id) FROM username");
 				$user_id++;
-				$DB->Exec("INSERT INTO username(user_id, username, first_name, middle_name, surname, email, admin, password, notes) VALUES ($user_id, " . wsq($username) . ", " . wsq($first_name) . ", " . wsq($middle_name) . ", " . wsq($surname) . ", " . wsq($email) . ", " . wsq($admin) . ", " . wsq($password) . ", " . wsq($notes) . ")");
+				$DB->Exec("INSERT INTO username(user_id, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes) VALUES ($user_id, " . wsq($username) . ", " . wsq($first_name) . ", " . wsq($middle_name) . ", " . wsq($surname) . ", " . wsq($email) . ", " . wsq($admin) . ", " . wsq($sysadmin) . ", " . wsq($password) . ", " . wsq($notes) . ")");
 				%newuser = User($foo, $user_id);
 				if ($newuser{username} eq $username) {
 					StartPage($foo, 'Account Created');
@@ -2523,9 +2548,10 @@ sub AddUser {
 }
 
 sub SaveUser {
-	my ($self, $user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes, $stylesheet) = @_;
+	my ($self, $user_id, $username, $first_name, $middle_name, $surname, $email, $admin, $sysadmin, $password, $notes, $stylesheet) = @_;
 	$admin = 'f' unless ($admin eq 't');
-	$DB->Exec("UPDATE username SET username=" . wsq($username) . ", first_name=" . wsq($first_name) . ", middle_name=" . wsq($middle_name) . ", surname=" . wsq($surname) . ", email=" . wsq($email) . ", admin=" . wsq($admin) . ", notes=" . wsq($notes) . ", stylesheet=" . wsq($stylesheet) .  " WHERE user_id=$user_id");
+	$sysadmin = 'f' unless ($sysadmin eq 't');
+	$DB->Exec("UPDATE username SET username=" . wsq($username) . ", first_name=" . wsq($first_name) . ", middle_name=" . wsq($middle_name) . ", surname=" . wsq($surname) . ", email=" . wsq($email) . ", admin=" . wsq($admin) . ", sysadmin=" . wsq($sysadmin) . ", notes=" . wsq($notes) . ", stylesheet=" . wsq($stylesheet) .  " WHERE user_id=$user_id");
 	if ($password) {
 		$DB->Exec("UPDATE username SET password=" . wsq($password) . " WHERE user_id=$user_id");
 	}

@@ -9,6 +9,7 @@ CREATE TABLE username (
 	surname		CHAR(20),
 	email		TEXT,
 	admin		BOOLEAN,
+	sysadmin	BOOLEAN,
 	password	CHAR(12),
 	notes		TEXT,
 	stylesheet	CHAR(12),

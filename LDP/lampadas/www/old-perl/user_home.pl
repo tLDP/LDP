@@ -3,11 +3,14 @@
 use Lampadas;
 $L = new Lampadas;
 
-unless ($L->CurrentUserID()) {
+$user_id = $L->Param('user_id');
+$user_id = $L->CurrentUserID() unless ($user_id);
+
+unless (($L->CurrentUserID() eq $user_id) or ($L->Admin())) {
 	$L->Redirect("wrongpermission.pl");
 }
 
 $L->StartPage("My Lampadas");
-print $L->UserDocsTable($L->CurrentUserID());
+print $L->UserDocsTable($user_id);
 $L->EndPage();
 
