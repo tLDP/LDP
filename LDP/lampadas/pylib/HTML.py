@@ -938,6 +938,7 @@ class PageFactory:
             if username > '':
                 build_user = lampadas.users[username]
                 log(3, 'build_user: ' + build_user.username)
+                build_user.refresh_session()
 
         log(3, 'Serving language ' + uri.lang)
 

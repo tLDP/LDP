@@ -1296,6 +1296,10 @@ class Users:
         return value
 
     def find_session_user(self, session_id):
+        """
+        Looks a session_id up in the username table, to see which user owns the session.
+        """
+
         log(3, 'looking for user session: ' + session_id)
         if session_id > '':
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -1306,7 +1310,6 @@ class Users:
                 log(3, 'found user session: ' + row[0])
                 return trim(row[0])
         return ''
-
 
 class User:
     """
@@ -1354,6 +1357,11 @@ class User:
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
         sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ', stylesheet=' + wsq(self.stylesheet) + ' WHERE username=' + wsq(self.username)
+        db.runsql(sql)
+        db.commit()
+
+    def refresh_session(self):
+        sql = 'UPDATE session SET timestamp=' + wsq(now_string()) + ' WHERE username=' + wsq(self.username)
         db.runsql(sql)
         db.commit()
 

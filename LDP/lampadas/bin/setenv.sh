@@ -34,3 +34,6 @@ export LAMPADAS_ETC="$LAMPADAS_ROOT/conf"
 
 # used by pylib/Makefile.py to locate XSLT stylesheets
 export LAMPADAS_XSL="$LAMPADAS_ROOT/xsl"
+
+# used by cron/lampadas to run cron jobs
+export LAMPADAS_CRON="$LAMPADAS_ROOT/cron"
