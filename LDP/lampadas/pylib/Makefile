@@ -17,3 +17,5 @@ clean:
 	rm -f *.pyc
 	rm -f profile_stats
 	cd data; $(MAKE) clean
+	cd datamanager; $(MAKE) clean
+	cd persistence; $(MAKE) clean
