@@ -23,6 +23,6 @@ insert(wiki, [Wiki-Artikel],
 [Eine Seite im WikiWikiWeb.])
 insert(spec, [Spezifikation],
 [Die Spezifikation von Normen, etwa die des ]m4_dnl
-[World Wide Web Consortium (W3C).]
+[World Wide Web Consortium (W3C).])
 insert(tutorial, [Tutorial],
 [Ein Tutorial bietet einfache Beispiele für schnelle Ergebnisse.])
