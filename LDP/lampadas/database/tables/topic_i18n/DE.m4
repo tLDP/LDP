@@ -1,13 +1,26 @@
-insert(linux_os,             [The Linux OS],                [The base Linux system, which includes the kernel and GNU utilities.])
-insert(system_admin,         [System Administration],       [Configuring and administering basic system services.])
-insert(hardware,             [Hardware],                    [Anything that deals directly with the hardware. This includes drivers, compatibility information, etc.])
-insert(networking,           [Networking],                  [Protocols, etc.])
-insert(installing_apps,      [Managing Applications],       [Installing and removing software from source or a package manager.])
-insert(user_apps,            [User Applications],           [End-user applications suc as office software.])
-insert(server_apps,          [Server Applications],         [Configuring daemons and other system services.])
-insert(guis_wms,             [GUIs and Window Managers],    [The Graphical User Interface, XFree86.])
-insert(multimedia,           [Multimedia],                  [Audio/video and image creation, manipulation and display.])
-insert(programming,          [Programming],                 [Languages, editors, compilers, and tools used to write software.])
-insert(languages,            [Natural Languages],           [Information for speakers of particular languages.])
-insert(misc,                 [Miscellaneous],               [Miscellaneous])
+insert(linux_os,             [Das Linux Betriebssystem],
+[Das grundlegende Linux System, d.h. Kernel und GNU Utilities.])
+insert(system_admin,         [System-Administration],
+[Konfiguration und Administration der grundlegenden Systemdienste.])
+insert(hardware,             [Hardware],
+[Alles was direkt mit Hardware zu tun hat. ]m4_dnl
+[Zum Beispiel Treiber, Kompatibilitätsangaben, Protokolle.])
+insert(installing_apps,      [Administration von Anwendungen],
+[Installation und Deinstallation von Software, ]m4_dnl
+[sowohl mit Quellcode als auch durch Paket-Manager.]
+insert(user_apps,            [Benutzer-Anwendungen],
+[Anwendungen für Endbenutzer, etwa Office-Software.])
+insert(server_apps,          [Server-Anwendungen],
+[Konfiguration von "daemons" und anderen Systemdiensten.])
+insert(guis_wms,             [GUIs und Window-Manager],
+[Die graphische Benutzeroberfläche (eng. GUI) XFree86.])
+insert(multimedia,           [Multimedia],
+[Erzeugung, Bearbeitung und Anzeige von Audio/Video/Photo.])
+insert(programming,          [Programmieren],
+[Programmiersprachen, Editoren, Übersetzer und andere Werkzeuge ]m4_dnl
+[zum Schreiben von Software.]
+insert(languages,            [Fremdsprachen],
+[Informationen für Anwender aus anderen Sprachgebieten.])
+insert(misc,                 [Verschiedenes],
+[Verschiedenes])
 

@@ -176,79 +176,89 @@ insert([copyright], [Copyright], [],
     <p>Sofern Sie es nicht ausdrücklich anders erklären,
     fallen alle Kommentare, Fehlerberichte, Anmerkungen zu Dokumenten
     oder andere Formen der Leserrückmeldung die Sie hier veröffentlichen
-    in öffentlichen Besitz (eng. "public domain").
+    in öffentlichen Besitz ("public domain").
     Diese Bestimmung ermöglicht es den Autoren, ihre Kommentare
     unabhängig von den Lizenzbestimmungen des betreffenden Dokuments
     in die Dokumentation aufzunehmen.
 ])
 
-insert([privacy], [Privacy Policy], [],
+insert([privacy], [Datenschutz], [],
 [
-    <p>We are committed to helping you maintain your privacy while online.
-    You can use this site without divulging any personal information.
+    <p>Wir unterstützen Sie bei der Wahrung Ihrer Privatsphäre im Internet.
+    Sie können diese Web-Site ohne Preisgabe persönlicher Angaben
+    benutzen.
     
-    <p>However, due to the nature of the system, some features require registration.
-    To register, you must provide your email address.
-    We require an email address to prevent certain types of Denial of Service (DoS)
-    attacks. All other information is completely optional.
+    <p>Allerdings machen technische Gründe bei einigen Funktionen
+    eine Registrierung notwendig.
+
+    Diese Registrierung erfordert die Angabe eine E-Mailadresse. 
+    Wir benötigen sie um bestimmte Arten eines "denial of service attack"
+    (DoS) zu vereiteln. Alle anderen Angaben sind optional.
+
+    <p>Ihre Daten werden nur zum Betrieb dieser Web-Site verwendet.
+    Keinerlei persönliche Daten werden jemals Dritten bekanntgegeben.
     
-    <p>Your information is used only in the operation of this website.
-    No personal information about you will ever be disclosed to any third party.
-    
-    <p>We will not spam you or add you to any mailing lists without your consent.
+    <p>Ohne Ihre Zustimmung werden wir Ihnen weder unverlangten
+    Werbe-E-Mails schicken ("spam") noch Sie bei E-Mailverteilern eintragen.
 ])
 
-insert([newuser], [New User], [],
+insert([newuser], [Neue Benutzer], [],
 [
-    <p>To create a new user account, fill out this form.
+    <p>Füllen Sie bitte dieses Formular aus,
+    um ein neues Benutzerkonto anzulegen.
+    
     <p>
     <form name="newuser" action="data/save/newuser" method=GET>
         <table class="form">
             <tr>
-                <td align=right>*Username</td>
+                <td align=right>*Benutzername</td>
                 <td><input type=text name=username size=20></input></td>
             </tr>
             <tr>
-                <td align=right>*Enter your email address.<br>Your password will be mailed to this address, so it must be valid.</td>
+                <td align=right>*Ihre E-Mailadresse.
+		<br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
+		muss sie gültig sein.</td>
                 <td><input type=text name=email size=20></input></td>
             </tr>
             <tr>
-                <td align=right>First Name</td>
+                <td align=right>Vorname</td>
                 <td><input type=text name=first_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Middle Name</td>
+                <td align=right>Zweiter Vorname</td>
                 <td><input type=text name=middle_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Surname</td>
+                <td align=right>Nachname</td>
                 <td><input type=text name=surname size=20></input></td>
             </tr>
             <tr>
-                <td colspan=2 align=center><input type=submit value="Create Account!"></td>
+                <td colspan=2 align=center>
+		<input type=submit value="Anlegen!"></td>
             </tr>
         </table
     </form>
-    <p>*Required Fields
+    <p>*Unbedingt erforderlich
 ])
 
-insert([mailpass], [Mail Password], [],
+insert([mailpass], [Kennwort schicken], [],
 [
-    <p>Please enter your username or email address to have your password mailed to you.
+    <p>Bitte geben Sie Benutzernamen oder E-Mailaddresse an.
+    Wir schicken Ihnen anschließend Ihr Kennwort per E-Mail.
 ])
 
-insert([topic], [View Topic], [],
+insert([topic], [Liste der Themen], [],
 [
     |tabsubtopics|
 ])
 
-insert([subtopic], [View Subtopic], [],
+insert([subtopic], [Liste der Unterthemen], [],
 [
     |tabsubtopic|
     |tabsubtopicdocs|
 ])
 
-insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
+insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
 [
     |tabeditdoc|
     |tabdocfiles|
@@ -256,38 +266,43 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
     |tabdocversions|
 ])
 
-insert([404], [Error 404, Page Not Found], Error,
+insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
 [
-    <p>I\'m sorry, but the page you requested does not exist.
-    If you came here from another website, please notify the webmaster of that site
-    that their link is incorrect or out of date.
+    <p>Die angeforderte Seite existiert leider nicht.
+    Sollten Sie einem Link von einer anderen Web-Site gefolgt sein,
+    informieren Sie bitte den dortigen Webmaster, dass der Link
+    falsch bzw. veraltet ist.
 
-    <p>If you came here from another page on this Lampadas system,
-    you have probably found a bug.
-    If you believe that to be the case, please file a bug report for the Lampadas developers.
+    <p>Wenn Sie von einer anderen Seite innerhalb des Lampadas-Systems
+    kommen, haben Sie wahrscheinlich einen Software-Fehler gefunden.
+    In diesem Fall schicken Sie bitte einen Fehlerbericht an die 
+    Lampadas-Entwickler.
 ])
 
-insert([user_exists], [User Exists], [],
+insert([user_exists], [Benutzername bereits vorhanden], [],
 [
-    <p>That username is already taken. Please select another username and try again.
+    <p>Dieser Benutzername wird bereits verwendet. Wählen Sie bitte einen
+    anderen Namen und probieren Sie es erneut.
 ])
 
-insert([username_required], [Username Required] [],
+insert([username_required], [Benutzername erforderlich] [],
 [
-    <p>Username is a required field. Please enter a username and try again.
+    <p>Das Feld "Benutzername" ist zwingend notwendig.
+    Tragen Sie bitte einen Namen ein und probieren Sie es erneut.
 ])
 
-insert([email_exists], [Email Exists], [],
+insert([email_exists], [E-Mailadresse bereits vorhanden], [],
 [
-    <p>That email address is already in the database.
-    If you already have an account but have forgotten your password,
-    you can have it <a href="mailpass">mailed</a> to you.
+    <p>Diese E-Mailadresse gibt es bereits in der Datenbank.
+    Wenn Sie bereits über Benutzerkonto verfügen, aber Ihr Kennwort
+    vergessen haben, können Sie es sich <a href="mailpass">schicken</a>
+    lassen.
 ])
 
-insert([account_created], [Account Created], [],
+insert([account_created], [Benutzerkonto angelegt], [],
 [
-    <p>Your account has been created, and your password has been mailed to you.
-    Please check your email.
+    <p>Ihr Benutzerkonto wurde angelegt und das Kennwort per E-Mail
+    zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ])
 
 insert([user], [|user.name|], [],
@@ -295,14 +310,14 @@ insert([user], [|user.name|], [],
     |tabuser|
 ])
 
-insert([logged_in], [Logged In], [],
+insert([logged_in], [Angemeldet], [],
 [
-    <p>You have been logged into the system.
+    <p>Sie wurden im System angemeldet.
 ])
 
-insert([logged_out], [Logged Out], [],
+insert([logged_out], [Abgemeldet], [],
 [
-    <p>You have been logged out of the system.
+    <p>Sie wurden im System abgemeldet.
 ])
 
 insert([type], [|type.name|], [],
