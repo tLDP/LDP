@@ -10,7 +10,6 @@ unless ($L->Admin() or ($L->CurrentUserID() == $user_id)) {
 
 $L->StartPage("Edit User");
 print $L->UserTable($user_id);
-print $L->UserDocsTable($user_id);
 print $L->UserNotesTable($user_id);
 $L->EndPage();
 

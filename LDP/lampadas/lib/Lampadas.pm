@@ -369,25 +369,33 @@ sub SaveDoc {
 }
 
 sub Lintadas {
-	$DB->Exec("DELETE from document_error");
+	my $self = @_;
 	my %docs = Docs();
-	my $cvsroot = Config($foo, 'cvs_root');
 	foreach $doc_id (keys %docs) {
-		my %docfiles = DocFiles($foo, $doc_id);
-		foreach $key (keys %docfiles) {
-			$filename = $cvsroot . $key;
-			if (-e $filename) {
-				if (-r $filename) {
-					if (-w $filename) {
-					} else {
-						$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
-					}
-				} else {
-					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
+		LintadasDoc($foo, $doc_id);
+	}
+}
+
+sub LintadasDoc {
+	my ($self, $doc_id) = @_;
+	my $cvsroot = Config($foo, 'cvs_root');
+	my %docfiles = DocFiles($foo, $doc_id);
+	$DB->Exec("DELETE from document_error WHERE doc_id=$doc_id");
+
+	# Test that all files exist and are writable
+	#
+	foreach $key (keys %docfiles) {
+		$filename = $cvsroot . $key;
+		if (-e $filename) {
+			if (-r $filename) {
+				unless (-w $filename) {
+					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
 				}
 			} else {
-				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
+				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
 			}
+		} else {
+			$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
 		}
 	}
 }
@@ -742,9 +750,9 @@ sub StartPage {
 	}
 	print "<tr><td valign=top width='200'>\n";
 	LoginBox() unless ($currentuser_id);
+	UserBox();
 	AdminBox() if (Maintainer());
 	NavBox();
-	UserBox();
 	TopicsBox();
 	print "</td><td valign=top>\n";
 }
@@ -1026,8 +1034,7 @@ sub UserDocsTable {
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=6>User Documents</th></tr>\n";
 	$table .= "<tr><th>Title</th>";
-#	$table .= "<th>Class</th>";
-	$table .= "<th>Doc Status</th>";
+	$table .= "<th>Status</th>";
 	$table .= "<th>Role</th>";
 	$table .= "<th>Active</th>";
 	$table .= "<th>Feedback Email</th></tr>\n";
@@ -1041,7 +1048,6 @@ sub UserDocsTable {
 			$table .= "$docs{$doc}{title}";
 		}
 		$table .= "</td>\n";
-#		$table .= "<td valign=top>$docs{$doc}{class}</td>\n";
 		$table .= "<td valign=top>$docs{$doc}{pub_status_name}</td>\n";
 		$table .= "<td valign=top>$docs{$doc}{role}</td>\n";
 		$table .= "<td valign=top>" . &bool2yn($docs{$doc}{active}) . "</td>\n";
@@ -1832,7 +1838,13 @@ sub DocUsersTable {
 		$table .= RoleCombo($foo, $docusers{$key}{role});
 		$table .= "</td>\n";
 
-		$table .= "<td valign=top><a href='user_edit.pl?user_id=$docusers{$key}{id}'>$docusers{$key}{name}</a></td>\n";
+		$table .= "<td valign=top>";
+		if (Admin() or (CurrentUserID() == $docusers{$key}{id})) {
+			$table .= "<a href='user_edit.pl?user_id=$docusers{$key}{id}'>$docusers{$key}{name}</a>";
+		} else {
+			$table .= "$docusers{$key}{name}";
+		}
+		$table .= "</td>";
 		$table .= "<td valign=top><input type=text name=email width=20 size=20 value='$docusers{$key}{email}'></input></td>\n";
 		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
 		$table .= "<td valign=top><input type=submit value=Save></td>\n";
@@ -2034,7 +2046,7 @@ sub TopicDocsTable {
 
 	$last_topic_num = 0;
 	$last_subtopic_num = 0;
-	my $table = "<table><tr><td>\n";
+	my $table = "<table>\n";
 	while (@row = $recordset->fetchrow) {
 		$topic_num		= $row[0];
 		$topic_name		= &trim($row[1]);
@@ -2046,34 +2058,41 @@ sub TopicDocsTable {
 		$subtopic_description	= &trim($row[7]);
 		$url			= &trim($row[8]);
 		if ($topic_num != $last_topic_num) {
-			$table .= "<a name='$topic_num'>";
-			$table .= "<h2>";
+			$table .= "<tr><td>";
 			$table .= "<a href='topic_edit.pl?topic_num=$topic_num'>" . EditImage() . "</a>" if (Admin());
+			$table .= "<a name='$topic_num'></td>";
+			$table .= "<td><h2>";
 			$table .= "$topic_num $topic_name";
-			$table .= "</h2>";
-			$table .= "<blockquote>$topic_description</blockquote>\n";
+			$table .= "</h2></td></tr>";
+			$table .= "<tr><td></td><td><blockquote>$topic_description</blockquote></td></tr>\n";
 		}
 		if ($subtopic_num != $last_subtopic_num) {
-			$table .= "<a name='$topic_num.$subtopic_num'>";
-			$table .= "<h3>";
+			$table .= "<tr><td>";
 			$table .= "<a href='subtopic_edit.pl?subtopic_id=$topic_num.$subtopic_num'>" . EditImage() . "</a>" if (Admin());
+			$table .= "<a name='$topic_num.$subtopic_num'></td>";
+			$table .= "<td><h3>";
 			$table .= "$topic_num.$subtopic_num $subtopic_name";
-			$table .= "</h3>";
-			$table .= "<blockquote>$subtopic_description</blockquote>\n";
+			$table .= "</h3></td></tr>";
+			$table .= "<tr><td></td><td><blockquote>$subtopic_description</blockquote></td></tr>\n";
 		}
-		if (Admin() or (exists $userdocs{$doc_id})) {
-			$table .= "<a href='document_edit.pl?doc_id=$doc_id'>" . EditImage() . "</a>";
-		}
-		if ($url) {
-			$table .= "<a href='$url'>$title</a>";
+		if (Admin() or (exists $userdocs{$doc_id}) or ($url)) {
+			$table .= "<tr><td>";
+			if (Admin() or (exists $userdocs{$doc_id})) {
+				$table .= "<a href='document_edit.pl?doc_id=$doc_id'>" . EditImage() . "</a>";
+			}
+			$table .= "</td><td>";
+			if ($url) {
+				$table .= "<a href='$url'>$title</a>";
+			} elsif (Admin() or (exists $userdocs{$doc_id})) {
+				$table .= "$title";
+			}
+			$table .= "</td></tr>\n";
 		}
 		
-		$table .= "<br>\n";
-
 		$last_topic_num = $topic_num;
 		$last_subtopic_num = $subtopic_num;
 	}
-	$table .= "</td></tr></table>\n";
+	$table .= "</table>\n";
 	return $table;
 }
 
@@ -2101,8 +2120,9 @@ sub NavBar {
 sub NavBox {
 	print "<table class='navbox'>\n";
 	print "<tr><th>Main Menu</th></tr>\n";
+	print "<tr><td><a href='welcome.pl'>Home</a></td></tr>\n";
 	print "<tr><td><a href='document_list.pl'>Document Table</a></td></tr>\n";
-	print "<tr><td><a href='topic_list.pl'>Topics List</a></td></tr>\n";
+	print "<tr><td><a href='topic_list.pl'>Topic Listing</a></td></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
 	print "</table>\n";
 }
@@ -2188,9 +2208,9 @@ sub LoginBox {
 
 sub AdminBox {
 	return unless Admin();
-	print "<p><table class='navbox'>\n";
+	print "<table class='navbox'>\n";
 	print "<tr><th>Admin Tools</th></tr>\n";
-	print "<tr><td><a href='lintadas.pl'>Run Lintadas</a></td></tr>\n";
+	print "<tr><td><a href='lintadas.pl'>Run Lintadas on All Docs</a></td></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
