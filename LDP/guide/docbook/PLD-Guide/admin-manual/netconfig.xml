@@ -28,12 +28,99 @@
 	</section>
       </section>
     <section>
-      <title>VPN configuration</title>
+      <title>VLAN configuration</title>
       <para>
+	      Jako jedyna dystrybucja (chyba) PLD posiada wsparcie dla software'owych VLANów (Virtual Local Area Network) w standardzie IEEE 802.1Q bezpo¶rednio z poziomu rc-scriptów. Support w kernelu 2.4 jest aktualnie standardowo zawarty od pewnego czasu. Obs³uga ta jest tak¿e w kernelu 2.2 dostarczanym przez PLD.
+	      
+	      
+	      VLANy software'owe.
+	      Wystarczy zainstalowaæ odpowiednie oprogramowanie do obs³ugi (zawarte w pakiecie vlan) oraz w pliku opisuj±cym interfejs w katalogu /etc/sysconfig/interfaces/ opisaæ odpowiednio. 
+	      Np. plik ifcfg-eth0.4 z wpisem:
+	      DEVICE="eth0.4"
+	      ONBOOT="yes"
+	      BOOTPROTO="none"
+	      IPADDR="192.168.0.13"
+	      PREFIX="24"
 
-Miejsce dla bluesa!
+	      Podniesienie tego interfejsu spowoduje utworzenie vlanu 4 na interfejsie eth0 z odpowiednim adresem. Kluczowa jest tutaj cyfra po kropce w linijce DEVICE, poniewa¿ to w³a¶nie ona mówi w jakim VLANie bêdzie interfejs.
 
-      </para>
+
+	      VLANy hardware'owe
+	      PLD posiada tak¿e oprogramowanie do hardware'owej obs³ugi VLAN'ów na kartach Intel(R) PRO/100. Tutaj jednak uzyskanie efektu jest trudniejsze. Aby j± uzyskaæ nale¿y zainstalowaæ przede wszystkim zainstalowaæ 3 pakiety: kernel-net-e100, kernel-net-ians oraz ians. Ilo¶æ VLANów jest ograniczona do 64, jednak¿e numeracja mo¿e byæ od 1 do 4096.
+	      Pierwszy jest po prostu modu³em do obs³ugi karty sieciowej, który stosujemy zamiast eepro100 dostarczanego standardowo z j±drem. Po zainstalowaniu pakietu wpisujemy w modules.conf (np. dla eth0 i eth1) zamiast starego wpisu dla eepro100:
+	      alias eth0 e100
+	      alias eth1 e100
+	      Wa¿ne jest tutaj, ¿e nie mo¿na u¿ywac jednocze¶nie obu modu³ów - eepro100 oraz e100, poniewa¿ modu³ intela przy ³adowaniu wyszukuje wszystkie zaintalowane karty
+
+	      Teraz nale¿y wy³±czyæ wszystkie interfejsy na kartach sieciowych intela (ifdown <interfejs>, je¿eli mamy jeszcze inne karty lub /etc/rc.d/init.d/network stop) oraz usun±æ stary modu³ (rmmod eepro100). Nastêpnie trzeba skonfigurowaæ vlan'y. Oto przyk³ad z ¿ycia:
+		
+		ianscfg -a -t ve1 -M NONE -V
+		ianscfg -a -t ve1 -m eth1 -p none
+		ianscfg -a -t ve1 -v eth1.40 -i 40
+		ianscfg -a -t ve1 -v eth1.43 -i 43
+		ianscfg -a -t ve1 -v eth1.44 -i 44
+		ianscfg -a -t ve1 -v eth1.45 -i 45
+		ianscfg -a -t ve1 -v eth1.46 -i 46
+		ianscfg -a -t ve1 -v eth1.47 -i 47
+		ianscfg -a -t ve1 -v eth1.48 -i 48
+		ianscfg -c ve1
+		
+		Ta sekwencja utworzy na karcie eth1  7 VLANów: 40, 43, 44, 45, 46, 47, 48 o odpowiednich dowolnych nazwach. Same interfejsy s± konfigurowane w normalny sposób w katalogu /etc/sysconfig/interfaces/. Np dla interfejsu eth1.40 bêdzie to:
+		/etc/sysconfig/interfaces/ifcfg-eth1.40
+		DEVICE="eth1.40"
+		ONBOOT="yes"
+		BOOTPROTO="none"
+		IPADDR="192.168.0.13"
+		PREFIX="24"
+		
+		Teraz wystarczy podnie¶æ wszystkie interfejsy.
+		Jak to uzyskali¶my?
+		1. ianscfg -a -t ve1 -M NONE -V
+		Stworzyli¶my "team" o nazwie ve1 bez ¿adnego team-mode (nastêpny rozdzia³) z uaktywnionymi VLANami
+		2. ianscfg -a -t ve1 -m eth1 -p none
+		Dodali¶my do "teamu" ve1 interfejs eth1 bez priorytetu
+		3. ianscfg -a -t ve1 -v eth1.40 -i 40
+		Dodali¶my do "teamu" ve1 virtualny interfejs eth1.40 pracuj±cy na VLANie 40
+		4. ianscfg -c ve1
+		Robimy "commit" team'u ve1, czyli po prostu uaktywniamy go.
+		
+		System tak naprawdê nic nie wiem o VLANach, poniewa¿ ich obs³uga odbywa siê na poziomie hardware-modu³_kernela. Istotn± wad± tego rozwi±zania jest to, ¿e nale¿y najpierw skonfigurowaæ vlany, a dopiero potem mo¿na podnosiæ interfejsy. Wy³±czanie interfejsów jest w odwrotnej kolejno¶ci i je¿eli którego¶ nie usuniemy to nawet interfejs nie-VLANowy nam siê nie podniesie. W naszym przyk³adzie po wy³±czeniu interfejsów likwidujemy VLANy w nastêpuj±cy sposób:
+		ianscfg -d -v eth1.40
+		ianscfg -d -v eth1.43
+		ianscfg -d -v eth1.44
+		ianscfg -d -v eth1.45
+		ianscfg -d -v eth1.46
+		ianscfg -d -v eth1.47
+		ianscfg -d -v eth1.48
+		ianscfg -d -m eth1
+		ianscfg -d -t ve1
+		
+		WA¯NE: przy sposobie nazywania interfejsów jak w przedstawionym przyk³adzie, nie mo¿na mieæ zainstalowanego pakietu vlan, poniewa¿ system bêdzie próbowa³ zrobiæ nam dodatkowo vlany software'owe.
+		
+	      
+	</para>
+	<title>Agregacja kart sieciowych</title>
+	<para>
+		Korzystaj±c z modu³ów e100, ians oraz programu ianscfg mo¿liwe jest uzyskanie tzw. agregacji kart sieciowych na kartach Intel(R) PRO/100. Pozwala to na u¿ywanie kilku kart sieciowych jako jednej.
+		Karty Intela pozwalaj± na 3 tryby team-work:
+		* Adapter Fault Tolerance (AFT)
+		  Tryb domy¶lny. Jedna karta pracuje (okre¶lona jako primary), a druga czeka (secondary). Gdy pierwsza "umrze" druga przejmuje jej funkcje.
+		* Adaptive Load Balancing (ALB)
+		  Pozwala na podzia³ pomiêdzy 2-8 kart sieciowych oci±¿enia, przy czym tylko "primary" odbiera i wysy³a pakiety.
+		* Link Aggregation (FEC*/LA/802.3ad or GEC*/LA/802.3ad)
+		  - FEC*/LA/802.3ad (Cisco*'s Fast EtherChannel* Technology (FEC)/Intel Link Aggregation lub IEEE 802.3ad Link Aggregation)
+		    Pozwala na wspó³pracê 2-8 kart sieciowych w wysy³aniu i odbieraniu pakietów. Wszystkie karty musz± pracowaæ z tak± sam± prêdko¶ci± oraz w tym samym duplexie. Potrzene jest wsparcie do agregacji od strony switcha. Spanning Tree musi byæ wy³±czone
+		  - GEC*/LA/802.3ad (Gigabitowy odpowiednik poprzedniej technologii)
+		    wymaga modu³u e1000 zamiast e100
+
+		Przyk³ad:    
+		ianscfg -a -t ve0 -M ALB
+		ianscfg -a -t ve0 -m eth0 -p primary
+		ianscfg -a -t ve0 -m eth1 -p secondary
+		ianscfg -c ve0
+
+		Dodatkowo team mo¿e jeszcze obs³ugiwaæ na team'ie vlany.
+	</para>
     </section>
     </chapter>
 
