@@ -19,3 +19,6 @@ clean:
 	cd data; $(MAKE) clean
 	cd datamanager; $(MAKE) clean
 	cd persistence; $(MAKE) clean
+
+diff:
+	cvs -z9 diff -u | less
