@@ -1,30 +1,33 @@
 #!/bin/sh
 
-if [ -z "$LAMPADAS_SQL" ]; then
-  echo "Environment variable LAMPADAS_SQL is not set."
-  echo "Read the comments in file 'setenv.sh' how to fix that."
-  exit -1
-fi
-
 SCRIPT_NAME=lampadasdb
 DEFAULT_DBNAME=lampadas
-TABLE_ORDER=$LAMPADAS_SQL/table_order.mak
 
 usage()
 {
 	echo "\
-Usage: $SCRIPT_NAME [-h | --help] ACTION [ DATABASE ]
+Usage: $SCRIPT_NAME { OPTION } ACTION [ DATABASE ]
 
 Where ACTION is one of:
 
-    create       Create new data tables.
-    defaults     Insert default values
-    drop         Drop all tables.
-    delete       Delete all data.
-    load         Load data from files in /tmp.
-    save         Copy data to files in /tmp.
+    create        Create new data tables.
+    defaults      Insert default values
+    drop          Drop all tables.
+    delete        Delete all data.
+    load          Load data from files in \$LAMPADAS_SPOOL.
+    save          Copy data to files in \$LAMPADAS_SPOOL.
 
-Default value for argument DATABASE is $DEFAULT_DBNAME
+Where OPTION can choosen from:
+
+    -h | --help   Write this message and exit.
+    -sql <dir>    Override value of LAMPADAS_SQL
+    -spool <dir>  Override value of LAMPADAS_SPOOL
+
+LAMPADAS_SQL and LAMPADAS_SPOOL are typically set within setenv.sh.
+Read comments in that file for a description.
+
+Default value for LAMPADAS_SPOOL is \$LAMPADAS_SQL.
+Default value for argument DATABASE is $DEFAULT_DBNAME.
 "
 }
 
@@ -122,12 +125,14 @@ delete()
 
 load()
 {
-  make -f $TABLE_ORDER | sed -e "s#\(.*\)#copy \1 from '/tmp/\1';#"
+  make -f $TABLE_ORDER \
+  | sed -e "s#\(.*\)#copy \1 from '$LAMPADAS_SPOOL/\1';#"
 }
 
 save()
 {
-  make -f $TABLE_ORDER | sed -e "s#\(.*\)#copy \1 to '/tmp/\1';#"
+  make -f $TABLE_ORDER \
+  | sed -e "s#\(.*\)#copy \1 to '$LAMPADAS_SPOOL/\1';#"
 }
 
 defaults()
@@ -150,18 +155,41 @@ defaults()
 #---------------------------------------------
 # main()
 
-case "${1}" in
-    "" | -h | --help )
-	    usage
-	    exit 1
-	    ;;
-    "create" | "drop" | "delete" | "load" | "save" | "defaults" )
-	    break
-	    ;;
-    *)	echo "Invalid command: $1"
-	    exit 1
-	    ;;
-esac
+while true; do
+  case "${1}" in
+      "" | -h | --help )
+	      usage
+	      exit 1
+	      ;;
+      "-sql" )
+	      shift
+	      LAMPADAS_SQL=$1
+	      shift
+	      ;;
+      "-spool" )
+	      shift
+	      LAMPADAS_SQL_SPOOL=$1
+	      shift
+	      ;;
+      "create" | "drop" | "delete" | "load" | "save" | "defaults" )
+              break
+	      ;;
+      *)      echo "Invalid command: $1"
+	      exit 1
+	      ;;
+  esac
+done
+
+if [ -z "$LAMPADAS_SQL" ]; then
+  echo "Environment variable LAMPADAS_SQL is not set."
+  echo "Read the comments in file 'setenv.sh' how to fix that,"
+  echo "or use option -sql."
+  exit -1
+fi
+
+[ -n "$LAMPADAS_SPOOL" ] || export LAMPADAS_SPOOL=/tmp
+
+TABLE_ORDER=$LAMPADAS_SPOOL/table_order.mak
 
 if [ $# -gt 2 ]; then
  	usage
@@ -170,7 +198,7 @@ fi
 DBNAME=${2:-$DEFAULT_DBNAME}
 need_rebuild "$TABLE_ORDER" && build_makefile
 
-sql=$LAMPADAS_SQL/$1.sql
+sql=$LAMPADAS_SPOOL/$1.sql
 if need_rebuild "$sql"; then
   echo "Writing $sql"
   (
@@ -178,8 +206,7 @@ if need_rebuild "$sql"; then
     date "+-- %c"
     echo
     "$@" 
-  ) > $LAMPADAS_SQL/$1.sql \
-  || exit -1
+  ) > $sql || exit -1
 fi
 echo "Executing $sql" \
 && psql $DBNAME -qf $sql

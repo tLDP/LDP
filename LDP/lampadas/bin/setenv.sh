@@ -10,13 +10,16 @@
 # 
 #     sed -e 's/^export/setenv/' -e 's/=/ /' setenv.sh > setenv.csh
 #
-# and then include setenv.csh in their .cshrc (e.g. "source bin/setenv.csh)
+# and then include setenv.csh in their .cshrc (e.g. "source bin/setenv.csh")
 
 # directory you unpacked lampadas to
 export LAMPADAS_ROOT=$HOME/cvs/LDP/lampadas
 
 # used by bin/lampadasdb to initialize the database
 export LAMPADAS_SQL=$LAMPADAS_ROOT/database/tables
+
+# generated files that are not automatically deleted after use
+export LAMPADAS_SPOOL=/tmp
 
 # used by bin/lampadasweb to find the file lampadas.conf
 export LAMPADAS_ETC=$LAMPADAS_ROOT/conf
