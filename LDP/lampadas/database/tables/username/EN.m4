@@ -13,4 +13,4 @@ insert(sysadmin, System, [], Administrator,
 insert(english, John, [Q.], User,
 	[], f, f, password,
 	[This is a test English account. It should be deleted before release!],
-	[default])
+	[ldp])
