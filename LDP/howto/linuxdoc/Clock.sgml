@@ -1,0 +1,840 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+
+<title>The Clock Mini-HOWTO
+<author>Ron Bean, <tt><htmlurl url="mailto:rbean@execpc.com"
+name="rbean@execpc.com"></tt>
+<date>v2.1, November 2000
+
+<abstract>
+How to set and keep your computer's clock on time.
+</abstract>
+
+<!-- Original version Dec 1996 (ASCII only)                     -->
+<!-- Consisted mainly of detailed instructions for clock(8)     -->
+
+<!-- Converted to SGML Aug. 1997, no changes to text            -->
+<!-- Thanks to qinglong@yggdrasil.com for the SGML conversion   -->
+
+<!-- Completely revised and updated July 1999                   -->
+<!-- Descriptions of other software and radio clocks added      -->
+<!-- Instructions for clock(8) retained for reference           -->
+
+<!-- Comments on DST and local time vs UTC added November 2000  -->
+<!-- Also many minor edits, URL corrected for Chrony website    -->
+<!-- Detailed instructions for clock(8) dropped as obsolete     -->
+<!-- (Send email if you want a copy)                            -->
+
+<!-- Table of contents -->
+<toc>
+
+<sect>Introduction
+
+<sect1>Does Anybody Really Know What Time It Is?
+
+<p>
+The Real-Time-Clock (RTC) chips used on PC motherboards are
+notoriously inaccurate, usually gaining or losing the same
+amount of time each day. Linux provides a simple way to correct
+for this in software, which can make the clock <em>*very*</em>
+accurate, even without an external time source. But most people
+don't know how to set it up, for several reasons:
+
+<itemize>
+  <item>It's not mentioned in most of the general documentation
+        on how to set up linux, and it can't be set up
+        automatically (unless you have an external time source),
+        so the default is not to use it.
+  <item>If you type &dquot;<tt>man clock</tt>&dquot; you may get
+        the man page for <tt>clock(3)</tt>, which is not what you
+        want. Try &dquot;<tt>man 8 clock</tt>&dquot; or
+        &dquot;<tt>man 8 hwclock</tt>&dquot; (some distributions
+        search the man pages in numerical order if you don't give
+        a section number, others search in the order specified in
+        <tt><file>/etc/man.config</file></tt>).
+  <item>Most people don't seem to care what time it is anyway.
+  <item>Those few who do care often want to sync the system clock
+        to an external time source, such as a network time server
+        or radio clock. This makes the accuracy of the RTC
+        (mostly) irrelevant.
+</itemize>
+</p>
+
+<p>
+This mini-HOWTO describes the low-tech approach (which can be
+very accurate by itself), and provides pointers to several more
+sophisticated options. In most cases the documentation is well
+written, so I'm not going to repeat that information here.
+</p>
+
+<p>
+Previous versions included detailed instructions for the old
+<tt>clock(8)</tt> program for anyone still running an older
+system, but I've dropped that section because most distributions
+now use <tt>hwclock(8)</tt> instead, which has much better
+documentation. If you still want a copy of the <tt>clock(8)</tt>
+instructions I can email them to you, but read the section on
+<tt>hwclock(8)</tt> first.
+</p>
+
+<p>
+<descrip>
+  <tag/Note/
+     You must be logged in as &dquot;<bf>root</bf>&dquot; to run
+     any program that affects the RTC or the system time, which
+     includes most of the programs described here. If you
+     normally use a graphical interface for everything, you may
+     also need to learn some basic unix shell commands.
+</descrip>
+</p>
+
+<p>
+<descrip>
+  <tag/Note/
+     If you run more than one OS on your machine, you should
+     only let one of them set the RTC, so they don't
+     confuse each other. The exception is the twice-a-year
+     adjustment for Daylight Saving(s) Time (see the section on
+     DST for details).
+</descrip>
+</p>
+
+<p>
+If you run a dual-boot system that spends a lot of time running
+Windows, you may want to check out some of the clock software
+available for that OS instead. Follow the links on the NTP
+website at <url url="http://www.eecis.udel.edu/&tilde;ntp/software.html">.
+Many of the radio clocks mentioned here include software for Windows.
+</p>
+
+<sect1>Where to Find Stuff: &dquot;The Usual Places&dquot;
+
+<p>
+In some places I've mentioned that software can be downloaded
+from &dquot;the usual places&dquot;, which means any place you
+could download a complete Linux system if you didn't get it on a
+CD-ROM. In the old days that meant the ftp archive at
+sunsite.unc.edu, and various mirror sites around the world. That
+site has been renamed <url url="http://metalab.unc.edu/linux/">
+(since Sun no longer sponsors it). Some distributions also have
+their own websites, which may include a lot of this stuff.
+</p>
+
+<p>
+I assume most people get Linux on CD these days, and those CDs
+often include software that is not part of the default
+installation, so you may already have some of the programs
+mentioned here without knowing it.
+</p>
+
+<p>
+The latest version of this mini-HOWTO can be found at the home of
+the Linux Documentation Project, which is currently
+<url url="http://www.linuxdoc.org/"> (and is also reachable from
+the metalab site mentioned above). I think all the old links are
+now forwarded to this one.
+</p>
+
+<p>
+All HOWTOs are written in SGML and converted to various other
+formats by standardized conversion programs. Most people seem to
+want the HTML version, which is at
+<url url="http://www.linuxdoc.org/HOWTO/mini/Clock.html">.
+Revision history can be found as comments in the SGML source.
+Most Linux distributions install a complete set of HOWTO's in
+<tt><file>/usr/doc/HOWTO/</file></tt> and
+<tt><file>/usr/doc/HOWTO/mini</file></tt>.
+</p>
+
+<sect1>Acknowledgements
+
+<p>
+This mini-HOWTO has been greatly improved thanks to various
+people who have sent me email since the first version in 1996.
+In some cases they wrote with questions but ended up giving me as
+much information as I gave them. Unfortunately I haven't compiled
+a list of names (maybe next time). You know who you are <tt>:-)</tt>.
+</p>
+
+<sect>How Linux Keeps Track of Time
+
+<sect1>Basic Strategies
+
+<p>
+A Linux system actually has two clocks: One is the battery
+powered &dquot;Real Time Clock&dquot; (also known as the
+&dquot;RTC&dquot;, &dquot;CMOS clock&dquot;, or &dquot;Hardware
+clock&dquot;) which keeps track of time when the system is turned
+off but is not used when the system is running. The other is the
+&dquot;system clock&dquot; (sometimes called the &dquot;kernel
+clock&dquot; or &dquot;software clock&dquot;) which is a software
+counter based on the timer interrupt. It does not exist when the
+system is not running, so it has to be initialized from the RTC
+(or some other time source) at boot time. References to
+&dquot;the clock&dquot; in the <tt>ntpd</tt> documentation refer
+to the system clock, not the RTC.
+</p>
+
+<p>
+The two clocks will drift at different rates, so they will
+gradually drift apart from each other, and also away from the
+&dquot;real&dquot; time. The simplest way to keep them on time is to
+measure their drift rates and apply correction factors in
+software. Since the RTC is only used when the system is not
+running, the correction factor is applied when the clock is
+read at boot time, using <tt>clock(8)</tt> or <tt>hwclock(8)</tt>.
+The system clock is corrected by adjusting the rate at which the system
+time is advanced with each timer interrupt, using <tt>adjtimex(8)</tt>.
+</p>
+
+<p>
+A crude alternative to <tt>adjtimex(8)</tt> is to have
+<tt>chron</tt> run <tt>clock(8)</tt> or <tt>hwclock(8)</tt>
+periodically to sync the system time to the (corrected) RTC. This
+was recommended in the <tt>clock(8)</tt> man page, and it works
+if you do it often enough that you don't cause large
+&dquot;jumps&dquot; in the system time, but <tt>adjtimex(8)</tt>
+is a more elegant solution. Some applications may complain if the
+time jumps backwards.
+</p>
+
+<p>
+The next step up in accuracy is to use a program like
+<tt>ntpd</tt> to read the time periodically from a network time
+server or radio clock, and continuously adjust the rate of the
+system clock so that the times always match, without causing
+sudden &dquot;jumps&dquot; in the system time. If you always have a
+network connection at boot time, you can ignore the RTC
+completely and use <tt>ntpdate</tt> (which comes with the
+<tt>ntpd</tt> package) to initialize the system clock from a
+time server-- either a local server on a LAN, or a remote server
+on the internet. But if you sometimes don't have a network
+connection, or if you need the time to be accurate during the
+boot sequence before the network is active, then you need to
+maintain the time in the RTC as well.
+</p>
+
+<sect1>Potential Conflicts
+
+<p>
+It might seem obvious that if you're using a program like
+<tt>ntpd</tt>, you would want to sync the RTC to the (corrected)
+system clock. But this turns out to be a bad idea if the system
+is going to stay shut down longer than a few minutes, because it
+interferes with the programs that apply the correction factor to
+the RTC at boot time.
+</p>
+
+<p>
+If the system runs 24/7 and is always rebooted immediately
+whenever it's shut down, then you can just set the RTC from the
+system clock right before you reboot. The RTC won't drift enough
+to make a difference in the time it takes to reboot, so you don't
+need to know its drift rate.
+</p>
+
+<p>
+Of course the system may go down unexpectedly, so some versions
+of the kernel sync the RTC to the system clock every 11 minutes
+if the system clock has been adjusted by another program. The RTC
+won't drift enough in 11 minutes to make any difference, but if
+the system is down long enough for the RTC to drift
+significantly, then you have a problem: the programs that apply
+the drift correction to the RTC need to know <em>*exactly*</em>
+when it was last reset, and the kernel doesn't record that
+information anywhere.
+</p>
+
+<p>
+Some unix &dquot;traditionalists&dquot; might wonder why anyone
+would run a linux system less than 24/7, but some of us run
+dual-boot systems with another OS running some of the time, or
+run Linux on laptops that have to be shut down to conserve
+battery power when they're not being used. Other people just
+don't like to leave machines running unattended for long periods
+of time (even though we've heard all the arguments in favor of
+it). So the &dquot;every 11 minutes&dquot; feature becomes a bug.
+</p>
+
+<p>
+This &dquot;feature/bug&dquot; appears to behave differently in
+different versions of the kernel (and possibly in different
+versions of <tt>xntpd</tt> and <tt>ntpd</tt> as well), so if
+you're running both <tt>ntpd</tt> and <tt>hwclock</tt> you may
+need to test your system to see what it actually does. If you
+can't keep the kernel from resetting the RTC, you might have to
+run without a correction factor on the RTC.
+</p>
+
+<p>
+The part of the kernel that controls this can be found in
+<tt><file>/usr/src/linux-2.0.34/arch/i386/kernel/time.c</file></tt>
+(where the version number in the path will be the version of the
+kernel you're running). If the variable <tt>time_status</tt> is
+set to <tt>TIME_OK</tt> then the kernel will write the system
+time to the RTC every 11 minutes, otherwise it leaves the RTC
+alone. Calls to <tt>adjtimex(2)</tt> (as used by <tt>ntpd</tt>
+and <tt>timed</tt>, for example) may turn this on. Calls to
+<tt>settimeofday(2)</tt> will set <tt>time_status</tt> to
+<tt>TIME_UNSYNC</tt>, which tells the kernel not to adjust the
+RTC. I have not found any real documentation on this.
+</p>
+
+<p>
+I've heard reports that some versions of the kernel may have
+problems with &dquot;sleep modes&dquot; that shut down the CPU to
+save energy. The best solution is to keep your kernel up to date,
+and refer any problems to the people who maintain the kernel.
+</p>
+
+<p>
+If you get bizarre results from the RTC you may have a hardware
+problem. Some RTC chips include a lithium battery that can run
+down, and some motherboards have an option for an external
+battery (be sure the jumper is set correctly). The same battery
+maintains the CMOS RAM, but the clock takes more power and is
+likely to fail first. Bizarre results from the system clock may
+mean there is a problem with interrupts.
+</p>
+
+<sect1>Should the RTC use Local Time or UTC, and What About DST?
+
+<p>
+The Linux &dquot;system clock&dquot; actually just counts the
+number of seconds past Jan 1, 1970, and is always in UTC (or GMT,
+which is technically different but close enough that casual users
+tend to use both terms interchangeably). UTC does not change as
+DST comes and goes-- what changes is the <em>conversion</em> between UTC
+and local time. The translation to local time is done by
+library functions that are linked into the application programs.
+</p>
+
+<p>
+This has two consequences: First, any application that needs
+to know the local time also needs to know what time zone you're
+in, and whether DST is in effect or not (see the next section for
+more on time zones). Second, there is no provision in the kernel to
+change either the system clock or the RTC as DST comes and goes,
+because UTC doesn't change. Therefore, machines that only run
+Linux should have the RTC set to UTC, not local time.
+</p>
+
+<p>
+However, many people run dual-boot systems with other OS's that
+expect the RTC to contain the local time, so <tt>hwclock</tt>
+needs to know whether your RTC is in local time or UTC, which it
+then converts to seconds past Jan 1, 1970 (UTC). This still does
+not provide for seasonal changes to the RTC, so the change must
+be made by the other OS (this is the one exception to the rule
+against letting more than one program change the time in the RTC).
+</p>
+
+<p>
+Unfortunately, there are no flags in the RTC or the CMOS RAM to
+indicate standard time vs DST, so each OS stores this information
+someplace where the other OS's can't find it. This means that
+<tt>hwclock</tt> must assume that the RTC always contains the
+correct local time, even if the other OS has not been run since
+the most recent seasonal time change.
+</p>
+
+<p>
+If Linux is running when the seasonal time change occurs, the
+system clock is unaffected and applications will make the
+correct conversion. But if linux has to be rebooted for any
+reason, the system clock will be set to the time in the RTC,
+which will be off by one hour until the other OS (usually
+Windows) has a chance to run.
+</p>
+
+<p>
+There is no way around this, but Linux doesn't crash very often,
+so the most likely reason to reboot on a dual-boot system is to
+run the other OS anyway. But beware if you're one of those people
+who shuts down Linux whenever you won't be using it for a while--
+if you haven't had a chance to run the other OS since the last
+time change, the RTC will be off by an hour until you do.
+</p>
+
+<p>
+Some other documents have stated that setting the RTC to UTC
+allows Linux to take care of DST properly. This is not really
+wrong, but it doesn't tell the whole story-- as long as you don't
+reboot, it does not matter which time is in the RTC (or even if
+the RTC's battery dies). Linux will maintain the correct time
+either way, until the next reboot. In theory, if you only reboot
+once a year (which is not unreasonable for Linux), DST could come
+and go and you'd never notice that the RTC had been wrong for
+several months, because the system clock would have stayed
+correct all along. But since you can't predict when you'll want
+to reboot, it's better to have the RTC set to UTC if you're not
+running another OS that requires local time.
+</p>
+
+<p>
+The Dallas Semiconductor RTC chip (which is a drop-in replacement
+for the Motorola chip used in the IBM AT and clones) actually has
+the ability to do the DST conversion by itself, but this feature
+is not used because the changeover dates are hard-wired into the
+chip and can't be changed. Current versions change on the first
+Sunday in April and the last Sunday in October, but earlier
+versions used different dates (and obviously this doesn't work in
+countries that use other dates). Also, the RTC is often
+integrated into the motherboard's &dquot;chipset&dquot; (rather
+than being a separate chip) and I don't know if they all have
+this ability.
+</p>
+
+<sect1>How Linux keeps Track of Time Zones
+
+<p>
+You probably set your time zone correctly when you
+installed Linux. But if you have to change it for some reason, or
+if the local laws regarding DST have changed (as they do
+frequently in some countries), then you'll need to know how to
+change it. If your system time is off by some exact number of
+hours, you may have a time zone problem (or a DST problem).
+</p>
+
+<p>
+Time zone and DST information is stored in
+<tt><file>/usr/share/zoneinfo</file></tt> (or
+<tt><file>/usr/lib/zoneinfo</file></tt> on older systems).
+The local time zone is determined by a symbolic link from
+ <tt><file>/etc/localtime</file></tt> to one of these files.
+The way to change your timezone is to change the link.
+If your local DST dates have changed, you'll have to edit the
+file.
+</p>
+
+<p>
+You can also use the <tt>TZ</tt> environment variable to change
+the current time zone, which is handy of you're logged in
+remotely to a machine in another time zone. Also see the man
+pages for <tt>tzset</tt> and <tt>tzfile</tt>.
+</p>
+
+<p>
+This is nicely summarized at
+<url url="http://www.linuxsa.org.au/tips/time.html">
+</p>
+
+<sect1>The Bottom Line
+
+<p>
+If you don't need sub-second accuracy, <tt>hwclock(8)</tt> and
+<tt>adjtimex(8)</tt> may be all you need. It's easy to get
+enthused about time servers and radio clocks and so on, but I ran
+the old <tt>clock(8)</tt> program for years with excellent results.
+On the other hand, if you have several machines on a LAN it can be
+handy (and sometimes essential) to have them automatically sync
+their clocks to each other. And the other stuff can be fun to
+play with even if you don't really need it.
+</p>
+
+<p>
+On machines that only run Linux, set the RTC to UTC (or GMT).
+On dual-boot systems that require local time in the RTC, be aware
+that if you have to reboot Linux after the seasonal time change,
+the clock may be temporarily off by one hour, until you have a
+chance to run the other OS. If you run more than two OS's, be
+sure only one of them is trying to adjust for DST.
+</p>
+
+<sect>Software
+
+<sect1>Clock(8) and Hwclock(8)
+
+<p>
+All linux distributions install either the old <tt>clock(8)</tt>
+or the newer <tt>hwclock(8)</tt>, but without a correction
+factor. Some may also install <tt>adjtimex(8)</tt>, or they may
+include it on the CD as optional (or you can download it from
+the usual Linux archive sites). Some distributions also include
+a graphical clock setting program that runs in an X-window, but
+those are designed for interactive use, and the system will still
+install <tt>clock(8)</tt> or <tt>hwclock(8)</tt> for use in the
+startup scripts.
+</p>
+
+<p>
+<tt>Clock(8)</tt> requires you to calculate the correction factor
+by hand, but <tt>hwclock(8)</tt> calculates it automatically
+whenever you use it to reset the RTC (using another program to
+set the RTC will interfere with the drift correction, so always
+use the same program if you're using a correction factor). If you
+have an older system that still uses <tt>clock(8)</tt> and you
+want to upgrade, you can find <tt>hwclock(8)</tt> in the
+&dquot;<tt>util-linux</tt>&dquot; package, version 2.7 or later.
+See the man page for more information.
+</p>
+
+<p>
+<descrip>
+  <tag/Note/
+    The man page for <tt>hwclock(8)</tt> may be called
+    &dquot;<tt>clock</tt>&dquot; for backward compatibility, so
+    try both names. <tt>Hwclock(8)</tt> will respond to commands
+    written for <tt>clock(8)</tt>, but the result may not be the
+    same-- in particular, &dquot;<tt>hwclock -a</tt>&dquot; is
+    not quite the same as &dquot;<tt>clock -a</tt>&dquot;, so if
+    you're upgrading to <tt>hwclock</tt> I'd suggest replacing
+    all references to &dquot;<tt>clock</tt>&dquot; in your
+    startup scripts to use <tt>hwclock</tt>'s native commands
+    instead.
+</descrip>
+</p>
+
+<p>
+The startup scripts vary from one distribution to another, so you
+may have to search a bit to find where it sets the clock. Typical
+locations are <tt><file>/etc/rc.local</file></tt>,
+<tt><file>/etc/rc.d/rc.sysinit</file></tt>,
+<tt><file>/etc/rc.d/boot</file></tt>, or some
+similar place.
+</p>
+
+<p>
+The correction factor for the RTC is stored in
+<tt><file>/etc/adjtime</file></tt>.
+Red Hat has a script in
+<tt><file>/etc/sysconfig/clock</file></tt> that controls the
+options to <tt>hwclock</tt>.
+</p>
+
+<p>
+When you're setting the clock to determine the drift rate, keep
+in mind that your local telephone time announcement may or may
+not be accurate. If you don't have a shortwave radio or GPS
+receiver, you can hear the audio feed from WWV by calling
+(303)499-7111 (this is a toll call to Boulder, Colorado). It
+will cut you off after three minutes, but that should be long
+enough to set the clock. USNO and Canada's CHU also have
+telephone time services, but I prefer WWV's because there is
+more time between the announcement and the &dquot;beep&dquot;.
+You can also get the time from a network time server using the
+<tt>ntpdate</tt> program that comes with <tt>ntpd</tt>, and
+there's a javaclock at <url url="www.time.gov">.
+</p>
+
+<p>
+In any case, what you're setting is the system clock, not the RTC
+(see the man page for the <tt>date</tt> command for the formats
+to use). Then use <tt>hwclock</tt> to set the RTC and calculate
+the drift rate. If you're doing this by hand, you should be able
+to set it within a second or two, and get a reasonable
+approximation of the drift rate after a few weeks. Then you can
+run <tt>adjtimex(8)</tt> to fine-tune the system clock.
+</p>
+
+<sect1>Adjtimex(8)
+
+<p>
+<tt>Adjtimex(8)</tt> allows the user to adjust the kernel's time
+variables, and therefore change the speed of the system clock
+(you must be logged in as &dquot;<bf>root</bf>&dquot; to do
+this). It is cleverly designed to compare the system clock to the
+RTC using the same correction factor used by <tt>clock(8)</tt> or
+<tt>hwclock(8)</tt>, as stored in <tt><file>/etc/adjtime</file></tt>.
+So, once you've established the drift rate of the RTC, it's fairly simple
+to correct the system clock as well. Once you've got it running
+at the right speed, you can add a line to your startup scripts to
+set the correct kernel variables at boot time. Since
+<tt>adjtimex(8)</tt> was designed to work with <tt>clock(8)</tt>
+or <tt>hwclock(8)</tt>, it includes a work-around for the
+&dquot;every 11 minutes&dquot; bug.
+</p>
+
+<p>
+After you've installed <tt>adjtimex(8)</tt> you can get more
+information on setting it up by typing &dquot;<tt>man 8
+adjtimex</tt>&dquot; (there is also an <tt>adjtimex(2)</tt> man
+page, which is not what you want) and by reading the
+<tt>README</tt> file in <tt><file>/usr/doc/adjtimex-1.3/README</file></tt>
+(where the version number in the path will be the current version
+of <tt>adjtimex(8)</tt>).
+</p>
+
+<sect1>Xntpd and ntpd: the Network Time Protocol
+
+<p>
+<tt>Xntpd</tt> (NTPv3) has been replaced by <tt>ntpd</tt>
+(NTPv4); the earlier version is no longer being maintained.
+</p>
+
+<p>
+<tt>Ntpd</tt> is the standard program for synchronizing clocks
+across a network, and it comes with a list of public time servers
+you can connect to. It can be a little more complicated to set up
+than the other programs described here, but if you're interested
+in this kind of thing I highly recommend that you take a look at
+it anyway.
+</p>
+
+<p>
+The &dquot;home base&dquot; for information on <tt>ntpd</tt>
+is the NTP website at <url url="http://www.eecis.udel.edu/&tilde;ntp/">
+which also includes links to all kinds of interesting time-related
+stuff (including software for other OS's). Some linux
+distributions include <tt>ntpd</tt> on the CD. There is a list of
+public time servers at
+<url url="http://www.eecis.udel.edu/&tilde;mills/ntp/clock2.html">.
+</p>
+
+<p>
+A relatively new feature in <tt>ntpd</tt> is a &dquot;burst mode&dquot;
+which is designed for machines that have only intermittent
+dial-up access to the internet.
+</p>
+
+<p>
+<tt>Ntpd</tt> includes drivers for quite a few radio clocks
+(although some appear to be better supported than others). Most
+radio clocks are designed for commercial use and cost thousands
+of dollars, but there are some cheaper alternatives (discussed in
+later sections). In the past most were WWV or WWVB receivers, but
+now most of them seem to be GPS receivers. NIST has a PDF file
+that lists manufacturers of radio clocks on their website at
+<url url="http://www.boulder.nist.gov/timefreq/links.htm"> (near
+the bottom of the page). The NTP website also includes many links
+to manufacturers of radio clocks at
+<url url="http://www.eecis.udel.edu/&tilde;ntp/hardware.htm"> and
+<url url="http://www.eecis.udel.edu/&tilde;mills/ntp/refclock.htm">.
+Either list may or may not be up to date at any given time <tt>:-)</tt>.
+The list of drivers for <tt>ntpd</tt> is at
+<url url="http://www.eecis.udel.edu/&tilde;ntp/ntp_spool/html/refclock.htm">.
+</p>
+
+<p>
+<tt>Ntpd</tt> also includes drivers for several dial-up time
+services. These are all long-distance (toll) calls, so be sure to
+calculate the effect on your phone bill before using them.
+</p>
+
+<sect1>Chrony
+
+<p>
+<tt>Xntpd</tt> was originally written for machines that have a
+full-time connection to a network time server or radio clock. In
+theory it can also be used with machines that are only connected
+intermittently, but Richard Curnow couldn't get it to work the
+way he wanted it to, so he wrote &dquot;<tt>chrony</tt>&dquot; as an
+alternative for those of us who only have network access when
+we're dialed in to an ISP (this is the same problem that
+<tt>ntpd</tt>'s new &dquot;burst mode&dquot; was designed to solve).
+The current version of <tt>chrony</tt> includes drift correction
+for the RTC, for machines that are turned off for long periods of
+time.
+</p>
+
+<p>
+You can get more information from Richard Curnow's website at
+<url url="http://www.rrbcurnow.freeuk.com/chrony"> or
+<url url="http://go.to/chrony">.
+There are also two <tt>chrony</tt> mailing lists, one for
+announcements and one for discussion by users. For information
+send email to
+<tt><htmlurl url="mailto:chrony-users-subscribe@egroups.com"
+name="chrony-users-subscribe@egroups.com"></tt>
+or
+<tt><htmlurl url="mailto:chrony-announce-subscribe@egroups.com"
+name="chrony-announce-subscribe@egroups.com">
+</p>
+
+<p>
+Chrony is normally distributed as source code only, but Debian
+has been including a binary in their &dquot;unstable&dquot;
+collection. The source file is also available at the usual Linux
+archive sites.
+</p>
+
+<sect1>Clockspeed
+
+<p>
+Another option is the <tt>clockspeed</tt> program by DJ
+Bernstein. It gets the time from a network time server and simply
+resets the system clock every three seconds. It can also be used
+to synchronize several machines on a LAN.
+</p>
+
+<p>
+I've sometimes had trouble reaching his website at
+<url url="http://Cr.yp.to/clockspeed.html">, so if you get a DNS
+error try again on another day. I'll try to update this
+section if I get some better information.
+</p>
+
+<sect>Radio Clocks
+
+<sect1>CHU and the &dquot;Gadget Box&dquot;
+
+<p>
+CHU, the Canadian shortwave time station near Ottawa, is similar
+to WWV in the US but with one important difference: in addition
+to announcing the time in both French and English, it also
+broadcasts the current time once per minute using the old &dquot;Bell
+103&dquot; (300 baud) modem tones. These tones are very easy to
+decode, and Bill Rossi realised that you don't even need a
+modem-- just a shortwave radio and a sound card. If you're able
+to receive the signal from CHU, this may be the cheapest radio
+clock available. Shortwave reception varies throughout the day,
+but Bill claims that by changing frequencies twice a day (morning
+and evening) he gets almost 24-hour coverage. CHU broadcasts on
+3.33, 7.335, and 14.670 MHz.
+</p>
+
+<p>
+For more information see Bill Rossi's website at
+<url url="http://www.rossi.com/chu/">. The source file is also
+available at the usual Linux archive sites. For information on
+CHU's time services see
+<url url="http://www.nrc.ca/inms/time/ctse.html">.
+</p>
+
+<p>
+The NTP website has plans for a &dquot;gadget box&dquot; that
+decodes the CHU time broadcast using an inexpensive 300 baud
+modem chip and any shortwave radio, at
+<url url="http://www.eecis.udel.edu/&tilde;ntp/ntp_spool/html/gadget.htm">.
+The plans include a Postscript image of a
+2-sided custom printed circuit board, but you have to make the
+board yourself (or find someone who can make it for you).
+</p>
+
+<p>
+<tt>Ntpd</tt> includes a driver (type 7) for CHU receivers, which
+works either with modems like the &dquot;<tt>gadget box</tt>&dquot;,
+or by feeding the audio directly into the mic input of a Sun SPARCstation
+(or any other machine with &dquot;compatible audio drivers&dquot;).
+</p>
+
+<sect1>WWV and the &dquot;Most Accurate Clock&dquot;
+
+<p>
+You may have heard about Heathkit's &dquot;Most Accurate Clock&dquot;,
+which received and decoded the time signal from WWV and had an
+optional serial port for connecting to a computer. Heathkit
+stopped selling kits a long time ago, but they continued to sell
+the factory-built version of the clock until 1995, when it was
+also discontinued. For Heathkit nostalgia (not including the
+clock) see <url url="http://www.heathkit-museum.com">. The
+Heathkit company still exists, selling educational materials. See
+<url url="http://www.heathkit.com">.
+</p>
+
+<p>
+According to Dave Mills, Heathkit's patent on the &dquot;Most Accurate
+Clock&dquot; is due to expire soon, so maybe someone out there would
+like to clone it as a single-chip IC.
+</p>
+
+<p>
+The NTP website has a DSP program (and a PDF file describing it) at
+<url url="http://www.eecis.udel.edu/&tilde;mills/resource.htm">
+that decodes the WWV time signal using a shortwave radio and the
+TAPR/AMSAT DSP-93, a DSP kit which is no longer available. It was
+based on the Texas Instruments TMS320C25 DSP chip. The TAPR
+website at <url url="http://www.tapr.org"> includes a lot of
+information on homebrew DSP programming.
+</p>
+
+<p>
+<tt>Ntpd</tt> includes a driver (type 6) for the IRIG-B and
+IRIG-E time codes, using <tt><file>/dev/audio</file></tt> on a
+Sun SPARCstation, with a note that it is &dquot;likely portable
+to other systems&dquot;. WWV uses the IRIG-H time code.
+</p>
+
+<p>
+WWV is run by NIST, which has a website at
+<url url="http://www.boulder.nist.gov/timefreq/index.html">.
+This site includes the text of &dquot;Special Publication 432&dquot;,
+which describes their time and frequency services, at
+<url url="http://www.boulder.nist.gov/timefreq/pubs/sp432/sp432.htm">.
+WWV broadcasts on 2.5, 5, 10, 15, and 20 Mhz.
+</p>
+
+<sect1>GPS and the &dquot;Totally Accurate Clock&dquot;
+
+<p>
+GPS signals include the correct time, and some GPS receivers have
+serial ports. <tt>Ntpd</tt> includes drivers for several GPS
+receivers. The 1PPS feature (&dquot;One Pulse Per Second&dquot;,
+required for high accuracy) usually requires a separate interface
+to connect it to the computer.
+</p>
+
+<p>
+TAPR (Tuscon Amateur Packet Radio) makes a kit for an interface
+called &dquot;TAC-2&dquot; (for &dquot;Totally Accurate
+Clock&dquot;) that plugs into a serial port and works with any
+GPS receiver that can provide a 1PPS output-- including some
+&dquot;bare board&dquot; models that can be mounted directly to
+the circuit board. For more information see their website at
+<url url="http://www.tapr.org">. The price (as of June 1999) is around
+&dollar;140, not including the GPS receiver. The kit does not
+include any enclosure or mounting hardware.
+</p>
+
+<p>
+The CHU &dquot;gadget box&dquot; (described in another section)
+can also be used as an interface for the 1PPS signal. The NTP website
+has a discussion of this at
+<url url="http://www.eecis.udel.edu/&tilde;ntp/ntp_spool/html/pps.htm">.
+</p>
+
+<sect1>Low-frequency Time Signals: DCF77, MSF(Rugby), WWVB
+
+<p>
+These low-frequency stations broadcast a time code by simply
+switching the carrier on and off. Each station uses its own
+coding scheme, and summaries are available on the NTP website at
+<url url="http://www.eecis.udel.edu/&tilde;mills/ntp/index.htm">
+(near the bottom of the page). DCF77 in Germany broadcasts on
+77.5kHz. MSF in England (also called &dquot;Rugby&dquot;, which
+apparently refers to its location) and WWVB in Colorado both
+broadcast on 60 kHz.
+</p>
+
+<p>
+Reception of WWVB varies, but there are plans to increase its
+broadcast power, in several stages. You can follow its progress
+on NIST's website at
+<url url="http://www.boulder.nist.gov/timefreq/wwvstatus.html">.
+</p>
+
+<p>
+Inexpensive receivers that can plug into a serial port are
+reported to be available in Europe. <tt>Ntpd</tt> includes
+drivers for a couple of MSF receivers.
+</p>
+
+<p>
+A number of companies in the US sell relatively inexpensive
+clocks that have built-in WWVB receivers (including several
+analog wall clocks), but I'm only aware of two that can be
+connected to a computer:
+</p>
+
+<p>
+The Ultralink Model 320 sells for about &dollar;120 (as of June
+1999) and has a serial interface and a straightforward ASCII
+command set, so it shouldn't be too hard to program. It draws 1mA
+from the serial port for power. The antenna can be up to 100 feet
+away from the computer, and the unit contains its own clock to
+maintain the time if it loses the signal. They also sell a
+&dquot;bare board&dquot; version for about &dollar;80 that is
+designed to work with the &dquot;BASIC Stamp&dquot; series of
+microcontrollers. See <url url="http://www.ulio.com/timepr.html">.
+</p>
+
+<p>
+Arcron Technology sells a desk clock with an optional serial
+port for about &dollar;130, including software for Windows. See
+<url url="http://www.arctime.com">
+</p>
+
+</article>
