@@ -65,12 +65,12 @@ insert([home], [|strproject|], [Home],
     Link "Benutzerkonto anlegen").
 ], 1)
 
-insert([doctable], [Browse Documents], [],
+insert([doctable], [Dokumente durchsehen], [],
 [
 	|tabdocs|
 ], 1)
 
-insert([document_list], [Document List], [],
+insert([document_list], [Liste der Dokumente], [],
 [
     |tabdocs_block|
 ], 0)    
