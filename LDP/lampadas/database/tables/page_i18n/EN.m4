@@ -86,14 +86,14 @@ insert([stats], [Current Statistics], [],
     <p><hr>
 
     <p>This table indicates when documents were successfully published:
-    
+
     <p>|tabpub_time_stats|
 
     <p><hr>
 
     <p>This table indicates what document errors have been identified by
     Lintadas, or during mirroring or publication:
-    
+
     <p>|tabdoc_error_stats|
 
     <h1>Published Document Statistics</h1>
@@ -138,7 +138,7 @@ insert([contribute], [Contributing to |strproject|], [Contributing to |strprojec
 
     <p>If you find an error in any document, file a bug report.
     </li>
-    
+
     <li>Translate a Document
 
     <p>Translators are always in short supply, and we value them very much.
@@ -240,7 +240,7 @@ insert([lampadas], [About Lampadas], [],
     <p>This website is based on version |version| of the Lampadas
     Documentation Management System,
     a Free Software (GPL) platform developed by David Merrill
-    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>
+    (<a href="mailto:david@lupercalia.net">david@lupercalia.net</a>)
     and others at
     <a href="http://www.tldp.org">The Linux Documentation Project</a>.
 
@@ -248,7 +248,7 @@ insert([lampadas], [About Lampadas], [],
     large documentation projects such as the LDP.
     It provides an interactive environment for writing, managing,
     publishing and reading documentation.
-    
+
     <p>The system is being adopted by the LDP and by the
     Gnome Documentation Project.
 
@@ -259,33 +259,37 @@ insert([lampadas], [About Lampadas], [],
     The idea is that for documentation to improve at the same rate as
     other Free Software projects, we also need to start taking advantage
     of the strength of Open Source, which is massive parallelism.
-    Of course, very little of this vision is available
+
+    <p>Of course, very little of this vision is available
     in the code running on this server.
     Version 1.0 is all about getting the core features implemented
     in a sane and flexible way. Version 1.0 is the basic infrastructure.
 
-    <p>This is <i><b>alpha quality</b></i> code, updated from the cvs tree
-    very frequently, whenever there are significant features or
-    bugfixes available.
-    This happens at least once a day and sometimes
-    several times a day.
-    The system is fairly stable but not production grade quiet yet.
+    <p>This is <i><b>alpha quality</b></i> code, so you get the standard
+    disclaimer: if it breaks, you get to keep both pieces.
+    That said, the system is fairly stable but not production grade quiet yet.
 
     <h1>About This Demo Site</h1>
 
-    <p>This demo site is populated with data from the LDPDB.
+    <p>This demo site is populated with data from the LDP Database (LDPDB).
     If you had an account on the LDPDB, you have one here.
     However, because passwords on the LDPDB are stored only in
     hashed form, I was unable to port them over, and you\'ve been
     given a new password. To get it, click the "Mail Password"
-    link and your new password will be mailed to your address
-    of record.</p>
+    link on the home page and your new password will be mailed to your
+    address of record.</p>
+    
+    <p>This site now also includes all the documents in the
+    <a href="http://developer.gnome.org/projects/gdp/">Gnome Documentation Project</a>
+    (GDP), right out of their CVS tree.
 
-    <p>There are also a set of additional test users.
+    <h1>User Accounts</h1>
+
+    <p>There are also some additional test users on this demo site.
     Log in as one of them to see the site through their eyes.
     The pages change depending on your access level.
     These users\' passwords are "password".
-    (You probably want to test drive being "syadmin", folks.
+    (You probably want to test drive being "sysadmin", folks.
     It's a very different interface.)</p>
 
     <ul>
@@ -296,21 +300,31 @@ insert([lampadas], [About Lampadas], [],
         <li>korean - a Korean-speaking user.</li>
     </ul>
 
+    <h1>Reporting Bugs</h1>
+
     <p>We greatly appreciate your comments, bug reports or questions.
     You can reach David Merrill at
-    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
-    If you want to help build Lampadas, it is a really fun and exciting
+    <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>
+    if you have comments or questions.
+    
+    <p>Bugs should be reported in the Gnome Bugzilla database at
+    <a href="http://bugzilla.gnome.org">bugzilla.gnome.org</a>.
+    If you file a bug, be sure to file it against the Lampadas project.
+    
+    <h1>Building Lampadas</h1>
+
+    <p>If you want to help build Lampadas, it is a really fun and exciting
     project.
     You can find out more about it by reading the
     <a href="http://www.lupercalia.net/lampadas/">Lampadas Developer\'s
-    Guide</a>.</p>
+    Guide</a> (temporarily down).</p>
 
     <h1>Why Lampadas?</h1>
 
     <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas
     as the name of the Bene Gesserit teaching planet, which plays a
     role in the final book,
-    Chapterhouse: Dune.
+    <i>Chapterhouse: Dune</i>.
     Before the planet can be destroyed by hordes of Honored Matres,
     Reverend Mother Lucilla orders the planet to share Other Memory,
     two by two then four by four, until all the students hold within

@@ -23,10 +23,11 @@ from Globals import *
 from globals import *
 from Config import config
 from DataLayer import lampadas
-from HTML import page_factory
 from Log import log
 from mod_python import apache
 import os
+
+# FIXME: Need permission checks on all of these routines!
 
 def newdocument(req, username, doc_id,
              title, short_title,
@@ -183,19 +184,19 @@ def newaccount(req, username, email, first_name, middle_name, surname):
     """
     
     if username=='':
-        return page_factory.page('username_required')
+        redirect(req, '../../username_required' + referer_lang_ext(req))
 
     user = lampadas.users[username]
     if user:
-        return page_factory.page('user_exists')
+        redirect(req, '../../user_exists' + referer_lang_ext(req))
     if lampadas.users.is_email_taken(email):
-        return page_factory.page('email_exists')
+        redirect(req, '../../email_exists' + referer_lang_ext(req))
 
     password = random_string(12)
     send_mail(email, 'Your password for Lampadas is: ' + password)
 
     lampadas.users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
-    return page_factory.page('account_created')
+    redirect(req, '../../account_created' + referer_lang_ext(req))
 
 def newuser(req, username, email, first_name, middle_name, surname, stylesheet, password, admin, sysadmin, notes):
     """
@@ -203,13 +204,13 @@ def newuser(req, username, email, first_name, middle_name, surname, stylesheet, 
     """
 
     if username=='':
-        return page_factory.page('username_required')
+        redirect(req, '../../username_required' + referer_lang_ext(req))
 
     user = lampadas.users[username]
     if user:
-        return page_factory.page('user_exists')
+        redirect(req, '../../user_exists' + referer_lang_ext(req))
     if lampadas.users.is_email_taken(email):
-        return page_factory.page('email_exists')
+        redirect(req, '../../email_exists' + referer_lang_ext(req))
 
     lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
     redirect(req, '../../user/' + username + referer_lang_ext(req))
@@ -231,12 +232,4 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
     referer = req.headers_in['referer']
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY
-
-def mailpass(req, email):
-    user = lampadas.users.find_email_user(email)
-    if user:
-        send_mail(email, 'Your password for Lampadas is: ' + user.password)
-        redirect(req, '../../password_mailed' + referer_lang_ext(req))
-    else:
-        return error('User not found.')
 

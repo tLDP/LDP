@@ -114,16 +114,16 @@ class StatTable(LampadasCollection):
             return float(0)
         return float(self[label].value)/self.sum()
 
-    def inc(self, label):
+    def inc(self, key):
         """
-        Increments the value matching the label.
-        If there is no entry to match the label, create one.
+        Increments the value matching the key.
+        If there is no entry to match the key, create one.
         """
 
-        stat = self[label]
+        stat = self[key]
         if stat==None:
-            stat = Stat(label)
-            self[label] = stat
+            stat = Stat(key)
+            self[key] = stat
         stat.value = stat.value + 1
 
 

@@ -21,6 +21,7 @@
 
 from URLParse import URI
 from Config import config
+from DataLayer import lampadas
 from mod_python import apache
 import smtplib
 
@@ -43,6 +44,9 @@ def go_back(req):
         url = '/'
     redirect(req, url)
 
+def error(message):
+    return message
+
 def send_mail(email, message):
     """
     Sends an email to the user.
@@ -53,5 +57,11 @@ def send_mail(email, message):
     server.sendmail(config.admin_email, email, message)
     server.quit()
 
-def error(message):
-    return message
+def mailpass(req, email):
+    user = lampadas.users.find_email_user(email)
+    if user:
+        send_mail(email, 'Your password for Lampadas is: ' + user.password)
+        redirect(req, '../../password_mailed' + referer_lang_ext(req))
+    else:
+        return error('User not found.')
+
