@@ -1763,7 +1763,6 @@ class TabNews(Table):
         box = WOStringIO('<table class="box" width="100%">'
                          '<tr><th colspan="2">|strnews|</th></tr>')
         keys = lampadasweb.news.sort_by_desc('pub_date')
-        odd_even = OddEven()
         items = 0
         for key in keys:
             news = lampadasweb.news[key]
@@ -1778,12 +1777,11 @@ class TabNews(Table):
 # from having this tag applied.
 
                 box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
-                          '<tr class="%s"><td class="nontabularlabel">%s</td>\n'
+                          '<tr class="odd"><td class="nontabularlabel">%s</td>\n'
                           '               <td class="nontabular">%s</td>\n'
                           '</tr>\n'
                           % (edit_icon,
                              news.headline[uri.lang],
-                             odd_even.get_next(),
                              news.pub_date,
                              news.news[uri.lang]))
             items = items + 1
@@ -1822,28 +1820,27 @@ class TabNewsItem(Table):
                       '    <th class="collabel" colspan="2">|strnews|</th>' \
                       '</tr>')
 
-            odd_even = OddEven()
             for lang in languages.supported_keys():
                 if not news.news[lang]==None:
                     box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr class="%s"><td class="nontabularlabel">%s</td>' \
+                              '<tr class="odd"><td class="nontabularlabel">%s</td>' \
                               '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%" value="%s">\n' \
                               ' <p><textarea name="news" rows="10" cols="40" style="width:100%%">%s</textarea></td>' \
                               '    <td class="nontabular"><input type=submit name="save" value="|strsave|"></td>\n' \
                               '</tr></form>'
-                              % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.headline[lang], news.news[lang]))
+                              % (news.id, lang, languages[lang].name[uri.lang], news.headline[lang], news.news[lang]))
 
             # Add a new translation
             box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
                       '<input type=hidden name="news_id" value="%s">\n' \
-                      '<tr class="%s"><td class="nontabularlabel">%s</td>' \
+                      '<tr class="odd"><td class="nontabularlabel">%s</td>' \
                       '    <td class="nontabular"><input type=text name="headline" width="40" style="width:100%%">\n' \
                       ' <p><textarea name="news" rows="10" cols="40" style="width:100%%"></textarea></td>' \
                       '    <td class="nontabular"><input type=submit name="save" value="|stradd|"></td>\n' \
                       '</tr></form>'
-                      % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+                      % (news.id, widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
             box.write('</table>')
         else:
             news = NewsItem()

@@ -369,10 +369,13 @@ class NewsItems(LampadasCollection):
             news.load_row(row)
             self.data[news.id] = news
 
-    def add(self, pub_date=now_string()):
+    def add(self, pub_date=None):
         news = NewsItem()
         news.id = db.next_id('news', 'news_id')
-        news.pub_date = pub_date
+        if pub_date==None:
+            news.pub_date = now_string()
+        else:
+            news.pub_date = pub_date
         self[news.id] = news
         sql = 'INSERT INTO news(news_id, pub_date) VALUES (' + str(news.id) + ', ' + wsq(news.pub_date) + ')'
         db.runsql(sql)
