@@ -8,6 +8,9 @@
 <!--  <xsl:value-of select="."/> -->
 </xsl:template>
 
+<xsl:variable name="ucletters" select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"/>
+<xsl:variable name="lcletters" select="'abcdefghijklmnopqrstuvwxyz'"/>
+
 <xsl:template match="doc">
   <!--  don't display items with the same title more than once  -->
   <xsl:if test="preceding::doctitle!=doctitle">
@@ -27,7 +30,7 @@
     <xsl:call-template name="header"/>
     <h1>ScrollKeeper Document List</h1>
     <xsl:apply-templates select="//doc">
-      <xsl:sort select="doctitle"/>
+      <xsl:sort select="translate(doctitle, $lcletters, $ucletters)"/>
     </xsl:apply-templates>
     <p/>
   </body>

@@ -17,7 +17,8 @@
   <h1>Welcome to ScrollServer</h1>
 
   <p>You can use ScrollServer to browse and search help files that are installed
-    on your computer as well as online ScrollServer databases.
+    in the ScrollKeeper database on your computer.
+    Someday you will also be able to view online ScrollServer databases.
   </p>
 
   <p>ScrollServer is a young project that is still in early development, so many

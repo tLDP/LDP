@@ -1,18 +1,23 @@
 #!/usr/bin/python2
 
+
 import os
 import string
 import commands
 import StringIO
+import urlparse
 import SimpleHTTPServer
 import scrollkeeper
 
-BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
-ScrollKeeper = scrollkeeper.ScrollKeeper()
 
 htmlbase = "/var/cache/scrollserver/"	# This is the cache directory
 caching = 1 				# set to 1 to enable caching
 xsltparam = "--timing"			# parameters to pass in all xsltproc calls
+xsltparam = ""
+
+
+BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
+ScrollKeeper = scrollkeeper.ScrollKeeper()
 
 def FileContents(filename):
 	f = open(filename, "r")
@@ -20,68 +25,94 @@ def FileContents(filename):
 	f.close
 	return text
 
-class MyRequestHandler(BaseClass):
+
+def FileCache(sourcefile, htmlfile, cmd):
+	if not os.path.exists(htmlfile) or caching == 0:
+		os.system(cmd)
+
+
+class URI:
+
+	URI = ""
+	Protocol = ""
+	Server = ""
+	Port = ""
+	Path = ""
+	Filename = ""
+	Parameter = ""
+
+	def __init__(self, uri):
+
+		self.URI = uri
+		temp = uri
+		
+		temp = string.split(temp,"?")
+		if len(temp) > 1:
+			self.Parameter = temp[1]
+		temp = temp[0]
+		
+		temp = string.split(temp,"/")
+		if len(temp) > 1:
+			self.Filename = string.join(temp[len(temp)-1:])
+		temp = string.join(temp[:len(temp)-1],"/")
+
+		if temp[:7] == "http://":
+			self.Protocol = "http://"
+			temp = temp[7:]
+
+		# If the first character is /, there is no server or port.
+		if temp[:1] == "/":
+			self.Path = temp[1:]
+		else:
+			temp = string.split(temp,":")
+			if len(temp) > 1:
+				self.Port = temp[1]
+			self.Server = temp[0]
+
+#	This is a tricky area, so leave this for testing when problems arise
+#	due to strange URIs.
+#		print "URI: " + self.URI
+#		print "Protocol: " + self.Protocol
+#		print "Server: " + self.Server
+#		print "Port: " + self.Port
+#		print "Path: " + self.Path
+#		print "Filename: [" + self.Filename + "]"
+#		print "Parameter: " + self.Parameter
+
+
+class RequestHandler(BaseClass):
 
 	def do_GET(self):
 		BaseClass.do_GET(self)
 
 	def send_head(self):
 
-		# extract parameter
-		uri = string.split(self.path,"?")
-		if len(uri) > 1:
-			parameter = uri[1]
-		else:
-			parameter = ""
-
-		# extract filename
-		uri = string.split(uri[0],"/")
-		if len(uri) > 1:
-			directory = uri[0]
-			filename = uri[1]
-		else:
-			directory = ""
-			filename = uri[0]
-		
 		if self.path == "" or self.path == "/" or self.path == "/index.html":
 			return self.send_Home()
 		elif self.path == "/contents.html":
 			return self.send_ContentsList()
 		elif self.path =="/documents.html":
 			return self.send_DocList()
-        	elif filename == "docid":
-			return self.send_DocumentByID(parameter)
 		else:
-			filename = string.split(self.path, "/")
-			while len(filename) > 1:
-				filename = filename[1:]
-			filename = filename[0]
-			if not os.path.isfile(filename):
-				text = "Unrecognized request: " + filename
-				print text
-				return self.send_Text(text)
-			return self.send_File(filename)
+			uri = URI(self.path)
+		
+			if uri.Filename == "docid":
+				return self.send_DocumentByID(uri.Parameter)
+			else:
+				return self.send_URI(uri)
 
 	def send_Home(self):
-		if not os.path.isfile("index.html") or caching == 0:
-			cmd = "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/documents.xsl > index.html"
-			os.system(cmd)
+		FileCache ("", "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/documents.xsl > index.html")
 		return self.send_File("index.html")
 			
 	def send_ContentsList(self):
-		if not os.path.isfile("contents.html") or caching == 0:
-			cmd = "scrollkeeper-get-content-list C"
-			contents_list = commands.getoutput(cmd)
-			cmd = "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > contents.html"
-			os.system(cmd)
+		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
+		FileCache (contents_list, "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > contents.html")
 		return self.send_File("contents.html")
 
 	def send_DocList(self):
-		if not os.path.isfile("documents.html") or caching == 0:
-			cmd = "scrollkeeper-get-content-list C"
-			contents_list = commands.getoutput(cmd)
-			cmd = "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > documents.html"
-			os.system(cmd)
+		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
+		FileCache (contents_list, "documents.html", "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > documents.html")
 		return self.send_File("documents.html")
 
 	def send_DocumentByID(self, docid):
@@ -95,16 +126,44 @@ class MyRequestHandler(BaseClass):
 		if document.Format == "text/html":
 			text = '<html><head><meta http-equiv="refresh" content="0; url=' + document.URL + '"></head></html>'
 			return self.send_Text(text)
-		
-		if not os.path.isfile(htmlfile) or caching == 0:
-			cmd = "mkdir " + htmlpath
-			os.system(cmd)
-			cmd = "xsltproc --docbook " + xsltparam + " stylesheets/docbook/docbook.xsl " + xmlfile + " > " + htmlfile
-			os.system(cmd)
+
+		FileCache ("", htmlpath, "mkdir " + htmlpath)
+		FileCache (xmlfile, htmlfile, "xsltproc --docbook " + xsltparam + " stylesheets/docbook/docbook.xsl " + xmlfile + " > " + htmlfile)
+		os.system("ln -s --target-directory=" + htmlpath + " " + xmlpath + "/*")
 		return self.send_File(htmlfile)
 
+	def send_URI(self, uri):
+
+		if os.path.isfile(uri.Filename):
+			return self.send_File(uri.Filename)
+			
+		referer = self.headers.getheader("Referer")
+		refuri = URI(referer)
+
+		if refuri.Filename == "docid":
+			document = ScrollKeeper.DocumentByID(refuri.Parameter)
+			filename = htmlbase + document.ID + "/" + uri.Path + "/" + uri.Filename
+			return self.send_File(filename)
+		else:
+			text = "Unrecognized request: " + uri.Filename
+			return self.send_Text(text)
+
 	def send_File(self, filename):
-		fileext = string.split(filename, ".")[1]
+		temp = string.split(filename, ".")
+		if len(temp) > 1:
+			fileext = temp[1]
+		else:
+			fileext = ""
+			if os.path.isfile(filename + ".png"):
+				fileext = "png"
+			elif os.path.isfile(filename + ".jpeg"):
+				fileext = "jpeg"
+			if os.path.isfile(filename + ".jpg"):
+				fileext = "jpg"
+			if os.path.isfile(filename + ".gif"):
+				fileext = "gif"
+			filename += "." + fileext
+			
 		if fileext == "html" or fileext == "htm":
 			mimetype = "text/html"
 		elif fileext == "png":
@@ -115,10 +174,17 @@ class MyRequestHandler(BaseClass):
 			mimetype = "image/jpeg"
 		elif fileext == "css":
 			mimetype = "text/css"
-		self.send_response(200)
-		self.send_header("Content-type", mimetype)
-		self.end_headers()
-		text = FileContents(filename)
+		else:
+			mimetype = ""
+
+		if os.path.isfile(filename):
+			self.send_response(200)
+			self.send_header("Content-type", mimetype)
+			self.end_headers()
+			text = FileContents(filename)
+		else:
+			text = "Unrecognized file: " + filename			
+
 		return StringIO.StringIO(text)
 
 	def send_Text(self, text):
@@ -126,12 +192,13 @@ class MyRequestHandler(BaseClass):
 		self.send_header("Content-type", "text/html")
 		self.end_headers()
 		return StringIO.StringIO(text)
-		
+
 
 def ScrollServer():
 	os.system("rm -rf /var/cache/scrollserver/*")
 	os.system("rm *.html")
-	SimpleHTTPServer.test(MyRequestHandler)
+	print "ScrollServer v0.3 -- development version!"
+	SimpleHTTPServer.test(RequestHandler)
 
 ScrollServer()
 

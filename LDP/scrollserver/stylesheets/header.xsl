@@ -6,6 +6,7 @@
   <a href="index.html">Home</a> |
   <a href="contents.html">Contents</a> |
   <a href="documents.html">Documents</a>
+  <br/><hr/>
 </xsl:template>
 
 <!-- ==================================================================== -->
