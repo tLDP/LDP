@@ -8,9 +8,10 @@
 #   thru htmldoc.
 #
 # log:
-#     16Oct2000 - 0.1  - initial entry <gferg (at) sgi.com>
-#     03Apr2001 - 0.2  - fix for <preface>
-#     05Jul2001 - 0.3  - fix for <tt> and -f
+#     16Oct2000 - 0.1 - initial entry <gferg (at) sgi.com>
+#     03Apr2001 - 0.2 - fix for <preface>
+#     05Jul2001 - 0.3 - fix for <tt> and -f
+#     12Oct2001 - 0.4 - fix for sections; loop thru both files (body/title)
 #
 
 sub fix_print_html {
@@ -22,25 +23,21 @@ sub fix_print_html {
         return 0;
    };
 
-   my($buf,$ttl_buf) = '';
+   my($buf, $ttl_buf) = '';
    my($indx) = -1;
-   my($is_article) = 0;
+   my($is_article) = 1;
    while(<IN_FILE>) {
 
          if( $indx == 1 ) {
 
              # ignore everything until we see the chapter or sect
              #
-             if( $_ =~ /CLASS="CHAP/i || $_ =~ /CLASS="PREF/i ) {
+             if( $_ =~ /CLASS="CHAP/i || $_ =~ /CLASS="PREF/i
+                 ||
+                 $_ =~ /CLASS="SECT/i )  {
 
                  $buf .= $_;
                  $indx++;
-
-             } elsif( $_ =~ /CLASS="SECT/ || $_ =~ /CLASS="sect/ )  {
-
-                 $buf .= $_;
-                 $indx++;
-                 $is_article = 1;
 
              } else {
                  next;
@@ -54,6 +51,8 @@ sub fix_print_html {
 
                  $ttl_buf .= "></DIV>\n</BODY>\n</HTML>\n"; 
                  $ttl_buf =~ s/<\/H1\n/<\/H1\n><P><BR><BR\n/ms;
+                 $ttl_buf =~ s/<HR><\/DIV\n><HR>/<HR><\/DIV\n>/ms;
+                 &fix_html(\$ttl_buf, 1);
                  
                  open(TOC_FILE, "> $ttl") || do {
                       print "fix_print_html: cannot open $ttl: $!\n";
@@ -70,6 +69,10 @@ sub fix_print_html {
              }
 
          } elsif( $indx < 0 ) {
+
+             if( $_ =~ /CLASS="BOOK"/i ) {
+                 $is_article = 0;
+             }
 
              # up to this point, both buffers get the line
              #
@@ -90,40 +93,57 @@ sub fix_print_html {
    }
    close(IN_FILE);
 
+
+   # fix body file
+   #
    open(OUT_FILE, "> $out") || do {
         print "fix_print_html: cannot open $out: $!\n";
         return 0;
    };
 
+   &fix_html(\$buf, $is_article);
 
-   # make these corrections and write out the file
+   print OUT_FILE $buf;
+   close(OUT_FILE);
+
+
+   return 1;
+}
+
+
+sub fix_html {
+   
+   my($buf, $is_article) = @_;
+   my($indx) = -1;
+
+   # make corrections and write out the file
    #
 
-   $buf =~ s/(\n><LI\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
-   $buf =~ s/(\n><LI\n><DIV\nCLASS="FORMALPARA"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
-   $buf =~ s/(\n><LI\nSTYLE="[^\"]+"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   $$buf =~ s/(\n><LI\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   $$buf =~ s/(\n><LI\n><DIV\nCLASS="FORMALPARA"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
+   $$buf =~ s/(\n><LI\nSTYLE="[^\"]+"\n)><P\n(.*?)<\/P\n>/$1$2\n/gms;
    if( $is_article == 0 ) {
-       $buf =~ s/(\nCLASS="SECT[TION\d]+"\n>)<H1\n(.*?)<\/H1/$1<H2\n$2<\/H2/gims;
-       $buf =~ s/(\nCLASS="SECT[TION\d]+"\n><HR>)<H1\n(.*?)<\/H1/$1<H2\n$2<\/H2/gims;
+       $$buf =~ s/(\nCLASS="SECT[TION\d]+"\n>)<H1\n(.*?)<\/H1/$1<H0\n$2<\/H0/gims;
+       $$buf =~ s/(\nCLASS="SECT[TION\d]+"\n><HR>)<H1\n(.*?)<\/H1/$1<H0\n$2<\/H0/gims;
    }
-   $buf =~ s/<H1(\nCLASS="INDEXDIV"\n)(.*?)<\/H1/<H2$1$2<\/H2/gims;
-   if( ($indx = rindex($buf, "<H1\n><A\nNAME=\"DOC-INDEX\"")) > -1 ) {
-       $buf = substr($buf, 0, $indx);
-       $buf .= "\n<\/BODY>\n<\/HTML>\n\n";
-   } elsif( ($indx = rindex($buf, "<H1\n><A\nNAME=\"doc-index\"")) > -1 ) {
-       $buf = substr($buf, 0, $indx);
-       $buf .= "\n<\/BODY>\n<\/HTML>\n\n";
+   $$buf =~ s/<H1(\nCLASS="INDEXDIV"\n)(.*?)<\/H1/<H2$1$2<\/H2/gims;
+   if( ($indx = rindex($$buf, "<H1\n><A\nNAME=\"DOC-INDEX\"")) > -1 ) {
+       $$buf = substr($buf, 0, $indx);
+       $$buf .= "\n<\/BODY>\n<\/HTML>\n\n";
+   } elsif( ($indx = rindex($$buf, "<H1\n><A\nNAME=\"doc-index\"")) > -1 ) {
+       $$buf = substr($buf, 0, $indx);
+       $$buf .= "\n<\/BODY>\n<\/HTML>\n\n";
    }
-   $buf =~ s/\&\#13;//g;
-   $buf =~ s/\&\#60;/\&lt;/g;
-   $buf =~ s/\&\#62;/\&gt;/g;
-   $buf =~ s/\&\#8211;/\-/g;
-   $buf =~ s/WIDTH=\"\d\"//g;
-   $buf =~ s/><[\/]*TBODY//g;
-   $buf =~ s/><[\/]*THEAD//g;
-   $buf =~ s/TYPE=\"1\"\n//gim;
+   $$buf =~ s/\&\#13;//g;
+   $$buf =~ s/\&\#60;/\&lt;/g;
+   $$buf =~ s/\&\#62;/\&gt;/g;
+   $$buf =~ s/\&\#8211;/\-/g;
+   $$buf =~ s/WIDTH=\"\d\"//g;
+   $$buf =~ s/><[\/]*TBODY//g;
+   $$buf =~ s/><[\/]*THEAD//g;
+   $$buf =~ s/TYPE=\"1\"\n//gim;
 
-   $buf =~ s/<P\nCLASS="LITERALLAYOUT"(.*?)<\/P/<P CLASS="LITERALLAYOUT"><FONT FACE=\"courier\"$1<\/FONT><\/P/gms;
+   $$buf =~ s/<P\nCLASS="LITERALLAYOUT"(.*?)<\/P/<P CLASS="LITERALLAYOUT"><FONT FACE=\"courier\"$1<\/FONT><\/P/gms;
 
    if( $is_article == 0 ) {
 
@@ -131,13 +151,16 @@ sub fix_print_html {
        # chapter level only to H1...
        #
        my($cnt,$j) = 0;
-       for($cnt=5; $cnt > 0; $cnt--) {
+       for($cnt=5; $cnt >= 0; $cnt--) {
            $j = $cnt + 1;
-           $buf =~ s/<H${cnt}/<H${j}/g;
-           $buf =~ s/<\/H${cnt}/<\/H${j}/g;
+           if( $cnt == 0 ) {
+               $j = 2;
+           }
+           $$buf =~ s/<H${cnt}/<H${j}/g;
+           $$buf =~ s/<\/H${cnt}/<\/H${j}/g;
        }
 
-       my(@l) = split(/\n/, $buf);
+       my(@l) = split(/\n/, $$buf);
        for( $cnt=0; $cnt < (@l + 0); $cnt++ ) {
 
             if( $j == 1 ) {
@@ -155,18 +178,16 @@ sub fix_print_html {
             }
        }
 
-       $buf = join("\n", @l);
+       $$buf = join("\n", @l);
 
    }
-   $buf =~ s/><DIV\nCLASS="\w+"\n//gms;
-   $buf =~ s/><\/DIV\n//gms;
-   $buf =~ s/(><LI\n)><P\n(.*?)<\/P\n>(<\/LI\n)/$1$2$3/gms;
+   $$buf =~ s/><DIV\nCLASS="\w+"\n//gms;
+   $$buf =~ s/><\/DIV\n//gms;
+   $$buf =~ s/(><LI\n)><P\n(.*?)<\/P\n>(<\/LI\n)/$1$2$3/gms;
 
-   print OUT_FILE $buf;
-   close(OUT_FILE);
-
-   return 1;
+   return;
 }
+
 
 # Return true from package include
 #
