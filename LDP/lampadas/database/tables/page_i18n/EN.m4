@@ -17,8 +17,9 @@ insert([home], [|strproject|], [Home],
 [
     <p>Welcome to |strproject|.
 
-    <p>This site is based on a development version of the Lampadas Document Management System
-    from <a href="http://www.tldp.org">The Linux Documentation Project</a>
+    <p>This site is based on a development version of the
+    Lampadas Document Management System from
+    <a href="http://www.tldp.org">The Linux Documentation Project</a>
 ])
 
 insert([doctable], [DocTable], [],
@@ -31,7 +32,8 @@ insert([news], [Latest News], [],
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
+insert([contribute], [Contributing to |strproject|],
+    [Contributing to |strprojectshort|],
 [
     As a member of this Lampadas community, you can collaborate with
     hundreds or even thousands of others to produce documentation,
@@ -59,8 +61,8 @@ insert([contribute], [Contributing to |strproject|], [Contributing to |strprojec
     <li>Translate a Document
 
     <p>Translators are always in short supply, and we value them very much.
-    Our goal is to provide all of our documentation in as many languages as possible,
-    allowing people all over the world to take advantage of it.
+    Our goal is to provide all of our documentation in as many languages
+    as possible, allowing people all over the world to take advantage of it.
     </li>
 
     <li>Write a Document
@@ -75,9 +77,9 @@ insert([contribute], [Contributing to |strproject|], [Contributing to |strprojec
     <p>If you have programming or translating skills, you can help to develop
     the platform upon which this site is based.
 
-    <p>The Lampadas System itself can be localized to display in several languages.
-    Translators are needed to translate it into additional languages.
-    It is currently available in:
+    <p>The Lampadas System itself can be localized to display in several
+    languages. Translators are needed to translate it into additional
+    languages. It is currently available in:
 
     <ul>
     <li>English</li>
@@ -96,23 +98,26 @@ insert([about], [About |strproject|], [About |strprojectshort|],
 
 insert([lampadas], [About Lampadas], [],
 [
-    <p>This website is based on version |version| of the Lampadas Documentation Management System,
+    <p>This website is based on version |version| of the Lampadas
+    Documentation Management System,
     a Free Software (GPL) platform developed by
     <a href="http://www.tldp.org">The Linux Documentation Project</a>.
     
-    <p>Lampadas is a powerful, flexible platform designed to support large documentation
-    projects such as the LDP.
+    <p>Lampadas is a powerful, flexible platform designed to support
+    large documentation projects such as the LDP.
     It provides an interactive environment for writing, managing,
     publishing and reading documentation.
 
     <p>Lampadas creates a collaborative community which
     includes authors, editors, technical experts, and readers all working
-    together to produce documentation, and to share information with each other.
+    together to produce documentation, and to share information with
+    each other.
 
     <h1>Why Lampadas?</h1>
 
-    <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas as the name
-    of the Bene Gesserit teaching planet, which plays a role in the final book,
+    <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas
+    as the name of the Bene Gesserit teaching planet, which plays a
+    role in the final book,
     Chapterhouse: Dune.
     Before the planet can be destroyed by hordes of Honored Matres,
     Reverend Mother Lucia orders the planet to share Other Memory,
@@ -124,7 +129,8 @@ insert([lampadas], [About Lampadas], [],
 
     <p>Herbert apparently took the name from the city of Lampadas,
     which was an ancient seat of learning and scholarship.
-    Also, the word lampadas is the accusative form of the word "Torch" in ancient Greek.
+    Also, the word lampadas is the accusative form of the word
+    "Torch" in ancient Greek.
 
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
@@ -149,7 +155,8 @@ insert([copyright], [Copyright Statment], [],
     <p>Lampadas is made available under the terms of the GNU General Public
     License (GPL).
     A copy is available online at
-    <a href="http://www.gnu.org/licenses/gpl.html">www.gnu.org/licenses/gpl.html</a>.
+    <a href="http://www.gnu.org/licenses/gpl.html"
+    >www.gnu.org/licenses/gpl.html</a>.
 
     <p>We do our best to provide accurate information, but we do not provide
     any warranty or guarantees as to accuracy, completeness, or anything else.
@@ -176,15 +183,18 @@ insert([privacy], [Privacy Policy], [],
     <p>We are committed to helping you maintain your privacy while online.
     You can use this site without divulging any personal information.
     
-    <p>However, due to the nature of the system, some features require registration.
+    <p>However, due to the nature of the system, some features require
+    registration.
     To register, you must provide your email address.
-    We require an email address to prevent certain types of Denial of Service (DoS)
-    attacks. All other information is completely optional.
+    We require an email address to prevent certain types of Denial of
+    Service (DoS) attacks. All other information is completely optional.
     
     <p>Your information is used only in the operation of this website.
-    No personal information about you will ever be disclosed to any third party.
+    No personal information about you will ever be disclosed to any third
+    party.
     
-    <p>We will not spam you or add you to any mailing lists without your consent.
+    <p>We will not spam you or add you to any mailing lists without
+    your consent.
 ])
 
 insert([newuser], [New User], [],
