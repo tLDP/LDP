@@ -143,11 +143,17 @@ class PageFactory:
 		
 		# Allow the language to be specified in the URL
 		# 
+		Log(3, 'Testing language ' + Keys[0])
 		if Keys[0] in L.Languages.keys():
+			Log(3, 'URL specified the ' + Keys[0] + ' translation')
 			if L.Languages[Keys[0]].Supported:
 				lang = Keys[0]
+			else:
+				Log(3, 'Language ' + Keys[0] + ' not supported')
+				print L.Languages[Keys[0]].Supported
 			Keys = Keys[1:]
-			
+		
+		Log(3, 'Serving language ' + lang)
 		pagecode = Keys[0]
 		if pagecode == 'doc':
 			DocID = int(Keys[1])
@@ -232,6 +238,7 @@ def main():
 	F = PageFactory()
 	for arg in sys.argv[1:]:
 		print F.Page(arg, 'EN')
+
 
 def usage():
 	print "HTML.py version " + VERSION

@@ -62,6 +62,7 @@ def WebServer():
 	server = BaseHTTPServer.HTTPServer((interface, port), RequestHandler)
 	server.serve_forever()
 
+
 if __name__ == '__main__':
 	WebServer()
 

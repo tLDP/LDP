@@ -66,8 +66,8 @@ def tf2bool(tf):
 	"""
 	Converts a t/f string value into a 1/0 integer value.
 	"""
-	
-	if tf == 't':
+
+	if tf:
 		return 1
 	else:
 		return 0
