@@ -93,7 +93,7 @@ class PageFactory:
             
                 # System diagnostic tokens
                 if token=='elapsed_time':
-                    html = html.replace('|elapsed_time|', 'DCM_ELAPSED_TIME')
+                    newstring = 'DCM_ELAPSED_TIME'
                     
                 # Tokens based on a logged-in user
                 # 

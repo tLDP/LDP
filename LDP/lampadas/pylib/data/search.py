@@ -25,6 +25,7 @@ from Config import config
 from DataLayer import lampadas
 from WebLayer import lampadasweb
 from HTML import page_factory
+from Tables import tables
 from Sessions import sessions
 from URLParse import URI
 from Log import log
@@ -72,31 +73,33 @@ def document(req,
     # a copy.deepcopy() which I haven't tested but imagine to
     # be rather expensive. -- DCM
     save_page = page.page[uri.lang]
-    table = page_factory.tablef.doctable(uri, 
-                                         title                   = empty2None_str(title),
-                                         pub_status_code         = empty2None_str(pub_status_code),
-                                         type_code               = empty2None_str(type_code),
-                                         subtopic_code           = empty2None_str(subtopic_code),
-                                         maintained              = empty2None_int(maintained),
-                                         maintainer_wanted       = empty2None_int(maintainer_wanted),
-                                         lang                    = empty2None_str(lang),
-                                         review_status_code      = empty2None_str(review_status_code),
-                                         tech_review_status_code = empty2None_str(tech_review_status_code),
-                                         pub_date                = empty2None_str(pub_date),
-                                         last_update             = empty2None_str(last_update),
-                                         tickle_date             = empty2None_str(tickle_date),
-                                         isbn                    = empty2None_str(isbn),
-                                         rating                  = empty2None_str(rating),
-                                         format_code             = empty2None_str(format_code),
-                                         dtd_code                = empty2None_str(dtd_code),
-                                         license_code            = empty2None_str(license_code),
-                                         copyright_holder        = empty2None_str(copyright_holder),
-                                         sk_seriesid             = empty2None_str(sk_seriesid),
-                                         abstract            = empty2None_str(abstract),
-                                         short_desc          = empty2None_str(short_desc))
+    table = tables.doctable(uri, 
+                            title                   = empty2None_str(title),
+                            pub_status_code         = empty2None_str(pub_status_code),
+                            type_code               = empty2None_str(type_code),
+                            subtopic_code           = empty2None_str(subtopic_code),
+                            maintained              = empty2None_int(maintained),
+                            maintainer_wanted       = empty2None_int(maintainer_wanted),
+                            lang                    = empty2None_str(lang),
+                            review_status_code      = empty2None_str(review_status_code),
+                            tech_review_status_code = empty2None_str(tech_review_status_code),
+                            pub_date                = empty2None_str(pub_date),
+                            last_update             = empty2None_str(last_update),
+                            tickle_date             = empty2None_str(tickle_date),
+                            isbn                    = empty2None_str(isbn),
+                            rating                  = empty2None_str(rating),
+                            format_code             = empty2None_str(format_code),
+                            dtd_code                = empty2None_str(dtd_code),
+                            license_code            = empty2None_str(license_code),
+                            copyright_holder        = empty2None_str(copyright_holder),
+                            sk_seriesid             = empty2None_str(sk_seriesid),
+                            abstract            = empty2None_str(abstract),
+                            short_desc          = empty2None_str(short_desc))
 
     page.page[uri.lang] = page.page[uri.lang].replace('|tabdocs|', table)
-    html = page_factory.build_page(page, URI('doctable' + uri.lang_ext))
+    uri = URI('doctable' + uri.lang_ext)
+    uri.base = '../../'
+    html = page_factory.build_page(page, uri)
     
     # Restore the original page
     page.page[uri.lang] = save_page
