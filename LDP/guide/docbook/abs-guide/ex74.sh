@@ -1,5 +1,5 @@
 #!/bin/bash
-# test23.sh
+# ex74.sh
 
 # This is a buggy script.
 

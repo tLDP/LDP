@@ -21,9 +21,11 @@ echo "h = $h"
 # BASE between 2 and 36.
 let "b = 32#77"
 echo "b = $b"
+#
 # This notation only works for a limited range (2 - 36)
-            # ... 10 digits + 26 alpha characters = 36.
-let "c = 2#47"  # Error: out of range.
+                # ... 10 digits + 26 alpha characters = 36.
+let "c = 2#47"  # Out of range error:
+# numbers.sh: let: c = 2#47: value too great for base (error token is "2#47")
 echo "c = $c"
 
 echo

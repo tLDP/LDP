@@ -29,6 +29,7 @@ do
   echo $name
   let "count += 1"
 done <"$Filename"         # Loop reads from file $Filename. 
+#    ^^^^^^^^^^^^
 
 
 exec 0<&3                 # Restore old stdin.

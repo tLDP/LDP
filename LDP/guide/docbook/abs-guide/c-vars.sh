@@ -24,7 +24,7 @@ echo
 
 (( t = a<45?7:11 ))   # C-style trinary operator.
 echo "If a < 45, then t = 7, else t = 11."
-echo "t = $t "  # Yes!
+echo "t = $t "        # Yes!
 
 echo
 
@@ -32,9 +32,11 @@ echo
 # -----------------
 # Easter Egg alert!
 # -----------------
-# Chet Ramey apparently snuck a bunch of undocumented C-style constructs into Bash.
-# In the Bash docs, Ramey calls ((...)) shell arithmetic, but it goes far beyond that.
-# Sorry, Chet, the secret is now out.
+#  Chet Ramey apparently snuck a bunch of undocumented C-style constructs
+#+ into Bash (actually adapted from ksh, pretty much).
+#  In the Bash docs, Ramey calls ((...)) shell arithmetic,
+#+ but it goes far beyond that.
+#  Sorry, Chet, the secret is now out.
 
 # See also "for" and "while" loops using the ((...)) construct.
 

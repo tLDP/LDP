@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check some of the system's environmental variables.
-# If, for example, $USER, the name of the person at the console, is not set,
-# the machine will not recognize you.
+#  If, for example, $USER, the name of the person at the console, is not set,
+#+ the machine will not recognize you.
 
 : ${HOSTNAME?} ${USER?} ${HOME?} ${MAIL?}
   echo
@@ -18,12 +18,12 @@
 
 # ------------------------------------------------------
 
-# The ${variablename?} construction can also check
-# for variables set within the script.
+#  The ${variablename?} construction can also check
+#+ for variables set within the script.
 
 ThisVariable=Value-of-ThisVariable
-# Note, by the way, that string variables may be set
-# to characters disallowed in their names.
+#  Note, by the way, that string variables may be set
+#+ to characters disallowed in their names.
 : ${ThisVariable?}
 echo "Value of ThisVariable is $ThisVariable".
 echo
@@ -31,7 +31,8 @@ echo
 
 
 : ${ZZXy23AB?"ZZXy23AB has not been set."}
-# If ZZXy23AB has not been set, then the script terminates with an error message.
+#  If ZZXy23AB has not been set,
+#+ then the script terminates with an error message.
 
 # You can specify the error message.
 # : ${ZZXy23AB?"ZZXy23AB has not been set."}

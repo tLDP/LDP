@@ -1,38 +1,44 @@
 #!/bin/bash
 # primes.sh: Generate prime numbers, without using arrays.
 
-# This does *not* use the classic "Sieve of Erastosthenes" algorithm,
-# but instead uses the more intuitive method of testing each candidate number
-# for factors (divisors) up to half its value, using the "%" modulo operator.
+#  This does *not* use the classic "Sieve of Erastosthenes" algorithm,
+#+ but instead uses the more intuitive method of testing each candidate number
+#+ for factors (divisors), using the "%" modulo operator.
 #
 # Script contributed by Stephane Chazelas,
 
 
-LIMIT=1000  # Primes 2 - 1000
+LIMIT=1000                    # Primes 2 - 1000
 
 Primes()
 {
  (( n = $1 + 1 ))             # Bump to next integer.
- shift
+ shift                        # Next parameter in list.
+#  echo "_n=$n i=$i_"
  
  if (( n == LIMIT ))
  then echo $*
  return
  fi
 
- for i; do
-   (( i * i > n )) && break   # Need check divisors only halfway to top.
+ for i; do                    # "i" gets set to "@", previous values of $n.
+#   echo "-n=$n i=$i-"
+   (( i * i > n )) && break   # Optimization.
    (( n % i )) && continue    # Sift out non-primes using modulo operator.
-   Primes $n $@               # Recursion.
+   Primes $n $@               # Recursion inside loop.
    return
    done
 
-   Primes $n $@ $n            # Recursion.
+   Primes $n $@ $n            # Recursion outside loop.
+                              # Successively accumulate positional parameters.
+			      # "$@" is the accumulating list of primes.
 }
 
 Primes 1
 
 exit 0
+
+# Uncomment lines 17 and 25 to help figure out what is going on.
 
 # Compare the speed of this algorithm for generating primes
 # with the Sieve of Erastosthenes (ex68.sh).

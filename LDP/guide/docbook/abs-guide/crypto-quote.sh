@@ -2,8 +2,8 @@
 # crypto-quote.sh: Encrypt quotes
 
 # Will encrypt famous quotes in a simple monoalphabetic substitution.
-# The result is similar to the "Crypto Quote" puzzles
-# seen in the Op Ed pages of the Sunday paper.
+#  The result is similar to the "Crypto Quote" puzzles
+#+ seen in the Op Ed pages of the Sunday paper.
 
 
 key=ETAOINSHRDLUBCFGJMQPVWZYXK
@@ -32,7 +32,7 @@ cat "$@" | tr "a-z" "A-Z" | tr "A-Z" "$key"
 # cat "$@" | tr "$key" "A-Z"
 
 
-# This simple-minded cipher can be broken by an average 12-year old
-# using only pencil and paper.
+#  This simple-minded cipher can be broken by an average 12-year old
+#+ using only pencil and paper.
 
 exit 0

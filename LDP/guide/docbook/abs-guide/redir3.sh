@@ -14,6 +14,7 @@ do
   read name                   # Reads from $Filename, rather than stdin.
   echo $name
 done <"$Filename"             # Redirects stdin to file $Filename. 
+#    ^^^^^^^^^^^^
 
 # Same results as with "while" loop in previous example.
 

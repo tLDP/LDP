@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Get a file listing...
+WIDTH=40                    # 40 columns wide.
 
-b=`ls /usr/local/bin`
+b=`ls /usr/local/bin`       # Get a file listing...
 
-echo $b | fmt -w 40   # ...40 columns wide.
+echo $b | fmt -w $WIDTH
 
 # Could also have been done by
-#  echo $b | fold - -s -w 40
+#  echo $b | fold - -s -w $WIDTH
  
 exit 0

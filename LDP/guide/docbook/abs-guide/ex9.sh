@@ -2,18 +2,18 @@
 
 # Variables: assignment and substitution
 
-a=37.5
+a=375
 hello=$a
 
 #-------------------------------------------------------------------------
 # No space permitted on either side of = sign when initializing variables.
 
-# If "VARIABLE =value",
-# script tries to run "VARIABLE" command with one argument, "=value".
+#  If "VARIABLE =value",
+#+ script tries to run "VARIABLE" command with one argument, "=value".
 
-# If "VARIABLE= value",
-# script tries to run "value" command with
-# the environmental variable "VARIABLE" set to "".
+#  If "VARIABLE= value",
+#+ script tries to run "value" command with
+#+ the environmental variable "VARIABLE" set to "".
 #-------------------------------------------------------------------------
 
 
@@ -30,22 +30,22 @@ echo "${hello}"
 # Quoting variable preserves whitespace.
 
 echo '$hello'
-# Variable referencing disabled by single quotes,
-# which causes the "$" to be interpreted literally.
+#  Variable referencing disabled by single quotes,
+#+ which causes the "$" to be interpreted literally.
 
 # Notice the effect of different types of quoting.
 
 
-# Now *unsetting* $hello.
-hello=
-echo "\$hello (unset) = $hello"
-# Unsetting a variable means setting it to a null value.
+hello=    # Setting it to a null value.
+echo "\$hello (null value) = $hello"
+#  Note that setting a variable to a null value is not the same as
+#+ unsetting it, although the end result is the same (see below).
 
 # --------------------------------------------------------------
 
-# It is permissible to set multiple variables on the same line,
-# if separated by white space.
-# Caution, this may reduce legibility, and may not be portable.
+#  It is permissible to set multiple variables on the same line,
+#+ if separated by white space.
+#  Caution, this may reduce legibility, and may not be portable.
 
 var1=variable1  var2=variable2  var3=variable3
 echo
@@ -64,12 +64,17 @@ echo "numbers = $numbers"
 echo "other_numbers = $other_numbers"
 echo
 
-echo "uninitialized variable = $uninitialized_variable"
+echo "uninitialized_variable = $uninitialized_variable"
 # Uninitialized variable has null value (no value at all).
-uninitialized_variable=
-# Declaring, but not initializing it (same as unsetting it, as above).
-echo "uninitialized variable = $uninitialized_variable"
-# It still has a null value.
+uninitialized_variable=   #  Declaring, but not initializing it
+                          #+ (same as setting it to a null value, as above).
+echo "uninitialized_variable = $uninitialized_variable"
+                          # It still has a null value.
+
+uninitialized_variable=23       # Set it.
+unset uninitialized_variable    # Unset it.
+echo "uninitialized_variable = $uninitialized_variable"
+                                # It still has a null value.
 
 echo
 

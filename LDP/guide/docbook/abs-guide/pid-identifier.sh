@@ -31,6 +31,8 @@ fi
 #     exit $E_NOSUCHPROCESS
 #    fi
 
+# To simplify the entire process, use "pidof".
+
 
 if [ ! -r "/proc/$1/$PROCFILE" ]  # Check for read permission.
 then

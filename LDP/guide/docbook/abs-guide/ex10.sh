@@ -53,13 +53,26 @@ fi
 
 echo
 
+xyz=                        # Initialized, but set to null value.
+
+echo "Testing \"-n \$xyz\""
+if [ -n "$xyz" ]
+then
+  echo "Null variable is true."
+else
+  echo "Null variable is false."
+fi
+
+
+echo
+
 
 # When is "false" true?
 
 echo "Testing \"false\""
-if [ "false" ]
+if [ "false" ]              #  It seems that "false" is just a string.
 then
-  echo "\"false\" is true."
+  echo "\"false\" is true." #+ and it tests true.
 else
   echo "\"false\" is false."
 fi
@@ -72,7 +85,7 @@ then
   echo "\"\$false\" is true."
 else
   echo "\"\$false\" is false."
-fi
+fi                          # Now, we get the expected result.
 
 
 echo

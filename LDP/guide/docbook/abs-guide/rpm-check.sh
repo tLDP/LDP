@@ -6,6 +6,7 @@
 # 
 # This script illustrates using a code block.
 
+SUCCESS=0
 E_NOARGS=65
 
 if [ -z "$1" ]
@@ -23,7 +24,7 @@ fi
   rpm -qpl $1       # Query listing.
   echo
   rpm -i --test $1  # Query whether rpm file can be installed.
-  if [ ! $? ]
+  if [ "$?" -eq $SUCCESS ]
   then
     echo "$1 can be installed."
   else

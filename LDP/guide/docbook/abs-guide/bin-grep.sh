@@ -31,6 +31,6 @@ done
 #    strings "$2" | grep "$1" | tr -s "$IFS" '[\n*]'
 
 
-# Try something like  "./bin-grep mem /bin/ls"  to exercise this script.
+# Try something like  "./bin-grep.sh mem /bin/ls"  to exercise this script.
 
 exit 0

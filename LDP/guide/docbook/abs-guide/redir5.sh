@@ -14,6 +14,8 @@ then
  read name
  echo $name
 fi <"$Filename"
+#  ^^^^^^^^^^^^
+
 # Reads only first line of file.
 # An "if/then" test has no way of iterating unless embedded in a loop.
 

@@ -65,9 +65,11 @@ echo "File \"$file\" blotted out and deleted."; echo
 
 
 #  This is a fairly secure, if inefficient and slow method
-#+ of thoroughly "shredding" a file.
+#+ of thoroughly "shredding" a file. The "shred" command,
+#+ part of the GNU "fileutils" package, does the same thing,
+#+ but more efficiently.
 
-# The file cannot not be "undeleted" or retrieved by normal methods.
+#  The file cannot not be "undeleted" or retrieved by normal methods.
 #  However...
 #+ this simple method will likely *not* withstand forensic analysis.
 

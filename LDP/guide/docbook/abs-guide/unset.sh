@@ -4,7 +4,8 @@
 variable=hello                       # Initialized.
 echo "variable = $variable"
 
-unset variable                       # Uninitialized.
+unset variable                       # Unset.
+                                     # Same effect as   variable=
 echo "(unset) variable = $variable"  # $variable is null.
 
 exit 0

@@ -5,18 +5,18 @@ declare -a colors
 
 echo "Enter your favorite colors (separated from each other by a space)."
 
-read -a colors
-# Special option to 'read' command,
-# allowing assignment of elements in an array.
+read -a colors    # Enter at least 3 colors to demonstrate features below.
+#  Special option to 'read' command,
+#+ allowing assignment of elements in an array.
 
 echo
 
 element_count=${#colors[@]}
 # Special syntax to extract number of elements in array.
-# element_count=${#colors[*]} works also.
+#     element_count=${#colors[*]} works also.
 #
-# The "@" variable allows word splitting within quotes
-# (extracts variables separated by whitespace).
+#  The "@" variable allows word splitting within quotes
+#+ (extracts variables separated by whitespace).
 
 index=0
 
@@ -38,9 +38,19 @@ done
 echo
 
 # Again, list all the elements in the array, but using a more elegant method.
-  echo ${colors[@]}
-# echo ${colors[*]} works also.
+  echo ${colors[@]}          # echo ${colors[*]} also works.
 
 echo
+
+# The "unset" command deletes elements of an array, or entire array.
+unset colors[1]              # Remove 2nd element of array.
+                             # Same effect as   colors[1]=
+echo  ${colors[@]}           # List array again, missing 2nd element.
+
+unset colors                 # Delete entire array.
+                             #  unset colors[*] and
+                             #+ unset colors[@] also work.
+echo; echo -n "Colors gone."			   
+echo ${colors[@]}            # List array again, now empty.
 
 exit 0

@@ -3,8 +3,8 @@
 
 # This script written by Heiner Steven, and modified by the document author.
 
-FILE=.bashrc  # File containing user profile,
-              # was ".profile" in original script.
+FILE=.bashrc  #  File containing user profile,
+              #+ was ".profile" in original script.
 
 for home in `awk -F: '{print $6}' /etc/passwd`
 do
@@ -13,7 +13,7 @@ do
   (cd $home; [ -e $FILE ] && less $FILE)
 done
 
-# When script terminates, there is no need to 'cd' back to original directory,
-# because 'cd $home' takes place in a subshell.
+#  When script terminates, there is no need to 'cd' back to original directory,
+#+ because 'cd $home' takes place in a subshell.
 
 exit 0

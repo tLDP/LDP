@@ -7,7 +7,7 @@ E_BADARGS=65
 
 if [ $# -ne "$ARGS" ]
 then
-  echo Usage: `basename $0` source destination
+  echo "Usage: `basename $0` source destination"
   exit $E_BADARGS
 fi  
 
