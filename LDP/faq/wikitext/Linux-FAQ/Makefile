@@ -5,7 +5,10 @@
 DOCBOOK_XSL=/usr/local/share/ldp-docbook/ldp-html.xsl
 DOCBOOK_CHUNK_XSL=/usr/local/share/ldp-docbook/ldp-html-chunk.xsl
 
-build:	Linux-FAQ.html index.html
+build:	Linux-FAQ.html index.html Linux-FAQ.txt
+
+Linux-FAQ.txt:	Linux-FAQ.html
+	lynx --dump --nolist Linux-FAQ.html > Linux-FAQ.txt
 
 Linux-FAQ.html:	Linux-FAQ.xml
 	xsltproc -o Linux-FAQ.html $(DOCBOOK_XSL) Linux-FAQ.xml
@@ -22,4 +25,5 @@ test:	Linux-FAQ.html
 clean:
 	rm -f *.html
 	rm -f Linux-FAQ.xml
+	rm -f Linux-FAQ.txt
 
