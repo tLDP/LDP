@@ -136,6 +136,7 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|
+    |tabdocfiles|
 ])
 
 insert([404], [Introuvable], [Introuvable],

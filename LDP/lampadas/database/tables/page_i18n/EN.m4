@@ -155,8 +155,7 @@ insert([copyright], [Copyright Statment], [],
     <p>Lampadas is made available under the terms of the GNU General Public
     License (GPL).
     A copy is available online at
-    <a href="http://www.gnu.org/licenses/gpl.html"
-    >www.gnu.org/licenses/gpl.html</a>.
+    <a href="http://www.gnu.org/licenses/gpl.html">www.gnu.org/licenses/gpl.html</a>.
 
     <p>We do our best to provide accurate information, but we do not provide
     any warranty or guarantees as to accuracy, completeness, or anything else.
@@ -250,6 +249,7 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
+    |tabdocfiles|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,

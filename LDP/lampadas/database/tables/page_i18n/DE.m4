@@ -38,7 +38,7 @@ insert([contribute], [Contributing to |strproject|],
 [
     Als Mitglied der Lampadas-Gemeinde arbeiten Sie mit
     hunderten oder gar tausenden Anderen zusammen an Dokumentation
-    die &uuml;ber's Netz weltweit ver&ouml;ffentlicht wird.
+    die &uuml;ber\'s Netz weltweit ver&ouml;ffentlicht wird.
 
     <p>Lampadas soll weltweite Mitarbeit so einfach wie m&ouml;glich machen.
     Wir k&ouml;nnen viele Arten von Hilfe brauchen.
@@ -245,6 +245,7 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
+    |tabdocfiles|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,
