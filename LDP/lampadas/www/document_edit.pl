@@ -132,10 +132,6 @@ print "</select></td>";
 
 print "<th align=right>Maintained:</th><td>\n";
 if ( $maintained eq "t" ) { print 'Yes'; } else { print 'No' }
-#print "<select name=maintained>";
-#if ( $maintained eq "t" ) { print '<option selected value="t">Yes</option>'; } else { print '<option value="t">Yes</option>' }
-#if ( $maintained eq "f" ) { print '<option selected value="f">No</option>'; } else { print '<option value="f">No</option>' }
-#print "</select>";
 print "</td>";
 
 print "</tr>\n<tr>\n";

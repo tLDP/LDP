@@ -34,7 +34,11 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 # Load from db
 $first_name = $row[1];
+$first_name =~ s/^\s+//;
+$first_name =~ s/\s+$//;
 $surname = $row[2];
+$surname =~ s/^\s+//;
+$surname =~ s/\s+$//;
 $maintainer_id = $row[3];
 $email = $row[4];
 $admin = $row[5];
