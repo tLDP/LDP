@@ -29,7 +29,7 @@ while users_line != '' :
 	import os
 	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/cvs-commits/allow ' + 
 		users_splitted[0]+'@tldp.org')
-	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/tescik/allow ' +
+	os.popen('/usr/local/bin/ezmlm-sub /home/linuxdoc/staff/allow ' +
 		users_splitted[0]+'@tldp.org')
 
 	# take next line from users file
