@@ -1,0 +1,2149 @@
+<!doctype linuxdoc system>
+<article>
+<title> GCC Frontend HOWTO</title>
+<date>v 1.1, August 2002</date>
+<author>
+<url url="mailto:sreejithkmenon@yahoo.com" name="Sreejith K Menon">
+</author>
+<abstract>
+Creating a new GCC front end 
+</abstract>
+<toc>
+<sect>
+Introduction 
+<p>
+	This document shows the steps required for creating a new GCC
+front end. It helps you to create a compiler of your own with
+the help of the GNU Compiler Collection. Basic 
+information about tools like Bison and Flex is also provided
+to make the document self contained.
+	
+	I  assume that you have sound knowledge of the
+C programming language. A general idea about compilers will
+help you understand the document better. If you wish to make
+experiments of your own, please download the source code
+of GCC from  http://gcc.gnu.org.
+
+<sect1>
+New Versions of the document  
+<p>
+	This version of the document will help you
+in developing  basic language constructs. Succeeding revisions
+will be focussed on more complex issues.
+
+<sect1>
+Feedback and Corrections  
+<p>
+	This document may have mistakes in it because I am writing
+from my practical experiments with the front end. There
+may be faults in the way I have grasped things. Please inform
+me about the mistakes, so that I can correct them in the next version.
+I always welcome  suggestions and criticisms. I can be contacted at
+<url url="mailto:sreejithkmenon@yahoo.com" name="sreejithkmenon@yahoo.com"> 
+<sect1>
+Why I have written this  
+<p>
+I started out trying to add a small language to the GNU Compiler
+Collection. Even though there is an excellent manual which
+describes GCC internals, I found it a bit intimidating to
+the newbie hacker. I thought of documenting my 
+experiments so that even novice programmers can start
+tinkering with the complex GCC code base.
+<sect1>
+Distribution Policy
+<p>
+Copyright (C)2002 Sreejith K Menon.
+<p>
+This document  is free; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+<p>
+This document is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+<sect1>
+Acknowledgements
+<p>
+This document is the by-product of an intensive
+`code reading' experiment conducted at the
+Government Engineering College, Trichur (GECT). Students
+were asked to read and tinker with the source
+code of reasonably complex systems software to
+give them a feel of how large systems are designed
+and maintained - some of us concentrated on the
+GCC front end, others on the back end (we hope to
+have a document on hacking the GCC backend soon!).
+Those who have a flair for Operating Systems  had a
+chance to work on the Linux file system, scheduler,
+VM subsystem and the networking stack.
+<p>
+I am indebted to the Free Software community as
+a whole for giving me a chance to play with the source  
+of useful(and exciting!) programs. My thanks
+to the faculty  of the Department of Computer 
+Science at GECT for their commitment to education.
+Thanks to Mr.Pramode C.E for leading me to Linux
+and compilers. 
+<p>
+I am grateful to Tim Josling, who has created a small beautiful
+front end, which helped me in all my experiments.
+
+<sect>
+Some general ideas about Compilers  
+<p>
+A compiler is a translator which accepts programs
+in a source language and converts them into 
+programs in another language which is most
+often the assembly code of a real (or virtual) 
+microprocessor. Designing real compilers is a
+complex undertaking and requires formal training
+in Computer Science and Mathematics.
+
+<p>
+	The compilation process can be divided into a number of
+subtasks called phases. The different phases involved are
+<enum>
+<item>
+ Lexical analysis
+<item>
+ Syntax analysis
+<item>
+ Intermediate code generation
+<item>
+ Code Optimization
+<item>
+ Code generation.
+</enum>
+<p>
+	Symbol tables and error handlers are involved in all the 
+above phases. Let us look at these stages.
+<enum>
+<item>
+ Lexical analysis
+<p>
+	The lexical analyzer reads the source program and emits
+tokens. Tokens are atomic units, which represent a sequence of
+characters. They can be treated as  single logical entitities. Identifiers,
+keywords, constants, operators, punctuation symbols etc. are 
+examples of tokens. Consider the C statement,
+<verb>
+		return 5;
+</verb>
+<p>
+It has 3 tokens in it. The keyword 'return', the constant 5 and the
+punctuation semicolon.
+<item>
+Syntax analysis
+<p>
+	Tokens from the lexical analyzer are the input to this
+phase. A set of rules (also known as productions) will be
+provided for any programming language. This defines the grammar
+of the language. The syntax analyzer checks whether the given input is 
+a valid one. ie. Whether it is permitted by the given grammar.
+	We can write a small set of productions.
+<verb>
+
+	Sentence	-&gt; Noun Verb
+	Noun 		-&gt; boy  | girl | bird
+	Verb		-&gt; eats | runs | flies
+
+</verb>
+<p>
+	This is a grammar of no practical importance (and also no
+meaning). But it gives a rough idea about a grammar.
+<p>
+	A parser for a grammar takes a string as input. It can
+produce a parse tree as output. Two types of parsing are possible.
+Top down parsing and bottom up parsing. The meaning is clear from
+the names. A bottom up parser starts from the leaves and traverse
+to the root of the tree.
+<p>
+	In the above grammar if we are given "bird flies" as input, 
+it is possible to trace back to the root for a valid 'Sentence'.
+One type of bottom-up parsing is a "shift-reduce" parsing.
+The general method used here is to take the input symbols and
+push it in a stack until the right side of a production appears
+on top of the stack. In that case it is reduced with the left 
+side. Thus, it consists of shifting the input and reducing it
+when possible. An LR (left to right) bottom up parser can be 
+used.
+<item>
+Intermediate Code Generation.
+<p>
+	Once the syntactic constructs are determined, the compiler
+can generate object code for each construct. But the compiler
+creates an intermediate form. It helps in code optimization and 
+also to make a clear-cut separation between machine independent
+phases (lexical, syntax) and machine dependent phases (optimization,
+code generation).
+<p>
+	One form of intermediate code is a parse tree. A parse tree
+may contain variables as the terminal nodes. A binary operator
+will be having a left and right branch for operand1 and operand2.
+<p>
+	Another form of intermediate code is a three-address code.
+It has got a general structure of A = B op C, where A, B and C
+can be names, constants, temporary names etc. op can be any operator.
+Postfix notation is yet another form of intermediate code.
+<item>
+Optimization
+<p>
+	Optimization involves the technique of improving the object
+code created from the source program. A large number of object
+codes can be produced from the source program. Some of the object
+codes may
+be comparatively better. Optimization is a search for a better 
+one (may not be the best, but better).
+<p>
+	A number of techniques are used for the optimization. 
+Arithmetic simplification, Constant folding are a few among them.
+Loops are a major target of this phase. It is mainly because of
+the large amount of time spent by the program in inner loops.
+Invariants are removed from the loop.
+<item>
+Code generation
+<p>
+	The code generation phase converts the intermediate code
+generated into a sequence of machine instructions. If we are 
+using simple routines for code generation,  it may lead to
+a number of redundant loads and stores. Such inefficient 
+resource utilization should be avoided. A good code generator
+uses its registers efficiently.
+<item>
+Symbol table
+<p>
+	A large number of names (such as variable names) will be
+appearing in the source program. A compiler needs to collect
+information about these names and use them properly. A data 
+structure used for this purpose is known as a symbol table. 
+All the phases of the compiler use the symbol table in one way
+or other.
+<p>
+	Symbol table can be implemented in many ways. It ranges 
+from the simple arrays to the complex hashing methods. We have 
+to insert new names and information into the symbol table and 
+also recover them as and when required.
+<item>
+Error handling.
+<p>
+	A good compiler should be capable of detecting and 
+reporting errors to the user in a most efficient manner. The error
+messages should be highly understandable and flexible. Errors
+can be caused because of a number of reasons ranging from
+simple typing mistakes to complex errors included by the 
+compiler (which should be avoided at any cost).
+</enum>
+
+
+
+
+	
+<sect>
+Compiler Tools 
+<p>
+	Two tools, Flex and Bison, are provided for the compiler 
+development. If you are having a general idea regarding them you can
+skip the next two sections, since I have got nothing new to say.
+
+<sect1>
+Flex 
+<p>
+	Flex is a fast lexical analyzer generator. As explained, the
+first phase of building a compiler is lexical analysis. Flex is
+an efficient tool for performing the pattern matching on text.
+In the absence of Flex we will have to write our own routines
+for obtaining tokens from the input text.
+<p>
+	But with flex we can provide the regular expression 
+to be matched and
+the  action to be taken when a perfect match is 
+found. Our file will have an extension .l, which shows that it
+is a valid lex file. The output of the flex is a file called
+lex.yy.c. It has a routine yylex() defined in it. The file, lex.yy.c
+ can be compiled
+and linked with the '-lfl' library to produce the executable.
+<p>
+	One or two examples will make the things clearer.
+Create a small file, say lex.l with the following contents.
+<verb>
+%%
+
+"good" 	{ printf("bad"); }
+
+%%
+</verb>
+<p>
+Produce the executable with the commands 
+<verb>
+
+lex lex.l  
+cc lex.yy.c -lfl 
+
+</verb>
+<p>
+Run the executable. We find that for each occurrence of
+the string "good", a replacement with the string "bad" is made.
+For any other input, the input is just echoed. We here have our
+first lesson - the default action is to just copy the input to
+the output.
+<p>
+	The general structure of the flex file is
+<p>
+<verb>
+
+definitions 
+%% 
+rules 
+%% 
+user code 
+</verb>
+<p>
+
+	The definitions may contain a 'name definition'. For example,
+<verb>
+
+DIGIT [0-9] 
+</verb>
+<p>
+It defines "DIGIT" to be a regular expression, which matches a single
+digit. The main purpose of name definition is to simplify the 
+scanner specification.
+<p>
+	Next is the 'rules' section of the flex file. The general 
+form is 
+<p>
+<verb>
+pattern action
+</verb>
+<p>
+where the pattern may be a regular expression. The action should
+reside on the same line of pattern. The patterns and actions are
+described below.
+<p>
+	 In the 'rules' section it is permissible to use variable
+declarations enclosed in %{ }. It should appear before the first
+rule. They are local to the scanning routine. 
+<p>
+Let us look at an example.
+<verb>
+
+%{
+#define WHILE 1
+#define IF 2
+%}
+
+%%
+while		{return WHILE; }
+if		{return IF; }
+%%
+
+main()
+{
+	int val;
+	while (val = yylex())
+		printf("%d",val);
+	printf("final =%d\n", val);
+}
+
+
+</verb>
+<p>
+	In the above program for the occurrence of "while" and "if",
+the corresponding integer value is printed. At the end, for an 
+EOF, the program terminates by returning zero.	
+
+<sect2>
+Patterns 
+<p>
+Here I have only mentioned about the general patterns, which will
+be required in our compiler construction. For a complete list you
+are encouraged to refer the manual page.
+
+<verb>
+
+
+`x'		match the character x.
+`.'		any character except the newline.
+`[xyz]'		either an `x' or a `y' or a `z'.
+`[a-z]'		either an `a' or a `b' ... or a `z'.
+`[^A-Z]'	any character except an uppercase letter.
+`r*'		zero or more r's.
+`r+'		one or more r's.
+`r?'		zero or one r's.
+`{name}'	the expansion of the "name" description.
+		(As explained above).
+`\x'		if x is an `a', `b', `f', `n', `r', `t' or `v'
+		then the ANSI C representation of \x. Otherwise
+		a literal `x'.
+`\0'		the NULL character.
+`(r)'		match an r.
+		parentheses to override precedence.
+`rs'		concatenation of r and s.
+`r|s'		either an r or an s
+
+</verb>
+
+<p>
+	The regular expressions mentioned above are arranged in the
+decreasing order of precedence. The topmost one has the highest
+precedence. In case
+of any confusion you can make use of parentheses to explicitly
+show what you mean.
+<p>
+	Generally, the first question that will be coming in our mind
+will be - What happens when multiple matches are found. In that case
+the scanner chooses the one with the maximum length. That is,
+if we have a file,
+<verb>
+
+%%
+
+"ab"		{printf("first"); }
+"abc"		{printf("second"); }
+
+%%
+</verb>
+<p>
+and we are providing the input "abcd" then the two possibilities are
+"firstcd" and "secondd". The scanner prefers only the second.
+<p>
+	But consider the case when the lengths are same. Then the
+rule given first in the file will get preference over the other.
+<p>
+	Once the match is clearly defined then the corresponding
+action provided can be executed. The text corresponding to the
+match is available in 'yytext' and its length in 'yyleng', 
+both global values. It is better to avoid local names starting with 
+'yy' because of its extensive use by the scanner and parser. 
+Its avoidance also contributes to better readability.
+<p>
+<verb>
+
+%%
+
+[0-9]+	{printf("The value of first yytext is %s\n",yytext);}
+[a-z]+	{printf("The value of sec yytext is %s\n",yytext);}
+
+%%
+</verb>
+
+<sect2> 
+Actions  
+<p>
+	We find that for each pattern given in the lex file it
+has an associated action. The action can be any arbitrary C code.
+It is possible to use the constructs like 'return' to return a
+value to the caller of yylex. In our compiler we need only
+simple actions, which can be understood by anyone having some
+knowledge with the C language.
+<p>
+	The above mentioned details are more than enough for
+our compiler. For the beginners it is highly recommended to try
+out the various examples and check the different variations of
+the regular expressions. Before proceeding to the next section
+you should have a basic idea regarding the Flex.
+
+<sect1>
+Bison 
+<p>
+	Once we get used with the lexical analyzer, we are ready
+to meet its best companion - the parser generator, Bison. Given
+a description for an LALR(1) context-free grammar, it is
+the duty of Bison to generate a C program to parse that grammar.
+As explained, the second stage of compiler construction is 
+parsing. We are supplied with the tokens from  the lex. We have to
+define a grammar for a language and see whether the given input
+is a valid one. 
+<p>
+	Before proceeding let us look what a context free grammar 
+is and what  we mean by terminals and nonterminals.
+<p>
+	A context free grammar is a finite set of nonterminals, each
+of which represents a language. The language represented by the 
+nonterminals is defined recursively in terms of each other and
+with the help of primitive symbols called terminals.
+<p>
+	Thus in simple words terminals are those which can't be
+further subdivided whereas  nonterminals are formed from the grouping
+of smaller constructs. It is possible to subdivide the nonterminals.
+<p>
+	As an example, consider the grammar
+<p>
+Note: I haven't used the bison syntax in this example.
+<verb>
+
+A -&gt; Ab 
+A -&gt; b 
+
+</verb>
+<p>
+	It denotes all the strings having only one or more b's. Here
+A is a nonterminal because it can be divided further using the given 
+productions. But b is a terminal symbol because it is not possible 
+to further divide it. 
+<p>
+	Suppose we are given a string "bbb". We have to check whether
+it is accepted by the above productions. Assume the start symbol is
+'A'. 
+<p> <verb>
+A -&gt; Ab 	{rule -1}
+  -&gt; Abb	{rule -1}
+  -&gt; bbb	{rule -2} and thus accepted.
+</verb> 
+<p>
+	In Bison, generally the terminal symbols are represented in
+uppercase Ex := NUM (say, for a number) or by using character 
+literal as in the case of '+'. As we expect, the nonterminals are
+represented by using lowercase letter. Ex := exp. (We'll obey this
+rule  when we switch to Bison examples. ).
+<p>
+	Flex and Bison work with perfect mutual understanding. A Bison grammar
+rule may say that "an expression is made of a number followed
+by a plus sign followed again by a number". The flex whenever
+sees a number informs the bison that it has found a
+number. That is it informs the presence of a token to the parser.
+<p>
+	The grammar rule is only concerned whether the given input
+obeys the rules. Suppose we are given a terminal symbol NUM. The
+grammar rules no longer bother whether we are having a value 1
+as NUM or whether the value is 100. For the grammar all the 
+numbers are just the terminal symbols NUM. But we may be
+certainly interested in the value of NUM. Here comes the importance
+of 'Semantic Values' and 'Semantic Actions'. 
+<p>
+	Associated with each grammar rule  the parser allows us to
+define certain actions. For the above  example, 
+</p>
+<p> <verb>
+A -&gt; b { printf("We have found a `b'\n"); }
+</verb>
+<p>
+	In most cases the actions may not be simple as the
+above one. Suppose we are implementing a small calculator, the 
+semantic action may be to perform an addition operation.
+<p>
+		 The terminals and nonterminals present in the 
+grammar can have an associated value. The value is extracted using
+ the symbol '$n' where n is an integer. A rule can have a semantic 
+value. ( Actually it is the value of the nonterminal represented
+by that rule).
+ It is defined by using the symbol '$$'.
+<p>
+For example,
+<p> <verb>
+
+exp: exp '+' exp	{$$ = $1 + $3;}
+
+</verb>
+which stands for exp -&gt; exp '+' exp. The contents of{ } denote
+the semantic action. The semantic actions are generally made of 
+C statements.
+<p>
+	In the above example, consider the right hand side of the
+production. The first exp is denoted by '$1'. The terminal symbol
+'+' is represented by '$2' and the last exp is denoted by '$3'.
+We find here that it is possible for a terminal symbol like
+'+' to have no associated semantic value. The value associated 
+with the grammar is '$$' which is the sum of the first and third
+token.
+<p>
+	Suppose we are also having a rule,
+<p> <verb>
+
+exp: NUM 	{$$ = $1;}
+</verb> 
+<p>
+	Let the given input be '1 + 2'. Then the tokens 1 and 2
+will match the NUM. The semantic value of the rule exp: exp '+' 
+exp would be 3 due to the corresponding semantic action.
+
+
+<sect2>  
+Bison Grammar File  
+
+<p>
+	The general form of a bison parser file is 
+<p><verb>
+
+%{
+C DECLARATIONS
+%}
+
+BISON DECLARATIONS
+
+%%
+GRAMMAR RULES
+%%
+
+ADDITIONAL C CODE
+
+</verb> 
+<p>
+	The C declarations generally contain the #include's and other
+declarations. The bison declarations handle the terminals and 
+nonterminals. The  productions explained in the above section form 
+the Grammar rules. Additional C code contains the rest of the
+programs used (if needed).
+<p>
+	The ideas will be  clearer with an example. Consider a 
+small grammar capable of taking lines of expressions and 
+returning their values.
+<p>
+	The lexical file, lex.l is given. No explanations are given for
+the file. In case of any doubt refer the  Flex section.
+<p> <verb>
+
+%{
+#include"parse.tab.h"
+#include&lt;stdio.h&gt;
+%}
+%%
+[0-9]+			{yylval=atoi(yytext);return NUM;}
+"+"	 		{return '+';}
+"*"			{return '*';}
+"-"			{return '-';}
+"\n"			{return '\n';}
+"/"			{return '/';}
+%%
+
+</verb>
+
+<p> 
+	The parser file, parse.y is also given.
+<p> <verb>
+
+%{
+#include&lt;stdio.h&gt;
+%}
+
+%token NUM
+%left '+' '-'
+%left '*' '/'
+
+%start line 
+
+%%
+
+line:   
+       /* empty */ 
+     |line exp '\n' {printf("%d\n",$2);}
+     | error '\n';
+
+exp:	  exp '+' exp {$$ = $1 + $3;}
+	| exp '*' exp {$$ = $1 * $3;}
+	| exp '-' exp {$$ = $1 - $3;}
+	| exp '/' exp { if ($3 == 0)
+				$$ = 0;
+			else
+				$$ = $1/$3;}
+	| NUM 	       {$$ = $1;};
+%%
+
+yyerror()
+{
+	printf("Error detected in parsing\n");
+}
+
+main()
+{
+	yyparse();
+}
+
+</verb> 
+<p>
+	Let us explore the program line by line. Also let us look
+how the program works with the lexical file.
+<p>
+	The C declaration part is simple. Here we are using only 
+stdio.h. If required other header files can also be included.
+The second part of the bison file consists of the bison declarations.
+Every terminals that are used in the file have to be 
+declared here. Implicit terminals such as a character literal 
+needn't be mentioned. Here we are only dealing with a single 
+terminal called NUM. Others are character literals such as
+'\n', '+' etc. 
+<verb>
+%token NUM 
+
+</verb>
+
+completes the declaration.
+<p>
+	In the expression we will be handling a number of
+operators such as '+', '-', '*' and '/'. The different operators
+are having different precedence. (For example, '/' will be having 
+more precedence than the '+'. '+' and '-' have the same 
+precedence). Also the operators will be having different 
+associativity. All the operators in our code are
+left associative. This information is passed to the parser
+with the following  declarations 
+<p> <verb>
+%left  -&gt;  for left associative.
+%right -&gt;  for right associative.
+
+</verb>
+<p>
+	The order in which the declarations are made defines the
+precedence. Higher the line number, higher will be the precedence.
+If we are declaring "%left '/'" under "%left '+'", the '/' will
+have higher precedence. As expected declarations on same line
+denote equal precedence.
+<p>
+	"%start" gives information to the parser about the start
+symbol. If not defined the first production is taken as the
+starting one.
+<p>
+	Now let us move on to the Grammar rules. The first rule
+ states that a line can be empty. No semantic actions are 
+associated with that. The second rule 
+<p> <verb>
+line:	line exp '\n' {printf("%d\n",$2); }
+
+</verb> 
+<p>
+	is the important one. It says that a line can be an expression
+followed by a newline. The left recursion used in the rule is
+just a technique used to parse multiple lines. You can avoid it
+if you are interested in parsing only a single line. The semantic
+action associated with the above rule is to print the value of the
+expression.
+<p>  
+	The rule - line : error '\n' will be explained later.
+<p>
+	The rules for expression are simple. It just suggests
+that an expression can be an expression followed by any given
+operator and an expression. The rule exp: NUM provides a way
+to move out of the recursive rules. The semantic actions are just
+to perform the various operations.
+<p>
+	The last section of the bison file defines the other C
+declarations. We have included only two functions. The main function
+just invokes the parser; and yyerror routine prints the error
+message. The function yyerror is invoked whenever the parser
+meets a parse error. The rule 
+<verb>
+line: error '\n'
+
+</verb>
+<p>
+is included
+to detect the error and consider the error as just another
+rule. If we are not including the production, the parser will
+terminate as soon as it meets an error. The nonterminal 'error'
+is implicitly declared in the parser and we can use them without
+any declaration.
+<p>
+	Let us now look at the working of the parser and scanner.
+Suppose we provide the input "1+2". The scanner returns the token
+NUM whenever it finds a number. Also the value is stored in the
+global variable 'yylval' of the scanner. The parser checks whether
+the input is a valid one (according to the rules provided) and if
+it is, the corresponding actions are performed with the semantic
+values supplied.
+<p>
+	But the problem is that the terminal NUM was declared only
+in the parser file. It has to be used in the lexical file. The
+problem is avoided by using the command 
+<p><verb>
+
+bison -d parse.y 
+</verb>
+<p>
+	It causes the creation of the file parse.tab.h, which 
+includes all the required declarations. We can include it in the 
+lexer.
+<p>
+	Test and understand the working of the scanner and parser.
+Create the files given above and produce the executable with the
+following commands
+<p><verb>
+lex lex.l
+bison -d parse.y
+cc parse.tab.c lex.yy.c -lfl
+</verb> 
+<p>
+	The above mentioned example is a simple one capable of
+recognizing only simple lines of expressions. But what we are
+going to deal is a compiler creation for a small programming 
+language. Although the basic ideas are same, we have to acquire
+more understanding about the parser to work with a programming
+language. Keeping this in mind let us look at another example.
+<p>
+	We create a new language with the following constructs - 
+variable declarations, assignments and print statements. The lexical
+ file is more or less same as the old one. But the parser file is
+different. The two files are given - lex.l and parse.y.
+<p><verb>
+lex.l
+
+%{
+#include"parse.tab.h"
+#include&lt;stdio.h&gt;
+#include&lt;string.h&gt;
+%}
+%%
+
+[0-9]+			{yylval.val=atoi(yytext);return NUM;}
+"print"			{return PRINT;}
+"declare"		{return DECL;}
+[a-z]([0-9]|[a-z])*	{yylval.str= strdup(yytext);return NAME;}
+"+"	 		{return '+';}
+"*"			{return '*';}
+"-"			{return '-';}
+"\n"			{return '\n';}
+"/"			{return '/';}
+"="			{return '=';}
+
+%%
+
+</verb>
+<p><verb>
+parse.y
+
+%{
+#include&lt;stdio.h&gt;
+#include&lt;string.h&gt;
+#include&lt;stdlib.h&gt;
+
+	struct node{
+		char *name;
+		int value;
+	};
+	static struct node* sym_table[100];
+%}
+%union{
+	char *str;
+	int val;
+}
+
+%token &lt;val&gt; NUM
+%token &lt;str&gt; NAME
+%token PRINT	
+%token DECL
+%left '+' '-'
+%left '*' '/'
+
+%type &lt;val&gt; exp
+
+%start input 
+
+%%
+input: /* empty */
+	| input line ;
+
+line:   
+       exp '\n' 	 {}
+     | DECL NAME '\n'	 {return_value($2);}	
+     | NAME '=' exp '\n' {assign_value($1,$3);}
+     | PRINT NAME '\n'	 {printf("%d\n",return_value($2));}
+     | error ;
+
+exp:	  exp '+' exp {$$ = $1 + $3;}
+	| exp '*' exp {$$ = $1 * $3;}
+	| exp '-' exp {$$ = $1 - $3;}
+	| exp '/' exp { if ($3 == 0)
+				$$ = 0;
+			else
+				$$ = $1/$3;}
+	| NUM	      {$$ = $1;}
+	| NAME	      {$$ = return_value($1);};	
+%%
+
+yyerror()
+{
+	printf("Error detected in parsing\n");
+}
+
+int assign_value(char *s,int symvalue)
+{
+	char *symname;
+	int len,i;
+	len=strlen(s) + 1;
+	symname=malloc(sizeof(char *) * len);
+	strcpy(symname,s);
+	for(i=0;sym_table[i];i++)
+		if(!strcmp(symname,sym_table[i]-&gt;name)){
+			sym_table[i]-&gt;value=symvalue;
+			return symvalue;
+		}
+	sym_table[i]=malloc(sizeof(struct node));
+	sym_table[i]-&gt;name=symname;
+	sym_table[i]-&gt;value=symvalue;
+	return symvalue;
+}
+
+int return_value(char *s)
+{
+	char *symname;
+	int len,i;
+	len=strlen(s) + 1;
+	symname=malloc(sizeof(char *) * len);
+	strcpy(symname,s);
+	for(i=0;sym_table[i];i++)
+		if(!strcmp(symname,sym_table[i]-&gt;name))
+			return sym_table[i]-&gt;value;
+	sym_table[i]=malloc(sizeof(struct node));
+	sym_table[i]-&gt;name=symname;
+	sym_table[i]-&gt;value=0;
+	return 0;
+}
+
+main()
+{
+	yyparse();
+}
+	
+</verb> 
+<p>
+	In the parser file we find a new declaration %union. It is
+used to define the entire list of possible types. In the first 
+example we had to work with only integers. But here the values 
+can have more than one type. This information is passed through
+%union declaration. Since more than one type exists, the 
+type information has to be specified for all
+the terminals and nonterminals whose semantic values are used in 
+the grammar rules. It is shown in angle brackets. In the 
+example we are making use of semantic values of NAME and NUM
+but not of PRINT and DECL. Similar changes are also made in
+the lexical file for 'yylval'.
+<p><verb>
+%type <val> exp
+</verb>
+<p>
+	is used to define the nonterminal and to specify the type.
+<p>
+	The rest of the file is easy to understand. Whenever
+we see a new identifier we insert it into the symbol table. For
+new identifiers the initial value is made to be zero. Assignment
+statements cause the specified value to be stored in the symbol
+table. Two functions - assign_value and return_value are used 
+for the symbol table manipulations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+<sect>
+GCC Front End  
+<p>
+	GCC (GNU Compiler Collection) is essentially divided into
+a front end and a back end. The main reason for this division is
+for providing code reusability. As all of us know GCC supports a
+variety of languages. This includes C, C++, Java etc.
+<p> 
+ If you
+want to introduce a new language into GCC, you can. The only
+thing you have to do is to create a new front end for that 
+language.
+<p>
+	The back end is same for all the languages. Different 
+front ends exist for different languages. So creating a compiler
+in GCC means creating a new front end. Experimentally let us
+try to introduce a new language into the GCC. 	
+<p>
+	We have to keep certain things in mind before we introduce
+a language. The first thing is that we are adding a segment to
+a huge code. For perfect working we have to add some routines,
+declare some variables etc. which may be required by the other 
+code segments. Secondly some errors produced by us may take
+the back end into an inconsistent state. Little information
+will be available to us about the mistake. So we have to go
+through our code again and again and understand what went wrong.
+Sometimes this can be accomplished only through trial and error
+method.
+
+<sect1>
+Tree and rtl  
+<p>
+	Let me give a general introduction to tree structure and rtl.
+From my experience a person developing a new small front end need 
+not have a thorough idea regarding tree structure and rtl. But you
+should have a general idea regarding these. 
+<p> 
+	Tree is the central data structure of the gcc front end. It is
+a perfect one for the compiler development. A tree node is capable 
+of holding integers, reals ,complex, strings etc. Actually
+a tree is a pointer type. But the object to which it points may vary.
+If we are just taking the example of an integer node of a tree, it is a 
+structure containing an integer value, some flags and some space 
+for rtl (These flags are common to all the nodes). There are a number
+of flags. Some of them are flags indicating whether the node is 
+read only , whether it is of unsigned type etc. The complete 
+information about trees can be obtained from the files - tree.c,
+tree.h and tree.def.
+But for our requirement there are a large number of functions and
+macros provided by the GCC, which helps us to manipulate the tree.
+In our program we won't be directly handling the trees. Instead we 
+use function calls.
+<p>
+	RTL stands for register transfer language. It is the 
+intermediate code handled by GCC. Each and every tree structure
+that we are building has to be changed to rtl so that the back
+end can work with it perfectly. I am not trying in anyway to 
+explain about rtl. Interested readers are recommended to see the 
+manual of GCC. As with the trees GCC provides us a number of 
+functions
+to produce the rtl code from the trees. So in our compiler we
+are trying to build the tree and convert it to rtl for each
+and every line of the program.
+Most of the rtl routines take the trees as arguments and emit 
+the rtl statements.
+<p>
+	So I hope that you are having a vague idea about what 
+we are going to do. The tree building and rtl generation can 
+be considered as two different phases. But they are intermixed 
+and can't be considered separately. There is one more phase that the
+front end is expected to do. It is the preliminary optimization phase.
+It includes techniques like constant folding, arithmetic simplification
+etc. which we can handle in the front end. But I am totally ignoring
+that phase to simplify our front end. Our optimization is completely
+dependent on the back end. I also assume that you are perfect 
+programmers. It is to avoid error routines from front end. 
+All the steps are taken to simplify the code as much as possible. 
+<p>
+	From now onwards our compiler has only three phases - lexical,
+syntax and intermediate code generation. Rest is the head ache of the 
+back end.
+
+<sect>
+Installing the GCC 
+<p>
+	Let us begin with the preliminaries. I assume that you have
+down loaded the source code of GCC. The different steps of 
+installation of GCC are given with it. But I add it here for 
+completeness.
+<p>
+	Like most GNU software GCC must be configured before 
+it is built. Let the GCC source code be in a directory called
+'srcdir'. Create a new  directory 'objdir' where the GCC
+is to be built. Create one more directory called 'local' where
+the tools will be accumulated. Let our current directory be
+/home/name. Now we have /home/name/srcdir, /home/name/objdir and
+/home/name/local.
+<p>
+To configure GCC use the command
+<verb>
+cd objdir
+
+/home/name/srcdir/configure --prefix=/home/name/local/ 
+</verb>
+<p>
+	When we complete the creation of our language add one 
+more option,
+<verb>
+--enable-languages=demo 
+</verb>
+<p>
+where demo is the new language we are going to develop.
+	The second step required is the building process. It is
+accomplished with the command
+<verb>
+
+make bootstrap-lean
+</verb>
+<p>
+	The last step is the final installation procedure. It is 
+done with the command
+<verb>
+
+make install
+</verb>
+<p>
+	We can start our procedure of developing a new language.
+<sect>
+Getting started  
+<p>
+	According to the formal GNU philosophy, each language that
+is present in the GCC (ie. for languages having separate front ends)
+should have a subdirectory of its own. So the first thing the 
+GCC expects from us is a separate directory . Let us create 
+a new subdirectory in the srcdir/gcc with the name of our 
+language (say 'demo').
+<p>
+	As explained before gcc expects a number of files and 
+functions. In our directory also there should be some files 
+present. The first thing that should be present is a make file.
+It is divided into two, Make-lang.in and Makefile.in. Both are
+part of the main make file of gcc. 
+<p>
+	Make-lang.in is actually included in the main make file
+of the gcc and from there (objdir/gcc) it calls the make 
+in the language
+directory. So the filenames should be provided with full path
+names. Don't try to give relative ones. The file gives 
+information about the source files of our language. So it is
+here that we should specify the files that is required for
+our language.
+<p>
+	Makefile.in is used to create the make file in the language
+directory. It is included in the language directory. 
+<p>
+	The third file expected by the gcc is config-lang.in. It is
+used by the file srcdir/gcc/configure (a shell script).
+<p>
+	The fourth file gcc expects is lang-specs.h. This file
+helps in the modification of the gcc driver program. The driver
+has to understand the presence of our new language. This is neatly
+accomplished by this file. It is here that the details like extensions
+of our language exists. You can specify them according to 
+your taste.
+<p>
+	Now the most important thing. No one is expecting you to
+create all these files from scratch. The best method is to copy
+these files from any existing directory and make the relevant 
+changes. The changes may include some modifications in the name of the 
+language, the files used by us, the extensions of our choice etc.
+<p>
+	All the information provided are from my observation 
+and sometimes there may be variations in the above details.
+
+<sect1>
+Call back routines  
+<p>	
+	As already explained we are going to use a major part
+of the gcc for compiling our language. So it is our responsibility 
+to define some functions and variables which are used by the
+back end. Most of them are of no direct help to us. But back end
+expects it, so we should provide it. 
+<p>
+	As in the above case it is better to copy from some 
+existing front ends. But let's have a general idea of what each
+function is. If you find this section boring you can skip
+this section but don't skip the inclusion of these routines
+in your program.
+
+
+
+
+
+
+
+<p><verb>
+type_for_size(unsigned precision, int unsignedp)
+</verb>
+It returns a tree of integer type with number of bits given by the 
+argument precision. If unsignedp is nonzero, then it is unsigned
+type, else it is signed type.
+<p><verb>
+init_parse(char *filename)
+</verb>
+It initialize parsing.
+<p><verb>
+finish_parse()
+</verb>
+It does the parsing cleanup.
+<p><verb>
+lang_init_options()
+</verb>
+Language specific initialization option processing.
+<p><verb>
+lang_print_xnode(FILE *file,tree t,int i)
+</verb>
+Required by gcc. Don't know what exactly it does.
+<p><verb>
+type_for_mode(enum machine_mode mode,int unsignedp)
+</verb>
+It returns a tree type of the desired mode given by us. mode 
+represents machine data type like whole number. unsignedp, as 
+usual is used for obtaining an unsigned type or else a signed type
+is returned.
+<p><verb>
+unsigned_type(tree type_node)
+</verb>
+Returns the unsigned version of type_node.
+<p><verb>
+signed_type(tree type_node)
+</verb>
+Returns the signed version of type_node.
+<p><verb>
+signed_or_unsigned_type(int unsignedp, tree type)
+</verb>
+Returns signed or unsigned tree node depending upon unsignedp.
+<p><verb>
+global_bindings_p()
+</verb>
+Returns nonzero if we are currently in the global binding level.
+<p><verb>
+getdecls()
+</verb>
+Returns the list of declarations in the current level, but in reverse
+order.
+<p><verb>
+kept_level_p()
+</verb>
+	It is nonzero when a 'BLOCK' must be created for the current
+level of symbol table.
+<p><verb>
+pushlevel(int ignore)
+</verb>
+	Enter a new binding level. A symbol name used before in 
+another binding level is covered when entered into a new level.
+<p><verb>
+poplevel(int keep, int reverse, int functionbody) 
+</verb>
+	Removes a new level created by pushlevel. The symbol table
+status is regained (which was present before the pushlevel).
+<p><verb>
+insert_block(tree block)
+</verb>
+	Insert block at the end of the list of subblocks of the current
+binding level.
+<p><verb>
+set_block(tree block)
+</verb>
+	Sets the block for the current scope.
+<p><verb>
+pushdecl(tree decl)
+</verb>
+	Inserts the declaration, decl into the symbol table and
+returns the tree back.
+<p><verb>
+init_decl_processing()
+</verb>
+	Initializes the symbol table. It sets global variables and
+inserts other variables into the symbol table.
+<p><verb>
+lang_decode_option(int a, char **p)
+</verb>
+	It decodes all language specific options that cannot be decoded
+by the GCC. Returns 1 if successful, otherwise 0.
+<p><verb>
+lang_init()
+</verb>
+	Performs all the initialization steps required by the front end.
+It includes setting certain global variables.
+<p><verb>
+lang_finish()
+</verb>
+	Performs all front end specific clean up.
+<p><verb>
+lang_identify()
+</verb>
+	Returns a short string identifying the language to the 
+debugger.
+<p><verb>
+maybe_build_cleanup(tree decl)
+</verb>
+	Creates a tree node, which represents an automatic cleanup
+action.
+<p><verb>
+incomplete_type_error(tree value, tree type)
+</verb>
+	Prints an error message for invalid use of incomplete type.
+<p><verb>
+truthvalue_conversion(tree expr)
+</verb>
+	It returns the same expr, but in a type which represents
+truthvalues.
+<p><verb>
+mark_addressable(tree expr)
+</verb>
+	Marks expr as a construct which need an address in storage.
+<p><verb>
+print_lang_statics()
+</verb>
+	Prints any language-specific compilation statics.
+<p><verb>
+copy_lang_decl(tree node)
+</verb>
+	It copies the declarations if DECL_LANG_SPECIFIC is nonzero.
+<p><verb>
+print_lang_decl(FILE *file, tree node, int indent)
+</verb>
+	Outputs the declaration for node with indentation depth 
+indent to the file, file.
+<p><verb>
+print_lang_type(FILE *file, tree node, int indent)
+</verb>
+	Outputs the type for node with indentation depth 
+indent to the file, file.
+<p><verb>
+print_lang_identifier(FILE *file, tree node, int indent)
+</verb>
+	Outputs the identifier for node with indentation depth 
+indent to the file, file.
+<p><verb>
+int_lex()
+</verb>
+	Performs whatever initialization steps are required by the
+language dependent lexical analyzer.
+<p><verb>
+set_yydebug()
+</verb>
+	Sets some debug flags for the parser.
+<p><verb>
+yyerror(char *s)
+</verb>
+	Routine to print parse error message.
+<p><verb>
+language_string
+</verb>
+	A character string to hold the name of our language. say,
+demo.
+<p><verb>
+flag_traditional
+</verb>
+	A variable needed by the file dwarfout.c
+<p><verb>
+error_mark_node
+</verb>
+	A tree node used to define errors. It represents a partial 
+tree. It is of great help when some errors occur in the syntax analysis
+phase.
+<p><verb>
+integer_type_node, char_type_node, void_type_node 
+</verb>
+	Clear from the names.
+<p><verb>
+integer_zero_node, integer_one_node 
+</verb>
+	Constants of type integer_type_node with values 0 and 1 
+respectively.
+
+
+
+
+<sect>	
+Creating our own front end  
+<sect1>
+Our Aim  
+<p>
+	We are going to develop a small new language with the 
+following constructs - assignments, variable declarations, if and 
+while statements etc. We are not going to directly compile our
+program but we are making the GCC to do the required operations
+and produce the machine code. Let's have a name to our language.
+I have given the name "demo", since it shows how to develop a new
+compiler. The syntax I am going to choose is a combination
+of Pascal and C so that it would be familiar to programmers
+of both the languages.
+<p>
+	Our role is to clearly specify the syntax of our language
+ and create a 
+tree structure for the language. We will be creating the RTL from
+the tree structure. After that, it is the duty of the back end to
+produce an optimized output. We will be concentrating only on the
+tree structure creation and rtl conversion.
+<p>
+	A number of functions and macros for handling the trees and
+rtl will be specified. Also a short description of what each does
+is  given. The language that is being explained deals with
+only integer values so that we can avoid unnecessary type 
+conversion complications.
+<sect1>
+Expressions 
+<p>
+	Let me start our language with the basic unit, expression.
+Here we have to perform only tree structure creation. It is possible
+with the help of a function called 'build'.
+<p>
+build(PLUS_EXPR, type, left, right)  returns a tree for addition 
+operation. Here left and right are two trees supplied by us for
+addition. We have one and only one type - the integer type. So 
+there is no confusion regarding that.
+<p>
+Similarly, we have build1 used for operations like negations as shown
+<p>
+build1(NEGATE_EXPR,type,expression) where expression is the tree
+to be negated. It is used in case of unary operators.
+<p>
+And at last we can create a tree for simple whole numbers as shown
+<p>
+build_int_2(int num, num >=0 ? 0 : -1) to create a tree for the 
+specific number. Actually, the two parameters passed are the low 
+and high values of type HOST_WIDE_INT. But let us understand it
+like this - We have to set the second parameter of the function
+to show the correct sign. This is actually a macro invoking
+the function build_int_2_wide.
+<p>
+Now we have an idea regarding the creation of trees for building
+expressions. Let us directly write the parsing segment for tree
+creation for expressions.
+<p><verb>
+exp:  NUM     { $$ = build_int_2 ($1, $1 >= 0 ? 0 : -1); }
+     | exp '+' exp  { $$ = build (PLUS_EXPR, integer_type_node, $1, $3); }
+     | exp '-' exp  { $$ = build (MINUS_EXPR, integer_type_node, $1, $3); }
+     | exp '*' exp  { $$ = build (MULT_EXPR, integer_type_node, $1, $3); }
+     | exp '/' exp  { $$ = build (TRUNC_DIV_EXPR, integer_type_node, $1, $3); }
+     | exp '%' exp  { $$ = build (TRUNC_MOD_EXPR, integer_type_node, $1, $3); }
+     | '-' exp %prec NEG { $$ = build1 (NEGATE_EXPR, integer_type_node, $2); }
+     | '(' exp ')'  { $$ = $2; }
+</verb>
+<p>
+Now I am directly giving the lexical file required by demo language.
+No explanation is provided because of its simplicity.
+
+<p> <verb>
+
+%%
+[ \n\t]         ;                   // white space 
+[0-9]+          {yylval.ival = atoi(yytext); return NUM;}   // integers
+var             {return VAR;}       // variable declaration
+return          {return RETURN;}    // return
+if              {return IF;}        // if
+then            {return THEN;}      // then
+else            {return ELSE;}      // else
+endif           {return ENDIF;}     // endif
+while           {return WHILE;}     // while
+endwhile        {return ENDWHILE;}  // endwhile
+begin           {return BEGIN;}     // begin
+end		{return END;}       // end
+"&lt;"    	   {return LT;}        // less than
+"&gt;"             {return GT;}        // greater than
+"=="            {return EQ;}        // equal to
+[a-zA-Z]+       {yylval.name = strdup(yytext); return NAME;} 
+				// function/variable name
+.               {return yytext[0];} // match all single characters
+%%
+
+</verb> 
+<p> Let's also present the grammar we are going to develop so that
+I needn't repeat it always.
+<p><verb>
+%union{
+	tree exp;	//Tree node developed by us.
+	int ival;	//Integer value for constants.
+	char *name;	//Name of function or variables.
+}
+
+
+
+input:	          fndef body ;
+
+fndef:	          NAME '(' ')';
+
+body:	          BEGIN declarations compstmts END;
+
+declarations:	  /*empty */
+		| declarations VAR NAME
+
+compstmts:	  /*empty */
+		| compstmts statements;
+
+statements:	  exp
+		| assignstmt
+		| ifstmt
+		| whilestmt
+		| returnstmt;
+
+assignstmt:	  NAME '=' exp;
+
+whilestmt:	  head loopbody;
+head:		  WHILE exp
+loopbody:	  compstmts ENDWHILE
+
+ifstmt:		  ifpart thenpart elsepart;
+ifpart:		  IF exp;
+thenpart:	  THEN compstmts;
+elsepart:	  ELSE compstmts ENDIF;
+
+returnstmt:	  RETURN exp;
+
+exp:		  NUM
+		| exp '+' exp
+		| exp '-' exp
+		| exp '*' exp
+		| exp '/' exp
+		| NAME;
+
+</verb>
+<p>
+	I will be developing our "demo" language in a step by step 
+procedure. Starting from expressions we will move steadily to 
+the end. At each stage a new construct will be introduced in
+the language. So in the final stage the "demo" language obeys
+the above grammar in all respect.
+<p>
+	In the bison code above, I haven't provided the 
+semantic actions for the productions. 
+ It will be introduced as we are studying to
+develop trees and rtl conversion. 
+<p>
+	Also in each stage I will be providing you only the 
+required bison segments. You can look at the above grammar to 
+understand the overall working.
+
+
+
+
+
+
+
+<sect1>
+Functions  
+<p>
+	Let us insert our expression inside a function. A large 
+number of steps have to be invoked for a function. It ranges from
+setting up the parameters to the announcement of our declaration.
+The required tree and rtl functions are described in a step by 
+step manner
+below. Most of the functions dealing with trees start with a 'build'
+and will be returning a tree structure. (I haven't explicitly 
+given this fact everywhere. You should understand it by the way
+the functions involving trees are used.)
+We are going to build the tree using the functions provided by the
+GCC. Using the tree structure we will be creating the rtls.
+<p>
+	For the functions provided by the GCC, the arguments are 
+explained only if it is of any relative importance.
+<p> Let us write the routine for function handling.
+ The given code builds a function with name, "name".
+<p>
+
+<verb>
+build_function_decl (char *name)
+{
+tree param_list;  //param_list is of type tree. Similarly others.
+tree param_type_list;
+tree fntype;
+tree fndecl; // Consider it as a global value.
+	     // It will be required quite often.
+</verb>
+<p>
+/*First of all we have to arrange the parameters that are involved
+in the function. Suppose, we have "hello(int a, int b)" then a and
+b form the parameters. a and b have to be made available to the 
+function.
+But since this is our first attempt, we are assuming that the function
+doesn't involve any parameters. So param_list is made to be a 
+NULL_TREE (which is a NULL of type tree).
+*/
+<verb>
+param_list = NULL_TREE;
+</verb> <p>
+/*Next is the type of the parameters. The function always take a 
+fixed number of parameters. Since we don't have any parameters in
+the current example, we are invoking the function, tree_cons as
+shown. The first field is a purpose field and the last one is a 
+chain field (for linking together different types like integers).
+We will be explaining more about this when we pass some parameters.
+*/
+<verb>
+param_type_list = tree_cons(NULL_TREE, void_type_node, NULL_TREE);
+</verb><p>
+/*Alright, we are done with the parameters. ie. the parameters and
+the type. We needn't bother about them. Now let's look at the 
+function. The first thing is the type of the function. It depends
+on the return type and the parameter type. We consider our 
+function as one returning an integer value. So the first argument
+of build_function is integer. The second one deals with parameters.
+The type of the parameters is given in the param_type_list.
+*/
+<verb>
+fntype = build_function_type(integer_type_node, param_type_list);
+</verb><p>
+/*Next is the function declaration. It is possible with the 
+function build_decl. The first argument says that it is a 
+function declaration. The second one involves a function,
+get_identifier. It returns a tree whose name is "name". If an
+identifier with that name has been previously referred to, then 
+the same tree node is returned. Since this is the first time we
+are using this, a new tree node is returned. The last argument
+deals with the type of the function.
+*/
+<verb>
+fndecl = build_decl(FUNCTION_DECL, get_identifier(name), fntype);
+</verb><p>
+/*Here comes the flags. They are invoked through special macros
+given below*/
+<p>
+/*If nonzero, it means external reference. Needn't allocate storage.
+There is a definition elsewhere. But we need to make a definition 
+here itself and hence zero.
+*/
+<verb>
+DECL_EXTERNAL(fndecl) = 0;
+</verb><p>
+/* non zero means function can be accessed from outside the module.*/
+<verb>
+TREE_PUBLIC(fndecl) = 1;
+</verb>
+<p>
+/* non zero means function has been defined and not declared. */
+<verb>
+TREE_STATIC(fndecl) = 1;
+</verb>
+<p>
+/* It declares the argument of the function (which is stored in 
+param_list)*/
+<verb>
+DECL_ARGUMENTS(fndecl) = param_list;
+</verb><p>
+/* It makes the declaration for the return value.*/
+<verb>
+DECL_RESULT(fndecl) = 
+	build_decl(RESULT_DECL, NULL_TREE, integer_type_node);
+</verb>
+<p>
+/*It declares the context of the result. ie. We inform the result,
+that its scope is fndecl.*/
+<verb>
+DECL_CONTEXT( DECL_RESULT( fndecl)) = fndecl;
+</verb>
+<p>
+/*Creates the rtl for the function declaration.
+The first argument gives the tree for the function declaration
+The second parameter deals with assembler symbol name. We don't 
+want it here. We make it NULL. Let's look at third and fourth
+parameters later. Interested readers can refer toplev.c
+*/
+<verb>
+rest_of_decl_compilation (fndecl, NULL_PTR, 1, 0);
+</verb>
+<p>
+/*This gives idea regarding where the declaration is in the source code
+*/
+<verb>
+DECL_SOURCE_FILE( fndecl) = input_filename;
+DECL_SOURCE_LINE( fndecl) = 1;
+</verb>
+<p>
+/* This function is just used to print the name of the function "name",
+on stderr if required
+*/
+<verb>
+announce_function( fndecl);
+</verb><p>
+/* Let the GCC know the name of the function being compiled.*/
+<verb>
+current_function_decl = fndecl;
+</verb>
+<p>
+/* It holds the tree of bindings. Just a method used here to make a
+partial tree. Don't bother about that.
+*/
+<verb>
+DECL_INITIAL( fndecl) = error_mark_node;
+</verb>
+<p>
+/* All tree and rtl are allocated in temporary memory. Used per 
+function.
+*/
+<verb>
+temporary_allocation();
+</verb>
+<p>
+/*pushlevel is explained in call back. Here, it requires a push at the 
+start of any function.
+*/
+<verb>
+pushlevel(0);
+</verb>
+<p>
+/*create function rtl for function definition. */
+<verb>
+make_function_rtl( fndecl);
+</verb>
+
+
+<p>
+/*Generate rtl for the start of a function, fndecl. The second and third
+parameters denote the file and the line 
+*/
+<verb>
+init_function_start(fndecl, input_filename, 1);
+</verb>
+<p>
+/*Let's start the rtl for a new function. It also sets the variables
+used for emitting rtl. The second parameter shows that there is no 
+cleanup associated with. If it is made nonzero, cleanup will be run 
+when a return statement is met. 
+*/
+<verb>
+expand_function_start(fndecl, 0);
+</verb>
+<p>
+
+/*It generates the rtl code for entering a new binding level.*/
+<verb>
+expand_start_bindings(0);
+
+} //end of build_function_decl
+</verb>
+
+<p>
+	All the above mentioned functions are invoked when, one
+enters a function. When we are leaving the function certain 
+other things have to be done. These are explained in the code
+below.
+
+<p>
+build_function()
+{
+<p>
+/*Let's build the tree and emit the rtl for the return statement.
+In order to avoid an extra tree variable, I have included the tree
+creation and rtl conversion in a single statement. First build a 
+tree of type result for 'fndecl'. I am always returning zero from
+our simple function. If you intend to return any other value, replace
+integer_zero_node with the other corresponding tree structure.
+expand_return creates the rtl for the tree.
+*/
+<verb>
+expand_return (build (MODIFY_EXPR, void_type_node, DECL_RESULT(fndecl),
+		integer_zero_node));
+</verb>
+<p>
+/*Emit rtl for the end of bindings. Just like start bindings */
+<verb>
+expand_end_bindings (NULL_TREE, 1, 0);
+</verb>
+<p>
+
+/* We have pushed. So don't forget to pop */
+<verb>
+poplevel (1, 0, 1);
+</verb>
+<p>
+/*Emit rtl for the end of function. Just like starting */
+<verb>
+expand_function_end (input_file_name, 1, 0);
+</verb>
+<p>
+/*Compile the function, output the assembler code, Free the tree
+storage.
+*/
+<verb>
+rest_of_compilation (fndecl);
+</verb>
+<p>
+/*We are free now */
+<verb>
+current_function_decl=0;
+</verb>
+
+<p>
+/* Free everything in temporary store. Argument 1 shows that, we have
+just finished compiling a function
+*/
+<verb>
+permanent_allocation (1);
+}
+</verb>
+<p>
+	We have understood the working of functions and expressions.
+Let's add the required semantic actions for functions and expressions.
+<verb>
+
+input:	fndef body	{ build_function(); };
+fndef:	NAME '(' ')'	{ build_function_decl ($1); };
+
+
+exp:  NUM     { $$ = build_int_2 ($1, $1 >= 0 ? 0 : -1); }
+     | exp '+' exp  { $$ = build (PLUS_EXPR, integer_type_node, $1, $3); }
+     | exp '-' exp  { $$ = build (MINUS_EXPR, integer_type_node, $1, $3); }
+     | exp '*' exp  { $$ = build (MULT_EXPR, integer_type_node, $1, $3); }
+     | exp '/' exp  { $$ = build (TRUNC_DIV_EXPR, integer_type_node, $1, $3); }
+     | exp '%' exp  { $$ = build (TRUNC_MOD_EXPR, integer_type_node, $1, $3); }
+     | '-' exp %prec NEG { $$ = build1 (NEGATE_EXPR, integer_type_node, $2); }
+     | '(' exp ')'  { $$ = $2; }
+</verb>
+
+<sect2>
+Example demo program 1
+<p><verb>
+foo()
+   begin
+	1+2*3
+   end
+</verb>
+	
+<sect1>
+Variable Declaration  
+<p>
+	What is our current status? We have with us a function and
+an expression, which is good for nothing. Our language will be
+more beautiful with the presence of variables, which can be assigned 
+and returned.
+<p>
+	So the next step is to declare variables. As usual we have
+to build trees and convert it to rtl. When we are making a 
+variable declaration as 
+<p><verb>
+var a;    // I prefer PASCAL syntax. Just a matter of taste.
+</verb>
+<p>
+	we have to store the value of 'a' because when it
+ is used later in an expression, say a+1, we have to use the
+same 'a'.
+<p>
+	We can define two arrays of our own var_name[ ] and 
+var_decls[ ] as shown.
+<verb>
+
+char *var_name[100];	//global array ie. initialized to zero.
+tree var_decls[100];	//global array
+</verb>
+<p>
+	I hope the reader has understood that the first one is
+used to store the name of variables in "demo" and the second one
+to store the corresponding tree structures that are built.
+<p>
+Let's directly look at the code.
+<verb>
+
+void add_var(char *name)
+{
+  int i;
+/*Add the name given, as the last name in the array */
+  for(i=0;var_name[i];i++);
+/* Store the name */
+  var_name[i] = name;
+/*Build the tree structure for the variable declared 
+All the parameters are explained before.
+Thus we have name of the variable stored in var_name[] and
+tree stored in var_decls[ ]*/
+  var_decls[i] =
+  build_decl (VAR_DECL, get_identifier(name), integer_type_node);
+/* Explained before*/
+  DECL_CONTEXT (var_decls[i]) = fndecl;
+/*We are just making the initial value of the variable declared 
+as zero. This is a matter of taste. */
+  DECL_INITIAL (var_decls[i]) = integer_zero_node;
+/*push to the current scope. Explained before*/
+  pushdecl (var_decls[i]);
+/* Emit the rtl for the variable declaration*/
+  expand_decl (var_decls[i]);
+/* Emit the rtl for the initialization. ie. Initialized to zero*/
+  expand_decl_init (var_decls[i]);
+}
+
+</verb>
+<p>
+	From now onwards I am not going to give the bison file fully.
+I'll be providing only the segments modified by us in each stage.
+Please do refer the bison file provided above in case of any
+doubt.
+<p>
+	The bison segment for variable declaration is given by
+<verb>
+declarations:	 /*empty */	
+	      |  declarations VAR NAME		{ add_var($3); };
+
+</verb>
+<p>
+	Combining the variable declaration with the above syntax
+for functions and expressions, we have another example of a "demo"
+program.
+<sect2>
+Example demo program 2
+<p>
+<verb>
+foo()
+  begin
+	var a
+	var b
+	1+2*3-1
+  end
+</verb>
+<sect1>
+Assignments 
+<p>
+	 A number of variables and expressions one below the 
+other doesn't help us in any way to do anything useful. For that
+we need assignments. Let's study the tree structure building and
+rtl conversion for assignments. 
+<p>
+	The general format of an assignment statement is "a = 10".
+Operations required for it is to store the value, 10 in 'a'. We 
+had created the tree structure for 'a' and stored it in
+var_decls[] at the time of variable declaration. So our duty
+is to retrieve the tree structure of 'a' and assign the value, say 10
+in it. 
+<p>
+	We seek the help of a function called "get_var" to retrieve
+the tree structure of the variable. The code is given below
+<verb>
+
+tree get_var(char *name)
+{
+  int i;
+/*Search for the name "name" in the variable name table, var_name[]
+  for(i=0;var_name[i];i++)
+/*If found, return the corresponding tree structure of "name"
+     if( !strcmp (var_name[i], name))
+        return var_decls[i];
+}
+
+</verb>
+<p>
+	The above function gets us the tree structure of the variable.
+The only task left is to build the tree structure for assignment and
+the rtl conversion. It is achieved by the following function.
+<verb>
+
+make_assign (tree vartree, tree valtree)
+{
+  tree assign;
+
+/* Create the tree. Explained before.
+  assign = 
+     build (MODIFY_EXPR, integer_type_node, vartree, valtree);
+
+/*Non zero values means that there is a side effect and re evaluation
+  of the whole expression could produce a different value. The 
+  optimization phase takes this into consideration.
+*/	
+  TREE_SIDE_EFFECTS (assign) = 1;
+
+/* Indicates that the tree node is used */
+  TREE_USED (assign) = 1;
+
+/* Emit the rtl for the assign tree */
+  expand_expr_stmt (assign);
+}
+
+</verb>	
+<p>
+	 We have also studied the tree creation and rtl conversion
+for assignment construct. Now it is time to give the semantic
+action in the bison file for assignment.
+<verb>
+
+assignstmt:	NAME = exp 	{ make_assign ( get_var($1), $3); };
+
+</verb>
+
+<sect1>
+Expressions revisited  
+<p>
+	The expressions that we are using now is capable of 
+working with numbers only. ie. We can give expressions as "1+2", 
+"1+2*3" etc. But it is not possible for us to work with variable
+names as "a+1", "b+a-5" etc.
+<p>
+	Let us modify our expressions to include variable names 
+also. The task of inclusion is simple. We have to get the tree
+structure of the variable name. We have a function "get_var"  
+in our hand which is capable of doing it. 
+<p>
+So let us look at the semantic action for this
+<verb>
+
+exp:	NAME		{ $$ = get_var ($1); };
+
+</verb>
+<sect2>
+Example demo program 3
+<p>
+<verb>
+hello()
+  begin
+	var i
+	var j
+	var k
+	i = 10
+	j = 20
+	k = i + j
+  end
+</verb>
+
+<sect1>
+Return  
+<p>
+	The above program would be more beautiful if it is possible
+for us to return the sum calculated. So our next step will be the
+inclusion of return construct.
+<p>
+	I have already mentioned about the tree creation for 'return'
+when I explained the 'function'. But at that time we returned only
+zero. Now let us return an expression in the place of zero.
+<verb>
+ret_stmt (tree expr)
+{
+  tree ret;
+/* build the tree node for return. The arguments are explained 
+    before. 'fndecl' is the global variable that we have defined 
+    before, for our function.
+*/
+  ret = 
+      build (MODIFY_EXPR, integer_type_node, DECL_RESULT(fndecl), 
+       	      expr);
+
+/*emits the rtl */
+  expand_return (ret);
+}
+
+</verb>
+
+<p> Let's look the bison segment straightly
+<verb>
+
+returnstmt:	RETURN exp	{ ret_stmt ($2) ; };
+
+</verb>
+
+<sect2>
+Example demo program 4
+<p>
+<verb>
+hello()
+  begin
+	var i
+	var j
+	var k
+	i = 10
+	j = 20
+	k = i + j
+	return k
+  end
+</verb>
+
+<sect1>
+Conditional statement  
+<p>
+	In the case of 'if' construct our task is different from the 
+above. We have to clearly give information to GCC regarding where
+the if construct begins, where the 'else' part begins and where
+the if construct ends.
+<p>
+	GCC supplies us rtl statements, which are capable of 
+performing the above tasks. The rtl statements are given below
+<verb> 
+
+expand_start_cond (tree cond, int exitflag)
+</verb>
+<p>
+It generates an rtl for the start of an if-then. 'cond' is the 
+expression whose truth is to be checked. Consider exitflag to be
+zero.
+<verb>
+
+expand_start_else ()
+expand_end_cond ()
+
+</verb>
+<p>
+	These causes the rtl code generation for start of 'else' and
+for the end of 'if construct' respectively.
+<p>
+	Now we can use the above functions in our bison file.
+
+<verb>
+
+ifstmt  :	ifpart thenpart elsepart	{ expand_end_cond (); };
+ifpart  :	IF exp			{ expand_start_cond ($2, 0); };
+thenpart:	THEN compstmts		{ expand_start_else (); };
+elsepart:	ELSE compstmts ENDIF	  	;
+
+</verb>
+
+<sect2>
+Example demo program 5
+<p>
+<verb>
+example()
+  begin
+	var x
+	var y
+	x = 100
+	if (x) then	
+		y = 1
+	else
+		y = 0
+	endif
+	return y
+  end
+</verb>
+
+<sect1>
+Loops  
+<p>
+	Loops are same as conditional statements. We have to provide
+the start of the loop, end of the loop and the expression to be 
+checked for truthness.
+<p>
+	The rtl statements meant for the above operations are
+<verb>
+
+struct nesting *expand_start_loop (int exit_flag)
+expand_exit_loop_if_false (struct nesting *whichloop, tree cond)
+expand_end_loop()
+
+</verb>
+<p>
+	The first one denotes the rtl for start of a loop. 'exit_flag'
+is zero.  The return type is struct nesting *, which is used in the
+second statement. The second statement is used for generating a conditional
+jump to exit the current loop, if 'cond' evaluates to zero. The third
+statement is the rtl for end of a loop. It generates a jump back to
+the top of the loop. The ideas will be clearer with the bison file.
+
+<verb>
+
+whilestmt:	head loopbody	{ expand_end_loop(); };
+
+head :		WHILE exp	{ struct nesting *loop;
+				  loop = expand_start_loop (0);
+				  expand_exit_loop_if_false (loop, $2);
+				};
+
+loopbody:	compstmts ENDWHILE	;
+
+</verb>
+
+<sect2>
+Example demo program 6
+<p>
+<verb>
+test()
+  begin
+	var i
+	i = 100
+	while (i)
+		i = i-1
+	endwhile
+	return i
+  end
+</verb>	
+
+<sect>
+Demo front end  
+<p>
+	A front end for our demo language is provided at http://
+	www.gec-fsug.org/gcc-front/demo.tar.gz.
+
+It has 
+been tested with the GCC (version 2.95.3) back end. You can make
+experiments with the front end. Try to add more constructs. 
+Constructs such as for loops, repeat until, case structure, 
+else if, can be easily added in our demo language.
+<p>
+	If you're successful with the creation of a new front end,
+please do send it to us, so that it would be a great help for 
+the newcomers in the field of GCC front ends.
+
+<sect>
+See also  
+<p>
+	When I began the creation of a new front end the only 
+source of information was an article 'Writing a Compiler
+Front End' from 'Using Maintaining and Enhancing Cobol for the 
+GNU Compiler Collection' by Tim Josling.
+<p>
+	Details regarding GCC can be obtained from the home page 
+of GCC.
+Information was also obtained from the GCC manual that is 
+available with each distribution of GCC.
+<p>
+	But the vital source of information is the front ends of
+other languages. But I'll never recommend them for the beginner.
+Once you are on  track then they will be of great help to 
+you.
+
+
+
+
+</article>	
+
+
