@@ -30,7 +30,7 @@
   #t)
 
 (define (toc-depth nd)
-  2)
+  4)
 
 (define %generate-article-titlepage-on-separate-page%
   ;; Should the article title page be on a separate page?
@@ -209,7 +209,8 @@
         (normalize "copyright")
         (normalize "pubdate")
         (normalize "revhistory")
-        (normalize "abstract")))
+        (normalize "abstract")
+        (normalize "legalnotice")))
 
 (mode article-titlepage-recto-mode
 
