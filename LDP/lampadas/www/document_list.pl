@@ -31,6 +31,7 @@ $chkTECHSTATUS   = param('chkTECHSTATUS');
 $chkURL          = param('chkURL');
 $chkMAINTAINED   = param('chkMAINTAINED');
 $chkLICENSE      = param('chkLICENSE');
+$chkVERSION      = param('chkVERSION');
 
 $SORT1     = param('strSORT1');
 $SORT2     = "";
@@ -70,6 +71,7 @@ $TECHSTATUS = "";
 $URL = "";
 $MAINTAINED = "";
 $LICENSE = "";
+$VERSION = "";
 
 # Translate them into checked phrases for checkboxes and WHERE clauses
 $WHERE = "WHERE class in (''";
@@ -97,6 +99,7 @@ if ( $chkTECHSTATUS eq "on" ) { $TECHSTATUS = "checked "; }
 if ( $chkURL eq "on" ) { $URL = "checked "; }
 if ( $chkMAINTAINED eq "on" ) { $MAINTAINED = "checked "; }
 if ( $chkLICENSE eq "on" ) { $LICENSE = "checked "; }
+if ( $chkVERSION eq "on" ) { $VERSION = "checked "; }
 
 # print the page
 print header(-expires=>'now');
@@ -147,6 +150,7 @@ print "<input type=checkbox $TECHSTATUS name=chkTECHSTATUS>Tech Review Status<br
 print "<input type=checkbox $URL name=chkURL>URL<br>\n";
 print "<input type=checkbox $MAINTAINED name=chkMAINTAINED>Maintained<br>\n";
 print "<input type=checkbox $LICENSE name=chkLICENSE>License<br>\n";
+print "<input type=checkbox $VERSION name=chkVERSION>Version<br>\n";
 print "</td>\n";
 
 print "<td valign=top>\n";
@@ -196,6 +200,7 @@ if ( $REVIEWSTATUS ) { print "<th>Review Status</th>"; }
 if ( $TECHSTATUS ) { print "<th>Tech Status</th>"; }
 if ( $MAINTAINED ) { print "<th>Maintained</th>"; }
 if ( $LICENSE ) { print "<th>License</th>"; }
+if ( $VERSION ) { print "<th>Version</th>"; }
 if ( $CLASS ) { print "<th>Class</th>"; }
 if ( $FORMAT ) { print "<th>Format</th>"; }
 if ( $DTD ) { print "<th>DTD</th>"; }
@@ -208,7 +213,7 @@ print "</tr>\n";
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license FROM document, pub_status, review_status lr, review_status tr $WHERE AND document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status";
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version FROM document, pub_status, review_status lr, review_status tr $WHERE AND document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status";
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
 $sql = $sql . " ORDER BY $SORT1";
 #print "<tr><td colspan=20>$sql</td></tr>";
@@ -233,6 +238,7 @@ while (@row = $result->fetchrow) {
   $maintained              =~ s/f/No/;
   $maintained              =~ s/t/Yes/;
   $license                 = $row[13];
+  $version                 = $row[14];
   print "<tr>";
   print "<td>";
   print a({href=>"document_edit.pl?doc_id=$doc_id"},"$title");
@@ -243,6 +249,7 @@ while (@row = $result->fetchrow) {
   if ( $TECHSTATUS) { print "<td>$tech_review_status_name</td>"; }
   if ( $MAINTAINED ) { print "<td>$maintained</td>"; }
   if ( $LICENSE ) { print "<td>$license</td>"; }
+  if ( $VERSION ) { print "<td>$version</td>"; }
   if ( $CLASS ) { print "<td>$class</td>"; }
   if ( $FORMAT) { print "<td>$format</td>"; }
   if ( $DTD ) { print "<td>$dtd</td>"; }
