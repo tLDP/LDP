@@ -33,6 +33,7 @@ use Exporter;
 	Doc,
 	AddDoc,
 
+	DocFiles,
 	DocUsers,
 	DocTopics,
 	DocNotes,
@@ -48,7 +49,9 @@ use Exporter;
 	Licenses,
 	Topics,
 	Topic,
+	SaveTopic,
 	Subtopics,
+	SaveSubtopic,
 	Formats,
 	DTDs,
 
@@ -86,6 +89,7 @@ use Exporter;
 	DocRatingTable,
 	DocNotesTable,
 	TopicsTable,
+	TopicTable,
 	SubtopicsTable,
 	TopicDocsTable,
 
@@ -111,6 +115,7 @@ use Exporter;
 	Login,
 	Logout,
 	AddUser,
+	SaveUser,
 	AddError,
 	Mail,
 );
@@ -253,31 +258,30 @@ sub AddUserNote {
 sub Docs {
 	my ($self) = @_;
 	my %docs = ();
-	my $sql = "SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
+	my $sql = "SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
 	my $result = $DB->Recordset($sql);
 	while (@row = $result->fetchrow) {
 		$doc_id	= $row[0];
 		$docs{$doc_id}{id}			= &trim($row[0]);
 		$docs{$doc_id}{title}			= &trim($row[1]);
-		$docs{$doc_id}{filename}		= &trim($row[2]);
-		$docs{$doc_id}{class}			= &trim($row[3]);
-		$docs{$doc_id}{format}			= &trim($row[4]);
-		$docs{$doc_id}{dtd}			= &trim($row[5]);
-		$docs{$doc_id}{dtd_version}		= &trim($row[6]);
-		$docs{$doc_id}{version}			= &trim($row[7]);
-		$docs{$doc_id}{last_update}		= &trim($row[8]);
-		$docs{$doc_id}{url}			= &trim($row[9]);
-		$docs{$doc_id}{isbn}			= &trim($row[10]);
-		$docs{$doc_id}{pub_status}		= &trim($row[11]);
-		$docs{$doc_id}{review_status}		= &trim($row[12]);
-		$docs{$doc_id}{tickle_date}		= &trim($row[13]);
-		$docs{$doc_id}{pub_date}		= &trim($row[14]);
-		$docs{$doc_id}{ref_url}			= &trim($row[15]);
-		$docs{$doc_id}{tech_review_status}	= &trim($row[16]);
-		$docs{$doc_id}{maintained}		= &trim($row[17]);
-		$docs{$doc_id}{license}			= &trim($row[18]);
-		$docs{$doc_id}{abstract}		= &trim($row[19]);
-		$docs{$doc_id}{rating}			= &trim($row[20]);
+		$docs{$doc_id}{class}			= &trim($row[2]);
+		$docs{$doc_id}{format}			= &trim($row[3]);
+		$docs{$doc_id}{dtd}			= &trim($row[4]);
+		$docs{$doc_id}{dtd_version}		= &trim($row[5]);
+		$docs{$doc_id}{version}			= &trim($row[6]);
+		$docs{$doc_id}{last_update}		= &trim($row[7]);
+		$docs{$doc_id}{url}			= &trim($row[8]);
+		$docs{$doc_id}{isbn}			= &trim($row[9]);
+		$docs{$doc_id}{pub_status}		= &trim($row[10]);
+		$docs{$doc_id}{review_status}		= &trim($row[11]);
+		$docs{$doc_id}{tickle_date}		= &trim($row[12]);
+		$docs{$doc_id}{pub_date}		= &trim($row[13]);
+		$docs{$doc_id}{ref_url}			= &trim($row[14]);
+		$docs{$doc_id}{tech_review_status}	= &trim($row[15]);
+		$docs{$doc_id}{maintained}		= &trim($row[16]);
+		$docs{$doc_id}{license}			= &trim($row[17]);
+		$docs{$doc_id}{abstract}		= &trim($row[18]);
+		$docs{$doc_id}{rating}			= &trim($row[19]);
 	}
 	return %docs;
 }
@@ -285,46 +289,98 @@ sub Docs {
 sub Doc {
 	my $self = shift;
 	my $doc_id = shift;
-	my $sql = "SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
+	my $sql = "SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
 	my @row = $DB->Row("$sql");
 	$doc{id}			= &trim($row[0]);
 	$doc{title}			= &trim($row[1]);
-	$doc{filename}			= &trim($row[2]);
-	$doc{class}			= &trim($row[3]);
-	$doc{format}			= &trim($row[4]);
-	$doc{dtd}			= &trim($row[5]);
-	$doc{dtd_version}		= &trim($row[6]);
-	$doc{version}			= &trim($row[7]);
-	$doc{last_update}		= &trim($row[8]);
-	$doc{url}			= &trim($row[9]);
-	$doc{isbn}			= &trim($row[10]);
-	$doc{pub_status}		= &trim($row[11]);
-	$doc{review_status}		= &trim($row[12]);
-	$doc{tickle_date}		= &trim($row[13]);
-	$doc{pub_date}			= &trim($row[14]);
-	$doc{ref_url}			= &trim($row[15]);
-	$doc{tech_review_status}	= &trim($row[16]);
-	$doc{maintained}		= &trim($row[17]);
-	$doc{license}			= &trim($row[18]);
-	$doc{abstract}			= &trim($row[19]);
-	$doc{rating}			= &trim($row[20]);
+	$doc{class}			= &trim($row[2]);
+	$doc{format}			= &trim($row[3]);
+	$doc{dtd}			= &trim($row[4]);
+	$doc{dtd_version}		= &trim($row[5]);
+	$doc{version}			= &trim($row[6]);
+	$doc{last_update}		= &trim($row[7]);
+	$doc{url}			= &trim($row[8]);
+	$doc{isbn}			= &trim($row[9]);
+	$doc{pub_status}		= &trim($row[10]);
+	$doc{review_status}		= &trim($row[11]);
+	$doc{tickle_date}		= &trim($row[12]);
+	$doc{pub_date}			= &trim($row[13]);
+	$doc{ref_url}			= &trim($row[14]);
+	$doc{tech_review_status}	= &trim($row[15]);
+	$doc{maintained}		= &trim($row[16]);
+	$doc{license}			= &trim($row[17]);
+	$doc{abstract}			= &trim($row[18]);
+	$doc{rating}			= &trim($row[19]);
 	return %doc;
 }
 
 sub AddDoc {
-	my ($self, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
+	my ($self, $title, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
 	my $doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	$doc_id++;
-	my $sql = "INSERT INTO document(doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
-	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($filename) . ", " . wsq($class) . ", " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
+	my $sql = "INSERT INTO document(doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
+	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($class) . ", " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
 	$DB->Exec($sql);
 	$doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	return $doc_id;
 }
 
+sub SaveDoc {
+	my ($self, $doc_id, $title, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract) = @_;
+	my $sql = "UPDATE document SET";
+	$sql .= "  title=" . wsq($title);
+	$sql .= ", class=" . wsq($class);
+	$sql .= ", format=" . wsq($format);
+	$sql .= ", dtd=" . wsq($dtd);
+	$sql .= ", dtd_version=" . wsq($dtd_version);
+	$sql .= ", version=" . wsq($version);
+	$sql .= ", last_update=" . wsq($last_update);
+	$sql .= ", url=" . wsq($url);
+	$sql .= ", isbn=" . wsq($isbn);
+	$sql .= ", pub_status=" . wsq($pub_status);
+	$sql .= ", review_status=" . wsq($review_status);
+	$sql .= ", tickle_date=" . wsq($tickle_date);
+	$sql .= ", pub_date=" . wsq($pub_date);
+	$sql .= ", ref_url=" . wsq($ref_url);
+	$sql .= ", tech_review_status=" . wsq($tech_review_status);
+	$sql .= ", license=" . wsq($license);
+	$sql .= ", abstract=" . wsq($abstract);
+	$sql .= " WHERE doc_id=$doc_id";
+	$DB->Exec($sql);
+}
+
+sub DocFiles {
+	my ($self, $doc_id) = @_;
+	my %docfiles = ();
+	my $sql = "SELECT filename FROM document_file WHERE doc_id=$doc_id";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$filename	= &trim($row[0]);
+		$docfiles{$filename}{filename} = $filename;
+	}
+	return %docfiles;
+}
+
+sub AddDocFile {
+	my ($self, $doc_id, $filename) = @_;
+	my $sql = "INSERT INTO document_file (doc_id, filename) VALUES ($doc_id, " . wsq($filename) . ")";
+	$DB->Exec($sql);
+}
+
+sub SaveDocFile {
+	my ($self, $doc_id, $oldfilename, $filename) = @_;
+	my $sql = "UPDATE document_file SET filename=" . wsq($filename) . " WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
+	$DB->Exec($sql);
+}
+
+sub DelDocFile {
+	my ($self, $doc_id, $oldfilename) = @_;
+	my $sql = "DELETE FROM document_file WHERE doc_id=$doc_id AND filename=" . wsq($oldfilename);
+	$DB->Exec($sql);
+}
+
 sub DocUsers {
-	my $self = shift;
-	my $doc_id = shift;
+	my ($self, $doc_id) = @_;
 	my %docusers = ();
 	my $sql = "SELECT document_user.user_id, role, document_user.email, active, username, first_name, middle_name, surname FROM document_user, username WHERE document_user.user_id = username.user_id AND doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
@@ -507,6 +563,12 @@ sub Topic {
 	return %topic;
 }
 
+sub SaveTopic {
+	my ($self, $topic_num, $topic_name, $topic_description) = @_;
+	$sql = "UPDATE topic SET topic_name=" . wsq($topic_name) . ", topic_description=" . wsq($topic_description) . " WHERE topic_num=$topic_num";
+	$DB->Exec($sql);
+}
+
 sub Subtopics {
 	my ($self, $topic_num) = @_;
 	my %subtopics = ();
@@ -529,6 +591,11 @@ sub Subtopics {
 		$subtopics{$key}{description}	= $subtopicdesc;
 	}
 	return %subtopics;
+}
+
+sub SaveSubtopic {
+	my ($self, $topic_num, $subtopic_num, $subtopic_name, $subtopic_description) = @_;
+	$DB->Exec("UPDATE subtopic SET subtopic_name=" . wsq($subtopic_name) . ", subtopic_description=" . wsq($subtopic_description) . " WHERE topic_num=$topic_num AND subtopic_num=$subtopic_num");
 }
 
 sub Formats {
@@ -818,13 +885,13 @@ sub UserTable {
 	$table .= "<form name=edit method=POST action='user_save.pl'>";
 	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
 	$table .= "<tr><th colspan=2>User Details</th><th>Comments</th></tr>\n";
-	$table .= "<tr><th>Username</th><td><input type=text name='username' size=30 value='$user{username}'></input></td>\n";
+	$table .= "<tr><th>Username</th><td><input type=text name='username' size=20 value='$user{username}'></input></td>\n";
 	$table .= "<td rowspan=5 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
 	$table .= "</tr>\n";
-	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=30 value='" . html($user{surname}) . "'></input></td></tr>\n";
-	$table .= "<tr><th>Email</th><td><input type=text name='email' size=30 value='$user{email}'></input></td></tr>\n";
+	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=20 value='$user{first_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=20 value='$user{middle_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=20 value='" . html($user{surname}) . "'></input></td></tr>\n";
+	$table .= "<tr><th>Email</th><td><input type=text name='email' size=20 value='$user{email}'></input></td></tr>\n";
 	if (&Admin()) {
 		$table .= "<tr><th>Admin</th><td><select name='admin'>\n";
 		if ($user{admin}) {
@@ -892,16 +959,23 @@ sub UserDocsTable {
 	my $table = '';
 	$table .= "<table class='box'>\n";
 	$table .= "<tr><th colspan=6>User Documents</th></tr>\n";
-	$table .= "<tr><th>Title</th><th>Class</th><th>Doc Status</th><th>Role</th><th>Active</th><th>Feedback Email</th></tr>\n";
+	$table .= "<tr><th>Title</th>";
+#	$table .= "<th>Class</th>";
+	$table .= "<th>Doc Status</th>";
+	$table .= "<th>Role</th>";
+	$table .= "<th>Active</th>";
+	$table .= "<th>Feedback Email</th></tr>\n";
 	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
 		$table .= "<tr>";
 		$table .= "<td valign=top>";
 		$table .= "<a href='document_edit.pl?doc_id=$docs{$doc}{id}'>" . EditImage() . "</a>";
 		if ($docs{$doc}{url}) {
-			$table .= "<a href='$docs{$doc}{url}'>$docs{$doc}{title}</a>"
+			$table .= "<a href='$docs{$doc}{url}'>$docs{$doc}{title}</a>";
+		} else {
+			$table .= "$docs{$doc}{title}";
 		}
 		$table .= "</td>\n";
-		$table .= "<td valign=top>$docs{$doc}{class}</td>\n";
+#		$table .= "<td valign=top>$docs{$doc}{class}</td>\n";
 		$table .= "<td valign=top>$docs{$doc}{pub_status_name}</td>\n";
 		$table .= "<td valign=top>$docs{$doc}{role}</td>\n";
 		$table .= "<td valign=top>" . &bool2yn($docs{$doc}{active}) . "</td>\n";
@@ -1078,7 +1152,6 @@ sub DocsTable {
 		if ( $SORT eq "url" ) { $table .= '<option selected value="url">URL</option>'; } else { $table .= '<option value="url">URL</option>' }
 		if ( $SORT eq "maintained" ) { $table .= '<option selected value="maintained">Maintained</option>'; } else { $table .= '<option value="maintained">Maintained</option>' }
 		if ( $SORT eq "license" ) { $table .= '<option selected value="license">License</option>'; } else { $table .= '<option value="license">License</option>' }
-		if ( $SORT eq "filename" ) { $table .= '<option selected value="filename">Filename</option>'; } else { $table .= '<option value="filename">Filename</option>' }
 	}
 	$table .= "</select><br>";
 	$table .= "</td></tr></table>\n";
@@ -1157,10 +1230,8 @@ sub DocsTable {
 		@docids = sort { $docs{$a}{maintained} cmp $docs{$b}{maintained} } keys %docs;
 	} elsif ($sort eq 'license') {
 		@docids = sort { $docs{$a}{license} cmp $docs{$b}{license} } keys %docs;
-	} elsif ($sort eq 'filename') {
-		@docids = sort { $docs{$a}{filename} cmp $docs{$b}{filename} } keys %docs;
 	} else {
-		@docids = sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs;
+		@docids = sort { &sortTitle($docs{$a}{title}) cmp &sortTitle($docs{$b}{title}) } keys %docs;
 	}
 	
 	foreach $doc_id (@docids) {
@@ -1214,7 +1285,6 @@ sub DocsTable {
 		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, chkMAINTAINED));
 		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, chkLICENSE));
 		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, chkVERSION));
-		$table .= "<td>$docs{$doc_id}{filename}</td>" if (Param($foo, chkFILENAME));
 		$table .= "<td>$docs{$doc_id}{class}</td>" if (Param($foo, chkCLASS));
 		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, chkFORMAT));
 		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, chkDTD));
@@ -1235,6 +1305,24 @@ sub DocsTable {
 	}
 	$table .= "</table>\n";
 	return $table;
+}
+
+sub sortTitle {
+	my $title = shift;
+	my $oldtitle;
+	$title = uc($title);
+	while ($title ne $oldtitle) { 
+		$oldtitle = $title;
+		$title =~ s/^LINUX\b\s*//;
+		$title =~ s/^THE\s+//;
+		$title =~ s/^A\s+//;
+		$title =~ s/^AND\s+//;
+		$title =~ s/^\+\s*//;
+		$title =~ s/^\-\s*//;
+		$title =~ s/^\/\s*//;
+		$title =~ s/^\s*//;
+	}
+	return $title;
 }
 
 sub DocTable {
@@ -1261,17 +1349,9 @@ sub DocTable {
 	$doctable .= "<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr>\n";
-	$doctable .= "<th align=right>\n";
-	if ($doc_id) {
-		$doctable .= "<a href='document_wiki.pl?doc_id=$doc_id'>Filename</a>\n";
-	} else {
-		$doctable .= "Filename";
-	}
-	$doctable .= "</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
-	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right><a href='$doc{url}'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right><a href='$ref_url'>Home</a></th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
+	$doctable .= "<th align=right><a href='$ref_url'>Home URL</a></th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Status</th><td>";
 	$doctable .= PubStatusCombo($foo, $doc{pub_status});
@@ -1319,7 +1399,7 @@ sub DocTable {
 	$doctable .= "</td>\n";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Abstract</th>";
-	$doctable .= "<td colspan=5><textarea name=abstract rows=6 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
+	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=40 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n";
 	$doctable .= "</form>\n";
@@ -1390,7 +1470,7 @@ sub FreeNonfreeStatsTable {
 	my $nonfree_pct = sprintf( '%3.2f', $nonfree_count / $active_count * 100 );
 	my $unknown_pct = sprintf( '%3.2f', $unknown_count / $active_count * 100 );
 	
-	my $table = "<table classi'box'>\n";
+	my $table = "<table class='box'>\n";
 	$table .= "<tr><th colspan=3>Free/NonFree Statistics</th></tr>\n";
 	$table .= "<tr><th>Type</th><th align=right>Count</th><th align=right>Percent</th></tr>\n";
 	$table .= "<tr><th>Free*</th><td align=right>$free_count</td><td align=right>$free_pct</td></tr>\n";
@@ -1488,7 +1568,7 @@ sub FormatDTDStatsTable {
 		$table .= "</tr>\n";
 		$total = $total + $count;
 	}
-	$table .= "<tr><th>Total</th><td></td><td align=right>" . $total . "</td></tr>";
+	$table .= "<tr><th colspan=2>Total</th><td align=right>" . $total . "</td></tr>";
 	$table .= "</table>\n";
 	return $table;
 }
@@ -1499,7 +1579,7 @@ sub DetailedStatsTable {
 	my $recordset = $DB->Recordset($sql);
 	my $total = 0;
 	my $table .= "<table class='box'>\n";
-	$table .= "<tr><th colspan=4>Detailed Statistics</th></tr>\n";
+	$table .= "<tr><th colspan=5>Detailed Statistics</th></tr>\n";
 	$table .= "<tr><th>Class</th><th>DTD</th><th>Format</th><th>Count</th><th>Percent</th></tr>";
 	while (@row = $recordset->fetchrow) {
 		$table .= "<tr>\n";
@@ -1512,7 +1592,7 @@ sub DetailedStatsTable {
 		$table .= "</tr>\n";
 		$total = $total + $row[3];
 	}
-	$table .= "<tr><th>Total</th><td></td><td></td><td align=right>" . $total . "</td></tr>";
+	$table .= "<tr><th colspan=3>Total</th><td align=right>" . $total . "</td></tr>";
 	$table .= "</table>\n";
 	return $table;
 }
@@ -1607,6 +1687,35 @@ sub DocVersionsTable {
 
 	$table .= "</table>\n";
 	return $table;
+}
+
+sub DocFilesTable {
+	my ($self, $doc_id) = @_;
+	my %docfiles = DocFiles($foo, $doc_id);
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=3>Document Files</th></tr>\n";
+	foreach $filename (sort keys %docfiles) {
+		$table .= "<tr><td>\n";
+		$table .= "<form method=POST action='document_file_save.pl'>";
+		$table .= "<input type=hidden name=doc_id value=$doc_id>";
+		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
+		$table .= "<input type=text name='filename' size=40 style='width:100%' value='$filename'></input>\n";
+		$table .= "</td>\n";
+		$table .= "<td valign=top><input type=checkbox name='chkDel'>Del</td>\n";
+		$table .= "<td><input type=submit value=Save></td>\n";
+		$table .= "</form></td></tr>\n";
+	}
+	$table .= "<tr><td>\n";
+	$table .= "<form method=POST action='document_file_add.pl'>";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>";
+	$table .= "<input type=text name='filename' size=40 style='width:100%'></input>\n";
+	$table .= "</td>\n";
+	$table .= "<td></td>\n";
+	$table .= "<td><input type=submit value=Add></td>\n";
+	$table .= "</tr>\n";
+	$table .= "</table>\n";
+	return $table;	
 }
 
 sub DocUsersTable {
@@ -1779,8 +1888,24 @@ sub TopicsTable {
 	return $table;
 }
 
-sub SubtopicsTable {
+sub TopicTable {
 	my ($self, $topic_num) = @_;
+	my %topics = Topics();
+	my $table = "<table style='width:100%' class='box'>\n";
+	$table .= "<form name=topic method=POST action='topic_save.pl'>\n";
+	$table .= "<input type=hidden name='topic_num' value='$topic_num'></input>\n";
+	$table .= "<tr><th colspan=2>Topic Details</th></tr>\n";
+	$table .= "<tr><th>Topic Num</th><td>$topic_num</td></tr>\n";
+	$table .= "<tr><th>Topic</th><td><input type=text name='topic_name' value='$topics{$topic_num}{name}'></input></td></tr>\n";
+	$table .= "<tr><th>Description</th><td><textarea cols=40 rows=5 style='width:100%' name='topic_description' wrap>$topics{$topic_num}{description}</textarea></td></tr>\n";
+	$table .= "<tr><td></td><td><input type=submit value='Save'></td></tr>\n";
+	$table .= "</form>\n";
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub SubtopicsTable {
+	my ($self, $subtopic_num) = @_;
 	my %subtopics = Subtopics($foo, $topic_num);
 	my %topic = Topic($foo, $topic_num);
 	my $table = "<table class='box'>\n";
@@ -1789,6 +1914,24 @@ sub SubtopicsTable {
 		$table .= "<tr><td align='right'>" . $subtopics{$subtopic_num}{num} . '</td><td>' . $subtopics{$subtopic_num}{name} . "</td>\n";
 		$table .= "<td>$subtopics{$subtopic_num}{description}</td></tr>\n";
 	}
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub SubtopicTable {
+	my ($self, $subtopic_id) = @_;
+	my %subtopics = Subtopics();
+	my $table = "<table class='box'>\n";
+	$table .= "<form name=subtopic method=POST action='subtopic_save.pl'>\n";
+	$table .= "<input type=hidden name='topic_num' value='$subtopics{$subtopic_id}{topicnum}'></input>\n";
+	$table .= "<input type=hidden name='subtopic_num' value='$subtopics{$subtopic_id}{num}'></input>\n";
+	$table .= "<tr><th colspan=2>Subtopic Details</th></tr>\n";
+	$table .= "<tr><th>Topic Num</th><td>$subtopics{$subtopic_id}{topicnum}</td></tr>\n";
+	$table .= "<tr><th>Subtopic Num</th><td>$subtopics{$subtopic_id}{num}</td></tr>\n";
+	$table .= "<tr><th>Subtopic</th><td><input type=text name='subtopic_name' value='$subtopics{$subtopic_id}{name}'></input></td></tr>\n";
+	$table .= "<tr><th>Description</th><td><textarea cols=40 rows=5 style='width:100%' name='subtopic_description' wrap>$subtopics{$subtopic_id}{description}</textarea></td></tr>\n";
+	$table .= "<tr><td></td><td><input type=submit value='Save'></td></tr>\n";
+	$table .= "</form>\n";
 	$table .= "</table>\n";
 	return $table;
 }
@@ -1826,7 +1969,7 @@ sub TopicDocsTable {
 		if ($subtopic_num != $last_subtopic_num) {
 			$table .= "<a name='$topic_num.$subtopic_num'>";
 			$table .= "<h3>";
-			$table .= "<a href='subtopic_edit.pl?subtopic_num=$topic_num.$subtopic_num'>" . EditImage() . "</a>" if (Admin());
+			$table .= "<a href='subtopic_edit.pl?subtopic_id=$topic_num.$subtopic_num'>" . EditImage() . "</a>" if (Admin());
 			$table .= "$topic_num.$subtopic_num $subtopic_name";
 			$table .= "</h3>";
 			$table .= "<blockquote>$subtopic_description</blockquote>\n";
@@ -1888,7 +2031,7 @@ sub TopicsBox {
 		print "<a href='topic_list.pl#$topic_num'>$topics{$topic_num}{name}</a><br>\n";
 		foreach $subtopic_num (sort { $subtopics{$a}{num} <=> $subtopics{$b}{num} } keys %subtopics) {
 			if ($subtopics{$subtopic_num}{topicnum} == $topic_num) {
-				print "&nbsp;&nbsp;&nbsp;&nbsp;<a href='topic_list.pl#$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
+				print "&nbsp;&nbsp;<a href='topic_list.pl#$subtopic_num'>$subtopics{$subtopic_num}{name}</a><br>\n";
 			}
 		}
 	}
