@@ -281,6 +281,15 @@ class PageFactory:
     def __call__(self, key, lang):
         return self.page(key, lang)
 
+    def page_exists(self, key):
+        uri = URI(key)
+        if uri.path == '':
+            if uri.service == 'doc':
+                return 1
+            elif lampadasweb.pages[uri.filename]:
+                return 1
+        return
+
     def page(self, key):
         uri = URI(key)
         uri.printdebug()

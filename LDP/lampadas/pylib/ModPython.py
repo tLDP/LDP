@@ -22,10 +22,9 @@ def handler(req):
     
     if os.path.isfile(filename):
         send_File(req, filename)
-
-    log(3, 'Sending dynamic page: ' + req.uri)
-    send_HTML(req, page_factory.page(req.uri))
-
+    else:
+        log(3, 'Sending dynamic page: ' + req.uri)
+        send_HTML(req, page_factory.page(req.uri))
     return apache.OK
 
 
@@ -36,10 +35,6 @@ def send_HTML(req, HTML):
     log(3, 'Sending HTML')
     req.content_type = 'text/html'
     req.send_http_header()
-
-    req.write(req.method + '<p>')
-    if not req.args == None:
-        req.write(req.args)
     req.write(HTML)
 
 
