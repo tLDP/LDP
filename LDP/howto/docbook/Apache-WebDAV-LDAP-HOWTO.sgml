@@ -1,8 +1,10 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
 <article>
 
+
 <artheader>
-   <title>Apache based WebDAV with LDAP and SSL HOWTO</title>
+
+   <title>Apache based WebDAV Server with LDAP and SSL</title>
 
    <author>
       <firstname>Saqib</firstname>
@@ -15,6 +17,27 @@
    </author>
 
    <revhistory>
+
+      <revision>
+       <revnumber>v3.3</revnumber>
+         <date>2002-04-14</date>
+         <authorinitials>sa</authorinitials>
+          <revremark>
+		Add the section of DAV server management.
+         </revremark>
+      </revision>
+
+
+      <revision>
+       <revnumber>v3.2</revnumber>
+         <date>2002-04-13</date>
+         <authorinitials>sa</authorinitials>
+          <revremark>
+		Added the Litmus (WebDAV compatility tester) sub-section.
+         </revremark>
+      </revision>
+   
+      
       <revision>
        <revnumber>v3.1</revnumber>
          <date>2002-04-11</date>
@@ -87,23 +110,13 @@
 <sect1 id="intro"><title>Introduction</title>
 
 <para> The Objective of this document  is to setup a Apache based
-WebDAV server that can authenticate against a LDAP server.
-You will learn how to install, configure, run, maintain and
-fine-tune a Apache-based WebDAV server. This  document will provide
-the basic groundwork for setting up a WebDAV server. It will also
-provide information on fine tuning and maintaining the server. </para>
+WebDAV server that can authenticate against a LDAP server. This  document will provide
+the basic groundwork for setting up a WebDAV server. It will also provide information on fine tuning and maintaining 
+the server. </para>
 
 <para><emphasis role="strong">Note: If you encounter any problems
 installing Apache or any of the modules please feel free to contact
-me.</emphasis> </para>
-
-<para> <emphasis role="strong"><ulink
-url="http://www.stonebeat.org">WebDAV Support and Discussion Forum</ulink></emphasis> </para>
-
-<para> <emphasis role="strong">This document is not a HOWTO on setting up
-LDAP server</emphasis>. For  setting up a LDAP server please visit
-<ulink url="http://www.linuxdoc.org/HOWTO/LDAP-HOWTO-1.html">
-http://www.linuxdoc.org/HOWTO/LDAP-HOWTO-1.html</ulink> </para>
+me @ saqib@seagate.com</emphasis> </para>
 
 
 <sect2 id="copyright"><title>Copyright and License</title>
@@ -127,39 +140,19 @@ to the http protocol.  </para>
 
 <para>Here is a brief description of the extensions provided by DAV:<para>
 
-<para><emphasis role="strong">Overwrite Protection:</emphasis>
+<para><emphasis role="strong">Overwrite Protection:</emphasis> Lock and Unlock mechanism to prevent the "lost update problem". DAV protocol support both shared and exclusive locks.
 </para>
 
-<para><emphasis role="strong">Properties:</emphasis>
+<para><emphasis role="strong">Properties:</emphasis> Metadata (title, subject, creater, etc)
 </para>
 
-<para><emphasis role="strong">Name-space management:</emphasis>
+<para><emphasis role="strong">Name-space management:</emphasis> Copy, Rename, Move and Deletion of files
 </para>
 
+<para><emphasis role="strong">Access Control:</emphasis>Limit access to various resources. Currently DAV assumes access control is already in place, and does not provide strong authentication mechanism.</para>
 
-</sect2>
+<para><emphasis role="strong">Versioning:</emphasis>Revision control for the documents. Versioning is not implemented yet.</para>
 
-<sect2><title>What is mod_dav?</title>
-<para>
-Please read <ulink url="http://www.webdav.org/mod_dav/faq/">http://www.webdav.org/mod_dav/faq/</ulink>
-</para>
-</sect2>
-<sect2><title>Why use WebDAV?</title>
-<para> Using WebDAV technology people throughout 
-the world can be working on the same document. With the locking mechanism that DAV provides, the person who is editing the resource 
-will lock it for editing. Others can read it but not modify it. When the person who is editing the document, is done editing,
-he/she will release the lock, and then others can modify the documents as well.</para>
-<para>Authentication to gain access to resources is available in HTTP. This HOWTO discusses using LDAP for authentication. 
-Permissions using groups and users in LDAP directory can be setup to control read/write access to various resources(documents)
-on the WebDAV server, so that you dont need to share passwords to work on the same documents</para>
-<para>If you are worried about people trying to sniff your traffic, and gain access to confidential data, then worry not
-- you can always use HTTP with SSL ver3. This is the best encryption available. This documents details on how to implement
-WebDAV server which uses SSL encryption for transferring data. </para>
-</sect2>
-
-<sect2><title>How does WebDAV work?</title>
-
-<para><emphasis>text goes here...</emphasis></para>
 </sect2>
 
 
@@ -168,10 +161,13 @@ WebDAV server which uses SSL encryption for transferring data. </para>
 <para>The tools needed to achieve this objective are:  </para>
 
    <itemizedlist>
+      <listitem><para>C Compiler e.g. GCC</para></listitem>
       <listitem><para>Apache Web Server</para></listitem>
       <listitem><para>LDAP Module for Apache</para></listitem>
       <listitem><para>WebDAV Module for Apache</para></listitem>
       <listitem><para>LDAP lib file</para></listitem>
+      <listitem><para>SSL engine</para></listitem>
+      <listitem><para>Mod SSL Libraries</para></listitem>
    </itemizedlist>
 
 <para><emphasis role="strong">NOTE:</emphasis> All of these packages are
@@ -225,42 +221,67 @@ If you have comments and/or suggestions, please let me know as well!
 </sect1>
 
 
-
-
-<sect1 id="inst-webdav"> <title>Installing WebDAV services</title>
-
-<para> Our game plan is to first install OpenLDAP package. OpenLDAP
-is  not required for Apache_LDAP_DAV to work, but we will need
-the installed  OpenLDAP lib files to compile mod_ldap. And then
-we will compile Apache  with mod_ldap  and mod_dav.  </para>
-
-<para>
-Please download the following packages. 
+<sect1 id="requirements"><title>Requirements</title>
+<para>You'll have to download and compile several packages. This HOWTO will explain the compilation process, but you should be 
+fimiliar with installing from source code.
 </para>
 
-    <itemizedlist>
-       <listitem><para><ulink url="http://www.apache.org">Apache Web Server</ulink></para></listitem>
+<sect2><title>Basics</title>
+<para>
+You will need a machine running Solaris and GNU CC compiler. This compiler is available from <ulink url="http://www.sunfreeware.com">http://www.sunfreeware.com</ulink>. If
+you need any help installing the compiler please email me. If your OS doesnt already have gzip, you will need that as well. 
+You can d/l gzip from <ulink url="http://www.sunfreeware.com">http://www.sunfreeware.com</ulink> as well.
+</para>
 
-       <listitem><para><ulink url="http://www.openldap.org/">OpenLDAP</ulink> 
-            (for LDAP lib files)</para></listitem>
+<para>
+Also create a directory /tmp/downloads . We will use this directory to store the downloaded source code.
+</para>
+</sect2>
 
-       <listitem><para><ulink url="http://www.webdav.org/mod_dav/">mod_dav</ulink> 
-            (Apache module for WebDAV)</para></listitem>
+<sect2><title>Apache 1.3.x</title>
+<para>Apache is the HTTP server, it will be used to provide the WebDAV services. Please download the Apache 1.3.x source code from
+<ulink url="http://www.apache.org/dist/httpd/">http://www.apache.org/dist/httpd/</ulink>.
+</para>
 
-       <listitem><para><ulink url="http://www.muquit.com/muquit/software/mod_auth_ldap/mod_auth_ldap.html">mod_ldap</ulink>
-            (LDAP module for LDAP)</para></listitem>
-            
-       <listitem><para><ulink url="http://www.openssl.org">OpenSSL</ulink>
-       	    (SSL enginer for creating/managing certificates)</para></listitem>
-       	    
-       <listitem><para><ulink url="http://www.modssl.org/">mod_SSL</ulink>
-       	    (SSL Module for Apache)</para></listitem>
-       	    
-       	    
-    </itemizedlist>
+<sect2><title>OpenSSL</title>
+<para>
+You will need to download the OpenSSL from http://www.openssl.org/source/ . Please download the latest version. OpenSSL 
+installation will be used for SSL libraries for compiling mod_ssl with Apache, and for managing SSL certificates on the WebServer.
+Please download the OpenSSL source code gzipped file into /tmp/downloads
+</para>
+</sect2>
+
+<sect2><title>OpenLDAP</title>
+<para>
+Download the OpenLDAP source code from <ulink url="http://www.openldap.org/software/download/">http://www.openldap.org/software/download/</ulink>. We will
+OpenLDAP for the LDAP lib files. You may also use IPlanet LDAP lib files. However GNU packages are recommended. 
+</para>
+</sect2>
+
+<sect2><title>mod_dav</title>
+<para>mod_dav will be used to enable DAV support in Apache. Download the source code for mod_dav from <ulink url="http://www.webdav.org/mod_dav/#how">http://www.webdav.org/mod_dav/#how</ulink>.
+</para>
+
+<para>
+To find out more about mod_dav please visit <ulink url="http://www.webdav.org/mod_dav/faq/#00-00">http://www.webdav.org/mod_dav/faq/#00-00</ulink>
+</para>
+</sect2>
+
+<sect2><title>mod_auth_ldap</title>
+<para>mod_auth_ldap will be used for compiling LDAP support into Apache. Please download mod_auth_ldap from <ulink url="http://www.muquit.com/muquit/software/mod_auth_ldap/mod_auth_ldap.html">http://www.muquit.com/muquit/software/mod_auth_ldap/mod_auth_ldap.html</ulink>
+</para>
+</sect2>
+
+<sect2><title>mod_ssl</title>
+<para>mod_ssl will be used to enable SSL support in Apache, please download the mod_ssl source code from <ulink url="http://www.modssl.com/source/">http://www.modssl.com/source/</ulink></para>
+</sect2>
 
 
-<sect2><title>Pre-Requirements</title>
+</sect1>
+
+<sect1 id="inst-webdav"> <title>Installing WebDAV services</title>
+<para>Next is to first install pre-requisites (OpenSSL and OpenLDAP), and then Configure Apache with all the modules</para>
+<sect2><title>Ground Work</title>
 
 <para> To compile the WebDAV service with LDAP authencation
 capability, we will need to have the LDAP library files installed on
@@ -279,9 +300,8 @@ solution. </para>
 
 <screen><command>$ su</command></screen>
 
-<para> Now change to the directory where you placed the OpenLDAP
-(tar) source file, and extract the content. (I use a temp directory, 
-<filename>/tmp/download</filename>):  </para>
+<para> Now change to the directory (<filename>/tmp/downloads</filename>) where you placed the OpenLDAP
+(tar) source file, and extract the content:  </para>
 
 <para><screen>
 <command># cd /tmp/download</command>
@@ -304,7 +324,7 @@ command line option to '<command>configure</command>':</para>
 
 <screen><command># ./configure --disable-slapd</command></screen>
 
-<para> After you are done with configuring, you can make the
+<para><option>--disable-slapd</option> will tell the configure to not install the deamon. After you are done with configuring, you can make the
 dependencies for the openldap package: </para>
 
 <screen><command># make depend</command></screen>
@@ -316,7 +336,7 @@ be compiled. Use the <command>make</command> command:  </para>
 
 <para>If everything goes OK, you will end up with compiled version of
 openldap  in the current directory. Then you will need to install the
-compiled binaries into appropriate places: </para>
+compiled binaries and LDAP lib file into appropriate places: </para>
 
 <screen><command># make install</command></screen>
 
@@ -574,13 +594,13 @@ the <filename>/usr/local/apache/conf/httpd.conf</filename> file.
   AllowOverride None
   order allow,deny
   allow from all
-  AuthName "username_and_passwd_required"
+  AuthName "LDAP_userid_password_required"
   AuthType Basic
-  &lt;Limit PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
   Require valid-user
   &lt;/Limit&gt;
-  LDAP_Server your.ldap.server.com
-  LDAP_Port 007
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
   Base_DN "o=ROOT"
 
   UID_Attr uid
@@ -637,32 +657,135 @@ error message feel free to email me with the error message
 <para><command># /usr/local/apache/bin/apachectl restart</command></para>
 
 <para>Now you have WebDAV enabled Apache Server with LDAP
-authentication.  </para>
+authentication and SSL encryption.  </para>
 
-<para>If you have any questions, suggestions, recommendations, kudos, 
-comments, or complaints, please email them to me
-(<ulink url="mailto:saqib@seagate.com">saqib@seagate.com</ulink>).
+
+
+</sect2>
+
+<sect2><title>WebDAV server protocol compliance testing</title>
+<para>It is very important that the WebDAV that we just implemented be fully complaint with the WebDAV-2 protocol. If it is not 
+fully compatible, the client side WebDAV applications will not function properly.</para>
+
+<para>To test the complaince we will use a tool called Litmus. Litmus is a WebDAV server protocol compliance test suite, 
+which aims to test whether a server is compliant with the WebDAV protocol as specified in RFC2518. </para>
+
+<para>Please download the Litmus source code from http://www.webdav.org/neon/litmus/ and place it in the /tmp/downloads directory.</para>
+
+<para>Then use gzip and tar to extract the files:</para>
+<screen>
+<command># cd /tmp/downloads</command>
+<command># gzip -d litmus-0.6.x.tar.gz</command>
+<command># tar -xvf litmus-0.6.x.tar</command>
+<command># cd litmus-0.6.x</command>
+</screen>
+
+<para>Compiling and installing Litmus is easy:</para>
+
+<screen>
+<command># ./configure</command>
+<command># make</command>
+<command># make install</command>
+</screen>
+
+<para><command>make install</command> will install the Litmus binary files under <filename>/usr/local/bin</filename> and the help files under <filename>/usr/local/man</filename>
+
+
+<para>To the test the complaince of the WebDAV server that you just installed, please use the following command</para>
+<screen>
+<command># /usr/local/bin/litmus http://you.dav.server/DAVtest userid passwd</command>
+</screen>
+
+
+</sect1>
+
+<sect1><title>WebDAV server management</title>
+<para>In this section we will discuss about the various management task - e.g. using LDAP for access control, and working with DAV method on Apache</para>
+<para>Most of the configuration changes for the DAV will have to done using the <filename>httpd.conf</filename> file. This file is located at <filename>/usr/local/apache/conf/httpd.conf</filename> </para>
+
+<para><filename>httpd.conf</filename> is a text based configuration file that Apache uses. It can b editted using any text editor - I preffer using vi. Please make backup copy of this file, before changing it.</para>
+
+<para>After making changes to the <filename>httpd.conf</filename> the Apache server has to be restarted using the <command>/usr/local/apache/bin/apachectl restart</command> command. 
+However before restarting you test for the validity of the <filename>httpd.conf</filename> by using the <command>/usr/local/apache/bin/apachectl configtest</command> comand. </para> 
+
+<sect2><title>Restricting access to DAV shares</title>
+<para>In the previous section when we created the DAVtest share, we used the LDAP for authentication purposes. However anyone
+who can authenticates using their LDAP useri/passwd will be able to access that folder. </para>
+<para>Using the <command>require</command> directive in the httpd.conf file, we can limit access to certain individuals or groups of individuals.</para>
+
+<para>If we look at the DAVtest configuration from the previosu section: 
+<screen>
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</screen>
+We see that the <command>require</command> is set to <command>valid-user</command>. Which means any valid authenticated user
+has access to this folder. 
 </para>
 
-<para><emphasis role="strong">Note:</emphasis> Please free to contact
-me if you encounter any problems installing  Apache or any of the
-modules, or if you would like upgrade your existing Apache server to
-support WebDAV.</para>
+<sect3><title>Restricting access based on Individual UID(s)</title>
+<para>LDAP UID can be used to restrict access to DAV folder.</para>
+<para><command>require valid-user</command> directive can be changed to <command>require user 334455 445566</command></para>
+<para>This will restrict access to individuals with UID 334455 and 445566. Anyone else will not be able to access this folder.</para> 
+</sect3>
 
-<para> <emphasis role="strong"><ulink
-url="http://www.stonebeat.org">WebDAV Support and Discussion Forum</ulink></emphasis> </para>
+<sect3><title>Restricting access based on groups of individuals.</title>
+<para><command>require</command> can also be used to restrict access to groups of individuals. This can be either done using LDAP groups or LDAP filters. The filter must be valid LDAP filter syntax.</para>
+</sect3>
+</sect2>
+
+<sect2><title>Restricting write access to DAV shares</title>
+<para>It maybe be required that the editting for the resources on the DAV shares be restricted to certain individual, however anyone can view the resources. This can be easily done using the <command>&lt;Limit&gt;</command> tags in the httpd.conf file</para>
+<para> 
+<screen>
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</screen>
+</para>
+<para>You restrict write access to certain individuals by changing the <command>&lt;limit&gt;</command> to
+<screen>
+  &lt;Limit PUT POST DELETE PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require 334455
+  &lt;/Limit&gt;
+</screen>
+</para>
+<para>Basically we are limiting the PUT POST DELETE PROPPATH MKCOL COPY MOVE LOCK and UNLOCK to an individual who has the UID of 334455. Everone else will be able to use the methods GET and PROPFIND on the resources, but not any other method.</para>
+
 
 </sect2>
 
 </sect1>
-
-
-
-
-
-
-
-
 
 
 
@@ -680,24 +803,26 @@ information regarding SSL and maintaining SSL on a WebDAV server. However this i
 used on any web server.
 </para>
 
-<para> 
-There are many administration tasks related with implementing and maintaining SSL encryption for a Web Site. You can 
-either use commercial certicates, or generate your own. In the following sections we will briefly go over a few simple 
-things that are required to get the SSL website up and running, and maintain it. This tutorial is by no means a full in-depth
-overview of the SSL. 
-</para>
-
 <sect2><title>Introduction to SSL</title>
 <para>
 SSL (Secure Socket Layer) is a protocol layer that exists between the Network Layer and Application layer. As the name suggest
 SSL provides a mechanism for encrypting all kinds of traffic - LDAP, POP, IMAP and most importantly HTTP. 
 </para>
 <para>
-This HOWTO discusses about the HTTP over SSL or simply HTTPS. For more information about POP/IMAP/LDAP over SSL, please visit
-<ulink url="http://www.stunnel.org">http://www.stunnel.org</ulink>. Or if you are looking for a commerical products look into IPlanet for LDAP and Netscape for IMAP and 
-POP.
+The following is a over-simplified structure of the layers involved in SSL.
+<screen>
+
+	+-------------------------------------------+
+	|   LDAP   |    HTTP    |   POP   |   IMAP  |
+	+-------------------------------------------+
+	|                   SSL                     |
+	+-------------------------------------------+
+	|               Network Layer               |
+	+-------------------------------------------+
+	
+</screen>
 </para>
-<sect3><title>Quick and Dirty on Encryption algorithms used in SSL</title>
+<sect3><title>Encryption algorithms used in SSL</title>
 <para>
 There are 2 kinds of encryption algorithms used in SSL.
 </para>
@@ -737,32 +862,25 @@ exchange in the initiation process.
 </sect3>
 </sect2>
 
-<sect2><title>Homegrown Certificates</title>
-<para>The certicate that we created while installing Apache, is what I call a Homegrown Certificate. We used the makefile provided by
+<sect2><title>Test Certificates</title>
+<para>While compiling Apache we created a test certificate. We used the makefile provided by
 mod_ssl to create this custom Certificate. We used the command:
 <screen># make certificate TYPE=custom</screen>
 </para>
 
-<para>These homegrown Certificates are usually used for testing purposes - to check if the Apache with mod_ssl installation worked.  
-</para>
+<para>This certificate can be used for testing purposes.</para>
 
-<sect2><title>Then why do I need a CA?</title>
+<sect2><title>Certificates for Production use</title>
 <para>
+For production use you will need a certificate from a CA.
 CA or Certificate Authorities are certificate vendors, who are listed as a Trusted CA in user's browser client. As mentioned in
 the Encryption Algorithms section, if the CA is not listed as a trusted authority, your user will get a warning message when 
 trying to connect to a secure location.
 </para>
 <para>
-Similarly the certificates that you created yourself will cause a warning message to appear on the user's browser.
+Similarly the test certificates will also cause a warning message to appear on the user's browser.
 </para>
-
-<para>If you are implementing a commercial website, I would highly recommend using a Certification Authority for getting 
-your certificates signed. The warning message usually make the customers go away.
-</para>
-
-<para>If you are on a "intranet", you can also implement your own CA, but it is a complicated task, and requires a lot of day-to-day
-management.
-  
+ 
 </sect2>
 
 <sect2><title>How to create CSR</title>
@@ -825,6 +943,8 @@ One way to secure the decrypted Private Key is to make readable only by the root
 		<para><ulink url="http://www.thawte.com">Thawte</ulink></para>
 	</listitem>
 </orderedlist>
+
+
 </sect2>      
  
 
