@@ -29,6 +29,8 @@ use CGI qw(:standard);
 #		SysAdmin
 #		Maintainer
 #
+#		Languages
+#		Language
 #		Users
 #		User
 #		UserDocs
@@ -83,6 +85,7 @@ use CGI qw(:standard);
 #		StartPage
 #		EndPage
 #
+#		LanguageCombo
 #		RoleCombo
 #		ClassCombo
 #		PubStatusCombo
@@ -243,6 +246,30 @@ sub Maintainer {
 	return 0;
 }
 
+sub Languages {
+	my $self = shift;
+	my %languages = ();
+	my $sql = "SELECT isocode, language_name FROM language";
+	my $recordset = $DB->Recordset($sql);
+	my @row;
+	while (@row = $recordset->fetchrow) {
+		my $isocode = $row[0];
+		$languages{$isocode}{isocode}	= $row[0];
+		$languages{$isocode}{name}	= &trim($row[1]);
+	}
+	return %languages;
+}
+
+sub Language {
+	my ($self, $isocode) = @_;
+	my %language = ();
+	my $sql = "SELECT isocode, language_name FROM language WHERE isocode='$isocode'";
+	my @row = $DB->Row($sql);
+	$language{isocode}	= $row[0];
+	$language{name}		= &trim($row[1]);
+	return %language;
+}
+
 sub Users {
 	my $self = shift;
 	my %users = ();
@@ -265,8 +292,7 @@ sub Users {
 }
 
 sub User {
-	my $self = shift;
-	my $user_id = shift;
+	my ($self, $user_id) = @_;
 	my %user = ();
 	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, sysadmin, notes, stylesheet FROM username WHERE user_id=$user_id";
 	my @row = $DB->Row("$sql");
@@ -372,13 +398,14 @@ sub _getDocs {
 		$g_docs{$doc_id}{license}		= &trim($row[17]);
 		$g_docs{$doc_id}{abstract}		= &trim($row[18]);
 		$g_docs{$doc_id}{rating}		= &trim($row[19]);
+		$g_docs{$doc_id}{lang}			= &trim($row[20]);
 	}
 }
 
 sub Doc {
 	my $self = shift;
 	my $doc_id = shift;
-	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id";
+	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang FROM document WHERE doc_id=$doc_id";
 	my @row = $DB->Row("$sql");
 	my %doc = ();
 	$doc{id}			= &trim($row[0]);
@@ -401,22 +428,23 @@ sub Doc {
 	$doc{license}			= &trim($row[17]);
 	$doc{abstract}			= &trim($row[18]);
 	$doc{rating}			= &trim($row[19]);
+	$doc{lang}			= &trim($row[20]);
 	return %doc;
 }
 
 sub AddDoc {
-	my ($self, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
+	my ($self, $title, $class_id, $format, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating, $lang) = @_;
 	my $doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	$doc_id++;
-	my $sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating)";
-	$sql .= " VALUES ($doc_id, " . wsq($title) . ", $class_id, " . wsq($format) . ", " . wsq($dtd) . ", " . wsq($dtd_version) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ")";
+	my $sql = "INSERT INTO document(doc_id, title, class_id, format, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang)";
+	$sql .= " VALUES ($doc_id, " . wsq($title) . ", " . wsq($class_id) . ", " . wsq($format) . ", " . wsq($version) . ", " . wsq($last_update) . ", " . wsq($url) . ", " . wsq($isbn) . ", " . wsq($pub_status) . ", " . wsq($review_status) . ", " . wsq($tickle_date) . ", " . wsq($pub_date) . ", " . wsq($ref_url) . ", " . wsq($tech_review_status) . ", " . wsq($maintained) . ", " . wsq($license) . ", " . wsq($abstract) . ", " . wsq($rating) . ", '$lang')";
 	$DB->Exec($sql);
 	$doc_id = $DB->Value("SELECT MAX(doc_id) FROM document");
 	return $doc_id;
 }
 
 sub SaveDoc {
-	my ($self, $doc_id, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract) = @_;
+	my ($self, $doc_id, $title, $class_id, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $license, $abstract, $lang) = @_;
 	my $sql = "UPDATE document SET";
 	$sql .= "  title=" . wsq($title);
 	$sql .= ", class_id=$class_id";
@@ -435,6 +463,7 @@ sub SaveDoc {
 	$sql .= ", tech_review_status=" . wsq($tech_review_status);
 	$sql .= ", license=" . wsq($license);
 	$sql .= ", abstract=" . wsq($abstract);
+	$sql .= ", lang=" . wsq($lang);
 	$sql .= " WHERE doc_id=$doc_id";
 	$DB->Exec($sql);
 }
@@ -893,6 +922,7 @@ sub String {
 	my ($self, $string_code) = @_;
 	my $language = RequestedLanguage();
 	my $string = $DB->Value("SELECT string FROM string_i18n WHERE string_code='$string_code' AND lang='$language'");
+	$string = "MISSING STRING: $string_code" unless ($string);
 	return $string;
 }
 
@@ -1029,9 +1059,25 @@ sub EndPage {
 	exit;
 }
 
+sub LanguageCombo {
+	my ($self, $selected) = @_;
+	my %languages = Languages();
+	my $languagecombo = "<select name='lang'>\n";
+	$languagecombo .= "<option></option>\n";
+	my $isocode;
+	foreach $isocode (sort { $languages{$a}{name} cmp $languages{$b}{name} } keys %languages) {
+		if ($selected eq $isocode) {
+			$languagecombo .= "<option selected value='$isocode'>$languages{$isocode}{name}</option>\n";
+		} else {
+			$languagecombo .= "<option value='$isocode'>$languages{$isocode}{name}</option>\n";
+		}
+	}
+	$languagecombo .= "</select>\n";
+	return $languagecombo;
+}
+
 sub RoleCombo {
-	my $self = shift;
-	my $selected = shift;
+	my ($self, $selected) = @_;
 	my %roles = Roles();
 	my $rolecombo = "<select name='role'>\n";
 	my $role;
@@ -1052,6 +1098,7 @@ sub ClassCombo {
 	my $language = RequestedLanguage();
 	my %classes = Classes();
 	my $classcombo = "<select name='class_id'>\n";
+	$classcombo .= "<option></option>\n";
 	my $class_id;
 	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
 		if ($selected eq $class_id) {
@@ -1069,6 +1116,7 @@ sub PubStatusCombo {
 	my $selected = shift;
 	my %pubstatuses = PubStatuses();
 	my $pubstatuscombo = "<select name='pub_status'>\n";
+	$pubstatuscombo .= "<option></option>\n";
 	my $pubstatus;
 	foreach $pubstatus (sort { $pubstatuses{$a}{name} cmp $pubstatuses{$b}{name} } keys %pubstatuses) {
 		if ($selected eq $pubstatus) {
@@ -1704,7 +1752,7 @@ sub DocTable {
 	my ($self, $doc_id) = @_;
 	my %doc = ();
 	if ($doc_id) {
-		my %doc = Doc($foo, $doc_id);
+		%doc = Doc($foo, $doc_id);
 		LintadasDoc($foo, $doc_id);
 	}
 	my $doctable = '';
@@ -1778,10 +1826,10 @@ sub DocTable {
 		$doctable .= $doc{format};
 		$doctable .= "</td>";
 		$doctable .= "<th align=right>DTD</th><td>";
-		$doctable .= $doc{dtd};
+		$doctable .= "$doc{dtd} $doc{dtd_version}";
 		$doctable .= "</td>";
-		$doctable .= "<th align=right>DTD Ver</th><td>";
-		$doctable .= $doc{dtd_version};
+		$doctable .= "<th align=right>Lang</th><td>";
+		$doctable .= LanguageCombo($foo, $doc{lang});
 		$doctable .= "</td>";
 	}
 	$doctable .= "</tr>\n<tr>\n";
@@ -1998,7 +2046,8 @@ sub DetailedStatsTable {
 }
 
 sub MiscStatsTable {
-	use Date::Calc qw(:all);
+	#use Date::Calc qw(:all);
+	use Date::Calc qw(Delta_Days);
 	my $sql = "SELECT last_update FROM document WHERE pub_status='N'";
 	my $recordset = $DB->Recordset($sql);
 	my $count = 0;
@@ -2535,9 +2584,9 @@ sub UserBox {
 			}
 		}
 		print "</th></tr>\n";
-		print "<tr><td><a href='user_home.pl'>My Home</a></td></tr>\n";
-		print "<tr><td><a href='user_edit.pl?user_id=$currentuser{id}'>Preferences</a></td></tr>";
-		print "<tr><td><a href='logout.pl'>Log out</a></td></tr>\n";
+		print "<tr><td><a href='user_home.pl'>" . String($foo, 'mi-my-home') . "</a></td></tr>\n";
+		print "<tr><td><a href='user_edit.pl?user_id=$currentuser{id}'>" . String($foo, 'mi-preferences') . "</a></td></tr>";
+		print "<tr><td><a href='logout.pl'>" . String($foo, 'mi-log-out') . "</a></td></tr>\n";
 		print "</table>\n";
 	}
 }

@@ -22,6 +22,7 @@ CREATE TABLE document
 	license			CHAR(12),
 	abstract		TEXT,
 	rating			REAL,
+	lang			CHAR(2),
 
 	PRIMARY KEY (doc_id)
 );

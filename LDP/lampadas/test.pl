@@ -8,7 +8,10 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
-#Language();
+#RequestedLanguage();
+#Language('FR');
+#Languages();
+LanguageCombo();
 #Topic(1);
 #UserDocs(11);
 #Doc(473);
@@ -26,7 +29,7 @@ $DB = new Lampadas::Database;
 #Formats();
 #DTDs();
 #Users();
-Docs();
+#Docs();
 #Config();
 #AddUser();
 #NavBar();
@@ -55,19 +58,37 @@ Docs();
 #PubStatusStatsTable();
 #MiscStatsTable();
 #TopicDocsTable();
-DocsTable();
+#DocsTable();
 #Lintadas();
 #DocErrorsTable(1);
 #Errors();
 #ErrorsTable();
-Stylesheets();
-StylesheetCombo();
+#Stylesheets();
+#StylesheetCombo();
 
 print "All tests run.\n\n";
 
-sub Language {
+sub RequestedLanguage {
 	print $L->RequestedLanguage('fr, es;q=1.0, de;q=0.5') . "\n\n";
 	print $L->RequestedLanguage() . "\n\n";
+}
+
+sub Language {
+	my $isocode = shift;
+	%language = $L->Language($isocode);
+	print "Language: $language{isocode}, name: $language{name}\n\n";
+}
+
+sub Languages {
+	%languages = $L->Languages();
+	foreach $key (keys %languages) {
+		print "Language: $languages{$key}{isocode}, name: $languages{$key}{name}\n\n";
+	}
+	print "\n";
+}
+
+sub LanguageCombo {
+	print $L->LanguageCombo() . "\n";
 }
 
 sub Topic {
