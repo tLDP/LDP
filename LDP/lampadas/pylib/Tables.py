@@ -652,7 +652,7 @@ class Tables:
         """
 
         log(3, "Creating doctable")
-        box = '<table class="box" width="100%"><tr><th colspan="3">|strtitle|</th></tr>'
+        box = WOStringIO('<table class="box" width="100%"><tr><th colspan="3">|strtitle|</th></tr>')
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
@@ -749,23 +749,23 @@ class Tables:
                     continue
 
             # Build the table for any documents that passed the filters
-            box = box + '<tr><td>'
+            box.write('<tr><td>')
 
             if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
-                box = box + '<a href="|uri.base|editdoc/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>'
-            box = box + '</td>\n'
-            box = box + '<td>'
-            box = box + '</td>\n'
+                box.write('<a href="|uri.base|editdoc/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
+            box.write('</td>\n')
+            box.write('<td>')
+            box.write('</td>\n')
             if doc.pub_status_code=='N' or doc.pub_status_code=='A':
                 if doc.errors.count() > 0 or doc.files.error_count() > 0:
-                    box = box + '<td style="width:100%" class="error">' + doc.title + '</td>'
+                    box.write('<td style="width:100%%" class="error">%s</td>' % doc.title)
                 else:
-                    box = box + '<td style="width:100%"><a href="|uri.base|doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
+                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/">%s</a></td>' % (str(doc.id), doc.title))
             else:
-                box = box + '<td style="width:100%">' + doc.title + '</td>'
-            box = box + '</tr>\n'
-        box = box + '</table>'
-        return box
+                box.write('<td style="width:100%%">%s</td>' % doc.title)
+            box.write('</tr>\n')
+        box.write('</table>')
+        return box.get_value()
 
     def userdocs(self, uri, username=''):
         """
