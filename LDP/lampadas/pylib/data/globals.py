@@ -50,3 +50,5 @@ def send_mail(email, message):
     server.sendmail(config.admin_email, email, message)
     server.quit()
 
+def error(message):
+    return message

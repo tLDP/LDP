@@ -49,7 +49,7 @@ import os
 
 EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" '\
             'border="0" hspace="5" vspace="0" align="top">'
-
+MAKE_ICON = 'MAKE'
 
 # ComboFactory
 
@@ -831,6 +831,13 @@ class TableFactory:
                 box = box + '<tr><td>'
                 if user and user.can_edit(doc_id=doc.id):
                     box = box + '<a href="editdoc|uri.lang_ext|/' + str(doc.id) + '">' + EDIT_ICON + '</a>'
+                box = box + '</td>\n'
+                box = box + '<td>'
+                if user and user.can_edit(doc_id=doc.id):
+                    box = box + '<form name="make" action="data/control/make">\n'
+                    box = box + '<input type=hidden name=doc_id value="' + str(doc.id) + '">\n'
+                    box = box + '<input type=submit name="action" value="|strmake|">\n'
+                    box = box + '</form>\n'
                 box = box + '</td>\n'
                 box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                 box = box + '</tr>\n'

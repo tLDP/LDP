@@ -20,9 +20,19 @@
 # 
 
 from globals import *
+from Config import config
 from DataLayer import lampadas
 from mod_python import apache
+import os
 
 def reload(req):
     lampadas.load()
     go_back(req)
+
+def make(req, doc_id):
+    command = 'cd ' + config.cache_dir + '/' + doc_id + '; make clean; make'
+    process = os.popen(command)
+    results = process.read()
+    process.close()
+    return error(results)
+

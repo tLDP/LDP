@@ -245,5 +245,3 @@ def mailpass(req, email):
     else:
         return error('User not found.')
 
-def error(message):
-    return message
