@@ -17,11 +17,12 @@
 #
 # Changes:
 #  20020125: Initial release
+#  20020713: spelling fix
 #
 # Known bugs:
-#  Entinity must be in one line
+#  Entity must be in one line
 
-print STDERR "INF : Replacing special quotes entinities\n";
+print STDERR "INF : Replacing special quotes entities\n";
 
 while (<STDIN>) {
 	my $line = $_;
