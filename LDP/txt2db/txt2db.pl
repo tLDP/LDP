@@ -117,6 +117,16 @@ sub proc_txt {
 			next;
 		}
 
+		# handle whitespace gracefully
+		while ($line =~ /^= /) {
+			$line =~ s/^= /^=/;
+		}
+		while ($line =~ /^== /) {
+			$line =~ s/^== /^==/;
+		}
+		while ($line =~ /^=== /) {
+			$line =~ s/^=== /^===/;
+		}
 		
 		if ($line =~ /^=\w/) {
 			&close1;
