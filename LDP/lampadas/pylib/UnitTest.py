@@ -20,11 +20,22 @@
 # 
 """
 Lampadas UnitTest Module
+
+This module runs a series of tests on the Python modules,
+looking for anything that breaks. It is used for regression
+testing before committing changes into CVS.
+
+NOTICE: You must always run the UnitTest.py module before
+checking your changes into the CVS tree. Remember, other
+developers are working on the codebase too, and they will
+not appreciate it if their work is interrupted because the CVS
+tree is broken.
 """
 
 import unittest
 from Config import config
 from Database import db
+from Languages import languages
 from DataLayer import lampadas
 from SourceFiles import sourcefiles
 from URLParse import URI
@@ -53,9 +64,8 @@ class testDocs(unittest.TestCase):
 
     def testDocs(self):
         log(3, 'testing Docs')
-        assert not lampadas.docs==None
-        assert lampadas.docs.count() > 0
 
+        # Add
         doc = lampadas.docs.add('Test Document',
                                 'Test Doc',
                                 'howto',
@@ -77,18 +87,27 @@ class testDocs(unittest.TestCase):
                                 'This is a short description.',
                                 'EN',
                                 'fooseries',
-                                0)
+                                0,
+                                '2002-01-01 15:35:21',
+                                '2002-02-02 15:35:22',
+                                '2002-03-03 15:35:23',
+                                )
 
         assert not doc==None
         assert doc.title=='Test Document'
+        assert doc.short_title=='Test Doc'
+        assert doc.type_code=='howto'
         assert doc.format_code=='xml'
+        assert doc.dtd_code=='DocBook'
         
         title = doc.title
         doc.title = 'Foo'
         assert doc.title=='Foo'
         doc.save()
-        
+       
+        # Delete
         lampadas.docs.delete(doc.id)
+        assert lampadas.docs[doc.id]==None
 
         keys = lampadas.docs.keys()
         for key in keys:
@@ -112,7 +131,7 @@ class testDocErrs(unittest.TestCase):
                     error = doc.errors[err_id]
                     assert not error==None
                     assert error.doc_id==doc.id
-                    assert error.err_id > 1
+                    assert error.err_id > 0
         log(3, 'testing DocErrs done')
     
 
@@ -232,27 +251,33 @@ class testLanguages(unittest.TestCase):
 
     def testLanguages(self):
         log(3, 'testing Languages')
-        assert not lampadas.languages==None
-        assert not lampadas.languages['EN']==None
-        assert lampadas.languages['EN'].supported
-        assert lampadas.languages['EN'].name['EN']=='English'
-        assert lampadas.languages['FR'].supported
-        assert lampadas.languages['FR'].name['EN']=='French'
-        assert lampadas.languages['DE'].supported
-        assert lampadas.languages['DE'].name['EN']=='German'
-        assert lampadas.languages.count()==136
+        assert not languages==None
+        assert not languages['EN']==None
+        assert languages['EN'].supported
+        assert languages['EN'].name['EN']=='English'
+        assert languages['FR'].supported
+        assert languages['FR'].name['EN']=='French'
+        assert languages['DE'].supported
+        assert languages['DE'].name['EN']=='German'
+        assert languages.count()==136
         log(3, 'testing Languages done')
 
 
 class testPubStatuses(unittest.TestCase):
-
+    
     def testPubStatuses(self):
         log(3, 'testing PubStatuses')
         assert not lampadas.pub_statuses==None
         assert lampadas.pub_statuses.count() > 0
-        assert not lampadas.pub_statuses['A']==None
-        assert lampadas.pub_statuses['A'].name['EN'] > ''
-        assert lampadas.pub_statuses['A'].description['EN'] > ''
+        
+        # Ensure that the default publication statuses are in the database
+        # for all supported languages, and that they all have names and
+        # descriptions.
+        for pub_status in ('C', 'D', 'N', 'P', 'W'):
+            assert not lampadas.pub_statuses[pub_status]==None
+            for lang in languages.supported_keys():
+                assert lampadas.pub_statuses[pub_status].name[lang] > ''
+                assert lampadas.pub_statuses[pub_status].description[lang] > ''
         log(3, 'testing PubStatuses done')
         
 
@@ -317,37 +342,38 @@ class testURLParse(unittest.TestCase):
         self.assertEqual( (url,u), (url,result) )
         
     def testURLParse(self):
-        # uri protocol server port path language
-        # forcelang id format filename parameter anchor
+        #              uri
+        #               protocol server       port    path lang_ext    id code page            param anchor
+        # format filename parameter anchor
         self.check_uri('',
-                       ('',     '',        '',    '/','.html',    0, '', 'index',  '',''))
+                       ('',      '',          '',     '/', '.en.html', 0, '', 'index',         '',   ''))
 
         self.check_uri('/',
-                       ('',     '',        '',    '/','.html',    0, '', 'index',   '',''))
+                       ('',      '',          '',     '/', '.en.html', 0, '', 'index',         '',   ''))
 
         self.check_uri('/home.html',
-                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
+                       ('',      '',          '',     '/', '.en.html', 0, '', 'home',          '',   ''))
 
         self.check_uri('/home.fr.html',
-                       ('',     '',        '',    '/','.fr.html', 0, '', 'home',   '',''))
+                       ('',      '',          '',     '/', '.fr.html', 0, '', 'home',          '',   ''))
 
         self.check_uri('/document_main/1.html',
-                       ('',     '',        '',    '/','.html',    1, '', 'document_main','',''))
+                       ('',      '',          '',     '/', '.en.html', 1, '', 'document_main', '',   ''))
 
         self.check_uri('/document_main/1.es.html',
-                       ('',     '',        '',    '/','.es.html', 1, '', 'document_main','',''))
+                       ('',      '',          '',     '/', '.es.html', 1, '', 'document_main', '',   ''))
 
         self.check_uri('http://localhost:8000',
-                       ('http','localhost','8000','/','.html',    0, '', 'index',   '',''))
+                       ('http',  'localhost', '8000', '/', '.en.html', 0, '', 'index',         '',   ''))
 
         self.check_uri('http://localhost/document_main/1.html',
-                       ('http','localhost','',    '/','.html',    1, '', 'document_main','',''))
+                       ('http',  'localhost', '',     '/', '.en.html', 1, '', 'document_main', '',   ''))
 
         self.check_uri('http://localhost/document_main/1.es.html',
-                       ('http','localhost','',    '/','.es.html', 1, '', 'document_main','',''))
+                       ('http',  'localhost', '',     '/', '.es.html', 1, '', 'document_main', '',   ''))
 
         self.check_uri('http://localhost:8000/document_main/1.es.html',
-                       ('http','localhost','8000','/','.es.html', 1, '', 'document_main','',''))
+                       ('http',  'localhost', '8000', '/', '.es.html', 1, '', 'document_main', '',   ''))
 
 
 if __name__=="__main__":

@@ -250,10 +250,10 @@ class NewsItem:
             self.news[lang] = trim(row[1])
 
     def add_lang(self, lang, news):
-        self.news[lang] = news
         sql = 'INSERT INTO news_i18n(news_id, lang, news) VALUES(' + str(self.id) + ', ' + wsq(lang) + ', ' + wsq(news) + ')'
         db.runsql(sql)
         db.commit()
+        self.news[lang] = news
 
     def save(self):
         sql = 'UPDATE news SET pub_date=' + wsq(self.pub_date) + ' WHERE news_id=' + str(self.id)
