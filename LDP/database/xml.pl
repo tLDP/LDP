@@ -21,6 +21,8 @@ print '<ldp>' . "\n";
 while (@row = $doc->fetchrow) {
 	$doc_id                  = $row[0];
 	$title                   = $row[1];
+	$title                   =~ s/\s+$//;
+	$title			 =~ s/\&/\&amp\;/;
 	$pub_status_name         = $row[2];
 	$class                   = $row[3];
 	$class                   =~ s/\s+$//;
@@ -51,6 +53,7 @@ while (@row = $doc->fetchrow) {
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
 	while (@maintainer_row = $maintainer->fetchrow) {
 		$maintainer_name = $maintainer_row[0];
+		$maintainer_name =~ s/\&/\&amp\;/;
 		$maintainer_email = $maintainer_row[1];
 		print "  <creator>$maintainer_email ($maintainer_name)</creator>\n";
 	}
