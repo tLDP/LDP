@@ -413,8 +413,8 @@ class Widgets:
     def lang(self, value, lang, allow_null=1, allow_unsupported=1, view=0):
         languages = dms.language.get_all()
         if view==1:
-            language = languages[value]
-            if language:
+            if languages.has_key(value):
+                language = languages[value]
                 return language.name[lang]
             return ''
 
