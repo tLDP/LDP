@@ -57,10 +57,13 @@ $from_email = "$login <$login\@tldp.org>";
 
 # Mail all reports to this address.
 #$dest_email = 'elinks-cvs@v.or.cz, pasky@pasky.ji.cz, fonseca@diku.dk, zas@norz.org';
-$dest_email = 'cvs-commit@tldp.org';
+$dest_email = 'cvs-commit@en.tldp.org';
 
 # Email address all the replies should go at.
 $reply_email = 'discuss@en.tldp.org';
+
+# X-mailer for better identification
+$x_mailer = '$Id$';
 
 # suffix of Message-ID in email header
 $messageid_email = '@tldp.org';
@@ -87,7 +90,7 @@ $CVS = '/usr/bin/cvs';
 $diffstat = '/usr/bin/diffstat -p0 -w 72';
 
 # URL of cvsweb. Just comment out if you don't have any.
-$cvsweb_url = 'http://cvsview.tldp.org';
+$cvsweb_url = 'http://cvsview.tldp.org/index.cgi';
 
 # The leading message of the mail:
 $help_msg = "This is an automated notification of a change to the $project CVS tree.";
@@ -361,6 +364,7 @@ X-CVS-Module: $module
 User-Agent: cvslog.pl/$VERSION
 $subj
 Message-ID: $messageid
+X-Mailer: $x_mailer
 MIME-Version: 1.0
 Content-Transfer-Encoding: $mail_contenttransen
 Content-Type: $mail_contenttype
