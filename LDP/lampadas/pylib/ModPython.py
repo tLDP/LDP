@@ -34,8 +34,10 @@ def send_HTML(req, HTML):
     """
     log(3, 'Sending HTML')
     req.content_type = 'text/html'
+    add_content_length(req, len(HTML))
     req.send_http_header()
     req.write(HTML)
+    log(3, "HTML sent")
 
 
 def send_File(req, filename):
@@ -74,9 +76,10 @@ def send_File(req, filename):
         mimetype = "text/plain"
 
     fd = open(filename, 'r')
-    req.content_type = mimetype
-    req.send_http_header()
     file_contents = fd.read()
+    req.content_type = mimetype
+    add_content_length(req, len(file_contents))
+    req.send_http_header()
     req.write(file_contents)
 
 
@@ -86,9 +89,13 @@ def send_Text(req, text):
     """
     log(3, 'Sending text')
     req.content_type = 'text/plain'
+    add_content_length(req, len(text))
     req.send_http_header()
     req.write(text)
 
+def add_content_length(req, length):
+    log(3, "content-length is: " + str(length))
+    req.headers_out.add('Content-length', str(length))
 
 if __name__ == '__main__':
     pass

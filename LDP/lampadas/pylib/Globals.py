@@ -99,6 +99,18 @@ def tf2bool(tf):
     else:
         return 0
 
+def date2str(date):
+    """
+    Converts a date value (which contains a time of "00:00:00")
+    into just its date portion.
+    """
+
+    if date:
+        datestr = str(date)
+        return datestr[:10]
+    else:
+        return ''
+        
 def trim(astring):
     """
     Trims leading and trailing spaces from a string.

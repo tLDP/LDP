@@ -53,7 +53,7 @@ EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border
 class ComboFactory:
 
     def Class(self, value, lang):
-        combo = "<select name='class'>\n"
+        combo = "<select name='class_id'>\n"
         keys = lampadas.Classes.keys()
         for key in keys:
             classfoo = lampadas.Classes[key]
@@ -73,7 +73,7 @@ class ComboFactory:
         for key in keys:
             doc = lampadas.Docs[key]
             assert not doc == None
-            if doc.LanguageCode == lang or lang == None:
+            if doc.Lang == lang or lang == None:
                 combo = combo + "<option "
                 if doc.ID == value:
                     combo = combo + "selected "
@@ -84,70 +84,109 @@ class ComboFactory:
         return combo
 
     def DTD(self, value, lang):
-        self.combo = "<select name='dtd'>\n"
+        combo = "<select name='dtd'>\n"
         keys = lampadas.DTDs.keys()
         for key in keys:
             dtd = lampadas.DTDs[key]
             assert not dtd == None
-            self.combo = self.combo + "<option "
+            combo = combo + "<option "
             if dtd.DTD == value:
-                self.combo = self.combo + "selected "
-            self.combo = self.combo + "value='" + dtd.DTD + "'>"
-            self.combo = self.combo + dtd.DTD
-            self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                combo = combo + "selected "
+            combo = combo + "value='" + dtd.DTD + "'>"
+            combo = combo + dtd.DTD
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
     
     def Format(self, value, lang):
-        self.combo = "<select name='format'>\n"
+        combo = "<select name='format'>\n"
         keys = lampadas.Formats.keys()
         for key in keys:
             format = lampadas.Formats[key]
             assert not format == None
-            self.combo = self.combo + "<option "
+            combo = combo + "<option "
             if format.ID == value:
-                self.combo = self.combo + "selected "
-            self.combo = self.combo + "value='" + str(format.ID) + "'>"
-            self.combo = self.combo + format.i18n[lang].Name
-            self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                combo = combo + "selected "
+            combo = combo + "value='" + str(format.ID) + "'>"
+            combo = combo + format.i18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
     def Language(self, value, lang):
-        return "lang"
+        combo = "<select name='lang'>\n"
+        keys = lampadas.Languages.keys()
+        for key in keys:
+            language = lampadas.Languages[key]
+            assert not language == None
+            combo = combo + "<option "
+            if language.Code == value:
+                combo = combo + "selected "
+            combo = combo + "value='" + language.Code + "'>"
+            combo = combo + language.I18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
     def License(self, value, lang):
-        return "license"
+        combo = "<select name='license'>\n"
+        keys = lampadas.Licenses.keys()
+        for key in keys:
+            license = lampadas.Licenses[key]
+            assert not license == None
+            combo = combo + "<option "
+            if license.License == value:
+                combo = combo + "selected "
+            combo = combo + "value='" + str(license.License) + "'>"
+            combo = combo + license.License
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
     def PubStatus(self, value, lang):
-        self.combo = "<select name='pub_status'>\n"
+        combo = "<select name='pub_status_code'>\n"
         keys = lampadas.PubStatuses.keys()
         for key in keys:
             PubStatus = lampadas.PubStatuses[key]
             assert not PubStatus == None
-            self.combo = self.combo + "<option "
+            combo = combo + "<option "
             if PubStatus.Code == value:
-                self.combo = self.combo + "selected "
-            self.combo = self.combo + "value='" + str(PubStatus.Code) + "'>"
-            self.combo = self.combo + PubStatus.I18n[lang].Name
-            self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                combo = combo + "selected "
+            combo = combo + "value='" + str(PubStatus.Code) + "'>"
+            combo = combo + PubStatus.I18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
         
     def ReviewStatus(self, value, lang):
-        self.combo = "<select name='review_status'>\n"
+        combo = "<select name='review_status_code'>\n"
         keys = lampadas.ReviewStatuses.keys()
         for key in keys:
             ReviewStatus = lampadas.ReviewStatuses[key]
             assert not ReviewStatus == None
-            self.combo = self.combo + "<option "
+            combo = combo + "<option "
             if ReviewStatus.Code == value:
-                self.combo = self.combo + "selected "
-            self.combo = self.combo + "value='" + str(ReviewStatus.Code) + "'>"
-            self.combo = self.combo + ReviewStatus.I18n[lang].Name
-            self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                combo = combo + "selected "
+            combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
+            combo = combo + ReviewStatus.I18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
+
+    def TechReviewStatus(self, value, lang):
+        combo = "<select name='tech_review_status_code'>\n"
+        keys = lampadas.ReviewStatuses.keys()
+        for key in keys:
+            ReviewStatus = lampadas.ReviewStatuses[key]
+            assert not ReviewStatus == None
+            combo = combo + "<option "
+            if ReviewStatus.Code == value:
+                combo = combo + "selected "
+            combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
+            combo = combo + ReviewStatus.I18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
 
 # BoxFactory
@@ -178,7 +217,7 @@ class TableFactory:
         self.box = self.box + '<table class="box" style="width:100%"><tr><th colspan="6">|docdetails|</th></tr>'
         if DocID:
             doc = lampadas.Docs[DocID]
-            self.box = self.box + '<form method=POST action="docsave" name="document">'
+            self.box = self.box + '<form method=POST action="data/save/document" name="document">'
         else:
             doc = Doc()
             self.box = self.box + '<form method=POST action="docadd" name="document">'
@@ -205,10 +244,10 @@ class TableFactory:
         self.box = self.box + '</tr>\n<tr>\n'
         self.box = self.box + '<th align=right>Status</th><td>'
         self.box = self.box + self.combof.PubStatus(doc.PubStatusCode, lang)
-        self.box = self.box + '</td>'
+        self.box = self.box + '</td>\n'
         self.box = self.box + '<th align=right>Class</th><td>\n'
         self.box = self.box + self.combof.Class(doc.ClassID, lang)
-        self.box = self.box + '</td>'
+        self.box = self.box + '</td>\n'
         self.box = self.box + '<th align=right>Maint</th><td>\n'
         if doc.Maintained:
             self.box = self.box + "Yes"
@@ -216,12 +255,12 @@ class TableFactory:
             self.box = self.box + "No"
         self.box = self.box + '</td>'
         self.box = self.box + '</tr>\n<tr>\n'
-        self.box = self.box + '<th align=right>Language</th><td>'
-        self.box = self.box + self.combof.ReviewStatus(doc.ReviewStatus, lang)
-        self.box = self.box + '</td>'
+        self.box = self.box + '<th align=right>Writing</th><td>'
+        self.box = self.box + self.combof.ReviewStatus(doc.ReviewStatusCode, lang)
+        self.box = self.box + '</td>\n'
         self.box = self.box + '<th align=right>Accuracy</th><td>'
-        self.box = self.box + self.combof.ReviewStatus(doc.TechReviewStatus, lang)
-        self.box = self.box + '</td>'
+        self.box = self.box + self.combof.TechReviewStatus(doc.TechReviewStatusCode, lang)
+        self.box = self.box + '</td>\n'
         self.box = self.box + '<th align=right>License</th><td>'
         self.box = self.box + self.combof.License(doc.License, lang)
         self.box = self.box + '</td>'
@@ -236,17 +275,16 @@ class TableFactory:
         self.box = self.box + '<td>'
         self.box = self.box + self.bar_graph(doc.Rating, 10, lang)
         self.box = self.box + '</td>\n'
-        if DocID:
-            self.box = self.box + '</tr>\n<tr>\n'
-            self.box = self.box + '<th align=right>Format</th><td>'
-            self.box = self.box + lampadas.Formats[doc.FormatID].I18n[lang].Name
-            self.box = self.box + '</td>'
-            self.box = self.box + '<th align=right>DTD</th><td>'
-            self.box = self.box + doc.DTD + ' ' + doc.DTDVersion
-            self.box = self.box + '</td>'
-            self.box = self.box + '<th align=right>Lang</th><td>'
-            self.box = self.box + self.combof.Language(doc.Lang, lang)
-            self.box = self.box + '</td>'
+        self.box = self.box + '</tr>\n<tr>\n'
+        self.box = self.box + '<th align=right>Format</th><td>'
+        self.box = self.box + lampadas.Formats[doc.FormatID].I18n[lang].Name
+        self.box = self.box + '</td>'
+        self.box = self.box + '<th align=right>DTD</th><td>'
+        self.box = self.box + doc.DTD + ' ' + doc.DTDVersion
+        self.box = self.box + '</td>'
+        self.box = self.box + '<th align=right>Lang</th><td>'
+        self.box = self.box + self.combof.Language(doc.Lang, lang)
+        self.box = self.box + '</td>'
         self.box = self.box + '</tr>\n<tr>\n'
         self.box = self.box + '<th align=right>Abstract</th>'
         self.box = self.box + '<td colspan=5><textarea name=abstract rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
@@ -258,16 +296,19 @@ class TableFactory:
         return self.box
 
     def docs(self, lang):
+        log(3, "Creating doctable")
         self.box = ''
         self.box = self.box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
         keys = lampadas.Docs.keys()
         for key in keys:
-            if lampadas.Docs[key].Lang == lang:
+            doc = lampadas.Docs[key]
+            if doc.Lang == lang:
                 self.box = self.box + '<tr>'
-                self.box = self.box + '<td><a href="/editdoc/' + str(lampadas.Docs[key].ID) + '/">' + EDIT_ICON + '</a></td>'
-                self.box = self.box + '<td><a href="/doc/' + str(lampadas.Docs[key].ID) + '/">' + lampadas.Docs[key].Title + '</a></td>'
-                self.box = self.box + '</tr>'
+                self.box = self.box + '<td><a href="/editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
+                self.box = self.box + '<td><a href="/doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                self.box = self.box + '</tr>\n'
         self.box = self.box + '</table>'
+        log(3, "doctable complete")
         return self.box
 
 
@@ -419,6 +460,7 @@ class PageFactory:
 page_factory = PageFactory()
 
 def main():
+    
     for arg in sys.argv[1:]:
         print page_factory.page(arg)
 

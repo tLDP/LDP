@@ -60,6 +60,7 @@ class Lampadas:
         self.Config         = Cfg()
         self.Docs           = Docs()
         self.Docs.Load()
+        self.Licenses       = Licenses()
         self.DTDs           = DTDs()
         self.Formats        = Formats()
         self.Languages      = Languages()
@@ -168,9 +169,9 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters.
 
-    def add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, Lang, SeriesID):
+    def add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
         self.id = db.read_value('SELECT max(doc_id) from document') + 1
-        self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
+        self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
         assert db.runsql(self.sql) == 1
         db.commit()
         self.NewID = db.read_value('SELECT MAX(doc_id) from document')
@@ -200,38 +201,36 @@ class Doc:
         self.LoadRow(row)
 
     def LoadRow(self, row):
-        self.ID			= row[0]
-        #print "Loaded Doc ID: " + str(self.ID)
-        self.Title		= trim(row[1])
-        self.ClassID		= row[2]
-        self.FormatID		= row[3]
-        self.DTD		= trim(row[4])
-        self.DTDVersion		= trim(row[5])
-        self.Version		= trim(row[6])
-        self.LastUpdate		= trim(row[7])
-        self.URL		= trim(row[8])
-        self.ISBN		= trim(row[9])
-        self.PubStatusCode	= trim(row[10])
-        self.ReviewStatus	= trim(row[11])
-        self.TickleDate		= trim(row[12])
-        self.PubDate		= trim(row[13])
-        self.HomeURL		= trim(row[14])
-        self.TechReviewStatus	= trim(row[15])
-        self.Maintained		= tf2bool(row[16])
-        self.License		= trim(row[17])
-        self.Abstract		= trim(row[18])
-        self.Rating		= safeint(row[19])
-        self.Lang		= trim(row[20])
-        self.SeriesID		= trim(row[21])
-
-        self.Errs		= DocErrs(self.ID)
-        self.Files		= DocFiles(self.ID)
-        self.Ratings		= DocRatings(self.ID)
-        self.Ratings.Parent	= self
-        self.Versions		= DocVersions(self.ID)
+        self.ID                     = row[0]
+        self.Title                  = trim(row[1])
+        self.ClassID                = row[2]
+        self.FormatID               = row[3]
+        self.DTD                    = trim(row[4])
+        self.DTDVersion             = trim(row[5])
+        self.Version                = trim(row[6])
+        self.LastUpdate             = date2str(row[7])
+        self.URL                    = trim(row[8])
+        self.ISBN                   = trim(row[9])
+        self.PubStatusCode          = trim(row[10])
+        self.ReviewStatusCode       = trim(row[11])
+        self.TickleDate             = date2str(row[12])
+        self.PubDate                = date2str(row[13])
+        self.HomeURL                = trim(row[14])
+        self.TechReviewStatusCode	= trim(row[15])
+        self.Maintained             = tf2bool(row[16])
+        self.License                = trim(row[17])
+        self.Abstract               = trim(row[18])
+        self.Rating                 = safeint(row[19])
+        self.Lang                   = trim(row[20])
+        self.SeriesID               = trim(row[21])
+        self.Errs                   = DocErrs(self.ID)
+        self.Files                  = DocFiles(self.ID)
+        self.Ratings                = DocRatings(self.ID)
+        self.Ratings.Parent         = self
+        self.Versions               = DocVersions(self.ID)
 
     def Save(self):
-        self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+        self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
         db.runsql(self.sql)
         db.commit()
 
@@ -466,7 +465,7 @@ class DocVersion:
         self.DocID	= DocID
         self.ID		= row[0]
         self.Version	= trim(row[1])
-        self.PubDate	= trim(row[2])
+        self.PubDate	= date2str(row[2])
         self.Initials	= trim(row[3])
         self.Notes	= trim(row[4])
 
@@ -474,6 +473,39 @@ class DocVersion:
         self.sql = "UPDATE document_rev SET version=" + wsq(self.Version) + ", pub_date=" + wsq(self.PubDate) + ", initials=" + wsq(self.Initials) + ", notes=" + wsq(self.Notes) + "WHERE doc_id=" + str(self.DocID) + " AND rev_id" + wsq(self.ID)
         assert db.runsql(self.sql) == 1
         db.commit()
+
+
+# Licenses
+
+class Licenses(LampadasCollection):
+    """
+    A collection object of all Licenses.
+    """
+    
+    def __init__(self):
+        self.data = {}
+        self.sql = "SELECT license, free from license"
+        self.cursor = db.select(self.sql)
+        while (1):
+            row = self.cursor.fetchone()
+            if row == None: break
+            newLicense = License()
+            newLicense.Load(row)
+            self.data[newLicense.License] = newLicense
+
+class License:
+    """
+    A documentation or software license.
+    """
+
+    def __init__(self, License=None, Free=None):
+        if License==None: return
+        self.License = License
+        self.Free = Free
+
+    def Load(self, row):
+        self.License    = trim(row[0])
+        self.Free       = tf2bool(row[1])
 
 
 # DTDs

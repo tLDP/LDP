@@ -239,6 +239,15 @@ class testDocVersions(unittest.TestCase):
         log(3, 'testing DocVersions done')
 
 
+class testLicenses(unittest.TestCase):
+
+    def testLicenses(self):
+        log(3, 'testing Licenses')
+        assert lampadas.Licenses.count() > 0
+        assert not lampadas.Licenses['GPL'] == None
+        log(3, 'testing Licenses done')
+
+
 class testDTDs(unittest.TestCase):
 
     def testDTDs(self):
