@@ -47,4 +47,6 @@ xsl:
 
 dist:
 	today=`date "+%Y-%m-%d"`; \
-	tar -X exclude -vzcf lampadas-${today}.tar.gz .
+	pwd=`pwd`; \
+	dir=`basename $$pwd`; \
+	tar -C .. -X exclude -vzcf lampadas-$$today.tar.gz $$dir
