@@ -1,0 +1,112 @@
+#! /bin/sh
+
+# A script to save certain meta-data off to the boot partition. Useful for
+# restoration.
+
+# Time-stamp: <2001-11-19 09:18:52 ccurley save.metadata>
+
+# Copyright 2000 through the last date of modification, Charles Curley.
+
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+# You can also contact the Free Software Foundation at http://www.fsf.org/
+
+# For more information contact the author, Charles Curley, at
+# http://w3.trib.com/~ccurley/.
+
+export zip="/mnt/zip";
+#  export save="/mnt/save";
+
+echo "saving hard drive info"
+make.fdisk /dev/hda
+
+# back up RPM metadata
+
+echo "Verifying RPMs."
+
+rpm -Va > /etc/rpmVa.txt
+
+echo "Finished verifying RPMs; now mounting the ZIP drive."
+
+umount $zip
+
+modprobe ppa
+
+mount /dev/sda1
+
+# clean it all out
+rm -r $zip/*
+
+echo "Building the ZIP drive backups."
+
+mkdir $zip/lost+found
+
+fdisk -l /dev/hda > $zip/fdisk.hda
+
+ls -al /mnt > $zip/ls.mnt.txt
+ls -al / > $zip/ls.root.txt
+
+mkdir $zip/etc;
+cp -p /etc/* $zip/etc
+
+cd /
+
+# These appear to be required so we can restore later on.
+
+tar cf - boot     | gzip -c > $zip/boot.tar.gz
+tar cf - root     | gzip -c > $zip/root.tar.gz
+tar cf - etc      | gzip -c > $zip/etc.tar.gz
+tar cf - lib      | gzip -c > $zip/lib.tar.gz
+
+tar cf - usr/sbin | gzip -c > $zip/usr.sbin.tar.gz
+tar cf - usr/bin  | gzip -c > $zip/usr.bin.tar.gz
+tar cf - sbin     | gzip -c > $zip/sbin.tar.gz
+tar cf - bin      | gzip -c > $zip/bin.tar.gz
+tar cf - dev      | gzip -c > $zip/dev.tar.gz
+
+# Now optional saves.
+
+# arkeia specific:
+tar cf - usr/knox | gzip -c > $zip/arkeia.tar.gz
+
+# save these so we can use ssh for restore. *crack* for RH 7.0 login
+# authentication.
+tar cf - usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto*\
+    | gzip -c > $zip/usr.lib.tar.gz
+
+
+# save the scripts we used to create the zip disk and the ones we will
+# use to restore it.
+mkdir $zip/root.bin
+cp -p /root/bin/* $zip/root.bin
+rm $zip/root.bin/*~ $zip/root.bin/#*#
+
+echo "Test our results."
+find $zip -iname "*.gz" | xargs gzip -t
+
+# Not a normal part of the process: we duplicate the ZIP disk onto an
+# NFS mount elsewhere.
+
+#  echo "Backing the ZIP drive to the NFS mount."
+
+#  umount $save
+#  mount $save
+
+#  rm -r $save/zip
+#  mkdir $save/zip
+#  cp -pr $zip $save
+
+df -m
+eject $zip

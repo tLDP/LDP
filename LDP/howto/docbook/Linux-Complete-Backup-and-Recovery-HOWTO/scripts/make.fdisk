@@ -1,0 +1,419 @@
+#! /usr/bin/perl
+
+# A perl script to create a script and input file for fdisk to
+# re-create the partitions on the hard disk, and format the Linux and
+# Linux swap partitions. The first parameter is the fully qualified
+# path of the device of the hard disk, e.g. /dev/hda. The two
+# resulting files are the script make.dev.x and the data file dev.x
+# (where x is the hard drive described, e.g. hda, sdc). make.dev.x is
+# run at restore time to rebuild hard drive x, prior to running
+# restore.metadata. dev.x is the input file for fdisk.
+
+# Time-stamp: <2001-12-13 15:41:24 ccurley make.fdisk>
+
+# Copyright 2001 through the last date of modification Charles Curley
+# except for the subroutine cut2fmt.
+
+# cut2fmt Copyright (c) 1998 Tom Christiansen, Nathan Torkington and
+# O'Reilly & Associates, Inc.  Permission is granted to use this code
+# freely EXCEPT for book publication.  You may use this code for book
+# publication only with the explicit permission of O'Reilly &
+# Associates, Inc.
+
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+# In addition, as a special exception, Tom Christiansen, Nathan
+# Torkington and O'Reilly & Associates, Inc.  give permission to use
+# the code of this program with the subroutine cut2fmt (or with
+# modified versions of the subroutine cut2fmt that use the same
+# license as the subroutine cut2fmt), and distribute linked
+# combinations including the two.  You must obey the GNU General
+# Public License in all respects for all of the code used other than
+# the subroutine cut2fmt.  If you modify this file, you may extend
+# this exception to your version of the file, but you are not
+# obligated to do so.  If you do not wish to do so, delete this
+# exception statement and the subroutine cut2fmt from your version.
+
+# You can also contact the Free Software Foundation at http://www.fsf.org/
+
+# Changes:
+
+# 2001 11 25: Changed the way mke2fs gets its bad block
+# list. badblocks does not guess at the block size, so you have to get
+# it (from dumpe2fs) and feed it to badblocks. It is simpler to just
+# have mke2fs call badblocks, but you do loose the ability to have a
+# writing test easily. -- C^2
+
+# 2001 11 25: Changed the regex that extracts partition labels from
+# the mount command. This change does not affect the results at all,
+# it just makes it possible to use Emacs' perl mode to indent
+# correctly. I just escaped the left bracket in the regex. -- C^2
+
+# Discussion:
+
+# fdisk will spit out a file of the form below if you run it as "fdisk
+# -l".
+
+# root@tester ~/bin $ fdisk -l /dev/hda
+
+# Disk /dev/hda: 64 heads, 63 sectors, 1023 cylinders
+# Units = cylinders of 4032 * 512 bytes
+
+#    Device Boot    Start       End    Blocks   Id  System
+# /dev/hda1             1         9     18112+  83  Linux
+# /dev/hda2            10      1023   2044224    5  Extended
+# /dev/hda5            10       368    723712+  83  Linux
+# /dev/hda6           369       727    723712+  83  Linux
+# /dev/hda7           728       858    264064+  83  Linux
+# /dev/hda8           859       989    264064+  83  Linux
+# /dev/hda9           990      1022     66496+  82  Linux swap
+
+# What fdisk does not do is provide output suitable for later
+# importing into fdisk, a la sfdisk. This script parses the output
+# from fdisk and creates an input file for fdisk. Use the input file
+# like so:
+
+# fdisk /dev/hdx < dev.hdx
+
+# For the bare metal restore package, this script also builds a script
+# that will execute the above command so you can run it from your zip
+# disk. Because the bare metal restore scripts all are in /root/bin,
+# the data file and script created by this script are also placed
+# there. The same script also creates appropriate Linux file systems,
+# either ext2fs, or Linux swap. There is limited support for FAT12 and
+# FAT16. There is no support right now (hint, hint) for FAT32. For
+# anything else, you're on your own.
+
+# Note for FAT32: According to the MS KB, there are more than one
+# reserved sectors for FAT32, usually 32, but it can vary. Do a search
+# in M$'s KB for "boot sector" or BPB for the gory details. For more
+# info than you really need on how boot sectors are used, see
+# http://support.microsoft.com/support/kb/articles/Q140/4/18.asp
+
+# You can also edit dev.x to change the sizes of partitions. Don't
+# forget, if you change the size of a FAT partition across the 32MB
+# boundary, you need to change the type as well! Run "fdisk /dev/hda"
+# or some such, then the l command to see the available partition
+# types. Then go ahead and edit dev.x appropriately. Also, when moving
+# partition boundarys with hand edits, make sure you move both logical
+# and extended partition boundaries appropriately.
+
+# Bad block checking right now is a quick read of the partition. A
+# writing check is also possible but more difficult. You have to run
+# badblocks as a separate command, and pass the bad block list to
+# mke2fs in a file (in /tmp, which is a ram disk). You also have to
+# know how large the blocks are, which you learn by running
+# dumpe2fs. It gets messy and I haven't done it yet. You probably
+# don't need it for a new hard drive, but if you have had a hard drive
+# crash on you and you are reusing it (while you are waiting for its
+# replacement to come in, I presume), then I highly recommend it. Let
+# me know how you do it.
+
+# For more information contact the author, Charles Curley, at
+# http://w3.trib.com/~ccurley/.
+
+
+# cut2fmt figures out the format string for the unpack function we use
+# to slice and dice the output from fdisk. From Christiansen and
+# Torkington, Perl Cookbook 5.
+
+sub cut2fmt {
+    my (@positions) = @_;
+    my $template    = '';
+    my $lastpos     = 1;
+
+    foreach $place (@positions) {
+	$template .= "A" . ($place - $lastpos) . " ";
+	$lastpos = $place;
+    }
+
+    $template .= "A*";
+    return $template;
+}
+
+# Provide a default device.
+
+if ( $ARGV[0] == "" ) {
+    $device="/dev/hda";
+} else {
+    $device=$ARGV[0];
+}
+
+# print "Device is $device.\n";
+
+# prepare format string.
+$fmt = cut2fmt (11, 19, 24, 34, 45, 49);
+# print "Format string is $fmt.\n\n";
+
+# define fields in the array @_.
+$dev = 0;
+$bootable = 1;
+$firstcyl = 2;
+$lastcyl = 3;
+$parttype = 5;
+$partstring = 6;
+
+$target = "\/target";
+
+$outputfilename = $device;
+$outputfilename =~ s/\//./g;
+$outputfilename = substr ($outputfilename, 1, 100);
+
+$outputfilepath = "\/root\/bin\/";
+
+
+# Make a hash of the labels.
+$mpid = open (MOUNT, "mount -l |") or die "Couldn't fork: $!\n";
+while (<MOUNT>) {
+    if ($_ =~ /^$device/i) {	# is this a line with a partition in it?
+#     	print $_;		# print it just for grins
+	split;
+	if ($_[6] ne "") {	# only process if there actually is a label
+	    $_[6] =~ s/[\[\]]//g; # strike [ and ].
+	    $labels{$_[0]} = $_[6];
+#	    print "The label of file device $_[0] is $labels{$_[0]}.\n";
+	}
+
+
+	# We only mount if it's ext2fs and read and write.
+
+	if ($_[4] eq "ext2" and $_[5] eq "(rw)" ) {
+            $mountpoints{$_[2]} = $_[0];
+#           print "$_[2] is the mountpoint for $mountpoints{$_[2]}.\n";
+	}
+    }
+}
+close (MOUNT);
+
+
+$fpid = open (FDISK, "fdisk -l $device |") or die "Couldn't fork: $!\n";
+
+open (OUTPUT, "> $outputfilepath${outputfilename}")
+    or die "Couldn't open output file $outputfilepath${outputfilename}.\n";
+
+while (<FDISK>) {
+    if ($_ =~ /^$device/i) {	# is this a line with a partition in it?
+#   	print $_;		# print it just for grins
+	chop;			# kill trailing \r
+	@_ = unpack ($fmt, $_);
+
+	# now strip white spaces from cylinder numbers
+	@_[$firstcyl] =~ s/[ \t]+//;
+	@_[$lastcyl] =~ s/[ \t]+//;
+	@_[$parttype] =~ s/[ \t]+//;
+
+	$partnumber = substr(@_[$dev], 8, 10); # get partition number for this line
+	# just for grins
+#  	print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$partstring]\n";
+
+	# Here we start creating the input to recreate the partition
+	# this line represents.
+
+	print OUTPUT "n\n";
+	if ($partnumber < 5) {
+	    # primary Linux partition
+	    if (@_[$parttype] == 83) {
+		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+
+		if ($labels{@_[$dev]}) { # do we have a label?
+                    # no bad block check
+#  		    $format .= "mke2fs @_[$dev] -L $labels{@_[$dev]}\n";
+		    $format .= "echo\necho formatting and checking @_[$dev]\n";
+		    $format .= "mke2fs -c -L $labels{@_[$dev]} @_[$dev]\n\n";
+		} else {
+#  		    $format .= "mke2fs @_[$dev]\n";	# no bad block check
+		    $format .= "echo\necho formatting and checking @_[$dev]\n";
+		    $format .= "mke2fs -c @_[$dev]\n\n";
+		}
+
+		# extended partition
+	    } elsif (@_[$parttype] == 5) {
+		print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+
+		# primary Linux swap partition
+	    } elsif (@_[$parttype] == 82) {
+		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n82\n";
+		$format .= "mkswap -c @_[$dev]\n\n";
+
+		# primary mess-dos partition. We don't handle FAT32,
+		# which requires a command line switch for mkdosfs.
+	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6 ) {
+		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
+		print (" bs=512 count=1\n");
+		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+#		$format .= "mkdosfs @_[$dev]\n";	# no bad block check
+		$format .= "echo\necho formatting and checking @_[$dev]\n";
+		$format .= "mkdosfs -c @_[$dev]\n";
+		$format .= "# restore FAT boot sector.\n";
+		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+
+	    } else {
+		# anything else partition
+		print OUTPUT "p\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+	    }
+
+	} else {
+	    # logical Linux partition
+	    if (@_[$parttype] == 83) {
+		print OUTPUT "l\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+
+		if ($labels{@_[$dev]}) { # do we have a label?
+		    # no bad block check
+#  		    $format .= "mke2fs @_[$dev] -L $labels{@_[$dev]}\n";
+		    $format .= "echo\necho formatting and checking @_[$dev]\n";
+		    $format .= "mke2fs -c -L $labels{@_[$dev]} @_[$dev]\n\n";
+		} else {
+#  		    $format .= "mke2fs @_[$dev]\n";	# no bad block check
+		    $format .= "echo\necho formatting and checking @_[$dev]\n";
+		    $format .= "mke2fs -c @_[$dev]\n\n";
+		}
+
+		# logical Linux swap partition
+	    } elsif (@_[$parttype] == 82 ) {
+		print OUTPUT "l\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n82\n";
+		$format .= "mkswap -c @_[$dev]\n\n";
+
+		# primary mess-dos partition. We don't handle FAT32,
+		# which requires a command line switch for mkdosfs.
+	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6 ) {
+		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
+		print (" bs=512 count=1\n");
+		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+#		$format .= "mkdosfs @_[$dev]\n";	# no bad block check
+		$format .= "echo\necho formatting and checking @_[$dev]\n";
+		$format .= "mkdosfs -c @_[$dev]\n";
+		$format .= "# restore FAT boot sector.\n";
+		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+
+	    } else {
+		# anything else partition
+		print OUTPUT "l\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+	    }
+
+	}
+
+	# handle bootable partitions
+	if (@_[$bootable] =~ /\*/) {
+	    print OUTPUT "a\n$partnumber\n";
+	}
+    }
+}
+
+print OUTPUT "v\nw\n";
+
+close (OUTPUT);
+close (FDISK);
+
+
+open (OUTPUT, "> ${outputfilepath}make.$outputfilename")
+    or die "Couldn't open output file ${outputfilepath}make.$outputfilename.\n";
+
+print OUTPUT <<FINIS;
+#! /bin/sh
+
+# A script to restore the partition data of a hard drive and format
+# the partitions. Created at bare metal backup time by the Perl script
+# make.fdisk.
+
+# Copyright 2001 through the last date of modification Charles Curley.
+
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+# You can also contact the Free Software Foundation at http://www.fsf.org/
+
+# For more information contact the author, Charles Curley, at
+# http://w3.trib.com/~ccurley/.
+
+FINIS
+
+# Clean the old partition table out.
+print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
+
+print OUTPUT "fdisk $device \< $outputfilename\n\nsync\n\n";
+print OUTPUT $format;
+
+# Now build the mount points on the root and other partitions.
+
+# We have a hash of mount points and devices in %mountpoints. However,
+# we have to process them such that directories are built on the
+# appropriate target partition. E.g. where /usr/local is on its own
+# partition, we have to mount /usr before we build /usr/local. We can
+# ensure this by sorting them. Shorter mount point paths will be built
+# first. We can't sort a hash directly, so we use an array.
+
+# We build commands to create the appropriate mount points and then
+# mount the partitions to the mount points. This is in preparation for
+# untarring the contents of the ZIP disk, done in restore.metadata.
+
+foreach $point ( sort keys %mountpoints) {
+    print OUTPUT "\n# $point is the mountpoint for $mountpoints{$point}.\n";
+    print OUTPUT "mkdir $target$point\n";
+    print OUTPUT "mount $mountpoints{$point} $target$point\n";
+}
+
+
+close (OUTPUT);
+
+# These scripts are dangerous & should only be visible to root.
+
+chmod 0700, "${outputfilepath}make.$outputfilename";
+chmod 0600, "${outputfilepath}$outputfilename";
