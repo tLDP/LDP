@@ -2204,7 +2204,14 @@ class TabFileMetadata(Table):
 
     def method(self, uri):
         log(3, 'Creating file_metadata table')
-        sourcefile = sourcefiles[uri.filename]
+        if uri.filename > '':
+            sourcefile = sourcefiles[uri.filename]
+        elif uri.id > 0:
+            doc = lampadas.docs[uri.id]
+            docfile = doc.find_top_file()
+            if docfile==None:
+                return ''
+            sourcefile = sourcefiles[docfile.filename]
         box = WOStringIO('<table class="box"><tr><th colspan="2">%s |strmetadata|</th></tr>\n'
                          '<tr><td class="label">|strformat|:</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strdtd|:</td><td>%s %s</td></tr>\n'
