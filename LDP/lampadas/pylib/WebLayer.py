@@ -272,6 +272,13 @@ class Page:
             db.runsql(sql)
             db.commit()
 
+    def untranslated_lang_keys(self):
+        keys = []
+        for key in languages.supported_keys():
+            if key not in self.title.keys():
+                keys = keys + [key]
+        return keys
+                
 
 # Strings
 
