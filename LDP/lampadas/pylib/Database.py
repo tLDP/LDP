@@ -22,10 +22,6 @@
 Lampadas Database Module
 
 This module generates a Database object for accessing a back-end RDBMS
-
-FIXME: why did the factory function get removed??? There is no need
-to get Database to delegate to XXDatabase, just get the real instance
-from the factory! --nico
 """
 
 # Modules ##################################################################
@@ -43,36 +39,6 @@ class Database:
     The database contains all users and documents
     """
 
-    connected = 0
-
-    def __del__(self):
-        """
-        FIXME: unneeded. done automatically. Remove this method.
-        """
-        if self.connected:
-            self.database.connection.close()
-        
-    def connect(self, db_type, db_name):
-        """
-        Connect to the database specified in Config.
-
-        FIXME: turn this back into the factory function it once was.
-        """
-
-        if db_name=='':
-            raise UnknownDBException('Database name not specified')
-        elif db_type=='pgsql':
-            self.database = PgSQLDatabase(db_name)
-            self.connected = 1
-        else:
-            raise UnknownDBException('Unknown database type %s' % db_type)
-
-    def connection(self):
-        return self.database.connection
-
-    def cursor(self):
-        return self.database.connection.cursor()
-
     # FIXME : the python DB-API 2.0 states that you can transfer the burden
     # of quoting values to the cursor as in
     #
@@ -85,14 +51,14 @@ class Database:
     def select(self, sql):
         if config.log_sql:
             log(3, sql)
-        cursor = self.database.connection.cursor()
+        cursor = self.connection.cursor()
         cursor.execute(sql)
         return cursor
 
     def read_value(self, sql):
         if config.log_sql:
             log(3, sql)
-        cursor = self.database.connection.cursor()
+        cursor = self.connection.cursor()
         cursor.execute(sql)
         row = cursor.fetchone()
         if row==None:
@@ -104,13 +70,13 @@ class Database:
     def runsql(self, sql):
         if config.log_sql:
             log(3, sql)
-        cursor = self.database.connection.cursor()
+        cursor = self.connection.cursor()
         cursor.execute(sql)
         return cursor.rowcount
 
     def commit(self):
         log(3, 'Committing database')
-        self.database.connection.commit()
+        self.connection.commit()
 
 
 # Specific derived DB classes ##################################################
@@ -126,9 +92,24 @@ class MySQLDatabase(Database):
 
     def __init__(self,db_name):
         from pyMySQL import MySQL
-        self.cnx = MySQL.connection(db_name=db_name)
+        self.connection = MySQL.connection(db_name=db_name)
+
+def get_database(db_type, db_name):
+    """
+    Connect to the database specified in Config.
+
+    See Factory Method design pattern.
+    """
+    if db_name=='':
+        raise UnknownDBException('Database name not specified')
+    elif db_type=='pgsql':
+        db = PgSQLDatabase(db_name)
+    elif db_type=='mysql':
+        db = MySQLDatabase(db_name)
+    else:
+        raise UnknownDBException('Unknown database type %s' % db_type)
+    return db
 
 log(2, '               **********Initializing DataLayer**********')
-db = Database()
-db.connect(config.db_type, config.db_name)
+db = get_database(config.db_type, config.db_name)
 
