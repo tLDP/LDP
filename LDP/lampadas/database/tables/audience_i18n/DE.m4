@@ -1,9 +1,8 @@
-insert(N, Novice,
-[Users who have little or no experience in the subject area.])
-insert(B, Beginner,
-[Users who have some experience in the subject area, but not much.])
-insert(I, Intermediate,
-[Users who have a god amount of experience in the subject area.])
-insert(A, Advanced,
-[Users who are very knowledgeable in the subject area.])
-
+insert(N, Frischling,
+[Benutzer die wenig bis gar keine Erfahrung mit dem Thema haben.])
+insert(B, Anfänger,
+[Benutzer die etwas Erfahrung mit dem Thema haben.])
+insert(I, Fortgeschrittener,
+[Benutzer die ausreichend Erfahrung mit dem Thema haben.])
+insert(A, Profi,
+[Benutzer die sich mit der Materie sehr gut auskennen.]) 

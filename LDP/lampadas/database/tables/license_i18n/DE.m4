@@ -1,37 +1,40 @@
 insert(gpl, [GPL], [GNU General Public License],
-    [The most popular Free Software license.
-    It is usually used for software, but was commonly used for
-    documentation before the GFDL came along.])
+    [Die populärste Lizenz für freie Software.
+    Wird eigentlich nur für Software verwendet, war aber vor
+    dem Erscheinen der GFDL auch für Dokumentation üblich.])
 
 insert(gfdl, [GFDL], [GNU Free Documentation License],
-    [Probably the most popular Free Documentation license.])
+    [Wahrscheinlich die populärste Lizenz für freie Documentation.])
 
 insert(opl, [OPL], [Open Publication License],
-    [This license is usually considered Free if you do not exercise options
-    A or B, which place restrictions on its use.
-    It is often confused with the Open Content License from the same source.])
+    [Diese Lizenz gilt als frei, wenn auf Ausübung der einschränkenden
+    Optionen A und B verzichtet wird. Wird oft mit der Open Content
+    License verwechselt, die aus der selben Quelle stammt.])
 
 insert(ldpl, LDPL, [LDP License],
-    [The license formerly used by the Linux Documentation Project.
-    Many LDP documents are still covered under this license.])
+    [Diese Lizenz wurde früher vom Linux-Dokumentations-Projekt bevorzugt.
+    Viele LDP-Dokumente fallen unter diese Bestimmungen.])
     
-insert(free, [Free], [Other Free License],
-    [Another Free Documentation or Free Software License.
-    A Free license permits modification, distribution, and publication
-    both commercial and noncommercial.])
+insert(free, [Frei], [Andere freie Lizenz],
+    [Eine weitere freie Lizenz für Dokumentation oder Software.
+    Eine Lizenz gilt als frei, wenn sie Änderungen, beliebige Kopien
+    und sowohl unentgeltliche als auch gewinnorientierte
+    Veröffentlichungen erlaubt.])
     
-insert(nonfree, [Nonfree], [Other Nonfree License],
-    [Another Nonfree license.
-    A Nonfree license does not permit modification, distribution, or publication
-    both commercial and noncommercial.])
+insert(nonfree, [Unfrei], [Andere unfreie Lizenz],
+    [Eine weitere unfreie Lizenz.
+    Eine Lizenz gilt als unfrei, wenn sie Änderungen, beliebige
+    Kopien oder unentgeltliche oder gewinnorientierte Veröffentlichungen
+    einschränkt.])
 
 insert(pd, [PD], [Public Domain],
-    [Documents in the Public Domain are technically unlicensed.
-    The author has waived all legal rights in perpetuity,
-    and it can be used freely in any manner whatsoever,
-    commercial or noncommercial, even proprietary.])
-
-insert(none, [None], [No License],
-    [A document with no license is covered under normal laws of copyright.
-    It cannot be distributed, published or modified and is considered proprietary.])
+    [Dokumente in Öffentlichem Besitz sind technisch gesehen
+    unlizensiert. Der Autor hat auf alle Rechte endgültig verzichtet.
+    Sein Werk kann uneingeschränkt verwendet werden, unentgeltlich,
+    kommerziell und sogar proprietär.])
     
+insert(none, [Keine], [Keine Lizenz],
+    [Ein Dokument ohne Lizenz fällt unter die üblichen Bestimmungen
+    des Urheberrechts bzw. Copyright. Es kann nicht verändert,
+    veröffentlicht oder sonstwie verteilt werden und wird als
+    proprietär betrachtet.])
