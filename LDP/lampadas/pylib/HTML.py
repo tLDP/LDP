@@ -20,11 +20,33 @@ import DataLayer
 L = DataLayer.Lampadas()
 
 
+# HTMLFactory
+
+class HTMLFactory:
+
+	def __init__(self):
+		self.Page = PageFactory()
+		self.Combo = ComboFactory()
+
+
+# PageFactory
+
+class PageFactory:
+
+	def __call__(self, key, lang):
+		page = ''
+		page = page + L.Strings['header'].I18n[lang].Text
+		page = page + L.Strings[key].I18n[lang].Text
+		page = page + L.Strings['footer'].I18n[lang].Text
+		return page
+
+
+
 # ComboFactory
 
 class ComboFactory:
 
-	def ClassesCombo(self, value, lang):
+	def Classes(self, value, lang):
 
 		self.combo = "<select name='class'>\n"
 		keys = L.Classes.keys()
@@ -40,7 +62,7 @@ class ComboFactory:
 		self.combo = self.combo + "</select>"
 		return self.combo
 
-	def DocsCombo(self, value, lang=None):
+	def Docs(self, value, lang=None):
 		self.combo = "<select name='doc'>\n"
 		keys = L.Docs.keys()
 		for key in keys:
@@ -57,10 +79,12 @@ class ComboFactory:
 		return self.combo
 
 
-Factory = ComboFactory()
-#output = Factory.ClassesCombo(2,'EN')
+Factory = HTMLFactory()
+
+#output = Factory.Combo.Classes(2,'EN')
 #print output
-output = Factory.DocsCombo(2)
+
+output = Factory.Page('pg_about', 'EN')
 print output
 
 #if __name__ == "__main__":

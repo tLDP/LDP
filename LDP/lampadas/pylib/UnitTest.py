@@ -48,7 +48,7 @@ class testClasses(unittest.TestCase):
 
 	def testClasses(self):
 		assert not L.Classes == None
-		assert L.Classes.Count > 0
+		assert L.Classes.Count() > 0
 
 
 class testConfig(unittest.TestCase):
@@ -62,7 +62,7 @@ class testDocs(unittest.TestCase):
 
 	def testDocs(self):
 		assert not L.Docs == None
-		assert L.Docs.Count > 0
+		assert L.Docs.Count() > 0
 
 		DB.Exec("DELETE FROM document where title='testharness'")
 		DB.Commit()
@@ -109,11 +109,19 @@ class testDocs(unittest.TestCase):
 		self.Doc2 = L.Docs[1]
 		assert self.Doc2.Title == self.Title
 
+class testStrings(unittest.TestCase):
+
+	def testStrings(self):
+		assert not L.Strings == None
+		assert L.Strings.Count() > 0
+		assert not L.Strings['header'] == None
+		assert L.Strings['test'].I18n['EN'].Text == 'Test Text'
+		
 class testUsers(unittest.TestCase):
 
 	def testUsers(self):
 		assert not L.Users == None
-		assert L.Users.Count > 0
+		assert L.Users.Count() > 0
 
 		DB.Exec("DELETE FROM username where email='foo@example.com'")
 		DB.Commit()
@@ -139,7 +147,7 @@ class testUserDocs(unittest.TestCase):
 	def setUp(self):
 		self.User = L.User(1)
 		assert len(self.User.Docs) > 0
-		assert self.User.Docs.Count > 0
+		assert self.User.Docs.Count() > 0
 
 	def testUserDocs(self):
 		assert not self.User.Docs == None

@@ -115,7 +115,9 @@ class Lampadas:
 		self.Config.Load()
 		self.Docs	= Docs()
 		self.Docs.Load()
+		self.Strings	= Strings()
 		self.Users	= Users()
+
 
 	def User(self, UserID):
 		return User(UserID)
@@ -165,12 +167,6 @@ class Class:
 		self.I18n = {}
 		if ClassID==None: return
 		self.ID = ClassID
-		self.sql = "SELECT class_id FROM class WHERE class_id=" + str(ClassID)
-		self.cursor = DB.Select(self.sql)
-		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
-			self.Load(row)
 
 	def Load(self, row):
 		self.ID = row[0]
@@ -283,6 +279,69 @@ class Doc:
 		DB.Commit()
 
 
+# String
+
+class Strings(LampadasCollection):
+	"""
+	A collection object of all localized strings.
+	"""
+	
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT string_code FROM string"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newString = String()
+			newString.Load(row)
+			self.data[newString.Code] = newString
+
+#	def Add(self, Title, StringID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
+#		self.id = DB.Value('SELECT max(doc_id) from document') + 1
+#		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(StringID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
+#		assert DB.Exec(self.sql) == 1
+#		DB.Commit()
+#		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
+#		newDoc = Doc(self.NewID)
+#		self[self.NewID] = newDoc
+#		return self.NewID
+	
+#	def Del(self, id):
+#		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
+#		assert DB.Exec(self.sql) == 1
+#		DB.Commit()
+#		del self[id]
+
+
+
+class String:
+
+	def __init__(self, StringCode=None):
+		self.I18n = {}
+		if StringCode==None: return
+		self.Code = StringCode
+
+	def Load(self, row):
+		self.Code = trim(row[0])
+		self.sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newStringI18n = StringI18n()
+			newStringI18n.Load(self.row)
+			self.I18n[newStringI18n.Lang] = newStringI18n
+
+# StringI18n
+
+class StringI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Text		= trim(row[1])
+
+	
 # Users
 
 class Users:
@@ -391,6 +450,9 @@ class UserDoc:
 		DB.Exec(self.sql)
 		DB.Commit()
 
+
+
+	
 
 # Utility routines
 
