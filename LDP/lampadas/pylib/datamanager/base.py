@@ -19,7 +19,7 @@ class UnknownFieldType(Exception) :
 
 class TableField:
     """
-    FIXME: what is this?
+    This class defines a field in a database table, i.e., a column.
     """
 
     def __init__(self, table):
@@ -35,7 +35,7 @@ class TableField:
         elif self.data_type=='updated':        return None
         elif self.data_type=='creator':        return None
         elif self.data_type=='updater':        return None
-        else :
+        else:
             raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
         
     def field_to_attr(self, value):
@@ -49,7 +49,7 @@ class TableField:
         elif self.data_type=='updated':        return time2str(value)
         elif self.data_type=='creator':        return trim(value)
         elif self.data_type=='updater':        return trim(value)
-        else :
+        else:
             raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
 
     def attr_to_field(self, value):
@@ -73,7 +73,7 @@ class TableField:
 
 class DataTable(LampadasCollection):
     """
-    FIXME: what is this?
+    This class defines a table in the RDBMS back end.
     """
 
     def __init__(self, table_name, field_dictionary):
@@ -130,7 +130,11 @@ class DataTable(LampadasCollection):
 
 class DataManager(DataTable):
     """
-    FIXME: what is this?
+    This class provides high level access to a database table.
+
+    It loads and saves data from the table into an object or a DataSet, which is
+    a dictionary of objects. You can request a single object (row), or you can
+    specify a set of criteria, which are then translated into a WHERE clause.
     """
 
     def __init__(self, table_name, field_dictionary):
