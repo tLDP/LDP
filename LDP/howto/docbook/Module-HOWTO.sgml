@@ -17,9 +17,18 @@
 
 </author>
 
-<pubdate>3 July 2003</pubdate>
-
 <revhistory>
+   <revision>
+        <revnumber>v1.04</revnumber>
+        <date>2003-09-03</date>
+        <authorinitials>bjh</authorinitials>
+        <revremark>
+            Fix typo: AHA154x should be AHA152x
+            Add information on what module names the kernel module loader
+            calls for.  Add information on what an LKM does when you first
+            load it.
+            </revremark>
+        </revision>
    <revision>
         <revnumber>v1.03</revnumber>
         <date>2003-07-03</date>
@@ -633,6 +642,62 @@ didn't find it is that the file isn't an LKM.  See
 </sect2> 
 
 
+<sect2>
+<title>What Happens When An LKM Loads</title>
+<para>
+So you've successfully loaded an LKM, and verified that via
+<filename>/proc/modules</filename>.  But how do you know it's working?
+That's up to the LKM, and varies according to what kind of LKM it is,
+but here are some of the more common actions of an LKM upon being loaded.
+</para>
+<para>
+The first thing a device driver LKM does after loading (which is what
+the module would do at boot time if it were bound into the base
+kernel) is usually to search the system for a device it knows how to
+drive.  Just how it does this search varies from one driver to the 
+next, and can usually be controlled by module parameters.  But in any
+case, if the driver doesn't find any device it is capable of driving,
+it causes the load to fail.  Otherwise, the driver registers itself
+as the driver for a particular major number and you can start using
+the device it found via a device special file that specifies that
+major number.  It may also register itself as the handler for the
+interrupt level that the device uses.  It may also send setup commands
+to the device, so you may see lights blink or something like that.
+</para>
+<para>
+You can see that a device driver has registered itself in the file
+<filename>/proc/devices</filename>.  You can see that the device
+driver is handling the device's interrupts in
+<filename>/proc/interrupts</filename>.
+</para>
+<para>
+A nice device driver issues kernel messages telling what devices it
+found and is prepared to drive.  (Kernel messages in most systems end
+up on the console and in the file
+<filename>/var/log/messages</filename>).  Some drivers, however, are
+silent.  A nice device driver also gives you (in kernel messages) some
+details of its search when it fails to find a device, but many just
+fail the load without explanation, and what you get is a list of
+guesses from <command>insmod</command> as to what the problem might
+have been.
+</para>
+<para>
+A network device (interface) driver works similarly, except that the
+LKM registers a device name of its choosing
+(e.g. <literal>eth0</literal>) rather than a major number.  You can
+see the currently registered network device names in
+<filename>/proc/net/dev</filename>
+</para>
+<para>
+A filesystem driver, upon loading, registers itself as the driver for
+a filesystem type of a certain name.  For example, the
+<literal>msdos</literal> driver registers itself as the driver for the
+filesystem type named <literal>msdos</literal>.  (LKM authors typically
+name the LKM the same as the filesystem type it will drive).
+</para>
+</sect2>
+
+
 <sect2 id="intelligent">
 <title>
 Intelligent Loading Of LKMs - Modprobe
@@ -667,11 +732,23 @@ have to have <filename>fat.o</filename> loaded before you can load
 The other major thing <command>modprobe</command> does for you is to
 find the object module containing the LKM given just the name of the
 LKM.  For example, <command>modprobe msdos</command> might load
-<filename>/lib/2.4.2-2/fs/msdos.o</filename>.  Check out the man pages
+<filename>/lib/2.4.2-2/fs/msdos.o</filename>.  
+In fact, <command>modprobe</command>'s argument may be a totally
+symbolic name that you have associated with some actual module.  For
+example, <command>modprobe eth0</command> loads the appropriate network
+device driver to create and drive your <literal>eth0</literal> device,
+assuming you set that up properly in <filename>modules.conf</filename>.
+Check out the man pages
 for <command>modprobe</command> and the configuration file
 <filename>modules.conf</filename> (usually
 <filename>/etc/modules.conf</filename>) for details on the search
 rules <command>modprobe</command> uses.
+</para>
+<para><command>modprobe</command> is especially important because it
+is by default the program that the kernel module loader uses to load
+an LKM on demand.  So if you use automatic module loading, you will 
+need to set up <filename>modules.conf</filename> properly or
+things will not work.  See <xref linkend=autoload>.
 </para>
 <para>
 <command>depmod</command> scans your LKM object files (typically all
@@ -713,9 +790,9 @@ Automatic Loading
 </title>
 <para>
 You can cause an LKM to be loaded automatically when the kernel first
-needs it.  You do this with either a <literal>kerneld</literal> daemon
-or with the more recent invention, the kernel module loader, which is
-part of Linux. 
+needs it.  You do this with either the kernel module loader, which is
+part of the Linux kernel, or the
+older version of it, a <literal>kerneld</literal> daemon.
 </para>
 <para>
 As an example, let's say you run a program that executes an open
@@ -731,31 +808,21 @@ and uses it to cause the LKM to be loaded.  The kernel then proceeds
 with the open.
 </para>
 <para>
-Both <literal>kerneld</literal> and the kernel module loader use
+Automatic kernel module loading is really not worth the complexity in most
+modern systems.  It may make sense in a very small memory system, because
+you can keep parts of the kernel in memory only when you need them.  But
+the amount of memory these modules uses is so cheap today that you will
+normally be a lot better off just loading all the modules you might need
+via startup scripts and leaving them loaded.
+</para>
+<para>
+Red Hat Linux uses automatic module loading via the kernel module loader.
+</para>
+<para>
+Both the kernel module loader and <literal>kerneld</literal> use
 <command>modprobe</command>, ergo <command>insmod</command>, to insert
-LKMs.
+LKMs.  See <xref linkend=intelligent>.
 </para>
-
-<sect4>
-<title>
-Kerneld
-</title>
-<para>
-<literal>kerneld</literal> is explained at length in the Kerneld
-mini-HOWTO, available from the <ulink URL="http://www.linuxdoc.org">Linux
-Documentation Project</ulink>.
-</para>
-<para>
-<literal>kerneld</literal> is a user process, which runs the
-<application>kerneld</application> program from the
-<application>modutils</application> package.  <literal>kerneld</literal>
-sets up an IPC message channel with the kernel.  When the kernel needs
-an LKM, it sends a message on that channel to <literal>kerneld</literal>
-and <literal>kerneld</literal> runs <command>modprobe</command>
-to load the LKM, then sends a message back to the kernel to say that it
-is done.
-</para>
-</sect4>
 
 <sect4>
 <title>
@@ -786,7 +853,7 @@ $ echo &quot;sbin/mymodprobe&quot; &gt;/proc/sys/kernel/modprobe
 </screen>
 </para>
 <para>
-The kernel module loader passes the following arguments to
+The kernel module loader passes the following arguments to the
 <command>modprobe</command>: Argument Zero is the full file name of
 <command>modprobe</command>.  The regular arguments are
 <literal>-s</literal>, <literal>-k</literal>, and the name of the LKM
@@ -796,6 +863,62 @@ cryptic way to say <literal>--autoclean</literal>.  I.e. messages
 from <command>modprobe</command> will go to syslog and the loaded
 LKM will have the &quot;autoclean&quot; flag set.
 </para>
+<para>
+The most important part of the <command>modprobe</command> invocation
+is, of course, the module name.  Note that the &quot;module name&quot;
+argument to <command>modprobe</command> is not necessarily a real
+module name.  It is often a symbolic name representing the role that
+module plays and you use an <literal>alias</literal> statement in
+<filename>modules.conf</filename> to tell what LKM gets loaded.  
+For example, if your Ethernet adapter requires the <literal>3c59x</literal>
+LKM, you would have probably need the line
+<screen>
+alias eth0 3c59x
+</screen>
+in <filename>/etc/modules.conf</filename>.
+Here
+is what the kernel module loader uses for a module name in some of the
+more popular cases (there are about 20 cases in which the kernel calls
+on the kernel module loader to load a module):
+<itemizedlist>
+<listitem><para>When you try access a device and no device driver has
+registered to serve that device's major number, the kernel requests
+the module by the name
+<filename>block-major-</filename><varname>N</varname> or
+<filename>char-major-</filename><varname>N</varname> where
+<varname>N</varname> is the major number in decimal without leading
+zeroes.  </para></listitem>
+
+<listitem><para>When you try to access a network interface (maybe by running
+<command>ifconfig</command> against it) and no network device driver
+has registered to serve an interface by that name, the kernel requests
+the module named the same as the interface name
+(e.g. <literal>eth0</literal>).  This applies to drivers for non-physical
+interfaces such as <literal>ppp0</literal> as well.
+</para></listitem>
+
+<listitem><para>When you try to access a socket in a protocol family which no
+protocol driver has registered to drive, the kernel requests the
+module named <filename>net-pf-</filename><varname>N</varname>, where
+<varname>N</varname> is the protocol family number (in decimal without
+leading zeroes).
+</para></listitem>
+
+<listitem><para>When you try to NFS export a directory or otherwise
+access the NFS server via the NFS system call, the kernel requests the
+module named <filename>nfsd</filename>.  </para></listitem>
+
+<listitem><para>The ATA device driver (named <filename>ide</filename>)
+loads the relevant drivers for classes of ATA devices by the names:
+<filename>ide-disk</filename>, <filename>ide-cd</filename>,
+<filename>ide-floppy</filename>, <filename>ide-tape</filename>, and
+<filename>ide-scsi</filename>.  </para></listitem>
+
+</itemizedlist>
+
+</para>
+
+
 <para>
 The kernel module loader runs <command>modprobe</command> with the
 following environment variables (only): HOME=<literal>/</literal>;
@@ -822,6 +945,28 @@ hardcoded.  You may prefer to use <literal>kerneld</literal> instead,
 or not bother with automatic loading of LKMs at all.
 </para>
 </sect4>
+
+<sect4>
+<title>
+Kerneld
+</title>
+<para>
+<literal>kerneld</literal> is explained at length in the Kerneld
+mini-HOWTO, available from the <ulink URL="http://www.linuxdoc.org">Linux
+Documentation Project</ulink>.
+</para>
+<para>
+<literal>kerneld</literal> is a user process, which runs the
+<application>kerneld</application> program from the
+<application>modutils</application> package.  <literal>kerneld</literal>
+sets up an IPC message channel with the kernel.  When the kernel needs
+an LKM, it sends a message on that channel to <literal>kerneld</literal>
+and <literal>kerneld</literal> runs <command>modprobe</command>
+to load the LKM, then sends a message back to the kernel to say that it
+is done.
+</para>
+</sect4>
+
 </sect3>
 
 <sect3>
@@ -2743,12 +2888,12 @@ This driver atoprobes the card and requires installed BIOS.
 
 <sect3>
 <title>
-aha154x: SCSI low-level driver for Adaptec AHA152X/2825
+aha152x: SCSI low-level driver for Adaptec AHA152X/2825
 </title>
 <para>
 Example:
 <screen>
-modprobe aha154x
+modprobe aha152x
 </screen>
 </para>
 <para>
