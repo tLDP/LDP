@@ -227,6 +227,23 @@ class Type:
         self.name = LampadasCollection()
         self.description = LampadasCollection()
 
+    def load(self):
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
+        sql = 'SELECT type_code, sort_order FROM type WHERE type_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
+        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang = row[1]
+            self.name[lang] = trim(row[2])
+            self.description[lang] = trim(row[3])
+
     def load_row(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]

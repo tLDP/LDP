@@ -1751,7 +1751,7 @@ class Tables(LampadasCollection):
         box = WOStringIO('<p class="hide"><div class="map">\n' \
                          '<h1 id="p1">|strproject|</h1>\n')
         id = 1
-        for key in languages.supported_keys(uri.lang):
+        for key in languages.supported_keys():
             id = id + 1
             language = languages[key]
             box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
