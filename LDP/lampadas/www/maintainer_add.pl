@@ -17,9 +17,10 @@ if ( $username eq "guest") {
   print end_html;
   exit;
 }
-$conn=Pg::connectdb("dbname=$dbmain");
 
 $dbmain = "ldp";
+$conn=Pg::connectdb("dbname=$dbmain");
+
 @row;
 
 # Read parameters

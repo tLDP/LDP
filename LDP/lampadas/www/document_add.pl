@@ -4,6 +4,8 @@ use CGI qw(:standard);
 use Pg;
 
 $query = new CGI;
+
+$dbmain = "ldp";
 $conn=Pg::connectdb("dbname=$dbmain");
 
 $username = $query->remote_user();
@@ -19,7 +21,6 @@ if ( $username eq "guest") {
   exit;
 }
 
-$dbmain = "ldp";
 @row;
 
 $caller     = param('caller');
@@ -36,8 +37,8 @@ $dtd        = param('dtd');
 
 $pub_status = param('pub_status');
 
-$sql = "INSERT INTO document(doc_id,   title,   filename, class,    format,    dtd,    dtd_version, version, last_update, url,  isbn, pub_status,   author_status,    review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained)";
-$sql =         "$sql VALUES ($doc_id, '$title', NULL,     '$class', '$format', '$dtd', NULL,        NULL,    NULL,        NULL, NULL, $pub_status', '$author_status', 'U',           NULL,        NULL,     NULL,    'U',                't')";
+$sql = "INSERT INTO document(doc_id,   title,   filename, class,    format,    dtd,    dtd_version, version, last_update, url,  isbn, pub_status,    author_status,    review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained)";
+$sql =         "$sql VALUES ($doc_id, '$title', NULL,     '$class', '$format', '$dtd', NULL,        NULL,    NULL,        NULL, NULL, '$pub_status', '$author_status', 'U',           NULL,        NULL,     NULL,    'U',                't')";
 
 #print header;
 #print start_html;
