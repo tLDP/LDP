@@ -62,6 +62,16 @@ class User :
 	"""
 
 	def __init__(self) :
+		"""
+		username (StringType) = login name
+		user_id (IntType) = unique user_id
+		firstname (StringType)
+		middlename (StringType)
+		surname (StringType)
+		name (StringType) = formatted complete name
+		email (StringType)
+		is_admin (Boolean)
+		"""
 		self.username = None
 		self.user_id = None
 		self.firstname = None
@@ -84,6 +94,31 @@ class Document :
 	"""
 
 	def __init__(self) :
+		"""
+		doc_id (IntType) = unique doc_id
+		title (StringType)
+		filename (StringType)
+		type (Type class instance)
+		audience (Audience class instance)
+		format (Format class instance)
+		dtd (DTD class instance)
+		version (StringType)
+		last_update (DateTime)
+		url (StringType)
+		isbn (StringType)
+		pub_status (PubStatus class instance)
+		author_status (NoneType) [U]
+		review_status (ReviewStatus class instance)
+		tickle_date (DateTime)
+		pub_date (DateTime)
+		ref_url (StringType)
+		tech_review_status (ReviewStatus class instance)
+		maintained (Boolean)
+		license (License class instance)
+		abstract (StringType)
+		wiki (Wiki class instance)
+		rating (IntType)
+		"""
 		self.doc_id = None
 		self.title = None
 		self.filename = None
@@ -117,6 +152,11 @@ class Audience :
 	"""
 
 	def __init__(self) :
+		"""
+		name is a String
+		level is an Int
+		description is a String
+		"""
 		self.name = None
 		self.level = None
 		self.description = None
@@ -129,6 +169,10 @@ class DTD :
 	"""
 
 	def __init__(self) :
+		"""
+		name String
+		version String
+		"""
 		self.name = None
 		self.version = None
 
@@ -140,6 +184,10 @@ class Format :
 	"""
 
 	def __init__(self) :
+		"""
+		name String
+		long_name String
+		"""
 		self.name = None
 		self.long_name = None
 
@@ -151,6 +199,10 @@ class License :
 	"""
 
 	def __init__(self) :
+		"""
+		name String
+		free Boolean
+		"""
 		self.name = None
 		self.free = None
 
@@ -162,6 +214,11 @@ class Note :
 	"""
 
 	def __init__(self) :
+		"""
+		date_entered DateTime
+		text String
+		user User class instance
+		"""
 		self.date_entered = None
 		self.text = None
 		self.user = None
@@ -174,6 +231,11 @@ class PubStatus :
 	"""
 
 	def __init__(self) :
+		"""
+		code String
+		name String
+		description String
+		"""
 		self.code = None
 		self.name = None
 		self.description = None
@@ -186,6 +248,10 @@ class ReviewStatus :
 	"""
 
 	def __init__(self) :
+		"""
+		code String
+		name String
+		"""
 		self.code = None
 		self.name = None
 
@@ -197,6 +263,13 @@ class Revision :
 	"""
 
 	def __init__(self) :
+		"""
+		rev_id Int
+		version Float
+		pub_date DateTime
+		initials String
+		notes String
+		"""
 		self.rev_id = None
 		self.version = None
 		self.pub_date = None
@@ -211,6 +284,9 @@ class Role :
 	"""
 
 	def __init__(self) :
+		"""
+		name String
+		"""
 		self.name = None
 
 # Topic ####################################################################
@@ -221,6 +297,13 @@ class Topic :
 	"""
 
 	def __init__(self) :
+		"""
+		num Int
+		name String
+		description String
+		subtopic_numInt
+		subtopic_name String
+		"""
 		self.num = None
 		self.name = None
 		self.description = None
@@ -235,6 +318,10 @@ class Type :
 	"""
 
 	def __init__(self) :
+		"""
+		name String
+		long_name String
+		"""
 		self.name = None
 		self.long_name = None
 
@@ -246,16 +333,18 @@ class Wiki :
 	"""
 
 	def __init__(self) :
+		"""
+		revision Int
+		date_entered DateTime
+		wiki String
+		notes String
+		user USer class instance
+		"""
 		self.revision = None
 		self.date_entered = None
 		self.wiki = None
 		self.notes = None
 		self.user = None
-
-
-# main
-if __name__ == '__main__' :
-	print "This should start the unit tests"
 
 
 # Database ###############################################################
@@ -671,6 +760,8 @@ class Database :
 		pass
 
 
+# Specific derived DB classes ##################################################
+
 try:
 	import pyPgSQL
 	
@@ -695,3 +786,9 @@ try:
 except ImportError:
 	# MySQL back-end is not available
 	pass
+
+
+# main
+if __name__ == '__main__' :
+	print "This should start the unit tests"
+
