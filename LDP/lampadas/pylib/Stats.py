@@ -82,7 +82,7 @@ class Stats(LampadasCollection):
                         self['pub_time'].inc(pub_time)
                         
                         if doc.pub_time > '':
-                            self['doc_format'].inc(doc.format_code)
+                            self['doc_format'].inc(metadata.format_code)
                             self['doc_dtd'].inc(metadata.dtd_code)
                             self['doc_lang'].inc(doc.lang)
 

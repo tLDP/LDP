@@ -34,9 +34,6 @@ import htmlentitydefs
 
 VERSION = '0.9.1-cvs'
 
-# FIXME: Put these in sensible ranges (100's, 200's, 300's) to make
-# them intrinsically interesting and useful values.
-
 # Document errors
 ERR_NO_SOURCE_FILE      = 001
 ERR_NO_PRIMARY_FILE     = 002
@@ -58,6 +55,18 @@ ERR_MAKE_EXIT_STATUS    = 302  # A command returned a nonzero exit (failure) cod
 ERR_MAKE_STDERR         = 303  # Something was written to STDERR
 ERR_MAKE_ZERO_LENGTH    = 304  # Command produced a zero-length file.
 
+# This will be tested in the order listed
+FILEMODE_MASKS = ((0400, 'r'),
+                  (0200, 'w'),
+                  (0100, 'x'),
+                  (0040, 'r'),
+                  (0020, 'w'),
+                  (0010, 'x'),
+                  (0004, 'r'),
+                  (0002, 'w'),
+                  (0001, 'x'))
+
+
 def random_string(length):
     """
     Returns a string of random alphanumeric characters.
@@ -76,7 +85,7 @@ def wsq(astring):
     """
     WSQ stands for "Wrap in Single Quotes". It accepts a string,
     and delimits it with single quotes. It escapes embedded single quotes,
-    returns a string suitable for inclusion in a SQL statement.
+    returning a string suitable for inclusion in a SQL statement.
 
     This routine also replaces null strings ('') with the word "NULL",
     so empty strings are not stored into the database.
@@ -213,17 +222,6 @@ def trim(astring):
     else:
         temp = str(astring)
     return temp.strip()
-
-# This will be tested in the order listed
-FILEMODE_MASKS = ((0400, 'r'),
-                  (0200, 'w'),
-                  (0100, 'x'),
-                  (0040, 'r'),
-                  (0020, 'w'),
-                  (0010, 'x'),
-                  (0004, 'r'),
-                  (0002, 'w'),
-                  (0001, 'x'))
 
 def octal2permission(filemode):
     symbolic = ''

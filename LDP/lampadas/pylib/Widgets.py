@@ -40,7 +40,13 @@ class Widgets:
     standard formats for some text items.
     """
 
-    def format_code(self, value, css_class, lang):
+    def format_code(self, value, lang, css_class='', view=0):
+        if view==1:
+            format = lampadas.formats[value]
+            if format:
+                return format.name[lang]
+            return ''
+
         combo = WOStringIO('<select name="format_code"%s>\n' % css_class)
         combo.write('<option></option>')
         keys = lampadas.formats.sort_by_lang('name', lang)
@@ -56,7 +62,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def dtd_code(self, value, css_class, lang):
+    def dtd_code(self, value, lang, css_class='', view=0):
+        if view==1:
+            dtd = lampadas.dtds[value]
+            if dtd:
+                return dtd.name[lang]
+            return ''
+
         combo = WOStringIO('<select name="dtd_code"%s>\n' % css_class)
         if value=='':
             combo.write('<option selected></option>')
@@ -75,24 +87,36 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def dtd_version(self, value, css_class, lang):
+    def dtd_version(self, value, lang, css_class='', view=0):
         input = WOStringIO('<input type="text" name="dtd_version" size="6" value="%s"%s>' % (value, css_class))
         return input.get_value()
 
-    def title(self, value, css_class):
+    def title(self, value, css_class='', view=0):
         return WOStringIO('<input type=text name="title" style="width:100%%" value="%s"%s>' % (escape_tokens(value), css_class)).get_value()
 
-    def abstract(self, value, css_class):
+    def abstract(self, value, css_class='', view=0):
         return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, value)
 
-    def version(self, value, css_class):
+    def version(self, value, css_class='', view=0):
         return '<input type=text name="version" size="10" maxlength="10" value="%s"%s>' % (value, css_class)
 
-    def pub_date(self, value, css_class):
+    def pub_date(self, value, css_class='', view=0):
         return '<input type=text name="pub_date" size="11" maxlength="10" value="%s"%s>' % (value, css_class)
 
-    def isbn(self, value, css_class):
+    def isbn(self, value, css_class='', view=0):
         return '<input type=text name="isbn" size="13" maxlength="13" value="%s"%s>' % (value, css_class)
+
+    def initials(self, value, view=0):
+        return '<input type=text name="initials" size="6" maxlength="5" value="%s">' % (value)
+
+    def lint_time(self, value, view=0):
+        return '<input type=text name="lint_time" size="11" maxlength="10" value="%s">' % (value)
+
+    def mirror_time(self, value, view=0):
+        return '<input type=text name="mirror_time" size="11" maxlength="10" value="%s">' % (value)
+
+    def pub_time(self, value, view0):
+        return '<input type=text name="pub_time" size="11" maxlength="10" value="%s">' % (value)
 
     def title_compressed(self, value):
         """
@@ -125,7 +149,12 @@ class Widgets:
     def copyright_holder(self, value):
         return '<input type=text name="copyright_holder" size="20" value="' + value + '">'
 
-    def tf(self, name, value):
+    def tf(self, name, value, view=0):
+        if view==1:
+            if value==1:
+                return '|stryes|'
+            return '|strno|'
+
         if value==1:
             v1, v2 = ' selected', ''
         elif value==0:
@@ -139,6 +168,9 @@ class Widgets:
                           '</select>\n'
                           % (name, v1, v2)).get_value()
 
+    def notes(self, value):
+        return '<textarea name="notes" wrap="soft" style="width:100%; height:100%;">' + value + '</textarea>'
+    
     def doctable_layout(self, value='compact'):
         if value=='compact':
             compact, expanded = ' selected', ''
@@ -188,7 +220,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def type_code(self, value, lang):
+    def type_code(self, value, lang, view=0):
+        if view==1:
+            type = lampadas.types[value]
+            if type:
+                return type.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='type_code'>\n" \
                            "<option></option>\n")
         keys = lampadas.types.sort_by('sort_order')
@@ -218,7 +256,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def sk_seriesid(self, value):
+    def sk_seriesid(self, value, view=0):
+        if view==1:
+            doc = lampadas.docs[value]
+            if doc:
+                return doc.title
+            return ''
+
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
         keys = lampadas.docs.sort_by_metadata('title')
@@ -237,7 +281,13 @@ class Widgets:
         combo.write("</select>\n")
         return combo.get_value()
 
-    def replaced_by_id(self, value):
+    def replaced_by_id(self, value, view=0):
+        if view==1:
+            doc = lampadas.docs[value]
+            if doc:
+                return doc.title
+            return ''
+
         combo = WOStringIO('<select name="replaced_by_id">\n')
         combo.write('<option></option>\n')
         keys = lampadas.docs.sort_by('title')
@@ -290,7 +340,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def lang(self, value, lang, allow_null=1, allow_unsupported=1):
+    def lang(self, value, lang, allow_null=1, allow_unsupported=1, view=0):
+        if view==1:
+            language = languages[value]
+            if language:
+                return language.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='lang'>\n")
         if allow_null==1:
             if value=='':
@@ -311,7 +367,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def license_code(self, value, lang):
+    def license_code(self, value, lang, view=0):
+        if view==1:
+            license = lampadas.licenses[value]
+            if license:
+                return license.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='license_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.licenses.sort_by('sort_order')
@@ -326,6 +388,9 @@ class Widgets:
             combo.write("</option>\n")
         combo.write("</select>")
         return combo.get_value()
+
+    def license_version(self, value):
+        return '<input type="text" name="license_version" value="' + value + '" size="10">'
 
     def page_code(self, value, lang):
         combo = WOStringIO("<select name='page_code'>\n")
@@ -342,7 +407,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def pub_status_code(self, value, lang):
+    def pub_status_code(self, value, lang, view=0):
+        if view==1:
+            pubstatus = lampadas.pub_statuses[value]
+            if pubstatus:
+                return pubstatus.name[lang]
+            return ''
+            
         combo = WOStringIO("<select name='pub_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.pub_statuses.sort_by('sort_order')
@@ -358,7 +429,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
         
-    def review_status_code(self, value, lang):
+    def review_status_code(self, value, lang, view=0):
+        if view==1:
+            status = lampadas.review_statuses[value]
+            if status:
+                return status.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='review_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
@@ -374,7 +451,13 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def tech_review_status_code(self, value, lang):
+    def tech_review_status_code(self, value, lang, view=0):
+        if view==1:
+            status = lampadas.review_statuses[value]
+            if status:
+                return status.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='tech_review_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
@@ -460,5 +543,14 @@ class Widgets:
         text = text.replace('/ /', '//')
         text = text.replace('/ /', '//')
         return text
-        
+
+    def delete(self):
+        return '<input type="checkbox" name="delete">'
+
+    def add(self):
+        return '<input type="submit" name="save" value="|stradd|">'
+
+    def save(self):
+        return '<input type="submit" name="save" value="|strsave|">'
+
 widgets = Widgets()
