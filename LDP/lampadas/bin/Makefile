@@ -9,6 +9,7 @@ build:
 
 install: all
 	$(INSTALLBIN) lampadasweb  $(binprefix)/lampadasweb
+	$(INSTALLBIN) lampadasdb  $(binprefix)/lampadasdb
 
 clean:
 
