@@ -1,0 +1,47 @@
+#!/bin/bash
+# generate-script.sh
+# Based on an idea by Albert Reiner.
+
+OUTFILE=generated.sh         # Name of the file to generate.
+
+
+# -----------------------------------------------------------
+# 'Here document containing the body of the generated script.
+(
+cat <<'EOF'
+#!/bin/bash
+
+echo "This is a generated shell script."
+#  Note that since we are inside a subshell,
+#+ we can't access variables in the "outside" script.
+#  Just to prove it . . .
+echo "Generated file will be named: $OUTFILE"  # Won't work.
+
+a=7
+b=3
+
+let "c = $a * $b"
+echo "c = $c"
+
+exit 0
+EOF
+) > $OUTFILE
+# -----------------------------------------------------------
+
+#  Quoting the 'limit string' prevents variable expansion
+#+ within the body of the above 'here document.'
+#  This permits outputting literal strings in the output file.
+
+if [ -f "$OUTFILE" ]
+then
+  chmod 755 $OUTFILE
+  # Make the generated file executable.
+else
+  echo "Problem in creating file: \"$OUTFILE\""
+fi
+
+#  This method can also be used for generating
+#+ C programs, Perl programs, Python programs, Makefiles,
+#+ and the like.
+
+exit 0
