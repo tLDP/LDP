@@ -91,6 +91,7 @@ sub proc_txt {
 	my ($noparatag,
 	    $noparadepth);
 	$noparadepth = 0;
+	$noparaline = 0;
 
 	# read in the text file
 	#
@@ -142,6 +143,7 @@ sub proc_txt {
 			$noparatag = $line;
 			$noparatag =~ s/^.*?<//;
 			$noparatag =~ s/>.*?$//;
+			$noparaline = $linenumber;
 		}
 
 		# count noparadepth
@@ -155,6 +157,9 @@ sub proc_txt {
 			while ($temp =~ /<\/$noparatag>/) {
 				$temp =~ s/<?\/$noparatag>//;
 				$noparadepth --;
+				if ($noparadepth == 0) {
+					$noparaline == 0;
+				}
 			}
 
 			# recover original line -- no whitespace modifiers
@@ -306,11 +311,16 @@ sub proc_txt {
 			$line =~ s/\]/<\/filename>/;
 		}
 
-		$buf .= $line;
+		$buf .= "$line ";
 	}
 	# close nesting
 	#
 	&close1;
+
+	if ($noparadepth > 0) {
+		print "txt2db: ERROR tag $noparatag on line $noparaline unterminated.\n";
+		exit(1);
+	}
 }
 
 sub close1 {
