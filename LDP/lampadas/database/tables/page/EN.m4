@@ -64,3 +64,4 @@ insert(type,                 default,    [],         0,  [type],             t, 
 insert(sourcefile,           default,    [],         0,  [filename],         t,  t,  f,  f)
 insert(file_report,          default,    [],         0,  [report filename],  t,  t,  f,  f)
 insert(collection,           default,    [],         0,  [collection],       f,  f,  f,  f)
+insert(omf,                  blank,      [],         0,  [doc],              f,  f,  f,  f)

@@ -475,3 +475,8 @@ insert([addstring], [Add String], [],
 [
     |tabstring|
 ], 1)
+
+insert([omf], [OpenSource Meta-data Framework XML Output], [OMF XML Output],
+[|tabomf|], 0)
+
+

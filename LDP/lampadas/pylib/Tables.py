@@ -31,6 +31,7 @@ from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
 from Stats import stats, Stat
+from OMF import OMF
 import os
 import fpformat
 import string
@@ -2177,7 +2178,26 @@ class TabString(Table):
                              '</form>\n' % (string.code))
             
         return box.get_value()
-        
+
+class TabOMF(Table):
+    
+    def __init__(self):
+        Table.__init__(self, 'omf', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating omf table')
+        box = WOStringIO('<xml version="1.0" encoding="UTF-8"?>\n')
+        box.write('<omf>\n')
+        if uri.id > 0:
+            box.write(OMF(uri.id).omf)
+        else:
+            for doc_id in lampadas.docs.sort_by('id'):
+                doc = lampadas.docs[doc_id]
+                if doc.pub_status_code=='N':
+                    box.write(OMF(doc_id).omf + '\n')
+        box.write('</omf>\n')
+        return box.get_value()
+
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -2192,6 +2212,7 @@ class TableMap(LampadasCollection):
         self['tabpage'] = TabPage()
         self['tabstrings'] = TabStrings()
         self['tabstring'] = TabString()
+        self['tabomf'] = TabOMF()
 
 tables = Tables()
 tablemap = TableMap()
