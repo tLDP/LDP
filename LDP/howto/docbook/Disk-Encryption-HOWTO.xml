@@ -1,0 +1,1849 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<article>
+  <articleinfo>
+    <title>Disk Encryption HOWTO</title>
+
+    <author>
+      <firstname>David</firstname>
+
+      <surname>Braun</surname>
+
+      <affiliation>
+        <address><email>cruhmoz602 [at] sneakemale [period] com (rewrite &#39;male&#39; as &#39;mail&#39;)</email></address>
+      </affiliation>
+    </author>
+
+    <pubdate>2003-08-28</pubdate>
+
+    <revhistory>
+      <revision>
+        <revnumber>1.0</revnumber>
+
+        <date>2003-08-28</date>
+
+        <authorinitials>tmm</authorinitials>
+
+        <revremark>Initial release, reviewed by LDP</revremark>
+      </revision>
+
+      <revision>
+        <revnumber>0.92</revnumber>
+
+        <date>2003-08-27</date>
+
+        <authorinitials>DB</authorinitials>
+
+        <revremark>first submission to LDP</revremark>
+      </revision>
+    </revhistory>
+
+    <abstract>
+      <para>A method is described for encrypting a hard disk, either in whole
+      or in part, with the encryption key stored on an external medium for
+      increased security.</para>
+    </abstract>
+
+    <copyright>
+      <year>2003</year>
+
+      <holder>David Braun</holder>
+    </copyright>
+  </articleinfo>
+
+  <sect1 id="intro">
+    <title>Introduction</title>
+
+    <para>I&#39;ve got <ulink url="http://www.handhelds.org/z/wiki/HPTc1000">a
+    shiny new tablet computer running Linux</ulink> and I don&#39;t want to
+    worry about someone reading the personal information it contains, in case
+    it gets lost or stolen. My log on password may stop someone from booting
+    it, but it won&#39;t prevent an attacker from removing the hard disk and
+    reading its data. I need stronger protection.</para>
+
+    <para>Fortunately, it&#39;s relatively easy to use encryption so the hard
+    disk data would be unreadable if it were to fall into the wrong hands.
+    Encryption&#39;s not only useful for portable computers like laptops&mdash;it
+    can be used to protect any computer with personal information. I protect
+    my computer&#39;s files with encryption for the same reason I lock my
+    filing cabinet at home. For further motivation, you may be interested in
+    reading Michael Crawford&#39;s <ulink
+    url="http://www.goingware.com/encryption/">Why You Should Use Encryption</ulink>.</para>
+
+    <para>I could encrypt only certain files, such as those in my home
+    directory. This would protect the files but then I&#39;d have to worry
+    about information leaking out of them to other, unencrypted places on the
+    disk. Instead I encrypt the whole disk so I don&#39;t have to manage this
+    problem.</para>
+
+    <para>There are many encryption algorithms to choose from. I chose <ulink
+    url="http://csrc.nist.gov/CryptoToolkit/aes/">AES</ulink> because it has
+    been approved by the US government&#39;s <ulink url="http://www.nist.gov/">National
+    Institute of Standards and Technology</ulink> and is well regarded by the
+    cryptography community. I want my use of it to be resistant to dictionary
+    attacks, so I use a long, randomly generated key. There&#39;s no way
+    I&#39;m going to memorize such a key so I keep it in a form I can carry
+    with me easily: on a USB flash drive on my keychain. I encrypt the key
+    with a passphrase so my data is protected in two ways: by a) what I have
+    (the USB flash drive) and b) what I know (the passphrase). I can even give
+    a friend access to my computer without giving away my passphrase&mdash;she uses
+    her own USB flash drive and her own passphrase.</para>
+
+    <para>The operating system keeps the data encrypted on the disk at all
+    times and decrypts it in RAM only as it&#39;s used. This way if the
+    computer loses power suddenly the data will remain protected. The
+    decryption key is loaded into RAM at boot time and kept there while the
+    computer is on, so I don&#39;t need to keep the USB flash drive plugged in
+    after starting the computer.</para>
+
+    <para>The procedure outlined in this HOWTO is written for version 2.4 of
+    the Linux kernel. It will become less complicated with the release of
+    Linux 2.6, which will have built-in support for encryption and do a better
+    job of managing partitions within loopback devices.</para>
+
+    <para>This document assumes the reader has a moderate level of experience
+    with Linux (you should be comfortable <ulink
+    url="http://www.tldp.org/HOWTO/Kernel-HOWTO/index.html">patching and
+    compiling kernels</ulink> as well as <ulink
+    url="http://www.tldp.org/HOWTO/Multi-Disk-HOWTO.html">partitioning,
+    mounting, and unmounting disks</ulink>).</para>
+
+    <sect2>
+      <title>Technical Summary</title>
+
+      <para>The encryption is implemented through a special kind of
+      <glossterm>loopback device</glossterm>. A loopback device doesn&#39;t
+      store any data itself; instead it takes all the data storage and
+      retrieval requests it receives and passes them along to a real storage
+      device, such as a disk or a file. As the data passes through, it can be
+      filtered, and in our case the filter used is encryption.</para>
+
+      <para>When the system is deployed, a removable medium (USB flash drive)
+      boots using GRUB, a kernel, and an initrd. Both the key and the kernel
+      are selected from the GRUB menu, allowing a single removable medium to
+      be used with multiple computers. The initrd contains just enough tools
+      to ask for a passphrase, set up an encrypted loopback device, and mount
+      it. After mounting, <literal>pivot_root</literal> is used to resume the
+      boot process from the encrypted device. Loopback device offsets are
+      used, instead of partitions, to access separate swap and root file
+      system spaces within the encrypted loopback device because the 2.4
+      kernel doesn&#39;t provide access to partitions within loopback devices.
+      The offset method does not generalize to multiple partitions
+      (unfortunately) because the maximum offset understood by
+      <literal>losetup</literal> is 2GB.</para>
+    </sect2>
+
+    <sect2 id="copyright">
+      <title>Copyright and License</title>
+
+      <para>Permission is granted to copy, distribute and/or modify this
+      document under the terms of the GNU Free Documentation License, Version
+      1.2 or any later version published by the Free Software Foundation; with
+      no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts. A
+      copy of the license is included in <xref linkend="gfdl" />.</para>
+
+      <para><trademark class="registered">Linux is a registered trademark of
+      Linus Torvalds.</trademark></para>
+    </sect2>
+
+    <sect2 id="disclaimer">
+      <title>Disclaimer</title>
+
+      <para>No liability for the contents of this document can be accepted.
+      Use the concepts, examples and information at your own risk. There may
+      be errors and inaccuracies that could be damaging to your system and you
+      may lose important data. Proceed with caution, and although this is
+      highly unlikely, the author does not take any responsibility.</para>
+
+      <para>All copyrights are held by their by their respective owners,
+      unless specifically noted otherwise. Use of a term in this document
+      should not be regarded as affecting the validity of any trademark or
+      service mark. Naming of particular products or brands should not be seen
+      as endorsements.</para>
+
+      <para>I know you hate reading directions and want to skip to the meaty
+      bit right away, but I advise you to read the whole document first before
+      touching anything. I know all the HOWTOs say that, but I really mean it
+      for this one. It&#39;s worth it; trust me. You may also want to run
+      through the procedure first on a test system before tackling a
+      production system.</para>
+    </sect2>
+
+    <sect2>
+      <title>Acknowledgments</title>
+
+      <para>Thanks to Linus Torvalds, Jari Ruusu, and all the developers who
+      contributed to their software, without which this HOWTO would have been
+      impossible.</para>
+
+      <para>Thanks to the <ulink url="http://www.nist.gov/">National Institute
+      of Standards and Technology</ulink> for carefully selecting a strong,
+      open encryption algorithm.</para>
+
+      <para>Thanks to Mark Garboden and others on the <ulink
+      url="http://mail.nl.linux.org/linux-crypto/">linux-crypto</ulink>
+      mailing list and <ulink
+      url="http://www.tldp.org/mailinfo.html#maillists">The Linux
+      Documentation Project mailing lists</ulink> who took the time to
+      critique my writing and offer suggestions.</para>
+    </sect2>
+
+    <sect2 id="feedback">
+      <title>Feedback</title>
+
+      <para>Feedback is solicited for this document. Please send additions,
+      comments, and criticisms to the author.</para>
+    </sect2>
+
+    <sect2>
+      <title>Approaches</title>
+
+      <para>There are three different approaches we can take to encrypt the
+      disk: encrypt the whole thing, a single partition, or a single file. I
+      strongly recommend the first approach for best security. The first two
+      approaches assume you&#39;ll be booting from removable media, such as a
+      USB flash drive or a business card size CD-ROM. If you don&#39;t want to
+      do this, you may modify the method to boot from the disk instead by
+      making a small, unencrypted boot partition. If you want to use a USB
+      flash drive to boot your computer, be sure your motherboard can do it
+      first. At the time of this writing many cannot.</para>
+
+      <para>To avoid having to enumerate all three approaches everywhere
+      I&#39;m going to refer to what you&#39;re protecting as the
+      <glossterm>asset</glossterm>. I will refer to the removable medium used
+      to store the key as the <glossterm>keychain</glossterm>. I call it the
+      keychain instead of the key because we can store lots of keys, each for
+      different computers, on the same medium.</para>
+
+      <warning>
+        <para>In the whole disk and partition approaches, we create one swap
+        space and one root file system. Some people want more than a single
+        encrypted partition for the root file system. Unfortunately, the
+        method detailed here relies on the offset parameter of
+        <literal>losetup</literal> to create &#34;subpartitions&#34; within
+        the asset. The offset parameter is limited to a maximum value of 2GB,
+        limiting the size of all but the last partition to 2GB. This works
+        nicely for swap, which is already limited to 2GB on the i386
+        architecture, but I&#39;m guessing it won&#39;t be practical for other
+        uses. Using it to create multiple partitions smaller than 2GB is left
+        as an exercise for the reader. If multiple encrypted partitions larger
+        than 2GB is important to you then I recommend you wait for the release
+        of Linux 2.6, which will make the use of the offset parameter
+        unnecessary.</para>
+      </warning>
+
+      <sect3>
+        <title>Whole Disk</title>
+
+        <para>A problem with keeping data secret with encryption is that the
+        data likes to move around. Imagine the encryption is like a fence
+        around your data. While the data&#39;s inside the fence, it&#39;s
+        safe. To be most useful, however, data likes to be transmitted on
+        networks, put on removable disks like CD-ROMs, and shared with
+        friends. Any time your data leaves the fenced area it&#39;s
+        unprotected. We can&#39;t put an encryption fence around all possible
+        locations where our data might play but we do want to make the fence
+        as large as practical. By putting the encryption fence around your
+        whole hard disk, you won&#39;t have to worry about data becoming
+        unprotected if it jumps to another part of the disk.</para>
+      </sect3>
+
+      <sect3>
+        <title id="Partition">Partition (for multiboot systems)</title>
+
+        <para>Encrypting the whole disk is fine if Linux is the only operating
+        system on it, but this won&#39;t work for people who have set up their
+        computer to boot multiple operating systems, e.g., <ulink
+        url="http://www.kernel.org">Linux</ulink>, <ulink
+        url="http://www.netbsd.org/">NetBSD</ulink>, and <ulink
+        url="http://developer.apple.com/darwin/">Darwin</ulink>. In this case
+        we can encrypt just the Linux partition and leave the others alone.
+        Since we&#39;re booting from a removable medium, we won&#39;t even
+        need to include the Linux partition in the multiboot menu with the
+        others. To see why this isn&#39;t as secure as encrypting the whole
+        disk, read <xref linkend="Attack_Tree" />.</para>
+      </sect3>
+
+      <sect3>
+        <title>File (for home directories)</title>
+
+        <para>You may want to encrypt only a file on a file system. Once
+        you&#39;ve encrypted it you can put into it whatever you want,
+        including other file systems. You might want to use this approach to
+        encrypt only your home directory, for example. This is the least
+        secure of the three approaches and not recommended. If you choose this
+        approach you will notice instructions below to skip whole sections.
+        This is because I&#39;m assuming you&#39;ve already booted an
+        operating system and have your swap issues handled, so those sections
+        don&#39;t apply to you. This HOWTO may be overkill for your needs and
+        you can probably get away with just reading the fine
+        <literal><ulink url="http://loop-aes.sourceforge.net/loop-AES.README">README</ulink></literal>
+        that comes with <ulink url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink>.
+        If you do, be sure to read <xref linkend="Threat_Model" /> before you
+        finish here.</para>
+      </sect3>
+    </sect2>
+
+    <sect2 id="Threat_Model">
+      <title>Threat Model</title>
+
+      <para>In order to protect our asset well, we must first understand what
+      we&#39;re protecting it against. The general idea is that you&#39;ve got
+      a laptop which is vulnerable to being stolen or lost, and have a USB
+      flash drive on your keychain that isn&#39;t, so this system is designed
+      to handle the case that your laptop is stolen. I&#39;m guessing your
+      keychain won&#39;t be as easily stolen because it&#39;s in your pocket,
+      and because an attacker won&#39;t know that it&#39;s important. If you
+      pull your USB flash drive out of your pocket and someone non-technical
+      exclaims, &#34;What&#39;s that?&#34;, tell them it&#39;s a <ulink
+      url="http://www.pez.com/">Pez dispenser</ulink>.</para>
+
+      <note>
+        <para>This system falls short when it comes to <glossterm>plausible
+        deniability</glossterm>, which means there&#39;s no way to hide the
+        fact that your personal data is encrypted. This is like locking your
+        jewels in a safe and keeping the safe in plain sight in the middle of
+        your living room. Only you can open the safe, but a man with a gun can
+        tell you to open the safe for him. So if you&#39;re worried about your
+        <ulink url="http://zdnet.com.com/2100-11-502433.html?legacy=zdnn">computer
+        being subpoenaed</ulink> and being told to hand over your laptop,
+        keychain, and passphrase, you&#39;d better look at other solutions
+        such as <ulink url="http://stegfs.sourceforge.net/">StegFS</ulink>.</para>
+      </note>
+
+      <table id="Attack_Tree">
+        <title>Attack Tree</title>
+
+        <tgroup cols="6">
+          <colspec colname="A1" />
+
+          <colspec colname="A2" />
+
+          <colspec colname="A3" />
+
+          <colspec colname="A4" />
+
+          <colspec align="center" />
+
+          <thead>
+            <row>
+              <entry align="center" nameend="A4" namest="A1">Attack</entry>
+
+              <entry>Reaction</entry>
+
+              <entry align="center">Notes</entry>
+            </row>
+          </thead>
+
+          <tbody>
+            <row valign="middle">
+              <entry morerows="3">attacker steals laptop</entry>
+
+              <entry nameend="A4" namest="A2">while it is on</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+
+              <entry>The asset is unprotected while the computer is running
+              because the encryption key is in RAM. If you think your laptop
+              is about to be stolen, turn off the power immediately and
+              quickly read the <ulink url="http://www.aikidofaq.com/">Aikido
+              HOWTO</ulink>.</entry>
+            </row>
+
+            <row valign="middle">
+              <entry morerows="2">while it is off</entry>
+
+              <entry nameend="A4" namest="A3">attacker doesn&#39;t steal
+              keychain</entry>
+
+              <entry><glossterm linkend="new_key">new key</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry morerows="1">attacker steals keychain</entry>
+
+              <entry>attacker knows your passphrase</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry>attacker doesn&#39;t know your passphrase</entry>
+
+              <entry><glossterm linkend="new_key">new key</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry morerows="2">attacker steals keychain but doesn&#39;t
+              have laptop</entry>
+
+              <entry nameend="A4" namest="A2">attacker knows passphrase</entry>
+
+              <entry><glossterm linkend="new_key">new key</glossterm></entry>
+
+              <entry>Your asset is at risk because the attacker can decrypt
+              it.</entry>
+            </row>
+
+            <row valign="middle">
+              <entry morerows="1">attacker doesn&#39;t know passphrase</entry>
+
+              <entry nameend="A4" namest="A3">you&#39;re feeling lazy or
+              you&#39;re convinced the keychain was lost, not stolen</entry>
+
+              <entry><glossterm linkend="new_passphrase">new passphrase</glossterm></entry>
+
+              <entry>You&#39;re probably OK without changing the asset key
+              because the attacker can&#39;t decrypt the asset without the
+              passphrase.</entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A3">you&#39;re feeling paranoid</entry>
+
+              <entry><glossterm linkend="new_key">new key</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A1">attacker convinces you to send
+              data over network</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A1">attacker convinces you to copy
+              data to removable medium</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A1">you encrypt only a partition and
+              a process writes data to a different partition</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A1">you encrypt only a file and a
+              process copies data from RAM to the unencrypted swap, or to a
+              file in /tmp, or elsewhere on the unencrypted disk</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+            </row>
+
+            <row valign="middle">
+              <entry nameend="A4" namest="A1">attacker demands you hand over
+              laptop, keychain, and passphrase while waving a rubber hose
+              menacingly</entry>
+
+              <entry><glossterm linkend="SOL">SOL</glossterm></entry>
+
+              <entry>There is no plausible deniability built into the system.</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+
+      <glosslist id="reactions" xreflabel="Corrective Reactions">
+        <glossentry id="new_passphrase">
+          <glossterm>new passphrase</glossterm>
+
+          <glossdef>
+            <para>Restore the keychain backup and choose a new passphrase.</para>
+          </glossdef>
+        </glossentry>
+
+        <glossentry id="new_key">
+          <glossterm>new key</glossterm>
+
+          <glossdef>
+            <para>Generate a new random key to re-encrypt the asset, choose a
+            new passphrase, and restore the asset backup.</para>
+          </glossdef>
+        </glossentry>
+
+        <glossentry id="SOL">
+          <glossterm><acronym>SOL</acronym></glossterm>
+
+          <glossdef>
+            <para>Sorry Over your Loss</para>
+          </glossdef>
+        </glossentry>
+      </glosslist>
+    </sect2>
+
+    <sect2>
+      <title>Caveats</title>
+
+      <para><itemizedlist><listitem><para>This method won&#39;t work (yet)
+      with <ulink url="http://swsusp.sourceforge.net/">Software Suspend for
+      Linux</ulink>.</para></listitem><listitem><para>Encrypting the disk will
+      undoubtedly slow it down. I don&#39;t know by how much. If anyone has
+      done some benchmarks, please send them to me.</para></listitem><listitem><para>There
+      is nothing in this method to support <glossterm>plausible deniability</glossterm>
+      (see <xref linkend="Threat_Model" />).</para></listitem><listitem><para>It
+      won&#39;t prevent information leaks via networks and removable disks.</para></listitem><listitem><para>Encrypting
+      backups is beyond the scope of this HOWTO.</para></listitem></itemizedlist></para>
+    </sect2>
+
+    <sect2>
+      <title>Requirements</title>
+
+      <itemizedlist>
+        <listitem>
+          <para>a computer with an easily accessible removable medium reader
+          (such as a USB port or a CD-ROM drive)</para>
+        </listitem>
+
+        <listitem>
+          <para>a motherboard which supports booting from removable media
+          (check carefully for USB, not all do)</para>
+        </listitem>
+
+        <listitem>
+          <para>removable medium (such as a <glossterm>USB flash drive</glossterm>)
+          to be used as the <glossterm>keychain</glossterm></para>
+        </listitem>
+
+        <listitem>
+          <para><ulink url="http://www.kernel.org/">Linux</ulink> 2.4</para>
+        </listitem>
+
+        <listitem>
+          <para><ulink url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink></para>
+        </listitem>
+      </itemizedlist>
+
+      <sect3>
+        <title>A Digression about USB Flash Drives</title>
+
+        <para>There are many choices on the market. When I bought mine, I
+        found one which fit the following requirements:</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>physically small (I carry it on my physical keychain)</para>
+          </listitem>
+
+          <listitem>
+            <para>supports USB 2.0 at full speed</para>
+          </listitem>
+
+          <listitem>
+            <para>has a write-protect switch, so I don&#39;t clobber my
+            encryption keys by accident</para>
+          </listitem>
+        </itemizedlist>
+
+        <para>You might be tempted to get one with a fingerprint reader. I
+        strongly encourage you not to. It might initially seem like a good
+        idea, because by adding the biometric, your security protection
+        expands to:</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>something you have (the USB flash drive)</para>
+          </listitem>
+
+          <listitem>
+            <para>something you know (the passphrase)</para>
+          </listitem>
+
+          <listitem>
+            <para>something you are (your fingerprint, or whatever)</para>
+          </listitem>
+        </itemizedlist>
+
+        <para>However, suppose something goes wrong. If you are now asking
+        yourself, &#34;What could go wrong?&#34;, then why are you reading
+        this HOWTO? If something goes wrong, you make a change (see <xref
+        linkend="reactions" />):</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>Change what you have by using a different USB flash drive.</para>
+          </listitem>
+
+          <listitem>
+            <para>Change what you know by learning a new passphrase.</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>You can&#39;t change what you are.</emphasis></para>
+          </listitem>
+        </itemizedlist>
+
+        <para>Stop and ponder that last line for a while.</para>
+      </sect3>
+    </sect2>
+
+    <sect2>
+      <title>Looking to the Future</title>
+
+      <para>The method described here is specific to the 2.4 kernel for two
+      reasons: it doesn&#39;t have loopback encryption support built in and
+      there&#39;s no way to mount partitions within loopback devices. Both of
+      these will change in 2.6 so watch for changes to this HOWTO when
+      it&#39;s released. From what I&#39;ve read you&#39;ll probably be able
+      to use disks encrypted with today&#39;s method without requiring any
+      significant changes.</para>
+
+      <para>I chose the <ulink url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink>
+      patch to perform the encryption because it&#39;s <ulink
+      url="http://mail.nl.linux.org/linux-crypto/2003-07/msg00054.html">the
+      recommended solution for loopback encryption today</ulink>.</para>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>Procedure</title>
+
+    <para>To do the following operations you will need to be running a system
+    which has a <ulink url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink>
+    capable kernel. If you don&#39;t have one already, I recommend using
+    <ulink url="http://www.knoppix.org/">KNOPPIX</ulink>. It boots off a
+    CD-ROM and doesn&#39;t need to be installed, so it&#39;s very little
+    hassle.</para>
+
+    <para>For simplicity these instructions assume you&#39;ll be preparing the
+    keychain and the asset on the same computer, but this needn&#39;t be the
+    case. Adapt the instructions to whatever&#39;s convenient for you.</para>
+
+    <sect2>
+      <title>Prepare the Keychain</title>
+
+      <para>If you&#39;re taking the approach of encrypting only a file
+      instead of a disk or a partition, you may skip this section and proceed
+      directly to <xref linkend="Asset" />.</para>
+
+      <para>In the ideal setup you will use a bootable keychain device, such
+      as a <glossterm>USB flash drive</glossterm> or a business card size
+      CD-ROM. This is because we want to expose as little of your disk as
+      possible, but we&#39;re going to have to expose a minimal boot process
+      or the computer will never start. Since the boot process will be
+      necessarily unencrypted, it&#39;s better to have it away from your
+      computer (on your keychain). If you can&#39;t or don&#39;t want to use a
+      bootable keychain for some reason, then follow these instructions anyway
+      but instead apply them to a small boot partition on your disk instead of
+      the keychain.</para>
+
+      <para>First, partition and format the keychain as you would any bootable
+      disk. See the <ulink
+      url="http://www.tldp.org/HOWTO/Partition/index.html">Linux Partition
+      HOWTO</ulink> if you need help with partitioning. In this example my
+      keychain shows up as the first SCSI drive <literal>/dev/sda</literal>.</para>
+
+      <para>Partition the disk.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>cfdisk /dev/sda</userinput></screen>
+      </blockquote>
+
+      <para>Put a file system on the first partition.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>mkfs /dev/sda1</userinput></screen>
+      </blockquote>
+
+      <para>Mount the keychain.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>mkdir /tmp/keychain</userinput>
+<prompt>bash# </prompt><userinput>mount /dev/sda1 /tmp/keychain</userinput>
+<prompt>bash# </prompt><userinput>cd /tmp/keychain</userinput></screen>
+      </blockquote>
+
+      <sect3>
+        <title>Build the Kernel</title>
+
+        <para>If you want to use the keychain with multiple computers, you may
+        want to build a different kernel for each one.</para>
+
+        <para>You probably need to build a custom kernel for your keychain so
+        you can ensure two things:</para>
+
+        <itemizedlist>
+          <listitem>
+            <para>It has been patched correctly with <ulink
+            url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink>
+            and encryption support is turned on.</para>
+          </listitem>
+
+          <listitem>
+            <para>All the device drivers necessary to boot your computer and
+            make the asset accessible have been compiled in instead of loaded
+            as modules.</para>
+          </listitem>
+        </itemizedlist>
+
+        <para>You can load device drivers as modules, since we&#39;re using an
+        initrd, but I chose to compile them into the kernel in order to keep
+        the boot disk as simple as possible. Feel free to do differently.</para>
+
+        <para>For help building a custom kernel read <ulink
+        url="http://www.tldp.org/HOWTO/Kernel-HOWTO/index.html">The Linux
+        Kernel HOWTO</ulink>. Be sure to configure the kernel to include
+        <literal>RAM disk support</literal> so it can boot using an initrd.</para>
+
+        <para>Follow the directions that come with <ulink
+        url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink> to
+        patch the kernel and configure it to provide <literal>AES encrypted
+        loop device support</literal>. Also follow the directions to rebuild
+        the <ulink url="http://www.kernel.org/pub/linux/utils/util-linux/">util-linux</ulink>
+        tools, some of which we&#39;ll copy to the keychain later.</para>
+
+        <para>Once you&#39;ve built the kernel, copy it to the keychain.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkdir boot</userinput>
+<prompt>bash# </prompt><userinput>cp arch/i386/boot/bzImage boot/vmlinuz-laptop</userinput></screen>
+        </blockquote>
+
+        <para>Install <ulink url="http://www.gnu.org/software/grub/grub.html">GRUB</ulink>
+        or your favorite boot loader.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>grub-install --root-directory=. /dev/sda</userinput></screen>
+        </blockquote>
+
+        <para>Here is a sample <filename>menu.lst</filename> for GRUB. It has
+        entries for two computers named <systemitem class="systemname">laptop</systemitem>
+        and <systemitem class="systemname">desktop</systemitem>.</para>
+
+        <important>
+          <para>It is required to pass the name of the key (I suggest you name
+          it after the computer) as the first parameter to <xref
+          linkend="linuxrc" />.</para>
+        </important>
+
+        <example>
+          <title><filename>/boot/grub/menu.lst</filename></title>
+
+          <programlisting>title  laptop
+root (hd0,0)
+kernel /boot/vmlinuz-laptop root=/dev/ram0 init=/linuxrc laptop
+initrd /boot/initrd
+ 
+title  desktop
+root (hd0,0)
+kernel /boot/vmlinuz-desktop root=/dev/ram0 init=/linuxrc desktop
+initrd /boot/initrd.old</programlisting>
+        </example>
+      </sect3>
+
+      <sect3>
+        <title>Make the initrd</title>
+
+        <para>We boot the keychain using an initrd so we can remove it after
+        the boot process starts (who wants a USB flash drive hanging out of
+        their laptop while trying to look cool in a café?). To gain access to
+        the asset we create a loopback device attached to the initrd&#39;s
+        <filename>/dev/loop0</filename>. Putting the device file on the initrd
+        means it will stick around even after the keychain is removed.</para>
+
+        <para>To learn all about making initial RAM disks you&#39;re welcome
+        to read <ulink
+        url="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/index.html">The Linux
+        Bootdisk HOWTO</ulink> and Linux&#39;s <ulink
+        url="http://linux.bkbits.net:8080/linux-2.4/anno/Documentation/initrd.txt@1.2?nav=index.html%7Csrc/%7Csrc/Documentation"><filename>Documentation/initrd.txt,</filename></ulink>
+        or don&#39;t bother and just follow along.</para>
+
+        <para>We start by choosing 4MB for the size of the initial RAM disk,
+        all of which we won&#39;t need, but it&#39;s the conventional maximum
+        size, and it won&#39;t hurt, so that&#39;s one less decision to make.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>head -c 4m /dev/zero &#62; boot/initrd</userinput>
+<prompt>bash# </prompt><userinput>mke2fs -F -m0 -b 1024 boot/initrd</userinput></screen>
+        </blockquote>
+
+        <para>Mount the initrd so we can work on it.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkdir /tmp/initrd</userinput>
+<prompt>bash# </prompt><userinput>mount -o loop=/dev/loop3 boot/initrd /tmp/initrd</userinput>
+<prompt>bash# </prompt><userinput>cd /tmp/initrd</userinput></screen>
+        </blockquote>
+
+        <para>Create the minimal directory structure we&#39;ll need.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkdir -p {bin,dev,lib,mnt/{keys,new-root},usr/sbin,sbin}</userinput></screen>
+        </blockquote>
+
+        <para>Create the minimal set of devices we&#39;ll need. Note that
+        <filename>tty</filename> is necessary for the password prompt. This
+        command assumes your asset is the drive /dev/<filename>hda</filename>.
+        Change it as appropriate.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>cp -a /dev/{console,hda,loop0,loop1,tty} dev</userinput></screen>
+        </blockquote>
+
+        <para>We&#39;ll copy the six programs we&#39;ll need.</para>
+
+        <tip>
+          <para>You can use <literal>which</literal> to find a program&#39;s
+          full pathname, e.g.:</para>
+
+          <screen><prompt>bash# </prompt><userinput>which mount</userinput>
+<computeroutput>/bin/mount</computeroutput></screen>
+        </tip>
+
+        <para>Copy the programs:</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>cp -a /bin/{mount,sh,umount} bin</userinput>
+<prompt>bash# </prompt><userinput>cp -a /sbin/{losetup,pivot_root} sbin</userinput>
+<prompt>bash# </prompt><userinput>cp -a /usr/sbin/chroot usr/sbin</userinput></screen>
+        </blockquote>
+
+        <para>Now copy over the shared libraries they depend on.</para>
+
+        <tip>
+          <para>Here&#39;s a neat trick to find out which shared libraries are
+          used by a program (<literal>/bin/sh</literal> in this example):</para>
+
+          <screen><prompt>bash# </prompt><userinput>ldd /bin/sh</userinput>
+<computeroutput>        libncurses.so.5 =&#62; /lib/libncurses.so.5 (0x40020000)
+        libdl.so.2 =&#62; /lib/libdl.so.2 (0x4005c000)
+        libc.so.6 =&#62; /lib/libc.so.6 (0x4005f000)
+        /lib/ld-linux.so.2 =&#62; /lib/ld-linux.so.2 (0x40000000)</computeroutput></screen>
+        </tip>
+
+        <para>Copy the libraries:</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>cp -a /lib/{ld-linux.so.2,libc.so.6,libdl.so.2,libncurses.so.5} lib</userinput></screen>
+        </blockquote>
+      </sect3>
+    </sect2>
+
+    <sect2 id="Asset">
+      <title>Prepare the Asset</title>
+
+      <para>It&#39;s possible to repeat these steps as many times as you want
+      to handle multiple computers using the same keychain. Each computer will
+      have its own key and probably its own kernel. The instructions here
+      assume the computer&#39;s name is <systemitem class="systemname">laptop</systemitem>;
+      substitute the name of the computer you&#39;re working with each time
+      you repeat the steps.</para>
+
+      <para>First, back up your data. See the <ulink
+      url="http://www.tldp.org/HOWTO/Linux-Complete-Backup-and-Recovery-HOWTO/index.html">Linux
+      Complete Backup and Recovery HOWTO</ulink>.</para>
+
+      <para>No, stop, listen to me. Back up your data. Really. It&#39;s no fun
+      to have an encrypted hard disk if you can&#39;t decrypt it because of
+      some mistake you made. These tools are powerful magic; if you blow it
+      you can&#39;t just call up <emphasis>Computer Gurus Are Us</emphasis>
+      and expect them to get your data back for you. That&#39;s the whole
+      point of this exercise.</para>
+
+      <para>If you are encrypting your whole disk (recommended), replace
+      <filename>/dev/hda</filename> with the device for your disk.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>ln -s /dev/hda /tmp/asset</userinput></screen>
+      </blockquote>
+
+      <para>If you are encrypting a partition (multiboot case), replace
+      <filename>/dev/hda3</filename> with the device for your partition.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>ln -s /dev/hda3 /tmp/asset</userinput></screen>
+      </blockquote>
+
+      <para>If you are encrypting a file only, replace <filename>~/encrypted</filename>
+      with the name of the file and create a link named <filename>/tmp/keychain</filename>
+      that points to where you decide to store your key file (an already
+      prepared removable medium, e.g., <filename>/mnt/cf</filename>).</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>ln -s ~/encrypted /tmp/asset</userinput>
+<prompt>bash# </prompt><userinput>ln -s /mnt/cf /tmp/keychain</userinput></screen>
+      </blockquote>
+
+      <para>Initialize the asset with random data. This will make it less
+      obvious to the attacker which parts are free space.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>shred -n 1 -v /tmp/asset</userinput></screen>
+      </blockquote>
+
+      <para>Here we create an encrypted file system to hold the keys. More
+      encryption, you say? Yes, in case your keychain is stolen (see <xref
+      linkend="Attack_Tree" />), you don&#39;t want your keys to be exposed. I
+      chose one megabyte as the size of the file system because it&#39;s a
+      round number. There&#39;s no way we&#39;re going to need that much space
+      for keys so feel free to chose a smaller size if you like (each key file
+      will be 61 bytes long).</para>
+
+      <para>Again, initialize with random data.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>cd /tmp/keychain</userinput>
+<prompt>bash# </prompt><userinput>head -c 1m /dev/urandom &#62; keys</userinput></screen>
+      </blockquote>
+
+      <para>To make the passphrase resistant to dictionary attacks we&#39;ll
+      generate a seed. Whenever you see the symbol <replaceable>&#60;seed&#62;</replaceable>
+      be sure to replace it with the one you generated. The following command
+      will display a random seed on the screen.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>head -c 15 /dev/random | uuencode -m - | head -2 | tail -1</userinput></screen>
+      </blockquote>
+
+      <para>Set up the loopback device using the seed. This is where you
+      choose your passphrase. Choose one with care that you know you won&#39;t
+      forget. The minimum length is 20 characters.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>losetup -e AES128 -C 100 -S <replaceable>&#60;seed&#62;</replaceable> -T /dev/loop1 keys</userinput></screen>
+      </blockquote>
+
+      <para>Format and mount the keys file system (the <xref
+      linkend="decrypt.sh" /> script assumes you use the <literal>ext2</literal>
+      file system here).</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>mke2fs /dev/loop1</userinput>
+<prompt>bash# </prompt><userinput>mkdir /tmp/keys</userinput>
+<prompt>bash# </prompt><userinput>mount /dev/loop1 /tmp/keys</userinput></screen>
+      </blockquote>
+
+      <para>Now for the actual asset key, 45 bytes as random as your computer
+      can make them. Try a dictionary attack against that, attacker! Ha! We
+      name the key after the computer with which it will be used (<systemitem
+      class="systemname">laptop</systemitem>). Substitute the name of your
+      computer instead.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>head -c 45 /dev/random | uuencode -m - | head -2 | tail -1 &#62; /tmp/keys/laptop</userinput></screen>
+      </blockquote>
+
+      <para>Set up a loopback device with the key for encrypted access to the
+      asset.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>losetup -e AES128 -p 0 /dev/loop0 /tmp/asset &#60; /tmp/keys/laptop</userinput></screen>
+      </blockquote>
+
+      <para>Unmount the keys file system.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>umount /tmp/keys</userinput>
+<prompt>bash# </prompt><userinput>losetup -d /dev/loop1</userinput></screen>
+      </blockquote>
+
+      <sect3>
+        <title>Swap Partition</title>
+
+        <para>Skip this section if you&#39;re encrypting only a file.</para>
+
+        <para>It&#39;s critical to give <literal>mkswap</literal> a size
+        parameter here because we&#39;re not handing it a dedicated partition.
+        Choose whatever size you want; I chose 2GB.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkswap /dev/loop0 $((2*1024*1024))</userinput>
+<computeroutput>mkswap: warning: truncating swap area to 2097144kB
+Setting up swapspace version 1, size = 2147471360 bytes</computeroutput></screen>
+        </blockquote>
+      </sect3>
+
+      <sect3>
+        <title>Root File System</title>
+
+        <para>If you&#39;re encrypting only a file, format it with a file
+        system like this and skip to <xref linkend="Scripts" />.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkfs /dev/loop0</userinput></screen>
+        </blockquote>
+
+        <para>We&#39;ll create the root &#34;partition&#34; after the swap
+        space. I put the word &#39;partition&#39; in quotes because it&#39;s
+        not a real partition. We&#39;re faking it using the offset argument of
+        <literal>losetup</literal>.</para>
+
+        <para>Notice how <literal>mkswap</literal> told us the actual size of
+        the swapspace, which is not necessarily the size requested. Use the
+        actual size (which was 2147471360 in the above example) when
+        specifying the offset to begin the root file system.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>losetup -o <replaceable>&#60;root offset&#62;</replaceable> /dev/loop1 /dev/loop0</userinput></screen>
+        </blockquote>
+
+        <para>If the asset is the whole disk or the last partition on the
+        disk, then we needn&#39;t worry about specifying a size for the file
+        system. If this applies to you, do the following and skip to <xref
+        linkend="initrd_Mount_Point" />.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mkfs /dev/loop1</userinput></screen>
+        </blockquote>
+
+        <para>Since the asset isn&#39;t the last partition on the disk, we
+        must give <literal>mkfs</literal> a size limitation or it will write
+        all over whatever partitions are between this one and the end of the
+        disk. I repeat, <emphasis>if you don&#39;t give <literal>mkfs</literal>
+        the correct size parameter here, you may lose data</emphasis>.
+        <literal>mkfs</literal> is actually just a front end, so to be as
+        careful as possible we&#39;ll choose an actual file system maker, in
+        this case <literal>mke2fs</literal>.</para>
+
+        <para>It&#39;s possible to limit the size of the file system by
+        specifying its size in blocks, but <literal>mke2fs</literal> chooses
+        the block size based on the size of the file system. A classic
+        Catch-22! We can ask it to do a dry run on the rest of the disk (more
+        than we want) to see what block size it would chose.</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mke2fs -n -j /dev/loop1</userinput>
+<computeroutput>mke2fs 1.34-WIP (21-May-2003)
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+9781248 inodes, 19544448 blocks
+977222 blocks (5.00%) reserved for the super user
+First data block=0
+597 block groups
+32768 blocks per group, 32768 fragments per group
+16384 inodes per group
+Superblock backups stored on blocks:
+        32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208,
+        4096000, 7962624, 11239424</computeroutput></screen>
+        </blockquote>
+
+        <para>In this case it chose 4096. Whatever it chooses is probably
+        close enough for our file system. Calculate the correct size in
+        blocks.</para>
+
+        <blockquote>
+          <para>file system size = (size of partition - size of swap space) /
+          block size</para>
+        </blockquote>
+
+        <para>Suppose the size of the partition is 10GB and the size of the
+        swap is 2GB. The correct size for <literal>mke2fs</literal> is (10 -
+        2) x 2^30 / 4096 = 2097152. Don&#39;t get this wrong! Make backups!
+        Measure twice, cut once!</para>
+
+        <blockquote>
+          <screen><prompt>bash# </prompt><userinput>mke2fs -j /dev/loop1 2097152</userinput></screen>
+        </blockquote>
+
+        <sect4 id="initrd_Mount_Point">
+          <title>initrd Mount Point</title>
+
+          <para>Mount the new root file system and create the
+          <filename>initrd</filename> mount point. This is necessary for the
+          <xref linkend="linuxrc" /> script&#39;s call to <literal>pivot_root</literal>.</para>
+
+          <blockquote>
+            <screen><prompt>bash# </prompt><userinput>mount /dev/loop1 mnt/new-root</userinput>
+<prompt>bash# </prompt><userinput>mkdir mnt/new-root/initrd</userinput>
+<prompt>bash# </prompt><userinput>umount mnt/new-root</userinput></screen>
+          </blockquote>
+        </sect4>
+      </sect3>
+    </sect2>
+
+    <sect2 id="Scripts">
+      <title>Scripts</title>
+
+      <para>We have enough information to create the decryption script. Change
+      the variables at the beginning to reflect your setup (including the seed
+      you generated earlier).</para>
+
+      <para>If you&#39;re encrypting the whole disk or a partition, set
+      <varname>ROOT_OFFSET</varname> to the size you got from
+      <literal>mkswap</literal>. Put the script in <filename>/tmp/initrd</filename>
+      and name it <filename>decrypt.sh</filename>.</para>
+
+      <para>If you&#39;re encrypting only a file then this script can live
+      anywhere. In this case be sure to set <varname>ROOT_OFFSET</varname> to
+      zero and set <varname>MOUNT</varname> to a convenient mount point
+      (probably not <filename>/mnt/new-root</filename>).</para>
+
+      <figure id="decrypt.sh" xreflabel="decrypt.sh">
+        <title><filename>/tmp/initrd/decrypt.sh</filename></title>
+
+        <programlisting>#!/bin/sh
+
+SEED=<replaceable>&#60;seed&#62;</replaceable>
+ASSET=/dev/hda
+ROOT_OFFSET=<replaceable>&#60;root offset&#62;</replaceable>
+ROOT_TYPE=ext3
+MOUNT=/mnt/new-root
+KEY=&#34;$1&#34;
+
+# Ask for a passphrase to open the keys (this prevents exposure of the keys in
+# case the owner loses the keychain).  Give the user three tries to get the
+# passphrase right.
+for ((FAILED=1, TRY=1; ($FAILED != 0) &#38;&#38; (TRY &#60;= 3); TRY++))
+do
+        mount -n -t ext2 -o loop=/dev/loop1,encryption=AES128,itercountk=100,pseed=$SEED keys /mnt/keys
+        FAILED=$?
+done
+                                                                                
+if [ $FAILED -ne 0 ]; then
+        echo &#34;Sorry, you get only three attempts to guess the password.&#34;
+        exit 1
+fi
+
+# Use the key to decrypt the asset.
+losetup -e AES128 -p 0 /dev/loop0 $ASSET &#60; &#34;/mnt/keys/$KEY&#34;
+ 
+# Close the keys.
+umount -n /mnt/keys
+losetup -d /dev/loop1
+ 
+# Set up the root &#34;partition&#34; device.
+losetup -o $ROOT_OFFSET /dev/loop1 /dev/loop0
+ 
+# Mount the root file system.
+mount -n -t $ROOT_TYPE /dev/loop1 $MOUNT</programlisting>
+      </figure>
+
+      <para>If you&#39;re encrypting only a file, skip to <xref
+      linkend="Testing_and_Backup" />. Otherwise, save the following boot
+      script as <filename>linuxrc</filename> and place it in
+      <filename>/tmp/initrd</filename>.</para>
+
+      <figure id="linuxrc" xreflabel="linuxrc">
+        <title><filename>/tmp/initrd/linuxrc</filename></title>
+
+        <programlisting>#!/bin/sh
+
+# Decrypt the asset
+source decrypt.sh &#34;$1&#34;
+
+# Pivot to the asset&#39;s root file system.
+cd $MOUNT
+/sbin/pivot_root . initrd
+
+# Pass control to init.
+shift 1
+exec chroot . /sbin/init $* &#60;dev/console &#62;dev/console 2&#62;&#38;1</programlisting>
+      </figure>
+
+      <para>Okay, the keychain and asset are now ready. Unmount everything.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>umount /tmp/{initrd,keychain}</userinput></screen>
+      </blockquote>
+
+      <para>You now have an empty, encrypted file system. Hurray!</para>
+    </sect2>
+
+    <sect2 id="Testing_and_Backup">
+      <title>Testing and Backup</title>
+
+      <para>Test your system by booting the keychain or executing the <xref
+      linkend="decrypt.sh" /> script as appropriate (give it the name of the
+      key you want to use as a parameter). After booting there may be a
+      complaint about a nonexistent <filename>/sbin/init</filename> but
+      that&#39;s okay for now.</para>
+
+      <para>Check to make sure your root file system mounted successfully.
+      When you&#39;re confident everything is working, back up your keychain.
+      In fact, make lots of backups. You might ask, &#34;But isn&#39;t it
+      insecure to have a copy of my keychain somewhere?&#34; The answer is
+      yes, it is, but not as insecure as losing your only keychain, if you
+      define security as also meaning &#34;securing access to my data&#34;.</para>
+
+      <para>Because my keychain is small I decided to back up the whole image
+      so it&#39;s easy to restore:</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>bzip2 -c /dev/sda &#62; keychain.img.bz2</userinput></screen>
+      </blockquote>
+
+      <para>If you&#39;re encrypting only a file, you can pat yourself on your
+      back at this point because you&#39;ve finished.</para>
+    </sect2>
+
+    <sect2>
+      <title>Rescue Disk</title>
+
+      <para>Rescue disks are useful when a system isn&#39;t behaving properly
+      and/or refuses to boot. Check to make sure your rescue disk has <ulink
+      url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink> support
+      in its kernel and has the correctly patched <application><ulink
+      url="http://www.kernel.org/pub/linux/utils/util-linux/">util-linux</ulink></application>
+      tools such as <literal>losetup</literal> and <literal>mount</literal>,
+      otherwise it will be worthless with your newly encrypted asset. In the
+      future, all rescue disks will include this support because it will come
+      standard with the 2.6 kernel. In the meantime, <ulink
+      url="http://www.knoppix.org/">KNOPPIX</ulink> (for example) already has
+      all the necessary support and can be used as a rescue disk.</para>
+
+      <para>After booting an appropriate rescue disk, mount your keychain and
+      execute the <xref linkend="decrypt.sh" /> script.</para>
+
+      <blockquote>
+        <screen><prompt>bash# </prompt><userinput>mkdir /tmp/{keychain,initrd}</userinput>
+<prompt>bash# </prompt><userinput>mount /dev/sda1 /tmp/keychain</userinput>
+<prompt>bash# </prompt><userinput>mount -o loop=/dev/loop3 /tmp/keychain/boot/initrd /tmp/initrd</userinput>
+<prompt>bash# </prompt><userinput>pushd /tmp/initrd</userinput>
+<prompt>bash# </prompt><userinput>./decrypt.sh laptop</userinput>
+<prompt>bash# </prompt><userinput>popd</userinput>
+<prompt>bash# </prompt><userinput>umount /tmp/{initrd,keychain}</userinput></screen>
+      </blockquote>
+
+      <para>You can now access your asset through the mount point you
+      specified in <xref linkend="decrypt.sh" />.</para>
+    </sect2>
+
+    <sect2>
+      <title>Installing Linux</title>
+
+      <para>Your next task is to install Linux to your new encrypted file
+      system. If you already have an installation elsewhere, you should be
+      able to just copy all its files over to the asset (use the
+      <userinput>-a</userinput> argument to <literal>cp</literal>) and update
+      <xref linkend="fstab" /> as appropriate.</para>
+
+      <para>The procedure for a fresh installation of Linux is different for
+      each distribution. Below are instructions for Debian. Please send me
+      instructions for other distributions and I will include them here.</para>
+
+      <sect3>
+        <title><ulink url="http://www.debian.org">Debian</ulink></title>
+
+        <orderedlist>
+          <listitem>
+            <para>Boot from a rescue disk by following the instructions in the
+            above section.</para>
+          </listitem>
+
+          <listitem>
+            <para>Install using the method <ulink
+            url="http://www.debian.org/releases/stable/i386/ch-preparing.en.html#s-linux-upgrade">3.7
+            Installing Debian GNU/Linux from a Unix/Linux System</ulink>.</para>
+          </listitem>
+        </orderedlist>
+      </sect3>
+
+      <sect3 id="fstab" xreflabel="/etc/fstab">
+        <title><filename>/etc/fstab</filename></title>
+
+        <para>You will want to make sure the entries in your
+        <filename>/etc/fstab</filename> file for the root and swap look like
+        those below.</para>
+
+        <informalexample>
+          <programlisting># /etc/fstab: static file system information.
+#
+# &#60;file system&#62; &#60;mount point&#62;   &#60;type&#62;  &#60;options&#62;               &#60;dump&#62;  &#60;pass&#62;
+/dev/loop0      none            swap    sw                      0       0
+/dev/loop1      /               ext3    errors=remount-ro       0       1</programlisting>
+        </informalexample>
+      </sect3>
+    </sect2>
+  </sect1>
+
+  <sect1>
+    <title>More Information</title>
+
+    <itemizedlist>
+      <listitem>
+        <para>The <filename><ulink
+        url="http://loop-aes.sourceforge.net/loop-AES.README">README</ulink></filename>
+        that comes with <application><ulink
+        url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink></application>
+        explains how to use it in multiple scenarios.</para>
+      </listitem>
+
+      <listitem>
+        <para>The <ulink
+        url="http://hints.linuxfromscratch.org/hints/cryptoapi.txt">Encrypted
+        Filesystem Howto</ulink> describes encrypting the root file system
+        without an external keychain.</para>
+      </listitem>
+
+      <listitem>
+        <para>There is a <ulink
+        url="http://forums.gentoo.org/viewtopic.php?t=31363&#38;postdays=0&#38;postorder=asc&#38;start=0">discussion
+        thread</ulink> about encrypting the root file system on the <ulink
+        url="http://forums.gentoo.org/">Gentoo Forums</ulink>.</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <glossary>
+    <title>Glossary</title>
+
+    <glossentry>
+      <glossterm><acronym><ulink url="http://csrc.nist.gov/CryptoToolkit/aes/">AES</ulink></acronym></glossterm>
+
+      <glossdef>
+        <para>Advanced Encryption Standard, a strong, well-regarded
+        <glossterm>encryption</glossterm> algorithm chosen by the United
+        States <ulink url="http://www.nist.gov/">National Institute of
+        Standards and Technology</ulink></para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>asset</glossterm>
+
+      <glossdef>
+        <para>the data being protected by <glossterm>encryption</glossterm>&mdash;either
+        a disk, partition, or a file</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>encryption</glossterm>
+
+      <glossdef>
+        <para>a mathematical means of scrambling data so that it&#39;s
+        unintelligible unless decrypted using a specific
+        <glossterm>key</glossterm></para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>key</glossterm>
+
+      <glossdef>
+        <para>the small piece of data necessary to make encrypted data
+        intelligible</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="keychain">
+      <glossterm>keychain</glossterm>
+
+      <glossdef>
+        <para>the physical medium (such as a <glossterm>USB flash drive)
+        </glossterm>used to hold the encryption <glossterm>key</glossterm>
+        (and possibly the beginning of the boot process)</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>loopback device</glossterm>
+
+      <glossdef>
+        <para>a Linux block device which appears to store data (by using
+        another device)</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm><ulink url="http://sourceforge.net/projects/loop-aes/">loop-AES</ulink></glossterm>
+
+      <glossdef>
+        <para>software written by Jari Ruusu that implements the
+        <glossterm>AES</glossterm> algorithm using a <glossterm>loopback
+        device</glossterm></para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>plausible deniability</glossterm>
+
+      <glossdef>
+        <para>a means to avoid being coerced into decrypting one&#39;s own
+        data for an attacker</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry>
+      <glossterm>USB flash drive</glossterm>
+
+      <glossdef>
+        <para>a small electronic device containing a memory chip and a USB
+        interface</para>
+      </glossdef>
+    </glossentry>
+  </glossary>
+
+  <appendix id="gfdl">
+    <title>GNU Free Documentation License</title>
+
+    <subtitle>Version 1.2, November 2002</subtitle>
+
+    <blockquote id="fsf-copyright">
+      <para>Copyright (C) 2000,2001,2002 Free Software Foundation, Inc. 59
+      Temple Place, Suite 330, Boston, MA 02111-1307 USA Everyone is permitted
+      to copy and distribute verbatim copies of this license document, but
+      changing it is not allowed.</para>
+    </blockquote>
+
+    <section id="gfdl-0">
+      <title>PREAMBLE</title>
+
+      <para>The purpose of this License is to make a manual, textbook, or
+      other functional and useful document &#34;free&#34; in the sense of
+      freedom: to assure everyone the effective freedom to copy and
+      redistribute it, with or without modifying it, either commercially or
+      noncommercially. Secondarily, this License preserves for the author and
+      publisher a way to get credit for their work, while not being considered
+      responsible for modifications made by others.</para>
+
+      <para>This License is a kind of &#34;copyleft&#34;, which means that
+      derivative works of the document must themselves be free in the same
+      sense. It complements the GNU General Public License, which is a
+      copyleft license designed for free software.</para>
+
+      <para>We have designed this License in order to use it for manuals for
+      free software, because free software needs free documentation: a free
+      program should come with manuals providing the same freedoms that the
+      software does. But this License is not limited to software manuals; it
+      can be used for any textual work, regardless of subject matter or
+      whether it is published as a printed book. We recommend this License
+      principally for works whose purpose is instruction or reference.</para>
+    </section>
+
+    <section id="gfdl-1">
+      <title>APPLICABILITY AND DEFINITIONS</title>
+
+      <para id="gfdl-doc">This License applies to any manual or other work, in
+      any medium, that contains a notice placed by the copyright holder saying
+      it can be distributed under the terms of this License. Such a notice
+      grants a world-wide, royalty-free license, unlimited in duration, to use
+      that work under the conditions stated herein. The &#34;Document&#34;,
+      below, refers to any such manual or work. Any member of the public is a
+      licensee, and is addressed as &#34;you&#34;. You accept the license if
+      you copy, modify or distribute the work in a way requiring permission
+      under copyright law.</para>
+
+      <para id="gfdl-mod-ver">A &#34;Modified Version&#34; of the Document
+      means any work containing the Document or a portion of it, either copied
+      verbatim, or with modifications and/or translated into another language.</para>
+
+      <para id="gfdl-secnd-sect">A &#34;Secondary Section&#34; is a named
+      appendix or a front-matter section of the Document that deals
+      exclusively with the relationship of the publishers or authors of the
+      Document to the Document&#39;s overall subject (or to related matters)
+      and contains nothing that could fall directly within that overall
+      subject. (Thus, if the Document is in part a textbook of mathematics, a
+      Secondary Section may not explain any mathematics.) The relationship
+      could be a matter of historical connection with the subject or with
+      related matters, or of legal, commercial, philosophical, ethical or
+      political position regarding them.</para>
+
+      <para id="gfdl-inv-sect">The &#34;Invariant Sections&#34; are certain
+      Secondary Sections whose titles are designated, as being those of
+      Invariant Sections, in the notice that says that the Document is
+      released under this License. If a section does not fit the above
+      definition of Secondary then it is not allowed to be designated as
+      Invariant. The Document may contain zero Invariant Sections. If the
+      Document does not identify any Invariant Sections then there are none.</para>
+
+      <para id="gfdl-cov-text">The &#34;Cover Texts&#34; are certain short
+      passages of text that are listed, as Front-Cover Texts or Back-Cover
+      Texts, in the notice that says that the Document is released under this
+      License. A Front-Cover Text may be at most 5 words, and a Back-Cover
+      Text may be at most 25 words.</para>
+
+      <para id="gfdl-transparent">A &#34;Transparent&#34; copy of the Document
+      means a machine-readable copy, represented in a format whose
+      specification is available to the general public, that is suitable for
+      revising the document straightforwardly with generic text editors or
+      (for images composed of pixels) generic paint programs or (for drawings)
+      some widely available drawing editor, and that is suitable for input to
+      text formatters or for automatic translation to a variety of formats
+      suitable for input to text formatters. A copy made in an otherwise
+      Transparent file format whose markup, or absence of markup, has been
+      arranged to thwart or discourage subsequent modification by readers is
+      not Transparent. An image format is not Transparent if used for any
+      substantial amount of text. A copy that is not &#34;Transparent&#34; is
+      called &#34;Opaque&#34;.</para>
+
+      <para>Examples of suitable formats for Transparent copies include plain
+      ASCII without markup, Texinfo input format, LaTeX input format, SGML or
+      XML using a publicly available DTD, and standard-conforming simple HTML,
+      PostScript or PDF designed for human modification. Examples of
+      transparent image formats include PNG, XCF and JPG. Opaque formats
+      include proprietary formats that can be read and edited only by
+      proprietary word processors, SGML or XML for which the DTD and/or
+      processing tools are not generally available, and the machine-generated
+      HTML, PostScript or PDF produced by some word processors for output
+      purposes only.</para>
+
+      <para id="gfdl-title-page">The &#34;Title Page&#34; means, for a printed
+      book, the title page itself, plus such following pages as are needed to
+      hold, legibly, the material this License requires to appear in the title
+      page. For works in formats which do not have any title page as such,
+      &#34;Title Page&#34; means the text near the most prominent appearance
+      of the work&#39;s title, preceding the beginning of the body of the
+      text.</para>
+
+      <para id="gfdl-entitled">A section &#34;Entitled XYZ&#34; means a named
+      subunit of the Document whose title either is precisely XYZ or contains
+      XYZ in parentheses following text that translates XYZ in another
+      language. (Here XYZ stands for a specific section name mentioned below,
+      such as &#34;Acknowledgements&#34;, &#34;Dedications&#34;,
+      &#34;Endorsements&#34;, or &#34;History&#34;.) To &#34;Preserve the
+      Title&#34; of such a section when you modify the Document means that it
+      remains a section &#34;Entitled XYZ&#34; according to this definition.</para>
+
+      <para>The Document may include Warranty Disclaimers next to the notice
+      which states that this License applies to the Document. These Warranty
+      Disclaimers are considered to be included by reference in this License,
+      but only as regards disclaiming warranties: any other implication that
+      these Warranty Disclaimers may have is void and has no effect on the
+      meaning of this License.</para>
+    </section>
+
+    <section id="gfdl-2">
+      <title>VERBATIM COPYING</title>
+
+      <para>You may copy and distribute the Document in any medium, either
+      commercially or noncommercially, provided that this License, the
+      copyright notices, and the license notice saying this License applies to
+      the Document are reproduced in all copies, and that you add no other
+      conditions whatsoever to those of this License. You may not use
+      technical measures to obstruct or control the reading or further copying
+      of the copies you make or distribute. However, you may accept
+      compensation in exchange for copies. If you distribute a large enough
+      number of copies you must also follow the conditions in section 3.</para>
+
+      <para>You may also lend copies, under the same conditions stated above,
+      and you may publicly display copies.</para>
+    </section>
+
+    <section id="gfdl-3">
+      <title>COPYING IN QUANTITY</title>
+
+      <para>If you publish printed copies (or copies in media that commonly
+      have printed covers) of the Document, numbering more than 100, and the
+      Document&#39;s license notice requires Cover Texts, you must enclose the
+      copies in covers that carry, clearly and legibly, all these Cover Texts:
+      Front-Cover Texts on the front cover, and Back-Cover Texts on the back
+      cover. Both covers must also clearly and legibly identify you as the
+      publisher of these copies. The front cover must present the full title
+      with all words of the title equally prominent and visible. You may add
+      other material on the covers in addition. Copying with changes limited
+      to the covers, as long as they preserve the title of the Document and
+      satisfy these conditions, can be treated as verbatim copying in other
+      respects.</para>
+
+      <para>If the required texts for either cover are too voluminous to fit
+      legibly, you should put the first ones listed (as many as fit
+      reasonably) on the actual cover, and continue the rest onto adjacent
+      pages.</para>
+
+      <para>If you publish or distribute Opaque copies of the Document
+      numbering more than 100, you must either include a machine-readable
+      Transparent copy along with each Opaque copy, or state in or with each
+      Opaque copy a computer-network location from which the general
+      network-using public has access to download using public-standard
+      network protocols a complete Transparent copy of the Document, free of
+      added material. If you use the latter option, you must take reasonably
+      prudent steps, when you begin distribution of Opaque copies in quantity,
+      to ensure that this Transparent copy will remain thus accessible at the
+      stated location until at least one year after the last time you
+      distribute an Opaque copy (directly or through your agents or retailers)
+      of that edition to the public.</para>
+
+      <para>It is requested, but not required, that you contact the authors of
+      the Document well before redistributing any large number of copies, to
+      give them a chance to provide you with an updated version of the
+      Document.</para>
+    </section>
+
+    <section id="gfdl-4">
+      <title>MODIFICATIONS</title>
+
+      <para>You may copy and distribute a Modified Version of the Document
+      under the conditions of sections 2 and 3 above, provided that you
+      release the Modified Version under precisely this License, with the
+      Modified Version filling the role of the Document, thus licensing
+      distribution and modification of the Modified Version to whoever
+      possesses a copy of it. In addition, you must do these things in the
+      Modified Version:</para>
+
+      <orderedlist id="gfdl-modif-cond" numeration="upperalpha">
+        <listitem>
+          <simpara>Use in the Title Page (and on the covers, if any) a title
+          distinct from that of the Document, and from those of previous
+          versions (which should, if there were any, be listed in the History
+          section of the Document). You may use the same title as a previous
+          version if the original publisher of that version gives permission.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>List on the Title Page, as authors, one or more persons or
+          entities responsible for authorship of the modifications in the
+          Modified Version, together with at least five of the principal
+          authors of the Document (all of its principal authors, if it has
+          fewer than five), unless they release you from this requirement.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>State on the Title page the name of the publisher of the
+          Modified Version, as the publisher.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve all the copyright notices of the Document.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Add an appropriate copyright notice for your modifications
+          adjacent to the other copyright notices.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Include, immediately after the copyright notices, a license
+          notice giving the public permission to use the Modified Version
+          under the terms of this License, in the form shown in the <link
+          linkend="gfdl-addendum">Addendum</link> below.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve in that license notice the full lists of Invariant
+          Sections and required Cover Texts given in the Document&#39;s
+          license notice.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Include an unaltered copy of this License.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve the section Entitled &#34;History&#34;, Preserve
+          its Title, and add to it an item stating at least the title, year,
+          new authors, and publisher of the Modified Version as given on the
+          Title Page. If there is no section Entitled &#34;History&#34; in the
+          Document, create one stating the title, year, authors, and publisher
+          of the Document as given on its Title Page, then add an item
+          describing the Modified Version as stated in the previous sentence.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve the network location, if any, given in the
+          Document for public access to a Transparent copy of the Document,
+          and likewise the network locations given in the Document for
+          previous versions it was based on. These may be placed in the
+          &#34;History&#34; section. You may omit a network location for a
+          work that was published at least four years before the Document
+          itself, or if the original publisher of the version it refers to
+          gives permission.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>For any section Entitled &#34;Acknowledgements&#34; or
+          &#34;Dedications&#34;, Preserve the Title of the section, and
+          preserve in the section all the substance and tone of each of the
+          contributor acknowledgements and/or dedications given therein.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve all the Invariant Sections of the Document,
+          unaltered in their text and in their titles. Section numbers or the
+          equivalent are not considered part of the section titles.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Delete any section Entitled &#34;Endorsements&#34;. Such a
+          section may not be included in the Modified Version.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Do not retitle any existing section to be Entitled
+          &#34;Endorsements&#34; or to conflict in title with any Invariant
+          Section.</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Preserve any Warranty Disclaimers.</simpara>
+        </listitem>
+      </orderedlist>
+
+      <para>If the Modified Version includes new front-matter sections or
+      appendices that qualify as Secondary Sections and contain no material
+      copied from the Document, you may at your option designate some or all
+      of these sections as invariant. To do this, add their titles to the list
+      of Invariant Sections in the Modified Version&#39;s license notice.
+      These titles must be distinct from any other section titles.</para>
+
+      <para>You may add a section Entitled &#34;Endorsements&#34;, provided it
+      contains nothing but endorsements of your Modified Version by various
+      parties--for example, statements of peer review or that the text has
+      been approved by an organization as the authoritative definition of a
+      standard.</para>
+
+      <para>You may add a passage of up to five words as a Front-Cover Text,
+      and a passage of up to 25 words as a Back-Cover Text, to the end of the
+      list of Cover Texts in the Modified Version. Only one passage of
+      Front-Cover Text and one of Back-Cover Text may be added by (or through
+      arrangements made by) any one entity. If the Document already includes a
+      cover text for the same cover, previously added by you or by arrangement
+      made by the same entity you are acting on behalf of, you may not add
+      another; but you may replace the old one, on explicit permission from
+      the previous publisher that added the old one.</para>
+
+      <para>The author(s) and publisher(s) of the Document do not by this
+      License give permission to use their names for publicity for or to
+      assert or imply endorsement of any Modified Version.</para>
+    </section>
+
+    <section id="gfdl-5">
+      <title>COMBINING DOCUMENTS</title>
+
+      <para>You may combine the Document with other documents released under
+      this License, under the terms defined in <link linkend="gfdl-4">section
+      4</link> above for modified versions, provided that you include in the
+      combination all of the Invariant Sections of all of the original
+      documents, unmodified, and list them all as Invariant Sections of your
+      combined work in its license notice, and that you preserve all their
+      Warranty Disclaimers.</para>
+
+      <para>The combined work need only contain one copy of this License, and
+      multiple identical Invariant Sections may be replaced with a single
+      copy. If there are multiple Invariant Sections with the same name but
+      different contents, make the title of each such section unique by adding
+      at the end of it, in parentheses, the name of the original author or
+      publisher of that section if known, or else a unique number. Make the
+      same adjustment to the section titles in the list of Invariant Sections
+      in the license notice of the combined work.</para>
+
+      <para>In the combination, you must combine any sections Entitled
+      &#34;History&#34; in the various original documents, forming one section
+      Entitled &#34;History&#34;; likewise combine any sections Entitled
+      &#34;Acknowledgements&#34;, and any sections Entitled
+      &#34;Dedications&#34;. You must delete all sections Entitled
+      &#34;Endorsements&#34;.</para>
+    </section>
+
+    <section id="gfdl-6">
+      <title>COLLECTIONS OF DOCUMENTS</title>
+
+      <para>You may make a collection consisting of the Document and other
+      documents released under this License, and replace the individual copies
+      of this License in the various documents with a single copy that is
+      included in the collection, provided that you follow the rules of this
+      License for verbatim copying of each of the documents in all other
+      respects.</para>
+
+      <para>You may extract a single document from such a collection, and
+      distribute it individually under this License, provided you insert a
+      copy of this License into the extracted document, and follow this
+      License in all other respects regarding verbatim copying of that
+      document.</para>
+    </section>
+
+    <section id="gfdl-7">
+      <title>AGGREGATION WITH INDEPENDENT WORKS</title>
+
+      <para>A compilation of the Document or its derivatives with other
+      separate and independent documents or works, in or on a volume of a
+      storage or distribution medium, is called an &#34;aggregate&#34; if the
+      copyright resulting from the compilation is not used to limit the legal
+      rights of the compilation&#39;s users beyond what the individual works
+      permit. When the Document is included in an aggregate, this License does
+      not apply to the other works in the aggregate which are not themselves
+      derivative works of the Document.</para>
+
+      <para>If the Cover Text requirement of section 3 is applicable to these
+      copies of the Document, then if the Document is less than one half of
+      the entire aggregate, the Document&#39;s Cover Texts may be placed on
+      covers that bracket the Document within the aggregate, or the electronic
+      equivalent of covers if the Document is in electronic form. Otherwise
+      they must appear on printed covers that bracket the whole aggregate.</para>
+    </section>
+
+    <section id="gfdl-8">
+      <title>TRANSLATION</title>
+
+      <para>Translation is considered a kind of modification, so you may
+      distribute translations of the Document under the terms of section 4.
+      Replacing Invariant Sections with translations requires special
+      permission from their copyright holders, but you may include
+      translations of some or all Invariant Sections in addition to the
+      original versions of these Invariant Sections. You may include a
+      translation of this License, and all the license notices in the
+      Document, and any Warranty Disclaimers, provided that you also include
+      the original English version of this License and the original versions
+      of those notices and disclaimers. In case of a disagreement between the
+      translation and the original version of this License or a notice or
+      disclaimer, the original version will prevail.</para>
+
+      <para>If a section in the Document is Entitled
+      &#34;Acknowledgements&#34;, &#34;Dedications&#34;, or &#34;History&#34;,
+      the requirement (section 4) to Preserve its Title (section 1) will
+      typically require changing the actual title.</para>
+    </section>
+
+    <section id="gfdl-9">
+      <title>TERMINATION</title>
+
+      <para>You may not copy, modify, sublicense, or distribute the Document
+      except as expressly provided for under this License. Any other attempt
+      to copy, modify, sublicense or distribute the Document is void, and will
+      automatically terminate your rights under this License. However, parties
+      who have received copies, or rights, from you under this License will
+      not have their licenses terminated so long as such parties remain in
+      full compliance.</para>
+    </section>
+
+    <section id="gfdl-10">
+      <title>FUTURE REVISIONS OF THIS LICENSE</title>
+
+      <para>The Free Software Foundation may publish new, revised versions of
+      the GNU Free Documentation License from time to time. Such new versions
+      will be similar in spirit to the present version, but may differ in
+      detail to address new problems or concerns. See
+      http://www.gnu.org/copyleft/.</para>
+
+      <para>Each version of the License is given a distinguishing version
+      number. If the Document specifies that a particular numbered version of
+      this License &#34;or any later version&#34; applies to it, you have the
+      option of following the terms and conditions either of that specified
+      version or of any later version that has been published (not as a draft)
+      by the Free Software Foundation. If the Document does not specify a
+      version number of this License, you may choose any version ever
+      published (not as a draft) by the Free Software Foundation.</para>
+    </section>
+
+    <section id="gfdl-addendum">
+      <title>ADDENDUM: How to use this License for your documents</title>
+
+      <para>To use this License in a document you have written, include a copy
+      of the License in the document and put the following copyright and
+      license notices just after the title page:</para>
+
+      <blockquote id="copyright-sample">
+        <para>Copyright (c) YEAR YOUR NAME. Permission is granted to copy,
+        distribute and/or modify this document under the terms of the GNU Free
+        Documentation License, Version 1.2 or any later version published by
+        the Free Software Foundation; with no Invariant Sections, no
+        Front-Cover Texts, and no Back-Cover Texts. A copy of the license is
+        included in the section entitled &#34;GNU Free Documentation
+        License&#34;.</para>
+      </blockquote>
+
+      <para>If you have Invariant Sections, Front-Cover Texts and Back-Cover
+      Texts, replace the &#34;with...Texts.&#34; line with this:</para>
+
+      <blockquote id="inv-cover-sample">
+        <para>with the Invariant Sections being LIST THEIR TITLES, with the
+        Front-Cover Texts being LIST, and with the Back-Cover Texts being
+        LIST.</para>
+      </blockquote>
+
+      <para>If you have Invariant Sections without Cover Texts, or some other
+      combination of the three, merge those two alternatives to suit the
+      situation.</para>
+
+      <para>If your document contains nontrivial examples of program code, we
+      recommend releasing these examples in parallel under your choice of free
+      software license, such as the GNU General Public License, to permit
+      their use in free software.</para>
+    </section>
+  </appendix>
+</article>
