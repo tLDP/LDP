@@ -12,7 +12,7 @@ insert([doctable], [Table des docs], [Table des docs],
 
 insert([news], [|project| News], [|projectshort| News],
 [
-	|tabnews|
+	|tabrecentnews|
 ])
 
 insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampadas],
