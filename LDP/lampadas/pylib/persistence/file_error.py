@@ -23,11 +23,10 @@ from base import Persistence
 
 class FileError(Persistence):
 
-    def __init__(self):
-        Persistence.__init__(self)
-
     def __getattr__(self, attribute):
         if attribute=='sourcefile':
             return sourcefile.get_by_id(self.filename)
-        if attribute=='error':
+        elif attribute=='error':
             return error.get_by_id(self.err_id)
+        else :
+            raise AttributeError('No such attribute %s' % attribute)

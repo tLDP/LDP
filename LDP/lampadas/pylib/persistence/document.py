@@ -26,6 +26,8 @@ class Document(Persistence):
     def __getattr__(self, attribute):
         if attribute=='topics':
             return document_topic.get_by_keys([['doc_id', '=', self.object_id]])
-        if attribute=='collections':
+        elif attribute=='collections':
             return document_collection.get_by_keys([['doc_id', '=', self.object_id]])
+        else :
+            raise AttributeError('No such attribute %s' % attribute)
 

@@ -26,5 +26,7 @@ class DocumentCollection(Persistence):
     def __getattr__(self, attribute):
         if attribute=='collection':
             return collection.get_by_id(self.collection_code)
-        if attribute=='document':
+        elif attribute=='document':
             return document.get_by_id(self.doc_id)
+        else :
+            raise AttributeError('No such attribute %s' % attribute)
