@@ -347,7 +347,15 @@ class Project:
                 for key in target.commands.sort_by('sort_order'):
                     command = target.commands[key]
                     
-                    cmd_text = 'cd ' + self.workdir + '; ' + command.command
+                    # Go to the work directory
+                    cmd_text = 'cd ' + self.workdir + '; '
+
+                    # Erase the error log if it exists
+                    if command.errors_to > '':
+                        cmd_text += ' rm -f ' + command.errors_to + '; '
+
+                    # Run he command, piping output and errors appropriately
+                    cmd_text = cmd_text + command.command
                     if command.output_to > '':
                         cmd_text += ' > ' + command.output_to
                     if command.errors_to > '':
