@@ -12,6 +12,7 @@ copy editor_role to '/tmp/ldp_editor_role.txt';
 copy format to '/tmp/ldp_format.txt';
 copy license to '/tmp/ldp_license.txt';
 copy maintainer to '/tmp/ldp_maintainer.txt';
+copy maintainer_notes to '/tmp/ldp_maintainer_notes.txt';
 copy notes to '/tmp/ldp_notes.txt';
 copy pub_status to '/tmp/ldp_pub_status.txt';
 copy review_status to '/tmp/ldp_review_status.txt';

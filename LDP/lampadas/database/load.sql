@@ -14,6 +14,7 @@ copy notes from '/tmp/ldp_notes.txt';
 copy document_topic from '/tmp/ldp_document_topic.txt';
 
 copy maintainer from '/tmp/ldp_maintainer.txt';
+copy maintainer_notes from '/tmp/ldp_maintainer_notes.txt';
 copy document_maintainer from '/tmp/ldp_document_maintainer.txt';
 
 copy editor from '/tmp/ldp_editor.txt';
