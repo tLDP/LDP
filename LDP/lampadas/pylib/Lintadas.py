@@ -32,7 +32,9 @@ from Config import config
 from Log import log
 from DataLayer import lampadas
 import os
+import stat
 import string
+import time
 
 
 # Constants
@@ -136,6 +138,12 @@ class Lintadas:
                 if os.access(filename, os.R_OK)==0:
                     file.errors.add(ERR_FILE_NOT_READABLE)
                     continue
+
+                # Read file information
+                filestat = os.stat(filename)
+                file.filesize = filestat[stat.ST_SIZE]
+                file.filemode = filestat[stat.ST_MODE]
+                file.modified = time.ctime(filestat[stat.ST_MTIME])
 
                 # Determine file format.
                 file_extension = string.lower(string.split(filename, '.')[-1])

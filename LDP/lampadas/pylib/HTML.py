@@ -437,11 +437,14 @@ class TableFactory:
         doc = lampadas.docs[uri.id]
         box = '''
         <table class="box" width="100%">
-        <tr><th colspan="5">|strdocfiles|</th></tr>
+        <tr><th colspan="8">|strdocfiles|</th></tr>
         <tr>
         <th class="collabel">|strfilename|</th>
         <th class="collabel">|strprimary|</th>
         <th class="collabel">|strformat|</th>
+        <th class="collabel">|strupdated|</th>
+        <th class="collabel">|strfilesize|</th>
+        <th class="collabel">|strfilemode|</th>
         <th class="collabel" colspan="2">|straction|</th>
         </tr>
         '''
@@ -456,9 +459,16 @@ class TableFactory:
             if file.errors.count() > 0:
                 box = box + '<td class="error">' + file.filename + '</td>\n'
             else:
-                box = box + '<td><a href="/file_reports/' + file.filename + '">' + file.filename + '</a></td>\n'
+                box = box + '<td><a href="/file_reports/' + file.filename + uri.lang_ext + '">' + file.filename + '</a></td>\n'
             box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
-            box = box + '<td>'  + combo_factory.format(file.format_code, uri.lang) + '</td>\n'
+            if file.format_code > '':
+                box = box + '<td>'  + lampadas.formats[file.format_code].name[uri.lang] + '</td>\n'
+            else:
+                box = box + '<td></td>\n'
+            box = box + '<td>' + file.modified + '</td>\n'
+            box = box + '<td>' + str(file.filesize) + '</td>\n'
+            box = box + '<td>' + str(file.filemode) + '</td>\n'
+
             box = box + '''
             <td><input type="checkbox" name="delete">|strdelete|</td>
             <td><input type="submit" name="action" value="|strsave|">
@@ -471,7 +481,10 @@ class TableFactory:
         box = box + '<tr>\n'
         box = box + '<td><input type="text" name="filename" size="30" style="width:100%"></td>\n'
         box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
-        box = box + '<td>'  + combo_factory.format('', uri.lang) + '</td>\n'
+        box = box + '<td></td>\n'
+        box = box + '<td></td>\n'
+        box = box + '<td></td>\n'
+        box = box + '<td></td>\n'
         box = box + '''
         <td></td>
         <td><input type="submit" name="action" value="|stradd|"></td>
@@ -684,12 +697,14 @@ class TableFactory:
         log(3, 'Creating filereports table')
         box = ''
         box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
+        box = box + '<tr><th colspan="2">|strfilereports| |uri.filename|</th></tr>\n'
         report_codes = lampadasweb.file_reports.sort_by('name')
         for report_code in report_codes:
             report = lampadasweb.file_reports[report_code]
             box = box + '<tr>\n'
-            box = box + '<td><a href="/file_report/' + report.code + '/' + uri.filename + '">' + report.name[uri.lang] + '</a></td>\n'
+            box = box + '<td><a href="/file_report/' + report.code + '/'
+            box = box + uri.filename + uri.lang_ext + '">'
+            box = box + report.name[uri.lang] + '</a></td>\n'
             box = box + '<td>' + report.description[uri.lang] + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -1181,7 +1196,8 @@ class TableFactory:
                     add_data = '/' + uri.data
                 else:
                     add_data = ''
-                box.write('<a href="/%s%s.%s.html">%s</a><br>\n'
+                add_data = string.join(uri.data,'/')
+                box.write('<a href="/%s/%s.%s.html">%s</a><br>\n'
                           % (uri.page_code,
                              add_data,
                              language.code.lower(),

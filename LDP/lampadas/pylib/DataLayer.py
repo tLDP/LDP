@@ -236,7 +236,7 @@ class Docs(LampadasCollection):
 
 
     def load_files(self):
-        sql = "SELECT doc_id, filename, top, format_code FROM document_file"
+        sql = "SELECT doc_id, filename, top, format_code, filesize, filemode, modified FROM document_file"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -599,13 +599,16 @@ class DocFile:
 
     def __init__(self, filename=''):
         self.filename = filename
+        self.filesize    = 0
+        self.filemode    = ''
+        self.modified    = ''
         self.errors = FileErrs()
         self.errors.filename = self.filename
         if filename=='': return
         self.load(filename)
 
     def load(self, filename):
-        sql = 'SELECT filename, err_id, date_entered FROM file_error WHERE filename=' + wsq(filename)
+        sql = 'SELECT doc_id, filename, top, format_code, filesize, filemode, modified FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(filename)
         cursor = db.select(sql)
         row = cursor.fetchone()
         if row==None: return
@@ -617,6 +620,9 @@ class DocFile:
         self.filename    = trim(row[1])
         self.top         = tf2bool(row[2]) 
         self.format_code = trim(row[3])
+        self.filesize    = safeint(row[4])
+        self.filemode    = trim(row[5])
+        self.modified    = time2str(row[6])
         if self.filename[:5]=='http:' or self.filename[:4]=='ftp:' or self.filename[:5]=='file:':
             self.local = 0
         else:
@@ -633,6 +639,9 @@ class DocFile:
                 'format_code':self.format_code,
                 'doc_id':self.doc_id,
                 'filename':self.filename,
+                'filesize':999,
+                'filemode':self.filemode,
+                'modified':self.modified,
                 }
         sql = sqlgen.update('document_file',dict,['doc_id','filename'])
         db.execute(sql,dict)

@@ -4,6 +4,9 @@ CREATE TABLE document_file
 	filename		TEXT		NOT NULL	UNIQUE,
 	top			BOOLEAN		DEFAULT False,
 	format_code		CHAR(20)			REFERENCES format(format_code),
+	filesize		INT4,
+	filemode		CHAR(20),
+	modified		TIMESTAMP,
 
 	PRIMARY KEY (doc_id, filename)
 );

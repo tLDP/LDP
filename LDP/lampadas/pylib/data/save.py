@@ -130,13 +130,16 @@ def document_user(req, doc_id, username, active, role_code, email, action, delet
         docuser.email = email
         docuser.save()
         go_back(req)
-    
-def newdocument_file(req, doc_id, filename, top, format_code=''):
+
+# Note that data which is always read from the file directly,
+# such as file size and permissions, are not part of the add
+# interface, so we don't pass them.
+def newdocument_file(req, doc_id, filename, top):
     doc = lampadas.docs[int(doc_id)]
-    doc.files.add(doc_id, filename, int(top), format_code)
+    doc.files.add(doc_id, filename, int(top))
     go_back(req)
     
-def document_file(req, doc_id, filename, top, format_code, action, delete=''):
+def document_file(req, doc_id, filename, top, action, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.files.delete(filename)
@@ -144,7 +147,6 @@ def document_file(req, doc_id, filename, top, format_code, action, delete=''):
     else:
         file = doc.files[filename]
         file.top = int(top)
-        file.format_code = format_code
         file.save()
         go_back(req)
     

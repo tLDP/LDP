@@ -125,21 +125,22 @@ class URI:
         
         # If the page specifies that it includes an object,
         # read the identifier for the object.
+        data = self.data
         for item in page.data:
             if item in ('doc',):
-                self.id = int(self.data[0])
-                self.data = self.data[1:]
+                self.id = int(data[0])
+                data = data[1:]
             elif item in ('topic', 'subtopic', 'type', 'report'):
-                self.code = self.data[0]
-                self.data = self.data[1:]
+                self.code = data[0]
+                data = data[1:]
             elif item in ('user',):
-                self.username = self.data[0]
-                self.data = self.data[1:]
+                self.username = data[0]
+                data = data[1:]
             elif item in ('letter',):
-                self.letter = self.data[0]
-                self.data = self.data[1:]
+                self.letter = data[0]
+                data = data[1:]
             elif item in ('filename',):
-                self.filename = string.join(self.data, '/')
+                self.filename = string.join(data, '/')
                 break
 
     def printdebug(self):
@@ -157,6 +158,7 @@ class URI:
         print "ID: [%s]"                 % self.id
         print "Code [%s]"                % self.code
         print "Letter: [%s]"             % self.letter
+        print "Username: [%s]"           % self.username
         print "Filename: [%s]"           % self.filename
         print "Data: [%s]"               % self.data
 
