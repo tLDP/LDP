@@ -29,6 +29,7 @@ copy stats_cdf from '/tmp/lampadas_stats_cdf.txt';
 copy string from '/tmp/lampadas_string.txt';
 copy string_i18n from '/tmp/lampadas_string_i18n.txt';
 copy subtopic from '/tmp/lampadas_subtopic.txt';
+copy template from '/tmp/lampadas_template.txt';
 copy topic from '/tmp/lampadas_topic.txt';
 copy topic_i18n from '/tmp/lampadas_topic_i18n.txt';
 copy username from '/tmp/lampadas_username.txt';

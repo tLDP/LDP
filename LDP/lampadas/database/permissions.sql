@@ -32,7 +32,6 @@ GRANT ALL ON string TO "www-data";
 GRANT ALL ON string_i18n TO "www-data";
 GRANT ALL ON subtopic TO "www-data";
 GRANT ALL ON template TO "www-data";
-GRANT ALL ON template_i18n TO "www-data";
 GRANT ALL ON topic TO "www-data";
 GRANT ALL ON topic_i18n TO "www-data";
 GRANT ALL ON username TO "www-data";

@@ -3,38 +3,34 @@ DELETE FROM page;
 
 INSERT INTO page (page_code, template_code) VALUES ('test',		'default');
 INSERT INTO page (page_code, template_code) VALUES ('home',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('about',		'default');
+INSERT INTO page (page_code, template_code) VALUES ('lampadas',		'default');
 INSERT INTO page (page_code, template_code) VALUES ('copyright',	'default');
 INSERT INTO page (page_code, template_code) VALUES ('contribute',	'default');
+INSERT INTO page (page_code, template_code) VALUES ('privacy',		'default');
+INSERT INTO page (page_code, template_code) VALUES ('about',		'default');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'EN', 'Test Page',
+'Test Page');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'FR', 'Le Test Page',
 'Test Page');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('home', 'EN', 'Lampadas',
 '
 <h2>Welcome to the Lampadas System.</h2>
 
-<p>This is a development system. The code is being edited constantly, so the site breaks from time to time.
+<p>This is a development system. The code is being edited constantly,
+so the site breaks from time to time.
 
 <p>Please do not send me bug reports at this time.
-
-<h2>TODO</h2>
-
-<p><ul>
-<li>It seems deleting a string record doesn''t delete all translations of the text.</li>
-
-<p><li>Page templating / block system</li>
-
-<p><li>Document conversion</li>
-
-<p><li>Dynamic document publishing (cached)</li>
-
-<p><li>Bug reporting (Bugzilla?)</li>
-
-</ul>
 ');
 
-INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('about', 'EN', 'About Lampadas',
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('home', 'FR', 'Le Lampadas',
+'
+Le Lampadas
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('lampadas', 'EN', 'About Lampadas',
 '
 <p>Lampadas is an interactive environment for writing, managing, publishing and reading documentation.
 
@@ -51,6 +47,11 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('about', 'EN', 'Abo
 <p>In all of these senses, Lampadas seems an appropriate name for this project, which is created to facilitate sharing information from many people and many sources, and disseminating it widely to others.
 ');
 
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('lampadas', 'FR', 'Le About Lampadas',
+'
+Le About Lampadas
+');
+
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('copyright', 'EN', 'Copyright',
 'Lampadas is Copyright 2000, 2001, 2002 by David C. Merrill. Individual documents are copyrighted by their authors, and comments are owned by the poster.
 
@@ -65,6 +66,11 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('copyright', 'EN', 
 <p>Linux is a trademark of Linus Torvalds. TLDP is a trademark of The Linux Documentation Project. All other trademarks are the trademarks of their respective owners.
 
 <p>Unless you expressly state otherwise, by writing a comment, a bug report or a document annotation or other reader feedback you agree to release it into the Public Domain. This is so authors are free to integrate your comments into their documentation regardless of the document''s license.
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('copyright', 'FR', 'Le Copyright',
+'
+Le Copyright
 ');
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('contribute', 'EN', 'Contributing to Lampadas',
@@ -101,5 +107,30 @@ We''ve designed the Lampadas system to make giving back simple and easy. Here ar
 
 <p>If you are a good writer with solid technical knowledge, write a new document and contribute it to the collection. Lampadas has several tools that will help you.</li>
 </ul>
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('contribute', 'FR', 'Le Contributing to Lampadas',
+'
+Le Contributing
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('privacy', 'EN', 'Privacy Policy',
+'
+Replace this text with your official privacy policy.
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('privacy', 'FR', 'Le Privacy Policy',
+'
+Le Privacy Policy
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('about', 'EN', 'About |project|',
+'
+Replace this text with information about your project.
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('about', 'FR', 'Le About |project|',
+'
+Le About Project
 ');
 

@@ -554,7 +554,7 @@ class Languages(LampadasCollection):
 
 	def __init__(self):
 		self.data = {}
-		self.sql = "SELECT isocode FROM language"
+		self.sql = "SELECT isocode, supported FROM language"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
@@ -565,7 +565,7 @@ class Languages(LampadasCollection):
 
 class Language:
 	"""
-	Defines a language supported by Lampads. Documents can be translated into,
+	Defines a language supported by Lampadas. Documents can be translated into,
 	and Lampadas can be localized for, any language supported by ISO 639.
 	"""
 
@@ -573,12 +573,13 @@ class Language:
 		self.I18n = {}
 		if LanguageCode == None: return
 		self.Code = LanguageCode
-		self.sql = "SELECT isocode FROM language WHERE isocode= " + wsq(LanguageCode)
+		self.sql = "SELECT isocode, supported FROM language WHERE isocode= " + wsq(LanguageCode)
 		self.cursor = DB.Select(self.sql)
 		self.Load(self.sql)
 
 	def Load(self, row):
-		self.Code = trim(row[0])
+		self.Code	= trim(row[0])
+		self.Supported	= tf2bool(row[1])
 		self.sql = "SELECT lang, language_name FROM language_i18n WHERE isocode=" + wsq(self.Code)
 		self.cursor = DB.Select(self.sql)
 		while (1):

@@ -19,7 +19,6 @@ import commands
 from string import split
 import sys
 
-
 # Globals
 
 Config = Config()
@@ -34,58 +33,25 @@ cvs_root = L.Config('cvs_root')
 class HTMLFactory:
 
 	def __init__(self):
+		self.Reload()
+
+	def Reload(self):
 		self.Page = PageFactory()
 		self.Combo = ComboFactory()
 
 
-# PageFactory
+# BoxFactory
 
-class PageFactory:
+class BoxFactory:
 
-	Blocks		= WebLayer.Blocks()
-	Pages		= WebLayer.Pages()
-	Strings		= WebLayer.Strings()
-	Templates	= WebLayer.Templates()
-
-	def __call__(self, key, lang):
-		return self.Page(key, lang)
-
-	def Page(self, key, lang):
-		Keys = split(key, '/')
-		pagecode = Keys[1]
-		if pagecode == 'doc':
-			DocID = int(Keys[1])
-			page = self.DocPage(DocID, lang)
-		else:
-			Page = self.Pages[pagecode] 
-			assert not Page == None, 'page ' + pagecode + ' not found'
-			Template = self.Templates[Page.TemplateCode]
-			assert not Template == None
-			page = Template.Template
-			page = page.replace('|title|', Page.I18n[lang].Title)
-			page = page.replace('|header|', self.Blocks['header'].I18n[lang].Block)
-			page = page.replace('|body|', Page.I18n[lang].Page)
-			page = page.replace('|footer|', self.Blocks['footer'].I18n[lang].Block)
-		return page
-
-	def DocPage(self, DocID, lang):
-		Doc = L.Docs[DocID]
-		assert not Doc == None
-		docformat = L.Formats[Doc.FormatID].I18n['EN'].Name
-		if docformat=='SGML' or docformat=='XML':
-			Files = Doc.Files
-			if Files.Count() == 0:
-				page = 'No file to process'
-			elif Files.Count() > 1:
-				page = 'Only single files supported right now'
-			else:
-				keys = Files.keys()
-				for key in keys:
-					File = Files[key]
-					page = C.ConvertSGMLFile(cvs_root + File.Filename, docformat)
-		else:
-			page =  'FORMAT ' + docformat  + ' NOT YET SUPPORTED'
-		return page
+	def MainMenu(self, lang):
+		self.box = ''
+		self.box = self.box + '<table><tr><th>|mmtitle|</th></tr>'
+		self.box = self.box + '<tr><td>'
+		self.box = self.box + '<a href="home">|home|</a>'
+		self.box = self.box + '</td></tr>'
+		self.box = self.box + '</table>'
+		return self.box
 
 
 # ComboFactory
@@ -93,7 +59,6 @@ class PageFactory:
 class ComboFactory:
 
 	def Classes(self, value, lang):
-
 		self.combo = "<select name='class'>\n"
 		keys = L.Classes.keys()
 		for key in keys:
@@ -156,31 +121,111 @@ class ComboFactory:
 		return self.combo
 
 
-#Factory = HTMLFactory()
+# PageFactory
 
-# Sample low-level ComboBox, Classes
-#output = Factory.Combo.Classes(2, 'EN')
-#print output
+class PageFactory:
 
-# Sample low-level ComboBox, DTDs
-#output = Factory.Combo.DTDs(1, 'EN')
-#print output
+	Blocks		= WebLayer.Blocks()
+	Pages		= WebLayer.Pages()
+	Strings		= WebLayer.Strings()
+	Templates	= WebLayer.Templates()
+	Box		= BoxFactory()
 
-# Sample low-level ComboBox, Formats
-#output = Factory.Combo.Formats(1, 'EN')
-#print output
+	def __call__(self, key, lang):
+		return self.Page(key, lang)
 
-# Sample i18n page, About Lampadas
-#output = Factory.Page(PG_ABOUT, 'EN')
-#print output
+	def Page(self, key, lang):
+		if key == '' or key == '/':
+			key='home'
+		if key[0] == '/':
+			key = key[1:]
+		Keys = split(key, '/')
+		
+		# Allow the language to be specified in the URL
+		# 
+		if Keys[0] in L.Languages.keys():
+			if L.Languages[Keys[0]].Supported:
+				lang = Keys[0]
+			Keys = Keys[1:]
+			
+		pagecode = Keys[0]
+		if pagecode == 'doc':
+			DocID = int(Keys[1])
+			page = self.DocPage(DocID, lang)
+		else:
+			Page = self.Pages[pagecode]
+			assert not Page == None
+			Template = self.Templates[Page.TemplateCode]
+			assert not Template == None
+			page = Template.Template
+			page = page.replace('|title|', Page.I18n[lang].Title)
+			page = page.replace('|body|', Page.I18n[lang].Page)
 
-# Sample SGML processing, LDP Reviewer HOWTO
-#output = Factory.Page('doc/419', 'EN')
-#print output
+			page = page.replace('\|', 'DCM_PIPE')
 
-# Sample XML processing, Finnish HOWTO
-#output = Factory.Page('doc/68', 'EN')
-#print output
+			page = page.replace('|header|', self.Blocks['header'].I18n[lang].Block)
+			page = page.replace('|footer|', self.Blocks['footer'].I18n[lang].Block)
+			
+			page = page.replace('\|', 'DCM_PIPE')
+			
+			pos = page.find('|')
+			while pos <> -1 :
+				pos2 = page.find('|', pos+1)
+				if pos2 == -1:
+					pos = -1
+				else:
+					oldstring = page[pos:pos2+1]
+					token = page[pos+1:pos2]
+					
+					if token=='mainmenu':
+						newstring = self.Box.MainMenu(lang)
+					
+					else:
+						newstring = ''
+						Block = self.Blocks[token]
+						if Block == None:
+							String = self.Strings[token]
+							if String == None:
+								newstring = 'ERROR'
+								Log(1, 'Could not replace token ' + token)
+							else:
+								newstring = String.I18n[lang].String
+						else:
+							newstring = Block.I18n[lang].Block
+					
+					if newstring == '':
+						Log(1, 'Could not replace token ' + token)
+						
+					page = page.replace(page[pos:pos2+1], newstring)
+					
+					page = page.replace('\|', 'DCM_PIPE')
+					
+					pos = page.find('|')
+			
+			page = page.replace('DCM_PIPE', '|')
+			
+		return page
+
+	def DocPage(self, DocID, lang):
+		Doc = L.Docs[DocID]
+		if Doc == None:
+			page = "Error, could not locate document " + str(DocID)
+		else:
+			docformat = L.Formats[Doc.FormatID].I18n[lang].Name
+			if docformat=='SGML' or docformat=='XML':
+				Files = Doc.Files
+				if Files.Count() == 0:
+					page = 'No file to process'
+				elif Files.Count() > 1:
+					page = 'Only single files supported right now'
+				else:
+					keys = Files.keys()
+					for key in keys:
+						File = Files[key]
+						page = C.ConvertSGMLFile(cvs_root + File.Filename, docformat)
+			else:
+				page =  'FORMAT ' + docformat  + ' NOT YET SUPPORTED'
+		return page
 
 
 def main():

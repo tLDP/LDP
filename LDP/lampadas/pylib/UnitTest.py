@@ -239,6 +239,7 @@ class testLanguages(unittest.TestCase):
 	def testLanguages(self):
 		L.Log(3, 'testing Languages')
 		assert L.Languages['EN'].I18n['EN'].Name == 'English'
+		assert L.Languages['EN'].Supported
 		assert L.Languages['FR'].I18n['EN'].Name == 'French'
 		assert L.Languages.Count() == 136
 		L.Log(3, 'testing Languages done')

@@ -8,9 +8,12 @@ INSERT INTO template (template_code, template) VALUES ('default',
   </head>
   <body>
     <table width=100%>
-      <tr><td>|header|</td></tr>
-      <tr><td>|body|</td></tr>
-      <tr><td>|footer|</td></tr>
+      <tr><td colspan=2>|header|</td></tr>
+      <tr>
+        <td width="200">|mainmenu|</td>
+        <td>|body|</td>
+      </tr>
+      <tr><td colspan=2>|footer|</td></tr>
     </table>
   </body>
 </html>
