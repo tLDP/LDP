@@ -8,6 +8,9 @@
 # Wget is used to request an xml record from the LDP # database,
 # http://db.linuxdoc.org.
 # 
+
+use File::Basename;
+
 my($txtfile, $dbfile) = '';
 
 #These keep track of which constructs we're in the middle of
@@ -41,6 +44,7 @@ while (1) {
 		&usage;
 	} elsif($ARGV[0] eq "-v" or $ARGV[0] eq "--verbose") {
 		$verbose = 1;
+		shift(@ARGV);
 	} else {
 		$txtfile = $ARGV[0];
 		shift(@ARGV);
@@ -63,9 +67,10 @@ if($txtfile eq '') {
 	&usage();
 }
 
-if( $dbfile eq '') {
-	$txtfile =~ /([^\/]+)\.txt$/i;
-	$dbfile = $1 . ".sgml";
+unless ($dbfile) {
+	($basename, $path, $ext) = fileparse($txtfile);
+	$dbfile = $basename;
+	$dbfile =~ s/\..*?$/\.sgml/;
 }
 
 $buf = '';
@@ -79,14 +84,6 @@ close(DB);
 exit(0);
 
 # -----------------------------------------------------------
-
-sub usage {
-	print "Usage: txt2db [-v] [-h|-o <sgml file>] <text file>\n";
-	print "-h, --help         show this usage message.\n";
-	print "-v, --verbose      show diagnostic output.\n";
-	print "-o, --output-to    write to the specified file.\n";
-	exit($error);
-}
 
 sub proc_txt {
 	my($f) = @_;
@@ -136,10 +133,14 @@ sub proc_txt {
 			$link=~ s/\n//;
 			$link =~ s/.*?\[\[//;
 			$link =~ s/\]\].*?$//;
-			if ( $link =~ /\|/) {
+			if ($link =~ /\|/) {
 				$linkname = $link;
 				$link =~ s/\|.+$//;
 				$linkname =~ s/^\S+\|//;
+			} elsif ($link =~ /\s/) {
+				$linkname = $link;
+				$link =~ s/\s.*$//;
+				$linkname =~ s/^.*?\s//;
 			} else {
 				$linkname = $link;
 			}
@@ -148,10 +149,12 @@ sub proc_txt {
 			#
 			if ($link =~ /mailto:/) {
 				$linkname =~ s/^mailto://;
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			} elsif ($link =~ /wiki:/) {
 				$link =~ s/^wiki:/http:\/\/www\.wikipedia\.com\/wiki\//;
 				$link =~ s/\ /_/;
 				$linkname =~ s/^wiki://;
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 			} elsif ($link =~ /ldp:/) {
 				$link =~ s/^ldp://;
 				$linkname =~ s/^ldp://;
@@ -173,8 +176,12 @@ sub proc_txt {
 				if ($link eq '') {
 					$linkname = "ERROR: LDP namespace resolution failure on $linkname";
 				}
-			}			
-			$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			} elsif ($link =~ /^file:/) {
+				$line =~ s/\[\[.*?\]\]/<filename>$linkname<\/filename>/;
+			} else {
+				$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+			}
 		}
 
 		# emphasis
@@ -185,11 +192,11 @@ sub proc_txt {
 		}
 
 		# filename
-		#
-		while ($line =~ /\[.*?\]/) {
-			$line =~ s/\[/<filename>/;
-			$line =~ s/\]/<\/filename>/;
-		}
+		# 
+#		while ($line =~ /\[.*?\]/) {
+#			$line =~ s/\[/<filename>/;
+#			$line =~ s/\]/<\/filename>/;
+#		}
 
 		# this block defines DocBook structures that won't be broken up with 
 		# paragraphs when we hit empty lines:
@@ -497,3 +504,12 @@ sub splittitle {
 	$id =~ s/\s+$//;
 	$id =~ s/^\s+//;
 }
+
+sub usage {
+	print "Usage: txt2db [-v] [-h|-o <sgml file>] <text file>\n";
+	print "-o, --output-to    write to the specified file.\n";
+	print "-v, --verbose      show diagnostic output.\n";
+	print "-h, --help         show this usage message.\n";
+	exit($error);
+}
+
