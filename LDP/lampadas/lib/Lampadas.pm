@@ -430,67 +430,79 @@ sub LintadasDoc {
 	
 	# Load meta-data from source files
 	#
-	$DB->Exec("UPDATE document SET format=NULL WHERE doc_id=$doc_id");
-	$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
-	$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
-	my %docfiles = DocFiles($foo, $doc_id);
-	foreach $key (keys %docfiles) {
-		$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
-		$filename = $cvsroot . $key;
-		if (-e $filename) {
-			if (-r $filename) {
-				my $format = `file -b $filename`;
-				if ($format =~ /SGML/) {
-					$format = 'SGML';
-					$readmetadata = 1;
-				} elsif ($format =~ /XML/) {
-					$format = 'XML';
-					$readmetadata = 1;
-				} elsif ($format =~ /ISO\-8859\ English\ text/is) {
-					$format = 'WIKI';
-					$readmetadata = 0;
-					$dtd = 'N/A';
-					$dtd_version = '';
-				} else {
-					AddError($doc_id, "Unrecognized file format $format ($key)");
-					next;
-				}
-
-				if ($readmetadata) {
-					$dtd_version = `grep -i DOCTYPE $filename`;
-					if ($dtd_version =~ /DocBook/i) {
-						$dtd = "DocBook";
-						$dtd_version =~ s/^.*?DocBook\s+//i;
-						$dtd_version =~ s/\/\/.*//;
-						$dtd_version =~ s/^XML\s*//;
-						$dtd_version =~ s/^V//i;
-					} elsif ($dtd_version =~ /LinuxDoc/i) {
-						$dtd = "LinuxDoc";
-						$dtd_version='';
-					} else {
-						$dtd = '';
+	if ($doc{pub_status} eq 'N') {
+		$DB->Exec("UPDATE document SET format=NULL WHERE doc_id=$doc_id");
+		$DB->Exec("UPDATE document SET dtd=NULL WHERE doc_id=$doc_id");
+		$DB->Exec("UPDATE document SET dtd_version=NULL WHERE doc_id=$doc_id");
+		my %docfiles = DocFiles($foo, $doc_id);
+		foreach $key (keys %docfiles) {
+			$DB->Exec("UPDATE document_file SET format=NULL WHERE doc_id=$doc_id AND filename=" . wsq($key));
+			$filename = $cvsroot . $key;
+			if (-e $filename) {
+				if (-r $filename) {
+					my $format = `file -b $filename`;
+					if ($format =~ /SGML/) {
+						$format = 'SGML';
+						$readmetadata = 1;
+					} elsif ($format =~ /XML/) {
+						$format = 'XML';
+						$readmetadata = 1;
+					} elsif ($format =~ /ISO\-8859\ English\ text/is) {
+						$format = 'WIKI';
+						$readmetadata = 0;
+						$dtd = 'N/A';
 						$dtd_version = '';
+					} else {
+						$fileext = $filename;
+						$fileext =~ s/^.*\.//;
+						if ($fileext =~ /SGML/i) {
+							$format = 'SGML';
+							$readmetadata = 1;
+						} elsif ($fileext =~ /XML/i) {
+							$format = 'XML';
+							$readmetadata = 1;
+						} else {
+							AddError($doc_id, "Unrecognized file format $format ($key)");
+							next;
+						}
 					}
-				}
-				$DB->Exec("UPDATE document_file SET format=" . wsq($format) . " WHERE doc_id=$doc_id AND filename=" . wsq($key));
-				$DB->Exec("UPDATE document SET format=" . wsq($format) . " WHERE doc_id=$doc_id");
-				$DB->Exec("UPDATE document SET dtd=" . wsq($dtd) . " WHERE doc_id=$doc_id");
-				$DB->Exec("UPDATE document SET dtd_version=" . wsq($dtd_version) . " WHERE doc_id=$doc_id");
-				
-				unless (-w $filename) {
-					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
+
+					if ($readmetadata) {
+						$dtd_version = `grep -i DOCTYPE $filename`;
+						if ($dtd_version =~ /DocBook/i) {
+							$dtd = "DocBook";
+							$dtd_version =~ s/^.*?DocBook\s+//i;
+							$dtd_version =~ s/\/\/.*//;
+							$dtd_version =~ s/^XML\s*//;
+							$dtd_version =~ s/^V//i;
+						} elsif ($dtd_version =~ /LinuxDoc/i) {
+							$dtd = "LinuxDoc";
+							$dtd_version='';
+						} else {
+							$dtd = '';
+							$dtd_version = '';
+						}
+					}
+					$DB->Exec("UPDATE document_file SET format=" . wsq($format) . " WHERE doc_id=$doc_id AND filename=" . wsq($key));
+					$DB->Exec("UPDATE document SET format=" . wsq($format) . " WHERE doc_id=$doc_id");
+					$DB->Exec("UPDATE document SET dtd=" . wsq($dtd) . " WHERE doc_id=$doc_id");
+					$DB->Exec("UPDATE document SET dtd_version=" . wsq($dtd_version) . " WHERE doc_id=$doc_id");
+					
+					unless (-w $filename) {
+						$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not writable ($key)')");
+					}
+				} else {
+					$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
+					$DB->Exec("UPDATE document_file SET format='' WHERE doc_id=$doc_id AND filename=" . wsq($key));
+					$DB->Exec("UPDATE document SET format='' WHERE doc_id=$doc_id");
+					$DB->Exec("UPDATE document SET dtd='' WHERE doc_id=$doc_id");
+					$DB->Exec("UPDATE document SET dtd_version='' WHERE doc_id=$doc_id");
 				}
 			} else {
-				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not readable ($key)')");
-				$DB->Exec("UPDATE document_file SET format='' WHERE doc_id=$doc_id AND filename=" . wsq($key));
-				$DB->Exec("UPDATE document SET format='' WHERE doc_id=$doc_id");
-				$DB->Exec("UPDATE document SET dtd='' WHERE doc_id=$doc_id");
-				$DB->Exec("UPDATE document SET dtd_version='' WHERE doc_id=$doc_id");
+				$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
 			}
-		} else {
-			$DB->Exec("INSERT INTO document_error(doc_id, error) VALUES ($doc_id, 'File not found ($key)')");
 		}
-	}
+	} # if pub_status eq 'N'
 }
 
 sub DocFiles {
@@ -1275,7 +1287,6 @@ sub DocsTable {
 	$chkMAINTAINED   = Param($foo,'chkMAINTAINED');
 	$chkLICENSE      = Param($foo,'chkLICENSE');
 	$chkVERSION      = Param($foo,'chkVERSION');
-	$chkFILENAME     = Param($foo,'chkFILENAME');
 	$chkRATING       = Param($foo,'chkRATING');
 
 	$SORT	= Param($foo,'strSORT');
@@ -1303,7 +1314,6 @@ sub DocsTable {
 	$MAINTAINED = "";
 	$LICENSE = "";
 	$VERSION = "";
-	$FILENAME = "";
 	$RATING = "";
 
 	if ( $chkSTATUS eq "on" ) { $STATUS = "checked "; }
@@ -1319,7 +1329,6 @@ sub DocsTable {
 	if ( $chkMAINTAINED eq "on" ) { $MAINTAINED = "checked "; }
 	if ( $chkLICENSE eq "on" ) { $LICENSE = "checked "; }
 	if ( $chkVERSION eq "on" ) { $VERSION = "checked "; }
-	if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
 	if ( $chkRATING eq "on" ) { $RATING = "checked "; }
 
 	my $table = '';
@@ -1361,7 +1370,6 @@ sub DocsTable {
 		$table .= "<input type=checkbox $MAINTAINED name=chkMAINTAINED>Maintained<br>\n";
 		$table .= "<input type=checkbox $LICENSE name=chkLICENSE>License<br>\n";
 		$table .= "<input type=checkbox $VERSION name=chkVERSION>Version<br>\n";
-		$table .= "<input type=checkbox $FILENAME name=chkFILENAME>Filename<br>\n";
 	}
 	$table .= "</td></tr></table>\n";
 	$table .= "</td>\n";
@@ -1425,7 +1433,6 @@ sub DocsTable {
 	$table .= "<th>Maintained</th>" if (Param($foo, chkMAINTAINED));
 	$table .= "<th>License</th>" if (Param($foo, chkLICENSE));
 	$table .= "<th>Version</th>" if (Param($foo, chkVERSION));
-	$table .= "<th>Filename</th>" if (Param($foo, chkFILENAME));
 	$table .= "<th>Class</th>" if (Param($foo, chkCLASS));
 	$table .= "<th>Format</th>" if (Param($foo, chkFORMAT));
 	$table .= "<th>DTD</th>" if (Param($foo, chkDTD));
@@ -1972,7 +1979,7 @@ sub DocFilesTable {
 		$table .= "<td>\n";
 		$table .= "<a href='file_edit.pl?filename=$filename&doc_id=$doc_id'>" . EditImage() . "</a>";
 		$table .= "</td>\n";
-		$table .= "<td>\n";
+		$table .= "<td style='width:100%'>\n";
 		$table .= "<form method=POST action='document_file_save.pl'>";
 		$table .= "<input type=hidden name=doc_id value='$doc_id'>";
 		$table .= "<input type=hidden name='oldfilename' value=" . wsq($filename) . "</input>\n";
