@@ -1,0 +1,607 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<!-- Title information -->
+
+<title>Chroot-BIND8 HOWTO
+<author>Scott Wunsch, <tt>scott at wunsch.org</>
+<date>v1.4, 1 July 2001
+<abstract>
+This document describes installing the BIND 8 nameserver to run in a chroot
+jail and as a non-root user, to provide added security and minimise the
+potential effects of a security compromise.  This version of the document
+covers the old but still popular BIND 8; there is another document which
+provides similar information for BIND 9.
+</abstract>
+
+<!-- Table of contents -->
+<toc>
+
+<!-- Begin the document -->
+
+<sect>Introduction
+
+<p>
+This is the Chroot-BIND8 HOWTO; see <ref id="where" Name="Where?"> for the
+master site, which contains the latest copy.  It is assumed that you already
+know how to configure and use BIND (the Berkeley Internet Name Domain).  If
+not, I would recommend that you read the DNS HOWTO first.  It is also assumed
+that you have a basic familiarity with compiling and installing software on
+your UNIX-like system.
+
+<sect1>What?
+
+<p>
+This document describes some extra security precautions that you can take when
+you install BIND.  It explains how to configure BIND so that it resides in a
+``chroot jail'', meaning that it cannot see or access files outside its own
+little directory tree.  We shall also configure it to run as a non-root user.
+
+The idea behind chroot is fairly simple.  When you run BIND (or any other
+process) in a chroot jail, the process is simply unable to see any part of the
+filesystem outside the jail.  For example, in this document, we'll set BIND up
+to run chrooted to the directory <tt>/chroot/named</>.  Well, to BIND, the
+contents of this directory will appear to be <tt>/</>, the root directory.
+Nothing outside this directory will be accessible to it.  You've probably
+encounted a chroot jail before, if you've ever ftped into a public system.
+
+<sect1>Why?
+
+<p>
+The idea behind running BIND in a chroot jail is to limit the amount of access
+any malicious individual could gain by exploiting vulnerabilities in BIND.  It
+is for the same reason that we run BIND as a non-root user.
+
+This should be considered as a supplement to the normal security precautions
+(running the latest version, using access control, etc.), not a replacement for
+them.
+
+If you're interested in DNS security, you might also be interested in a few
+other products.  Building BIND with <url
+url="http://www.immunix.org/products.html#stackguard" name="StackGuard"> would
+probably be a good idea for even more protection.  Using it is easy; it's
+just like using ordinary gcc.  Also, <url
+url="http://cr.yp.to/dnscache.html" name="DNScache"> is a secure replacement
+for BIND, written by Dan Bernstein.  Dan is the author of qmail, and DNScache
+appears to follow a similar philosophy.
+
+<sect1>Where?<label id="where">
+
+<p>
+The latest version of this document is always available from the web site of the
+Linux/Open Source Users of Regina, Sask., at <url
+url="http://www.losurs.org/docs/howto/Chroot-BIND8.html">.
+
+There is now a Japanese translation of this document, maintained by <tt>nakano
+at apm.seikei.ac.jp</>.  This is available at <url
+url="http://www.linux.or.jp/JF/JFdocs/Chroot-BIND8-HOWTO.html">.
+
+BIND is available from <url url="http://www.isc.org/" name="the Internet
+Software Consortium"> at <url url="http://www.isc.org/bind.html">.  As of this
+writing, the current version of BIND 8 is 8.2.4.  BIND 9.x has now been
+released, and has been around for a little while.  You may consider upgrading
+to it; the chroot process is certainly much simpler and cleaner.  If you are
+running BIND 9, then you want the Chroot-BIND HOWTO, which should be available
+from the same location as this document.
+
+Keep in mind that there are <bf>known</> security holes in all
+versions of BIND 8 less than <bf>8.2.3</>, so make very sure that you're
+running the latest version!
+
+<sect1>How?
+
+<p>
+I wrote this document based on my experiences in setting BIND up in a chroot
+environment.  In my case, I already had an existing BIND installation in the
+form of a package that came with my Linux distribution.  I'll assume that most
+of you are probably in the same situation, and will simply be transferring over
+and modifying the configuration files from your existing BIND installation, and
+then removing the package before installing the new one.  Don't remove the
+package yet, though; we may want some files from it first.
+
+If this is not the case for you, you should still be able to follow this
+document.  The only difference is that, where I refer to copying an existing
+file, you first have to create it yourself.  The DNS HOWTO may be helpful for
+this.
+
+<sect1>Disclaimer
+
+<p>
+These steps worked for me, on my system.  Your mileage may vary.  This is but
+one way to approach this; there are other ways to set the same thing up
+(although the general approach will be the same).  It just happens that this
+was the first way that I tried that worked, so I wrote it down.
+
+My BIND experience to date has been installing on Linux servers.  However, most
+of the instructions in this document should be easily applicable to other
+flavours of UNIX as well, and I shall try to point out differences of which I am
+aware.
+
+<sect>Preparing the Jail
+
+<sect1>Creating a User
+
+<p>
+As mentioned in the introduction, it's not a good idea to run BIND as root.  So,
+before we begin, let's create a separate user for BIND.  Note that you should
+never use an existing generic user like <tt>nobody</> for this purpose.
+However, some distributions, such as SuSE and Linux Mandrake have started
+providing a specific user (generally called <tt>named</>); you can simply adapt
+this user for our purposes, if you like.
+
+This requires adding a line something like the following to <tt>/etc/passwd</>:
+<tscreen><verb>
+named:x:200:200:Nameserver:/chroot/named:/bin/false
+</verb></tscreen>
+And one like this to <tt>/etc/group</>:
+<tscreen><verb>
+named:x:200:
+</verb></tscreen>
+This creates a user and group called <tt>named</> for BIND.  Make sure that the
+UID and GID (both 200 in this example) are unique on your system.  The shell is
+set to <tt>/bin/false</> because this user will never need to log in.
+
+<sect1>Directory Structure
+
+<p>
+Now, we must set up the directory structure that we will use for the chroot jail
+in which BIND will live.  This can be anywhere on your filesystem; the truly
+paranoid may even want to put it on a separate volume.  I shall assume that you
+will use <tt>/chroot/named</>.  Let's start by creating the following directory
+structure:
+
+<tscreen><verb>
+/chroot
+  +-- named
+       +-- bin
+       +-- dev
+       +-- etc
+       |    +-- namedb
+       +-- lib
+       +-- var
+            +-- run
+</verb></tscreen>
+
+<sect1>Placing the BIND Data
+
+<p>
+Assuming that you have already done a conventional installation of BIND and are
+using it, you will already have an existing <tt>named.conf</> and zone files.
+These files must now be moved (or copied, to be safe) into the chroot jail, so
+that BIND can get at them.  <tt>named.conf</> goes in <tt>/chroot/named/etc</>,
+and the zone files can go in <tt>/chroot/named/etc/namedb</>.  For example:
+<tscreen><verb>
+# cp -p /etc/named.conf /chroot/named/etc/
+
+# cp -a /var/named/* /chroot/named/etc/namedb/
+</verb></tscreen>
+
+BIND will likely need to write to the <tt>namedb</> directory, and probably some
+of the files in it.  For example, if your DNS serves as a slave for a zone, it
+will have to update that zone file.  Also, BIND can dump statistical
+information, and does so in this directory.  For that reason, you should
+probably make the <tt>named</> user the owner of this directory and its contents:
+<tscreen><verb>
+# chown -R named:named /chroot/named/etc/namedb
+</verb></tscreen>
+BIND will also need to write to the <tt>/var/run</> directory, to put its
+pidfile and ndc socket there, so let's allow it to do so:
+<tscreen><verb>
+# chown named:named /chroot/named/var/run
+</verb></tscreen>
+
+<sect1>System Support Files
+
+<p>
+Once BIND is running in the chroot jail, it will not be able to access files
+outside the jail <bf>at all</>.  However, it needs to access a few key files, such
+as the system's C library.  Exactly what libraries are required will depend on
+your flavour of UNIX.  For most modern Linux systems, the following commands
+will be sufficient to put the necessary libraries in place:
+<tscreen><verb>
+# cd /chroot/named/lib
+# cp -p /lib/libc-2.*.so .
+# ln -s libc-2.*.so libc.so.6
+# cp -p /lib/ld-2.*.so .
+# ln -s ld-2.*.so ld-linux.so.2
+</verb></tscreen>
+As an alternative, you could simply build statically-linked versions of the BIND
+binaries to put in your chroot jail.  You should also copy <tt>ldconfig</> into
+the jail, and run it to create an <tt>etc/ld.so.cache</> for the jail environment.
+The following commands could take care of this:
+<tscreen><verb>
+# cp /sbin/ldconfig /chroot/named/bin/
+# chroot /chroot/named /bin/ldconfig -v
+</verb></tscreen>
+
+BIND needs one more system file in its jail:  good ol' <tt>/dev/null</>.  Again,
+the exact command necessary to create this device node may vary from system to
+system; check your <tt>/dev/MAKEDEV</> script to be sure.  Some systems may also
+require <tt>/dev/zero</>.  For most Linux systems, we can use the following
+command:
+<tscreen><verb>
+# mknod /chroot/named/dev/null c 1 3
+</verb></tscreen>
+
+Finally, you need a couple extra files in the <tt>/etc</> directory inside the
+jail.  In particular, you must copy <tt>/etc/localtime</> (this sometimes known
+as <tt>/usr/lib/zoneinfo/localtime</> on some systems) in there so that BIND
+logs things with the right time on them, and you must make a simple <tt>group</>
+file with the <tt>named</> group in it.  The following two commands will take
+care of this:
+<tscreen><verb>
+# cp /etc/localtime /chroot/named/etc/
+
+# echo 'named:x:200:' > /chroot/named/etc/group
+</verb></tscreen>
+
+Keep in mind that the GID, 200 in this example, must match the one you defined
+in the real <tt>/etc/group</> above.
+
+<sect1>Logging<label id="logging">
+
+<p>
+Unlike a conventional jailbird, BIND can't just scribble its log entries on the
+walls :-).  Normally, BIND logs through <tt>syslogd</>, the system logging daemon.
+However, this type of logging is performed by sending the log entries to the
+special socket <tt>/dev/log</>.  Since this is outside the jail, BIND can't use
+it any more.  Fortuantely, there are a couple options to work around this.
+
+<sect2>The Ideal Solution
+
+<p>
+The ideal solution to this dilemma requires a reasonably recent version of
+<tt>syslogd</> which supports the <tt>-a</> switch introduced by OpenBSD.
+Check the manpage for your <tt>syslogd(8)</> to see if you have such a
+version.
+
+If you do, all you have to do is add the switch ``<tt>-a
+/chroot/named/dev/log</>'' to the command line when you launch <tt>syslogd</>.
+On systems which use a full SysV-init (which includes most Linux distributions),
+this is typically done in the file <tt>/etc/rc.d/init.d/syslog</>.  For example,
+on my Red Hat Linux system, I changed the line
+<tscreen><verb>
+daemon syslogd -m 0
+</verb></tscreen>
+to
+<tscreen><verb>
+daemon syslogd -m 0 -a /chroot/named/dev/log
+</verb></tscreen>
+
+On Caldera OpenLinux systems, they use a daemon launcher called <tt>ssd</>,
+which reads configuration from <tt>/etc/sysconfig/daemons/syslog</>.  You
+simply need to modify the options line to look like this:
+<tscreen><verb>
+OPTIONS_SYSLOGD="-m 0 -a /chroot/named/dev/log"
+</verb></tscreen>
+
+Similarly, on SuSE systems, I'm told that the best place to add this switch
+is in the <tt>/etc/rc.config</> file.  Changing the line
+<tscreen><verb>
+SYSLOGD_PARAMS=""
+</verb></tscreen>
+to read
+<tscreen><verb>
+SYSLOGD_PARAMS="-a /chroot/named/dev/log"
+</verb></tscreen>
+should do the trick.
+
+Once you've figured out how to make this change for your system, simply
+restart <tt>syslogd</>, either by killing it and launching it again (with
+the extra parameters), or by using the SysV-init script to do it for you:
+<tscreen><verb>
+# /etc/rc.d/init.d/syslog stop
+# /etc/rc.d/init.d/syslog start
+</verb></tscreen>
+
+Once it's been restarted, you should see a ``file'' in <tt>/chroot/named/dev</>
+called <tt>log</>, that looks something like this:
+
+<verb>srw-rw-rw-   1 root     root            0 Mar 13 20:58 log</verb>
+
+<sect2>The Other Solutions
+
+<p>
+If you have an older <tt>syslogd</>, then you'll have to find another way to do
+your logging.  There are a couple programs out there, such as <tt>holelogd</>,
+which are designed to help by acting as a ``proxy'' and accepting log entries
+from the chrooted BIND and passing them out to the regular <tt>/dev/log</>
+socket.
+
+Alteratively, you can simply configure BIND to log to files instead of going
+through syslog.  See the BIND documentation for more details if you choose to go
+this route.
+
+<sect>Compiling BIND<label id="compiling">
+
+<p>
+You should be able to find the BIND source by visiting <url
+url="http://www.isc.org/bind.html">.  You need the <tt>bind-src.tar.gz</>
+package.  Be sure to get the latest version!
+
+<sect1>Modifying Paths
+
+<p>
+Things can get a bit confusing at this point, because different parts of the
+BIND package will be referring to the same directories by different names
+(depending on whether or not they're running inside the jail).  I'll try not to
+confuse you <bf>too</> much :-).
+
+The main directory that we have to worry about here is <tt>/var/run</>, because
+its contents are required for both the main <tt>named</> daemon (inside the
+jail), and the <tt>ndc</> utility (on the outside).  We'll start by setting
+everything up to find this directory from the outside world.  To do this, we
+need to modify <tt>src/port/linux/Makefile.set</> (substitute your port's
+directory if you're not running Linux), and change the line
+<tscreen><verb>
+DESTRUN=/var/run
+</verb></tscreen>
+to
+<tscreen><verb>
+DESTRUN=/chroot/named/var/run
+</verb></tscreen>
+While you're in there, you may want to change the other destination paths from
+<tt>/usr</> to <tt>/usr/local</>.
+
+Now everything should be able to find that directory... except the <tt/named/
+daemon itself, to which it's still just <tt>/var/run</> inside the jail.  We can
+get around this by making a small change in the <tt/named/ source.  In the file
+<tt>src/bin/named/named.h</>, find the line
+<tscreen><verb>
+#include "pathnames.h"
+</verb></tscreen>
+and add the following line immediately after it
+<tscreen><verb>
+#define _PATH_NDCSOCK    "/var/run/ndc"
+</verb></tscreen>
+This way, <tt/named/ will ignore our definition of <tt/DESTRUN/ over in
+<tt/Makefile.set/ and use the correct location (from its perspective in the
+chroot jail).  You will notice some warnings about redefinitions of
+_PATH_NDCSOCK when you do the build; just ignore them.
+
+<sect1>Doing the Build
+
+<p>
+You should now be able to compile BIND as normal, following the instructions in
+the <tt/INSTALL/ file.  At this stage, we only want to compile BIND, not install
+it.  Don't go too far when following the <tt/INSTALL/ file.  Essentially, it's
+just <tt/make clean/, <tt/make depend/, and <tt/make/.
+
+<sect>Installing Your Shiny New BIND<label id="installing">
+
+<p>
+I should mention that if you have an existing installation of BIND, such as from
+an RPM, you should probably remove it before installing the new one.  On Red Hat
+systems, this probably means removing the packages <tt/bind/ and
+<tt/bind-utils/, and possibly <tt/bind-devel/ and <tt/caching-nameserver/, if
+you have them.
+
+You may want to save a copy of the init script (e.g.,
+<tt>/etc/rc.d/init.d/named</>), if any, before doing so; it'll be useful later
+on.
+
+<sect1>Installing the Tools Outside the Jail
+
+<p>
+This is the easy part :-).  Just run <tt/make install/ and let it take care of
+it for you.  You may want to <tt>chmod 000 /usr/local/sbin/named</> afterwards,
+to make sure you don't accidentally run the non-chrooted copy of BIND.  (This
+is <tt>/usr/sbin/named</> if you didn't tell it to go in <tt>/usr/local/sbin</>
+like I suggested.)
+
+<sect1>Installing the Binaries in the Jail
+
+<p>
+Only two parts of the package have to live inside the chroot jail:  the main
+<tt/named/ daemon itself, and <tt/named-xfer/, which it uses for zone transfers.
+You can simply copy them in from the source tree:
+<tscreen><verb>
+# cp src/bin/named/named /chroot/named/bin
+
+# cp src/bin/named-xfer/named-xfer /chroot/named/bin
+</verb></tscreen>
+
+<sect1>Setting up the Init Script
+
+<p>
+If you have an existing init script from your distribution, it would probably be
+best simply to modify it to run <tt>/chroot/named/bin/named</>, with the
+appropriate switches.  The switches are... <it/(drumroll please...)/
+<itemize>
+<item><tt/-u named/, which tells BIND to run as the user <tt/named/, rather than
+<tt/root/.
+<item><tt/-g named/, to run BIND under the group <tt/named/ too, rather than
+<tt/root/ or <tt/wheel/.
+<item><tt>-t /chroot/named</>, which tells BIND to chroot itself to the jail
+that we've set up.
+</itemize>
+
+The following is the init script I use with my Red Hat 6.0 system.  As you can
+see, it is almost exactly the same as the way it shipped from Red Hat.  I have
+also modified the <tt>ndc restart</> command so that it restarts the server
+properly, and keeps it chrooted.  You should probably do the same in your init
+script, even if you don't copy this one.
+<tscreen><code>
+#!/bin/sh
+#
+# named           This shell script takes care of starting and stopping
+#                 named (BIND DNS server).
+#
+# chkconfig: 345 55 45
+# description: named (BIND) is a Domain Name Server (DNS) \
+# that is used to resolve host names to IP addresses.
+# probe: true
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+[ -f /chroot/named/bin/named ] || exit 0
+
+[ -f /chroot/named/etc/named.conf ] || exit 0
+
+# See how we were called.
+case "$1" in
+  start)
+        # Start daemons.
+        echo -n "Starting named: "
+        daemon /chroot/named/bin/named -u named -g named -t /chroot/named
+        echo
+        touch /var/lock/subsys/named
+        ;;
+  stop)
+        # Stop daemons.
+        echo -n "Shutting down named: "
+        killproc named
+        rm -f /var/lock/subsys/named
+        echo
+        ;;
+  status)
+        /usr/local/sbin/ndc status
+        exit $?
+        ;;
+  restart)
+        /usr/local/sbin/ndc -n /chroot/named/bin/named "restart -u named -g named -t /chroot/named"
+        exit $?
+        ;;
+  reload)
+        /usr/local/sbin/ndc reload
+        exit $?
+        ;; 
+  probe)
+        # named knows how to reload intelligently; we don't want linuxconf
+        # to offer to restart every time
+        /usr/local/sbin/ndc reload >/dev/null 2>&1 || echo start
+        exit 0
+        ;;
+  
+  *)
+        echo "Usage: named {start|stop|status|restart}"
+        exit 1
+esac
+
+exit 0
+</code></tscreen>
+
+On Caldera OpenLinux systems, you simply need to modify the variables defined
+at the top, and it will apparently take care of the rest for you:
+<tscreen><verb>
+NAME=named
+DAEMON=/chroot/named/bin/$NAME
+OPTIONS="-t /chroot/named -u named -g named"
+</verb></tscreen>
+
+<sect1>Configuration Changes
+
+<p>
+You will also have to add or change a few options in your <tt>named.conf</> to
+keep the various directories straight.  In particular, you should add (or
+change, if you already have them) the following directives in the <tt>options</>
+section:
+<tscreen><verb>
+directory "/etc/namedb";
+pid-file "/var/run/named.pid";
+named-xfer "/bin/named-xfer";
+</verb></tscreen>
+Since this file is being read by the <tt>named</> daemon, all the paths are of
+course relative to the chroot jail.
+
+Some people have also reported having to add an extra block to their
+<tt>named.conf</> to get <tt>ndc</> working properly:
+<tscreen><verb>
+controls {
+    unix "/var/run/ndc" perm 0600 owner 0 group 0;
+};
+</verb></tscreen>
+
+<sect>The End
+
+<sect1>Launching BIND
+
+<p>
+Everything should be set up, and you should be ready to put your new, more
+secure BIND into action.  Assuming you set up a SysV-style init script, you can
+simply launch it as:
+<tscreen><verb>
+# /etc/rc.d/init.d/named start
+</verb></tscreen>
+Make sure you kill any old versions of BIND still running before doing this.
+
+If you take a look at your logs, you should find the initialisation messages
+that BIND spits out when it loads.  (If not, there's a problem with your <ref
+id="logging" name="logging configuration"> that you need to fix.)  Amongst those
+messages, BIND should tell you that it chrooted successfully, and that it is
+running as the user and group <tt>named</>.  If not, you have a problem.
+
+<sect1>That's It!
+
+<p>
+You can go take a nap now ;-).
+
+<sect>Appendix - Upgrading BIND Later<label id="upgrading">
+
+<p>So, you had BIND 8.2.2_P7 all nicely chrooted and tweaked to your taste...
+and then you hear this nasty rumour that there's a remotely-exploitable root
+hole in that version too, and you need to upgrade to 8.2.3 right away.  Do
+you have to go through this whole long process to install this new version?
+
+Nope.  In fact, you really just need the section on <ref id="compiling" 
+name="Compiling BIND"> and the first two parts of the section on <ref
+id="installing" name="Installing BIND"> (installing the binaries outside and
+inside the jail, respectively).
+
+The rest of the HOWTO deals with setting up the jail and other things like
+that, which shouldn't need to be altered between versions of BIND.  You can
+just dump the new binaries in over top of the old ones, and you're good to go.
+But don't forget to kill and restart BIND afterwards, or the old, vulnerable
+version will still be running!
+
+<sect>Appendix - Thanks<label id="thanks">
+
+<p>
+I'd like to thank the following people for their assistance in the creation
+of this HOWTO:
+
+<itemize>
+
+<item>Lonny Selinger <tt>&lt;lonny at abyss.za.org&gt;</> for "testing" the
+first version of this HOWTO and making sure that I didn't miss any steps.
+
+<item>Chirik <tt>&lt;chirik at CastleFur.COM&gt;</>, Dwayne Litzenberger
+<tt>&lt;dlitz at dlitz.net&gt;</>, Phil Bambridge <tt>&lt;phil.b at
+cableinet.co.uk&gt;</>, Robert Cole <tt>&lt;rcole at metrum-datatape.com&gt;</>,
+Colin MacDonald <tt>&lt;colinm at telus.net&gt;</>, and others for pointing out
+errors, omissions, and providing other useful advice to make this HOWTO even
+better.
+
+<item>Erik Wallin <tt>&lt;erikw at sec.se&gt;</> and Brian Cervenka
+<tt>&lt;brian at zerobelow.org&gt;</> for providing good suggestions for
+further tightening the jail.
+
+</itemize>
+
+And last but certainly not least, I'd like to thank Nakano Takeo <tt>&lt;nakano
+at apm.seikei.ac.jp&gt;</> for translating the Chroot-BIND HOWTO into
+Japanese.  You can find his translation at <url
+url="http://www.linux.or.jp/JF/JFdocs/Chroot-BIND-HOWTO.html">.
+
+<sect>Appendix - Document Distribution Policy<label id="legal">
+
+<p>
+Copyright &copy; Scott Wunsch, 2000-2001.  This document may be distributed only
+subject to the terms set forth in the LDP licence at <url
+url="http://metalab.unc.edu/LDP/COPYRIGHT.html">.
+
+This HOWTO is free documentation; you can redistribute it and/or modify it under
+the terms of the LDP licence.  It is distributed in the hope that it will be
+useful, but <bf>without any warranty</>; without even the impled warranty of
+merchantability or fitness for a particular purpose.  See the LDP licence for
+more details.
+
+</article>
