@@ -1,45 +1,45 @@
 #~/bin/bash
 
 # lookup tables
-psql ldp -f class.sql
-psql ldp -f dtd.sql
-psql ldp -f format.sql
-psql ldp -f pub_status.sql
-psql ldp -f review_status.sql
-psql ldp -f role.sql
-psql ldp -f topic.sql
-psql ldp -f subtopic.sql
+psql ldp -qf class.sql
+psql ldp -qf dtd.sql
+psql ldp -qf format.sql
+psql ldp -qf pub_status.sql
+psql ldp -qf review_status.sql
+psql ldp -qf role.sql
+psql ldp -qf topic.sql
+psql ldp -qf subtopic.sql
 
-psql ldp -f document.sql
+psql ldp -qf document.sql
 
-psql ldp -f notes.sql
+psql ldp -qf notes.sql
 
-psql ldp -f document_wiki.sql
-psql ldp -f document_topic.sql
-psql ldp -f document_rev.sql
+psql ldp -qf document_wiki.sql
+psql ldp -qf document_topic.sql
+psql ldp -qf document_rev.sql
 
-psql ldp -f maintainer.sql
-psql ldp -f maintainer_notes.sql
-psql ldp -f document_maintainer.sql
+psql ldp -qf maintainer.sql
+psql ldp -qf maintainer_notes.sql
+psql ldp -qf document_maintainer.sql
 
-psql ldp -f editor.sql
-psql ldp -f editor_role.sql
-psql ldp -f document_editor.sql
+psql ldp -qf editor.sql
+psql ldp -qf editor_role.sql
+psql ldp -qf document_editor.sql
 
-psql ldp -f audience.sql
-psql ldp -f document_audience.sql
+psql ldp -qf audience.sql
+psql ldp -qf document_audience.sql
 
-psql ldp -f doc_vote.sql
+psql ldp -qf doc_vote.sql
 
-psql ldp -f stats.sql
-psql ldp -f stats_cdf.sql
+psql ldp -qf stats.sql
+psql ldp -qf stats_cdf.sql
 
-psql ldp -f license.sql
+psql ldp -qf license.sql
 
-psql ldp -f volunteer.sql
+psql ldp -qf volunteer.sql
 
-psql ldp -f username.sql
+psql ldp -qf username.sql
 
 #views
-psql ldp -f vw_gfdl_emails.sql
-psql ldp -f vw_gfdl_docs.sql
+psql ldp -qf vw_gfdl_emails.sql
+psql ldp -qf vw_gfdl_docs.sql

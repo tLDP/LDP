@@ -3,7 +3,7 @@ DROP TABLE document_wiki;
 CREATE TABLE document_wiki (
 	doc_id		INT4	NOT NULL,
 	revision	INT4	NOT NULL,
-	date_entered	TIMESTAMP NOT NULL DEFAULT timestamp(date 'today'),
+	date_entered	TIMESTAMP NOT NULL DEFAULT now(),
 	wiki		TEXT,
 	notes		CHAR(256),
 	username	CHAR(12)

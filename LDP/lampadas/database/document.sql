@@ -24,6 +24,7 @@ CREATE TABLE document
 	license_id		INT4,
 	license			CHAR(12),
 	abstract		TEXT,
+	wiki			TEXT,
 	rating			REAL,
 
 	PRIMARY KEY (doc_id)

@@ -14,6 +14,3 @@ CREATE TABLE username (
 
 GRANT ALL ON username TO "www-data";
 GRANT SELECT ON username TO root;
-
-INSERT INTO username(username, first_name, surname, maintainer_id, email, admin)
-	VALUES ('david', 'David', 'Merrill', 254, 'david@lupercalia.net', 't');

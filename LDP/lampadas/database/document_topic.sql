@@ -19,9 +19,4 @@ ADD CONSTRAINT topic_num_fk
 FOREIGN KEY (topic_num)
 REFERENCES topic(topic_num);
 
-#ALTER TABLE document_topic
-#ADD CONSTRAINT subtopic_num_fk
-#FOREIGN KEY (subtopic_num)
-#REFERENCES subtopic(subtopic_num);
-
 GRANT ALL ON document_topic TO "www-data";
