@@ -113,12 +113,12 @@ class Projects(LampadasCollection):
             self.data[key] = project
         
     def make(self, name='all'):
-        print 'Running project Makefile target: ' + name
+        log(3, 'Running project Makefile target: ' + name)
         for doc_id in self.sort_by('doc_id'):
             doc = lampadas.docs[doc_id]
             if doc.pub_status_code<>'N':
                 continue
-            print 'Making document: ' + str(doc_id)
+            log(3, 'Making document: ' + str(doc_id))
             self[doc_id].make(name)
 
     def write(self):
@@ -219,11 +219,11 @@ class Project:
                 self.targets.add('all',             ['build'],          [])
                 self.targets.add('republish',       ['unpublish', 'clean', 'build', 'publish'], [])
                 self.targets.add('publish',         ['build', '../' + xmlfile, '../' + htmlfile, '../' + indexfile, '../' + txtfile, '../' + omffile], [])
-                self.targets.add('../' + xmlfile,   [tidyxmlfile],      [Command('cp -up ' + tidyxmlfile + ' ../' + xmlfile)])
-                self.targets.add('../' + htmlfile,  [htmlfile],         [Command('cp -up *.html ..')])
-                self.targets.add('../' + indexfile, [indexfile],        [Command('cp -up ' + indexfile + ' ..')])
-                self.targets.add('../' + txtfile,   [txtfile],          [Command('cp -up ' + txtfile   + ' ..')])
-                self.targets.add('../' + omffile,   [omffile],          [Command('cp -up ' + omffile   + ' ..')])
+                self.targets.add('../' + xmlfile,   [tidyxmlfile],      [Command('cp ' + tidyxmlfile + ' ../' + xmlfile)])
+                self.targets.add('../' + htmlfile,  [htmlfile],         [Command('cp *.html ..')])
+                self.targets.add('../' + indexfile, [indexfile],        [Command('cp ' + indexfile + ' ..')])
+                self.targets.add('../' + txtfile,   [txtfile],          [Command('cp ' + txtfile   + ' ..')])
+                self.targets.add('../' + omffile,   [omffile],          [Command('cp ' + omffile   + ' ..')])
                 self.targets.add('unpublish',       [],                 [Command('rm -f ../*.html'), 
                                                                          Command('rm -f ../' + xmlfile),
                                                                          Command('rm -f ../' + txtfile),
@@ -265,8 +265,7 @@ class Project:
                     self.targets.add(dbsgmlfile, [],                     [])
                     self.targets.add(xmlfile,    [],                     [])
                 else:
-                    print 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code
-                    print 'Lampadas cannot build this document.'
+                    log(1, 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code + '. Lampadas cannot build this document.')
                 
                 # Everybody gets encoded into UTF-8 here
                 self.targets.add(utfxmlfile,     [xmlfile],              [Command('iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
@@ -277,7 +276,7 @@ class Project:
                 # Now we have good DocBook XML, generate all outputs
                 self.targets.add(htmlfile,       [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_html + ' ' + tidyxmlfile, output_to=htmlfile, errors_to='log/xsltproc.log', stderr_check=1)])
                 self.targets.add(indexfile,      [tidyxmlfile],          [Command('xsltproc --param quiet 1 --maxdepth 100 ' + XSLTPROC_PARAMS + ' ' + config.xslt_chunk + ' ' + tidyxmlfile)])
-                self.targets.add(omffile,        [tidyxmlfile],          [Command('db2omf ' + tidyxmlfile + ' -o ' + omffile, errors_to='log/db2omf.log', stderr_check=1)])
+                self.targets.add(omffile,        [tidyxmlfile],          [Command(config.db2omf + ' ' + tidyxmlfile + ' -o ' + omffile, errors_to='log/db2omf.log', stderr_check=1)])
                 self.targets.add(txtfile,        [htmlfile],             [Command('lynx --dump --nolist ' + htmlfile, output_to=txtfile, errors_to='log/lynx.log', stderr_check=1)])
 
                 # Calculate pseudotargets last, so they will have the file's
@@ -338,27 +337,29 @@ class Project:
 
         # Build if our timestamp is older.
         # Build if they match too, because we get a lot of 0's.
-        #print 'checking target: ' + name + ', timestamp: ' + str(timestamp) + ', high_timestamp: ' + str(high_timestamp)
+        #log(3, 'Checking target: ' + name + ', timestamp: ' + str(timestamp) + ', high_timestamp: ' + str(high_timestamp))
         if timestamp <= high_timestamp:
             timestamp = time.time()
 
             # If there is no target, the alleged target is a leaf point.
             if not target==None:
+
                 for key in target.commands.sort_by('sort_order'):
                     command = target.commands[key]
+                    
                     cmd_text = 'cd ' + self.workdir + '; ' + command.command
                     if command.output_to > '':
                         cmd_text += ' > ' + command.output_to
                     if command.errors_to > '':
                         cmd_text += ' 2>>' + command.errors_to
                         
-                    print 'Running: ' + cmd_text
+                    log(3, 'Running: ' + cmd_text)
                     exit_status = os.system(cmd_text)
 
                     # Abort if the command returns an exit code.
                     if exit_status<>0:
                         self.doc.errors.add(ERR_MAKE_EXIT_STATUS, str(exit_status) + ': ' + cmd_text)
-                        print 'ERROR: The command returned error code ' + str(exit_status) + '.'
+                        log(0, 'ERROR: The command returned error code ' + str(exit_status) + '.')
                     
                     # Abort if there is anything written to STDERR.
                     if command.stderr_check==1 and  command.errors_to > '':
@@ -367,7 +368,7 @@ class Project:
                         fh.close()
                         if err_text > '':
                             self.doc.errors.add(ERR_MAKE_STDERR, cmd_text + '\n\n' + err_text)
-                            print 'ERROR: The command wrote to STDERR.'
+                            log(0, 'ERROR: The command wrote to STDERR.')
                             if exit_status==0:
                                 exit_status = 1;
                             
@@ -376,12 +377,13 @@ class Project:
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
                         self.doc.errors.add(ERR_MAKE_ZERO_LENGTH, cmd_text)
-                        print 'ERROR: The command left a zero-length file. Removing.'
+                        log(0, 'ERROR: The command left a zero-length file. Removing.')
                         if exit_status==0:
                             exit_status = 2;
 
                     if exit_status <> 0:
-                        os.remove(self.workdir + command.output_to)
+                        if command.output_to > '':
+                            os.remove(self.workdir + command.output_to)
                         return(exit_status, timestamp)
 
             # Reread our timestamp. It's like to have changed.
@@ -434,12 +436,16 @@ projects = Projects()
 
 if __name__=="__main__":
     print "Writing Makefiles for all documents..."
+    config.log_level = 3
+    config.log_console = 1
+    config.log_sql = 0
     projects.write()
     projects.write_main()
 
     # Read the command line for a requested target
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
+            print 'Making target ' + arg + '...'
             projects.make(arg)
     else:
         projects.make()

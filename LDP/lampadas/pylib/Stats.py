@@ -46,6 +46,7 @@ class Stats(LampadasCollection):
         self['doc_error'] = StatTable()
         self['doc_format'] = StatTable()
         self['doc_dtd'] = StatTable()
+        self['doc_lang'] = StatTable()
         
     def calc(self):
         self.reset()
@@ -82,6 +83,7 @@ class Stats(LampadasCollection):
                         if doc.pub_time > '':
                             self['doc_format'].inc(doc.format_code)
                             self['doc_dtd'].inc(doc.dtd_code)
+                            self['doc_lang'].inc(doc.lang)
 
 
 class StatTable(LampadasCollection):

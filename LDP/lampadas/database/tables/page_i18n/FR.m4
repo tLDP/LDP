@@ -61,11 +61,6 @@ insert([doctable], [Browse Documents], [],
 	|tabdocs|z
 ], 1)
 
-insert([document_list], [Document List], [],
-[
-    |tabdocs_expanded|
-], 0)    
-
 insert([search], [Search], [],
 [
     |tabsearch|
@@ -85,6 +80,7 @@ insert([stats], [Current Statistics], [],
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
+    <p>|tabdoc_lang_stats|
 ], 1)
 
 insert([staff], [Staff], [],
@@ -346,6 +342,12 @@ insert([document_translation], [|doc.title|], [],
 [
     |tabdocument_tabs|
     |tabdoctranslations|
+])
+
+insert([document_admin], [|doc.title|], [],
+[
+    |blkdocument_nav_bar|
+    |tabdocadmin|
 ])
 
 insert([404], [Introuvable], [Introuvable],

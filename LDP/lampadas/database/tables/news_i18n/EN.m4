@@ -1,6 +1,6 @@
 insert(1,
 [
-<p>We\'re nearing an actual feature freeze in the Lampadas GUI. The Makefile
+<p>We\'re nearing a feature freeze in the Lampadas GUI. The Makefile
 system is now correctly notifying the rest of the system when a document is 
 unbuildable, which means the GUI should now only display documents which have
 been correctly mirrored and built.

@@ -71,8 +71,18 @@ class Lintadas:
         'sh':   'shell',
     }
 
-    def check_files(self):
-        keys = sourcefiles.keys()
+    def check_files(self, doc_id=None):
+        """Checks files for errors. Checks all files by default, but you can
+        also check the files belonging to a single document."""
+
+        # Decide which files to check for errors.
+        if doc_id==None:
+            keys = sourcefiles.keys()
+        else:
+            doc= lampadas.docs[doc_id]
+            keys = doc.files.keys()
+            
+        # Check the files for errors.
         for key in keys:
             self.check_file(key)
             

@@ -58,6 +58,7 @@ class Config:
     xslt_print = ''
     smtp_server = ''
     admin_email = ''
+    db2omf = ''
 
     def __init__(self) :
         import ConfigParser
@@ -94,6 +95,7 @@ class Config:
         self.xslt_print     = self.read_var('XSLT', 'xslt_print')
         self.smtp_server    = self.read_var('MAIL', 'smtp_server')
         self.admin_email    = self.read_var('MAIL', 'admin_email')
+        self.db2omf         = self.read_var('MAKE', 'db2omf')
 
     def read_var(self, section, name):
         if not self.config.has_section(section) :
@@ -104,25 +106,34 @@ class Config:
 
         return self.config.get(section, name)
 
+    def debug(self):
+        text = 'config_file=' + self.config_file + '\n'
+        text += 'db_type=' + self.db_type + '\n'
+        text += 'db_name=' + self.db_name + '\n'
+        text += 'db_host=' + self.db_host + '\n'
+        text += 'log_file=' + self.log_file + '\n'
+        text += 'log_level=' + str(self.log_level) + '\n'
+        text += 'log_sql=' + str(self.log_sql) + '\n'
+        text += 'log_console=' + str(self.log_console) + '\n'
+        text += 'interface=' + self.interface + '\n'
+        text += 'port=' + self.port + '\n'
+        text += 'hostname=' + self.hostname + '\n'
+        text += 'root_dir=' + self.root_dir + '\n'
+        text += 'cvs_root=' + self.cvs_root + '\n'
+        text += 'file_dir=' + self.file_dir + '\n'
+        text += 'cache_dir=' + self.cache_dir + '\n'
+        text += 'xslt_html=' + self.xslt_html + '\n'
+        text += 'xslt_chunk=' + self.xslt_chunk + '\n'
+        text += 'xslt_print=' + self.xslt_print + '\n'
+        text += 'smtp_server=' + self.smtp_server + '\n'
+        text += 'admin_email=' + self.admin_email + '\n'
+        text += 'db2omf=' + self.db2omf + '\n'
+        return text
+
     def print_debug(self):
-        print "config_file=" + self.config_file
-        print "db_type=" + self.db_type
-        print "db_name=" + self.db_name
-        print "db_host=" + self.db_host
-        print "log_file=" + self.log_file
-        print "log_level=" + str(self.log_level)
-        print "log_sql=" + str(self.log_sql)
-        print "log_console=" + str(self.log_console)
-        print "interface=" + self.interface
-        print "port=" + self.port
-        print "hostname=" + self.hostname
-        print "root_dir=" + self.root_dir
-        print "cvs_root=" + self.cvs_root
-        print "file_dir=" + self.file_dir
-        print "cache_dir=" + self.cache_dir
-        print "xslt_html=" + self.xslt_html
-        print "xslt_chunk=" + self.xslt_chunk
-        print "xslt_print=" + self.xslt_print
+        print self.debug()
+
+
 ## exports ##
 
 config = Config()

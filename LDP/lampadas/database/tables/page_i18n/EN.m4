@@ -53,11 +53,6 @@ insert([doctable], [Document Table], [],
     |tabdocs|
 ], 1)
 
-insert([document_list], [Detailed Document Table], [],
-[
-    |tabdocs_expanded|
-], 1)    
-
 insert([search], [Search], [],
 [
     |tabsearch|
@@ -82,13 +77,19 @@ insert([stats], [Current Statistics], [],
     
     <p>|tablint_time_stats|
 
+    <p><hr>
+
     <p>This table indicates when documents were successfully mirrored:
-    
+
     <p>|tabmirror_time_stats|
+
+    <p><hr>
 
     <p>This table indicates when documents were successfully published:
     
     <p>|tabpub_time_stats|
+
+    <p><hr>
 
     <p>This table indicates what document errors have been identified by
     Lintadas, or during mirroring or publication:
@@ -105,6 +106,7 @@ insert([stats], [Current Statistics], [],
     
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
+    <p>|tabdoc_lang_stats|
 ], 1)
 
 insert([staff], [Staff], [],
@@ -498,6 +500,12 @@ insert([document_translation], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     |tabdoctranslations|
+])
+
+insert([document_admin], [|doc.title|], [],
+[
+    |blkdocument_nav_bar|
+    |tabdocadmin|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,

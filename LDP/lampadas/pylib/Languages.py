@@ -79,4 +79,4 @@ class Language:
 
 
 languages = Languages()
-
+languages.load()

@@ -27,6 +27,7 @@ This module generates HTML primitives.
 from Globals import *
 from Log import log
 from DataLayer import lampadas
+from Languages import languages
 import re
 import string
 
@@ -87,8 +88,8 @@ class Widgets:
             v1, v2 = '', ''
         return WOStringIO('<select name="%s">\n' \
                           '<option></option>\n' \
-                          '<option value="compact"%s>|stryes|</option>\n' \
-                          '<option value="expanded"%s>|strno|</option>\n' \
+                          '<option value="1"%s>|stryes|</option>\n' \
+                          '<option value="0"%s>|strno|</option>\n' \
                           '</select>\n'
                           % (name, v1, v2)).get_value()
 
@@ -214,10 +215,10 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
-        keys = lampadas.languages.sort_by_lang('name', lang)
+        keys = languages.sort_by_lang('name', lang)
         for key in keys:
             if lampadas.docs.languages[key] > 0:
-                language = lampadas.languages[key]
+                language = languages[key]
                 assert not language==None
                 combo.write("<option ")
                 if language.code==value:
@@ -234,9 +235,9 @@ class Widgets:
             combo.write('<option selected></option>')
         else:
             combo.write('<option></option>')
-        keys = lampadas.languages.sort_by_lang('name', lang)
+        keys = languages.sort_by_lang('name', lang)
         for key in keys:
-            language = lampadas.languages[key]
+            language = languages[key]
             assert not language==None
             combo.write("<option ")
             if language.code==value:

@@ -70,11 +70,6 @@ insert([doctable], [Dokumente durchsehen], [],
 	|tabdocs|
 ], 1)
 
-insert([document_list], [Liste der Dokumente], [],
-[
-    |tabdocs_expanded|
-], 0)    
-
 insert([search], [Suche], [],
 [
     |tabsearch|
@@ -94,6 +89,7 @@ insert([stats], [Current Statistics], [],
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
+    <p>|tabdoc_lang_stats|
 ], 1)
 
 insert([staff], [Projektteam], [],
@@ -445,6 +441,12 @@ insert([document_translation], [|doc.title|], [],
 [
     |tabdocument_tabs|
     |tabdoctranslations|
+])
+
+insert([document_admin], [|doc.title|], [],
+[
+    |blkdocument_nav_bar|
+    |tabdocadmin|
 ])
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,

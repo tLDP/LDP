@@ -4,8 +4,7 @@ insert(index,                splash,     [],         0,  [],                 f, 
 insert(home,                 index,      main,       1,  [],                 f,  f,  f,  f)
 insert(my,                   default,    main,       2,  [],                 t,  t,  f,  f)
 insert(doctable,             default,    main,       3,  [],                 f,  f,  f,  f)
-insert(document_list,        default,    main,       4,  [],                 f,  f,  f,  f)
-insert(search,               default,    main,       5,  [],                 t,  f,  f,  f)
+insert(search,               default,    main,       4,  [],                 t,  f,  f,  f)
                                                                                  
 insert(users,                default,    admin,      1,  [letter],           t,  f,  t,  f)
 insert(adduser,              default,    admin,      2,  [],                 t,  f,  t,  f)
@@ -42,6 +41,7 @@ insert(document_revs,        default,    [],         0,  [doc],              t, 
 insert(document_topics,      default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_notes,       default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_translation, default,    [],         0,  [doc],              t,  t,  f,  f)
+insert(document_admin,       default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(404,                  default,    [],         0,  [],                 t,  f,  f,  f)
 insert(user_exists,          default,    [],         0,  [],                 t,  f,  f,  f)
 insert(username_required,    default,    [],         0,  [],                 t,  f,  f,  f)

@@ -458,7 +458,35 @@ class Tables(LampadasCollection):
                                       '|strversion|':   'version',
                                       '|strupdated|':   'last_update',
                                       '|strpub_date|':  'pub_date',
-                                     })
+                                     },
+                             show_search=0)
+
+    def tabdocadmin(self, uri):
+        """Returns a set of controls for publishing documents."""
+
+        # FIXME: Only 'N'ormal documents should be publishable!
+
+        if sessions.session and sessions.session.user.can_edit(uri.id)==1:
+            doc = lampadas.docs[uri.id]
+            box = WOStringIO('<table><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
+                             '<tr><td class="label">|strdoc_check_errors|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strlint_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '<tr><td class="label">|strdoc_mirror|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_mirror?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strmirror_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '<tr><td class="label">|strdoc_publish|</td>\n' \
+                             '    <td><a href="|uri.base|data/admin/run_publish?doc_id=%s">|strrun|</a></td>\n' \
+                             '    <td class="label">|strpub_time|</td>\n' \
+                             '    <td>%s</td></tr>\n' \
+                             '</table>'
+                             % (doc.id, doc.lint_time, doc.id, doc.mirror_time, doc.id, doc.pub_time))
+
+            return box.get_value()
+        else:
+            return '|blknopermission|'
 
     def errors(self, uri):
         """
@@ -505,8 +533,9 @@ class Tables(LampadasCollection):
 
         box = ''
         box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="3">|strdocerrs|</th></tr>\n'
+        box = box + '<tr><th colspan="4">|strdocerrs|</th></tr>\n'
         box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strtimestamp|</th>\n'
         box = box + '<th class="collabel">|strid|</th>\n'
         box = box + '<th class="collabel">|strtype|</th>\n'
         box = box + '<th class="collabel">|strerror|</th>\n'
@@ -518,6 +547,7 @@ class Tables(LampadasCollection):
             error = errors[err_id]
             errtype = errortypes[error.err_type_code]
             box = box + '<tr class="' + odd_even.get_next() + '">\n'
+            box = box + '<td>' + docerror.date_entered + '</td>\n'
             box = box + '<td>' + str(docerror.err_id) + '</td>\n'
             box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
             box = box + '<td>' + error.name[uri.lang]
@@ -589,13 +619,13 @@ class Tables(LampadasCollection):
         box = box + '<table class="box" width="100%">'
         box = box + '<tr><th>' + report.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><th class="collabel">|stroutput|</th></tr>\n'
-        box = box + '<tr><td><pre>' + stdout + '</pre></td></tr>\n'
+        box = box + '<tr class="odd"><td><pre>' + stdout + '</pre></td></tr>\n'
         box = box + '<tr><th class="collabel">|strerrors|</th></tr>\n'
-        box = box + '<tr><td><pre>' + stderr + '</pre></td></tr>\n'
+        box = box + '<tr class="odd"><td><pre>' + stderr + ' </pre></td></tr>\n'
         if sessions.session:
             if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
                 box = box + '<tr><th class="collabel">|strcommand|</th></tr>\n'
-                box = box + '<tr><td><pre>' + command + '</pre></td></tr>\n'
+                box = box + '<tr class="odd"><td><pre>' + command + '</pre></td></tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -748,7 +778,7 @@ class Tables(LampadasCollection):
                  collection_code='',
                  columns={},
                  layout='compact',
-                 show_search=0
+                 show_search=1
                 ):
         """
         Creates a listing of all documents which fit the parameters passed in.
@@ -1008,16 +1038,17 @@ class Tables(LampadasCollection):
     def userdocs(self, uri, username=''):
         """
         Displays a DocTable containing documents linked to a user.
-        The default is to display docs for the logged-on user.
+        The default is to display docs for the logged-on user,
+        but you can override that.
         """
         if sessions.session==None:
             return '|nopermission|'
         if sessions.session.user.can_edit(username=username)==0:
             return '|nopermission|'
         if username > '':
-            return self.doctable(uri, username=username)
+            return self.doctable(uri, username=username, show_search=0)
         else:
-            return self.doctable(uri, username=sessions.session.username)
+            return self.doctable(uri, username=sessions.session.username, show_search=0)
 
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
@@ -1307,7 +1338,7 @@ class Tables(LampadasCollection):
         ''')
         keys = languages.sort_by_lang('name', uri.lang)
         for key in keys:
-            language = lampadas.languages[key]
+            language = languages[key]
             if language.supported > 0:
                 if uri.data > '':
                     add_data = '/' + uri.data
@@ -1577,6 +1608,36 @@ class Tables(LampadasCollection):
                   % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
+    def tabdoc_lang_stats(self, uri):
+        log(3, 'Creating doc_lang_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="4">|strdoc_lang_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strlanguage_code|</th>\n' \
+                             '<th class="collabel">|strlanguage|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_lang']
+        odd_even = OddEven()
+        for key in languages.sort_by_lang('name', uri.lang):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        languages[key].code, 
+                        languages[key].name[uri.lang],
+                        stat.value, 
+                        fpformat.fix(stats['doc_lang'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
         box = '''<form name="mailpass" action="/data/save/mailpass">
@@ -1620,6 +1681,7 @@ class Tables(LampadasCollection):
         users_selected        = ''
         notes_selected        = ''
         translations_selected = ''
+        admin_selected        = ''
         all_selected          = ''
         if uri.page_code=='document_main':
             main_selected1          = ' class="selected_tab"'
@@ -1637,6 +1699,8 @@ class Tables(LampadasCollection):
             notes_selected          = ' class="selected_tab"'
         elif uri.page_code=='document_translation':
             translations_selected   = ' class="selected_tab"'
+        elif uri.page_code=='document_admin':
+            admin_selected   = ' class="selected_tab"'
         elif uri.page_code=='document':
             all_selected            = ' class="selected_tab"'
 
@@ -1654,6 +1718,7 @@ class Tables(LampadasCollection):
         box.write('<th%s><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>\n' % (users_selected))
         box.write('<th%s><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>\n' % (notes_selected))
         box.write('<th%s><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></th>\n' % (translations_selected))
+        box.write('<th%s><a href="|uri.base|document_admin/|uri.id||uri.lang_ext|">|stradmin|</a></th>\n' % (admin_selected))
         box.write('<th%s><a href="|uri.base|document/|uri.id||uri.lang_ext|">|strall|</a></th>\n' % (all_selected))
         box.write('</tr></table>\n')
         return box.get_value()
@@ -1674,7 +1739,7 @@ class DocTable(Table):
         Table.__init__(self, 'doctable', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='compact', show_search=0)
+        return tables.doctable(uri, lang=uri.lang, layout='compact')
 
 class DocTableExpanded(Table):
 
@@ -1682,8 +1747,15 @@ class DocTableExpanded(Table):
         Table.__init__(self, 'doctableexpanded', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='expanded', show_search=0)
+        return tables.doctable(uri, lang=uri.lang, layout='expanded')
 
+class DocAdmin(Table):
+    
+    def __init__(self):
+        Table.__init__(self, 'docadmin', self.method)
+
+    def method(self, uri):
+        return tables.tabdocadmin(uri)
 
 class TableMap(LampadasCollection):
 
@@ -1691,6 +1763,7 @@ class TableMap(LampadasCollection):
         self.data = {}
         self['tabdocs'] = DocTable()
         self['tabdocs_expanded'] = DocTableExpanded()
+        self['tabdocadmin'] = DocAdmin()
 
 tables = Tables()
 tablemap = TableMap()

@@ -111,7 +111,6 @@ class Database:
         return int(self.read_value(sql))
 
     def commit(self):
-        log(3, 'Committing database')
         if AUTOCOMMIT==0:
             self.connection.commit()
 

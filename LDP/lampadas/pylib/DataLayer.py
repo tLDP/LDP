@@ -78,8 +78,6 @@ class Lampadas:
         self.dtds.load()
         self.formats         = Formats()
         self.formats.load()
-        self.languages       = languages
-        self.languages.load()
         self.pub_statuses    = PubStatuses()
         self.pub_statuses.load()
         self.review_statuses = ReviewStatuses()
@@ -209,11 +207,10 @@ class Type:
     User's Guide, a HOWTO, or a FAQ List.
     """
 
-    def __init__(self, type_code=None):
+    def __init__(self, type_code=''):
+        self.code = type_code
         self.name = LampadasCollection()
         self.description = LampadasCollection()
-        if type_code==None: return
-        self.code = type_code
 
     def load_row(self, row):
         self.code       = trim(row[0])
@@ -958,6 +955,9 @@ class DocTopics(LampadasCollection):
         doctopic.doc_id = self.doc_id
         doctopic.topic_code = topic_code
         self.data[doctopic.topic_code] = doctopic
+
+        # FIXME: Add to the topic's list of documents as well.
+        # This will require moving lampadas.topics to its own top level object.
 
     def delete(self, topic_code):
         sql = 'DELETE FROM document_topic WHERE doc_id=' + str(self.doc_id) + ' AND topic_code=' + wsq(topic_code)

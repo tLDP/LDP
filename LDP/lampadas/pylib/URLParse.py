@@ -25,12 +25,13 @@ The API is documented in the Lampadas Programmer's Guide.
 
 from DataLayer import lampadas
 from WebLayer import lampadasweb
+from Languages import languages
 from Log import log
 import urlparse
 import os
 import string
 
-AVAILABLE_LANG = lampadas.languages.keys()
+AVAILABLE_LANG = languages.keys()
 #AVAILABLE_LANG = ['FR','EN','ES']
 #def log(a,b): pass
 
