@@ -4,7 +4,7 @@
 
 <title>Transparent Proxy with Linux and Squid mini-HOWTO</title>
 <author>Daniel Kiracofe</author>
-<date>v1.8, July 2001</date>
+<date>v1.9, August 2001</date>
 <abstract>
 This document provides information on how to setup a transparent caching
 HTTP proxy server using only Linux and squid.
@@ -115,6 +115,8 @@ A cleaner solution is to get a web proxy that is aware of transparent proxying
  itself. The one we are going to focus on here is squid. Squid is an Open Source
  caching proxy server for Unix systems. It is available from <htmlurl url="http://www.squid-cache.org" name="www.squid-cache.org">
 </p>
+<p>Alternatively, instead of redirecting the connections to local ports, we could redirect the connections to remote ports.  This is discussed in the <ref id="twoboxes" name="Transparent Proxy to a Remote Box"> section.  Readers interested in this approach should skip down to that section.  Readers interested on doing everything on one box can safely ignore that section.
+
 <sect1>
 Scope of this document
 <p>
@@ -225,7 +227,9 @@ httpd_accel_host virtual
  <item>
 httpd_accel_port 80
  <item>
-httpd_accel_with_proxy on httpd_accel_uses_host_header on
+httpd_accel_with_proxy on 
+ <item>
+httpd_accel_uses_host_header on
 </itemize>
 </p><p>
 Next, look at the cache_effective_user and cache_effective_group directives.
@@ -291,10 +295,62 @@ much nicer, and only this command is needed.
 </p>
 
 <sect>
+Transparent Proxy to a Remote Box <label id="twoboxes">
+<p>
+Now, the question naturally arises, if we can do all this nifty stuff redirecting HTTP connections to local ports, could we do the same thing but to a 
+remote box (e.g., the machine with squid running is not the same machine as 
+iptables is running on).  The answer is yes, but it takes a little different magic words.  (Thanks to Giles Coochey for help writing this section).
+</p><p>
+For the purposes of example commands, let's assume we have two boxes called squid-box and iptables-box, and that they are on the network local-network.  In the commands below, replace these strings with the actual IP addresses or 
+name of your machines and network. 
+</p><p>
+First, the machine that squid will be running on, squid-box.
+You do not need iptables 
+or any special kernel options on this machine, just squid.  You do
+not need the 'http_accel' options as described above, just a plain squid
+(although, if you are a squid newbie, it is suggested that you read the
+above section on squid, since everything else but the 'http_accel' options
+will be useful to you).
+</p><p>
+Now, the machine that iptables will be running on, iptables-box You will need to configure the kernel as described above, except that you don't need the REDIRECT target support).  Now, for the iptables commands. You need three:
+</p><p>
+<itemize>
+<item>iptables -t nat -A PREROUTING -i eth0 -s ! <bf>squid-box</bf> -p tcp --dport 80 -j DNAT --to <bf>squid-box</bf>:3128
+<item>iptables -t nat -A POSTROUTING -o eth0 -s <bf>local-network</bf> -d <bf>squid-box</bf> -j SNAT --to <bf>iptables-box</bf>
+<item>iptables -A FORWARD -s <bf>local-network</bf> -d <bf>squid-box</bf> -i eth0 -o eth0 -p tcp --dport 3128 -j ACCEPT
+</itemize>
+</p><p> The first one sends the packets to squid-box from iptables-box.  The second 
+makes sure that the reply gets sent back through iptables-box, instead of
+directly to the client (this is very important!).  The last one makes sure
+the iptables-box will forward the appropriate packets to squid-box. It may
+not be needed. YMMV.  Note that we specified '-i eth0' and then '-o eth0',
+which stands for input interface eth0 and output interface eth0.  If your 
+packets are
+entering and leaving on different interfaces, you will need to adjust the
+commands accordingly.
+</p><p>
+Add these commands to your appropriate startup scripts under /etc/rc.d/
+</p><p>
+<sect1>What if iptables-box is on a dynamic IP?
+<p>
+If the iptables-box is on a dynamic IP address (e.g. a dialup PPP connection, or a DHCP assigned IP address from a cable modem, etc.), then you will want to
+make a slight change to the above commands.  Replace the second command with this one:
+</p><p>
+<itemize>
+<item>iptables -t nat -A POSTROUTING -o eth0 -s <bf>local-network</bf> -d <bf>squid-box</bf> -j MASQUERADE
+</itemize>
+<p>
+This change avoids having to specify the IP address of iptables-box in the command.  Since it will change often, you'd have to change your commands to 
+reflect it.  This will save you a lot of hassle.  
+</p>
+</sect1>
+</sect>
+
+<sect>
 Put it all together
 <p>
 If everything has gone well so far, go to another machine, change it's
- gateway to the IP of your new squid box, and surf away. To make sure that 
+ gateway to the IP of the box with iptables running on it, and surf away. To make sure that 
 requests are really being forwarded through your proxy instead of straight 
 to the origin server, check the log file /usr/local/squid/logs/access.log
 </p>

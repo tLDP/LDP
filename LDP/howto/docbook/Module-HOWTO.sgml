@@ -17,18 +17,28 @@
 
 </author>
 
-<pubdate>01 June 2001</pubdate>
+<pubdate>18 August 2001</pubdate>
 
 <revhistory>
    <revision>
-     <revnumber>v1.00</revnumber>
-     <date>2001-06-14</date>
-     <authorinitials>bh</authorinitials>
-     <revremark>
-         Initial release.
-     </revremark>
-   </revision>
-</revhistory>
+       <revnumber>v1.00</revnumber>
+       <date>2001-06-14</date>
+       <authorinitials>bjh</authorinitials>
+       <revremark>
+           Initial release.
+           </revremark>
+       </revision>
+   <revision>
+        <revnumber>v1.01</revnumber>
+        <date>2001-08-18</date>
+        <authorinitials>bjh</authorinitials>
+        <revremark>
+            Add material on various features created in the last few
+            years:  kernel module loader, ksymoops symbols, 
+            kernel-version-dependent LKM file location.
+            </revremark>
+        </revision>
+    </revhistory>
 
 <abstract>
 <para>
@@ -305,17 +315,17 @@ make modules
 </screen>
 </para>
 <para>
-This results in a bunch of symbolic links in the
-<literal>modules</literal> directory of the Linux source tree, which
-point to the LKM object files elsewhere in the tree.  These LKMs are
-ready to load, but you probably want to install them in some
-appropriate directory.  The conventional place is <filename
-class="directory">/lib/modules/KERNEL_RELEASE</filename>, where
-KERNEL_RELEASE is something like "2.2.16".  The command
+This results in a bunch of LKM object files (*.o) throughout the Linux
+source tree.  (In older versions of Linux, there would be symbolic
+links in the <literal>modules</literal> directory of the Linux source
+tree pointing to all those LKM object files).  These LKMs are ready to
+load, but you probably want to install them in some appropriate
+directory.  The conventional place is described in <xref
+linkend=modlocation>.  The command
 <command>
 make modules_install
 </command>
-will copy them all over there.
+will copy them all over to the conventional locations.
 </para>
 
 <para>
@@ -558,6 +568,40 @@ just want to go to the horse's mouth and forget about
 
 <sect2>
 <title>
+Could Not Find Kernel Version...
+</title>
+<para>
+A common error is to try to insert an object file which is not an LKM.
+For example, you configure your kernel to have the USB core module
+bound into the base kernel instead of generated as an LKM.  In that
+case, you end up with a file <filename>usbcore.o</filename>, which looks
+pretty much the same as the <filename>usbcore.o</filename> you would get if
+you built it as an LKM.  But you can't <command>insmod</command> that
+file.
+</para>
+<para>
+So do you get an error message telling you that you should have 
+configured the kernel to make USB core function an LKM?  Of course not.
+This is Unix, and explanatory error messages are seen as a sign of
+weakness.  The error message is
+<screen>
+$ insmod usbcore.o
+usbcore.o: couldn't find the kernel version this module was compiled for
+</screen>
+</para>
+<para>
+What <command>insmod</command> is telling you is that it looked in
+<filename>usbcore.o</filename> for a piece of information any legitimate
+LKM would have -- the kernel version with which the LKM was intended
+to be used -- and it didn't find it.  We know now that the reason it
+didn't find it is that the file isn't an LKM.  See
+<xref linkend="modinfo">.
+</para>
+</sect2> 
+
+
+<sect2>
+<title>
 Intelligent Loading Of LKMs - Modprobe
 </title>
 <para>
@@ -580,15 +624,21 @@ modprobe msdos
 </screen>
 </para>
 <para>
-This performs <command>insmod msdos.o</command>, but before that does
-<command>insmod fat.o</command>, since you have to have
-<filename>fat.o</filename> loaded before you can load
+This performs an <command>insmod</command> of
+<filename>msdos.o</filename>, but before that does an
+<command>insmod</command> of <filename>fat.o</filename>, since you
+have to have <filename>fat.o</filename> loaded before you can load
 <filename>msdos.o</filename>.
 </para>
 <para>
-Note that with <command>modprobe</command>, you don't name the object
-module; you name the module (and <command>modprobe</command> infers
-the name of the object module, e.g.  "msdos.o" from "msdos").
+The other major thing <command>modprobe</command> does for you is to
+find the object module containing the LKM given just the name of the
+LKM.  For example, <command>modprobe msdos</command> might load
+<filename>/lib/2.4.2-2/fs/msdos.o</filename>.  Check out the man pages
+for <command>modprobe</command> and the configuration file
+<filename>modules.conf</filename> (usually
+<filename>/etc/modules.conf</filename>) for details on the search
+rules <command>modprobe</command> uses.
 </para>
 <para>
 <command>depmod</command> scans your LKM object files (typically all
@@ -620,15 +670,19 @@ various files and directories it needs, and just do raw
 </sect2>
 
 
-<sect2>
+<sect2 id=autoload>
 <title>
-Kerneld
+Automatic LKM Loading and Unloading
+</title>
+<sect3>
+<title>
+Automatic Loading
 </title>
 <para>
 You can cause an LKM to be loaded automatically when the kernel first
-needs it.  You do this with the Kerneld (<literal>kerneld</literal>)
-daemon, which makes use of a special kernel function designed for this
-purpose.
+needs it.  You do this with either a <literal>kerneld</literal> daemon
+or with the more recent invention, the kernel module loader, which is
+part of Linux. 
 </para>
 <para>
 As an example, let's say you run a program that executes an open
@@ -639,31 +693,157 @@ access the file you're opening on the disk.
 </para>
 <para>
 The kernel recognizes that it has no filesystem driver for MS-DOS, but
-that the Kerneld daemon is running, so it notifies
-Kerneld that it needs a filesystem driver for MS-DOS.  Kerneld knows
-where you keep your LKM of the MS-DOS filesystem driver, so it loads
-it and tells the kernel it did.  The kernel then proceeds with the
-open.
+that one of the two automatic module loading facilities are available
+and uses it to cause the LKM to be loaded.  The kernel then proceeds
+with the open.
 </para>
 <para>
-Kerneld is explained at length in the Kerneld mini-HOWTO, available from
-the <ulink URL="http://www.ldp.org">Linux Documentation Project</ulink>.
+Both <literal>kerneld</literal> and the kernel module loader use
+<command>modprobe</command>, ergo <command>insmod</command>, to insert
+LKMs.
+</para>
+
+<sect4>
+<title>
+Kerneld
+</title>
+<para>
+<literal>kerneld</literal> is explained at length in the Kerneld
+mini-HOWTO, available from the <ulink URL="http://www.linuxdoc.org">Linux
+Documentation Project</ulink>.
 </para>
 <para>
-Kerneld also removes modules that haven't been used in a while
-(typically 1 minute).  So by using Kerneld, you can keep only parts of
-the kernel that are presently needed loaded, and save memory.  
+<literal>kerneld</literal> is a user process, which runs the
+<application>kerneld</application> program from the
+<application>modutils</application> package.  <literal>kerneld</literal>
+sets up an IPC message channel with the kernel.  When the kernel needs
+an LKM, it sends a message on that channel to <literal>kerneld</literal>
+and <literal>kerneld</literal> runs <command>modprobe</command>
+to load the LKM, then sends a message back to the kernel to say that it
+is done.
+</para>
+</sect4>
+
+<sect4>
+<title>
+Kernel Module Loader
+</title>
+<para>
+There is some documentation of the kernel module loader in the file
+<filename>Documentation/kmod.txt</filename> in the Linux source tree.
+As of this writing, this section is more complete and accurate than
+that file.  You can also look at its source code in
+<filename>kernel/kmod.c</filename>.
+</para>
+<para>
+The kernel module loader is an optional part of the Linux kernel.  You
+get it if you select the CONFIG_KMOD feature when you configure the
+kernel at build time.
+</para>
+<para>
+When a kernel that has the kernel module loader needs an LKM, it
+creates a user process (owned by the superuser, though) that executes
+<command>modprobe</command> to load the LKM, then exits.  By default,
+it finds <command>modprobe</command> as
+<filename>/sbin/modprobe</filename>, but you can set up any program
+you like as <command>modprobe</command> by writing it's file name to
+<filename>/proc/sys/kernel/modprobe</filename>.  For example:
+<screen>
+$ echo &quot;sbin/mymodprobe&quot; &gt;/proc/sys/kernel/modprobe
+</screen>
+</para>
+<para>
+The kernel module loader passes the following arguments to
+<command>modprobe</command>: Argument Zero is the full file name of
+<command>modprobe</command>.  The regular arguments are
+<literal>-s</literal>, <literal>-k</literal>, and the name of the LKM
+that the kernel wants.  <literal>-s</literal> is the user-hostile
+form of <literal>--syslog</literal>; <literal>-k</literal> is the 
+cryptic way to say <literal>--autoclean</literal>.  I.e. messages
+from <command>modprobe</command> will go to syslog and the loaded
+LKM will have the &quot;autoclean&quot; flag set.
+</para>
+<para>
+The kernel module loader runs <command>modprobe</command> with the
+following environment variables (only): HOME=<literal>/</literal>;
+TERM=<literal>linux</literal>;
+PATH=<literal>/sbin:/usr/sbin:/bin:/usr/bin</literal>.
+</para>
+<para>
+The kernel module loader was new in Linux 2.2 and was designed to take
+the place of <literal>kerneld</literal>.  It does not, however, have all
+the features of <literal>kerneld</literal>.
+</para>
+<para>
+In Linux 2.2, the kernel module loader creates the above mentioned
+process directly.  In Linux 2.4, the kernel module loader submits the
+module loading work to Keventd and it runs as a child process of
+Keventd.
+</para>
+<para>
+The kernel module loader is a pretty strange beast.  It violates
+layering as Unix programmers generally understand it and consequently
+is inflexible, hard to understand, and not robust.  Many system
+designers would bristle just at the fact that it has the PATH
+hardcoded.  You may prefer to use <literal>kerneld</literal> instead,
+or not bother with automatic loading of LKMs at all.
+</para>
+</sect4>
+</sect3>
+
+<sect3>
+<title>
+Automatic Unloading - Autoclean
+</title>
+<sect4>
+<title>
+The Autoclean Flag
+</title>
+<para>
+Each loaded LKM has a an autoclean flag which can be set or unset.
+You control this flag with parameters to the
+<literal>init_module</literal> system call.  Assuming you do that via
+<command>insmod</command>, you use the <literal>--autoclean</literal>
+option.
+</para>
+<para>
+You can see the state of the autoclean flag in
+<filename>/proc/modules</filename>.  Any LKM that has the flag set has
+the legend <literal>autoclean</literal> next to it.
+</para>
+</sect4>
+<sect4>
+<title>
+Removing The Autoclean LKMs
+</title>
+<para>
+The purpose of the autoclean flag is to be let you automatically
+remove LKMs that haven't been used in a while (typically 1 minute).
+So by using automatic module loading and unloading, you can keep only
+parts of the kernel that are presently needed loaded, and save memory.
 </para>
 <para>
 This is less important than it once was, with memory being much
 cheaper.  If you don't need to save memory, you shouldn't bother with
-the complexity of Kerneld.  Just load everything you might need via an
-initialization script and keep it loaded.
+the complexity of module loader processes.  Just load everything you
+might need via an initialization script and keep it loaded.
 </para>
 <para>
-Kerneld uses <command>modprobe</command>, ergo
-<command>insmod</command>, to insert LKMs.
+There is a form of the <literal>delete_module</literal> system call that
+says, &quot;remove all LKMs that have the autoclean flag set and haven't
+been used in a while.&quot;  Kerneld typically calls this once per 
+minute.  You can call it explicitly with an <command>rmmod --all</command>
+command.
 </para>
+<para>
+As the kernel module loader does not do any removing of LKMs, if you
+use that you might want to have a cron job that does a <command>rmmod
+--all</command> periodically.
+</para>
+</sect4>
+
+</sect3>
+
 </sect2>
 
 <sect2 id="procmodules">
@@ -708,12 +888,44 @@ custom interface, and some documentation, to determine when the LKM is
 free to be unloaded.
 </para>
 </sect2>
+
+<sect2 id=modlocation>
+<title>
+Where Are My LKM Files On My System?
+</title>
+<para>
+The LKM world is flexible enough that the files you need to load could
+live just about anywhere on your system, but there is a convention
+that most systems follow:  The LKM .o files are in the directory
+<filename class=directory>/lib/modules</filename>, divided
+into subdirectories.  There is one subdirectory for each version of
+the kernel, since LKMs are specific to a kernel (see <xref
+linkend=basekerncompat>).  Each subdirectory contains a complete set
+of LKMs.
+</para>
+<para>
+The subdirectory name is the value you get from the <command>uname
+--release</command> command, for example <literal>2.2.19</literal>.
+<xref linkend=multiplekernels> tells how you control that value.
+</para>
+<para>
+A standard <command>make modules</command> and <command>make
+modules_install</command> should install all the LKMs that are part
+of Linux in the proper release subdirectory.
+</para>
+
+</sect2>
+
 </sect1>
 
 <sect1 id=basekerncompat>
 <Title>
 LKM - Base Kernel Compatibility
 </Title>
+<sect2>
+<title>
+An LKM Must Match The Base Kernel
+</title>
 <para>
 The designers of loadable kernel modules realized there would be a
 problem with having the kernel in multiple files, possibly distributed
@@ -833,6 +1045,40 @@ versioning, then you must have all your LKMs compiled likewise, and
 vice versa.  Otherwise, you're guaranteed to get those "unresolved
 symbol reference" errors.
 </para>
+</sect2>
+<sect2 id=multiplekernels>
+<title>
+If You Run Multiple Kernels
+</title>
+<para>
+Now that we've seen how you often have different versions of an LKM
+for different base kernels, the question arises as to what to do 
+about a system that has multiple kernel versions (i.e. you can 
+choose a kernel at boot time).  You want to make sure that the
+LKMs built for Kernel A get inserted when you boot Kernel A, but
+the LKMs built for Kernel B get inserted when you boot Kernel B.
+</para>
+<para>
+In particular, whenever you upgrade your kernel, if you're smart,
+you keep both the new kernel and the old kernel on the system 
+until you're sure the new one works.
+</para>
+<para>
+The most common way to do this is with the LKM-hunting feature of
+<command>modprobe</command>.  <command>modprobe</command> 
+understands the conventional LKM file organization described in 
+<xref linkend=modlocation> and loads LKMs from the appropriate
+subdirectory depending on the kernel that is running.
+</para>
+<para>
+You set the <command>uname --release</command> value, which is the
+name of the subdirectory in which <command>modprobe</command> looks,
+by editing the main kernel makefile when you build the kernel and
+setting the VERSION, PATCHLEVEL, SUBLEVEL, and EXTRAVERSION variables
+at the top.
+</para>
+</sect2>
+
 </sect1>
 
 <sect1>
@@ -982,8 +1228,9 @@ But the astute reader will now ask how the LKM's
 <function>init_module</function> subroutine knew the address of the
 base kernel's <function>register_chrdev</function> subroutine.  This
 is not a system call, but an ordinary subroutine bound into the base
-kernel.  Calling it means branching to its address.  The answer to
-this is <command>insmod</command> relocation.
+kernel.  Calling it means branching to its address.  So how does our
+LKM, which was not compiled anywhere near the base kernel, know that
+address?  The answer to this is <command>insmod</command> relocation.
 <command>insmod</command> functions as a relocating linker/loader.
 The LKM object file contains an external reference to the symbol
 <varname>register_chrdev</varname>.  <command>insmod</command> does a
@@ -992,8 +1239,8 @@ addresses of various symbols that the existing kernel exports.
 <varname>register_chrdev</varname> is among these.
 <function>query_module</function> returns the address for which
 <varname>register_chrdev</varname> stands and
-<command>insmod</command> patches that into the LKM where it refers to
-<varname>register_chrdev</varname>.
+<command>insmod</command> patches that into the LKM where the LKM
+refers to <varname>register_chrdev</varname>.
 </para>
 <para>
 If you want to see the kind of information <command>insmod</command>
@@ -1014,11 +1261,13 @@ the kernel to add those symbols to its exported kernel symbols table.
 To see this for yourself, insert the LKM <filename>msdos.o</filename>
 and then notice in <filename>/proc/ksyms</filename> the symbol
 <varname>fat_add_cluster</varname> (which is the name of a subroutine
-in the <filename>fat.o</filename> LKM).
+in the <filename>fat.o</filename> LKM).  Any subsequently inserted LKM
+can branch to <varname>fat_add_cluster</varname>, and in fact
+<filename>msdos.o</filename> does just that.
 </para>
 </sect2>
 
-<sect2>
+<sect2 id=modinfo>
 <title>
 The .modinfo Section
 </title>
@@ -1103,6 +1352,143 @@ See <xref linkend=howtheywork> for more mind-numbing details of symbol binding.
 </para>
 </sect2>
 
+<sect2>
+<title>
+Ksymoops Symbols
+</title>
+<para>
+<command>insmod</command> adds a bunch of exported symbols to the LKM
+as it loads it.  These symbols are all intended to help
+<command>ksymoops</command> do its job.  <command>ksymoops</command>
+is a program that interprets and &quot;oops&quot; display.  And
+&quot;oops&quot; display is stuff that the Linux kernel displays when
+it detects an internal kernel error (and consequently terminates a
+process).  This information contains a bunch of addresses in the
+kernel, in hexadecimal.
+</para>
+<para>
+<command>ksymoops</command> looks at the hexadecimal addresses, looks
+them up in the kernel symbol table (which you see in
+<filename>/proc/ksyms</filename>, and translates the addresses in the
+oops message to symbolic addresses, which you might be able to look
+up in an assembler listing.
+</para>
+<para>
+So lets say you have an LKM crash on you.  The oops message contains
+the address of the instruction that choked, and what you want 
+<command>ksymoops</command> to tell you is 1) in what LKM is that 
+instruction, and 2) where is the instruction relative to an assembler
+listing of that LKM?  Similar questions arise for the data addresses
+in the oops message.
+</para>
+<para>
+To answer those questions, <command>ksymoops</command> must be able to
+get the loadpoints and lengths of the various sections of the LKM from
+the kernel symbol table.
+</para>
+<para>
+Well, <command>insmod</command> knows those addresses, so it just 
+creates symbols for them and includes them in the symbols it loads 
+with the LKM.
+</para>
+<para>
+In particular, those symbols are named (and you can see this for
+yourself by looking at <filename>/proc/ksyms</filename>):
+</para>
+<para>
+<literal>__insmod_</literal><varname>name</varname><literal>_S</literal><varname>sectionname</varname><literal>_L</literal><varname>length</varname>
+</para>
+<para>
+<varname>name</varname> is the LKM name (as you would see in
+<filename>/proc/modules</filename>.
+</para>
+<para>
+<varname>sectionname</varname> is the section name, e.g. <literal>.text</literal>
+(don't forget the leading period).
+</para>
+<para>
+<varname>length</varname> is the length of the section, in decimal.
+</para>
+<para>
+The value of the symbol is, of course, the address of the section.
+</para>
+<para>
+Insmod also adds a pretty useful symbol that tells from what file
+the LKM was loaded.  That symbol's name is
+</para>
+<para>
+<literal>__insmod_</literal><varname>name</varname><literal>_O</literal><varname>filespec</varname><literal>_M</literal><varname>mtime</varname><literal>_V<varname>version</varname></literal>
+</para>
+<para>
+<varname>name</varname> is the LKM name, as above.
+</para>
+<para>
+<varname>filespec</varname> is the file specification that was used to
+identify the file containing the LKM when it was loaded.  Note that it
+isn't necessarily still under that name, and there are multiple
+file specifications that might have been used to refer to the same
+file.  For example, <filename>../dir1/mylkm.o</filename> and
+<filename>/lib/dir1/mylkm.o</filename>.
+</para>
+<para>
+<varname>mtime</varname> is the modification time of that file, in
+the standard Unix representation (seconds since 1969), in hexadecimal.
+</para>
+<para>
+<varname>version</varname> tells the kernel version level for which
+the LKM was built (same as in the <literal>.modinfo</literal> section).
+It is the value of the macro <literal>LINUX_VERSION_CODE</literal>
+in Linux's <filename>linux/version.h</filename> file.  For example,
+<literal>132101</literal>.
+</para>
+<para>
+The value of this symbol is meaningless.
+</para>
+
+
+</sect2>
+
+
+
+<sect2>
+<title>
+Other Symbols
+</title>
+<para>
+<command>insmod</command>
+adds another symbol, similar to the <command>ksymoops</command>
+symbols.  This one tells where the persistent data lives in the
+LKM, which <command>rmmod</command> needs to know in order to save
+the persistent data.
+</para>
+<para>
+<literal>__insmod_</literal><varname>name</varname><literal>_P</literal><varname>length</varname>
+</para>
+
+</sect2>
+<sect2>
+<title>
+Linux internals
+</title>
+<para>
+If you're interested in the internal workings of the Linux kernel with 
+respect to LKMs, this section can get you started.  You should not need
+to know any of this in order to develop, build, and use LKMs.
+</para>
+<para>
+The code to handle LKMs is in the source files 
+<filename>kernel/module.c</filename> in the Linux source tree.
+</para>
+<para>
+The kernel module loader (see <xref linkend=autoload>) lives in 
+<filename>kernel/kmod.c</filename>.
+</para>
+<para>
+(Ok, that wasn't much of a start, but at least I have a framework here
+for adding this information in the future).
+</para>
+</sect2>
+
 </sect1>
 
 
@@ -1112,13 +1498,110 @@ Writing Your Own Loadable Kernel Module
 </title>
 <para>
 <ulink url="http://linuxdoc.org/LDP/lkmpg"><citetitle>The Linux Kernel
-Module Programming Guide</citetitle></ulink> is a complete explanation
-of writing your own LKM.
+Module Programming Guide</citetitle></ulink> by Ori Pomerantz is a
+complete explanation of writing your own LKM.  This book is also
+available in print.
 </para>
 <para>
-It is, however, a little out of date.  Here are a few things about
-writing an LKM that aren't in there.
+It is, however, a little out of date and contains an error or two.
+Here are a few things about writing an LKM that aren't in there.
 </para>
+
+<sect2>
+<title>
+bug in hello.c
+</title>
+<para>
+The simple <literal>hello.c</literal> program has a small bug that
+causes it to generate a warning about an implicit declaration of
+<literal>printk()</literal>.  The warning is innocuous.
+</para>
+<para>
+The program is also more complicated than it needs to be with current
+Linux and depends on your having kernel messaging set up a certain way
+on your system to see it work.  Finally, the program requires to to
+include <parameter>-D</parameter> options on your compile command to
+work, because it does not define some macros in the source code, where
+the definition belongs.
+</para>
+<para>
+Here is an improved version of <literal>hello.c</literal>.  Compile
+this with the simple command
+<screen>
+$ gcc -c -Wall hello.c
+</screen>
+<programlisting>
+<![CDATA[
+/* hello.c 
+ * 
+ * "Hello, world" - the loadable kernel module version. 
+ *
+ * Compile this with 
+ *
+ *          gcc -c hello.c -Wall
+ */
+
+/* Declare what kind of code we want from the header files */
+#define __KERNEL__         /* We're part of the kernel */
+#define MODULE             /* Not a permanent part, though. */
+
+/* Standard headers for LKMs */
+#include <linux/modversions.h> 
+#include <linux/module.h>  
+
+#define _LOOSE_KERNEL_NAMES
+    /* With some combinations of Linux and gcc, tty.h will not compile if
+       you don't define _LOOSE_KERNEL_NAMES.  It's a bug somewhere.
+    */
+#include <linux/tty.h>      /* console_print() interface */
+
+/* Initialize the LKM */
+int init_module()
+{
+  console_print("Hello, world - this is the kernel speaking\n");
+  /* More normal is printk(), but there's less that can go wrong with 
+     console_print(), so let's start simple.
+  */
+
+  /* If we return a non zero value, it means that 
+   * init_module failed and the LKM can't be loaded 
+   */
+  return 0;
+}
+
+
+/* Cleanup - undo whatever init_module did */
+void cleanup_module()
+{
+  console_print("Short is the life of an LKM\n");
+}
+]]>
+</programlisting>
+</para>
+
+</sect2>
+
+
+<sect2>
+<title>
+Rubini: Linux Device Drivers
+</title>
+<para>
+The most popular book on writing device drivers is O'Reilly's
+<citetitle>Linux Device Drivers</citetitle> by Alessandro
+Rubini.
+</para>
+<para>
+Even if you're writing an LKM that isn't a device driver, you can learn
+a lot from this book that will help you.
+</para>
+<para>
+The first edition of this book covers Linux 2.0, with notes about
+differences in 2.2.  The second edition covers Linux 2.4.
+</para>
+</sect2>
+
+
 
 <sect2>
 <title>
@@ -1176,7 +1659,7 @@ that, you will pass parameters to them via the kernel "command line,"
 which in its most basic form means via a prompt at boot time.
 <citetitle>The BootPrompt HOWTO</citetitle> by Paul Gortmaker
 <email>Paul.Gortmaker@anu.edu.au</email> will help you with that.  It
-is available from the <ulink url="http://www.ldp.org">Linux
+is available from the <ulink url="http://www.linuxdoc.org">Linux
 Documentation Project</ulink>.
 </para>
 <para>
@@ -5466,7 +5949,8 @@ know so maybe the next reader can be saved the trouble you had.
 </para>
 <para>
 The source for this document is DocBook SGML, and is available from
-the <ulink url="http://www.ldp.org">Linux Documentation Project</ulink>.
+the <ulink url="http://www.linuxdoc.org">Linux Documentation
+Project</ulink>.
 </para>
 </sect1>
 
@@ -5528,6 +6012,5 @@ Copyright <trademark class="copyright">2001</trademark>.
 
 </sect1>
 </Article>
-
 
 
