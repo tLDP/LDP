@@ -29,7 +29,7 @@ This module provides configuration information from lampadas.conf.
 
 # BaseConfig ###############################################################
 
-class ConfigFileReadErrorException(Exception) :
+class ConfigFileReadError(Exception) :
     pass
     
 class Config:
@@ -145,7 +145,7 @@ def get_config_filepath() :
         msg = 'Environment variable LAMPADAS_ETC is undefined.\n'
     filename += '/lampadas.conf'
     if not os.access(filename, os.F_OK):
-        raise ConfigFileReadErrorException(msg + filename + " not found.")
+        raise ConfigFileReadError(msg + filename + " not found.")
     return filename
 
 class ConfigReader :
@@ -199,13 +199,11 @@ class ConfigReader :
 
     def _read_var(self, section, name):
         if not self.parser.has_section(section) :
-            raise ConfigFileReadErrorException("File '%s' is missing or does not"
-                                               " contain a '%s' section"
-                                               % (self.config_file,section))
+            raise ConfigFileReadError("Section %s is missing"%section)
 
         if not self.parser.has_option(section, name):
-            raise ConfigFileReadErrorException("Can't read option '%s' from section %s of file %s"
-                                               % (name, section, self.config_file))
+            raise ConfigFileReadError("Can't read option '%s' from section %s"
+                                      % (name, section))
         return self.parser.get(section, name)
 
 
@@ -214,7 +212,10 @@ class ConfigReader :
 config_file = get_config_filepath()
 config_reader = ConfigReader()
 config_reader.config_file = config_file
-config = config_reader.read_config(open(config_file))
+try:
+    config = config_reader.read_config(open(config_file))
+except ConfigFileReadError, e:
+    raise ConfigFileReadError("File %s: %s" % (config_file,e.msg))
 
 # main
 if __name__=='__main__' :
