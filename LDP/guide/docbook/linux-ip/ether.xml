@@ -11,7 +11,8 @@
     uniform manner in which IP networks overlay ethernets.
   </para>
   <para>
-    Address Resolution Protocol provides the necessary mapping between MAC
+    Address Resolution Protocol provides the necessary mapping between link
+    layer
     addresses and IP addresses for machines connected to ethernets.  Linux
     offers control of ARP requests and replies via several
     not-well-known <filename>/proc</filename> interfaces;
@@ -22,23 +23,17 @@
     there are kernel and &iproute2; patches.
   </para>
   <para>
-    Bridging, once the realm of hardware devices, can also be performed by a
-    linux machine.  Along with bridging comes the capability of filtering
-    and transforming frames (or even higher layer protocols) via hooks 
-    at the ethernet layer with the <command>ebtables</command> and
-    <command>iptables</command> commands.
-  </para>
-  <para>
     This chapter will introduce the
     <link linkend="ether-arp-overview">ARP conversation</link>, discuss the
-    <link linkend="ether-arp-cache">ARP cache</link>, which is usually
+    <link linkend="ether-arp-cache">ARP cache</link>,
     a volatile mapping of the reachable IPs and MAC addresses on a
     segment, examine
     <link linkend="ether-arp-flux">the ARP flux problem</link>,
     and explore several
     <link linkend="ether-arp-filtering">ARP filtering and suppression
     techniques</link>.  A section on
-    <link linkend="ether-vlan">VLAN technology</link> will round out the
+    <link linkend="ether-vlan">VLAN technology</link> and 
+    <link linkend="ether-bonding">channel bonding</link> will round out the
     chapter on Ethernet.
   </para>
   <section id="ether-arp">
@@ -47,18 +42,19 @@
       Address Resolution Protocol (ARP) hovers in the shadows of most networks.
       Because of its simplicity, by comparison to higher layer protocols, ARP
       rarely intrudes upon the network administrator's routine.  All modern
-      IP-capable operating systems provide support for ARP.  Uncommon
-      alternatives to ARP include static ethernet-to-IP mappings.
+      IP-capable operating systems provide support for ARP.  The uncommon
+      alternative to ARP is static link-layer-to-IP mappings.
     </para>
     <para>
       ARP defines the exchanges between network interfaces connected to an
-      ethernet media segment in order to map an IP address to a MAC address on
-      demand.  MAC addresses are hardware addresses (although
-      <link linkend="tools-ip-link-set-address">they are not immutable</link>
+      ethernet media segment in order to map an IP address to a link layer
+      address on demand.  Link layer addresses are hardware addresses (although
+      <link linkend="tools-ip-link-set-address">they are not immutable</link>)
       on ethernet cards and IP addresses are logical addresses
       assigned to machines attached to the ethernet.  Subsequently in this
-      chapter, MAC addresses may be known by many different names:  ethernet
-      addresses, hardware addresses, and even link layer addresses.
+      chapter, link layer addresses may be known by many different names:
+      ethernet addresses, Media Access Control (MAC) addresses, and even 
+      hardware addresses.
       Disputably, the correct term from the kernel's perspective is "link
       layer address" because this address can be changed (on many ethernet
       cards) via command line tools.  Nevertheless, these terms are not
@@ -70,30 +66,44 @@
         Address Resolution Protocol (ARP) exists solely to glue together the
         IP and ethernet networking layers.  Since networking hardware
         such as switches, hubs, and bridges operate on ethernet frames, they
-        are unaware of the higher layer data carried by these frames.
+        are unaware of the higher layer data carried by these frames
+          <footnote>
+            <para>
+              Some networking equipment vendors have built devices which are
+              sold as high performance switches and are capable of performing
+              operations on higher layer contents of ethernet frames.
+              Typically, however, a switching device is not capable of
+              operating on IP packets.
+            </para>
+          </footnote>.
         Similarly, IP layer devices, operating on IP packets need to be able
         to transmit their IP data on ethernets.  ARP defines the
         conversation by which IP capable hosts can exchange mappings of
-        their ethernet and IP addressing..
+        their ethernet and IP addressing.
       </para>
       <para>
         ARP is used to locate the ethernet address associated with a desired IP
         address.  When a machine has a packet bound for another IP on a locally
         connected ethernet network, it will send a broadcast ethernet frame
-        containing an ARP request onto the ethernet
+        containing an ARP request onto the ethernet.  All machines with the same
+        ethernet broadcast address will receive this packet
         <footnote>
           <para>
-            This should underscore the importance of accurate netmasks.  A
-            host determines if a host is on the local ethernet by consulting
-            its routing table.  See also
-            <xref linkend="routing-local"/>.
+            The kernel uses the ethernet broadcast address configured on the
+            link layer device.  This is rarely anything but ff:ff:ff:ff:ff:ff.
+            In the extraordinary event that this is not the ethernet broadcast
+            address in your network, see
+            <xref linkend="tools-ip-link-set-address"/>.
           </para>
         </footnote>.
-        All machines with the same
-        ethernet broadcast address will receive this packet.
         If a machine receives the ARP request and it hosts the IP requested,
         it will respond with the link layer address on which it will receive
         packets for that IP address.
+        <note>
+          <foreignphrase>N.B.</foreignphrase>, the
+          <constant>arp_filter</constant> sysctl will alter this behaviour
+          somewhat.
+        </note>
       </para>
       <para>
         Once the requestor receives the response packet, it associates
@@ -116,6 +126,11 @@
         visual representation of the network layout in which this traffic
         occurs.
       </para>
+      <para>
+        This is an archetypal conversation between two
+        computers exchanging relevant hardware addressing in order that they 
+        can pass IP packets, and is comprised of two ethernet frames.
+      </para>
       <example id="ex-ether-arp-overview">
         <title>ARP conversation captured with tcpdump
           <footnote>
@@ -130,70 +145,76 @@
         <programlisting>
 <prompt>[root@masq-gw]# </prompt><userinput>tcpdump -ennqti eth0 \( arp or icmp \)</userinput>
 <computeroutput>tcpdump: listening on eth0
-0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 42: arp who-has 192.168.99.254 tell 192.168.99.35
-0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 60: arp reply 192.168.99.254 is-at 0:80:c8:f8:5c:73
-0:80:c8:f8:4a:51 0:80:c8:f8:5c:73 98: 192.168.99.35 &gt; 192.168.99.254: icmp: echo request (DF)
-0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 98: 192.168.99.254 &gt; 192.168.99.35: icmp: echo reply</computeroutput>
+0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 42: arp who-has 192.168.99.254 tell 192.168.99.35             <co id="ex-eao-request" linkends="ex-eao-request-text"/>
+0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 60: arp reply 192.168.99.254 is-at 0:80:c8:f8:5c:73            <co id="ex-eao-reply" linkends="ex-eao-reply-text"/>
+0:80:c8:f8:4a:51 0:80:c8:f8:5c:73 98: 192.168.99.35 &gt; 192.168.99.254: icmp: echo request (DF) <co id="ex-eao-ip" linkends="ex-eao-ip-text"/>
+0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 98: 192.168.99.254 &gt; 192.168.99.35: icmp: echo reply        <co id="ex-eao-ip" linkends="ex-eao-ip-text"/></computeroutput>
         </programlisting>
+        <calloutlist>
+          <callout
+            arearefs="ex-eao-request"
+            id="ex-eao-request-text">
+              <simpara>
+                This broadcast ethernet frame, identifiable by the
+                destination ethernet address with all bits set
+                (ff:ff:ff:ff:ff:ff) contains an ARP request from &tristan;
+                for IP address 192.168.99.254.  The request includes the
+                source link layer address and the IP address of
+                the requestor, which provides enough information for the
+                owner of the IP address to reply with its link layer address.
+              </simpara>
+          </callout>
+          <callout
+            arearefs="ex-eao-reply"
+            id="ex-eao-reply-text">
+              <simpara>
+                The ARP reply from &masq-gw; includes its link layer address
+                and declaration of ownership of the requested IP address.
+                Note that the ARP reply is a unicast response to a broadcast
+                request.  The payload of the ARP reply contains the link layer
+                address mapping.
+              </simpara>
+              <simpara>
+                The machine which initiated the ARP request (&tristan;)
+                now has enough information to encapsulate an IP packet in
+                an ethernet frame and forward it to the link layer address
+                of the recipient (00:80:c8:f8:5c:73).
+              </simpara>
+          </callout>
+          <callout
+            arearefs="ex-eao-ip"
+            id="ex-eao-ip-text">
+              <simpara>
+                The final two packets in
+                <xref linkend="ex-ether-arp-overview"/> display the link
+                layer header and the encapsulated ICMP packets
+                exchanged between these two hosts.  Examining the ARP
+                cache on each of these hosts would reveal entries on
+                each host for the other host's link layer address.
+              </simpara>
+          </callout>
+        </calloutlist>
       </example>
       <para>
-        The above conversation is an archetypal conversation between two
-        computers exchanging relevant hardware addressing in order that they 
-        be able to pass IP packets.  The ARP conversation is comprised of two
-        ethernet frames.
-      </para>
-      <para>
-        <programlisting>
-<computeroutput>0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 42: arp who-has 192.168.99.254 tell 192.168.99.35</computeroutput>
-        </programlisting>
-      </para>
-      <para>
-        The above broadcast ethernet frame,
-        identifiable by the destination ethernet address with all bits
-        set (ff:ff:ff:ff:ff:ff)
-        <footnote>
-          <para>
-            The kernel uses the ethernet broadcast address configured on the
-            link layer device.  This is rarely anything but ff:ff:ff:ff:ff:ff.
-            In the extraordinary event that this is not the ethernet broadcast
-            address in your network, see
-            <xref linkend="tools-ip-link-set-address"/>.
-          </para>
-        </footnote>,
-        contains an ARP request from
-        &tristan; for IP address 192.168.99.254.  The
-        request includes the source link layer address and the IP address of
-        the requestor, which provides enough information for the owner of the
-        IP address to reply with its link layer address.
-      </para>
-      <para>
-        The ARP reply from &masq-gw; includes its link
-        layer address and declaration of ownership of the requested
-        IP address.  Note that the ARP reply is a unicast response to a
-        broadcast request.  The payload of the ARP reply contains the MAC
-        address mapping.  The machine which
-        initiated the ARP request (&tristan;) now has enough information to
-        encapsulate an IP packet in an ethernet frame and forward it to the
-        link layer address of the recipient (00:80:c8:f8:5c:73).
-      </para>
-      <para>
-        <programlisting>
-<computeroutput>0:80:c8:f8:5c:73 0:80:c8:f8:4a:51 60: arp reply 192.168.99.254 is-at 0:80:c8:f8:5c:73</computeroutput>
-        </programlisting>
-      </para>
-      <para>
-        The final two packets in
-        <xref linkend="ex-ether-arp-overview"/> display the link layer header
-        and the encapsulated IP ICMP packets exchanged between these two
-        hosts.  Examining the ARP cache on each of these hosts would reveal
-        entries on each host for the other host's link layer address.
+        This example is the commonest example of ARP traffic on an ethernet.
+        In summary, an ARP request is transmitted in a broadcast ethernet
+        frame.  The ARP reply is a unicast response, containing the desired
+        information, sent to the requestor's link layer address.
       </para>
       <para>
         An even rarer usage of ARP is gratuitous ARP, where a machine
         announces its ownership of an IP address on a media segment.  The
         <link linkend="tools-arping"><command>arping</command></link> utility
         can generate these gratuitous ARP frames.  Linux kernels will
-        disregard gratuitous ARP frames.
+        respect gratuitous ARP frames
+        <footnote>
+          <para>
+            I have repeatedly tested using <command>arping</command> in
+            gratuitous ARP mode, and have found that linux kernels appear to
+            respect gratuitous ARP.  This is a surprise.  Does anybody have
+            ideas about this?  Must research!
+          </para>
+        </footnote>.
       </para>
       <example id="ex-ether-arp-gratuitous">
         <title>Gratuitous ARP reply frames</title>
@@ -204,13 +225,16 @@
 06:02:50.626330 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51) 
 06:02:51.622727 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51) 
 06:02:52.620954 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51)</computeroutput>
-<prompt>[root@masq-gw]# </prompt><userinput>ip neigh show</userinput>
         </programlisting>
       </example>
       <para>
         The frames generated in
         <xref linkend="ex-ether-arp-gratuitous"/> are ARP replies to a
-        question never asked.
+        question never asked.  This sort of ARP is common in failover
+        solutions and also for nefarious sorts of purposes, such as
+        <ulink url="http://ettercap.sourceforge.net/"><command>ettercap</command></ulink>.
+      </para>
+      <para>
         Unsolicited ARP request frames, on the other hand, are broadcast
         ARP requests initiated by a host owning an IP address.
       </para>
@@ -294,23 +318,34 @@ Received 1 response(s)
         </programlisting>
       </example>
       <para>
+        <note>
+          A major difference between the information reported by <command>ip
+          neighbor</command> and <command>arp</command> is the state of the
+          proxy ARP table.  The only way to list permanently advertised entries
+          in the neighbor table (proxy ARP entries) is with the
+          <command>arp</command>.
+        </note>
       </para>
       <para>
         Entries in the ARP cache are periodically and automatically
         verified unless continually used.  Along with 
-        <filename>/proc/sys/net/ipv4/neigh/$DEV/gc_stale_time</filename>,
-        there are a number of other parameters which control the expiration of
-        entries in the ARP cache.
+        <filename>net/ipv4/neigh/$DEV/gc_stale_time</filename>,
+        there are a number of other parameters in
+        <filename>net/ipv4/neigh/$DEV</filename> which control the
+        expiration of entries in the ARP cache.
       </para>
       <para>
         When a host is down or disconnected from the ethernet, there is a
         period of time during which other hosts may have an ARP cache entry
-        for the disconnected host.  The disconnected host may seem reachable
-        during this time because there is a recently known-good link layer
-        address on which the IP was reachable.  At
-        <constant>gc_stale_time</constant> the state of the entry will change,
+        for the disconnected host.  Any other machine may display a neighbor
+        table with the link layer address of the recently disconnected host.
+        Because there is a recently known-good link layer address on which
+        the IP was reachable, the entry will abide.  At
+        <filename>gc_stale_time</filename> the state of the entry will change,
         reflecting the need to verify the reachability of the link layer
-        address.
+        address.  When the disconnected host fails to respond ARP requests,
+        the neighbor table entry will be marked as
+        <constant>incomplete</constant>
       </para>
       <para>
         Here are a the possible states for entries in the neighbor table.
@@ -370,9 +405,9 @@ Received 1 response(s)
         </tgroup>
       </table>
       <para>
-        To resume, a host (192.168.99.7) in the ARP cache on the
+        To resume, a host (192.168.99.7) in &tristan;'s ARP cache on the
         <link linkend="ax-example-network">example network</link> has just
-        been removed from the network.  There are a series of events which
+        been disconnected.  There are a series of events which
         will occur as &tristan;'s ARP cache entry for 192.168.99.7 expires and
         gets scheduled for verification.  Imagine that the following commands
         are run to capture each of these states immediately before state
@@ -420,7 +455,7 @@ Received 1 response(s)
                   This entry in the neighbor table has been requested.
                   Because the entry was in a stale state, the link layer
                   address was used, but now the kernel needs to verify
-                  the accuracy of the data.  The kernel will soon send
+                  the accuracy of the address.  The kernel will soon send
                   an ARP request for the destination IP address.
                 </simpara>
             </callout>
@@ -459,7 +494,9 @@ Received 1 response(s)
         entry will be listed in an <emphasis>incomplete</emphasis> state.  If
         the lookup does not succeed after the specified number of ARP
         requests, the ARP cache entry will be listed in a
-        <emphasis>failed</emphasis> state.
+        <emphasis>failed</emphasis> state.  If the lookup does succeed, the
+        kernel enters the response into the ARP cache and resets the
+        confirmation and update timers.
       </para>
       <para>
         After receipt of a corresponding ARP reply, the kernel enters the
@@ -483,13 +520,13 @@ Received 1 response(s)
         for all hosts wishing to exchange packets across the ethernet.
       </para>
       <para>
-        Additionally, and notably, you can suppress ARP on an interface by
-        simply using <command>ip link set dev $DEV arp off</command> as in
+        To suppress ARP on an interface simply use <command>ip
+        link set dev $DEV arp off</command> as in
         <xref linkend="ex-tools-ip-link-set"/>
         or <command>ifconfig $DEV -arp</command> as in
-        <xref linkend="ex-tools-ifconfig-flags"/>.
-      </para>
-      <para>
+        <xref linkend="ex-tools-ifconfig-flags"/>.  Complete ARP suppression
+        will prevent the host from sending any ARP requests or responding with
+        any ARP replies.
       </para>
     </section>
 
@@ -522,9 +559,9 @@ Received 1 response(s)
         This is a simple illustration of the problem in a network where a
         server has two ethernet adapters connected to the same media
         segment.  They need not have IP addresses in the same IP network for
-        the ARP reply to be generated by each interface.  Note the
-        first replies received in response to the ARP broadcast request.
-        Two replies from conflicting link layer addresses arrive in
+        the ARP reply to be generated by each interface.  Note the first
+        two replies received in response to the ARP broadcast request.
+        These replies arrive from conflicting link layer addresses in
         response to this request.  Also notice the greater time required for
         the sending and receiving hosts to process the broadcast ARP request
         frames than the unicast frames which follow (probes two and three).
@@ -553,8 +590,8 @@ Received 4 response(s)</computeroutput>
         per interface basis and only if the functionality has been enabled.
       </para>
       <para>
-        Alternate solutions which provide much greater control of the ARP
-        process (possibly documented
+        Alternate solutions which provide much greater control of ARP
+        (possibly documented
         <link linkend="ether-arp-filtering">here</link> at a later date)
         include Julian Anastasov's
         <ulink url="http://www.ssi.bg/~ja/#iparp"><command>ip
@@ -570,11 +607,14 @@ Received 4 response(s)</computeroutput>
         <title>ARP flux prevention with <constant>arp_filter</constant></title>
         <para>
           One method for preventing ARP flux involves the use of
-          <filename>/proc/sys/net/ipv4/conf/$DEV/arp_filter</filename>.  In
+          <filename>net/ipv4/conf/$DEV/arp_filter</filename>.  In
           short, the use of <filename>arp_filter</filename> causes the recipient
-          (in the case below, &real-server;) to perform a route lookup to
+          (in the
+          <link linkend="ex-ether-arp-flux-arpfilter">case below</link>,
+          &real-server;) to perform a route lookup to
           determine the interface through which to send the
-          reply, instead of the default behaviour (shown above), replying
+          reply, instead of the default behaviour
+          (<link linkend="ex-ether-arp-flux">shown above</link>), replying
           from all ethernet interfaces which receive the request.
         </para>
         <!--
@@ -584,11 +624,26 @@ Received 4 response(s)</computeroutput>
 
          -->
         <para>
-          This can have unintended effects if the only route to the destination
+          The <filename>arp_filter</filename> solution can have unintended
+          effects if the only route to the destination
           is through one of the network cards.  In
           <xref linkend="ex-ether-arp-flux-arpfilter"/>, &real-client; will
           demonstrate this.  This instructive example should highlight
-          the shortcomings of the <constant>arp_filter</constant> solution.
+          the shortcomings of the <constant>arp_filter</constant> solution in
+          very complex networks where finer-grained control is required.
+        </para>
+        <para>
+          In general, the <filename>arp_filter</filename> solution
+          sufficiently solves the ARP flux problem.  First, hosts do not
+          generate ARP requests for networks to which they do not have a
+          direct route (see 
+          <xref linkend="routing-local"/>) and second, when such a route
+          exists, the host normally
+          <link linkend="routing-saddr-selection">chooses a source
+          address</link> in the same network as the destination.  So, the
+          <filename>arp_filter</filename> solution is a good general solution,
+          but does not adequately address the occasional need for more control
+          over ARP requests and replies.
         </para>
         <example id="ex-ether-arp-flux-arpfilter">
           <title>Correction of ARP flux with
@@ -604,36 +659,109 @@ Received 4 response(s)</computeroutput>
 <prompt>[root@real-server]# </prompt><userinput>ip address show dev eth1</userinput>
 <computeroutput>3: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
     link/ether 00:80:c8:7e:71:d4 brd ff:ff:ff:ff:ff:ff
-    inet 192.168.100.1/24 brd 192.168.100.255 scope global eth1</computeroutput>
+    inet 192.168.100.1/24 brd 192.168.100.255 scope global eth1</computeroutput> <co id="ex-eafa-server-setup" linkends="ex-eafa-server-setup-text"/>
 <prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 10.10.20.67</userinput>
 <computeroutput>ARPING 10.10.20.67 from 10.10.20.33 eth0
 Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  0.882ms
 Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.221ms
-Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.487ms
+Unicast reply from 10.10.20.67 [00:80:C8:E8:1E:FC]  1.487ms     <co id="ex-eafa-expected" linkends="ex-eafa-expected-text"/>
 Sent 3 probes (1 broadcast(s))
 Received 3 response(s)</computeroutput>
 <prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 192.168.100.1</userinput>
 <computeroutput>ARPING 192.168.100.1 from 10.10.20.33 eth0
 Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  0.877ms
 Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  1.517ms
-Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  1.661ms
+Unicast reply from 192.168.100.1 [00:80:C8:E8:1E:FC]  1.661ms     <co id="ex-eafa-problemzone" linkends="ex-eafa-problemzone-text"/>
 Sent 3 probes (1 broadcast(s))
 Received 3 response(s)</computeroutput>
-<prompt>[root@real-client]# </prompt><userinput>ip neighbor del 192.168.100.1 dev eth0</userinput>
-<prompt>[root@real-client]# </prompt><userinput>ip addr add 192.168.100.2/24 brd + dev eth0</userinput>
+<prompt>[root@real-client]# </prompt><userinput>ip neighbor del 192.168.100.1 dev eth0</userinput> <co id="ex-eafa-clearcache" linkends="ex-eafa-clearcache-text"/>
+<prompt>[root@real-client]# </prompt><userinput>ip address add 192.168.100.2/24 brd + dev eth0</userinput> <co id="ex-eafa-newip" linkends="ex-eafa-newip-text"/>
 <prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 3 192.168.100.1</userinput>
 <computeroutput>ARPING 192.168.100.1 from 192.168.100.2 eth0
 Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  0.804ms
 Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  1.381ms
-Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  2.487ms
+Unicast reply from 192.168.100.1 [00:80:C8:7E:71:D4]  2.487ms     <co id="ex-eafa-workaround-setup" linkends="ex-eafa-workaround-text"/>
 Sent 3 probes (1 broadcast(s))
 Received 3 response(s)</computeroutput>
           </programlisting>
+          <calloutlist>
+            <callout
+              arearefs="ex-eafa-server-setup"
+              id="ex-eafa-server-setup-text">
+                <simpara>
+                  Set the sysctl variables to enable the
+                  <filename>arp_filter</filename> functionality.  After this,
+                  you might expect that ARP replies for 10.10.20.67 would only
+                  include this link layer address on eth0 (00:80:c8:e8:1e:fc).
+                </simpara>
+            </callout>
+            <callout
+              arearefs="ex-eafa-expected"
+              id="ex-eafa-expected-text">
+                <simpara>
+                  Here is the expected behaviour.  Only one reply comes in for
+                  the IP 10.10.20.67 after the <filename>arp_filter</filename>
+                  sysctl has been enabled.  The reply originates from the
+                  interface on &real-server; which actually hosts the IP
+                  address.  Note that the source address on the ARP queries is
+                  10.10.20.33, and that the ARP query causes &real-server; to
+                  perform a route lookup on 10.10.20.33 to choose an interface
+                  on which to send the reply.
+                </simpara>
+            </callout>
+            <callout
+              arearefs="ex-eafa-problemzone"
+              id="ex-eafa-problemzone-text">
+                <simpara>
+                  Here, &real-client; requests the link layer address of the
+                  host 192.168.100.1, but the source IP on the request packet
+                  (chosen according to the
+                  <link linkend="routing-saddr-selection">rules for source
+                  address selection</link>) is 10.10.20.33.  When
+                  &real-server; looks up a route to this destination, it
+                  chooses its eth0, and replies with the link layer address of
+                  its eth0.  Conventional networking needs should not run
+                  afoul of this oddity of the <filename>arp_filter</filename>
+                  ARP flux prevention technique.
+                </simpara>
+            </callout>
+            <callout
+              arearefs="ex-eafa-clearcache"
+              id="ex-eafa-clearcache-text">
+                <simpara>
+                  Remove the entry in the neighbor table before testing again.
+                </simpara>
+            </callout>
+            <callout
+              arearefs="ex-eafa-newip"
+              id="ex-eafa-newip-text">
+                <simpara>
+                  By adding an IP address in the same network as the intended
+                  destination (which would be
+                  rather common where multiple IP networks share the same
+                  medium or broadcast domain), the kernel can now select a
+                  different source address for the ARP request packets.
+                </simpara>
+            </callout>
+            <callout
+              arearefs="ex-eafa-workaround"
+              id="ex-eafa-workaround-text">
+                <simpara>
+                  Note the source address of the ARP queries is now
+                  192.168.100.2.  When &real-server; performs a route lookup
+                  for the 192.168.100.0/24 destination, the chosen path is
+                  through eth1.  The ARP reply packets now have the correct
+                  link layer address.
+                </simpara>
+            </callout>
+          </calloutlist>
         </example>
         <para>
-          After &real-server; can reach &real-client; via its eth1 interface,
-          the ARP reply matches the ethernet interface to which 192.168.100.1 is
-          bound.
+          In general, the <filename>arp_filter</filename> solution should
+          suffice, but this knowledge can be key in determining whether or not
+          an alternate solution, such as an
+          <link linkend="ether-arp-filtering">ARP filtering solution</link>
+          are necessary.
         </para>
       </section>
       <section id="ether-arp-flux-hidden">
