@@ -4,14 +4,14 @@
 <article>
 
 <title>Firewall Piercing mini-HOWTO</title>
-<author>François-René Rideau, <tt>fare@tunes.org</tt></author>
-<date>v0.92, 15 July 2001</date>
+<author>François-René Rideau, <tt>fare+fwprc@tunes.org</tt></author>
+<date>v0.96, 23 November 2001</date>
 
 <abstract>
-Directions for using ppp over ssh or telnet
-so as to do network stuff transparently
-through an Internet firewall.
-Also applies to VPN construction.
+Directions for using ppp over ssh, telnet or whatever,
+so as to do achieve transparent network connection accross a firewall.
+Applies to friendly VPN construction
+as well as to piercing unfriendly firewalls.
 </abstract>
 
 <toc>
@@ -41,10 +41,18 @@ Don't come crying to me.
 <sect1>Legal Blurp
 <p>
 Copyright &copy; 1998-2001 by François-René Rideau.
-
+</p>
+<p>
 This document is free software published under the
 	<url url="http://www.geocities.com/SoHo/Cafe/5947/bugroff.html"
 		name="bugroff license">.
+</p>
+<p>
+To ease their task, it has also been released to the LDP maintainers
+under the
+	<url url="http://www.gnu.org/copyleft/fdl.html"
+		name="GNU Free Documentation License">.
+</p>
 </sect1>
 
 
@@ -67,7 +75,7 @@ Neither version is truly the translation of the other,
 though each is somehow partly translated from the other.
 Both are the ``original version''.
 
-NO MORE TRUE. I'VE ABANDONNED MAINTENANCE OF THE FRENCH VERSION.
+NOT TRUE ANYMORE. I'VE ABANDONNED MAINTENANCE OF THE FRENCH VERSION.
 </sect1>
 -->
 
@@ -123,13 +131,16 @@ the machines he wants nonetheless,
 and the net result for security will be
 an unaudited connection with the outside world.
 So either you trust your users, after proper training and selection,
-or you shouldn't grant them access to the network at all.
-You can and you shall protect them from the outside world,
-but you can't protect them from themselves.
+or you shouldn't grant them access to the network at all - but then again,
+the role of a network administrator is usually to serve its users,
+so your goal should be the former rather than the latter.
+You can and you shall protect them from the outside world;
+you can and you shall protect your critical services from them;
+but you can't and you shall not protect them from themselves.
 
 Because there exists such things as system administrators
 who are either unresponsive, absent, overworked, plain incompetent,
-or more generally managed by incompetent people,
+irresponsible, or more generally managed by incompetent people,
 it so happens that a user may find himself behind a firewall
 that he may cross, but only in awkward ways.
 This mini-HOWTO explains a generic and portable way
@@ -231,7 +242,9 @@ indeed, Barak Pearlmutter's
 describes how to use <tt>Term</tt>, a purely userland program,
 to the end of piercing firewalls.
 Although there's no HOWTO, I suspect SOCKS could also be used
-as a way to pierce firewalls without have root privilege.
+as a way to pierce firewalls without have root privilege;
+I will gladly accept patches to this HOWTO that describe
+such a method of piercing firewalls.
 </sect1>
 
 <sect1>Downloading software
@@ -253,7 +266,8 @@ use the addresses below:
 	<URL URL="ftp://cs.anu.edu.au/pub/software/ppp/">.
 <item><tt>ssh</tt> can be found at
 	<URL URL="http://www.openssh.com/">.
-<item><tt>fwprc</tt>, <tt>cotty</tt> and <tt>getroute.pl</tt can be found at
+<item><tt>fwprc</tt>, <tt>cotty</tt> and <tt>getroute.pl</tt>
+	can be found at
 	<URL URL="http://fare.tunes.org/files/fwprc/">.
 <item><tt>httptunnel</tt> can be found at
 	<URL URL="http://www.nocrew.org/software/httptunnel/">.
@@ -278,19 +292,33 @@ you know where to look for.
 The first step toward understanding the problem
 is to give a name to relevant concepts.
 
-As usual, we'll herein call "local" the client machine
+As usual, we'll herein call "client" the machine
 that decides to initiate the connection,
-as well as programs and files on that machine;
-conversely, we'll call "remote" what's on the other side of the connection,
-where a server runs that waits for connections.
+as well as programs and files on that machine.
+Conversely, we'll call "server" that waits for connections and accepts them,
+as well as programs and files on that machine.
+Firewall piercing is useful when the two machines are separated by a firewall,
+such that it is possible for the server to accept some kind of connections,
+whereas the client might or might not be able to accept any.
+A tunnel will be created between the two machines
+that allows full IP traffic despite the firewall.
+
+Usually, when piercing firewalls, the client is the machine behind a firewall:
+it has limited access to the internet,
+but can somehow open some kind of connection to the server.
+The server is a machine with full internet access,
+that will serve as a proxy for the client to access all of the internet.
+In a VPN, the firewall the roles might be reversed,
+with the client being on the internet, and
+the server serving as a proxy for the client to access some private network.
 </sect1>
 
 
 <sect1>The main problem
 <p>
 The main problem with firewall piercing is to create a tunnel:
-a continuous connection from the local machine to a remote machine
-on the other side of the firewall,
+a continuous connection from the client machine
+to a server machine on the other side of the firewall,
 that allows for bidirectional exchange of information.
 Optionally, this connection should be a secure one.
 The secondary problem is to transform this connection
@@ -298,10 +326,11 @@ into a full IP access for normal programs to use transparently.
 
 For the main problem, we'll assume that
 either (1) you can establish normal TCP/IP connections
-from the local side of the firewall to some port on a remote machine
+from the client side of the firewall to some port on a server machine
 where a sshd runs or can be set to run, or
 (2) you can somehow establish a telnet connection through a telnet proxy.
-In case you cannot, we give you pointers to other software that allows you
+In case you cannot, we will give you pointers
+to other software that allows you
 to pierce a tunnel accross a firewall.
 Although we only give a secure solution in the first case,
 you can hack your own secure solution in the other cases,
@@ -348,9 +377,9 @@ you can only run it through
 either a device in <tt>/dev</tt> or the current tty.
 You cannot run it through a pair of pipe
 (which would be the obvious design).
-This is fine for the remote <tt>pppd</tt> if any,
+This is fine for the server's <tt>pppd</tt> if any,
 as it can use the <tt>telnet</tt> or <tt>ssh</tt> session's tty;
-but for the local <tt>pppd</tt>, this conflicts with
+but for the client's <tt>pppd</tt>, this conflicts with
 the possible use of <tt>telnet</tt> as a way to establish a connection.
 
 Indeed, <tt>telnet</tt>, too wants to be on a tty;
@@ -390,8 +419,8 @@ to get redirected to a port on the other side
 (using <tt>httptunnel</tt>, <tt>mailtunnel</tt>,
 some tunnel over <tt>telnet</tt>, or whatelse).
 
-Then, you can run an <tt>sshd</tt> on the remote port,
-and connect to it with an <tt>ssh</tt> on the local port.
+Then, you can run an <tt>sshd</tt> on the server side port,
+and connect to it with an <tt>ssh</tt> on the client side port.
 On both sides of the <tt>ssh</tt> connection,
 you run IP emulators (<tt>pppd</tt>),
 and there you have your VPN, Virtual Public Network,
@@ -410,45 +439,68 @@ between the sites.
 
 <sect1>A sample session
 <p>
-Below is a sample session to integrate in a shell script
-(it assumes sh/bash syntax; YMMV).
-
-Be sure to edit this into a script
-with the right values for your needs.
+Below is a sample script for you to adapt to your needs.
+It uses the array feature of <tt>zsh</tt>,
+but you may easily adapt it to your favorite shell.
 Use option <tt>-p</tt> for <tt>ssh</tt> to try another port than port 22
 (but then, be sure to run <tt>sshd</tt> on same port).
-You can use <tt>slirp</tt> on the remote end,
-if you are not <tt>root</tt> there, or simply want to screen your
-local network from outbound connections.
 
-Automatic reconnection is left as an exercise to the reader
-(the <tt>nodetach</tt> option from <tt>pppd</tt> might help).
+Note that the script supposes that <tt>ssh</tt>
+can login without your having to interactively type your password
+(indeed, it's controlling tty will be connected to <tt>pppd</tt>,
+so if it asks for a password, you lose).
+This can be done either by ssh keys in your <tt>~/.ssh/authorized_keys</tt>
+that either do not require a password,
+or that you unlock using <tt>ssh-agent</tt> or <tt>ssh-askpass</tt>.
+See your SSH documentation.
+Actually, you might also use a <tt>chat</tt> script to enter your password,
+but this is definitely <em>not</em> the Right Thing.
+
+If you are not <tt>root</tt> on the server end,
+or simply if want to screen your client's network from outbound connections,
+you can use <tt>slirp</tt> instead of <tt>pppd</tt> as the remote PPP emulator.
+Just uncomment the relevant line.
 
 <verb>
-#!/bin/sh
-REMOTE_ACCOUNT=root@remote.fqdn.tld
-REMOTE_PPPD="pppd ipcp-accept-local ipcp-accept-remote"
-#REMOTE_PPPD="slirp ppp"
-LOCAL_PPPD="pppd silent 10.0.2.15:10.0.2.2"
-$LOCAL_PPPD pty "ssh -t $REMOTE_ACCOUNT $REMOTE_PPPD"
+#!/bin/zsh -f
+SERVER_ACCOUNT=root@server.fqdn.tld
+SERVER_PPPD="pppd ipcp-accept-local ipcp-accept-remote"
+#SERVER_PPPD="pppd" ### This usually suffices if it's in /usr/sbin/
+#SERVER_PPPD="/home/joekluser/bin/slirp ppp"
+CLIENT_PPPD=( pppd
+	silent
+	10.0.2.15:10.0.2.2
+	### For debugging purposes, you may uncomment the following:
+	# updetach debug
+	### Another potentially useful option (see section on Routing):
+	# defaultroute
+)
+$CLIENT_PPPD pty "ssh -t $SERVER_ACCOUNT $SERVER_PPPD"
 </verb>
 
-If you use <tt>slirp</tt> instead of <tt>pppd</tt>,
-just uncomment the relevant line.
-Note that default options from
-your <tt>/etc/ppp/options</tt> or <tt>~/.slirprc</tt>
+Note that default options from your
+<tt>/etc/ppp/options</tt> or <tt>~/.slirprc</tt>
 may break this script, so remove any unwanted option from there.
-If your old or non-linux <tt>pppd</tt> hasn't got the <tt>pty</tt> option,
-use <tt>cotty -d -- $LOCAL_PPPD -- ssh -t $REMOTE_ACCOUNT $REMOTE_PPPD</tt>.
-For more customization, please read the documentation for the relevant program.
 
-Note that 10.0.2.2 is the default setting for <tt>slirp</tt>,
+Also note that 10.0.2.2 is the default setting for <tt>slirp</tt>,
 which might or not fit your specific setup.
 In any case, you should most likely be using some address in one
 of the ranges reserved by RFC 1918 for private networks:
 10.0.0.0/8, 172.16.0.0/12 or 192.168.0.0/16.
 The firewall-protected LAN might already be using some of them,
 and avoiding clashes is your responsibility.
+For more customization, please read the appropriate documentation.
+
+If your client's <tt>pppd</tt> is old or non-linux (e.g. BSD)
+and hasn't got the <tt>pty</tt> option,
+use <tt>cotty -d -- $CLIENT_PPPD -- ssh -t $SERVER_ACCOUNT $SERVER_PPPD</tt>.
+Catches: don't put quotes around commands given to cotty,
+as they are just <tt>exec()</tt>'d as is,
+and don't forget to specify the full path for your the server's <tt>pppd</tt>
+if it's not in the standard path setup by <tt>ssh</tt>.
+
+Automatic reconnection is left as an exercise to the reader
+(the <tt>nodetach</tt> option from <tt>pppd</tt> might help for that).
 </sect1>
 </sect>
 
@@ -467,16 +519,16 @@ that opens two pseudo-tty devices,
 launches some command on each of those devices' slaves,
 and stubbornly copies every character that one outputs
 to the tty that serves as input of the other command.
-One command will be telnet connection to remote site,
-and the other will be the local <tt>pppd</tt>.
+One command will be telnet connection to server site,
+and the other will be the client's <tt>pppd</tt>.
 <tt>pppd</tt> can then open and control the telnet session
 with a chat script as usual.
 
 Actually, if your telnet proxy allows connection to an arbitrary port,
-and if you can reliably run a daemon on the remote host
+and if you can reliably run a daemon on the server host
 (with a cron job to relaunch it in case of breakage),
 then you'd better write some program that will just connect
-a local port to the remote one through the proxy,
+a client side port to the server side port through the proxy,
 so you can use the above secure solution,
 possibly using some variant of <tt>ssh -t -o "ProxyCommand ..."</tt>
 (if you submit it to me, I'll gladly integrate such a solution
@@ -486,6 +538,9 @@ Note: if you must use the unsecure telnet-based solution,
 be sure that nothing lies in your target account
 that you want to keep secret or untampered,
 since the password will be sent in clear text accross the Internet.
+If you can control these things, a one-time-password system,
+or an explicit cryptographic challenge system will enhance your security,
+although it will make automated connection scripts much more complex.
 </sect1>
 
 <sect1>fwprc
@@ -493,12 +548,12 @@ since the password will be sent in clear text accross the Internet.
 I wrote a very well self-documented script
 to pierce firewalls, <tt>fwprc</tt>,
 available from
-	<URL URL="http://fare.tunes.org/files/fwprc/"
+	<url url="http://fare.tunes.org/files/fwprc/"
 		name="my site">,
 together with <tt>cotty</tt>
 (which is required by <tt>fwprc.2</tt> 0 and later).
 At the time of my writing these lines, latest versions are
-<tt>fwprc</tt> 0.3e and <tt>cotty</tt> 0.4b.
+<tt>fwprc</tt> 0.3e and <tt>cotty</tt> 0.4c.
 
 The name "fwprc" is voluntarily made unreadable and unpronounceable,
 so that it will confuse the incompetent paranoid sysadm
@@ -535,7 +590,8 @@ in your home directory.
 Then replace variable values with stuff that fits your configuration.
 Finally, copy to the other host, and test.
 <p>
-Default behavior is to use <tt>pppd</tt> locally, and <tt>slirp</tt> remotely.
+Default behavior is to use <tt>pppd</tt> on the client,
+and <tt>slirp</tt> on the server.
 To modify that, you can redefine the appropriate function
 in your <tt>.fwprcrc</tt> with such a line as:
 <tscreen>
@@ -544,7 +600,7 @@ remote_IP_emu () { remote_pppd }
 <p>
 Note that <tt>SLiRP</tt> is safer than <tt>pppd</tt>,
 and easier to have access to,
-since it does not require being root on the remote machine,
+since it does not require being root on the server machine,
 and needn't additional firewall configuration to prevent
 connections from the outside world into the firewalled network.
 The basic functionality in <tt>SLiRP</tt> works quite well,
@@ -560,7 +616,8 @@ so as to actually implement or fix whichever feature you need.
 <sect>Routing
 <p>
 Piercing the firewall is not everything.
-You must also route the packets from this side of the firewall to the other.
+You must also route the packets
+from the client side of the firewall to the server side.
 This section tackles the basic settings specific
 about routing accross a tunnel.
 For more detailed explanations of routing,
@@ -569,42 +626,51 @@ about networking, routing and masquerading.
 </p>
 <sect1>The catch
 <p>
-The main point is that although your network administration
-would tell you to setup your local router as the default route,
-you might want to have it but a specific route to the networks
-within your side or the firewall,
-whereas the other end of your PPP link should be
-the router for the networks on the other side.
-Your default route should point to a router
-on whichever side gives you access to the Internet.
-Most importantly, all machines involved in routing packets to the other end
-of the tunnel should be routed through your usual network (i.e. ethernet),
-for your kernel will have problems if it tries to route through the tunnel
-the packets to the remote host that precisely serves as end-point
-for the tunnel.
+The catch is that although your network administration would tell you
+to setup your some router on your client side's as the default route,
+(this may be relevant if you want to have a specific route
+to the networks on the client of the firewall),
+you should setup PPP link as the route to the networks on the server side.
 </p>
 <p>
-So you'll have to setup proper routes in your network startup configuration
-like <tt>/etc/init.d/network</tt> or <tt>/etc/network/</tt>,
-as well as your PPP startup configuration in <tt>/etc/ppp/ip-up</tt>
-or <tt>/etc/ppp/ip-up.d/</tt> or wherever your distribution puts them.
-To identify your distribution-specific file locations,
-RTFM the docs of your distribution,
-use <tt>grep</tt> recursively on your <tt>/etc</tt>,
-and if all else fails, trace the boot behaviour of your computer
-from <tt>/sbin/init</tt>.
+In other words, your default route should point to a router
+on whichever side of the tunnel that gives you access to the Internet.
 </p>
 <p>
-Also, when piercing a tunnel from a roaming laptop on the Internet
-into a protected network, I used to use from within my <tt>ip-up</tt>
-the script <tt>getroute.pl</tt>
+Most importantly, packets sent to the server host as part of running the tunnel
+should be routed through your usual network
+(e.g. your default ethernet router);
+otherwise, your kernel will have problems,
+as it tries to route through the inside the tunnel
+the very packets that ought to constitute the outside of the tunnel.
+</p>
+<p>
+Thus, you'll have to setup correct routes
+in your network startup configuration.
+The precise location of your routing configuration data
+depends on your distribution, but it is typically
+under <tt>/etc/init.d/network</tt> or <tt>/etc/network/</tt>;
+similarly, your PPP configuration is typically in <tt>/etc/ppp/</tt>,
+and the proper place to configure its routes is usually
+in <tt>ip-up</tt> or <tt>ip-up.d/</tt>.
+(Tip: to identify your distribution-specific file locations,
+you must read the documentation of your distribution and otherwise
+<htmlurl url="http://foldoc.doc.ic.ac.uk/foldoc/foldoc.cgi?RTFM"
+	name="RTFM">;
+alternatively use <tt>grep</tt> recursively on your <tt>/etc</tt>;
+at worst, trace what happens at boot time,
+as configured in your <tt>/etc/inittab</tt>.)
+</p>
+<p>
+When piercing a tunnel from a roaming laptop on the Internet
+into a protected network, the script <tt>getroute.pl</tt>
 (available from the <tt>fwprc</tt> distribution)
-that gives me the current route for the host on the other end of the tunnel.
+gives the current route to the server host that is the other end of the tunnel.
 </p>
 <p>
-Once you can route packets to the other side of the tunnel,
+Once you can route packets to the server side of the tunnel,
 you might want to setup your machine as a router for all your pals
-on your site of the firewall, achieving a full-fledged shared VPN.
+on the client side of the firewall, achieving a full-fledged shared VPN.
 This is not specific to Firewall-Piercing, so just you read
 the relevant HOWTOs about networking, routing and masquerading.
 Also, for security reasons, be sure to also setup
@@ -613,64 +679,73 @@ especially if you're going to be a router for other people.
 </p>
 <p>
 Finally, be reminded that if you're using <tt>pppd</tt>
-on the other end of the tunnel (as opposed to user-mode <tt>slirp</tt>),
+on the server end of the tunnel (as opposed to user-mode <tt>slirp</tt>),
 you will have to configure proper routes and firewall rules
-on the other side of the tunnel, too.
+on the server side of the tunnel, too.
 </p>
 </sect1>
 <sect1>Example of routing
 <p>
-Let's consider an example.
-In your case, of course, you'll have to adapt the IP numbers,
-and insert the commands in the right place, which depends on your distribution.
-</p>
-<p>
-For instance, imagine your machine is on the ethernet eth0
-with IP address is 12.34.56.78 on network 12.24.56.0/24, router 12.34.56.1.
-Your network administrator will have told you to use 12.34.56.1
-as default router. But you shouldn't, as you should only use it to route
-on your side of the firewall.
-Imagine you have networks 12.34.0.0/16 and 12.13.0.0/16 and host 11.22.33.44
-accessible through your router on your side of the firewall.
-Then you'll add these routes to your startup script:
+In this example, your client machine is connected to a firewalled LAN
+through ethernet device <tt>eth0</tt>.
+Its IP address is <tt>12.34.56.78</tt>;
+its network is <tt>12.34.56.0/24</tt>;
+its router is <tt>12.34.56.1</tt>.
+
+Your network administrator may have told you to use <tt>12.34.56.1</tt>
+as default router, but you shouldn't.
+You should only use it as a route to the client side of the firewall.
+
+Let's suppose the client side of your firewall is made of networks
+<tt>12.34.0.0/16</tt> and <tt>12.13.0.0/16</tt>,
+and of host <tt>11.22.33.44</tt>.
+To make them accessible through your client router,
+add these routes to your global network startup script:
 <verb>
 route add -net 12.34.0.0 netmask 255.255.0.0 gw 12.34.56.1
 route add -net 12.13.0.0 netmask 255.255.0.0 gw 12.34.56.1
 route add -host 11.22.33.44 gw 12.34.56.1
 </verb>
-You must also keep the route to the local network,
+You must also keep the route to the client's local network,
 necessary for linux kernel 2.0 and earlier,
-but implicitly added by ifconfig on 2.2 and later:
+but but unnecessary for linux kernel 2.2 and later
+(that implicitly adds it during the <tt>ifconfig</tt>):
 <verb>
 route add -net 12.34.56.0 netmask 255.255.255.0 dev eth0
 </verb>
-On the other hand, you must remove any default route from your scripts:
+On the other hand, you <em>must</em> remove
+any default route from your scripts.
+Delete or comment away a line like:
 <verb>
 route add default gw 12.34.56.1
 </verb>
-If the default route has already been set, you can remove it as is:
+Note that it is also possible to remove the route from the running
+kernel configuration without rebooting, by the following command:
 <verb>
 route del default gw 12.34.56.1
 </verb>
 Then you can have <tt>pppd</tt> setup a default route automatically
 when it starts by using its <tt>defaultroute</tt> option.
-Or you can add it after the fact with:
+Alternatively, you can add it afterwards:
 <verb>
 route add default gw 10.0.2.2
 </verb>
 If you don't want <tt>pppd</tt> as a default route,
-because the Internet is on your side of the firewall,
-and instead want network 98.76.0.0/20 to be routed through the tunnel,
-except from host 98.76.54.20 that serves as the other end of the tunnel,
-then have this executed from your <tt>/etc/ppp/ip-up</tt>:
+because the Internet access is available on your side of the firewall,
+and if you instead want network <tt>98.76.48.0/20</tt>
+to be routed through the tunnel,
+except from host <tt>98.76.54.32</tt>
+that serves as the other end of the tunnel,
+then add the following lines to your <tt>/etc/ppp/ip-up</tt>:
 <verb>
 route add -host 98.76.54.32 gw 12.34.56.1
-route add -net 98.76.0.0 netmask 255.255.240.0 gw 10.0.2.2
+route add -net 98.76.48.0 netmask 255.255.240.0 gw 10.0.2.2
 </verb>
 If you're a laptop and your current LAN moves,
-and yet you want to keep your current route to 98.76.54.32, whatever it be,
-then use <tt>getroute.pl</tt> as follows to automatically find
-the right gateway in the <tt>route add -host</tt> command:
+and yet you want to keep your current route to <tt>98.76.54.32</tt>,
+whatever it be, then use <tt>getroute.pl</tt> as follows
+to automatically find the right gateway
+in the <tt>route add -host</tt> command:
 <verb>
 $(getroute.pl 98.76.54.32)
 </verb>
@@ -710,30 +785,36 @@ connection, and <tt>ssh</tt> taking over that connection.
 Contribution in that direction welcome.
 </sect1>
 
-
 <sect1>Getting the trigger message
 <p>
-If you are firewalled, your mail may as well be in a central server
+If you are firewalled, your mail may as well be in a central mailserver
 that doesn't do procmail filtering or allow telnet sessions.
 No problem! You can run <tt>fetchmail</tt>
 in daemon mode (or within a cron job)
-to poll your server and deliver mail to your linux system
+to poll your mailserver and deliver mail to your linux system
 which itself will have been configured to use <tt>procmail</tt> at delivery.
 Note that if you run <tt>fetchmail</tt> as a background daemon,
 it will lock away any other fetchmail that you'd like to run
 only at other times, like when you open a <tt>fwprc</tt>;
 of course, if you can also run a fetchmail daemon as a fake user.
-Too frequent a poll won't be nice to either the server or your host.
+Too frequent a poll won't be nice to either the mailserver or your host.
 Too infrequent a poll means you'll have to wait before the message gets read
 and the reverse connection gets established.
 I use two-minute poll frequency.
 </p>
+</sect1>
+
+<sect1>Other automated tools for reverse piercing
 <p>
 Another way to poll for messages, when you don't have a mailbox,
 but do have outbound FTP access, is to use
 <url url="http://dhirajbhuyan.hypermart.net/ftp-tunnel.html"
 	name="FTP tunnel">.
-</p>
+
+A tool to maintain a permanent connection between a firewalled host and
+an external proxy, so as to export services from the host to the world, is
+<url url="http://www.employees.org/~hek2000/projects/firewallTunnel/"
+	name="firewall tunnel">.
 </sect1>
 </sect>
 
@@ -743,6 +824,17 @@ but do have outbound FTP access, is to use
 
 <sect1>Other settings
 <p>
+I have no idea how to pierce firewalls with lesser operating systems,
+but you can take one of these old disused computers
+(about anything with 8MB of RAM and an ethernet card should do),
+install Linux or BSD as on it, and pierce the firewall with it,
+while serving as a router for other machines running lesser OSes.
+See appropriate HOWTOs about routing, IP forwarding, NAT, etc.
+
+I don't know the details, but a promising tool to pierce firewalls is
+Chris Mason's <url url="http://www.r00t3d.org.uk/" name="Bouncer">,
+which acts as a SOCKS-proxy-over-SSL.
+
 There are other kinds of firewalls
 than those that allow for direct ssh or telnet connections.
 As long as a continuous flow of packets
@@ -775,7 +867,7 @@ Another promising program for piercing through HTTP is
 	<url url="http://lars.nocrew.org/" name="Lars Brinkoff">'s
 	<url url="http://www.nocrew.org/software/httptunnel/"
 		name="httptunnel">,
-a http daemon and client combination that achieves a TCP/IP tunnel connection
+a http server and client combination that achieves a TCP/IP tunnel connection
 through the proxy-friendly HTTP protocol.
 You should then be able to run <tt>fwprc</tt> (preferably over <tt>ssh</tt>)
 over that connection, although I haven't tried it yet.
@@ -792,7 +884,7 @@ or something real weird like DNS queries, ICMP packets, e-mail
 (see <URL name="mailtunnel" URL="http://www.detached.net/mailtunnel/">,
 <URL name="icmptunnel" URL="http://www.detached.net/icmptunnel/">),
 or whatelse,
-you can always write a tunnel client/daemon combination,
+you can always write a tunnel client/server combination,
 and run a <tt>ssh</tt> and/or PPP connection through it.
 The performance mightn't be high,
 depending on the effective information communication rate
@@ -824,6 +916,13 @@ using (for instance) the Fox project's packet-protocol functors.
 You'll then achieve some direct IP-over-HTTP, IP-over-DNS, IP-over-ICMP,
 or such, which requires not only an elaborate protocol,
 but also an interface to an OS kernel, both of which are costly to implement.
+
+Finally, if you're not fighting against an adverse firewall,
+but just building your own VPN, there is a large offer of VPN tools,
+and although the tricks I present are simple, work well,
+and might be enough for your needs, it could be a good idea
+to look at this evolving offer (that I do not know much about)
+for a solution that fits your requirements of performance and maintainability.
 </sect1>
 
 
@@ -851,11 +950,12 @@ to this mini-HOWTO.
 
 <sect1>Related Documents
 <p>
-The <url url="http://www.linuxdoc.org/"
-	name="LDP">
-publishes many documents related to this mini-HOWTO,
+The <url url="http://www.linuxdoc.org/"	name="LDP">
+publishes many documents related to this
+<htmlurl url="http://www.linuxdoc.org/HOWTO/HOWTO-INDEX/mini.html"
+	name="mini-HOWTO">.
 most notably
-the  <htmlurl url="http://www.securityportal.com/lskb/"
+the <url url="http://www.securityportal.com/lskb/"
 	name="Linux Security Knowledge Base">,
 the <htmlurl url="http://www.linuxdoc.org/HOWTO/VPN.html"
 	name="VPN HOWTO"> and
@@ -865,6 +965,9 @@ For more general questions about networking, routing and firewalling,
 start from the
 <htmlurl url="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html"
 	name="Networking Overview HOWTO">.
+See also
+the <url url="http://www.linux-firewall-tools.com/linux/"
+	name="Linux Firewall and Security site">.
 
 Then again, when facing a problem with some program,
 one reflex for any Linux user should be to RTFM:
@@ -882,7 +985,8 @@ to automate it all for you, then welcome with me among
 and other people who hate current low-level operating systems,
 and yearn for declarative computing systems
 that take care of the silly details and let us focus on things that matter.
-(Maybe have a peek at my <url url="http://tunes.org/" name="TUNES project">).
+(Maybe have a peek at my own
+	<url url="http://tunes.org/" name="TUNES project">).
 </sect1>
 
 
