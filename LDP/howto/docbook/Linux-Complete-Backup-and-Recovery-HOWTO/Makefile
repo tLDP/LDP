@@ -1,6 +1,6 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2002-01-07 12:28:00 ccurley Makefile>
+# Time-stamp: <2002-01-27 12:36:19 ccurley Makefile>
 
 # All the scripts we incorporate into the HOWTO
 SCRIPTS = cooked/back.up.all cooked/back.up.all.ssh cooked/dev.hda cooked/get.tester cooked/make.dev.hda cooked/make.fdisk cooked/restore.all cooked/restore.all.ssh cooked/restore.metadata cooked/restore.tester cooked/save.metadata
@@ -23,7 +23,7 @@ cooked:
 	mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
 
 clean:
-	-rm -r $(DOCUMENT) $(DOCUMENT).[a-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked *.eps ../images
+	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked *.eps ../images
 	mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
 
 cooked/back.up.all: scripts/back.up.all
