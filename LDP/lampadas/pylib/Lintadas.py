@@ -177,7 +177,7 @@ def main():
         lintadas.check_all()
     else:
         for doc_id in docs:
-            lintadas.check(doc_id)
+            lintadas.check(int(doc_id))
 
 def usage():
     print "Lintadas version " + VERSION

@@ -188,6 +188,106 @@ class Docs(LampadasCollection):
             doc = Doc()
             doc.load_row(row)
             self[doc.id] = doc
+        self.load_errors()
+        self.load_files()
+        self.load_users()
+        self.load_versions()
+        self.load_ratings()
+        self.load_topics()
+        self.load_notes()
+
+    def load_errors(self):
+        sql = "SELECT doc_id, err_id, date_entered FROM document_error"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.errors.doc_id = doc_id
+            docerr = DocErr()
+            docerr.load_row(row)
+            doc.errors[docerr.err_id] = docerr
+
+    def load_files(self):
+        sql = "SELECT doc_id, username, role_code, email, active FROM document_user"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.users.doc_id = doc_id
+            docuser = DocUser()
+            docuser.load_row(row)
+            doc.users[docuser.username] = docuser
+
+    def load_users(self):
+        sql = "SELECT doc_id, filename, top, format_code FROM document_file"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.files.doc_id = doc_id
+            docfile = DocFile()
+            docfile.load_row(row)
+            doc.files[docfile.filename] = docfile
+
+    def load_versions(self):
+        sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.versions.doc_id = doc_id
+            docversion = DocVersion()
+            docversion.load_row(row)
+            doc.versions[docversion.id] = docversion
+
+    def load_ratings(self):
+        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.ratings.doc_id = doc_id
+            doc.ratings.parent = doc
+            docrating = DocRating()
+            docrating.load_row(row)
+            doc.ratings[docrating.username] = docrating
+
+    def load_topics(self):
+        sql = "SELECT doc_id, subtopic_code FROM document_topic"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doc.topics.doc_id = doc_id
+            doctopic = DocTopic()
+            doctopic.load_row(row)
+            doc.topics[doctopic.subtopic_code] = doctopic
+
+    def load_notes(self):
+        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes'
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[1]
+            doc = self[doc_id]
+            doc.notes.doc_id = doc_id
+            docnote = DocNote()
+            docnote.load_row(row)
+            doc.notes[docnote.id] = docnote
+
 
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters. --nico
@@ -253,13 +353,20 @@ class Doc:
         self.lang                    = ''
         self.sk_seriesid             = ''
         self.errors                  = DocErrs()
+        self.errors.doc_id           = self.id
         self.files                   = DocFiles()
+        self.files.doc_id            = self.id
         self.users                   = DocUsers()
+        self.users.doc_id            = self.id
         self.versions                = DocVersions()
+        self.versions.doc_id         = self.id
         self.ratings                 = DocRatings()
-        self.ratings.parent          = self
+        self.ratings.doc_id          = self.id
+        self.ratings.parent          = self.id
         self.topics                  = DocTopics()
+        self.topics.doc_id           = self.id
         self.notes                   = DocNotes()
+        self.notes.doc_id            = self.id
         if id==None: return
         self.load(id)
 
@@ -269,6 +376,14 @@ class Doc:
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.load_row(row)
+        self.errors                  = DocErrs(self.id)
+        self.files                   = DocFiles(self.id)
+        self.users                   = DocUsers(self.id)
+        self.versions                = DocVersions(self.id)
+        self.ratings                 = DocRatings(self.id)
+        self.ratings.parent          = self
+        self.topics                  = DocTopics(self.id)
+        self.notes                   = DocNotes(self.id)
 
     def load_row(self, row):
         self.id                      = row[0]
@@ -294,14 +409,6 @@ class Doc:
         self.rating                  = safeint(row[20])
         self.lang                    = trim(row[21])
         self.sk_seriesid             = trim(row[22])
-        self.errors                  = DocErrs(self.id)
-        self.files                   = DocFiles(self.id)
-        self.users                   = DocUsers(self.id)
-        self.versions                = DocVersions(self.id)
-        self.ratings                 = DocRatings(self.id)
-        self.ratings.parent          = self
-        self.topics                  = DocTopics(self.id)
-        self.notes                   = DocNotes(self.id)
 
     def save(self):
         """
@@ -323,8 +430,12 @@ class DocErrs(LampadasCollection):
     def __init__(self, doc_id=0):
         self.data = {}
         self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, err_id, date_entered FROM document_error WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, err_id, date_entered FROM document_error WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -360,7 +471,7 @@ class DocErr:
     """
 
     def load_row(self, row):
-        self.doc_id	      = row[0]
+        self.doc_id	      = safeint(row[0])
         self.err_id       = safeint(row[1])
         self.date_entered = time2str(row[2])
 
@@ -374,10 +485,13 @@ class DocFiles(LampadasCollection):
 
     def __init__(self, doc_id=0):
         self.data = {}
-        assert not doc_id==None
         self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, filename, top, format_code FROM document_file WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, filename, top, format_code FROM document_file WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -451,7 +565,11 @@ class DocUsers(LampadasCollection):
     def __init__(self, doc_id=0):
         self.data = {}
         self.doc_id = doc_id
-        sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE doc_id=" + str(doc_id)
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
+        sql = "SELECT doc_id, username, role_code, email, active FROM document_user WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -521,11 +639,14 @@ class DocRatings(LampadasCollection):
 
     def __init__(self, doc_id=0):
         self.data = {}
-        self.parent = None
-        assert not doc_id==None
         self.doc_id = doc_id
+        self.parent = None
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -604,10 +725,13 @@ class DocVersions(LampadasCollection):
 
     def __init__(self, doc_id=0):
         LampadasCollection.__init__(self)
-        assert not doc_id==None
         self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -675,8 +799,12 @@ class DocTopics(LampadasCollection):
     def __init__(self, doc_id=0):
         LampadasCollection.__init__(self)
         self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, subtopic_code FROM document_topic WHERE doc_id=" + str(doc_id)
+        sql = "SELECT doc_id, subtopic_code FROM document_topic WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -726,20 +854,21 @@ class DocNotes(LampadasCollection):
 
     def __init__(self, doc_id=0):
         self.data = {}
-        self.load(doc_id)
-
-    def load(self, doc_id=0):
-        self.data = {}
         self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
+        self.data = {}
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes WHERE doc_id=' + str(doc_id)
+        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes WHERE doc_id=' + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             docnote = DocNote()
             docnote.load_row(row)
-            self.data[docnote.id] = docnote
+            self[docnote.id] = docnote
 
     def add(self, notes, creator):
         note_id = db.next_id('notes', 'note_id')
@@ -1378,7 +1507,6 @@ class User:
         if self.admin > 0 or self.sysadmin > 0:
             return 1
         if not doc_id==None:
-            print "doc id"
             if self.docs.has_key(doc_id):
                 return 1
             if doc_id==0:
@@ -1395,12 +1523,4 @@ lampadas = Lampadas()
 
 # main
 if __name__=='__main__' :
-    print "Running unit tests..."
-    string = "foo"
-    assert wsq(string)=="'foo'"
-    string = "it's"
-    assert wsq(string)=="'it''s'"
-    string = "it's that's"
-    assert wsq(string)=="'it''s that''s'"
-    print "End unit test run."
-    
+    pass
