@@ -149,6 +149,9 @@ class Docs(LampadasCollection):
 			self[newDoc.ID] = newDoc
 			Log(3, 'Loaded document ' + str(newDoc.ID))
 
+# FIXME: try instantiating a new document, then adding *it* to the collection,
+# rather than passing in all these parameters.
+
 	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, Lang, SeriesID):
 		self.id = DB.Value('SELECT max(doc_id) from document') + 1
 		self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
@@ -237,6 +240,9 @@ class DocErrs(LampadasList):
 		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
 		DB.Exec(self.sql)
 		self.list = []
+
+# FIXME: Try instantiating a DocErr object, then adding it to the *document*
+# rather than passing all these parameters here.
 
 	def Add(self, ErrID):
 		self.sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.DocID) + ", " + wsq(ErrID)
