@@ -31,8 +31,8 @@ from Globals import *
 from Config import config
 from Log import log
 from URLParse import URI
-from DataLayer import Lampadas
-import WebLayer
+from DataLayer import lampadas
+from Weblayer import lampadasweb
 
 import commands
 from string import split
@@ -41,8 +41,6 @@ import os
 
 
 # Globals
-
-L = Lampadas()
 
 
 # Constants
@@ -55,41 +53,41 @@ EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border
 class ComboFactory:
 
     def Class(self, value, lang):
-        self.combo = "<select name='class'>\n"
-        keys = L.Classes.keys()
+        combo = "<select name='class'>\n"
+        keys = lampadas.Classes.keys()
         for key in keys:
-            classfoo = L.Classes[key]
+            classfoo = lampadas.Classes[key]
             assert not classfoo == None
-            self.combo = self.combo + "<option "
+            combo = combo + "<option "
             if classfoo.ID == value:
-                self.combo = self.combo + "selected "
-            self.combo = self.combo + "value='" + str(classfoo.ID) + "'>"
-            self.combo = self.combo + classfoo.I18n[lang].Name
-            self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                combo = combo + "selected "
+            combo = combo + "value='" + str(classfoo.ID) + "'>"
+            combo = combo + classfoo.I18n[lang].Name
+            combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
     def Doc(self, value, lang):
-        self.combo = "<select name='doc'>\n"
-        keys = L.Docs.keys()
+        combo = "<select name='doc'>\n"
+        keys = lampadas.Docs.keys()
         for key in keys:
-            doc = L.Docs[key]
+            doc = lampadas.Docs[key]
             assert not doc == None
             if doc.LanguageCode == lang or lang == None:
-                self.combo = self.combo + "<option "
+                combo = combo + "<option "
                 if doc.ID == value:
-                    self.combo = self.combo + "selected "
-                self.combo = self.combo + "value='" + str(doc.ID) + "'>"
-                self.combo = self.combo + doc.Title
-                self.combo = self.combo + "</option>\n"
-        self.combo = self.combo + "</select>"
-        return self.combo
+                    combo = combo + "selected "
+                combo = combo + "value='" + str(doc.ID) + "'>"
+                combo = combo + doc.Title
+                combo = combo + "</option>\n"
+        combo = combo + "</select>"
+        return combo
 
     def DTD(self, value, lang):
         self.combo = "<select name='dtd'>\n"
-        keys = L.DTDs.keys()
+        keys = lampadas.DTDs.keys()
         for key in keys:
-            dtd = L.DTDs[key]
+            dtd = lampadas.DTDs[key]
             assert not dtd == None
             self.combo = self.combo + "<option "
             if dtd.DTD == value:
@@ -102,9 +100,9 @@ class ComboFactory:
     
     def Format(self, value, lang):
         self.combo = "<select name='format'>\n"
-        keys = L.Formats.keys()
+        keys = lampadas.Formats.keys()
         for key in keys:
-            format = L.Formats[key]
+            format = lampadas.Formats[key]
             assert not format == None
             self.combo = self.combo + "<option "
             if format.ID == value:
@@ -123,9 +121,9 @@ class ComboFactory:
 
     def PubStatus(self, value, lang):
         self.combo = "<select name='pub_status'>\n"
-        keys = L.PubStatuses.keys()
+        keys = lampadas.PubStatuses.keys()
         for key in keys:
-            PubStatus = L.PubStatuses[key]
+            PubStatus = lampadas.PubStatuses[key]
             assert not PubStatus == None
             self.combo = self.combo + "<option "
             if PubStatus.Code == value:
@@ -138,9 +136,9 @@ class ComboFactory:
         
     def ReviewStatus(self, value, lang):
         self.combo = "<select name='review_status'>\n"
-        keys = L.ReviewStatuses.keys()
+        keys = lampadas.ReviewStatuses.keys()
         for key in keys:
-            ReviewStatus = L.ReviewStatuses[key]
+            ReviewStatus = lampadas.ReviewStatuses[key]
             assert not ReviewStatus == None
             self.combo = self.combo + "<option "
             if ReviewStatus.Code == value:
@@ -179,7 +177,7 @@ class TableFactory:
         self.box = ''
         self.box = self.box + '<table class="box" style="width:100%"><tr><th colspan="6">|docdetails|</th></tr>'
         if DocID:
-            Doc = L.Docs[DocID]
+            Doc = lampadas.Docs[DocID]
             self.box = self.box + '<form method=POST action="docsave" name="document">'
         else:
             Doc = Doc()
@@ -241,7 +239,7 @@ class TableFactory:
         if DocID:
             self.box = self.box + '</tr>\n<tr>\n'
             self.box = self.box + '<th align=right>Format</th><td>'
-            self.box = self.box + L.Formats[Doc.FormatID].I18n[lang].Name
+            self.box = self.box + lampadas.Formats[Doc.FormatID].I18n[lang].Name
             self.box = self.box + '</td>'
             self.box = self.box + '<th align=right>DTD</th><td>'
             self.box = self.box + Doc.DTD + ' ' + Doc.DTDVersion
@@ -262,12 +260,12 @@ class TableFactory:
     def Docs(self, lang):
         self.box = ''
         self.box = self.box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
-        keys = L.Docs.keys()
+        keys = lampadas.Docs.keys()
         for key in keys:
-            if L.Docs[key].Lang == lang:
+            if lampadas.Docs[key].Lang == lang:
                 self.box = self.box + '<tr>'
-                self.box = self.box + '<td><a href="/editdoc/' + str(L.Docs[key].ID) + '/">' + EDIT_ICON + '</a></td>'
-                self.box = self.box + '<td><a href="/doc/' + str(L.Docs[key].ID) + '/">' + L.Docs[key].Title + '</a></td>'
+                self.box = self.box + '<td><a href="/editdoc/' + str(lampadas.Docs[key].ID) + '/">' + EDIT_ICON + '</a></td>'
+                self.box = self.box + '<td><a href="/doc/' + str(lampadas.Docs[key].ID) + '/">' + lampadas.Docs[key].Title + '</a></td>'
                 self.box = self.box + '</tr>'
         self.box = self.box + '</table>'
         return self.box
@@ -277,20 +275,16 @@ class TableFactory:
 
 class PageFactory:
 
-    Pages		= WebLayer.Pages()
-    Blocks		= WebLayer.Blocks()
-    Strings		= WebLayer.Strings()
-    Templates	= WebLayer.Templates()
-    Box		= BoxFactory()
-    Table		= TableFactory()
+    boxf    = BoxFactory()
+    tablef  = TableFactory()
 
     def __call__(self, key, lang):
-        return self.Page(key, lang)
+        return self.page(key, lang)
 
-    def Page(self, key):
+    def page(self, key):
         uri = URI(key)
         uri.printdebug()
-        Log.Write(3, 'Serving language ' + uri.Language)
+        log.Write(3, 'Serving language ' + uri.Language)
         
         if uri.Service == 'doc':
             if uri.Format == '':
@@ -365,14 +359,14 @@ class PageFactory:
                         String = self.Strings[token]
                         if String == None:
                             newstring = 'ERROR'
-                            Log.Write(1, 'Could not replace token ' + token)
+                            log.Write(1, 'Could not replace token ' + token)
                         else:
                             newstring = String.I18n[uri.Language].String
                     else:
                         newstring = Block.I18n[uri.Language].Block
                 
                 if newstring == '':
-                    Log.Write(1, 'Could not replace token ' + token)
+                    log.Write(1, 'Could not replace token ' + token)
                 else:
                     page = page.replace(page[pos:pos2+1], newstring)
                     page = page.replace('\|', 'DCM_PIPE')
@@ -381,13 +375,13 @@ class PageFactory:
         
         page = page.replace('DCM_PIPE', '|')
     
-        Log.Write(3, 'Page built ' + Page.Code)
+        log.Write(3, 'Page built ' + Page.Code)
         return page
 
     def DocPage(self, uri):
         DocID = uri.ID
         lang  = uri.Language
-        Doc = L.Docs[DocID]
+        Doc = lampadas.Docs[DocID]
         if Doc == None:
             page = "Error, could not locate document " + str(DocID)
         else:
@@ -421,7 +415,7 @@ def main():
 
 
 def usage():
-    print "HTML.py version " + VERSION
+    print "HTMlampadas.py version " + VERSION
 
 
 if __name__ == "__main__":

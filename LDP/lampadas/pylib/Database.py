@@ -76,28 +76,28 @@ class Database:
     def select(self, sql):
         if config.log_sql:
             log(3, sql)
-        self.cursor = self.database.connection.cursor()
-        self.cursor.execute(sql)
-        return self.cursor
+        cursor = self.database.connection.cursor()
+        cursor.execute(sql)
+        return cursor
 
-    def value(self, sql):
+    def read_value(self, sql):
         if config.log_sql:
             log(3, sql)
-        self.cursor = self.database.connection.cursor()
-        self.cursor.execute(sql)
-        self.row = self.cursor.fetchone()
-        if self.row == None:
-            self.value = None
+        cursor = self.database.connection.cursor()
+        cursor.execute(sql)
+        row = cursor.fetchone()
+        if row == None:
+            value = None
         else:
-            self.value = self.row[0]
-        return self.value
+            value = row[0]
+        return value
 
     def runsql(self, sql):
         if config.log_sql:
             log(3, sql)
-        self.cursor = self.database.connection.cursor()
-        self.cursor.execute(sql)
-        return self.cursor.rowcount
+        cursor = self.database.connection.cursor()
+        cursor.execute(sql)
+        return cursor.rowcount
 
     def commit(self):
         log(3, 'Committing database')

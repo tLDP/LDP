@@ -44,26 +44,26 @@ class testConfigFile(unittest.TestCase):
 
     def testConfigFIle(self):
         log(3, 'testing Config file')
-        assert config.db_type == "pgsql", "DBType is not valid"
+        assert config.db_type == "pgsql", "db_type is not valid"
         assert config.db_name == "lampadas", "Database name is not valid"
         assert config.cvs_root > ''
-        log(3, 'testing Config file done')
+        log(3, 'testing config file done')
 
 
 class testDatabase(unittest.TestCase):
 
     def setUp(self):
-        DB.Connect(Config.DBType, Config.DBName)
+        db.connect(config.db_type, config.db_name)
 
     def testDatabase(self):
         log(3, 'testing database')
-        assert not DB.Connection == None
+        assert not db.connection == None
         log(3, 'testing database done')
 
     def testCursor(self):
         log(3, 'testing cursor')
-        self.Cursor = DB.Cursor
-        assert not self.Cursor == None
+        cursor = db.cursor
+        assert not cursor == None
         log(3, 'testing cursor done')
 
 
@@ -71,7 +71,7 @@ class testClasses(unittest.TestCase):
 
     def testClasses(self):
         log(3, 'testing classes')
-        assert not L.Classes == None
+        assert not lampadas.Classes == None
         assert lampadas.Classes.Count() > 0
         log(3, 'testing classes done')
 
@@ -81,7 +81,7 @@ class testConfig(unittest.TestCase):
     def testConfig(self):
         log(3, 'testing Config')
         assert not config == None
-        assert config['project_short'] == 'LDP'
+        assert lampadas.Config['project_short'] == 'LDP'
         log(3, 'testing Config done')
 
 
@@ -92,10 +92,10 @@ class testDocs(unittest.TestCase):
         assert not lampadas.Docs == None
         assert lampadas.Docs.Count() > 0
 
-        DB.Exec("DELETE FROM document where title='testharness'")
-        DB.Commit()
+        db.runsql("DELETE FROM document where title='testharness'")
+        db.commit()
     
-        self.OldID = DB.Value('SELECT max(doc_id) from document')
+        self.OldID = db.read_value('SELECT max(doc_id) from document')
         self.NewID = lampadas.Docs.Add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
         assert self.NewID > 0
         assert self.OldID + 1 == self.NewID
@@ -107,7 +107,7 @@ class testDocs(unittest.TestCase):
         assert self.Doc.FormatID == 1
         
         lampadas.Docs.Del(self.NewID)
-        self.NewID = DB.Value('SELECT MAX(doc_id) from document')
+        self.NewID = db.read_value('SELECT MAX(doc_id) from document')
         assert self.NewID == self.OldID
 
         keys = lampadas.Docs.keys()
@@ -307,10 +307,10 @@ class testUsers(unittest.TestCase):
         assert not lampadas.Users == None
         assert lampadas.Users.Count() > 0
 
-        DB.Exec("DELETE FROM username where email='foo@example.com'")
-        DB.Commit()
+        db.runsql("DELETE FROM username where email='foo@example.com'")
+        db.commit()
     
-        self.OldID = DB.Value('SELECT MAX(user_id) from username')
+        self.OldID = db.read_value('SELECT MAX(user_id) from username')
         self.NewID = lampadas.Users.Add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
         assert self.NewID > 0
         assert self.OldID + 1 == self.NewID
@@ -322,7 +322,7 @@ class testUsers(unittest.TestCase):
         assert self.User.Email == 'foo@example.com'
         
         lampadas.Users.Del(self.NewID)
-        self.NewID = DB.Value('SELECT MAX(user_id) from username')
+        self.NewID = db.read_value('SELECT MAX(user_id) from username')
         assert self.NewID == self.OldID
         log(3, 'testing Users done')
 
@@ -339,7 +339,6 @@ class testUserDocs(unittest.TestCase):
             assert not UserDoc == None
             assert not UserDoc.DocID == None
             assert UserDoc.DocID > 0
-            assert UserDoc.DocID == UserDoc.ID
             assert UserDoc.Active == 1 or UserDoc.Active == 0
         log(3, 'testing UserDocs done')
 

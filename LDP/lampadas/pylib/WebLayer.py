@@ -38,186 +38,201 @@ from Database import db
 
 
 
+# WebLayer
+
+class LampadasWeb:
+
+    def __init__(self):
+        self.blocks     = Blocks()
+        self.sections   = Sections()
+        self.pages      = Pages()
+        self.strings    = Strings()
+        self.templates  = Templates()
+
 # Blocks
 
 class Blocks(LampadasCollection):
 
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT block_code FROM block"
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newBlock = Block()
-			newBlock.Load(self.row)
-			self.data[newBlock.Code] = newBlock
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT block_code FROM block"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newBlock = Block()
+            newBlock.load(row)
+            self.data[newBlock.code] = newBlock
 
 class Block:
 
-	def __init__(self):
-		self.I18n = {}
+    def __init__(self):
+        self.I18n = {}
 
-	def Load(self, row):
-		self.Code		= trim(row[0])
-		self.sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.Code)
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newBlockI18n = BlockI18n()
-			newBlockI18n.Load(self.row)
-			self.I18n[newBlockI18n.Lang] = newBlockI18n
+    def load(self, row):
+        Code		= trim(row[0])
+        sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.Code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newBlockI18n = BlockI18n()
+            newBlockI18n.load(row)
+            self.I18n[newBlockI18n.lang] = newBlockI18n
 
 class BlockI18n:
 
-	def Load(self, row):
-		self.Lang	= row[0]
-		self.Block	= row[1]
+    def Load(self, row):
+        self.lang	= row[0]
+        self.block	= row[1]
 
 
 # Sections
 
 class Sections(LampadasCollection):
 
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT section_code FROM section"
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newSection = Section()
-			newSection.Load(self.row)
-			self.data[newSection.Code] = newSection
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT section_code FROM section"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSection = Section()
+            newSection.load(row)
+            self.data[newSection.code] = newSection
 
 class Section:
 
-	def __init__(self):
-		self.I18n = {}
+    def __init__(self):
+        self.I18n = {}
 
-	def Load(self, row):
-		self.Code		= trim(row[0])
-		self.sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.Code)
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newSectionI18n = SectionI18n()
-			newSectionI18n.Load(self.row)
-			self.I18n[newSectionI18n.Lang] = newSectionI18n
+    def load(self, row):
+        self.code		= trim(row[0])
+        sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.Code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newSectionI18n = SectionI18n()
+            newSectionI18n.load(row)
+            self.I18n[newSectionI18n.lang] = newSectionI18n
 
 class SectionI18n:
 
-	def Load(self, row):
-		self.Lang	= row[0]
-		self.Name	= trim(row[1])
+    def load(self, row):
+        self.lang	= row[0]
+        self.name	= trim(row[1])
 
 
 # Pages
 
 class Pages(LampadasCollection):
 
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT page_code, section_code, template_code FROM page"
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newPage = Page()
-			newPage.Load(self.row)
-			self.data[newPage.Code] = newPage
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT page_code, section_code, template_code FROM page"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newPage = Page()
+            newPage.load(row)
+            self.data[newPage.code] = newPage
 
 class Page:
 
-	def __init__(self):
-		self.I18n = {}
+    def __init__(self):
+        self.I18n = {}
 
-	def Load(self, row):
-		self.Code		= trim(row[0])
-		self.SectionCode	= trim(row[1])
-		self.TemplateCode	= trim(row[2])
-		self.sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newPageI18n = PageI18n()
-			newPageI18n.Load(self.row)
-			self.I18n[newPageI18n.Lang] = newPageI18n
+    def load(self, row):
+        self.code		= trim(row[0])
+        self.section_code	= trim(row[1])
+        self.template_code	= trim(row[2])
+        sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newPageI18n = PageI18n()
+            newPageI18n.Load(row)
+            self.I18n[newPageI18n.lang] = newPageI18n
 
 class PageI18n:
 
-	def Load(self, row):
-		self.Lang	= row[0]
-		self.Title	= row[1]
-		self.Page	= row[2]
+    def load(self, row):
+        self.lang	= row[0]
+        self.title	= row[1]
+        self.page	= row[2]
 
 
 # Strings
 
 class Strings(LampadasCollection):
-	"""
-	A collection object of all localized strings.
-	"""
-	
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT string_code FROM string"
-		self.cursor = db.select(self.sql)
-		while (1):
-			row = self.cursor.fetchone()
-			if row == None: break
-			newString = String()
-			newString.Load(row)
-			self.data[newString.Code] = newString
+    """
+    A collection object of all localized strings.
+    """
+    
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT string_code FROM string"
+        cursor = db.select(self.sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newString = String()
+            newString.Load(row)
+            self.data[newString.code] = newString
 
 class String:
-	"""
-	Each string is Unicode text, that can be used in a web page.
-	"""
+    """
+    Each string is Unicode text, that can be used in a web page.
+    """
 
-	def __init__(self, StringCode=None):
-		self.I18n = {}
+    def __init__(self, StringCode=None):
+        self.I18n = {}
 
-	def Load(self, row):
-		self.Code = trim(row[0])
-		self.sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newStringI18n = StringI18n()
-			newStringI18n.Load(self.row)
-			self.I18n[newStringI18n.Lang] = newStringI18n
+    def load(self, row):
+        self.code = trim(row[0])
+        sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
+        cursor = db.select(self.sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newStringI18n = StringI18n()
+            newStringI18n.load(row)
+            self.I18n[newStringI18n.lang] = newStringI18n
 
 # StringI18n
 
 class StringI18n:
 
-	def Load(self, row):
-		self.Lang		= row[0]
-		self.String		= trim(row[1])
+    def load(self, row):
+        self.lang		= row[0]
+        self.string		= trim(row[1])
 
 
 # Templates
 
 class Templates(LampadasCollection):
 
-	def __init__(self):
-		self.data = {}
-		self.sql = "SELECT template_code, template FROM template"
-		self.cursor = db.select(self.sql)
-		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
-			newTemplate = Template()
-			newTemplate.Load(self.row)
-			self.data[newTemplate.Code] = newTemplate
+    def __init__(self):
+        self.data = {}
+        sql = "SELECT template_code, template FROM template"
+        cursor = db.select(self.sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newTemplate = Template()
+            newTemplate.load(row)
+            self.data[newTemplate.code] = newTemplate
 
 class Template:
 
-	def Load(self, row):
-		self.Code	= trim(row[0])
-		self.Template	= trim(row[1])
+    def load(self, row):
+        self.code       = trim(row[0])
+        self.template   = trim(row[1])
+
+
+lampadasweb = LampadasWeb
+

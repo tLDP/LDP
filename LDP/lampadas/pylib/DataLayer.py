@@ -170,11 +170,11 @@ class Docs(LampadasCollection):
 # rather than passing in all these parameters.
 
 	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, Lang, SeriesID):
-		self.id = db.value('SELECT max(doc_id) from document') + 1
+		self.id = db.read_value('SELECT max(doc_id) from document') + 1
 		self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
-		assert db.run_sql(self.sql) == 1
+		assert db.runsql(self.sql) == 1
 		db.commit()
-		self.NewID = db.value('SELECT MAX(doc_id) from document')
+		self.NewID = db.read_value('SELECT MAX(doc_id) from document')
 		newDoc = Doc(self.NewID)
 		self[self.NewID] = newDoc
 		return self.NewID
@@ -815,14 +815,14 @@ class Users:
 	"""
 
 	def Count(self):
-		return db.value('SELECT count(*) from username')
+		return db.read_value('SELECT count(*) from username')
 
 	def Add(self, Username, FirstName, MiddleName, Surname, Email, IsAdmin, IsSysadmin, Password, Notes, Stylesheet):
-		self.id = db.value('SELECT max(user_id) from username') + 1
+		self.id = db.read_value('SELECT max(user_id) from username') + 1
 		self.sql = "INSERT INTO username (user_id, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + str(self.id) + ", " + wsq(Username) + ", " + wsq(FirstName) + ", " + wsq(MiddleName) + ", " + wsq(Surname) + ", " + wsq(Email) + ", " + wsq(bool2tf(IsAdmin)) + ", " + wsq(bool2tf(IsSysadmin)) + ", " + wsq(Password) + ", " + wsq(Notes) + ", " + wsq(Stylesheet) + ")"
 		assert db.runsql(self.sql) == 1
 		db.commit()
-		return db.value('SELECT max(user_id) from username')
+		return db.read_value('SELECT max(user_id) from username')
 	
 	def Del(self, id):
 		self.sql = ('DELETE from username WHERE user_id=' + str(id))
