@@ -554,7 +554,7 @@ class Tables(LampadasCollection):
             box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
             box = box + '<td>' + error.name[uri.lang]
             if docerror.notes > '':
-                box = box + '<br><pre>' + docerror.notes + '</pre>'
+                box = box + '<br><pre>' + html_encode(docerror.notes) + '</pre>'
             box = box + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'

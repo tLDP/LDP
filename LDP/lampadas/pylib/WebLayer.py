@@ -395,7 +395,7 @@ class NewsItem:
 
     def load_row(self, row):
         self.id       = row[0]
-        self.pub_date = date2str(row[1])
+        self.pub_date = time2str(row[1])
         sql = "SELECT lang, headline, news FROM news_i18n WHERE news_id=" + str(self.id)
         cursor = db.select(sql)
         while (1):

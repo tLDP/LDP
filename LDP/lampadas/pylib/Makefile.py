@@ -273,9 +273,9 @@ class Project:
                         [Command('xmllint --sgml normalized.sgml', output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='sgml' and sourcefile.dtd_code=='docbook':
                     self.targets.add(dbsgmlfile, [sourcefile.file_only],
-                        [])
-                    self.targets.add(xmlfile,    [sourcefile.file_only],
-                        [Command('xmllint --sgml ' + sourcefile.file_only, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+                        [Command('sgmlnorm -d ' + sourcefile.file_only, output_to=dbsgmlfile, errors_to='log/sgmlnorm.log')])
+                    self.targets.add(xmlfile,    [dbsgmlfile],
+                        [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
                 elif sourcefile.format_code=='xml' and sourcefile.dtd_code=='docbook':
                     self.targets.add(dbsgmlfile, [],
                         [])

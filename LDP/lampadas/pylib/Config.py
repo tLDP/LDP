@@ -59,6 +59,7 @@ class Config:
     smtp_server = ''
     admin_email = ''
     db2omf = ''
+    wt2db = ''
 
     def __init__(self) :
         import ConfigParser
@@ -96,6 +97,7 @@ class Config:
         self.smtp_server    = self.read_var('MAIL', 'smtp_server')
         self.admin_email    = self.read_var('MAIL', 'admin_email')
         self.db2omf         = self.read_var('MAKE', 'db2omf')
+        self.wt2db          = self.read_var('MAKE', 'wt2db')
 
     def read_var(self, section, name):
         if not self.config.has_section(section) :
@@ -128,6 +130,7 @@ class Config:
         text += 'smtp_server=' + self.smtp_server + '\n'
         text += 'admin_email=' + self.admin_email + '\n'
         text += 'db2omf=' + self.db2omf + '\n'
+        text += 'wt2db=' + self.wt2db + '\n'
         return text
 
     def print_debug(self):

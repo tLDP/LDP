@@ -247,7 +247,8 @@ def html_encode(text):
     temp = text;
     for entity in htmlentitydefs.entitydefs.keys():
         char = htmlentitydefs.entitydefs[entity]
-        temp = temp.replace(char, '&' + entity + ';')
+	if char <> '"':
+		temp = temp.replace(char, '&' + entity + ';')
     return temp
 
 def escape_tokens(text):
