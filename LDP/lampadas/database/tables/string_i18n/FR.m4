@@ -107,3 +107,5 @@ insert(strtranslations,     [Translations]) m4_dnl FIXME
 insert(strall,              [All])
 insert(strrecentnews,       [Recent News])  m4_dnl FIXME
 insert(strreplacedby,       [Replaced By])  m4_dnl FIXME
+insert(strpub_time,         [Pub Time])
+insert(strmirror_time,      [Mirror Time])

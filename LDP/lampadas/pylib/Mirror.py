@@ -27,6 +27,7 @@ local Lampdas system.
 
 # Modules ##################################################################
 
+from Globals import *
 from DataLayer import lampadas
 from SourceFiles import sourcefiles
 from Log import log
@@ -45,19 +46,38 @@ class Mirror:
 
     def mirror_all(self):
         log(3, 'Mirroring all documents')
-        for dockey in lampadas.docs.keys():
+        for dockey in lampadas.docs.sort_by('id'):
             self.mirror(dockey)
 
     def mirror(self, doc_id):
         log(3, 'Mirroring document ' + str(doc_id))
         doc = lampadas.docs[doc_id]
         
-        # decide if the document is remote
+        # Create cache directories for this document,
+        # even if we do nothing else.
+        cachedir = config.cache_dir + str(doc.id) + '/'
+        if not os.access(cachedir, os.F_OK):
+            os.mkdir(cachedir)
+        workdir = cachedir + 'work/'
+        if not os.access(workdir, os.F_OK):
+            os.mkdir(workdir)
+        logdir = workdir + 'log/'
+        if not os.access(logdir, os.F_OK):
+            os.mkdir(logdir)
+
+        # Do not attempt to mirror a document which has errors.
+        if doc.errors.count() > 0 or doc.files.error_count > 0:
+            return
+        
+        # Decide if the document is remote or local
         docremote = 0
         filekeys = doc.files.keys()
         for filekey in filekeys:
             if sourcefiles[filekey].local==0:
                 docremote = 1
+        
+        # FIXME: Actually use a field to indicate that these records are
+        # transient. Then we can use the simpler and faster .clear() method.
         
         # If document has a single remote file,
         # delete list of local files.
@@ -77,18 +97,6 @@ class Mirror:
         #   howto/docbook/big-memory-howto.sgml In CVS tree
         # 
         for filekey in filekeys:
-            
-            # create cache directory for this document
-            cachedir = config.cache_dir + str(doc.id) + '/'
-            if not os.access(cachedir, os.F_OK):
-                os.mkdir(cachedir)
-            workdir = cachedir + 'work/'
-            if not os.access(workdir, os.F_OK):
-                os.mkdir(workdir)
-            logdir = workdir + 'log/'
-            if not os.access(logdir, os.F_OK):
-                os.mkdir(logdir)
-
             docfile     = doc.files[filekey]
             sourcefile  = sourcefiles[filekey]
             filename    = sourcefile.localname
@@ -102,6 +110,7 @@ class Mirror:
                 # Some publishing tools leave clutter in the directory on failure.
                 if not os.access(filename, os.F_OK):
                     log(2, 'Cannot mirror missing file: ' + filename)
+                    docfile.errors.add(ERR_MAKE_NO_SOURCE)
                     continue
                 log(3, 'mirroring local file ' + filename)
                 command = 'cd ' + workdir + '; cp -pu ' + filename + ' .'
@@ -113,6 +122,7 @@ class Mirror:
                     urllib.urlretrieve(sourcefile.filename, workname)
                 except IOError:
                     log(0, 'error retrieving remote file ' + filename)
+                    docfile.errors.add(ERR_MIRROR_URL_RETRIEVE)
                     continue
 
             if self.unpack(workdir, file_only):
@@ -120,8 +130,12 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
+        if doc.errors.count()==0 and doc.files.error_count==0:
+            doc.mirror_time = now_string()
+        doc.files.save()
+        doc.save()
+
         log(3, 'Mirroring document ' + str(doc_id) + ' complete.')
-        
 
     def unpack(self, dir, file):
         """

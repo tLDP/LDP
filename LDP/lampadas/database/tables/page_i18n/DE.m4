@@ -70,6 +70,11 @@ insert([doctable], [Browse Documents], [],
 	|tabdocs|
 ], 1)
 
+insert([document_list], [Document List], [],
+[
+    |tabdocs_block|
+], 0)    
+
 insert([search], [Suche], [],
 [
     |tabsearch|

@@ -37,9 +37,9 @@ index.html:	Lampadas.xml
 Lampadas.html:	Lampadas.xml
 	xsltproc --nonet ../xsl/lampadas-html.xsl Lampadas.xml $? > $@
 	
-preview: # Lampadas.html
-#	galeon Lampadas.html
+preview: Lampadas.html
 	mozilla -remote "openURL(file://`pwd`/Lampadas.html)"
+#	galeon Lampadas.html
 
 .SUFFIXES: .xml .wt .sgml .1 .5
 

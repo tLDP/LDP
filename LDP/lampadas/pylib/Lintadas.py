@@ -21,9 +21,13 @@
 """
 Lampadas Error Checking Module
 
-This module performs all kinds of automatic checks on data in the database
+This module performs all kinds of automatic checks on the Lampadas
+system. It checks for erroroneous data in the database, 
 and the source files it points to. Errors are logged in the
-document_error table.
+document_error and file_error table, according to which object
+the error is attributed.
+
+This module works closely with the 
 """
 
 # Modules ##################################################################
@@ -39,20 +43,6 @@ import string
 import time
 
 
-# Constants
-
-
-# Globals
-
-ERR_NO_SOURCE_FILE = 3
-ERR_NO_PRIMARY_FILE = 4
-ERR_TWO_PRIMARY_FILES = 5
-ERR_NO_FORMAT_CODE = 7
-
-ERR_FILE_NOT_FOUND = 1
-ERR_FILE_NOT_WRITABLE = 2
-ERR_FILE_NOT_READABLE = 6
-
 # Lintadas
 
 class Lintadas:
@@ -66,6 +56,9 @@ class Lintadas:
     Alternatively, you can call import_docs_metadata() at any time
     to only upload meta-data from files to documents.
     """
+
+    # FIXME: These should be loaded from a configuration file so they
+    # are easily configurable by the administrator.
 
     # This is a list of file extensions and the file types
     # they represent.

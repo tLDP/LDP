@@ -37,6 +37,7 @@ import pyPgSQL
 from Config import config
 from Log import log
 import types
+import sys
 
 class UnknownDBException(Exception):
     pass

@@ -1,4 +1,3 @@
-insert(user,        [Benutzer])
 insert(main,        [Hauptmenü])
 insert(admin,       [Adminstratoren])
 insert(news,        [Neuigkeiten])

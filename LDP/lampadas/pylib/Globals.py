@@ -34,6 +34,22 @@ import os
 
 VERSION = '0.3-cvs'
 
+# FIXME: Put these in sensible ranges (100's, 200's, 300's) to make
+# them intrinsically interesting and useful values.
+ERR_NO_SOURCE_FILE      = 003
+ERR_NO_PRIMARY_FILE     = 004
+ERR_TWO_PRIMARY_FILES   = 005
+ERR_NO_FORMAT_CODE      = 007
+
+ERR_FILE_NOT_FOUND      = 001
+ERR_FILE_NOT_WRITABLE   = 002
+ERR_FILE_NOT_READABLE   = 006
+
+ERR_MIRROR_URL_RETRIEVE = 101  # A error occurred retrieving a remote file.
+
+ERR_MAKE_NO_SOURCE      = 201  # A source file does not exist and has no target.
+ERR_MAKE_EXIT_STATUS    = 202  # A command returned a nonzero exit (failure) code.
+
 
 def random_string(length):
     """
@@ -160,9 +176,9 @@ def time2str(time):
         return timestr[:19] # Let's try it w/o trimming the TZ.
     else:
         return ''
-        
+
 def now_string():
-    return time.strftime('%Y-%M-%d %H:%M:%S')
+    return time.strftime('%Y-%m-%d %H:%M:%S')
 
 def trim(astring):
     """
@@ -228,6 +244,29 @@ class WOStringIO:
 
     def get_value(self) :
         return ''.join(self.data)
-   
+
+
+class OddEven:
+    """
+    This handy little class returns the strings "odd" and "even".
+    Use it to set <th class="odd|even"> tags for banded tables.
+
+    As a side feature, it also tracks how many times it has been called,
+    so you have access to a row counter while building your tables.
+    """
+    
+    def __init__(self, value='even'):
+        self.value = value
+        self.row   = 0
+
+    def get_next(self):
+        self.row = self.row + 1
+        if self.row % 2==0:
+            self.value = 'even'
+        else:
+            self.value = 'odd'
+        return self.value
+
+
 if __name__=='__main__':
     pass

@@ -30,13 +30,24 @@ from Sessions import sessions
 from Lintadas import lintadas
 import os
 
-EDIT_ICON = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="20" '\
-            'border="0" hspace="0" vspace="0" align="top">'
-MAKE_ICON = 'MAKE'
-TEXT_ICON = '<img src="|uri.base|images/ascii.png" alt="Text" height="20" width="20" '\
-            'border="0" hspace="0" vspace="0" align="top">'
-HTML_ICON = '<img src="|uri.base|images/html.png" alt="HTML" height="20" width="20" '\
-            'border="0" hspace="0" vspace="0" align="top">'
+EDIT_ICON     = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="20" '\
+                'border="0" hspace="3" vspace="0" align="top">'
+EDIT_ICON_MED = '<img src="|uri.base|images/edit.png" alt="Edit" height="28" width="28" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+EDIT_ICON_BIG = '<img src="|uri.base|images/edit.png" alt="Edit" height="36" width="36" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+TEXT_ICON     = '<img src="|uri.base|images/ascii.png" alt="Text" height="20" width="20" '\
+                'border="0" hspace="3" vspace="0" align="top">'
+TEXT_ICON_MED = '<img src="|uri.base|images/ascii.png" alt="Text" height="28" width="28" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+TEXT_ICON_BIG = '<img src="|uri.base|images/ascii.png" alt="Text" height="36" width="36" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+DL_ICON       = '<img src="|uri.base|images/package.png" alt="D/L" height="20" width="20" '\
+                'border="0" hspace="3" vspace="0" align="top">'
+DL_ICON_MED   = '<img src="|uri.base|images/package.png" alt="D/L" height="28" width="28" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+DL_ICON_BIG   = '<img src="|uri.base|images/package.png" alt="D/L" height="36" width="36" '\
+                'border="0" hspace="0" vspace="0" align="top">'
 
 class Tables(LampadasCollection):
 
@@ -89,6 +100,9 @@ class Tables(LampadasCollection):
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strpub_date|</td><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
         box.write('<td class="label">|strupdated|</td><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n')
+        box.write('</tr>\n<tr>\n')
+        box.write('<td class="label">|strpub_time|</td><td><input type=text name="pub_time" value="' + doc.pub_time + '"></td>\n')
+        box.write('<td class="label">|strmirror_time|</td><td><input type=text name="mirror_time" value="' + doc.mirror_time + '"></td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strtickle_date|</td><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>')
         box.write('<td class="label">|strisbn|</td><td><input type=text name="isbn" value="' + doc.isbn + '"></td>')
@@ -279,12 +293,13 @@ class Tables(LampadasCollection):
         '''
         doc = lampadas.docs[uri.id]
         keys = doc.users.sort_by('username')
+        odd_even = OddEven()
         for key in keys:
             docuser = doc.users[key]
             box = box + '<form method=GET action="/data/save/document_user" name="document_user">'
             box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
-            box = box + '<tr>\n'
+            box = box + '<tr class="' + odd_even.get_next() + '">\n'
             if sessions.session:
                 if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
                     box = box + '<td><a href="|uri.base|user/' + docuser.username + '">' + docuser.username + '</a></td>\n'
@@ -330,6 +345,7 @@ class Tables(LampadasCollection):
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
         topic_codes = lampadas.topics.sort_by('sort_order')
+        odd_even = OddEven()
         for topic_code in topic_codes:
             doctopic = doc.topics[topic_code]
             if doctopic:
@@ -337,7 +353,7 @@ class Tables(LampadasCollection):
                 box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
                 box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
                 box = box + '<input type=hidden name="topic_code" value=' + topic_code + '>\n'
-                box = box + '<tr><td><a href="|uri.base|topic/' + topic_code + '|uri.lang_ext|">' + topic.title[uri.lang] + '</a>'
+                box = box + '<tr class="' + odd_even.get_next() + '"><td><a href="|uri.base|topic/' + topic_code + '|uri.lang_ext|">' + topic.title[uri.lang] + '</a>'
                 box = box + '</td>\n'
                 box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
                 box = box + '</tr>\n'
@@ -372,9 +388,10 @@ class Tables(LampadasCollection):
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
         note_ids = doc.notes.sort_by('date_entered')
+        odd_even = OddEven()
         for note_id in note_ids:
             note = doc.notes[note_id]
-            box = box + '<tr>\n'
+            box = box + '<tr class="' + odd_even.get_next() + '">\n'
             box = box + '<td>' + note.date_entered + '</td>\n'
             box = box + '<td>' + note.creator + '</td>\n'
             box = box + '<td>' + note.notes + '</td>\n'
@@ -418,7 +435,7 @@ class Tables(LampadasCollection):
 
         log(3, 'Creating errors table')
         doc_ids = lampadas.docs.sort_by('title')
-        box = ' '
+        box = WOStringIO('')
         for doc_id in doc_ids:
             doc = lampadas.docs[doc_id]
 
@@ -430,12 +447,12 @@ class Tables(LampadasCollection):
                 doctable = self.docerrors(uri)
                 filestable = self.docfileerrors(uri)
                 if doctable > '' or filestable > '':
-                    box = box + '<h1>' + doc.title + '</h1>'
+                    box.write('<h1><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>%s</h1>' % (str(doc.id), EDIT_ICON, doc.title))
                 if doctable > '':
-                    box = box + '<p>' + doctable
+                    box.write('<p>' + doctable)
                 if filestable > '':
-                    box = box + '<p>' + filestable
-        return box
+                    box.write('<p>' + filestable)
+        return box.get_value()
 
     def docerrors(self, uri):
         if not sessions.session:
@@ -457,10 +474,11 @@ class Tables(LampadasCollection):
         box = box + '<th class="collabel">|strerror|</th>\n'
         box = box + '</tr>\n'
         err_ids = doc.errors.sort_by('date_entered')
+        odd_even = OddEven()
         for err_id in err_ids:
             docerror = doc.errors[err_id]
             error = lampadas.errors[err_id]
-            box = box + '<tr>\n'
+            box = box + '<tr class="' + odd_even.get_next() + '">\n'
             box = box + '<td>' + str(docerror.err_id) + '</td>\n'
             box = box + '<td>' + error.name[uri.lang] + '</td>\n'
             box = box + '</tr>\n'
@@ -481,10 +499,11 @@ class Tables(LampadasCollection):
         box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
         box = box + '<tr><th colspan="2" class="sectionlabel">|uri.filename|</th></tr>\n'
         report_codes = lampadasweb.file_reports.sort_by_lang('name', uri.lang)
+        odd_even = OddEven()
         for report_code in report_codes:
             report = lampadasweb.file_reports[report_code]
             if report.only_cvs==0 or sourcefile.in_cvs==1:
-                box = box + '<tr>\n'
+                box = box + '<tr class="' + odd_even.get_next() + '">\n'
                 box = box + '<td><a href="|uri.base|file_report/' + report.code + '/'
                 box = box + uri.filename + uri.lang_ext + '">'
                 box = box + report.name[uri.lang] + '</a></td>\n'
@@ -551,20 +570,21 @@ class Tables(LampadasCollection):
         box = box + '<tr><th colspan="3">|strfileerrs|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strid|</th>\n'
-        box = box + '<th class="collabel">|strfilename|</th>\n'
         box = box + '<th class="collabel">|strerror|</th>\n'
+        box = box + '<th class="collabel">|strfilename|</th>\n'
         box = box + '</tr>\n'
         filenames = doc.files.sort_by('filename')
+        odd_even = OddEven()
         for filename in filenames:
             sourcefile = sourcefiles[filename]
             err_ids = sourcefile.errors.sort_by('date_entered')
             for err_id in err_ids:
                 fileerror = sourcefile.errors[err_id]
                 error = lampadas.errors[err_id]
-                box = box + '<tr>\n'
+                box = box + '<tr class="' + odd_even.get_next() + '">\n'
                 box = box + '<td>' + str(fileerror.err_id) + '</td>\n'
-                box = box + '<td>' + sourcefile.filename + '</td>\n'
                 box = box + '<td>' + error.name[uri.lang] + '</td>\n'
+                box = box + '<td>' + sourcefile.filename + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
@@ -595,9 +615,10 @@ class Tables(LampadasCollection):
         box = box + '</tr>\n';
         if uri.letter > '':
             usernames = lampadas.users.letter_keys(uri.letter)
+            odd_even = OddEven()
             for username in usernames:
                 user = lampadas.users[username]
-                box = box + '<tr>\n'
+                box = box + '<tr class="' + odd_even.get_next() + '">\n'
                 box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + username + '</a></td>\n'
                 box = box + '<td>' + user.name + '</a></td>\n'
                 box = box + '</tr>\n'
@@ -677,23 +698,40 @@ class Tables(LampadasCollection):
                  abstract=None,
                  short_desc=None,
                  columns={},
+                 layout='compact',
                 ):
         """
         Creates a listing of all documents which fit the parameters passed in.
+
+        You can select a layout from "compact" or "block". Compact is onel line
+        per document; block is a table per document. The block layout does
+        not accept additional columns to be requested, and ignores the columns{}
+        parameter.
         """
 
         log(3, "Creating doctable")
         colspan = 3 + len(columns)
 
-        box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
-                         % str(colspan))
-        box.write('<tr><th class="collabel" colspan="3">|strtitle|</th>')
-        for column in columns.keys():
-            box.write('<th class="collabel">%s</td>' % column)
-        box.write('</tr>\n')
+        # Table header for compact layout
+        if layout=='compact':
+            box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
+                             % str(colspan))
+            box.write('<tr><th class="collabel" colspan="3" align="center">|strtitle|</th>')
+            for column in columns.keys():
+                box.write('<th class="collabel">%s</td>' % column)
+            box.write('</tr>\n')
+        elif layout=='block':
+            box = WOStringIO('')
+
         keys = lampadas.docs.sort_by("title")
+        odd_even = OddEven()
         for key in keys:
             doc = lampadas.docs[key]
+
+            # Don't include unpublished documents
+            # except for admins and owners.
+            if doc.pub_time=='' and (sessions.session==None or sessions.session.user.can_edit(doc_id=doc.id)==0):
+                continue
 
             # Filter documents according to parameters passed in
             # by the calling routine.
@@ -703,18 +741,10 @@ class Tables(LampadasCollection):
             if not lang==None:
                 if doc.lang <> lang:
                     continue
-
-            # Don't display deleted or cancelled documents
-            # except for admins, unless search specified it.
             if not pub_status_code==None:
                 if doc.pub_status_code <> pub_status_code:
                     continue
-            elif doc.pub_status_code=='D' or doc.pub_status_code=='C':
-                if sessions.session==None:
-                    continue
-                elif sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
-                    continue
-
+            
             # If any other parameters were specified, limit the documents
             # to those which match the requirements.
             if not type_code==None:
@@ -793,24 +823,58 @@ class Tables(LampadasCollection):
                 txtfile = sourcefile.txtfile
             else:
                 txtfile = ''
-            box.write('<tr>\n<td>')
-            if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
-                box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
-            box.write('</td>\n<td>')
-            if txtfile > '':
-                box.write('<a href="|uri.base|doc/%s/%s">%s</a>' % (str(doc.id), txtfile, TEXT_ICON))
-            box.write('</td>\n')
-            if doc.pub_status_code=='N' or doc.pub_status_code=='A':
-                if doc.errors.count() > 0 or doc.files.error_count > 0:
-                    box.write('<td style="width:100%%" class="error">%s</td>\n' % doc.title)
-                else:
+           
+            if layout=='compact':
+                box.write('<tr class="%s">\n<td>' % odd_even.get_next())
+                if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+                    box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
+                box.write('</td>\n<td>')
+                if doc.pub_time > '':
+                    box.write('<a href="|uri.base|docdownloads/%s/">%s</a>' % (str(doc.id), DL_ICON))
+                box.write('</td>\n')
+
+                # Format the title differently to flag its status
+                if doc.pub_time > '':
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n' % (str(doc.id), doc.title))
-            else:
-                box.write('<td style="width:100%%">%s</td>\n' % doc.title)
-            for column in columns.keys():
-                box.write('<td>%s</td>\n' % getattr(doc, columns[column]))
-            box.write('</tr>\n')
-        box.write('</table>\n')
+                elif sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+                    if doc.errors.count() > 0 or doc.files.error_count > 0:
+                        box.write('<td style="width:100%%" class="error">%s</td>\n' % doc.title)
+                    else:
+                        box.write('<td style="width:100%%">%s</td>\n' % doc.title)
+
+                for column in columns.keys():
+                    box.write('<td>%s</td>\n' % getattr(doc, columns[column]))
+                box.write('</tr>\n')
+
+            # This is a blocky extended listing, fairly extended and with abstracts.
+            elif layout=='block':
+                if doc.errors.count() > 0 or doc.files.error_count > 0:
+                    block_title = '<th colspan="4" class="error">' + doc.title + '</th>\n'
+                else:
+                    block_title = '<th colspan="4">' + doc.title + '</th>\n'
+
+                if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+                    block_editlink = '<td width="30" align="center"><a href="|uri.base|document_main/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON_MED + '</a></td>\n'
+                else:
+                    block_editlink = '<td width="30" align="center"></td>\n'
+
+                if doc.pub_time > '':
+                    block_viewlink = '<td width="30" align="center"><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + TEXT_ICON_MED + '</a></td>\n'
+                else:
+                    block_viewlink = '<td width="30" align="center"></td>\n'
+                
+                block_dllink = '<td width="30" align="center"><a href="|uri.base|docdownloads/' + str(doc.id) + '/">' + DL_ICON_MED + '</a></td>\n'
+                block_abstract = '<td>' + doc.abstract + '</td>\n'
+                
+                box.write('<p><table class="box" width="100%%">\n' \
+                          '<tr>%s</tr>' \
+                          '<tr>%s%s%s%s</tr>' \
+                          '</table>\n'
+                          % (block_title,
+                             block_editlink, block_viewlink, block_dllink, block_abstract))
+
+        if layout=='compact':
+            box.write('</table>\n')
         return box.get_value()
 
     def userdocs(self, uri, username=''):
@@ -871,7 +935,7 @@ class Tables(LampadasCollection):
     def sitemap(self, uri):
         log(3, 'Creating sitemap')
         box = ''
-        box = '<table class="box" width="100%"><tr><th colspan="2">|strsitemap|</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th>|strsitemap|</th></tr>\n'
         section_codes = lampadasweb.sections.sort_by('sort_order')
         page_codes = lampadasweb.pages.sort_by('sort_order')
         for section_code in section_codes:
@@ -885,7 +949,7 @@ class Tables(LampadasCollection):
             if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
                 continue
 
-            box = box + '<tr><td class="label">' +  section.name[uri.lang] + '</td><td>\n'
+            box = box + '<tr><th class="collabel">' +  section.name[uri.lang] + '</th></tr>\n'
             for page_code in page_codes:
                 page = lampadasweb.pages[page_code]
                 if page.section_code==section_code:
@@ -901,8 +965,7 @@ class Tables(LampadasCollection):
                         if sessions.session==None: continue
                         if sessions.session.user.sysadmin==0:
                             continue
-                    box = box + '<a href="|uri.base|' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
-            box = box + '</td></tr>\n'
+                    box = box + '<tr><td><a href="|uri.base|' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a></td></tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -914,11 +977,12 @@ class Tables(LampadasCollection):
         <tr><th colspan="2">|strrecentnews|</th></tr>
         <tr><th class="collabel">|strdate|</th><th class="collabel">|strnews|</th></tr>\n''')
         keys = lampadasweb.news.sort_by_desc('pub_date')
+        odd_even = OddEven()
         for key in keys:
             news = lampadasweb.news[key]
             if not news.news[uri.lang]==None:
-                box.write('''<tr><td>%s</td><td>%s</td></tr>\n'''
-                          % (news.pub_date, news.news[uri.lang]))
+                box.write('''<tr class="%s"><td>%s</td><td>%s</td></tr>\n'''
+                          % (odd_even.get_next(), news.pub_date, news.news[uri.lang]))
         box.write('</table>\n')
         return box.get_value()
 
@@ -946,15 +1010,15 @@ class Tables(LampadasCollection):
         topic = lampadas.topics[uri.code]
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
-        <tr><td>|topic.description|</td></tr>
-        <tr><td>
+        <tr><th class="collabel">|topic.description|</th></tr>
         ''' % topic.title[uri.lang])
         keys = lampadas.topics.sort_by('sort_order') 
+        odd_even = OddEven()
         for key in keys:
             topic = lampadas.topics[key]
             if topic.parent_code==uri.code:
-                box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
-                          % (topic.code, topic.name[uri.lang]))
+                box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>\n'
+                          % (odd_even.get_next(), topic.code, topic.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
@@ -1036,7 +1100,7 @@ class Tables(LampadasCollection):
                           % (session.username, session.username))
             box.write('</td></tr>\n</table>\n')
             return box.get_value()
-        return ' '
+        return ''
 
     def tabsessions(self, uri):
         if sessions.session.user and sessions.session.user.admin > 0:
@@ -1051,15 +1115,17 @@ class Tables(LampadasCollection):
             </tr>
             ''')
             keys = sessions.sort_by_desc('timestamp')
+            odd_even = OddEven()
             for key in keys:
                 session = sessions[key]
-                box.write('''<tr>
+                box.write('''<tr class="%s">
                 <td><a href="|uri.base|user/%s|uri.lang_ext|">%s</a></td>
                 <td>%s</td>
                 <td>%s</td>
                 <td>%s</td>
                 </tr>
-                ''' % (session.username, session.username,
+                ''' % (odd_even.get_next(),
+                       session.username, session.username,
                        session.ip_address,
                        session.uri,
                        session.timestamp))

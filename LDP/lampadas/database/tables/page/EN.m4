@@ -4,6 +4,7 @@ insert(index,                splash,     [],         0,  [],                 f, 
 insert(home,                 index,      main,       1,  [],                 f,  f,  f,  f)
 insert(my,                   default,    main,       2,  [],                 t,  t,  f,  f)
 insert(doctable,             default,    main,       3,  [],                 f,  f,  f,  f)
+insert(document_list,        default,    main,       4,  [],                 f,  f,  f,  f)
 insert(search,               default,    main,       5,  [],                 t,  f,  f,  f)
                                                                                  
 insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)

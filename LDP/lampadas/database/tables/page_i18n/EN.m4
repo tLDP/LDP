@@ -85,6 +85,11 @@ insert([doctable], [Browse Documents], [],
     |tabdocs|
 ], 1)
 
+insert([document_list], [Document List], [],
+[
+    |tabdocs_block|
+], 1)    
+
 insert([search], [Search], [],
 [
     |tabsearch|

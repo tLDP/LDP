@@ -1,4 +1,3 @@
-insert(user,        [User Menu])
 insert(main,        [Main Menu])
 insert(admin,       [Admin Menu])
 insert(news,        [News Menu])

@@ -1,4 +1,3 @@
-insert(user,        [Menu Utilisateur])
 insert(main,        [Menu Principal])
 insert(admin,       [Menu Administrateur])
 insert(news,        [Menu Nouvelles])

@@ -219,6 +219,12 @@ class PageFactory:
                         newstring = '|blknotfound|'
                     else:
                         newstring = doc.title
+                elif token=='doc.abstract':
+                    doc = lampadas.docs[uri.id]
+                    if not doc:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = doc.abstract
                 
                 # Navigation Boxes
                 elif token=='navlogin':
@@ -241,6 +247,8 @@ class PageFactory:
                     newstring = tables.tabtopic(uri)
                 elif token=='tabdocs':
                     newstring = tables.doctable(uri, lang=uri.lang)
+                elif token=='tabdocs_block':
+                    newstring = tables.doctable(uri, lang=uri.lang, layout='block')
                 elif token=='tabmaint_wanted':
                     newstring = tables.doctable(uri, maintainer_wanted=1, lang=uri.lang)
                 elif token=='tabunmaintained':
