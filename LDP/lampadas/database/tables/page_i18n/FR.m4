@@ -137,6 +137,7 @@ insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;
 [
 	|tabeditdoc|
     |tabdocfiles|
+    |tabdocusers|
 ])
 
 insert([404], [Introuvable], [Introuvable],

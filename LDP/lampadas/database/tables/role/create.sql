@@ -1,5 +1,5 @@
 CREATE TABLE role(
-	role		CHAR(12)	NOT NULL,
+	role_code		CHAR(12)	NOT NULL,
 
-	PRIMARY KEY (role)
+	PRIMARY KEY (role_code)
 );
