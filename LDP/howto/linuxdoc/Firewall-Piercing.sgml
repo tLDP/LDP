@@ -1,0 +1,626 @@
+<!doctype linuxdoc system>
+<!-- $Id$ -->
+<!-- 1.3 corresponds loosely to Firewall-Piercing.fr.sgml 1.3 -->
+<article>
+
+<title>Firewall Piercing mini-HOWTO</title>
+<author>François-René Rideau, <tt>fare@tunes.org</tt></author>
+<date>v0.6, 3 November 2000</date>
+
+<abstract>
+Directions for using ppp over ssh or telnet
+so as to do network stuff transparently
+through an Internet firewall.
+Also applies to VPN construction.
+</abstract>
+
+<toc>
+
+
+<sect>Stuff
+<p>
+
+<sect1>DISCLAIMER
+<p>
+<bf>READ THIS IMPORTANT SECTION !!!</bf>
+</p>
+<p>
+<bf>
+I hereby disclaim all responsibility for this hack.
+If it backfires on you in any way whatsoever,
+that's the breaks. Not my fault.
+If you don't understand the risks inherent in doing this, don't do it.
+If you use this hack and it allows vicious vandals
+to break into your company's computers and costs you your job and
+your company millions of dollars, well that's just tough nuggies.
+Don't come crying to me.
+</bf>
+</sect1>
+
+
+<sect1>Legal Blurp
+<p>
+Copyright &copy; 1998-2000 by François-René Rideau.
+
+This document is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License
+as published by the Free Software Foundation;
+either version 2 of the License, or (at your option) any later version.
+</sect1>
+
+
+<sect1>Looking for a maintainer
+<p>
+I haven't been actively developing this mini-HOWTO recently;
+in particular, the french version is lagging behind.
+I'm looking for a maintainer to take over this document,
+and maybe develop software to make it easier to pierce firewalls.
+It has been considered to merge this document into the NASG,
+but that wasn't done. I also have a lot of ideas for active maintainers
+to expand this HOWTO, if anyone is interested.
+</sect1>
+
+<!--
+<sect1>Remarks on the english version
+<p>
+The english version of this document is written by the author
+together with the french version.
+Neither version is truly the translation of the other,
+though each is somehow partly translated from the other.
+Both are the ``original version''.
+</sect1>
+-->
+
+<sect1>Credits
+<p>
+Even though I rewrote most everything but the disclaimers,
+I'm indebted to <URL URL="mailto:bap@cs.unm.edu" name="Barak Pearlmutter">
+for his Term-Firewall mini-HOWTO:
+I think there was a necessity for a mini-HOWTO about piercing firewalls,
+and despite its shortcomings, his mini-HOWTO was a model and an encouragement.
+
+I'd also like to thank
+<URL URL="mailto:lars@nocrew.org" name="Lars Brinkhoff">
+<!-- URL
+ URL="mailto:ajje@wombat.ludvika.se" name="Andreas 'Ajje' Pettersson"-->
+and
+<URL URL="mailto:logic@gore.nocrew.org" name="Magnus Lundström">
+for their fine http, mail and icmp tunnels.
+</sect1>
+</sect>
+
+
+<sect>Introduction
+<p>
+
+<sect1>Foreword
+<p>
+Because system administrators and users have different
+constraints and proficiencies,
+it so happens that a user may find himself behind a firewall,
+that he may cross, but only in awkward ways.
+This mini-HOWTO explains a generic and portable way
+to use standard Internet tools seamlessly across such firewalls,
+by the use of an IP emulator through a tunnel
+achieved by a telnet, http, or mail connection.
+
+It is freely inspired by the Term-Firewall mini-HOWTO by
+<URL URL="mailto:bap@cs.unm.edu" name="Barak Pearlmutter">,
+which relies on an ancient and no-more-supported program named Term
+	(a great program at its time,
+	and still useful in some unhappy circumstances),
+as well as on peculiarities of a not-so-standard telnet implementation,
+that is, many obsolete and non-portable facts.
+</sect1>
+
+
+<sect1>Security problems
+<p>
+Of course, if your sysadm has setup a firewall,
+s/he might have a good reason,
+and you may have signed an agreement to not circumvent it.
+On the other hand, the fact that you can use
+telnet, the web, e-mail, or whatever other bidirectional information flux
+with the outside of the firewall
+(which is a prerequisite for the presented hacks to work)
+means that you are allowed to access external systems,
+and the fact that you can log into a particular external system
+somehow means you're allowed to do it, too.
+
+So this is all a matter of <em>conveniently</em>
+using legal holes in a firewall,
+and allow generic programs to work from there with generic protocols,
+as opposed to requiring special or modified (and recompiled) programs
+going through lots of special-purpose proxies
+that be misconfigured by an uncaring or incompetent sysadm,
+or to installing lots of special-purpose converters
+to access each of your usual services (like e-mail)
+through ways supported by the firewall (like the web).
+
+Moreover, the use of a user-level IP emulator such as SLiRP
+should still prevent external attackers from piercing the firewall back
+in the other way, unless explicitly permitted by you
+(or they are clever and wicked,
+and root or otherwise able to spy you on the remote host).
+
+All in all, the presented hack should be <em>relatively</em> safe.
+However, it all depends on the particular circumstances
+in which you set things up,
+and I can give no guarantee about this hack.
+Lots of things are intrinsically unsafe
+about any Internet connection, be it with this hack or not,
+so don't you assume anything is safe unless you have good reasons,
+and/or use some kind of encryption all the way.
+
+Let's repeat the basics of networking security:
+<em>you cannot trust anything about a connection
+more than you trust the hosts that can handle the unencrypted data</em>,
+including hosts on both ends of the connection,
+and all hosts that can intercept the communication,
+unless the communication is properly encrypted with secret keys.
+If you misplace your trust,
+your passwords may be stolen and used against you,
+your credit card number may be stolen and used against you,
+and you may be fired from your work for endangering the whole company.
+Tough nuggies.
+
+To sum it up, don't use this hack unless you know what you're doing.
+Re-read the disclaimer above.
+</sect1>
+
+
+<sect1>Other requirements
+<p>
+It is assumed that you know what you're doing,
+that you know about setting up a network connection,
+that in case of doubt, you will have read all relevant documentation
+(HOWTOs, manual pages, web pages, mailing-list archives,
+RFCs, courses, tutorials).
+
+It is assumed that you have shell accounts on both sides of the firewall,
+that you can somehow transmit packets of information both ways
+across the firewall (with telnet, ssh, e-mail, and the web being
+the ways currently known to work),
+and that you can let a daemon run as a background task on the remote site
+(or benefit from and existing daemon, sshd, telnetd, or sendmail/procmail).
+
+It is assumed that you'll know how to configure an IP emulator (pppd, slirp)
+or an Internet access daemon and its associated library (SOCKS, Term)
+on each side, according to your needs in term of connectivity
+and to your access rights, with your recompiling some software if needed.
+</sect1>
+
+
+<sect1>Downloading software
+<p>
+Most named software should be available
+from your standard Linux distribution, possibly among contrib's.
+At least, the four first below are available in as rpm packages.
+In case you want to fetch the latest sources
+(after all, one of the ends of the connection may not be running under Linux),
+use the addresses below:
+<itemize>
+<item><tt>SLiRP</tt> can be found at
+	<URL URL="http://blitzen.canberra.edu.au/slirp"> and/or
+	<URL URL="ftp://www.ibc.wustl.edu/pub/slirp_bin/">.
+<item><tt>zsh</tt> can be found at
+	<URL URL="http://www.peak.org/zsh/">.
+<item><tt>ppp</tt> can be found at
+	<URL URL="ftp://cs.anu.edu.au/pub/software/ppp/">.
+<item><tt>ssh</tt> can be found at
+	<URL URL="http://www.openssh.com/">.
+<item><tt>fwprc</tt> and <tt>cotty</tt> can be found at
+	<URL URL="http://fare.tunes.org/files/fwprc/">.
+<!-- what happened to the following site?
+or
+	URL URL="ftp://ftp.noch.net/pub/fwprc/" -->
+<item><tt>httptunnel</tt> can be found at
+	<URL URL="http://www.nocrew.org/software/httptunnel.html">.
+<item><tt>mailtunnel</tt> can be found at
+	<URL URL="http://www.detached.net/mailtunnel/">.
+<item><tt>icmptunnel</tt> can be found at
+	<URL URL="http://www.detached.net/icmptunnel/">.
+<!-- find and give precise information about:
+	http://sites.inka.de/sites/bigred/sw/ssh-ppp-new.txt
+-->
+</itemize>
+</sect1>
+</sect>
+
+
+<sect>Understanding the problem
+<p>
+Understanding a problem is the first half of the path to solving it.
+
+<sect1>Giving names to things
+<p>
+If you want this hack to work for you,
+you'll have to get an idea of how it works,
+so that in case anything breaks,
+you know where to look for.
+
+The first step toward understanding the problem
+is to give a name to relevant concepts.
+
+So we'll herein call "local" the machine that initiates the connection,
+as well as programs and files on that machine;
+conversely, we'll call "remote" what's on the other side of the connection.
+</sect1>
+
+
+<sect1>The problem
+<p>
+The goal is to connect the input and output of a local IP emulator
+to the output and input respectively of a remote IP emulator.
+
+Only the communication channels with which IP emulators interact
+are either direct devices (in the usual case of <tt>pppd</tt>),
+or the "current tty".
+The previous case obviously does not happen with telnet sessions.
+The latter is tricky, because when you launch the local emulator
+from the command line, the "current tty" is linked to the command-line user,
+not to a remote session;
+also, should we open a new session (local or remote) on a new terminal,
+we must synchronize the launching and connection of IP emulators on both sides,
+least one session's garbage output is going to be executed
+as commands on the other session, which would recursively produce more garbage.
+</sect1>
+
+
+<sect1>Additional difficulty
+<p>
+To get the best ease of use,
+the local IP emulator has to provide IP to kernel networking,
+hence be <tt>pppd</tt>.
+However, <tt>pppd</tt> is dumb enough to only accept having data
+through <tt>/dev</tt> or through the current tty;
+it must be a tty, not a pair of pipe
+(which would be the obvious design).
+This is fine for the remote <tt>pppd</tt> if any,
+as it can use the telnet session's tty;
+but for the local <tt>pppd</tt>, this sucks,
+as it can't launch the telnet session to connect to;
+hence, there must some kind of wrapper around it.
+
+Telnet behaves <em>almost</em> correctly with a pair of pipe,
+except that it will still insist on doing ioctl's to the current tty,
+with which it will interfere;
+using telnet without a tty also causes race conditions,
+so that the whole connection will fail on "slow" computers
+(fwprc 0.1 worked perfectly on a P/MMX 233,
+one time out of 6 on a 6x86-P200+, and never on a 486dx2/66).
+
+&lsqb;Note: if I find the sucker
+(probably a MULTICS guy,
+though there must have been UNIX people stupid enough to copy the idea)
+who invented the principle of "tty" devices
+by which you read and write from a "same" pseudo-file,
+instead of having clean pairs of pipes,
+I strangle him!&rsqb;
+</sect1>
+</sect>
+
+
+<sect>Secure solution: piercing using ssh
+<p>
+<sect1>Principle
+<p>
+Let's assume that your site administrator allows
+transparent TCP connections to some port,
+(be it the standard SSH port 22, or an alternate destination port,
+like the HTTP port 80 or whatever),
+or that you somehow managed to get some port in one side of the firewall
+to get redirected to a port on the other side
+(using httptunnel or mailtunnel or whatever).
+Then, you can run an <tt>sshd</tt> on the remote port,
+and connect to it with an <tt>ssh</tt> on the local port.
+On both sides of the ssh connection, you run IP emulators (<tt>pppd</tt>),
+and there you have your VPN, Virtual Public Network,
+that circumvents the stupid firewall limitations.
+<p>
+The exact same technology can be used to build a VPN, Virtual Private Network,
+whereby you securely join physical sites into a one logical network
+without sacrificing security with respect to the transport network
+between the sites.
+<p>
+
+
+<sect1>A sample session
+<p>
+
+<verb>
+REMOTE_ACCOUNT=root@remote.fqdn.tld
+REMOTE_PPPD="pppd ipcp-accept-local ipcp-accept-remote"
+LOCAL_PPPD="pppd silent 192.168.0.1:192.168.0.2"
+cotty -d -- $LOCAL_PPPD -- ssh -t $REMOTE_ACCOUNT $REMOTE_PPPD 
+</verb>
+
+This command requires <tt>cotty</tt> 0.4 or later.
+Be sure to edit this into a script with the right values.
+Use option <tt>-p</tt> for <tt>ssh</tt> to try another port than port 22
+(but then, be sure to run <tt>sshd</tt> on same port).
+You can use <tt>slirp</tt> on the remote end,
+if you are not <tt>root</tt> there, or simply want to screen your
+local network from outbound connections.
+
+Automatic reconnection is left as an exercise to the reader.
+
+
+<sect>Unsecure solution: piercing using telnet
+<p>
+
+<sect1>Principle
+<p>
+If all you can do is telnet (because of a telnet proxy),
+then this solution might be fit for you.
+
+The firewall-piercing program, <tt>fwprc</tt>,
+will use a "tty proxy", <tt>cotty</tt>,
+that opens two pseudo-tty devices,
+launches some command on each of those devices' slaves,
+and stubbornly copies every character that one outputs
+to the tty that serves as input of the other command.
+One command will be telnet connection to remote site,
+and the other will be the local <tt>pppd</tt>.
+<tt>pppd</tt> can then open and control the telnet session
+with a chat script as usual.
+
+Actually, if your telnet proxy allows connection to an arbitrary port,
+and you can reliably run a daemon on the remote host
+(with a cron job to relaunch it in case of breakage),
+then you'd better write some program that will just connect
+a local port to the remote one through the proxy,
+so you can use the above secure solution,
+possibly using some variant of <tt>ssh -t -o "ProxyCommand ..."</tt>
+(if you submit it to me, I'll integrate it to the <tt>fwprc</tt> distribution).
+</sect1>
+
+<sect1>fwprc
+<p>
+I wrote a very well self-documented script
+to pierce firewalls, <tt>fwprc</tt>,
+available from
+	<URL URL="http://fare.tunes.org/files/fwprc/"
+		name="my site">,
+<!-- what happened to the following site?
+as well as
+	URL URL="ftp://ftp.noch.net/pub/fwprc/"
+		name="this mirror"
+-->
+together with <tt>cotty</tt>
+(which is required by <tt>fwprc</tt> 0.2 and later).
+At the time of my writing these lines, latest versions are
+<tt>fwprc</tt> 0.3e and <tt>cotty</tt> 0.4.
+
+The name "fwprc" is voluntarily made unreadable and unpronounceable,
+so that it will confuse the incompetent paranoid sysadm
+who might be the cause of the firewall that annoys you
+(of course, there can be legitimate firewalls, too,
+	and even indispensable ones;
+	security is all a matter of <em>correct</em> configuration).
+If you must read it aloud, choose the worst way you can imagine.
+
+CONTEST! CONTEST! Send me a <tt>.au</tt> audio file
+with a digital audio recording of how you pronounce "fwprc".
+The worst entry will win a free upgrade and his name on the fwprc 1.0 page!
+
+I tested the program in several settings,
+by configuring it through resource files.
+But of course, by Murphy's law, it will break for you.
+Feel free to contribute enhancements that will make life
+easier to other people who'll configure it after you.
+</sect1>
+
+
+<sect1>.fwprcrc
+<p>
+<tt>fwprc</tt> can be customized through a file <tt>.fwprcrc</tt>
+meant to be the same on both sides of the firewall.
+Having several alternate configurations to choose from is sure possible
+(for instance, <em>I</em> do it),
+and is left as an exercise to the reader.
+<p>
+To begin with, copy the appropriate section of <tt>fwprc</tt>
+(the previous to last) into a file named <tt>.fwprcrc</tt>
+in your home directory.
+Then replace variable values with stuff that fits your configuration.
+Finally, copy to the other host, and test.
+<p>
+Default behavior is to use <tt>pppd</tt> locally, and slirp remotely.
+To modify that, you can redefine the appropriate function
+in your <tt>.fwprcrc</tt> with such a line as:
+<tscreen>
+remote_IP_emu () { remote_pppd }
+</tscreen>
+<p>
+Note that SLiRP is safer than <tt>pppd</tt>, and easier to have access to,
+since it does not require being root on the remote machine.
+Another safe feature is that it will drop packets not directly coming
+from the connected machine (which feature becomes a misfeature
+if you attempt to route a subnetwork onto it with masquerading).
+The basic functionality in SLiRP works quite well,
+but I've found advertised pluses (like run-time controllability)
+to be deficient;
+of course, since it is free software,
+feel free to hack the source
+so as to actually implement whichever feature you need.
+</sect1>
+</sect>
+
+
+<sect>Reverse piercing
+<p>
+
+<sect1>Rationale
+<p>
+Sometimes, only one side of the firewall can launch telnet sessions
+into the other side; however, some means of communication is possible
+(typically, through e-mail).
+Piercing the firewall is still possible, by triggering with
+whatever messaging capability is available
+a telnet connection from the ``right'' side of the firewall to the other.
+
+<tt>fwprc</tt> includes code to trigger such connections
+from a PGP-authentified e-mail message;
+all you need is add <tt>fwprc</tt> as a <tt>procmail(1)</tt> filter
+to messages using the protocol,
+(instructions included in <tt>fwprc</tt> itself).
+Note however, that if you are to launch <tt>pppd</tt>
+	with appropriate privileges,
+you might need create your own suid wrapper to become root.
+Instructions enclosed in <tt>fwprc</tt>.
+
+Also, authentified trigger does not remotely mean secure connection.
+You should really use <tt>ssh</tt> (perhaps over telnet)
+for secure connections.
+And then, beware of what happens between the triggering of a telnet
+connection, and <tt>ssh</tt> taking over that connection.
+Contribution in that direction welcome.
+</sect1>
+
+
+<sect1>Getting the triggering mail
+<p>
+If you are firewalled, your mail may as well be in a central server
+that doesn't do procmail filtering or allow telnet sessions.
+No problem! You can use <tt>fetchmail(1)</tt> to run in daemon mode
+to poll and get mail to your client linux system,
+and/or add a cron job to automatically poll for mail every 1-5 minutes.
+fetchmail will forward mail to a local address through <tt>sendmail(8)</tt>,
+which itself will have been configured
+to use <tt>procmail(1)</tt> for delivery.
+Note that if you run <tt>fetchmail(1)</tt> as a background daemon,
+it will lock away any other fetchmail that you'd like to run
+only at other times, like when you open a <tt>fwprc</tt>;
+of course, if you can also run a fetchmail daemon as a fake user.
+Too frequent a poll won't be nice to either the server or your host.
+Too infrequent a poll means you'll have to wait before the message gets read
+and the reverse connection gets established.
+I use two-minute poll frequency.
+</sect1>
+</sect>
+
+
+<sect>Final notes
+<p>
+
+<sect1>Other settings
+<p>
+There are other kinds of firewalls
+than those that allow for direct ssh or telnet connections.
+As long as a continuous flow of packets
+may transmit information through a firewall in both directions,
+it is possible to pierce it;
+only the price of writing the piercer may be higher or lower.
+
+In a very easy case, we saw that you can just launch <tt>ssh</tt> over a pty,
+and do some <tt>pppd</tt> in the slave tty.
+You may even want to do it without an adverse firewall,
+just so as to build a secure ``VPN'' (Virtual Private Network).
+The <htmlurl url="http://www.linuxdoc.org/HOWTO/mini/VPN.html"
+	name="VPN mini-HOWTO">
+gives all the details you need about this.
+We invite you, as an exercise,
+to modify <tt>fwprc</tt>
+	so as to use this technique,
+	or perhaps even so as to use it
+		inside a previous non-secure <tt>fwprc</tt> session.
+
+Now, if the only way through the firewall is a WWW proxy
+(usually, a minimum for an Internet-connected network),
+you might want to use
+	<url url="http://lars.nocrew.org/" name="Lars Brinkoff">'s
+	<url url="http://www.nocrew.org/software/httptunnel/"
+		name="httptunnel">,
+a http daemon and client combination that achieves a TCP/IP tunnel connection
+through the proxy-friendly HTTP protocol.
+You should then be able to run <tt>fwprc</tt> (preferably over <tt>ssh</tt>)
+over that connection, although I haven't tried it yet.
+Could anyone test and report?
+Note that <tt>httptunnel</tt> is still under development,
+so you may help implement
+the features it currently lacks,
+like, having multiple connections, and/or serving fake pages
+so as to mislead suspicious adverse firewall administrators.
+
+Whatever goes through your firewall,
+be it telnet, HTTP or other TCP/IP connections,
+or something real weird like DNS queries, ICMP packets, e-mail
+(see <URL name="mailtunnel" URL="http://www.detached.net/mailtunnel/">,
+<URL name="icmptunnel" URL="http://www.detached.net/icmptunnel/">),
+or whatelse,
+you can always write a tunnel client/daemon combination,
+and run a ssh and/or PPP connection through it.
+The performance mightn't be high,
+depending on the effective information communication rate
+after paying the overhead for coding around filters and proxies;
+but such a tunnel is still interesting as long as it's good enough
+to use <tt>fetchmail(1)</tt>, <tt>suck(1)</tt>,
+and other non-interactive programs.
+
+If you need cross a 7-bit line, you'll want to use SLIP instead of PPP.
+I never tried, because lines are more or less 8-bit clean these days,
+but it shouldn't be difficult.
+If necessary, fall back to using the Term-Firewall mini-HOWTO.
+
+If you have an 8-bit clean connection and you're root on linux both sides
+of the firewall, you might want to use ethertap for better performance,
+encapsulating raw ethernet communications on top of your connection.
+David Madore has written ethertap-over-TCP and ethertap-over-UDP tunneling
+<URL URL="ftp://quatramaran.ens.fr/pub/madore/misc/">.
+There remains to write some ethertap-over-tty to combine with fwprc-like tools.
+
+If you really need more performance than you can get
+while paying for a user-space sequential communication tunnel
+through which to run PPP,
+then you're in the very hard case
+where you might have to re-hack a weird IP stack,
+using (for instance) the Fox project's packet-protocol functors.
+You'll then achieve some direct IP-over-HTTP, IP-over-DNS, IP-over-ICMP,
+or such, which requires not only a complex protocol,
+but also an interface to an OS kernel, both of which are costly to implement.
+</sect1>
+
+
+<sect1>HOWTO maintenance
+<p>
+I felt it was necessary to write it,
+but I don't have that much time for that,
+so this mini-HOWTO is very rough.
+Thus will it stay,
+until I get enough feedback so as to know what sections to enhance,
+or better, until someone comes and takes over maintenance for the mini-HOWTO.
+Feedback welcome. Help welcome. mini-HOWTO maintenance take-over welcome.
+
+In any case, the above sections have shown many problems
+whose solution is just a matter of someone (you?)
+spending some time (or money, by hiring someone else)
+to sit down and write it:
+nothing conceptually complicated,
+though the details might be burdensome or tricky.
+
+Do not hesitate to contribute more problems, and hopefully more solutions,
+to this mini-HOWTO.
+
+For instance, there is some need for a section on setting up routes correctly
+with <tt>fwprc</tt>,
+including example use of <tt>getroute.pl</tt> from <tt>/etc/ppp/ip-up</tt>.
+</sect1>
+
+
+<sect1>Extra copy of IMPORTANT DISCLAIMER --- BELIEVE IT!!!
+<p>
+<quote>
+<bf>
+I hereby disclaim all responsibility for this hack.  If it backfires
+on you in any way whatsoever, that's the breaks.  Not my fault.  If
+you don't understand the risks inherent in doing this, don't do it.
+If you use this hack and it allows vicious vandals to break into your
+company's computers and costs you your job and your company millions
+of dollars, well that's just tough nuggies.  Don't come crying to me.
+</bf>
+</quote>
+</sect1>
+</sect>
+
+</article>
