@@ -259,7 +259,9 @@ sub proc_txt {
 			$line =~ s/^A://;
 			&trimline;
 			&closeanswer;
-			$line = "<answer><para>" . $line . "</para>\n";
+			$line = "<answer><para>" . $line . "\n";
+			$answer = 1;
+			$para = 1;
 
 		# para
 		#
@@ -354,7 +356,6 @@ sub closenonsect {
 	&closepara;
 	&closeorderedlist;
 	&closeitemizedlist;
-#	&closeqandaentry;
 }
 
 sub closelistitem {
@@ -389,8 +390,9 @@ sub closelists {
 }
 
 sub closeanswer {
+	&closepara;
 	if ($answer == 1) {
-		$line = "</answer>\n";
+		$buf .= "</answer>\n";
 		$answer = 0;
 	}
 }
