@@ -250,7 +250,37 @@ init-+-amd
 <para>When a process ends normally (it is not killed or otherwise unexpectedly interrupted), the program returns its <emphasis>exit status</emphasis> to the parent.  This exit status is a number returned by the program providing the results of the program's execution.  The system of returning information upon executing a job has its origin in the C programming language in which UNIX has been written.</para>
 <para>The return codes can then be interpreted by the parent, or in scripts.  The values of the return codes are program-specific.  This information can usually be found in the man pages of the specified program, for example the <command>grep</command> command returns <computeroutput>-1</computeroutput> if no matches are found, upon which a message on the lines of "No files found" can be printed.  Another example is the Bash Builtin command <command>true</command>, which does nothing except return an exit status of 0, meaning success.</para>
 </sect3>
+<sect3 id="sect_04_01_05_03"><title>Signals</title>
+<para>Processes end because they receive a signal.  There are multiple signals that you can send to a process.  Use the <command>kill</command> command to send a signal to a process.  The command <command>kill <option>-l</option></command> shows a list of signals.  Most signals are for internal use by the system, or for programmers when they write code.  As a user, you will need the following signals:</para>
+<table frame="all">
+<title>Common signals</title>
+<tgroup cols="3" align="left" colsep="1" rowsep="1">
+<thead>
+<row>
+<entry>Signal name</entry><entry>Signal number</entry><entry>Meaning</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry>SIGTERM</entry><entry>15</entry><entry>Terminate the process in an orderly way.</entry>
+</row>
+<row>
+<entry>SIGINT</entry><entry>2</entry><entry>Interrupt the process.  A process can ignore this signal.</entry>
+</row>
 
+<row>
+<entry>SIGKILL</entry><entry>9</entry><entry>Interrupt the process.  A process can not ignore this signal.</entry>
+</row>
+
+<row>
+<entry>SIGHUP</entry><entry>1</entry><entry>For daemons: reread the configuration file.</entry>
+</row>
+
+</tbody>
+</tgroup>
+</table>
+<para>You can read more about default actions that are taken when sending a signal to a process in <command>man <option>7</option> <parameter>signal</parameter></command>.</para>
+</sect3>
 </sect2>
 <sect2 id="sect_04_01_06"><title>SUID and SGID</title>
 <para>As promised in the previous chapter, we will now discuss the special modes SUID and SGID in more detail.  These modes exist to provide normal users the ability to execute tasks they would normally not be able to do because of the tight file permission scheme used on UNIX based systems.  In the ideal situation special modes are used as sparsely as possible, since they include security risks.  Linux developers have generally tried to avoid them as much as possible.  The Linux <command>ps</command> version, for example, uses the information stored in the <filename>/proc</filename> file system, which is accessible to everyone, thus avoiding exposition of sensitive system data and resources to the general public.  Before that, and still on older UNIX systems, the <command>ps</command> program needed access to files such as <filename>/dev/mem</filename> and <filename>/dev/kmem</filename>, which had disadvantages because of the permissions and ownerships on these files:</para>
@@ -551,6 +581,42 @@ Command exited with non-zero status 2
 </figure>
 <para>There are also a couple of handy icons you can install in the task bar, such as a disk, memory and load monitor.  <command>xload</command> is another small X application for monitoring system load.  Find your favorite!</para> 
 </sect3>
+<sect3 id="sect_04_03_05_07"><title>Interrupting your processes</title>
+<para>As a non-privileged user, you can only influence your own processes.  We already saw how you can display processes and filter out processes that belong to a particular user, and what possible restrictions can occur.  When you see that one of your processes is eating too much of the system's resources, there are two things that you can do:</para>
+<orderedlist>
+<listitem><para>Make the process use less resources without interrupting it;</para></listitem>
+<listitem><para>Stop the process altogether.</para></listitem>
+</orderedlist>
+<para>In the case that you want the process to continue to run, but you also want to give the other processes on the system a chance, you can <command>renice</command> the process.  Appart from using the <command>nice</command> or <command>renice</command> commands, <command>top</command> is an easy way of spotting the troublesome process(es) and reducing priority.</para>
+<para>Identify the process in the <quote>NI</quote> column, it will most likely have a negative priority.  Type <command>r</command> and enter the process ID of the process that you want to renice.  Then enter the nice value, for instance <quote>20</quote>.  That means that from now on, this process will take 1/5 of the CPU cycles at the most.</para>
+<para>Examples of processes that you want to keep on running are emulators, virtual machines, compilers and so on.</para>
+
+<para>If you want to stop a process because it hangs or is going totally berserk in the way of I/O consumption, file creation or use of other system resources, use the <command>kill</command>.  If you have the opportunity, first try to kill the process softly, sending it the <emphasis>SIGTERM</emphasis> signal.  This is an instruction to terminate whatever it is doing, according to procedures as described in the code of the program:</para>
+<screen>
+<prompt>joe:~&gt;</prompt> <command>ps <option>-ef</option></command> | <command>grep <parameter>mozilla</parameter></command>
+joe    25822	1  0 Mar11 ?	00:34:04 /usr/lib/mozilla-1.4.1/mozilla-
+
+<prompt>joe:~&gt;</prompt> <command>kill <option>-15</option> <parameter>25822</parameter></command>
+</screen>
+<para>In the example above, user <emphasis>joe</emphasis> stopped his Mozilla browser because it hung.</para>
+<para>Some processes are a little bit harder to get rid of.  If you have the time, you might want to send them the SIGINT signal to interrupt them.  If that does not do the trick either, use the strongest signal, SIGKILL.  In the example below, <emphasis>joe</emphasis> stops a Mozilla that is frozen:</para>
+<screen>
+<prompt>joe:~&gt;</prompt> <command>ps <option>-ef</option></command> | <command>grep <parameter>mozilla</parameter></command>
+joe    25915	1  0 Mar11 ?	00:15:06 /usr/lib/mozilla-1.4.1/mozilla-
+
+<prompt>joe:~&gt;</prompt> <command>kill <option>-9</option> <parameter>25915</parameter></command>
+
+<prompt>joe:~&gt;</prompt> <command>ps <option>-ef</option></command> | <command>grep <parameter>25915</parameter></command>
+joe	2634 32273 0 18:09 pts/4   00:00:00 grep 25915
+</screen>
+<para>In such cases, you might want to check that the process is really dead, using the <command>grep</command> filter again on the PID.  If this only returns the <command>grep</command> process, you can be sure that you succeeded in stopping the process.</para>
+<para>Among processes that are hard to kill is your shell.  And that is a good thing: if they would be easy to kill, you woud loose your shell every time you type <keycap>Ctrl</keycap>-<keycap>C</keycap> on the command line accidentally, since this is equivalent to sending a SIGINT.</para>
+<note><title>UNIX without pipes is almost unthinkable</title>
+<para>The usage of pipes (|) for using output of one command as input of another is explained in the next chapter, <xref linkend="chap_05" />.</para>
+</note>
+<para>In a graphical environment, the <command>xkill</command> program is very easy to use.  Just type the name of the command, followed by an <keycap>Enter</keycap> and select the window of the application that you want to stop.  It is rather dangerous because it sends a SIGKILL by default, so only use it when an application hangs.</para>
+</sect3>
+
 </sect2>
 
 </sect1>
