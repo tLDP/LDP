@@ -16,8 +16,8 @@ index.html:	Linux-FAQ.xml
 Linux-FAQ.xml:	Linux-FAQ.wt
 	wt2db -x -f Linux-FAQ.wt -o Linux-FAQ.xml
 
-test:	build
-	linkchecker -pdavid@ibiblio.org -Fhtml -ocolored -t20 Linux-FAQ.html
+test:	Linux-FAQ.html
+	linkchecker -pdavid@ibiblio.org -Fhtml -ocolored -t10 Linux-FAQ.html
 
 clean:
 	rm -f *.html
