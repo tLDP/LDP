@@ -10,6 +10,9 @@ performed through this layer.
 
 # Modules
 
+# FIXME import * is considered evil for you can pollute your namespace if
+# the imported module changes or makes a mistake
+
 from Globals import *
 from BaseClasses import *
 import Config
@@ -79,10 +82,10 @@ class Classes(LampadasCollection):
 			self.data[newClass.ID] = newClass
 
 class Class:
-	"""
-	A class is a way of identifying the type of a document, such as a User's Guide,
-	a HOWTO, or a FAQ List.
-	"""
+    """
+    A class is a way of identifying the type of a document, such as a
+    User's Guide, a HOWTO, or a FAQ List.
+    """
 
 	def __init__(self, ClassID=None):
 		self.I18n = {}

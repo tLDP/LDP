@@ -51,6 +51,15 @@ class Database:
 	def Cursor(self):
 		return self.db.connection.cursor()
 
+	# FIXME : the python DB-API 2.0 states that you can transfer the burden
+	# of quoting values to the cursor as in
+	#
+	# sql = "select * from document where doc_id = %(did)s"
+	# param = {'did':'123'}
+	# my_cursor.execute(sql,param)
+	#
+	# I like Python :-)
+	#
 	def Select(self, sql):
 		if self.Config.LogSQL:
 			self.Log(3, sql)
