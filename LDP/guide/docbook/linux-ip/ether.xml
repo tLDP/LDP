@@ -1,7 +1,7 @@
 <!-- $Id$ -->
 
 <chapter id="ch-ether">
-  <title>Ethernet: Address Resolution Protocol and Bridging</title>
+  <title>Ethernet</title>
   <para>
     The most common link layer network in use today is ethernet.  Although
     there are several common speeds of ethernet devices, they function
@@ -187,6 +187,79 @@
         and the encapsulated IP ICMP packets exchanged between these two
         hosts.  Examining the ARP cache on each of these hosts would reveal
         entries on each host for the other host's link layer address.
+      </para>
+      <para>
+        An even rarer usage of ARP is gratuitous ARP, where a machine
+        announces its ownership of an IP address on a media segment.  The
+        <link linkend="tools-arping"><command>arping</command></link> utility
+        can generate these gratuitous ARP frames.  Linux kernels will
+        disregard gratuitous ARP frames.
+      </para>
+      <example id="ex-ether-arp-gratuitous">
+        <title>Gratuitous ARP reply frames</title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>arping -q -c 3 -A -I eth0 192.168.99.35</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>tcpdump -c 3 -nni eth2 arp</userinput>
+<computeroutput>tcpdump: listening on eth2
+06:02:50.626330 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51) 
+06:02:51.622727 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51) 
+06:02:52.620954 arp reply 192.168.99.35 is-at 0:80:c8:f8:4a:51 (0:80:c8:f8:4a:51)</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neigh show</userinput>
+        </programlisting>
+      </example>
+      <para>
+        The frames generated in
+        <xref linkend="ex-ether-arp-gratuitous"/> are ARP replies to a
+        question never asked.
+        Unsolicited ARP request frames, on the other hand, are broadcast
+        ARP requests initiated by a host owning an IP address.
+      </para>
+      <example id="ex-ether-arp-unsolicited">
+        <title>Unsolicited ARP request frames</title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>arping -q -c 3 -U -I eth0 192.168.99.35</userinput>
+<prompt>[root@masq-gw]# </prompt><userinput>tcpdump -c 3 -nni eth2 arp</userinput>
+<computeroutput>tcpdump: listening on eth2
+06:28:23.172068 arp who-has 192.168.99.35 (ff:ff:ff:ff:ff:ff) tell 192.168.99.35
+06:28:24.167290 arp who-has 192.168.99.35 (ff:ff:ff:ff:ff:ff) tell 192.168.99.35
+06:28:25.167250 arp who-has 192.168.99.35 (ff:ff:ff:ff:ff:ff) tell 192.168.99.35</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neigh show</userinput>
+        </programlisting>
+      </example>
+      <para>
+        These two uses of <command>arping</command> can help diagnose ethernet
+        and ARP problems--particularly hosts replying for addresses which do
+        not belong to them.
+      </para>
+      <para>
+        To avoid IP address collisions on dynamic networks (where hosts are
+        turning on and off, connecting and disconnecting and otherwise
+        changing IP addresses) duplicate address detection becomes important.
+        Fortunately, <command>arping</command> provides this functionality as
+        well.  A startup script could include the <command>arping</command>
+        utility in duplicate address detection mode to select between
+        IP addresses or methods of acquiring an IP address.
+      </para>
+      <example id="ex-ether-arp-dad">
+        <title>Duplicate Address Detection with ARP</title>
+        <programlisting>
+<prompt>[root@tristan]# </prompt><userinput>arping -D -I eth0 192.168.99.147; echo $?</userinput>
+<computeroutput>ARPING 192.168.99.47 from 0.0.0.0 eth0
+Unicast reply from 192.168.99.47 [00:80:C8:E8:1E:FC] for 192.168.99.47 [00:80:C8:E8:1E:FC] 0.702ms
+Sent 1 probes (1 broadcast(s))
+Received 1 response(s)
+1</computeroutput>
+<prompt>[root@tristan]# </prompt><userinput>tcpdump -eqtnni eth2 arp</userinput>
+<computeroutput>tcpdump: listening on eth2
+0:80:c8:f8:4a:51 ff:ff:ff:ff:ff:ff 60: arp who-has 192.168.99.147 (ff:ff:ff:ff:ff:ff) tell 0.0.0.0
+0:80:c8:e8:1e:fc 0:80:c8:f8:4a:51 42: arp reply 192.168.99.147 is-at 0:80:c8:e8:1e:fc (0:80:c8:e8:1e:fc)</computeroutput>
+<prompt>[root@masq-gw]# </prompt><userinput>ip neigh show</userinput>
+        </programlisting>
+      </example>
+      <para>
+        Address Resolution Protocol, which provides a method to connect
+        physical network addresses with logical network addresses
+        is a key element to the deployment of IP on ethernet networks.  
       </para>
     </section>
     <section id="ether-arp-cache">
@@ -377,7 +450,7 @@
           </calloutlist>
       </example>
       <para>
-        The remaining neighbor table flags are visible when inital ARP
+        The remaining neighbor table flags are visible when initial ARP
         requests are made.  If no ARP cache entry exists for a requested
         destination IP, the kernel will generate
         <constant>mcast_solicit</constant> ARP requests until receiving an
@@ -397,7 +470,7 @@
         For machines not using a static mapping for link layer and IP
         addresses, ARP provides on demand mappings.  The remainder of this
         section will cover the methods available under linux to control the
-        address resolution protocl.
+        address resolution protocol.
       </para>
     </section>
     <section id="ether-arp-suppression">
@@ -484,9 +557,9 @@ Received 4 response(s)</computeroutput>
         process (possibly documented
         <link linkend="ether-arp-filtering">here</link> at a later date)
         include Julian Anastasov's
-        <ulink url="http://www.linuxvirtualserver.org/~julian/#iparp"><command>ip
+        <ulink url="http://www.ssi.bg/~ja/#iparp"><command>ip
         arp</command></ulink> tool and his
-        <ulink url="http://www.linuxvirtualserver.org/~julian/#noarp">noarp
+        <ulink url="http://www.ssi.bg/~ja/#noarp">noarp
         route flag</ulink>.  While these tools were conceived in the course of
         the
         <ulink url="http://www.linuxvirtualserver.org/">Linux Virtual
@@ -567,7 +640,7 @@ Received 3 response(s)</computeroutput>
         <title>ARP flux prevention with <constant>hidden</constant></title>
         <para>
           The ARP flux problem can also be combatted with a
-          <ulink url="http://www.linuxvirtualserver.org/~julian/#hidden">kernel
+          <ulink url="http://www.ssi.bg/~ja/#hidden">kernel
           patch</ulink> by Julian Anastasov, which was incorporated into the
           2.2.14+ kernel series, but never into the 2.4+ kernel series.  In sum,
           this means that the functionality may not be available in all
@@ -637,7 +710,7 @@ Received 2 response(s)</computeroutput>
       </para>
       <para>
         For a brief description of the use of medium_id, see
-        <ulink url="http://www.linuxvirtualserver.org/~julian/#medium_id">Julian's
+        <ulink url="http://www.ssi.bg/~ja/#medium_id">Julian's
         remarks</ulink>.
       </para>
       <anchor id="ether-arp-proxy-kernel"/>
@@ -670,10 +743,10 @@ ALTER := [ src IP ] [ llsrc LLADDR ] [ lldst LLADDR ]</computeroutput>
       </para>
       <para>
         The 
-        <ulink url="http://www.linuxvirtualserver.org/~julian/#iparp"><command>ip
+        <ulink url="http://www.ssi.bg/~ja/#iparp"><command>ip
         arp</command></ulink> tool.
         Patches and code for the
-        <ulink url="http://www.linuxvirtualserver.org/~julian/#noarp">noarp
+        <ulink url="http://www.ssi.bg/~ja/#noarp">noarp
         route flag</ulink>.
       </para>
       <para>

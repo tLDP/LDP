@@ -19,8 +19,9 @@
     via the <command>iptables</command> utility.
     The experienced network administrator is probably puzzling about absent
     references to source NAT (SNAT) and masquerading.  These prominent and
-    more prevalent special cases of NAT are covered separately in
-    <xref linkend="ch-snat"/>.
+    prevalent uses of NAT are covered in
+    <xref linkend="ch-snat"/>, although many concepts involved in the special
+    purpose SNAT and masquerading will be introduced in this chapter.
   </para>
   <para>
     Network address translation is known by a number of names in the
@@ -39,7 +40,7 @@
     <ulink url="http://www.suse.de/~mha/linux-ip-nat/diplom/nat.html">here</ulink>.
   </para>
   <section id="nat-overview">
-    <title>Rationale for NAT; Introduction to Inbound NAT</title>
+    <title>Rationale for and Introduction to NAT</title>
     <para>
       Network address translation (NAT) is a technique of transparently mapping
       an IP address or range to another IP address or range.  Any routing
@@ -47,15 +48,25 @@
       the packet.  Network designers must however take one key element under
       consideration when laying out a network with NAT in mind.  The router(s)
       performing NAT must have an opportunity to rewrite the packet upon entry
-      to the network and upon exit from the network.
+      to the network and upon exit from the network
+      <footnote>
+        <para>
+          If using
+          <link linkend="nat-stateless">stateless NAT</link>, the inbound and
+          outbound translations can occur on more than one device, provided
+          that all of the devices are performing the same translation.
+        </para>
+      </footnote>.
     </para>
     <para>
       Because network address translation manipulates the addressing of a
       packet, the NAT transformation becomes a passive but
-      critical part of the conversation
-      between hosts exchanging packets.  NAT is by necessity transparent to
-      the application layer endpoints and operates in the general case on
-      any type of IP packet.
+      critical part of the conversation between hosts exchanging packets.
+      NAT is by necessity transparent to the application layer endpoints
+      and operates on any type of IP packet.  There are some application and
+      even network layer protocols which will break as a result of this
+      rewriting.  Consult
+      <xref linkend="nat-break"/> for a discussion of these cases.
     </para>
     <para>
       Here are a few common reasons to consider NAT along with potential
@@ -119,9 +130,9 @@
     </itemizedlist>
     <para>
       These are the commonest reasons to consider and implement NAT.  Other
-      niche applications of NAT, notably as part of a load balancing solution,
+      niche applications of NAT, notably as part of load balancing systems,
       exist although this chapter will concentrate on the use of NAT 
-      to hide networks or isolate networks from others.  It will also cover
+      to hide, isolate or renumber networks.  It will also cover
       inbound connections,
       leaving the discussion of many-to-one NAT, SNAT and masquerading for
       <xref linkend="ch-snat"/>.
@@ -129,11 +140,10 @@
     <para>
       One motivator for deploying NAT in a network is the benefit of
       virtualizing the network.  By isolating services provided in one network
-      from changes in other networks, the effects of those changes on the
-      service network may be minimal.  The disadvantage of
+      from changes in other networks, the effects of such changes can be
+      minimized.  The disadvantage of
       virtualizing the network in this way is the increased reliance on the
-      NAT device.  In addition to routing packets, the router also
-      transforms and manipulates packets ensuring its self-perpetuation.
+      NAT device.
     </para>
     <para>
       Providing inbound services via NAT can be accomplished in several
@@ -165,18 +175,20 @@
       <command>ipmasqadm</command>, <command>ipnatadm</command> and
       <command>ipportfw</command> across the Internet in older documentation,
       these tools have been superseded in functionality and widespread
-      deployment by netfilter.
+      deployment by the netfilter engine and its userspace partner,
+      <command>iptables</command>.
     </para>
     <para>
-      The user interface to the netfilter engine provides a more flexible
-      language for selection of packets to be transformed.  Additionally, any
-      NAT services provided by the netfilter engine come with the labor saving
-      and resource consuming connection tracking mechanism.
+      The netfilter engine provides a more flexible
+      language for selection of packets to be transformed than that provided
+      by the &iproute2; suite and kernel routing functionality.
+      Additionally, any
+      NAT services provided by the netfilter engine come with the labor-saving
+      and resource-consuming connection tracking mechanism.
       <link linkend="nat-dnat">DNAT</link> translates the address on an
       inbound packet and creates an entry in the connection tracking state
       table.  For even modest machines, the connection tracking resource
-      consumption should not be problematic and obviates the need for
-      synchronization of two commands as required by stateless NAT.
+      consumption should not be problematic.
     </para>
     <para>
       Netfilter DNAT allows the user to select packets based on
@@ -211,8 +223,9 @@
         <listitem>
           <para>
             The IP address to which packets are addressed.  This is the
-            address before the device performing NAT manipulates it.
-            This, is frequently also described as the public IP, although
+            address on the packet before the device performing NAT
+            manipulates it.
+            This is frequently also described as the public IP, although
             any given application of NAT knows no distinction between public
             and private address ranges.
           </para>
@@ -245,31 +258,56 @@
       </varlistentry>
     </variablelist>
     <para>
-      The above terms will be used below and in general in discussion of NAT
-      although other terms are not uncommon.
+      The above terms will be used below and in general discussions of NAT.
+    </para>
+  </section>
+  <section id="nat-break">
+   <title>Application Layer Protocols with Embedded Network Information</title>
+    <para>
+      Some applications, FTP, H323, IRC?, use (check conntrack helpers) use
+      embedded network information inside the application layer protocol.
+      Introduce such problems, and how NAT confounds these protocols.
+    </para>
+    <para>
+    </para>
+    <para>
+    </para>
+    <para>
     </para>
   </section>
   <section id="nat-stateless">
-   <title>Stateless NAT</title>
+   <title>Stateless NAT with &iproute2;</title>
     <para>
-      Stateless NAT, occasionally maligned as dumb NAT, is the simplest form of
+      Stateless NAT, occasionally maligned as dumb NAT
+      <footnote>
+        <para>
+          In the kernel code tree, the stateless NAT, &iproute2; NAT can be
+          located in the file <filename>net/ipv4/ip_nat_dumb.c</filename>.
+          Even in the kernel, it has this reputation.
+        </para>
+      </footnote>,
+      is the simplest form of
       NAT.  It involves rewriting addresses passing through a
-      routing device:  outbound packets will undergo source address rewriting
-      and inbound packets will undergo destination address rewriting.  The
-      &iproute2; suite of tools provides the two commands
-      required to configure the kernel to perform network address translation
-      on packets passing through the machine.  This section will cover only
+      routing device:
+      inbound packets will undergo destination address rewriting and
+      outbound packets will undergo source address rewriting.
+      The &iproute2; suite of tools provides the two commands
+      required to configure the kernel to perform stateless NAT.
+      This section will cover only
       stateless NAT, which can only be accomplished under linux with the
       &iproute2; tools, although it can be
       <link linkend="ex-nat-dnat-full">simulated with netfilter</link>.
     </para>
+    <anchor id="nat-stateless-arp"/>
     <para>
       Creating an &iproute2; NAT mapping has the side
       effect of causing the kernel to answer ARP requests for the NAT IP.
       For more detail on ARP filtering, suppression and conditional ARP, see
-      <xref linkend="ch-ether"/>.  This can be considered alternatively a
-      benefit or a misfeature of the kernel support for NAT in the local
-      routing table.  Conversely,
+      <xref linkend="ch-ether"/>.  This can be considered, alternatively, a
+      benefit or a misfeature of the kernel support for NAT.
+      The <constant>nat</constant> entry in the local routing table causes
+      the kernel to reply for ARP requests to the NAT IP.
+      Conversely,
       <link linkend="nat-dnat">netfilter DNAT</link> makes no ARP entry or
       provision for neighbor advertisement.
     </para>
@@ -318,7 +356,7 @@
 <computeroutput>19:30:17.824853 eth1 &lt; 64.70.12.210.35131 &gt; 205.254.211.17.25: tcp 0 (DF)
 19:30:17.824976 eth0 &gt; 64.70.12.210.35131 &gt; 192.168.100.17.25: tcp 0 (DF)
 19:30:17.825400 eth0 &lt; 192.168.100.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)
-19:30:17.825568 eth1 &lt; 205.254.211.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)</computeroutput>
+19:30:17.825568 eth1 &gt; 205.254.211.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)</computeroutput>
         </programlisting>
       </example>
       <para>
@@ -544,137 +582,141 @@
           Naturally, you may not wish to create these rules manually every time
           you want to use NAT on every device.  A standard
           <link linkend="ex-sc-nat">SysV initialization script</link> and
-          <link linkend="ex-sc-static-nat">configuration file</link> can ease the
-          burden of managing a number of NAT IPs on your system.
+          <link linkend="ex-sc-static-nat">configuration file</link>
+          can ease the burden of managing a number of NAT IPs on your system.
         </para>
       </section>
     </section>
-    <section id="nat-stateless-pf-interaction">
-      <title>Using a packet filter with &iproute2; NAT</title>
-      <para>
-        Because NAT rewrites the packet as it passes through your linux box,
-        packet filtering can become complex.  With attentiveness to the
-        addressing of the packet at each stage
-        in its journey through the packet filtering code, you can ease the
-        burden of writing a packet filter.  Because
-        <command>netfilter</command> has a built-in NAT engine, I'll focus on
-        the requirements to get NAT'd packets through the
-        <command>ipchains</command> packet filter.
-      </para>
-      <para>
-        All of the below requirements can be deduced from a thorough
-        understanding of NAT and the <ulink
-        url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO-4.html#ss4.1"><command>ipchains</command>
-        packet path</ulink> as illustrated in the <ulink
-        url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
-        HOWTO</ulink>.  Keep in mind when viewing the ASCII diagram that the NAT
-        will always occur in the routing stage in this diagram, so you'll need
-        to account for this when writing your packet filter rules.
-      </para>
-      <para>
-        Let's examine the IP addresses on a packet traversing each of the input,
-        forward and output chains in an <command>ipchains</command>
-        installation as it is operated upon by the &iproute2;
-        NAT code.
-      </para>
-      <table id="tb-nat-pf-ipchains">
-        <title>Filtering an &iproute2; NAT packet with
-          <command>ipchains</command></title>
-        <tgroup cols="3" align="center" colsep="1" rowsep="1">
-          <colspec colname="c1"/>
-          <colspec colname="c2"/>
-          <colspec colname="c3"/>
-          <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
-          <thead>
-            <row>
-              <entry spanname="fullspan">Inbound to the NAT IP</entry>
-            </row>
-            <row>
-              <entry>Chain</entry> 
-              <entry>Source IP</entry>
-              <entry>Destination IP</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry>input</entry>
-              <entry>64.70.12.210</entry>
-              <entry>205.254.211.17</entry>
-            </row>
-            <row>
-              <entry spanname="fullspan">Routing Stage</entry>
-            </row>
-            <row>
-              <entry>forward</entry>
-              <entry>64.70.12.210</entry>
-              <entry>192.168.100.17</entry>
-            </row>
-            <row>
-              <entry>output</entry>
-              <entry>64.70.12.210</entry>
-              <entry>192.168.100.17</entry>
-            </row>
-          </tbody>
-        </tgroup>
-        <tgroup cols="3" align="center" colsep="1" rowsep="1">
-          <colspec colname="c1"/>
-          <colspec colname="c2"/>
-          <colspec colname="c3"/>
-          <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
-          <thead>
-            <row>
-              <entry spanname="fullspan">Outbound from the real IP</entry>
-            </row>
-            <row>
-              <entry>Chain</entry> 
-              <entry>Source IP</entry>
-              <entry>Destination IP</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry>input</entry>
-              <entry>192.168.100.17</entry>
-              <entry>64.70.12.210</entry>
-            </row>
-            <row>
-              <entry spanname="fullspan">Routing Stage</entry>
-            </row>
-            <row>
-              <entry>forward</entry>
-              <entry>205.254.211.17</entry>
-              <entry>64.70.12.210</entry>
-            </row>
-            <row>
-              <entry>output</entry>
-              <entry>205.254.211.17</entry>
-              <entry>64.70.12.210</entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-      <para>
-        If you have a tight policy on your firewall, with a default deny in
-        every chain, you'll need to add quite a few chains to allow the NAT
-        packets to traverse your firewall.  Let's take a look at a sensible
-        and defensible set
-        of chains to protect access to your NAT machine on a single specified
-        port.  If we wish to apply packet filtering to the NAT we have set up in
-        <xref linkend="ex-nat-basic"/>, the following set of chains will restrict
-        access to only port 25
-        <footnote>
-          <para>
-            I assume here that the user has a restrictive default policy on the
-            firewalling device.  I suggest a policy of DENY on each of the built
-            in <command>ipchains</command> chains.
-          </para>
-        </footnote>.
-      </para>
-      <example id="ex-nat-pf-ipchains">
-        <title>
-          NAT of public IP 205.254.211.17 to private IP 192.168.100.17
-        </title>
-        <programlisting>
+  </section>
+  <section id="nat-stateless-pf-interaction">
+    <title>Stateless NAT and Packet Filtering</title>
+    <para>
+      Because NAT rewrites the packet as it passes through the IP stack, 
+      packet filtering can become complex.  With attentiveness to the
+      addressing of the packet at each stage
+      in its journey through the packet filtering code, you can ease the
+      burden of writing a packet filter.
+    </para>
+    <para>
+      All of the below requirements can be deduced from an understanding of
+      NAT and the kernel packet traveling diagram.  Consult the
+      <ulink url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO-4.html#ss4.1"><command>ipchains</command>
+      packet path</ulink> as illustrated in the
+      <ulink url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
+      HOWTO</ulink> to understand the packet path for kernels using
+      <command>ipchains</command>.  Keep in mind when viewing the ASCII
+      diagram that stateless NAT will always occur in the routing stage.  Also
+      consult the
+      <ulink url="http://docum.org/stef.coene/qos/kptd/">kernel packet
+      traveling diagram</ulink> for a good picture of a 2.4 kernel packet
+      path.
+    </para>
+    <para>
+      <xref linkend="tb-nat-pf-ipchains"/> identifies the IP addresses
+      on a packet traversing each of the input,
+      forward and output chains in an <command>ipchains</command>
+      installation.
+    </para>
+    <table id="tb-nat-pf-ipchains">
+      <title>Filtering an &iproute2; NAT packet with
+      <command>ipchains</command></title>
+      <tgroup cols="3" align="center" colsep="1" rowsep="1">
+        <colspec colname="c1"/>
+        <colspec colname="c2"/>
+        <colspec colname="c3"/>
+        <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
+        <thead>
+          <row>
+            <entry spanname="fullspan">Inbound to the NAT IP</entry>
+          </row>
+          <row>
+            <entry>Chain</entry> 
+            <entry>Source IP</entry>
+            <entry>Destination IP</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>input</entry>
+            <entry>64.70.12.210</entry>
+            <entry>205.254.211.17</entry>
+          </row>
+          <row>
+            <entry spanname="fullspan">Routing Stage</entry>
+          </row>
+          <row>
+            <entry>forward</entry>
+            <entry>64.70.12.210</entry>
+            <entry>192.168.100.17</entry>
+          </row>
+          <row>
+            <entry>output</entry>
+            <entry>64.70.12.210</entry>
+            <entry>192.168.100.17</entry>
+          </row>
+        </tbody>
+      </tgroup>
+      <tgroup cols="3" align="center" colsep="1" rowsep="1">
+        <colspec colname="c1"/>
+        <colspec colname="c2"/>
+        <colspec colname="c3"/>
+        <spanspec spanname="fullspan" namest="c1" nameend="c3" align="center"/>
+        <thead>
+          <row>
+            <entry spanname="fullspan">Outbound from the real IP</entry>
+          </row>
+          <row>
+            <entry>Chain</entry> 
+            <entry>Source IP</entry>
+            <entry>Destination IP</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>input</entry>
+            <entry>192.168.100.17</entry>
+            <entry>64.70.12.210</entry>
+          </row>
+          <row>
+            <entry spanname="fullspan">Routing Stage</entry>
+          </row>
+          <row>
+            <entry>forward</entry>
+            <entry>205.254.211.17</entry>
+            <entry>64.70.12.210</entry>
+          </row>
+          <row>
+            <entry>output</entry>
+            <entry>205.254.211.17</entry>
+            <entry>64.70.12.210</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <para>
+      A firewall implementing a tight policy (deny all, selectively allow)
+      will require a large number of individual rules to allow the NAT packets
+      to traverse the firewall packet filter.
+      Assuming the configuration detailed in
+      <xref linkend="ex-nat-basic"/>, the following set of chains is
+      required and will restrict access to only port 25
+      <footnote>
+        <para>
+          I assume here that the user has a restrictive default policy on the
+          firewalling device.  I suggest a policy of DENY on each of the built
+          in <command>ipchains</command> chains.
+        </para>
+      </footnote>.
+    </para>
+    <!--
+      #
+      #  XREF to minimum ICMP required from packetfilter.xml
+      #
+      -->
+    <example id="ex-nat-pf-ipchains">
+      <title>NAT of public IP 205.254.211.17 to private IP
+        192.168.100.17</title>
+      <programlisting>
 <prompt>[root@masq-gw]# </prompt><userinput>ipchains -I input  -i eth1 -p tcp -l -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</userinput>
 <prompt>[root@masq-gw]# </prompt><userinput>ipchains -I input  -i eth1 -p tcp  ! -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</userinput>
 <prompt>[root@masq-gw]# </prompt><userinput>ipchains -I forward        -p tcp       -s 0/0 1024:65535    -d 192.168.100.17 25 -j ACCEPT</userinput>
@@ -691,56 +733,55 @@
 <prompt>&gt; </prompt><userinput>ipchains -I forward        -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</userinput>
 <prompt>&gt; </prompt><userinput>ipchains -I output -i eth1 -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</userinput>
 <prompt>&gt; </prompt><userinput>done</userinput>
-        </programlisting>
-      </example>
-      <para>
-        Please note that the formatting of the commands is simply for display
-        purposes, and to allow for easier reading of a complex set of commands.
-        The above set of rules is 31 individual chains.  This is most certainly
-        a complex set of rules.  For further details on how to use
-        <command>ipchains</command> please see the 
-        <ulink url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
-        HOWTO</ulink>.  The salient detail you should notice from the above set
-        of rules is the difference between the IPs used in the input and forward
-        chains.  Whenever a packet passes through the NAT rules, this happens in
-        the routing stage.  Since all packets are routed between the input and
-        forward chains, any transformation of the packet (by the NAT code) will
-        by visible in the forward chain.
-      </para>
-      <para>
-        The first two lines cover all inbound TCP packets, the first line as a
-        special case of the second, indicating (<option>-l</option>) that we
-        want to log the packet.  After successfully traversing the input chain,
-        the packet is routed, at which point the destination address of the
-        packet has changed.  Now, we need to forward the packet from the public
-        source address to the private (or real) internal IP address.  Finally,
-        we need to allow the packet out on the internal interface.
-      </para>
-      <para>
-        The next set of rules handles all of the TCP return packets.  On the
-        input rule, we are careful to match only non-SYN packets from our
-        internal server bound for the world.  Once again, the packet is
-        rewritten during the routing stage.  Now in the forward chain, the
-        packet's source IP is the public IP of the service.  Finally, we need to
-        let the packet out on our external interface.
-      </para>
-      <para>
-        The next series of lines are required ICMP rules to prevent network
-        traffic from breaking terribly.  These types of ICMP, particularly
-        destination unreachable (ICMP 3) and source quench (ICMP 4) help to
-        ensure that TCP sessions run with optimized characteristics.
-      </para>
-      <para>
-        These rules are the minimum set of <command>ipchains</command> rules
-        needed to support a NAT'd TCP service.  This concludes our discussion of
-        publishing a service to the world with &iproute2; based
-        NAT and protecting the service with <command>ipchains</command>.  As you
-        can see, the complexity of supporting NAT with
-        &iproute2; can be substantial, which is why we'll
-        examine the benefits of inbound NAT (DNAT) with netfilter in the next
-        section.
-      </para>
-    </section>
+      </programlisting>
+    </example>
+    <para>
+      Please note that the formatting of the commands is simply for display
+      purposes, and to allow for easier reading of a complex set of commands.
+      The above set of rules is 31 individual chains.  This is most certainly
+      a complex set of rules.  For further details on how to use
+      <command>ipchains</command> please see the 
+      <ulink url="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html"><command>ipchains</command>
+      HOWTO</ulink>.  The salient detail you should notice from the above set
+      of rules is the difference between the IPs used in the input and forward
+      chains.  
+      Since packets are rewritten by the stateless NAT code in the routing
+      stage, the transformation of the packet will by complete before the
+      forward chain is traversed.
+    </para>
+    <para>
+      The first two lines cover all inbound TCP packets, the first line as a
+      special case of the second, indicating (<option>-l</option>) that we
+      want to log the packet.  After successfully traversing the input chain,
+      the packet is routed, at which point the destination address of the
+      packet has changed.  Now, we need to forward the packet from the public
+      source address to the private (or real) internal IP address.  Finally,
+      we need to allow the packet out on the internal interface.
+    </para>
+    <para>
+      The next set of rules handles all of the TCP return packets.  On the
+      input rule, we are careful to match only non-SYN packets from our
+      internal server bound for the world.  Once again, the packet is
+      rewritten during the routing stage.  Now in the forward chain, the
+      packet's source IP is the public IP of the service.  Finally, we need to
+      let the packet out on our external interface.
+    </para>
+    <para>
+      The next series of lines are required ICMP rules to prevent network
+      traffic from breaking terribly.  These types of ICMP, particularly
+      destination unreachable (ICMP 3) and source quench (ICMP 4) help to
+      ensure that TCP sessions run with optimized characteristics.
+    </para>
+    <para>
+      These rules are the minimum set of <command>ipchains</command> rules
+      needed to support a NAT'd TCP service.  This concludes our discussion of
+      publishing a service to the world with &iproute2; based
+      NAT and protecting the service with <command>ipchains</command>.  As you
+      can see, the complexity of supporting NAT with
+      &iproute2; can be substantial, which is why we'll
+      examine the benefits of inbound NAT (DNAT) with netfilter in the next
+      section.
+    </para>
   </section>
   <section id="nat-dnat">
     <title>Destination NAT with netfilter (DNAT)</title>
@@ -756,8 +797,9 @@
     <para>
       In a devilishly subtle difference, netfilter DNAT does not cause the
       kernel to answer ARP requests for the NAT IP, where
-      &iproute2; NAT automatically begins answering ARP
-      requests for the NAT IP.  If the NAT IP is in a locally 
+      &iproute2; NAT automatically begins 
+      <link linkend="nat-stateless-arp">answering ARP requests</link>
+      for the NAT IP.
     </para>
     <example id="ex-nat-dnat-all">
       <title>Using DNAT for all protocols (and ports) on one IP</title>
@@ -771,9 +813,6 @@
       10.10.14.2.
     </para>
     <para>
-      If only one port needs to be translated to an internal service the
-      following technique may lead to less resource consumption in the
-      connection tracking code.
     </para>
     <para>
     </para>
@@ -806,7 +845,8 @@
     <example id="ex-nat-dnat-full">
       <title>Simulating full NAT with SNAT and DNAT</title>
       <programlisting>
-<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A PREROUTING -p tcp -d 10.10.20.99 --dport 80 -j DNAT --to-destination 10.10.14.2</userinput>
+<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A PREROUTING -d 205.254.211.17 -j DNAT --to-destination 192.168.100.17</userinput>
+<prompt>[root@real-server]# </prompt><userinput>iptables -t nat -A POSTROUTING -s 192.168.100.17 -j SNAT --to-destination 205.254.211.17</userinput>
       </programlisting>
     </example>
     <para>
@@ -841,7 +881,7 @@
       route between the two hosts connected by the port address translation.
     </para>
     <para>
-      PAT address translation has one important benefit over NAT (with the
+      PAT has one important benefit over NAT (with the
       &iproute2; tools).  Let's assume that you have only
       five public IP addresses for which you have paid dearly.  Additionally,
       let's assume that you want to run services on standard ports.  You had
