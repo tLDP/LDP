@@ -2,48 +2,55 @@
  <title>Security and NFS</title>
  <para>
    This list of security tips and explanations will not make your site 
-   completely secure. <emphasis>NOTHING</emphasis> will make your site completely secure. This 
+   completely secure. <emphasis>NOTHING</emphasis> will make your site completely secure. Reading this section
    may help you get an idea of the security problems with NFS. This is not 
    a comprehensive guide and it will always be undergoing changes. If you 
    have any tips or hints to give us please send them to the HOWTO 
    maintainer.
  </para>
  <para>
-   If you're on a network with no access to the outside world (not even a 
+   If you are on a network with no access to the outside world (not even a 
    modem) and you trust all the internal machines and all your users then 
    this section will be of no use to you.  However, its our belief that 
    there are relatively few networks in this situation so we would suggest 
    reading this section thoroughly for anyone setting up NFS.
  </para>
  <para>
-   There are two steps to file/mount access in NFS. The first step is mount
+   With NFS, there are two steps required for a client to gain access to 
+   a file contained in a remote directory on the server. The first step is mount
    access. Mount access is achieved by the client machine attempting to 
    attach to the server. The security for this is provided by the 
-   <filename>/etc/exports</filename> file. This file lists the names or ip addresses for machines
+   <filename>/etc/exports</filename> file. This file lists the names or IP addresses for machines
    that are allowed to access a share point. If the client's ip address 
    matches one of the entries in the access list then it will be allowed to
    mount. This is not terribly secure. If someone is capable of spoofing or
    taking over a trusted address then they can access your mount points. To
    give a real-world example of this type of "authentication": This is 
-   equivalent to someone introducing themselves to you and you believe they
+   equivalent to someone introducing themselves to you and you believing they
    are who they claim to be because they are wearing a sticker that says
-   "Hello, My Name is ...."
+   "Hello, My Name is ...."  Once the machine has mounted a volume, its
+   operating system will have access to all files on the volume (with the
+   possible exception of those owned by root; see below) and write access
+   to those files as well, if the volume was exported with the 
+   <userinput>rw</userinput> option.
  </para>
  <para>
    The second step is file access. This is a function of normal file system
-   access controls and not a specialized function of NFS. Once the drive is
-   mounted the user and group permissions on the files take over access
-   control. 
+   access controls on the client and not a specialized function of NFS. 
+   Once the drive is mounted the user and group permissions on the files
+   determine access control. 
  </para>
  <para>
    An example: bob on the server maps to the UserID 9999. Bob
-   makes a file on the server that is only accessible the user (0600 in
-   octal). A client is allowed to mount the drive where the file is stored.
+   makes a file on the server that is only accessible the user 
+   (the equivalent to typing 
+   <userinput>chmod 600</userinput> <emphasis>filename</emphasis>).
+   A client is allowed to mount the drive where the file is stored.
    On the client mary maps to UserID 9999. This means that the client
    user mary can access bob's file that is marked as only accessible by him.
-   It gets worse, if someone has root on the client machine they can
-   <command>su - [username]</command> and become ANY user. NFS will be none 
-   the wiser. 
+   It gets worse: If someone has become superuser on the client machine they can
+   <command>su - </command> <emphasis>username</emphasis> 
+   and become <emphasis>any</emphasis> user. NFS will be none the wiser. 
  </para>
  <para>
    Its not all terrible. There are a few measures you can take on the server
@@ -92,8 +99,8 @@
     be careful and keep up diligent monitoring of those systems.
   </para>
   <para>
-    Not all Linux distributions were created equal.  Some seemingly up-to-
-    date distributions do not include a securable portmapper. 
+    Not all Linux distributions were created equal.  Some seemingly up-to-date 
+    distributions do not include a securable portmapper. 
     The easy way to check if your portmapper is good or not is to run 
     <emphasis>strings(1)</emphasis> and see if it reads the relevant files, <filename>/etc/hosts.deny</filename> and
     <filename>/etc/hosts.allow</filename>.  Assuming your portmapper is <filename>/sbin/portmap</filename> you can 
@@ -137,22 +144,28 @@
     the mill Linux system there are very few machines that need any access 
     for any reason.  The portmapper administers <command>nfsd</command>, 
     <command>mountd</command>, <command>ypbind</command>/<command>ypserv</command>,
-    <command>pcnfsd</command>, and 'r' services like <command>ruptime</command> and <command>rusers</command>.
+    <command>rquotad</command>, <command>lockd</command> (which shows up
+    as <computeroutput>nlockmgr</computeroutput>), <command>statd</command>
+    (which shows up as <computeroutput>status</computeroutput>) 
+    and 'r' services like <command>ruptime</command> 
+    and <command>rusers</command>.
     Of these only <command>nfsd</command>, <command>mountd</command>, 
     <command>ypbind</command>/<command>ypserv</command> and perhaps 
-    <command>pcnfsd</command> are of any consequence.  All machines that need 
+    <command>rquotad</command>,<command>lockd</command> 
+    and <command>statd</command> are of any consequence.  All machines that need 
     to access services on your machine should be allowed to do that.  Let's 
     say that your machine's address is <emphasis>192.168.0.254</emphasis> and 
     that it lives on the subnet <emphasis>192.168.0.0</emphasis>, and that all 
-    machines on the subnet should have access to it (those are terms introduced 
-    by the <ulink url="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html">Networking-Overview-HOWTO</ulink>,
-    go back and refresh your memory if you need to).  Then we write:
+    machines on the subnet should have access to it (for an overview of those
+    terms see the the <ulink url="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html">Networking-Overview-HOWTO</ulink>).  Then we write:
    <screen>
    portmap: 192.168.0.0/255.255.255.0
    </screen>
-   in <filename>/etc/hosts.allow</filename>.  This is the same as the network 
-   address you give to route and the subnet mask you give to <command>ifconfig</command>.  For the 
-   device eth0 on this machine <command>ifconfig</command> should show:
+   in <filename>/etc/hosts.allow</filename>.  If you are not sure what your
+   network or netmask are, you can use the <command>ifconfig</command> command to
+   determine the netmask and the <command>netstat</command> command to
+   determine the network.  For, example, for the 
+   device eth0 on the above machine <command>ifconfig</command> should show:
    </para>
    <para>
    <screen>
@@ -175,7 +188,7 @@
    192.168.0.0     0.0.0.0         255.255.255.0   U     0      0   174412 eth0
    ...
    </screen>
-   (Network address in first column).
+   (The network address is in the first column).
   </para>
   <para>
     The <filename>/etc/hosts.deny</filename> and <filename>/etc/hosts.allow</filename> files are 
@@ -194,28 +207,29 @@
     <filename>hosts.allow</filename> and <filename>hosts.deny</filename> 
     files, so you should put in entries for <command>lockd</command>, 
     <command>statd</command>, <command>mountd</command>, and 
-    <command>rquotad</command> in these files too.
+    <command>rquotad</command> in these files too.  For a complete example,
+    see <xref linkend="hosts">.
   </para>
   <para>
     The above things should make your server tighter.  The only remaining
-    problem (Yeah, right!) is someone breaking root (or boot MS-DOS) on a
-    trusted machine and using that privilege to send requests from a
-    secure port as any user they want to be.
+    problem is if someone gains administrative access to one of your trusted
+    client machines and is able to send bogus NFS requests.  The next section
+    deals with safeguards against this problem. 
   </para>
  </sect2>
  <sect2 id="server.security">
   <title>Server security: nfsd and mountd</title>
   <para>
-    On the server we can decide that we don't want to trust the client's
-    root account.  We can do that by using the <userinput>root_squash</userinput> option in
-    <filename>/etc/exports</filename>:
+    On the server we can decide that we don't want to trust any requests
+    made as root on the client.  We can do that by using the 
+    <userinput>root_squash</userinput> option in <filename>/etc/exports</filename>:
    <programlisting>
    /home slave1(rw,root_squash)
    </programlisting>
    </para>
    <para>
      This is, in fact, the default. It should always be turned on unless you
-     have a VERY good reason to turn it off. To turn it off use the 
+     have a <emphasis>very</emphasis> good reason to turn it off. To turn it off use the 
      <userinput>no_root_squash</userinput> option.
    </para>
    <para>
@@ -239,10 +253,11 @@
    <para>
      The TCP ports 1-1024 are reserved for root's use (and therefore sometimes
      referred to as "secure ports") A non-root user cannot bind these ports.
-     Adding the secure option to an <filename>/etc/exports</filename> entry forces it to run on a
-     port below 1024, so that a malicious non-root user cannot come along and
-     open up a spoofed NFS dialogue on a non-reserved port. This option is set
-     by default.
+     Adding the <userinput>secure</userinput> option to an 
+     <filename>/etc/exports</filename> means that it will only listed to
+     requests coming from ports 1-1024 on the client, so that a malicious
+     non-root user on the client cannot come along and open up a spoofed 
+     NFS dialogue on a non-reserved port. This option is set by default.
    </para>
   </sect2>
  <sect2 id="client.security">
@@ -252,19 +267,23 @@
     <para>
       On the client we can decide that we don't want to trust the server too
       much a couple of ways with options to mount.  For example we can
-      forbid suid programs to work off the NFS file system with the nosuid
+      forbid suid programs to work off the NFS file system with the 
+      <userinput>nosuid</userinput>
       option. Some unix programs, such as passwd, are called "suid" programs: 
       They set the id of the person running them to whomever is the owner of 
       the file. If a file is owned by root and is suid, then the program will
       execute as root, so that they can perform operations (such as writing to
-      the password file) that only root is allowed to do. Using the nosuid 
+      the password file) that only root is allowed to do. Using the 
+      <userinput>nosuid</userinput> 
       option is a good idea and you should consider using this with all NFS 
-      mounted disks.  It means that the server's root user cannot make a suid-root 
+      mounted disks.  It means that the server's root user 
+      cannot make a suid-root 
       program on the file system, log in to the client as a normal user 
       and then use the suid-root program to become root on the client too.  
       One could also forbid execution of files on the mounted file system 
       altogether with the <userinput>noexec</userinput> option.  
-      But this is more likely to be impractical than nosuid since a file 
+      But this is more likely to be impractical than 
+      <userinput>nosuid</userinput> since a file 
       system is likely to at least contain some scripts or programs that need 
       to be executed.
     </para>
@@ -295,7 +314,7 @@
   <sect3 id="securing-daemons">
    <title>Securing portmapper, rpc.statd, and rpc.lockd on the client</title>
    <para>
-     In the current (2.2.18+) implementation of nfs, full file locking is 
+     In the current (2.2.18+) implementation of NFS, full file locking is 
      supported. This means that <command>rpc.statd</command> and <command>rpc.lockd</command>
      must be running on the client in order for locks to function correctly. 
      These services require the portmapper to be running. So, most of the 
@@ -310,20 +329,21 @@
   <para>
     IPchains (under the 2.2.X kernels) and netfilter (under the 2.4.x 
     kernels) allow a good level of security - instead of relying on the 
-    daemon (or in this case the tcp wrapper) to determine who can connect, 
+    daemon (or  perhaps its TCP wrapper) to 
+    determine which machines can connect, 
     the connection attempt is allowed or disallowed at a lower level. In 
-    this case you canstop the connection much earlier and more globaly which
+    this case, you can stop the connection much earlier and more globally, which
     can protect you from all sorts of attacks.
   </para>
   <para>
     Describing how to set up a Linux firewall is well beyond the scope of
-    this document. Interested readers may wish to read the Firewall-HOWTO 
+    this document. Interested readers may wish to read the <ulink url="http://www.linuxdoc.org/HOWTO/Firewall-HOWTO.html">Firewall-HOWTO</ulink> 
     or the <ulink url="http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.HTML">IPCHAINS-HOWTO</ulink>.
     For users of kernel 2.4 and above you might want to visit the netfilter webpage at: 
     <ulink url="http://netfilter.filewatcher.org">http://netfilter.filewatcher.org</ulink>.
     If you are already familiar with the workings of ipchains or netfilter 
     this section will give you a few tips on how to better setup your 
-    firewall to work with NFS.
+    NFS daemons to more easily firewall and protect them.
   </para>
   <para>
     A good rule to follow for your firewall configuration is to deny all, and
@@ -331,103 +351,290 @@
     than you intended.
   </para>
   <para>
-    Ports to be concerned with:
-  <orderedlist numeration="loweralpha">
-   <listitem>
-    <para>The portmapper is on 111. (tcp and udp)</para>
-   </listitem>
-   <listitem>
-    <para>
-      nfsd is on 2049 and it can be TCP and UDP.  Although NFS over TCP
-      is currently experimental on the server end and you will usually
-      just see UDP on the server, using TCP is quite stable on the 
-      client end.
-    </para>
-    </listitem>
-    <listitem>
-    <para>
-     <command>mountd</command>, <command>lockd</command>, and <command>statd</command>
-      float around (which is why we need the portmapper to begin with) - this causes 
-      problems. You basically have two options to deal with it:
-     <orderedlist numeration="lowerroman">
-      <listitem>
-       <para>
-         You more can more or less do a deny all on connecting ports 
-         but explicitly allow most ports certain ips.
-       </para>
-      </listitem>
-      <listitem>
-       <para>
-         More recent versions of these utilities have a "-p" option
-         that allows you to assign them to a certain port.  See the
-         man pages to be sure if your version supports this.  You can
-         then allow access to the ports you have specified for your
-         NFS client machines, and seal off all other ports, even for
-         your local network.
-       </para>
-     </listitem>
-    </orderedlist>
-    </para>
-    </listitem>
-   </orderedlist>
-  </para>
-  <para>
-    Using IPCHAINS, a simply firewall using the first option would look
-    something like this:
-   <programlisting>
-  ipchains -A input -f -j ACCEPT
-  ipchains -A input -s trusted.net.here/trusted.netmask -d host.ip/255.255.255.255 -j ACCEPT
-  ipchains -A input -s 0/0 -d 0/0 -p 6 -j DENY -y -l
-  ipchains -A input -s 0/0 -d 0/0 -p 17 -j DENY -l
-   </programlisting>
-  </para>
-  <para>
-    The equivalent set of commands in netfilter (the firewalling tool in 2.4) is:
-  <programlisting> 
-  iptables -A INPUT -f -j ACCEPT
-  iptables -A INPUT -s trusted.net.here/trusted.netmask -d \
-      host.ip/255.255.255.255 -j ACCEPT
-  iptables -A INPUT -s 0/0 -d 0/0 -p 6 -j DENY --syn --log-level 5
-  iptables -A INPUT -s 0/0 -d 0/0 -p 17 -j DENY --log-level 5
-  </programlisting>
-  </para>
-  <para>
-    The first line says to accept all packet fragments (except the first
-    packet fragment which will be treated as a normal packet).  In theory
-    no packet will pass through until it is reassembled, and it won't be
-    reassembled unless the first packet fragment is passed.  Of course
-    there are attacks that can be generated by overloading a machine
-    with packet fragments.  But NFS won't work correctly unless you
-    let fragments through.  See <xref linkend="troubleshooting"> for details.
-  </para>
-  <para>
-    The other three lines say trust your local networks and deny and log 
-    everything else.  It's not great and more specific rules pay off, but 
-    more specific rules are outside of the scope of this discussion.
-  </para>
-  <para>
-    Some pointers if you'd like to be more paranoid or strict about your
-    rules. If you choose to reset your firewall rules each time <command>statd</command>,
-    <command>rquotad</command>, <command>mountd</command> or <command>lockd</command>
-    move (which is possible) you'll want to make sure you allow fragments to 
-    your nfs server FROM your nfs client(s). If you don't you will get some very 
-    interesting reports from the kernel regarding packets being denied. The messages 
-    will say that a packet from port 65535 on the client to 65535 on the server 
-    is being denied. Allowing fragments will solve this.
-  </para>
+ In order to understand how to firewall the NFS daemons, it will help
+ to breifly review how they bind to ports.
+</para>
+<para>
+When a daemon starts up, it requests a free port from the portmapper. 
+The portmapper gets the port for the daemon and keeps track of 
+the port currently used by that daemon. When other hosts or processes
+need to communicate with the daemon, they request the port number
+from the portmapper in order to find the
+daemon. So the ports will perpetually float because different ports may 
+be free at different times and so the portmapper will allocate them 
+differently each time. This is a pain for setting up a firewall. If 
+you never know where the daemons are going to be then you don't 
+know precisely which ports to allow access to. This might not be a big deal 
+for many people running on a protected or isolated LAN. For those 
+people on a public network, though, this is horrible.
+</para>
+<para>
+In kernels 2.4.13 and later with nfs-utils 0.3.3 or later you no 
+longer have to worry about the floating of ports in the portmapper. 
+Now all of the daemons pertaining to nfs can be "pinned" to a port. 
+Most of them nicely take a <command>-p</command> option when they are started;
+those daemons that are started by the kernel take some kernel arguments 
+or module options. They are described below.
+</para>
+<para>
+Some of the daemons involved in sharing data via nfs are already 
+bound to a port. <command>portmap</command> is always on port 
+111 tcp and udp. <command>nfsd</command> is 
+always on port 2049 TCP and UDP (however, as of kernel 2.4.17, NFS over
+TCP is considered experimental and is not for use on production machines).
+</para>
+<para>
+The other daemons, <command>statd</command>, <command>mountd</command>,
+<command>lockd</command>, and <command>rquotad</command>, will normally move
+around to the first available port they are informed of by the portmapper.
+</para>
+<para>
+To force <command>statd</command> to bind to a particular port, use the 
+<userinput>-p</userinput>
+<emphasis>portnum</emphasis> option. To force <command>statd</command> to 
+respond on a  particular port, additionally use the 
+<userinput>-o</userinput> <emphasis>portnum</emphasis> option when starting it.
+</para>
+<para>
+To force <command>mountd</command> to bind to a particular port use the 
+<userinput>-p</userinput> <emphasis>portnum</emphasis> option.
+</para>
+<para>
+For example, to have statd broadcast of port 32765 and listen on port
+32766, and mountd listen on port 32767, you would type:
+</para>
+<programlisting>
+# statd -p 32765 -o 32766
+# mountd -p 32767
+</programlisting>
+<para>
+<command>lockd</command> is started by the kernel when it is needed. 
+Therefore you need 
+to pass module options (if you have it built as a module) or kernel 
+options to force <command>lockd</command> to listen and respond 
+only on certain ports.
+</para>
+<para>
+If you are using loadable modules and you would like to specify these
+options in your <filename>/etc/modules.conf</filename> file add 
+a line like this to the file:
+</para>
+<programlisting>
+options lockd nlm.uddpport=32768 nlm.tcpport=32768
+</programlisting>
+<para>
+The above line would specify the udp and tcp port for 
+<command>lockd</command> to be 32768.
+</para>
+<para>
+If you are not using loadable modules or if you have compiled 
+<command>lockd</command> into the kernel instead of building it
+ as a module then you will need to pass it an option on the kernel boot line.
+</para>
+<para>
+It should look something like this:
+</para>
+<programlisting>
+ vmlinuz 3 root=/dev/hda1 lockd.udpport=32768 lockd.tcpport=32768
+</programlisting>
+<para>
+The port numbers do not have to match but it would simply add 
+unnecessary confusion if they didn't.
+</para>
+<para>
+If you are using quotas and using <command>rpc.quotad</command> to make these 
+quotas viewable over nfs you will need to also take it into
+account when setting up your firewall. There are two 
+<command>rpc.rquotad</command> 
+source trees. One of those is maintained in the 
+<application>nfs-utils</application> tree. 
+The other in the <application>quota-tools</application> tree. 
+They do not operate identically. 
+The one provided with <application>nfs-utils</application> supports 
+binding the daemon to  a port with the <userinput>-p</userinput> 
+directive. The one in <application>quota-tools</application> does not. 
+Consult your distribution's documentation to determine if yours does. 
+</para>
+<para>
+For the sake of this discussion lets describe a network and setup a 
+firewall to protect our nfs server. 
+Our nfs server is 192.168.0.42 our client is 192.168.0.45 only.
+As in the example above, <command>statd</command> has been 
+started so that it only
+binds to port 32765 for incoming requests and it must answer on 
+port 32766.  <command>mountd</command> is forced to bind to port 32767.
+<command>lockd</command>'s module parameters have been set to bind to 32768.
+<command>nfsd</command> is, of course, on port 2049 and the portmapper is on port 111.
+</para>
+<para>
+We are not using quotas.
+</para>
+<para>
+Using <application>IPCHAINS</application>, a simple firewall 
+might look something like this:
+</para>
+<programlisting>
+ipchains -A input -f -j ACCEPT -s 192.168.0.45
+ipchains -A input -s 192.168.0.45 -d 0/0 32765:32768 -p 6 -j ACCEPT
+ipchains -A input -s 192.168.0.45 -d 0/0 32765:32768 -p 17 -j ACCEPT
+ipchains -A input -s 192.168.0.45 -d 0/0 2049 -p 17 -j ACCEPT
+ipchains -A input -s 192.168.0.45 -d 0/0 2049 -p 6 -j ACCEPT
+ipchains -A input -s 192.168.0.45 -d 0/0 111 -p 6 -j ACCEPT
+ipchains -A input -s 192.168.0.45 -d 0/0 111 -p 17 -j ACCEPT
+ipchains -A input -s 0/0 -d 0/0 -p 6 -j DENY -y -l
+ipchains -A input -s 0/0 -d 0/0 -p 17 -j DENY -l
+</programlisting>   
+<para>
+The equivalent set of commands in <application>netfilter</application> is:
+</para>
+<programlisting>
+iptables -A INPUT -f -j ACCEPT -s 192.168.0.45
+iptables -A INPUT -s 192.168.0.45 -d 0/0 32765:32768 -p 6 -j ACCEPT
+iptables -A INPUT -s 192.168.0.45 -d 0/0 32765:32768 -p 17 -j ACCEPT
+iptables -A INPUT -s 192.168.0.45 -d 0/0 2049 -p 17 -j ACCEPT
+iptables -A INPUT -s 192.168.0.45 -d 0/0 2049 -p 6 -j ACCEPT
+iptables -A INPUT -s 192.168.0.45 -d 0/0 111 -p 6 -j ACCEPT
+iptables -A INPUT -s 192.168.0.45 -d 0/0 111 -p 17 -j ACCEPT
+iptables -A INPUT -s 0/0 -d 0/0 -p 6 -j DENY --syn --log-level 5
+iptables -A INPUT -s 0/0 -d 0/0 -p 17 -j DENY --log-level 5
+</programlisting>
+
+<para>
+The first line says to accept all packet fragments (except the 
+first packet fragment which will be treated as a normal packet). 
+In theory no packet will pass through until it is reassembled, 
+and it won't be reassembled unless the first packet fragment 
+is passed. Of course there are attacks that can be generated 
+by overloading a machine with packet fragments. But NFS won't 
+work correctly unless you let fragments through. See <xref linkend="symptom8">
+for details.
+</para>
+<para>
+The other lines allow specific connections from any port on our 
+client host to the specific ports we have made available on 
+our server.  This means that if, say, 192.158.0.46 attempts to contact 
+the NFS server it will not be able to mount or see what mounts 
+are available.
+</para>
+<para>
+With the new port pinning capabilities it is obviously much easier
+to control what hosts are allowed to mount your NFS shares. It is
+worth mentioning that NFS is not an encrypted protocol and anyone
+on the same physical network could sniff the traffic and reassemble
+the information being passed back and forth.
+ </para>
  </sect2>
+ <sect2 id="nfs-ssh">
+  <title>Tunneling NFS through SSH</title>
+  <para>
+One method of encrypting NFS traffic over a network is to 
+use the port-forwarding capabilities of <command>ssh</command>.
+However, as we shall see, doing so has a serious drawback if you do not
+utterly and completely trust the local users on your server.
+</para>
+<para>
+The first step will be to export files to the localhost.  For example, to
+export the <filename>/home</filename> partition, enter the following into 
+<filename>/etc/exports</filename>:
+<programlisting>
+/home   127.0.0.1(rw)
+</programlisting>
+</para>
+<para>
+The next step is to use <command>ssh</command> to forward ports.  For example,
+<command>ssh</command> can tell the server to forward to any port on any
+machine from a port on the client.  Let us assume, as in the previous
+section, that our server is 192.168.0.42, and that we have pinned 
+<command>mountd</command> to port 32767
+using the argument <userinput>-p 32767</userinput>. Then, on the client,
+we'll type:
+<programlisting>
+     # ssh root@192.168.0.42 -L 250:localhost:2049  -f sleep 60m
+     # ssh root@192.168.0.42 -L 251:localhost:32767 -f sleep 60m
+</programlisting>
+</para>
+<para>
+The above command causes <command>ssh</command> on the client to take
+any request directed at the client's port 250 and forward it, 
+first through <command>sshd</command> on the server, and then on
+ to the server's port 2049.  The second line
+causes a similar type of forwarding between requests to port 251 on
+the client and port 32767 on the server.  The 
+<userinput>localhost</userinput> is relative to the server; that is,
+the forwarding will be done to the server itself.  The port could otherwise
+have been made to forward to any other machine, and the requests would look to
+the outside world as if they were coming from the server.  Thus, the requests
+will appear to NFSD on the server as if they are coming from the server itself. 
+Note that in order to bind to a port below 1024 on the client, we have 
+to run this command as root on the client.  Doing this will be necessary 
+if we have exported our filesystem with the default 
+<userinput>secure</userinput> option.
+</para>
+<para>
+Finally, we are pulling a little trick with the last option,
+<userinput>-f sleep 60m</userinput>.  Normally, when
+we use <command>ssh</command>, even with the <userinput>-L</userinput> option,
+we will open up a shell on the remote machine.  But instead, we just want
+the port forwarding to execute in the background so that we get our shell
+on the client back.  So, we tell <command>ssh</command> to execute a command
+in the background on the server to sleep for 60 minutes.  This will cause
+the port to be forwarded for 60 minutes until it gets a connection; at that
+point, the port will continue to be forwarded until the connection dies or
+until the 60 minutes are up, whichever happens later.  The above command
+could be put in our startup scripts on the client, right after the network
+is started.
+</para>
+ <para>
+  Next, we have to mount the filesystem on the client.  To do this, we tell
+  the client to mount a filesystem on the localhost, but at a different
+  port from the usual 2049.  Specifically, an entry in <filename>/etc/fstab</filename>
+  would look like:
+<programlisting>
+  localhost:/home  /mnt/home  nfs  rw,hard,intr,port=250,mountport=251  0 0
+</programlisting>
+</para>
+<para>Having done this, we can see why the above will be incredibly insecure
+if we have <emphasis>any</emphasis> ordinary users who are able to log in
+to the server locally.  If they can, there is nothing preventing them from
+doing what we did and using <command>ssh</command> to forward a privileged 
+port on their own client machine (where they are legitimately root) to ports
+2049 and 32767 on the server.  Thus, any ordinary user on the server can
+mount our filesystems with the same rights as root on our client.
+</para>
+<para>
+If you are using an NFS server that does not have a way for ordinary users
+to log in, and you wish to use this method, there are two additional caveats:
+First, the connection travels from the client to the server via
+<command>sshd</command>; therefore you will have to leave port 22 (where
+<command>sshd</command> listens) open to your client on the firewall.  However
+you do not need to leave the other ports, such as 2049 and 32767, open
+anymore.  Second, file locking will no longer work.  It is not possible
+to ask <command>statd</command> or the locking manager to make requests
+to a particular port for a particular mount; therefore, any locking requests
+will cause <command>statd</command> to connect to <command>statd</command>
+on localhost, i.e., itself, and it will fail with an error.  Any attempt
+to correct this would require a major rewrite of NFS.
+</para>
+<para>
+It may also be possible to use <application>IPSec</application> to encrypt
+network traffic between your client and your server, without compromising
+any local security on the server; this will not be taken up here.
+See the <ulink url="http://www.freeswan.org/">FreeS/WAN</ulink> home page
+for details on using IPSec under Linux.
+</para>
+</sect2>
  <sect2 id="summary">
   <title>Summary</title>
   <para>
     If you use the <filename>hosts.allow</filename>, <filename>hosts.deny</filename>,
-   <filename>root_squash</filename>, <userinput>nosuid</userinput> and privileged
-    port features in the portmapper/nfs software you avoid many of the
-    presently known bugs in nfs and can almost feel secure about that at
+   <userinput>root_squash</userinput>, <userinput>nosuid</userinput> and privileged
+    port features in the portmapper/NFS software, you avoid many of the
+    presently known bugs in NFS and can almost feel secure about that at
     least.  But still, after all that: When an intruder has access to your
     network, s/he can make strange commands appear in your <filename>.forward</filename> or
     read your mail when <filename>/home</filename> or <filename>/var/mail</filename> is 
     NFS exported.  For the same reason, you should never access your PGP private key 
-    over nfs. Or at least you should know the risk involved.  And now you know a bit
+    over NFS. Or at least you should know the risk involved.  And now you know a bit
     of it.
   </para>
   <para>
@@ -438,4 +645,3 @@
   </para>
  </sect2>
 </sect1>
-
