@@ -50,8 +50,18 @@ export LAMPADAS_BIN="$LAMPADAS_ROOT/bin"
 # used by cron job to locate utilities
 export LAMPADAS_LIB="$LAMPADAS_ROOT/pylib"
 
-# PYTHONPATH
+#
+# PYTHON
+#
+export PYTHON=/usr/bin/python
 export PYTHONPATH="$PYTHONPATH\:$LAMPADAS_LIB"
 
+#
 # DocBook SYSTEM identifiers
-export LAMPADAS_XML_DTD_412="http://docbook.org/xml/4.1.2/docbookx.dtd"
+#
+
+# http://docbook.org/xml/4.1.2/docbookx.dtd
+export LAMPADAS_XML_DTD_412=
+
+# ISO 8879:1986//ENTITIES Numeric and Special Graphic//EN//XML
+export LAMPADAS_XML_ISO_NUM=
