@@ -101,7 +101,7 @@ class ComboFactory:
 
     def doc(self, value, lang):
         combo = WOStringIO("<select name='doc'>\n")
-        keys = lampadas.docs.sort_by('short_title')
+        keys = lampadas.docs.sort_by('title')
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
@@ -110,14 +110,14 @@ class ComboFactory:
                 if doc.id==value:
                     combo.write("selected ")
                 combo.write("value='%s'>%s</option>\n"
-                            % (str(doc.id), doc.short_title))
+                            % (str(doc.id), doc.title))
         combo.write("</select>")
         return combo.get_value()
 
     def sk_seriesid(self, value, lang):
         combo = WOStringIO('<select name="sk_seriesid">\n')
         combo.write('<option></option>\n')
-        keys = lampadas.docs.sort_by('short_title')
+        keys = lampadas.docs.sort_by('title')
         for key in keys:
             doc = lampadas.docs[key]
             assert not doc==None
@@ -125,8 +125,12 @@ class ComboFactory:
                 combo.write("<option ")
                 if doc.sk_seriesid==value:
                     combo.write("selected ")
-                combo.write("value='%s'>%s</option>\n"
-                            % (str(doc.sk_seriesid),doc.short_title))
+                if doc.short_title > '':
+                    combo.write("value='%s'>%s</option>\n"
+                                % (str(doc.sk_seriesid),doc.short_title))
+                else:
+                    combo.write("value='%s'>%s</option>\n"
+                                % (str(doc.sk_seriesid),doc.title[:40]))
         combo.write("</select>\n")
         return combo.get_value()
 
@@ -348,10 +352,8 @@ class TableFactory:
         box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
         box.write('<th class="label">|strcopyright_holder|</th><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strsk_seriesid|<td>' + combo_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
-        box.write('<th class="label"><td>' + '</td>\n')
+        box.write('<th class="label">|strsk_seriesid|<td colspan="3">' + combo_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
         box.write('''
-          <td></td>
         </tr>
         <tr>
           <th class="label">|strabstract|</th>
