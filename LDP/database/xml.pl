@@ -9,9 +9,42 @@ $dbmain='ldp';
 $count = 0;
 $query = new CGI;
 
+$doc_id_arg = 0;
+$name_arg = "";
+$error = 0;
+
+# load arguments
+#
+while (1) {
+	if ($ARGV[0] eq '') {
+		last;
+	}
+	
+	if($ARGV[0] eq "-d" or $ARGV[0] eq "--doc-id") {
+		shift(@ARGV);
+		$doc_id_arg = $ARGV[0];
+		shift(@ARGV);
+	} elsif($ARGV[0] eq "-n" or $ARGV[0] eq "--doc-name") {
+		shift(@ARGV);
+		$name_arg = uc($ARGV[0]);
+		shift(@ARGV);
+	} elsif($ARGV[0] eq "-h" or $ARGV[0] eq "--help") {
+		&usage;
+	} else {
+		$error = 1;
+		&usage;
+	}
+}
+
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract, filename FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N' ORDER BY doc_id";
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract, filename FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N'";
+if ($doc_id_arg) {
+	$sql .= " AND doc_id=$doc_id_arg";
+} elsif ($name_arg) {
+	$sql .= " AND upper(filename)='$name_arg'";
+}
+$sql .= " ORDER BY doc_id";
 $doc=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
 
@@ -190,18 +223,28 @@ while (@row = $doc->fetchrow) {
 	print "</resource>\n";
 }
 
-$sql = "SELECT maintainer_id, maintainer_name, email FROM maintainer";
-$maintainer=$conn->exec("$sql");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
-while (@maintainer_row = $maintainer->fetchrow) {
-	$maintainer_id    = $maintainer_row[0];
-	$maintainer_name  = $maintainer_row[1];
-	$maintainer_name  =~ s/\&/\&amp\;/;
-	$maintainer_email = $maintainer_row[2];
-	print "<maintainer id='$maintainer_id'>\n";
-	print "  <name>$maintainer_name</name>\n";
-	print "  <email>$maintainer_email</email>\n";
-	print "</maintainer>\n";
+unless (($doc_id_arg) or ($name_arg)) {
+	$sql = "SELECT maintainer_id, maintainer_name, email FROM maintainer";
+	$maintainer=$conn->exec("$sql");
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $maintainer->resultStatus;
+	while (@maintainer_row = $maintainer->fetchrow) {
+		$maintainer_id    = $maintainer_row[0];
+		$maintainer_name  = $maintainer_row[1];
+		$maintainer_name  =~ s/\&/\&amp\;/;
+		$maintainer_email = $maintainer_row[2];
+		print "<maintainer id='$maintainer_id'>\n";
+		print "  <name>$maintainer_name</name>\n";
+		print "  <email>$maintainer_email</email>\n";
+		print "</maintainer>\n";
+	}
 }
 print "</ldp>\n";
 
+
+sub usage {
+	print "Usage: xml.pl [-h|-d <doc_id>|-n <doc_name>]\n";
+	print "-h, --help         show this usage message.\n";
+	print "-d, --doc-id       output one document by id number.\n";
+	print "-n, --doc-name     output one document by short name.\n";
+	exit($error);
+}

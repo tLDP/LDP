@@ -14,6 +14,8 @@ psql ldp -f document.sql
 
 psql ldp -f notes.sql
 
+psql ldp -f document_wiki.sql
+
 psql ldp -f document_topic.sql
 
 psql ldp -f maintainer.sql
@@ -35,6 +37,8 @@ psql ldp -f stats_cdf.sql
 psql ldp -f license.sql
 
 psql ldp -f volunteer.sql
+
+psql ldp -f username.sql
 
 #views
 psql ldp -f vw_gfdl_emails.sql

@@ -11,8 +11,8 @@ copy document from '/tmp/ldp_document.txt';
 
 copy notes from '/tmp/ldp_notes.txt';
 
+copy document_wiki from '/tmp/ldp_document_wiki.txt';
 copy document_topic from '/tmp/ldp_document_topic.txt';
-
 copy maintainer from '/tmp/ldp_maintainer.txt';
 copy maintainer_notes from '/tmp/ldp_maintainer_notes.txt';
 copy document_maintainer from '/tmp/ldp_document_maintainer.txt';
@@ -31,3 +31,4 @@ copy stats_cdf from '/tmp/ldp_stats_cdf.txt';
 copy license from '/tmp/ldp_license.txt';
 
 copy volunteer from '/tmp/ldp_volunteer.txt';
+copy username from '/tmp/ldp_username.txt';
