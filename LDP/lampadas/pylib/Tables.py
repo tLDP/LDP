@@ -31,8 +31,12 @@ from Lintadas import lintadas
 import os
 
 EDIT_ICON = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="20" '\
-            'border="0" hspace="5" vspace="0" align="top">'
+            'border="0" hspace="0" vspace="0" align="top">'
 MAKE_ICON = 'MAKE'
+TEXT_ICON = '<img src="|uri.base|images/ascii.png" alt="Text" height="20" width="20" '\
+            'border="0" hspace="0" vspace="0" align="top">'
+HTML_ICON = '<img src="|uri.base|images/html.png" alt="HTML" height="20" width="20" '\
+            'border="0" hspace="0" vspace="0" align="top">'
 
 class Tables(LampadasCollection):
 
@@ -679,14 +683,14 @@ class Tables(LampadasCollection):
         """
 
         log(3, "Creating doctable")
-        colspan = 2 + len(columns)
+        colspan = 3 + len(columns)
 
-        box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>'
+        box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
                          % str(colspan))
-        box.write('<tr><th class="collabel" colspan="2">|strtitle|</th>')
+        box.write('<tr><th class="collabel" colspan="3">|strtitle|</th>')
         for column in columns.keys():
             box.write('<th class="collabel">%s</td>' % column)
-        box.write('</tr>')
+        box.write('</tr>\n')
         keys = lampadas.docs.sort_by("title")
         for key in keys:
             doc = lampadas.docs[key]
@@ -783,21 +787,30 @@ class Tables(LampadasCollection):
                     continue
 
             # Build the table for any documents that passed the filters
-            box.write('<tr><td>')
+            topfile = doc.find_top_file()
+            if topfile:
+                sourcefile = sourcefiles[topfile.filename]
+                txtfile = sourcefile.txtfile
+            else:
+                txtfile = ''
+            box.write('<tr>\n<td>')
             if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
                 box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
+            box.write('</td>\n<td>')
+            if txtfile > '':
+                box.write('<a href="|uri.base|doc/%s/%s">%s</a>' % (str(doc.id), txtfile, TEXT_ICON))
             box.write('</td>\n')
             if doc.pub_status_code=='N' or doc.pub_status_code=='A':
                 if doc.errors.count() > 0 or doc.files.error_count > 0:
-                    box.write('<td style="width:100%%" class="error">%s</td>' % doc.title)
+                    box.write('<td style="width:100%%" class="error">%s</td>\n' % doc.title)
                 else:
-                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>' % (str(doc.id), doc.title))
+                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n' % (str(doc.id), doc.title))
             else:
-                box.write('<td style="width:100%%">%s</td>' % doc.title)
+                box.write('<td style="width:100%%">%s</td>\n' % doc.title)
             for column in columns.keys():
-                box.write('<td>%s</td>' % getattr(doc, columns[column]))
+                box.write('<td>%s</td>\n' % getattr(doc, columns[column]))
             box.write('</tr>\n')
-        box.write('</table>')
+        box.write('</table>\n')
         return box.get_value()
 
     def userdocs(self, uri, username=''):

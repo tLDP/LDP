@@ -457,6 +457,11 @@ class Doc:
                 count = count + 1
             self.rating = self.rating / count
 
+    def find_top_file(self):
+        for filename in self.files.keys():
+            docfile = self.files[filename]
+            if docfile.top==1:
+                return docfile
 
 # DocErrs
 

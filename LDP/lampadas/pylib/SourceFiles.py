@@ -61,7 +61,7 @@ class SourceFiles(LampadasCollection):
         db.runsql(sql)
         sourcefile = SourceFile(filename)
         sourcefile.errors.filename = filename
-        sourcefile.calc_local()
+        sourcefile.calc_filenames()
         self.data[filename] = sourcefile
         return sourcefile
 
@@ -79,14 +79,24 @@ class SourceFile:
     """
 
     def __init__(self, filename=''):
-        self.filename = filename
-        self.calc_local()
-        self.format_code = ''
-        self.dtd_code = ''
-        self.dtd_version = ''
-        self.filesize    = 0
-        self.filemode    = 0
-        self.modified    = ''
+        self.filename       = filename
+        self.format_code    = ''
+        self.dtd_code       = ''
+        self.dtd_version    = ''
+        self.filesize       = 0
+        self.filemode       = 0
+        self.modified       = ''
+        self.basename       = ''
+        self.dbsgmlfile     = ''
+        self.xmlfile        = ''
+        self.utfxmlfile     = ''
+        self.utftempxmlfile = ''
+        self.tidyxmlfile    = ''
+        self.htmlfile       = ''
+        self.indexfile      = ''
+        self.txtfile        = ''
+        self.omffile        = ''
+        self.calc_filenames()
         self.errors = FileErrs()
         self.errors.filename = filename
         if filename > '':
@@ -105,12 +115,10 @@ class SourceFile:
         self.format_code = trim(row[1])
         self.dtd_code    = trim(row[2])
         self.dtd_version = trim(row[3])
-        self.calc_local()
+        self.calc_filenames()
         self.filesize    = safeint(row[4])
         self.filemode    = safeint(row[5])
         self.modified    = time2str(row[6])
-        self.file_only	 = os.path.split(self.filename)[1]
-        self.basename	 = os.path.splitext(self.file_only)[0]
         self.errors.filename = self.filename
 
     def save(self):
@@ -126,7 +134,9 @@ class SourceFile:
         db.execute(sql,dict)
         db.commit()
 
-    def calc_local(self):
+    def calc_filenames(self):
+        self.file_only	 = os.path.split(self.filename)[1]
+        self.basename	 = os.path.splitext(self.file_only)[0]
         if self.filename[:7]=='http://' or self.filename[:6]=='ftp://':
             self.local = 0
             self.localname = ''
@@ -139,6 +149,15 @@ class SourceFile:
             else:
                 self.in_cvs = 1
                 self.localname = config.cvs_root + self.filename
+        self.dbsgmlfile     = self.basename + '.db.sgml'
+        self.xmlfile        = self.basename + '.xml'
+        self.utfxmlfile     = self.basename + '.utf.xml'
+        self.utftempxmlfile = self.basename + '.utf.temp.xml'
+        self.tidyxmlfile    = self.basename + '.tidy.xml'
+        self.htmlfile       = self.basename + '.html'
+        self.indexfile      = 'index.html'
+        self.txtfile        = self.basename + '.txt'
+        self.omffile        = self.basename + '.omf'
 
 
 # FileErrs

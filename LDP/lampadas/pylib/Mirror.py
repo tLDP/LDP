@@ -82,12 +82,18 @@ class Mirror:
             cachedir = config.cache_dir + str(doc.id) + '/'
             if not os.access(cachedir, os.F_OK):
                 os.mkdir(cachedir)
+            workdir = cachedir + 'work/'
+            if not os.access(workdir, os.F_OK):
+                os.mkdir(workdir)
+            logdir = workdir + 'log/'
+            if not os.access(logdir, os.F_OK):
+                os.mkdir(logdir)
 
             docfile     = doc.files[filekey]
             sourcefile  = sourcefiles[filekey]
             filename    = sourcefile.localname
             file_only   = sourcefile.file_only
-            cachename   = cachedir + file_only
+            workname    = workdir + file_only
             
             if sourcefile.local==1:
 
@@ -98,19 +104,19 @@ class Mirror:
                     log(2, 'Cannot mirror missing file: ' + filename)
                     continue
                 log(3, 'mirroring local file ' + filename)
-                command = 'cd ' + cachedir + '; cp -pu ' + filename + ' .'
+                command = 'cd ' + workdir + '; cp -pu ' + filename + ' .'
                 os.system(command)
         
             else:
                 try:
                     log(3, 'mirroring remote file ' + filename)
-                    urllib.urlretrieve(sourcefile.filename, cachename)
+                    urllib.urlretrieve(sourcefile.filename, workname)
                 except IOError:
                     log(0, 'error retrieving remote file ' + filename)
                     continue
 
-            if self.unpack(cachedir, file_only):
-                for file in os.listdir(cachedir):
+            if self.unpack(workdir, file_only):
+                for file in os.listdir(workdir):
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
