@@ -3,7 +3,7 @@
 """
 Lampadas Object Hierarchy Module
 
-This module defines Data Objects (Users, Documents, Notes, Topics, etc.)
+This module defines Data Objects (Users, Docs, Notes, Topics, etc.)
 for the Lampadas system. All access to the underlying database should be
 performed through this layer.
 """
@@ -147,6 +147,10 @@ class Classes(LampadasCollection):
 			self.data[newClass.ID] = newClass
 
 class Class:
+	"""
+	A class is a way of identifying the type of a document, such as a User's Guide,
+	a HOWTO, or a FAQ List.
+	"""
 
 	def __init__(self, ClassID=None):
 		self.I18n = {}
@@ -165,6 +169,9 @@ class Class:
 			self.I18n[newClassI18n.Lang] = newClassI18n
 
 class ClassI18n:
+	"""
+	Holds localized strings that name and describe a class.
+	"""
 
 	def Load(self, row):
 		self.Lang		= row[0]
@@ -175,6 +182,9 @@ class ClassI18n:
 # Config
 
 class Config(LampadasCollection):
+	"""
+	Holds system configuration information.
+	"""
 
 	def __call__(self, key):
 		return self[key]
@@ -490,6 +500,9 @@ class DTDs(LampadasCollection):
 			self.data[newDTD.DTD] = newDTD
 
 class DTD:
+	"""
+	A Data Type Definition, for SGML and XML documents.
+	"""
 
 	def __init__(self, DTD=None):
 		if DTD==None: return
@@ -518,7 +531,10 @@ class Errs(LampadasCollection):
 			self.data[newErr.ErrID] = newErr
 
 class Err:
-
+	"""
+	An error that can be filed against a document.
+	"""
+	
 	def __init__(self, ErrID=None):
 		self.I18n = {}
 		if Err==None: return
@@ -564,6 +580,9 @@ class Formats(LampadasCollection):
 			self.data[newFormat.ID] = newFormat
 
 class Format:
+	"""
+	A file format, for document source files.
+	"""
 
 	def __init__(self, FormatID=None):
 		self.I18n = {}
@@ -595,7 +614,8 @@ class FormatI18n:
 
 class Languages(LampadasCollection):
 	"""
-	A collection object of all languages.
+	A collection object of all languages supported by the ISO 639
+	standard.
 	"""
 
 	def __init__(self):
@@ -610,6 +630,10 @@ class Languages(LampadasCollection):
 			self.data[newLanguage.Code] = newLanguage
 
 class Language:
+	"""
+	Defines a language supported by Lampads. Documents can be translated into,
+	and Lampadas can be localized for, any language supported by ISO 639.
+	"""
 
 	def __init__(self, LanguageCode=None):
 		self.I18n = {}
@@ -658,7 +682,11 @@ class PubStatuses(LampadasCollection):
 			self.data[newPubStatus.PubStatus] = newPubStatus
 
 class PubStatus:
-
+	"""
+	The Publication Status defines where in the publication process a
+	document is.
+	"""
+	
 	def __init__(self, PubStatus=None):
 		self.I18n = {}
 		if PubStatus==None: return
@@ -704,6 +732,10 @@ class Strings(LampadasCollection):
 			self.data[newString.ID] = newString
 
 class String:
+	"""
+	Each string is Unicode text, that can be used in a web page or in other
+	Lampadas output.
+	"""
 
 	def __init__(self, StringID=None):
 		self.I18n = {}
@@ -749,6 +781,11 @@ class Topics(LampadasCollection):
 			self.data[newTopic.Num] = newTopic
 
 class Topic:
+	"""
+	Each document can be assigned an arbitrary number of topics.
+	The web interface allows a user to browse through document topics,
+	to help them find a document on the subject in which they are interested.
+	"""
 
 	def __init__(self, TopicNum=None):
 		self.I18n = {}
@@ -855,7 +892,8 @@ class UserDocs(LampadasList):
 
 class UserDoc:
 	"""
-	An association between a user and a document.
+	An association between a user and a document. This association defines the role
+	which the user plays in the production of the document.
 	"""
 
 	def __init__(self, UserID=None, DocID=None):
@@ -885,6 +923,17 @@ class UserDoc:
 # Utility routines
 
 def wsq(astring):
+	"""
+	WSQ stands for "Wrap in Single Quotes". It accepts a string, and returns an escaped string
+	suitable for submission to the database.
+
+	For example, a string which contains an embedded quote will break the database unless it is replaced
+	by two single quotes.
+
+	This routine also replaces null strings ('') with the word "NULL", so empty strings are not stored
+	into the database.
+	"""
+	
 	if astring == None:
 		return 'NULL'
 	elif astring == '':
@@ -893,6 +942,10 @@ def wsq(astring):
 		return "'" + astring.replace("'", "''") + "'"
 
 def dbint(anint):
+	"""
+	This routine converts an integer into a format ready to be submitted to the database.
+	"""
+	
 	if anint == None:
 		temp = 'NULL'
 	else:
@@ -900,6 +953,10 @@ def dbint(anint):
 	return temp
 
 def safeint(anint):
+	"""
+	When loading an integer value from the database, this routine replaces NULL values with zeroes.
+	"""
+	
 	if anint == None:
 		return 0
 	elif anint == '':
@@ -908,18 +965,30 @@ def safeint(anint):
 		return int(anint)
 
 def bool2tf(bool):
+	"""
+	Converts a 1/0 integer value into a t/f string value suitable for submission to the database.
+	"""
+	
 	if bool == 1:
 		return 't'
 	else:
 		return 'f'
 
 def tf2bool(tf):
+	"""
+	Converts a t/f string value into a 1/0 integer value.
+	"""
+	
 	if tf == 't':
 		return 1
 	else:
 		return 0
 
 def trim(astring):
+	"""
+	Trims leading and trailing spaces from a string.
+	"""
+	
 	if astring == None:
 		temp = ''
 	else:
