@@ -85,6 +85,12 @@ insert([news], [Neuigkeiten], [],
     |tabrecentnews|
 ], 1)
 
+insert([stats], [Current Statistics], [],
+[
+    |tabmirror_time_stats|
+    <p>|tabpub_time_stats|
+], 1)
+
 insert([staff], [Projektteam], [],
 [
     Führen Sie hier die Mitglieder Ihres Projekteams an.

@@ -65,9 +65,12 @@ class Mirror:
         if not os.access(logdir, os.F_OK):
             os.mkdir(logdir)
 
-        # Do not attempt to mirror a document which has errors.
-        if doc.errors.count() > 0 or doc.files.error_count > 0:
+        # Do not attempt to mirror a document which has document or file errors.
+        if doc.errors.count('doc') > 0 or doc.files.error_count > 0:
             return
+
+        # Clear mirroring errors before adding new ones.
+        doc.errors.clear('mirror')
         
         # Decide if the document is remote or local
         docremote = 0
@@ -110,7 +113,7 @@ class Mirror:
                 # Some publishing tools leave clutter in the directory on failure.
                 if not os.access(filename, os.F_OK):
                     log(2, 'Cannot mirror missing file: ' + filename)
-                    docfile.errors.add(ERR_MAKE_NO_SOURCE)
+                    docfile.errors.add(ERR_MIRROR_NO_SOURCE)
                     continue
                 log(3, 'mirroring local file ' + filename)
                 command = 'cd ' + workdir + '; cp -pu ' + filename + ' .'
@@ -130,7 +133,7 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
-        if doc.errors.count()==0 and doc.files.error_count==0:
+        if doc.errors.count('mirror')==0 and doc.files.error_count==0:
             doc.mirror_time = now_string()
         doc.files.save()
         doc.save()

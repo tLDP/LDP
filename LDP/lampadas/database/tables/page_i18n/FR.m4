@@ -76,6 +76,12 @@ insert([news], [|strproject| News], [|strprojectshort| News],
 	|tabrecentnews|
 ], 1)
 
+insert([stats], [Current Statistics], [],
+[
+    |tabmirror_time_stats|
+    <p>|tabpub_time_stats|
+], 1)
+
 insert([staff], [Staff], [],
 [
     List the members of your project\'s staff here.

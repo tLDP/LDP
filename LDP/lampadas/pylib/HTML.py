@@ -305,6 +305,10 @@ class PageFactory:
                     newstring = tables.tabsearch(uri)
                 elif token=='tabsplashlanguages':
                     newstring = tables.tabsplashlanguages(uri)
+                elif token=='tabmirror_time_stats':
+                    newstring = tables.tabmirror_time_stats(uri)
+                elif token=='tabpub_time_stats':
+                    newstring = tables.tabpub_time_stats(uri)
             
                 # Blocks and Strings
                 if newstring==None:
@@ -318,10 +322,10 @@ class PageFactory:
                     else:
                         newstring = block.block
                 
-                # Add an error message if the token was not found
+                # Just use the token if the token was not found
                 if newstring==None:
                     log(1, 'Could not replace token ' + token)
-                    newstring = 'ERROR (' + token + ')'
+                    newstring = token
                 
                 # Call myself recursively before replacing, so we do replacement on it only once,
                 # while it is still small. Replacing text in large pages is more costly on large

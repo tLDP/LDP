@@ -1,2 +1,2 @@
-m4_define(insert, [INSERT INTO error(err_id)
-VALUES ($1);])m4_dnl
+m4_define(insert, [INSERT INTO error(err_id, err_type_code)
+VALUES ($1, '$2');])m4_dnl

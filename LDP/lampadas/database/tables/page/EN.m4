@@ -7,13 +7,14 @@ insert(doctable,             default,    main,       3,  [],                 f, 
 insert(document_list,        default,    main,       4,  [],                 f,  f,  f,  f)
 insert(search,               default,    main,       5,  [],                 t,  f,  f,  f)
                                                                                  
-insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)
 insert(users,                default,    admin,      1,  [letter],           t,  f,  t,  f)
 insert(adduser,              default,    admin,      2,  [],                 t,  f,  t,  f)
-insert(adddocument,          default,    admin,      5,  [],                 t,  t,  f,  f)
+insert(sessions,             default,    admin,      3,  [],                 t,  f,  f,  t)
 insert(errors,               default,    admin,      4,  [],                 t,  f,  t,  f)
+insert(adddocument,          default,    admin,      5,  [],                 t,  t,  f,  f)
                              
 insert(news,                 default,    news,       1,  [],                 f,  f,  f,  f)
+insert(stats,                default,    news,       2,  [],                 f,  f,  f,  f)
                                                                                  
 insert(staff,                default,    volunteer,  1,  [],                 f,  f,  f,  f)
 insert(contribute,           default,    volunteer,  2,  [],                 f,  f,  f,  f)

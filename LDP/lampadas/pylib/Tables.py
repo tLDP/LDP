@@ -24,11 +24,16 @@ from BaseClasses import *
 from Languages import languages
 from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
+from ErrorTypes import errortypes
+from Errors import errors
 from WebLayer import lampadasweb
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
+from Stats import stats
 import os
+import fpformat
+
 
 EDIT_ICON     = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="20" '\
                 'border="0" hspace="3" vspace="0" align="top">'
@@ -41,6 +46,12 @@ TEXT_ICON     = '<img src="|uri.base|images/ascii.png" alt="Text" height="20" wi
 TEXT_ICON_MED = '<img src="|uri.base|images/ascii.png" alt="Text" height="28" width="28" '\
                 'border="0" hspace="0" vspace="0" align="top">'
 TEXT_ICON_BIG = '<img src="|uri.base|images/ascii.png" alt="Text" height="36" width="36" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+HTML_ICON     = '<img src="|uri.base|images/html.png" alt="Text" height="20" width="20" '\
+                'border="0" hspace="3" vspace="0" align="top">'
+HTML_ICON_MED = '<img src="|uri.base|images/html.png" alt="Text" height="28" width="28" '\
+                'border="0" hspace="0" vspace="0" align="top">'
+HTML_ICON_BIG = '<img src="|uri.base|images/html.png" alt="Text" height="36" width="36" '\
                 'border="0" hspace="0" vspace="0" align="top">'
 DL_ICON       = '<img src="|uri.base|images/package.png" alt="D/L" height="20" width="20" '\
                 'border="0" hspace="3" vspace="0" align="top">'
@@ -88,6 +99,16 @@ class Tables(LampadasCollection):
         <td colspan="5">
         <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
+        box.write('''
+        <tr>
+          <td class="label">|strshort_desc|</td>
+          <td colspan="5"><input type=text name="short_desc" style="width:100%%" value="%s"></td>
+        </tr>
+        <tr>
+          <td class="label">|strabstract|</td>
+          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
+        </tr>''' % (doc.short_desc,
+                    doc.abstract))
         box.write('<tr>')
         box.write('<td class="label">|strstatus|</td><td>' + widgets.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
         box.write('<td class="label">|strtype|</td><td>' + widgets.type_code(doc.type_code, uri.lang) + '</td>\n')
@@ -127,22 +148,12 @@ class Tables(LampadasCollection):
         box.write('<td class="label">|strtrans_master|</td><td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid) + '</td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<td class="label">|strreplacedby|</td><td colspan="3">' + widgets.replaced_by_id(doc.replaced_by_id) + '</td>\n')
-        box.write('''
-        </tr>
-        <tr>
-          <td class="label">|strabstract|</td>
-          <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
-        </tr>
-        <tr>
-          <td class="label">|strshort_desc|</td>
-          <td colspan="5"><input type=text name="short_desc" style="width:100%%" value="%s"></td>
-        </tr>
+        box.write('''</tr> 
         <tr>
           <td></td>
           <td><input type=submit name="save" value="|strsave|"></td>
         </tr>
-        </table>
-        </form>''' % (doc.abstract, doc.short_desc))
+        </table></form>''')
         return box.get_value()
 
     def docversions(self, uri):
@@ -242,11 +253,22 @@ class Tables(LampadasCollection):
                 box.write('<td>'  + lampadas.formats[sourcefile.format_code].name[uri.lang] + '</td>\n')
             else:
                 box.write('<td>|strunknown|</td>\n')
+            box.write('<td class="label">|strdtd|</td>')
+            if sourcefile.dtd_code > '':
+                box.write('<td>'  + sourcefile.dtd_code + '</td>\n')
+            else:
+                box.write('<td>|strunknown|</td>\n')
             box.write('<td class="label">|strfilemode|</td>')
             box.write('<td>' + widgets.filemode(sourcefile.filemode) + '</td>\n')
-            box.write('''
-            <td><input type="checkbox" name="delete">|strdelete|</td>
-            <td><input type="submit" name="action" value="|strsave|"></td>
+            box.write('</tr>')
+            box.write('''<tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><input type="checkbox" name="delete">|strdelete|
+            <input type="submit" name="action" value="|strsave|"></td>
             </tr>
             ''')
             box.write('</form>')
@@ -468,19 +490,25 @@ class Tables(LampadasCollection):
 
         box = ''
         box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="2">|strdocerrs|</th></tr>\n'
+        box = box + '<tr><th colspan="3">|strdocerrs|</th></tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="collabel">|strid|</th>\n'
+        box = box + '<th class="collabel">|strtype|</th>\n'
         box = box + '<th class="collabel">|strerror|</th>\n'
         box = box + '</tr>\n'
         err_ids = doc.errors.sort_by('date_entered')
         odd_even = OddEven()
         for err_id in err_ids:
             docerror = doc.errors[err_id]
-            error = lampadas.errors[err_id]
+            error = errors[err_id]
+            errtype = errortypes[error.err_type_code]
             box = box + '<tr class="' + odd_even.get_next() + '">\n'
             box = box + '<td>' + str(docerror.err_id) + '</td>\n'
-            box = box + '<td>' + error.name[uri.lang] + '</td>\n'
+            box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
+            box = box + '<td>' + error.name[uri.lang]
+            if docerror.notes > '':
+                box = box + '<br>' + docerror.notes 
+            box = box + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
@@ -545,11 +573,14 @@ class Tables(LampadasCollection):
         box = ''
         box = box + '<table class="box" width="100%">'
         box = box + '<tr><th>' + report.name[uri.lang] + '</th></tr>\n'
-        box = box + '<tr><td><h2>|stroutput|</h2><pre>' + stdout + '</pre></td></tr>\n'
-        box = box + '<tr><td><h2>|strerrors|</h2><pre>' + stderr + '</pre></td></tr>\n'
+        box = box + '<tr><th class="collabel">|stroutput|</th></tr>\n'
+        box = box + '<tr><td><pre>' + stdout + '</pre></td></tr>\n'
+        box = box + '<tr><th class="collabel">|strerrors|</th></tr>\n'
+        box = box + '<tr><td><pre>' + stderr + '</pre></td></tr>\n'
         if sessions.session:
             if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
-                box = box + '<tr><td><h2>|strcommand|</h2><pre>' + command + '</pre></td></tr>\n'
+                box = box + '<tr><th class="collabel">|strcommand|</th></tr>\n'
+                box = box + '<tr><td><pre>' + command + '</pre></td></tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -580,7 +611,7 @@ class Tables(LampadasCollection):
             err_ids = sourcefile.errors.sort_by('date_entered')
             for err_id in err_ids:
                 fileerror = sourcefile.errors[err_id]
-                error = lampadas.errors[err_id]
+                error = errors[err_id]
                 box = box + '<tr class="' + odd_even.get_next() + '">\n'
                 box = box + '<td>' + str(fileerror.err_id) + '</td>\n'
                 box = box + '<td>' + error.name[uri.lang] + '</td>\n'
@@ -594,7 +625,7 @@ class Tables(LampadasCollection):
         box = '<table class="tab"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
-                box = box + '<th>' + letter + '</th>\n'
+                box = box + '<th class="selected_tab">' + letter + '</th>\n'
             else:
                 box = box + '<th><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
         box = box + '</tr></table>\n'
@@ -608,9 +639,9 @@ class Tables(LampadasCollection):
         elif uri.letter=='':
             return ''
         log(3, 'Creating users table')
-        box = '<table class="box" width="100%"><tr><th colspan=2>|strusers|</th></tr>\n'
+        box = '<table class="box" width="100%"><tr><th colspan="3">|strusers|</th></tr>\n'
         box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strusername|</th>\n'
+        box = box + '<th class="collabel" colspan="2">|strusername|</th>\n'
         box = box + '<th class="collabel">|strname|</th>\n'
         box = box + '</tr>\n';
         if uri.letter > '':
@@ -619,7 +650,8 @@ class Tables(LampadasCollection):
             for username in usernames:
                 user = lampadas.users[username]
                 box = box + '<tr class="' + odd_even.get_next() + '">\n'
-                box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + username + '</a></td>\n'
+                box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>\n'
+                box = box + '<td>' + username + '</td>\n'
                 box = box + '<td>' + user.name + '</a></td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -859,7 +891,7 @@ class Tables(LampadasCollection):
                     block_editlink = '<td width="30" align="center"></td>\n'
 
                 if doc.pub_time > '':
-                    block_viewlink = '<td width="30" align="center"><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + TEXT_ICON_MED + '</a></td>\n'
+                    block_viewlink = '<td width="30" align="center"><a href="|uri.base|doc/' + str(doc.id) + '/index.html">' + HTML_ICON_MED + '</a></td>\n'
                 else:
                     block_viewlink = '<td width="30" align="center"></td>\n'
                 
@@ -1212,6 +1244,52 @@ class Tables(LampadasCollection):
                widgets.abstract(''),
                widgets.short_desc('')
                ))
+        return box.get_value()
+
+    def tabmirror_time_stats(self, uri):
+        log(3, 'Creating mirror_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strmirror_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strmirror_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['mirror_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stats['mirror_time'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+    def tabpub_time_stats(self, uri):
+        log(3, 'Creating pub_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strpub_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stats['pub_time'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
         return box.get_value()
         
     def tabmailpass(self, uri):

@@ -37,6 +37,8 @@ from Database import db
 from Log import log
 from BaseClasses import *
 from SourceFiles import sourcefiles
+from ErrorTypes import errortypes
+from Errors import errors
 from Languages import languages
 import string
 import os.path
@@ -74,8 +76,6 @@ class Lampadas:
         self.licenses.load()
         self.dtds            = DTDs()
         self.dtds.load()
-        self.errors          = Errors()
-        self.errors.load()
         self.formats         = Formats()
         self.formats.load()
         self.languages       = languages
@@ -212,7 +212,7 @@ class Docs(LampadasCollection):
         self.load_notes()
 
     def load_errors(self):
-        sql = "SELECT doc_id, err_id, date_entered FROM document_error"
+        sql = "SELECT doc_id, err_id, date_entered, notes FROM document_error"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -484,7 +484,7 @@ class DocErrs(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, err_id, date_entered FROM document_error WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, err_id, date_entered, notes FROM document_error WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -493,22 +493,39 @@ class DocErrs(LampadasCollection):
             doc_err.load_row(row)
             self.data[doc_err.err_id] = doc_err
 
-    def count(self):
-        return len(self)
+    def count(self, err_type_code=None):
+        if err_type_code==None:
+            return len(self)
+        else:
+            i = 0
+            for key in self.keys():
+                if errors[key].err_type_code==err_type_code:
+                    i = i + 1
+            return i
         
-    def clear(self):
+    def clear(self, err_type_code=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM document_error WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
+        sqlbase = "DELETE FROM document_error WHERE doc_id=" + str(self.doc_id)
+        if err_type_code==None:
+            db.runsql(sqlbase)
+            self.data = {}
+        else:
+            errortype = errortypes[err_type_code]
+            for key in errors.keys():
+                error = errors[key]
+                if error.err_type_code==err_type_code:
+                    sql = sqlbase + ' AND err_id=' + str(error.id)
+                    db.runsql(sql)
+                    if self[error.id]:
+                        del self[error.id]
         db.commit()
-        self.data = {}
 
 # FIXME: Try instantiating a DocErr object, then adding it to the *document*
 # rather than passing all these parameters here. --nico
 
-    def add(self, err_id):
+    def add(self, err_id, notes=''):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.doc_id) + ", " + str(err_id) + ')'
+        sql = "INSERT INTO document_error(doc_id, err_id, notes) VALUES (" + str(self.doc_id) + ", " + str(err_id) + ', ' + wsq(notes) + ')'
         assert db.runsql(sql)==1
         doc_err = DocErr()
         doc_err.doc_id = self.doc_id
@@ -526,6 +543,7 @@ class DocErr:
         self.doc_id	      = safeint(row[0])
         self.err_id       = safeint(row[1])
         self.date_entered = time2str(row[2])
+        self.notes        = trim(row[3])
 
 
 # DocFiles
@@ -1056,51 +1074,6 @@ class DTD:
 
     def load_row(self, row):
         self.code = trim(row[0])
-
-
-# Errs
-
-class Errors(LampadasCollection):
-    """
-    A collection object of all errors that can be filed against a document.
-    """
-    
-    def __init__(self):
-        self.data = {}
-        
-    def load(self):
-        self.data = {}
-        sql = "SELECT err_id FROM error"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            err = Error()
-            err.load_row(row)
-            self.data[err.id] = err
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT err_id, lang, err_name, err_desc FROM error_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            err_id                 = row[0]
-            err = self[err_id]
-            lang                   = row[1]
-            err.name[lang]         = trim(row[2])
-            err.description[lang]  = trim(row[3])
-
-class Error:
-    """
-    An error that can be filed against a document.
-    """
-    
-    def __init__(self):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-
-    def load_row(self, row):
-        self.id = row[0]
 
 
 # Formats

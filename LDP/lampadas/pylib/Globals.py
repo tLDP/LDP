@@ -36,19 +36,25 @@ VERSION = '0.3-cvs'
 
 # FIXME: Put these in sensible ranges (100's, 200's, 300's) to make
 # them intrinsically interesting and useful values.
-ERR_NO_SOURCE_FILE      = 003
-ERR_NO_PRIMARY_FILE     = 004
-ERR_TWO_PRIMARY_FILES   = 005
-ERR_NO_FORMAT_CODE      = 007
 
-ERR_FILE_NOT_FOUND      = 001
-ERR_FILE_NOT_WRITABLE   = 002
-ERR_FILE_NOT_READABLE   = 006
+# Document errors
+ERR_NO_SOURCE_FILE      = 001
+ERR_NO_PRIMARY_FILE     = 002
+ERR_TWO_PRIMARY_FILES   = 003
 
-ERR_MIRROR_URL_RETRIEVE = 101  # A error occurred retrieving a remote file.
+# File errors
+ERR_FILE_NOT_FOUND      = 101
+ERR_FILE_NOT_READABLE   = 102
+ERR_FILE_NOT_WRITABLE   = 103
+ERR_FILE_FORMAT_UNKNOWN = 104
 
-ERR_MAKE_NO_SOURCE      = 201  # A source file does not exist and has no target.
-ERR_MAKE_EXIT_STATUS    = 202  # A command returned a nonzero exit (failure) code.
+# Mirror errors
+ERR_MIRROR_NOT_FOUND    = 201  # The source file was not found.
+ERR_MIRROR_URL_RETRIEVE = 202  # A error occurred retrieving a remote file.
+
+# Make errors
+ERR_MAKE_NO_SOURCE      = 301  # A source file does not exist and has no target.
+ERR_MAKE_EXIT_STATUS    = 302  # A command returned a nonzero exit (failure) code.
 
 
 def random_string(length):

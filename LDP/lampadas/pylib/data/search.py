@@ -53,7 +53,7 @@ def document(req,
              copyright_holder='',
              sk_seriesid='',
              abstract='',
-             short_desc=''
+             short_desc='',
              ):
     """
     Returns the results of a document search.

@@ -120,7 +120,7 @@ class Lintadas:
         
         # If we were able to read format code, post it to the document,
         if sourcefile.format_code=='':
-            sourcefile.errors.add(ERR_NO_FORMAT_CODE)
+            sourcefile.errors.add(ERR_FILE_FORMAT_UNKNOWN)
 
         # Determine DTD for SGML and XML files
         if sourcefile.format_code=='xml' or sourcefile.format_code=='sgml':
@@ -192,7 +192,7 @@ class Lintadas:
         doc.maintained = maintained
 
         # Clear any existing errors
-        doc.errors.clear()
+        doc.errors.clear('doc')
 
         # If document is not active or archived, do not flag
         # any errors against it.

@@ -90,9 +90,12 @@ class Projects(LampadasCollection):
             self.data[key] = project
         
     def make(self, name='all'):
-        log(3, 'Running project Makefile target: ' + name)
+        print 'Running project Makefile target: ' + name
         for doc_id in self.sort_by('doc_id'):
-            print 'Building document: ' + str(doc_id)
+            doc = lampadas.docs[doc_id]
+            if doc.pub_status_code<>'A' and doc.pub_status_code<>'N':
+                continue
+            print 'Making document: ' + str(doc_id)
             self[doc_id].make(name)
 
     def write(self):
@@ -117,10 +120,6 @@ class Projects(LampadasCollection):
         for docid in lampadas.docs.keys():
             doc = lampadas.docs[docid]
 
-            # Do not make documents with errors filed against them.
-            if doc.errors.count() > 0 or doc.files.error_count > 0:
-                continue
-            
             # Make each individual file
             for file in doc.files.keys():
                 docfile = doc.files[file]
@@ -165,15 +164,17 @@ class Project:
         self.filename = ''
         self.targets  = Targets()
         
-        # If the file is not publishable (Archived or Normal status), skip it
-        if self.doc.errors.count() > 0 or self.doc.files.error_count > 0 or (self.doc.pub_status_code<>'A' and self.doc.pub_status_code<>'N'):
+        # If the file is not to be published (Archived or Normal status),
+        # or if it has not been mirrored successfully, skip it.
+        if (self.doc.pub_status_code<>'A' and self.doc.pub_status_code<>'N') \
+            or (self.doc.mirror_time==''):
             return
 
         for file in self.doc.files.keys():
             docfile = self.doc.files[file]
             sourcefile = sourcefiles[file]
             
-            if docfile.top==1 and sourcefile.errors.count()==0:
+            if docfile.top==1:
                 log(3, 'Found top file: ' + sourcefile.filename)
                 
                 dbsgmlfile      = sourcefile.dbsgmlfile
@@ -196,7 +197,7 @@ class Project:
                 self.targets.add('publish',         ['build', '../' + xmlfile, '../' + htmlfile, '../' + indexfile, '../' + txtfile, '../' + omffile], [])
                 self.targets.add('../' + xmlfile,   [tidyxmlfile],      ['cp -up ' + tidyxmlfile + ' ../' + xmlfile])
                 self.targets.add('../' + htmlfile,  [htmlfile],         ['cp -up *.html ..'])
-                self.targets.add('../' + indexfile, [indexfile],        ['cp -up ' + indexfile + '..'])
+                self.targets.add('../' + indexfile, [indexfile],        ['cp -up ' + indexfile + ' ..'])
                 self.targets.add('../' + txtfile,   [txtfile],          ['cp -up ' + txtfile   + ' ..'])
                 self.targets.add('../' + omffile,   [omffile],          ['cp -up ' + omffile   + ' ..'])
                 self.targets.add('unpublish',       [],                 ['rm -f ../*.html', 'rm -f ../' + xmlfile, 'rm -f ../' + txtfile, 'rm -f ../' + omffile])
@@ -220,7 +221,7 @@ class Project:
                 if sourcefile.format_code=='wikitext':
                     self.targets.add(dbsgmlfile, [sourcefile.file_only], ['wt2db -n -s ' + dbsgmlfile + ' -o ' + sourcefile.file_only + ' 2>>log/wt2db.log'])
                     self.targets.add(xmlfile,    [dbsgmlfile],           ['xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + ' 2>>log/xmllint.log'])
-                elif sourcefile.format_code=='txt':
+                elif sourcefile.format_code=='text':
                     self.targets.add(dbsgmlfile, [sourcefile.file_only], ['wt2db -n -s ' + dbsgmlfile + ' -o ' + sourcefile.file_only + ' 2>>wt2db.log'])
                     self.targets.add(xmlfile,    [dbsgmlfile],           ['xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + ' 2>>log/xmllint.log'])
                 elif sourcefile.format_code=='texinfo':
@@ -236,6 +237,9 @@ class Project:
                 elif sourcefile.format_code=='xml' and sourcefile.dtd_code=='DocBook':
                     self.targets.add(dbsgmlfile, [],                     [])
                     self.targets.add(xmlfile,    [],                     [])
+                else:
+                    print 'ERROR: Unrecognized format code/dtd_code: ' + sourcefile.format_code + '/' + sourcefile.dtd_code
+                    print 'Lampadas cannot build this document.'
                 
                 # Everybody gets encoded into UTF-8 here
                 self.targets.add(utfxmlfile,     [xmlfile],              ['iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile + ' > ' + utftempxmlfile + ' 2>>log/iconv.log',
@@ -265,22 +269,22 @@ class Project:
         Runs the makefile specified target (defaulting to all)
         and records errors, results and other status flags
         against the document.
-
-        If the document already has errors recorded against it,
-        then it cannot be processed, and this routine will abort.
         
-        Because this routine does not clear errors, any errors
-        we set here will only be cleared by the Lintadas process.
-        to summarize, this module only records processing errors,
-        and lintadas only clears them.
+        If the document not been mirrored, this routine will not
+        attempt to build it.
+
+        If the document already has make errors against it, they
+        will be cleared before the make is attempted.
         """
 
-        # do not publish any document tagged with errors,
-        # or which has not yet been mirrored
-        if self.doc.errors.count() > 0 or self.doc.files.error_count > 0 or self.doc.mirror_time=='':
+        # Do not publish any document which has not been mirrored.
+        if self.doc.mirror_time=='':
             return
 
-        # Build the target
+        # Clear any make errors.
+        self.doc.errors.clear('make')
+
+        # Build the requested target.
         target = self.targets[name]
         high_timestamp = 0
         exit_status = 0
@@ -294,7 +298,7 @@ class Project:
                 if exit_status<>0:
                     return (exit_status, 0)
 
-        # All dependencies are buil, so now this target
+        # All dependencies are built, so now this target
         # is ready to be built.
         # See if we can get a timestamp for ourself.
         # If not, just use 0.
@@ -307,16 +311,20 @@ class Project:
 
         # Build if our timestamp is older.
         # Build if they match too, because we get a lot of 0's.
+        #print 'checking target: ' + name + ', timestamp: ' + str(timestamp) + ', high_timestamp: ' + str(high_timestamp)
         if timestamp <= high_timestamp:
             print 'Building target: ' + name
             timestamp = time.time()
-            for cmdkey in target.commands:
-                command = 'cd ' + self.workdir + '; ' + cmdkey
-                #print 'Running: ' + command
-                exit_status = os.system(command)
-                if exit_status<>0:
-                    self.doc.errors.add(ERR_MAKE_EXIT_STATUS)
-                    return(exit_status, timestamp)
+
+            # If there is no target, the alleged target is a leaf point.
+            if not target==None:
+                for cmdkey in target.commands:
+                    command = 'cd ' + self.workdir + '; ' + cmdkey
+                    #print 'Running: ' + command
+                    exit_status = os.system(command)
+                    if exit_status<>0:
+                        self.doc.errors.add(ERR_MAKE_EXIT_STATUS, str(exit_status) + ': ' + command)
+                        return(exit_status, timestamp)
 
             # Reread our timestamp. It's like to have changed.
             # If we still have no file, use wall time.
@@ -366,5 +374,11 @@ if __name__=="__main__":
     print "Writing Makefiles for all documents..."
     projects.write()
     projects.write_main()
-    projects.make('all')
+
+    # Read the command line for a requested target
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            projects.make(arg)
+    else:
+        projects.make()
 
