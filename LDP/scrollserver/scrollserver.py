@@ -1,30 +1,28 @@
 #!/usr/bin/python2
 
-
 import os				# Import required modules
+import sys
 import stat
 import string
 import commands
 import StringIO
 import locale
-import SimpleHTTPServer
+import BaseHTTPServer
+import shutil
 
 from urlparse import URI		# Import ScrollServer modules
 import scrollkeeper
+import config
 
 
 					# Defaults
 dbxslfile = "stylesheets/docbook/html/docbook.xsl"
-htmlbase  = "/var/cache/scrollserver/"	# This is the cache directory
-caching   = 1 				# set to 1 to enable caching
-xsltparam = "--timing"			# parameters to pass in all xsltproc calls
-xsltparam = ""
 
 lang = locale.setlocale(locale.LC_ALL)	# hard code an ISO language code here to test it
 #lang = "de"				# but it must match in scrollkeeper.py
 
 
-BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
+BaseClass = BaseHTTPServer.BaseHTTPRequestHandler
 ScrollKeeper = scrollkeeper.ScrollKeeper()
 
 
@@ -35,14 +33,24 @@ def FileCache(sourcefile, htmlfile, cmd):
 		os.system(cmd)
 
 
-class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
-
+class RequestHandler(BaseClass):
+	"""
+	Intercepts the HTTP requests and serves them.
+	"""
 	def do_GET(self):
-		BaseClass.do_GET(self)
-
+		fd = self.send_head()
+		if fd:
+			shutil.copyfileobj(fd, self.wfile)
+			fd.close()
+	
+	def do_HEAD(self):
+		fd = self.send_head()
+		fd.close()
+	
 	def send_head(self):
-
-					# Send the requested page
+		"""
+		Send the requested page.
+		"""
 		if self.path == "" or self.path == "/" or self.path == "/index.html":
 			return self.send_Home()
 		elif self.path == "/controls.html":
@@ -67,35 +75,55 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 					# Try to serve a file
 				return self.send_URI(uri)
 
-	def send_Home(self):		# Send home page
+	def send_Home(self):
+		"""
+		Send home page.
+		"""
 		FileCache ("", htmlbase+ "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/index.xsl > " + htmlbase + "index.html")
 		return self.send_File(htmlbase + "index.html")
 			
-	def send_Help(self):		# Send help page
+	def send_Help(self):
+		"""
+		Send help page.
+		"""
 		FileCache ("", htmlbase+ "help.html", "xsltproc " + xsltparam + " stylesheets/help.xsl stylesheets/help.xsl > " + htmlbase + "help.html")
 		return self.send_File(htmlbase + "help.html")
 			
-	def send_Controls(self):	# Send controls page
+	def send_Controls(self):
+		"""
+		Send controls page.
+		"""
 		FileCache ("", htmlbase + "controls.html", "xsltproc " + xsltparam + " stylesheets/controls.xsl stylesheets/controls.xsl > " + htmlbase + "controls.html")
 		return self.send_File(htmlbase + "controls.html")
 
-	def send_Reset(self):		# Reset cache and send reset page
+	def send_Reset(self):
+		"""
+		Reset cache and send reset page.
+		"""
 		os.system("rm -rf " + htmlbase + "*")
 		FileCache ("", htmlbase + "reset.html", "xsltproc " + xsltparam + " stylesheets/reset.xsl stylesheets/reset.xsl > " + htmlbase + "reset.html")
 		return self.send_File(htmlbase + "reset.html")
 
-	def send_ContentsList(self):	# Send table of contents
+	def send_ContentsList(self):
+		"""
+		Send table of contents.
+		"""
 		contents_list = commands.getoutput("scrollkeeper-get-content-list " + lang)
 		FileCache (contents_list, htmlbase + "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > " + htmlbase + "contents.html")
 		return self.send_File(htmlbase + "contents.html")
 
-	def send_DocList(self):		# Send alphabetical document list
+	def send_DocList(self):
+		"""
+		Send alphabetical document list.
+		"""
 		contents_list = commands.getoutput("scrollkeeper-get-content-list " + lang)
 		FileCache (contents_list, htmlbase + "documents.html", "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > " + htmlbase + "documents.html")
 		return self.send_File(htmlbase + "documents.html")
 
-					# Send a document
 	def send_DocumentByID(self, docid):
+		"""
+		Send a document.
+		"""
 		document = ScrollKeeper.DocumentByID(docid)
 		if not document:
 			text = "Error: ScrollServer couldn't find document number " + docid
@@ -126,7 +154,10 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 		os.system("ln -s --target-directory=" + htmlpath + " " + xmlpath + "/*")
 		return self.send_File(htmlfile)
 
-	def send_URI(self, uri):	# Send some external file or image request
+	def send_URI(self, uri):
+		"""
+		Send some external file or image request.
+		"""
 		filename = uri.Path + "/" + uri.Filename
 		if os.path.isfile(filename):
 			return self.send_File(filename)
@@ -142,8 +173,10 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 			text = "Unrecognized request: " + uri.Filename
 			return self.send_Text(text)
 
-	def send_File(self, filename):	# Send the contents of a file
-
+	def send_File(self, filename):
+		"""
+		Send the contents of a file.
+		"""
 					# Extract extension, guess if missing
 					#   Due to missing file extensions in some current
 					#   ScrollKeeper data.
@@ -188,7 +221,10 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 		return self.send_Text("Unrecognized file: " + filename)
 
 	
-	def send_Text(self, text):	# Send a text message
+	def send_Text(self, text):
+		"""
+		Send a text message.
+		"""
 		self.send_response(200)
 		self.send_header("Content-type", "text/plain")
 		self.send_header("Content-length", len(text))
@@ -196,11 +232,35 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 		return StringIO.StringIO(text)
 
 
-def ScrollServer():			# Initialize the server
-	os.system("rm -rf " + htmlbase + "*")
-	print "ScrollServer v0.6 -- development version!"
-	SimpleHTTPServer.test(RequestHandler)
+def ScrollServer():
+	"""
+	Initialize the server.
+	"""
+	configDict = config.parseConfig()
+	if configDict['help']:
+		# Don't start the server if the user only wants help.
+		sys.exit()
+	global htmlbase, caching, xsltparam
+	htmlbase = configDict['cache-dir']
+	caching = not configDict['disable-cache']
+	if configDict['timing']:
+		xsltparam = '--timing'
+	else:
+		xsltparam = ''
+	interface = configDict['interface']
+	port = configDict['port']
 
+	print "ScrollServer v0.6 -- development version!"
+	if caching:
+		os.system("rm -rf " + htmlbase + "*")
+	else:
+		print '(Caching disabled)'
+	if interface != '':
+		print '(Listening on interface %s, port %s)' % (interface, port)
+	else:
+		print '(Listening on all interfaces, port %s)' % port
+	server = BaseHTTPServer.HTTPServer((interface, port), RequestHandler)
+	server.serve_forever()
 
 if __name__ == '__main__':
 	ScrollServer()
