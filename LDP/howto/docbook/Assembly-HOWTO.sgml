@@ -1,6 +1,6 @@
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [
 
-<!ENTITY version "0.6a">
+<!ENTITY version "0.6b">
 
 <!ENTITY s-intro "<link linkend=s-intro>Introduction</link>">
 <!ENTITY s-doyou "<link linkend=s-doyou>Do you need assembly?</link>">
@@ -52,7 +52,7 @@
 </authorgroup>
 
 <copyright>
-<year>1999-2000</year><holder>Konstantin Boldyshev</holder>
+<year>1999-2001</year><holder>Konstantin Boldyshev</holder>
 </copyright>
 <copyright>
 <year>1996-1999</year><holder>Francois-Rene Rideau</holder>
@@ -70,7 +70,7 @@ with no Invariant Sections, with no Front-Cover Texts, and no Back-Cover texts.
 
 <abstract>
 <para>
-This is the Linux Assembly HOWTO.
+This is the Linux Assembly HOWTO, version &version;.
 This document describes how to program in assembly language
 using <emphasis>free</emphasis> programming tools,
 focusing on development for or from the Linux Operating System,
@@ -1938,7 +1938,7 @@ only 5 parameters in registers.
 <para>
 <ulink url="http://www.linuxdoc.org/LDP/lki/">Linux Kernel Internals</ulink>,
 and especially
-<ulink url="http://www.linuxdoc.org/LDP/lki/Linux-Kernel-Internals-2.html#ss2.11">
+<ulink url="http://www.linuxdoc.org/LDP/lki/lki-2.html#ss2.11">
 How System Calls Are Implemented on i386 Architecture?</ulink>
 chapter will give you more robust overview.
 </para>
@@ -2574,7 +2574,9 @@ It is already functional and should be the right choice, check it out!
 You can also try <command>gdb</command> ;).
 Although it is source-level debugger, it can be used to debug
 pure assembly code, and with some trickery you can make
-<command>gdb</command> to do what you need.
+<command>gdb</command> to do what you need
+(unfortunately, nasm '-g' switch does not generate
+proper debug info for gdb; this is nasm bug, I think).
 Here's an answer from <ulink url="mailto:dl@gazeta.ru">Dmitry Bakhvalov</ulink>:
 </para>
 
@@ -2738,6 +2740,114 @@ Now you can play with it using <command>insmod/rmmod/lsmod</command>
 
 </answer></qandaentry>
 
+<qandaentry>
+
+<question><para>
+How do I allocate memory dynamically?
+</para></question>
+
+<answer>
+<para>
+An answer from <ulink url="mailto:phpr@snafu.de">H-Peter Recktenwald</ulink>:
+</para>
+
+<para><programlisting>
+	ebx := 0	(in fact, any value below .bss seems to do)
+	sys_brk
+	eax := current top (of .bss section)
+
+	ebx := [ current top < ebx < (esp - 16K) ]
+	sys_brk
+	eax := new top of .bss
+</programlisting></para>
+</answer></qandaentry>
+
+<qandaentry>
+
+<question><para>
+I can't understand how to use <function>select</function> system call!
+</para></question>
+
+<answer>
+<para>
+An answer from <ulink url="mailto:mochel@transmeta.com">Patrick Mochel</ulink>:
+</para>
+
+<para><programlisting>
+When you call sys_open, you get back a file descriptor, which is simply an
+index into a table of all the open file descriptors that your process has.
+stdin, stdout, and stderr are always 0, 1, and 2, respectively, because
+that is the order in which they are always open for your process from there.
+Also, notice that the first file descriptor that you open yourself (w/o first
+closing any of those magic three descriptors) is always 3, and they increment
+from there.
+
+Understanding the index scheme will explain what select does. When you
+call select, you are saying that you are waiting certain file descriptors
+to read from, certain ones to write from, and certain ones to watch from
+exceptions from. Your process can have up to 1024 file descriptors open,
+so an fd_set is just a bit mask describing which file descriptors are valid
+for each operation. Make sense?
+
+Since each fd that you have open is just an index, and it only needs to be
+on or off for each fd_set, you need only 1024 bits for an fd_set structure.
+1024 / 32 = 32 longs needed to represent the structure.
+
+Now, for the loose example.
+Suppose you want to read from a file descriptor (w/o timeout).
+
+- Allocate the equivalent to an fd_set.  
+
+.data
+
+my_fds: times 32 dd 0
+
+- open the file descriptor that you want to read from.
+
+- set that bit in the fd_set structure.
+
+   First, you need to figure out which of the 32 dwords the bit is in.  
+
+   Then, use bts to set the bit in that dword. bts will do a modulo 32
+   when setting the bit. That's why you need to first figure out which
+   dword to start with.
+
+   mov edx, 0
+   mov ebx, 32
+   div ebx
+
+   lea ebx, my_fds
+   bts ebx[eax * 4], edx
+
+- repeat the last step for any file descriptors you want to read from.
+
+- repeat the entire exercise for either of the other two fd_sets if you want action from them.
+
+That leaves two other parts of the equation - the n paramter and the timeout
+parameter. I'll leave the timeout parameter as an exercise for the reader
+(yes, I'm lazy), but I'll briefly talk about the n parameter.
+
+It is the value of the largest file descriptor you are selecting from (from
+any of the fd_sets), plus one. Why plus one? Well, because it's easy to
+determine a mask from that value. Suppose that there is data available on
+x file descriptors, but the highest one you care about is (n - 1). Since
+an fd_set is just a bitmask, the kernel needs some efficient way for
+determining whether to return or not from select. So, it masks off the bits
+that you care about, checks if anything is available from the bits that are
+still set, and returns if there is (pause as I rummage through kernel source).
+Well, it's not as easy as I fantasized it would be. To see how the kernel
+determines that mask, look in fs/select.c in the kernel source tree.
+
+Anyway, you need to know that number, and the easiest way to do it is to save
+the value of the last file descriptor open somewhere so you don't lose it.
+
+Ok, that's what I know. A warning about the code above (as always) is that
+it is not tested. I think it should work, but if it doesn't let me know.
+But, if it starts a global nuclear meltdown, don't call me. ;-)
+</programlisting></para>
+
+</answer></qandaentry>
+
 </qandaset>
 
 <para>
@@ -2760,6 +2870,13 @@ that need not to be repeatedly mentioned every time.
 </para>
 
 <para><revhistory>
+
+<revision>
+<revnumber>0.6b</revnumber><date>21 Jan 2001</date><authorinitials>konst</authorinitials>
+<revremark>
+new questions in FAQ, corrected few URLs
+</revremark>
+</revision>
 
 <revision>
 <revnumber>0.6a</revnumber><date>10 Dec 2000</date><authorinitials>konst</authorinitials>
