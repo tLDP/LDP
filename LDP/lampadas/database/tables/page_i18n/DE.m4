@@ -1,11 +1,11 @@
-insert([admin], [Admin Page], [],
+insert([admin], [Administration], [],
 [
-    <p>Admin tools.
+    <p>Werkzeuge f&uml;r Administratoren.
 ])
 
-insert([sysadmin], [Sysadmin Page], [],
+insert([sysadmin], [System-Administration], [],
 [
-    <p>Sysadmin tools.
+    <p>Werkzeuge f&uml;r System-Administratoren.
 ])
 
 insert([my], [My Home], [],
@@ -15,10 +15,12 @@ insert([my], [My Home], [],
 
 insert([home], [|strproject|], [Home], 
 [
-    <p>Welcome to |strproject|.
+    <p>Willkommen zu |strproject|.
 
-    <p>This site is based on a development version of the Lampadas Document Management System
-    from <a href="http://www.tldp.org">The Linux Documentation Project</a>
+    <p>Diese Web-Site basiert auf einer Vorabversion des
+    Dokumentenverwaltungssystems Lampadas welches im Rahmen des
+    <a href="http://www.tldp.org">Linux-Dokumentations-Projekts</a>
+    entwickelt wird.
 ])
 
 insert([doctable], [DocTable], [],
@@ -26,75 +28,74 @@ insert([doctable], [DocTable], [],
     |tabdocs|
 ])
 
-insert([news], [Latest News], [],
+insert([news], [Neuigkeiten], [],
 [
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
+insert([contribute], [Contributing to |strproject|],
+    [Contributing to |strprojectshort|],
 [
-    As a member of this Lampadas community, you can collaborate with
-    hundreds or even thousands of others to produce documentation,
-    which can then be shared with others all around the world over the
-    Web.
-    
-    <p>We\'ve designed the Lampadas system to make contributing simple and easy.
-    Here are some ways you can help, roughly in order of difficulty or
-    commitment required:
+    Als Mitglied der Lampadas-Gemeinde arbeiten Sie mit
+    hunderten oder gar tausenden Anderen zusammen an Dokumentation
+    die &uuml;ber's Netz weltweit ver&ouml;ffentlicht wird.
+
+    <p>Lampadas soll weltweite Mitarbeit so einfach wie m&ouml;glich machen.
+    Wir k&ouml;nnen viele Arten von Hilfe brauchen.
+    Nach aufsteigendem Aufwand sortiert:
 
     <ul>
-    <li>Rate Documents
+    <li>Bewerten Sie Dokumentation
 
-    <p>Each document has a "rating", on a scale of 1 to 10, which tells you
-    what other readers think of it.
-    We use this rating to improve our documents, for focusing our attention
-    on the documents you\'ve identified as neednig improvement.
+    <p>Jedes Dokument hat eine von den Lesern vergebene Bewertung auf
+    einer Skala von 1 bis 10. Durch diese Beurteilung k&ouml;nnen wir
+    uns auf verbesserungsbed&uuml;rftige Dokumente konzentrieren.
     </li>
 
-    <li>Report a Bug
+    <li>Melden Sie Fehler
 
-    <p>If you find an error in any document, file a bug report.
-    </li>
-    
-    <li>Translate a Document
-
-    <p>Translators are always in short supply, and we value them very much.
-    Our goal is to provide all of our documentation in as many languages as possible,
-    allowing people all over the world to take advantage of it.
-    </li>
-
-    <li>Write a Document
-
-    <p>If you are a good writer with solid technical knowledge,
-    write a new document and contribute it to the collection.
-    Lampadas has several tools that will help you.
+    <p>Schicken Sie uns jeden gefunden Fehler, egal in welchem Dokument.
     </li>
     
-    <li>Help Lampadas
+    <li>&Uuml;bersetzen Sie Dokumentation
 
-    <p>If you have programming or translating skills, you can help to develop
-    the platform upon which this site is based.
+    <p>&Uuml;bersetzer sind rar und werden von uns sehr gesch&auml;tzt.
+    Unser Ziel ist es, die gesamte Dokumentation in so vielen Sprachen wie
+    m&ouml;glich anzubieten.
+    </li>
 
-    <p>The Lampadas System itself can be localized to display in several languages.
-    Translators are needed to translate it into additional languages.
-    It is currently available in:
+    <li>Schreiben Sie ein Handbuch
+
+    <p>Gute Autoren mit solidem technischen Wissen sind herzlich
+    eingeladen unsere Sammlung um ein neues Dokument zu bereichern.
+    Lampadas stellt einige Werkzeuge f&uuml;r Autoren zur Verf&uuml;gung.
+    </li>
+    
+    <li>Helfen Sie Lampadas
+
+    <p>Programmierer und &Uuml;bersetzer k&ouml;nnen uns an der
+    Weiterentwicklung der Software hinter Lampadas helfen.
+
+    <p>Das Lampadas-Systems kann Meldungen in verschiedenen Sprachen
+    anzeigen. &Uuml;bersetzer f&uuml;r weitere Sprachen werden dringend
+    ben&ouml;tigt. Momentan ist Lampadas verf&uuml;gbar in:
 
     <ul>
-    <li>English</li>
-    <li>French</li>
-    <li>German</li>
+    <li>Englisch</li>
+    <li>Franz&ouml;sisch</li>
+    <li>Deutsch</li>
     </ul>
     </li>
 
     </ul>
 ])
 
-insert([about], [About |strproject|], [About |strprojectshort|],
+insert([about], [&Uuml;ber |strproject|], [&Uuml;ber |strprojectshort|],
 [
-    Replace this text with information about your project.
+    Ersetzen Sie diesen Text mit Angaben &uuml;ber Ihr Projekt.
 ])
 
-insert([lampadas], [About Lampadas], [],
+insert([lampadas], [&Uuml;ber Lampadas], [],
 [
     <p>This website is based on version |version| of the Lampadas Documentation Management System,
     a Free Software (GPL) platform developed by
