@@ -1,5 +1,6 @@
 copy audience from '/tmp/lampadas_audience.txt';
 copy class from '/tmp/lampadas_class.txt';
+copy class_i18n from '/tmp/lampadas_class_i18n.txt';
 copy config from '/tmp/lampadas_config.txt';
 copy doc_vote from '/tmp/lampadas_doc_vote.txt';
 copy document from '/tmp/lampadas_document.txt';
@@ -12,6 +13,7 @@ copy document_user from '/tmp/lampadas_document_user.txt';
 copy document_wiki from '/tmp/lampadas_document_wiki.txt';
 copy dtd from '/tmp/lampadas_dtd.txt';
 copy format from '/tmp/lampadas_format.txt';
+copy language from '/tmp/lampadas_language.txt';
 copy license from '/tmp/lampadas_license.txt';
 copy notes from '/tmp/lampadas_notes.txt';
 copy pub_status from '/tmp/lampadas_pub_status.txt';

@@ -1,4 +1,5 @@
 ALTER TABLE class_i18n		ADD CONSTRAINT class_id_fk	FOREIGN KEY (class)			REFERENCES class(class_id);
+ALTER TABLE class_i18n		ADD CONSTRAINT class_lang_fk	FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE document		ADD CONSTRAINT class_id_fk	FOREIGN KEY (class_id)			REFERENCES class(class_id);
 ALTER TABLE document		ADD CONSTRAINT format_fk	FOREIGN KEY (format)			REFERENCES format(format);
 ALTER TABLE document		ADD CONSTRAINT dtd_fk		FOREIGN KEY (dtd)			REFERENCES dtd(dtd);

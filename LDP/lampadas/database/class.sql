@@ -2,8 +2,7 @@ DROP TABLE class;
 
 CREATE TABLE class
 (
-	class			CHAR(12)	NOT NULL,
-	class_name		TEXT		NOT NULL,
+	class_id		INT4		NOT NULL,
 
-	PRIMARY KEY (class)
+	PRIMARY KEY (class_id)
 );

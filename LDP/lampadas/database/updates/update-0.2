@@ -278,13 +278,37 @@ while (@row = $result->fetchrow) {
 	$conn->exec("$sql");
 }
 
+# i18n support in class table
+#
+# NOTE: must come before document_new table is generated
+#
+$sql = "CREATE TABLE class_new (class_id INT4 NOT NULL, PRIMARY KEY (class_id))";
+$conn->exec($sql);
+$sql = "CREATE TABLE class_i18n (class_id INT4 NOT NULL, lang CHAR(2) NOT NULL, class_name CHAR(20) NOT NULL, class_description TEXT NOT NULL, PRIMARY KEY (class_id, lang))";
+$conn->exec($sql);
+
+$sql = "SELECT class, class_name FROM class";
+$result = $conn->exec("$sql");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+$class_id = 0;
+while (@row = $result->fetchrow) {
+	$class = $row[0];
+	$class_name = $row[1];
+	$class_id++;
+	$sql = "INSERT INTO class_new (class_id) VALUES ($class_id)";
+	$conn->exec($sql);
+	$sql = "INSERT INTO class_i18n(class_id, lang, class_name, class_description) VALUES ($class_id, 'EN', '$class', '$class_name')";
+	$conn->exec($sql);
+}
+
 # Drop some fields from the document table
+# Convert class to class_id
 # 
 $sql = "DROP TABLE document_new";
 $conn->exec("$sql");
-$sql = "CREATE TABLE document_new (doc_id INT4 NOT NULL, title TEXT NOT NULL, class CHAR(12), format CHAR(12), dtd CHAR(12), dtd_version CHAR(12), version CHAR(12), last_update DATE, URL TEXT, ISBN TEXT, pub_status CHAR, review_status CHAR, tickle_date DATE, pub_date DATE, ref_url TEXT, tech_review_status CHAR, maintained BOOLEAN DEFAULT False, license CHAR(12), abstract TEXT, rating REAL, PRIMARY KEY (doc_id))";
+$sql = "CREATE TABLE document_new (doc_id INT4 NOT NULL, title TEXT NOT NULL, class_id INT4, format CHAR(12), dtd CHAR(12), dtd_version CHAR(12), version CHAR(12), last_update DATE, URL TEXT, ISBN TEXT, pub_status CHAR, review_status CHAR, tickle_date DATE, pub_date DATE, ref_url TEXT, tech_review_status CHAR, maintained BOOLEAN DEFAULT False, license CHAR(12), abstract TEXT, rating REAL, PRIMARY KEY (doc_id))";
 $conn->exec("$sql");
-$sql = "INSERT INTO document_new SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
+$sql = "INSERT INTO document_new SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c WHERE d.class=c.class_name";
 $conn->exec("$sql");
 
 # Switch doc_vote to use user_id instead of username
@@ -332,6 +356,7 @@ $conn->exec($sql);
 
 # Copy the new tables over to replace the old ones
 #
+$conn->exec("DROP TABLE class");
 $conn->exec("DROP TABLE document");
 $conn->exec("DROP TABLE document_editor");
 $conn->exec("DROP TABLE document_maintainer");
@@ -345,6 +370,7 @@ $conn->exec("DROP TABLE notes");
 $conn->exec("DROP TABLE role");
 $conn->exec("DROP TABLE username");
 $conn->exec("DROP TABLE volunteer");
+$conn->exec("ALTER TABLE class_new RENAME TO class");
 $conn->exec("ALTER TABLE document_new RENAME TO document");
 $conn->exec("ALTER TABLE document_wiki_new RENAME TO document_wiki");
 $conn->exec("ALTER TABLE doc_vote_new RENAME TO doc_vote");
@@ -442,3 +468,4 @@ sub wsq {
 	$temp =~ s/'/''/g;
 	return "'" . $temp . "'";
 }
+
