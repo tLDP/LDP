@@ -1,0 +1,986 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article>
+
+<artheader>
+<title>Majordomo and MajorCool HOWTO</title>
+<author>
+<firstname>John</firstname> <surname>Archie</surname>
+</author>
+<address><email>johnarchie@emeraldis.com</email></address>
+<edition>1.01</edition>
+<pubdate>15 November 2000</pubdate>
+<abstract>
+<para>
+This document is intended to guide a user through an installation of the Majordomo Mailing List Software and MajorCool.  MajorCool is a utility for managing Majordomo lists via a CGI script; many people who are unfamiliar with Majordomo's text-based nature prefer the more user-friendly, web-based interface of MajorCool.
+</para>
+</abstract>
+</artheader>
+
+<sect1>
+<title>Introduction</title>
+<para>
+This HOWTO is divided into several sections.  The Sendmail portion is a general discussion about Majordomo and how Majordomo interfaces with Sendmail, as well as the various ways Majordomo can be set up and the consequences of such decisions.  In contrast, the rest of the HOWTO is a tutorial guiding a user through a plain installation process of Majordomo.  I recommend going over the generic installation process described in the sections after Sendmail, referencing the appropriate portions of the Sendmail section when necessary (the appropriate sections are mentioned in the appropriate places).  Then, read the Sendmail section carefully and decide exactly how to configure your system.  Finally, a List of Terms provides definitions for some of the more abstruse terms.
+</para>
+
+<para>
+Also, if the official sites for downloading any of the software mentioned in this document are down, the tarballs can be found at <ulink url="http://philosophy.lander.edu/~jarchie/majordomo/">my web site</ulink>.
+</para>
+
+<sect2>
+<title>Credits</title>
+
+<para>
+Thanks go out (in alphabetical order) to a few people for their invaluable help.
+</para>
+
+<itemizedlist>
+<listitem>
+<para>
+Lee Archie for proofreading
+</para>
+</listitem>
+
+<listitem>
+<para>
+James Bruce and Bill Poston for the opportunity to set up my first permanent machine running Majordomo
+</para>
+</listitem>
+
+<listitem>
+<para>
+Joseph D. Sloan for reading the Sendmail portion and making helpful suggestions
+</para>
+</listitem>
+</itemizedlist>
+</sect2>
+
+<sect2>
+<title>References</title>
+
+<para>
+Although I have tried to make this HOWTO as complete as possible, it is always a good idea to look at more than one source.  Below is a list of the resources that I found helpful when trying to configure Majordomo for the first time.
+</para>
+
+<para>
+Books:
+</para>
+
+<itemizedlist>
+<listitem>
+<para>
+Bryan Costales with Eric Allman, <emphasis>sendmail</emphasis>.  Cambridge: O'Reilly, 1997.
+</para>
+</listitem>
+
+<listitem>
+<para>
+Alan Schwartz, <emphasis>Managing Mailing Lists</emphasis>.  Cambridge: O'Reilly, 1998.
+</para>
+</listitem>
+</itemizedlist>
+
+<para>
+Free resources:
+</para>
+
+<itemizedlist>
+<listitem>
+<para>
+the documentation accompanying Sendmail especially <filename>README.cf</filename>
+</para>
+</listitem>
+
+<listitem>
+<para>
+the documentation accompanying Majordomo especially <filename>INSTALL</filename> and <filename>NEWLIST</filename>
+</para>
+</listitem>
+
+<listitem>
+<para>
+the <ulink url="http://www.hpc.uh.edu/majordomo-users/"><literal>Majordomo-Users</literal></ulink> Mailing List Archive.
+</para>
+</listitem>
+
+<listitem>
+<para>
+the documentation accompanying MajorCool
+</para>
+</listitem>
+</itemizedlist>
+</sect2>
+</sect1>
+
+<sect1>
+<title>Sendmail</title>
+
+<para>
+Since Majordomo is responsible for managing E-mail lists, Majordomo relies heavily on a MTA such as Sendmail.  There are other MTA's such as Smail and Qmail out there; however, Sendmail is the oldest and most common.  This section introduces the reader to the areas of Sendmail that are useful or necessary to configure when using Majordomo.
+</para>
+
+<sect2 id="sec-aliases">
+<title>Aliases</title>
+
+<para>
+The Sendmail aliases file (usually <filename>/etc/aliases</filename>) is used for making aliases for E-mail addresses.  For example, once Majordomo is installed, usually an entry in the aliases file reads:
+
+<programlisting>
+majordomo-owner:	jarchie
+</programlisting>
+
+This entry means that all mail addressed to <literal>majordomo-owner@host.com</literal> will actually be sent to <literal>jarchie@host.com</literal>.  Notice it is unnecessary to append the <literal>@host.com</literal> to <literal>jarchie</literal> because both users are on the same host.  If it were desired to redirect the message to a different user on a different host, one would have to add the <literal>@host.com</literal> portion.  
+</para>
+
+<para>
+Another type of entry in the aliases file allows E-mail to be redirected to multiple addresses listed in a file:
+
+<screen>
+testlist:		:include:/usr/local/majordomo-1.94.5/lists/testlist
+</screen>
+
+This entry states that any message sent to <literal>testlist@host.com</literal> will be redirected to all the addresses listed in the file <filename>/usr/local/majordomo-1.94.5/lists/testlist</filename>.  The <filename>testlist</filename> file might look something like this:
+
+<screen>
+johnarchie@emeraldis.com
+srobirds@yahoo.com
+acreswell@geocities.com
+</screen>
+
+Majordomo is able to add or remove addresses from a list by taking advantage of this feature.  When a <literal>subscribe</literal> request is processed, the user's E-mail address is appended to the <filename>testlist</filename> file; when an <literal>unsubscribe</literal> request is processed, the user's E-mail address is removed from the <filename>testlist</filename> file.  One can also add or remove addresses manually simply by editing the file with a text editor such as <command>vi</command>.
+</para>
+
+<para>
+Since Majordomo needs to be able to process commands sent to it via E-mail, Sendmail must be able to execute the Majordomo program and pass the message to it.  This is done by adding another type of entry to the <filename>aliases</filename> file:
+
+<screen>
+majordomo:		"|/usr/local/majordomo-1.94.5/wrapper majordomo"
+</screen>
+
+The program <filename>/usr/local/majordomo-1.94.5/wrapper</filename> is a wrapper (SUID <literal>majordomo</literal> and SGID <literal>majordomo</literal> or <literal>daemon</literal> depending on the configuration) that runs the Majordomo program.  The quotation marks around the second part of the alias entry are used to tell Sendmail that this part of the entry is all one statement; the quotation marks would be unnecessary if there were not a space between <literal>wrapper</literal> and <literal>majordomo</literal>.  The <literal>&verbar;</literal> is known as a "pipe"; it is used to tell Sendmail to send the E-mail to the wrapper via the standard input.  (Since all the wrapper does here is to call <command>majordomo</command>, the E-mail is actually being sent to Majordomo.)  The wrapper accepts one parameter--the parameter of the program it is supposed to execute.  (Any parameters after the first will be passed to the program the wrapper is executing.)  For security reasons, the wrapper only executes programs located in the Majordomo directory, <filename>/usr/local/majordomo-1.94.5/</filename>.  This restriction prevents a programmer from using the wrapper to run programs that should not have Majordomo privileges.  (For example, <command>wrapper /bin/vi</command> would allow any user to edit any Majordomo configuration file.)  When a message is sent to <literal>majordomo@host.com</literal>, Sendmail starts up the wrapper which, in turn, starts up <command>majordomo</command>, and Sendmail sends the message to the <command>majordomo</command> script via the standard input.  Majordomo then extracts the commands out of the message and responds appropriately.
+</para>
+
+</sect2>
+
+<sect2>
+<title>Editing <filename>sendmail.cf</filename></title>
+
+<para>
+Due to its arcane syntax, <filename>sendmail.cf</filename> is perhaps the most feared of all configuration files.  In the installation of <literal>majordomo</literal>, it is not absolutely necessary to edit <filename>sendmail.cf</filename>; however, a couple of features are extremely useful.  Unless major changes have to be made to <filename>sendmail.cf</filename> (which, thankfully, Majordomo does not require), editing the file is not that difficult.  All that need be done is adding extra lines to the file.
+</para>
+
+<sect3>
+<title>Another Aliases File</title>
+
+<para>
+Creating a separate file for the Majordomo aliases, such as <filename>/usr/local/majordomo-1.94.5/majordomo.aliases</filename>, is often a good idea.  This can be done rather easily by adding a line to the end of the <filename>sendmail.cf</filename> file
+
+<screen>
+OA/usr/local/majordomo-1.94.5/majordomo.aliases
+</screen>
+
+To have a <filename>/usr/local/majordomo-1.94.5/majordomo.aliases</filename>, Sendmail must be able to generate a database (<filename>/usr/local/majordomo-1.94.5/majordomo.aliases.db</filename>).  The easiest way to accomplish this is to go ahead and create an empty database for Sendmail to overwrite.
+
+<screen>
+<computeroutput>[root@kes majordomo-1.94.5]# </computeroutput><userinput>touch majordomo.aliases.db</userinput>
+<computeroutput>[root@kes majordomo-1.94.5]# </computeroutput><userinput>chmod 644 majordomo.aliases.db</userinput>
+</screen>
+
+Another method to get around this issue is simply to create the <filename>majordomo.aliases</filename> file in the <filename>/etc/</filename> directory, rather than the Majordomo home directory.
+</para>
+
+</sect3>
+
+<sect3>
+<title>Undesirable Sendmail Security Features</title>
+
+<para>
+For certain setups, some security measures that Sendmail uses can prevent Majordomo from working properly.  Obviously, these security features must be turned off.
+</para>
+
+</sect3>
+
+<sect3 id="sec-sendtrust">
+<title>Sendmail Trusted Users</title>
+
+<para>
+Sendmail is programmed to make it difficult for people to make "perfect" forgeries of E-mail.  For example, when a user sends a message via SMTP, the source IP address is typically logged, and when a user sends a message by giving it directly to Sendmail and specifying the sender using <command>sendmail -f</command>, Sendmail puts a warning message in the header specifying the user who really sent the message.  However, some programs need to be able to send messages masquerading as other users, and having this extra security line appended to the header is annoying.  Sendmail handles this problem by having trusted users.  In order for Majordomo's <command>resend</command> script to work properly, <literal>majordomo</literal> must be a Sendmail trusted user since the program needs to resend mail from other users.
+</para>
+
+<para>
+One way to make Majordomo a trusted user is by adding the line
+
+<screen>
+Tmajordomo
+</screen>
+
+to the <filename>sendmail.cf</filename> file.
+</para>
+
+</sect3>
+
+<sect3 id="smrsh">
+<title>Sendmail Restricted Shell</title>
+
+<para>
+If Sendmail is using <command>smrsh</command>, then the only programs that can be executed are those under the <filename>/etc/smrsh/</filename> directory.  Perhaps the best solution to run the wrapper from the <filename>aliases</filename> file is to create a symbolic link from <filename>/etc/smrsh/wrapper</filename> to <filename>/usr/local/majordomo-1.94.5/wrapper</filename>.
+
+<screen>
+<computeroutput>[root@kes smrsh]# </computeroutput><userinput>ln -s /usr/local/majordomo-1.94.5/wrapper wrapper</userinput>
+</screen>
+
+A second solution is to actually move the wrapper into the <filename>/etc/smrsh/</filename> directory.
+
+<screen>
+<computeroutput>[root@kes smrsh]# </computeroutput><userinput>mv /usr/local/majordomo-1.94.5/wrapper ./</userinput>
+</screen>
+
+If security is not a major concern, the secure shell can be disabled.  One fairly crude method is simply to delete <filename>/usr/sbin/smrsh</filename> and copy or link <filename>/bin/sh</filename> in its place.
+
+<screen>
+<computeroutput>[root@kes sbin]# </computeroutput><userinput>rm -f smrsh</userinput>
+<computeroutput>[root@kes sbin]# </computeroutput><userinput>ln -s /bin/sh smrsh</userinput>
+</screen>
+
+A better (but more difficult) method is to edit <filename>sendmail.cf</filename>.  Change the reference from <filename>/usr/sbin/smrsh</filename>
+
+<screen>
+Mprog,		P=/usr/sbin/smrsh, F=lsDFMoqeu9, S=10/30, R=20/40, D=$z:/,
+		T=X-Unix,
+		A=sh -c $u
+</screen>
+
+to <filename>/bin/sh</filename>
+
+<screen>
+Mprog,		P=/bin/sh, F=lsDFMoqeu9, S=10/30, R=20/40, D=$z:/,
+		T=X-Unix,
+		A=sh -c $u
+</screen>
+</para>
+</sect3>
+
+<sect3 id="group-perm">
+<title>Group Write Permission</title>
+
+<para>
+If you plan on having a non-root user add and manage mailing lists, you will need to make the <filename>majordomo.aliases</filename> file group writable.  However, Sendmail does not allow this configuration for security reasons (see <xref linkend="sendmail-security">).  To disable this security feature, add the line
+
+<screen>
+O DontBlameSendmail=GroupWritableAliasFile
+</screen>
+
+to the <filename>sendmail.cf</filename> file.
+Also, the lists directory must be group writable in order to add a list, but Sendmail will not allow this setup for similar security reasons.  To disable this security feature, adding the line
+
+<screen>
+O DontBlameSendmail=IncludeFileInGroupWritableDirPath
+</screen>
+
+to the <filename>sendmail.cf</filename> configuration file is necessary.
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>Configuring <filename>sendmail.cf</filename> Using the M4 Configuration</title>
+
+<para>
+For administrators who do not want to edit the <filename>sendmail.cf</filename> file directly, it is possible to use M4 to create the file; this section describes how to make the changes discussed in the previous section to the mc file instead of the cf file.
+</para>
+
+<para>
+The purpose of the M4 configuration is to provide an easy way to create the <filename>sendmail.cf</filename> file.  The idea is that the created mc file is easier to understand than the <filename>sendmail.cf</filename> file.  By running the m4 preprocessor, a <filename>sendmail.cf</filename> file is generated:
+
+<screen>
+<computeroutput>[root@kes etc]# </computeroutput><userinput>m4 /etc/sendmail.mc &#62; /etc/sendmail.cf</userinput>
+</screen>
+
+</para>
+
+<sect3>
+<title>Creating Another Aliases File</title>
+
+<para>
+Add the line
+
+<screen>
+define(`ALIAS_FILE',`/etc/aliases,/usr/local/majordomo-1.94.5/majordomo.aliases')
+</screen>
+
+to the <filename>sendmail.mc</filename> file.
+</para>
+
+</sect3>
+
+<sect3>
+<title>Making Majordomo a Trusted User</title>
+
+<para>
+Add the line
+
+<screen>
+define(`confTRUSTED_USERS',`majordomo')
+</screen>
+
+to the <filename>sendmail.mc</filename> file.
+</para>
+
+</sect3>
+
+<sect3>
+<title>Disabling Sendmail Secure Shell</title>
+
+<para>
+Delete the line that reads
+
+<screen>
+FEATURE(smrsh)
+</screen>
+
+in the <filename>sendmail.mc</filename> file.
+</para>
+
+</sect3>
+
+<sect3>
+<title>Disabling Security Features</title>
+
+<para>
+To disable the group write permission security check on the aliases file, add the line
+
+<screen>
+define(`confDONT_BLAME_SENDMAIL',`GroupWritableAliasFile')
+</screen>
+
+to the <filename>sendmail.mc</filename> file.
+</para>
+
+<para>
+To disable the path write permission security check for the include files, add the line
+
+<screen>
+define(`confDONT_BLAME_SENDMAIL',`IncludeFileInGroupWritableDirPath')
+</screen>
+
+To enable both of these options, use
+
+<screen>
+define(`confDONT_BLAME_SENDMAIL',`GroupWritableAliasFile,IncludeFileInGroupWritableDirPath')
+</screen>
+
+Adding the last statement is equivalent to writing
+
+<screen>
+O DontBlameSendmail=GroupWritableAliasFile,IncludeFileInGroupWritableDirPath
+</screen>
+
+in <filename>sendmail.cf</filename>, and this entry is the same as writing the entries on separate lines:
+
+<screen>
+O DontBlameSendmail=GroupWritableAliasFile
+O DontBlameSendmail=IncludeFileInGroupWritableDirPath
+</screen>
+</para>
+</sect3>
+</sect2>
+
+<Sect2 id="sendmail-security">
+<title>Sendmail Security Concerns</title>
+
+<para>
+Security is inversely proportional to convenience; the only secure machine is one that cannot be accessed by anyone.  When some of Sendmail's security features are disabled, a machine will inevitably become less secure.  However, it is important to understand the basic security risks in order to determine if the convenience out weighs possible breaches of security.
+</para>
+
+<sect3 id="group-security">
+<title>Consequences of Unsafe Group Writes</title>
+
+<para>
+If a user has write permission to access an aliases file, <emphasis>she should be a trusted user</emphasis>.  By putting an entry into the aliases file (such as the one used to execute <command>wrapper</command>) a user can execute any program with the privileges of Sendmail (<literal>daemon</literal> or, in older versions, <literal>root</literal>).  This gaffe would allow people to remove or change the permissions of files that belong to <literal>daemon</literal> (using the <command>rm</command> or <command>chmod</command> commands in the aliases file).  To some extent, this possibility is avoided by using <command>smrsh</command>; however, one must still be careful as to what files are in the <filename>/etc/smrsh/</filename> directory.
+</para>
+
+<para>
+Another important security issue is that the user who can access the aliases file can append or write to files that belong to <literal>daemon</literal> by using file redirection (a <literal>&#62;&#62;</literal> or <literal>&#62;</literal> instead of a <literal>&verbar;</literal>).  Even so, this breach too can be countered by adding a line to the <filename>sendmail.cf</filename> file limiting what files can be written to through the aliases file.  Add the line
+
+<screen>
+O SaveFileEnvironment=/path/to/safe/files
+</screen>
+
+to the <filename>sendmail.cf</filename> file or add
+
+<screen>
+define(`confSAFE_FILE_ENV',`/path/to/safe/files')
+</screen>
+
+to the <filename>sendmail.mc</filename> file.
+However, this maneuver only leaves a thin layer of security between the user and <literal>daemon</literal>.  A much better idea would be to have the aliases file only writable by root and to create an SUID root program to add and remove the Majordomo related aliases.
+</para>
+
+<para>
+In the case of include or .forward files, commands or redirections are run as the user who owns  the file.  Therefore, if a file is group writable, a member of the group can execute commands as the user who owns the file.  In other words, any user in the <literal>majordomo</literal> group could execute commands as Majordomo.  However, since the <literal>majordomo</literal> user is created without a shell, commands or redirections will not be processed in include files owned by <literal>majordomo</literal>.
+</para>
+</sect3>
+
+<sect3>
+<title>Consequences of Unsafe Group Writable Directory Paths</title>
+
+<para>
+If a user has group write permission to a directory, for example <filename>/etc/</filename>, the user could simply move any file and create a new one in its place.  An attack might go something like this
+
+<screen>
+<computeroutput>[mallory@kes etc]$ </computeroutput><userinput>mv aliases ...</userinput>
+<computeroutput>[mallory@kes etc]$ </computeroutput><userinput>vi aliases</userinput>
+</screen>
+
+The user can then make her own aliases!  This attack, however, could be prevented by Sendmail's security checking for unsafe group writable paths.  Such an attack also would work with include and .forward files having unsafe paths.
+</para>
+
+<para>
+In the case of Majordomo, the user in the <literal>majordomo</literal> group already has access to the include files, so this does not really compromise security.  However, an administrator should be careful to prevent these undesirable unsafe group writable directory paths from occurring in the future because Sendmail will <emphasis>not</emphasis> check for them.
+</para>
+
+</sect3>
+
+<sect3>
+<title>Protecting Subscribers' Privacy</title>
+
+<para>
+Unfortunately, sophisticated spammers can expand mail lists using the <command>EXPN</command> SMTP command.  For this reason, administrators should disable this feature when serving mailing lists.  Add the line
+
+<screen>
+O PrivacyOptions=noexpn
+</screen>
+
+to the <filename>sendmail.cf</filename> file or
+
+<screen>
+define(`confPRIVACY_FLAGS',`noexpn')
+</screen>
+
+to the <filename>sendmail.mc</filename> file.
+</para>
+</sect3>
+</sect2>
+</sect1>
+
+<sect1>
+<title>Majordomo</title>
+
+<para>
+Majordomo is, of course, the piece of code that this document revolves around; it consists of a collection of Perl scripts with the sole purpose of managing mailing lists.
+</para>
+
+<sect2>
+<title>Preparing to Install</title>
+
+<para>
+Download the gzipped source distribution of the latest version of Majordomo from <ulink url="http://www.greatcircle.com/majordomo/">Great Circle Associates</ulink> and uncompress it
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>tar zxvf majordomo-1.94.5.tar.gz</userinput>
+</screen>
+
+This will create a subdirectory with all of the files necessary to install Majordomo; this directory <emphasis>cannot</emphasis> be the same directory in which Majordomo is to be installed.
+</para>
+
+<para>
+Majordomo must run under a specific UID and GID so when any of the scripts are run, they will run under Majordomo's UID.  Thus, it is necessary to decide what UID and GID Majordomo should run under.  Also, Majordomo must be a Sendmail trusted user (see <xref linkend="sec-sendtrust">).
+</para>
+
+<para>
+Check the <filename>/etc/passwd</filename> and <filename>/etc/group</filename> files to find a UID and GID that are not taken.  For this example, a UID of 16 and a GID of 16 was chosen.  You have to decide on the location where the Majordomo scripts will reside; in this HOWTO, the directory <filename>/usr/local/majordomo-1.94.5/</filename> was chosen.  If you are using a shadowed password file, add entries similar to
+
+<screen>
+majordomo:x:16:16:Majordomo List Manager:/usr/local/majordomo-1.94.5:
+</screen>
+
+to your <filename>/etc/passwd</filename> and add an appropriate entry to <filename>/etc/shadow</filename>.
+
+<screen>
+majordomo:*:10883:0:88888:7:::
+</screen>
+
+Use the other entries in these files as a guide for exactly what should be added.  <emphasis>These are only the values for my system.</emphasis>  If you are not using shadowed passwords, only an entry in the <filename>/etc/passwd</filename> file is necessary.
+</para>
+
+<para>
+To create a Majordomo group, add a line similar to
+
+<screen>
+majordomo:x:16:jarchie
+</screen>
+
+to your <filename>/etc/group</filename> file.  Appending your username to the end of the line will give you access to the Majordomo files that are group writable.
+</para>
+
+</sect2>
+
+<sect2>
+<title>Editing the Installation Files</title>
+
+<para>
+The <filename>Makefile</filename> contains all the information needed to install Majordomo; it is usually necessary to edit lines in the <filename>Makefile</filename> that refer to system specific settings so Majordomo will be able to install cleanly on your system.  Most of the default settings are correct; however, the following settings, almost invariably, need to be changed on a per system basis.
+
+<screen>
+<computeroutput>[jarchie@kes majordomo-1.94.5]$ </computeroutput><userinput>vi Makefile</userinput>
+</screen>
+
+The settings
+
+<screen>
+PERL = /bin/perl
+CC = cc
+W_HOME = /usr/test/majordomo-$(VERSION)
+MAN = $(W_HOME)/man
+W_USER = 123
+W_GROUP = 45
+</screen>
+
+should be changed to something more appropriate for your system.  For example, in my setup, the values were changed to
+
+<screen>
+PERL = /usr/bin/perl
+CC = gcc
+W_HOME = /usr/local/majordomo-1.94.5
+MAN = /usr/man
+W_USER = 16
+W_GROUP = 16
+</screen>
+
+Also the <filename>majordomo.cf</filename> file must be created.  An easy way to create this file is to copy the provided <filename>sample.cf</filename> file to <filename>majordomo.cf</filename> and edit it.
+
+<screen>
+<computeroutput>[jarchie@kes majordomo-1.94.5]$ </computeroutput><userinput>cp sample.cf majordomo.cf</userinput>
+<computeroutput>[jarchie@kes majordomo-1.94.5]$ </computeroutput><userinput>vi majordomo.cf</userinput>
+</screen>
+
+Again, most of the settings are correct by default, but the following lines might need to be changed for your system from
+
+<screen>
+$whereami = "example.com";
+$whoami = "Majordomo\@$whereami";
+$whoami_owner = "Majordomo-Owner\@$whereami";
+     $homedir = "/usr/test/majordomo";
+$digest_work_dir = "/usr/local/mail/digest";
+$sendmail_command = "/usr/lib/sendmail";
+</screen>
+
+to something more appropriate such as
+
+<screen>
+$whereami = "kes.emeraldis.com";
+$whoami = "majordomo\@$whereami";
+$whoami_owner = "majordomo-owner\@$whereami";
+     $homedir = "/usr/local/majordomo-1.94.5";
+$digest_work_dir = "/usr/local/majordomo-1.94.5/digest";
+$sendmail_command = "/usr/sbin/sendmail";
+</screen>
+
+<varname>$whoami</varname> and <varname>$whoami&lowbar;owner</varname> do not need to be changed for Majordomo to work; however, I changed them because I like to avoid typing capital letters.  <varname>$digest&lowbar;work&lowbar;dir</varname> is a temporary directory where digest files should be placed; this directory should be assigned to wherever you want digests to be stored.  If you do not plan to use digested lists, do not worry about this option.  <varname>$whereami</varname>, <varname>$homedir</varname>, and <varname>$sendmail&lowbar;command</varname> should be changed to appropriate values for your system.  Unlike the <filename>Makefile</filename>, these options can always be changed after Majordomo is installed by editing <filename>majordomo.cf</filename> in the directory where Majordomo was installed.  (The configuration file is simply copied during setup.)
+</para>
+
+</sect2>
+
+<sect2>
+<title>Installing Majordomo</title>
+
+<para>
+The next step is to compile the Majordomo wrapper.  The wrapper is the only Majordomo component that needs to be compiled because everything else is a collection of perl scripts and, therefore, is not compiled.
+
+<screen>
+<computeroutput>[jarchie@kes majordomo-1.94.5]$ </computeroutput><userinput>make wrapper</userinput>
+</screen>
+
+To install the Majordomo files, execute the commands
+
+<screen>
+<computeroutput>[root@kes majordomo-1.94.5]# </computeroutput><userinput>make install</userinput>
+<computeroutput>[root@kes majordomo-1.94.5]# </computeroutput><userinput>make install-wrapper</userinput>
+</screen>
+
+The first command can be done as the Majordomo user (assuming <literal>majordomo</literal> can create or has access to <varname>$home_dir</varname>), but the second command needs to be done as <literal>root</literal> so the installation script can SUID root the Majordomo wrapper.  (Since, <literal>majordomo</literal> was created without a login shell or password, if you want to execute the first command as <literal>majordomo</literal>, you will need to <command>su majordomo</command> as root in order to become <literal>majordomo</literal>.)
+</para>
+</sect2>
+
+<sect2>
+<title>Creating the Majordomo Aliases</title>
+
+<para>
+Sendmail aliases must be created for Majordomo so commands sent to Majordomo can be processed by <command>majordomo</command>, and an alias for the Majordomo owner must be created so people can E-mail you through the standard <literal>owner-majordomo</literal> address.  Add the following entries to your aliases file (see <xref linkend="sec-aliases">).
+
+<screen>
+majordomo:       "|/usr/local/majordomo-1.94.5/wrapper majordomo"
+owner-majordomo: jarchie
+majordomo-owner: jarchie
+</screen>
+</para>
+</sect2>
+
+<sect2>
+<title>Testing the Configuration</title>
+
+<para>
+As a regular user (<emphasis>not</emphasis> as <literal>majordomo</literal> <emphasis>or</emphasis> as <literal>root</literal>), run
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>/usr/local/majordomo-1.94.5/wrapper config-test</userinput>
+</screen>
+
+This program can detect most problems in the Majordomo installation.
+</para>
+</sect2>
+
+<sect2>
+<title>Creating Lists</title>
+
+<para>
+To create a list, create a file with the name of the list in the Majordomo lists directory.  For example, to create a list called test, create a test file as Majordomo
+
+<screen>
+<computeroutput>[root@kes /]# </computeroutput><userinput>su majordomo</userinput>
+<computeroutput>[majordomo@kes /]$ </computeroutput><userinput>touch /usr/local/majordomo-1.94.5/lists/test</userinput>
+</screen>
+
+and add the related aliases
+
+<screen>
+test:	       :include:/usr/local/majordomo-1.94.5/lists/test
+owner-test:    jarchie
+test-request:  "|/usr/local/majordomo-1.94.5/wrapper request-answer test"
+test-approval: jarchie
+</screen>
+</para>
+</sect2>
+
+<sect2>
+<title>Further Testing of the Configuration</title>
+
+<para>
+Now test the operation of the list by issuing a <command>lists</command> command to Majordomo.
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>echo lists | mail majordomo</userinput>
+</screen>
+
+It should only take a second for <command>majordomo</command> to reply with a message containing all the lists which are currently set up.  Next, try issuing a <command>help</command> command.
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>echo help | mail majordomo</userinput>
+</screen>
+
+Majordomo should reply with a list of all commands that Majordomo accepts.  It might be a good idea to save the message for future reference.
+</para>
+
+<para>
+To see if the aliases are working properly, try subscribing and unsubscribing yourself to the list.
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>echo subscribe test | mail majordomo</userinput>
+</screen>
+
+You will receive an E-mail message containing instructions on how to confirm your subscription as well as a letter confirming that your command was successful.  After sending back your confirmation, Majordomo should send back two letters--one letter stating that your subscribe request was successful and another letter welcoming you to the test list.  The owner of the list will also be sent a message stating that you have subscribed to the list.
+</para>
+
+<para>
+To unsubscribe from a list, send a <command>unsubscribe</command> command
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>echo unsubscribe test | mail majordomo</userinput>
+</screen>
+
+You should be sent back a letter stating that your command was successful.
+</para>
+</sect2>
+
+<sect2>
+<title>Creating Better Aliases</title>
+
+<para>
+For some lists, it may be desirable to have Majordomo process messages before they reach the list.  For example, Majordomo has the <command>resend</command> script to automatically filter messages based on content (such as taboo words), to prevent people from sending Majordomo commands to the list, and other features.  To use these options, it is necessary to use a better set of aliases such as
+
+<screen>
+test:        "|/usr/local/majordomo-1.94.5/wrapper resend -l test test-list"
+test-list:   :include:/usr/local/majordomo-1.94.5/lists/test
+owner-test:  jarchie
+test-owner:  jarchie
+test-request:  "|/usr/local/majordomo-1.94.5/wrapper majordomo -l test"
+</screen>
+
+The last entry allows someone simply to send a message to <literal>test-request@kes.emeraldis.com</literal> with the text <literal>subscribe</literal> rather than sending a letter to <literal>majordomo@kes.emeraldis.com</literal> with the text <literal>subscribe test</literal>.  Also, note that if sendmail is using smrsh, the above aliases should reference the copy of the wrapper in the safe path--usually <filename>/etc/smrsh/wrapper</filename>.
+</para>
+</sect2>
+
+<sect2>
+<title>Debugging</title>
+<para>
+It is common for Majordomo's permissions to be set incorrectly causing Majordomo to work improperly.  Fortunately, Sendmail and Majordomo typically, give decent error messages indicating a problem.  For example, the <filename>lists</filename> directory must be executable by the user sendmail setuids to, typically <literal>mail</literal> or <literal>daemon</literal>.  If <command>sendmail</command> cannot execute <filename>lists</filename>, the permissions must be loosened.
+<screen>
+<computeroutput>[root@kes root]# </computeroutput><userinput>chmod +x /usr/local/majordomo-1.94.5/lists</userinput>
+</screen>
+Another common problem is caused by the <filename>lists</filename> directory being group writable.  To solve this problem, one can ether clear the group writable bit, or use the sendmail option <literal>IncludeFileInGroupWritableDirPath</literal> (see <xref linkend="group-perm"> and <xref linkend="group-security"> for more details).
+</para>
+</sect2>
+
+<sect2>
+<title>Majordomo Security Concerns</title>
+<para>
+Majordomo is intended to run on a isolated system; there are a couple of well-known security holes in the scripts that allow any local user capable of executing <command>wrapper</command> to execute code as the <literal>majordomo</literal> user.  If Majordomo must be run on a system providing users with shell access, then it is advisable to tighten up permissions on the wrapper.  This can be done by clearing the world executable bit and <command>chgrp</command>ing the wrapper to the user that needs to run the Majordomo scripts.  For example, if Sendmail and MajorCool are both being used to execute the wrapper use the commands
+<screen>
+<computeroutput>[root@kes root]# </computeroutput><userinput>cp /usr/local/majordomo-1.94.5/wrapper /etc/smrsh/wrapper</userinput>
+<computeroutput>[root@kes root]# </computeroutput><userinput>chmod 4750 /usr/local/majordomo-1.94.5/wrapper</userinput>
+<computeroutput>[root@kes root]# </computeroutput><userinput>chown root:nobody /usr/local/majordomo-1.94.5/wrapper</userinput>
+<computeroutput>[root@kes root]# </computeroutput><userinput>chmod 4750 /etc/smrsh/wrapper</userinput>
+<computeroutput>[root@kes root]# </computeroutput><userinput>chown root:mail /etc/smrsh/wrapper</userinput>
+</screen>
+to secure the system.  This will allow <command>sendmail</command> (while running under <literal>mail</literal>) to execute <command>/etc/smrsh/wrapper</command> while allowing the webserver's MajorCool (running under <literal>nobody</literal>) to execute <command>/usr/local/majordomo-1.94.5/wrapper</command>.  This solution, however, will allow anyone with the UID or GID of <literal>mail</literal> or <literal>nobody</literal> to also obtain access to the <literal>majordomo</literal> account.  To protect the <literal>nobody</literal> account, it is important not to allow normal users to make use of server side includes or cgi scripts unless those services do not run under <literal>nobody</literal>.
+</para>
+</sect2>
+</sect1>
+
+<sect1>
+<title>MajorCool</title>
+
+<para>
+MajorCool is a web-based interface to Majordomo allowing users to add and delete themselves from lists and manage lists that they own.  The installation is fairly straightforward; all that need be done is to unzip the files, edit one line in the <command>Configure</command> script, and execute the script.
+</para>
+
+<sect2>
+<title>Extracting MajorCool</title>
+
+<para>
+The latest files can be downloaded from <ulink url="http://www.conveyanced.com/MajorCool/">Conveyance Digital</ulink>.
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>mkdir majorcool</userinput>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>mv majorcool.tar.gz ./majorcool/</userinput>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>cd majorcool/</userinput>
+<computeroutput>[jarchie@kes majorcool]$ </computeroutput><userinput>tar zxvf majorcool.tar.gz</userinput>
+</screen>
+</para>
+
+</sect2>
+
+<sect2>
+<title>Edit the <command>Configure</command> Script</title>
+
+<para>
+Open <command>Configure</command> and
+
+<screen>
+<computeroutput>[jarchie@kes majorcool]$ </computeroutput><userinput>vi Configure</userinput>
+</screen>
+
+change the line that reads
+
+<screen>
+PERLBIN="/usr/local/bin/perl"	# How to start a perl script
+</screen>
+
+to the proper location of <command>perl</command>
+
+<screen>
+PERLBIN="/usr/bin/perl"		# How to start a perl script
+</screen>
+
+otherwise, MajorCool will not be installed properly.
+</para>
+
+</sect2>
+
+<sect2>
+<title>Installing MajorCool</title>
+
+<para>
+When running the <command>Configure</command> script, if the default choice for an option is okay, simply pressing Enter will accept the default.
+
+<screen>
+<computeroutput>[root@kes majorcool]# </computeroutput><userinput>./Configure</userinput>
+</screen>
+
+The <command>Configure</command> script will ask you to hit Enter a few times, and then it will ask for the location of Majordomo and some more questions about the setup of your Web server.
+
+<screen>
+<computeroutput>What is the installation directory of Majordomo?
+	[]: </computeroutput><userinput>/usr/local/majordomo-1.94.5</userinput>
+<computeroutput>Will place the MajorCool programs in /usr/local/majordomo-1.94.5.
+ 
+What is the path to your Majordomo configuration file?
+	[/usr/local/majordomo-1.94.5/majordomo.cf]: 
+Using configuration file name '/usr/local/majordomo-1.94.5/majordomo.cf'
+ 
+Where would you like temp files created when MajorCool runs?
+	[/tmp]: 
+
+MajorCool needs to install CGI programs, support files, and icons in
+your Web server directories.
+ 
+What is the root directory for your Web server?
+	[]: </computeroutput><userinput>/var/www</userinput>
+
+<computeroutput>Where is the cgi-bin directory for your Web server?
+	[/var/www/cgi-bin]: 
+Will place the programs in /var/www/cgi-bin.
+ 
+What is your server's URL for '/var/www/cgi-bin'?
+	[/cgi-bin]: 
+ 
+Where is the image directory for your Web server?
+	[/var/www/icons]: 
+Will place the icons in /var/www/icons.
+ 
+What is your server's URL for '/var/www/icons'?
+	[/images]: </computeroutput><userinput>/icons</userinput>
+
+<computeroutput>Where is the root directory for documents on your Web server?
+	[]: </computeroutput><userinput>/var/www/html</userinput>
+</screen>
+
+The <command>Configure</command> script will ask other questions that are less critical.  (The defaults are fine, but you might want to change a few settings to fit your preferences.  Unlike some of the Web server questions, the meanings should be obvious from the context.)  When the configuration file that the script generated from your answers is displayed, you should accept the new version.
+
+<screen>
+<computeroutput>Accept the new version? [yes|no|list|edit|diff]? </computeroutput><userinput>y</userinput>
+</screen>
+
+The installation script will install the MajorCool files and run the <command>majordomo</command> cgi script which outputs the html file to the console.  Check to see if the installation worked by viewing the <command>majordomo</command> cgi script from the web.
+
+<screen>
+<computeroutput>[jarchie@kes jarchie]$ </computeroutput><userinput>lynx http://localhost/cgi-bin/majordomo</userinput>
+</screen>
+</para>
+</sect2>
+</sect1>
+
+<sect1>
+<title>Frequently Asked Questions</title>
+<para>
+Two questions occur often.
+</para>
+<qandaset>
+<qandaentry>
+<question>
+<para>
+Why does sendmail give the error, <literal>sh: wrapper not available for sendmail programs</literal>?
+</para>
+</question>
+<answer>
+<para>
+<command>smrsh</command> will only allow sendmail to execute certain files. See <xref linkend="smrsh">.
+</para>
+</answer>
+</qandaentry>
+
+<qandaentry>
+<question>
+<para>
+Why will Red Hat not process my mc file?
+</para>
+</question>
+<answer>
+<para>
+For some reason, Red Hat does not include the necessary files to process mc files.  According to <filename>/etc/mail/sendmail.mc</filename>, these files should be in the <literal>sendmail-cf</literal> package; however, I was unable to find this package on the CD.  To fix this problem, install Red Hat's sendmail SRPM, uncompress the sendmail tarball, and copy the necessary macro files.
+<screen>
+<computeroutput>[root@kes root]# </computeroutput><userinput>rpm -i sendmail-8.11.0-8.src.rpm</userinput>
+<computeroutput>[root@kes root]# </computeroutput><userinput>cd /usr/src/redhat/SOURCES/</userinput>
+<computeroutput>[root@kes SOURCES]# </computeroutput><userinput>tar zxvf sendmail-8.11.0.tar.gz</userinput>
+<computeroutput>[root@kes SOURCES]# </computeroutput><userinput>cd sendmail-8.11.0</userinput>
+<computeroutput>[root@kes sendmail-8.11.0]# </computeroutput><userinput>cp -R cf /usr/lib/sendmail-cf</userinput>
+<computeroutput>[root@kes sendmail-8.11.0]# </computeroutput><userinput>cd ..</userinput>
+<computeroutput>[root@kes SOURCES]# </computeroutput><userinput>rm -rf sendmail-8.11.0</userinput>
+</screen>
+Also in the default <filename>/etc/mail/sendmail.mc</filename> file, there is a slight syntax error.  (The beginning single quotes on one line slant in the wrong direction.)  The line that reads
+<screen>
+define('ALIAS_FILE','/etc/aliases')dnl
+</screen>
+should be changed to
+<screen>
+define(`ALIAS_FILE',`/etc/aliases')dnl
+</screen>
+After these two changes, the new <filename>sendmail.cf</filename> should be generated properly.
+</para>
+</answer>
+</qandaentry>
+</qandaset>
+</sect1>
+
+<glossary>
+<title>List of Terms</title>
+
+<glossentry id="def-digest">
+<glossterm>digest</glossterm>
+<glossdef>
+<para>
+a collection of new messages mailed to the members of an archived list as one message.  A list is called digested when it is archived and, periodically, a digest is sent out.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-gid">
+<glossterm>Group ID</glossterm>
+<acronym>GID</acronym>
+<glossdef>
+<para>
+an identification number assigned to files, directories, and processes to restrict access--similar to UID except multiple people can be a member of a group.  On Unix-type systems, groups can be set up (defined in the <filename>/etc/group</filename> file).  When a user name is a member of a group, she can access files created with that GID (assuming permissions allow it).
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-mta">
+<glossterm>Mail Transfer Agent</glossterm>
+<acronym>MTA</acronym>
+<glossdef>
+<para>
+a program, such as Sendmail, responsible for passing mail from one location to another.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-sgid">
+<glossterm>Set Group ID</glossterm>
+<acronym>SGID</acronym>
+<glossdef>
+<para>
+a file attribute which allows a program to run with specific group privileges no matter who executes it.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-smrsh">
+<glossterm><command>smrsh</command></glossterm>
+<glossdef>
+<para>
+(SendMail Restricted SHell) the shell that Sendmail uses to execute programs.  <command>smrsh</command> puts restrictions on the programs that can be run to make it safer than using a regular shell such as the Bourne Shell.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-suid">
+<glossterm>Set User ID</glossterm>
+<acronym>SUID</acronym>
+<glossdef>
+<para>
+a file attribute which allows a program to run as a specific user no matter who executes it.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-uid">
+<glossterm>User ID</glossterm>
+<acronym>UID</acronym>
+<glossdef>
+<para>
+an identification number assigned to files directories, and processes--similar to GID except every user has a unique UID.  Every process must run under a UID (the one-to-one relationship between the UID and user name is defined in <filename>/etc/passwd</filename>).  The process' UID determines what the program can access.  In general a regular user can change the permissions on files that she owns unless the UID is 0 (the <literal remap="tt">root</literal> user).  In that case, <literal remap="tt">root</literal> can modify any files on the system.
+</para>
+</glossdef>
+</glossentry>
+
+<glossentry id="def-wrapper">
+<glossterm>wrapper</glossterm>
+<glossdef>
+<para>
+a program used to start another program; usually a wrapper is SUID or SGID so it can bestow privileges onto another program that the other program would not normally have.
+</para>
+</glossdef>
+</glossentry>
+</glossary>
+</article>
+
