@@ -157,6 +157,7 @@ print "<select name=license>";
 if ( $license eq "" )  { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $license eq "GFDL" )  { print '<option selected>GFDL</option>'; } else { print '<option>GFDL</option>' }
 if ( $license eq "LDPL" ) { print '<option selected>LDPL</option>'; } else { print '<option>LDPL</option>' }
+if ( $license eq "LDPLFREE" ) { print '<option selected>LDPLFREE</option>'; } else { print '<option>LDPLFREE</option>' }
 if ( $license eq "OPL" )  { print '<option selected>OPL</option>'; } else { print '<option>OPL</option>' }
 if ( $license eq "GPL" )  { print '<option selected>GPL</option>'; } else { print '<option>GPL</option>' }
 if ( $license eq "NONE" )  { print '<option selected>NONE</option>'; } else { print '<option>NONE</option>' }
