@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2002-09-10 10:18:44 root make.fdisk>
+# Time-stamp: <2003-01-19 17:23:14 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -49,6 +49,15 @@
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
 # Changes:
+
+# 2003 01 09: Added support for FAT32. We now create two scripts for
+# each hard drive, make.dev.[as]dx and mount.dev.[as]dx. These create
+# and make file systems on each partition, and make mount points and
+# mount them.
+
+# 2002 12 25: added support to handle W95 extended (LBA) (f) and W95
+# FAT 32 partitions. I have tested this for primary but not logical
+# partitions.
 
 # 2002 09 08: Added minimal support for ext3fs. We now detect mounted
 # ext3fs partitions & rebuild but with no options. The detection
@@ -107,9 +116,8 @@
 # disk. Because the bare metal restore scripts all are in /root/bin,
 # the data file and script created by this script are also placed
 # there. The same script also creates appropriate Linux file systems,
-# either ext2fs, or Linux swap. There is limited support for FAT12 and
-# FAT16. There is no support right now (hint, hint) for FAT32. For
-# anything else, you're on your own.
+# either ext2fs, or Linux swap. There is limited support for FAT12,
+# FAT16 and FAT32. For anything else, you're on your own.
 
 # Note for FAT32: According to the MS KB, there are more than one
 # reserved sectors for FAT32, usually 32, but it can vary. Do a search
@@ -156,6 +164,39 @@ sub cut2fmt {
 
     $template .= "A*";
     return $template;
+}
+
+
+# Sub gpl, a subroutine to ship the GPL and other header information
+# to the current output file.
+
+sub gpl {
+
+print OUTPUT <<FINIS;
+
+# Copyright 2001 through the last date of modification Charles Curley.
+
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+# You can also contact the Free Software Foundation at http://www.fsf.org/
+
+# For more information contact the author, Charles Curley, at
+# http://w3.trib.com/~ccurley/.
+
+FINIS
+
 }
 
 
@@ -234,7 +275,7 @@ while (<FDISK>) {
 
 	$partnumber = substr(@_[$dev], 8, 10); # get partition number for this line
 	# just for grins
-#  	print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$partstring]\n";
+#  	print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$parttype], @_[$partstring]\n";
 
 	# Here we start creating the input to recreate the partition
 	# this line represents.
@@ -277,10 +318,20 @@ while (<FDISK>) {
 
 		# extended partition
 	    } elsif (@_[$parttype] == 5) {
+		# print ("Creating Extended Partition.\n");
 		print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
 		if (@_[$firstcyl] ne @_[$lastcyl]) {
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
+
+		# extended partition, Win95 Ext'd (LBA)
+	    } elsif (@_[$parttype] eq "f") {
+		# print ("Creating Extended LBA Partition.\n");
+		print OUTPUT "e\n$partnumber\n@_[$firstcyl]\n";
+		if (@_[$firstcyl] ne @_[$lastcyl]) {
+		    print OUTPUT "@_[$lastcyl]\n";
+		}
+		print OUTPUT "t\n$partnumber\nf\n";
 
 		# primary Linux swap partition
 	    } elsif (@_[$parttype] == 82) {
@@ -292,9 +343,12 @@ while (<FDISK>) {
 		$format .= "echo Making @_[$dev] a swap partition.\n";
 		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
-		# primary mess-dos partition. We don't handle FAT32,
-		# which requires a command line switch for mkdosfs.
-	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6 ) {
+		# Primary mess-dos partition. We don't handle hidden
+		# partitions.
+	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
+		      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
+		      || @_[$parttype] eq "e" ) {
+		# print ("Making DOS primary partition.\n");
 		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
 		print (" bs=512 count=1\n");
 		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
@@ -304,7 +358,12 @@ while (<FDISK>) {
 		}
 		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
 		$format .= "echo\necho formatting $checking@_[$dev]\n";
-		$format .= "mkdosfs \$blockcheck @_[$dev]\n";
+		$format .= "mkdosfs \$blockcheck";
+		if ( @_[$parttype] == b || @_[$parttype] == c) {
+		    # We have a W9x FAT32 partition. Add a command line switch.
+		    $format .= " -F 32";
+		}
+		$format .= " @_[$dev]\n";
 		$format .= "# restore FAT boot sector.\n";
 		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
@@ -362,19 +421,28 @@ while (<FDISK>) {
 		$format .= "echo Making @_[$dev] a swap partition.\n";
 		$format .= "mkswap \$blockcheck @_[$dev]\n\n";
 
-		# primary mess-dos partition. We don't handle FAT32,
-		# which requires a command line switch for mkdosfs.
-	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6 ) {
+		# Logical mess-dos partition. We don't handle hidden
+		# partitions.
+
+	    } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
+		      || @_[$parttype] eq "b" || @_[$parttype] eq "c"
+		      || @_[$parttype] eq "e" ) {
+# 		print ("Making DOS logical partition.\n");
 		print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
 		print (" bs=512 count=1\n");
 		system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
-		print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
+		print OUTPUT "l\n$partnumber\n@_[$firstcyl]\n";
 		if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
 		    print OUTPUT "@_[$lastcyl]\n";
 		}
 		print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
 		$format .= "echo\necho formatting $checking@_[$dev]\n";
-		$format .= "mkdosfs \$blockcheck @_[$dev]\n";
+		$format .= "mkdosfs \$blockcheck";
+		if ( @_[$parttype] == b || @_[$parttype] == c) {
+		    # We have a W9x FAT32 partition. Add a command line switch.
+		    $format .= " -F 32";
+		}
+		$format .= " @_[$dev]\n";
 		$format .= "# restore FAT boot sector.\n";
 		$format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
 
@@ -411,27 +479,11 @@ print OUTPUT <<FINIS;
 # A script to restore the partition data of a hard drive and format
 # the partitions. Created at bare metal backup time by the Perl script
 # make.fdisk.
+FINIS
 
-# Copyright 2001 through the last date of modification Charles Curley.
+&gpl;
 
-# This program is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation; either version 2 of the License, or (at your
-# option) any later version.
-
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
-# You can also contact the Free Software Foundation at http://www.fsf.org/
-
-# For more information contact the author, Charles Curley, at
-# http://w3.trib.com/~ccurley/.
+print OUTPUT <<FINIS;
 
 export blockcheck=\$1;
 
@@ -450,7 +502,36 @@ print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
 print OUTPUT "fdisk $device \< $outputfilename\n\nsync\n\n";
 print OUTPUT $format;
 
-# Now build the mount points on the root and other partitions.
+print OUTPUT "fdisk -l \"$device\"\n";
+
+close (OUTPUT);
+
+# Now build the script that will build the mount points on the root
+# and other partitions.
+
+open (OUTPUT, "> ${outputfilepath}mount.$outputfilename")
+    or die "Couldn't open output file ${outputfilepath}make.$outputfilename.\n";
+
+print OUTPUT <<FINIS;
+#! /bin/sh
+
+# A script to create a minimal directory tree on the target hard drive
+# and mount the partitions on it. Created at bare metal backup time by
+# the Perl script make.fdisk.
+FINIS
+
+&gpl;
+
+print OUTPUT <<FINIS;
+
+# WARNING: If your Linux system mount partitions across hard drive
+# boundaries, you will have multiple "mount.dev.* scripts. You must
+# ensure that they run in the proper order. The root partition should
+# be mounted first, then the rest in the order they cascade. If they
+# cross mount, you'll have to handle that manually.
+
+FINIS
+
 
 # We have a hash of mount points and devices in %mountpoints. However,
 # we have to process them such that directories are built on the
@@ -469,10 +550,12 @@ foreach $point ( sort keys %mountpoints) {
     print OUTPUT "mount $mountpoints{$point} $target$point\n";
 }
 
+print OUTPUT "\nmount | grep -i \"$device\"\n";
 
 close (OUTPUT);
 
 # These scripts are dangerous & should only be visible to root.
 
 chmod 0700, "${outputfilepath}make.$outputfilename";
+chmod 0700, "${outputfilepath}mount.$outputfilename";
 chmod 0600, "${outputfilepath}$outputfilename";
