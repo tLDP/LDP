@@ -39,9 +39,6 @@ psql ldp -qf license.sql
 psql ldp -qf username.sql
 psql ldp -qf config.sql
 
-# indexes
-psql ldp -qf indexes.sql
-
 # permissions
 psql ldp -qf permissions.sql
 

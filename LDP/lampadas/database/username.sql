@@ -1,7 +1,7 @@
 DROP TABLE username;
 
 CREATE TABLE username (
-	username	TEXT	NOT NULL,
+	username	CHAR(20)	NOT NULL,
 	first_name	CHAR(20),
 	surname		CHAR(20),
 	maintainer_id	INT4,

@@ -6,5 +6,5 @@ CREATE TABLE document_wiki (
 	date_entered	TIMESTAMP NOT NULL DEFAULT now(),
 	wiki		TEXT,
 	notes		CHAR(256),
-	username	CHAR(12)
+	username	CHAR(20)
 );
