@@ -69,7 +69,7 @@ class Sections(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT section_code, sort_order, only_dynamic, only_registered, only_admin, only_sysadmin FROM section"
+        sql = "SELECT section_code, sort_order FROM section"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -86,14 +86,11 @@ class Section:
     def load_row(self, row):
         self.code		      = trim(row[0])
         self.sort_order       = safeint(row[1])
-        self.only_dynamic     = tf2bool(row[2])
-        self.only_registered  = tf2bool(row[3])
-        self.only_admin       = tf2bool(row[4])
-        self.only_sysadmin    = tf2bool(row[5])
-        self.dynamic_count    = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_dynamic'))
-        self.registered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_registered or only_admin or only_sysadmin'))
-        self.admin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_admin or only_sysadmin'))
-        self.sysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_sysadmin'))
+        self.static_count    = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_dynamic=' + wsq('f') + ''))
+        self.nonregistered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_registered=' + wsq('f') + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
+        self.nonadmin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
+        self.nonsysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_sysadmin=' + wsq('f') + ''))
+        print self.code + ': ' + str(self.nonregistered_count) + ', ' + str(self.nonsysadmin_count) + ', ' + str(self.nonadmin_count)
         sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):

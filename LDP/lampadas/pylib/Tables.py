@@ -788,17 +788,14 @@ class Tables:
         for key in keys:
             page = lampadasweb.pages[key]
             if page.section_code==section.code:
-                if page.only_dynamic and lampadasweb.static:
+                if lampadasweb.static and page.only_dynamic:
                     continue
-                if page.only_registered or page.only_admin or page.only_sysadmin > 0:
-                    if sessions.session==None:
-                        continue
-                if page.only_admin > 0:
-                    if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
-                        continue
-                if page.only_sysadmin > 0:
-                    if sessions.session.user.sysadmin==0:
-                        continue
+                if page.only_registered and sessions.session==None:
+                    continue
+                if page.only_admin and (sessions.session==None or sessions.session.user.admin==0):
+                    continue
+                if page.only_sysadmin and (sessions.session==None or sessions.session.user.sysadmin==0):
+                    continue
                 box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
                     % (page.code, page.menu_name[uri.lang]))
         box.write('</td></tr></table>\n')
@@ -806,28 +803,22 @@ class Tables:
 
     def section_menus(self, uri):
         log(3, "Creating all section menus")
-        box = ''
+        box = WOStringIO('')
         keys = lampadasweb.sections.sort_by('sort_order')
-        first_menu = 1
+        menu_separator = ''
         for key in keys:
             section = lampadasweb.sections[key]
-            if lampadasweb.static and (section.only_dynamic or section.dynamic_count==0):
+            if lampadasweb.static and section.static_count==0:
                 continue
-            if section.only_registered or section.only_admin or section.only_sysadmin > 0:
-                if sessions.session==None or section.registered_count==0:
-                    continue
-            if section.only_admin > 0:
-                if (sessions.session.user.admin==0 and sessions.session.user.sysadmin==0) or (section.admin_count==0):
-                    continue
-            if section.only_sysadmin > 0:
-                if sessions.session.user.sysadmin==0 or section.sysadmin_count==0:
-                    continue
-            if first_menu==1:
-                first_menu = 0
-            else:
-                box = box + '<p>'
-            box = box + self.section_menu(uri, section.code)
-        return box
+            if section.nonregistered_count==0 and (sessions.session==None):
+                continue
+            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+                continue
+            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+                continue
+            box.write(menu_separator + self.section_menu(uri, section.code))
+            menu_separator = '<p>'
+        return box.get_value()
 
     def sitemap(self, uri):
         log(3, 'Creating sitemap')
