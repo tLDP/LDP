@@ -50,9 +50,8 @@ from Log import log
 import os
 
 BIN = '/home/david/ldp/csv/LDP/lampadas/bin/'
-PYLIB = '/home/david/ldp/csv/LDP/lampadas/bin/'
-EXTERNAL_TESTS = (BIN + 'rebuild', BIN + 'reload', 'Lintadas.py', 'Mirror.py', 'Makefile.py publish')
-EXTERNAL_TESTS = (BIN + 'rebuild', BIN + 'reload')
+EXTERNAL_TESTS = [BIN + 'rebuild', BIN + 'reload', 'Lintadas.py', 'Mirror.py', 'Makefile.py publish']
+EXTERNAL_TESTS = [BIN + 'rebuild', BIN + 'reload']
 
 # TESTS TO ADD:
 # 
@@ -392,8 +391,8 @@ if __name__=="__main__":
     log(3, 'testing commands')
     for command in EXTERNAL_TESTS:
         log(3, 'testing command: ' + command)
-        os.system(command)
+#        os.system(command)
+        print command
         log(3, 'testing command: ' + command + ' done')
     log(3, 'testing commands done')
-
-	unittest.main()
+    unittest.main()

@@ -33,7 +33,8 @@ class PubStatuses(DataCollection):
                                  'pub_status',
                                  {'pub_status_code':        {'data_type': 'string', 'attribute': 'code'}},
                                  {'sort_order':         {'data_type': 'int'}},
-                                 {'pub_status_name':       {'data_type': 'string', 'attribute': 'name'}})
+                                 [{'pub_status_name':       {'data_type': 'string', 'attribute': 'name'}},
+                                  {'pub_status_desc':       {'data_type': 'string', 'attribute': 'description'}}])
 
 class PubStatus(DataObject):
     """

@@ -396,18 +396,12 @@ class DataObject:
                     replacement = 'NULL'
                 else:
                     replacement = str(value)
-            elif data_type=='bool':
-                replacement = wsq(bool2tf(value))
-            elif data_type=='string':
-                replacement = wsq(str(value))
-            elif data_type=='date':
-                replacement = wsq(str(value))
-            elif data_type=='time':
-                replacement = wsq(str(value))
-            elif data_type=='created':
-                replacement = wsq(str(value))
-            elif data_type=='updated':
-                replacement = wsq(now_string())
+            elif data_type=='bool':    replacement = wsq(bool2tf(value))
+            elif data_type=='string':  replacement = wsq(str(value))
+            elif data_type=='date':    replacement = wsq(str(value))
+            elif data_type=='time':    replacement = wsq(str(value))
+            elif data_type=='created': replacement = wsq(str(value))
+            elif data_type=='updated': replacement = wsq(now_string())
             else:
                 print 'ERROR: Unrecognized data type definition, see DataObject.save()'
                 print 'Table= ' + self.parent.table
@@ -419,7 +413,6 @@ class DataObject:
         sql.write(self.where())
         #print sql.get_value()
         db.runsql(sql.get_value())
-                
             
 
 class Filter:
