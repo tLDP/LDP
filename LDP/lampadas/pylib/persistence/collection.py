@@ -27,7 +27,7 @@ class Collection(Persistence):
     def __getattr__(self, attribute):
         if attribute=='documents':
             return document_collection.get_by_keys([['collection_code', '=', self.code]])
-        if attribute in ('name', 'description'):
+        elif attribute in ('name', 'description'):
             self.name = LampadasCollection()
             self.description = LampadasCollection()
             i18ns = collection_i18n.get_by_keys([['collection_code', '=', self.code]])
@@ -37,8 +37,11 @@ class Collection(Persistence):
                 self.description[i18n.lang] = i18n.collection_desc
         if attribute=='name':
             return self.name
-        else:
+        elif attribute=='description':
             return self.description
+        else :
+            raise AttributeError('No such attribute %s' % attribute)
+
 
 #collection.object_class = Collection
 
