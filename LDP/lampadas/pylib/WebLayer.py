@@ -44,7 +44,7 @@ class Blocks(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT block_code FROM block"
+        sql = "SELECT block_code, block FROM block"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -56,24 +56,11 @@ class Blocks(LampadasCollection):
 class Block:
 
     def __init__(self):
-        self.i18n = LampadasCollection()
+        self.block = {}
 
     def load(self, row):
-        self.code		= trim(row[0])
-        sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.code)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row == None: break
-            newBlockI18n = BlockI18n()
-            newBlockI18n.load(row)
-            self.i18n[newBlockI18n.lang] = newBlockI18n
-
-class BlockI18n:
-
-    def load(self, row):
-        self.lang	= row[0]
-        self.block	= row[1]
+        self.code  = trim(row[0])
+        self.block = trim(row[1])
 
 
 # Sections
@@ -94,7 +81,7 @@ class Sections(LampadasCollection):
 class Section:
 
     def __init__(self):
-        self.i18n = LampadasCollection()
+        self.name = {}
 
     def load(self, row):
         self.code		      = trim(row[0])
@@ -110,15 +97,8 @@ class Section:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newSectionI18n = SectionI18n()
-            newSectionI18n.load(row)
-            self.i18n[newSectionI18n.lang] = newSectionI18n
-
-class SectionI18n:
-
-    def load(self, row):
-        self.lang	= row[0]
-        self.name	= trim(row[1])
+            lang = row[0]
+            self.name[lang] = trim(row[1])
 
 
 # Pages
@@ -139,7 +119,9 @@ class Pages(LampadasCollection):
 class Page:
 
     def __init__(self):
-        self.i18n = LampadasCollection()
+        self.title = {}
+        self.menu_name = {}
+        self.page = {}
 
     def load(self, row):
         self.code            = trim(row[0])
@@ -154,19 +136,12 @@ class Page:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newPageI18n = PageI18n()
-            newPageI18n.load(row)
-            self.i18n[newPageI18n.lang] = newPageI18n
-
-class PageI18n:
-
-    def load(self, row):
-        self.lang       = row[0]
-        self.title      = trim(row[1])
-        self.menu_name	= trim(row[2])
-        self.page       = trim(row[3])
-        if self.menu_name == '':
-            self.menu_name = self.title
+            lang            = row[0]
+            self.title[lang] = trim(row[1])
+            self.menu_name[lang] = trim(row[2])
+            self.page[lang] = trim(row[3])
+            if self.menu_name[lang]=='':
+                self.menu_name[lang] = self.title[lang]
 
 
 # Strings
@@ -193,7 +168,7 @@ class String:
     """
 
     def __init__(self, StringCode=None):
-        self.i18n = LampadasCollection()
+        self.string = {}
 
     def load(self, row):
         self.code = trim(row[0])
@@ -202,17 +177,8 @@ class String:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newStringI18n = StringI18n()
-            newStringI18n.load(row)
-            self.i18n[newStringI18n.lang] = newStringI18n
-
-# StringI18n
-
-class StringI18n:
-
-    def load(self, row):
-        self.lang		= row[0]
-        self.string		= trim(row[1])
+            lang              = row[0]
+            self.string[lang] = trim(row[1])
 
 
 # Templates
@@ -254,7 +220,7 @@ class NewsItems(LampadasCollection):
 class NewsItem:
 
     def __init__(self):
-        self.i18n = LampadasCollection()
+        self.news = {}
 
     def load(self, row):
         self.id             = row[0]
@@ -264,15 +230,8 @@ class NewsItem:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newNewsItemI18n = NewsItemI18n()
-            newNewsItemI18n.load(row)
-            self.i18n[newNewsItemI18n.lang] = newNewsItemI18n
-
-class NewsItemI18n:
-
-    def load(self, row):
-        self.lang       = row[0]
-        self.news       = trim(row[1])
+            lang            = row[0]
+            self.news[lang] = trim(row[1])
 
 
 # WebLayer

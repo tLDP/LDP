@@ -20,7 +20,7 @@ insert([footer],
         <td>
           <a href="copyright">|strcopyright|</a> \\|
           <a href="privacy">|strprivacy|</a> \\|
-          <a href="lampadas">|strabout_lampadas|</a>
+          <a href="lampadas">|strabout_lamp|</a>
         </td>
       </tr>
     </table>

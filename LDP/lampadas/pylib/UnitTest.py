@@ -272,13 +272,13 @@ class testLanguages(unittest.TestCase):
 
     def testLanguages(self):
         log(3, 'testing Languages')
-        assert not lampadas.Languages == None
-        assert not lampadas.Languages['EN'] == None
-        assert lampadas.Languages['EN'].Supported
-        assert lampadas.Languages['EN'].I18n['EN'].Name == 'English'
-        assert lampadas.Languages['FR'].Supported
-        assert lampadas.Languages['FR'].I18n['EN'].Name == 'French'
-        assert lampadas.Languages.count() == 136
+        assert not lampadas.languages == None
+        assert not lampadas.languages['EN'] == None
+        assert lampadas.languages['EN'].Supported
+        assert lampadas.languages['EN'].I18n['EN'].Name == 'English'
+        assert lampadas.languages['FR'].Supported
+        assert lampadas.languages['FR'].I18n['EN'].Name == 'French'
+        assert lampadas.languages.count() == 136
         log(3, 'testing Languages done')
 
 

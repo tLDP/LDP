@@ -130,6 +130,7 @@ insert([topic], [View Topic], [View Topic],
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
+    |tabsubtopicdocs|
 ])
 
 insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],

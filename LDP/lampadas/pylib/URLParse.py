@@ -53,7 +53,7 @@ class URI:
         self.protocol = ""
         self.server = ""
         self.port = ""
-        self.language = "EN"
+        self.lang = "EN"
         self.force_lang = 0
         self.path = ""
         self.format = ""
@@ -64,6 +64,9 @@ class URI:
         self.anchor = ""
 
         self.uri = uri
+        self.base = uri
+        if self.base[0]=='/':
+            self.base = self.base[1:]
         
         temp = uri
         if len(temp) == 0:
@@ -89,11 +92,12 @@ class URI:
         temp = string.split(temp, '/')
 
         if len(temp) > 0:
-            lang = lampadas.Languages[temp[0]]
+            lang = lampadas.languages[temp[0]]
             if not lang == None:
-                self.language = temp[0]
+                self.lang = temp[0]
                 temp = temp[1:]
                 self.force_lang = 1
+                self.base = self.base[3:]
 
         # this is where we load ids and codes for pages which
         # contain an object and display its attributes.
@@ -104,7 +108,7 @@ class URI:
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-            elif temp[0] == 'topic' or temp[0] == 'subtopic':
+            elif temp[0] == 'topic' or temp[0] == 'subtopic' or temp[0]=='class':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
@@ -127,11 +131,12 @@ class URI:
 
     def printdebug(self):
         print "URI: [" + self.uri + "]"
+        print "Base: [" + self.base + "]"
         print "Protocol: [" + self.protocol + "]"
         print "Server: [" + self.server + "]"
         print "Port: [" + self.port + "]"
         print "Path: [" + self.path + "]"
-        print "Language: [" + self.language + "]"
+        print "Language: [" + self.lang + "]"
         print "Forced Language: [" + str(self.force_lang) + "]"
         print "ID [" + str(self.id) + "]"
         print "Code [" + str(self.code) + "]"

@@ -234,6 +234,7 @@ insert([topic], [View Topic], [],
 insert([subtopic], [View Subtopic], [],
 [
     |tabsubtopic|
+    |tabsubtopicdocs|
 ])
 
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],

@@ -55,15 +55,15 @@ class Lampadas:
     """
     
     def __init__(self):
-        self.Classes        = Classes()
-        self.Classes.Load()
+        self.classes        = Classes()
+        self.classes.Load()
         self.Config         = Cfg()
         self.Docs           = Docs()
         self.Docs.Load()
         self.Licenses       = Licenses()
         self.DTDs           = DTDs()
         self.Formats        = Formats()
-        self.Languages      = Languages()
+        self.languages      = Languages()
         self.PubStatuses    = PubStatuses()
         self.ReviewStatuses = ReviewStatuses()
         self.topics         = Topics()
@@ -85,14 +85,14 @@ class Classes(LampadasCollection):
     """
     
     def Load(self):
-        sql = "SELECT class_id, sort_order FROM class"
+        sql = "SELECT class_code, sort_order FROM class"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newClass = Class()
             newClass.Load(row)
-            self.data[newClass.ID] = newClass
+            self.data[newClass.code] = newClass
 
 class Class:
     """
@@ -100,35 +100,26 @@ class Class:
     User's Guide, a HOWTO, or a FAQ List.
     """
 
-    def __init__(self, ClassID=None):
-        self.I18n = LampadasCollection()
-        if ClassID==None: return
-        self.ID = ClassID
+    def __init__(self, class_code=None):
+        self.name = {}
+        self.description = {}
+        if class_code==None: return
+        self.code = class_code
 
     def Load(self, row):
-        self.ID         = row[0]
+        self.code       = trim(row[0])
         self.sort_order = row[1]
 
-        sql = "SELECT lang, class_name, class_desc FROM class_i18n WHERE class_id=" + str(self.ID)
-        self.cursor = db.select(sql)
+        sql = "SELECT lang, class_name, class_desc FROM class_i18n WHERE class_code=" + wsq(self.code)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newClassI18n = ClassI18n()
-            newClassI18n.Load(self.row)
-            self.I18n[newClassI18n.Lang] = newClassI18n
+            row = cursor.fetchone()
+            if row == None: break
+            lang = row[0]
+            self.name[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
-class ClassI18n:
-    """
-    Holds localized strings that name and describe a class.
-    """
 
-    def Load(self, row):
-        self.Lang        = row[0]
-        self.Name        = trim(row[1])
-        self.Description = trim(row[2])
-
-    
 # Cfg
 
 class Cfg(LampadasCollection):
@@ -144,10 +135,10 @@ class Cfg(LampadasCollection):
         return self[key]
 
     def Load(self):
-        self.sql = "SELECT name, value FROM config"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT name, value FROM config"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             self.data[trim(row[0])] = trim(row[1])
 
@@ -160,7 +151,7 @@ class Docs(LampadasCollection):
     """
 
     def Load(self):
-        sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+        sql = "SELECT doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -172,10 +163,10 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters.
 
-    def add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
+    def add(self, Title, class_code, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
         self.id = db.read_value('SELECT max(doc_id) from document') + 1
-        self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
-        assert db.runsql(self.sql) == 1
+        sql = "INSERT INTO document(doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + wsq(class_code) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
+        assert db.runsql(sql) == 1
         db.commit()
         self.NewID = db.read_value('SELECT MAX(doc_id) from document')
         newDoc = Doc(self.NewID)
@@ -183,8 +174,8 @@ class Docs(LampadasCollection):
         return self.NewID
     
     def Del(self, id):
-        self.sql = ('DELETE from document WHERE doc_id=' + str(id))
-        assert db.runsql(self.sql) == 1
+        sql = ('DELETE from document WHERE doc_id=' + str(id))
+        assert db.runsql(sql) == 1
         db.commit()
         del self[id]
 
@@ -198,7 +189,7 @@ class Doc:
         self.Load(id)
 
     def Load(self, id):
-        sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.LoadRow(row)
@@ -206,7 +197,7 @@ class Doc:
     def LoadRow(self, row):
         self.ID                     = row[0]
         self.Title                  = trim(row[1])
-        self.ClassID                = row[2]
+        self.class_code             = trim(row[2])
         self.FormatID               = row[3]
         self.DTD                    = trim(row[4])
         self.DTDVersion             = trim(row[5])
@@ -233,8 +224,8 @@ class Doc:
         self.Versions               = DocVersions(self.ID)
 
     def Save(self):
-        self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
-        db.runsql(self.sql)
+        sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_code=" + wsq(self.class_code) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+        db.runsql(sql)
         db.commit()
 
 
@@ -250,18 +241,18 @@ class DocErrs(LampadasList):
         LampadasList.__init__(self)
         assert not DocID == None
         self.DocID = DocID
-        self.sql = "SELECT err_id FROM document_error WHERE doc_id=" + str(DocID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT err_id FROM document_error WHERE doc_id=" + str(DocID)
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newDocErr = DocErr()
             newDocErr.Load(DocID, row)
             self.list = self.list + [newDocErr]
 
     def Clear(self):
-        self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
-        db.runsql(self.sql)
+        sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
+        db.runsql(sql)
         db.commit()
         self.list = []
 
@@ -269,8 +260,8 @@ class DocErrs(LampadasList):
 # rather than passing all these parameters here.
 
     def add(self, ErrID):
-        self.sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.DocID) + ", " + wsq(ErrID)
-        assert db.runsql(self.sql) == 1
+        sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.DocID) + ", " + wsq(ErrID)
+        assert db.runsql(sql) == 1
         newDocErr = DocErr()
         newDocErr.DocID = self.DocID
         newDocErr.ErrID = ErrID
@@ -300,18 +291,18 @@ class DocFiles(LampadasCollection):
         self.data = {}
         assert not DocID == None
         self.DocID = DocID
-        self.sql = "SELECT filename, format_id FROM document_file WHERE doc_id=" + str(DocID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT filename, format_id FROM document_file WHERE doc_id=" + str(DocID)
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newDocFile = DocFile()
             newDocFile.Load(DocID, row)
             self.data[newDocFile.Filename] = newDocFile
 
     def add(self, DocID, Filename, FormatID=None):
-        self.sql = 'INSERT INTO document_file (doc_id, filename, format_id) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + dbint(FormatID) + ')'
-        assert db.runsql(self.sql) == 1
+        sql = 'INSERT INTO document_file (doc_id, filename, format_id) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + dbint(FormatID) + ')'
+        assert db.runsql(sql) == 1
         db.commit()
         newDocFile = DocFile()
         newDocFile.DocID = DocID
@@ -319,8 +310,8 @@ class DocFiles(LampadasCollection):
         newDocFile.FormatID = FormatID
         
     def Clear(self):
-        self.sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID)
-        db.runsql(self.sql)
+        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID)
+        db.runsql(sql)
         db.commit()
         self.data = {}
 
@@ -349,13 +340,13 @@ class DocFile:
         self.is_primary	= self.IsLocal
         
     def Save(self):
-        self.sql = "UPDATE document_file SET format_id=" + dbint(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
-        db.runsql(self.sql)
+        sql = "UPDATE document_file SET format_id=" + dbint(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+        db.runsql(sql)
         db.commit()
 
     def Del(self):
-        self.sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
-        db.runsql(self.sql)
+        sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+        db.runsql(sql)
         db.commit()
 
 
@@ -371,13 +362,13 @@ class DocRatings(LampadasCollection):
         self.Parent = None
         assert not DocID == None
         self.DocID = DocID
-        self.sql = "SELECT user_id, date_entered, vote FROM doc_vote WHERE doc_id=" + str(DocID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT user_id, date_entered, vote FROM doc_vote WHERE doc_id=" + str(DocID)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
+            row = cursor.fetchone()
+            if row == None: break
             newDocRating = DocRating()
-            newDocRating.Load(DocID, self.row)
+            newDocRating.Load(DocID, row)
             self.data[newDocRating.UserID] = newDocRating
         self.CalcAverage()
 
@@ -393,13 +384,13 @@ class DocRatings(LampadasCollection):
     def Del(self, UserID):
         if self.data[UserID] == None: return
         del self.data[UserID]
-        self.sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.DocID) + ' AND user_id=' + str(UserID)
-        db.runsql(self.sql)
+        sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.DocID) + ' AND user_id=' + str(UserID)
+        db.runsql(sql)
         self.CalcAverage()
         
     def Clear(self):
-        self.sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.DocID)
-        db.runsql(self.sql)
+        sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.DocID)
+        db.runsql(sql)
         self.data = {}
         self.CalcAverage()
 
@@ -410,8 +401,8 @@ class DocRatings(LampadasCollection):
             for key in keys:
                 self.Average = self.Average + self.data[key].Rating
             self.Average = self.Average / self.count()
-        self.sql = "UPDATE document SET rating=" + str(self.Average) + " WHERE doc_id=" + str(self.DocID)
-#		db.runsql(self.sql)
+        sql = "UPDATE document SET rating=" + str(self.Average) + " WHERE doc_id=" + str(self.DocID)
+#		db.runsql(sql)
 #		db.commit()
         if not self.Parent == None:
             self.Parent.Rating = self.Average
@@ -430,10 +421,10 @@ class DocRating:
         self.Rating		= row[2]
 
     def Save(self):
-        self.sql = "DELETE from doc_vote WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
-        db.runsql(self.sql)
-        self.sql = "INSERT INTO doc_vote (doc_id, user_id, vote) VALUES (" + str(self.DocID) + ", " + str(self.UserID) + ", " + str(self.Rating) + ")"
-        db.runsql(self.sql)
+        sql = "DELETE from doc_vote WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+        db.runsql(sql)
+        sql = "INSERT INTO doc_vote (doc_id, user_id, vote) VALUES (" + str(self.DocID) + ", " + str(self.UserID) + ", " + str(self.Rating) + ")"
+        db.runsql(sql)
         db.commit()
 
 
@@ -448,13 +439,13 @@ class DocVersions(LampadasCollection):
         LampadasCollection.__init__(self)
         assert not DocID == None
         self.DocID = DocID
-        self.sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(DocID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(DocID)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
+            row = cursor.fetchone()
+            if row == None: break
             newDocVersion = DocVersion()
-            newDocVersion.Load(DocID, self.row)
+            newDocVersion.Load(DocID, row)
             self.data[newDocVersion.ID] = newDocVersion
 
 class DocVersion:
@@ -473,8 +464,8 @@ class DocVersion:
         self.Notes	= trim(row[4])
 
     def Save(self):
-        self.sql = "UPDATE document_rev SET version=" + wsq(self.Version) + ", pub_date=" + wsq(self.PubDate) + ", initials=" + wsq(self.Initials) + ", notes=" + wsq(self.Notes) + "WHERE doc_id=" + str(self.DocID) + " AND rev_id" + wsq(self.ID)
-        assert db.runsql(self.sql) == 1
+        sql = "UPDATE document_rev SET version=" + wsq(self.Version) + ", pub_date=" + wsq(self.PubDate) + ", initials=" + wsq(self.Initials) + ", notes=" + wsq(self.Notes) + "WHERE doc_id=" + str(self.DocID) + " AND rev_id" + wsq(self.ID)
+        assert db.runsql(sql) == 1
         db.commit()
 
 
@@ -487,10 +478,10 @@ class Licenses(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT license, free from license"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT license, free from license"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newLicense = License()
             newLicense.Load(row)
@@ -520,10 +511,10 @@ class DTDs(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT dtd from dtd"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT dtd from dtd"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newDTD = DTD()
             newDTD.Load(row)
@@ -551,10 +542,10 @@ class Errs(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT err_id FROM error"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT err_id FROM error"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newErr = Err()
             newErr.Load(row)
@@ -566,29 +557,21 @@ class Err:
     """
     
     def __init__(self, ErrID=None):
-        self.I18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if Err==None: return
         self.ErrID = ErrID
 
     def Load(self, row):
         self.ErrID = trim(row[0])
-        self.sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + wsq(self.ErrID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT lang, err_name, err_desc FROM error_i18n WHERE err_id=" + wsq(self.ErrID)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newErrI18n = ErrI18n()
-            newErrI18n.Load(self.row)
-            self.I18n[newErrI18n.Lang] = newErrI18n
-
-# ErrI18n
-
-class ErrI18n:
-
-    def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[1])
+            row = cursor.fetchone()
+            if row == None: break
+            lang		= row[0]
+            self.name[lang]        = trim(row[1])
+            self.description[lang] = trim(row[1])
 
 
 # Formats
@@ -600,10 +583,10 @@ class Formats(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT format_id FROM format"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT format_id FROM format"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newFormat = Format()
             newFormat.Load(row)
@@ -615,29 +598,21 @@ class Format:
     """
 
     def __init__(self, FormatID=None):
-        self.I18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if FormatID==None: return
         self.ID = FormatID
 
     def Load(self, row):
         self.ID = row[0]
-        self.sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_id=" + str(self.ID)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_id=" + str(self.ID)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newFormatI18n = FormatI18n()
-            newFormatI18n.Load(self.row)
-            self.I18n[newFormatI18n.Lang] = newFormatI18n
-
-# FormatI18n
-
-class FormatI18n:
-
-    def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[2])
+            row = cursor.fetchone()
+            if row == None: break
+            lang		= row[0]
+            self.name[lang]        = trim(row[1])
+            self.description[lang] = trim(row[2])
 
 
 # Languages
@@ -650,14 +625,14 @@ class Languages(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT isocode, supported FROM language"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT lang_code, supported FROM language"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newLanguage = Language()
-            newLanguage.Load(row)
-            self.data[newLanguage.Code] = newLanguage
+            newLanguage.load(row)
+            self.data[newLanguage.code] = newLanguage
 
 class Language:
     """
@@ -665,33 +640,24 @@ class Language:
     and Lampadas can be localized for, any language supported by ISO 639.
     """
 
-    def __init__(self, LanguageCode=None):
-        self.I18n = LampadasCollection()
-        if LanguageCode == None: return
-        self.Code = LanguageCode
-        self.sql = "SELECT isocode, supported FROM language WHERE isocode= " + wsq(LanguageCode)
-        self.cursor = db.select(self.sql)
-        self.Load(self.sql)
+    def __init__(self, lang_code=None):
+        if lang_code==None: return
+        self.code = lang_code
+        sql = "SELECT lang_code, supported FROM language WHERE lang_code= " + wsq(lang_code)
+        cursor = db.select(sql)
+        self.load(sql)
 
-    def Load(self, row):
-        self.Code	= trim(row[0])
-        self.Supported	= tf2bool(row[1])
-        self.sql = "SELECT lang, language_name FROM language_i18n WHERE isocode=" + wsq(self.Code)
-        self.cursor = db.select(self.sql)
+    def load(self, row):
+        self.code      = trim(row[0])
+        self.supported = tf2bool(row[1])
+        self.name = {}
+        sql = "SELECT lang, lang_name FROM language_i18n WHERE lang_code=" + wsq(self.code)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newLanguageI18n = LanguageI18n()
-            newLanguageI18n.Load(self.row)
-            self.I18n[newLanguageI18n.Lang] = newLanguageI18n
-
-# LanguageI18n
-
-class LanguageI18n:
-
-    def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
+            row = cursor.fetchone()
+            if row == None: break
+            lang = row[0]
+            self.name[lang] = trim(row[1])
 
 
 # PubStatuses
@@ -703,10 +669,10 @@ class PubStatuses(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT pub_status FROM pub_status"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT pub_status FROM pub_status"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newPubStatus = PubStatus()
             newPubStatus.Load(row)
@@ -719,29 +685,21 @@ class PubStatus:
     """
     
     def __init__(self, PubStatusCode=None):
-        self.I18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if PubStatusCode==None: return
         self.Code = PubStatusCode
 
     def Load(self, row):
         self.Code = trim(row[0])
-        self.sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.Code)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.Code)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newPubStatusI18n = PubStatusI18n()
-            newPubStatusI18n.Load(self.row)
-            self.I18n[newPubStatusI18n.Lang] = newPubStatusI18n
-
-# PubStatusI18n
-
-class PubStatusI18n:
-
-    def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[2])
+            row = cursor.fetchone()
+            if row == None: break
+            lang = row[0]
+            self.name[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
 
 # ReviewStatuses
@@ -753,10 +711,10 @@ class ReviewStatuses(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        self.sql = "SELECT review_status FROM review_status"
-        self.cursor = db.select(self.sql)
+        sql = "SELECT review_status FROM review_status"
+        cursor = db.select(sql)
         while (1):
-            row = self.cursor.fetchone()
+            row = cursor.fetchone()
             if row == None: break
             newReviewStatus = ReviewStatus()
             newReviewStatus.Load(row)
@@ -769,29 +727,21 @@ class ReviewStatus:
     """
     
     def __init__(self, ReviewStatusCode=None):
-        self.I18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if ReviewStatusCode==None: return
         self.Code = ReviewStatusCode
 
     def Load(self, row):
         self.Code = trim(row[0])
-        self.sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.Code)
-        self.cursor = db.select(self.sql)
+        sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.Code)
+        cursor = db.select(sql)
         while (1):
-            self.row = self.cursor.fetchone()
-            if self.row == None: break
-            newReviewStatusI18n = ReviewStatusI18n()
-            newReviewStatusI18n.Load(self.row)
-            self.I18n[newReviewStatusI18n.Lang] = newReviewStatusI18n
-
-# ReviewStatusI18n
-
-class ReviewStatusI18n:
-
-    def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[2])
+            row = cursor.fetchone()
+            if row == None: break
+            lang = row[0]
+            self.name[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
 
 # Topics
@@ -820,7 +770,8 @@ class Topic:
     """
 
     def __init__(self, TopicCode=None, TopicNum=None):
-        self.i18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if TopicCode==None: return
         self.code = TopicCode
         self.num  = TopicNum
@@ -833,18 +784,11 @@ class Topic:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newTopicI18n = TopicI18n()
-            newTopicI18n.Load(row)
-            self.i18n[newTopicI18n.lang] = newTopicI18n
+            lang = row[0]
+            self.name[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
-class TopicI18n:
 
-    def Load(self, row):
-        self.lang        = row[0]
-        self.name        = trim(row[1])
-        self.description = trim(row[2])
-
-    
 # Subtopics
 
 class Subtopics(LampadasCollection):
@@ -871,7 +815,8 @@ class Subtopic:
     """
 
     def __init__(self, subtopic_code=None, subtopic_num=None, topic_code=None):
-        self.i18n = LampadasCollection()
+        self.name = {}
+        self.description = {}
         if subtopic_code==None: return
         self.code       = subtopic_code
         self.num        = subtopic_num
@@ -888,16 +833,9 @@ class Subtopic:
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newSubtopicI18n = SubtopicI18n()
-            newSubtopicI18n.Load(row)
-            self.i18n[newSubtopicI18n.lang] = newSubtopicI18n
-
-class SubtopicI18n:
-
-    def Load(self, row):
-        self.lang        = row[0]
-        self.name        = trim(row[1])
-        self.description = trim(row[2])
+            lang = row[0]
+            self.name[lang] = trim(row[1])
+            self.description[lang] = trim(row[2])
 
 
 # SubtopicDocs

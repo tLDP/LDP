@@ -72,16 +72,16 @@ class ComboFactory:
         return combo
     
     def Class(self, value, lang):
-        combo = "<select name='class_id'>\n"
-        keys = lampadas.Classes.keys()
+        combo = "<select name='class_code'>\n"
+        keys = lampadas.classes.keys()
         for key in keys:
-            classfoo = lampadas.Classes[key]
+            classfoo = lampadas.classes[key]
             assert not classfoo == None
             combo = combo + "<option "
             if classfoo.ID == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(classfoo.ID) + "'>"
-            combo = combo + classfoo.I18n[lang].Name
+            combo = combo + classfoo.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -127,7 +127,7 @@ class ComboFactory:
             if format.ID == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(format.ID) + "'>"
-            combo = combo + format.i18n[lang].Name
+            combo = combo + format.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -142,7 +142,7 @@ class ComboFactory:
             if language.Code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + language.Code + "'>"
-            combo = combo + language.I18n[lang].Name
+            combo = combo + language.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -172,7 +172,7 @@ class ComboFactory:
             if Page.Code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(page.Code) + "'>"
-            combo = combo + page.I18n[lang].Title
+            combo = combo + page.title[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -187,7 +187,7 @@ class ComboFactory:
             if PubStatus.Code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(PubStatus.Code) + "'>"
-            combo = combo + PubStatus.I18n[lang].Name
+            combo = combo + PubStatus.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -202,7 +202,7 @@ class ComboFactory:
             if ReviewStatus.Code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
-            combo = combo + ReviewStatus.I18n[lang].Name
+            combo = combo + ReviewStatus.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -217,7 +217,7 @@ class ComboFactory:
             if ReviewStatus.Code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
-            combo = combo + ReviewStatus.I18n[lang].Name
+            combo = combo + ReviewStatus.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -232,7 +232,7 @@ class ComboFactory:
             if subtopic.code == value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(subtopic.code) + "'>"
-            combo = combo + subtopic.i18n[lang].name
+            combo = combo + subtopic.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -276,7 +276,7 @@ class TableFactory:
         box = box + combo_factory.PubStatus(doc.PubStatusCode, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Class</th><td>\n'
-        box = box + combo_factory.Class(doc.ClassID, lang)
+        box = box + combo_factory.Class(doc.class_code, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Maint</th><td>\n'
         if doc.Maintained:
@@ -307,7 +307,7 @@ class TableFactory:
         box = box + '</td>\n'
         box = box + '</tr>\n<tr>\n'
         box = box + '<th align=right>Format</th><td>'
-        box = box + lampadas.Formats[doc.FormatID].I18n[lang].Name
+        box = box + lampadas.Formats[doc.FormatID].name[lang]
         box = box + '</td>'
         box = box + '<th align=right>DTD</th><td>'
         box = box + doc.DTD + ' ' + doc.DTDVersion
@@ -325,17 +325,17 @@ class TableFactory:
 
         return box
 
-    def user(self, username, lang):
+    def user(self, uri, user):
         box = '<table class="box">\n'
-        if username > '':
-            user = lampadas.users[username]
+        if uri.username > '':
+            user = lampadas.users[uri.username]
             box = box + '<form method=GET action="data/save/user" name="user">\n'
         else:
             user = User()
             box = box + '<form method=GET action="data/save/newuser" name="user">\n'
-        box = box + '<input name="username" type=hidden value=' + username + '></input>\n'
+        box = box + '<input name="username" type=hidden value=' + uri.username + '></input>\n'
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
-        box = box + '<tr><th class="label">|strusername|</th><td>' + username + '</td>\n'
+        box = box + '<tr><th class="label">|strusername|</th><td>' + uri.username + '</td>\n'
         box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
         box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name value="' + user.first_name + '"></input></td></tr>\n'
         box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name value="' + user.middle_name + '"></input></td></tr>\n'
@@ -343,32 +343,37 @@ class TableFactory:
         box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email value="' + user.email + '"></input></td></tr>\n'
         box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet value="' + user.stylesheet + '"></input></td></tr>\n'
         box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password></input></td></tr>\n'
-        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, lang) + '</td></tr>\n'
-        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, lang) + '</td></tr>\n'
+        box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
+        box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
         box = box + '</form>\n'
         box = box + '</table>\n'
         return box
         
-    def doctable(self, lang):
+    def doctable(self, uri, class_code=None, subtopic_code=None):
         log(3, "Creating doctable")
-        box = ''
-        box = box + '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
+        box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.Docs.sort_by("Title")
         for key in keys:
             doc = lampadas.Docs[key]
-            if doc.Lang == lang:
-                box = box + '<tr>'
-                box = box + '<td><a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
-                box = box + '<td><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
-                box = box + '</tr>\n'
+            if doc.Lang == uri.lang:
+                ok = 1
+                if class_code and doc.class_code <> class_code:
+                    ok = 0
+                if subtopic_code and doc.subtopic_code <> subtopic_code:
+                    ok = 0
+                if ok > 0:
+                    box = box + '<tr>'
+                    box = box + '<td><a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
+                    box = box + '<td><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                    box = box + '</tr>\n'
         box = box + '</table>'
         return box
 
-    def section_menu(self, user, section, lang):
-        assert not section == None
-        log(3, "Creating section menu: " + section.code)
-        box = '<table class="navbox"><tr><th>' + section.i18n[lang].name + '</th></tr>\n'
+    def section_menu(self, uri, user, section_code):
+        log(3, "Creating section menu: " + section_code)
+        section = lampadasweb.sections[section_code]
+        box = '<table class="navbox"><tr><th>' + section.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td>'
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
@@ -383,11 +388,11 @@ class TableFactory:
                 if page.only_sysadmin > 0:
                     if user.sysadmin==0:
                         continue
-                box = box + '<a href="' + page.code + '">' + page.i18n[lang].menu_name + '</a><br>\n'
+                box = box + '<a href="' + page.code + '">' + page.menu_name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr></table>\n'
         return box
 
-    def section_menus(self, user, lang):
+    def section_menus(self, uri, user):
         log(3, "Creating all section menus")
         box = ''
         keys = lampadasweb.sections.sort_by('sort_order')
@@ -402,24 +407,24 @@ class TableFactory:
             if section.only_sysadmin > 0:
                 if user.sysadmin==0 or section.sysadmin_count==0:
                     continue
-            box = box + self.section_menu(user, section, lang)
+            box = box + self.section_menu(uri, user, section.code)
         return box
 
-    def recent_news(self, lang):
+    def recent_news(self, uri):
         log(3, 'Creating recent news')
         box = '<table class="box"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
-            if not news.i18n[lang] == None:
+            if not news.news[uri.lang] == None:
                 box = box + '<tr>\n'
                 box = box + '<td>' + news.pub_date + '</td>\n'
-                box = box + '<td>' + news.i18n[lang].news + '</td>\n'
+                box = box + '<td>' + news.news[uri.lang] + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
 
-    def topics(self, lang):
+    def topics(self, uri):
         log(3, 'Creating topics table')
         box = '<table class="navbox"><tr><th>|strtopics|</th></tr>\n'
         box = box + '<tr><td><ol>\n'
@@ -427,55 +432,55 @@ class TableFactory:
         for key in keys:
             topic = lampadas.topics[key]
             box = box + '<li><a href="topic/' + topic.code + '">\n'
-            box = box + topic.i18n[lang].name + '</a>\n'
+            box = box + topic.name[uri.lang] + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         return box
 
-    def subtopics(self, topic_code, lang):
+    def subtopics(self, uri):
         log(3, 'Creating subtopics table')
-        topic = lampadas.topics[topic_code]
-        box = '<table class="navbox"><tr><th>' + topic.i18n[lang].name + '</th></tr>\n'
+        topic = lampadas.topics[uri.code]
+        box = '<table class="navbox"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.subtopics.sort_by('num')
         for key in keys:
             subtopic = lampadas.subtopics[key]
-            if subtopic.topic_code == topic_code:
+            if subtopic.topic_code == uri.code:
                 box = box + '<li><a href="subtopic/' + subtopic.code + '">\n'
-                box = box + subtopic.i18n[lang].name + '</a>\n'
+                box = box + subtopic.name[uri.lang] + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         return box
 
-    def subtopic(self, subtopic_code, lang):
+    def subtopic(self, uri):
         log(3, 'Creating subtopic table')
-        subtopic = lampadas.subtopics[subtopic_code]
-        box = '<table class="navbox"><tr><th>' + subtopic.i18n[lang].name + '</th></tr>\n'
+        subtopic = lampadas.subtopics[uri.code]
+        box = '<table class="navbox"><tr><th>' + subtopic.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = subtopic.docs.sort_by('Title')
         for key in keys:
             doc = subtopic.docs[key]
-            if doc.subtopic.topic_code == topic_code and doc.Lang == lang:
+            if doc.subtopic.topic_code == uri.code and doc.Lang == uri.lang:
                 box = box + '<li><a href="/doc/' + str(doc.ID) + '">\n'
                 box = box + doc.Title + '</a>\n'
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         return box
 
-    def classes(self, lang):
+    def classes(self, uri):
         log(3, 'Creating classes table')
         box = '<table class="navbox"><tr><th>|strclasses|</th></tr>\n'
         box = box + '<tr><td>\n'
-        keys = lampadas.Classes.sort_by('sort_order')
+        keys = lampadas.classes.sort_by('sort_order')
         for key in keys:
-            Class = lampadas.Classes[key]
-            box = box + '<a href="class/' + str(Class.ID) + '">\n'
-            box = box + Class.I18n[lang].Name + '</a><br>\n'
+            Class = lampadas.classes[key]
+            box = box + '<a href="class/' + Class.code + '">\n'
+            box = box + Class.name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
 
-    def login(self, user, lang):
+    def login(self, uri, user):
         if user:
             log(3, 'Creating active user box')
             box = '<table class="navbox"><tr><th>|stractive_user|</th></tr>\n'
@@ -498,7 +503,7 @@ class TableFactory:
             box = box + '</table>\n'
         return box
 
-    def sessions(self, user, lang):
+    def sessions(self, uri, user):
         if user:
             if user.admin > 0:
                 log(3, 'Creating sessions table')
@@ -515,20 +520,20 @@ class TableFactory:
                 return box
         return ' '
 
-    def languages(self, lang):
+    def languages(self, uri):
         log(3, 'Creating languages table')
         box = '<table class="navbox"><tr><th>|strlanguages|</th></tr>\n'
         box = box + '<tr><td>\n'
-        keys = sessions.sort_by('username')
+        keys = lampadas.languages.keys()
+        #sort_by('name["' + lang + '"]')
         for key in keys:
-            session = sessions[key]
-            box = box + '<a href="user/' + str(session.username) + '">\n'
-            user = lampadas.users[key]
-            box = box + user.name + '</a><br>\n'
+            language = lampadas.languages[key]
+            if language.supported > 0:
+                box = box + '<a href="/' + language.code + '/' + uri.base + '">' + language.name[uri.lang] + '</a>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
-        return ' '
+
 
 # PageFactory
 
@@ -554,7 +559,7 @@ class PageFactory:
                 build_user = lampadas.users[username]
                 log(3, 'build_user: ' + build_user.username)
 
-        log(3, 'Serving language ' + uri.language)
+        log(3, 'Serving language ' + uri.lang)
 
         page = lampadasweb.pages[uri.filename]
         if page == None:
@@ -601,9 +606,9 @@ class PageFactory:
                     else:
                         newstring = build_user.name
                 if token=='title':
-                    newstring = page.i18n[uri.language].title
+                    newstring = page.title[uri.lang]
                 if token=='body':
-                    newstring = page.i18n[uri.language].page
+                    newstring = page.page[uri.lang]
                 if token=='hostname':
                     newstring = config.hostname
                 if token=='rootdir':
@@ -616,46 +621,61 @@ class PageFactory:
                         newstring = newstring + ':' + config.port
                     newstring = newstring + config.root_dir
                     if uri.force_lang:
-                        newstring = newstring + uri.language + '/'
-                if token=='page':
-                    newstring = page.code
+                        newstring = newstring + uri.lang + '/'
                 if token=='stylesheet':
                     newstring='default'
                 if token=='version':
                     newstring = VERSION
 
+                # Tokens for URI elements
+                # 
+                if token=='uri.code':
+                    newstring = uri.code
+                if token=='uri.base':
+                    newstring = uri.base
+
                 # Tokens for when a page embeds an object
                 # 
                 if token=='user.username':
                     user = lampadas.users[uri.username]
+                    newstring = user.username
+                if token=='user.name':
+                    user = lampadas.users[uri.username]
                     newstring = user.name
+                if token=='class.name':
+                    aclass = lampadas.classes[uri.code]
+                    newstring = aclass.name[uri.lang]
 
                 # Tables
                 # 
                 if token=='tablogin':
-                    newstring = self.tablef.login(build_user, uri.language)
+                    newstring = self.tablef.login(uri, build_user)
                 if token=='tabdocs':
-                    newstring = self.tablef.doctable(uri.language)
+                    newstring = self.tablef.doctable(uri)
                 if token=='tabeditdoc':
-                    newstring = self.tablef.doc(uri.id, uri.language)
+                    newstring = self.tablef.doc(uri)
                 if token=='tabuser':
-                    newstring = self.tablef.user(uri.username, uri.language)
+                    newstring = self.tablef.user(uri)
                 if token=='tabmenus':
-                    newstring = self.tablef.section_menus(build_user, uri.language)
+                    newstring = self.tablef.section_menus(uri, build_user)
                 if token=='tabrecentnews':
-                    newstring = self.tablef.recent_news(uri.language)
+                    newstring = self.tablef.recent_news(uri)
                 if token=='tabtopics':
-                    newstring = self.tablef.topics(uri.language)
+                    newstring = self.tablef.topics(uri)
                 if token=='tabsubtopics':
-                    newstring = self.tablef.subtopics(uri.code, uri.language)
+                    newstring = self.tablef.subtopics(uri)
                 if token=='tabsubtopic':
-                    newstring = self.tablef.subtopic(uri.code, uri.language)
+                    newstring = self.tablef.subtopic(uri)
                 if token=='tabclasses':
-                    newstring = self.tablef.classes(uri.language)
+                    newstring = self.tablef.classes(uri)
                 if token=='tabsessions':
-                    newstring = self.tablef.sessions(build_user, uri.language)
+                    newstring = self.tablef.sessions(uri, build_user)
                 if token=='tablanguages':
-                    newstring = self.tablef.languages(uri.language)
+                    newstring = self.tablef.languages(uri)
+                if token=='tabclassdocs':
+                    newstring = self.tablef.doctable(uri, class_code=uri.code)
+                if token=='tabsubtopicdocs':
+                    newstring = self.tablef.doctable(uri, subtopic_code=uri.code)
             
                 # Blocks and Strings
                 # 
@@ -666,9 +686,9 @@ class PageFactory:
                         if string == None:
                             log(1, 'Could not replace token ' + token)
                         else:
-                            newstring = string.i18n[uri.language].string
+                            newstring = string.string[uri.lang]
                     else:
-                        newstring = block.i18n[uri.language].block
+                        newstring = block.block
                 
                 # Add an error message if the token was not found
                 # 
