@@ -159,7 +159,7 @@ print "<select name=license>";
 if ( $license eq "" )  { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $license eq "GFDL" )  { print '<option selected>GFDL</option>'; } else { print '<option>GFDL</option>' }
 if ( $license eq "LDPL" ) { print '<option selected>LDPL</option>'; } else { print '<option>LDPL</option>' }
-if ( $license eq "LDPCL" ) { print '<option selected>LDPCL</option>'; } else { print '<option>LDPLCL</option>' }
+if ( $license eq "LDPCL" ) { print '<option selected>LDPCL</option>'; } else { print '<option>LDPCL</option>' }
 if ( $license eq "HOWTOL" ) { print '<option selected>HOWTOL</option>'; } else { print '<option>HOWTOL</option>' }
 if ( $license eq "BOILERPLATE" ) { print '<option selected>BOILERPLATE</option>'; } else { print '<option>BOILERPLATE</option>' }
 if ( $license eq "OPL" )  { print '<option selected>OPL</option>'; } else { print '<option>OPL</option>' }
@@ -266,6 +266,8 @@ print "<p><table>\n";
 print "<tr><th>Status</th><th>Role</th><th>Name</th><th>Feedback Email</th><th colspan=2>Action</th></tr>";
 while (@row = $authors_result->fetchrow) {
   $maintainer_id = $row[0];
+  if ( $maintainer_list ) { $maintainer_list =+ " OR " }
+  $maintainer_list =+ "maintainer_notes.maintainer_id = $maintainer_id";
   $role          = $row[1];
   $role          =~  s/\s*$//;
   if ( $row[2] eq 't' ) { $active = "Active" } else { $active = "Inactive" }
@@ -603,6 +605,39 @@ print "<input type=submit value='Save'></td>\n";
 print "</tr>";
 print "</table>\n";
 print "</form>";
+
+
+
+print "<p><hr>";
+
+print "<h2>Author Notes</h2>\n";
+
+print "<p><table>\n";
+print "<tr><th>Date and Time</th><th>User</th><th>Maintainer</th><th>Note</th></tr>";
+
+if ( $maintainer_list ) {
+	$sql = "SELECT date_entered, notes, username, maintainer_name FROM maintainer_notes, maintainer WHERE maintainer.maintainer_id = maintainer_notes.maintainer_id AND $maintainer_list ORDER BY date_entered";
+	$notes_result = $conn->exec($sql);
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $notes_result->resultStatus;
+
+	while (@row = $notes_result->fetchrow) {
+	  $date_entered = $row[0];
+	  $notes        = $row[1];
+	  $notes        =~ s/</&lt;/;
+	  $notes        =~ s/>/&gt;/;
+	  $username     = $row[2];
+	  $maintainer_name   = $row[3];
+	  print "<tr>\n";
+	  print "<td valign=top>$date_entered</td>\n";
+	  print "<td valign=top>$username</td>\n";
+	  print "<td valign=top>$maintainer_name</td>\n";
+	  print "<td valign=top>$notes</td>\n";
+	  print "</tr>\n";
+	}
+}
+
+print "</table>\n";
+
 
 print end_html;
 
