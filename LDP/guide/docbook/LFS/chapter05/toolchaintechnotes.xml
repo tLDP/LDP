@@ -1,0 +1,200 @@
+<sect1 id="ch05-toolchaintechnotes">
+<title>Toolchain technical notes</title>
+<?dbhtml filename="toolchaintechnotes.html" dir="chapter05"?>
+
+<para>This section attempts to explain some of the rationale and technical
+details behind the overall build method. It's not essential that you understand
+everything here immediately. Most of it will make sense once you have performed
+an actual build. Feel free to refer back here at any time.</para>
+
+<para>The overall goal of <xref linkend="chapter05"/> is to provide a sane,
+temporary environment that we can chroot into, and from which we can produce a
+clean, trouble-free build of the target LFS system in
+<xref linkend="chapter06"/>. Along the way, we attempt to divorce ourselves
+from the host system as much as possible, and in so doing build a
+self-contained and self-hosted toolchain. It should be noted that the
+build process has been designed in such a way so as to minimize the risks for
+new readers and provide maximum educational value at the same time. In other
+words, more advanced techniques could be used to build the system.</para>
+
+<important>
+<para>Before continuing, you really should be aware of the name of your working
+platform, often also referred to as the <emphasis>target triplet</emphasis>. For
+many folks the target triplet will be, for example:
+<emphasis>i686-pc-linux-gnu</emphasis>. A simple way to determine your target
+triplet is to run the <filename>config.guess</filename> script that comes with
+the source for many packages. Unpack the Binutils sources and run the script:
+<userinput>./config.guess</userinput> and note the output.</para>
+
+<para>You'll also need to be aware of the name of your platform's
+<emphasis>dynamic linker</emphasis>, often also referred to as the
+<emphasis>dynamic loader</emphasis>, not to be confused with the standard linker
+<emphasis>ld</emphasis> that is part of Binutils. The dynamic linker is provided
+by Glibc and has the job of finding and loading the shared libraries needed by a
+program, preparing the program to run and then running it. For most folks, the
+name of the dynamic linker will be <emphasis>ld-linux.so.2</emphasis>. On
+platforms that are less prevalent, the name might be
+<emphasis>ld.so.1</emphasis> and newer 64 bit platforms might even have
+something completely different. You should be able to determine the name
+of your platform's dynamic linker by looking in the
+<filename class="directory">/lib</filename> directory on your host system. A
+surefire way is to inspect a random binary from your host system by running:
+<userinput>'readelf -l &lt;name of binary&gt; | grep interpreter'</userinput>
+and noting the output. The authoritative reference covering all platforms is in
+the <filename>shlib-versions</filename> file in the root of the Glibc source
+tree.</para>
+</important>
+
+<para>Some key technical points of how the <xref linkend="chapter05"/> build
+method works:</para>
+
+<itemizedlist>
+<listitem><para>Similar in principle to cross compiling whereby tools installed
+into the same prefix work in cooperation and thus utilize a little GNU
+"magic".</para></listitem>
+
+<listitem><para>Careful manipulation of the standard linker's library search
+path to ensure programs are linked only against libraries we
+choose.</para></listitem>
+
+<listitem><para>Careful manipulation of <userinput>gcc</userinput>'s
+<emphasis>specs</emphasis> file to tell the compiler which target dynamic
+linker will be used.</para></listitem>
+</itemizedlist>
+
+<para>Binutils is installed first because both GCC and Glibc perform various
+feature tests on the assembler and linker during their respective runs of
+<userinput>./configure</userinput> to determine which software features to enable
+or disable. This is more important than one might first realize. An incorrectly
+configured GCC or Glibc can result in a subtly broken toolchain where the impact
+of such breakage might not show up until near the end of the build of a whole
+distribution. Thankfully, a test suite failure will usually alert us before too
+much time is wasted.</para>
+
+<para>Binutils installs its assembler and linker into two locations,
+<filename class="directory">/tools/bin</filename> and
+<filename class="directory">/tools/$TARGET_TRIPLET/bin</filename>. In reality,
+the tools in one location are hard linked to the other. An important facet of
+the linker is its library search order. Detailed information can be obtained
+from <userinput>ld</userinput> by passing it the <emphasis>--verbose</emphasis>
+flag. For example: <userinput>'ld --verbose | grep SEARCH'</userinput> will
+show you the current search paths and their order. You can see what files are
+actually linked by <userinput>ld</userinput> by compiling a dummy program and
+passing the <emphasis>--verbose</emphasis> switch. For example:
+<userinput>'gcc dummy.c -Wl,--verbose 2>&amp;1 | grep succeeded'</userinput>
+will show you all the files successfully opened during the link.</para>
+
+<para>The next package installed is GCC and during its run of
+<userinput>./configure</userinput> you'll see, for example:</para>
+
+<blockquote><screen>checking what assembler to use... /tools/i686-pc-linux-gnu/bin/as
+checking what linker to use... /tools/i686-pc-linux-gnu/bin/ld</screen></blockquote>
+
+<para>This is important for the reasons mentioned above. It also demonstrates
+that GCC's configure script does not search the $PATH directories to find which
+tools to use. However, during the actual operation of <userinput>gcc</userinput>
+itself, the same search paths are not necessarily used. You can find out which
+standard linker <userinput>gcc</userinput> will use by running:
+<userinput>'gcc -print-prog-name=ld'</userinput>.
+Detailed information can be obtained from <userinput>gcc</userinput> by passing
+it the <emphasis>-v</emphasis> flag while compiling a dummy program. For
+example: <userinput>'gcc -v dummy.c'</userinput> will show you detailed
+information about the preprocessor, compilation and assembly stages, including
+<userinput>gcc</userinput>'s include search paths and their order.</para>
+ 
+<para>The next package installed is Glibc. The most important considerations for
+building Glibc are the compiler, binary tools and kernel headers. The compiler
+is generally no problem as Glibc will always use the <userinput>gcc</userinput>
+found in a $PATH directory. The binary tools and kernel headers can be a little
+more troublesome. Therefore we take no risks and use the available configure
+switches to enforce the correct selections. After the run of
+<userinput>./configure</userinput> you can check the contents of the
+<filename>config.make</filename> file in the
+<filename class="directory">glibc-build</filename> directory for all the
+important details. You'll note some interesting items like the use of
+<userinput>CC="gcc -B/tools/bin/"</userinput> to control which binary tools are
+used, and also the use of the <emphasis>-nostdinc</emphasis> and
+<emphasis>-isystem</emphasis> flags to control the compiler's include search
+path. These items help to highlight an important aspect of the Glibc package:
+it is very self-sufficient in terms of its build machinery and generally does
+not rely on toolchain defaults.</para>
+
+<para>After the Glibc installation, we make some adjustments to ensure that
+searching and linking take place only within our <filename>/tools</filename>
+prefix. We install an adjusted <userinput>ld</userinput>, which has a hard-wired
+search path limited to <filename class="directory">/tools/lib</filename>. Then
+we amend <userinput>gcc</userinput>'s specs file to point to our new dynamic
+linker in <filename class="directory">/tools/lib</filename>. This last step is
+<emphasis>vital</emphasis> to the whole process. As mentioned above, a
+hard-wired path to a dynamic linker is embedded into every ELF shared
+executable. You can inspect this by running:
+<userinput>'readelf -l &lt;name of binary&gt; | grep interpreter'</userinput>.
+By amending <userinput>gcc</userinput>'s specs file, we are ensuring that every
+program compiled from here through the end of <xref linkend="chapter05"/> will
+use our new dynamic linker in
+<filename class="directory">/tools/lib</filename>.</para>
+
+<para>The need to use the new dynamic linker is also the reason why we apply the
+Specs patch for the second pass of GCC. Failure to do so will result in the GCC
+programs themselves having the name of the dynamic linker from the host system's
+<filename class="directory">/lib</filename> directory embedded into them, which
+would defeat our goal of getting away from the host.</para>
+
+<para>During the second pass of Binutils, we are able to utilize the
+<emphasis>--with-lib-path</emphasis> configure switch to control
+<userinput>ld</userinput>'s library search path. From this point onwards, the
+core toolchain is self-contained and self-hosted. The remainder of the
+<xref linkend="chapter05"/> packages all build against the new Glibc in
+<filename class="directory">/tools</filename> and all is well.</para>
+
+<para>Upon entering the chroot environment in <xref linkend="chapter06"/>, the
+first major package we install is Glibc, due to its self-sufficient nature that
+we mentioned above. Once this Glibc is installed into
+<filename class="directory">/usr</filename>, we perform a quick changeover of
+the toolchain defaults, then proceed for real in building the rest of the
+target <xref linkend="chapter06"/> LFS system.</para>
+
+<sect2>
+<title>Notes on static linking</title>
+
+<para>Most programs have to perform, beside their specific task, many rather
+common and sometimes trivial operations. These include allocating memory,
+searching directories, reading and writing files, string handling, pattern
+matching, arithmetic and many other tasks. Instead of obliging each program to
+reinvent the wheel, the GNU system provides all these basic functions in
+ready-made libraries. The major library on any Linux system is
+<emphasis>Glibc</emphasis>.</para>
+
+<para>There are two primary ways of linking the functions from a library to a
+program that uses them: statically or dynamically. When a program is linked
+statically, the code of the used functions is included in the executable,
+resulting in a rather bulky program. When a program is dynamically linked, what
+is included is a reference to the dynamic linker, the name of the library, and
+the name of the function, resulting in a much smaller executable. (A third way
+is to use the programming interface of the dynamic linker. See the
+<emphasis>dlopen</emphasis> man page for more information.)</para>
+
+<para>Dynamic linking is the default on Linux and has three major advantages
+over static linking. First, you need only one copy of the executable library
+code on your hard disk, instead of having many copies of the same code included
+into a whole bunch of programs -- thus saving disk space. Second, when several
+programs use the same library function at the same time, only one copy of the
+function's code is required in core -- thus saving memory space. Third, when a
+library function gets a bug fixed or is otherwise improved, you only need to
+recompile this one library, instead of having to recompile all the programs that
+make use of the improved function.</para>
+
+<para>If dynamic linking has several advantages, why then do we statically link
+the first two packages in this chapter? The reasons are threefold: historical,
+educational, and technical. Historical, because earlier versions of LFS
+statically linked every program in this chapter. Educational, because knowing
+the difference is useful. Technical, because we gain an element of independence
+from the host in doing so, meaning that those programs can be used
+independently of the host system. However, it's worth noting that an overall
+successful LFS build can still be achieved when the first two packages are
+built dynamically.</para>
+
+</sect2>
+
+</sect1>
+

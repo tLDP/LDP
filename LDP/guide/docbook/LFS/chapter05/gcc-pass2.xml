@@ -1,0 +1,174 @@
+<sect1 id="ch05-gcc-pass2">
+<title>Installing GCC-&gcc-version; - Pass 2</title>
+<?dbhtml filename="gcc-pass2.html" dir="chapter05"?>
+
+<screen>Estimated build time:           &gcc-time-tools-pass2;
+Estimated required disk space:  &gcc-compsize-tools-pass2;</screen>
+
+
+<sect2><title>&nbsp;</title><para>&nbsp;</para></sect2>
+
+<sect2>
+<title>Re-installation of GCC</title>
+
+<para>The tools required to test GCC and Binutils are installed now (Tcl, Expect
+and DejaGnu). We can continue on rebuilding GCC and Binutils, link them against
+the new Glibc, and test them properly. One thing to note, however, is that these
+test suites are highly dependent on properly functioning pseudo terminals (PTYs)
+which are provided by your host distribution. These days, PTYs are most commonly
+implemented via the <emphasis>devpts</emphasis> file system. You can quickly
+check if your host system is set up correctly in this regard by performing a
+simple test:</para>
+
+<screen><userinput>expect -c "spawn ls"</userinput></screen>
+
+<para>If you receive the message:</para>
+
+<blockquote><screen>The system has no more ptys.  Ask your system administrator to create more.</screen></blockquote>
+
+<para>Your host distribution is not set up for proper PTY operation. In this
+case there is no point in running the test suites for GCC and Binutils until you
+are able to resolve the issue. You can consult the LFS Wiki at
+<ulink url="http://wiki.linuxfromscratch.org/"/> for more information on how to
+get PTYs working.</para>
+
+<para>Unpack all three GCC tarballs (-core, -g++, and -testsuite) in one and the
+same working directory. They will all unfold into a single
+<filename>gcc-&gcc-version;/</filename> subdirectory.</para>
+
+<para>First correct one problem and make an essential adjustment:</para>
+
+<screen><userinput>patch -Np1 -i ../&gcc-nofixincludes-patch;
+patch -Np1 -i ../&gcc-specs-patch;</userinput></screen>
+
+<para>The first patch disables the GCC "fixincludes" script.  We mentioned this
+briefly earlier, but a slightly more in-depth explanation of the fixincludes 
+process is warranted here.  Under normal circumstances, the GCC fixincludes
+script scans your system for header files that need to be fixed.  It might find
+that some Glibc header files on your host system need to be fixed, fix them and
+put them in the GCC private include directory.  Then, later on in
+<xref linkend="chapter06"/>, after we've installed the newer Glibc, this
+private include directory would be searched before the system include
+directory, resulting in GCC finding the fixed headers from the host system,
+which would most likely not match the Glibc version actually used for the LFS
+system.</para>
+
+<para>The last patch changes GCC's default location of the dynamic linker
+(typically <filename>ld-linux.so.2</filename>). It also removes
+<filename class="directory">/usr/include</filename> from GCC's include search
+path. Patching now rather than adjusting the specs file after installation
+ensures that our new dynamic linker gets used during the actual build of GCC.
+That is, all the final (and temporary) binaries created during the build will
+link against the new Glibc.</para>
+
+<important><para>These patches are <emphasis>critical</emphasis> in ensuring a
+successful overall build. Do not forget to apply them.</para></important>
+
+<para>Create a separate build directory again:</para>
+
+<screen><userinput>mkdir ../gcc-build
+cd ../gcc-build</userinput></screen>
+
+<para>Before starting to build GCC, remember to unset any environment
+variables that override the default optimization flags.</para>
+
+<para>Now prepare GCC for compilation:</para>
+
+<screen><userinput>../gcc-&gcc-version;/configure --prefix=/tools \
+&nbsp;&nbsp;&nbsp;&nbsp;--with-local-prefix=/tools \
+&nbsp;&nbsp;&nbsp;&nbsp;--enable-clocale=gnu --enable-shared \
+&nbsp;&nbsp;&nbsp;&nbsp;--enable-threads=posix --enable-__cxa_atexit \
+&nbsp;&nbsp;&nbsp;&nbsp;--enable-languages=c,c++</userinput></screen>
+
+<para>The meaning of the new configure options:</para>
+
+<itemizedlist>
+<listitem><para><userinput>--enable-threads=posix</userinput>: This enables
+C++ exception handling for multi-threaded code.</para></listitem>
+
+<listitem><para><userinput>--enable-__cxa_atexit</userinput>: This option
+allows use of __cxa_atexit, rather than atexit, to register C++ destructors for
+local statics and global objects and is essential for fully standards-compliant
+handling of destructors. It also affects the C++ ABI and therefore results in
+C++ shared libraries and C++ programs that are interoperable with other Linux
+distributions.</para></listitem>
+
+<listitem><para><userinput>--enable-clocale=gnu</userinput>: This option ensures
+the correct locale model is selected for the C++ libraries under all
+circumstances. If the configure script finds the <emphasis>de_DE</emphasis>
+locale installed, it will select the correct model of <emphasis>gnu</emphasis>.
+However, people who don't install the <emphasis>de_DE</emphasis> locale, run the
+risk of building ABI incompatible C++ libraries due to the wrong locale model of
+<emphasis>generic</emphasis> being selected.</para></listitem>
+
+<listitem><para><userinput>--enable-languages=c,c++</userinput>: This option is
+needed to ensure that both C and C++ compilers are built.</para></listitem>
+</itemizedlist>
+
+<para>Compile the package:</para>
+
+<screen><userinput>make</userinput></screen>
+
+<para>There is no need to use the <userinput>bootstrap</userinput> target now,
+as the compiler we're using to compile this GCC was built from the exact same
+version of the GCC sources we used earlier.</para>
+
+<note><para>It's worth pointing out that running the GCC test suite here
+is considered not as important as running it in
+<xref linkend="chapter06"/>.</para></note>
+
+<para>Test the results:</para>
+
+<screen><userinput>make -k check</userinput></screen>
+
+<para>The <userinput>-k</userinput> flag is used to make the test suite run
+through to completion and not stop at the first failure. The GCC test suite is
+very comprehensive and is almost guaranteed to generate a few failures. To get
+a summary of the test suite results, run this:</para>
+ 
+<screen><userinput>../gcc-&gcc-version;/contrib/test_summary | more</userinput></screen>
+
+<para>You can compare your results to those posted to the gcc-testresults
+mailing list for similar configurations to your own. For an example of how
+current GCC-&gcc-version; should look on i686-pc-linux-gnu, see
+<ulink url="http://gcc.gnu.org/ml/gcc-testresults/2003-08/msg01612.html"/>.</para>
+
+<para>Note that the results contain:</para>
+
+<screen>* 1 XPASS (unexpected pass) for g++
+* 1 FAIL (unexpected failure) for g++
+* 2 FAIL for gcc
+* 26 XPASS's for libstdc++</screen>
+ 
+<para>The unexpected pass for g++ is due to the use of
+<userinput>--enable-__cxa_atexit</userinput>. Apparently not all platforms
+supported by GCC have support for "__cxa_atexit" in their C libraries, so this
+test is not always expected to pass.</para>
+
+<para>The 26 unexpected passes for libstdc++ are due to the use of
+<userinput>--enable-clocale=gnu</userinput>, which is the correct choice on
+Glibc-based systems of versions 2.2.5 and above. The underlying locale support
+in the GNU C library is superior to that of the otherwise selected "generic"
+model (which may be applicable if for instance you were using Newlibc, Sun-libc
+or whatever libc). The libstdc++ test suite is apparently expecting the
+"generic" model, hence those tests are not always expected to pass.</para>
+
+<para>Unexpected failures often cannot be avoided. The GCC developers are
+usually aware of them but haven't yet gotten around to fixing them. In short,
+unless your results are vastly different from those at the above URL, it is safe
+to continue on.</para>
+
+<para>And finally install the package:</para>                                              
+
+<screen><userinput>make install</userinput></screen>
+
+<note><para>At this point it is strongly recommended to repeat the sanity check
+we performed earlier in the chapter. Refer back to
+<xref linkend="ch05-locking-glibc"/> and repeat the check. If the results are
+wrong, then most likely you forgot to apply the above mentioned GCC Specs
+patch.</para></note>
+
+</sect2>
+
+</sect1>
+

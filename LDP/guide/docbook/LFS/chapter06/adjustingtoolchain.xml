@@ -1,0 +1,96 @@
+<sect1 id="ch06-adjustingtoolchain">
+<title>Re-adjusting the toolchain</title>
+<?dbhtml filename="adjustingtoolchain.html" dir="chapter06"?>
+
+<para>Now that the new C libraries have been installed, it's time to re-adjust
+our toolchain. We'll adjust it so that it will link any newly compiled program
+against the new C libraries. Basically, this is the reverse of what we did
+in the "locking in" stage in the beginning of the previous chapter.</para>
+
+<para>The first thing to do is to adjust the linker. For this we retained the
+source and build directories from the second pass over Binutils. Install the
+adjusted linker by running the following from within the
+<filename class="directory">binutils-build</filename> directory:</para>
+
+<screen><userinput>make -C ld INSTALL=/tools/bin/install install</userinput></screen>
+
+<note><para>If you somehow missed the earlier warning to retain the Binutils
+source and build directories from the second pass in Chapter 5 or otherwise
+accidentally deleted them or just don't have access to them, don't worry, all is
+not lost. Just ignore the above command. The result will be that the next
+package, Binutils, will link against the Glibc libraries in
+<filename class="directory">/tools</filename> rather than
+<filename class="directory">/usr</filename>. This is not ideal, however, our
+testing has shown that the resulting Binutils program binaries should be
+identical.</para></note>
+
+<para>From now on every compiled program will link <emphasis>only</emphasis>
+against the libraries in <filename>/usr/lib</filename> and
+<filename>/lib</filename>. The extra
+<userinput>INSTALL=/tools/bin/install</userinput> is needed because the Makefile
+created during the second pass still contains the reference to
+<filename>/usr/bin/install</filename>, which we obviously haven't installed yet.
+Some host distributions contain a <filename class="symlink">ginstall</filename>
+symbolic link which takes precedence in the Makefile and thus can cause a
+problem here. The above command takes care of this also.</para>
+
+<para>You can now remove the Binutils source and build directories.</para>
+
+<para>The next thing to do is to amend our GCC specs file so that it points
+to the new dynamic linker. Just like earlier on, we use a sed to accomplish
+this:</para>
+
+<!-- Ampersands are needed to allow cut and paste -->
+
+<screen><userinput>SPECFILE=/tools/lib/gcc-lib/*/*/specs &amp;&amp;
+sed -e 's@ /tools/lib/ld-linux.so.2@ /lib/ld-linux.so.2@g' \
+&nbsp;&nbsp;&nbsp;&nbsp;$SPECFILE &gt; newspecfile &amp;&amp;
+mv -f newspecfile $SPECFILE &amp;&amp;
+unset SPECFILE</userinput></screen>
+
+<para>Again, cutting and pasting the above is recommended. And just like
+before, it is a good idea to check the specs file to ensure the intended
+changes were actually made.</para>
+
+<important><para>If you are working on a platform where the name of the dynamic
+linker is something other than <filename>ld-linux.so.2</filename>, you
+<emphasis>must</emphasis> substitute <filename>ld-linux.so.2</filename> with the
+name of your platform's dynamic linker in the above commands. Refer back to
+<xref linkend="ch05-toolchaintechnotes"/> if necessary.</para></important>
+
+<!-- HACK - Force some whitespace to appease tidy -->
+<literallayout></literallayout>
+
+<caution><para>It is imperative at this point to stop and ensure that the
+basic functions (compiling and linking) of the adjusted toolchain are working
+as expected. For this we are going to perform a simple sanity check:</para>
+
+<screen><userinput>echo 'main(){}' &gt; dummy.c
+gcc dummy.c
+readelf -l a.out | grep ': /lib'</userinput></screen>
+
+<para>If everything is working correctly, there should be no errors, and the
+output of the last command will be:</para>
+
+<blockquote><screen>[Requesting program interpreter: /lib/ld-linux.so.2]</screen></blockquote>
+
+<para>If you did not receive the output as shown above, or received no output at
+all, then something is seriously wrong. You will need to investigate and retrace
+your steps to find out where the problem is and correct it. There is no point in
+continuing until this is done. Most likely something went wrong with the specs
+file amendment above. Note especially that <filename>/lib</filename> now appears
+as the prefix of our dynamic linker. Of course, if you are working on a platform
+where the name of the dynamic linker is something other than
+<filename>ld-linux.so.2</filename>, then the output will be slightly
+different.</para>
+
+<para>Once you are satisfied that all is well, clean up the test files:</para>
+
+<screen><userinput>rm dummy.c a.out</userinput></screen>
+</caution>
+
+<!-- HACK - Force some whitespace to appease tidy -->
+<literallayout></literallayout>
+
+</sect1>
+
