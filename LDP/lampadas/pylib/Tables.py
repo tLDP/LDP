@@ -514,7 +514,7 @@ class Tables:
         log(3, 'Creating docfileerrors table')
         doc = lampadas.docs[uri.id]
 
-        if doc.file_error_count()==0:
+        if doc.files.error_count==0:
             return ''
 
         box = ''
@@ -742,7 +742,7 @@ class Tables:
                     continue
 
             # Only show documents with errors if the user owns them
-            if doc.errors > 0 or doc.files.error_count() > 0:
+            if doc.errors > 0 or doc.files.error_count > 0:
                 if sessions.session==None:
                     continue
                 elif sessions.session.user.can_edit(doc_id=doc.id)==0:
@@ -757,10 +757,10 @@ class Tables:
             box.write('<td>')
             box.write('</td>\n')
             if doc.pub_status_code=='N' or doc.pub_status_code=='A':
-                if doc.errors.count() > 0 or doc.files.error_count() > 0:
+                if doc.errors.count() > 0 or doc.files.error_count > 0:
                     box.write('<td style="width:100%%" class="error">%s</td>' % doc.title)
                 else:
-                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/">%s</a></td>' % (str(doc.id), doc.title))
+                    box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>' % (str(doc.id), doc.title))
             else:
                 box.write('<td style="width:100%%">%s</td>' % doc.title)
             box.write('</tr>\n')

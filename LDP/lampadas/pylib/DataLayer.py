@@ -246,6 +246,8 @@ class Docs(LampadasCollection):
             docfile = DocFile()
             docfile.load_row(row)
             doc.files[docfile.filename] = docfile
+        for doc_id in self.keys():
+            self[doc_id].files.count_errors()
 
 
     def load_versions(self):
@@ -431,14 +433,6 @@ class Doc:
         db.runsql(sql)
         db.commit()
 
-    def file_error_count(self):
-        error_count = 0
-        docfiles = self.files.keys()
-        for docfile in docfiles:
-            sourcefile = sourcefiles[docfile]
-            error_count = error_count + sourcefile.errors.count()
-        return error_count
-
 
 # DocErrs
 
@@ -523,6 +517,7 @@ class DocFiles(LampadasCollection):
             docfile = DocFile()
             docfile.load_row(row)
             self.data[docfile.filename] = docfile
+        self.count_errors()
 
     def add(self, doc_id, filename, top):
         # First, add a sourcefile record if it doesn't exist
@@ -556,12 +551,11 @@ class DocFiles(LampadasCollection):
         db.commit()
         self.data = {}
 
-    def error_count(self):
-        count = 0
+    def count_errors(self):
+        self.error_count = 0
         for key in self.keys():
             sourcefile = sourcefiles[key]
-            count = count + sourcefile.errors.count()
-        return count
+            self.error_count = self.error_count + sourcefile.errors.count()
 
 class DocFile:
     """
