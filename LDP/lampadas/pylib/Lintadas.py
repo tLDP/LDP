@@ -82,7 +82,29 @@ class Lintadas:
 
 # When run at the command line, all checks are performed on all documents.
 
+def main():
+	import getopt
+	import sys
+
+	Docs = sys.argv[1:]
+	if len(Docs) == 0:
+		print "Running on all documents..."
+		Lintadas.CheckAllDocs()
+	else:
+		for Doc in Docs:
+			print "Running on document " + Doc
+			Lintadas.CheckDoc(Doc)
+
+def usage():
+	print "HTML.py version " + VERSION
+	print
+	print "This is part of the Lampadas System"
+	print
+	print "Pass doc ids to run Lintadas on specific docs,"
+	print "or call with no parameters to run Lintadas on all docs."
+	print
+
+
 if __name__ == "__main__":
 	Lintadas = Lintadas()
-	Lintadas.CheckAllDocs()
-#	Lintadas.CheckDoc(469)
+	main()
