@@ -474,6 +474,319 @@ or <url url="http://www.lycos.com"> and search for keyword "beautfier".
 
 
 
+<sect> Beautifiers For  SGML and XML
+<p>
+To beautify SGML and XML use one of these perl scripts.
+I used perl script from Kevin and it works fine for me.
+
+
+<sect1> SGML Auto-Indenter By Kevin
+<p>
+This script was written by
+Kevin M. Dunn
+<htmlurl url="mailto:
+	kdunn@hsc.edu
+	" name="
+	kdunn@hsc.edu
+	">
+Department of Chemistry
+Hampden-Sydney College
+HSC, VA 23943
+(804) 223-6181
+(804) 223-6374 (Fax)
+
+Several people have discussed the use of Tidy to indent sgml and xml
+sources, but does not work for SGML documents, as 
+Tidy did not recognize the entities. Rather than fix Tidy, 
+here is the perl script to indent anything with sgml-type 
+tags. Only non-empty tags are indented, and text is justified at 80
+characters/line (easily changed). 
+
+Known problems: will break line-specific enviroments. So far, the script is
+quite general--it does not recognize 
+specific tags and so could be used for any xml or sgml, not just docbook. Is
+there any way to recognize literal text 
+independent of DTD? Leading whitespace, for example? Trailing whitespace? Or
+I could indent tags only, and leave 
+all non-tag text unjustified and unindented. 
+
+Note: In code below, you should remove the extra spaces I put 
+between / g; in line 22. I put this to create Linuxdoc.
+<code>
+#!/usr/bin/perl -w
+#
+# sb: the sgml beautifier
+# indents non-empty sgml tags
+# usage: sb filename or sb < filename or | sb
+# author: Kevin M. Dunn (kdunn@hsc.edu)
+# license: anyone is free to use this for any purpose whatever
+#
+$jl = 80; #text will be justified to 80 characters/line
+$nl = 0;
+$sp = 0;
+$newline = ""; # hack to prevent extraneous blank first line
+$space[0] = "";
+separate_tags();
+get_tags();
+indent_tags();
+unlink ("$$.tmp"); # remove temporary file
+print "\n"; # add final newline to output
+sub separate_tags {
+  open(FILETMP, ">$$.tmp");
+  while (<>){
+    $_ =~ s/</\n</ g;
+    $_ =~ s/>/>\n/g;
+    print FILETMP "$_";
+  }
+  close(FILETMP);
+}
+sub get_tags {
+  open(FILETMP, "$$.tmp");
+  while (<FILETMP>){
+    $word = $_;
+    $word =~ s/[> ].*//;
+    chomp($word);
+    if ( $word =~ /^<\/.*/ ){;
+      $tag2{$word} = 1;
+      $word =~ s/\///;
+      $tag1{$word} = 1;
+    }
+  }
+}
+sub indent_tags {
+  open(FILETMP, "$$.tmp");
+  while (<FILETMP>){
+    chomp($_);    $word = $_;
+    $word =~ s/[> ].*//;
+    if ( $tag1{$word} ){
+      print "\n$space[$sp]$_";
+      $nl = $jl; # force new line on next line of input
+      $sp++;
+      if ( ! $space[$sp] ){
+        $space[$sp] = $space[$sp-1] . "  ";
+      }
+    }
+    elsif ( $tag2{$word} ){
+      $sp--;
+      print "\n$space[$sp]$_";
+      $nl = $jl; # force new line on next line of input
+    }
+    elsif ( $word =~ /<.*/ ) {
+      print "$newline$space[$sp]$_";
+      $newline = "\n"; # hack to prevent extraneous blank first line
+      $nl = $jl; # force new line on next line of input
+    }
+    elsif ( length($_) > 0 ) {
+      justify();
+    }
+  }
+}
+sub justify {
+  @words = split;
+  $nw = @words;
+  for ($i = 0; $i < $nw; $i++ ){
+    $ll += length($words[$i]) + 1 + $nl; # line length if this word is added
+    if ($ll < $jl){ # if short enough, print it
+      print "$words[$i] ";
+      $nl = 0;
+    }
+    else { # if line is too long, start a new one
+      print "\n$space[$sp]$words[$i] ";
+      $nl = 0;
+      $ll = length($space[$sp] . $words[$i]) + 1;
+    }
+  }
+}
+</code>
+
+
+
+
+
+<sect1> SGML Auto-Indenter By Hector
+<p>
+Download from <url url="http://www.olea.org/tmp/indent-sgml-xml">.
+The author is at 
+<htmlurl url="mailto:
+	hector@debian.org
+	" name="
+	hector@debian.org
+	">
+
+Note: In code below, you should remove the extra spaces I put 
+between & indentar, & fin etc.. I put this to create Linuxdoc.
+<code>
+#!/usr/bin/perl -w 
+#
+
+use XML::Parser::Expat;
+
+$|=1;
+
+if ( !$ARGV[0] ) 
+{
+       print "Argument missing\n";
+       exit 1;
+}
+
+$inline_tags = "acronym|ulink|link|citetitle|firstname|surname|application|guimenu|guisubmenu|guimenuitem|menuchoice|interface|guilabel|guibutton|glossterm|systemitem|filename|xref|emphasis|keycap|markup|email|command|inlinegraphic|entry|email|screeninfo|graphic";
+$one_line = "title|member";
+
+$todo = "";
+$temp = "";
+$ancho = "  ";
+$indentacion = 0;
+
+#open IN , "<$ARGV[0]";
+#my $todo = join ('', <IN>);
+#close (IN);
+
+$parser = new XML::Parser::Expat;
+$parser->setHandlers('Start'   => \& inicio,
+                     'End'     => \& fin,
+		     'Char'    => \& cadena,
+	             'Comment' => \& comentario);
+
+		 
+open(FOO, "$ARGV[0]") or die "Couldn't open";
+$parser->parse(*FOO);
+close(FOO);
+
+
+$todo =~ s/\n+/\n/gm;
+$todo =~ s/\n *\n/\n/gm;
+print "$todo\n";
+
+exit 1;
+
+sub inicio
+{
+	my ($p, $el, %atts) = @_;
+	my $tag = "<$el";
+	foreach my $key ( sort %atts)
+	{
+		if ( $atts{$key} )
+		{
+			$tag .= " $key=\"$atts{$key}\"";
+		}
+	}
+	$tag .= ">";
+
+	if ( !($el =~ /$inline_tags|$one_line/) )
+	{
+		$temp = & indentar ($temp, $ indentacion);
+		if ( $temp ) {
+			$todo .= "$temp\n";
+		}
+		my $pad = $ancho x $indentacion;
+		$todo .= "$pad$tag\n";
+		$temp = "";
+		$indentacion++;
+	}
+	else
+	{
+		$temp .= $tag;
+	}
+}
+
+sub fin
+{
+	my ($p, $el) = @_;
+	my $tag = "</$el>";
+	if ( !($el =~ /$inline_tags/) )
+	{
+		$temp = & indentar ($temp, $indentacion);
+		$temp =~ s/\n$// ;
+		$todo .= "$temp";
+		if ( !($el =~ /$one_line/) )
+		{
+			$indentacion--;
+			if ( !($todo =~ /\n$/) ) {
+				$todo .= "\n";
+			}
+			my $pad = $ancho x $indentacion;
+			$todo .= "$pad";
+			#$indentacion--;
+		}
+		$todo .= "$tag\n";
+		$temp = "";
+		#		$indentacion++;
+	}
+	else
+	{
+		$temp .= "$tag";
+	}
+}
+
+sub cadena
+{
+	my ($p, $str) = @_;
+	$str =~ s/ +/ /g;
+	#$str =~ s/^ //;
+	#$str =~ s/ $//;
+	$temp .= "$str";
+}
+
+sub comentario
+{
+	my ($p, $str) = @_;
+	$todo .= "<!--\n $str \n-->\n";
+}
+		
+																	    
+sub indentar ()
+{
+	my $linea = $_[0] ;
+	#	print ("Indentacion es $_[1]\nLinea $_[0]\n");
+	my $indentacion = $_[1];
+	my $cantidad = 75 - ( $indentacion * length($ancho));
+	my $pad = $ancho x $indentacion;
+	
+	my $temp = & cortar_linea ( $linea, $cantidad);
+	$temp =~ s/\n/\n$pad/g;
+	$temp =~ s/^ //;
+	my $resultado = "$pad$temp\n";
+	return $resultado;
+}
+
+sub cortar_linea ()
+{
+	my $linea = $_[0];
+	#$linea =~ s/\n/ \n/;
+	$linea .= " ";
+	my $cantidad = $_[1];
+	$temp = "";
+	$temp2 = "";
+	#print "Llega $linea\n";
+	while ( $linea =~ /(.+?) / )
+	{
+		if ( (length ($temp) + length ($+)) <= $cantidad )
+		{
+			$temp .= "$+ ";
+			$linea = $';
+		}
+		elsif ( length ($+) >= $cantidad ) 
+		{
+			$linea = $';
+			$temp2 .= "$temp\n$+";
+			$temp = "";
+		}
+		else
+		{
+			$temp2 .= "$temp\n";
+			$temp = "$+ ";
+			$linea = $';
+		}
+	}
+	$temp2 .= "$temp\n";
+	$temp2 =~ s/\n$//;
+	$temp2 =~ s/ $//;
+	#	print "Sale\n##$temp2##\n";
+	return $temp2;
+}
+</code>
+
+
 
 
 
