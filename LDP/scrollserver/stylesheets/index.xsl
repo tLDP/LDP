@@ -24,6 +24,10 @@
   <p>ScrollServer is a young project that is still in early development, so many
     features are not yet implemented. You should find it usable but incomplete.
   </p>
+
+  <p>You can find out more about ScrollServer on the
+    <a href="http://scrollserver.sourceforge.net">ScrollServer Home Page</a>.
+  </p>
   
   <p>Please report bugs and request features by writing to the author at
     <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
