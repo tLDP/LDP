@@ -509,7 +509,7 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
-    def doctable(self, uri, user, type_code=None, subtopic_code=None):
+    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.docs.sort_by("title")
@@ -523,6 +523,9 @@ class TableFactory:
                     subtopic = lampadas.subtopics[subtopic_code]
                     if subtopic.docs[doc.id]==None:
                         ok = 0
+                if username:
+                    if doc.users[username]==None:
+                        ok = 0
                 if ok > 0:
                     box = box + '<tr><td>'
                     if user and user.can_edit(doc_id=doc.id):
@@ -531,6 +534,10 @@ class TableFactory:
                     box = box + '<td style="width:100%"><a href="doc/' + str(doc.id) + '/">' + doc.title + '</a></td>'
                     box = box + '</tr>\n'
         box = box + '</table>'
+        return box
+
+    def user_docs(self, uri, user):
+        box = self.doctable(uri, user, username=user.username)
         return box
 
     def section_menu(self, uri, user, section_code):
@@ -695,19 +702,6 @@ class TableFactory:
             if language.supported > 0:
                 box = box + '<a href="/' + language.code + '/' + uri.base + '">' + language.name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr>\n'
-        box = box + '</table>\n'
-        return box
-
-
-    def user_docs(self, uri, user):
-        log(3, 'Creating user_docs table')
-        box = '<table class="navbox"><tr><th>|session_name|</th></tr>\n'
-        keys = user.docs.sort_by_lang('title', uri.lang)
-        for key in keys:
-            box = box + '<tr><td>\n'
-            userdoc = user.docs[key]
-            box = box + '<a href="/doc/' + userdoc.id + '">' + usrdoc.title[uri.lang] + '</a>\n'
-            box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
 

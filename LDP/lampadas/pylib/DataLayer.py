@@ -1035,7 +1035,7 @@ class UserDocs(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newUserDoc = UserDoc()
-            newUserDoc.load(row)
+            newUserDoc.load_row(row)
             self.data[newUserDoc.doc_id] = newUserDoc
 
 
@@ -1060,14 +1060,7 @@ class UserDoc:
     which the user plays in the production of the document.
     """
 
-    def __init__(self, doc_id=None, username=None):
-        self.doc_id = doc_id
-        self.username = username
-        if doc_id==None: return
-        if username==None: return
-        self.load(doc_id, username)
-
-    def load(self, row):
+    def load_row(self, row):
         self.doc_id		= row[0]
         self.username	= trim(row[1])
         self.role		= trim(row[2])
