@@ -371,35 +371,59 @@ class testUserDocs(unittest.TestCase):
 
 
 class testURLParse(unittest.TestCase):
+    """
+    FIXME: not all attributes of the URI object are tested... is this ok? --nico
+    """
 
-    def check_uri(self, url, protocol, server, port, path, language, forcelang, id, format, filename, parameter, anchor):
+    def check_uri(self, url, result) :
         uri = URI(url)
-        assert uri.protocol    ==protocol
-        assert uri.server      ==server
-        assert uri.port        ==port
-        assert uri.language    ==language
-        assert uri.force_lang  ==forcelang
-        assert uri.id          ==id
-        assert uri.format      ==format
-        assert uri.filename    ==filename
-        assert uri.parameter   ==parameter
-        assert uri.anchor      ==anchor
+        u = (uri.protocol, uri.server, uri.port, uri.path, uri.lang, uri.force_lang,
+             uri.id, uri.format, uri.filename, uri.parameter, uri.anchor)
+        self.assertEqual( (url,u), (url,result) )
         
     def testURLParse(self):
-        #               uri                                     protocol    server          port    path    language    forcelang   id  format  filename    parameter   anchor
-        self.check_uri('',                                      '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
-        self.check_uri('/',                                     '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
-        self.check_uri('/home',                                 '',         '',             '',     '/',    'EN',       0,          0,  '',     'home',     '',         '')
-        self.check_uri('FR',                                    '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
-        self.check_uri('FR/',                                   '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
-        self.check_uri('FR/home',                               '',         '',             '',     '/',    'FR',       1,          0,  '',     'home',     '',         '')
-        self.check_uri('/editdoc/1',                            '',         '',             '',     '/',    'EN',       0,          1,  '',     'editdoc',  '',         '')
-        self.check_uri('ES/editdoc/1',                          '',         '',             '',     '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
-        self.check_uri('http://localhost:8000',                 'http',     'localhost',    '8000', '/',    'EN',       0,          0,  '',     'home',     '',         '')
-        self.check_uri('http://localhost/editdoc/1',            'http',     'localhost',    '',     '/',    'EN',       0,          1,  '',     'editdoc',  '',         '')
-        self.check_uri('http://localhost/ES/editdoc/1',         'http',     'localhost',    '',     '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
-        self.check_uri('http://localhost:8000/ES/editdoc/1',    'http',     'localhost',    '8000', '/',    'ES',       1,          1,  '',     'editdoc',  '',         '')
-       
+        # uri protocol server port path language
+        # forcelang id format filename parameter anchor
+        self.check_uri('',
+                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+
+        self.check_uri('/',
+                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+
+        self.check_uri('/home',
+                       ('',     '',        '',    '/','EN',0,0,'','home',   '',''))
+
+        self.check_uri('FR',
+                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
+
+        self.check_uri('FR/',
+                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
+
+        self.check_uri('FR/home',
+                       ('',     '',        '',    '/','FR',1,0,'','home',   '',''))
+
+        self.check_uri('/editdoc/1',
+                       ('',     '',        '',    '/','EN',0,1,'','editdoc','',''))
+
+        self.check_uri('ES/editdoc/1',
+                       ('',     '',        '',    '/','ES',1,1,'','editdoc','',''))
+
+        self.check_uri('http://localhost:8000',
+                       ('http','localhost','8000','/','EN',0,0,'','home',   '',''))
+
+        self.check_uri('http://localhost/editdoc/1',
+                       ('http','localhost','',    '/','EN',0,1,'','editdoc','',''))
+
+        self.check_uri('http://localhost/ES/editdoc/1',
+                       ('http','localhost','',    '/','ES',1,1,'','editdoc','',''))
+
+        self.check_uri('http://localhost:8000/ES/editdoc/1',
+                       ('http','localhost','8000','/','ES',1,1,'','editdoc','',''))
+
+        # FIXME: I added this one, is it ok? --nico
+        self.check_uri('/home/file',
+                       ('',     '',        '', 'home','EN',0,0,'','file',   '',''))
+
 
 if __name__=="__main__":
 	unittest.main()
