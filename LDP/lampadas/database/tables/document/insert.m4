@@ -1,4 +1,3 @@
-m4_changequote([, ])m4_dnl
 m4_define(insert, [INSERT INTO document(doc_id, lang, title, version, isbn,
 type_code, format_code, dtd, dtd_version,
 license_code, abstract,

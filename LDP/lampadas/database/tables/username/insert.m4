@@ -1,4 +1,3 @@
-m4_changequote([, ])m4_dnl
 m4_define(insert, [INSERT INTO username(username, session_id,
 	first_name, middle_name, surname, email, admin, sysadmin,
 	password, notes, stylesheet)
