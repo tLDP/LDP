@@ -40,6 +40,9 @@ while ($abstract =~ /a1s2d3f4/) {
 
 $version       =~ s/\'/\'\'/;
 
+$save		= param('save');
+$saveandexit	= param('saveandexit');
+
 $conn=Pg::connectdb("dbname=$dbmain");
 
 $username = $query->remote_user();
@@ -106,12 +109,18 @@ $result=$conn->exec($sql);
 $sql = "UPDATE document SET abstract='$abstract' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 
-print $query->redirect("document_edit.pl?doc_id=$doc_id");
+if ($save) {
+	print $query->redirect("document_edit.pl?doc_id=$doc_id");
+} elsif ($saveandexit) {
+	print $query->redirect("document_list.pl");
+}
 
 
 print header;
 print start_html;
-print "<p>$sql";
+print "<p>sql: $sql";
+print "<p>save: $save";
+print "<p>saveandexit: $saveandexit\n";
 print end_html;
 exit;
 

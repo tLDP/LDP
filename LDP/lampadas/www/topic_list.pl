@@ -16,8 +16,8 @@ $result=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 # print the page
-#print header(-expires=>'now');
-print header;
+print header(-expires=>'now');
+#print header;
 print "<html><head>\n";
 print "<title>LDP Document Database</title>\n";
 print "<link rel=stylesheet href='../ldp.css' type='text/css'>\n";
@@ -26,13 +26,7 @@ print "<body>\n";
 
 print "<h1>Topic Listing</h1>\n";
 
-print "<p><a href='/index.html'>Index</a> ";
-print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-print "<a href='/help/'>Help</a> ";
+system("./navbar.pl");
 
 while (@row = $result->fetchrow) {
   $topic_num            = $row[0];

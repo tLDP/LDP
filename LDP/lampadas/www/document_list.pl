@@ -122,7 +122,7 @@ $result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE u
 $admin = $row[1];
 
 # print the page
-print header(-expires=>'now');
+print header;
 print "<html><head>\n";
 print "<title>Document List</title>\n";
 print "<link rel=stylesheet href='../ldp.css' type='text/css'>\n";
@@ -131,16 +131,7 @@ print "<body>\n";
 
 print "<h1>Document List</h1>\n";
 
-#print "<p>Welcome, " . $query->remote_user();
-
-
-print "<p><a href='/index.html'>Index</a> ";
-print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-print "<a href='/help/'>Help</a> ";
+system("./navbar.pl");
 
 print "<p><form action='document_edit.pl' method=POST>\n";
 print "<p>Jump to a document by ID: <input type=text size=5 name=doc_id>\n";

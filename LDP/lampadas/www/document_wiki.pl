@@ -269,13 +269,7 @@ sub printheader {
 
 	print "<h1>$title Wiki</h1>\n";
 
-	print "<p><a href='/index.html'>Index</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/document_list.pl'>Documents</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/topic_list.pl'>Topics</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/editor_list.pl'>Editors</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a>&nbsp;|&nbsp;";
-	print "<a href='/help/'>Help</a>&nbsp;|&nbsp;";
+	system("./navbar.pl");
 	print "<a href='/help/wiki.html'>Page Help</a>";
 
 	print "<p>";

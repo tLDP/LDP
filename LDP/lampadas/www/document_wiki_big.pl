@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 
 $editcols = 80;
 $editrows = 25;
@@ -184,9 +184,7 @@ unless (($preview) or ($docbook)) {
 	close TMP;
 	unlink $tempfile;
 	&printwiki;
-#	$section++;
-#	print "<tr><td><textarea name=wiki$section rows=$editrows cols=$editcols style='width:100%' wrap></textarea></td></tr>\n";
-	print "<tr><td>Comments: <input type=text name=notes size=$editcols></input></td></tr>\n";
+	print "<tr><td>Comments: <input type=text name=notes size=$editcols style='width:100%' wrap></input></td></tr>\n";
 	if ($revisions == 0) {
 		print "<tr><td>There are no previous versions of this document. Your changes will be saved as version $revision</td></tr>\n";
 	} else {
@@ -352,13 +350,7 @@ sub printheader {
 
 	print "<h1>$title Wiki</h1>\n";
 
-	print "<p><a href='/index.html'>Index</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/document_list.pl'>Documents</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/topic_list.pl'>Topics</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/editor_list.pl'>Editors</a>&nbsp;|&nbsp;";
-	print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a>&nbsp;|&nbsp;";
-	print "<a href='/help/'>Help</a>&nbsp;|&nbsp;";
+	system("./navbar.pl");
 	print "<a href='/help/wiki.html'>Page Help</a>";
 
 	print "<p>";
@@ -368,7 +360,7 @@ sub printheader {
 }
 
 sub printwiki {
-	if ($wiki) {
+	if (($wiki) or ($section == 0)) {
 		$section++;
 		print "<tr><td align='center'>Section $section</td></tr>\n";
 		print "<tr><td><textarea name=wiki$section rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";

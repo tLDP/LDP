@@ -17,14 +17,7 @@ print "<body>";
 
 print "<h1>Statistics</h1>\n\n";
 
-
-print "<p><a href='/index.html'>Index</a> ";
-print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-print "<a href='/help/'>Help</a> ";
+system("./navbar.pl");
 
 $sql = "select count(*) from document";
 $result=$conn->exec($sql);
@@ -251,7 +244,7 @@ $avg_age   = 0;
 while (@row = $result->fetchrow) {
 
   $last_update = $row[0];
-  if (($last_update != "") && ($last_update != "1970-01-01" )) {
+  if (($last_update ne "") && ($last_update ne "1970-01-01" )) {
     $year1 = substr($last_update,0,4);
     $month1 = substr($last_update,5,2);
     $day1 = substr($last_update,8,2);

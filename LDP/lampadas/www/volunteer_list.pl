@@ -21,14 +21,7 @@ print "<body>";
 
 print "<h1>LDP Maintainers</h1>\n";
 
-
-print "<p><a href='/index.html'>Index</a> ";
-print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-print "<a href='/help/'>Help</a> ";
+system("./navbar.pl");
 
 print "<p><table border=0>\n";
 while (@row = $result->fetchrow) {

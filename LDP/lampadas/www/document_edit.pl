@@ -6,6 +6,7 @@ use Pg;
 $query = new CGI;
 $dbmain = "ldp";
 @row;
+$message = '';
 
 # Read parameters
 $doc_id       = param('doc_id');
@@ -83,28 +84,36 @@ print "<body>";
 
 print "<h1>$title</h1>\n";
 
-print "<p><a href='/index.html'>Index</a> ";
-print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-print "<a href='/help/'>Help</a> ";
+system("./navbar.pl");
 
-print "<p>ID: $doc_id";
+#print "<p>ID: $doc_id";
 
 print "<form method=POST action='document_save.pl' name='edit'>\n";
 print "<input type=hidden name=doc_id value='$doc_id'>\n";
 
-print "<table>\n";
-print "<tr><th colspan=6>Document Details</th></tr>\n";
-print "<tr><td align=right>Title:</td><td colspan=4><input type=text name=title size=60 value='$title'></td>\n";
-print "<td><a href='document_wiki_big.pl?doc_id=$doc_id'>Wiki Editing (beta)</a></td></tr>\n";
-print "<tr><td align=right>Filename:</td><td colspan=5><input type=text name=filename size=60 value='$filename'></td></tr>\n";
+print "<p><table border=10>\n";
+print "<tr>\n";
+print "<th colspan=6>Document Details</th>\n";
+print "</tr>\n";
 
-print "<tr>";
+print "<tr>\n";
+print "<th align=right>Title:</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$title'></td>\n";
+print "</tr>\n";
 
-print "<td align=right>Status:</td><td>";
+print "<tr>\n";
+print "<th align=right>Filename:</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$filename'></td>\n";
+
+print "</tr>\n<tr>\n";
+
+print "<th align=right><a href='$url'>URL</a>:</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$url'></td>";
+
+print "</tr>\n<tr>\n";
+
+print "<th align=right><a href='$ref_url'>Home</a>:</th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$ref_url'></td>";
+
+print "</tr>\n<tr>\n";
+
+print "<th align=right>Status:</th><td>";
 print "<select name=pub_status>";
 if ( $pub_status eq "N" ) { print '<option selected value="N">Active</option>'; } else { print '<option value="N">Active</option>' }
 if ( $pub_status eq "?" ) { print '<option selected value="?">Unknown</option>'; } else { print '<option value="?">Unknown</option>' }
@@ -117,9 +126,9 @@ if ( $pub_status eq "W" ) { print '<option selected value="W">Wishlist</option>'
 if ( $pub_status eq "C" ) { print '<option selected value="C">Cancelled</option>'; } else { print '<option value="C">Cancelled</option>' }
 print "</select></td>";
 
-print "<td align=right>Class:</td><td>\n";
+print "<th align=right>Class:</th><td>\n";
 print "<select name=class>";
-if ( $class eq "BACKGROUNDER" ) { print '<option selected>BACKGROUNDER</option>'; } else { print '<option>BACKGROUNDER</option>' }
+if ( $class eq "BACKGROUNDER" ) { print '<option value="BACKGROUNDER" selected>Backgrounder</option>'; } else { print '<option value="BACKGROUNDER">Backgrounder</option>' }
 if ( $class eq "HOWTO" ) { print '<option selected>HOWTO</option>'; } else { print '<option>HOWTO</option>' }
 if ( $class eq "MINI" ) { print '<option selected>MINI</option>'; } else { print '<option>MINI</option>' }
 if ( $class eq "FAQ" ) { print '<option selected>FAQ</option>'; } else { print '<option>FAQ</option>' }
@@ -128,7 +137,7 @@ if ( $class eq "GUIDE" ) { print '<option selected>GUIDE</option>'; } else { pri
 if ( $class eq "TEMPLATE" ) { print '<option selected>TEMPLATE</option>'; } else { print '<option>TEMPLATE</option>' }
 print "</select></td>";
 
-print "<td align=right>Maintained:</td><td>\n";
+print "<th align=right>Maintained:</th><td>\n";
 if ( $maintained eq "t" ) { print 'Yes'; } else { print 'No' }
 #print "<select name=maintained>";
 #if ( $maintained eq "t" ) { print '<option selected value="t">Yes</option>'; } else { print '<option value="t">Yes</option>' }
@@ -138,7 +147,7 @@ print "</td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right>Review Status:</td><td>";
+print "<th align=right>Review Status:</th><td>";
 print "<select name=review_status>";
 if ( $review_status eq "U" ) { print '<option selected value="U">Unreviewed</option>'; } else { print '<option value="U">Unreviewed</option>' }
 if ( $review_status eq "N" ) { print '<option selected value="N">Need Identified</option>'; } else { print '<option value="N">Need Identified</option>' }
@@ -146,7 +155,7 @@ if ( $review_status eq "P" ) { print '<option selected value="P">Pending</option
 if ( $review_status eq "R" ) { print '<option selected value="R">Completed</option>'; } else { print '<option value="R">Completed</option>' }
 print "</select></td>";
 
-print "<td align=right>Tech Review:</td><td>";
+print "<th align=right>Tech Review:</th><td>";
 print "<select name=tech_review_status>";
 if ( $tech_review_status eq "U" ) { print '<option selected value="U">Unreviewed</option>'; } else { print '<option value="U">Unreviewed</option>' }
 if ( $tech_review_status eq "N" ) { print '<option selected value="N">Need Identified</option>'; } else { print '<option value="N">Need Identified</option>' }
@@ -154,30 +163,30 @@ if ( $tech_review_status eq "P" ) { print '<option selected value="P">Pending</o
 if ( $tech_review_status eq "R" ) { print '<option selected value="R">Completed</option>'; } else { print '<option value="R">Completed</option>' }
 print "</select></td>";
 
-print "<td align=right>License:</td><td>";
+print "<th align=right><a href='/help/license.html'>?</a>&nbsp;License:</th><td>";
 print "<select name=license>";
 if ( $license eq "" )  { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $license eq "GFDL" )  { print '<option selected>GFDL</option>'; } else { print '<option>GFDL</option>' }
 if ( $license eq "LDPL" ) { print '<option selected>LDPL</option>'; } else { print '<option>LDPL</option>' }
 if ( $license eq "LDPCL" ) { print '<option selected>LDPCL</option>'; } else { print '<option>LDPCL</option>' }
 if ( $license eq "HOWTOL" ) { print '<option selected>HOWTOL</option>'; } else { print '<option>HOWTOL</option>' }
-if ( $license eq "BOILERPLATE" ) { print '<option selected>BOILERPLATE</option>'; } else { print '<option>BOILERPLATE</option>' }
+if ( $license eq "BOILERPLATE" ) { print '<option value="BOILERPLATE" selected>Boilerplate</option>'; } else { print '<option value="BOILERPLATE">Boilerplate</option>' }
 if ( $license eq "OPL" )  { print '<option selected>OPL</option>'; } else { print '<option>OPL</option>' }
 if ( $license eq "GPL" )  { print '<option selected>GPL</option>'; } else { print '<option>GPL</option>' }
 if ( $license eq "NONE" )  { print '<option selected>NONE</option>'; } else { print '<option>NONE</option>' }
 if ( $license eq "PD" )  { print '<option selected>PD</option>'; } else { print '<option>PD</option>' }
 if ( $license eq "OTHER" )  { print '<option selected>OTHER</option>'; } else { print '<option>OTHER</option>' }
-print "</select><a href='/help/license.html'>?</a></td>";
+print "</select></td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right>Published:</td><td><input type=text name=pub_date size=10 value='$pub_date'></td>";
-print "<td align=right>Updated:</td><td><input type=text name=last_update size=10 value='$last_update'></td>";
-print "<td align=right>Version:</td><td><input type=text name=version size=10 value='$version'></td>";
+print "<th align=right>Published:</th><td><input type=text name=pub_date size=10 value='$pub_date'></td>";
+print "<th align=right>Updated:</th><td><input type=text name=last_update size=10 value='$last_update'></td>";
+print "<th align=right>Version:</th><td><input type=text name=version size=10 value='$version'></td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right>Format:</td><td>";
+print "<th align=right>Format:</th><td>";
 print "<select name=format>";
 if ( $format eq "" ) { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $format eq "SGML" ) { print '<option selected>SGML</option>'; } else { print '<option>SGML</option>' }
@@ -188,7 +197,7 @@ if ( $format eq "PDF" ) { print '<option selected>PDF</option>'; } else { print 
 if ( $format eq "WIKI" ) { print '<option selected>WIKI</option>'; } else { print '<option>WIKI</option>' }
 print "</select></td>";
 
-print "<td align=right>DTD:</td><td>";
+print "<th align=right>DTD:</th><td>";
 print "<select name=dtd>";
 if ( $dtd eq "" ) { print '<option selected></option>'; } else { print '<option></option>' }
 if ( $dtd eq "N/A" ) { print '<option selected>N/A</option>'; } else { print '<option>N/A</option>' }
@@ -197,38 +206,23 @@ if ( $dtd eq "DocBook" ) { print '<option selected>DocBook</option>'; } else { p
 if ( $dtd eq "LinuxDoc" ) { print '<option selected>LinuxDoc</option>'; } else { print '<option>LinuxDoc</option>' }
 print "</select></td>";
 
-print "<td align=right>DTD Version:</td><td>";
+print "<th align=right>DTD Version:</th><td>";
 print "<input type=text name=dtd_version size=10 value='$dtd_version'>";
 print "</td>";
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right><a href='$url'>URL</a>:</td><td colspan=5><input type=text name=url size=60 value='$url'></td>";
+print "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$tickle_date'></td>";
 
-print "</tr>\n<tr>\n";
+print "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$isbn'></td>";
 
-print "<td align=right><a href='$ref_url'>Home</a>:</td><td colspan=5><input type=text name=ref_url size=60 value='$ref_url'></td>";
-
-print "</tr>\n<tr>\n";
-
-print "<td align=right>Tickle Date</td><td><input type=text name=tickle_date size=10 value='$tickle_date'></td>";
-
-print "<td align=right>ISBN:</td><td><input type=text name=isbn size=14 value='$isbn'></td>";
-
-print "</tr>\n<tr>\n";
-
-print "<td align=right>Abstract</td>";
-print "<td colspan=5><textarea name=abstract rows=10 cols=60 wrap>$abstract</textarea></td>\n";
-
-print "</tr>\n<tr>\n";
-
-print "<td align=right>Rating</td><td>";
-
+print "<th align=right>Rating</th>\n";
+print "<td>";
 if ( $vote > 0 ) {
   print "<table border=0 bgcolor=black cellspacing=0 cellpadding=0>\n";
   for ( $i = 1; $i <= 10; $i++ ) {
     print "<td bgcolor=";
-    if ( $vote >= $i ) { print "green" } else { print "black" }
+    if ( $vote >= $i ) { print "purple" } else { print "black" }
     print ">&nbsp;&nbsp;</td>\n";
   }
   print "</tr></table>\n";
@@ -236,13 +230,32 @@ if ( $vote > 0 ) {
 else {
   print "Not rated";
 }
+print "</td>\n";
 
-print "</td>";
+print "</tr>\n<tr>\n";
 
-print "<td colspan=5 align=right><input type=submit value=Save></td>";
+print "<th align=right>Abstract</th>";
+print "<td colspan=5><textarea name=abstract rows=8 cols=60 style='width:100%' wrap>$abstract</textarea></td>\n";
+
+print "</tr>\n";
+
+print "<tr>\n";
+print "<th><a href='document_wiki_big.pl?doc_id=$doc_id'>WikiText</a></th>\n";
+print "<td colspan=4>I am working on ways to provide easy online collaborative editing,
+and always for new ways to make writing for the LDP easier.
+
+<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
+WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
+WikiText-style editing format that can be converted into DocBook.
+
+<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
+
+print "<td align=right><input type=submit name=save value=Save> <input type=submit name=saveandexit value='Save/Exit'></td>\n";
+
+print "</tr>\n";
+print "</table>\n";
 
 
-print "</tr></table>\n";
 print "</form>";
 
 
@@ -250,10 +263,15 @@ print "</form>";
 
 
 
-$test = 'x';
 
-if ($test) {
+
+
 print "<p><hr>";
+
+
+
+
+
 
 
 
@@ -281,7 +299,7 @@ while (@row = $rev_result->fetchrow) {
   print "<td valign=top><input type=text name=rev_version width=12 size=12 value='$rev_version'></input></td>\n";
   print "<td valign=top><input type=text name=rev_date width=12 size=12 value='$rev_date'></input></td>\n";
   print "<td valign=top><input type=text name=rev_init width=5 size=5 value='$rev_init'></input></td>\n";
-  print "<td><textarea name=rev_note rows=3 cols=40 wrap>$rev_note</textarea>\n";
+  print "<td><textarea name=rev_note rows=3 cols=40 style='width:100%' wrap>$rev_note</textarea>\n";
 
   print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
   print "<td valign=top><input type=submit value=Save></td>\n";
@@ -299,7 +317,7 @@ print "<input type=hidden name=doc_id value=$doc_id>";
 print "<td valign=top><input type=text name=rev_version width=12 size=12></input></td>\n";
 print "<td valign=top><input type=text name=rev_date width=12 size=12></input></td>\n";
 print "<td valign=top><input type=text name=rev_init width=5 size=5></input></td>\n";
-print "<td><textarea name=rev_note rows=3 cols=40 wrap></textarea>\n";
+print "<td><textarea name=rev_note rows=3 cols=40 style='width:100%' wrap></textarea>\n";
 
 print "<td valign=top></td>\n";
 print "<td valign=top><input type=submit value=Add></td>\n";
@@ -307,7 +325,7 @@ print "</form>";
 print "</tr>\n";
 
 print "</table>\n";
-}
+
 
 
 
@@ -317,6 +335,11 @@ print "</table>\n";
 
 
 print "<p><hr>";
+
+
+
+
+
 
 
 
@@ -615,7 +638,7 @@ print "<h2>Rating</h2>\n";
 print "<p><table border=0 cellspacing=0 cellpadding=0>\n";
 for ( $i = 1; $i <= 10; $i++ ) {
   print "<td bgcolor=";
-  if ( $vote >= $i ) { print "green" } else { print "black" }
+  if ( $vote >= $i ) { print "purple" } else { print "black" }
   print ">&nbsp;&nbsp;&nbsp;</td>\n";
 }
 print "</tr></table>\n";
