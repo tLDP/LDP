@@ -67,7 +67,7 @@ class Stats(LampadasCollection):
             self['doc_lang'].inc(doc.lang)
             
             # Increment error counts
-            for key in doc.errors.sort_by('err_id'):
+            for key in doc.errors.keys('err_id'):
                 self['doc_error'].inc(key)
 
             # Only track stats for publishable docs
@@ -88,9 +88,9 @@ class Stats(LampadasCollection):
                         self['pub_time'].inc(pub_time)
                         
                         if doc.pub_time > '':
-                            self['doc_format'].inc(metadata.format_code)
-                            self['doc_dtd'].inc(metadata.dtd_code)
-                            self['doc_lang'].inc(doc.lang)
+                            self['pub_doc_format'].inc(metadata.format_code)
+                            self['pub_doc_dtd'].inc(metadata.dtd_code)
+                            self['pub_doc_lang'].inc(doc.lang)
 
 
 class StatTable(LampadasCollection):
