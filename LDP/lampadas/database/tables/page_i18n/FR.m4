@@ -16,7 +16,7 @@ insert([newdocument], [Add Document], [],
 insert([users], [User List], [],
 [
     |tabletters|
-    <p>|tabusers|
+    |tabusers|
 ], 1)
 
 insert([sessions], [User Sessions], [],

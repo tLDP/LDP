@@ -20,8 +20,10 @@ insert(index,
             <td class="sidebarleft">
               |blklogo|
             </td>
-            <td width="100%" colspan="2">
+            <td class="center" width="100%" colspan="2">
               |blkheader|
+            </td>
+            <td>
             </td>
 	      </tr>
 	      <tr>
@@ -31,7 +33,7 @@ insert(index,
               <p>|navtypes|
               <p>|navlanguages|
             </td>
-            <td class="body" width="100%" valign="top">
+            <td class="center body" width="100%" valign="top">
               |body|
             </td>
             <td class="sidebarright" valign="top">
@@ -60,7 +62,7 @@ insert(default,
             <td class="sidebarleft">
               |blklogo|
             </td>
-            <td width="100%">
+            <td class="center" width="100%">
               |blkheader|
             </td>
 	      </tr>
@@ -71,12 +73,12 @@ insert(default,
               <p>|navtypes|
               <p>|navlanguages|
             </td>
-            <td class="body" width="100%" valign="top">
+            <td class="center body" width="100%" valign="top">
               |body|
             </td>
 	      </tr>
 	      <tr>
-            <td>
+            <td colspan="2">
               |blkfooter|
             </td>
 	      </tr>

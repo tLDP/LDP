@@ -143,8 +143,6 @@ class PageFactory:
                     if config.port > '':
                         newstring = newstring + ':' + config.port
                     newstring = newstring + config.root_dir
-                    if uri.force_lang:
-                        newstring = newstring + uri.lang + '/'
 
                 # Meta-data from the page's URL
                 elif token=='uri.lang_ext':

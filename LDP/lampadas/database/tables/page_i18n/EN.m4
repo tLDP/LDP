@@ -16,7 +16,7 @@ insert([newdocument], [Add Document], [],
 insert([users], [User List], [],
 [
     |tabletters|
-    <p>|tabusers|
+    |tabusers|
 ], 1)
 
 insert([sessions], [User Sessions], [],
@@ -33,13 +33,13 @@ insert([my], [My Home], [],
     <p>|session_user_docs|</p>
 ], 1)
 
-insert([home], [|strproject|], [Home], 
+insert([home], [|strprojectshort| Home Page], [Home], 
 [
-    <p>Welcome to |strproject|.
+    <p>Welcome to |strproject|.</p>
 
     <p>This site is based on a development version of the
     Lampadas Document Management System from
-    <a href="http://www.tldp.org">The Linux Documentation Project</a>
+    <a href="http://www.tldp.org">The Linux Documentation Project</a></p>
 
     <p>This is <i><b>alpha quality</b></i> code, updated from the cvs tree
     very frequently, whenever there are significant features or
@@ -47,7 +47,7 @@ insert([home], [|strproject|], [Home],
     This happens at least once a day and sometimes
     several times a day.
     The system is fairly stable, although some half-
-    implemented features will cause ugly error dumps.
+    implemented features will cause ugly error dumps.</p>
     
     <p>This demo site is populated with data from the LDPDB.
     If you had an account on the LDPDB, you have one here.
@@ -55,12 +55,12 @@ insert([home], [|strproject|], [Home],
     hashed form, I was unable to port them over, and you\'ve been
     given a new password. To get it, click the "Mail Password"
     link and your new password will be mailed to your address
-    of record.
+    of record.</p>
 
     <p>There are also a set of additional test users.
     Log in as one of them to see the site through their eyes.
     The pages change depending on your access level.
-    These users\'passwords are "password".
+    These users\'passwords are "password".</p>
 
     <ul>
         <li>sysadmin - the SUPERUSER, who manages the system.</li>
@@ -77,7 +77,7 @@ insert([home], [|strproject|], [Home],
     project.
     You can find out more about it by reading the
     <a href="http://www.lupercalia.net/lampadas/">Lampadas Developer\'s
-    Guide</a>.
+    Guide</a>.</p>
 ], 1)
 
 insert([doctable], [DocTable], [],

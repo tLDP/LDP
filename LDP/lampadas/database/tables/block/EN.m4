@@ -12,7 +12,7 @@ insert([blklogo],
     <table class="logo">
       <tr>
         <td valign="middle">
-          LOGO
+          <a href="|base|home|uri.lang_ext|" alt=="Home"><img src="|uri.base|images/ldp200x80.png" alt="LDP" height="80" width="200"></a>
         </td>
       </tr>
     </table>
@@ -45,7 +45,7 @@ insert([blkfooter],
       <a href="http://www.python.org"><img src="|uri.base|images/PythonPowered.gif" alt="Python Powered!"></a>
       <a href="http://www.opensource.org"><img src="http://www.opensource.org/trademarks/osi-certified/web/osi-certified-90x75.png" height=75 width=90 alt="OSI Certified"></a>
       <a href="http://www.gnome.org"><img src="|uri.base|images/gnome2.png" height="48" width="48" alt="Gnome"></a>
-      <a href="http://www.tldp.org"><img src="|uri.base|images/ldp.gif" height="60" width="150" alt="TLDP"></a>
+      <a href="http://www.tldp.org"><img src="|uri.base|images/ldp200x80.png" height="60" width="133" alt="TLDP"></a>
       <br>|strrender_time|: |elapsed_time|
     </center>
 ])

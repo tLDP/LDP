@@ -19,7 +19,7 @@ insert([newdocument], [Dokument hinzufügen], [],
 insert([users], [Liste der Benutzer], [],
 [
     |tabletters|
-    <p>|tabusers|
+    |tabusers|
 ], 1)
 
 insert([sessions], [Benutzersitzungen], [],

@@ -541,7 +541,7 @@ class Tables:
 
     def letters(self, uri):
         log(3, 'Creating letter table')
-        box = '<table class="box" width="100%"><tr>\n'
+        box = '<table class="tab"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
                 box = box + '<td>' + letter + '</td>\n'
@@ -1114,7 +1114,7 @@ class Tables:
         """
         log(3, 'Creating tabslashlanguages table')
         box = WOStringIO('<p class="hide"><div class="map">\n' \
-                         '<p id="p1">|strprojectshort|</p>\n')
+                         '<p id="p1">|strproject|</p>\n')
         id = 1
         langkeys = lampadas.languages.keys()
         for langkey in langkeys:
