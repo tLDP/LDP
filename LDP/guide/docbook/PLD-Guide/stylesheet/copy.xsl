@@ -11,7 +11,7 @@
   <xsl:template match="comment()">
     <xsl:if test="starts-with(normalize-space(.), 'web-hack ')">
       <xsl:apply-templates 
-           select="document(substring-after(normalize-space(.), 'web-hack '))"
+           select="document(concat('../', substring-after(normalize-space(.), 'web-hack ')))"
        />
     </xsl:if>
   </xsl:template>
