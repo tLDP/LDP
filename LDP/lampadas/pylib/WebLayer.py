@@ -38,17 +38,6 @@ from Database import db
 
 
 
-# WebLayer
-
-class LampadasWeb:
-
-    def __init__(self):
-        self.blocks     = Blocks()
-        self.sections   = Sections()
-        self.pages      = Pages()
-        self.strings    = Strings()
-        self.templates  = Templates()
-
 # Blocks
 
 class Blocks(LampadasCollection):
@@ -67,22 +56,22 @@ class Blocks(LampadasCollection):
 class Block:
 
     def __init__(self):
-        self.I18n = {}
+        self.i18n = {}
 
     def load(self, row):
-        Code		= trim(row[0])
-        sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.Code)
+        self.code		= trim(row[0])
+        sql = "SELECT lang, block FROM block_i18n WHERE block_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newBlockI18n = BlockI18n()
             newBlockI18n.load(row)
-            self.I18n[newBlockI18n.lang] = newBlockI18n
+            self.i18n[newBlockI18n.lang] = newBlockI18n
 
 class BlockI18n:
 
-    def Load(self, row):
+    def load(self, row):
         self.lang	= row[0]
         self.block	= row[1]
 
@@ -105,18 +94,18 @@ class Sections(LampadasCollection):
 class Section:
 
     def __init__(self):
-        self.I18n = {}
+        self.i18n = {}
 
     def load(self, row):
         self.code		= trim(row[0])
-        sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.Code)
+        sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newSectionI18n = SectionI18n()
             newSectionI18n.load(row)
-            self.I18n[newSectionI18n.lang] = newSectionI18n
+            self.i18n[newSectionI18n.lang] = newSectionI18n
 
 class SectionI18n:
 
@@ -143,20 +132,20 @@ class Pages(LampadasCollection):
 class Page:
 
     def __init__(self):
-        self.I18n = {}
+        self.i18n = {}
 
     def load(self, row):
         self.code		= trim(row[0])
         self.section_code	= trim(row[1])
         self.template_code	= trim(row[2])
-        sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
+        sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newPageI18n = PageI18n()
-            newPageI18n.Load(row)
-            self.I18n[newPageI18n.lang] = newPageI18n
+            newPageI18n.load(row)
+            self.i18n[newPageI18n.lang] = newPageI18n
 
 class PageI18n:
 
@@ -176,12 +165,12 @@ class Strings(LampadasCollection):
     def __init__(self):
         self.data = {}
         sql = "SELECT string_code FROM string"
-        cursor = db.select(self.sql)
+        cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newString = String()
-            newString.Load(row)
+            newString.load(row)
             self.data[newString.code] = newString
 
 class String:
@@ -190,18 +179,18 @@ class String:
     """
 
     def __init__(self, StringCode=None):
-        self.I18n = {}
+        self.i18n = {}
 
     def load(self, row):
         self.code = trim(row[0])
-        sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
-        cursor = db.select(self.sql)
+        sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.code)
+        cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newStringI18n = StringI18n()
             newStringI18n.load(row)
-            self.I18n[newStringI18n.lang] = newStringI18n
+            self.i18n[newStringI18n.lang] = newStringI18n
 
 # StringI18n
 
@@ -219,7 +208,7 @@ class Templates(LampadasCollection):
     def __init__(self):
         self.data = {}
         sql = "SELECT template_code, template FROM template"
-        cursor = db.select(self.sql)
+        cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
@@ -233,6 +222,17 @@ class Template:
         self.code       = trim(row[0])
         self.template   = trim(row[1])
 
+# WebLayer
 
-lampadasweb = LampadasWeb
+class LampadasWeb:
+
+    def __init__(self):
+        self.blocks     = Blocks()
+        self.sections   = Sections()
+        self.pages      = Pages()
+        self.strings    = Strings()
+        self.templates  = Templates()
+
+
+lampadasweb = LampadasWeb()
 

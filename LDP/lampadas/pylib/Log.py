@@ -38,28 +38,28 @@ from Config import config
 
 
 class Log:
-	"""
-	Write to the system log.
-	"""
+    """
+    Write to the system log.
+    """
 
-	import time
+    import time
 
-	def __call__(self, level, message):
-		self.write(level, message)
+    def __call__(self, level, message):
+        self.write(level, message)
 
-	def write(self, level, message):
-		if config.log_level >= level:
-			timestamp = self.time.time()
-			logmessage = self.time.ctime(self.time.time()) + ' ' + message
-			self.log = open(config.log_file, 'a+')
-			self.log.write(logmessage + "\n")
-			self.log.close
-			if config.log_console > 0:
-				print logmessage
+    def write(self, level, message):
+        if config.log_level >= level:
+            timestamp = self.time.time()
+            logmessage = self.time.ctime(self.time.time()) + ' ' + message
+            self.log = open(config.log_file, 'a+')
+            self.log.write(logmessage + "\n")
+            self.log.close
+            if config.log_console > 0:
+                print logmessage
 
-	def truncate(self):
-		self.log = open(config.log_file, 'w+')
-		self.log.close
+    def truncate(self):
+        self.log = open(config.log_file, 'w+')
+        self.log.close
 
 
 log = Log()
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     config.log_level = 3
     config.log_sql = 1
     config.log_console = 1
-    log.write(1, 'level 1')
-    log.write(2, 'level 2')
-    log.write(3, 'level 3')
+    log(1, 'level 1')
+    log(2, 'level 2')
+    log(3, 'level 3')
 
