@@ -56,8 +56,8 @@ to see if I've missed anything.
 <firstname>David</firstname> <othername role="mi">A.</othername><surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>v2.82, 6 March 2001</pubdate>
-<edition>v2.82</edition>
+<pubdate>v2.85, 5 April 2001</pubdate>
+<edition>v2.85</edition>
 <!-- FYI: The LDP claims they don't use the "edition" tag.  -->
 <copyright>
  <year>1999</year>
@@ -752,6 +752,8 @@ is available, possibly only under certain conditions), saying
 ``Will open-box software really improve system security?
 My answer is not by itself, although the potential is considerable''
 [Neumann 2000].
+<ulink url="http://www-106.ibm.com/developerworks/linux/library/l-oss.html?open&amp;I=252,t=gr,p=SeclmpOS">Natalie Walker Whitlock's IBM DeveloperWorks article</ulink>
+discusses the pros and cons as well.
 </para>
 
 <para>
@@ -772,6 +774,8 @@ harder for an attacker to find the vulnerabilities.
 A counter-argument is that attackers generally don't need source code,
 and if they want to use source code they can use disassemblers to re-create
 the source code of the product.
+See Flake [2001] for one discussion of how closed code can still be examined
+for security vulnerabilities (e.g., using disassemblers).
 In contrast, defenders won't usually look for problems if they
 don't have the source code, so not having the source code puts defenders
 at a disadvantage compared to attackers.
@@ -1534,6 +1538,8 @@ Linux distributions tend to be fairly similar to each other from the
 point-of-view of programming for security, because they all use essentially
 the same kernel and C library (and the GPL-based licenses encourage rapid
 dissemination of any innovations).
+It also notes some of the security-relevant differences between different
+Unix implmentations, but please note that this isn't an exhaustive list.
 This chapter doesn't discuss issues such as implementations of
 mandatory access control (MAC) which many Unix-like systems do not implement.
 If you already know what
@@ -1668,6 +1674,12 @@ Not all Unix-like systems support this.
 <para>
 supplemental groups - a list of groups (GIDs) in which this
 user has membership.
+In the original version 7 Unix, this didn't exist -
+processes were only a member of one group at a time, and a special
+command had to be executed to change that group.
+BSD added support for a list of groups in each process,
+which is more flexible, and
+this addition is now widely implemented (including by Linux and Solaris).
 </para>
 </listitem>
 <listitem>
@@ -1870,6 +1882,8 @@ If the RUID is changed, or the EUID is set to a value not equal to the RUID,
 the SUID is set to the new EUID.
 Unprivileged users can set their EUID from their SUID,
 the RUID to the EUID, and the EUID to the RUID.
+<!-- ??? In FreeBSD, On execve(), the saved uid is reset to the EUID.
+Source: "Advanced Unix Programming", Warren W. Gay, page 231. -->
 </para>
 
 <para>
@@ -2508,7 +2522,8 @@ There is a ``soft'' limit (also called the current limit) and a
 ``hard limit'' (also called the upper limit).
 The soft limit cannot be exceeded at any time, but through calls it can
 be raised up to the value of the hard limit.
-See getrlimit(), setrlimit(), and getrusage().
+See getrlimit(2), setrlimit(2), and getrusage(2), sysconf(3), and
+ulimit(1).
 Note that there are several ways to set these limits, including the
 PAM module pam&lowbar;limits.
 </para>
@@ -2801,14 +2816,44 @@ for more information on limiting call-outs.
 
 <para>
 Limit all numbers to the minimum (often zero) and maximum allowed values.
-Filenames should be checked; usually you will want to not include ``..''
-(higher directory) as a legal value.
-In filenames it's best to prohibit any change in directory, e.g., by not
-including ``/'' in the set of legal characters.
 A full email address checker is actually quite complicated, because there
 are legacy formats that greatly complicate validation if you need
 to support all of them; see mailaddr(7) and IETF RFC 822 [RFC 822]
 for more information if such checking is necessary.
+</para>
+
+<para>
+Filenames should be checked; usually you will want to not include ``..''
+(higher directory) as a legal value.
+In filenames it's best to prohibit any change in directory, e.g., by not
+including ``/'' in the set of legal characters.
+Often you shouldn't support ``globbing'', that is,
+expanding filenames using ``*'', ``?'', ``['' (matching ``]''),
+and possibly ``{'' (matching ``}'').
+For example, the command ``ls *.png'' does a glob on ``*.png'' to list
+all PNG files.
+The C fopen(3) command (for example) doesn't do globbing, but the command
+shells perform globbing by default, and in C you can request globbing
+using (for example) glob(3).
+If you don't need globbing, just use the calls that don't do it where
+possible (e.g., fopen(3)) and/or disable them
+(e.g., escape the globbing characters in a shell).
+Be especially careful if you want to permit globbing.
+Globbing can be useful, but complex globs can take a great deal of computing
+time.
+For example, on some ftp servers, performing a few of these requests can
+easily cause a denial-of-service of the entire machine:
+<programlisting>
+ftp&gt; ls */../*/../*/../*/../*/../*/../*/../*/../*/../*/../*/../*/../*
+</programlisting>
+<!-- http://lwn.net/2001/0322/a/ftpd-dos.php3 -->
+Trying to allow globbing, yet limit globbing patterns, is probably futile.
+Insted, make sure that any such programs run as a seperate process and
+use process limits to limit the amount of CPU and other resources
+they can consume.
+See <xref linkend="minimize-resources"> for more information on this
+approach, and see <xref linkend="quotas"> for more information
+on how to set these limits.
 </para>
 
 <para>
@@ -2874,6 +2919,17 @@ doesn't protect against buffer overflows (e.g., C and C++).
 See
 <xref linkend="minimize-privileges">
 for more information on minimizing privileges.
+</para>
+
+<para>
+When using data for security decisions (e.g., ``let this user in''),
+be sure to use trustworthy channels.
+For example, on a public Internet, don't just use the machine IP address
+or port number as the sole way to authenticate users, because in most
+environments this information can be set
+by the (potentially malicious) user.
+See
+<xref linkend="trustworthy-channels"> for more information.
 </para>
 
 <para>
@@ -5339,10 +5395,12 @@ before running it.
 </para>
 
 <para>
-In Linux and Unix, the primary determiner of a process' privileges is the set of
-id's associated with it:
-each process has a real, effective and saved id for both the user and group.
-Linux also has the filesystem uid and gid.
+In Linux and Unix, the primary determiner of a process' privileges
+is the set of id's associated with it:
+each process has a real, effective and saved id for both the user and group
+(a few very old Unixes don't have a ``saved'' id).
+Linux also has, as a special extension, a separate filesystem uid and gid
+for each process.
 Manipulating these values is critical to keeping privileges minimized,
 and there are several ways to minimize them (discussed below).
 You can also use chroot(2) to minimize the files visible to a program.
@@ -5772,6 +5830,27 @@ link, no one can access the data, but this is simply not true.
 </para>
 
 </sect2>
+
+<sect2 id="minimize-resources">
+<title>Consider Minimizing the Resources Available</title>
+<para>
+Consider minimizing the computer resources available to a given
+process so that, even if it ``goes haywire,'' its damage can be limited.
+This is a fundamental technique for preventing a denial of service.
+For network servers,
+a common approach is to set up a separate process for each session,
+and for each process limit the amount of CPU time (et cetera) that session
+can use.
+That way, if an attacker makes a request that chews up memory or uses
+100% of the CPU, the limits will kick in and prevent that single session
+from interfering with other tasks.
+Of course, an attacker can establish many sessions, but this at least
+raises the bar for an attack.
+See <xref linkend="quotas"> for more information on how to set these limits
+(e.g., ulimit(1)).
+</para>
+</sect2>
+
 </sect1>
 
 <sect1 id="avoid-setuid">
@@ -5846,6 +5925,19 @@ Indeed, it's best to make them unreadable by all but the trusted user.
 Allow non-root installation where possible as well, so that users without
 root privileges and administrators who do not fully trust the
 installer can still use the program.
+</para>
+
+<para>
+When installing, check to make sure that any assumptions necessary for
+security are true.
+Some library routines are not safe on some platforms; see the discussion of
+this in <xref linkend="call-only-safe">.
+If you know which platforms your application will run on, you need not
+check their specific attributes, but in that case you should
+check to make sure that the program is being installed on only one of
+those platforms.
+Otherwise, you should require a manual override to install the program,
+because you don't know if the result will be secure.
 </para>
 
 <para>
@@ -6200,17 +6292,17 @@ method for creating an arbitrary temporary file is tmpfile(3).
 The tmpfile(3) function creates a temporary file
 and opens a corresponding stream, returning that stream (or NULL if it didn't).
 Unfortunately, the specification doesn't make any
-guarantees that the file will be created securely, and I've been
-unable to assure myself that all implementations do this securely.
-Implementations of tmpfile(3) should securely create such files,
-of course, but it's difficult to
-recommend tmpfile(3) because there's always the possibility that a
-library implementation fails to do so.
-This illustrates a more general issue, the tension between abstraction
-(which hides ``unnecessary'' details) and security
-(where these ``unnecessary'' details are suddenly critical).
-If I could satisfy myself that tmpfile(3) was trustworthy, I'd use it,
-since it's the simplest solution for many situations.
+guarantees that the file will be created securely.
+In earlier versions of this book, I stated that I was concerned because
+I could not assure myself that all implementations do this securely.
+I've since found that older System V systems
+have an insecure implementation of tmpfile(3) (as well as insecure
+implementations of tmpnam(3) and tempnam(3)).
+<!-- http://www.gsp.com/cgi-bin/man.cgi?section=3&topic=tmpfile which
+  shows tmpfile(3) of BSD, November 17, 1993. -->
+Library implementations of tmpfile(3) should securely create such files,
+of course, but users don't always realize that their system libraries
+have this security flaw, and sometimes they can't do anything about it.
 </para>
 
 <para>
@@ -6352,7 +6444,8 @@ TMP_MAX uses (yet most practical uses must be inside a loop).
 <para>
 In general, you should avoid using the insecure functions
 such as mktemp(3) or tmpnam(3), unless you take specific measures to
-counter their insecurities.
+counter their insecurities or test for a secure library implementation
+as part of your installation routines.
 If you ever want to make a file in /tmp or a world-writable directory
 (or group-writable, if you don't trust the group) and don't want to
 use mk*temp() (e.g. you intend for the file to be predictably named),
@@ -6756,66 +6849,75 @@ this could be the basis of a denial-of-service attack.
 <title>Trust Only Trustworthy Channels</title>
 
 <para>
-In general, do not trust results from untrustworthy channels.
+In general, only trust information (input or results)
+from trustworthy channels.
+For example,
+the routines getlogin(3) and ttyname(3) return information that can be
+controlled by a local user, so don't trust them for security purposes.
 </para>
 
 <para>
 In most computer networks (and certainly for the Internet at large),
 no unauthenticated transmission is trustworthy.
 For example,
-on the Internet arbitrary packets can be forged, including header values,
-so don't use their values as your primary criteria for security decisions
-unless you can authenticate them.
-In some cases you can assert that a packet claiming to come from the
-``inside'' actually does, since the local firewall would prevent such
-spoofs from outside, but broken firewalls, alternative paths, and
-mobile code make even this assumption suspect.
-In a similar vein, do not assume that low port numbers (less than 1024)
-are trustworthy; in most networks such requests can be forged or
-the platform can be made to permit use of low-numbered ports.
+packets sent over the public Internet can be viewed and modified at any
+point along their path, and arbitrary new packets can be forged.
+These forged packets might include forged information about the sender
+(such as their machine (IP) address and port) or receiver.
+Therefore, don't use these values as your primary criteria for
+security decisions unless you can authenticate them (say using cryptography).
 </para>
 
 <para>
-If you're implementing a standard and inherently insecure protocol
-(e.g., ftp and rlogin), provide safe defaults and document clearly
-the assumptions.
+This means that, except under special circumstances,
+two old techniques for authenticating users
+in TCP/IP should often not be used as the sole authentication mechanism.
+One technique is to limit users to ``certain machines'' by checking
+the ``from'' machine address in a data packet; the other is to
+limit access by requiring that the sender use a ``trusted'' port number
+(a number less that 1024).
+The problem is that in many environments an attacker can forge these values.
 </para>
+
+<para>
+In some environments, checking these values (e.g., the sending machine
+IP address and/or port) can have some value, so
+it's not a bad idea to support such checking as an option in a program.
+For example, if a system runs behind a firewall, the firewall can't
+be breached or circumvented, and the firewall stops
+external packets that claim to be from the inside, 
+then you can claim that any packet saying it's from the inside really does.
+Note that you can't be sure the packet actually comes from the machine
+it claims it comes from - so you're only countering external threats,
+not internal threats.
+However, broken firewalls, alternative paths, and mobile code make
+even these assumptions suspect.
+</para>
+
+<para>
+The problem is supporting untrustworthy information as the only way
+to authenticate someone.
+If you need a trustworthy channel over an untrusted network,
+in general you need some sort of cryptologic
+service (at the very least, a cryptologically safe hash).
+See <xref linkend="crypto">
+for more information on cryptographic algorithms and protocols.
+If you're implementing a standard and inherently insecure protocol
+(e.g., ftp and rlogin), provide safe defaults and document
+the assumptions clearly.
+</para>
+
 
 <para>
 The Domain Name Server (DNS) is widely used on the Internet to maintain
 mappings between the names of computers and their IP (numeric) addresses.
 The technique called ``reverse DNS'' eliminates some simple
 spoofing attacks, and is useful for determining a host's name.
-However, this technique is not trustworthy for authentication
-decisions.
+However, this technique is not trustworthy for authentication decisions.
 The problem is that, in the end, a DNS request will be sent eventually
 to some remote system that may be controlled by an attacker.
 Therefore, treat DNS results as an input that needs
 validation and don't trust it for serious access control.
-</para>
-
-<para>
-If asking for a password, try to set up trusted path.
-Otherwise, an ``evil'' program could create a display that ``looks like''
-the expected display for a password (e.g., a log-in) and intercept
-that password.
-Unfortunately, stock Linux and most other Unixes don't
-have a trusted path even for their normal login sequence.
-One approach is to 
-require pressing an unforgeable key before login, e.g.,
-Windows NT/2000 uses ``control-alt-delete'' before logging in; since
-normal programs in Windows can't intercept this key, this
-approach creates a trusted path.
-Another approach is to control a separate display that only the login
-program can perform.
-For example, if only trusted programs could modify the keyboard lights
-(the LEDs showing Num Lock, Caps Lock, and Scroll Lock),
-then a login program could display a running pattern to indicate that
-it's the real login program.
-Unfortunately, since in current Linux normal users can change the LEDs,
-the LEDs can't currently be used to confirm a trusted path.
-When handling a password over a network, at the very least
-encrypt the password between trusted endpoints.
 </para>
 
 <para>
@@ -6828,16 +6930,9 @@ such as signing onto a public mailing list this is usually acceptable.
 </para>
 
 <para>
-If you need a trustworthy channel over an untrusted network,
-you need some sort of cryptologic
-service (at the very least, a cryptologically safe hash);
-see <xref linkend="crypto">
-for more information on cryptographic algorithms and protocols.
-</para>
-
-<para>
 Note that in any client/server model, including CGI, that the server
-must assume that the client can modify any value.
+must assume that the client (or someone interposing between the
+client and server) can modify any value.
 For example, so-called ``hidden fields'' and cookie values can be
 changed by the client before being received by CGI programs.
 These cannot be trusted unless special precautions are taken.
@@ -6857,11 +6952,6 @@ this is sent by the user's browser (not the web server).
 </para>
 
 <para>
-The routines getlogin(3) and ttyname(3) return information that can be
-controlled by a local user, so don't trust them for security purposes.
-</para>
-
-<para>
 This issue applies to data referencing other data, too.
 For example, HTML or XML allow you to include by reference other files
 (e.g., DTDs and style sheets) that may be stored remotely.
@@ -6875,6 +6965,119 @@ text into documents [St. Laurent 2000].
 </para>
 
 </sect1>
+
+<sect1 id="trusted-path">
+<title>Set up a Trusted Path</title>
+<para>
+The counterpart to needing trustworthy channels
+(see <xref linkend="trustworthy-channels">)
+is assuring users that they
+really are working with the program or system they intended to use.
+</para>
+
+<para>
+The traditional example is a ``fake login'' program.
+If a program is written to look like the login screen of a system, then
+it can be left running.
+When users try to log in, the fake login program can then capture user
+passwords for later use.
+</para>
+
+<para>
+A solution to this problem is a ``trusted path.''
+A trusted path is simply some mechanism that provides confidence that the
+user is communicating with what the user intended to communicate with,
+ensuring that attackers can't intercept or modify whatever information
+is being communicated.
+<!-- A gross simplification of the CC. See:
+  http://www.commoncriteria.org/cc/part2/part2anftp.html -->
+</para>
+
+<para>
+If you're asking for a password, try to set up trusted path.
+Unfortunately, stock Linux distributions and many other Unixes don't
+have a trusted path even for their normal login sequence.
+One approach is to 
+require pressing an unforgeable key before login, e.g.,
+Windows NT/2000 uses ``control-alt-delete'' before logging in; since
+normal programs in Windows can't intercept this key pattern, this
+approach creates a trusted path.
+There's a Linux equivalent, termed the
+<ulink url="http://lwn.net/2001/0322/a/SAK.php3">Secure Attention Key
+(SAK)</ulink>; it's recommended that this be mapped to
+``control-alt-pause''.
+Unfortunately, at the time of this writing SAK is immature and not
+well-supported by Linux distributions.
+Another approach for implementing a trusted path
+locally is to control a separate display that only the login
+program can perform.
+For example, if only trusted programs could modify the keyboard lights
+(the LEDs showing Num Lock, Caps Lock, and Scroll Lock),
+then a login program could display a running pattern to indicate that
+it's the real login program.
+Unfortunately, since in current Linux normal users can change the LEDs,
+the LEDs can't currently be used to confirm a trusted path.
+</para>
+
+<para>
+Sadly, the problem is much worse for network applications.
+Although setting up a trusted path is desirable for network applications,
+completely doing so is quite difficult.
+When sending a password over a network, at the very least
+encrypt the password between trusted endpoints.
+This will at least prevent eavesdropping of passwords by those not
+connected to the system, and at least make attacks harder to perform.
+If you're concerned about trusted path for the actual communication, make
+sure that the communication is
+encrypted and authenticated (or at least authenticated).
+</para>
+
+<para>
+It turns out that this isn't enough to have a trusted path
+to networked applications, in particular for web-based applications.
+There are documented methods for fooling users of web browsers into thinking
+that they're at one place when they are really at another.
+For example, Felten [1997] discusses ``web spoofing'',
+where users believe they're viewing one web page when in fact all the
+web pages they view go through an attacker's site (who can then monitor
+all traffic and modify any data sent in either direction).
+This is accomplished by rewriting URL.
+The rewritten URLs can be made nearly invisible
+by using other technology (such as Javascript) to hide any possible
+evidence in the status line, location line, and so on.
+See their paper for more details.
+Another technique for hiding such URLs is exploiting rarely-used URL
+syntax, for example, the URL
+``http://www.ibm.com/stuff@mysite.com''
+is actually a request to view ``mysite.com'' (a potentially malevolent site)
+using the unusual username ``www.ibm.com/stuff'.
+If the URL is long enough,
+the real material won't be displayed and users are unlikely to
+notice the exploit anyway.
+Yet another approach is to create sites with names deliberately similar
+to the ``real'' site - users may not know the difference.
+In all of these cases, simply encrypting the line doesn't help -
+the attacker can be quite content in encrypting data while completely
+controlling what's shown.
+</para>
+
+<para>
+Countering these problems is more difficult;
+at this time I have no good technical solution for fully preventing
+``fooled'' web users.
+I would encourage web browser developers to counter such ``fooling'',
+making it easier to spot.
+If it's critical that your users correctly connect to the correct site,
+have them use simple procedures to counter the threat.
+Examples include having them halt and restart their browser, and making sure
+that the web address is very simple and not normally misspelled
+(so misspelling it is unlikely).
+You might also want to gain ownership of some ``similar'' sounding DNS names,
+and search for other such DNS names and material to find attackers.
+</para>
+
+</sect1>
+
 
 <sect1 id="internal-check">
 <title>Use Internal Consistency-Checking Code</title>
@@ -7322,13 +7525,19 @@ Do not put your trust in princes, in mortal men, who cannot save.
 Sometimes there is a conflict between security and the development
 principles of abstraction (information hiding) and reuse.
 The problem is that some high-level library routines
-may or may not be implemented securely, and their specifications won't tell you.
+may or may not be implemented securely,
+and their specifications won't tell you.
 Even if a particular implementation is secure, it may not be
 possible to ensure that other versions of the routine
 will be safe, or that the same interface will be safe on other platforms.
-For example, I've not been able to assure myself that tmpfile(3) is
-secure on all platforms (see <xref linkend="temporary-files">);
-its specifications aren't sufficiently clear to give me confidence of this.
+<!-- I once said:
+ For example, I've not been able to assure myself that tmpfile(3) is
+ secure on all platforms (see (xref linkend="temporary-files"));
+ its specifications aren't sufficiently clear to give me confidence of this.
+
+ However, I've since learned that my fears were justified.
+ System V (at least up through 1993) _did_not_ do this safely. -->
+
 </para>
 
 <para>
@@ -7343,11 +7552,18 @@ is a security weakness.
 If can, try to use the high-level interfaces when you must
 re-implement something - that way, you can switch to the high-level
 interface on systems where its use is secure.
+</para>
+
+<para>
 If you can, test to see if the routine is secure or not, and use it if
 it's secure - ideally you can perform this test as part of
 compilation or installation (e.g., as part of an ``autoconf'' script).
 For some conditions this kind of run-time testing is impractical, but
 for other conditions, this can eliminate many problems.
+If you don't want to bother to re-implement the library, at least test
+to make sure it's safe and halt installation if it isn't.
+That way, users will not accidentally install an insecure program and
+will know what the problem is.
 </para>
 </sect1>
 
@@ -9246,7 +9462,23 @@ employee agreement to keep silent
 (see the Bugtraq 22 August 2000 posting by John Viega).
 Anyone can create a rumor, but enough weaknesses have been found that
 the idea of completing the break is plausible.
-If you're writing new code, you probably ought to use SHA-1 instead.
+If you're writing new code, you ought to use SHA-1 instead.
+</para>
+
+<para>
+One issue not discussed often enough is the problem of ``traffic analysis.''
+That is, even if messages are encrypted and the encryption is not broken,
+an adversary may learn a great deal just from the encrypted messages.
+For example, if the presidents of two companies start exchanging many
+encrypted email messages, it may suggest that the two comparies are
+considering a merger.
+For another example, many SSH implementations have been found to have a
+weakness in exchanging passwords: observers could look at packets and 
+determine the length (or length range) of the password, even if they
+couldn't determine the password itself.
+They could also also determine other information about the password that
+significantly aided in breaking it.
+<!-- http://lwn.net/2001/0322/a/ssh-analysis.php3 -->
 </para>
 
 <para>
@@ -9544,6 +9776,20 @@ TEMPEST rules to overcome this)
 and/or surreptitious attacks (such as monitors hidden in keyboards).
 </para>
 
+<para>
+When fixing a security vulnerability,
+consider adding a ``warning'' to detect and log an attempt to
+exploit the (now fixed) vulnerability.
+This will reduce the likelihood of an attack, especially if there's
+no way for an attacker to predetermine if the attack will work,
+since it exposes an attack in progress.
+This also suggests that exposing the version of a server program
+before authentication is usually a bad idea for security, since doing so
+makes it easy for an attacker to only use attacks that would work.
+Some programs make it possible for users to intentionally ``lie'' about their
+version, so that attackers will use the ``wrong attacks'' and be detected.
+</para>
+
 <!-- ??? maybe someday add Logging discussion -->
 
 
@@ -9823,6 +10069,18 @@ Vol. 2, No. 2.
 </para>
 
 <para>
+[Felten 1997]
+Edward W. Felten, Dirk Balfanz, Drew Dean, and Dan S. Wallach.
+Web Spoofing: An Internet Con Game
+Technical Report 540-96 (revised Feb. 1997)
+Department of Computer Science, Princeton University
+<ulink url="http://www.cs.princeton.edu/sip/pub/spoofing.pdf">
+http://www.cs.princeton.edu/sip/pub/spoofing.pdf
+</ulink>
+</para>
+
+
+<para>
 [Fenzi 1999]
 Fenzi, Kevin, and Dave Wrenski.
 April 25, 1999.
@@ -9852,6 +10110,13 @@ Peterborough, NH: McGraw-Hill Inc.
 Vol. 11, No. 4.
 ISSN 0360-5280.
 pp. 113-128.
+</para>
+
+<para>
+[Flake 2001]
+Flake, Havlar.
+Auditing Binaries for Security Vulnerabilities.
+<ulink url="http://www.blackhat.com/html/win-usa-01/win-usa-01-speakers.html">http://www.blackhat.com/html/win-usa-01/win-usa-01-speakers.html</ulink>.
 </para>
 
 <para>
