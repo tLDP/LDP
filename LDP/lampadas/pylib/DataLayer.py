@@ -1360,8 +1360,11 @@ class User:
     def can_edit(self, doc_id=None, username=None):
         if self.admin > 0 or self.sysadmin > 0:
             return 1
-        if doc_id and self.docs.has_key(doc_id):
-            return 1
+        if doc_id:
+            if self.docs.has_key(doc_id):
+                return 1
+            if doc_id==0:
+                return 1
         if username and username==self.username:
             return 1
         return 0

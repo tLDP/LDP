@@ -137,12 +137,43 @@ insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
 
 insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
 [
-	<p>Lampadas est un syst&egrave;me de r&eacute;daction, gestion, publication et lecture de documentaion.
+    <p>This website is based on version |version| of the Lampadas
+    Documentation Management System,
+    a Free Software (GPL) platform developed by
+    <a href="http://www.tldp.org">The Linux Documentation Project</a>.
+    
+    <p>Lampadas is a powerful, flexible platform designed to support
+    large documentation projects such as the LDP.
+    It provides an interactive environment for writing, managing,
+    publishing and reading documentation.
 
-	<p>Une fois enregistr&eacute; dans Lampadas, vous devenez membre d\'une communaut&eacute; 
-	incluant auteurs, &eacute;diteurs, experts techniques et lecteurs,
-	qui collaborent et partagent des informations.
+    <p>Lampadas creates a collaborative community which
+    includes authors, editors, technical experts, and readers all working
+    together to produce documentation, and to share information with
+    each other.
 
+    <h1>Why Lampadas?</h1>
+
+    <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas
+    as the name of the Bene Gesserit teaching planet, which plays a
+    role in the final book,
+    Chapterhouse: Dune.
+    Before the planet can be destroyed by hordes of Honored Matres,
+    Reverend Mother Lucilla orders the planet to share Other Memory,
+    two by two then four by four, until all the students hold within
+    them the composite knowledge and memories of the entire planet.
+    After the planet is annihilated by the Honored Matres, the precious
+    knowledge is carried back to the Bene Gesserit Chapterhouse by the
+    lone holder of the precious cargo, Rebecca.
+
+    <p>Herbert apparently took the name from the city of Lampadas,
+    which was an ancient seat of learning and scholarship.
+    Also, the word lampadas is the accusative form of the word
+    "Torch" in ancient Greek.
+
+    <p>In all of these senses, Lampadas seems an appropriate name for
+    this project, which is created to facilitate sharing information
+    from many people and many sources, and disseminating it widely to others.
 ])
 
 insert([copyright], [Le Copyright], [Le Copyright],

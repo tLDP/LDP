@@ -219,7 +219,7 @@ insert([lampadas], [About Lampadas], [],
     role in the final book,
     Chapterhouse: Dune.
     Before the planet can be destroyed by hordes of Honored Matres,
-    Reverend Mother Lucia orders the planet to share Other Memory,
+    Reverend Mother Lucilla orders the planet to share Other Memory,
     two by two then four by four, until all the students hold within
     them the composite knowledge and memories of the entire planet.
     After the planet is annihilated by the Honored Matres, the precious
