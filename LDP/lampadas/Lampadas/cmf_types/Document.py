@@ -12,16 +12,16 @@ def addLampadasDocument(self, id, **kwargs):
     self._setObject(id, o)
 
 class LampadasDocument(BaseContent):
-    """A Lampadas-enabled Document type."""
+    """A Lampadas-enabled CMF Document type."""
 
     portal_type = "Lampadas Document"
     meta_type = "LampadasDocument"
     
     type       = BaseContent.type + FieldList((
-        Field('teaser',
+        Field('abstract',
               searchable=1,
-              form_info=TextAreaInfo(description="A short lead-in to the article so that we might get people to read the body",
-                                     label="Teaser",
+              form_info=TextAreaInfo(description="A textual description of the content of the resource (e.g., an abstract, contents note).",
+                                     label="Abstract",
                                      rows=3)),
         Field('author'),
         Field('body',
