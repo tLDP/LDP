@@ -58,7 +58,7 @@
      at SourceForge as a bug. -->
 
 <!-- Should graphics be used for admonitions (notes, warnings)? 0 or 1 -->
-<xsl:param name="admon.graphics" select="0"/>
+<xsl:param name="admon.graphics" select="1"/>
 
 <!-- If using admon graphics (1 above), what is path to graphics? 
      Should be the path relative to your document and MUST end with

@@ -24,6 +24,6 @@
      of multiple HTML files, those templates or parameters could be
      entered here. -->
 
-<xsl:import href="linux-ip-common.xsl"/>
+<xsl:import href="Traffic-Control-HOWTO-html-common.xsl"/>
 
 </xsl:stylesheet>
