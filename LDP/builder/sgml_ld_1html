@@ -1,0 +1,210 @@
+#!/usr/bin/perl
+#
+# sgml_ld_1html <file>.sgml
+#
+# create single html file from linuxdoc instance of HTML files;
+# portions courtesy of : sgml21html - convert SGML into one HTML (using sgml2html)
+#
+# Copyright (C) 1999 Sadaaki Kato <skato@venus.dti.ne.jp>
+#                    Taketoshi Sano <kgh12351@nifty.ne.jp>
+#
+#     All rights reserved.
+#     This is free software with ABSOLUTELY NO WARRANTY.
+#
+# You can redistribute it and/or modify it under the terms of
+# the GNU General Public License version 2.
+#
+
+if($ARGV[0] eq '') {
+   die "\nusage: sgml_ld_1html <file>.sgml\n";
+}
+my($cmd, $fname, $fname_wo_ext) = '';
+
+$fname = $ARGV[0];
+$fname_wo_ext = $fname;
+if( $fname =~ /\.sgml$/ ) {
+    $fname_wo_ext =~ s/\.[\w]+$//;
+} else {
+    $fname .= "\.sgml";
+}
+if( !(-e "$fname") ) {
+   die "sgml_ld_1html: Error - cannot find/read $fname\nusage: mk_print <file>.sgml\n";
+}
+
+use IO::File;
+use File::Copy;
+
+my $content = '';
+my $index = '';
+
+# $HED defines the header form.
+# 'SGML_TITLE' will be replaced by the title strings.
+
+my $DEFAULT_HEAD = <<END_OF_HEADER;
+<HTML>
+<HEAD>
+CONTENT_LINE
+<TITLE>
+SGML_TITLE
+</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+INDEX_LINE
+END_OF_HEADER
+
+# $FOT defines the footer form.
+
+my $DEFAULT_FOOT = <<END_OF_FOOTER;
+<HR>
+</BODY>
+</HTML>
+END_OF_FOOTER
+
+
+# initialize / reset header & footer
+my $HED=$DEFAULT_HEAD;
+my $FOT=$DEFAULT_FOOT;
+
+# contributed from: sgml21html - convert SGML into one HTML
+#
+# Copyright (C) 1999 Sadaaki Kato <skato@venus.dti.ne.jp>
+#                    Taketoshi Sano <kgh12351@nifty.ne.jp>
+
+    my(@htmls) = gethtmls($fname_wo_ext);
+    if( !defined $htmls[0] ) {
+         die "sgml_ld_1html: cannot read/find html files\n";
+    }
+
+    # extract title
+    if(($title = extitle($fname)) eq "") {
+        $title = $fname_wo_ext;
+    }
+
+    # make and printout the header
+    my $fh = new IO::File "|cat > 00_$fname_wo_ext.html";
+    $HED =~ s/SGML_TITLE/$title/;
+    $HED =~ s/CONTENT_LINE/$content/;
+    $HED =~ s/INDEX_LINE/$index/;
+
+    if ( defined $fh ) {
+         print $fh $HED;
+    } else {
+         die "sgml_ld_1html: cannot write to 00_$fname_wo_ext.html\n";
+         exit 1;
+    }
+
+    # make text body
+    foreach $html (@htmls) {
+        @stack = maketxt($html, $fname_wo_ext);
+        if( defined $stack[0] ) {
+            foreach $line (@stack) {
+               print $fh $line;
+            }
+        }
+    }
+
+    # add footer
+    print $fh $FOT;
+
+    # close file
+    $fh->close;
+
+exit(0);
+
+
+
+# extract Title
+sub extitle($) {
+        my ($sgml) = @_;
+        my $title = "";
+
+        my $fh = new IO::File;
+
+        if ( -r "$sgml" ) {
+                $fh->open("$sgml");
+                while( <$fh> ) {
+                        if ( /<title>(.*)$/ ) {
+                             $title = $1;
+                             return $title;
+                        }
+                }
+        } else {
+                print "Can not read : " . $sgml . "\n";
+                return "";
+        }
+
+        return $title;
+}
+
+
+# get the list of html files
+sub gethtmls($) {
+        my ($name) = @_;
+        my @htmls = ();
+        my $type = ".html";
+
+        my $i = 0;
+        my $html = $name . $type;
+
+        while( -r "$html" ) {
+                push @htmls, $html;
+                $i++;
+                $html = $name . "-" . $i . $type;
+        }
+
+        return @htmls;
+}
+
+# cut headers and footers, and modify toc.
+sub maketxt($$) {
+        my ($html, $name) = @_;
+        my $pname = $name;
+        my @temp = ();
+        my @stack = ();
+
+        my $fh = new IO::File;
+        my $cut = 1;
+        my $i = 0;
+        my $line = "";
+
+        if ( ! -r "$html" ) {
+                print "Can not read $html\n";
+                return @stack;
+        }
+
+# open html
+        $fh->open("$html");
+        while( <$fh> ) {
+
+        # cut header
+                if ( /^<HR>/ ) {
+                        $cut = 0;
+                }
+
+        # push text into stack
+                if ( $cut != 1 ) {
+                        push @temp, $_;
+                }
+        }
+        $fh->close;
+
+# cut footer
+        for ($i=0;$i<6;$i++) {
+                pop @temp;
+        }
+
+# modify toc
+        $_ = $pname;
+        s/\+/\\\+/g;
+        $pname = $_;
+        foreach $line (@temp) {
+                $_ = $line;
+                s/<A HREF=\"$pname-(\d+)\.html\"/<A HREF=\"\#s$1\"/;
+                s/<A HREF=\"$pname-\d+\.html(\#.*)\"/<A HREF=\"$1\"/;
+                s/<A NAME=\"s(\d+)\">(\d+\.)\s(.*)<\/A/<A NAME=\"s$1\">$2<\/A> <A HREF=\"#toc$1\">$3<\/A/;
+                push @stack, $_;
+        }
+
+        return @stack;
+}
+
