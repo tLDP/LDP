@@ -2,6 +2,7 @@
 
 
 import os				# Import required modules
+import stat
 import string
 import commands
 import StringIO
@@ -27,11 +28,6 @@ lang = locale.setlocale(locale.LC_ALL)	# hard code an ISO language code here to 
 BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
 ScrollKeeper = scrollkeeper.ScrollKeeper()
 
-def FileContents(filename):		# Return the contents of any file
-	f = open(filename, "r")
-	text = f.read()
-	f.close
-	return text
 
 
 					# Kind of like make. Aging not implemented yet.
@@ -164,9 +160,8 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 				fileext = "jpg"
 			if os.path.isfile(filename + ".gif"):
 				fileext = "gif"
-			else:
-				fileext = ""
-			filename += "." + fileext
+			if fileext:
+				filename += "." + fileext
 		
 					# Determine mimetype from extension
 		if fileext == "html" or fileext == "htm":
@@ -184,19 +179,20 @@ class RequestHandler(BaseClass):	# Intercepts the HTTP requests and serves them
 
 					# Send file if found, or error message
 		if os.path.isfile(filename):
+			fd = open(filename, 'r')
+			filesize = os.fstat(fd.fileno())[stat.ST_SIZE]
 			self.send_response(200)
 			self.send_header("Content-type", mimetype)
+			self.send_header("Content-length", filesize)
 			self.end_headers()
-			text = FileContents(filename)
-		else:
-			text = "Unrecognized file: " + filename			
-
-		return StringIO.StringIO(text)
+			return fd
+		return self.send_Text("Unrecognized file: " + filename			
 
 					# Send a text message
 	def send_Text(self, text):
 		self.send_response(200)
-		self.send_header("Content-type", "text/html")
+		self.send_header("Content-type", "text/plain")
+		self.send_header("Content-length", len(text))
 		self.end_headers()
 		return StringIO.StringIO(text)
 
@@ -206,5 +202,7 @@ def ScrollServer():			# Initialize the server
 	print "ScrollServer v0.6 -- development version!"
 	SimpleHTTPServer.test(RequestHandler)
 
-ScrollServer()
+
+if __name__ == '__main__':
+	ScrollServer()
 

@@ -15,8 +15,10 @@ class URI:
 	def __init__(self, uri):
 
 		self.URI = uri
-		temp = uri
+		if not uri:
+			return
 		
+		temp = uri
 		temp = string.split(temp,"#")
 		if len(temp) > 1:
 			self.Anchor = temp[1]
