@@ -13,16 +13,17 @@ a data object factory.
 __version__ = '0.2'
 
 
-# Modules #####################################################################
+# Modules ##################################################################
 
 from types import StringType
+#import mx.DateTime as DateTime
 
 
-# BaseConfig ##################################################################
+# BaseConfig ###############################################################
 
 class ConfigFileReadErrorException(Exception) :
 	pass
-
+	
 class ConfigFile :
 	"""
 	Basic configuration options (dbname, dbtype), used to know where we can find
@@ -49,8 +50,11 @@ class ConfigFile :
 		self.dbname = self.config.get('DB', 'dbname')
 		
 
-# User ########################################################################
+# User ####################################################################
 
+class UserNotFoundException(Exception) :
+	pass
+	
 class User :
 	"""
 	A user is known by the system and can login to manipulate documents
@@ -58,46 +62,19 @@ class User :
 	"""
 
 	def __init__(self) :
-		self.username = ""
-		self.user_id = ""
-		self.firstname = ""
-		self.surname = ""
-		self.name = "%s %s" % (self.firstname, self.surname)
-		self.email = ""
-		self.maintainer_id = ""
-		self.editor_id = ""
-		self.is_admin = 0
-
-	def get_documents(self) :
-		"""
-		Return list of documents. Document list factory.
-		"""
-		# SELECT d.doc_id, d.title, d.class, d.pub_status, d.url, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id
-		pass
-
-	def get_notes(self) :
-		"""
-		Return list of notes. notes list factory.
-		"""
-		# SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id
-		pass
-
-	def add_note(self) :
-		"""
-		Add a new note
-		"""
-	# INSERT INTO username (user_id, notes, creator_id) VALUES ($user_id, " . wsq($notes) . ", " . CurrentUserID() . ")
-		pass
-
-	def is_maintainer(self) :
-		"""
-		Return true if user is a maintainer or an admin
-		"""
-		# SELECT COUNT(*) FROM document_user WHERE active='t' AND user_id=" . self.user_id
-		return self.is_admin or XYZ
+		self.username = None
+		self.user_id = None
+		self.firstname = None
+		self.surname = None
+		self.name = None
+		self.email = None
+		self.is_admin = None
 
 
-# Document ####################################################################
+# Document ################################################################
+
+class DocumentNotFoundException(Exception) :
+	pass
 
 class Document :
 	"""
@@ -109,85 +86,72 @@ class Document :
 		self.doc_id = None
 		self.title = None
 		self.filename = None
-		self.type = None                   ## Modified (was self.class)
-		self.format = None
-		self.dtd = (dtd_name, dtd_version)
+		self.type = Type()
+		self.audience = Audience()
+		self.format = Format()
+		self.dtd = DTD()
 		self.version = None
-		self.last_update = None
+		self.last_update = None					## DateTime.strptime('2002-12-01', '%Y-%m-%d')
 		self.url = None
 		self.isbn = None
-		self.pub_status = None
+		self.pub_status = PubStatus()
 		self.author_status = None
-		self.review_status = None
+		self.review_status = ReviewStatus()
 		self.tickle_date = None
 		self.pub_date = None
 		self.ref_url = None
-		self.tech_review_status = None
-		self.maintained = 0
-		self.license_id = 0
-		self.license = None
+		self.tech_review_status = ReviewStatus()
+		self.maintained = None
+		self.license = License()
 		self.abstract = None
-		self.wiki = None
+		self.wiki = Wiki()
 		self.rating = None
 
-	# topics ###
-	
-	def get_users(self) :
-		"""
-		Return list of users with their roles
-		"""
-		# "SELECT document_user.user_id, role, document_user.email, active, username, first_name, middle_name, surname FROM document_user, username WHERE document_user.user_id = username.user_id AND doc_id=$doc_id"
-		pass
 
-	# topics ###
-	
-	def get_topics(self) :
-		"""
-		Return a list of topics
-		"""
-		# SELECT dt.topic_num, dt.subtopic_num, t.topic_name, s.subtopic_name FROM topic t, subtopic s, document_topic dt WHERE t.topic_num = s.topic_num AND dt.topic_num = s.topic_num AND dt.subtopic_num = s.subtopic_num AND dt.doc_id = $doc_id
-		pass
+# Audience ################################################################
 
-	# notes ###
-	
-	def get_notes(self) :
-		"""
-		Return a list of notes
-		"""
-		# "SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id = u.user_id AND n.doc_id = $doc_id ORDER BY n.date_entered"
-		pass
+class Audience :
+	"""
+	The audience of a document (Novice, Beginners, etc.)
+	"""
 
-	# revisions ###
-	
-	def get_revisions(self) :
-		"""
-		Return a list of revisions
-		"""
-		#
-		pass
+	def __init__(self) :
+		self.name = None
+		self.level = None
+		self.description = None
 
-	def add_revision(self, revision) :
-		"""
-		Add a new revision
-		"""
-		# Turn revision into an INSERT
-	# INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES ($doc_id, $rev_id, $version, " . &wsq($pub_date) . ", " . &wsq($initials) . ", " . &wsq($notes) . ")
-		pass
+# DTD #####################################################################
 
-	def update_revision(self, revision) :
-		"""
-		Update an existing revision
-		"""
-		# doc_id, rev_id, version, pub_date, initials, notes) :
-	# UPDATE document_rev SET version=" . wsq($version) . ", pub_date=" . wsq($pub_date) . ", initials=" . wsq($initials) . ", notes=" . wsq($notes) . " WHERE doc_id=$doc_id AND rev_id=$rev_id"
-		pass
+class DTD :
+	"""
+	A Document Type Definition
+	"""
 
-	def remove_revision(self, revision) :
-		"""
-		Remove a document revision
-		"""
-	# DELETE FROM document_rev WHERE doc_id=$doc_id AND rev_id=$rev_id
-		pass
+	def __init__(self) :
+		self.name = None
+		self.version = None
+
+# Format ##################################################################
+
+class Format :
+	"""
+	A document format
+	"""
+
+	def __init__(self) :
+		self.name = None
+		self.long_name = None
+
+# License #################################################################
+
+class License :
+	"""
+	A license for a document
+	"""
+
+	def __init__(self) :
+		self.name = None
+		self.free = None
 
 # Note ####################################################################
 
@@ -197,26 +161,34 @@ class Note :
 	"""
 
 	def __init__(self) :
-		self.document = None
-		self.date = None
+		self.date_entered = None
 		self.text = None
 		self.user = None
 
-# Topic ####################################################################
+# PubStatus ###############################################################
 
-class Topic :
+class PubStatus :
 	"""
-	A topic tells what a document is about
+	The publication status of a document (Wishlist, pending, active, etc.)
 	"""
 
 	def __init__(self) :
-		self.num = None
+		self.code = None
 		self.name = None
 		self.description = None
-		self.subtopic_num = None
-		self.subtopic_name = None
 
-# Revision ####################################################################
+# ReviewStatus ###########################################################
+
+class ReviewStatus :
+	"""
+	The review status of a document (in progress, reviewed, etc.)
+	"""
+
+	def __init__(self) :
+		self.code = None
+		self.name = None
+
+# Revision ################################################################
 
 class Revision :
 	"""
@@ -224,6 +196,7 @@ class Revision :
 	"""
 
 	def __init__(self) :
+		self.rev_id = None
 		self.version = None
 		self.pub_date = None
 		self.initials = None
@@ -236,73 +209,47 @@ class Role :
 	A role that can be taken by a user
 	"""
 
-	def __init__(self,name) :
-		self.name = name
+	def __init__(self) :
+		self.name = None
 
-# Role ####################################################################
+# Topic ####################################################################
 
-class License :
+class Topic :
 	"""
-	A license for a document
-	"""
-
-	def __init__(self,name) :
-		self.name = name
-
-# Role ####################################################################
-
-class Format :
-	"""
-	A document format
+	A topic tells what a document is about
 	"""
 
-	def __init__(self, name, long_name) :
-		self.name = name
-		self.long_name = long_name
+	def __init__(self) :
+		self.num = None
+		self.name = None
+		self.description = None
+		self.subtopic_num = None		# XXX FIXME
+		self.subtopic_name = None		# XXX FIXME
 
-# Role ####################################################################
+# Type ####################################################################
 
-class DTD :
-	"""
-	A Document Type Definition
-	"""
-
-	def __init__(self,name) :
-		self.name = name
-
-# DocClass ####################################################################
-
-class DocClass :
+class Type :
 	"""
 	The class of a document (HOWTO, Guide, FAQ, etc.)
 	"""
 
 	def __init__(self) :
-		self.name = name
-		self.long_name = long_name
+		self.name = None
+		self.long_name = None
 
-# PubStatus ####################################################################
+# Wiki #####################################################################
 
-class PubStatus :
+class Wiki :
 	"""
-	The publication status of a document (Wishlist, pending, active, etc.)
+	A wiki attached to a document
 	"""
 
 	def __init__(self) :
-		self.code = None
-		self.name = None
-		self.description = None
-
-# ReviewStatus ################################################################
-
-class PubStatus :
-	"""
-	The review status of a document (in progress, reviewed, etc.)
-	"""
-
-	def __init__(self) :
-		self.code = None
-		self.name = None
+		self.revision = None
+		self.date_entered = None
+		self.wiki = None
+		self.notes = None
+		self.user = None
 
 
 # main
@@ -319,7 +266,6 @@ def get_database(dbtype = '', dbname = '') :
 	"""
 	To let people use different DBs, use specific class derived from Database
 	"""
-
 	# Use config file
 	dbconfig = ConfigFile()
 
@@ -341,7 +287,7 @@ class Database :
 	The database contains all users and documents
 	"""
 	
-	def __init__(self,dbname) :
+	def __init__(self, dbname) :
 		"""
 		Init database connection
 		"""
@@ -356,48 +302,64 @@ class Database :
 		tmp = cur.fetchone()
 		return tmp[0]
 
+
 	# users ###
 	
 	def mk_user(self, row) :
 		"""
 		User factory (takes a single row query result as argument)
+		QUERY = SELECT user_id, username, first_name, middle_name, surname, email, admin, notes from username
 		"""
+		if row == None :
+			raise UserNotFoundException
+		
 		u = User()
 		
 		u.user_id = row[0]
 		u.username = row[1].rstrip()
 		
-		if isinstance(row[3], StringType):
-			u.firstname = row[3].rstrip()
+		if isinstance(row[2], StringType) :
+			u.firstname = row[2].rstrip()
+			u.name = u.firstname
 			
-		if isinstance(row[4], StringType):
+		if isinstance(row[3], StringType) :
+			u.middlename = row[3].rstrip()
+		if u.middlename :
+			if u.name :
+				u.name = '%s %s' % (u.name, u.middlename)
+			else :
+				u.name = u.middlename
+		
+		if isinstance(row[4], StringType) :
 			u.surname = row[4].rstrip()
+		if u.surname :
+			if u.name :
+				u.name = '%s %s' % (u.name, u.surname)
+			else :
+				u.name = u.surname
 
-		if isinstance(row[5], StringType):
-			u.name = row[5].rstrip()
+		if isinstance(row[5], StringType) :
+			u.email = row[5].rstrip()
 
-		if isinstance(row[6], StringType):
-			u.email = row[6].rstrip()
-
-		u.maintainer_id = 0  # XXX FIXME
-		u.editor_id = 0  # XXX FIXME
-		u.is_admin = row[7]
+		u.is_admin = row[6]
+		u.notes = row[7]
+		
 		return u
-	
-	def get_user_by_name(self,username) :
+
+	def get_user_by_name(self, username) :
 		"""
 		Return user by username entry
 		"""
 		cur = self.connection.cursor()
-		cur.execute('SELECT * from username WHERE username = %s', username)
+		cur.execute('SELECT user_id, username, first_name, middle_name, surname, email, admin, notes from username WHERE username = %s', username)
 		return self.mk_user(cur.fetchone())
 	
-	def get_user_by_id(self,user_id) :
+	def get_user_by_id(self, user_id) :
 		"""
 		Return user by user_id entry
 		"""
 		cur = self.connection.cursor()
-		cur.execute('SELECT * from username WHERE user_id = %s', user_id)
+		cur.execute('SELECT user_id, username, first_name, middle_name, surname, email, admin, notes from username WHERE user_id = %s', user_id)
 		return self.mk_user(cur.fetchone())
 
 	def get_users(self) :
@@ -405,31 +367,142 @@ class Database :
 		Return the list of all users. User list Factory.
 		"""
 		cur = self.connection.cursor()
-		cur.execute("SELECT * from username")
+		cur.execute('SELECT user_id, username, first_name, middle_name, surname, email, admin, notes from username')
 		return [self.mk_user(row) for row in cur.fetchall()]
 	
-	def get_user_from_sessionid(self,session_id) :
+	def get_user_from_sessionid(self, session_id) :
 		"""
-		Return a user that has corresponding session id
-
-		XXXFIXME: how easy is it to steal a session ?
+		Return a user that has corresponding session_id
 		"""
-		#$session_id = $CGI->cookie('lampadas_session')
-		#$currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'")
-		#if ($currentuser_id) {
-		#	%currentuser = User($foo, $currentuser_id)
-		pass
+		cur = self.connection.cursor()
+		cur.execute('SELECT user_id, username, first_name, middle_name, surname, email, admin, notes FROM username WHERE session_id = %s', session_id)
+		return self.mk_user(cur.fetchone())
 
+	def is_maintainer(self, user) :
+		"""
+		Return true if user is a maintainer or an admin
+		"""
+		cur = self.connection.cursor()
+		cur.execute('SELECT COUNT(*) FROM document_user WHERE active = TRUE AND user_id = %s', user.user_id)
+		return user.is_admin or cur.fetchone()[0]
+	
+	
 	# documents ###
 	
-	def get_document(self,doc_id) :
+	def mk_document(self, row) :
 		"""
-		Document factory
+		Document factory (takes a single row query result as argument)
+		QUERY = SELECT d.doc_id, d.title, df.filename, c.class, c.class_name, a.audience, a.audience_level, a.audience_description, f.format, f.format_name, d.dtd, d.dtd_version, d.version, d.last_update, d.url, d.isbn, p.pub_status, p.pub_status_name, p.pub_status_desc, r.review_status, r.review_status_name, d.tickle_date, d.pub_date, d.ref_url, r2.review_status, r2.review_status_name, d.maintained, l.license, l.free, d.abstract, d.rating FROM document d, document_file df, class c, audience a, document_audience da, format f, pub_status p, review_status r, review_status r2, license l WHERE d.doc_id = df.doc_id AND d.class = c.class AND d.doc_id = da.doc_id AND da.audience = a.audience AND d.format = f.format AND d.pub_status = p.pub_status AND d.review_status = r.review_status AND d.tech_review_status = r2.review_status AND d.license = l.license
 		"""
-		# SELECT doc_id, title, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document WHERE doc_id=$doc_id
-		return Document()
+		if row == None :
+			raise DocumentNotFoundException
+		
+		d = Document()
+		
+		d.doc_id = row[0]
+		
+		if isinstance(row[1], StringType) :
+			d.title = row[1].rstrip()
+		
+		if isinstance(row[2], StringType) :
+			d.filename = row[2].rstrip()
+		
+		if isinstance(row[3], StringType) :
+			d.type.name = row[3].rstrip()
+		
+		if isinstance(row[4], StringType) :
+			d.type.long_name = row[4].rstrip()
+		
+		if isinstance(row[5], StringType) :
+			d.audience.name = row[5].rstrip()
+		
+		d.audience.level = row[6]
+		
+		if isinstance(row[7], StringType) :
+			d.audience.description = row[7].rstrip()
+		
+		if isinstance(row[8], StringType) :
+			d.format.name = row[8].rstrip()
+		
+		if isinstance(row[9], StringType) :
+			d.format.long_name = row[9].rstrip()
+		
+		if isinstance(row[10], StringType) :
+			d.dtd.name = row[10].rstrip()
+		
+		if isinstance(row[11], StringType) :
+			d.dtd.version = row[11].rstrip()
+		
+		if isinstance(row[12], StringType) :
+			d.version = row[12].rstrip()
+		
+		d.last_update = row[13]
+		
+		if isinstance(row[14], StringType) :
+			d.url = row[14].rstrip()
+		
+		if isinstance(row[15], StringType) :
+			d.isbn = row[15].rstrip()
+		
+		if isinstance(row[16], StringType) :
+			d.pub_status.code = row[16].rstrip()
+		
+		if isinstance(row[17], StringType) :
+			d.pub_status.name = row[17].rstrip()
+		
+		if isinstance(row[18], StringType) :
+			d.pub_status.description = row[18].rstrip()
+		
+		if isinstance(row[19], StringType) :
+			d.review_status.code = row[19].rstrip()
+		
+		if isinstance(row[20], StringType) :
+			d.review_status.name = row[20].rstrip()
+		
+		d.tickle_date = row[21]
+		
+		d.pub_date = row[22]
+		
+		if isinstance(row[23], StringType) :
+			d.ref_url = row[23].rstrip()
+		
+		if isinstance(row[24], StringType) :
+			d.tech_review_status.code = row[24].rstrip()
+		
+		if isinstance(row[25], StringType) :
+			d.tech_review_status.name = row[25].rstrip()
+		
+		d.maintained = row[26]
+		
+		if isinstance(row[27], StringType) :
+			d.license.name = row[27].rstrip()
+		
+		d.license.free = row[28]
+		
+		if isinstance(row[29], StringType) :
+			d.abstract = row[29].rstrip()
+		
+		d.rating = row[30]
 
-	def add_document(self,doc) :
+		return d
+	
+	def get_document(self, doc_id) :
+		"""
+		Return document by doc_id entry
+		"""
+		cur = self.connection.cursor()
+		cur.execute('SELECT d.doc_id, d.title, df.filename, c.class, c.class_name, a.audience, a.audience_level, a.audience_description, f.format, f.format_name, d.dtd, d.dtd_version, d.version, d.last_update, d.url, d.isbn, p.pub_status, p.pub_status_name, p.pub_status_desc, r.review_status, r.review_status_name, d.tickle_date, d.pub_date, d.ref_url, r2.review_status, r2.review_status_name, d.maintained, l.license, l.free, d.abstract, d.rating FROM document d, document_file df, class c, audience a, document_audience da, format f, pub_status p, review_status r, review_status r2, license l WHERE d.doc_id = df.doc_id AND d.class = c.class AND d.doc_id = da.doc_id AND da.audience = a.audience AND d.format = f.format AND d.pub_status = p.pub_status AND d.review_status = r.review_status AND d.tech_review_status = r2.review_status AND d.license = l.license AND d.doc_id = %s', doc_id)
+		return self.mk_document(cur.fetchone())
+
+	def get_documents_by_user(self, user_id) :
+		"""
+		Return list of documents for a given user
+		"""
+		cur = self.connection.cursor()
+		cur.execute('SELECT d.doc_id, d.title, df.filename, c.class, c.class_name, a.audience, a.audience_level, a.audience_description, f.format, f.format_name, d.dtd, d.dtd_version, d.version, d.last_update, d.url, d.isbn, p.pub_status, p.pub_status_name, p.pub_status_desc, r.review_status, r.review_status_name, d.tickle_date, d.pub_date, d.ref_url, r2.review_status, r2.review_status_name, d.maintained, l.license, l.free, d.abstract, d.rating FROM document d, document_file df, class c, audience a, document_audience da, format f, pub_status p, review_status r, review_status r2, license l, document_user du WHERE d.doc_id = df.doc_id AND d.class = c.class AND d.doc_id = da.doc_id AND da.audience = a.audience AND d.format = f.format AND d.pub_status = p.pub_status AND d.review_status = r.review_status AND d.tech_review_status = r2.review_status AND d.license = l.license AND du.user_id = %s AND du.doc_id = d.doc_id', user_id)
+		return [self.mk_document(row) for row in cur.fetchall()]
+
+	def add_document(self, doc) :
 		"""
 		Add a new document
 		"""
@@ -443,7 +516,7 @@ class Database :
 		# turn Document instance into SQL UPDATE
 		pass
 
-	def doc_count(self,type=None) :
+	def doc_count(self, type=None) :
 		"""
 		return number of documents
 		"""
@@ -457,8 +530,23 @@ class Database :
 			# SELECT COUNT(*) FROM document
 			pass
 
+	def get_users(self) :
+		"""
+		Return list of users with their roles
+		"""
+		# "SELECT document_user.user_id, role, document_user.email, active, username, first_name, middle_name, surname FROM document_user, username WHERE document_user.user_id = username.user_id AND doc_id=$doc_id"
+		pass
+
+	
 	# topics ###
 	
+	def get_topics(self) :
+		"""
+		Return a list of topics
+		"""
+		# SELECT dt.topic_num, dt.subtopic_num, t.topic_name, s.subtopic_name FROM topic t, subtopic s, document_topic dt WHERE t.topic_num = s.topic_num AND dt.topic_num = s.topic_num AND dt.subtopic_num = s.subtopic_num AND dt.doc_id = $doc_id
+		pass
+
 	def get_topic(self, topic_num) :
 		"""
 		Return the topic
@@ -508,12 +596,69 @@ class Database :
 	"""
 		pass
 
-	def SaveSubtopic(self, topic_num, subtopic_num,
-				 subtopic_name, subtopic_description) :
+	def SaveSubtopic(self, topic_num, subtopic_num, subtopic_name, subtopic_description) :
 		"""
 		$DB->Exec("UPDATE subtopic SET subtopic_name=" . wsq($subtopic_name) . ", subtopic_description=" . wsq($subtopic_description) . " WHERE topic_num=$topic_num AND subtopic_num=$subtopic_num")
 	}"""
 		pass
+	
+	
+	# notes ###
+	
+	def get_notes(self) :
+		"""
+		Return a list of notes
+		"""
+		# "SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id = u.user_id AND n.doc_id = $doc_id ORDER BY n.date_entered"
+		pass
+
+	def get_notes_from_user(self, user_id) :
+		"""
+		Return list of notes. notes list factory.
+		"""
+		# SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id
+		pass
+
+	def add_note(self) :
+		"""
+		Add a new note
+		"""
+		# INSERT INTO username (user_id, notes, creator_id) VALUES ($user_id, " . wsq($notes) . ", " . CurrentUserID() . ")
+		pass
+
+
+	# revisions ###
+	
+	def get_revisions(self) :
+		"""
+		Return a list of revisions
+		"""
+		#
+		pass
+
+	def add_revision(self, revision) :
+		"""
+		Add a new revision
+		"""
+		# Turn revision into an INSERT
+	# INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES ($doc_id, $rev_id, $version, " . &wsq($pub_date) . ", " . &wsq($initials) . ", " . &wsq($notes) . ")
+		pass
+
+	def update_revision(self, revision) :
+		"""
+		Update an existing revision
+		"""
+		# doc_id, rev_id, version, pub_date, initials, notes) :
+	# UPDATE document_rev SET version=" . wsq($version) . ", pub_date=" . wsq($pub_date) . ", initials=" . wsq($initials) . ", notes=" . wsq($notes) . " WHERE doc_id=$doc_id AND rev_id=$rev_id"
+		pass
+
+	def remove_revision(self, revision) :
+		"""
+		Remove a document revision
+		"""
+	# DELETE FROM document_rev WHERE doc_id=$doc_id AND rev_id=$rev_id
+		pass
+	
   
 	# roles ###
 	
