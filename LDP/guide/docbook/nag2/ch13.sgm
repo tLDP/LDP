@@ -1,0 +1,1220 @@
+<chapter id="X-087-2-nis"><title>The Network <?lb>Information System</title>
+<indexterm id="idx-configuringNIS-1" class="startofrange"><primary>configuring</primary><secondary>NIS</secondary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary></indexterm>
+<indexterm id="idx-NIS-1" class="startofrange"><primary>NIS (Network Information System)</primary></indexterm>
+<indexterm><primary>networks</primary><secondary>synchronizing passwords</secondary></indexterm>
+<indexterm><primary>hostname</primary><secondary>resolution</secondary></indexterm>
+
+<para>
+When you're running a local area network, your overall goal is usually to
+provide an environment for your users that makes the network transparent. An
+important stepping stone is keeping vital data such as user account
+information synchronized among all hosts. This provides users with the freedom
+to move from machine to machine without the inconvenience of having to remember
+different passwords and copy data from one machine to another. Data that is
+centrally stored doesn't need to be replicated, so long as there is some
+convenient means of accessing it from a network-connected host. By storing
+important administrative information centrally, you can make ensure 
+consistency of that data, increase flexibility for the users by
+allowing them to move from host to host in a transparent way, and make the
+system administrator's life much easier by maintaining a single copy of
+information to maintain when required.
+</para>
+
+<para>
+We previously discussed an important example of this concept that is used on 
+the Internet&mdash;the Domain Name System (DNS). DNS serves a limited range of
+information, the most important being the mapping between hostname and
+IP address. For other types of information, there is no such specialized
+service. Moreover, if you manage only a small LAN with no Internet
+connectivity, setting up DNS may not seem to be worth the trouble.
+</para>
+
+<para>
+<indexterm><primary sortas="etc/hosts file">/etc/hosts file</primary></indexterm> 
+This is why Sun developed the <emphasis>Network Information
+System</emphasis> (NIS). NIS provides generic database access facilities that
+can be used to distribute, for example,  information contained in the
+<filename>passwd</filename> and <filename>groups</filename> files to all
+hosts on your network. This makes the network appear as a single system,
+with the same accounts on all hosts. Similarly, you can use NIS
+to distribute the hostname information from <filename>/etc/hosts</filename>
+to all machines on the network.
+</para>
+
+<para>
+NIS is based on RPC, and comprises a server, a client-side library, and
+several administrative tools.  Originally, NIS was called <emphasis>Yellow
+Pages</emphasis>, or YP, which is still used to refer to it.
+Unfortunately, the name is a trademark of British Telecom, which required
+Sun to drop that name. As things go, some names stick with people, and so
+YP lives on as a prefix to the names of most NIS-related commands such as
+<command>ypserv</command> and <command>ypbind</command>.
+</para>
+
+<para>
+<indexterm><primary>Th&uuml;mmler, Swen</primary></indexterm>
+<indexterm><primary>yp-linux command</primary></indexterm>
+Today, NIS is available for virtually all Unixes, and there are even
+free implementations. BSD Net-2 released one that has
+been derived from a public domain reference implementation donated by
+Sun. The library client code from this release had been in the Linux
+<filename>libc</filename> for a long time, and the administrative programs
+were ported to Linux by
+Swen Th&uuml;mmler.<footnote id="X-087-2-FNNI01"><para>
+Swen can be reached at
+<systemitem role="emailaddr">swen@uni-paderborn.de</systemitem>. The NIS clients
+are available as <filename>yp-linux.tar.gz</filename> from
+<systemitem role="sitename">metalab.unc.edu</systemitem> in
+<filename>system/Network</filename>.
+</para>
+</footnote>
+An NIS server is missing from the reference implementation, though.
+
+</para>
+
+<para>
+<indexterm><primary>Eriksson, Peter</primary></indexterm>
+<indexterm><primary>NYS</primary></indexterm>
+<indexterm><primary>host.conf file</primary></indexterm>
+Peter Eriksson developed a new
+implementation called NYS.<footnote id="X-087-2-FNNI02"><para>
+Peter may be reached at
+<systemitem role="emailaddr">pen@lysator.liu.se</systemitem>.
+The current version of NYS is 1.2.8.
+</para>
+</footnote>
+It supports both plain NIS and Sun's much enhanced NIS+. NYS not only
+provides a set of NIS tools and a server, but also adds a whole new
+set of library functions that need to be compiled into your
+<filename>libc</filename> if you wish to use it.  This includes a new
+configuration scheme for hostname resolution that replaces the current
+scheme using <filename>host.conf</filename>.
+</para>
+
+
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>GNU libc</secondary></indexterm>
+<INDEXTERM><PRIMARY>Kukuk, Thorsten</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>GNU libc (NIS support)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>libc6 (NIS support)</PRIMARY></INDEXTERM>
+The GNU libc, known as <filename>libc6</filename> in the Linux community,
+includes an updated version of the traditional NIS support developed by
+Thorsten Kukuk.<footnote id="X-087-2-FNNI04"><para>
+Thorsten may be reached at
+<systemitem role="emailaddr">kukuk@uni-paderborn.de</systemitem>.
+</para>
+</footnote> It supports all of the
+library functions that NYS provided and also uses the enhanced configuration
+scheme of NYS. You still need the tools and server, but using GNU <filename>libc</filename> saves
+you the trouble of having to meddle with patching and recompiling the library.
+</para>
+
+<para>
+This chapter focuses on the NIS support included in the GNU <filename>libc</filename> rather than
+the other two packages. If you do want to run any of these packages, the
+instructions in this chapter may or may not be enough. For additional
+information, refer to the NIS-HOWTO or a book such as <emphasis>Managing 
+NFS and NIS</emphasis> by Hal Stern (O'Reilly).
+</para>
+
+<sect1><title>Getting Acquainted with NIS</title>
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>databases</secondary></indexterm>
+<indexterm id="idx-NISmap-1" class="startofrange"><primary>NIS (Network Information System)</primary><secondary>maps</secondary></indexterm>
+NIS keeps database information in files called <emphasis>maps</emphasis>, 
+which contain key-value pairs. An example of a key-value pair is a user's login
+name and the encrypted form of their login password. Maps are stored on a
+central host running the NIS server, from which clients may retrieve the
+information through various RPC calls. Quite frequently, maps are stored in DBM
+files.<footnote id="X-087-2-FNNI05"><para>DBM is a simple database management library that uses hashing techniques
+to speed up search operations. There's a free DBM implementation from the
+GNU project called <filename>gdbm</filename>, which is part of most Linux
+distributions.
+</para>
+</footnote>
+
+</para>
+
+<para>
+<indexterm><primary sortas="etc/hosts file">/etc/hosts file</primary></indexterm>
+<indexterm><primary sortas="etc/passwd file">/etc/passwd file</primary></indexterm>
+<indexterm><primary>hosts.byname file</primary></indexterm>
+<indexterm><primary>hosts.byaddr file</primary></indexterm>
+<indexterm><primary sortas="etc/networks file">/etc/networks file</primary></indexterm> 
+<indexterm><primary sortas="etc/group file">/etc/group file</primary></indexterm> 
+<indexterm><primary sortas="etc/services file">/etc/services file</primary></indexterm> 
+<indexterm><primary sortas="etc/rpc file">/etc/rpc file</primary></indexterm> 
+<indexterm><primary sortas="etc/protocols file">/etc/protocols file</primary></indexterm> 
+<indexterm><primary sortas="etc/aliases file">/etc/aliases file</primary></indexterm> 
+The maps themselves are usually generated from master text files such as
+<filename>/etc/hosts</filename> or <filename>/etc/passwd</filename>. For
+some files, several maps are created, one for each search key type. For
+instance, you may search the <filename>hosts</filename> file for a hostname
+as well as for an IP address. Accordingly, two NIS maps are derived from it,
+called <filename>hosts.byname</filename> and <filename>hosts.byaddr</filename>.
+<xref linkend="X-087-2-nis.table.maps"> lists common maps and the files from
+which they are generated.
+</para>
+
+<table id="X-087-2-nis.table.maps">
+<title>Some Standard NIS Maps and Corresponding Files</title>
+<tgroup cols=3>
+<thead>
+<row>
+  <entry>Master File</entry>
+  <entry>Map(s)</entry>
+  <entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+  <entry><filename>/etc/hosts</filename></entry>
+  <entry><para>
+<filename>hosts.byname</filename>, <filename>hosts.byaddr</filename></para></entry>
+  <entry><para>
+Maps IP addresses to host names</para></entry>
+</row>
+<row>
+  <entry><filename>/etc/networks</filename></entry>
+  <entry><para>
+<filename>networks.byname</filename>, <filename>networks.byaddr</filename></para></entry>
+  <entry><para>
+Maps IP network addresses to network names</para></entry>
+</row>
+<row>
+  <entry><para>
+<filename>/etc/passwd</filename></para></entry>
+  <entry><para>
+<filename>passwd.byname</filename>, <filename>passwd.byuid</filename></para></entry>
+  <entry><para>
+Maps encrypted passwords to user login names</para></entry>
+</row>
+<row>
+  <entry><para>
+<filename>/etc/group</filename></para></entry>
+  <entry><para>
+<filename>group.byname</filename>, <filename>group.bygid</filename></para></entry>
+  <entry><para>
+Maps Group IDs to group names</para></entry>
+</row>
+<row>
+  <entry><para>
+<filename>/etc/services</filename></para></entry>
+  <entry><para>
+<filename>services.byname</filename>, <filename>services.bynumber</filename></para></entry>
+  <entry>Maps service descriptions to service names</entry>
+</row>
+<row>
+  <entry><filename>/etc/rpc</filename></entry>
+  <entry><para>
+<filename>rpc.byname</filename>, <filename>rpc.bynumber</filename></para></entry>
+  <entry><para>
+Maps Sun RPC service numbers to RPC service names</para></entry>
+</row>
+<row>
+  <entry><filename>/etc/protocols</filename></entry>
+  <entry><para>
+<filename>protocols.byname</filename>, <filename>protocols.bynumber</filename></para></entry>
+  <entry><para>
+Maps protocol numbers to protocol names</para></entry>
+</row>
+<row>
+  <entry><filename>/usr/lib/aliases</filename></entry>
+  <entry><filename>mail.aliases</filename></entry>
+  <entry><para>
+Maps mail aliases to mail alias names</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+You may find support for other files and maps in other NIS packages.
+These usually contain information for applications not discussed in this book,
+such as the <filename>bootparams</filename> map that is used by Sun's
+<command>bootparamd</command> server.
+</para>
+
+<para>
+<indexterm><primary>displaying</primary><secondary>NIS map nicknames</secondary></indexterm>
+<indexterm><primary>ypcat</primary><secondary>command</secondary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>nicknames</secondary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>maps</secondary></indexterm>
+For some maps, people commonly use <emphasis>nicknames</emphasis>, which are
+shorter and therefore easier to type. Note that these nicknames are understood
+only by <command>ypcat</command> and <command>ypmatch</command>, two tools for
+checking your NIS configuration. To obtain a full list of nicknames understood
+by these tools, run the following command:
+
+<screen>
+$ <userinput>ypcat -x</userinput>
+Use "passwd" for "passwd.byname"
+Use "group" for "group.byname"
+Use "networks" for "networks.byaddr"
+Use "hosts" for "hosts.byaddr"
+Use "protocols" for "protocols.bynumber"
+Use "services" for "services.byname"
+Use "aliases" for "mail.aliases"
+Use "ethers" for "ethers.byname"
+</screen>
+</para>
+
+<para>
+<indexterm id="idx-NISserver-1" class="startofrange"><primary>NIS (Network Information System)</primary><secondary>servers</secondary></indexterm>
+<indexterm><primary>ypserv command</primary></indexterm>
+<indexterm><primary>servers</primary><secondary>ypserv command</secondary></indexterm>
+<indexterm><primary>servers</primary><secondary>NIS</secondary></indexterm>
+<INDEXTERM><PRIMARY>servers</PRIMARY><SECONDARY>master</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>servers</PRIMARY><SECONDARY>slave</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>master servers</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>slave servers</PRIMARY></INDEXTERM>
+The NIS server program is traditionally called <command>ypserv</command>. For
+an average network, a single server usually suffices; large networks may
+choose to run several of these on different machines and different segments
+of the network to relieve the load on the server machines and routers.
+These servers are synchronized by making one of them the <emphasis>master
+server</emphasis>, and the others <emphasis>slave servers</emphasis>. Maps are
+created only on the master server's host. From there, they are distributed to
+all slaves.
+</para>
+
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>domains</secondary></indexterm>
+<indexterm><primary>choosing</primary><secondary>NIS domain</secondary></indexterm>
+<indexterm><primary>domains</primary><secondary>NIS</secondary></indexterm>
+We have been talking very vaguely about &ldquo;networks.&rdquo; There's a 
+distinctive term in NIS that refers to a collection of all hosts that share 
+part of their system configuration data through NIS: the 
+<emphasis>NIS domain</emphasis>. Unfortunately, NIS domains
+have absolutely nothing in common with the domains we encountered in DNS. To
+avoid any ambiguity throughout this chapter, we will therefore always specify
+which type of domain we mean.
+</para>
+
+<para>
+<indexterm><primary>setting</primary><secondary>NIS domain</secondary></indexterm>
+<indexterm><primary>domains</primary><secondary>NIS</secondary></indexterm>
+<indexterm><primary>domainname command</primary></indexterm>
+NIS domains have a purely administrative function. They are mostly
+invisible to users, except for the sharing of passwords between all
+machines in the domain. Therefore, the name given to an NIS domain is
+relevant only to the administrators. Usually, any name will do, as long
+as it is different from any other NIS domain name on your local network.
+For instance, the administrator at the Virtual Brewery may choose to
+create two NIS domains, one for the Brewery itself, and one for the
+Winery, which she names <systemitem role="sitename">brewery</systemitem> and
+<systemitem role="sitename">winery</systemitem> respectively. Another quite
+common scheme is to simply use the DNS domain name for NIS as well.
+</para>
+
+<para>
+To set and display the NIS domain name of your host, you can use the
+<command>domainname</command> command. When invoked without any argument, it
+prints the current NIS domain name; to set the domain name, you must
+become the superuser:
+
+<screen>
+# <userinput>domainname brewery</userinput>
+</screen>
+</para>
+
+<para>
+NIS domains determine which NIS server an application will query. For
+instance, the <command>login</command> program on a host at the Winery should,
+of course, query only the Winery's NIS server (or one of them, if there
+are several) for a user's password information, while an application on
+a Brewery host should stick with the Brewery's server.
+</para>
+
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>locating servers</secondary></indexterm>
+<indexterm><primary>ypbind command</primary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>security</secondary></indexterm>
+One mystery now remains to be solved: how does a client find out which
+server to connect to? The simplest approach would use a configuration
+file that names the host on which to find the server. However, this approach
+is rather inflexible because it doesn't allow clients to use different servers
+(from the same domain, of course) depending on their availability. Therefore,
+NIS implementations rely on a special daemon called <command>ypbind</command>
+to detect a suitable NIS server in their NIS domain. Before performing any 
+NIS queries, an application first finds out from
+<command>ypbind</command> which server to use.
+</para>
+
+<para>
+<command>ypbind</command> probes for servers by broadcasting to the local IP
+network; the first to respond is assumed to be the fastest one and
+is used in all subsequent NIS queries. After a certain interval has
+elapsed, or if the server becomes unavailable, <command>ypbind</command>
+probes for active servers again.
+</para>
+
+<para>
+Dynamic binding is useful only when your network provides more than one
+NIS server. Dynamic binding also introduces a security problem.
+<command>ypbind</command> blindly believes whoever answers, whether it be a
+humble NIS server or a malicious intruder. Needless to say, this
+becomes especially troublesome if you manage your password databases over NIS.
+To guard against this, the Linux <command>ypbind</command> program provides
+you with the option of probing the local network to find the local NIS server,
+or configuring the NIS server hostname in a configuration file.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-nis.nisplus"><title>NIS Versus NIS+</title>
+<indexterm><primary>NIS+</primary></indexterm>
+<para>
+NIS and NIS+ share little more than their name and a common goal. NIS+ is
+structured entirely differently from NIS. Instead of a flat namespace with
+disjoint NIS domains, NIS+ uses a hierarchical namespace similar to that of
+DNS. Instead of maps, so-called <emphasis>tables</emphasis> are used that
+are made up of rows and columns, in which each row represents an object in the
+NIS+ database and the columns cover properties of the objects that NIS+
+knows and cares about. Each table for a given NIS+ domain comprises those of
+its parent domains. In addition, an entry in a table may contain a link to
+another table. These features make it possible to structure information in
+many ways.
+</para>
+
+<para>
+NIS+ additionally supports secure and encrypted RPC, which helps greatly to
+solve the security problems of NIS.
+</para>
+
+<para>
+Traditional NIS has an RPC Version number of 2, while NIS+ is Version 3.
+At the time we're writing, there isn't yet a good working implementation 
+of NIS+ for Linux, so it isn't covered here.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nis.clients"><title>The Client Side of NIS</title>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>clients</secondary></indexterm>
+<indexterm><primary>getpwnam(&thinsp;)</primary></indexterm> 
+<indexterm><primary>getpwuid(&thinsp;)</primary></indexterm> 
+<para>
+<?troff .hw get-pwnam>
+If you are familiar with writing or porting network applications, you
+may notice that most of the NIS maps listed previously correspond to library
+functions in the C library. For instance, to obtain <filename>passwd</filename>
+information, you generally use the <function>getpwnam</function> and
+<function>getpwuid</function> functions, which return the account information
+associated with the given username or numerical user ID, respectively.
+Under normal circumstances, these functions perform the requested
+lookup on the standard file, such as <filename>/etc/passwd</filename>.
+</para>
+
+<para>
+An NIS-aware implementation of these functions, however, modifies this
+behavior and places an RPC call to the NIS server, which looks up the username 
+or user ID. This happens transparently to the application. The function may
+treat the NIS data as though it has been appended to the original
+<filename>passwd</filename> file so both sets of information are available
+to the application and used, or as though it has completely replaced it so 
+that the information in the local <filename>passwd</filename> is ignored 
+and only the NIS data is used.
+</para>
+
+<para>
+For traditional NIS implementations, there were certain conventions for
+which maps were replaced and which were appended to the original information.
+Some, like the <filename>passwd</filename> maps, required kludgy modifications
+of the <filename>passwd</filename> file which, when done incorrectly, would
+open up security holes. To avoid these pitfalls, NYS and the GNU <filename>libc</filename> use a
+general configuration scheme that determines whether a particular set of
+client functions uses the original files, NIS, or NIS+, and in which order.
+This scheme will be described later in this chapter.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nis.server"><title>Running an NIS Server</title>
+
+<para>
+<indexterm><primary>configuring</primary><secondary>NIS</secondary></indexterm>
+After so much theoretical techno-babble, it's time to get our hands
+dirty with actual configuration work. In this section, we will cover the
+configuration of an NIS server. If an NIS server is running on your network,
+you won't have to set up your own; in this case, you may safely skip this
+section.
+</para>
+
+<para>
+Note that if you are just going to experiment with the server, make
+sure you don't set it up for an NIS domain name that is already in use
+on your network. This may disrupt the entire network service and make a
+lot of people very unhappy and very angry.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>servers</PRIMARY><SECONDARY>master</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>servers</PRIMARY><SECONDARY>slave</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>master servers</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>slave servers</PRIMARY></INDEXTERM>
+There are two possible NIS server configurations: master and slave. The slave
+configuration provides a live backup machine, should your master server 
+fail. We will cover the configuration only for a master server here. 
+The server documentation will explain the differences, should you wish 
+to configure a slave server.
+</para>
+
+<para>
+There are currently two NIS servers freely available for Linux: one contained
+in Tobias Reber's <filename>yps</filename> package, and the other in Peter
+Eriksson's <filename>ypserv</filename> package. It doesn't matter which one
+you run.
+</para>
+
+<para>
+After installing the server program (<command>ypserv</command>) in
+<filename>/usr/sbin</filename>, you should create the directory that
+is going to hold the map files your server is to distribute. When
+setting up an NIS domain for the <systemitem
+role="sitename">brewery</systemitem> domain, the maps would go to
+<filename>/var/yp/brewery</filename>.  The server determines whether it is
+serving a particular NIS domain by checking if the map directory
+is present. If you are disabling service for some NIS domain, make
+sure to remove the directory as well.
+<indexterm class="endofrange" startref="idx-NISmap-1">
+</para>
+
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>creating maps</secondary></indexterm>
+<indexterm><primary>creating</primary><secondary>NIS maps</secondary></indexterm>
+<indexterm><primary>dbmload program</primary></indexterm> 
+<indexterm><primary>makedbm program</primary></indexterm> 
+Maps are usually stored in DBM files to speed up lookups. They are created
+from the master files using a program called <command>makedbm</command> (for
+Tobias's server) or <command>dbmload</command> (for Peter's server).
+</para>
+<?troff .wcon_off>
+<para>
+Transforming a master file into a form that <command>dbmload</command> can 
+parse usually requires some <command>awk</command> or <command>sed</command> 
+magic, which tends to be a little tedious to type and hard to remember. 
+Therefore, Peter Eriksson's <filename>ypserv</filename> package contains a 
+Makefile (called <filename>ypMakefile</filename>) that manages the conversion 
+of the most common master files for you. You should install it as
+<filename>Makefile</filename> in your map directory and edit it to reflect
+the maps you want the NIS server to share. Towards the top of the file, you'll
+find 
+<?troff .ne 10>
+the <systemitem role="keyword">all</systemitem>
+target that lists the services <command>ypserv</command> offers. By default, the line looks
+something like this:
+
+<screen>
+all: ethers hosts networks protocols rpc services passwd group netid
+</screen>
+</para>
+
+<para>
+<indexterm><primary>checking</primary><secondary>NIS</secondary></indexterm>
+If you don't want to produce, for example, the 
+<filename>ethers.byname</filename> and <filename>ethers.byaddr</filename> 
+maps, simply remove the <systemitem role="keyword">ethers</systemitem> 
+prerequisite from this rule. To test your setup, you can start with just 
+one or two maps, like the <filename>services.</filename>* maps.
+</para>
+
+<para>
+After editing the <filename>Makefile</filename>, while in the map directory,
+type <userinput>make</userinput>. This will automatically generate and install the
+maps. You have to make sure to update the maps whenever you change the master
+files, otherwise the changes will remain invisible to the network.
+</para>
+
+<para>
+<indexterm><primary>checking</primary><secondary>NIS</secondary></indexterm>
+The section &ldquo;Setting Up an NIS Client with GNU libc&rdquo 
+will explain how to configure the NIS client code. If your setup doesn't
+work, you should try to find out whether requests are arriving at your
+server. If you specify the <option>&ndash;&ndash;debug</option>
+command-line flag to <command>ypserv</command>, it prints debugging
+messages to the console about all incoming NIS queries and the results
+returned. These should give you a hint as to where the problem
+lies. Tobias's server doesn't have this option.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nis.securenets"><title>NIS Server Security</title>
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>security</secondary></indexterm>
+<indexterm><primary>security</primary><secondary>using NIS</secondary></indexterm>
+NIS used to have a major security flaw: it left your password file
+readable by virtually anyone in the entire Internet, which made for
+quite a number of possible intruders. As long as an intruder knew your
+NIS domain name and the address of your server, he could simply send
+it a request for the <filename>passwd.byname</filename> map and
+instantly receive all your system's encrypted passwords. With a fast
+password-cracking program like <command>crack</command> and a good
+dictionary, guessing at least a few of your users' passwords is rarely
+a problem.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>securenets option</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NIS (Network Information System)</PRIMARY><SECONDARY>securenets option</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY SORTAS="etc/ypserv.securenets file">/etc/ypserv.securenets file</PRIMARY></INDEXTERM>
+This is what the <emphasis>securenets</emphasis> option is all
+about. It simply restricts access to your NIS server to certain hosts,
+based on their IP addresses or network numbers. The latest version of
+<command>ypserv</command> implements this feature in two ways. The
+first relies on a special configuration file called
+<filename>/etc/ypserv.securenets</filename> and the second
+conveniently uses the <filename>/etc/hosts.allow</filename> and
+<filename>/etc/hosts.deny</filename> files we already encountered in
+<xref linkend="X-087-2-appl">.<footnote id="X-087-2-FNNI06"><para> To
+enable use of the <filename>/etc/hosts.allow</filename> method, you may
+have to recompile the server. Please read the instructions in the
+<filename>README</filename> included in the distribution.
+</para>
+</footnote>
+Thus, to restrict access to hosts from within the Brewery, their
+network manager would add the following line to
+<filename>hosts.allow&thinsp;</filename>:
+<screen>
+ypserv: 172.16.2.
+</screen>
+</para>
+<?troff .Nd 10>
+<para>
+This would let all hosts from IP network <systemitem
+role="sitename">172.16.2.0</systemitem> access the NIS server.  To
+shut out all other hosts, a corresponding entry in
+<filename>hosts.deny</filename> would have to read:
+
+<screen>
+ypserv: ALL
+</screen>
+</para>
+
+<para>
+IP numbers are not the only way you can specify hosts or networks in
+<filename>hosts.allow</filename> and <filename>hosts.deny</filename>. Please
+refer to the <filename>hosts_access(5)</filename> manual page on your system
+for details.  However, be warned that you <emphasis>cannot</emphasis> use host
+or domain names for the <systemitem role="keyword">ypserv</systemitem> entry.
+If you specify a hostname, the server tries to resolve this hostname&mdash;but
+the resolver in turn calls <command>ypserv</command>, and you fall into an
+endless loop.
+</para>
+
+<para>
+<indexterm><primary sortas="etc/ypserv.securenets file">/etc/ypserv.securenets file</primary></indexterm> 
+To configure <systemitem role="keyword">securenets</systemitem> security
+using the <filename>/etc/ypserv.securenets</filename> method, you need
+to create its configuration file, <filename>/etc/ypserv.securenets</filename>.
+This configuration file is simple
+in structure. Each line describes a host or network of hosts that will be
+allowed access to the server. Any address not described by an entry in this
+file will be refused access. A line beginning with a # will be
+treated as a comment. Example 13-1 shows what a simple <filename>/etc/ypserv.securenets</filename>
+would look like:
+</para>
+
+<example id="X-087-2-nis.securenets.file">
+<title>Sample ypserv.securenets File</title>
+<screen>
+# allow connections from local host -- necessary
+host 127.0.0.1
+# same as 255.255.255.255 127.0.0.1
+#
+# allow connections from any host on the Virtual Brewery network
+255.255.255.0   172.16.1.0
+#
+</screen>
+</example>
+
+<para>
+The first entry on each line is the netmask to use for the entry, with
+<systemitem role="keyword">host</systemitem> being treated as a special
+keyword meaning &ldquo;netmask 255.255.255.255.&rdquo; The second entry
+on each line is the IP address to which to apply the netmask.
+</para>
+
+<para>
+A third option is to use the secure portmapper instead of the
+<option>securenets</option> option in
+<command>ypserv</command>. The secure portmapper
+(<filename>portmap-5.0</filename>) uses the <filename>hosts.allow</filename> scheme as well, but
+offers this for all RPC servers, not just <command>ypserv</command>.<footnote id="X-087-2-FNNI07"><para>
+The secure portmapper is available via anonymous FTP from
+<systemitem role="sitename">ftp.win.tue.nl</systemitem> below the
+<filename>/pub/security/</filename> directory.
+</para>
+</footnote>
+However, you should not use both the <option>securenets</option> option and the secure
+portmapper at the same time, because of the overhead this
+authorization incurs.
+</para>
+
+<indexterm class="endofrange" startref="idx-NISserver-1">
+</sect1>
+
+<sect1 id="X-087-2-nis.yp"><title>Setting Up an NIS Client with GNU libc</title>
+<para>
+<indexterm><primary>configuring</primary><secondary>NIS</secondary></indexterm>
+<indexterm id="idx-NISclient-2" class="startofrange"><primary>NIS (Network Information System)</primary><secondary>clients</secondary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>GNU libc</secondary></indexterm> 
+We will now describe and discuss the configuration of an NIS client using 
+the GNU libc library support.
+</para>
+<?troff .Nd 10>
+
+<para>
+<indexterm id="idx-filenameypconffilename-1" class="startofrange"><primary sortas="etc/yp.conf file">/etc/yp.conf file</primary></indexterm>
+<indexterm><primary>setting</primary><secondary>NIS domain</secondary></indexterm>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>domains</secondary></indexterm>
+<indexterm><primary>domains</primary><secondary>NIS</secondary></indexterm>
+Your first step should be to tell the GNU libc NIS client which server to use
+for NIS service. We mentioned earlier that the Linux <command>ypbind</command>
+allows you to configure the NIS server to use. The default behavior is to
+query the server on the local network. If the host you are configuring is
+likely to move from one domain to another, such as a laptop, you 
+would leave the <filename>/etc/yp.conf</filename> file empty and it would
+query on the local network for the local NIS server wherever it happens to be.
+</para>
+
+<para>
+A more secure configuration for most hosts is to set the server name in the
+<filename>/etc/yp.conf</filename> configuration file. A very simple file for a
+host on the Winery's network may look like this:
+
+<screen>
+# yp.conf - YP configuration for GNU libc library.
+#
+ypserver vbardolino
+</screen>
+</para>
+
+<para>
+<?troff .hw argument>
+The <systemitem role="keyword">ypserver</systemitem> statement tells your host
+to use the host supplied as the NIS server for the local domain. In this
+example we've specified the NIS server as <systemitem role="sitename">vbardolino</systemitem>. Of course, the IP address corresponding to
+<systemitem role="sitename">vbardolino</systemitem> must be set
+in the <filename>hosts</filename> file; alternatively, you may use the
+IP address itself with the <systemitem role="keyword">server</systemitem>
+argument.
+</para>
+
+<para>
+In the form shown in the example, the 
+<command>ypserver</command> command tells 
+<command>ypbind</command> to use the named server regardless of what the
+current NIS domain may be. If, however, you are moving your machine between
+different NIS domains frequently, you may want to keep information for several
+domains in the <filename>yp.conf</filename> file. You can have information on
+the servers for various NIS domains in <filename>yp.conf</filename> by
+specifying the information using the
+<systemitem role="keyword">domain</systemitem> statement. For instance, you
+might change the previous sample file to look like this for a laptop:
+
+<screen>
+# yp.conf - YP configuration for GNU libc library.
+# 
+domain winery server vbardolino 
+domain brewery server vstout 
+</screen>
+</para>
+
+<para>
+This lets you bring up the laptop in either of the two domains by simply
+setting the desired NIS domain at boot time using the
+<command>domainname</command> command. The NIS client then uses whichever
+server is relevant for the current domain.
+</para>
+
+<para>
+There is a third option you may want to use. It covers the case when you
+don't know the name or IP address of the server to use in a particular domain,
+but still want the ability use a fixed server on certain domains. Imagine
+we want to insist on using a specified server while operating within the 
+Winery domain, but want to probe for the server to use while
+in the Brewery domain. We would modify our <filename>yp.conf</filename> 
+file again to look like this instead:
+
+<screen>
+# yp.conf - YP configuration for GNU libc library.
+# 
+domain winery server vbardolino 
+domain brewery broadcast
+</screen>
+</para>
+
+<para>
+The <systemitem role="keyword">broadcast</systemitem> keyword tells
+<command>ypbind</command> to use whichever NIS server it finds for the domain.
+<indexterm class="endofrange" startref="idx-filenameypconffilename-1">
+</para>
+
+<para>
+<indexterm><primary>ypcat</primary><secondary>utility</secondary></indexterm>
+<indexterm><primary>checking</primary><secondary>NIS</secondary></indexterm>
+After creating this basic configuration file and making sure it is
+world-readable, you should run your first test to connect
+to your server. Make sure to choose a map your server distributes, like
+<filename>hosts.byname</filename>, and try to retrieve it by using the
+<command>ypcat</command> utility:
+</para>
+
+<para>
+<screen>
+# <userinput>ypcat hosts.byname</userinput>
+172.16.2.2      vbeaujolais.vbrew.com    vbeaujolais
+172.16.2.3      vbardolino.vbrew.com     vbardolino
+172.16.1.1      vlager.vbrew.com         vlager
+172.16.2.1      vlager.vbrew.com         vlager
+172.16.1.2      vstout.vbrew.com         vstout
+172.16.1.3      vale.vbrew.com           vale
+172.16.2.4      vchianti.vbrew.com       vchianti
+</screen>
+</para>
+
+<para>
+<indexterm><primary>rpcinfo command</primary></indexterm>
+The output you get should resemble that just shown. If you get an error
+message instead that says: <literal>Can't bind to server which serves
+domain</literal>, then either the NIS domain name you've set doesn't
+have a matching server defined in <filename>yp.conf</filename>, or the server
+is unreachable for some reason. In the latter case, make sure that a
+<command>ping</command> to the host yields a positive result, and that it is
+indeed running an NIS server. You can verify the latter by using
+<command>rpcinfo</command>, which should produce the following output:
+
+<screen>
+# <userinput>rpcinfo -u</userinput> <replaceable>serverhost</replaceable> <userinput>ypserv</userinput>
+program 100004 version 1 ready and waiting
+program 100004 version 2 ready and waiting
+</screen>
+</para>
+<INDEXTERM startref="idx-NISclient-2" class=endofrange>
+</sect1>
+
+<sect1 id="X-087-2-nis.nsswitch"><title>Choosing the Right Maps</title>
+<para>
+<indexterm id="idx-filenamensswitchconffilename-1" class="startofrange"><primary sortas="etc/nsswitch.conf file">/etc/nsswitch.conf file</primary></indexterm>
+<indexterm><primary>choosing</primary><secondary>NIS maps</secondary></indexterm>
+Having made sure you can reach the NIS server, you have to decide which
+configuration files to replace or augment with NIS maps. Commonly, you
+will want to use NIS maps for the host and password lookup functions. The
+former is especially useful if you do not have the BIND name service. The
+password lookup lets all users log into their accounts from any system in the
+NIS domain; this usually goes along with sharing a central
+<filename>/home</filename> directory among all hosts via NFS. The password
+map is explained detail in the next section. 
+</para>
+
+<para>
+Other maps, like <filename>services.byname</filename>, don't provide such
+dramatic gains, but do save you some editing work. The
+<filename>services.byname</filename> map is valuable if you install
+any network applications that use a service name not in the standard
+<filename>services</filename> file.
+</para>
+
+<para>
+Generally, you want to have some choice of when a lookup function uses the
+local files, when it queries the NIS server, and when it uses other servers 
+such as DNS. GNU libc allows you to configure the order in which a function
+accesses these services. This is controlled through the
+<filename>/etc/nsswitch.conf</filename> file, which stands for
+<emphasis>Name Service Switch</emphasis>, but of course isn't limited to
+the name service. For any of the data lookup functions supported by GNU libc,
+the file contains a line naming the services to use.
+</para>
+
+<para>
+<indexterm><primary>services.byname map</primary></indexterm>
+The right order of services depends on the type of data each service is 
+offering. It is unlikely that the <filename>services.byname</filename> map 
+will contain entries differing from those in the local 
+<filename>services</filename> file; it will only contain additional entries. 
+So it appears reasonable to query the local files first and check NIS only 
+if the service name isn't found. Hostname information, on the other hand, 
+may change very frequently, so DNS or the NIS server should always have the 
+most accurate account, while the local <filename>hosts</filename> file is 
+only kept as a backup if DNS and NIS should fail. For hostnames, therefore, 
+you normally want to check the local file last.
+</para>
+
+<para>
+<indexterm><primary>gethostbyname(&thinsp;)</primary></indexterm> 
+<indexterm><primary>gethostbyaddr(&thinsp;)</primary></indexterm> 
+<indexterm><primary>getservbyname(&thinsp;)</primary></indexterm> 
+The following example shows how to force <function>gethostbyname</function>
+and <function>gethostbyaddr</function> to look in NIS and DNS before the
+<filename>hosts</filename> file and how to have the
+<function>getservbyname</function> function look in the local files before
+querying NIS. These resolver functions will try each of the listed services 
+in turn; if a lookup succeeds, the result is returned; otherwise, they will 
+try the next service in the list. The file setting for these priorities is:
+</para>
+
+<screen>
+# small sample /etc/nsswitch.conf
+#
+hosts:     nis dns files 
+services:  files nis
+</screen>
+
+<para>
+The following is a complete list of services and locations that may be used 
+with an entry in the <filename>nsswitch.conf</filename> file. The actual maps,
+files, servers, and objects queried depend on the entry name. The 
+following can appear to the right of a colon: 
+</para>
+
+<variablelist>
+<varlistentry><term><systemitem role="keyword">nis</systemitem></term>
+<listitem><para>
+Use the current domain NIS server. The location of the server queried
+is configured in the <filename>yp.conf</filename> file, as shown in the
+previous section.  For the <systemitem role="keyword">hosts</systemitem> entry,
+the <filename>hosts.byname</filename> and <filename>hosts.byaddr</filename> 
+maps are queried.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">nisplus</systemitem> or
+<systemitem role="keyword">nis+</systemitem></term>
+<listitem><para>
+Use the NIS+ server for this domain. The location of the server is obtained
+from the <filename>/etc/nis.conf</filename> file.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">dns</systemitem></term>
+<listitem><para>
+Use the DNS name server. This service type is useful only with the
+<systemitem role="keyword">hosts</systemitem> entry. The name servers queried
+are still determined by the standard <filename>resolv.conf</filename> file.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">files</systemitem></term>
+<listitem><para>
+Use the local file, such as the <filename>/etc/hosts</filename> file for the
+<systemitem role="keyword">hosts</systemitem> entry.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">compat</systemitem></term>
+<listitem><para>
+Be compatible with older file formats. This option can be used when either 
+NYS or glibc 2.x is used for NIS or NIS+ lookups. While these versions 
+normally can't interpret older NIS entries in <filename>passwd</filename> 
+and <filename>group</filename> files, 
+<systemitem role="keyword">compat</systemitem> option allows them to work with 
+those formats.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">db</systemitem></term>
+<listitem><para>
+Look up the information from DBM files located in the
+<filename>/var/db</filename> directory. The corresponding NIS map name is used for that file.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+Currently, the NIS support in GNU libc caters to the following
+<filename>nsswitch.conf</filename> databases:
+<systemitem role="keyword">aliases</systemitem>,
+<systemitem role="keyword">ethers.group</systemitem>,
+<systemitem role="keyword">hosts</systemitem>,
+<systemitem role="keyword">netgroup</systemitem>,
+<systemitem role="keyword">network</systemitem>,
+<systemitem role="keyword">passwd</systemitem>,
+<systemitem role="keyword">protocols</systemitem>,
+<systemitem role="keyword">publickey</systemitem>,
+<systemitem role="keyword">rpc</systemitem>,
+<systemitem role="keyword">services</systemitem>, and
+<systemitem role="keyword">shadow</systemitem>.
+More entries are likely to be added.
+</para>
+
+<para>
+<xref linkend="X-087-2-nis.fig.switch"> shows a more complete example that
+introduces another feature of <filename>nsswitch.conf</filename>. The
+<systemitem role="keyword">[NOTFOUND=return]</systemitem> keyword in the
+<systemitem role="keyword">hosts</systemitem> entry tells the NIS client to
+return if the desired item couldn't be found in the NIS or DNS database. That
+is, the NIS client will continue searching the local files
+<emphasis>only</emphasis> if calls to the NIS and DNS servers fail for some
+other reason. The local files will then be used only at boot time and as a
+backup when the NIS server is down.
+</para>
+
+<example id="X-087-2-nis.fig.switch">
+<title>Sample nsswitch.conf File</title>
+<screen>
+# /etc/nsswitch.conf
+#
+hosts:      nis dns [NOTFOUND=return] files
+networks:   nis [NOTFOUND=return] files
+services:   files nis
+protocols:  files nis
+rpc:        files nis
+</screen>
+</example>
+
+<para>
+GNU libc provides some other actions that are described in the
+<filename>nsswitch</filename> manpage.
+</para>
+
+<indexterm class="endofrange" startref="idx-filenamensswitchconffilename-1">
+</sect1>
+
+<sect1 id="X-087-2-nis.passwd"><title>Using the passwd and group Maps</title>
+<para>
+<indexterm id="idx-NISfilenamepasswdfilenamemaps-1" class="startofrange"><primary>NIS (Network Information System)</primary><secondary>passwd maps</secondary></indexterm>
+<indexterm id="idx-passwordsnetwork-wide-1" class="startofrange"><primary>passwords</primary><secondary>network-wide</secondary></indexterm>
+<indexterm><primary>networks</primary><secondary>passwords</secondary></indexterm>
+<indexterm><primary>Local Area Networks (LANs)</primary><secondary>passwords</secondary></indexterm>
+One of the major applications of NIS is synchronizing user and account
+information on all hosts in an NIS domain. Consequently, you usually keep
+only a small local <filename>/etc/passwd</filename> file, to which
+site-wide information from the NIS maps is appended. However, simply
+enabling NIS lookups for this service in <filename>nsswitch.conf</filename>
+is not nearly enough.
+</para>
+
+<para>
+When relying on the password information distributed by NIS, you first
+have to make sure that the numeric user IDs of any users you have in
+your local <filename>passwd</filename> file match the NIS server's idea of
+user IDs. Consistency in user IDs is important for other purposes as
+well, like mounting NFS volumes from other hosts in your network.
+</para>
+<?troff .wcon_off>
+
+<para>
+<indexterm><primary sortas="etc/passwd file">/etc/passwd file</primary></indexterm> 
+<indexterm><primary sortas="etc/group file">/etc/group file</primary></indexterm> 
+If any of the numeric IDs in <filename>/etc/passwd</filename> or
+<filename>/etc/group</filename> differ from those in the maps, you have to
+adjust file ownerships for all files that belong to that user. First, you
+should change all uids and gids in <filename>passwd</filename> and
+<filename>group</filename> to the new values, then find that all files
+that belong to the users just changed and change their
+ownership.  Assume <systemitem role="userid">news</systemitem>
+used to have a user ID of 9 and <systemitem role="userid">okir</systemitem>
+had a user ID of 103, which were changed to some other value; you could
+then
+<?troff .ne 10>
+issue the following commands as root:
+
+<screen>
+# <userinput>find / -uid   9 -print >/tmp/uid.9</userinput>
+# <userinput>find / -uid 103 -print >/tmp/uid.103</userinput>
+# <userinput>cat /tmp/uid.9   | xargs chown news</userinput>
+# <userinput>cat /tmp/uid.103 | xargs chown okir</userinput>
+</screen>
+</para>
+
+<para>
+It is important that you execute these commands with the new
+<filename>passwd</filename> file installed, and that you collect all
+filenames before you change the ownership of any of them. To update the
+group ownerships of files, use a similar method with the gid instead of the 
+uid, and chgrp instead of chown.
+</para>
+
+<para>
+<?troff .hw information>
+Once you do this, the numerical uids and gids on your system will
+agree with those on all other hosts in your NIS domain.  The next step
+is to add configuration lines to <filename>nsswitch.conf</filename>
+that enable NIS lookups for user and group information:
+
+<screen>
+# /etc/nsswitch.conf - passwd and group treatment
+passwd: nis files
+group:  nis files
+</screen>
+</para>
+
+<para>
+<indexterm><primary>login command and NIS maps</primary></indexterm> 
+This affects where the <command>login</command> command and all its
+friends look for user information. When a user tries to log in,
+<command>login</command> queries the NIS maps first, and if this
+lookup fails, falls back to the local files. Usually, you will remove
+almost all users from your local files, and only leave entries for
+<systemitem role="userid">root</systemitem> and generic accounts like
+<systemitem role="userid">mail</systemitem> in it.  This is because
+some vital system tasks may have to map uids to usernames or vice
+versa.  For example, administrative <command>cron</command> jobs may
+execute the <filename>su</filename> command to temporarily become
+<systemitem role="userid">news</systemitem>, or the UUCP subsystem may
+mail a status report.  If <systemitem role="userid">news</systemitem>
+and <systemitem role="userid">uucp</systemitem> don't have entries in
+the local <filename>passwd</filename> file, these jobs will fail
+miserably during an NIS brownout.
+</para>
+
+<para>
+Lastly, if you are using either the old NIS implementation (supported by the
+<systemitem role="keyword">compat</systemitem> mode for the
+<filename>passwd</filename> and <filename>group</filename> files in the
+NYS or glibc implementations), you must insert the unwieldy special entries
+into them. These entries represent where the NIS derived records will
+be inserted into the database of information. The entries can be added
+anywhere, but are usually just added to the end. The entries to add for the 
+<filename>/etc/passwd</filename> file are:
+
+<screen>
+<userinput>+::::::</userinput>
+</screen>
+
+and for the <filename>/etc/groups</filename> file:
+
+<screen>
+<userinput>+:::</userinput>
+</screen>
+</para>
+
+<para>
+With both glibc 2.x and NYS you can override parameters in a user&rsquo;s 
+record received from the NIS server by creating entries with a &ldquo;+&rdquo;
+prepended to the login name, and exclude specified users by creating
+entries with a &ldquo;-&rdquo; prepended to the login name.
+For example the entries:
+
+<screen>
+<userinput>+stuart::::::/bin/jacl</userinput>
+<userinput>-jedd::::::</userinput>
+</screen>
+
+would override the shell specified for the user
+<systemitem role="userid">stuart</systemitem> supplied by the NIS server,
+and would disallow the user <systemitem role="userid">jedd</systemitem> from
+logging in on this machine. Any fields left blank use the information
+supplied by the NIS server.
+</para>
+
+<para>
+There are two big caveats in order here. First, the setup as described up to
+here works only for login suites that don't use shadow passwords. The
+intricacies of using shadow passwords with NIS will be discussed in the next 
+section.
+Second, the login commands are not the only ones that access the
+<filename>passwd</filename> file&mdash;look at the <command>ls</command>
+command, which most people use almost constantly. Whenever compiling a long
+listing, <command>ls</command> displays the symbolic names for user
+and group owners of a file; that is, for each uid and gid it encounters,
+it has to query the NIS server. An NIS query takes slightly longer to
+perform than the equivalent lookup in a local file. You may find that sharing
+your <filename>passwd</filename> and <filename>group</filename> information
+using NIS causes a noticable reduction in the performance of some programs that
+use this information frequently.
+</para>
+
+<para>
+Still, this is not the whole story. Imagine what happens if a user wants to
+change her password. Usually, she will invoke <command>passwd</command>, which
+reads the new password and updates the local <filename>passwd</filename> file.
+This is impossible with NIS, since that file isn't available locally anymore,
+but having users log into the NIS server whenever they want to change their
+passwords is not an option, either. Therefore, NIS provides a drop-in
+replacement for <command>passwd</command> called <command>yppasswd</command>,
+which handles password changes under NIS. To change the password
+on the server host, it contacts the <command>yppasswdd</command> daemon on
+that host via RPC, and provides it with the updated password information.
+Usually you install <command>yppasswd</command> over the normal program by
+doing something like this:
+
+<indexterm><primary>yppasswd</primary></indexterm> 
+<screen>
+# <userinput>cd /bin</userinput>
+# <userinput>mv passwd passwd.old</userinput>
+# <userinput>ln yppasswd passwd</userinput>
+</screen>
+</para>
+
+<para>
+At the same time, you have to install <command>rpc.yppasswdd</command> on the
+server and start it from a network script. This will effectively hide any of
+the contortions of NIS from your users.
+</para>
+
+<indexterm class="endofrange" startref="idx-passwordsnetwork-wide-1">
+<indexterm class="endofrange" startref="idx-NISfilenamepasswdfilenamemaps-1">
+</sect1>
+
+<sect1 id="X-087-2-nis.shadow"><title>Using NIS with Shadow Support</title>
+<para>
+<indexterm><primary>NIS (Network Information System)</primary><secondary>shadow passwords and</secondary></indexterm>
+<indexterm><primary>shadow passwords and NIS</primary></indexterm> 
+Using NIS in conjunction with shadow password files is somewhat problematic.
+First we have some bad news: using NIS defeats the goals of shadow passwords. 
+The <filename>shadow</filename> password scheme was designed to prevent 
+nonroot users from having access to the encrypted form of the login 
+passwords. Using NIS to share <filename>shadow</filename> data by necessity 
+makes the encrypted passwords available to any user who can listen to the NIS 
+server replies on the network. A policy to enforce users to choose 
+&ldquo;good&rdquo; passwords is arguably better than trying to shadow 
+passwords in an NIS environment. Let's take a quick look at how you do it, 
+should you decide to forge on ahead.
+</para>
+
+<para>
+In libc5 there is no real solution to sharing <filename>shadow</filename> data
+using NIS. The only way to distribute password and user information by NIS is
+through the standard <filename>passwd.*</filename> maps. If you do have
+shadow passwords installed, the easiest way to share them is to generate a
+proper <filename>passwd</filename> file from <filename>/etc/shadow</filename>
+using tools like <command>pwuncov</command>, and create the NIS maps from
+that file.
+</para>
+
+<indexterm><primary sortas="etc/shadow file">/etc/shadow file</primary></indexterm> 
+<para>
+Of course, there are some hacks necessary to use NIS and shadow passwords at
+the same time, for instance, by installing an <filename>/etc/shadow</filename>
+file on each host in the network, while distributing user information, through
+NIS. However, this hack is really crude and defies the goal of NIS,
+which is to ease system administration.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>GNU libc (NIS support)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>libc6 (NIS support)</PRIMARY></INDEXTERM>
+The NIS support in the GNU libc library (libc6) provides support for shadow
+password databases. It does not provide any real solution to making your 
+passwords accessible, but it does simplify password management in 
+environments in which you do want to use NIS with shadow passwords.
+To use it, you must create a <filename>shadow.byname</filename> database
+and add the following line to your <filename>/etc/nsswitch.conf</filename>&thinsp;:
+
+<screen>
+<userinput># Shadow password support</userinput>
+<userinput>shadow:         compat</userinput>
+</screen>
+</para>
+
+
+<para>
+<?troff .hw chapter>
+If you use shadow passwords along with NIS, you must try to maintain some 
+security by restricting access to your NIS database.  See <xref linkend="X-087-2-nis.securenets">&rdquo; earlier in this chapter.
+</para>
+
+</sect1>
+<INDEXTERM startref="idx-configuringNIS-1" class=endofrange>
+<INDEXTERM startref="idx-NIS-1" class=endofrange>
+</chapter>
+

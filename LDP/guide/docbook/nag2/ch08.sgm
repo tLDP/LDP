@@ -1,0 +1,1781 @@
+<chapter id="X-087-2-ppp"><title>The Point-to-Point Protocol</title>
+
+<para>
+<indexterm><primary>Internet</primary><secondary>connecting to</secondary></indexterm>
+<INDEXTERM><PRIMARY>telephones</PRIMARY><SECONDARY>sending data over</SECONDARY></INDEXTERM>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>serial line</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>dialup</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary></indexterm>
+<indexterm><primary>point-to-point link</primary></indexterm>
+<indexterm id="idx-configuringPPP-1" class="startofrange"><primary>configuring</primary><secondary>PPP</secondary></indexterm>
+<indexterm id="idx-PPP-1" class="startofrange"><primary>PPP (Point-to-Point Protocol)</primary></indexterm>
+Like SLIP, PPP is a protocol used to send datagrams across a
+serial connection; however, it addresses a couple of the deficiencies
+of SLIP. First, it can carry a large number of protocols and is
+thus not limited to the IP protocol. It provides error detection
+on the link itself, while SLIP accepts and forwards
+corrupted datagrams as long as the corruption does not occur in the
+header. Equally important, it lets the communicating sides
+negotiate options, such as the IP address and the maximum datagram size
+at startup time, and provides client authorization.  This built-in
+negotiation allows reliable automation of the connection
+establishment, while the authentication removes the need for the
+clumsy user login accounts that SLIP requires. For each of these
+capabilities, PPP has a separate protocol. In this chapter, we briefly
+cover these basic building blocks of PPP. This discussion of PPP is
+far from complete; if you want to know more about PPP, we urge you to
+read its RFC specification and the dozen or so companion
+RFCs.<footnote id="X-087-2-FNPP01"><para> Relevant RFCs are listed
+in the Bibiliography at the end of this book.</para></footnote>
+There is also a comprehensive O'Reilly book on the topic
+of <emphasis>Using & Managing PPP</emphasis>, by Andrew Sun.
+</para>
+
+<para>
+<indexterm><primary>HDLC (High-Level Data Link Control) protocol</primary></indexterm>
+At the very bottom of PPP is the <emphasis>High-Level Data Link
+Control</emphasis> (HDLC) protocol, which defines the
+boundaries around the individual PPP frames and provides a 16-bit
+checksum.<footnote id="X-087-2-FNPP02"><para> In fact, HDLC is a much
+more general protocol devised by the International Standards
+Organization (ISO) and is also an essential component of the X.25
+specification.</para></footnote> As opposed to the more primitive SLIP
+encapsulation, a PPP frame is capable of holding packets from
+protocols other than IP, such as Novell's IPX or Appletalk.  PPP
+achieves this by adding a protocol field to the basic HDLC frame that
+identifies the type of packet carried by the frame.
+
+</para>
+
+<para>
+<indexterm><primary>LCP (Link Control Protocol)</primary></indexterm>
+The <emphasis>Link Control Protocol</emphasis>, (LCP) is used on top of HDLC
+to negotiate options pertaining to the data link. For instance, the
+<emphasis>Maximum Receive Unit</emphasis> (MRU), states the maximum
+datagram size that one side of the link agrees to receive.
+</para>
+
+<para>
+<indexterm><primary>authorization</primary><secondary>with PPP</secondary></indexterm>
+<indexterm><primary>PAP (Password Authentication Protocol)</primary></indexterm>
+<indexterm><primary>CHAP (Challenge Handshake Authentication Protocol)</primary></indexterm>
+An important step at the configuration stage of a PPP link is client
+authorization. Although it is not mandatory, it is really a must for
+dialup lines in order to keep out intruders.  Usually the called host
+(the server) asks the client to authorize itself by proving it knows
+some secret key.  If the caller fails to produce the correct secret,
+the connection is terminated.  With PPP, authorization works both
+ways; the caller may also ask the server to authenticate
+itself.  These authentication procedures are totally independent of
+each other.  There are two protocols for different types of
+authorization, which we will discuss further in this chapter: <emphasis>Password Authentication Protocol</emphasis> (PAP)
+and <emphasis>Challenge Handshake Authentication Protocol</emphasis>
+(CHAP).
+</para>
+
+<para>
+<indexterm><primary>NCP (Network Control Protocol)</primary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>Network Control Protocol (PPP)</secondary></indexterm>
+<indexterm><primary>IPCP (Internet Protocol Control Protocol)</primary></indexterm>
+Each network protocol that is routed across the data link (like IP and
+AppleTalk) is configured dynamically using a corresponding
+<emphasis>Network Control Protocol</emphasis> (NCP).  To
+send IP datagrams across the link, both sides running PPP must first
+negotiate which IP address each of them uses. The control protocol
+used for this negotiation is the <emphasis>Internet Protocol Control
+Protocol</emphasis> (IPCP).
+</para>
+
+<para>
+<indexterm><primary>Van Jacobson header compression</primary></indexterm>
+<indexterm><primary>TCP/IP (Transmission Control Protocol/Internet Protocol)</primary><secondary>compressing packets</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>compressing data</secondary></indexterm>
+<indexterm><primary>CSLIP (Compressed Serial Line IP) protocol</primary></indexterm>
+Besides sending standard IP datagrams across the link, PPP also supports
+Van Jacobson header compression of IP datagrams. This technique
+shrinks the headers of TCP packets to as little as three bytes. It is
+also used in CSLIP, and is more colloquially referred to as VJ header
+compression.  The use of compression may be negotiated at startup time
+through IPCP, as well.
+</para>
+
+<sect1><title>PPP on Linux</title>
+<indexterm><primary>drivers</primary><secondary>PPP</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>driver</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>daemon</secondary></indexterm>
+<indexterm><primary>pppd (kernel PPP module)</primary></indexterm>
+<indexterm><primary>chat program</primary></indexterm> 
+<para>On Linux, PPP functionality is split into two parts: a kernel component that
+handles the low-level protocols (HDLC, IPCP, IPXCP, etc.) and the user space
+<command>pppd</command> daemon that handles the various higher-level protocols,
+such as PAP and CHAP. The current release of the PPP software for Linux
+contains the PPP daemon <command>pppd</command> and a program named
+<command>chat</command> that automates the dialing of the remote
+system.
+</para>
+
+<para>
+The PPP kernel driver was written by Michael Callahan and reworked by
+Paul Mackerras. <command>pppd</command> was derived from a free PPP
+implementation<footnote id="X-087-2-FNPP03"><para> If you have any general
+questions about PPP, ask the people on the Linux-net mailing
+list at <systemitem role="sitename">vger.rutgers.edu</systemitem>.
+</para></footnote> for Sun and 386BSD machines that was written by
+Drew Perkins and others, and is maintained by Paul Mackerras. It was
+ported to Linux by Al Longyear. <command>chat</command> was written by
+Karl Fox.<footnote id="X-087-2-FNPP04"><para> Karl can be reached at
+<systemitem role="emailaddr">karl@morningstar.com</systemitem>.
+</para>
+</footnote>
+</para>
+
+<para>
+<indexterm><primary>ttys</primary><secondary>line discipline</secondary></indexterm>
+<indexterm><primary>line discipline</primary></indexterm>
+Like SLIP, PPP is implemented by a special line discipline.
+To use a serial line as a PPP link, you first establish the connection
+over your modem as usual, and subsequently convert the line to PPP mode.
+In this mode, all incoming data is passed to <?troff .Nd 10><?troff .wcon_off>the PPP driver, which checks
+the incoming HDLC frames for validity (each HDLC frame carries a 16-bit
+checksum), and unwraps and dispatches them.  Currently, PPP is able to
+transport both the IP protocol, optionally using Van Jacobson header
+compression, and the IPX protocol.
+</para>
+
+<para>
+<indexterm><primary>PPP-HOWTO</primary></indexterm>
+<INDEXTERM><PRIMARY>HOWTOs</PRIMARY><SECONDARY>PPP</SECONDARY></INDEXTERM>
+<command>pppd</command> aids the kernel driver, performing the
+initialization and authentication phase that is necessary before
+actual network traffic can be sent across the
+link. <command>pppd</command>&thinsp;'s behavior may be fine-tuned
+using a number of options. As PPP is rather complex, it is impossible
+to explain all of them in a single chapter. This book therefore cannot
+cover all aspects of <command>pppd</command>, but only gives you an
+introduction. For more information, consult <emphasis>Using & Managing
+PPP</emphasis> or the <command>pppd</command> manual pages, and
+<filename>README</filename>&thinsp;s in the <command>pppd</command>
+source distribution, which should help you sort out most questions
+this chapter fails to discuss. The PPP-HOWTO might also be of use.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>newsgroups</PRIMARY><SECONDARY>comp.protocols.ppp</SECONDARY></INDEXTERM>
+Probably the greatest help you will find in configuring PPP will come
+from other users of the same Linux distribution. PPP configuration
+questions are very common, so try your local usergroup mailing list or
+the IRC Linux channel. If your problems persist even after reading the
+documentation, you could try the <systemitem
+role="newsgroup">comp.protocols.ppp</systemitem> newsgroup. This is
+the place where you can find most of the people involved in
+<command>pppd</command> development.
+</para>
+</sect1>
+
+<sect1><title>Running pppd</title>
+<para>
+<indexterm><primary>Internet</primary><secondary>connecting to</secondary></indexterm>
+<indexterm id="idx-commandpppdcommand-1" class="startofrange"><primary>pppd (kernel PPP module)</primary></indexterm>
+<INDEXTERM><PRIMARY>name servers</PRIMARY><SECONDARY>caching-only</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>caching-only name server</PRIMARY></INDEXTERM>
+When you want to connect to the Internet through a PPP link, you have
+to set up basic networking capabilities, such as the loopback device
+and the resolver. Both have been covered in <xref
+linkend="X-087-2-iface">, and <xref linkend="X-087-2-resolv">. You can
+simply configure the name server of your Internet Service Provider in
+the <filename>/etc/resolv.conf</filename> file, but this will mean
+that every DNS request is sent across your serial link. This situation is not
+optimal; the closer (network-wise) you are to your name server, the
+faster the name lookups will be. An alternative solution is to
+configure a caching-only name server at a host on your network.  This
+means that the first time you make a DNS query for a particular
+host, your request will be sent across your serial link, but every
+subsequent request will be answered directly by your local name
+server, and will be much faster. This configuration is described in Chapter 6, in 
+<xref linkend="X-087-2-resolv.named-cachingonly">.&rdquo;
+</para>
+
+<para>
+As an introductory example of how to establish a PPP connection with
+<command>pppd</command>, assume you are at <systemitem
+role="sitename">vlager</systemitem> again. First, dial in to the PPP
+server <systemitem role="sitename">c3po</systemitem> and log in to the
+<systemitem role="userid">ppp</systemitem> account.  <systemitem
+role="sitename">c3po</systemitem> will execute its PPP driver. After
+exiting the communications program you used for dialing, execute the
+following command, substituting the name of the serial device you used
+for the <literal>ttyS3</literal> shown here:
+
+<screen>
+# <userinput>pppd /dev/ttyS3 38400 crtscts defaultroute</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm><primary>handshake, hardware</primary></indexterm>
+<indexterm><primary>hardware</primary><secondary>handshake</secondary></indexterm>
+This command flips the serial line <filename>ttyS3</filename> to the
+PPP line discipline and negotiates an IP link with <systemitem
+role="sitename">c3po</systemitem>. The transfer speed used on the
+serial port will be 38,400 bps. The <systemitem
+role="keyword">crtscts</systemitem> option turns on hardware handshake
+on the port, which is an absolute must at speeds above 9,600 bps.
+</para>
+
+<para>
+The first thing <command>pppd</command> does after starting up is
+negotiate several link characteristics with the remote end using
+LCP. Usually, the default set of options <command>pppd</command> tries
+to negotiate will work, so we won't go into this here. Expect to say
+that part of this negotiation involves requesting or assigning the IP
+addresses at each end of the link.
+</para>
+
+<para>
+For the time being, we also assume that
+<systemitem role="sitename">c3po</systemitem> doesn't require
+any authentication from us, so the configuration phase is completed
+successfully.
+</para>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>IP addresses</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>addresses</secondary><tertiary>negotiation in PPP</tertiary></indexterm>
+<indexterm><primary>addresses</primary><secondary>negotiation with PPP</secondary></indexterm>
+<command>pppd</command> will then negotiate the IP parameters with its
+peer using IPCP, the IP control protocol. Since we didn't specify any
+particular IP address to <command>pppd</command> earlier, it will try to
+use the address obtained by having the resolver look up the local hostname.
+Both will then announce their addresses to each other.
+</para>
+
+<para>
+Usually, there's nothing wrong with these defaults. Even if your
+machine is on an Ethernet, you can use the same IP address for both
+the Ethernet and the PPP interface.  Nevertheless,
+<command>pppd</command> allows you to use a different address, or even
+to ask your peer to use some specific address.  These options are
+discussed later in the <xref linkend="X-087-2-IPconfig.options">&rdquo;
+section.
+</para>
+
+<para>
+<indexterm><primary>interfaces</primary><secondary>PPP</secondary></indexterm>
+<indexterm><primary>configuring</primary><secondary>PPP</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>default route</secondary></indexterm>
+<indexterm><primary>route, default</primary></indexterm>
+After going through the IPCP setup phase, <command>pppd</command> will
+prepare your host's networking layer to use the PPP link. It first
+configures the PPP network interface as a point-to-point link, using
+<filename>ppp0</filename> for the first PPP link that is active,
+<command>ppp1</command> for the second, and so on. Next, it sets up a
+routing table entry that points to the host at the other end of the
+link. In the previous example, <command>pppd</command> made the
+default network route point to <systemitem
+role="sitename">c3po</systemitem>, because we gave it the <systemitem
+role="keyword">defaultroute</systemitem> option.<footnote
+id="X-087-2-FNPP05"><para> The default network route is installed only
+if none is already present.</para></footnote> The default route simplifies
+your routing by causing any IP datagram destined to a nonlocal host to
+be sent to <systemitem role="sitename">c3po</systemitem>; this makes
+sense since it is the only way they can be reached. There are a number of
+different routing schemes <command>pppd</command> supports, which we will
+cover in detail later in this chapter.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-ppp.options"><title>Using Options Files</title>
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>option files</secondary></indexterm>
+Before <command>pppd</command> parses its command-line arguments, it scans
+several files for default options.  These files may contain any valid
+command-line arguments spread out across an arbitrary number of lines.
+Hash signs introduce comments.
+</para>
+
+<para>
+<indexterm><primary SORTAS="etc/ppp/options file">/etc/ppp/options file</primary></indexterm> 
+The first options file is <filename>/etc/ppp/options</filename>, which is
+always scanned when <command>pppd</command> starts up.  Using it to set some
+global defaults is a good idea, because it allows you to keep your users from
+doing several things that may compromise security.  For instance, to make
+<command>pppd</command> require some kind of authentication (either PAP or
+CHAP) from the peer, you add the <option>auth</option> option to this
+file. This option cannot be overridden by the user, so it becomes impossible
+to establish a PPP connection with any system that is not in your
+authentication databases. Note, however, that some options can be overridden;
+the <systemitem role="keyword">connect</systemitem> string is a good example.
+</para>
+
+<para>
+<indexterm><primary SORTAS="ppprc file">.ppprc file</primary></indexterm>
+The other options file, which is read after
+<filename>/etc/ppp/options</filename>, is <filename>.ppprc</filename> in the
+user's home directory. It allows each user to specify her own set of default
+options.
+</para>
+
+<para>
+A sample <filename>/etc/ppp/options</filename> file might look like this:
+
+<screen>
+# Global options for pppd running on vlager.vbrew.com
+lock                 # use UUCP-style device locking
+auth                 # require authentication
+usehostname          # use local hostname for CHAP
+domain vbrew.com     # our domain name
+</screen>
+</para>
+
+<para>
+<indexterm><primary>lock files and PPP</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>lock files</secondary></indexterm>
+The <systemitem role="keyword">lock</systemitem> keyword makes
+<command>pppd</command> comply to the standard UUCP method of device locking.
+With this convention, each process that accesses a serial device, say
+<filename>/dev/ttyS3</filename>, creates a lock file with a name like
+<filename>LCK..ttyS3</filename> in a special lock-file directory to signal that
+the device is in use. This is necessary to prevent signal other programs, such as
+<command>minicom</command> or <command>uucico</command>, from opening the
+serial device while it is used by PPP.
+</para>
+
+<para>
+The next three options relate to authentication and, therefore,
+to system security. The authentication options are best placed in the global
+configuration file because they are &ldquo;privileged&rdquo; and cannot
+be overridden by users' <filename>~/.ppprc</filename> options files.
+</para>
+</sect1>
+
+<sect1><title>Using chat to Automate Dialing</title>
+<para>
+<indexterm><primary>establishing the connection</primary></indexterm>
+<indexterm><primary>chat program</primary><secondary>PPP</secondary></indexterm>
+<indexterm id="idx-PPPchatscript-1" class="startofrange"><primary>PPP (Point-to-Point Protocol)</primary><secondary>chat script</secondary></indexterm>
+One of the things that may have struck you as inconvenient in the
+previous example is that you had to establish the connection manually
+before you could fire up <command>pppd</command>.  Unlike
+<command>dip</command>, <command>pppd</command> does not have its own
+scripting language for dialing the remote system and logging in, but
+relies on an external program or shell script to do this. The
+command to be executed can be given to <command>pppd</command> with
+the <systemitem role="keyword">connect</systemitem> command-line
+option. <command>pppd</command> will redirect the command's standard
+input and output to the serial line.
+</para>
+
+<para>
+The <command>pppd</command> software package is supplied with a very simple
+program called <command>chat</command>, which is capable of being used in
+this way to automate simple login sequences. We'll talk about this command in
+some detail.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>expect program</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Libes, Don</PRIMARY></INDEXTERM>
+If your login sequence is complex, you will need something more
+powerful than <command>chat</command>. One useful alternative you
+might consider is <command>expect</command>, written by Don Libes. It
+has a very powerful language based on Tcl, and was designed exactly for
+this sort of application. Those of you whose login sequence requires,
+for example, challenge/response authentication involving
+ calculator-like key generators will find
+<command>expect</command> powerful enough to handle the task. Since
+there are so many possible variations on this theme, we won't describe
+how to develop an appropriate expect script in this book.  Suffice it
+to say, you'd call your expect script by specifying its name using the
+<command>pppd</command> <systemitem
+role="keyword">connect</systemitem> option. It's also important to
+note that when the script is running, the standard input and output
+will be attached to the modem, not to the terminal that invoked
+<command>pppd</command>. If you require user interaction, you should
+manage it by opening a spare virtual terminal, or arrange some other
+means.
+</para>
+
+<para>
+<indexterm id="idx-commandchatcommand-1" class="startofrange"><primary>chat program</primary></indexterm>
+<indexterm><primary>chat script</primary></indexterm>
+The <command>chat</command> command lets you specify a UUCP-style chat script.
+Basically, a chat script consists of an alternating sequence of strings that
+we expect to receive from the remote system, and the answers we are to send.
+We will call them <emphasis>expect</emphasis> and <emphasis>send</emphasis>
+strings, respectively.  This is a typical excerpt from a chat script:
+
+<screen>
+ogin: b1ff ssword: s3|&lt;r1t
+</screen>
+</para>
+
+<para>
+This script tells <command>chat</command> to wait for the remote system to send
+the login prompt and return the login name
+<systemitem role="userid">b1ff</systemitem>. We wait only for
+<systemitem role="keyword">ogin:</systemitem> so that it doesn't matter if
+the login prompt starts with an uppercase or lowercase l, or if it arrives
+garbled.  The following string is another expect string that makes
+<command>chat</command> wait for the password prompt and send our
+response password.
+</para>
+
+<para>
+This is basically what chat scripts are all about. A complete script to
+dial up a PPP server would, of course, also have to include the appropriate
+modem commands. Assume that your modem understands the Hayes command set, and
+the server's telephone number is 318714. The complete <command>chat</command>
+invocation to establish a connection with
+<systemitem role="sitename">c3po</systemitem> would then be:
+
+<screen>
+$ <userinput>chat -v '' ATZ OK ATDT318714 CONNECT '' ogin: ppp word: GaGariN</userinput>
+</screen>
+</para>
+
+<para>
+<?troff .hw compatible>
+By definition, the first string must be an expect string, but as the
+modem won't say anything before we have kicked it, we make
+<command>chat</command> skip the first expect by specifying an empty string.
+We then send <systemitem role="keyword">ATZ</systemitem>, the reset
+command for Hayes-compatible modems, and wait for its response
+(<systemitem role="keyword">OK</systemitem>). The next string sends the <command>dial</command>
+command along with the phone number to <command>chat</command>, and expects
+the <systemitem role="keyword">CONNECT</systemitem> message in response.
+This is followed by an empty string again because we don't want to send
+anything now, but rather wait for the login prompt. The remainder of the
+chat script works exactly as described previously. This description probably looks a bit
+confusing, but we'll see in a moment that there is a way to make
+chat scripts a lot easier to understand.
+</para>
+
+<para>
+The <option>&ndash;v</option> option makes <command>chat</command> log all
+activities to the <command>syslog</command> daemon
+<systemitem role="keyword">local2</systemitem>
+facility.<footnote id="X-087-2-FNPP06"><para>
+If you edit <filename>syslog.conf</filename> to redirect these log messages to
+a file, make sure this file isn't world readable, as <command>chat</command>
+also logs the entire chat script by default&mdash;including passwords.
+</para>
+</footnote>
+</para>
+
+<para>
+<indexterm><primary>security</primary><secondary>PPP</secondary></indexterm>
+Specifying the chat script on the command line bears a certain risk
+because users can view a process's command line with the <command>ps</command>
+command.  You can avoid this risk by putting the chat script in a file like
+<filename>dial-c3po</filename>.  You make <command>chat</command> read
+the script from the file instead of the command line by giving it the
+<option>&ndash;f</option> option, followed by the filename. <?troff .ne 10><?troff .wcon_off>This action has the
+added benefit of making our chat expect sequences easier to
+understand. To convert our example, our <filename>dial-c3po</filename> file
+would look like:
+
+<screen>
+''      ATZ
+OK      ATDT318714
+CONNECT ''
+ogin:   ppp
+word:   GaGariN
+</screen>
+
+When we use a chat script file in this way, the string we expect to
+receive is on the left and the response we will send is on the
+right. They are much easier to read and understand when presented this way.
+</para>
+
+<para>
+The complete <command>pppd</command> incantation would now look like this:
+
+<screen>
+# <userinput>pppd connect "chat -f dial-c3po" /dev/ttyS3 38400 -detach \
+        crtscts modem defaultroute</userinput>
+</screen>
+</para>
+
+<para>
+Besides the <systemitem role="keyword">connect</systemitem> option
+that specifies the dialup script, we have added two more options to
+the command line: <systemitem
+role="keyword">&ndash;detach</systemitem>, which tells
+<command>pppd</command> not to detach from the console and become a
+background process, and the <systemitem role="keyword">modem</systemitem>
+keyword, which makes it perform
+modem-specific actions on the serial device, like disconnecting the
+line before and after the call. If you don't use this keyword,
+<command>pppd</command> will not monitor the port's DCD line and will
+therefore not detect whether the remote end hangs up unexpectedly.
+</para>
+
+<para>
+The examples we have shown are rather simple; <command>chat</command>
+allows for much more complex scripts. For instance, it can specify
+strings on which to abort the chat with an error.  Typical abort
+strings are messages like <systemitem role="keyword">BUSY</systemitem>
+or <systemitem role="keyword">NO CARRIER</systemitem> that your modem
+usually generates when the called number is busy or doesn't answer. To
+make <command>chat</command> recognize these messages immediately
+rather than timing out, you can specify them at the beginning of the
+script using the <systemitem role="keyword">ABORT</systemitem>
+keyword:
+
+<screen>
+$ <userinput>chat -v ABORT BUSY ABORT 'NO CARRIER' '' ATZ OK ...</userinput>
+</screen>
+</para>
+
+<para>
+Similarly, you can change the timeout value for parts of
+the chat scripts by inserting <systemitem role="keyword">TIMEOUT</systemitem> 
+options.
+</para>
+
+<para>
+Sometimes you also need to have conditional execution
+for parts of the chat script: when you don't receive the
+remote end's login prompt, you might want to send a BREAK or a carriage
+return. You can achieve this by appending a subscript to an expect
+string.  The subscript consists of a sequence of send and expect strings, just
+like the overall script itself, which are separated by hyphens. The
+subscript is executed whenever the expected string it is appended to
+is not received in time.  In the example above, we would modify the chat
+script as follows:
+
+<screen>
+ogin:-BREAK-ogin: ppp ssword: GaGariN
+</screen>
+</para>
+<?troff .Nd 10>
+<para>
+When <command>chat</command> doesn't see the remote system send the login
+prompt, the subscript is executed by first sending a BREAK, and then
+waiting for the login prompt again. If the prompt now appears, the
+script continues as usual; otherwise, it will terminate with an error.
+
+<indexterm class="endofrange" startref="idx-PPPchatscript-1">
+<indexterm class="endofrange" startref="idx-commandchatcommand-1">
+
+</para>
+</sect1>
+
+<sect1 id="X-087-2-IPconfig.options"><title>IP Configuration Options</title>
+
+<para>
+<indexterm><primary>IPCP (Internet Protocol Control Protocol)</primary></indexterm>
+IPCP is used to negotiate a number of IP parameters at link configuration time.
+Usually, each peer sends an IPCP Configuration Request packet, indicating which
+values it wants to change from the defaults and the new value. Upon receipt,
+the remote end inspects each option in turn and either acknowledges or rejects
+it.
+</para>
+
+<para>
+<command>pppd</command> gives you a lot of control over which IPCP options
+it will try to negotiate. You can tune it through various command-line
+options that we will discuss in this section.
+</para>
+
+<sect2><title>Choosing IP Addresses</title>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>IP addresses</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>addresses</secondary><tertiary>negotiation in PPP</tertiary></indexterm>
+<indexterm><primary>addresses</primary><secondary>negotiation with PPP</secondary></indexterm>
+All IP interfaces require IP addresses assigned to them; a PPP device always
+has an IP address. The PPP suite of protocols provides a mechanism that allows
+the automatic assignment of IP addresses to PPP interfaces. It is possible for
+the PPP program at one end of a point-to-point link to assign an IP address for
+the remote end to use, or each may use its own.
+</para>
+
+<para>
+Some PPP servers that handle a lot of client sites assign addresses
+dynamically; addresses are assigned to systems only when calling in
+and are reclaimed after they have logged off again. This allows the
+number of IP addresses required to be limited to the number of dialup
+lines. While limitation is convenient for managers of the PPP dialup
+server, it is often less convenient for users who are dialing
+in. We discussed the way that
+hostnames are mapped to IP addresses by use of a database in <xref linkend="X-087-2-resolv">. In order
+for people to connect to your host, they must know your IP address or
+the hostname associated with it. If you are a user of a PPP service
+that assigns you an IP address dynamically, this knowledge is difficult without
+providing some means of allowing the DNS database to be updated after
+you are assigned an IP address. Such systems do exist, but we won't
+cover them in detail here; instead, we will look at the more
+preferable approach, which involves you being able to use the same IP
+address each time you establish your network connection.<footnote
+id="X-087-2-FNPP07"><para> More information on two dynamic host
+assignment mechanisms can be found at
+<systemitem role="url">http://www.dynip.com/</systemitem> and
+<systemitem role="url">http://www.justlinux.com/dynamic_dns.html</systemitem>.
+</para>
+</footnote>
+</para>
+
+<para>
+<?troff .hw hostname>
+In the previous example, we had <command>pppd</command> dial up
+<systemitem role="sitename">c3po</systemitem> and establish an IP
+link. No provisions were taken to choose a particular IP address on
+either end of the link.  Instead, we let <command>pppd</command> take
+its default action. It attempts to resolve the local hostname,
+<systemitem role="sitename">vlager</systemitem> in<?troff .ne 10> our example, to an
+IP address, which it uses for the local end, while letting the remote
+machine, <systemitem role="sitename">c3po</systemitem>, provide its
+own. PPP supports several alternatives to this arrangement.
+</para>
+
+<para>
+To ask for particular addresses, you generally provide <command>pppd</command>
+with the following option:
+
+<screen>
+<replaceable>local_addr</replaceable>:<replaceable>remote_addr</replaceable>
+</screen>
+</para>
+
+<para>
+<replaceable>local_addr</replaceable> and
+<replaceable>remote_addr</replaceable> may be specified either in
+dotted quad notation or as hostnames.<footnote
+id="X-087-2-FNPP08"><para> Using hostnames in this option has
+consequences for CHAP authentication. Please refer to the <xref
+linkend="X-087-2-ppp.authentication">&rdquo; section later in this
+chapter.
+</para>
+</footnote>
+This option makes <command>pppd</command> attempt to use the first address
+supplied as its own IP address, and the second as the peer's. If the peer
+rejects either of the addresses during IPCP negotiation, no IP link will be
+established.<footnote id="X-087-2-FNPP09"><para>
+The <option>ipcp-accept-local</option> and <option>ipcp-accept-remote</option>
+options instruct your <command>pppd</command> to accept the local and remote
+IP addresses being offered by the remote PPP, even if you've supplied some in
+your configuration. If these options are not configured, your
+<command>pppd</command> will reject any attempt to negotiate the IP addresses
+used.
+</para>
+</footnote>
+</para>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>dynamic address assignment</secondary></indexterm>
+If you are dialing in to a server and expect it to assign you
+an IP address, you should ensure that <command>pppd</command> does not
+attempt to negotiate one for itself. To do this, use the
+<option>noipdefault</option> option and leave the
+<replaceable>local_addr</replaceable> blank. The
+<option>noipdefault</option> option will stop <command>pppd</command>
+from trying to use the IP address associated with the hostname as the
+local address.
+</para>
+
+<para>
+If you want to set only the local address but accept any address the
+peer uses, simply leave out the <replaceable>remote_addr</replaceable>
+part. To make <systemitem role="sitename">vlager</systemitem> use
+the IP address <systemitem role="sitename">130.83.4.27</systemitem> instead of
+its own, give it <option>130.83.4.27:</option> on the command line.
+Similarly, to set the remote address only, leave the
+<replaceable>local_addr</replaceable> field blank. By default,
+<command>pppd</command> will then use the address associated with your
+hostname.
+</para>
+</sect2>
+
+<sect2><title>Routing Through a PPP Link</title>
+<para>
+<indexterm><primary>routing</primary><secondary>over PPP</secondary></indexterm>
+<indexterm id="idx-PPProuting-1" class="startofrange"><primary>PPP (Point-to-Point Protocol)</primary><secondary>routing</secondary></indexterm>
+After setting up the network interface, <command>pppd</command> will usually
+set up a host route to its peer only. If the remote host is on a LAN, you
+certainly want to be able to connect to hosts &ldquo;behind&rdquo; your peer as
+well; in that case, a network route must be set up.
+</para>
+
+<para>
+We have already seen that <command>pppd</command> can be
+asked to set the default route using the <option>defaultroute</option>
+option.  This option is very useful if the PPP server you dialed up acts as your Internet gateway.
+</para>
+
+<para>
+<indexterm><primary>ARP (Address Resolution Protocol)</primary><secondary>proxy</secondary></indexterm>
+<indexterm><primary>proxy ARP</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>proxy ARP</secondary></indexterm>
+<?troff .hw Winery>
+The reverse case, in which your system acts as a gateway for a single
+host, is also relatively easy to accomplish. For example, take some
+employee at the Virtual Brewery whose home machine is called
+<systemitem role="sitename">oneshot</systemitem>. Let's also assume
+that we've configured <systemitem role="sitename">vlager</systemitem>
+as a dialin PPP server. If we've configured <systemitem
+role="sitename">vlager</systemitem> to dynamically assign an IP
+address that belongs to the Brewery's subnet, then we can use the
+<option>proxyarp</option> option with <command>pppd</command>, which
+will install a proxy ARP entry for <systemitem
+role="sitename">oneshot</systemitem>. This automatically makes
+<systemitem role="sitename">oneshot</systemitem> accessible from all
+hosts at the Brewery and the Winery.
+</para>
+
+<para>
+<indexterm><primary>Local Area Networks (LANs)</primary><secondary>connecting</secondary></indexterm>
+However, things aren't always that simple. Linking two
+local area networks usually requires adding a specific network route
+because these networks may have their own default routes. Besides,
+having both peers use the PPP link as the default route would generate
+a loop, through which packets to unknown destinations would ping-pong between
+the peers until their time to live expired.
+</para>
+
+<para>
+Suppose the Virtual Brewery opens a branch in another city.
+The subsidiary runs an Ethernet of its own using the IP network number
+<systemitem role="sitename">172.16.3.0</systemitem>, which is subnet 3 of the
+Brewery's class B network. The subsidiary wants to connect to the Brewery's
+network via PPP to update customer databases. Again,
+<systemitem role="sitename">vlager</systemitem> acts as the gateway for the
+brewery network and will support the PPP link; its peer at the new branch is
+called <systemitem role="sitename">vbourbon</systemitem> and has an IP address
+of <systemitem role="sitename">172.16.3.1</systemitem>. This network is
+illustrated in <xref linkend="X-087-2-appendix.brewery.subsidiary"> in
+<xref linkend="X-087-2-appendix.brewery">.
+</para>
+
+<para>
+When <systemitem role="sitename">vbourbon</systemitem> connects to
+<systemitem role="sitename">vlager</systemitem>, it makes the default
+route point to <systemitem role="sitename">vlager</systemitem> as
+usual. On <systemitem role="sitename">vlager</systemitem>, however, we
+will have only the point-to-point route to <systemitem
+role="sitename">vbourbon</systemitem> and will have to specially
+configure a network route for subnet 3 that uses <systemitem
+role="sitename">vbourbon</systemitem> as its gateway. We could do this
+manually using the <command>route</command> command by hand after the
+PPP link is established, but this is not a very practical
+solution. Fortunately, we can configure the route automatically by using a feature
+of <command>pppd</command> that we haven't discussed yet&mdash;the
+<command>ip-up</command> command. This command is a shell script or program
+located in <filename>/etc/ppp</filename> that is executed by
+<command>pppd</command> after the PPP interface has been
+configured. When present, it is invoked with the following parameters:
+
+<screen>
+ip-up <replaceable>iface</replaceable> <replaceable>device</replaceable> <replaceable>speed</replaceable> <replaceable>local_addr</replaceable> <replaceable>remote_addr</replaceable>
+</screen>
+</para>
+
+<para>
+The following table summarizes the meaning of each of the
+arguments (in the first column, we show the number used by the shell
+script to refer to each argument):
+<informaltable>
+<tgroup cols=3>
+<colspec colwidth=0.25i>
+<colspec colwidth=0.25i>
+<colspec colwidth=2.75i>
+<thead>
+<row>
+	<entry>Argument</entry>
+	<entry>Name</entry>
+	<entry>Purpose</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry>&dollar;1</entry>
+	<entry><replaceable>iface</replaceable></entry>
+	<entry><para>
+	The network interface used, e.g., <literal>ppp0</literal>	
+	</para></entry>
+</row>
+<row>
+	<entry>&dollar;2</entry>
+	<entry><replaceable>device</replaceable></entry>
+	<entry><para>
+	The pathname of the serial device file used (&hairsp;<filename>/dev/tty</filename>,
+	if stdin/stdout are used)
+	</para></entry>
+</row>
+<row>
+	<entry>&dollar;3</entry>
+	<entry><replaceable>speed</replaceable></entry>
+	<entry><para>	
+	The speed of the serial device in bits per second
+	</para></entry>
+</row>
+<row>
+	<entry>&dollar;4</entry>
+	<entry><replaceable>local_addr</replaceable></entry>
+	<entry><para>
+	The IP address of the link's remote end in dotted quad notation
+	</para></entry>
+</row>
+<row>
+	<entry>&dollar;5</entry>
+	<entry><replaceable>remote_addr</replaceable></entry>
+	<entry><para>
+	The IP address of the remote end of the link in dotted quad notation
+	</para></entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+</para>
+
+<para>
+In our case, the <command>ip-up</command> script may contain the
+following code fragment:<footnote id="X-087-2-FNPP10"><para> If we
+wanted to have routes for other sites created when they dial in, we'd
+add appropriate case statements to cover those in which the
+<literal>...</literal> appears in the example.
+</para>
+</footnote>
+
+<screen>
+#!/bin/sh
+case $5 in
+172.16.3.1)            # this is vbourbon
+        route add -net 172.16.3.0 gw 172.16.3.1;;
+...
+esac
+exit 0
+</screen>
+</para>
+
+<para>
+Similarly, <command>/etc/ppp/ip-down</command> can be used to undo
+any actions of <command>ip-up</command> after the PPP link has been taken down
+again. So in our <command>/etc/ppp/ip-down</command> script we would have a
+<command>route</command> command that removed the route we created in the
+<command>/etc/ppp/ip-up</command> script.
+</para>
+
+<para>
+<indexterm><primary>routing</primary><secondary>dynamic</secondary></indexterm>
+<indexterm><primary>gated command</primary></indexterm>
+However, the routing scheme is not yet complete. We have set up routing table
+entries on both PPP hosts, but so far none of the hosts on either network knows
+anything about the PPP link. This is not a big problem if all hosts at the
+subsidiary have their default route pointing at
+<systemitem role="sitename">vbourbon</systemitem>, and all Brewery hosts route
+to <systemitem role="sitename">vlager</systemitem> by default. If this is not
+the case, your only option is usually to use a routing daemon like
+<command>gated</command>. After creating the network route on
+<systemitem role="sitename">vlager</systemitem>, the routing daemon
+broadcasts the new route to all hosts on the attached subnets.
+<indexterm class="endofrange" startref="idx-PPProuting-1">
+</para>
+
+</sect2>
+
+</sect1>
+
+<sect1><title>Link Control Options</title>
+
+<para>
+<indexterm id="idx-LinkControlProtocolPPP-1" class="startofrange"><primary>LCP (Link Control Protocol)</primary><secondary>options</secondary></indexterm>
+We already encountered the Link Control Protocol (LCP), which is
+used to negotiate link characteristics and test the link.
+</para>
+
+<para>
+The two most important options negotiated by LCP are the
+<emphasis>Asynchronous Control Character Map</emphasis> and the
+<emphasis>Maximum Receive Unit</emphasis>. There are a number of other
+LCP configuration options, but they are far too specialized to discuss
+here.
+</para>
+
+<para>
+<indexterm><primary>serial line</primary><secondary>protecting characters</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>escaping control characters</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>async map</secondary></indexterm>
+<INDEXTERM><PRIMARY>Asynchronous Control Character Map</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>async map</PRIMARY></INDEXTERM>
+The Asynchronous Control Character Map, colloquially called the
+<emphasis>async map</emphasis>, is used on asynchronous links, such as telephone
+lines, to identify control characters that must be escaped (replaced by a
+specific two-character sequence) to avoid them being interpreted by equipment
+used to establish the link. For instance, you may want to avoid the XON and
+XOFF characters used for software handshake because a misconfigured modem
+might choke upon receipt of an XOFF. Other candidates include Ctrl-l (the
+<command>telnet</command> escape character). PPP allows you to escape any of
+the characters with ASCII codes 0 through 31 by specifying them in the async
+map.
+</para>
+
+<para>
+The async map is a 32-bit-wide bitmap expressed in hexadecimal. The least
+significant bit corresponds to the ASCII NULL character, and the most
+significant bit corresponds to ASCII 31 decimal. These 32 ASCII characters are
+the control characters. If a bit is set in the bitmap, it signals that the
+<?troff .ne 10>
+corresponding character must be escaped before it is transmitted across the
+link.
+</para>
+
+<para>
+To tell your peer that it doesn't have to escape all control characters,
+but only a few of them, you can specify an async map to <command>pppd</command>
+using the <option>asyncmap</option> option. For example, if only
+<literal>^S</literal> and <literal>^Q</literal> (ASCII 17 and 19, commonly
+used for XON and XOFF) must be escaped, use the following option:
+
+<screen>
+asyncmap 0x000A0000
+</screen>
+</para>
+
+<para>
+<?troff .hw characters>
+The conversion is simple as long as you can convert binary to hex.
+Lay out 32 bits in front of you. The right-most bit corresponds to ASCII 00
+(NULL), and the left-most bit corresponds to ASCII 32 decimal. Set the bits
+corresponding to the characters you want escaped to one, and all others to zero.
+To convert that into the hexadecimal number <command>pppd</command> expects,
+simply take each set of 4 bits and convert them into hex. You should end up
+with eight hexadecimal figures. String them all together and preprend
+&ldquo;0x&rdquo; to signify it is a hexadecimal number, and you are done.
+</para>
+
+<para>
+Initially, the async map is set to <literal>0xffffffff</literal>&mdash;that
+is, all control characters will be escaped. This is a safe default,
+but is usually much more than you need. Each character that appears in
+the async map results in two characters being transmitted across the
+link, so escaping comes at the cost of increased link utilization
+and a corresponding performance reduction.
+</para>
+
+<para>
+In most circumstances, an async map of <literal>0x0</literal> works
+fine. No escaping is performed.
+</para>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>Maximum Receive Unit</secondary></indexterm>
+<indexterm><primary>Maximum Receive Unit (MRU)</primary></indexterm>
+<indexterm><primary>MRU (Maximum Receive Unit)</primary></indexterm> 
+<indexterm><primary>Maximum Transfer Unit (MTU)</primary></indexterm>
+The Maximum Receive Unit (MRU), signals to the peer the maximum size
+of HDLC frames we want to receive.  Although this may remind you of the
+Maximum Transfer Unit (MTU) value, these two have little in common. The
+MTU is a parameter of the kernel networking device and describes the
+maximum frame size the interface is able to transmit. The MRU is more of
+an advice to the remote end not to generate frames larger than the
+MRU; the interface must nevertheless be able to receive frames of up to
+1,500 bytes.
+</para>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>compressing data</secondary></indexterm>
+Choosing an MRU is therefore not so much a question of what the link
+is capable of transferring, but of what gives you the best
+throughput. If you intend to run interactive applications over the
+link, setting the MRU to values as low as 296 is a good idea, so that
+an occasional larger packet (say, from an FTP session) doesn't make
+your cursor &ldquo;jump.&rdquo; To tell <command>pppd</command> to
+request an MRU of 296, you give it the option <literal>mru
+296</literal>. Small MRUs, however, make sense only if you have VJ
+header compression (it is enabled by default), because otherwise you'd
+waste a large amount of your bandwidth just carrying the IP header for
+each datagram.
+</para>
+
+<para>
+<command>pppd</command> also understands a couple of LCP options that configure
+the overall behavior of the negotiation process, such as the maximum number of
+configuration requests that may be exchanged before the link is terminated.
+Unless you know exactly what you are doing, you should leave these options alone.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>LCP (Link Control Protocol)</PRIMARY><SECONDARY>echo messages</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Echo Request/Echo Response messages</PRIMARY></INDEXTERM>
+Finally, there are two options that apply to LCP echo messages. PPP
+defines two messages, <emphasis>Echo Request</emphasis> and
+<emphasis>Echo Response</emphasis>. <command>pppd</command> uses this
+feature to check if a link is still operating.  You can enable this by
+using the <option>lcp-echo-interval</option> option together with a
+time in seconds.  If no frames are received from the remote host
+within this interval, <command>pppd</command> generates an Echo
+Request and expects the peer to return an Echo Response.  If the peer
+does not produce a response, the link is terminated after a certain
+number of requests are sent.  This number can be set using the
+<option>lcp-echo-failure</option> option.  By default, this feature is
+disabled altogether.
+
+<indexterm class="endofrange" startref="idx-LinkControlProtocolPPP-1">
+</para>
+</sect1>
+
+<sect1><title>General Security Considerations</title>
+<para>
+<indexterm><primary>access</primary><secondary>PPP</secondary></indexterm>
+<indexterm><primary>pppd (kernel PPP module)</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>security</secondary></indexterm>
+<indexterm id="idx-securityPPP-1" class="startofrange"><primary>security</primary><secondary>using PPP</secondary></indexterm>
+A misconfigured PPP daemon can be a devastating security breach.  It can be as
+bad as letting anyone plug their machine into your Ethernet (and that can be
+very bad). In this section, we discuss a few measures that should make
+your PPP configuration safe.
+</para>
+
+<note><para>
+Root privilege is required to configure the network
+device and routing table. You will usually solve this by running
+<command>pppd</command> setuid <systemitem
+role="userid">root</systemitem>.  However, <command>pppd</command>
+allows users to set various security-relevant options. 
+</para></note>
+
+<para>
+<INDEXTERM><PRIMARY SORTAS="etc/ppp/options file">/etc/ppp/options file</PRIMARY></INDEXTERM>
+To protect against any attacks a user may launch by manipulating
+<command>pppd</command> options, you should set a couple of
+default values in the global <filename>/etc/ppp/options</filename>
+file, like those shown in the sample file in <xref
+linkend="X-087-2-ppp.options">,&rdquo; earlier in this chapter. Some of them, such as the
+authentication options, cannot be overridden by the user, and thus
+provide reasonable protection against manipulations. An important
+option to protect is the <systemitem
+role="keyword">connect</systemitem> option. If you intend to allow
+non-root users to invoke <command>pppd</command> to connect to the
+Internet, you should always add the <literal>connect</literal> and
+<literal>noauth</literal> options to the global options file
+<filename>/etc/ppp/options</filename>. <?troff .ne 10>If you fail to do this, users
+will be able to execute arbitrary commands with
+<literal>root</literal> privileges by specifying the command as their
+<systemitem role="keyword">connect</systemitem> command on the
+<command>pppd</command> line or in their personal options file.
+</para>
+
+<para>
+Another good idea is to restrict which users may execute
+<command>pppd</command> by creating a group in <filename>/etc/group</filename>
+and adding only those users who you wish to have the ability to execute
+the PPP daemon. You should then change group ownership of the
+<command>pppd</command> daemon to that group and remove the world execute
+privileges. To do this, assuming you've called your group
+<systemitem role="userid">dialout</systemitem>, you could use something like:
+
+<screen>
+# <userinput>chown root /usr/sbin/pppd</userinput>
+# <userinput>chgrp dialout /usr/sbin/pppd</userinput>
+# <userinput>chmod 4750 /usr/sbin/pppd</userinput>
+</screen>
+</para>
+
+<para>
+Of course, you have to protect yourself from the systems you speak PPP
+with, too.  To fend off hosts posing as someone else, you should
+always require some sort of authentication from your peer.  Additionally, you
+should not allow foreign hosts to use any IP address they choose, but
+restrict them to at most a few.  The following section will deal with
+these topics in detail.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-ppp.authentication"><title>Authentication with PPP</title>
+
+<para>
+<indexterm id="idx-PPPauthentication-1" class="startofrange"><primary>PPP (Point-to-Point Protocol)</primary><secondary>authentication</secondary></indexterm>
+<indexterm id="idx-authenticationwithPPP-1" class="startofrange"><primary>authentication</primary><secondary>with PPP</secondary></indexterm>
+<indexterm><primary>CHAP (Challenge Handshake Authentication Protocol)</primary></indexterm>
+<indexterm><primary>PAP (Password Authentication Protocol)</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>using CHAP</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>using PAP</secondary></indexterm>
+With PPP, each system may require its peer to authenticate itself
+using one of two authentication protocols: the
+<emphasis>Password Authentication Protocol</emphasis> (PAP), and the
+<emphasis>Challenge Handshake Authentication Protocol</emphasis>
+(CHAP).  When a connection is established, each end can request the
+other to authenticate itself, regardless of whether it is the caller
+or the callee.  In the description that follows, we will loosely talk
+of &ldquo;client&rdquo; and &ldquo;server&rdquo; when we want to
+distinguish between the system sending authentication requests and the
+system responding to them. A PPP daemon can ask its peer for
+authentication by sending yet another LCP configuration request
+identifying the desired authentication protocol.
+</para>
+
+<sect2><title>PAP Versus CHAP</title>
+<para>
+PAP, which is offered by many Internet Service Providers, works
+basically the same way as the normal login procedure. The client
+authenticates itself by sending a username and a (optionally
+encrypted) password to the server, which the server compares to its
+secrets database.<footnote id="X-087-2-FNPP11"><para>
+&ldquo;Secret&rdquo; is just the PPP name for passwords. PPP secrets
+don't have the same length limitation as Linux login passwords.
+</para>
+</footnote>
+This technique is vulnerable to eavesdroppers, who may try to obtain the
+password by listening in on the serial line, and to repeated trial and error
+attacks.
+</para>
+
+<para>
+CHAP does not have these deficiencies. With CHAP, the server sends a randomly
+generated &ldquo;challenge&rdquo; string to the client, along with its
+hostname. The client uses the hostname to look up the appropriate secret,
+combines it with the challenge, and encrypts the string using a one-way
+hashing function. The result is returned to the server along with the client's
+hostname. The server now performs the same computation, and acknowledges the
+client if it arrives at the same result.
+</para>
+
+<para>
+CHAP also doesn't require the client to authenticate itself only at
+startup time, but sends challenges at regular intervals to make sure
+the client hasn't been replaced by an intruder, for instance by
+switching phone lines, or because of a modem configuration error that
+causes the PPP daemon not to notice that the original phone call has
+dropped out and someone else has dialed in.
+</para>
+
+<para>
+<indexterm><primary SORTAS="etc/ppp/chap-secrets file">/etc/ppp/chap-secrets file</primary></indexterm> 
+<indexterm><primary SORTAS="etc/ppp/pap-secrets file">/etc/ppp/pap-secrets file</primary></indexterm> 
+<command>pppd</command> keeps the secret keys for PAP and CHAP in two
+separate files called <filename>/etc/ppp/pap-secrets</filename> and
+<filename>/etc/ppp/chap-secrets</filename>.  By entering
+a remote host in one or the other file, you have fine control over
+whether PAP or CHAP is used to authenticate yourself with your peer,
+and vice versa.
+</para>
+
+<para>
+By default, <command>pppd</command> doesn't require authentication from the
+remote host, but it will agree to authenticate itself when requested by the
+remote host. Since CHAP is so much stronger than PAP, <command>pppd</command>
+tries to use the former whenever possible.  If the peer does not support it, or
+if <command>pppd</command> can't find a CHAP secret for the remote system in
+its <filename>chap-secrets</filename> file, it reverts to PAP. If it doesn't
+have a PAP secret for its peer either, it refuses to authenticate
+altogether. As a consequence, the connection is shut down.
+</para>
+
+<para>
+You can modify this behavior in several ways. When given
+the <option>auth</option> keyword, <command>pppd</command>
+requires the peer to authenticate itself. <command>pppd</command>
+agrees to use either CHAP or PAP as long as it has a secret for the
+peer in its CHAP or PAP database. There are other options to turn a
+particular authentication protocol on or off, but I won't describe
+them here.
+</para>
+
+<para>
+<indexterm><primary SORTAS="etc/ppp/options file">/etc/ppp/options file</primary></indexterm> 
+If all systems you talk to with PPP agree to authenticate themselves with
+you, you should put the <option>auth</option> option in the global
+<filename>/etc/ppp/options</filename> file and define passwords for each
+system in the <filename>chap-secrets</filename> file. If a system doesn't
+support CHAP, add an entry for it to the <filename>pap-secrets</filename>
+file. That way, you can make sure no unauthenticated system connects to your
+host.
+</para>
+
+<para>
+The next two sections discuss the two PPP secrets files,
+<filename>pap-secrets</filename> and <filename>chap-secrets</filename>.
+They are located in <filename>/etc/ppp</filename> and contain triplets
+of clients, servers, and passwords, optionally followed by a list of IP
+addresses.  The interpretation of the client and server fields is
+different for CHAP and PAP, and also depends on whether we authenticate
+ourselves with the peer, or whether we require the server to authenticate
+itself with us.
+</para>
+</sect2>
+
+<sect2><title>The CHAP Secrets File</title>
+<para>
+<indexterm><primary>CHAP (Challenge Handshake Authentication Protocol)</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>using CHAP</secondary></indexterm>
+<indexterm><primary SORTAS="etc/ppp/chap-secrets file">/etc/ppp/chap-secrets file</primary></indexterm> 
+<INDEXTERM id="ppp.secrets.files" class=startofrange><PRIMARY>PPP (Point-to-Point Protocol)</PRIMARY><SECONDARY>secrets files</SECONDARY></INDEXTERM>
+When it has to authenticate itself with a server using CHAP,
+<command>pppd</command> searches the <filename>chap-secrets</filename>
+file for an entry with the client field equal to the local hostname, and
+the server field equal to the remote hostname sent in the CHAP challenge.
+When requiring the peer to authenticate itself, the roles are simply reversed:
+<command>pppd</command> then looks for an entry with the client field
+equal to the remote hostname (sent in the client's CHAP response), and the
+server field equal to the local hostname.
+</para>
+
+<para>
+The following is a sample <filename>chap-secrets</filename> file for
+<systemitem role="sitename">vlager</systemitem>:<footnote id="X-087-2-FNPP12"><para>
+The double quotes are not part of the secret; they merely serve to protect the
+whitespace within it.
+</para>
+</footnote>
+
+</para>
+
+<para>
+<screen>
+# CHAP secrets for vlager.vbrew.com
+#
+# client         server           secret                addrs
+#---------------------------------------------------------------------
+vlager.vbrew.com  c3po.lucas.com   "Use The Source Luke" vlager.vbrew.com
+c3po.lucas.com    vlager.vbrew.com "arttoo! arttoo!"     c3po.lucas.com
+*                 vlager.vbrew.com "TuXdrinksVicBitter"  pub.vbrew.com
+</screen>
+</para>
+
+<para>
+When <systemitem role="sitename">vlager</systemitem> establishes a PPP
+connection with <systemitem role="sitename">c3po</systemitem>,
+<systemitem role="sitename">c3po</systemitem> asks
+<systemitem role="sitename">vlager</systemitem> to authenticate itself by
+sending a CHAP challenge. <command>pppd</command> on
+<systemitem role="sitename">vlager</systemitem> then scans
+<filename>chap-secrets</filename> for an entry with the client field equal to
+<systemitem role="sitename">vlager.vbrew.com</systemitem> and the server field
+equal to <systemitem role="sitename">c3po.lucas.com</systemitem>, and finds
+the first line shown in the example.<footnote id="X-087-2-FNPP13"><para>
+This hostname is taken from the CHAP challenge.
+</para>
+</footnote>
+It then produces the CHAP response from the challenge string and the secret
+(<literal>Use The Source Luke</literal>), and sends it off to
+<systemitem role="sitename">c3po</systemitem>.
+</para>
+
+<para>
+<command>pppd</command> also composes a CHAP challenge for
+<systemitem role="sitename">c3po</systemitem> containing a unique challenge
+string and its fully qualified hostname,
+<systemitem role="sitename">vlager.vbrew.com</systemitem>.
+<systemitem role="sitename">c3po</systemitem> constructs a CHAP response in
+the way we discussed, and returns it to
+<systemitem role="sitename">vlager</systemitem>. <command>pppd</command> then
+extracts the client hostname
+(<systemitem role="sitename">c3po.vbrew.com</systemitem>) from the response and
+searches the <filename>chap-secrets</filename> file for a line matching
+<systemitem role="sitename">c3po</systemitem> as a client and
+<systemitem role="sitename">vlager</systemitem> as the server. The second line
+does this, so <command>pppd</command> combines the CHAP challenge and the
+secret <literal>arttoo! arttoo!</literal>, encrypts them, and compares
+the result to <systemitem role="sitename">c3po</systemitem>'s CHAP response.
+</para>
+
+<para>
+<indexterm><primary>addresses</primary><secondary>negotiation with PPP</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>addresses</secondary><tertiary>negotiation in PPP</tertiary></indexterm>
+<indexterm><primary>access</primary><secondary>restricting</secondary></indexterm>
+The optional fourth field lists the IP addresses that are acceptable
+for the client named in the first field. The addresses can be given
+in dotted quad notation or as hostnames that are looked up with the
+resolver.  For instance, if <systemitem role="sitename">c3po</systemitem>
+asks to use an IP address during IPCP negotiation that is not in this
+list, the request is rejected, and IPCP is shut down. In the
+sample file shown above, <systemitem role="sitename">c3po</systemitem>
+is therefore limited to using its own IP address. If the address field is
+empty, any addresses are allowed; a value of
+&ldquo;<literal>-</literal>&rdquo; prevents the use of IP with that client
+altogether.
+</para>
+
+<para>
+The third line of the sample <filename>chap-secrets</filename> file
+allows any host to establish a PPP link with
+<systemitem role="sitename">vlager</systemitem> because a client or server field
+of <literal>*</literal> is a wildcard matching any hostname. The only
+requirements are that the connecting host must know the secret and that it must use
+the IP address associated with
+<systemitem role="sitename">pub.vbrew.com</systemitem>. Entries with wildcard
+hostnames may appear anywhere in the secrets file, since
+<command>pppd</command> will always use the best match it can find for
+the server/client pair.
+</para>
+
+<para>
+<command>pppd</command> may need some help forming hostnames. As explained
+before, the remote hostname is always provided by the peer in the CHAP
+challenge or response packet.  The local hostname is obtained by calling
+the <function>gethostname(2)</function> function by default. If you have
+set the system name to your unqualified hostname, you also have to provide
+<command>pppd</command> with the domain name using the
+<option>domain</option> option:
+
+<screen>
+# <userinput>pppd &hellip; domain vbrew.com</userinput>
+</screen>
+</para>
+
+<para>
+This provision appends the Brewery's domain name to <systemitem
+role="sitename">vlager</systemitem> for all authentication related
+activities.  Other options that modify
+<command>pppd</command>&thinsp;'s idea of the local hostname are
+<option>usehostname</option> and <option>name</option>.  When you give
+the local IP address on the command line using
+<command><replaceable>local</replaceable>:<replaceable>remote</replaceable></command> and <replaceable>local</replaceable> as a name instead of a dotted
+quad, <command>pppd</command> uses this as the local hostname.
+</para>
+</sect2>
+
+<sect2><title>The PAP Secrets File</title>
+
+<para>
+
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>using PAP</secondary></indexterm>
+<indexterm><primary SORTAS="etc/ppp/pap-secrets file">/etc/ppp/pap-secrets file</primary></indexterm> 
+The PAP secrets file is very similar to CHAP's. The first two
+fields always contain a username and a server name; the third holds the
+PAP secret.  When the remote host sends its authentication information,
+<command>pppd</command> uses the entry that has a server field equal to the
+local hostname, and a user field equal to the username sent in the request.
+When it is necessary for us to send our credentials to the peer,
+<command>pppd</command> uses the secret that has a user field equal to the
+local username and the server field equal to the remote hostname.
+</para>
+
+<para>
+A sample PAP secrets file might look like this:
+
+<screen>
+# /etc/ppp/pap-secrets
+#
+# user          server          secret          addrs
+vlager-pap      c3po            cresspahl       vlager.vbrew.com
+c3po            vlager          DonaldGNUth     c3po.lucas.com
+</screen>
+</para>
+
+<para>
+The first line is used to authenticate ourselves when talking to
+<systemitem role="sitename">c3po</systemitem>.  The second line describes
+how a user named <systemitem role="sitename">c3po</systemitem> has
+to authenticate itself with us.
+</para>
+
+<para>
+The name <systemitem role="keyword">vlager-pap</systemitem> in the first column
+is the username we send to <systemitem role="sitename">c3po</systemitem>.
+By default, <command>pppd</command> picks the local hostname as the username,
+but you can also specify a different name by giving the <option>user</option>
+option followed by that name.
+</para>
+
+<para>
+When picking an entry from the <filename>pap-secrets</filename> file
+to identify us to a remote host, <command>pppd</command>
+must know the remote host's name.  As it has no way of finding that
+out, you must specify it on the command line using the
+<option>remotename</option> keyword followed by the peer's
+hostname. To use the above entry for authentication with
+<systemitem role="sitename">c3po</systemitem>, for example, we must add the
+following option to <command>pppd</command>&thinsp;'s command line:
+
+<screen>
+# <userinput>pppd ... remotename c3po user vlager-pap</userinput>
+</screen>
+</para>
+<?troff .Nd 10>
+<para>
+In the fourth field of the PAP secrets file (and all following fields), you can specify what IP addresses are allowed for that
+particular host, just as in the CHAP secrets file. The peer will be
+allowed to request only addresses from that list. In the sample file,
+the entry that <systemitem role="sitename">c3po</systemitem> will use
+when it dials in&mdash;the line where <systemitem
+role="sitename">c3po</systemitem> is the client&mdash;allows it to use
+its real IP address and no other.
+</para>
+<?troff .wcon_off>
+<para>
+Note that PAP is a rather weak authentication method, you should
+use CHAP instead whenever possible. We will therefore not cover PAP in greater
+detail here;  if you are interested in using it, you will find more PAP
+features in the <filename>pppd(8)</filename> manual page.
+
+<indexterm class="endofrange" startref="idx-authenticationwithPPP-1">
+<indexterm class="endofrange" startref="idx-PPPauthentication-1">
+<indexterm class="endofrange" startref="idx-securityPPP-1">
+<INDEXTERM startref="ppp.secrets.files" class=endofrange>
+</para>
+</sect2>
+</sect1>
+
+<sect1><title>Debugging Your PPP Setup</title>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>debugging setup of</secondary></indexterm>
+<indexterm><primary>debugging</primary><secondary>PPP setup</secondary></indexterm>
+<indexterm><primary>syslog</primary></indexterm>
+<indexterm><primary>checking</primary><secondary>PPP</secondary></indexterm>
+By default, <command>pppd</command> logs any warnings and error messages
+to <command>syslog</command>&thinsp;'s <systemitem role="keyword">daemon</systemitem>
+facility. You have to add an entry to <filename>syslog.conf</filename> that redirects
+these messages to a file or even the console; otherwise, <command>syslog</command> 
+<?troff .ne 3>
+simply discards them. The following entry
+sends all messages to <filename>/var/log/ppp-log</filename>:
+
+<screen>
+daemon.*                /var/log/ppp-log
+</screen>
+</para>
+
+<para>
+If your PPP setup doesn't work right away, you should look in this log
+file. If the log messages don't help, you can also turn on extra
+debugging output using the <option>debug</option> option. This output makes
+<command>pppd</command> log the contents of all control packets sent
+or received to <command>syslog</command>.  All messages then go to the
+<systemitem role="keyword">daemon</systemitem> facility.
+</para>
+
+<para>
+<indexterm><primary SORTAS="proc/kmsg file">/proc/kmsg file</primary></indexterm> 
+Finally, the most drastic way to check a problem is to enable kernel-level
+debugging by invoking <command>pppd</command> with the <option>kdebug</option>
+option. It is followed by a numeric argument that is the sum of the
+following values: 1 for general debug messages, 2 for printing the contents of
+all incoming HDLC frames, and 4 to make the driver print all outgoing
+HDLC frames. To capture kernel debugging messages, you must either run
+a <command>syslogd</command> daemon that reads the
+<filename>/proc/kmsg</filename> file, or the <command>klogd</command> daemon.
+Either of them directs kernel debugging to the <command>syslog</command>
+<systemitem role="keyword">kernel</systemitem> facility.
+
+</para>
+</sect1>
+
+<sect1><title>More Advanced PPP Configurations</title>
+<para>
+<INDEXTERM id="ppp.advanced.configs" class=startofrange><PRIMARY>PPP (Point-to-Point Protocol)</PRIMARY><SECONDARY>advanced configurations</SECONDARY></INDEXTERM>
+While configuring PPP to dial in to a network like the Internet is the
+most common application, there are those of you who have more
+advanced requirements. In this section we'll talk about a few of the more
+advanced configurations possible with PPP under Linux.
+</para>
+
+<sect2><title>PPP Server</title>
+
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>configuring server in</secondary></indexterm>
+<indexterm><primary SORTAS="etc/passwd file">/etc/passwd file</primary></indexterm> 
+<indexterm><primary SORTAS="etc/shadow file">/etc/shadow file</primary></indexterm> 
+Running <command>pppd</command> as a server is just a matter of
+configuring a serial tty device to invoke <command>pppd</command> with
+appropriate options when an incoming data call has been received. One
+way to do this is to create a special account, say <systemitem
+role="userid">ppp</systemitem>, and give it a script or program as a
+login shell that invokes <command>pppd</command> with these
+options. Alternatively, if you intend to support PAP or CHAP
+authentication, you can use the <command>mgetty</command> program to
+support your modem and exploit its &ldquo;/AutoPPP/&rdquo; feature.
+</para>
+
+<para>
+To build a server using the login method, you add a line similar
+to the following to your <filename>/etc/passwd</filename>
+file:<footnote id="X-087-2-FNPP14"><para> The
+<command>useradd</command> or <command>adduser</command> utility, if you have it, will
+simplify this task.
+</para>
+</footnote>
+<?troff .wcon_off>
+<screen>
+ppp:x:500:200:Public PPP Account:/tmp:/etc/ppp/ppplogin
+</screen>
+
+If your system supports shadow passwords, you also need to add an entry
+to the <filename>/etc/shadow</filename> file:
+
+<screen>
+ppp:!:10913:0:99999:7:::
+</screen>
+</para>
+
+<?troff .Nd 5>
+<para>
+Of course, the UID and GID you use depends on which user you wish to
+own the connection, and how you've created it. You also have to set the
+password for the mentioned account using the <command>passwd</command> command.
+</para>
+
+<para>
+The <command>ppplogin</command> script might look like this:
+
+<screen>
+#!/bin/sh
+# ppplogin - script to fire up pppd on login
+mesg n
+stty -echo
+exec pppd -detach silent modem crtscts
+</screen>
+</para>
+
+<para>
+The <command>mesg</command> command disables other users from writing
+to the tty by using, for instance, the <command>write</command>
+command. The <command>stty</command> command turns off character
+echoing. This command is necessary; otherwise, everything the peer sends would
+be echoed back to it. The most important <command>pppd</command>
+option given is <systemitem role="keyword">&ndash;detach</systemitem>
+because it prevents <command>pppd</command> from detaching from the
+controlling tty.  If we didn't specify this option, it would go to the
+background, making the shell script exit. This in turn would cause the
+serial line to hang up and the connection to be dropped.  The
+<command>silent</command> option causes <command>pppd</command> to
+wait until it receives a packet from the calling system before it
+starts sending.  This option prevents transmit timeouts from occurring when
+the calling system is slow in firing up its PPP client. The
+<systemitem role="keyword">modem</systemitem> option makes
+<command>pppd</command> drive the modem control lines of the serial
+port.  You should always turn this option on when using
+<command>pppd</command> with a modem.  The <option>crtscts</option>
+option turns on hardware handshake.
+</para>
+
+<para>
+Besides these options, you might want to force some sort of
+authentication, for example, by specifying <option>auth</option> on
+<command>pppd</command>&thinsp;'s command line or in the global
+options file.  The manual page also discusses more specific options
+for turning individual authentication protocols on and off.
+</para>
+
+<para>
+If you wish to use <command>mgetty</command>, all you need to do is
+configure <command>mgetty</command> to support the serial device your modem
+is connected to (see <xref linkend="X-087-2-serial.getty.mgetty">&rdquo; for details),
+configure <command>pppd</command> for either PAP or CHAP authentication
+with appropriate options in its <filename>options</filename> file, and finally,
+add a section similar to the following to your
+<filename>/etc/mgetty/login.config</filename> file:
+
+<screen>
+# Configure mgetty to automatically detect incoming PPP calls and invoke
+# the pppd daemon to handle the connection.
+#
+/AutoPPP/ -     ppp   /usr/sbin/pppd auth -chap +pap login
+</screen>
+</para>
+
+<para>
+The first field is a special piece of magic used to detect that
+an incoming call is a PPP one. You must not change the case of this string;
+it is case sensitive. The third column is the username that appears in
+<command>who</command> listings when someone has logged in. The rest of the
+line is the command to invoke. In our example, we've ensured that PAP
+authentication is required, disabled CHAP, and specified that the system
+<filename>passwd</filename> file should be used for authenticating users.
+This is probably similar to what you'll want. Remember, you can specify
+the options in the <filename>options</filename> file or on the command line
+if you prefer.
+</para>
+
+<para>
+Here is a small checklist of tasks to perform and the sequence you should
+perform them to get PPP dial in working on your machine. Make sure each
+step works before moving on to the next:
+
+<orderedlist> 
+<listitem><para>
+Configure the modem for auto-answer mode. On Hayes-compatible modems,
+this is performed using a command like <literal>ATS0=3</literal>. If you're
+going to be using the <command>mgetty</command> daemon, this isn't necessary.
+</para></listitem>
+<listitem><para>
+Configure the serial device with a <command>getty</command> type of command to
+answer incoming calls. A commonly used <command>getty</command> variant is
+<command>mgetty</command>.
+</para></listitem>
+<listitem><para>
+Consider authentication. Will your callers authenticate using PAP,
+CHAP, or system login?
+</para></listitem>
+<listitem><para>
+Configure <command>pppd</command> as server as described in this section.
+</para></listitem>
+<listitem><para>
+Consider routing. Will you need to provide a network route to callers?
+Routing can be performed using the <filename>ip-up</filename> script.
+</para></listitem>
+</orderedlist>
+</para>
+
+</sect2>
+
+<?troff .wcon_off>
+<sect2><title>Demand Dialing</title>
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>configuring demand dialing for</secondary></indexterm>
+<INDEXTERM><PRIMARY>demand dialing</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>telephones</PRIMARY><SECONDARY>demand dialing</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>modems</PRIMARY><SECONDARY>demand dialing</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>dialing</PRIMARY><SECONDARY>demand</SECONDARY></INDEXTERM>
+When there is IP
+traffic to be carried across the link, <emphasis>demand dialing</emphasis> causes your telephone modem to
+dial and to establish a connection to a remote host. Demand dialing is most useful
+when you can't leave your telephone line permanently switched to your
+Internet provider. For example, you might have to pay timed local calls, so it might be cheaper to have the telephone line
+switched on only when you need it and disconnected when you aren't
+using the Internet.
+</para>
+
+<para>
+Traditional Linux solutions have used the <command>diald</command>
+command, which worked well but was fairly tricky to
+configure. Versions 2.3.0 and later of the PPP daemon have built-in
+support for demand dialing and make it very simple to configure. You
+must use a modern kernel for this to work, too. Any of the later 2.0
+kernels will work just fine.
+</para>
+
+<para>
+To configure <command>pppd</command> for demand dialing, all you need to do
+is add options to your <filename>options</filename> file or the
+<command>pppd</command> command line. The following table summarizes the
+options related to demand dialing:
+
+<?troff .Nd 10>
+<informaltable>
+<tgroup cols=2>
+<colspec colwidth=0.5i>
+<colspec colwidth=2.75i>
+<thead>
+<row><entry>Option</entry><entry>Description</entry></row>
+</thead>
+<tbody>
+<row>
+	<entry><literal>demand</literal></entry>
+	<entry><para>
+This option specifies that the PPP link should be placed in demand dial mode. The PPP network device will be created, but the <literal>connect</literal> command will not be used until a datagram is transmitted by the local host. This option is mandatory for demand dialing to work.
+</para></entry>
+</row>
+<row>
+	<entry><literal>active-filter</literal> <replaceable>expression</replaceable></entry>
+	<entry><para>
+This option allows you to specify which data packets are to be considered active traffic. Any traffic matching the specified rule will restart the demand dial idle timer, ensuring that <command>pppd</command> waits again before closing the link. The filter syntax has been borrowed from the <command>tcpdump</command> command. The default filter matches all datagrams.
+</para></entry>
+</row>
+<row>
+	<entry><literal>holdoff</literal> <replaceable>n</replaceable></entry>
+	<entry><para>
+This option allows you to specify the minimum amount of time, in seconds, to wait before reconnecting this link if it terminates. If the connection fails while <command>pppd</command> believes it is in active use, it will be re-established after this timer has expired. This timer does not apply to reconnections after an idle timeout.
+</para></entry>
+</row>
+<row>
+	<entry><literal>idle</literal> <replaceable>n</replaceable></entry>
+	<entry><para>
+If this option is configured, <command>pppd</command> will disconnect the link whenever this timer expires. Idle times are specified in seconds. Each new active data packet will reset the timer.
+</para></entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+
+A simple demand dialing configuration would therefore look something
+like this:
+
+<screen>
+demand
+holdoff 60
+idle 180
+</screen>
+
+This configuration would enable demand dialing, wait 60 seconds before
+re-establishing a failed connection, and drop the link if 180 seconds pass
+without any active data on the link.
+</para>
+
+</sect2>
+
+<sect2><title>Persistent Dialing</title>
+<para>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>configuring persistent dialing for</secondary></indexterm>
+<INDEXTERM><PRIMARY>persistent dialing</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>telephones</PRIMARY><SECONDARY>persistent dialing</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>modems</PRIMARY><SECONDARY>persistent dialing</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>dialing</PRIMARY><SECONDARY>persistent</SECONDARY></INDEXTERM>
+<emphasis>Persistent dialing</emphasis> is what people who have
+permanent dialup connections to a network will want to use. There is a
+subtle difference between demand dialing and persistent dialing. With
+persistent dialing, the connection is automatically established as soon
+as the PPP daemon is started, and the persistent aspect comes into play
+whenever the telephone call supporting the link fails. Persistent dialing ensures that the link is always
+available by automatically rebuilding the connection if it fails.
+</para>
+
+<para>
+You might be fortunate to not have to pay for your telephone calls;
+perhaps they are local and free, or perhaps they're paid by your
+company. The persistent dialing option is extremely useful in this
+situation. If you do have to pay for your telephone calls, then you
+have to be a little careful. If you pay for your telephone calls on a
+time-charged basis, persistent dialing is almost certainly not what
+you want, unless you're very sure you'll be using the connection fairly
+steadily twenty-four hours a day. If you do pay for calls, but they
+are not time charged, you need to be careful to protect yourself
+against situations that might cause the modem to endlessly redial. The
+<command>pppd</command> daemon provides an option that can help reduce
+the effects of this problem.
+</para>
+
+<para>
+To enable persistent dialing, you must include the <systemitem
+role="keyword">persist</systemitem> option in one of your
+<command>pppd</command> options files. Including this option alone is
+all you need to have <command>pppd</command> automatically
+invoke the command specified by the <systemitem
+role="keyword">connect</systemitem> option to rebuild the connection
+when the link fails. If you are concerned about the modem redialing
+too rapidly (in the case of modem or server fault at the
+other end of the connection), you can use the <systemitem
+role="keyword">holdoff</systemitem> option to set the minimum amount
+of time that <command>pppd</command> will wait before attempting to
+reconnect.  This option won't solve the problem of a fault costing you money
+in wasted phone calls, but it will at least serve to reduce the impact
+of one.
+</para>
+
+<para>
+A typical configuration might have persistent dialing options that
+look like this:
+
+<screen>
+persist
+holdoff 600
+</screen>
+
+The holdoff time is specified in seconds. In our example,
+<command>pppd</command> waits a full five minutes before redialing
+after the call drops out.
+</para>
+
+<para>
+It is possible to combine persistent dialing with demand dialing,
+using <systemitem role="keyword">idle</systemitem> to drop the link if
+it has been idle for a specified period of time. We doubt many users
+would want to do so, but this scenario is described briefly in the
+<command>pppd</command> manual page, if you'd like to pursue it.
+</para>
+
+</sect2>
+
+</sect1>
+
+<indexterm class="endofrange" startref="idx-commandpppdcommand-1">
+<indexterm class="endofrange" startref="idx-PPP-1">
+<indexterm class="endofrange" startref="idx-configuringPPP-1">
+<INDEXTERM startref="ppp.advanced.configs" class=endofrange>
+
+</chapter>
+
+
+

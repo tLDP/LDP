@@ -1,0 +1,889 @@
+<chapter id="X-087-2-nntp"><title>NNTP and the<?lb>nntpd Daemon</title>
+
+<indexterm id="idx-configuringNNTP-1" class="startofrange"><primary>configuring</primary><secondary>NNTP</secondary></indexterm>
+<indexterm><primary>servers</primary><secondary>NNTP</secondary></indexterm>
+<INDEXTERM id="protocols.NNTP" class=startofrange><PRIMARY>protocols</PRIMARY><SECONDARY>NNTP</SECONDARY></INDEXTERM>
+<indexterm id="ch18.nntp.desc" class="startofrange"><primary>NNTP (Network News Transfer Protocol)</primary></indexterm>
+
+<para>
+Network News Transfer Protocol (NNTP) provides for a vastly different 
+approach to news exchange from C News and other news servers without native 
+NNTP support. Rather than rely on a batch technology like UUCP to transfer 
+news articles between machines, it allows articles to be exchanged via an 
+interactive network connection. NNTP is not a particular software package, 
+but an Internet standard described in RFC-977. It is based on a 
+stream-oriented connection, usually over TCP, between a client anywhere in 
+the network and a server on a host that keeps Netnews on disk storage. The 
+stream connection allows the client and server to interactively negotiate 
+article transfer with nearly no turnaround delay, thus keeping the number of 
+duplicate articles low. Together with the Internet's high-transfer rates, 
+this adds up to a news transport that surpasses the original UUCP networks by 
+far. While some years ago it was not uncommon for an article to take two 
+weeks or more before it arrived in the last corner of Usenet; it is now often 
+less than two days. On the Internet itself, it is even within the range of 
+minutes.
+</para>
+
+<para>
+Various commands allow clients to retrieve, send, and post articles. The
+difference between sending and posting is that the latter may involve articles
+with incomplete header information; it generally means that the user has just 
+written the article.<footnote id="X-087-2-FNNN01"><para> When posting an 
+article over NNTP, the server always adds at least one header field, <literal>NNTP-Posting-Host:</literal>. The field contains the client's hostname.
+</para>
+</footnote>
+Article retrieval may be used by news transfer clients as well as newsreaders.
+This makes NNTP an excellent tool for providing news access to many clients on
+a local network without going through the contortions that are necessary when
+using NFS.
+</para>
+
+<para>
+<indexterm><primary>news (network)</primary><secondary>pushing</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>pulling</secondary></indexterm>
+<indexterm><primary>pushing news</primary></indexterm> 
+<indexterm><primary>pulling news</primary></indexterm> 
+<INDEXTERM><PRIMARY>ihave command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>ihave command</SECONDARY></INDEXTERM>
+NNTP also provides for an active and a passive way to transfer news,
+colloquially called &ldquo;pushing&rdquo; and &ldquo;pulling.&rdquo; Pushing
+is basically the same as the ihave/sendme protocol used by C News (described in
+<xref linkend="X-087-2-cnews">). The client offers an article to the server
+through the <command>IHAVE msgid</command> 
+command, and the server returns a response code that indicates whether
+it already has the article or if it wants it. If the server wants the 
+article, the client sends the article, terminated by a single dot on a 
+separate line.
+</para>
+
+<para>
+Pushing news has the single disadvantage that it places a heavy load on
+the server system, since the system has to search its history database for 
+every single article.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>newnews command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>newnews command</SECONDARY></INDEXTERM>
+The opposite technique is pulling news, in which the client requests a
+list of all (available) articles from a group that have arrived after a
+specified date. This query is performed by the
+<command>NEWNEWS</command> command. From the returned
+list of message IDs, the client selects those articles it does not yet have,
+using the <command>ARTICLE</command> command for
+each of them in turn.
+</para>
+
+<para>
+Pulling news needs tight control by the server over which groups and 
+distributions it allows a client to request. For example, it has to make 
+sure that no confidential material from newsgroups local to the site is sent 
+to unauthorized clients.
+</para>
+
+<para>
+There are also a number of convenience commands for newsreaders that
+permit them to retrieve the article header and body separately, or even
+single header lines from a range of articles. This lets you keep all
+news on a central host, with all users on the (presumably local) network
+using NNTP-based client programs for reading and posting. This is an
+alternative to exporting the news directories via NFS, as described
+in <xref linkend="X-087-2-cnews">.
+</para>
+
+<para>
+<indexterm><primary>news (network)</primary><secondary>faking</secondary></indexterm>
+<indexterm><primary>news faking</primary></indexterm> 
+An overall problem of NNTP is that it allows a knowledgeable person to insert
+articles into the news stream with false sender specification. This is
+called <emphasis>news faking</emphasis> or
+<emphasis>spoofing</emphasis>.<footnote id="X-087-2-FNNN02"><para>
+The same problem exists with the Simple Mail Transfer Protocol (SMTP), although
+most mail transport agents now provide mechanisms to prevent spoofing.
+</para>
+</footnote>
+An extension to NNTP allows you to require user authentication for
+certain commands, providing some measure of protection against people abusing
+your news server in this way.
+</para>
+
+<para>
+<indexterm><primary>nntpd</primary><secondary>components</secondary></indexterm>
+<indexterm><primary>Lapsley, Phil</primary></indexterm>
+<indexterm><primary>Barber, Stan</primary></indexterm>
+There are a number of NNTP packages. One of the more widely known is
+the NNTP daemon, also known as the
+<emphasis>reference implementation</emphasis>.
+Originally, it was written by Stan Barber and Phil Lapsley to illustrate the
+details of RFC-977. As with much of the good software available today, you may
+find it prepackaged for your Linux distribution, or you can obtain the source
+and compile it yourself. If you choose to compile it yourself, you will need to
+be quite familiar with your distribution to ensure you configure all of the
+file paths correctly.
+</para>
+
+<para>
+The <command>nntpd</command> package has a server, two clients for
+pulling and pushing news, and an <command>inews</command>
+replacement. They live in a B News environment, but with a little
+tweaking, they will be happy with C News, too.  However, if you plan to
+use NNTP for more than offering newsreaders access to your news server,
+the reference implementation is not really an option.  We will therefore
+discuss only the NNTP daemon contained in the <command>nntpd</command> package
+and leave out the client programs.
+</para>
+
+<para>
+<indexterm><primary>Salz, Rich</primary></indexterm>
+<indexterm><primary>INN (Internet News)</primary><secondary>NNTP and</secondary></indexterm>
+If you wish to run a large news site, you should look at
+the <emphasis>InterNet News</emphasis> package, or INN, that was written by
+Rich Salz. It provides both NNTP and UUCP-based news transport. News transport is definitely better than
+<command>nntpd</command>. We discuss INN in detail in
+<xref linkend="X-087-2-inn">.
+</para>
+
+<sect1 id="X-087-2-nntp.protocol"><title>The NNTP Protocol</title>
+<para>
+We've mentioned two NNTP commands that are key to how news articles are pushed
+or pulled between servers. Now we'll look at these in the context of an actual
+NNTP session to show you how simple the protocol is. For the purposes of our
+illustration, we'll use a simple <command>telnet</command> client to connect to
+an INN-based news server at the Virtual Brewery called
+<emphasis role="bold">news.vbrew.com</emphasis>. The server is running
+a minimal configuration to keep the examples short. We'll look at how to
+complete the configuration of this server in <xref linkend="X-087-2-inn">.
+In our testing we'll be very careful to generate articles in the
+<emphasis>junk</emphasis> newsgroup only, to avoid 
+disturbing anyone else.
+</para>
+
+<sect2><title>Connecting to the News Server</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>connecting to a news server</SECONDARY></INDEXTERM>
+Connecting to the news server is a simple as opening a TCP connection to
+its NNTP port. When you are connected, you will be greeted with a welcome
+banner. One of the first commands you might try is <systemitem role="keyword">help</systemitem>. The response you get generally depends upon whether
+the server believes you are a remote NNTP server or a newsreader, as there are
+different command sets required. You can change your operating mode using the
+<command>mode</command> command; we'll look at that in a
+moment:
+</para>
+
+<screen>
+$ <userinput>telnet news.vbrew.com nntp</userinput>
+Trying 172.16.1.1...
+Connected to localhost.
+Escape character is '^]'.
+200 news.vbrew.com InterNetNews server INN 1.7.2 08-Dec-1997 ready
+<userinput>help</userinput>
+100 Legal commands
+        authinfo
+		help
+		ihave
+		check
+		takethis
+		list
+		mode
+		xmode
+		quit
+		head
+		stat
+		xbatch
+		xpath
+		xreplic
+For more information, contact "usenet" at this machine.
+.
+</screen>
+
+<para>
+The responses to NNTP commands always end with a period (.) on a
+line by itself. The numbers you see in the output listing are 
+<emphasis>response codes</emphasis> and are used by the server to indicate success or
+failure of a command. The response codes are described in RFC-977; we'll talk
+about the most important ones as we proceed.
+</para>
+</sect2>
+
+<sect2><title>Pushing a News Article onto a Server</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>ihave command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>ihave command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>news (network)</PRIMARY><SECONDARY>articles</SECONDARY><TERTIARY>pushing news</TERTIARY></INDEXTERM>
+<INDEXTERM><PRIMARY>pushing news</PRIMARY></INDEXTERM>
+We mentioned the <command>IHAVE</command> command
+when we talked about pushing news articles onto a news server. Let's
+now have a look at how the <command>IHAVE</command> command actually works:
+</para>
+
+<screen>
+<userinput>ihave &lt;123456@gw.vk2ktj.ampr.org&gt;</userinput>
+335
+<userinput>From: terry@gw.vk2ktj.ampr.org
+Subject: test message sent with ihave
+Newsgroups: junk
+Distribution: world
+Path: gw.vk2ktj.ampr.org
+Date: 26 April 1999
+Message-ID: &lt;123456@gw.vk2ktj.ampr.org&gt;
+Body: 
+
+This is a test message sent using the NNTP IHAVE command.
+
+.</userinput>
+235
+</screen>
+
+<para>
+All NNTP commands are case insensitive, so you may enter them in
+either upper- or lowercase. The <command>IHAVE</command> command takes one 
+mandatory argument, it being the Message ID of the article that is being pushed. Every news article is assigned a unique message ID when
+it is created. The <command>IHAVE</command> command provides a way of the NNTP server to say which articles it has
+when it wants to push articles to another server. The sending server
+will issue an <command>IHAVE</command> command
+for each article it wishes to push. If the command response code
+generated by the receiving NNTP server is in the &ldquo;3xx&rdquo;
+range, the sending NNTP server will transmit the complete article,
+including it's full header, terminating the article with a period on a
+line by itself. If the response code was in the &ldquo;4xx&rdquo;
+range, the receiving server has chosen not to accept this article,
+possibly because it already has it, or because of some problem, such
+as running out of disk space.
+</para>
+
+<para>
+When the article has been transmitted, the receiving serve issues another
+response code indicating whether the article transmission was successful.
+</para>
+</sect2>
+
+<sect2><title>Changing to NNRP Reader Mode</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>changing to NNRP reader mode</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>newsreaders</PRIMARY><SECONDARY>changing to NNRP reader mode</SECONDARY></INDEXTERM>
+Newsreaders use their own set of commands when talking to a
+news server. To activate these commands, the news server has to be
+operating in <emphasis>reader</emphasis> mode. Most news servers default
+to reader mode, unless the IP address of the connecting host is listed
+as a news-forwarding peer.  In any case, NNTP provides a command to
+explicitly switch into reader mode:
+</para>
+
+<screen>
+<userinput>mode reader</userinput>
+200 news.vbrew.com InterNetNews NNRP server INN 1.7.2 08-Dec-1997 ready/
+    (posting ok).
+<userinput>help</userinput>
+100 Legal commands
+  authinfo user Name|pass Password|generic &lt;prog&gt; &lt;args&gt;
+  article [MessageID|Number]
+  body [MessageID|Number]
+  date
+  group newsgroup
+  head [MessageID|Number]
+  help
+  ihave
+  last
+  list [active|active.times|newsgroups|distributions|distrib.pats|/
+      overview.fmt|subscriptions]
+  listgroup newsgroup
+  mode reader
+  newgroups yymmdd hhmmss ["GMT"] [&lt;distributions&gt;]
+  newnews newsgroups yymmddhhmmss ["GMT"] [&lt;distributions&gt;]
+  next
+  post
+  slave
+  stat [MessageID|Number]
+  xgtitle [group_pattern]
+  xhdr header [range|MessageID]
+  xover [range]
+  xpat header range|MessageID pat [morepat...]
+  xpath MessageID
+Report problems to &lt;usenet@vlager.vbrew.com&gt;
+.
+</screen>
+
+<para>
+NNTP reader mode has a lot of commands. Many of these are designed to
+make the life of a newsreader easier. We mentioned earlier that there are
+commands that instruct the server to send the head and the body of articles
+separately. There are also commands that list the available groups and 
+articles, and others that allow posting, an alternate means of sending news 
+articles to the server.
+</para>
+</sect2>
+
+<sect2><title>Listing Available Groups</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>listing groups</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>list command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>list command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>newsgroups</PRIMARY><SECONDARY>listing</SECONDARY></INDEXTERM>
+The <command>list</command> command lists a number
+of different types of information; notably the groups supported by the server:
+</para>
+
+<screen>
+<userinput>list newsgroups</userinput>
+215 Descriptions in form "group description".
+control                 News server internal group
+junk                    News server internal group
+local.general           General local stuff
+local.test              Local test group
+.
+</screen>
+</sect2>
+
+<sect2><title>Listing Active Groups</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>list active command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>list active command (NNTP)</PRIMARY></INDEXTERM>
+<option>list active</option> shows each supported group and provides information
+about them. The two numbers in each line of the output are the high-water
+mark and the low-water mark&mdash;that is, the highest numbered article and
+lowest numbered article in each group. The newsreader is able to form an
+idea of the number of articles in the group from these. We'll talk a little
+more about these numbers in a moment. The last field in the output displays flags
+that control whether posting is allowed to the group, whether the group is
+moderated, and whether articles posted are actually stored or
+just passed on. These flags are described in detail in <xref linkend="X-087-2-inn">. 
+An example looks like this:
+</para>
+
+<screen>
+<userinput>list active</userinput>
+215 Newsgroups in form "group high low flags".
+control 0000000000 0000000001 y
+junk 0000000003 0000000001 y
+alt.test 0000000000 0000000001 y
+.
+</screen>
+</sect2>
+
+<sect2><title>Posting an Article</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>post command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>post command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>news (network)</PRIMARY><SECONDARY>articles</SECONDARY><TERTIARY>posting</TERTIARY></INDEXTERM>
+<INDEXTERM><PRIMARY>articles (news)</PRIMARY><SECONDARY>posting</SECONDARY></INDEXTERM>
+We mentioned there was a difference between pushing an article and posting
+an article. When you are pushing an article, there is an implicit assumption 
+that the article already exists, that it has a message identifier that has 
+been uniquely assigned to it by the server to which it was originally posted, 
+and that it has a complete set of headers. When posting an article, you are 
+creating the article for the first time and the only headers you supply are 
+those that are meaningful to you, such as the Subject and the Newgroups to 
+which you are posting the article. The news server you post the article on 
+will add all the other headers for you and create a message ID that it will 
+use when pushing the article onto other servers.
+</para>
+
+<para>
+All of this means that posting an article is even easier than pushing one.
+An example posting looks like this:
+</para>
+
+<screen>
+<userinput>post</userinput>
+340 Ok
+<userinput>From: terry@richard.geek.org.au
+Subject: test message number 1
+Newsgroups: junk
+Body: 
+
+This is a test message, please feel free to ignore it.
+
+.</userinput>
+240 Article posted
+</screen>
+
+<para>
+We've generated two more messages like this one to give our following examples
+some realism.
+</para>
+</sect2>
+
+<sect2><title>Listing New Articles</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>newnews command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>newnews command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>news (network)</PRIMARY><SECONDARY>articles</SECONDARY><TERTIARY>listing</TERTIARY></INDEXTERM>
+<INDEXTERM><PRIMARY>articles (news)</PRIMARY><SECONDARY>listing</SECONDARY></INDEXTERM>
+When a newsreader first connects to a new server and the user chooses a
+newsgroup to browse, the newsreader will want to retrieve a list of new
+articles, those posted or received since the last login by the user. The
+<option>newnews</option> command is used for this
+purpose. Three mandatory arguments must be supplied: the name of
+the group or groups to query, the start date, and the start time from which
+to list. The date and time are each specified as six-digit numbers, with the
+most significant information first; 
+<replaceable>yymmdd</replaceable> and
+<replaceable>hhmmss</replaceable>, respectively:
+</para>
+
+<screen>
+<userinput>newnews junk 990101 000000</userinput>
+230 New news follows
+&lt;7g2o5r$aa$6@news.vbrew.com&gt;
+&lt;7g5bhm$8f$2@news.vbrew.com&gt;
+&lt;7g5bk5$8f$3@news.vbrew.com&gt;
+.
+</screen>
+</sect2>
+
+<sect2><title>Selecting a Group on Which to Operate</title>
+<para>
+<INDEXTERM><PRIMARY>newsgroups</PRIMARY><SECONDARY>selecting</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>group command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>group command (NNTP)</PRIMARY></INDEXTERM>
+When the user selects a newsgroup to browse, the newsreader may tell the
+news server that the group was selected. This simplifies the interaction
+between newsreader and news server; it removes the need to constantly 
+send the name of the newsgroup with each command. The 
+<option>group</option> command simply takes the name of the selected group as 
+an argument. Many following commands use the group selected as the 
+default, unless another newsgroup is specified explicitly:
+</para>
+
+<screen>
+<userinput>group junk</userinput>
+211 3 1 3 junk
+</screen>
+
+<para>
+The <option>group</option> command returns a message
+indicating the number of active messages, the low-water mark, the high-water
+mark, and the name of the group, respectively. Note that while the number of
+active messages and the high-water mark are the same in our example, this is
+not often the case; in an active news server, some articles may have expired
+or been deleted, lowering the number of active messages but leaving the 
+high-water mark untouched.
+</para>
+</sect2>
+
+<sect2><title>Listing Articles in a Group</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>listgroup command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>listgroup command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>newsgroups</PRIMARY><SECONDARY>listing articles</SECONDARY></INDEXTERM>
+To address newsgroup articles, the newsreader must know
+which article numbers represent active articles. The 
+<option>listgroup</option> command offers a list of the active 
+article numbers in the current group, or an explicit group if the group name is 
+supplied:
+</para>
+
+<screen>
+<userinput>listgroup junk</userinput>
+211 Article list follows
+1
+2
+3
+.
+</screen>
+</sect2>
+
+<sect2><title>Retrieving an Article Header Only</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>head command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>head command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>articles (news)</PRIMARY><SECONDARY>retrieving headers/message body</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>news (network)</PRIMARY><SECONDARY>articles</SECONDARY><TERTIARY>retrieving headers/message body</TERTIARY></INDEXTERM>
+The user must have some information about an article before she can know
+whether she wishes to read it. We mentioned earlier that some commands allow the article header and body to be transferred separately. The
+<option>head</option> command is used to request that the server transmit 
+just the header of the specified article to the newsreader. If the user 
+doesn't want to read this article, we haven't wasted time and network 
+bandwidth transferring a potentially large article body unnecessarily.
+</para>
+
+<para>
+Articles may be referenced using either their number (from the 
+<option>listgroup</option> command) or their message identifier:
+</para>
+
+<screen>
+<userinput>head 2</userinput>
+221 2 &lt;7g5bhm$8f$2@news.vbrew.com&gt; head
+Path: news.vbrew.com!not-for-mail
+From: terry@richard.geek.org.au
+Newsgroups: junk
+Subject: test message number 2
+Date: 27 Apr 1999 21:51:50 GMT
+Organization: The Virtual brewery
+Lines: 2
+Message-ID: &lt;7g5bhm$8f$2@news.vbrew.com&gt;
+NNTP-Posting-Host: localhost
+X-Server-Date: 27 Apr 1999 21:51:50 GMT
+Body: 
+Xref: news.vbrew.com junk:2
+.
+</screen>
+</sect2>
+
+<sect2><title>Retrieving an Article Body Only</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>body command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>body command (NNTP)</PRIMARY></INDEXTERM>
+If, on the other hand, the user decides she does want to read the article, her
+newsreader needs a way of requesting that the message body be transmitted. The
+<option>body</option> command is used for this purpose. It operates in much 
+the same way as the <option>head</option> command, except that only the message 
+body is returned:
+</para>
+
+<screen>
+<userinput>body 2</userinput>
+222 2 &lt;7g5bhm$8f$2@news.vbrew.com&gt; body
+This is another test message, please feel free to ignore it too.
+
+.
+</screen>
+</sect2>
+
+<sect2><title>Reading an Article from a Group</title>
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>article command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>article command (NNTP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>leafnode (NNTP cache program)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>leafnode</SECONDARY></INDEXTERM>
+While it is normally most efficient to separately transfer the headers
+and bodies of selected articles, there are occasions when we are better off
+transferring the complete article. A good example of this is in applications
+through which we want to transfer all of the artices in a group without any sort of
+preselection, such as when we are using an NNTP cache program like
+<command>leafnode</command>.<footnote id="X-087-2-FNNN03">
+<para>
+<emphasis>leafnode</emphasis> is available by anonymous FTP from
+<emphasis role="bold">wpxx02.toxi.uni-wuerzburg.de</emphasis>
+in the <filename>/pub/</filename> directory.
+</para>
+</footnote>
+
+</para>
+
+<para>
+Naturally, NNTP provides a means of doing this, and not surprisingly, it
+operates almost identically to the <option>head</option> command as well. 
+The <option>article</option> command also accepts an article number or 
+message ID as an argument, but returns the whole article including its header:
+</para>
+
+<screen>
+<userinput>article 1</userinput>
+220 1 &lt;7g2o5r$aa$6@news.vbrew.com&gt; article
+Path: news.vbrew.com!not-for-mail
+From: terry@richard.geek.org.au
+Newsgroups: junk
+Subject: test message number 1
+Date: 26 Apr 1999 22:08:59 GMT
+Organization: The Virtual brewery
+Lines: 2
+Message-ID: &lt;7g2o5r$aa$6@news.vbrew.com&gt;
+NNTP-Posting-Host: localhost
+X-Server-Date: 26 Apr 1999 22:08:59 GMT
+Body: 
+Xref: news.vbrew.com junk:1
+
+This is a test message, please feel free to ignore it.
+
+.
+</screen>
+
+<para>
+If you attempt to retrieve an unknown article, the server will return
+a message with an appropriately coded response code and perhaps a readable 
+text message:
+</para>
+
+<screen>
+<userinput>article 4</userinput>
+423 Bad article number
+</screen>
+
+<para>
+We've described how the most important NNTP commands are used in this section.
+If you're interested in developing software that implements the NNTP protocol,
+you should refer to the relevant RFC documents; they provide a great deal of
+detail that we couldn't include here.
+</para>
+
+<para>
+Let's now look at NNTP in action through the <emphasis role="bold">nntpd</emphasis> server.
+</para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-nntp.nntpd"><title>Installing the NNTP Server</title>
+
+<para>
+<indexterm><primary>nntpd</primary><secondary>installing the server</secondary></indexterm>
+The NNTP server (<emphasis role="bold">nntpd</emphasis>) may be compiled in
+two ways, depending on the expected load on the news system.  There are no
+compiled versions available, because of some site-specific defaults that are
+hardcoded into the executable.  All configuration is done through
+macros defined in <filename>common/conf.h</filename>.
+</para>
+
+<para>
+<emphasis role="bold">nntpd</emphasis> may be configured as either a standalone server that
+is started at system boot time from an <command>rc</command> file, or a daemon
+managed by <command>inetd</command>. In the latter case, you have to have the
+following entry in <filename>/etc/inetd.conf</filename>:
+
+<screen>
+nntp    stream  tcp nowait      news    /usr/etc/in.nntpd    nntpd
+</screen>
+</para>
+
+<para>
+The <filename>inetd.conf</filename> syntax is described in detail in <xref linkend="X-087-2-appl">. If you configure <command>nntpd</command> as standalone, 
+make sure that any such line in <command>inetd.conf</command> is commented 
+out. In either case, you have to make sure the following line appears in
+<filename>/etc/services</filename>:
+
+<screen>
+nntp    119/tcp   readnews untp    # Network News Transfer Protocol
+</screen>
+</para>
+
+<para>
+To temporarily store any incoming articles, <command>nntpd</command> also needs
+a <filename>.tmp</filename> directory in your news spool. You should create it
+using the following commands:
+
+<screen>
+# <userinput>mkdir /var/spool/news/.tmp</userinput>
+# <userinput>chown news.news /var/spool/news/.tmp</userinput>
+</screen>
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nntp.access"><title>Restricting NNTP Access</title>
+
+<para>
+<indexterm><primary>NNTP (Network News Transfer Protocol)</primary><secondary>restricting access in</secondary></indexterm>
+<indexterm><primary>nntp_access file</primary></indexterm>
+<indexterm><primary>access</primary><secondary>NNTP</secondary></indexterm>
+Access to NNTP resources is governed by the file
+<filename>nntp_access</filename> in <filename>/etc/news</filename>. Lines
+in this file describe the access rights granted to foreign hosts. Each line
+has the following format:
+
+<screen width=110>
+<replaceable>site</replaceable>   read|xfer|both|no    post|no      [!<replaceable>exceptgroups</replaceable>]
+</screen>
+</para>
+
+<para>
+If a client connects to the NNTP port, <emphasis role="bold">nntpd</emphasis> attempts to
+obtain the host's fully qualified domain name from its IP address using reverse
+lookup. The client's hostname and IP address are checked against the
+<replaceable>site</replaceable> field of each entry in the order in which they
+appear in the file. Matches may be either partial or exact. If an entry
+matches exactly, it applies; if the match is partial, it applies only if there
+is no other match following it that is at least as good.
+<replaceable>site</replaceable> may be specified in one of the following ways:
+
+<variablelist>
+<varlistentry><term>Hostname</term>
+<listitem><para>
+This is a fully qualified domain name of a host. If this matches the client's
+canonical hostname literally, the entry applies, and all following entries are
+ignored.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>IP address</term>
+<listitem><para>
+This is an IP address in dotted quad notation.  If the client's IP address
+matches this, the entry applies, and all following entries are ignored.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>Domain name</term>
+<listitem><para>
+This is a domain name, specified as
+<systemitem role="sitename">*.</systemitem><replaceable>domain</replaceable>.
+If the client's hostname matches the domain name, the entry matches.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>Network name</term>
+<listitem><para>
+This is the name of a network as specified in
+<filename>/etc/networks</filename>. If the network number of the client's
+IP address matches the network number associated with the network name, the
+entry matches.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>Default</term>
+<listitem><para>
+The string <literal>default</literal> matches any client.
+</para></listitem>
+</varlistentry>
+</variablelist>
+</para>
+
+<para>
+Entries with a more general site specification should be specified earlier,
+because any matches will be overridden by later, more exact matches.
+</para>
+
+<para>
+The second and third fields describe the access rights granted to the
+client. The second field details the permissions to retrieve news by pulling
+(<systemitem role="keyword">read</systemitem>), and transmit news by pushing
+(<systemitem role="keyword">xfer</systemitem>). A value of
+<systemitem role="keyword">both</systemitem> enables both;
+<systemitem role="keyword">no</systemitem> denies access
+altogether. The third field grants the client the right to post
+articles, i.e., deliver articles with incomplete header information,
+which is completed by the news software.  If the second field contains
+<systemitem role="keyword">no</systemitem>, the third field is ignored.
+</para>
+
+<para>
+The fourth field is optional and contains a comma-separated list of groups to 
+which the client is denied access.
+</para>
+
+<para>
+This is a sample <filename>nntp_access</filename> file:
+
+<screen>
+#
+# by default, anyone may transfer news, but not read or post
+default                 xfer            no
+#
+# public.vbrew.com offers public access via modem. We allow
+# them to read and post to any but the local.* groups
+public.vbrew.com        read            post    !local
+#
+# all other hosts at the brewery may read and post
+*.vbrew.com             read            post
+</screen>
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nntp.authorize"><title>NNTP Authorization</title>
+
+<para>
+<indexterm><primary>NNTP (Network News Transfer Protocol)</primary><secondary>authorization</secondary></indexterm>
+<indexterm><primary>NNTP (Network News Transfer Protocol)</primary><secondary>restricting access in</secondary></indexterm>
+<indexterm><primary>access</primary><secondary>NNTP</secondary></indexterm>
+<indexterm><primary>authorization</primary><secondary>with NNTP</secondary></indexterm>
+The <command>nntpd</command> daemon provides a simple authorization scheme.
+If you capitalize any of the access tokens in the
+<filename>nntp_access</filename> file, <command>nntpd</command> requires
+authorization from the client for the respective operation. For instance,
+when specifying a permission of <systemitem role="keyword">Xfer</systemitem> or
+<systemitem role="keyword">XFER</systemitem>, (as opposed to
+<systemitem role="keyword">xfer</systemitem>), <command>nntpd</command> will not
+let the client transfer articles to your site unless it passes authorization.
+</para>
+
+<para>
+The authorization procedure is implemented by means of a new NNTP command
+named <command>AUTHINFO</command>. Using this command, the
+client transmits a username and a password to the NNTP server.
+<command>nntpd</command> validates them by checking them against the
+<filename>/etc/passwd</filename> database and verifies that the user belongs to
+the <systemitem role="userid">nntp</systemitem> group.
+</para>
+
+<para>
+The current implementation of NNTP authorization is only experimental
+and has therefore not been implemented very portably.  The result of
+this is that it works only with plain-style password databases; shadow
+passwords are not recognized. If you are compiling from source and
+have the PAM package installed, the password check is fairly simple to 
+change.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nntp.interact"><title>nntpd Interaction with C News</title>
+
+<para>
+<indexterm><primary>C News</primary><secondary>NNTP support</secondary></indexterm>
+<indexterm><primary>NNTP (Network News Transfer Protocol)</primary><secondary>C News and</secondary></indexterm>
+When <command>nntpd</command> receives an article, it has to deliver
+it to the news subsystem. Depending on whether it was received as a
+result of an <command>IHAVE</command> or <command
+role="keyword">POST</command> command, the article is handed to
+<command>rnews</command> or <command>inews</command>,
+respectively. Instead of invoking <command>rnews</command>, you may
+also configure it (at compile time), to batch the incoming articles
+and move the resulting batches to
+<filename>/var/spool/news/in.coming</filename>, where they are left
+for <command>relaynews</command> to pick them up at the next queue
+run.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>NNTP (Network News Transfer Protocol)</PRIMARY><SECONDARY>ihave command</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>ihave command (NNTP)</PRIMARY></INDEXTERM>
+<command>nntpd</command> has to have access to the
+<filename>history</filename> file to be able to properly perform the 
+ihave/sendme protocol. At compile time, you have to
+make sure the path to that file is set correctly.  If you use C News, make 
+sure that C News and <command>nntpd</command> agree on the format of your 
+history file. C News uses <filename>dbm</filename> hashing functions to 
+access it; however, there are quite a number of different and slightly 
+incompatible implementations of the <filename>dbm</filename> library.  If 
+C News has been linked with a different <filename>dbm</filename> library 
+than you have in your standard <filename>libc</filename>, you have to 
+link <command>nntpd</command> with this library, too.
+</para>
+
+<para>
+<indexterm><primary>checking</primary><secondary>NNTP</secondary></indexterm>
+<command>nntpd</command> and C news disagreement sometimes produces error 
+messages in the system log that <command>nntpd</command> can not open it 
+properly, or you might see duplicate articles being received via NNTP.  A 
+good test of a malfunctioning news transfer is to pick an article from your
+spool area, telnet to the <emphasis role="bold">nntp</emphasis> port, 
+and offer it to <command>nntpd</command> as shown in the next example. Of 
+course, you have to replace <replaceable>msg@id</replaceable> with the
+message ID of the article you want to feed to <command>nntpd</command>:
+</para>
+
+<screen>
+$ <userinput>telnet localhost nntp</userinput>
+Trying 127.0.0.1...
+Connected to localhost
+Escape characters is '^ ]'.
+201 vstout NNTP[auth] server version 1.5.11t (16 November 1991) ready at
+Sun Feb 6 16:02:32 1194 (no posting)
+<userinput>IHAVE</userinput> <replaceable>msg@id</replaceable>
+435 Got it.
+<userinput>QUIT</userinput>
+</screen>
+
+<para>
+This conversation shows <command>nntpd</command>'s proper reaction;
+the message <literal>Got it</literal> tells you that it already
+has this article. If you get a message of
+<command>335 Ok</command> instead, the lookup in the history
+file failed for some reason. Terminate the conversation by typing Ctrl-D.
+You can check what has gone wrong by checking the system log;
+<command>nntpd</command> logs all kinds of messages to the
+<systemitem role="keyword">daemon</systemitem> facility of
+<command>syslog</command>. An incompatible <filename>dbm</filename> library
+usually manifests itself in a message complaining that
+<function>dbminit</function> failed.
+</para>
+
+<indexterm class="endofrange" startref="ch18.nntp.desc"> 
+<indexterm class="endofrange" startref="idx-configuringNNTP-1">
+<INDEXTERM startref="protocols.NNTP" class=endofrange>
+</sect1>
+</chapter>
+
+

@@ -1,0 +1,1041 @@
+<chapter id="X-087-2-slip"><title>Serial Line IP</title>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>dialup</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>serial line</secondary></indexterm>
+<indexterm><primary>dialup IP</primary></indexterm>
+<INDEXTERM><PRIMARY>telephones</PRIMARY><SECONDARY>sending data over</SECONDARY></INDEXTERM>
+<indexterm><primary>Internet</primary><secondary>connecting to</secondary></indexterm>
+<indexterm id="idx-configuringSLIP-1" class="startofrange"><primary>configuring</primary><secondary>SLIP</secondary></indexterm>
+
+<para>
+Packet protocols like IP or IPX rely upon the receiver host knowing
+where the start and end of each packet are in the data stream. The
+mechanism used to mark and detect the start and end of packets is
+called <emphasis>delimitation</emphasis>. The Ethernet protocol
+manages this mechanism in a LAN environment, and the SLIP and PPP protocols
+manage it for serial communications lines.
+</para>
+
+<para>
+The comparatively low cost of low-speed dialup modems and telephone circuits
+has made the serial line IP protocols immensely popular, especially for
+providing connectivity to end users of the Internet. The hardware required
+to run SLIP or PPP is simple and readily available. All that is required is
+a modem and a serial port equipped with a FIFO buffer.
+</para>
+
+<para>
+The SLIP protocol is very simple to implement and at one time was the more
+common of the two. Today almost everyone uses the PPP protocol instead. The
+PPP protocol adds a host of sophisticated features that contribute to its
+popularity today, and we'll look at the most important of these later.
+</para>
+
+<para>
+Linux supports kernel-based drivers for both SLIP and PPP. The drivers
+have both been around for some time and are stable and reliable. In
+this chapter and the next, we'll discuss both protocols and how to
+configure them.
+</para>
+
+<sect1 id="X-087-2-slip.general"><title>General Requirements</title>
+<indexterm id="idx-SLIP-1" class="startofrange"><primary>SLIP (Serial Line IP) protocol</primary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary></indexterm>
+<para>
+To use SLIP or PPP, you have to configure some basic networking
+features as described in the previous chapters. You must set up the
+loopback interface and configure the name resolver. When connecting to
+the Internet, you will want to use DNS. Your options here are the same
+as for PPP: you can perform your DNS queries across your serial link
+by configuring your Internet Service Provider's IP address into your
+<filename>/etc/resolv.conf</filename> file, or configure a
+caching-only name server as described under <xref
+linkend="X-087-2-resolv.named-cachingonly">,&rdquo; in <xref linkend="X-087-2-resolv">."
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-slip.operation"><title>SLIP Operation</title>
+<indexterm><primary>SLIP (Serial Line IP) protocol</primary><secondary>operation</secondary></indexterm> 
+<indexterm><primary>protocols</primary><secondary>SLIP</secondary></indexterm> 
+<indexterm><primary>SLIPDISC (line discipline)</primary></indexterm>
+<indexterm><primary>ttys</primary><secondary>line discipline</secondary></indexterm>
+<indexterm><primary>line discipline</primary></indexterm>
+
+<para>
+Dialup IP servers frequently offer SLIP service through special user
+accounts. After logging in to such an account, you are not dropped into
+the common shell; instead, a program or shell script is executed that
+enables the server's SLIP driver for the serial line and configures the
+appropriate network interface. Then you have to do the same at your end
+of the link.
+</para>
+
+<para>
+On some operating systems, the SLIP driver is a user-space program;
+under Linux, it is part of the kernel, which makes it a lot faster.
+This speed requires, however, that the serial line be converted to the
+SLIP mode explicitly. This conversion is done by means of a special
+tty line discipline, SLIPDISC. While the tty is in normal line
+discipline (DISC0), it exchanges data only with user processes, using
+the normal <function>read(2)</function> and
+<function>write(2)</function> calls, and the SLIP driver is unable to
+write to or read from the tty. In SLIPDISC, the roles are reversed:
+now any user-space processes are blocked from writing to or reading
+from the tty, while all data coming in on the serial port is passed
+directly to the SLIP driver.
+</para>
+
+<para>
+<indexterm><primary>Van Jacobson header
+compression</primary></indexterm> <indexterm><primary>TCP/IP
+(Transmission Control Protocol/Internet
+Protocol)</primary><secondary>compressing
+packets</secondary></indexterm> <indexterm><primary>CSLIP (Compressed
+Serial Line IP) protocol</primary></indexterm> The SLIP driver itself
+understands a number of variations on the SLIP protocol. Apart from
+ordinary SLIP, it also understands CSLIP, which performs the so-called
+Van Jacobson header compression (described in RFC-1144) on outgoing IP
+packets. This compression improves throughput for interactive sessions
+noticeably. There are also six-bit versions for each of these
+protocols.
+</para>
+
+<para>
+<indexterm><primary>slattach program</primary></indexterm>
+A simple way to convert a serial line to SLIP mode is by using the
+<command>slattach</command> tool. Assume you have your modem on
+<filename>/dev/ttyS3</filename> and have logged in to the SLIP server
+successfully. You will then execute:
+
+<screen>
+# <userinput>slattach /dev/ttyS3 &amp;</userinput>
+</screen>
+</para>
+
+<para>
+This tool switches the line discipline of <filename>ttyS3</filename> to
+<literal>SLIPDISC</literal> and attaches it to one of the SLIP network
+interfaces. If this is your first active SLIP link, the line will be attached
+to <filename>sl0</filename>&thinsp;; the second will be attached to
+<filename>sl1</filename>, and so on. The current kernels support a default
+maximum of 256 simultaneous SLIP links.
+</para>
+
+<para>
+<indexterm><primary>CSLIP (Compressed Serial Line IP) protocol</primary></indexterm>
+The default line discipline chosen by <command>slattach</command> is CSLIP.
+You may choose any other discipline using the <option>&ndash;p</option> switch.
+To use normal SLIP (no compression), you use:
+
+<screen>
+# <userinput>slattach -p slip /dev/ttyS3 &amp;</userinput>
+</screen>
+</para>
+
+<para>
+The disciplines available are listed in <xref
+linkend="X-087-2-slip.line.disciplines">. A special pseudo-discipline
+is available called <literal>adaptive</literal>, which causes the
+kernel to automatically detect which type of SLIP encapsulation is
+being used by the remote end.
+</para>
+
+<table id="X-087-2-slip.line.disciplines">
+<title>Linux Slip-Line Disciplines</title>
+<tgroup cols=2>
+<colspec colwidth=0.5i>
+<colspec colwidth=4i>
+<thead>
+<row>
+	<entry><para>
+Disclipline
+</para></entry>
+	<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry>slip</entry>
+	<entry><para>
+Traditional SLIP encapsulation.
+</para></entry>
+</row>
+<row>
+	<entry>cslip</entry>
+	<entry><para>
+SLIP encapsulation with Van Jacobsen header compression.
+</para></entry>
+</row>
+<row>
+	<entry>slip6</entry>
+	<entry><para>
+SLIP encapsulation with six-bit encoding. The encoding method is
+	similar to that used by the <command>uuencode</command> command, and causes
+	the SLIP datagram to be converted into printable ASCII characters. This conversion is
+	useful when you do not have a serial link that is eight bit clean.
+</para></entry>
+</row>
+<row>
+	<entry>cslip6</entry>
+	<entry><para>
+SLIP encapsulation with Van Jacobsen header compression and six-bit
+	encoding.
+</para></entry>
+</row>
+<row>
+	<entry>adaptive</entry>
+	<entry><para>
+This is not a real line discipline; instead, it causes the kernel to
+	attempt to identify the line discipline being used by the remote machine and
+	to match it.
+</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+Note that you must use the same encapsulation as your peer. For
+example, if <systemitem role="sitename">cowslip</systemitem> uses
+CSLIP, you also have to do so. If your SLIP connection doesn't work,
+the first thing you should do is ensure that both ends of the link
+agree on whether to use header compression or not. If you are unsure
+what the remote end is using, try configuring your host for adaptive
+slip. The kernel might figure out the right type for you.
+</para>
+
+<para>
+<command>slattach</command> lets you enable not only SLIP, but other
+protocols that use the serial line, like PPP or KISS (another
+protocol used by ham radio people). Doing this is not common, though, and there are
+better tools available to support these protocols. For details, please refer
+to the <filename>slattach(8)</filename> manual page.
+</para>
+
+<para>
+After turning over the line to the SLIP driver, you must configure the
+network interface. Again, you do this using the standard
+<command>ifconfig</command> and <command>route</command>
+commands. Assume that we have dialed up a server named <systemitem
+role="sitename">cowslip</systemitem> from <systemitem
+role="sitename">vlager</systemitem>. On <emphasis role="bold">vlager</emphasis> you would execute:
+
+<indexterm><primary>ifconfig command</primary></indexterm> 
+<indexterm><primary>route command</primary></indexterm> 
+<screen>
+# <userinput>ifconfig sl0 vlager-slip pointopoint cowslip</userinput>
+# <userinput>route add cowslip</userinput>
+# <userinput>route add default gw cowslip</userinput>
+</screen>
+</para>
+
+<para>
+The first command configures the interface as a point-to-point link to
+<systemitem role="sitename">cowslip</systemitem>, while the second and third
+add the route to <systemitem role="sitename">cowslip</systemitem> and the
+default route, using <systemitem role="sitename">cowslip</systemitem> as a
+gateway.
+</para>
+
+<para>
+Two things are worth noting about the <command>ifconfig</command>
+invocation: The <systemitem role="keyword">pointopoint</systemitem>
+option that specifies the address of the remote end of a
+point-to-point link and our use of <systemitem
+role="sitename">vlager-slip</systemitem> as the address of the local
+SLIP interface.
+</para>
+
+<para>
+We have mentioned that you can use the same address you assigned to
+<systemitem role="sitename">vlager</systemitem>'s Ethernet interface
+for your SLIP link, as well. In this case, <systemitem
+role="sitename">vlager-slip</systemitem> might just be another alias
+for address <systemitem role="sitename">172.16.1.1</systemitem>.
+However, it is also possible that you have to use an entirely
+different address for your SLIP link. One such case is when your
+network uses an unregistered IP network address, as the Brewery
+does. We will return to this scenario in greater detail in the next
+section.
+</para>
+
+<para>
+For the remainder of this chapter we will always use
+<systemitem role="sitename">vlager-slip</systemitem> to refer to the address
+of the local SLIP interface.
+</para>
+
+<para>
+When taking down the SLIP link, you should first remove all routes
+through <systemitem role="sitename">cowslip</systemitem> using
+<command>route</command> with the <option>del</option> option, then
+take the interface down, and send <command>slattach</command> the
+hangup signal. The you must hang up the modem using your
+terminal program again:
+
+<screen>
+# <userinput>route del default</userinput>
+# <userinput>route del cowslip</userinput>
+# <userinput>ifconfig sl0 down</userinput>
+# <userinput>kill -HUP <replaceable>516</replaceable></userinput>
+</screen>
+
+Note that the <replaceable>516</replaceable> should be replaced with the
+process id (as shown in the output of
+<userinput>ps ax</userinput>) of the <command>slattach</command>
+command controlling the slip device you wish to take down.
+</para>
+
+</sect1>
+
+<sect1><title>Dealing with Private IP Networks</title>
+<indexterm><primary>networks</primary><secondary>private</secondary></indexterm>
+<para>You will remember from <xref linkend="X-087-2-iface">, that the
+Virtual Brewery has an Ethernet-based IP network using unregistered
+network numbers that are reserved for internal use only. Packets to or
+from one of these networks are not routed on the Internet; if we were
+to have <systemitem role="sitename">vlager</systemitem> dial into
+<systemitem role="sitename">cowslip</systemitem> and act as a router
+for the Virtual Brewery network, hosts within the Brewery's network
+could not talk to real Internet hosts directly because their packets
+would be dropped silently by the first major router.
+</para>
+
+<para>
+To work around this dilemma, we will configure <systemitem
+role="sitename">vlager</systemitem> to act as a kind of launch pad for
+accessing Internet services. To the outside world, it will present
+itself as a normal SLIP-connected Internet host with a registered IP
+address (probably assigned by the network provider running <systemitem
+role="sitename">cowslip</systemitem>). Anyone logged in to <systemitem
+role="sitename">vlager</systemitem> can use text-based programs like
+<command>ftp</command>, <command>telnet</command>, or even
+<command>lynx</command> to make use of the Internet. Anyone on the
+Virtual Brewery LAN can therefore telnet and log in to <systemitem
+role="sitename">vlager</systemitem> and use the programs there. For
+some applications, there may be solutions that avoid logging in
+to <systemitem role="sitename">vlager</systemitem>. For WWW users, for
+example, we could run a so-called <emphasis>proxy server</emphasis> on
+<systemitem role="sitename">vlager</systemitem>, which would relay all
+requests from your users to their respective servers.
+</para>
+
+<para>
+<indexterm><primary>firewalls</primary></indexterm> Having to log in
+to <systemitem role="sitename">vlager</systemitem> to make use of the
+Internet is a little clumsy. But apart from eliminating the paperwork
+(and cost) of registering an IP network, it has the added benefit of
+going along well with a firewall setup. Firewalls are dedicated
+hosts used to provide limited Internet access to users on your local
+network without exposing the internal hosts to network attacks from
+the outside world. Simple firewall configuration is covered in more
+detail in <xref linkend="X-087-2-firewall">. In <xref
+linkend="X-087-2-ipmasq">, we'll discuss a Linux feature called
+&ldquo;IP masquerade&rdquo; that provides a powerful alternative to
+proxy servers.
+</para>
+
+<para>
+Assume that the Brewery has been assigned the IP address <systemitem
+role="sitename">192.168.5.74</systemitem> for SLIP access. All you
+have to do to realize that the setup discussed above is to enter this
+address into your <filename>/etc/hosts</filename> file, naming it
+<systemitem role="sitename">vlager-slip</systemitem>.  The procedure
+for bringing up the SLIP link itself remains unchanged.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-slip.dip"><title>Using dip</title>
+<indexterm><primary>configuring</primary><secondary>dip program</secondary></indexterm>
+<indexterm id="idx-commanddipcommand-1" class="startofrange"><primary>dip program</primary></indexterm>
+<para>
+Now that was rather simple. Nevertheless, you might want to automate
+the steps previously described. It would be much better to have a
+simple command that performs all the steps necessary to open the
+serial device, cause the modem to dial the provider, log in, enable
+the SLIP line discipline, and configure the network interface. This is
+what the <command>dip</command> command is for.
+</para>
+
+<para>
+<command>dip</command> means <emphasis>Dialup IP</emphasis>. It was
+written by Fred van Kempen and has been patched very heavily by a
+number of people. Today there is one strain that is used by almost
+everyone: Version <literal>dip337p-uri</literal>, which is included
+with most modern Linux distributions, or is available from the
+<systemitem role="sitename">metalab.unc.edu</systemitem> FTP archive.
+</para>
+
+<para>
+<command>dip</command> provides an interpreter for a simple scripting
+language that can handle the modem for you, convert the line to SLIP mode, and
+configure the interfaces. The script language is powerful enough to suit most configurations.
+</para>
+
+<para>
+<indexterm><primary>SLIP (Serial Line IP)
+protocol</primary><secondary>let users
+initiate</secondary></indexterm>
+<indexterm><primary>access</primary><secondary>granting</secondary></indexterm>
+<indexterm><primary>security</primary><secondary>SLIP</secondary></indexterm>
+To be able to configure the SLIP interface, <command>dip</command>
+requires root privilege. It would now be tempting to make
+<command>dip</command> setuid to <systemitem
+role="userid">root</systemitem> so that all users can dial up some
+SLIP server without having to give them root access. This is very
+dangerous, though, because setting up bogus interfaces and default
+routes with <command>dip</command> may disrupt routing on your
+network. Even worse, this action would give your users power to
+connect to <emphasis>any</emphasis> SLIP server and launch dangerous
+attacks on your network. If you want to allow your users to fire up a
+SLIP connection, write small wrapper programs for each prospective
+SLIP server and have these wrappers invoke <command>dip</command> with
+the specific script that establishes the connection. Carefully written
+wrapper programs can then safely be made setuid to <systemitem
+role="userid">root</systemitem>.<footnote
+id="X-087-2-FNSL1"><para><command>diplogin</command> must be run as
+setuid to <systemitem role="userid">root</systemitem>, too. See the
+section at the end of this chapter.</para></footnote> An alternative,
+more flexible approach is to give trusted users root access to
+<command>dip</command> using a program like <command>sudo</command>.
+<indexterm><primary>sudo command</primary></indexterm>
+</para>
+
+<sect2 id="X-087-2-slip.dip.sample"><title>A Sample Script</title>
+<para>
+Assume that the host to which we make our SLIP connection is
+<systemitem role="sitename">cowslip</systemitem>, and that we have
+written a script for <command>dip</command> to run called
+<filename>cowslip.dip</filename> that makes our connection. We invoke
+<command>dip</command> with the script name as argument:
+
+<screen>
+# <userinput>dip cowslip.dip</userinput>
+DIP: Dialup IP Protocol Driver version 3.3.7 (12/13/93)
+Written by Fred N. van Kempen, MicroWalt Corporation.
+connected to cowslip.moo.com with addr 192.168.5.74
+#
+</screen>
+</para>
+
+<para>
+The script itself is shown in <xref linkend="X-087-2-slip.fig.script">.
+</para>
+
+<example id="X-087-2-slip.fig.script">
+<title>A Sample dip Script</title>
+<screen>
+# Sample dip script for dialing up cowslip
+# Set local and remote name and address
+	get $local vlager-slip
+	get $remote cowslip
+	port ttyS3                # choose a serial port
+	speed 38400              # set speed to max
+	modem HAYES              # set modem type
+	reset                    # reset modem and tty
+	flush                    # flush out modem response
+# Prepare for dialing.
+	send ATQ0V1E1X1\r
+	wait OK 2
+	if $errlvl != 0 goto error
+	dial 41988
+	if $errlvl != 0 goto error
+	wait CONNECT 60
+	if $errlvl != 0 goto error
+# Okay, we're connected now
+	sleep 3
+	send \r\n\r\n
+	wait ogin: 10
+	if $errlvl != 0 goto error
+	send Svlager\n
+	wait ssword: 5
+	if $errlvl != 0 goto error
+	send knockknock\n
+	wait running 30
+	if $errlvl != 0 goto error
+# We have logged in, and the remote side is firing up SLIP.
+	print Connected to $remote with address $rmtip
+	default                  # Make this link our default route
+	mode SLIP                # We go to SLIP mode, too
+# fall through in case of error
+error:
+	print SLIP to $remote failed.
+</screen>
+</example>
+
+<para>
+<indexterm><primary sortas="etc/dip.pid file">/etc/dip.pid file</primary></indexterm>
+After connecting to <systemitem role="sitename">cowslip</systemitem>
+and enabling SLIP, <command>dip</command> will detach from the
+terminal and go to the background. You can then start using the normal
+networking services on the SLIP link. To terminate the connection,
+simply invoke <command>dip</command> with the
+<option>&ndash;k</option> option. This sends a hangup signal to
+<command>dip</command>, using the process ID <command>dip</command>
+records in <filename>/etc/dip.pid</filename>:
+
+<screen>
+# <userinput>dip -k</userinput>
+</screen>
+</para>
+
+<para>
+In <command>dip</command>'s scripting language, keywords prefixed with a dollar
+symbol denote variable names.  <command>dip</command> has a predefined set of variables, which will be listed below.
+<systemitem role="keyword">$remote</systemitem> and
+<systemitem role="keyword">$local</systemitem>, for instance, contain the
+hostnames of the remote and local hosts involved in the SLIP link.
+</para>
+
+<para>
+The first two statements in the sample script are <command>get</command>
+commands, which is <command>dip</command>'s way to set a variable. Here, the
+local and remote hostnames are set to
+<systemitem role="sitename">vlager</systemitem> and
+<systemitem role="sitename">cowslip</systemitem>, respectively.
+</para>
+
+<para>
+<indexterm><primary>chat program</primary><secondary>SLIP</secondary></indexterm>
+The next five statements set up the terminal line and the modem.
+<systemitem role="keyword">reset</systemitem> sends a reset string to the modem.
+The next statement flushes out the modem response so that the login chat in
+the next few lines works properly. This chat is pretty straightforward:
+it simply dials 41988, the phone number of
+<systemitem role="sitename">cowslip</systemitem>, and logs in to the account
+<systemitem role="keyword">Svlager</systemitem> using the password
+<systemitem role="keyword">knockknock</systemitem>. The
+<systemitem role="keyword">wait</systemitem> command makes <command>dip</command>
+wait for the string given as its first argument; the number given as its second
+argument makes the wait time out after that many seconds if no such string is
+received. The <systemitem role="keyword">if</systemitem> commands interspersed
+in the login procedure check that no error occurred while executing the
+command.
+</para>
+
+<para>
+The final commands executed after logging in are
+<systemitem role="keyword">default</systemitem>, which makes the SLIP link
+the default route to all hosts, and <systemitem role="keyword">mode</systemitem>,
+which enables SLIP mode on the line and configures the interface and routing
+table for you.
+</para>
+</sect2>
+<?troff .wcon_off>
+<sect2 id="X-087-2-slip.dip.reference"><title>A dip Reference</title>
+<para>
+In this section, we will give a reference for most of
+<command>dip</command>'s commands. You can get an overview of all the
+commands it provides by invoking <command>dip</command> in test mode
+and entering the <systemitem role="keyword">help</systemitem>
+command. To learn about the syntax of a command, you may enter it
+<?troff .ne 10>
+without any arguments. Remember that this does not work with commands
+that take no arguments. The following example illustrates the
+<systemitem role="keyword">help</systemitem> command:
+</para>
+
+<para>
+<screen>
+# <userinput>dip -t</userinput>
+DIP: Dialup IP Protocol Driver version 3.3.7p-uri (25 Dec 96)
+Written by Fred N. van Kempen, MicroWalt Corporation.
+Debian version 3.3.7p-2 (debian).
+
+DIP> <userinput>help</userinput>
+DIP knows about the following commands:
+
+	beep         bootp        break        chatkey      config       
+	databits     dec          default      dial         echo         
+	flush        get          goto         help         if           
+	inc          init         mode         modem        netmask      
+	onexit       parity       password     proxyarp     print        
+	psend        port         quit         reset        securidfixed 
+	securid      send         shell        skey         sleep        
+	speed        stopbits     term         timeout      wait         
+
+DIP> <userinput>echo</userinput>
+Usage: echo on|off
+DIP>
+</screen>
+</para>
+
+<para>
+Throughout the following section, examples that display the
+<command>DIP&thinsp;></command> prompt show how to enter a command in test mode
+and what output it produces. Examples lacking this prompt should be taken
+as script excerpts.
+</para>
+
+<sect3><title>The modem commands</title>
+<para>
+<indexterm><primary>modems</primary><secondary>links</secondary><tertiary>configuring via dip</tertiary></indexterm> 
+<command>dip</command> provides a number of commands that configure your serial
+line and modem. Some of these are obvious, such as
+<systemitem role="keyword">port</systemitem>, which selects a serial port, and
+<systemitem role="keyword">speed</systemitem>,
+<systemitem role="keyword">databits</systemitem>,
+<systemitem role="keyword">stopbits</systemitem>, and
+<systemitem role="keyword">parity</systemitem>, which set
+the common line parameters.
+
+The <systemitem role="keyword">modem</systemitem> command selects a modem type.
+Currently, the only type supported is
+<systemitem role="keyword">HAYES</systemitem> (capitalization required).
+You have to provide <command>dip</command> with a modem type, or else it will
+refuse to execute the <systemitem role="keyword">dial</systemitem> and
+<systemitem role="keyword">reset</systemitem> commands. The
+<systemitem role="keyword">reset</systemitem> command sends a reset string
+to the modem; the string used depends on the modem type selected. For
+Hayes-compatible modems, this string is
+<systemitem role="keyword">ATZ</systemitem>.
+</para>
+
+<para>
+The <systemitem role="keyword">flush</systemitem> code can be used to flush
+out all responses the modem has sent so far. Otherwise, a chat script following
+<systemitem role="keyword">reset</systemitem> might be confused because it reads
+the <systemitem role="keyword">OK</systemitem> responses from earlier commands.
+</para>
+
+<para>
+The <systemitem role="keyword">init</systemitem> command selects an
+initialization string to be passed to the modem before dialing. The
+default for Hayes modems is &ldquo;<systemitem role="keyword">ATE0 Q0
+V1 X1</systemitem>&rdquo;, which turns on echoing of commands and long
+result codes, and selects blind dialing (no checking of dial
+tone). Modern modems have a good factory default configuration, so
+this is a little unnecessary, though it does no harm.
+</para>
+<?troff .Nd 10>
+
+<para>
+The <systemitem role="keyword">dial</systemitem> command sends the
+initialization string to the modem and dials up the remote system. The
+default dial command for Hayes modems is <systemitem
+role="keyword">ATD</systemitem>.
+</para>
+</sect3>
+
+<sect3><title>The echo command</title>
+<para>
+The <systemitem role="keyword">echo</systemitem> command serves as a debugging
+aid. Calling <systemitem role="keyword">echo on</systemitem> makes
+<command>dip</command> echo to the console everything it sends to
+the serial device. This can be turned off again by calling
+<systemitem role="keyword">echo off</systemitem>.
+</para>
+
+<para>
+<command>dip</command> also allows you to leave script mode
+temporarily and enter terminal mode. In this mode, you can use
+<command>dip</command> just like any ordinary terminal program,
+writing the characters you type to the serial line, reading data from
+the serial line, and displaying the characters. To leave this mode,
+enter Ctrl-].
+</para>
+</sect3>
+
+<sect3><title>The get command</title>
+<para>
+<indexterm><primary>get command</primary></indexterm> 
+The <systemitem role="keyword">get</systemitem> command is
+<command>dip</command>'s way of setting a variable. The simplest form is to
+set a variable to a constant, as we did in <filename>cowslip.dip</filename>.
+You may, however, also prompt the user for input by specifying the keyword
+<systemitem role="keyword">ask</systemitem> instead of a value:
+
+<screen>
+DIP> <userinput>get $local ask</userinput>
+Enter the value for $local: _
+</screen>
+</para>
+
+<para>
+A third method is to obtain the value from the remote host.
+Bizarre as it seems at first, this is very useful in some cases.
+Some SLIP servers will not allow you to use your own IP address on the
+SLIP link, but will rather assign you one from a pool of addresses
+whenever you dial in, printing some message that informs you about
+the address you have been assigned. If the message looks something
+like &ldquo;<literal>Your address: 192.168.5.74</literal>&rdquo;,
+the following piece of <command>dip</command> code would let you
+pick up the address:
+
+<screen>
+# finish login
+wait address: 10
+get $locip remote
+</screen>
+</para>
+</sect3>
+
+<sect3><title>The print command</title>
+<para>
+<indexterm><primary>print command</primary></indexterm> 
+This is the command used to echo text to the console from which
+<command>dip</command> was started. Any of <command>dip</command>'s
+variables may be used in print commands. Here's an example:
+
+<screen>
+DIP> <userinput>print Using port $port at speed $speed</userinput>
+Using port ttyS3 at speed 38400
+</screen>
+</para>
+</sect3>
+
+<sect3><title>Variable names</title>
+<para>
+<command>dip</command> understands only a predefined set of variables. A
+variable name always begins with a dollar symbol and must be written in
+lowercase letters.
+</para>
+
+<para>
+The <systemitem role="keyword">$local</systemitem> and <systemitem
+role="keyword">$locip</systemitem> variables contain the local host's
+name and IP address. When you store the canonical hostname in
+<systemitem role="keyword">$local</systemitem>, <command>dip</command>
+will automatically attempt to resolve the hostname to an IP address
+and to store it in the <systemitem role="keyword">$locip</systemitem>
+variable. A similar but backward process occurs when you assign an IP
+address to the <systemitem role="keyword">$locip</systemitem>
+variable; <command>dip</command> will attempt to perform a reverse
+lookup to identify the name of the host and store it in the
+<systemitem role="keyword">$local</systemitem> variable.
+</para>
+
+<para>
+The <systemitem role="keyword">$remote</systemitem> and
+<systemitem role="keyword">$rmtip</systemitem> variables operate in the same
+way for the remote host's name and address.
+<systemitem role="keyword">$mtu</systemitem> contains the MTU value for
+the connection.
+</para>
+
+<para>
+These five variables are the only ones that may be assigned values
+directly using the <systemitem role="keyword">get</systemitem> command. A
+number of other variables are set as a result of the configuration
+commands bearing the same name, but may be used in
+<systemitem role="keyword">print</systemitem> statements;
+these variables are <systemitem role="keyword">$modem</systemitem>,
+<systemitem role="keyword">$port</systemitem>, and
+<systemitem role="keyword">$speed</systemitem>.
+</para>
+
+<para>
+<systemitem role="keyword">$errlvl</systemitem> is the variable through which
+you can access the result of the last command executed. An error level of 0
+indicates success, while a nonzero value denotes an error.
+</para>
+</sect3>
+
+<sect3><title>The if and goto commands</title>
+<para>The <systemitem role="keyword">if</systemitem> command is a conditional
+branch, rather than a full-featured programming <emphasis>if</emphasis>
+statement. Its syntax is:
+
+<screen>
+if <replaceable>var</replaceable> <replaceable>op</replaceable> <replaceable>number</replaceable> goto <replaceable>label</replaceable>
+</screen>
+</para>
+
+<para>
+The expression must be a simple comparison between one of the variables
+<systemitem role="keyword">$errlvl</systemitem>,
+<systemitem role="keyword">$locip</systemitem>, and
+<systemitem role="keyword">$rmtip</systemitem>.
+<replaceable>var</replaceable> must be an integer number; the operator
+<replaceable>op</replaceable> may be one of <literal>==</literal>,
+<literal>!=</literal>, <literal>&lt;</literal>, <literal>&gt;</literal>,
+<literal>&lt;=</literal>, and <literal>&gt;=</literal>.
+</para>
+
+<para>
+The <systemitem role="keyword">goto</systemitem> command makes the execution
+of the script continue at the line following that bearing the
+<replaceable>label</replaceable>. A label must be the first word
+on the line and must be followed immediately by a colon.
+</para>
+</sect3>
+
+<sect3><title>send, wait, and sleep</title>
+<para>
+These commands help implement simple chat scripts in
+<command>dip</command>. The <systemitem
+role="keyword">send</systemitem> command outputs its arguments to the
+serial line. It does not support variables, but understands all
+C-style backslash character sequences, such as <systemitem
+role="keyword">\n</systemitem> for newline and <systemitem
+role="keyword">\b</systemitem> for backspace.  The tilde character (~)
+can be used as an abbreviation for carriage return/newline.
+</para>
+
+<para>
+The <systemitem role="keyword">wait</systemitem> command takes a word
+as an argument and will read all input on the serial line until it
+detects a sequence of characters that match this word. The word itself
+may not contain any blanks.  Optionally, you may give <systemitem
+role="keyword">wait</systemitem> a timeout value as a second argument;
+if the expected word is not received within that many seconds, the
+command will return with an <systemitem
+role="keyword">$errlvl</systemitem> value of 1. This command is used
+to detect login and other prompts.
+</para>
+
+<para>
+The <systemitem role="keyword">sleep</systemitem> command may be used to
+wait for a certain amount of time; for instance, to patiently wait for any
+login sequence to complete. Again, the interval is specified in seconds.
+</para>
+</sect3>
+
+<sect3><title>mode and default</title>
+<para>These commands are used to flip the serial line to SLIP mode and
+configure the interface. 
+</para>
+
+<para>
+The <systemitem role="keyword">mode</systemitem> command is the last command
+executed by <command>dip</command> before going into daemon mode. Unless
+an error occurs, the command does not return.
+</para>
+
+<para>
+<systemitem role="keyword">mode</systemitem> takes a protocol name as
+argument. <command>dip</command> currently recognizes
+<systemitem role="keyword">SLIP</systemitem>,
+<systemitem role="keyword">CSLIP</systemitem>,
+<systemitem role="keyword">SLIP6</systemitem>,
+<systemitem role="keyword">CSLIP6</systemitem>,
+<systemitem role="keyword">PPP</systemitem>,
+and <systemitem role="keyword">TERM</systemitem> as valid names. The current
+version of <command>dip</command> does not understand adaptive SLIP, however.
+</para>
+
+<para>
+After enabling SLIP mode on the serial line, <command>dip</command> executes
+<command>ifconfig</command> to configure the interface as a point-to-point
+link, and invokes <command>route</command> to set the route to the remote host.
+</para>
+
+<para>
+If, in addition, the script executes the <systemitem
+role="keyword">default</systemitem> command before <systemitem
+role="keyword">mode</systemitem>, <command>dip</command> creates a
+default route that points to the SLIP link.
+</para>
+</sect3>
+</sect2>
+</sect1>
+
+<sect1 id="X-087-2-slip.server"><title>Running in Server Mode</title>
+<indexterm><primary>diplogin command</primary></indexterm>
+<indexterm><primary>configuring</primary><secondary>SLIP</secondary><tertiary>server</tertiary></indexterm>
+<para>
+Setting up your SLIP client was the hard part. Configuring your host
+to act as a SLIP server is much easier.
+</para>
+
+<para>
+<indexterm><primary>Dent, Arthur</primary></indexterm> There are two
+ways of configuring a SLIP server. Both ways require that you set up
+one login account per SLIP client. Assume you provide SLIP service to
+Arthur Dent at <systemitem
+role="sitename">dent.beta.com</systemitem>. You might create an
+account named <systemitem role="userid">dent</systemitem> by adding
+the following line to your <filename>passwd</filename> file:
+
+<screen>
+dent:*:501:60:Arthur Dent's SLIP account:/tmp:/usr/sbin/diplogin
+</screen>
+</para>
+
+<para>
+Afterwards, you would set <systemitem role="userid">dent</systemitem>'s
+password using the <command>passwd</command> utility.
+</para>
+
+<para>
+<indexterm><primary sortas="etc/diphosts file">/etc/diphosts file</primary></indexterm> 
+<indexterm><primary>sliplogin program</primary></indexterm> 
+The <command>dip</command> command can be used in server mode by
+invoking it as <command>diplogin</command>. Usually
+<command>diplogin</command> is a link to <command>dip</command>. Its
+main configuration file is <filename>/etc/diphosts</filename>, which
+is where you specify what IP address a SLIP user will be assigned when
+he or she dials in.  Alternatively, you can also use the
+<command>sliplogin</command> command, a BSD-derived tool featuring a
+more flexible configuration scheme that lets you execute shell scripts
+whenever a host connects and disconnects.
+</para>
+<?troff .wcon_off>
+
+<para>
+<indexterm><primary>diphosts file</primary></indexterm> When our SLIP
+user <systemitem role="userid">dent</systemitem> logs in,
+<command>dip</command> starts up as a server. To find out if he is
+indeed permitted to use SLIP, it looks up the username in
+<filename>/etc/diphosts</filename>. This file details the 
+<?troff .ne 10>
+access rights and connection parameter for each SLIP user.
+The general format for an <filename>/etc/diphosts</filename> entry looks like:
+
+<screen>
+# /etc/diphosts
+<replaceable>user</replaceable>:<replaceable>password</replaceable>:<replaceable>rem-addr</replaceable>:<replaceable>loc-addr</replaceable>:<replaceable>netmask</replaceable>:<replaceable>comments</replaceable>:<replaceable>protocol</replaceable>,<replaceable>MTU</replaceable>
+#
+</screen>
+
+Each of the fields is described in
+<xref linkend="X-087-2-slip.diphosts.fields">.
+</para>
+
+<table id="X-087-2-slip.diphosts.fields">
+<title>/etc/diphosts Field Description</title>
+<tgroup cols=2>
+<colspec colwidth=0.75i>
+<colspec colwidth=3.5i>
+
+<thead>
+<row>
+	<entry>Field</entry>
+	<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry><literal>user</literal></entry>
+	<entry><para>
+The username of the user invoking <command>dip</command> that this
+	entry will apply to.</para></entry>
+</row>
+<row>
+	<entry>password</entry>
+	<entry><para>
+Field 2 of the <filename>/etc/diphosts</filename> file is used to
+	add an extra layer of password-based security on the connection. You can place a password in encrypted form here (just as in
+	<filename>/etc/passwd</filename>&thinsp;) and <command>diplogin</command>
+	will prompt for the user to enter the password before allowing SLIP
+	access. Note that this password is used in addition to the normal
+	<command>login</command>-based password the user will enter.</para></entry>
+</row>
+<row>
+	<entry><literal>rem-addr</literal></entry>
+	<entry><para>
+    The address that will be assigned to the remote machine. This address may
+	be specified either as a hostname that will be resolved or an IP address
+	in dotted quad notation.
+    </para></entry>
+</row>
+<row>
+	<entry><literal>loc-addr</literal></entry>
+	<entry><para>
+    The IP address that will be used for this end of the SLIP link.
+	This may also be specified as a resolvable hostname or in dotted quad
+	format.
+    </para></entry>
+</row>
+<row>
+	<entry><literal>netmask</literal></entry>
+	<entry><para>
+    The netmask that will be used for routing purposes. Many people
+	are confused by this entry. The netmask doesn't apply to the
+	SLIP link itself, but is used in combination with the
+	<literal>rem-addr</literal> field to produce a route to the remote site.
+	The netmask should be that used by the network supported by that of the
+	remote host.
+    </para></entry>
+</row>
+<row>
+	<entry><literal>comments</literal></entry>
+	<entry><para>
+    This field is free-form text that you may use to help document
+	the <filename>/etc/diphosts</filename> file. It serves no other purpose.
+    </para></entry>
+</row>
+<row>
+	<entry><literal>protocol</literal></entry>
+	<entry><para>
+    This field is where you specify what protocol or line discipline
+	you want applied to this connection. Valid entries here are the same as
+	those valid for the <option>&ndash;p</option> argument to the
+	<command>slattach</command> command.
+    </para></entry>
+</row>
+<row>
+	<entry><literal>MTU</literal></entry>
+	<entry><para>
+    The maximum transmission unit that this link will carry. This field
+	describes the largest datagram that will be transmitted across the link.
+	Any datagram routed to the SLIP device that is larger than the MTU will
+	be fragmented into datagrams no larger than this value. Usually, the MTU is configured identically at both ends of the link.
+    </para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+A sample entry for
+<systemitem role="userid">dent</systemitem> could look like this:
+
+<screen>
+dent::dent.beta.com:vbrew.com:255.255.255.0:Arthur Dent:CSLIP,296
+</screen>
+</para>
+
+<para>
+<indexterm><primary>CSLIP (Compressed Serial Line IP)
+protocol</primary></indexterm> Our example gives our user <systemitem
+role="userid">dent</systemitem> access to SLIP with no additional
+password required. He will be assigned the IP address associated with
+<systemitem role="sitename">dent.beta.com</systemitem> with a netmask
+of <literal>255.255.255.0</literal>. His default route should be
+directed to the IP address of <systemitem
+role="sitename">vbrew.com</systemitem>, and he will use the CSLIP
+protocol with an MTU of 296 bytes.
+</para>
+
+<para>
+When <systemitem role="userid">dent</systemitem> logs in,
+<command>diplogin</command> extracts the information on him from the
+<filename>diphosts</filename> file. If the second field contains a
+value, <command>diplogin</command> will prompt for an &ldquo;external
+security password.&rdquo; The string entered by the user is encrypted
+and compared to the password from <filename>diphosts</filename>. If
+they do not match, the login attempt is rejected. If the password
+field contains the string <systemitem
+role="keyword">s/key</systemitem>, and <command>dip</command>
+was compiled with S/Key support, S/Key authentication
+will take place. S/Key authentication is described in the
+documentation that comes in the <command>dip</command> source package.
+</para>
+
+<para>
+After a successful login, <command>diplogin</command> proceeds by
+flipping the serial line to CSLIP or SLIP mode, and sets up the
+interface and route. This connection remains established until the
+user disconnects and the modem drops the
+line. <command>diplogin</command> then returns the line to normal
+line discipline and exits.
+</para>
+
+<para>
+<indexterm><primary>access</primary><secondary>granting</secondary></indexterm>
+<indexterm><primary>security</primary></indexterm>
+<command>diplogin</command> requires superuser privilege. If you don't have
+<command>dip</command> running setuid
+<systemitem role="userid">root</systemitem>, you should make
+<command>diplogin</command> a separate copy of <command>dip</command>
+instead of a simple link. <command>diplogin</command> can then safely
+be made setuid without affecting the status of
+<command>dip</command> itself.
+
+<indexterm class="endofrange" startref="idx-commanddipcommand-1">
+<indexterm class="endofrange" startref="idx-configuringSLIP-1">
+<indexterm class="endofrange" startref="idx-SLIP-1">
+</para>
+</sect1>
+</chapter>

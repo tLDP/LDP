@@ -1,0 +1,1143 @@
+<chapter id="X-087-2-serial"><title>Configuring the Serial Hardware</title>
+<indexterm id="idx-hardwareserial-1" class="startofrange"><primary>hardware</primary><secondary>configuring serial</secondary></indexterm>
+<indexterm id="idx-deviceserial-1" class="startofrange"><primary>devices</primary><secondary>serial</secondary></indexterm>
+<indexterm id="ch04.serdev.setup" class="startofrange"><primary>serial devices</primary><secondary>configuring</secondary></indexterm> 
+
+<para>
+The Internet is growing at an incredible rate. Much of this growth is
+attributed to Internet users who can't afford high-speed permanent
+network connections and who use protocols such as SLIP, PPP, or UUCP
+to dial in to a network provider to retrieve their daily dose of email
+and news.
+</para>
+
+<para>
+<indexterm><primary>Hankins, Greg</primary></indexterm>
+<indexterm><primary>HOWTOs</primary><secondary>Serial</secondary></indexterm>
+This chapter is intended to help all people who rely on modems
+to maintain their link to the outside world. We won't cover the
+mechanics of how to configure your modem (the manual that came with it
+will tell you more about it than we can), but we will cover most of
+the Linux-specific aspects of managing devices that use serial
+ports. Topics include serial communications software, creating the
+serial device files, serial hardware, and configuring serial devices
+using the <command>setserial</command> and <command>stty</command>
+commands. Many other related topics are covered in the Serial HOWTO
+by David Lawyer.<footnote id="X-087-2-FNSE1">
+<para>
+David can be reached at
+<systemitem role="emailaddr">bf347@lafn.org</systemitem>.
+</para>
+</footnote>
+
+</para>
+
+<sect1 id="X-087-2-serial.software"><title>Communications Software
+<?lb>for Modem Links</title> <indexterm><primary>terminal
+programs</primary></indexterm> <indexterm><primary>kermit (terminal
+program)</primary></indexterm> <indexterm><primary>minicom (terminal
+program)</primary></indexterm> <indexterm><primary>BBS (Bulletin Board
+System)</primary></indexterm> <indexterm><primary>bulletin
+board</primary></indexterm> <indexterm id="ch03.modem.comm.sw"
+class="startofrange"><primary>modems</primary><secondary>links</secondary><tertiary>communication
+software for</tertiary></indexterm>
+
+<para>
+There are a number of communications packages available for
+Linux. Many of these packages are <emphasis>terminal
+programs</emphasis>, which allow a user to dial in to another computer
+as if she were sitting in front of a simple terminal. The traditional
+terminal program for Unix-like environments is
+<command>kermit</command>. It is, however, fairly ancient now, and
+would probably be considered difficult to use. There are more
+comfortable programs available that support features, like
+telephone-dialing dictionaries, script languages to automate dialing
+and logging in to remote computer systems, and a variety of file
+exchange protocols. One of these programs is <command>minicom</command>,
+which was modeled after some of the most popular DOS terminal
+programs. X11 users are accommodated, too. <command>seyon</command> is
+a fully featured X11-based communications program.
+</para>
+
+<para>
+Terminal programs aren't the only type of serial communication
+programs available. Other programs let you connect to a host and
+download news and email in a single bundle, to read and reply later at
+your leisure. This can save a lot of time, and is especially useful if
+you are unfortunate enough to live in an area where your local calls
+are time-charged. All of the reading and replying time can be spent
+offline, and when you are ready, you can redial and upload your
+responses in a single bundle. This all consumes a bit more hard disk
+because all of the messages have to be stored to your disk before you
+can read them, but this could be a reasonable trade-off at today's
+hard drive prices.
+</para>
+
+<para>
+<indexterm><primary>UUCP</primary></indexterm>
+<indexterm><primary>FidoNet</primary></indexterm> UUCP epitomizes this
+communication software style. It is a program suite that copies files
+from one host to another and executes programs on a remote host. It is
+frequently used to transport mail or news in private networks. Ian
+Taylor's UUCP package, which also runs under Linux, is described in
+detail in <xref linkend="X-087-2-uucp">. Other noninteractive
+communications software is used throughout networks such as
+Fidonet. Fidonet application ports like <command>ifmail</command> are
+also available, although we expect that not many people still use
+them.
+</para>
+
+<para>
+<indexterm><primary>SLIP (Serial Line IP)
+protocol</primary></indexterm> <indexterm><primary>PPP (Point-to-Point
+Protocol)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>SLIP</secondary></indexterm>
+<indexterm><primary>protocols</primary><secondary>PPP</secondary></indexterm>
+PPP and SLIP are in between, allowing both interactive and
+noninteractive use. Many people use PPP or SLIP to dial in to their
+campus network or other Internet Service Provider to run FTP and read
+web pages. PPP and SLIP are also, however, commonly used over
+permanent or semipermanent connections for LAN-to-LAN coupling,
+although this is really only interesting with ISDN or other high-speed
+network connections.
+</para>
+
+<indexterm class="endofrange" startref="ch03.modem.comm.sw"> 
+</sect1>
+
+<sect1 id="X-087-2-serial.ttys"><title>Introduction to Serial Devices</title>
+<indexterm id="idx-tty-1" class="startofrange"><primary>ttys</primary></indexterm>
+
+<para>
+The Unix kernel provides devices for accessing serial hardware,
+typically called <emphasis>tty</emphasis> devices (pronounced as it is
+spelled: T-T-Y). This is an abbreviation for <emphasis>Teletype
+device</emphasis>, which used to be one of the major manufacturers of
+terminal devices in the early days of Unix. The term is used now for
+any character-based data terminal. Throughout this chapter, we use the
+term to refer exclusively to the Linux device files rather than the
+physical terminal.
+</para>
+
+<para>
+Linux provides three classes of tty devices: serial devices, virtual
+terminals (all of which you can access in turn by pressing Alt-F1
+through Alt-F<emphasis>nn</emphasis> on the local console), and
+pseudo-terminals (similar to a two-way pipe, used by applications such
+as X11). The former were called tty devices because the original
+character-based terminals were connected to the Unix machine by a
+serial cable or telephone line and modem. The latter two were
+named after the tty device because they were created to behave in a
+similar fashion from the programmer's perspective.
+</para>
+
+<para>
+<indexterm><primary>line discipline</primary></indexterm>
+<indexterm><primary>ttys</primary><secondary>line
+discipline</secondary></indexterm> SLIP and PPP are most commonly
+implemented in the kernel. The kernel doesn't really treat the
+<emphasis>tty</emphasis> device as a network device that you can
+manipulate like an Ethernet device, using commands such as
+<command>ifconfig</command>. However, it does treat tty devices as
+places where network devices can be bound. To do this, the kernel
+changes what is called the &ldquo;line discipline&rdquo; of the tty
+device. Both SLIP and PPP are line disciplines that may be enabled on
+tty devices. The general idea is that the serial driver handles data
+given to it differently, depending on the line discipline it is
+configured for. In its default line discipline, the driver simply
+transmits each character it is given in turn. When the SLIP or PPP
+line discipline is selected, the driver instead reads a block of data,
+wraps a special header around it that allows the remote end to
+identify that block of data in a stream, and transmits the new data
+block. It isn't too important to understand this yet; we'll cover both
+SLIP and PPP in later chapters, and it all happens automatically for
+you anyway.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-serial.devices"><title>Accessing Serial Devices</title>
+<para>
+Like all devices in a Unix system, serial ports are accessed through
+device special files, located in the <filename>/dev</filename>
+directory.  There are two varieties of device files related to serial
+drivers, and there is one device file of each type for each port. The
+device will behave slightly differently, depending on which of its
+device files we open.  We'll cover the differences because it will help you
+understand some of the configurations and advice that you might see
+relating to serial devices, but in practice you need to use only
+one of these. At some point in the future, one of them may even
+disappear completely.
+</para>
+
+<para>
+<indexterm id="idx-filenamedevcuafilename-1" class="startofrange"><primary sortas="dev/cua*">/dev/cua*</primary></indexterm>
+<indexterm id="idx-filenamedevttySfilename-1" class="startofrange"><primary sortas="dev/ttyS*">/dev/ttyS*</primary></indexterm>
+<indexterm><primary>serial devices</primary><secondary>accessing</secondary></indexterm> 
+<indexterm><primary>serial line</primary><secondary>device file</secondary></indexterm>
+<indexterm><primary>dialout device</primary></indexterm>
+<indexterm><primary>dialin device</primary></indexterm>
+The most important of the two classes of serial device has a major
+number of 4, and its device special files are named
+<filename>ttyS0</filename>, <filename>ttyS1</filename>, etc. The
+second variety has a major number of 5, and was designed for use when
+dialing out (calling out) through a port; its device special files are
+called <filename>cua0</filename>, <filename>cua1</filename>, etc. In
+the Unix world, counting generally starts at zero, while laypeople
+tend to start at one. This creates a small amount of confusion for
+people because <literal>COM1:</literal> is represented by
+<filename>/dev/ttyS0</filename>, <literal>COM2:</literal> by
+<filename>/dev/ttyS1</filename>, etc. Anyone familiar with IBM PC-style
+hardware knows that <literal>COM3:</literal> and greater were never
+really standardized anyway.
+</para>
+
+<para>
+The <emphasis>cua</emphasis>, or &ldquo;callout,&rdquo; devices were
+created to solve the problem of avoiding conflicts on serial devices
+for modems that have to support both incoming and outgoing
+connections.  Unfortunately, they've created their own problems and
+are now likely to be discontinued. Let's briefly look at the problem.
+</para>
+
+<para>
+Linux, like Unix, allows a device, or any other file, to be opened by
+more than one process simultaneously. Unfortunately, this is rarely
+useful with tty devices, as the two processes will almost certainly
+interfere with each other. Luckily, a mechanism was devised to allow a
+process to check if a tty device had already been opened by another
+device before opening it. The mechanism uses what are called
+<emphasis>lock files</emphasis>. The idea was that when a process
+wanted to open a tty device, it would check for the existence of a
+file in a special location, named similarly to the device it intends
+to open. If the file does not exist, the process creates it and opens
+the tty device. If the file does exist, the process assumes another
+process already has the tty device open and takes appropriate
+action. One last clever trick to make the lock file management system
+work was writing the process ID (pid) of the process that had created
+the lock file into the lock file itself; we'll talk more about that in
+a moment.
+</para>
+
+<para>
+The lock file mechanism works perfectly well in circumstances in which
+you have a defined location for the lock files and all programs know
+where to find them. Alas, this wasn't always the case for Linux. It
+wasn't until the Linux Filesystem Standard defined a standard location
+for lock files when <filename>tty</filename> lock files began to work
+correctly. At one time there were at least four, and possibly more
+locations chosen by software developers to store lock files:
+<filename>/usr/spool/locks/</filename>,
+<filename>/var/spool/locks/</filename>,
+<filename>/var/lock/</filename>, and
+<filename>/usr/lock/</filename>. Confusion caused chaos. Programs were
+opening lock files in different locations that were meant to control a
+single tty device; it was as if lock files weren't being used at all.
+</para>
+
+<para>
+The <filename>cua</filename> devices were created to provide a
+solution to this problem. Rather than relying on the use of lock files
+to prevent clashes between programs wanting to use the serial devices,
+it was decided that the kernel could provide a simple means of
+arbitrating who should be given access. If the
+<filename>ttyS</filename> device were already opened, an attempt to
+open the <filename>cua</filename> would result in an error that a
+program could interpret to mean the device was already being used. If
+the <filename>cua</filename> device were already open and an attempt
+was made to open the <filename>ttyS</filename>, the request would
+block; that is, it would be put on hold and wait until the
+<filename>cua</filename> device was closed by the other process. This
+worked quite well if you had a single modem that you had configured
+for dial-in access and you occasionally wanted to dial out on the same
+device. But it did not work very well in environments where you had
+multiple programs wanting to call out on the same device. The only way
+to solve the contention problem was to use lock files! Back to square
+one.
+</para>
+
+<para>
+Suffice it to say that the Linux Filesystem Standard came to the
+rescue and now mandates that lock files be stored in the
+<filename>/var/lock</filename> directory, and that by convention, the
+lock file name for the <filename>ttyS1</filename> device, for
+instance, is <filename>LCK..ttyS1</filename>. The
+<filename>cua</filename> lock files should also go in this directory,
+but use of <filename>cua</filename> devices is now discouraged.
+</para>
+
+<para>
+The <filename>cua</filename> devices will probably still be around for
+some time to provide a period of backward compatibility, but in time
+they will be retired. If you are wondering what to use, stick to the
+<filename>ttyS</filename> device and make sure that your system is
+Linux FSSTND compliant, or at the very least that all programs using
+the serial devices agree on where the lock files are located. Most
+software dealing with serial tty devices provides a compile-time
+option to specify the location of the lock files. More often than not,
+this will appear as a variable called something like
+<literal>LOCKDIR</literal> in the <filename>Makefile</filename> or in
+a configuration header file. If you're compiling the software
+yourself, it is best to change this to agree with the FSSTND-specified
+location. If you're using a precompiled binary and you're not sure
+where the program will write its lock files, you can use the following
+command to gain a hint:
+<screen>
+<command>strings</command> <filename>binaryfile</filename> | <command>grep</command> lock
+</screen>
+If the location found does not agree with the rest of your system, you
+can try creating a symbolic link from the lock directory that the
+foreign executable wants to use back to
+<filename>/var/lock/</filename>. This is ugly, but it will work.
+</para>
+
+<sect2 id="X-087-2-serial.devicefiles"><title>The Serial Device Special Files</title>
+<para>
+<indexterm><primary>COM port</primary></indexterm>
+<indexterm><primary>ports</primary><secondary>COM</secondary></indexterm>
+Minor numbers are identical for both types of serial devices. If you
+have your modem on one of the ports COM1: through COM4:, its minor
+number will be the COM port number plus 63.  If you are using special
+serial hardware, such as a high-performance multiple port serial
+controller, you will probably need to create special device files for
+it; it probably won't use the standard device driver. The Serial-HOWTO
+should be able to assist you in finding the appropriate details.
+</para>
+
+<para>
+Assume your modem is on COM2:. Its minor number will be 65, and its
+major number will be 4 for normal use. There should be a device called
+<filename>ttyS1</filename> that has these numbers. List the serial
+ttys in the <filename>/dev/</filename> directory. The fifth and sixth
+columns show the major and minor numbers, respectively:
+</para>
+
+<para>
+<screen>
+$ <userinput>ls -l /dev/ttyS*</userinput>
+0 crw-rw----   1 uucp     dialout    4,  64 Oct 13  1997 /dev/ttyS0
+0 crw-rw----   1 uucp     dialout    4,  65 Jan 26 21:55 /dev/ttyS1
+0 crw-rw----   1 uucp     dialout    4,  66 Oct 13  1997 /dev/ttyS2
+0 crw-rw----   1 uucp     dialout    4,  67 Oct 13  1997 /dev/ttyS3
+</screen>
+</para>
+
+<para>
+If there is no device with major number 4 and minor number 65, you
+will have to create one. Become the superuser and type:
+</para>
+
+<para>
+<screen>
+# <userinput>mknod -m 666 /dev/ttyS1 c 4 65</userinput>
+# <userinput>chown uucp.dialout /dev/ttyS1</userinput>
+</screen>
+The various Linux distributions use slightly differing strategies for
+who should own the serial devices. Sometimes they will be owned by
+<emphasis>root</emphasis>, and other times they will be owned by
+another user, such as <userinput>uucp</userinput> in our example.
+Modern distributions have a group specifically for dial-out devices,
+and any users who are allowed to use them are added to this group.
+</para>
+
+<para>
+<indexterm><primary sortas="dev/modem">/dev/modem</primary></indexterm>
+Some people suggest making <filename>/dev/modem</filename> a symbolic
+link to your modem device so that casual users don't have to remember
+the somewhat unintuitive <filename>ttyS1</filename>. However, you
+cannot use <filename>modem</filename> in one program and the real
+device file name in another. Their lock files would have different
+names and the locking mechanism wouldn't work.
+</para>
+
+<para>
+<indexterm class="endofrange" startref="idx-filenamedevcuafilename-1">
+<indexterm class="endofrange" startref="idx-filenamedevttySfilename-1">
+</para>
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-serial.hardware"><title>Serial Hardware</title>
+<indexterm><primary>RS-232 serial interface</primary></indexterm>
+<para>
+RS-232 is currently the most common standard for serial communications
+in the PC world. It uses a number of circuits for transmitting single
+bits, as well as for synchronization. Additional lines may be used for
+signaling the presence of a carrier (used by modems) and for
+handshaking. Linux supports a wide variety of serial cards that use
+the RS-232 standard.
+</para>
+
+<para>
+<indexterm><primary>serial line</primary><secondary>hardware
+handshake</secondary></indexterm> <indexterm><primary>handshake,
+hardware</primary></indexterm>
+<indexterm><primary>hardware</primary><secondary>handshake</secondary></indexterm>
+<indexterm><primary>RTS/CTS (Ready to Send/Clear to
+Send)</primary></indexterm> Hardware handshake is optional, but very
+useful. It allows either of the two stations to signal whether it is
+ready to receive more data, or if the other station should pause until
+the receiver is done processing the incoming data.  The lines used for
+this are called &ldquo;Clear to Send&rdquo; (CTS) and &ldquo;Ready to
+Send&rdquo; (RTS), respectively, which explains the colloquial name
+for hardware handshake: &ldquo;RTS/CTS.&rdquo; The other type of
+handshake you might be familiar with is called &ldquo;XON/XOFF&rdquo;
+handshaking. XON/XOFF uses two nominated characters, conventionally
+Ctrl-S and Ctrl-Q, to signal to the remote end that it should stop and
+start transmitting data, respectively. While this method is simple to
+implement and okay for use by dumb terminals, it causes great
+confusion when you are dealing with binary data, as you may want to
+transmit those characters as part of your data stream, and not have
+them interpreted as flow control characters. It is also somewhat
+slower to take effect than hardware handshake. Hardware handshake is
+clean, fast, and recommended in preference to XON/XOFF when you have a
+choice.
+</para>
+
+<para>
+<indexterm><primary>8250 UART</primary></indexterm>
+<indexterm><primary>16450 UART</primary></indexterm>
+<indexterm><primary>16550 UART</primary></indexterm>
+<indexterm><primary>UART</primary></indexterm>
+In the original IBM PC, the RS-232 interface was driven by a UART chip
+called the 8250. PCs around the time of the 486 used a newer version
+of the UART called the 16450. It was slightly faster than the
+8250. Nearly all Pentium-based machines have been supplied with an
+even newer version of the UART called the 16550. Some brands (most
+notably internal modems equipped with the Rockwell chip set) use
+completely different chips that emulate the behavior of the 16550 and
+can be treated similarly. Linux supports all of these in its standard
+serial port driver.<footnote id="X-087-2-serial-FIXME">
+<para>
+Note that we are not talking about WinModem&trade; here! WinModems
+have very simple hardware and rely completely on the main CPU of your
+computer instead of dedicated hardware to do all of the hard work. If
+you're purchasing a modem, it is our strongest recommendation to
+<emphasis>not</emphasis> purchase such a modem; get a real modem. You
+may find Linux support for WinModems, but that makes them only a
+marginally more attractive solution.
+</para>
+</footnote>
+
+</para>
+
+<para>
+The 16550 was a significant improvement over the 8250 and the 16450
+because it offered a 16-byte FIFO buffer. The 16550 is actually a
+family of UART devices, comprising the 16550, the 16550A, and the
+16550AFN (later renamed PC16550DN). The differences relate to whether
+the FIFO actually works; the 16550AFN is the one that is sure to
+work. There was also an NS16550, but its FIFO never really worked
+either.
+</para>
+
+<para>
+The 8250 and 16450 UARTs had a simple 1-byte buffer. This means that a
+16450 generates an interrupt for every character transmitted or
+received. Each interrupt takes<?troff .ne 10> a short period of time to service, and
+this small delay limits 16450s to a reliable maximum bit speed of
+about 9,600 bps in a typical ISA bus machine.
+</para>
+
+<para>
+In the default configuration, the kernel checks the four standard
+serial ports, COM1: through COM4:. The kernel is also able to
+automatically detect what UART is used for each of the standard serial
+ports, and will make use of the enhanced FIFO buffer of the 16550, if
+it is available.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-serial-configuration"><title>Using the Configuration Utilities</title>
+<para>
+<indexterm id="idx-configuringserialport-1" class="startofrange"><primary>configuring</primary><secondary>serial port</secondary></indexterm>
+</para>
+<para>
+Now let's spend some time looking at the two most useful serial device
+configuration utilities: <command>setserial</command> and
+<command>stty</command>.
+</para>
+
+<sect2 id="X-087-2-serial-setserial"><title>The setserial Command</title>
+<indexterm><primary sortas="setserial">setserial command</primary></indexterm>
+<indexterm><primary sortas="Tso, Theodore">T'so, Theodore</primary></indexterm>
+<para>
+The kernel will make its best effort to correctly determine how your
+serial hardware is configured, but the variations on serial device
+configuration makes this determination difficult to achieve 100
+percent reliably in practice. A good example of where this is a
+problem is the internal modems we talked about earlier. The UART they
+use has a 16-byte FIFO buffer, but it looks like a 16450 UART to the
+kernel device driver: unless we specifically tell the driver that this
+port is a 16550 device, the kernel will not make use of the extended
+buffer. Yet another example is that of the dumb 4-port cards that
+allow sharing of a single IRQ among a number of serial devices. We may
+have to specifically tell the kernel which IRQ port it's supposed to
+use, and that IRQs may be shared.
+</para>
+
+<para>
+<command>setserial</command> was created to configure the serial driver
+at runtime. The <command>setserial</command> command is most commonly
+executed at boot time from a script called <filename>0setserial</filename>
+on some distributions, and <filename>rc.serial</filename> on others. This
+script is charged with the responsibility of initializing the serial driver
+to accommodate any nonstandard or unusual serial hardware in the machine.
+</para>
+
+<para>
+The general syntax for the <command>setserial</command> command is:
+
+<screen>
+setserial <replaceable>device</replaceable> [<replaceable>parameters</replaceable>]
+</screen>
+in which the device is one of the serial devices, such as
+<emphasis>ttyS0</emphasis>.
+</para>
+
+<para>
+The <command>setserial</command> command has a large number of
+parameters.  The most common of these are described in <xref
+linkend="X-087-2-serial-setserial-parameters">. For information on the
+remainder of the parameters, you should refer to the
+<command>setserial</command> manual page.
+</para>
+
+<table id="X-087-2-serial-setserial-parameters">
+<title>setserial Command-Line Parameters</title>
+<tgroup cols=2><colspec colnum="2" colwidth="3.57i">
+<thead>
+<row>
+	<entry>Parameter</entry>
+	<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry><literal>port</literal> <replaceable>port_number</replaceable></entry>
+	<entry><para>
+	Specify the I/O port address of the serial device. Port numbers
+	should be specified in hexadecimal notation, e.g., <literal>0x2f8</literal>.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>irq</literal> <replaceable>num</replaceable></entry>
+	<entry><para>
+	Specify the interrupt request line the serial device is
+	using.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>uart</literal> <replaceable>uart_type</replaceable></entry>
+	<entry><para>
+	Specify the UART type of the serial device. Common values are
+	<literal>16450</literal>, <literal>16550</literal>, etc. Setting this
+	value to <literal>none</literal> will disable this serial device.
+</para></entry>
+</row>
+<row>
+	<entry><literal>fourport</literal></entry>
+	<entry><para>
+	Specifying this parameter instructs the kernel serial driver that
+	this port is one port of an AST Fourport card.
+</para></entry>
+</row>
+<row>
+	<entry><literal>spd_hi</literal></entry>
+	<entry><para>
+	Program the UART to use a speed of 57.6 kbps when a process
+	requests 38.4 kbps.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>spd_vhi</literal></entry>
+	<entry><para>
+	Program the UART to use a speed of 115 kbps when a process
+	requests 38.4 kbps.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>spd_normal</literal></entry>
+	<entry><para>
+	Program the UART to use the default speed of 38.4 kbps when
+	requested. This parameter is used to reverse the effect of a
+	<literal>spd_hi</literal> or <literal>spd_vhi</literal> performed on
+	the specified serial device.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>auto_irq</literal></entry>
+	<entry><para>
+	This parameter will cause the kernel to attempt to automatically
+	determine the IRQ of the specified device. This attempt may not be 
+        completely reliable, so it is probably better to think of this as a 
+        request for the kernel to guess the IRQ. If you know the IRQ of the 
+        device, you should specify that it use the <literal>irq</literal> 
+        parameter instead.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>autoconfig</literal></entry>
+	<entry><para>
+	This parameter must be specified in conjunction with the
+	<literal>port</literal> parameter. When this parameter is supplied,
+	<command>setserial</command> instructs the kernel to attempt to
+	automatically determine the UART type located at the supplied port
+	address. If the <literal>auto_irq</literal> parameter is also 
+        supplied, the kernel attempts to automatically determine the IRQ,
+	too.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>skip_test</literal></entry>
+	<entry><para>
+	This parameter instructs the kernel not to bother performing
+	the UART type test during auto-configuration. This is necessary when
+	the UART is incorrectly detected by the kernel.</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+A typical and simple <filename>rc</filename> file to configure your serial
+ports at boot time might look something like that shown in
+<xref linkend="X-087-2-serial-rc.serial.setserial">. Most Linux distributions
+will include something slightly more sophisticated than this one.
+</para>
+
+<example id="X-087-2-serial-rc.serial.setserial">
+<title>Example rc.serial setserial Commands</title>
+<screen>
+# /etc/rc.serial - serial line configuration script.
+#
+# Configure serial devices
+/sbin/setserial /dev/ttyS0 auto_irq skip_test autoconfig
+/sbin/setserial /dev/ttyS1 auto_irq skip_test autoconfig
+/sbin/setserial /dev/ttyS2 auto_irq skip_test autoconfig
+/sbin/setserial /dev/ttyS3 auto_irq skip_test autoconfig
+#
+# Display serial device configuration
+/sbin/setserial -bg /dev/ttyS*
+</screen>
+</example>
+
+
+<para>
+The <literal>-bg /dev/ttyS*</literal> argument in the last
+command will print a neatly formatted summary of the hardware configuration
+of all active serial devices. The output will look like that shown in
+<xref linkend="X-087-2-serial.setserial.output">.
+</para>
+
+<example id="X-087-2-serial.setserial.output">
+<title>Output of setserial -bg /dev/ttyS Command</title>
+<screen>
+/dev/ttyS0 at 0x03f8 (irq = 4) is a 16550A
+/dev/ttyS1 at 0x02f8 (irq = 3) is a 16550A
+</screen>
+</example>
+
+</sect2>
+
+<sect2 id="x-087-2-serial-stty"><title>The stty Command</title>
+<para>
+<indexterm><primary sortas="stty">stty command</primary></indexterm>
+<indexterm><primary>serial line</primary><secondary>hardware handshake</secondary></indexterm>
+<indexterm><primary>handshake, hardware</primary></indexterm>
+<indexterm><primary>hardware</primary><secondary>handshake</secondary></indexterm></para>
+<para>
+The name <command>stty</command> probably means &ldquo;set tty,&rdquo;
+but the <command>stty</command> command can also be used to display a
+terminal's configuration. Perhaps even more so than
+<command>setserial</command>, the <command>stty</command> command
+provides a bewildering number of characteristics you can
+configure. We'll cover the most important of these in a moment. You
+can find the rest described in the <command>stty</command> manual
+page.
+</para>
+
+<para>
+The <command>stty</command> command is most commonly used to configure
+terminal parameters, such as whether characters will be echoed or what
+key should generate a break signal. We explained earlier that serial
+devices are tty devices and the <command>stty</command> command is therefore
+equally applicable to them.
+</para>
+
+<para>
+One of the more important uses of the <command>stty</command> for
+serial devices is to enable hardware handshaking on the device. We
+talked briefly about hardware handshaking earlier. The default
+configuration for serial devices is for hardware handshaking to be
+disabled. This setting allows &ldquo;three wire&rdquo; serial cables to work;
+they don't support the necessary signals for hardware handshaking, and
+if it were enabled by default, they'd be unable to transmit any
+characters to change it.
+</para>
+
+<para>
+Surprisingly, some serial communications programs don't enable
+hardware handshaking, so if your modem supports hardware handshaking,
+you should configure the modem to use it (check your modem manual for
+what command to use), and also configure your serial device to use
+it. The <command>stty</command> command has a
+<literal>crtscts</literal> flag that enables hardware handshaking on a
+device; you'll need to use this. The command is probably best issued
+from the <filename>rc.serial</filename> file (or equivalent) at boot
+time using commands like those shown in <xref
+linkend="X-087-2-serial-rc.serial.stty">.
+</para>
+
+<example id="X-087-2-serial-rc.serial.stty">
+<title>Example rc.serial stty Commands</title>
+<screen>
+#
+stty crtscts &lt; /dev/ttyS0
+stty crtscts &lt; /dev/ttyS1
+stty crtscts &lt; /dev/ttyS2
+stty crtscts &lt; /dev/ttyS3
+#
+</screen>
+</example>
+
+<para>
+The <command>stty</command> command works on the current terminal by
+default, but by using the input redirection (&ldquo;&lt;&rdquo;)
+feature of the shell, we can have <command>stty</command> manipulate
+any tty device. It's a common mistake to forget whether you are
+supposed to use &ldquo;&lt;&rdquo; or &ldquo;&gt;&rdquo;; modern
+versions of the <command>stty</command> command have a much cleaner
+syntax for doing this. To use the new syntax, we'd rewrite our sample
+configuration to look like that shown in <xref
+linkend="X-087-2-serial-rc.serial.stty.new">.
+</para>
+
+<example id="X-087-2-serial-rc.serial.stty.new">
+<title>Example rc.serial stty Commands Using Modern Syntax</title>
+<screen>
+#
+stty crtscts -F /dev/ttyS0
+stty crtscts -F /dev/ttyS1
+stty crtscts -F /dev/ttyS2
+stty crtscts -F /dev/ttyS3
+#
+</screen>
+</example>
+
+<para>
+We mentioned that the <command>stty</command> command can be used to display
+the terminal configuration parameters of a tty device. To display all of
+the active settings on a tty device, use:
+</para>
+
+<para>
+<screen>
+$ <userinput>stty -a -F /dev/ttyS1</userinput>
+</screen>
+</para>
+
+<para>
+The output of this command, shown in
+<xref linkend="X-087-2-serial.stty.output">, gives you the status of all flags
+for that device; a flag shown with a preceding minus, as in
+<option>&ndash;crtscts</option>, means that the flag has been
+turned off.
+</para>
+
+<example id="X-087-2-serial.stty.output">
+<title>Output of stty -a Command</title>
+<screen>
+speed 19200 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = &lt;undef>; 
+         eol2 = &lt;undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R;
+         werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;
+-parenb -parodd cs8 hupcl -cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon
+        -ixoff -iuclc -ixany -imaxbel
+-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0
+         bs0 vt0 ff0
+-isig -icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop
+         -echoprt echoctl echoke
+</screen>
+</example>
+
+<para>
+A description of the most important of these flags is given in <xref
+linkend="X-087-2-serial.stty.flags">. Each of these flags is enabled
+by supplying it to <command>stty</command> and disabled by supplying
+it to <command>stty</command> with the &ndash; character in front of
+it. Thus, to disable hardware handshaking on the
+<literal>ttyS0</literal> device, you would use:
+<screen>
+$ <userinput>stty -crtscts -F /dev/ttyS0</userinput>
+</screen>
+</para>
+
+<table id="X-087-2-serial.stty.flags">
+<title>stty Flags Most Relevant to Configuring Serial Devices</title>
+<tgroup cols=2><colspec colnum="2" colwidth="3.57i">
+<thead>
+<row>
+	<entry>Flags</entry>
+	<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry><literal>N</literal></entry>
+	<entry><para>
+	Set the line speed to <literal>N</literal> bits per second.
+	</para></entry 
+</row>
+<row>
+	<entry><literal>crtsdts</literal></entry>
+	<entry><para>
+	Enable/Disable hardware handshaking.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>ixon</literal></entry>
+	<entry><para>
+	Enable/Disable XON/XOFF flow control.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>clocal</literal></entry>
+	<entry><para>
+	Enable/Disable modem control signals such as DTR/DTS and DCD. This
+	is necessary if you are using a &ldquo;three wire&rdquo; serial cable because it does not supply these signals.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>cs5 cs6 cs7 cs8</literal></entry>
+	<entry><para>
+	Set number of data bits to 5, 6, 7, or 8, respectively.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>parodd</literal></entry>
+	<entry><para>
+	Enable odd parity. Disabling this flag enables even parity.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>parenb</literal></entry>
+	<entry><para>
+	Enable parity checking. When this flag is negated, no parity is used.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>cstopb</literal></entry>
+	<entry><para>
+	Enable use of two stop bits per character. When this flag is
+	negated, one stop bit per character is used.
+	</para></entry>
+</row>
+<row>
+	<entry><literal>echo</literal></entry>
+	<entry><para>
+	Enable/Disable echoing of received characters back to sender.
+	</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+The next example combines some of these flags and sets the
+<filename>ttyS0</filename> device to 19,200 bps, 8 data bits, no
+parity, and hardware handshaking with echo disabled:
+
+<screen>
+$ <userinput>stty 19200 cs8 -parenb crtscts -echo -F /dev/ttyS0</userinput>
+</screen>
+
+</para>
+
+<para>
+<indexterm class="endofrange" startref="idx-configuringserialport-1">
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="X-087-2-serial.getty"><title>Serial Devices and the login: Prompt</title>
+<para>
+It was once very common that a Unix installation involved one server
+machine and many &ldquo;dumb&rdquo; character mode terminals or
+dial-up modems.  Today that sort of installation is less common, which
+is good news for many people interested in operating this way, because
+the &ldquo;dumb&rdquo; terminals are now very cheap to
+acquire. Dial-up modem configurations are no less common, but these
+days they would probably be used to support a SLIP or PPP login
+(discussed in <xref linkend="X-087-2-slip"> and <xref
+linkend="X-087-2-ppp">&thinsp;) than to be used for a simple login.
+Nevertheless, each of these configurations can make use of a simple
+program called a <command>getty</command> program.
+</para>
+
+<para>
+The term <command>getty</command> is probably a contraction of
+&ldquo;get tty.&rdquo; A <command>getty</command> program opens a
+serial device, configures it appropriately, optionally configures a
+modem, and waits for a connection to be made. An active connection on
+a serial device is usually indicated by the Data Carrier Detect (DCD)
+pin on the serial device being raised. When a connection is detected,
+the <command>getty</command> program issues a
+<literal>login:</literal> prompt, and then invokes the
+<command>login</command> program to handle the actual system
+login. Each of the virtual terminals (e.g.,
+<filename>/dev/tty1</filename>) in Linux has a
+<command>getty</command> running against it.
+</para>
+
+<para>
+There are a number of different <command>getty</command>
+implementations, each designed to suit some configurations better than
+others.  The <command>getty</command> that we'll describe here is
+called <command>mgetty</command>. It is quite popular because it has
+all sorts of features that make it especially modem-friendly,
+including support for automatic fax programs and voice modems. We'll
+concentrate on configuring <command>mgetty</command> to answer
+conventional data calls and leave the rest for you to explore at your
+convenience.
+</para>
+
+<sect2 id="X-087-2-serial.getty.mgetty"><title>Configuring the mgetty Daemon</title>
+<para>
+The <command>mgetty</command> daemon is available in source form from
+<systemitem
+role="url">ftp://alpha.greenie.net/pub/mgetty/source/</systemitem>,
+and is available in just about all Linux distributions in prepackaged
+form.  The <command>mgetty</command> daemon differs from most other
+<command>getty</command> implementations in that it has been designed
+specifically for Hayes-compatible modems. It still supports direct
+terminal connections, but is best suited for dialup
+applications. Rather than using the DCD line to detect an incoming
+call, it listens for the <literal>RING</literal> message generated by
+modern modems when they detect an incoming call and are not configured
+for auto-answer.
+</para>
+
+<para>
+The main executable program is called
+<filename>/usr/sbin/mgetty</filename>, and its main configuration file
+is called <filename>/etc/mgetty/mgetty.config</filename>. There are a
+number of other binary programs and configuration files that cover
+other <command>mgetty</command> features.
+</para>
+
+<para>
+For most installations, configuration is a matter of editing the
+<filename>/etc/mgetty/ mgetty.config</filename> file and adding
+appropriate entries to the <filename>/etc/inittab</filename> file to
+execute <command>mgetty</command> automatically.
+</para>
+
+<para>
+<xref linkend="X-087-2-serial.mgetty.conf"> shows a very simple
+<command>mgetty</command> configuration file. This example configures
+two serial devices. The first, <filename>/dev/ttyS0</filename>,
+supports a Hayes-compatible modem at 38,400 bps. The second,
+<filename>/dev/ttyS0</filename>, supports a directly connected VT100
+terminal at 19,200 bps.
+</para>
+
+<para>
+<example id="X-087-2-serial.mgetty.conf">
+<title>Sample /etc/mgetty/mgetty.config File</title>
+<screen>
+#
+# mgetty configuration file
+#
+# this is a sample configuration file, see mgetty.info for details
+#
+# comment lines start with a "#", empty lines are ignored
+#
+# ----- global section -----
+#
+# In this section, you put the global defaults, per-port stuff is below
+#
+# access the modem(s) with 38400 bps
+speed 38400
+#
+# set the global debug level to "4" (default from policy.h)
+debug 4
+#
+
+# ----- port specific section -----
+# 
+# Here you can put things that are valid only for one line, not the others
+#
+#
+# Hayes modem connected to ttyS0: don't do fax, less logging
+#
+port ttyS0
+  debug 3
+  data-only y
+#
+# direct connection of a VT100 terminal which doesn't like DTR drops
+#
+port ttyS1
+  direct y
+  speed 19200
+  toggle-dtr n
+#
+</screen>
+</example>
+</para>
+
+<para>
+The configuration file supports global and port-specific options.
+In our example we used a global option to set the speed to 38,400 bps. This
+value is inherited by the <filename>ttyS0</filename> port. Ports we apply
+<command>mgetty</command> to use this speed setting unless it is
+overwritten by a port-specific speed setting, as we have done in the
+<filename>ttyS1</filename> configuration.
+</para>
+
+<para>
+The <literal>debug</literal> keyword controls the verbosity of
+<command>mgetty</command> logging. The <literal>data-only</literal>
+keyword in the <filename>ttyS0</filename> configuration causes
+<command>mgetty</command> to ignore any modem fax features, to operate
+just as a data modem. The <literal>direct</literal> keyword in the
+<filename>ttyS1</filename> configuration instructs
+<command>mgetty</command> not to attempt any modem initialization on
+the port. Finally, the <literal>toggle-dtr</literal> keyword instructs
+<command>mgetty</command> not to attempt to hang up the line by
+dropping the DTR (Data Terminal Ready) pin on the serial interface;
+some terminals don't like this to happen.
+</para>
+
+<para>
+You can also choose to leave the <filename>mgetty.config</filename>
+file empty and use command-line arguments to specify most of the same
+parameters. The documentation accompanying the application includes a
+complete description of the <command>mgetty</command> configuration
+file parameters and command-line arguments. See the following example.
+</para>
+
+<para>
+We need to add two entries to the <filename>/etc/inittab</filename>
+file to activate this configuration. The <filename>inittab</filename>
+file is the configuration file of the Unix System V
+<command>init</command> command. The <command>init</command> command
+is responsible for system initialization; it provides a means of
+automatically executing programs at boot time and re-executing them
+when they terminate. This is ideal for the goals of running a
+<command>getty</command> program.
+</para>
+
+<para>
+<screen>
+T0:23:respawn:/sbin/mgetty ttyS0
+T1:23:respawn:/sbin/mgetty ttyS1
+</screen>
+</para>
+
+<para>
+Each line of the <filename>/etc/inittab</filename> file contains four
+fields, separated by colons. The first field is an identifier that
+uniquely labels an entry in the file; traditionally it is two
+characters, but modern versions allow four. The second field is the
+list of run levels at which this entry should be active. A run level
+is a means of providing alternate machine configurations and is
+implemented using trees of startup scripts stored in directories
+called <filename>/etc/rc1.d</filename>,
+<filename>/etc/rc2.d</filename>, etc. This feature is typically
+implemented very simply, and you should model your entries on others
+in the file or refer to your system documentation for more
+information. The third field describes when to take action. For the
+purposes of running a <command>getty</command> program, this field
+should be set to <literal>respawn</literal>, meaning that the command
+should be re-executed automatically when it dies. There are several
+other options, as well, but they are not useful for our purposes
+here. The fourth field is the actual command to execute; this is where
+we specify the <command>mgetty</command> command and any arguments we
+wish to pass it. In our simple example we're starting and restarting
+<command>mgetty</command> whenever the system is operating at either
+of run levels two or three, and are supplying as an argument just the
+name of the device we wish it to use.  The <command>mgetty</command>
+command assumes the <filename>/dev/</filename>, so we don't need to
+supply it.
+</para>
+
+<para>
+This chapter was a quick introduction to <command>mgetty</command>
+and how to offer login prompts to serial devices. You can find more
+extensive information in the Serial-HOWTO.
+</para>
+
+<para>
+After you've edited the configuration files, you need to reload
+<command>init</command> to make the changes take effect. Simply send a
+hangup signal to the <command>init</command> process; it always has a
+process ID of one, so you can use the following command safely:
+</para>
+
+<screen>
+# <userinput>kill -HUP 1</userinput>
+</screen>
+
+</sect2>
+
+<indexterm class="endofrange" startref="ch04.serdev.setup"> 
+<indexterm class="endofrange" startref="idx-tty-1">
+<indexterm class="endofrange" startref="idx-deviceserial-1">
+<indexterm class="endofrange" startref="idx-hardwareserial-1">
+
+</sect1>
+</chapter>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1503 @@
+<chapter id="X-087-2-ipx"><title>IPX and the <?lb>NCP Filesystem</title>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Internet Packet eXchange (IPX)</secondary></indexterm>
+<indexterm><primary>file sharing</primary></indexterm>
+<indexterm><primary>remote</primary><secondary>file access</secondary></indexterm>
+<indexterm><primary>NCPFS (NetWare Core Protocol Filesystem)</primary></indexterm>
+<para>
+<indexterm><primary>Novell Corporation</primary></indexterm>
+<indexterm><primary>NetWare</primary></indexterm>
+Long before Microsoft learned about networking, and even before the
+Internet was known outside academic circles, corporate environments
+shared files and printers using file and print servers based on the
+Novell NetWare operating system and associated protocols.<footnote
+id="X-087-2-FNIX01"><para> Novell and NetWare are trademarks of the
+Novell Corporation.  </para></footnote> Many of these corporate users
+still have legacy networks using these protocols and want to integrate
+this support with their new TCP/IP support.
+</para>
+
+<para>
+Linux supports not only the TCP/IP protocols, but also the suite of
+protocols used by the Novell Corporation's NetWare operating
+system. These protocols are distant cousins of TCP/IP, and while they
+perform similar sorts of functions, they differ in a number of ways
+and are unfortunately incompatible.
+</para>
+
+<para>
+Linux has both free and commercial software offerings to provide support 
+for integration with the Novell products.
+
+</para>
+
+<para>
+We'll provide a brief description of the protocols themselves in this
+chapter, but we focus on how to configure and use free software to
+allow Linux to interoperate with Novell products.
+</para>
+
+<sect1><title>Xerox, Novell, and History</title>
+<para>
+<indexterm><primary>Xerox Corporation</primary></indexterm>
+<indexterm><primary>Xerox Network Specification (XNS)</primary></indexterm>
+<indexterm><primary>Internet Datagram Protocol (IDP)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Internet Datagram Protocol (IDP)</secondary></indexterm>
+<indexterm><primary>Sequenced Packet Protocol (SPP)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Sequenced Packet Protocol (SPP)</secondary></indexterm> 
+First, let's look at where the protocols came from and what they look
+like.  In the late 1970s, the Xerox Corporation developed and
+published an open standard called the Xerox Network Specification
+(XNS). The Xerox Network Specification described a series of protocols
+designed for general purpose internetworking, with a strong emphasis
+on the use of local area networks. There were two primary networking
+protocols involved: the Internet Datagram Protocol (IDP), which
+provided a connectionless and unreliable transport of datagrams from
+one host to another, and the Sequenced Packet Protocol (SPP), which
+was a modified form of IDP that was connection-based and reliable. The
+datagrams of an XNS network were individually addressed. The
+addressing scheme used a combination of a 4-byte IDP network
+address (which was uniquely assigned to each Ethernet LAN segment),
+and the 6-byte node address (the address of the NIC card).  Routers
+were devices that switched datagrams between two or more separate IDP
+networks. IDP has no notion of subnetworks; any new collection of
+hosts requires another network address to be assigned. Network
+addresses are chosen such that they are unique on the internetwork in
+question. Sometimes administrators develop conventions by having each
+byte encode some other information, such as geographic location, so that
+network addresses are allocated in a systemic way; it isn't a
+protocol requirement, however.
+</para>
+
+<para>
+<indexterm><primary>Sequenced Packet eXchange (SPX)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Sequenced Packet eXchange (SPX)</secondary></indexterm>
+<indexterm><primary>NetWare Core Protocol (NCP)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>NetWare Core Protocol (NCP)</secondary></indexterm>
+<indexterm><primary>Service Advertisement Protocol (SAP)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Service Advertisement Protocol (SAP)</secondary></indexterm>
+The Novell Corporation chose to base their own networking suite on the
+XNS suite. Novell made small enhancements to IDP and SPP and renamed
+them IPX (Internet Packet eXchange) and SPX (Sequenced Packet
+eXchange).  Novell added new protocols, such as the NetWare Core
+Protocol (NCP), which provided file and printer sharing features that
+ran over IPX, and the Service Advertisement Protocol (SAP), which
+enabled hosts on a Novell network to know which hosts provided which
+services.
+</para>
+
+<para>
+<indexterm><primary>protocols</primary><secondary>mapping XNS, Novell, and TCP/IP</secondary></indexterm>
+<xref linkend="X-087-2-IX.protocol.family"> maps the relationship between
+the XNS, Novell, and TCP/IP suites in terms of function. The relationships
+are an approximation only, but should help you understand what is
+happening when we refer to these protocols later on.
+</para>
+
+<table id="X-087-2-IX.protocol.family">
+<title>XNS, Novell, and TCP/IP Protocol Relationships</title>
+<tgroup cols=4>
+<thead>
+<row>
+	<entry>XNS</entry>
+	<entry>Novell</entry>
+	<entry>TCP/IP</entry>
+	<entry>Features</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry>IDP</entry>
+	<entry>IPX</entry>
+	<entry>UDP/IP</entry>
+	<entry>Connectionless, unreliable transport</entry>
+</row>
+<row>
+	<entry>SPP</entry>
+	<entry>SPX</entry>
+	<entry>TCP</entry>
+	<entry>Connection-based, reliable transport</entry>
+</row>
+<row>
+	<entry>&nbsp;</entry>
+	<entry>NCP</entry>
+	<entry>NFS</entry>
+	<entry>File services</entry>
+</row>
+<row>
+	<entry>&nbsp;</entry>
+	<entry>RIP</entry>
+	<entry>RIP</entry>
+	<entry>Routing information exchange</entry>
+</row>
+<row>
+	<entry>&nbsp;</entry>
+	<entry>SAP</entry>
+	<entry>&nbsp;</entry>
+	<entry>Service availability information exchange</entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+</sect1>
+
+<sect1><title>IPX and Linux</title>
+<para>
+<indexterm><primary>Cox, Alan</primary></indexterm>
+<indexterm><primary>Page, Greg</primary></indexterm>
+<indexterm><primary>Lendecke, Volker</primary></indexterm>
+<indexterm><primary>Dryak, Ales</primary></indexterm>
+<indexterm><primary>Stover, Martin</primary></indexterm>
+<?troff .hw volumes>
+Alan Cox first developed IPX support for the Linux kernel in
+1985.<footnote id="X-087-2-FNIX02"><para> Alan can be reached at
+<systemitem role="emailaddr">alan@lxorguk.ukuu.org.uk</systemitem>.
+</para></footnote> Initially it was useful for little more than
+routing IPX datagrams. Since then, other people, notably Greg Page,
+have provided additional support.<footnote id="X-087-2-FNIX03"><para>
+Greg can be reached at <systemitem
+role="emailaddr">gpage@sovereign.org</systemitem>.
+</para></footnote>
+<?troff .ffn -2>
+Greg developed the IPX configuration utilities that we'll use in this chapter
+to configure our interfaces. Volker Lendecke developed support for the NCP
+filesystem to allow Linux to mount volumes on network-connected NetWare
+fileservers.<footnote id="X-087-2-FNIX04"><para>
+Volker can be reached at
+<systemitem role="emailaddr">lendecke@namu01.gwdg.de</systemitem>.
+</para></footnote>
+He also created tools that allow printing to and from Linux. Ales
+<?troff .ffn>
+Dryak and Martin Stover each independently developed NCP fileserver
+daemons for Linux that allow network-connected NetWare clients to
+mount Linux directories exported as NCP volumes, just as the NFS
+daemon allows Linux to serve filesystems to clients using the NFS
+protocol.<footnote id="X-087-2-FNIX05"><para>Ales can be reached at <systemitem role="emailaddr">A.Dryak@sh.cvut.cz</systemitem>. Martin can be reached at <systemitem role="emailaddr">mstover@freeway.de</systemitem>.
+</para></footnote> Caldera Systems, Inc. offers a commercial and fully
+licensed NetWare client and server that supports the latest Novell
+standards, including support for the NetWare Directory Service
+(NDS).<footnote id="X-087-2-FNIX07"><para> Information on Caldera can
+be found at <emphasis>http://www.caldera.com/</emphasis>.
+</para></footnote>
+</para>
+
+<para>
+Today, therefore, Linux supports a wide range of services that allow
+systems to be integrated with existing Novell-based networks.
+</para>
+
+<sect2><title>Caldera Support</title>
+<para>
+<INDEXTERM><PRIMARY>Caldera (Linux distribution)</PRIMARY><SECONDARY>NetWare support</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Noorda, Ray</PRIMARY></INDEXTERM>
+Although we don't detail the Caldera NetWare support in this
+chapter, it is important that we talk about it. Caldera was founded
+by Ray Noorda, the former CEO of Novell. The Caldera NetWare support is a
+commercial product and fully supported by Caldera. Caldera provides the
+NetWare support as a component of their own Linux distribution called
+Caldera OpenLinux. The Caldera solution is an ideal way of introducing Linux
+into environments that demand both commercial support and the ability to
+integrate into existing or new Novell networks.
+</para>
+
+<para>
+The Caldera NetWare support is fully licensed by Novell, providing a
+high degree of certainty that the two companies' products will be
+interoperable.  The two exceptions to this certainty are "pure IP" operation for the client, and NDS server, though neither of these were available at
+the time of writing. NetWare client and NetWare server are both available. A
+suite of management tools is also provided that can simplify
+management of not only your Linux-based NetWare machines, but your
+Novell NetWare machines, too, by bringing the power of Unix scripting
+languages to the task. More information on Caldera can be found at
+their web site.
+</para>
+</sect2>
+
+<sect2><title>More on NDS Support</title>
+<para>
+<INDEXTERM><PRIMARY>NetWare Directory Service (NDS)</PRIMARY></INDEXTERM>
+Along with Version 4 of NetWare, Novell introduced a feature called
+the NetWare Directory Service (NDS). The NDS specifications are not
+available without a nondisclosure agreement, a restriction that
+hampers development of free support. Only Version 2.2.0 or later of
+the <filename>ncpfs</filename> package, which we'll discuss later, has
+any support for NDS. This support was developed by reverse engineering
+the NDS protocol. The support seems to work, but is still officially
+considered experimental. You can use the non-NDS tools with NetWare 4
+servers, provided they have &ldquo;bindery emulation mode&rdquo;
+enabled.
+</para>
+
+<para>
+The Caldera software has full support for NDS because their implementation
+is licensed from Novell. This implementation is not free, however. So
+you will not have access to the source code and will not be able to
+freely copy and distribute the software.
+</para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-ipx.kernel"><title>Configuring the Kernel for IPX<?lb>and NCPFS</title>
+<indexterm><primary>kernels</primary><secondary>configuring for IPX and NCPFS</secondary></indexterm>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>kernel configuration</secondary></indexterm>
+<indexterm><primary>NCPFS (NetWare Core Protocol Filesystem)</primary><secondary>kernel configuration</secondary></indexterm>
+<para>
+Configuring the kernel for IPX and the NCP filesystem is simply a matter of
+selecting the appropriate kernel options at kernel build time. As with many
+other parts of the kernel, IPX and NCPFS kernel components can be built into
+the kernel, or compiled as modules and loaded using the
+<command>insmod</command> command when you need them.
+</para>
+
+<para>
+The following options must be selected if you want to have Linux support and
+route the IPX protocol:
+
+<screen>
+General setup  --->
+    [*] Networking support
+
+Networking options  --->
+    <*> The IPX protocol
+
+Network device support  --->
+    [*] Ethernet (10 or 100Mbit)
+	... and appropriate Ethernet device drivers
+</screen>
+
+If you want Linux to support the NCP filesystem so it can mount remote
+NetWare volumes, you must additionally select these options:
+
+<screen>
+Filesystems  --->
+    [*] /proc filesystem support
+    <*> NCP filesystem support (to mount NetWare volumes)
+</screen>
+
+When you've compiled and installed your new kernel, you're ready to
+run IPX.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-ipx.interfaces"><title>Configuring IPX Interfaces</title>
+<indexterm id="idx-ipxinterfaces" class="startofrange"><primary>interfaces</primary><secondary>configuring IPX</secondary></indexterm>
+<para>
+Just as with TCP/IP, you must configure your IPX interfaces before you
+can use them. The IPX protocol has some unique requirements;
+consequently, a special set of configuration tools was developed. We
+will use these tools to configure our IPX interfaces and routes.
+</para>
+
+<sect2 id="X-087-2-ipx.devices"><title>Network Devices Supporting IPX</title>
+<indexterm><primary>devices</primary><secondary>supporting IPX</secondary></indexterm>
+<para>
+The IPX protocol assumes that any collection of hosts that can
+transmit datagrams to each other without routing belong to the same
+IPX network. All hosts belonging to a single Ethernet segment would
+all belong to the same IPX network. Similarly (but less intuitively),
+both hosts supporting a PPP-based serial link must belong to the IPX
+network that is the serial link itself. In an Ethernet environment,
+there are a number of different frame types that may be used to carry
+IPX datagrams. The frame types represent different Ethernet protocols
+and describe differing ways of carrying multiple protocols on the same
+Ethernet network. The most common frame types you will encounter are
+<literal>802.2</literal> and <literal>ethernet_II</literal>. We'll
+talk more about frame types in the next section.
+</para>
+
+<para>
+The Linux network devices that currently support the IPX protocol are the
+Ethernet and PPP drivers. The Ethernet or PPP interface must be
+active before it can be configured for IPX use. Typically, you configure an Ethernet device with both IP and IPX, so the device already exists, but if your 
+network is IPX only, you need to use the <command>ifconfig</command> to change the Ethernet device status to the following:
+
+<screen>
+# <userinput>ifconfig eth0 up</userinput>
+</screen>
+
+</para>
+</sect2>
+
+<sect2 id="X-087-2-ipx.tools"><title>IPX Interface Configuration Tools</title>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>interface configuration tools</secondary></indexterm>
+<para>
+Greg Page developed a set of configuration tools for IPX interfaces,
+which is a precompiled package in modern distributions and may
+also be obtained in source form by anonymous FTP from
+<emphasis>http://metalab.unc.edu/</emphasis> in the
+<filename>/pub/Linux/system/filesystems/ncpfs/ipx.tgz</filename>
+file.
+</para>
+
+<para>
+An <filename>rc</filename> script file usually runs the IPX tools at
+boot time. Your distribution may already do this for you if you have
+installed the prepackaged software.
+</para>
+</sect2>
+
+<sect2 id="X-087-2-ipx.ipx-configure"><title>The ipx_configure Command</title>
+<indexterm><primary>ipx_configure command</primary></indexterm>
+<para>
+Each IPX interface must know which IPX network it belongs to and which
+frame type to use for IPX. Each host supporting IPX has at least one
+interface that the rest of the network will use to refer to it, known
+as the <firstterm>primary</firstterm> interface. The Linux kernel IPX
+support provides a means of automatically configuring these
+parameters; the <command>ipx_configure</command> command enables or
+disables this automatic configuration feature.
+</para>
+
+<para>
+With no arguments, the <command>ipx_configure</command> command displays the
+current setting of the automatic configuration flags:
+
+<screen>
+# <userinput>ipx_configure</userinput>
+Auto Primary Select is OFF
+Auto Interface Create is OFF
+</screen>
+</para>
+
+<para>
+Both the Auto Primary and Auto Interface flags
+are off by default. To set them and enable automatic configuration, you
+simply supply arguments like these:
+
+<screen>
+# <userinput>ipx_configure --auto_interface=on --auto_primary=on</userinput>
+</screen>
+</para>
+
+<para>
+When the <literal>-&thinsp;-auto_&thinsp;primary</literal> argument is set to
+<literal>on</literal>, the kernel will automatically ensure that at
+least one active interface operates as the primary interface for the
+host.
+</para>
+
+<para>
+When the <literal>-&thinsp;-auto_interface</literal> argument is
+set to <literal>on</literal>, the kernel IPX driver will listen to all of the
+frames received on the active network interfaces and attempt to determine
+the IPX network address and frame type used.
+</para>
+
+<para>
+The auto-detection mechanism works well on properly managed networks.
+Sometimes network administrators take shortcuts and break rules, and
+this can cause problems for the Linux auto-detection code. The most common
+example of this is when one IPX network is configured to run over the same
+Ethernet with multiple frame types. This is technically an invalid
+configuration, as an <emphasis role="bold">802.2</emphasis> host cannot directly communicate with an
+Ethernet-II host and therefore they cannot be on the same IPX network.
+The Linux IPX network software listens on the segment to IPX datagrams
+transmitted on it. From these, it attempts to identify which network
+addresses are in use and which frame type is associated with each. If the
+same network address is in use with multiple frame types or on multiple
+interfaces, the Linux code detects this as a network address collision
+and is unable to determine which is the correct frame type. You will know
+this is occurring if you see messages in your system log that look like:
+
+<screen>
+IPX: Network number collision 0x3901ab00
+eth0 etherII and eth0 802.3
+</screen>
+
+If you see this problem, disable the auto-detection
+feature and configure the interfaces manually using the
+<command>ipx_interface</command> command described in the next section.
+</para>
+</sect2>
+
+<sect2 id="X-087-2-ipx.ipx-interface"><title>The ipx_interface Command</title>
+<indexterm><primary>ipx_interface command</primary></indexterm>
+<para>
+The <command>ipx_interface</command> command is used to manually add,
+modify, and delete IPX capability from an existing network device. You
+should use <command>ipx_interface</command> when the automatic
+configuration method just described does not work for you, or if you
+don't want to leave your interface configuration to
+chance. <command>ipx_interface</command> allows you to specify the IPX
+network address, primary interface status, and IPX frame type that a
+network device will use. If you are creating multiple IPX interfaces,
+you need one <command>ipx_interface</command> for each.
+</para>
+
+<para>
+The command syntax to add IPX to an existing device is straightforward
+and best explained with an example. Let's add IPX to an existing
+Ethernet device:
+
+<screen>
+# <userinput>ipx_interface add -p eth0 etherII 0x32a10103</userinput>
+</screen>
+<?troff .Nd 10>
+The parameters in turn mean:
+
+<variablelist>
+<varlistentry><term>-p</term>
+<listitem><para>
+This parameter specifies that this interface should be a primary interface.
+This parameter is optional.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>eth0</term>
+<listitem><para>
+This is the name of the network device to which we are adding IPX support.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>etherII</term>
+<listitem><para>
+This parameter is the frame type, in this case Ethernet-II. This value
+may also be coded as <literal>802.2</literal>,
+<literal>802.3</literal>, or <literal>SNAP</literal>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>0x32a10103</term>
+<listitem><para>
+This is the IPX network address to which this interface belongs.
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+</para>
+
+<para>
+The following command removes IPX from an interface:
+
+<screen>
+# <userinput>ipx_interface del eth0 etherII</userinput>
+</screen>
+</para>
+
+<para>
+Lastly, to display the current IPX configuration of a network device,
+use:
+
+<screen>
+# <userinput>ipx_interface check eth0 etherII</userinput>
+</screen>
+</para>
+
+<para>
+The <command>ipx_interface</command> command is explained more fully in its
+manual page.
+</para>
+
+</sect2>
+
+<indexterm class="endofrange" startref="idx-ipxinterfaces">
+</sect1>
+
+<sect1 id="X-087-2-ipx.router"><title>Configuring an IPX Router</title>
+<indexterm id="idx-ipxrouter" class="startofrange"><primary>routing</primary><secondary>IPX (Internet Packet eXchange)</secondary></indexterm>
+<INDEXTERM id="ipx.routing" class=startofrange><PRIMARY>IPX (Internet Packet eXchange)</PRIMARY><SECONDARY>routing</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Routing Information Protocol (RIP)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>protocols</PRIMARY><SECONDARY>Routing Information Protocol (RIP)</SECONDARY></INDEXTERM>
+<para>
+You will recall from our short discussion of the protocols used in an
+IPX environment that IPX is a routable protocol and that the Routing
+Information Protocol (RIP) is used to propagate routing
+information. The IPX version of RIP is quite similar to the IP
+version. They operate in essentially the same way; routers
+periodically broadcast the contents of their routing tables and other
+routers learn of them by listening and integrating the information
+they receive. Hosts need only know who their local network is and be
+sure to send datagrams for all other destinations via their local
+router. The router is responsible for carrying these datagrams and
+forwarding them on to the next hop in the route.
+</para>
+
+<para>
+<indexterm><primary>Service Advertisement Protocol (SAP)</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Service Advertisement Protocol (SAP)</secondary></indexterm>
+In an IPX environment, a second class of information must be
+propagated around the network. The Service Advertisement Protocol
+(SAP) carries information relating to which services are available at
+which hosts around the network. It is the SAP protocol, for example,
+that allows users to obtain lists of file or print servers on the
+network. The SAP protocol works by having hosts that provide services
+periodically broadcast the list of services they offer. The IPX
+network routers collect this information and propagate it throughout
+the network alongside the network routing information.  To be a
+compliant IPX router, you must propagate both RIP and SAP information.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>ipxd command</PRIMARY></INDEXTERM>
+Just like IP, IPX on Linux provides a routing daemon named
+<command>ipxd</command> to perform the tasks associated with managing
+routing. Again, just as with IP, it is actually the kernel that
+manages the forwarding of datagrams between IPX network interfaces,
+but it performs this according to a set of rules called the IPX
+routing table.  The <command>ipxd</command> daemon keeps that set of
+rules up to date by listening on each of the active network interfaces
+and analyzing when a routing change is necessary. The
+<command>ipxd</command> daemon also answers requests from hosts on a
+directly connected network that ask for routing information.
+</para>
+
+<para>
+The <command>ipxd</command> command is available prepackaged in some
+distributions, and in source form by anonymous FTP from 
+<emphasis>http://metalab.unc.edu/</emphasis> in the
+<filename>/pub/Linux/system/filesystems/ncpfs/ipxripd-x.xx.tgz</filename>
+file.
+</para>
+
+<para>
+No configuration is necessary for the <command>ipxd</command> daemon.
+When it starts, it automatically manages routing among the IPX
+devices that have been configured. The key is to ensure that you have
+your IPX devices configured correctly using the
+<command>ipx_interface</command> command before you start
+<command>ipxd</command>. While auto-detection may work, when you're
+performing a routing function it's best not to take chances, so
+manually configure the interfaces and save yourself the pain of nasty
+routing problems. Every 30 seconds, <command>ipxd</command>
+rediscovers all of the locally attached IPX networks and automatically
+manages them. This provides a means of managing networks on interfaces
+that may not be active all of the time, such as PPP interfaces.
+</para>
+
+<para>
+The <command>ipxd</command> would normally be started at boot time from
+an <filename>rc</filename> boot script like this:
+
+<screen>
+# <userinput>/usr/sbin/ipxd</userinput>
+</screen>
+
+No <literal>&amp;</literal> character is necessary because <command>ipxd</command> will
+move itself into the background by default. While the
+<command>ipxd</command> daemon is most useful on machines acting as
+IPX routers, it is also useful to hosts on segments where there are
+multiple routers present. When you specify the
+<literal>&ndash;p</literal> argument, <command>ipxd</command> will act
+passively, listening to routing information from the segment and
+updating the routing tables, but it will not transmit any routing
+information. This way, a host can keep its routing tables up to date
+without having to request routes each time it wants to contact a
+remote host.
+</para>
+
+<sect2><title>Static IPX Routing Using the ipx_route Command</title>
+<para>
+<indexterm><primary>ipx_route command</primary></indexterm>
+There are occasions when we might want to hardcode an IPX
+route. Just as with IP, we can do this with IPX. The
+<command>ipx_route</command> command writes a route into the IPX
+routing table without it needing to have been learned by the
+<command>ipxd</command> routing daemon. The routing syntax is very
+simple (since IPX does not support subnetworking) and looks like:
+
+<screen>
+# <userinput>ipx_route add 203a41bc 31a10103 00002a02b102</userinput>
+</screen>
+
+The command shown would add a route to the remote IPX network
+<emphasis role="bold">203a41bc</emphasis> via the router on our local network
+<emphasis role="bold">31a10103</emphasis> with node address <emphasis role="bold">00002a02b102</emphasis>.
+</para>
+
+<para>
+You can find the node address of a router by making judicious use of
+the <command>tcpdump</command> command with the
+<literal>&ndash;e</literal> argument to display link level
+headers and look for traffic from the router. If the router is a Linux
+machine, you can more simply use the <command>ifconfig</command>
+command to display it.
+</para>
+
+<para>
+You can delete a route using the <command>ipx_route</command> command:
+
+<screen>
+# <userinput>ipx_route del 203a41bc</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm><primary sortas="proc/net/ipx_route">/proc/net/ipx_route file</primary></indexterm>
+You can list the routes that are active in the kernel by looking at
+the <filename>/proc/net/ipx_route</filename> file. Our routing table
+so far looks like this:
+
+<screen>
+# <userinput>cat ipx_route</userinput>
+Network    Router_Net   Router_Node
+203A41BC   31A10103     00002a02b102
+31A10103   Directly     Connected
+</screen>
+
+The route to the <emphasis role="bold">31A10103</emphasis> network was automatically created when we configured the IPX interface. Each of our local
+networks will be represented by an <filename>/proc/net/ipx_route</filename> 
+entry like this one. Naturally, if our machine is to act as a router, it will 
+need at least one other interface.
+</para>
+</sect2>
+
+<sect2><title>Internal IPX Networks and Routing</title>
+<para>
+<INDEXTERM id="ipx.internal.networks" class=startofrange><PRIMARY>IPX (Internet Packet eXchange)</PRIMARY><SECONDARY>internal networks</SECONDARY></INDEXTERM>
+IPX hosts with more than one IPX interface have a unique network/node
+address combination for each of their interfaces. To connect to such a
+host, you may use any of these network/node address combinations. When
+SAP advertizes services, it supplies the network/node address
+associated with the service that is offered. On hosts with multiple
+interfaces, this means that one of the interfaces must be chosen as the
+one to propagate; this is the function of the primary interface flag
+we talked about earlier. But this presents a problem: the route to
+this interface may not always be the optimal one, and if a network
+failure occurs that isolates that network from the rest of the
+network, the host will become unreachable even though there are other
+<emphasis>possible</emphasis> routes to the other interfaces.  The
+other routes are never known to other hosts because they are never
+propagated, and the kernel has no way of knowing that it should choose
+another primary interface. To avoid this problem, a device was
+developed that allows an IPX host to be known by a single
+route-independent network/node address for the purposes of SAP
+propagation. This solves our problem because this new network/node
+address is reachable via all of the host interfaces, and is the one
+that is advertised by SAP.
+</para>
+
+<para>
+To illustrate the problem and its solution, <xref
+linkend="X-087-2-ipx.internal.network"> shows a server attached to two
+IPX networks. The first network has no internal network, but the second
+does. The host in diagram <xref linkend="X-087-2-ipx.internal.network"> would 
+choose one of its interfaces as its primary interface, let's assume
+<emphasis role="bold">0000001a:0800000010aa</emphasis>, and that is what 
+would be advertised as its service access point. This works well for hosts
+on the <emphasis role="bold">0000001a</emphasis> network, but means that 
+users on the <emphasis role="bold">0000002c</emphasis> network will route via 
+the network to reach that port, despite the server having a port directly on 
+that network if they've discovered this server from the SAP broadcasts.
+</para>
+
+<figure id="X-087-2-ipx.internal.network" float=0>
+<title>IPX internal network</title> <graphic
+fileref="lag2_1501.jpg"></graphic>
+</figure>
+
+<para>
+Allowing such hosts to have a virtual network with virtual host
+addresses that are entirely a software construct solves this
+problem. This virtual network is best thought of as being
+<emphasis>inside</emphasis> the IPX host. The SAP information then
+needs only to be propagated for this virtual network/node address
+combination. This virtual network is known as an <emphasis>internal
+network</emphasis>. But how do other hosts know how to reach this
+internal network? Remote hosts route to the internal network via
+the directly connected networks of the host. This means that you 
+see routing entries that refer to the internal network of hosts
+supporting multiple IPX interfaces. Those routes should choose the
+optimal route available at the time, and should one fail, the routing is 
+automatically updated to the next best interface and route. In
+<xref linkend="X-087-2-ipx.internal.network">, we've configured an
+internal IPX network of address <emphasis role="bold">0x10000010</emphasis> 
+and used a host address of <emphasis role="bold">00:00:00:00:00:01</emphasis>. It is this address that will be our primary interface and will be advertised via SAP. Our routing will reflect this network as being reachable via
+<emphasis>either</emphasis> of our real network ports, so hosts will
+always use the best network route to connect to our server.
+</para>
+
+<para>
+To create this internal network, use the
+<command>ipx_internal_net</command> command included in Greg Page's
+IPX tools package. Again, a simple example demonstrates its use:
+
+<screen>
+# <userinput>ipx_internal_net add 10000010 000000000001</userinput>
+</screen>
+
+This command would create an IPX internal network with address
+<emphasis role="bold">10000010</emphasis> and a node address of
+<emphasis role="bold">000000000001</emphasis>. The network address, just like any other
+IPX network address, must be unique on your network. The node address is
+completely arbitrary, as there will normally be only one node on the network.
+Each host may have only one IPX Internal Network, and if configured, the
+Internal Network will always be the primary network.
+</para>
+
+<para>
+To delete an IPX Internal Network, use:
+
+<screen>
+# <userinput>ipx_internal_net del</userinput>
+</screen>
+
+</para>
+
+<para>
+An internal IPX network is of absolutely no use to you unless your host both
+provides a service and has more than one IPX interface active.
+</para>
+</sect2>
+<INDEXTERM startref="ipx.internal.networks" class=endofrange>
+<indexterm class="endofrange" startref="idx-ipxrouter">
+<INDEXTERM startref="ipx.routing" class=endofrange>
+</sect1>
+
+<sect1 id="X-087-2-ipx.ncpfs.client"><title>Mounting a Remote NetWare Volume</title>
+<indexterm id="idx-ipxncpfsclient" class="startofrange"><primary>NCPFS (NetWare Core Protocol Filesystem)</primary><secondary>mounting volume on</secondary></indexterm>
+<para>
+IPX is commonly used to mount NetWare volumes in the Linux
+filesystem. This allows file-based data sharing between other
+operating systems and Linux. Volker Lendecke developed the NCP client
+for Linux and a suite of associated tools that make data sharing
+possible.
+</para>
+
+<para>
+In an NFS environment, we'd use the Linux <command>mount</command>
+command to mount the remote filesystem. Unfortunately, the NCP
+filesystem has unique requirements that make it impractical to build
+it into the normal <command>mount</command>. Linux has an
+<command>ncpmount</command> command that we will use instead. The
+<command>ncpmount</command> command is one of the tools in Volker's
+<filename>ncpfs</filename> package, which is available prepackaged in
+most modern distributions or in source form from <systemitem
+role="sitename">ftp.gwdg.de</systemitem> in the
+<filename>/pub/linux/misc/ncpfs/</filename> directory. The version
+current at the time of writing is 2.2.0.
+</para>
+
+<para>
+Before you can mount remote NetWare volumes, you must ensure your IPX network
+interface is configured correctly (as described earlier). Next, you must know
+your login details on the NetWare server you wish to mount; this includes
+the user ID and password. Lastly, you need to know which volume you wish
+to mount and what local directory you wish to mount it under.
+</para>
+
+<sect2><title>A Simple ncpmount Example</title>
+<para>
+<indexterm><primary>ncpmount command</primary><secondary>simple example</secondary></indexterm>
+A simple example of <command>ncpmount</command> usage looks like this:
+
+<screen>
+# <userinput>ncpmount -S ALES_F1 -U rick -P d00-b-gud /mnt/brewery</userinput>
+</screen>
+
+This command mounts all volumes of the <literal>ALES_F1</literal>
+fileserver under the <filename>/mnt/brewery</filename> directory,
+using the NetWare login <literal>rick</literal> with the password
+<literal>d00-b-gud</literal>.
+</para>
+
+<para>
+The <command>ncpmount</command> command is normally setuid to
+<systemitem role="userid">root</systemitem> and may therefore be used
+by any Linux user. By default, that user owns the connection and
+only he or the <systemitem role="userid">root</systemitem> user will
+be able to unmount it.
+</para>
+
+<para>
+NetWare embodies the notion of a <emphasis>volume</emphasis>, which is
+analogous to a filesystem in Linux. A NetWare volume is the logical
+representation of a NetWare filesystem, which might be a single disk
+partition be spread across many partitions. By default, the
+Linux NCPFS support treats volumes as subdirectories of a larger
+logical filesystem represented by the whole fileserver. The
+<command>ncpmount</command> command causes each of the NetWare
+volumes of the mounted fileserver to appear as a subdirectory under
+the mount point. This is convenient if you want access to the whole
+server, but for complex technical reasons you will be unable to
+re-export these directories using NFS, should you wish to do so. We'll
+discuss a more complex alternative that works around this problem in a
+moment.
+</para>
+</sect2>
+
+<sect2><title>The ncpmount Command in Detail</title>
+<para>
+<indexterm><primary>ncpmount command</primary><secondary>command-line arguments</secondary></indexterm>
+The <command>ncpmount</command> has a large number of command line options
+that allow you quite a lot of flexibility in how you manage your NCP mounts.
+The most important of these are described in
+<xref linkend="X-087-2-ipx.ncpmount.args">.
+</para>
+
+<table id="X-087-2-ipx.ncpmount.args" tocentry=1>
+<title>ncpmount Command Arguments</title>
+<tgroup cols=2>
+<colspec colwidth=1.25i>
+<colspec colwidth=3.25i>
+<thead>
+<row>
+<entry>Argument</entry>
+<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry><para>
+&ndash;S <replaceable>server</replaceable></para></entry>
+<entry><para>
+The name of the fileserver to mount.</para></entry>
+</row>
+<row>
+<entry><para>
+&ndash;U <replaceable>user_name</replaceable></para></entry>
+<entry><para>
+The NetWare user ID to use when logging in to the fileserver.</para></entry>
+</row>
+<row>
+<entry><para>
+&ndash;P  <replaceable>password</replaceable></para></entry>
+<entry><para>
+The password to use for the NetWare login.</para></entry>
+</row>
+<row>
+<entry>&ndash;n</entry>
+<entry><para>
+This option must be used for NetWare logins that don't have a password
+associated with them.</para></entry>
+</row>
+<row>
+<entry>&ndash;C</entry>
+<entry><para>
+This argument disables automatic conversion of passwords to uppercase.</para></entry>
+</row>
+<row>
+<entry>&ndash;c <replaceable>client_name</replaceable></entry>
+<entry><para>
+This option allows you to specify who owns the connection to the
+fileserver. This is useful for NetWare printing, which we will discuss in
+more detail later.</para></entry>
+</row>
+<row>
+<entry>&ndash;u <replaceable>uid</replaceable></entry>
+<entry><para>
+The Linux user ID that should be shown as the owner of files in the
+mounted directory.  If this is not specified, it defaults to the
+user ID of the user who invokes the <command>ncpmount</command>
+command.</para></entry>
+</row>
+<row>
+<entry>&ndash;g <replaceable>gid</replaceable></entry>
+<entry><para>
+The Linux group ID that should be shown as the owner of files in the
+mounted directory.  If this is not specified, it will default to the
+group ID of the user who invokes the <command>ncpmount</command>
+command.</para></entry>
+</row>
+<row>
+<entry>&ndash;f <replaceable>file_mode</replaceable></entry>
+<entry><para>
+This option allows you to specify the file mode (permissions) that
+files in the mounted directory should have. The value should be
+specified in octal, e.g., <literal>0664</literal>. The permissions
+that you will actually have are the file mode permissions
+specified with this option masked with the permissions that your
+NetWare login ID has for the files on the fileserver.  You must have
+rights on the server and rights specified by this option in order to
+access a file. The default value is derived from the current
+<literal>umask</literal>.</para></entry>
+</row>
+<row>
+<entry>&ndash;d <replaceable>dir_mode</replaceable></entry>
+<entry><para>
+This option allows you to specify the directory permissions in the
+mounted directory. It behaves in the same way as the
+<emphasis>&ndash;f</emphasis> option, except that the default permissions are
+derived from the current <literal>umask</literal>. Execute permissions
+are granted where read access is granted.</para></entry>
+</row>
+<row>
+<entry>&ndash;V <replaceable>volume</replaceable></entry>
+<entry><para>
+This option allows you to specify the name of a single NetWare
+volume to mount under the mount point, rather than mounting all volumes of
+the target server. This option is necessary if you wish to re-export a
+mounted NetWare volume using NFS.</para></entry>
+</row>
+<row>
+<entry>&ndash;t <replaceable>time_out</replaceable></entry>
+<entry><para>
+This option allows you to specify the time that the NCPFS client will wait
+for a response from a server. The default value is 60mS and the timeout is
+specified in hundredths of a second. If you experience any stability problems
+with NCP mounts, you should try increasing this value.
+</para></entry>
+</row>
+<row>
+<entry>&ndash;r <replaceable>retry_count</replaceable></entry>
+<entry><para>
+The NCP client code attempts to resend datagrams to the server
+a number of times before deciding the connection is dead. This option allows
+you to change the retry count from the default of 5.</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+</sect2>
+
+<sect2><title>Hiding Your NetWare Login Password</title>
+<para>
+<indexterm><primary>passwords</primary><secondary>hiding NetWare</secondary></indexterm>
+It is somewhat of a security risk to be putting a password on the
+command line, as we did with the <command>ncpmount</command> command.
+Other active, concurrent users could see the password if they happen
+to be running a program like <command>top</command> or
+<command>ps</command>. To reduce the risk of others seeing and
+stealing NetWare login passwords, <command>ncpmount</command> is able
+to read certain details from a file in a user's home directory. In
+this file, the user keeps the login name and password associated with
+each of the fileservers he or she intends to mount. The file is called
+<filename>~/.nwclient</filename> and it must have permissions of
+<literal>0600</literal> to ensure that others cannot read it. If the
+permissions are not correct, the <command>ncpmount</command> command
+will refuse to use it.
+</para>
+
+<para>
+The file has a very simple syntax. Any lines beginning with a #
+character are treated as comments and ignored.
+The remainder of the lines have the syntax:
+
+<screen>
+<replaceable>fileserver</replaceable>/<replaceable>userid</replaceable> <replaceable>password</replaceable>
+</screen>
+
+The <replaceable>fileserver</replaceable> is the name of the
+fileserver supporting the volumes you wish to mount. The
+<replaceable>userid</replaceable> is the login name of your account on
+that server. The <replaceable>password</replaceable> field is
+optional. If it is not supplied, the <command>ncpmount</command>
+command prompts users for the password when they attempt the
+mount. If the <replaceable>password</replaceable> field is specified
+as the &ndash; character, no password is used; this is equivalent
+to the <literal>&ndash;n</literal> command-line argument.
+</para>
+
+<para>
+You can supply any number of entries, but the fileserver field must be
+unique. The first fileserver entry has special significance. The
+<command>ncpmount</command> command uses the <literal>&ndash;S</literal>
+command-line argument to determine which of the entries in
+<filename>~/.nwclient</filename> to use. If no server is specified
+using the <literal>&ndash;S</literal> argument, the first server entry
+in <filename>~/.nwclient</filename> is assumed, and is treated as your
+preferred server. You should place the fileserver you mount most
+frequently in the first position in the file.
+</para>
+</sect2>
+
+<sect2><title>A More Complex ncpmount Example</title>
+<para>
+<indexterm><primary>ncpmount command</primary><secondary>complex example</secondary></indexterm>
+<indexterm><primary>NCPFS (NetWare Core Protocol Filesystem)</primary><secondary sortas="nwclient">~/.nwclient file</secondary></indexterm>
+Let's look at a more complex <command>ncpmount</command> example involving
+a number of the features we've described. First, let's build a simple
+<filename>~/.nwclient</filename> file:
+
+<screen>
+# NetWare login details for the Virtual Brewery and Winery
+#
+# Brewery Login
+ALES_F1/MATT staoic1
+#
+# Winery Login
+REDS01/MATT staoic1
+#
+</screen>
+<?troff .Nd 10>
+Make sure its permissions are correct:
+
+<screen>
+$ <userinput>chmod 600 ~/.nwclient</userinput>
+</screen>
+
+</para>
+
+<para>
+Let's mount one volume of the Winery's server under a subdirectory of a
+shared directory, specifying the file and directory permissions such that
+others may share the data from there:
+
+<screen>
+$ ncpmount -S REDS01 -V RESEARCH -f 0664 -d 0775 /usr/share/winery/data/
+</screen>
+
+This command, in combination with the <filename>~/.nwclient</filename> file
+shown, would mount the <literal>RESEARCH</literal> volume of the
+<literal>REDS01</literal> server onto the
+<filename>/usr/share/winery/data/</filename> directory using the NetWare
+login ID of <literal>MATT</literal> and the password retrieved
+from the <filename>~/.nwclient</filename> file. The permissions of the
+mounted files are <literal>0664</literal> and the directory permissions
+are <literal>0775</literal>.
+</para>
+
+</sect2>
+
+<indexterm class="endofrange" startref="idx-ipxncpfsclient">
+</sect1>
+
+<sect1 id="X-087-2-ipx.othertools"><title>Exploring Some of the Other IPX Tools</title>
+<para>
+The <filename>ncpfs</filename> package contains a number of useful
+tools that we haven't described yet. Many of these tools emulate the
+tools that are supplied with NetWare. We'll look at the most useful
+ones in this section.
+</para>
+
+<sect2><title>Server List</title>
+<para>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>tools</secondary><tertiary>slist</tertiary></indexterm>
+<INDEXTERM><PRIMARY>slist command</PRIMARY></INDEXTERM>
+The <command>slist</command> command lists all of the fileservers accessible
+to the host. The information is actually retrieved from the nearest
+IPX router. This command was probably originally intended to allow users to
+see what fileservers were available to mount. But it has become useful as a
+network diagnosis tool, allowing network admins to see where SAP information
+is being propagated:
+</para>
+
+<screen>
+$ slist
+NPPWR-31-CD01                               23A91330  000000000001
+V242X-14-F02                                A3062DB0  000000000001
+QITG_284ELI05_F4                            78A20430  000000000001
+QRWMA-04-F16                                B2030D6A  000000000001
+VWPDE-02-F08                                35540430  000000000001
+NMCS_33PARK08_F2                            248B0530  000000000001
+NCCRD-00-CD01                               21790430  000000000001
+NWGNG-F07                                   53171D02  000000000001
+QCON_7TOMLI04_F7                            72760630  000000000001
+W639W-F04                                   D1014D0E  000000000001
+QCON_481GYM0G_F1                            77690130  000000000001
+VITG_SOE-MAIL_F4R                           33200C30  000000000001
+</screen>
+
+<para>
+<command>slist</command> accepts no arguments. The output displays
+the fileserver name, the IPX network address, and the host address.
+</para>
+</sect2>
+
+<sect2><title>Send Messages to NetWare Users</title>
+<para>
+<INDEXTERM><PRIMARY>nsend command</PRIMARY></INDEXTERM>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>tools</secondary><tertiary>nsend</tertiary></indexterm>
+NetWare supports a mechanism to send messages to logged-in users. The
+<command>nsend</command> command implements this feature in Linux. You must
+be logged in to the server to send messages, so you need to supply the
+fileserver name and login details on the command line with the destination
+user and the message to send:
+</para>
+
+<screen>
+# <userinput>nsend -S vbrew_f1 -U gary -P j0yj0y supervisor
+      &ldquo;Join me for a lager before we do the print queues!&rdquo;
+</userinput>
+</screen>
+
+<para>
+Here a user with login name <literal>gary</literal> sends a tempting
+invitation to the person using the <literal>supervisor</literal>
+account on the <literal>ALES_F1</literal> fileserver. Our default
+fileserver and login credentials will be used if we don't supply them.
+</para>
+
+</sect2>
+
+<sect2><title>Browsing and Manipulating Bindery Data</title>
+<para>
+<INDEXTERM><PRIMARY>bindery manipulation tools</PRIMARY></INDEXTERM>
+Each NetWare fileserver maintains a database of information about its
+users and configuration. This database is called the
+<emphasis>bindery</emphasis>. Linux supports a set of tools that allow
+you to read it, and if you have supervisor permissions on the server, to set
+and remove it. A summary of these tools is listed in 
+<xref linkend="X-087-2-chix-binderytools">.
+</para>
+
+<table id="X-087-2-chix-binderytools">
+<title>Linux Bindery Manipulation Tools</title>
+<tgroup cols=2>
+<colspec colwidth=1i>
+<colspec colwidth=3i>
+<thead>
+<row>
+<entry>Command Name</entry>
+<entry>Command Description</entry>
+</row>
+</thead>
+
+<tbody>
+<row>
+<entry><command>nwfstime</command></entry>
+<entry><para>
+Display or set a NetWare server's date and time</para></entry>
+</row>
+<row>
+<entry><command>nwuserlist</command></entry>
+<entry><para>
+List users logged in at a NetWare server</para></entry>
+</row>
+<row>
+<entry><command>nwvolinfo</command></entry>
+<entry><para>
+Display info about NetWare volumes</para></entry>
+</row>
+<row>
+<entry><command>nwbocreate</command></entry>
+<entry><para>
+Create a NetWare bindery object</para></entry>
+</row>
+<row>
+<entry><command>nwbols</command></entry>
+<entry><para>
+List NetWare bindery objects</para></entry>
+</row>
+<row>
+<entry><command>nwboprops</command></entry>
+<entry><para>
+List properties of a NetWare bindery object</para></entry>
+</row>
+<row>
+<entry><command>nwborm</command></entry>
+<entry><para>
+Remove a NetWare bindery object</para></entry>
+</row>
+<row>
+<entry><command>nwbpcreate</command></entry>
+<entry><para>
+Create a NetWare bindery property</para></entry>
+</row>
+<row>
+<entry><command>nwbpvalues</command></entry>
+<entry><para>
+Print a NetWare bindery property's contents</para></entry>
+</row>
+<row>
+<entry><command>nwbpadd</command></entry>
+<entry><para>
+Set the value of a NetWare bindery property</para></entry>
+</row>
+<row>
+<entry><command>nwbprm</command></entry>
+<entry><para>
+Remove a NetWare bindery property</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-ipx.ncpfs.printing"><title>Printing to a NetWare Print Queue</title>
+<indexterm id="idx-ipxncpfsprinting" class="startofrange"><primary>NetWare</primary><secondary>print queue, printing to</secondary></indexterm>
+<INDEXTERM><PRIMARY>print queues, NetWare</PRIMARY></INDEXTERM>
+<indexterm><primary>nprint command</primary></indexterm>
+<para>
+The <filename>ncpfs</filename> package contains a small utility called
+<command>nprint</command> that sends print jobs across an NCP
+connection to a NetWare print queue.  This command creates the
+connection if it doesn't currently exist and uses the
+<filename>~/.nwclient</filename> file that we described earlier to
+hide the username and password from prying eyes. The command-line
+arguments used to manage the login process are the same as those used
+by the <command>ncpmount</command>, so we won't go through those again
+here.  We will cover the most important command-line options in our
+examples; refer to the <filename>nprint(1)</filename> manual page for
+details.
+</para>
+
+<para>
+The only required option for <command>nprint</command> is the name of
+the file to print. If the filename specified is &ndash; or if no filename
+is specified at all, <command>nprint</command> will accept the print job
+from <literal>stdin</literal>. The most important <command>nprint</command>
+options specify the fileserver and print queue to which you wish the job to be
+sent. <xref linkend="X-087-2-ipx.nprint.options"> lists the most
+important options.
+</para>
+
+<table id="X-087-2-ipx.nprint.options">
+<title>nprint Command-Line Options</title>
+<tgroup cols=2>
+<colspec colwidth=1i>
+<colspec colwidth=3.25i>
+<thead>
+<row>
+<entry>Option</entry>
+<entry>Description</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry>-S <replaceable>server_name</replaceable></entry>
+<entry><para>
+The name of the NetWare fileserver supporting the print queue to which you wish
+to print. Usually it is convenient for the server to have an entry in
+<filename>~/.nwclient</filename>. This option is mandatory.</para></entry>
+</row>
+<row>
+<entry>-q <replaceable>queue_name</replaceable></entry>
+<entry><para>
+The print queue to which to send the print job. This option is mandatory.</para></entry>
+</row>
+<row>
+<entry>-d <replaceable>job_description</replaceable></entry>
+<entry><para>
+Text that will appear in the print console utility when displaying the
+list of queued jobs.</para></entry>
+</row>
+<row>
+<entry>-l <replaceable>lines</replaceable></entry>
+<entry><para>
+The number of lines per printed page. This defaults to 66.</para></entry>
+</row>
+<row>
+<entry>-r <replaceable>columns</replaceable></entry>
+<entry><para>
+The number of columns per printed page. This defaults to 80.</para></entry>
+</row>
+<row>
+<entry>-c <replaceable>copies</replaceable></entry>
+<entry><para>
+The number of copies of the job that will be printed. The default is 1.</para></entry>
+</row>
+</tbody>
+</tgroup>
+</table>
+
+<para>
+A simple example using <command>nprint</command> would look like:
+
+<screen>
+$ nprint -S REDS01 -q PSLASER -c 2 /home/matt/ethylene.ps
+</screen>
+
+This command would print two copies of the file
+<filename>/home/matt/ethylene.ps</filename> to the printer named
+<literal>PSLASER</literal> on the <literal>REDS01</literal>
+fileserver using a username and password obtained from the
+<filename>~/.nwclient</filename> file.
+</para>
+
+<sect2><title>Using nprint with the Line Printer Daemon</title>
+<para>
+<indexterm><primary>nprint command</primary><secondary>using lpd (line printer daemon)</secondary></indexterm>
+<INDEXTERM><PRIMARY>lpd (line printer daemon)</PRIMARY></INDEXTERM>
+You will recall we previously mentioned that the
+<option>&ndash;c</option> option for the <command>ncpmount</command>
+is useful for printing. At last we'll explain why and how.
+</para>
+
+<para>
+Linux usually uses BSD-style line printer software. The line printer daemon
+(<command>lpd</command>&thinsp;) is a daemon that checks a local spool directory
+for queued jobs that are to be printed. <command>lpd</command> reads the
+printer name and some other parameters from the specially formatted spool
+file and writes the data to the printer, optionally passing the data
+through a filter to transform or manipulate it in some way.
+</para>
+
+<para>
+The <command>lpd</command> daemon uses a simple database called
+<filename>/etc/printcap</filename> to store printer configuration
+information, including what filters are to be
+run. <command>lpd</command> usually runs with the permissions of a
+special system user called <systemitem role="userid">lp</systemitem>.
+</para>
+
+<para>
+You could configure <command>nprint</command> as a filter for
+the <command>lpd</command> to use, which allows users of your Linux machine to
+output directly to remote printers hosted by a NetWare fileserver. To do this,
+the <systemitem role="userid">lp</systemitem> user must be able to write NCP
+requests to the NCP connection to the server.
+</para>
+
+<para>
+An easy way to achieve this without requiring the
+<systemitem role="userid">lp</systemitem> user to establish its own connection
+and login is to specify <systemitem role="userid">lp</systemitem> as the owner
+of a connection established by another user. A complete example of how to set 
+up the Linux printing system to handle print jobs from clients over NetWare is listed in three steps:
+</para>
+
+<orderedlist>
+<listitem><para>Write a wrapper script.</para>
+<para>
+The <filename>/etc/printcap</filename> file doesn't permit options to
+be supplied to filters. Therefore, you need to write a short script
+that invokes the command you want along with its options.  The wrapper
+script could be as simple as:
+<screen>
+#!/bin/sh
+# p2pslaser - simple script to redirect stdin to the
+# PSLASER queue on the REDS01 server
+#
+/usr/bin/nprint -S REDS01 -U stuart -q PSLASER
+#
+</screen>
+</para>
+
+<para>
+Store the script in the file <filename>/usr/local/bin/p2pslaser</filename>.
+</para>
+</listitem>
+
+<listitem><para>Write the <filename>/etc/printcap</filename> entry.</para>
+<para>
+We'll need to configure the <filename>p2pslaser</filename> script we
+created as the output filter in the <filename>/etc/printcap</filename>.
+This would look something like:
+
+<screen>
+pslaser|Postscript Laser Printer hosted by NetWare server:\                     
+:lp=/dev/null:\                                                         
+:sd=/var/spool/lpd/pslaser:\                                            
+:if=/usr/local/bin/p2pslaser:\
+:af=/var/log/lp-acct:\
+:lf=/var/log/lp-errs:\
+:pl#66:\                                                                
+:pw#80:\                                                                
+:pc#150:\                                                               
+:mx#0:\                                                                 
+:sh:                                                                    
+</screen>
+</para> 
+
+</listitem>
+
+<listitem><para>Add the <option>&ndash;c</option> option to the <command>ncpmount</command>.</para>
+
+<screen>
+ncpmount -S REDS01 .... -c lp ....
+</screen>
+
+<?troff .Nd 10>
+<para>
+Our local user <systemitem role="userid">stuart</systemitem> must specify
+the <systemitem role="userid">lp</systemitem> user as the owner of the
+connection when he mounts the remote NetWare server.
+</para>
+</listitem>
+</orderedlist>
+
+<para>
+Now any Linux user may choose to specify <literal>pslaser</literal> as the printer name
+when invoking <emphasis role="bold">lp</emphasis>. The print job will be sent
+to the specified NetWare server and spooled for printing.
+</para>
+</sect2>
+
+<sect2><title>Managing Print Queues</title>
+<para>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>tools</secondary><tertiary>pqlist</tertiary></indexterm>
+<INDEXTERM><PRIMARY>pqlist command</PRIMARY></INDEXTERM>
+The <command>pqlist</command> command lists all of the print queues available
+to you on the specified server. If you do not specify a fileserver on
+the command line using the <option>-S</option> option, or a login name and
+password, these will be taken from the default entry in your
+<filename>~/.nwclient</filename> file:
+</para>
+
+<screen>
+# <userinput>pqlist -S vbrew_f1 -U guest -n</userinput>
+Server: ALES_F1
+Print queue name                                    Queue ID  
+------------------------------------------------------------
+TEST                                                AA02009E
+Q2                                                  EF0200D9
+NPI223761_P1                                        DA03007C
+Q1                                                  F1060004
+I-DATA                                              0D0A003B
+NPI223761_P3                                        D80A0031
+</screen>
+
+<para>
+Our example shows a list of the print queues available to the
+<literal>guest</literal> user on the <literal>ALES_F1</literal>
+fileserver.<footnote id="X-087-2-FNIX09"><para> It looks like the
+system administrators had been sampling some of the Virtual Brewery's
+wares before they chose some of those print queue names. Hopefully
+your print queue names are more meaningful!</para>
+</footnote>
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>pqstat command</PRIMARY></INDEXTERM>
+To view the print jobs on a print queue, use the
+<command>pqstat</command> command. It takes the
+print queue name as an argument and lists all of the jobs in that queue.
+You may optionally supply another argument indicating how many of the jobs
+in the queue you'd like to list. The following sample output has been
+compressed a bit to fit the width of this book's page:
+
+<screen>
+$ pqstat -S ALES_F1 NPI223761_P1
+
+Server: ALES_F1     Queue: NPI223761_P1          Queue ID: 6A0E000C
+   Seq  Name      Description                    Status   Form  Job ID  
+------------------------------------------------------------------------
+     1  TOTRAN    LyX document - proposal.lyx    Active      0  02660001
+</screen>
+</para>
+
+<para>
+We can see just one print job in the queue, owned by user
+<literal>TOTRAN</literal>. The rest of the options include a
+description of the job, its status, and its job identifier.
+</para>
+<?troff .Nd 10>
+<para>
+The <command>pqrm</command> command is used to remove print jobs from
+a specified print queue. To remove the job in the queue we've just
+obtained the status of, we'd use:
+</para>
+
+<screen>
+$ pqrm -S ALES_F1 NPI223761_P1 02660001
+</screen>
+
+<para>
+The command is pretty straightforward but is clumsy to use in a hurry. It
+would be a worthwhile project to write a basic script to simplify this
+operation.
+</para>
+
+</sect2>
+
+<indexterm class="endofrange" startref="idx-ipxncpfsprinting">
+</sect1>
+
+<sect1 id="X-087-2-ipx.ncpfs.server"><title>NetWare Server Emulation</title>
+<para>
+<indexterm id="idx-ipxncpfsserver" class="startofrange"><primary>NCPFS (NetWare Core Protocol Filesystem)</primary><secondary>server emulation</secondary></indexterm>
+<INDEXTERM><PRIMARY>IPX-HOWTO</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>HOWTOs</PRIMARY><SECONDARY>IPX</SECONDARY></INDEXTERM>
+<indexterm><primary>Stover, Martin</primary></indexterm>
+<indexterm><primary>Dryak, Ales</primary></indexterm>
+There are two free software emulators for NetWare fileservers under
+Linux. <command>lwared</command> was developed by Ales Dryak and
+<command>mars_nwe</command> was developed by Martin Stover. Both of
+these packages provide elementary NetWare fileserver emulation under
+Linux, allowing NetWare clients to mount Linux directories exported as
+NetWare volumes. While the <command>lwared</command> server is 
+simpler to configure, the <command>mars_nwe</command> server is 
+more fully featured. The installation and configuration of these packages is
+beyond the scope of this chapter, but both are described in the
+IPX-HOWTO.
+</para>
+<indexterm class="endofrange" startref="idx-ipxncpfsserver">
+</sect1>
+
+</chapter>

@@ -1,0 +1,1041 @@
+<chapter id="X-087-2-exim"><title>Getting Exim<?lb>Up and Running</title>
+<para>
+This chapter gives you a quick introduction to setting up Exim and an overview
+of its functionality. Although Exim is largely compatible with
+<command>sendmail</command> in its behavior, its configuration files are
+completely different.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>configuration files</secondary></indexterm> 
+The main configuration file is usually called
+<filename>/etc/exim.conf</filename> or <filename>/etc/exim/config</filename>
+in most Linux distributions, or <filename>/usr/lib/exim/config</filename> in
+older configurations. You can find out where the configuration file is by
+running the command:
+
+<screen>
+$ <userinput>exim -bP configure_file</userinput>
+</screen>
+</para>
+
+<para>
+You may have to edit the configuration file to reflect values specific to your
+site. In most common configurations there isn't a great deal to change, and a
+working configuration should rarely have to be modified.
+</para>
+
+<para>
+<indexterm><primary>email</primary><secondary>queue</secondary></indexterm>
+By default, Exim processes and delivers all incoming mail immediately. If you
+have relatively high traffic, you may instead have Exim collect all messages
+in the so-called <emphasis>queue</emphasis>, and process them at regular
+intervals only.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>daemon mode</secondary></indexterm>
+When handling mail within a TCP/IP network, Exim is frequently run in daemon
+mode: at system boot time, it is invoked from
+<filename>/etc/init.d/exim</filename><footnote id="X-087-2-FNEX01">
+<para>
+Other possible locations are
+<filename>/etc/rc.d/init.d</filename> and
+<filename>rc.inet2</filename>. The latter is common on systems
+using a BSD-style structure for system administration files in the
+<filename>/etc</filename> directory.
+</para>
+</footnote>
+and puts itself in the background, where it waits for incoming TCP connections
+on the SMTP port (usually port 25). This is beneficial whenever you expect to
+have a significant amount of traffic because Exim doesn't have to start up
+for every incoming connection. Alternatively, <command>inetd</command> could 
+manage the SMTP port and have it spawn Exim whenever there is a connection 
+on this port. This configuration might be useful when you have limited 
+memory and low mail traffic volumes.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>utilities</secondary></indexterm>
+<INDEXTERM><PRIMARY>Exim</PRIMARY><SECONDARY>symbolic links to</SECONDARY></INDEXTERM>
+Exim has a complicated set of command-line options, including many
+that match those of sendmail. Instead of trying to put together
+exactly the right options for your needs, you can implement the most
+common types of operation by invoking traditional commands like
+<command>rmail</command> or <command>rsmtp</command>. These are
+symbolic links to Exim (or if they're not, you can easily link
+them to it). When you run one of the commands, Exim checks the
+name you used to invoke it and sets the proper options itself.
+</para>
+
+<para>
+There are two links to Exim that you should have under all circumstances:
+<command>/usr/bin/rmail</command> and <command>/usr/sbin/sendmail</command>.<footnote id="X-087-2-FNEX02"><para>
+This is the new standard location of <command>sendmail</command> according to
+the Linux File System Standard. Another common location is
+<filename>/usr/lib/sendmail</filename>, which is likely to be used by mail
+programs that are not specially configured for Linux.
+You can define both filenames as symbolic links to
+Exim so that programs and scripts invoking <emphasis>sendmail</emphasis> will instead
+invoke Exim to do the same things.
+</para>
+</footnote>
+When you compose and send a mail message with a user agent like
+<command>elm</command>, the message is piped to <command>sendmail</command>
+or <command>rmail</command> for delivery, which is why both
+<command>/usr/sbin/sendmail</command> and <command>/usr/bin/rmail</command>
+should point to Exim. The list of recipients for the message is passed to Exim
+on the command line.<footnote id="X-087-2-FNEX03"><para>
+Some user agents, however, use the SMTP protocol to pass messages to the 
+transport agent, calling it with the <option>&ndash;bs</option> option.
+</para>
+</footnote>
+The same happens with mail coming in via UUCP. You can set up the required
+pathnames to point to Exim by typing the following at a shell prompt:
+
+<screen>
+$ <userinput>ln -s /usr/sbin/exim /usr/bin/rmail</userinput>
+$ <userinput>ln -s /usr/sbin/exim /usr/sbin/sendmail</userinput>
+</screen>
+</para>
+
+<para>
+If you want to dig further into the details of configuring Exim, you should
+consult the full Exim specification. If this isn't included in your favorite
+Linux distribution, you can get it from the source to Exim, or read it online
+from Exim's web site at
+<systemitem role="url">http://www.exim.org</systemitem>.
+</para>
+
+<sect1><title>Running Exim</title>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>running</secondary></indexterm>
+To run Exim, you must first decide whether you want it to handle incoming SMTP
+messages by running as a separate daemon, or whether to have
+<command>inetd</command> manage the SMTP port and invoke Exim only whenever an
+SMTP connection is requested from a client. Usually, you will prefer daemon
+operation on the mail server because it loads the machine far less than
+spawning Exim over and over again for each connection. As the mail server also
+delivers most incoming mail directly to the users, you should choose
+<command>inetd</command> operation on most other hosts.
+</para>
+
+<para>
+<indexterm><primary>SMTP (Simple Mail Transfer Protocol)</primary><secondary>service</secondary></indexterm>
+<indexterm><primary sortas="etc/services file">/etc/services file</primary></indexterm> 
+Whatever mode of operation you choose for each individual host, you
+have to make sure you have the following entry in your
+<filename>/etc/services</filename> file:
+
+<screen>
+smtp            25/tcp          # Simple Mail Transfer Protocol
+</screen>
+</para>
+
+<para>
+This defines the TCP port number that is used for SMTP conversations.
+Port number 25 is the standard defined by the &ldquo;Assigned Numbers&rdquo;
+RFC (RFC-1700).
+</para>
+
+<para>
+When run in daemon mode, Exim puts itself in the background and waits for
+connections on the SMTP port. When a connection occurs, it forks, and the
+child process conducts an SMTP conversation with the peer process on the
+calling host.  The Exim daemon is usually started by invoking it from the
+<filename>rc</filename> script at boot time using the following command:
+
+<screen>
+/usr/sbin/exim -bd -q15m
+</screen>
+</para>
+
+<para>
+The <option>&ndash;bd</option> flag turns on daemon mode, and
+<option>&ndash;q15m</option> makes it process whatever messages have
+accumulated in the message queue every 15 minutes.
+</para>
+
+<para>
+<indexterm><primary>inetd super server</primary><secondary>running Exim under</secondary></indexterm>
+<indexterm><primary SORTAS="etc/inetd.conf file">/etc/inetd.conf file</primary></indexterm> 
+If you want to use <command>inetd</command> instead, your
+<filename>/etc/inetd.conf</filename> file should contain a line like this:
+
+<screen>
+smtp    stream  tcp nowait  root  /usr/sbin/exim  in.exim -bs
+</screen>
+</para>
+
+<para>
+Remember you have to make <command>inetd</command> re-read
+<filename>inetd.conf</filename> by sending it an
+<systemitem role="keyword">HUP</systemitem> signal after
+making any changes.<footnote id="X-087-2-FNEX04"><para>
+Use <literal>kill HUP</literal> <replaceable>pid,</replaceable> for which <replaceable>pid</replaceable> is the process ID of the <command>inetd</command> process retrieved from a 
+<command>ps</command> listing.
+</para>
+</footnote>
+</para>
+
+<para>
+Daemon and <command>inetd</command> modes are mutually exclusive. If
+you run Exim in daemon mode, you should make sure to comment out any line in
+<filename>inetd.conf</filename> for the
+<systemitem role="keyword">smtp</systemitem> service. Equivalently, when
+having <command>inetd</command> manage Exim, make sure that no
+<filename>rc</filename> script starts the Exim daemon.
+</para>
+
+<para>
+You can check that Exim is correctly set up for receiving incoming SMTP
+messages by telnetting to the SMTP port on your machine. This is what a
+successful connect to the SMTP server looks like:
+
+<screen>
+$ <userinput>telnet localhost smtp</userinput>
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+220 richard.vbrew.com ESMTP Exim 3.13 #1 Sun, 30 Jan 2000 16:23:55 +0600
+<userinput>quit</userinput>
+221 richard.brew.com closing connection
+Connection closed by foreign host.
+</screen>
+</para>
+
+<para>
+If this test doesn't produce the SMTP banner (the line starting with the
+220 code), check that you are either running an Exim daemon process or 
+have <command>inetd</command> correctly configured. If that doesn't reveal 
+the problem, look in the Exim log files (described next) in case 
+there is an error in Exim's configuration file.
+</para>
+
+</sect1>
+
+<sect1><title>If Your Mail Doesn't Get Through</title>
+<para>
+<indexterm><primary>Exim</primary><secondary>troubleshooting</secondary></indexterm>
+<indexterm><primary>Exim</primary><secondary>log files</secondary></indexterm>
+A number of features are available for troubleshooting installation problems.
+The first place to check is Exim's log files. On Linux systems they are
+normally kept in <filename>/var/log/exim/log</filename> and are named
+<filename>exim_mainlog</filename>, <filename>exim_rejectlog</filename>, and
+<filename>exim_paniclog</filename>. On other operating systems, they are
+often kept in <filename>/var/spool/exim/log</filename>. You can find out
+where the log files are by running the command:
+
+<screen>
+exim -bP log_file_path
+</screen>
+</para>
+
+<para>
+The main log lists all transactions, the reject log contains details of
+messages that were rejected for policy reasons, and the panic log is
+for messages related to configuration errors and the like.
+</para>
+
+<para>
+Typical entries in the main log are shown below. Each entry in the log itself 
+is a single line of text, starting with a date and time. They have
+been split into several lines here in order to fit them on the page:
+
+<screen>
+2000-01-30 15:46:37 12EwYe-0004WO-00 &lt;= jack@vstout.vbrew.com 
+  H=vstout.vbrew.com [192.168.131.111] U=exim P=esmtp S=32100 
+  id=38690D72.286F@vstout.vbrew.com
+2000-01-30 15:46:37 12EwYe-0004WO-00 =&gt; jill &lt;jill@vbrew.com&gt; 
+  D=localuser T=local_delivery
+2000-01-30 15:46:37 12EwYe-0004WO-00 Completed
+</screen>
+</para>
+
+<para>
+These entries show that a message from
+<systemitem role="emailaddr">jack@vstout.vbrew.com</systemitem> 
+to <systemitem role="emailaddr">jill@vbrew.com</systemitem> was
+successfully delivered to a mailbox on the local host. Message arrivals 
+are flagged with <literal>&lt;=</literal>, and deliveries with
+<literal>=&gt;</literal>.
+</para>
+
+<para>
+There are two kinds of delivery errors: permanent and temporary. A permanent
+delivery error is recorded in a log entry like this, flagged with
+&ldquo;<literal>**</literal>&rdquo;:
+
+<screen>
+2000-01-30 14:48:28 12EvcH-0003rC-00 ** bill@lager.vbrew.com 
+  R=lookuphost T=smtp: SMTP error from remote mailer after RCPT TO:
+  &lt;bill@lager.vbrew.com&gt;: host lager.vbrew.com [192.168.157.2]: 
+  550 &lt;bill@lager.vbrew.com&gt;... User unknown
+</screen>
+</para>
+
+<para>
+After a failure like this, Exim sends a delivery failure report, often called a
+<emphasis>bounce message</emphasis> back to the sender.</para>
+<para> Temporary errors are
+flagged with &ldquo;<literal>==</literal>&rdquo;:
+
+<screen>
+2000-01-30 12:50:50 12E9Un-0004Wq-00 == jim@bitter.vbrew.com 
+  T=smtp defer (145): Connection timed out
+</screen>
+</para>
+
+<para>
+This error is typical for a situation in which Exim properly recognizes
+that the message should be delivered to a remote host, but is not able to
+connect to the SMTP service on that host. The host may be down or there 
+could be a network problem. Whenever a message is
+<emphasis>deferred</emphasis> like this, it remains on Exim's queue and is
+retried at intervals. However, if it fails to be delivered for a sufficiently
+long time (usually several days), a permanent error occurs and the message is
+bounced.
+</para>
+
+<para>
+If you are unable to locate your problem from the error message Exim 
+generates, you may want to turn on debugging messages. You can do this 
+using the <option>&ndash;d</option> flag, optionally followed by a number 
+specifying the level of verbosity (a value of 9 gives maximum information). 
+Exim then displays a report of its operation on the screen, which may 
+give you more hints about what is going wrong.
+</para>
+
+</sect1>
+
+<sect1><title>Compiling Exim</title>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>compiling</secondary></indexterm>
+Exim is still under active development; the version of Exim included in
+Linux distributions is probably not the latest release. If you need a 
+feature or a bugfix found in a later release, you have to obtain a 
+copy of the source code and compile it yourself. The latest release can be 
+found via Exim's web page at 
+<systemitem role="url">http://www.exim.org</systemitem>.
+</para>
+
+<para>
+Linux is one of the many operating systems supported by the Exim source. To
+compile Exim for Linux, you should edit the <filename>src/EDITME</filename>
+file and put the result in a file called <filename>Local/Makefile</filename>.
+There are comments in <filename>src/EDITME</filename> that tell you what the
+various settings are used for. Then run <command>make</command>.  See the Exim
+manual for detailed information on building Exim from source.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-exim.queue"><title>Mail Delivery Modes</title>
+<para>
+<indexterm><primary>Exim</primary><secondary>mail delivery modes</secondary></indexterm>
+<indexterm><primary>Exim</primary><secondary>queuing mail</secondary></indexterm>
+<indexterm><primary>queuing mail</primary></indexterm>
+<indexterm><primary>email</primary><secondary>queue</secondary></indexterm>
+As noted previously, Exim is able to deliver messages immediately or
+queue them for later processing. All incoming mail is stored in the
+<filename>input</filename> directory below
+<filename>/var/spool/exim</filename>. When queueing is not in
+operation, a delivery process is started for each message as soon as
+it arrives. Otherwise, it is left on the queue until a
+<emphasis>queue-runner</emphasis> process picks it up. Queueing can be
+made unconditional by setting <option>queue_only</option> in the
+configuration file, or it can be conditional on the 1-minute system
+load by a setting such as:
+
+<screen>
+queue_only_load = 4
+</screen>
+
+which causes messages to be queued if the system load exceeds
+4.<footnote>
+<para>
+The system load is a standard Unix measure of the
+average number of processes that are queued up, waiting to run. The
+<command>uptime</command> shows load averages taken over the previous
+1, 5, and 15 minutes.
+</para>
+</footnote>
+</para>
+
+<para>
+If your host is not permanently connected to the Internet, you may
+want to turn on queueing for remote addresses, while allowing Exim to
+perform local deliveries immediately. You can do this by setting:
+
+<screen>
+queue_remote_domains = *
+</screen>
+
+in the configuration file.
+</para>
+
+<para>
+<indexterm><primary>cron</primary><secondary>running</secondary><tertiary>Exim via</tertiary></indexterm> 
+If you turn on any form of queuing, you have to make sure the queues
+are checked regularly, probably every 10 or 15 minutes. Even without
+any explicit queueing options, the queues need to be checked for
+messages that have been deferred because of temporary delivery
+failures. If you run Exim in daemon mode, you must add the
+<option>&ndash;q15m</option> option on the command line to process the
+queue every 15 minutes.  You can also invoke <command>exim
+&ndash;q</command> from <command>cron</command> at these intervals.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>check mail queue</secondary></indexterm>
+<indexterm><primary>checking</primary><secondary>mail queue</secondary></indexterm>
+You can display the current mail queue by invoking Exim with the
+<option>&ndash;bp</option> option. Equivalently, you can make
+<command>mailq</command> a link to Exim, and invoke
+<command>mailq</command>&thinsp;:
+
+<screen>
+$ <userinput>mailq</userinput>
+ 2h   52K 12EwGE-0005jD-00 &lt;sam@vbrew.com&gt;
+        D bob@vbrew.com
+          harry@example.net  
+</screen>
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>log files</secondary></indexterm>
+This shows a single message from <systemitem
+role="emailaddr">sam@vbrew.com</systemitem> to two recipients sitting
+in the message queue. It has been successfully delivered to
+<systemitem role="emailaddr">bob@vbrew.com</systemitem>, but has not
+yet been delivered to <systemitem
+role="emailaddr">harry@example.net</systemitem>, though it has been on
+the queue for two hours. The size of the message is 52K, and the ID by
+which Exim identifies this message is
+<literal>12EwGE-0005jD-00</literal>. You can find out why the delivery
+is not yet complete by looking at the message's individual log file,
+which is kept in the <filename>msglog</filename> directory in Exim's
+spool directory. The <option>&ndash;Mvl</option> option is an easy way
+of doing this:
+
+<screen>
+$ <userinput>exim &ndash;Mvl 12EwGE-0005jD-00</userinput>
+2000-01-30 17:28:13 example.net [192.168.8.2]: Connection timed out
+2000-01-30 17:28:13 harry@example.net: remote_smtp transport deferred: 
+  Connection timed out
+</screen>
+
+Individual log files keep a copy of log entries for each message so you can
+easily inspect them. The same information could have been extracted from the
+main log file using the <command>exigrep</command> utility:
+
+<screen>
+$ <userinput>exigrep 12EwGE-0005jD-00 /var/log/exim/exim_mainlog</userinput>
+</screen>
+
+That would take longer, especially on a busy system where the log files
+can get quite big. The <command>exigrep</command> utility comes into its own
+when looking for information about more than one message. Its first argument
+is a regular expression, and it picks out all the log lines concerned with any
+messages that have at least one log line that matches the expression. Thus it
+can be used to pick out all messages for one specific address, or all those to
+or from a specific host.
+</para>
+
+<para>
+You can keep a general watch on what a running Exim is doing by running
+<command>tail</command> on its main log file. Another way of doing this is to
+run the <command>eximon</command> utility that comes with Exim. This is an X11
+application that puts up a scrolling display of the main log, and also shows
+a list of messages that are awaiting delivery, as well as some stripcharts
+about delivery activity.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-exim.options"><title>Miscellaneous config Options</title>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>configuration files</secondary><tertiary>options</tertiary></indexterm>
+Here are a few of the more useful options you can set in the
+configuration file:
+
+<variablelist>
+<varlistentry><term><emphasis>message_size_limit</emphasis></term>
+<listitem><para>
+Setting this option limits the size of message that Exim will accept.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>return_size_limit</emphasis></term>
+<listitem><para>
+Setting this option limits the amount of an incoming message that Exim will 
+return as part of a bounce message.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>deliver_load_max</emphasis></term>
+<listitem><para>
+If the system load exceeds the value given for this option, all mail delivery 
+is suspended, though messages are still accepted.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>smtp_accept_max</emphasis></term>
+<listitem><para>
+This is the maximum number of simultaneous incoming SMTP calls Exim is prepared
+to accept. 
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>log_level</emphasis></term>
+<listitem><para>
+This option controls the amount of material that is written to the log. There 
+are also some options with names beginning with <option>log&thinsp;_</option> that 
+control the logging of specific information.
+</para></listitem>
+</varlistentry>
+
+</variablelist>
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-exim.delivery"><title>Message Routing and Delivery</title>
+
+<para>
+Exim splits up mail delivery into three different tasks: routing,
+directing, and transporting. There are a number of code modules of
+each type, and each is separately configurable. Usually a number of
+different routers, directors, and transports are set up in the
+configuration file.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>Exim</PRIMARY><SECONDARY>routers</SECONDARY></INDEXTERM>
+Routers resolve remote addresses, determining which host the message
+should be sent to and which transport should be used. In
+Internet-connected hosts there is often just one router, which does
+the resolution by looking up the domain in the DNS. Alternatively,
+there may be one router that handles addresses destined for hosts on a
+local LAN, and a second to send any other addresses to a single
+<emphasis>smart host</emphasis>&thinsp;; for example, an ISP's mail server.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>directors</secondary></indexterm>
+Local addresses are given to the directors, of which there are
+normally several, to handle aliasing and forwarding as well as
+identifying local mailboxes. Mailing lists can be handled by aliasing
+or forwarding directors. If an address gets aliased or forwarded, any
+generated addresses are handled independently by the routers or
+directors, as necessary. By far the most common case will be delivery
+to a mailbox, but messages may also be piped into a command or
+appended to a file other than the default mailbox.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>transports</secondary></indexterm>
+A transport is responsible for implementing a method of delivery; for
+example, sending the message over an SMTP connection or adding it to
+a specific mailbox. Routers and directors select which transport to
+use for each recipient address. If a transport fails, Exim either
+generates a bounce message or defers the address for a later retry.
+</para>
+
+<para>
+With Exim, you have a lot of freedom in configuring these tasks. For each of 
+them, a number of drivers are available, from which you can choose those you 
+need. You describe them to Exim in different sections of its configuration 
+file. The transports are defined first, followed by the directors, and then 
+the routers. There are no built-in defaults, though Exim is distributed with 
+a default configuration file that covers simple cases. If you want to change 
+Exim's routing policy or modify a transport, it is easiest to start from the 
+default configuration and make changes rather than attempt to set up a 
+complete configuration from scratch.
+</para>
+
+
+<sect2 id="X-087-2-exim.routing"><title>Routing Messages</title>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>routing messages in</secondary></indexterm>
+<INDEXTERM><PRIMARY>local_domains configuration variable</PRIMARY></INDEXTERM>
+When given an address to deliver, Exim first checks whether the domain
+is one that is handled on the local host by matching it against a
+list in the <literal>local_domains</literal> configuration
+variable. If this option is not set, the local host name is used as
+the only local domain. If the domain is local, the address is handed
+to the directors. Otherwise, it is handed to the routers to find out
+which host to forward a message to.<footnote
+id="X-087-2-FNEX05"><para> This is a simplification. It is possible
+for directors to pass addresses to transports that deliver to remote
+hosts, and similarly, it is possible for routers to pass addresses to
+local transports that write the messsage to a file or a pipe. It is
+also possible for routers to pass addresses to the directors in some
+circumstances.
+</para>
+</footnote>
+</para>
+</sect2>
+
+<sect2 id="X-087-2-exim.directors"><title>Delivering Messages to Local Addresses</title>
+
+<para>
+<indexterm id="idx-commandeximcommandlocaladdresses-1" class="startofrange"><primary>Exim</primary><secondary>delivering messages to local addresses</secondary></indexterm>
+<INDEXTERM><PRIMARY>local addresses</PRIMARY></INDEXTERM>
+Most commonly, a local address is just a user's login name, in which case
+the message is delivered to the user's mailbox,
+<filename>/var/spool/mail</filename>/<replaceable>user-name</replaceable>.
+Other cases include aliases, mailing list names, and mail forwarding by the
+user. In these cases, the local address expands to a new list of addresses,
+which may be either local or remote.
+</para>
+
+<para>
+Apart from these &ldquo;normal&rdquo; addresses, Exim can handle other
+types of local message destinations, like filenames and pipe commands.
+When delivering to a file, Exim appends the message, creating the file
+if necessary. File and pipe destinations are not addresses in their
+own right, so you can't send mail to, say, <systemitem
+role="emailaddr">/etc/passwd@vbrew.com</systemitem> and expect to
+overwrite the password file; deliveries to a specific file are valid
+only if they come from forwarding or alias files.  Note, however, that
+<systemitem role="emailaddr">/etc/passwd@vbrew.com</systemitem> is a
+syntactically valid email address, but if Exim received it, it would
+(typically) search for a user whose login name was <systemitem
+role="emailaddr">/etc/passwd</systemitem>, fail to find one, and
+bounce the message.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>directing mail to a file</secondary></indexterm>
+<indexterm><primary>email</primary><secondary>directing to a file</secondary></indexterm>
+<indexterm><primary SORTAS="forward file">.forward file</primary></indexterm> 
+In an alias list or forwarding file, a <emphasis>filename</emphasis> is
+anything that begins with a slash (/&thinsp;) that does not parse as a fully qualified
+email address. For example, <filename>/tmp/junk</filename> in a forwarding or
+alias file is interpreted as a file name, but
+<systemitem role="emailaddr">/tmp/junk@vbrew.com</systemitem>
+is an email address, though it is not likely to be a very useful one. However, 
+valid addresses of this type are seen when sending mail through X.400 gateways,
+because X.400 addresses start with a slash.
+</para>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>feeding mail to a command</secondary></indexterm>
+<indexterm><primary>email</primary><secondary>feeding to a command</secondary></indexterm>
+Similarly, a <emphasis>pipe command</emphasis> may be any Unix command preceded
+by the pipe symbol (|), unless the string parses as a valid email address
+complete with domain. Unless you have changed the configuration, Exim does not 
+use a shell to run the command; instead, it splits it up into a command name, arguments itself, and runs it directly. The message is fed to the command
+on its standard input.
+</para>
+
+<para>
+For example, to gate a mailing list into a local newsgroup, you might use a
+shell script named <command>gateit</command>, and set up a local alias that
+delivers all messages from this mailing list to the script using
+<literal>|gateit</literal>. If the command line contains a comma, it and the 
+preceding pipe symbol must be enclosed in double quotes. 
+</para>
+
+<sect3><title>Local users</title>
+<para>
+<indexterm><primary>Exim</primary><secondary>user mailboxes</secondary></indexterm>
+<indexterm><primary>mailbox files</primary></indexterm>
+A local address most commonly denotes a user's mailbox. This is normally
+located in <filename>/var/spool/mail</filename> and has the name of the
+user, who also owns the file. If it does not exist, it is created by
+Exim. 
+</para>
+
+<para>
+In some configurations, the group is set to the user's group and the
+mode is 0600. In these cases, delivery processes are run as the user,
+and the user may delete the mailbox entirely. In other
+configurations, the mailbox's group is <systemitem
+role="userid">mail</systemitem>, and it has mode 660; delivery processes 
+are run under a system uid and group <systemitem
+role="userid">mail</systemitem>, and users cannot delete their
+mailbox files, though they can empty them.
+</para>
+
+<para>
+Note that although <filename>/var/spool/mail</filename> is currently
+the standard place to put the mailbox files, some mail software may be
+compiled to use different paths, for example,
+<filename>/usr/spool/mail</filename>. If delivery to users on your
+machine fails consistently, you should see if it helps to make this a
+symbolic link to <filename>/var/spool/mail</filename>.
+</para>
+
+<para>
+The addresses <systemitem role="userid">MAILER-DAEMON</systemitem> and
+<systemitem role="userid">postmaster</systemitem> should normally
+appear in your alias file, expanding into the email address of the
+system administrator.  <systemitem
+role="userid">MAILER-DAEMON</systemitem> is used by Exim as the sender
+address in bounce messages. It is also recommended that <systemitem
+role="userid">root</systemitem> be set up as an alias for an
+administrator, especially when deliveries are being run under the
+permissions of the recipient users, in order to avoid running any
+delivery as <systemitem role="userid">root</systemitem>.
+</para>
+
+</sect3>
+
+<sect3><title>Forwarding</title>
+<para>
+<indexterm><primary>Exim</primary><secondary>forwarding mail</secondary></indexterm>
+<indexterm><primary>email</primary><secondary>forwarding</secondary></indexterm>
+<indexterm><primary>forwarding</primary><secondary>mail</secondary></indexterm>
+Users can redirect their mail to alternative addresses by creating a
+<filename>.forward</filename> file in their home directories. This contains 
+a list of recipients separated by commas and/or newlines.
+All lines of the file are read and interpreted. Any type of address may
+be used. A practical example of a <filename>.forward</filename>
+file for vacations might be:
+
+<screen>
+janet, "|vacation"
+</screen>
+
+In other descriptions of <filename>.forward</filename> files, you might 
+see the username at the start preceded by a backslash. This was
+necessary in some older MTAs to stop a search for a 
+<filename>.forward</filename> for the new name, which could lead to 
+looping. The backslash is not necessary in Exim, which automatically 
+avoids loops of this kind.<footnote>
+<para>
+A director is skipped if the address it is about to process is one that 
+it has previously processed in the course of generating the present 
+address.
+</para>
+</footnote>
+However, a backslash is permitted, and in fact it does make a difference 
+in configurations where several domains are being handled at once. 
+Without a backslash, an unqualified username is qualified with a
+default domain; with a backslash the incoming domain is preserved.
+</para>
+
+<para>
+The first address in the forward file delivers the incoming message 
+to <emphasis role="bold">janet</emphasis>'s mailbox, 
+while the <command>vacation</command> command returns a short notification to 
+the sender.<footnote id="X-087-2-FNEX07"><para>
+Please, if you choose to use a vacation program, make sure it will not reply
+to messages sent from mailing lists! It is very annoying to discover that
+someone has gone on vacation and find a vacation message for every message
+they've received. Mailing list administrators: this is a good example of why it
+is bad practice to force the <literal>Reply-To:</literal> field of mailing list
+messages to that of the list submission address.
+</para>
+</footnote>
+</para>
+
+<para>
+<?troff .hw flexibility>
+<INDEXTERM><PRIMARY>Exim</PRIMARY><SECONDARY>filter files</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>filter files</PRIMARY></INDEXTERM>
+In addition to supporting &ldquo;traditional&rdquo; forwarding files,
+Exim can be configured to allow more complex files called
+<emphasis>filters</emphasis>.  Instead of being just a list of
+forwarding addresses, a filter file can contain tests on the contents
+of the incoming message so that, for example, messages could be
+forwarded only if the subject contained the message &ldquo;urgent.&rdquo; The
+system administrator must decide whether to allow users this
+flexibility.
+</para>
+
+</sect3>
+<indexterm class="endofrange" startref="idx-commandeximcommandlocaladdresses-1">
+</sect2>
+
+<sect2><title>Alias Files</title>
+<para>
+<indexterm><primary>alias files for Exim</primary></indexterm>
+<indexterm><primary>Exim</primary><secondary>alias files</secondary></indexterm>
+<indexterm><primary>email</primary><secondary>aliases</secondary></indexterm>
+<indexterm><primary>email</primary><secondary>forwarding</secondary></indexterm>
+<indexterm><primary>forwarding</primary><secondary>mail</secondary></indexterm>
+<indexterm><primary>aliases</primary><secondary>email</secondary></indexterm>
+Exim is able to handle alias files compatible with Berkeley's
+<command>sendmail</command> alias files. Entries in the alias file can have 
+the following form:
+
+<screen>
+<replaceable>alias</replaceable>: <replaceable>recipients</replaceable>
+</screen>
+</para>
+
+<para>
+<replaceable>recipients</replaceable> is a comma-separated list of
+addresses that will be substituted for the alias. The recipient list
+may be continued across newlines if the next line begins with whitespace.
+</para>
+
+<para>
+A special feature allows Exim to handle mailing lists that are held
+separately from the alias file: if you specify
+<literal>:include:</literal><replaceable>filename</replaceable> as a
+recipient, Exim reads the specified file and substitutes its contents
+as a list of recipients. An alternative to handling mailing lists is
+shown later in this chapter in <xref linkend="X-087-2-exim.director.mailing-lists">.&rdquo;
+</para>
+
+<para>
+<INDEXTERM><PRIMARY SORTAS="etc/aliases file">/etc/aliases file</PRIMARY></INDEXTERM>
+The main aliases file is <filename>/etc/aliases</filename>. If you
+make this file world-writable or group-writeable, Exim will refuse to
+use it and will defer local deliveries. You can control the test it
+applies to the file's permissions by setting <option>modemask</option>
+in the <filename>system_aliases</filename> director.
+</para>
+
+<para>
+This is a sample <filename>aliases</filename> file:
+
+<screen>
+# vbrew.com /etc/aliases file
+hostmaster: janet
+postmaster: janet
+usenet: phil
+# The development mailing list.
+development: joe, sue, mark, biff,
+        /var/mail/log/development
+owner-development: joe
+# Announcements of general interest are mailed to all
+# of the staff
+announce: :include: /etc/Exim/staff,
+        /var/mail/log/announce
+owner-announce: root
+# gate the ppp mailing list to a local newsgroup
+ppp-list: "|/usr/local/bin/gateit local.lists.ppp"
+</screen>
+</para>
+
+<para>
+When there are file names and pipe commands in an alias file, as here,
+Exim needs to be told which userid to run the deliveries under. The
+<option>user</option> option (and possibly <option>group</option>,
+too) must be set in Exim's configuration file, either on the director
+that is handling the aliases, or on the transports to which it directs
+these items.
+</para>
+
+<para>
+If an error occurs while delivering to an address generated from the
+<filename>aliases</filename> file, Exim will send a bounce message to
+the sender of the message, as usual, but this might not be
+appropriate. The <option>errors_to</option> option can be used to
+specify that bounce messages are to be sent elsewhere; for example, to
+the postmaster.
+</para>
+</sect2>
+
+<sect2 id="X-087-2-exim.director.mailing-lists"><title>Mailing Lists</title>
+<para>
+<indexterm><primary>Exim</primary><secondary>mailing lists</secondary></indexterm>
+<indexterm><primary>mailing lists</primary><secondary>in Exim</secondary></indexterm> 
+<INDEXTERM><PRIMARY>forwardfile director</PRIMARY></INDEXTERM>
+Instead of the <filename>aliases</filename> file, mailing lists may
+also be managed by means a <filename>forwardfile</filename> director. The
+lists are all kept in a single directory such as
+<filename>/etc/exim/lists/</filename>, and a mailing list named
+<systemitem role="keyword">nag-bugs</systemitem> is described by the file
+<filename>lists/nag-bugs</filename>. This should contain the members'
+addresses separated by commas or newlines. Lines beginning with a hash sign
+(<literal>#</literal>) are treated as comments. A simple director to use such
+data is as follows:
+
+<screen>
+lists:
+  driver = forwardfile
+  file = /etc/exim/lists/${local_part}
+  no_check_local_user
+  errors_to = ${local_part}-request
+</screen>
+
+When this director runs, the values of the <option>file</option> and 
+<option>errors_to</option> options are <emphasis>expanded</emphasis>. 
+Expansion causes certain portions of the strings beginning with dollar 
+characters to be replaced every time the string is used. The simplest 
+kind of expansion is the insertion of the value of one of Exim's 
+variables, and this is what is happening here. The substring 
+<literal>${local_&thinsp;part}</literal> substitutes the value of the 
+<literal>$local_&thinsp;part</literal>, which is the local part of the address 
+that is being processed.
+</para>
+
+<para>
+For each mailing list, a user (or alias or mailing list) named
+<replaceable>listname-request</replaceable> should exist; any errors
+occurring when resolving an address or delivering to a list member are
+reported to this address.
+</para>
+
+</sect2>
+</sect1>
+
+<sect1><title>Protecting Against Mail Spam</title>
+<para>
+<INDEXTERM><PRIMARY>Real-time Blackhole List (RBL)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>spamming</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>unsolicited mail, managing</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>unsolicited</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>managing spam</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Mail Abuse Protection System (MAPS)</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Dial-Up List (DUL)</PRIMARY></INDEXTERM>
+<option>Mail spam</option>, or unsolicited email advertising, is an
+annoying problem for many users. A project has been formed to address
+this problem called the Mail Abuse Protection System (MAPS), and a
+mechanism has been built that reduces the problem, called the Real
+Time Blackhole List (RBL).  Information on how the MAPS RBL works can
+be obtained from its online documentation at <systemitem
+role="url">http://maps.vix.com/rbl/</systemitem>. The idea is
+simple. Sites that are caught generating mail spam are added into the
+database and mail transfer agents like Exim are able to query the
+database to confirm that a source is not a spammer before accepting
+mail from it.
+</para>
+
+<para>
+Since the advent of the RBL, several other similar lists have been
+created. One of the most useful is the Dial-Up List (DUL), which lists
+the IP addresses of dial-up hosts. These should normally send outgoing
+mail only to their ISP's mail servers. Many sites block mail from
+external dial-ups because when such a host avoids its own ISP's
+server, it is usually up to no good.
+</para>
+
+<para>
+Exim provides support for the real-time and other blacklists. It is
+very easily configured. To enable it, add the following lines to your
+<filename>/etc/exim.conf</filename> file:
+</para>
+
+<screen>
+# Vixie / MAPS RBL (http://maps.vix.com/rbl)
+rbl_domains = rbl.maps.vix.com : dul.maps.vix.com
+</screen>
+
+<para>
+This example checks both the RBL and the DUL, rejecting any messages
+from hosts that are on either list. The <option>rbl_hosts</option>
+option allows you to specify groups of hosts to which RBL checking
+does (or does not) apply. The default setting is:
+
+<screen>
+rbl_hosts = *
+</screen>
+
+which means that all hosts are subject to RBL checking. If you wanted to 
+override blacklisting and accept mail from a specific host without 
+performing the RBL checking you could, for example, use:
+
+<screen>
+rbl_hosts = ! nocheck.example.com : *
+</screen>
+
+The exclamation mark before the first item in this list indicates a 
+negated item: if the calling host is 
+<systemitem role="emailaddr">nocheck.example.com</systemitem>, 
+it will match this item. But because of the negation, RBL checking is 
+not performed. Any other host matches the second item in the list.
+
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-exim.simple"><title>UUCP Setup</title>
+
+<para>
+<indexterm><primary>Exim</primary><secondary>UUCP setup</secondary></indexterm>
+<INDEXTERM><PRIMARY>UUCP</PRIMARY><SECONDARY>Exim interface to</SECONDARY></INDEXTERM>
+Exim does not have any specific code for transporting mail via UUCP, nor does 
+it support UUCP bang path addresses. However, if domain addressing is being 
+used, Exim can be interfaced to UUCP fairly simply. Here is a configuration 
+fragment for sending certain domains to UUCP, taken from a real installation:
+</para>
+
+<screen>
+# Transport
+uucp:
+  driver = pipe
+  user = nobody
+  command = "/usr/local/bin/uux -r - \
+    ${substr_-5:$host}!rmail ${local_part}"
+  return_fail_output = true
+
+# Router
+uucphost:
+  transport = uucp
+  driver = domainlist
+  route_file = /usr/exim/uucphosts
+  search_type = lsearch
+</screen>  
+ 
+<para>
+In a complete configuration file, the transport would be inserted
+among the other transports, and the router probably defined as the
+first router. The file <filename>/usr/exim/uucphosts</filename>
+contains entries like this:
+
+<screen>
+darksite.example.com:           darksite.UUCP
+</screen>
+
+which is interpreted to mean, &ldquo;Send mail addressed to the domain
+<emphasis role="bold">darksite.example.com</emphasis> to the
+UUCP host <emphasis role="bold">darksite</emphasis>.&rdquo;
+This configuration could be set up more simply without the router
+adding the suffix .UUCP to <emphasis role="bold">darksite</emphasis> only to have the transport take
+it off again, but this way is useful because it makes clear the distinction between the
+domain name <emphasis role="bold">darksite.example.com</emphasis> and the UUCP host
+name <emphasis role="bold">darksite</emphasis>.
+</para>
+
+<para>
+Whenever the router comes across a domain that is in the route file,
+it will send the address to the UUCP transport, which subsequently pipes it to the
+<command>uux</command> command (described in <xref
+linkend="X-087-2-uucp">). If there is a problem,
+<command>uux</command> will generate some output and terminate with a
+non-zero error code. The setting of
+<literal>return_fail_output</literal> makes sure that the output is
+returned to the sender.
+</para>
+
+<para>
+If incoming UUCP messages are grouped into files in batched SMTP
+format, they can be passed directly to Exim using a command like this:
+
+<screen>
+exim -bS &lt;/var/uucp/incoming/001
+</screen>
+</para>
+<?troff .Nd 15>
+<para>
+<?troff .hw handled>
+However, there is one catch. When Exim receives a message locally, it
+insists that the sender is the logged-in user that calls it, but for a
+UUCP batch we want the senders to be taken from the incoming
+messages. Exim will do this if the process that calls it is running as
+a <emphasis>trusted user</emphasis>. If you arrange for incoming UUCP
+to be handled by a user called <systemitem
+role="userid">uucp</systemitem>, for example, you need to specify:
+
+<screen>
+trusted_users = uucp
+</screen>
+
+in the Exim configuration file to ensure that sender addresses are correctly 
+handled.
+</para>
+
+</sect1>
+
+</chapter>
+

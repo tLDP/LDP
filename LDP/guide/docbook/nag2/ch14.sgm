@@ -1,0 +1,711 @@
+<chapter id="X-087-2-nfs"><title>The Network<?lb>File System</title>
+<indexterm><primary>file sharing</primary></indexterm>
+<indexterm><primary>remote</primary><secondary>file access</secondary></indexterm>
+<indexterm id="idx-NFS-1" class="startofrange"><primary>NFS (Network File System)</primary></indexterm>
+
+<para>
+The Network File System (NFS) is probably the most prominent network
+service using RPC. It allows you to access files on remote hosts in
+exactly the same way you would access local files. A mixture of kernel
+support and user-space daemons on the client side, along with an NFS
+server on the server side, makes this possible. This file access is
+completely transparent to the client and works across a variety of
+server and host architectures.
+</para>
+
+<para>
+NFS offers a number of useful features:
+
+<itemizedlist>
+<listitem><para>
+Data accessed by all users can be kept on a central host, with clients
+mounting this directory at boot time. For example, you can keep all user
+accounts on one host and have all hosts on your network mount
+<filename>/home</filename> from that host. If NFS is installed beside
+NIS, users can log into any system and still work on one set of files.
+</para></listitem>
+
+<listitem><para>
+Data consuming large amounts of disk space can be kept on a single host. For
+example, all files and programs relating to LaTeX and METAFONT can be kept
+and maintained in one place.
+</para></listitem>
+
+<listitem><para>
+Administrative data can be kept on a single host. There is no need to use
+<command>rcp</command> to install the same stupid file on 20 different
+machines.
+</para></listitem>
+</itemizedlist>
+</para>
+
+<para>
+It's not too hard to set up basic NFS operation on both the client and
+server; this chapter tells you how.
+</para>
+
+<para>
+Linux NFS is largely the work of
+Rick Sladkey, who wrote the NFS kernel code and large parts of the NFS server.<footnote id="X-087-2-FNNF01"><para>
+Rick can be reached at
+<systemitem role="emailaddr">jrs@world.std.com</systemitem>.
+</para>
+</footnote> The latter is derived from the <emphasis role="bold">unfsd</emphasis> user space NFS server, originally written by Mark Shand, and the <emphasis role="bold">hnfs</emphasis> Harris NFS server, written by Donald Becker.
+
+
+</para>
+
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>mounting volume on</secondary></indexterm>
+Let's have a look at how NFS works. First, a client tries to mount a
+directory from a remote host on a local directory just the same way it
+does a physical device.  However, the syntax used to specify the
+remote directory is different. For example, to mount
+<filename>/home</filename> from host <systemitem
+role="sitename">vlager</systemitem> to <filename>/users</filename> on
+<systemitem role="sitename">vale</systemitem>, the administrator
+issues the following command on <systemitem
+role="sitename">vale</systemitem>:<footnote id="X-087-2-FNNF02"><para>
+Actually, you can omit the <literal>&ndash;t nfs</literal> argument
+because <command>mount</command> sees from the colon that this
+specifies an NFS volume.
+</para>
+</footnote>
+
+<screen>
+# <userinput>mount -t nfs vlager:/home /users</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm><primary>mount command</primary></indexterm> 
+<command>mount</command> will try to connect to the
+<command>rpc.mountd</command> mount daemon on
+<systemitem role="sitename">vlager</systemitem> via RPC. The
+server will check if <systemitem role="sitename">vale</systemitem> is
+permitted to mount the directory in question, and if so, return it a
+file handle. This file handle will be used in all subsequent requests to
+files below <filename>/users</filename>.
+</para>
+
+<para>
+<indexterm><primary>servers</primary><secondary>rpc.nfsd daemon</secondary></indexterm>
+<indexterm><primary>servers</primary><secondary>nfsd daemon</secondary></indexterm>
+<indexterm><primary>rpc.nfsd daemon</primary></indexterm>
+<indexterm><primary>nfsd daemon</primary></indexterm>
+When someone accesses a file over NFS, the kernel places an RPC call
+to <command>rpc.nfsd</command> (the NFS daemon) on the server
+machine. This call takes the file handle, the name of the file to be
+accessed, and the user and group IDs of the user as parameters. These
+are used in determining access rights to the specified file. In order
+to prevent unauthorized users from reading or modifying files, user
+and group IDs must be the same on both hosts.
+</para>
+
+<para>
+On most Unix implementations, the NFS functionality of both client and
+server is implemented as kernel-level daemons that are started from
+user space at system boot. These are the <emphasis>NFS Daemon</emphasis> 
+(<command>rpc.nfsd</command>&thinsp;) on the server host, and the
+<emphasis>Block I/O Daemon</emphasis>
+(<command>biod</command>&thinsp;) on the client host. To improve
+throughput, <command>biod</command> performs asynchronous I/O using
+read-ahead and write-behind; also, several <command>rpc.nfsd</command>
+daemons are usually run concurrently.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>Kirch, Olaf</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>2.2 kernels</PRIMARY><SECONDARY>NFS server support</SECONDARY></INDEXTERM>
+The current NFS implementation of Linux is a little different from the
+classic NFS in that the server code runs entirely in user space, so
+running multiple copies simultaneously is more complicated. The
+current <command>rpc.nfsd</command> implementation offers an
+experimental feature that allows limited support for multiple
+servers. Olaf Kirch developed kernel-based NFS server support 
+featured in 2.2 Version Linux kernels. Its performance is
+significantly better than the existing userspace implementation. We'll
+describe it later in this chapter.
+</para>
+
+<sect1 id="X-087-2-nfs.nfsd"><title>Preparing NFS</title>
+
+<para>
+<indexterm><primary sortas="proc/filesystems file">/proc/filesystems file</primary></indexterm>
+Before you can use NFS, be it as server or client, you must make sure your
+kernel has NFS support compiled in. Newer kernels have a simple interface
+on the <filename>proc</filename> filesystem for this, the
+<filename>/proc/filesystems</filename> file, which you can display
+using <command>cat</command>:
+
+<screen>
+$ <userinput>cat /proc/filesystems</userinput>
+	minix
+	ext2
+	msdos
+nodev	proc
+nodev	nfs
+</screen>
+</para>
+
+<para>
+If <systemitem role="keyword">nfs</systemitem> is missing from this
+list, you have to compile your own kernel with NFS enabled, or perhaps
+you will need to load the kernel module if your NFS support was
+compiled as a module.  Configuring the kernel network options is
+explained in the &ldquo;Kernel Configuration&rdquo; section of <xref
+linkend="X-087-2-hardware">.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nfs.mountd"><title>Mounting an NFS Volume</title>
+<para>
+<indexterm><primary>remote</primary><secondary>filesystem</secondary></indexterm>
+<indexterm><primary>mounting</primary><secondary>an NFS volume</secondary></indexterm>
+<indexterm><primary>access</primary><secondary>to remote files</secondary></indexterm>
+<indexterm><primary>NFS (Network File System)</primary><secondary>mounting volume on</secondary></indexterm>
+The mounting of NFS volumes closely resembles regular file
+systems. Invoke <command>mount</command> using the following syntax:<footnote id="X-087-2-FNNF05"><para> One doesn't say filesystem
+because these are not proper filesystems.
+</para>
+</footnote>
+
+<screen>
+# <userinput>mount -t nfs</userinput> <replaceable>nfs_volume local_dir options</replaceable> 
+</screen>
+</para>
+
+<para>
+<replaceable>nfs_volume</replaceable> is given as
+<replaceable>remote_host</replaceable>:<replaceable>remote_dir</replaceable>.
+Since this notation is unique to NFS filesystems, you can leave out
+the <option>&ndash;t nfs</option> option.
+</para>
+
+<para>
+<indexterm><primary sortas="etc/fstab file">/etc/fstab file</primary></indexterm>
+There are a number of additional options that you can specify to
+<command>mount</command> upon mounting an NFS volume. These may be
+given either following the <option>&ndash;o</option> switch on the
+command line or in the options field of the
+<filename>/etc/fstab</filename> entry for the volume.  In both cases,
+multiple options are separated by commas and must not
+contain any whitespace characters. Options specified on the command
+line always override those given in the <filename>fstab</filename>
+file.
+</para>
+
+<para>
+Here is a sample entry from <filename>/etc/fstab</filename>&thinsp;:
+
+<screen>
+# volume              mount point       type  options
+news:/var/spool/news  /var/spool/news   nfs   timeo=14,intr
+</screen>
+</para>
+
+<para>
+This volume can then be mounted using this command:
+
+<screen>
+# <userinput>mount news:/var/spool/news</userinput>
+</screen>
+</para>
+
+<para>
+In the absence of an <filename>fstab</filename> entry, NFS
+<command>mount</command> invocations look a lot uglier. For instance,
+suppose you mount your users' home directories from a machine named
+<systemitem role="sitename">moonshot</systemitem>, which uses a default
+block size of 4 K for read/write operations. You might increase the
+block size to 8 K to obtain better performance by issuing the command:
+
+<screen>
+# <userinput>mount moonshot:/home /home -o rsize=8192,wsize=8192</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>restricting block size</secondary></indexterm>
+The list of all valid options is described in its entirety in the
+<filename>nfs(5)</filename> manual page. The following is a partial list
+of options you would probably want to use:
+
+<variablelist>
+<varlistentry><term><emphasis>rsize=n</emphasis> and <emphasis>wsize=n</emphasis></term>
+<listitem><para>
+These specify the datagram size used by the NFS clients on read and write
+requests, respectively. The default depends on the version of kernel, but
+is normally 1,024 bytes.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>timeo=n</emphasis></term>
+<listitem><para>
+This sets the time (in tenths of a second) the NFS client will wait for a
+request to complete. The default value is 7 (0.7 seconds). What happens after
+a timeout depends on whether you use the <emphasis>hard</emphasis> or 
+<emphasis>soft</emphasis> option.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>hard</emphasis></term>
+<listitem><para>
+Explicitly mark this volume as hard-mounted. This is on by default.
+This option causes the server to report a message to the console when a
+major timeout occurs and continues trying indefinitely.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>soft</emphasis></term>
+<listitem><para>
+Soft-mount (as opposed to hard-mount) the driver. This option causes
+an I/O error to be reported to the process attempting a file operation when
+a major timeout occurs.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>intr</emphasis></term>
+<listitem><para>
+Allow signals to interrupt an NFS call. Useful for aborting when the
+server doesn't respond.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</para>
+
+<para>
+Except for <emphasis>rsize</emphasis> and <emphasis>wsize</emphasis>, all of these options
+apply to the client's behavior if the server should become temporarily
+inaccessible. They work together in the following way: Whenever the
+client sends a request to the NFS server, it expects the operation to
+have finished after a given interval (specified in the
+<emphasis>timeout</emphasis> option). If no confirmation
+is received within this time, a so-called <emphasis>minor timeout</emphasis>
+occurs, and the operation is retried with the timeout interval doubled. After
+reaching a maximum timeout of 60 seconds, a <emphasis>major timeout</emphasis>
+occurs.
+</para>
+
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>hard-mounting versus soft-mounting</secondary></indexterm>
+<indexterm><primary>NFS (Network File System)</primary><secondary>timeout</secondary></indexterm>
+By default, a major timeout causes the client to print a message
+to the console and start all over again, this time with an initial
+timeout interval twice that of the previous cascade. Potentially, this
+may go on forever. Volumes that stubbornly retry an operation until
+the server becomes available again are called
+<emphasis>hard-mounted</emphasis>. The opposite variety, called
+<emphasis>soft-mounted</emphasis>, generate an I/O error for the
+calling process whenever a major timeout occurs. Because of the
+write-behind introduced by the buffer cache, this error condition is
+not propagated to the process itself before it calls the
+<function>write</function> function the next time, so a program can
+never be sure that a write operation to a soft-mounted volume has
+succeeded at all.
+</para>
+
+<para>
+Whether you hard- or soft-mount a volume depends partly on taste but
+also on the type of information you want to access from a volume. For
+example, if you mount your X programs by NFS, you certainly would not
+want your X session to go berserk just because someone brought the
+network to a grinding halt by firing up seven copies of Doom at the
+same time or by pulling the Ethernet plug for a moment. By
+hard-mounting the directory containing these programs, you make sure
+that your computer waits until it is able to re-establish contact
+with your NFS server. On the other hand, non-critical data such as
+NFS-mounted news partitions or FTP archives may also be
+soft-mounted, so if the remote machine is temporarily unreachable or
+down, it doesn't hang your session. If your network connection to the
+server is flaky or goes through a loaded router, you may either
+increase the initial timeout using the <emphasis>timeo</emphasis> option or hard-mount the
+volumes. NFS volumes are hard-mounted by default.
+</para>
+  
+<para>
+Hard mounts present a problem because, by default, the file operations
+are not interruptible. Thus, if a process attempts, for example, a
+write to a remote server and that server is unreachable, the user's
+application hangs and the user can't do anything to abort the
+operation. If you use the <emphasis>intr</emphasis>
+option in conjuction with a hard mount, any signals received by the
+process interrupt the NFS call so that users can still abort
+hanging file accesses and resume work (although without saving the
+file).
+</para>
+
+<para>
+Usually, the <command>rpc.mountd</command> daemon in some way or other
+keeps track of which directories have been mounted by what hosts. This
+information can be displayed using the <command>showmount</command>
+program, which is also included in the NFS server package:
+
+<screen>
+# <userinput>showmount -e moonshot</userinput>
+Export list for localhost:
+/home &lt;anon clnt>
+
+# <userinput>showmount -d moonshot</userinput>
+Directories on localhost:
+/home
+
+# <userinput>showmount -a moonshot</userinput>
+All mount points on localhost:
+localhost:/home
+</screen>
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nfs.daemons"><title>The NFS Daemons</title>
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>daemons</secondary></indexterm>
+<indexterm><primary>rpc.mountd daemon</primary></indexterm>
+<indexterm><primary>rpc.nfsd daemon</primary></indexterm>
+If you want to provide NFS service to other hosts, you have to run the
+<command>rpc.nfsd</command> and <command>rpc.mountd</command> daemons on your
+machine. As RPC-based programs, they are not managed by
+<command>inetd</command>, but are started up at boot time and register
+themselves with the portmapper; therefore, you have to make sure to start them
+only after <command>rpc.portmap</command> is running. Usually, you'd use
+something like the following example in one of your network boot scripts:
+
+<screen>
+if [ -x /usr/sbin/rpc.mountd ]; then
+        /usr/sbin/rpc.mountd; echo -n " mountd"
+fi
+if [ -x /usr/sbin/rpc.nfsd ]; then
+        /usr/sbin/rpc.nfsd; echo -n " nfsd"
+fi
+</screen>
+</para>
+
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>matching uids and gids</secondary></indexterm>
+The ownership information of the files an NFS daemon provides to its clients
+usually contains only numerical user and group IDs.  If both client and server
+associate the same user and group names with these numerical IDs, they are
+said to their share uid/gid space. For example, this is the case when you
+use NIS to distribute the <filename>passwd</filename> information to all
+hosts on your LAN.
+</para>
+
+<para>
+On some occasions, however, the IDs on different hosts do not
+match. Rather than updating the uids and gids of the client to match
+those of the server, you can use the <command>rpc.ugidd</command>
+mapping daemon to work around the disparity.  Using the <emphasis>map_daemon</emphasis> option explained a little later, you can
+tell <command>rpc.nfsd</command> to map the server's uid/gid space to
+the client's uid/gid space with the aid of the
+<command>rpc.ugidd</command> on the client. Unfortunately, the
+<command>rpc.ugidd</command> daemon isn't supplied on all modern Linux
+distributions, so if you need it and yours doesn't have it, you will need to
+compile it from source.
+</para>
+
+<para>
+<command>rpc.ugidd</command> is an RPC-based server that is started from your
+network boot scripts, just like <command>rpc.nfsd</command> and
+<command>rpc.mountd</command>:
+</para>
+
+<screen>
+if [ -x /usr/sbin/rpc.ugidd ]; then
+        /usr/sbin/rpc.ugidd; echo -n " ugidd"
+fi
+</screen>
+
+</sect1>
+
+<sect1 id="X-087-2-nfs.exports"><title>The exports File</title>
+<para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>exporting a volume</secondary></indexterm>
+<indexterm><primary>NFS (Network File System)</primary><secondary>exports file</secondary></indexterm>
+<indexterm><primary>access</primary><secondary>granting</secondary></indexterm>
+<indexterm><primary>mountd daemon</primary></indexterm>
+<indexterm><primary>exports file</primary></indexterm>
+<indexterm><primary sortas="etc/exports file">/etc/exports file</primary></indexterm> 
+Now we'll look at how we configure the NFS server. Specifically, we'll
+look at how we tell the NFS server what filesystems it should make
+available for mounting, and the various parameters that control the
+access clients will have to the filesystem. The server determines the
+type of access that is allowed to the server's files. The
+<filename>/etc/exports</filename> file lists the filesystems that the
+server will make available for clients to mount and use.
+</para>
+
+<para>
+By default, <command>rpc.mountd</command> disallows all directory mounts,
+which is a rather sensible attitude. If you wish to permit one or more hosts
+to NFS-mount a directory, you must <emphasis>export</emphasis> it, that is,
+specify it in the <filename>exports</filename> file. A sample file may look
+like this:
+
+<screen>
+# exports file for vlager
+/home             vale(rw) vstout(rw) vlight(rw)
+/usr/X11R6        vale(ro) vstout(ro) vlight(ro)
+/usr/TeX          vale(ro) vstout(ro) vlight(ro)
+/                 vale(rw,no_root_squash)
+/home/ftp         (ro)
+</screen>
+</para>
+
+<para>
+Each line defines a directory and the hosts that are allowed to mount it.  A
+hostname is usually a fully qualified domain name but may additionally
+contain the <systemitem role="keyword">*</systemitem> and
+<systemitem role="keyword">?</systemitem> wildcards, which act the way they
+do with the Bourne shell. For instance, <literal>lab*.foo.com</literal>
+matches <systemitem role="sitename">lab01.foo.com</systemitem> as well as
+<systemitem role="sitename">laboratory.foo.com</systemitem>. The host may also
+be specified using an IP address range in the form
+<replaceable>address</replaceable>/<replaceable>netmask</replaceable>. If
+no hostname is given, as with the <filename>/home/ftp</filename> directory
+in the previous example, any host matches and is allowed to mount the
+directory.
+</para>
+
+<para>
+When checking a client host against the <filename>exports</filename> file,
+<command>rpx.mountd</command> looks up the client's hostname using the
+<function>gethostbyaddr</function> call. With DNS, this call returns the
+client's canonical hostname, so you must make sure not to use aliases in
+<filename>exports</filename>. In an NIS environment the returned name is
+the first match from the hosts database, and with neither DNS or NIS, the
+returned name is the first hostname found in the <filename>hosts</filename>
+file that matches the client's address.
+</para>
+
+<para>
+The hostname is followed by an optional comma-separated list of flags,
+enclosed in parentheses. Some of the values these flags may take are:
+
+<variablelist>
+<varlistentry><term><emphasis>secure</emphasis></term>
+<listitem><para>
+This flag insists that requests be made from a reserved source port,
+i.e., one that is less than 1,024. This flag is set by default.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>insecure</emphasis></term>
+<listitem><para>
+This flag reverses the effect of the
+<emphasis>secure</emphasis> flag.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>ro</emphasis></term>
+<listitem><para>
+This flag causes the NFS mount to be read-only. This flag is enabled
+by default.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>rw</emphasis></term>
+<listitem><para>
+This option mounts file hierarchy read-write.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>root_squash</emphasis></term>
+<listitem><para>
+<indexterm><primary>access</primary><secondary>restricting</secondary></indexterm>
+This security feature denies the superusers on the specified hosts any
+special access rights by mapping requests from uid 0 on the client to
+the uid 65534 (that is, -2) on the server. This uid should be
+associated with the user <systemitem
+role="userid">nobody</systemitem>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>no_root_squash</emphasis></term>
+<listitem><para>
+Don't map requests from uid 0.  This option is on by default, so
+superusers have superuser access to your system's exported
+directories.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>link_relative</emphasis></term>
+<listitem><para>
+This option converts absolute symbolic links (where the link contents
+start with a slash) into relative links. This option makes sense only
+when a host's entire filesystem is mounted; otherwise, some of the
+links might point to nowhere, or even worse, to files they were never
+meant to point to. This option is on by default.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>link_absolute</emphasis></term>
+<listitem><para>
+This option leaves all symbolic links as they are (the normal behavior
+for Sun-supplied NFS servers).
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>map_identity</emphasis></term>
+<listitem><para>
+<indexterm><primary>NFS (Network File System)</primary><secondary>matching uids and gids</secondary></indexterm>
+This option tells the server to assume that the client uses the same
+uids and gids as the server. This option is on by default.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>map_daemon</emphasis></term>
+<listitem><para>
+This option tells the NFS server to assume that client and server do not
+share the same uid/gid space.  <command>rpc.nfsd</command> then builds a
+list that maps IDs between client and server by querying the client's
+<command>rpc.ugidd</command> daemon.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>map_static</emphasis></term>
+<listitem><para>
+This option allows you to specify the name of a file that contains a
+static map of uids and gids. For example,
+<literal>map_static=/etc/nfs/vlight.map</literal> would specify the
+<filename>/etc/nfs/vlight.map</filename> file as a uid/gid map. The
+syntax of the map file is described in the
+<filename>exports(5)</filename> manual page.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>map_nis</emphasis></term>
+<listitem><para>
+This option causes the NIS server to do the uid and gid mapping.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><emphasis>anonuid</emphasis> and <emphasis>anongid</emphasis></term>
+<listitem><para>
+These options allow you to specify the uid and gid of the anonymous account.
+This is useful if you have a volume exported for public mounts.
+</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+</para>
+
+<para>
+<indexterm><primary>syslog</primary></indexterm>
+Any error in parsing the <filename>exports</filename> file is reported
+to <command>syslogd</command>&thinsp;'s <systemitem
+role="keyword">daemon</systemitem> facility at level <systemitem
+role="keyword">notice</systemitem> whenever
+<command>rpc.nfsd</command> or <command>rpc.mountd</command> is
+started up.
+</para>
+
+<para>
+<?troff .hw security>
+Note that hostnames are obtained from the client's IP address by
+reverse mapping, so the resolver must be configured properly.
+If you use BIND and are very security conscious, you should enable spoof
+checking in your <filename>host.conf</filename> file. We discuss these
+topics in <xref linkend="X-087-2-resolv">.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nfs.kernelv2"><title>Kernel-Based NFSv2 Server Support</title>
+<para>
+<INDEXTERM><PRIMARY>NFS (Network File System)</PRIMARY><SECONDARY>kernel-based server support</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>NFSv2/NFSv3 server support</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>servers</PRIMARY><SECONDARY>kernel-based support</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>kernels</PRIMARY><SECONDARY>NFSv2/NFSv3 server support</SECONDARY></INDEXTERM>
+The user-space NFS server traditionally used in Linux works reliably but
+suffers performance problems when overworked. This is primarily because
+of the overhead the system call interface adds to its operation, and because
+it must compete for time with other, potentially less important, user-space
+processes.
+</para>
+
+<para>
+<?troff .hw performance>
+<INDEXTERM><PRIMARY>Kirch, Olaf</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Lu, H.J.</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Morris, G. Allan</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>Myklebust, Trond</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>2.2 kernels</PRIMARY><SECONDARY>NFS server support</SECONDARY></INDEXTERM>
+The 2.2.0 kernel supports an experimental kernel-based NFS server developed
+by Olaf Kirch and further developed by H.J. Lu, G. Allan Morris, and Trond
+Myklebust. The kernel-based NFS support provides a significant boost in server
+performance.
+</para>
+
+<para>
+In current release distributions, you may find the server tools
+available in prepackaged form. If not, you can locate them at
+<systemitem
+role="url">http://csua.berkeley.edu/~gam3/knfsd/</systemitem>.  You need to 
+build a 2.2.0 kernel with the kernel-based NFS daemon
+included in order to make use of the tools. You can check if your
+kernel has the NFS daemon included by looking to see if the
+<filename>/proc/sys/sunrpc/nfsd_debug</filename> file exists. If it's
+not there, you may have to load the <command>rpc.nfsd</command> module
+using the <command>modprobe</command> utility.
+</para>
+
+<para>
+The kernel-based NFS daemon uses a standard
+<filename>/etc/exports</filename> configuration file. The package
+supplies replacement versions of the <command>rpc.mountd</command> and
+<command>rpc.nfsd</command> daemons that you start much the same way
+as their userspace daemon counterparts.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-nfs.kernelv3"><title>Kernel-Based NFSv3 Server Support</title>
+<para>
+The version of NFS that has been most commonly used is NFS Version 2.
+Technology has rolled on ahead and it has begun to show weaknesses that only a
+revision of the protocol could overcome. Version 3 of the Network File System
+supports larger files and filesystems, adds significantly enhanced security,
+and offers a number of performance improvements that most users will find
+useful.
+</para>
+
+<para>
+Olaf Kirch and Trond Myklebust are developing an experimental NFSv3 server. It is featured in the developer Version 2.3 kernels and a patch is
+available against the 2.2 kernel source. It builds on the Version 2
+kernel-based NFS daemon.
+</para>
+
+<para>
+The patches are available from the Linux Kernel based NFS server home page at
+<systemitem role="url">http://csua.berkeley.edu/~gam3/knfsd/</systemitem>.
+</para>
+
+</sect1>
+<INDEXTERM startref="idx-NFS-1" class=endofrange>
+</chapter>
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1375 @@
+<chapter id="X-087-2-hardware"><title>Configuring<?lb>the Networking<?lb>Hardware</title> <indexterm id="idx-configuringnetworkhardware-1"
+class="startofrange"><primary>configuring</primary><secondary>networks</secondary><tertiary>hardware</tertiary></indexterm>
+<indexterm id="idx-hardwarenetworking-1"
+class="startofrange"><primary>hardware</primary><secondary>configuration
+of networking</secondary></indexterm> <indexterm
+id="ch03.net.hw.config"
+class="startofrange"><primary>networks</primary><secondary>hardware,
+configuring</secondary></indexterm>
+
+<indexterm><primary>networks</primary><secondary>devices</secondary></indexterm>
+<indexterm><primary>interfaces</primary></indexterm>
+<para>
+We've been talking quite a bit about network interfaces and general
+TCP/IP issues, but we haven't really covered what happens when the
+&ldquo;networking code&rdquo; in the kernel accesses a piece of
+hardware.  In order to describe this accurately, we have to talk a
+little about the concept of interfaces and drivers.
+</para>
+
+<para>
+First, of course, there's the hardware itself, for example an
+Ethernet, FDDI or Token Ring card: this is a slice of Epoxy cluttered
+with lots of tiny chips with strange numbers on them, sitting in a
+slot of your PC. This is what we generally call a physical device.
+</para>
+
+<para>
+<indexterm><primary>Ethernet</primary><secondary>cards</secondary></indexterm>
+<indexterm><primary>device drivers</primary></indexterm> For you to
+use a network card, special functions have to be present in your Linux
+kernel that understand the particular way this device is accessed. The
+software that implements these functions is called a <emphasis>device
+driver</emphasis>. Linux has device drivers for many different types
+of network interface cards: ISA, PCI, MCA, EISA, Parallel port, PCMCIA,
+and more recently, USB.
+</para>
+
+<para>
+But what do we mean when we say a driver &ldquo;handles&rdquo; a device? Let's
+consider an Ethernet card. The driver has to be able to communicate with the
+peripheral's on-card logic somehow: it has to send commands and data to the
+card, while the card should deliver any data received to the driver.
+</para>
+
+<para>
+In IBM-style personal computers, this communication takes place through a
+cluster of I/O addresses that are mapped to registers on the card and/or
+through shared or direct memory transfers. All commands and data the kernel
+sends to the card have to go to these addresses. I/O and memory addresses are
+generally described by providing the starting or
+<emphasis>base address</emphasis>. Typical base addresses for ISA bus Ethernet
+cards are <literal>0x280</literal> or <literal>0x300</literal>. PCI bus
+network cards generally have their I/O address automatically assigned.
+</para>
+
+<para>
+Usually you don't have to worry about any hardware issues such as the
+base address because the kernel makes an attempt at boot time to
+detect a card's location. This is called <emphasis>auto
+probing</emphasis>, which means that the kernel reads several memory
+or I/O locations and compares the data it reads there with what it
+would expect to see if a certain network card were installed at that
+location. However, there may be network cards it cannot detect
+automatically; this is sometimes the case with cheap network cards
+that are not-quite clones of standard cards from other
+manufacturers. Also, the kernel will normally attempt to detect only
+one network device when booting. If you're using more than one card,
+you have to tell the kernel about the other cards explicitly.
+</para>
+
+<para>
+<indexterm><primary>IRQ (Interrupt Request)</primary></indexterm>
+Another parameter that you might have to tell the kernel about is the
+interrupt request line. Hardware components usually interrupt the
+kernel when they need to be taken care of&mdash;for example, when data
+has arrived or a special condition occurs. In an ISA bus PC,
+interrupts may occur on one of 15 interrupt channels numbered 0, 1,
+and 3 through 15. The interrupt number assigned to a hardware
+component is called its <emphasis>interrupt request
+number</emphasis> (IRQ).<footnote id="X-087-2-FNHW01"><para> IRQs 2 and
+9 are the same because the IBM PC design has two cascaded interrupt
+processors with eight IRQs each; the secondary processor is connected
+to IRQ 2 of the primary one.
+</para>
+</footnote>
+
+</para>
+
+<para>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>interface</secondary></indexterm>
+<indexterm><primary>interfaces</primary></indexterm>
+As described in <xref linkend="X-087-2-issues">, the kernel accesses a piece
+of network hardware through a software construct called an 
+<emphasis>interface</emphasis>.
+Interfaces offer an abstract set of functions that are the same across all
+types of hardware, such as sending or receiving a datagram.
+</para>
+
+<para>
+<indexterm><primary>device files</primary></indexterm>
+<indexterm><primary>devices</primary><secondary>major/minor
+numbers</secondary></indexterm> Interfaces are identified by means of
+names. In many other Unix-like operating systems, the network
+interface is implemented as a special device file in the
+<filename>/dev/</filename> directory. If you type the <literal>ls -las
+/dev/</literal> command, you will see what these device files look
+like. In the file permissions (second) column you will see that device
+files begin with a letter rather than the hyphen seen for normal
+files. This character indicates the device type. The most common
+device types are <literal>b</literal>, which indicates the device is a
+<emphasis>block</emphasis> device and handles whole blocks of data
+with each read and write, and <literal>c</literal>, which indicates
+the device is a <emphasis>character</emphasis> device and handles data
+one character at a time. Where you would normally see the file length
+in the <command>ls</command> output, you instead see two numbers,
+called the major and minor device numbers. These numbers indicate the
+actual device with which the device file is associated.
+</para>
+
+<para>
+Each device driver registers a unique major number with the kernel.
+Each <emphasis>instance</emphasis> of that device registers a unique
+minor number for that major device. The <literal>tty</literal>
+interfaces,&thinsp;<filename>/dev/tty*</filename>, are a character
+mode device indicated by the &ldquo;<literal>c</literal>&rdquo;, and
+each have a major number of <literal>4</literal>, but
+<filename>/dev/tty1</filename> has a minor number of
+<literal>1</literal>, and <filename>/dev/tty2</filename> has a minor
+number of <literal>2</literal>. Device files are very useful for
+many types of devices, but can be clumsy to use when trying to find an
+unused device to open.
+</para>
+
+<para>
+Linux interface names are defined internally in the kernel and are not
+device files in the <filename>/dev</filename> directory. Some typical
+device names are listed later in <xref
+linkend="X-087-2-hwconfig.tour">.&rdquo; The assignment of interfaces to
+devices usually depends on the order in which devices are
+configured. For instance, the first Ethernet card installed will
+become <filename>eth0</filename>, and the next will be
+<filename>eth1</filename>. SLIP interfaces are handled differently
+from others because they are assigned dynamically. Whenever a SLIP
+connection is established, an interface is assigned to the serial
+port.
+</para>
+
+<para>
+<xref linkend="X-087-2-hardware.fig.drivers"> illustrates the relationship
+between the hardware, device drivers, and interfaces.
+</para>
+
+<figure id="X-087-2-hardware.fig.drivers">
+<title>The relationship between drivers, interfaces, and hardware</title>
+<graphic fileref="lag2_0301.jpg"></graphic>
+</figure>
+
+<para>
+When booting, the kernel displays the devices it detects and the
+interfaces it installs. The following is an excerpt from typical
+boot messages:
+<screen>
+ .
+ .  This processor honors the WP bit even when in supervisor mode./ 
+    Good. 
+Swansea University Computer Society NET3.035 for Linux 2.0 
+NET3: Unix domain sockets 0.13 for Linux NET3.035.
+Swansea University Computer Society TCP/IP for NET3.034 
+IP Protocols: IGMP,ICMP, UDP, TCP 
+Swansea University Computer Society IPX 0.34 for NET3.035 
+IPX Portions Copyright (c) 1995 Caldera, Inc.
+Serial driver version 4.13 with no serial options enabled 
+tty00 at 0x03f8 (irq = 4) is a 16550A
+tty01 at 0x02f8 (irq = 3) is a 16550A
+CSLIP: code copyright 1989 Regents of the University of California 
+PPP: Version 2.2.0 (dynamic channel allocation) 
+PPP Dynamic channel allocation code copyright 1995 Caldera, Inc. 
+PPP line discipline registered.  
+eth0: 3c509 at 0x300 tag 1, 10baseT port, address 00 a0 24 0e e4 e0,/ 
+    IRQ 10.
+3c509.c:1.12 6/4/97 becker@cesdis.gsfc.nasa.gov 
+Linux Version 2.0.32 (root@perf) (gcc Version 2.7.2.1) 
+#1 Tue Oct 21 15:30:44 EST 1997
+ .
+ .
+</screen>
+</para>
+
+<para>
+This example shows that the kernel has been compiled with TCP/IP
+enabled, and it includes drivers for SLIP, CSLIP, and PPP. The third
+line from the bottom says that a 3C509 Ethernet card was detected and
+installed as interface <filename>eth0</filename>. If you have some
+other type of network card&mdash;perhaps a D-Link pocket adaptor, for
+example&mdash;the kernel will usually print a line starting with its
+device name&mdash;<filename>dl0</filename> in the D-Link
+example&mdash;followed by the type of card detected. If you have a
+network card installed but don't see any similar message, the kernel
+is unable to detect your card properly. This situation will be
+discussed later in the section &ldquo;Ethernet Autoprobing.&rdquo;
+</para>
+
+
+<sect1 id="X-087-2-hardware.kernel.config"><title>Kernel Configuration</title>
+<indexterm id="ch03.kernel.config" class="startofrange"><primary>kernels</primary><secondary>configuration</secondary></indexterm> 
+<para>
+Most Linux distributions are supplied with boot disks that work for
+all common types of PC hardware. Generally, the supplied kernel is
+highly modularized and includes nearly every possible driver. This is
+a great idea for boot disks, but is probably not what you'd want for
+long-term use. There isn't much point in having drivers cluttering up
+your disk that you will never use. Therefore, you will generally roll
+your own kernel and include only those drivers you actually need or
+want; that way you save a little disk space and reduce the time it
+takes to compile a new kernel.
+</para>
+
+<para>
+In any case, when running a Linux system, you should be familiar with 
+building a kernel. Think of it as a right of passage, an affirmation of 
+the one thing that makes free software as powerful as it is&mdash;you have 
+the source. It isn't a case of, &ldquo;I have to compile a kernel,&rdquo; 
+rather it's a case of, &ldquo;I <emphasis>can</emphasis> compile a 
+kernel.&rdquo; The basics of compiling a Linux kernel are explained in Matt 
+Welsh's book, <emphasis>Running Linux</emphasis> (O'Reilly). Therefore, we 
+will discuss only configuration options that affect networking in this 
+section.
+</para>
+
+<para>
+<indexterm><primary>kernel version numbering</primary></indexterm>
+<indexterm><primary>Linux kernel</primary><secondary>version numbering
+of</secondary></indexterm> One important point that does bear
+repeating here is the way the kernel version numbering scheme
+works. Linux kernels are numbered in the following format:
+<literal>2.2.14</literal>. The first digit indicates the
+<emphasis>major</emphasis> version number. This digit changes when
+there are large and significant changes to the kernel design. For
+example, the kernel changed from major 1 to 2 when the kernel obtained
+support for machines other than Intel machines. The second number is
+the <emphasis>minor</emphasis> version number. In many respects, this
+number is the most important number to look at. The Linux development
+community has adopted a standard at which <emphasis>even</emphasis> minor
+version numbers indicate <emphasis>production</emphasis>, or
+<emphasis>stable</emphasis>, kernels and <emphasis>odd</emphasis>
+minor version numbers indicate <emphasis>development</emphasis>, or
+<emphasis>unstable</emphasis>, kernels. The stable kernels are what
+you should use on a machine that is important to you, as they have
+been more thoroughly tested. The development kernels are what you
+should use if you are interested in experimenting with the newest
+features of Linux, but they may have problems that haven't yet been
+found and fixed. The third number is simply incremented for each
+release of a minor version.<footnote id="X-087-2-FNHW02"><para>
+<?troff .hw REPORTING>
+People should use development kernels and report bugs if they are
+found; this is a very useful thing to do if you have a machine you can use 
+as a test machine. Instructions on how to report bugs are detailed in
+<filename>/usr/src/linux/REPORTING-BUGS</filename> in the Linux kernel
+source.
+</para>
+</footnote>
+</para>
+
+<para>
+When running <command>make menuconfig</command>, you are presented with
+a text-based menu that offers lists of configuration questions, such as
+whether you want kernel math emulation. One of these queries asks you
+whether you want TCP/IP networking support. You must answer this with
+<literal>y</literal> to get a kernel capable of networking.
+</para>
+
+<sect2><title>Kernel Options in Linux 2.0 and Higher</title>
+<indexterm><primary>configuring</primary><secondary>kernel</secondary></indexterm>
+<indexterm><primary>networks</primary><secondary>kernel options</secondary></indexterm>
+<indexterm><primary>configuring</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>configuring</primary><secondary>SLIP</secondary></indexterm>
+<indexterm><primary>configuring</primary><secondary>PLIP</secondary></indexterm>
+<indexterm><primary>configuring</primary><secondary>PPP</secondary></indexterm>
+<para>
+
+After the general option section is complete, the configuration will
+go on to ask whether you want to include support for various features,
+such as SCSI drivers or sound cards. The prompt will indicate what
+options are available. You can press <prompt>?</prompt> to obtain a
+description of what the option is actually offering. You'll always
+have the option of yes (<prompt>y</prompt>) to statically include the
+component in the kernel, or no (<prompt>n</prompt>) to exclude the
+component completely. You'll also see the module (<prompt>m</prompt>)
+option for those components that may be compiled as a run-time
+loadable module. Modules need to be loaded before they can be used,
+and are useful for drivers of components that you use infrequently.
+</para>
+
+<para>
+The subsequent list of questions deal with networking support. 
+The exact set of configuration options is in constant flux due to ongoing 
+development. A typical list of options offered by most kernel versions 
+around 2.0 and 2.1 looks like this:
+
+<screen>
+*
+* Network device support
+*
+Network device support (CONFIG_NETDEVICES) [Y/n/?] 
+</screen>
+</para>
+
+<para>
+You must answer this question with <literal>y</literal> if you want to 
+use <emphasis>any</emphasis> type of networking devices, whether 
+they are Ethernet, SLIP, PPP, or whatever. When you answer the 
+question with <literal>y</literal>, support for Ethernet-type devices 
+is enabled automatically. You must answer additional questions if 
+you want to enable support for other types of network drivers:
+</para>
+
+<para>
+<screen>
+PLIP (parallel port) support (CONFIG_PLIP) [N/y/m/?] y
+PPP (point-to-point) support (CONFIG_PPP) [N/y/m/?] y
+*
+* CCP compressors for PPP are only built as modules.
+*
+SLIP (serial line) support (CONFIG_SLIP) [N/y/m/?] m
+ CSLIP compressed headers (CONFIG_SLIP_COMPRESSED) [N/y/?] (NEW) y
+ Keepalive and linefill (CONFIG_SLIP_SMART) [N/y/?] (NEW) y
+ Six bit SLIP encapsulation (CONFIG_SLIP_MODE_SLIP6) [N/y/?] (NEW) y
+</screen>
+</para>
+
+<para>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>PPP network protocol</secondary></indexterm>
+<indexterm><primary>PPP (Point-to-Point Protocol)</primary><secondary>carrying IPX</secondary></indexterm>
+These questions concern the various link layer protocols that Linux
+supports.  Both PPP and SLIP allow you to transport IP datagrams
+across serial lines.  PPP is actually a suite of protocols used to
+send network traffic across serial lines. Some of the protocols that
+form PPP manage the way that you authenticate yourself to the dial-in
+server, while others manage the way certain protocols are carried
+across the link&mdash;PPP is not limited to carrying TCP/IP datagrams;
+it may also carry other protocol such as IPX.
+</para>
+
+<para>
+If you answer <literal>y</literal> or <literal>m</literal> to SLIP 
+support, you will be prompted to answer the three questions that appear 
+below it. The compressed header option provides support for CSLIP, a 
+technique that compresses TCP/IP headers to as little as three bytes. Note 
+that this kernel option does not turn on CSLIP automatically; it merely 
+provides the necessary kernel functions for it. The <literal>Keepalive and 
+linefill</literal> option causes the SLIP support to periodically generate 
+activity on the SLIP line to avoid it being dropped by an inactivity timer. The
+<literal>Six bit SLIP encapsulation</literal> option allows you to run
+SLIP over lines and circuits that are not capable of transmitting the
+whole 8-bit data set cleanly. This is similar to the uuencoding or binhex 
+technique used to send binary files by electronic mail.
+</para>
+
+<para>
+PLIP provides a way to send IP datagrams across a parallel port connection.
+It is mostly used to communicate with PCs running DOS. On typical PC hardware,
+PLIP can be faster than PPP or SLIP, but it requires much more CPU overhead to
+perform, so while the transfer rate might be good, other tasks on the machine
+may be slow. 
+</para>
+
+<para>
+The following questions address network cards from various vendors.
+As more drivers are being developed, you are likely to see questions added
+to this section.  If you want to build a kernel you can use on a number of
+different machines, or if your machine has more than one type of network
+card installed, you can enable more than one driver:
+</para>
+
+<para>
+<screen>
+ .
+ .
+Ethernet (10 or 100Mbit) (CONFIG_NET_ETHERNET) [Y/n/?] 
+3COM cards (CONFIG_NET_VENDOR_3COM) [Y/n/?] 
+3c501 support (CONFIG_EL1) [N/y/m/?]
+3c503 support (CONFIG_EL2) [N/y/m/?]
+3c509/3c579 support (CONFIG_EL3) [Y/m/n/?]
+3c590/3c900 series (592/595/597/900/905) "Vortex/Boomerang" support/
+    (CONFIG_VORTEX) [N/y/m/?]
+AMD LANCE and PCnet (AT1500 and NE2100) support (CONFIG_LANCE) [N/y/?]
+AMD PCInet32 (VLB and PCI) support (CONFIG_LANCE32) [N/y/?] (NEW)
+Western Digital/SMC cards (CONFIG_NET_VENDOR_SMC) [N/y/?]
+WD80*3 support (CONFIG_WD80x3) [N/y/m/?] (NEW)
+SMC Ultra support (CONFIG_ULTRA) [N/y/m/?] (NEW)
+SMC Ultra32 support (CONFIG_ULTRA32) [N/y/m/?] (NEW)
+SMC 9194 support (CONFIG_SMC9194) [N/y/m/?] (NEW)
+Other ISA cards (CONFIG_NET_ISA) [N/y/?]
+Cabletron E21xx support (CONFIG_E2100) [N/y/m/?] (NEW)
+DEPCA, DE10x, DE200, DE201, DE202, DE422 support (CONFIG_DEPCA) [N/y/m/?]/ 
+    (NEW)
+EtherWORKS 3 (DE203, DE204, DE205) support (CONFIG_EWRK3) [N/y/m/?] (NEW)
+EtherExpress 16 support (CONFIG_EEXPRESS) [N/y/m/?] (NEW)
+HP PCLAN+ (27247B and 27252A) support (CONFIG_HPLAN_PLUS) [N/y/m/?] (NEW)
+HP PCLAN (27245 and other 27xxx series) support (CONFIG_HPLAN) [N/y/m/?]/ 
+    (NEW)
+HP 10/100VG PCLAN (ISA, EISA, PCI) support (CONFIG_HP100) [N/y/m/?] (NEW)
+NE2000/NE1000 support (CONFIG_NE2000) [N/y/m/?] (NEW)
+SK_G16 support (CONFIG_SK_G16) [N/y/?] (NEW)
+EISA, VLB, PCI and on card controllers (CONFIG_NET_EISA) [N/y/?]
+Apricot Xen-II on card ethernet (CONFIG_APRICOT) [N/y/m/?] (NEW)
+Intel EtherExpress/Pro 100B support (CONFIG_EEXPRESS_PRO100B) [N/y/m/?]/ 
+    (NEW)
+DE425, DE434, DE435, DE450, DE500 support (CONFIG_DE4X5) [N/y/m/?] (NEW)
+DECchip Tulip (dc21x4x) PCI support (CONFIG_DEC_ELCP) [N/y/m/?] (NEW)
+Digi Intl. RightSwitch SE-X support (CONFIG_DGRS) [N/y/m/?] (NEW)
+Pocket and portable adaptors (CONFIG_NET_POCKET) [N/y/?]
+AT-LAN-TEC/RealTek pocket adaptor support (CONFIG_ATP) [N/y/?] (NEW)
+D-Link DE600 pocket adaptor support (CONFIG_DE600) [N/y/m/?] (NEW)
+D-Link DE620 pocket adaptor support (CONFIG_DE620) [N/y/m/?] (NEW)
+Token Ring driver support (CONFIG_TR) [N/y/?]
+IBM Tropic chipset based adaptor support (CONFIG_IBMTR) [N/y/m/?] (NEW)
+FDDI driver support (CONFIG_FDDI) [N/y/?]
+Digital DEFEA and DEFPA adapter support (CONFIG_DEFXX) [N/y/?] (NEW)
+ARCnet support (CONFIG_ARCNET) [N/y/m/?]
+  Enable arc0e (ARCnet "Ether-Encap" packet format) (CONFIG_ARCNET_ETH)/ 
+      [N/y/?] (NEW)
+  Enable arc0s (ARCnet RFC1051 packet format) (CONFIG_ARCNET_1051)/ 
+      [N/y/?] (NEW)
+ .
+ .
+</screen>
+</para>
+
+<para>
+<indexterm><primary>configuring</primary><secondary>NFS</secondary></indexterm>
+Finally, in the file system section, the configuration script will ask you
+whether you want support for NFS, the networking file system. NFS lets you
+export file systems to several hosts, which makes the files appear as if they
+were on an ordinary hard disk attached to the host:
+</para>
+
+<para>
+<screen>
+NFS file system support (CONFIG_NFS_FS) [y]
+</screen>
+
+We describe NFS in detail in <xref linkend="X-087-2-nfs">.
+</para>
+
+</sect2>
+
+<sect2><title>Kernel Networking Options in Linux 2.0.0 <?lb>and Higher</title>
+
+<para>
+<indexterm><primary>Networking HOWTO</primary></indexterm>
+<INDEXTERM><PRIMARY>HOWTOs</PRIMARY><SECONDARY>Networking</SECONDARY></INDEXTERM>
+Linux 2.0.0 marked a significant change in Linux Networking. Many 
+features were made a standard part of the Kernel, such as support
+for IPX.  A number of options were also added and made
+configurable. Many of these options are used only in very special
+circumstances and we won't cover them in detail. The Networking HOWTO
+probably addresses what is not covered here. We'll list a number of
+useful options in this section, and explain when you'd want to use
+each one:
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Basics</term>
+<listitem><para> To use TCP/IP networking, you must answer this question with
+<literal>y</literal>. If you answer with <literal>n</literal>, however, you
+will still be able to compile the kernel with IPX support:
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+Networking options  --->
+    [*] TCP/IP networking
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Gateways</term>
+<listitem>
+<para>
+<indexterm><primary>forwarding</primary><secondary>IP</secondary></indexterm>
+<indexterm><primary>IP (Internet
+Protocol)</primary><secondary>forwarding</secondary></indexterm> You
+have to enable this option if your system acts as a gateway between
+two networks or between a LAN and a SLIP link, etc.  It
+doesn't hurt to enable this by default, but you may want to disable it to
+configure a host as a so-called
+<emphasis>firewall</emphasis>. Firewalls are hosts that are connected
+to two or more networks, but don't route traffic between them.  They're 
+commonly used to provide users with Internet access at minimal
+risk to the internal network. Users are allowed to log in to the
+firewall and use Internet services, but the company's machines are
+protected from outside attacks because incoming connections can't
+cross the firewall (firewalls are covered in detail in
+<xref linkend="X-087-2-firewall">&thinsp;):
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    [*] IP: forwarding/gatewaying
+</screen>
+</para>
+
+<variablelist>
+<varlistentry><term>Virtual hosting</term>
+<listitem>
+<para>
+
+<INDEXTERM><PRIMARY>IP (Internet
+Protocol)</PRIMARY><SECONDARY>aliasing</SECONDARY></INDEXTERM>
+<indexterm><primary>aliasing, IP (Internet
+Protocol)</primary></indexterm> These options together allow to you
+configure more than one IP address onto an interface. This is
+sometimes useful if you want to do &ldquo;virtual hosting,&rdquo;
+through which a single machine can be configured to look and act as
+though it were actually many separate machines, each with its own
+network personality. We'll talk more about IP aliasing in a moment:
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    [*] Network aliasing
+	<*> IP: aliasing support
+</screen>
+</para>
+
+
+<variablelist>
+<varlistentry>
+<term>Accounting</term>
+<listitem>
+<para>
+<indexterm><primary>IP accounting</primary></indexterm>
+This option enables you to collect data on the volume of IP traffic leaving
+and arriving at your machine (we cover this is detail in
+<xref linkend="X-087-2-accounting">&thinsp;):
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    [*] IP: accounting
+</screen>
+</para>
+<variablelist>
+<varlistentry>
+<term>PC hug</term>
+<listitem>
+<para>
+<indexterm><primary>PC/TCP compatibility</primary></indexterm>
+This option works around an incompatibility with some versions of PC/TCP, a
+commercial TCP/IP implementation for DOS-based PCs. If you enable this option,
+you will still be able to communicate with normal Unix machines, but
+performance may be hurt over slow links:
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    --- (it is safe to leave these untouched)
+    [*] IP: PC/TCP compatibility mode
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Diskless booting</term>
+<listitem>
+<para>
+<indexterm><primary>RARP (Reverse Address Resolution Protocol)</primary></indexterm>
+This function enables <emphasis>Reverse Address Resolution
+Protocol</emphasis> (RARP). RARP is used by diskless clients and X terminals to
+request their IP address when booting. You should enable RARP if you plan to
+serve this sort of client. A small program called <command>rarp</command>,
+included with the standard networking utilities, is used to add entries
+to the kernel RARP table:
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    <*> IP: Reverse ARP
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>MTU</term>
+<listitem>
+<para>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>routing</secondary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>subnets</secondary></indexterm>
+<indexterm><primary>subnets</primary><secondary>IP</secondary></indexterm>
+<indexterm><primary>Maximum Transmission Unit (MTU)</primary><secondary>IP</secondary></indexterm>
+<INDEXTERM><PRIMARY>IP (Internet Protocol)</PRIMARY><SECONDARY>MTU</SECONDARY></INDEXTERM>
+When sending data over TCP, the kernel has to break up the stream into blocks
+of data to pass to IP. The size of the block is called the <emphasis>Maximum 
+Transmission Unit</emphasis>, or MTU. For hosts that can be reached over a 
+local network such as an
+Ethernet, it is typical to use an MTU as large as the maximum length of an
+Ethernet packet&mdash;1,500 bytes. When routing IP over a Wide Area Network 
+like the Internet, it is preferable to use smaller-sized datagrams to ensure 
+that they don't need to be further broken down along the route through a 
+process called <emphasis>IP fragmentation</emphasis>.<footnote id="X-087-2-FNHW03"><para>
+Remember, the IP protocol can be carried over many different types of
+network, and not all network types will support packet sizes as large
+as Ethernet.
+</para></footnote> The kernel is
+able to automatically determine the smallest MTU of an IP route and to
+automatically configure a TCP connection to use it. This behavior is on by
+default. If you answer <literal>y</literal> to this option this feature 
+will be disabled.
+</para>
+
+<para>
+If you do want to use smaller packet sizes for data sent to specific hosts
+(because, for example, the data goes through a SLIP link), you can do so using
+the <command>mss</command> option of the <command>route</command> command,
+which is briefly discussed at the end of this chapter:
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+
+<para>
+<screen>
+    [ ] IP: Disable Path MTU Discovery (normally enabled)
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Security feature</term>
+<listitem>
+<para>
+<indexterm><primary>source routing</primary></indexterm>
+<indexterm><primary>IP (Internet Protocol)</primary><secondary>source routing</secondary></indexterm>
+<indexterm><primary>RIP (Routing Information Protocol)</primary></indexterm>
+<INDEXTERM><PRIMARY>Routing Information Protocol (RIP)</PRIMARY></INDEXTERM>
+<indexterm><primary>protocols</primary><secondary>Routing Information
+Protocol (RIP)</secondary></indexterm>
+<indexterm><primary>OSPF (Open Shortest Path First) protocol</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>OSPF</secondary></indexterm>
+The IP protocol supports a feature called <emphasis>Source
+Routing</emphasis>.  Source routing allows you to specify the route a
+datagram should follow by coding the route into the datagram
+itself. This was once probably useful before routing protocols such as
+RIP and OSPF became commonplace. But today it's considered a security
+threat because it can provide clever attackers with a way of
+circumventing certain types of firewall protection by bypassing the
+routing table of a router. You would normally want to filter out
+source routed datagrams, so this option is normally enabled:
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    [*] IP: Drop source routed frames
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Novell support</term>
+<listitem>
+<para>
+<indexterm><primary>configuring</primary><secondary>IPX</secondary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Internet Packet eXchange (IPX)</secondary></indexterm>
+<indexterm><primary>IPX (Internet Packet eXchange)</primary><secondary>routing</secondary></indexterm>
+This option enables support for IPX, the transport protocol Novell
+Networking uses.  Linux will function quite happily as an IPX router
+and this support is useful in environments where you have Novell
+fileservers. The NCP filesystem also requires IPX support enabled in
+your kernel; if you wish to attach to and mount your Novell
+filesystems you must have this option enabled (we'll dicuss IPX and
+the NCP filesystem in <xref linkend="X-087-2-ipx">):
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<screen>
+    <*> The IPX protocol
+</screen>
+</para>
+
+<variablelist>
+<varlistentry>
+<term>Amateur radio</term>
+<listitem>
+<para>
+<INDEXTERM><PRIMARY>amateur radio protocols</PRIMARY></INDEXTERM>
+<indexterm><primary>AX.25 protocol</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>AX.25</secondary></indexterm>
+<indexterm><primary>NetRom protocol</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>NetRom</secondary></indexterm>
+<indexterm><primary>Rose protocol</primary></indexterm>
+<indexterm><primary>protocols</primary><secondary>Rose</secondary></indexterm>
+<indexterm><primary>AX25 HOWTO</primary></indexterm>
+<INDEXTERM><PRIMARY>HOWTOs</PRIMARY><SECONDARY>AX25</SECONDARY></INDEXTERM>
+These three options select support for the three Amateur Radio protocols
+supported by Linux: AX.25, NetRom and Rose (we don't describe them in this
+book, but they are covered in detail in the AX25 HOWTO):
+
+<screen>
+    <*> Amateur Radio AX.25 Level 2
+    <*> Amateur Radio NET/ROM
+    <*> Amateur Radio X.25 PLP (Rose)
+</screen>
+</para>
+
+<para> Linux supports another driver type: the dummy driver. The following
+question appears toward the start of the device-driver section:
+<screen>
+    <*> Dummy net driver support
+</screen>
+</para>
+
+<para>
+The dummy driver doesn't really do much, but it is quite useful on standalone
+or PPP/SLIP hosts.  It is basically a masqueraded loopback interface. On 
+hosts that offer PPP/SLIP but have no
+other network interface, you want to have an interface that bears your IP
+address all the time. This is discussed in a little more detail in 
+<xref linkend="X-087-2-iface.interface.dummy">" in
+<xref linkend="X-087-2-iface">. Note that today you can achieve the same
+result by using the IP alias feature and configuring your IP address as an
+alias on the loopback interface.
+<indexterm class="endofrange" startref="ch03.kernel.config"> 
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-hwconfig.tour"><title>A Tour of Linux Network Devices</title>
+<indexterm><primary>devices</primary><secondary>Linux network</secondary></indexterm> 
+<indexterm><primary>networks</primary></indexterm>
+<para>
+The Linux kernel supports a number of hardware drivers for various
+types of equipment. This section gives a short overview of the driver
+families available and the interface names they use.
+</para>
+
+<para>
+<indexterm><primary>interfaces</primary></indexterm> There is a number
+of standard names for interfaces in Linux, which are listed here. Most
+drivers support more than one interface, in which case the interfaces
+are numbered, as in <filename>eth0</filename> and
+<filename>eth1</filename>:
+</para>
+
+<para>
+<variablelist>
+<varlistentry><term>
+<filename>lo</filename></term>
+<listitem><para>
+<indexterm><primary>interfaces</primary><secondary>loopback</secondary></indexterm>
+<indexterm><primary>loopback</primary><secondary>interface device</secondary></indexterm> 
+This is the local loopback interface. It is used for testing purposes, as 
+well as a couple of network applications. It works like a closed circuit in 
+that any datagram written to it will immediately be returned to the host's
+networking layer.  There's always one loopback device present in the kernel,
+and there's little sense in having more.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>
+<filename>eth0</filename>, <filename>eth1</filename>, &hellip;</term>
+<listitem><para>
+<indexterm><primary>eth1 device</primary></indexterm> 
+<indexterm><primary>interfaces</primary><secondary>Ethernet</secondary></indexterm>
+These are the Ethernet card interfaces. They are used for most Ethernet cards,
+including many of the parallel port Ethernet cards.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>
+<filename>tr0</filename>, <filename>tr1</filename>, &hellip;</term>
+<listitem><para>
+<indexterm><primary>tr0 device</primary></indexterm> 
+<indexterm><primary>interfaces</primary><secondary>Token Ring</secondary></indexterm>
+These are the Token Ring card interfaces. They are used for most Token Ring 
+cards, including non-IBM manufactured cards.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>
+<filename>sl0</filename>, <filename>sl1</filename>, &hellip;</term>
+<listitem><para>
+<indexterm><primary>sl1 device</primary></indexterm> 
+<indexterm><primary>interfaces</primary><secondary>SLIP</secondary></indexterm>
+These are the SLIP interfaces. SLIP interfaces are associated with serial 
+lines in the order in which they are allocated for SLIP.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term>
+<filename>ppp0</filename>, <filename>ppp1</filename>, &hellip;</term>
+<listitem><para>
+<indexterm><primary>ppp1 device</primary></indexterm> 
+<indexterm><primary>interfaces</primary><secondary>PPP</secondary></indexterm>
+These are the PPP interfaces. Just like SLIP interfaces, a PPP interface is 
+associated with a serial line once it is converted to PPP mode.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term> <filename>plip0</filename>,
+<filename>plip1</filename>, &hellip;</term> <listitem><para>
+<indexterm><primary>plip1 device</primary></indexterm>
+<indexterm><primary>interfaces</primary><secondary>PLIP</secondary></indexterm>
+These are the PLIP interfaces. PLIP transports IP datagrams over
+parallel lines. The interfaces are allocated by the PLIP driver at
+system boot time and are mapped onto parallel ports. In the
+<emphasis>2.0.x</emphasis> kernels there is a direct relationship
+between the device name and the I/O port of the parallel port, but in
+later kernels the device names are allocated sequentially, just as for
+SLIP and PPP devices.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term> <filename>ax0</filename>,
+<filename>ax1</filename>, &hellip;</term> <listitem><para>
+<indexterm><primary>AX.25 device</primary></indexterm>
+<indexterm><primary>interfaces</primary><secondary>AX.25</secondary></indexterm>
+<indexterm><primary>protocols</primary><secondary>AX.25</secondary></indexterm>
+These are the AX.25 interfaces. AX.25 is the primary protocol used by
+amateur radio operators. AX.25 interfaces are allocated and mapped in
+a similar fashion to SLIP devices.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</para>
+
+<para>
+There are many other types of interfaces available for other network
+drivers. We've listed only the most common ones.
+</para>
+
+<para>
+During the next few sections, we will discuss the details of using
+the drivers described previously. The Networking HOWTO provides details on 
+how to configure most of the others, and the AX25 HOWTO explains how to 
+configure the Amateur Radio network devices.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-hardware.drivers.ethernet"><title>Ethernet Installation</title>
+<indexterm id="idx-configuringEthernet-1" class="startofrange"><primary>configuring</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>Ethernet</primary><secondary>Becker drivers</secondary></indexterm>
+<indexterm id="ch03.ethernet.install" class="startofrange"><primary>Ethernet</primary><secondary>installation</secondary></indexterm>
+<indexterm><primary>networks</primary><secondary>Ethernet</secondary></indexterm> 
+<indexterm><primary>Becker, Donald</primary></indexterm>
+<indexterm><primary>drivers</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>Ekwall, Bj&oslash;rn</primary></indexterm>
+<indexterm><primary>Davies, David C.</primary></indexterm>
+<indexterm><primary>Ethernet</primary><secondary>through parallel port</secondary></indexterm>
+<indexterm><primary>parallel port</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>D-Link pocket adaptor</primary></indexterm>
+<indexterm><primary>drivers</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>drivers</primary><secondary>D-Link</secondary></indexterm>
+
+<para>
+The current Linux network code supports a large variety of Ethernet
+cards.  Most drivers were written by Donald Becker, who authored a
+family of drivers for cards based on the National Semiconductor 8390
+chip; these have become known as the Becker Series Drivers. Many other
+developers have contributed drivers, and today there are few common
+Ethernet cards that aren't supported by Linux. The list of supported
+Ethernet cards is growing all the time, so if your card isn't
+supported yet, chances are it will be soon.
+</para>
+
+<para>
+Sometime earlier in Linux's history we would have attempted to list
+all supported Ethernet cards, but that would now take too much time
+and space.  Fortunately, Paul Gortmaker maintains the Ethernet HOWTO,
+which lists each of the supported cards and provides useful
+information about getting each of them running under Linux.<footnote
+id="X-087-2-FNHW04"><para> Paul can be reached at <systemitem
+role="emailaddr">gpg109@rsphy1.anu.edu.au</systemitem>.
+</para>
+</footnote> It is posted monthly to the <systemitem
+role="newsgroup">comp.os.linux.answers</systemitem> newsgroup, and is
+also available on any of the Linux Documentation Project mirror sites.
+
+</para>
+
+<para>
+Even if you are confident you know how to install a particular type of
+Ethernet card in your machine, it is often worthwhile taking a look at
+what the Ethernet HOWTO has to say about it. You will find information
+that extends beyond simple configuration issues. For example, it could 
+save you a lot of headaches to know the
+behavior of some DMA-based Ethernet cards that use the same DMA
+channel as the Adaptec 1542 SCSI controller by default. Unless you move
+one of them to a different DMA channel, you will wind up with the 
+Ethernet card writing packet data to arbitrary locations on your hard
+disk.
+</para>
+
+<para>
+To use any of the supported Ethernet cards with Linux, you may use a
+precompiled kernel from one of the major Linux distributions. These generally
+have modules available for all of the supported drivers, and the installation
+process usually allows you to select which drivers you want loaded. In the
+long term, however, it's better to build your own kernel and compile only
+those drivers you actually need; this saves disk space and memory.
+</para>
+
+<sect2><title>Ethernet Autoprobing</title>
+<indexterm id="idx-Ethernetautoprobing-1" class="startofrange"><primary>Ethernet</primary><secondary>autoprobing</secondary></indexterm>
+<indexterm><primary>autoprobing</primary><secondary>Ethernet</secondary></indexterm>
+
+<para>
+Many of the Linux Ethernet drivers are smart enough to know how to
+search for the location of your Ethernet card. This saves you having
+to tell the kernel where it is manually. The Ethernet HOWTO lists
+whether a particular driver uses autoprobing and in which order it
+searches the I/O address for the card.
+</para>
+
+<para>
+There are three limitations to the autoprobing code. First, it may not
+recognize all cards properly. This is especially true for some of the cheaper
+clones of common cards. Second, the kernel won't
+autoprobe for more than one card unless specifically instructed. This was
+a conscious design decision, as it is assumed you will want to have control
+over which card is assigned to which interface. The best way to do this
+reliably is to manually configure the Ethernet cards in your machine. Third,
+the driver may not probe at the address that your card is configured for.
+Generally speaking, the drivers will autoprobe at the addresses that the
+particular device is capable of being configured for, but sometimes certain
+addresses are ignored to avoid hardware conflicts with other types of cards
+that commonly use that same address.
+</para>
+
+<para>
+PCI network cards should be reliably detected. But if you are using more 
+than one card, or if the autoprobe should fail to detect your card, you 
+have a way to explicitly tell the kernel about the card's base address and 
+name.
+</para>
+
+<para>
+<indexterm><primary>configuring</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>manual configuration</primary><secondary>Ethernet</secondary></indexterm>
+<indexterm><primary>autoprobing</primary><secondary>failure</secondary></indexterm>
+<indexterm><primary>lilo command</primary></indexterm>
+At boot time you can supply arguments and information to the kernel that any 
+of the kernel components may read. This mechanism allows you
+to pass information to the kernel that Ethernet drivers can use to locate your
+Ethernet hardware without making the driver probe.
+</para>
+
+<para>
+If you use lilo to boot your system, you can pass parameters
+to the kernel by specifying them through the
+<systemitem role="keyword">append</systemitem> option in the
+<filename>lilo.conf</filename> file. To inform the kernel about an
+Ethernet device, you can pass the following parameters:
+</para>
+
+<para>
+<screen>
+ether=<replaceable>irq</replaceable>,<replaceable>base_addr</replaceable>,[<replaceable>param1</replaceable>,][<replaceable>param2</replaceable>,]<replaceable>name</replaceable>
+</screen>
+</para>
+
+<para>
+The first four parameters are numeric, while the last is the device
+name. The <replaceable>irq</replaceable>,
+<replaceable>base_addr</replaceable>, and
+<replaceable>name</replaceable> parameters are required, but the two
+<replaceable>param</replaceable> parameters are optional. Any of the
+numeric values may be set to zero, which causes the kernel to
+determine the value by probing.
+</para>
+
+<para>
+<indexterm><primary>auto-IRQ</primary></indexterm>
+<indexterm><primary>IRQ (Interrupt Request)</primary></indexterm>
+The first parameter sets the IRQ assigned to the device. By default, the
+kernel will try to autodetect the device's IRQ channel. The 3c503 driver,
+for example, has a special feature that selects a free IRQ from the list
+5, 9, 3, 4 and configures the card to use this line.
+The <replaceable>base_addr</replaceable> parameter gives the I/O base address
+of the card; a value of zero tells the kernel to probe the addresses listed
+above.
+</para>
+
+<para>
+Different drivers use the next two parameters differently. For shared-memory cards, such as the WD80x3, they specify starting and ending
+addresses of the shared memory area. Other cards commonly use
+<replaceable>param1</replaceable> to set the level at which debugging 
+information is displayed. Values of 1 through 7 denote increasing levels of
+verbosity, while 8 turns them off altogether; 0 denotes the default.
+The 3c503 driver uses <replaceable>param2</replaceable> to choose between the
+internal transceiver (default) or an external transceiver (a value of 1).
+The former uses the card's BNC connector; the latter uses its AUI port.
+The <replaceable>param</replaceable> arguments need not be included at all
+if you don't have anything special to configure.
+</para>
+
+<para>The first non-numeric argument is interpreted by the kernel as the
+device name. You must specify a device name for each Ethernet card you
+describe.
+</para>
+
+<para>
+If you have two Ethernet cards, you can have Linux autodetect one card
+and pass the second card's parameters with <command>lilo</command>,
+but you'll probably want to manually configure both cards. If you
+decide to have the kernel probe for one and manually configure the
+second, you must make sure the kernel doesn't accidentally find the
+second card first, or else the other one won't be registered at
+all. You do this by passing <command>lilo</command> a <systemitem
+role="keyword">reserve</systemitem> option, which explicitly tells the
+kernel to avoid probing the I/O space taken up by the second card. For
+instance, to make Linux install a second Ethernet card at
+<literal>0x300</literal> as <filename>eth1</filename>, you would pass
+the following parameters to the kernel:
+</para>
+<?troff .wcon_off>
+<para>
+<screen>
+reserve=0x300,32 ether=0,0x300,eth1
+</screen>
+</para>
+<?troff .Nd 10>
+<para>
+The <emphasis>reserve</emphasis> option makes sure no driver
+accesses the second card's I/O space when probing for some device. You may 
+also use the kernel parameters to override autoprobing for 
+<filename>eth0</filename>&thinsp;:
+</para>
+
+<para>
+<screen>
+reserve=0x340,32 ether=0,0x340,eth0
+</screen>
+</para>
+
+<para>
+You can turn off autoprobing altogether. You might do this, for example, to
+stop a kernel probing for an Ethernet card you might have temporarily removed.
+Disabling autoprobing is as simple as specifying a
+<replaceable>base_addr</replaceable> argument of &ndash;1:
+</para>
+
+<para>
+<screen>
+ether=0,-1,eth0
+</screen>
+</para>
+
+<para>
+To supply these parameters to the kernel at boot time, you enter the
+parameters at the lilo "boot:" prompt. To have <command>lilo</command>
+give you the "<prompt>boot:</prompt>" at the prompt, you must press
+any one of the Control, Alt or Shift keys while
+<command>lilo</command> is booting. If you press the Tab key at the
+prompt, you will be presented with a list of kernels that you may
+boot. To boot a kernel with parameters supplied, enter the name of the
+kernel you wish to boot, followed by a space, then followed by the
+parameters you wish to supply. When you press the Enter key,
+<command>lilo</command> will load that kernel and boot it with the
+parameters you've supplied.
+</para>
+
+<para>
+To make this change occur automatically on each reboot, enter the parameters
+into the <filename>/etc/lilo.conf</filename> using the
+<literal>append=</literal> keyword. An example might look like this:
+
+<screen>
+boot=/dev/hda
+root=/dev/hda2
+install=/boot/boot.b
+map=/boot/map
+vga=normal
+delay=20
+append="ether=10,300,eth0"
+
+image=/boot/vmlinuz-2.2.14
+label=2.2.14
+read-only
+</screen>
+</para>
+
+<para>
+After you've edited <filename>lilo.conf</filename>, you must rerun
+the <command>lilo</command> command to activate the change.
+</para>
+
+<para>
+<indexterm class="endofrange" startref="idx-Ethernetautoprobing-1">
+<indexterm class="endofrange" startref="idx-configuringEthernet-1">
+<indexterm class="endofrange" startref="ch03.ethernet.install"> 
+</para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="X-087-2-hardware.drivers.plip"><title>The PLIP Driver</title>
+<indexterm><primary>configuring</primary><secondary>PLIP</secondary></indexterm>
+<indexterm><primary>parallel port</primary><secondary>IP</secondary></indexterm>
+<indexterm><primary>drivers</primary><secondary>PLIP</secondary></indexterm>
+<indexterm><primary>PLIP (Parallel Line IP) protocol</primary><secondary>driver</secondary></indexterm>
+<indexterm><primary>protocols</primary><secondary>PLIP</secondary></indexterm> 
+<para>
+<emphasis>Parallel Line IP</emphasis> (PLIP) is a cheap way to
+network when you want to connect only two machines. It uses a parallel port
+and a special cable, achieving speeds of 10 kilobytes per second to 20 kilobytes per second.
+</para>
+
+<para>
+PLIP was originally developed by Crynwr, Inc. Its design at the time was
+rather ingenious (or, if you prefer, a
+hack), because the original parallel ports on
+IBM PCs were designed to spend their time being unidirectional printer ports;
+the eight data lines could be used only to send data from the PC to the
+peripheral device, but not the other way around.<footnote id="X-087-2-FNHW05">
+<para>
+Fight to clear the hacking name! Always use &ldquo;cracker&rdquo; when
+you are referring to people who are consciously trying to defeat the
+security of a system, and &ldquo;hacker&rdquo; when you are referring
+to people who have found a clever way of solving a problem. Hackers
+can be crackers, but the two should never be confused. Consult the New
+Hackers Dictionary (popularly found as the Jargon file) for a more
+complete understanding of the terms.  </para></footnote> The Cyrnwr
+PLIP design worked around this limitation by using the port's five
+status lines for input, which limited it to transferring all data as
+nibbles (half bytes) only, but allowed for bidirectional
+transfer. This mode of operation was called PLIP &ldquo;mode 0.&rdquo;
+Today, the parallel ports supplied on PC hardware cater to full
+bidirectional 8-bit data transfer, and PLIP has been extended to
+accomodate this with the addition of PLIP &ldquo;mode 1.&rdquo;
+</para>
+
+<para>
+<indexterm><primary>NCSA telnet</primary></indexterm> 
+<?troff .ffn>
+Linux kernels up to and including Version 2.0 support PLIP mode 0 only,
+and an enhanced parallel port driver exists as a
+patch against the 2.0 kernel and as a 
+standard part of the 2.2 kernel code to provide PLIP mode 1 operation, too.
+<footnote id="X-087-2-FNHW06">
+<para>
+The enhanced parallel port adaptor patch for 2.0 kernel is available from
+<systemitem role="url">http://www.cyberelk.demon.co.uk/parport.html</systemitem>.
+</para>
+</footnote>
+Unlike earlier versions of the PLIP code, the driver now attempts to be
+compatible with the PLIP implementations from Crynwr, as well as the PLIP
+driver in NCSA <command>telnet</command>.<footnote id="X-087-2-FNHW07">
+<para>
+NCSA <command>telnet</command> is a popular program for DOS that runs TCP/IP
+over Ethernet or PLIP, and supports <command>telnet</command> and FTP.
+</para>
+</footnote>
+To connect two machines using PLIP, you need a special cable sold at some
+shops as a Null Printer or Turbo Laplink cable.
+You can, however, make one yourself fairly easily;
+<xref linkend="X-087-2-appendix.cables"> shows you how.
+</para>
+
+<para>
+<indexterm><primary>Yutaka, Niibe</primary></indexterm>
+The PLIP driver for Linux is the work of almost countless persons. It is
+currently maintained by Niibe Yutaka.<footnote id="X-087-2-FNHW08"><para>
+Niibe can be reached at
+<systemitem role="emailaddr">gniibe@mri.co.jp</systemitem>.
+</para>
+</footnote>
+If compiled into the kernel, it sets up a network interface for each of the
+possible printer ports, with <filename>plip0</filename> corresponding to
+parallel port <filename>lp0</filename>, <filename>plip1</filename>
+<?troff .endwcd>
+corresponding to <filename>lp1</filename>, etc. The mapping of interfaces to
+ports differs in the 2.0 kernels and the 2.2
+<?troff .hw hardwired>
+kernels. In the 2.0 kernels, the mapping was hardwired in the
+<filename>drivers/net/Spacd.c</filename> file in the kernel
+<?troff .hw hard-wired>
+<?troff .ne 10>
+source. The default mappings in this file are:
+</para>
+
+<informaltable>
+<tgroup cols=3>
+<thead>
+<row>
+  <entry>Interface</entry>
+  <entry>I/O Port</entry>
+  <entry>IRQ</entry>
+</row>
+</thead>
+<tbody>
+<row>
+  <entry><filename>plip0</filename></entry>
+  <entry><literal>0x3BC</literal></entry>
+  <entry>7</entry>
+</row>
+<row>
+  <entry><filename>plip1</filename></entry>
+  <entry><literal>0x378</literal></entry>
+  <entry>7</entry>
+</row>
+<row>
+  <entry><filename>plip2</filename></entry>
+  <entry><literal>0x278</literal></entry>
+  <entry>5</entry>
+</row>
+</tbody></tgroup>
+</informaltable>
+
+<para>
+<indexterm><primary>manual configuration</primary><secondary>PLIP</secondary></indexterm>
+If you configured your printer port in a different way, you
+must change these values in <filename>drivers/net/Space.c</filename> in
+the Linux kernel source and build a new kernel.
+</para>
+
+<para>
+In the 2.2 kernels, the PLIP driver uses the &ldquo;parport&rdquo; parallel port
+sharing driver developed by Philip Blundell.<footnote id="X-087-2-FNHW09"><para>
+You can reach Philip at <systemitem role="emailadd"><emphasis>Philip.Blundell@pobox.com</emphasis></systemitem>.
+</para>
+</footnote> The new driver allocates the PLIP network device names serially,
+just as for the Ethernet or PPP drivers, so the first PLIP device created is
+<filename>plip0</filename>, the second is <filename>plip1</filename>, and so on.
+The physical parallel port hardware is also allocated serially. By default, the
+parallel port driver will attempt to detect your parallel port hardware with an
+autoprobe routine, recording the physical device information in the order found. It is better practice to explicitly tell the kernel the physical I/O
+parameters. You can do this by supplying arguments to the
+<filename>parport_pc.o</filename> module as you load it, or if you have
+compiled the driver into your kernel, using lilo to supply
+arguments to the kernel at boot time. The IRQ setting of any device may be
+changed later by writing the new IRQ value to the related
+<filename>/proc/parport/*/irq</filename> file.
+</para>
+
+<para>
+Configuring the physical I/O parameters in a 2.2 kernel when loading the
+module is straightforward. For instance, to tell the driver that you have
+two PC-style parallel ports at I/O addresses <literal>0x278</literal> and
+<literal>0c378</literal> and IRQs 5 and 7, respectively, you would load the
+module with the following arguments:
+
+<screen>
+modprobe parport_&thinsp;pc io=0x278,0x378 irq=5,7
+</screen>
+
+The corresponding arguments to pass to the kernel for a compiled-in driver are:
+
+<screen>
+parport=0x278,5 parport=0x378,7
+</screen>
+
+You would use the lilo <systemitem role="keyword">append</systemitem> 
+keyword to have these arguments
+passed to the kernel automatically at boot time.
+</para>
+
+<para>
+When the PLIP driver is initialized, either at boot time if it is
+built-in, or when the <filename>plip.o</filename> module is loaded,
+each of the parallel ports will have a <filename>plip</filename>
+network device associated with it. <filename>plip0</filename> will be
+assigned to the first parallel port device, <filename>plip1</filename>
+the second, and so on.  You can manually override this automatic
+assignment using another set of kernel arguments. For instance, to
+assign <literal>parport0</literal> to network device
+<?troff .ne 10>
+<literal>plip0</literal>, and <literal>parport1</literal> to network
+device <literal>plip1</literal>, you would use kernel arguments of:
+
+<screen>
+plip=parport1 plip=parport0
+</screen>
+
+</para>
+
+<para>
+This mapping does not mean, however, that you cannot use these parallel ports
+for printing or other purposes. The physical parallel port devices are used
+by the PLIP driver only when the corresponding interface is configured
+<systemitem role="keyword">up</systemitem>.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-hardware.drivers.slip"><title>The PPP and SLIP Drivers</title>
+<indexterm><primary>drivers</primary><secondary>SLIP</secondary></indexterm>
+<indexterm><primary>drivers</primary><secondary>PPP</secondary></indexterm>
+<indexterm><primary>SLIP (Serial Line IP) protocol</primary><secondary>driver</secondary></indexterm>
+<indexterm><primary>PLIP (Parallel Line IP) protocol</primary><secondary>driver</secondary></indexterm> 
+<para>
+Point-to-Point Protocol (PPP) and Serial Line IP (SLIP) are widely used
+protocols for carrying IP packets over a serial link. A number of institutions
+offer dialup PPP and SLIP access to machines that are on the Internet, thus
+providing IP connectivity to private persons (something that's otherwise
+hardly affordable).
+</para>
+
+<para>
+No hardware modifications are necessary to run PPP or SLIP; you can use
+any serial port. Since serial port configuration is not specific to
+TCP/IP networking, we have devoted a separate chapter to this.  Please
+refer to <xref linkend="X-087-2-serial">, for more information. We cover
+PPP in detail in <xref linkend="X-087-2-ppp">, and SLIP in
+<xref linkend="X-087-2-slip">.
+</para>
+</sect1>
+
+<sect1 id="X-087-2-hardware.other"><title>Other Network Types</title>
+<para>
+<indexterm><primary>drivers</primary><secondary>Token Ring</secondary></indexterm>
+<indexterm><primary>drivers</primary><secondary>ArcNet</secondary></indexterm>
+<indexterm><primary>drivers</primary><secondary>FDDI</secondary></indexterm>
+<indexterm><primary>Token Ring</primary><secondary>driver</secondary></indexterm>
+<indexterm><primary>ArcNet protocol driver</primary></indexterm>
+<indexterm><primary>FDDI (Fiber Distributed Data Interface)</primary></indexterm>
+<indexterm><primary>Fiber Distributed Data Interface (FDDI)</primary></indexterm>
+Most other network types are configured similarly to Ethernet. The arguments 
+passed to the loadable modules will be different
+and some drivers may not support more than one card, but just about everything
+else is the same. Documentation for these cards is generally available in the
+<filename>/usr/src/linux&thinsp;/Documentation/networking/</filename> directory of
+the Linux kernel source.
+</para>
+
+<para>
+<indexterm class="endofrange" startref="idx-configuringnetworkhardware-1">
+<indexterm class="endofrange" startref="idx-hardwarenetworking-1">
+<indexterm class="endofrange" startref="ch03.net.hw.config"> 
+</para>
+
+</sect1>
+
+</chapter>

@@ -1,0 +1,1742 @@
+<chapter id="X-087-2-cnews"><title>C News</title>
+<indexterm id="idx-CNews-1" class="startofrange"><primary>C News</primary></indexterm>
+
+<para>
+One of the most popular software packages for Netnews is C News. It was
+designed for sites that carry news over UUCP links. This chapter
+will discuss the central concepts of C News, basic installation,
+and maintenance tasks.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>spool directory</secondary></indexterm>
+<indexterm><primary>setnewsids (C News)</primary></indexterm>
+C News stores its configuration files in
+<filename>/etc/news</filename>, and most of its binaries are kept
+below the <filename>/usr/lib/news/</filename> directory.  Articles are
+kept below <filename>/var/spool/news</filename>.  You should make sure
+that virtually all files in these directories are owned by user
+<systemitem role="userid">news</systemitem> or group <systemitem
+role="userid">news</systemitem>. Most problems arise from files being
+inaccessible to C News. Use <command>su</command> to become the user
+<systemitem role="userid">news</systemitem> before you touch anything
+in the directory.  The only exception is the
+<command>setnewsids</command> command, which is used to set the real
+user ID of some news programs. It must be owned by <systemitem
+role="userid">root</systemitem> and have the setuid bit set.
+</para>
+
+<para>
+In this chapter, we describe all C News configuration files in detail
+and show you what you have to do to keep your site running.
+</para>
+
+<sect1 id="X-087-2-cnews.rnews"><title>Delivering News</title>
+
+<para>
+<indexterm><primary>inews command</primary></indexterm>
+<indexterm><primary>rnews command</primary></indexterm>
+<indexterm><primary>C News</primary><secondary>delivering news in</secondary></indexterm> 
+<indexterm><primary>newsrun command</primary></indexterm> 
+<indexterm><primary>relaynews command</primary></indexterm> 
+<indexterm><primary>delivering</primary><secondary>news</secondary></indexterm>
+Articles can be fed to C News in several ways. When a local user posts
+an article, the newsreader usually hands it to the
+<command>inews</command> command, which completes the header
+information. News from remote sites, be it a single article or a whole
+batch, is given to the <command>rnews</command> command, which stores
+it in the <filename>/var/spool/news/in.coming</filename> directory,
+from where it will be picked up at a later time by
+<command>newsrun</command>. With any of these two techniques, however,
+the article will eventually be handed to the
+<command>relaynews</command> command.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>relaynews command</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>history file</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>active file</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>active file</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>history</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>receiving news</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>message IDs</secondary></indexterm>
+For each article, the <command>relaynews</command> command first checks if the
+article has already been seen at the local site by looking up the message ID
+in the <filename>history</filename> file. Duplicate articles are dropped.
+Then <command>relaynews</command> looks at the <literal>Newsgroups:</literal>
+header line to find out if the local site requests articles from any of these
+groups.  If it does, and the newsgroup is listed in the
+<filename>active</filename> file, <command>relaynews</command> tries to store
+the article in the corresponding directory in the news spool area. If this
+directory does not exist, it is created. The article's message ID is then 
+logged to the <filename>history</filename> file.  Otherwise,
+<command>relaynews</command> drops the article.
+</para>
+
+<para>
+<indexterm><primary>junk newsgroup</primary></indexterm>
+Sometimes <command>relaynews</command> fails to store an incoming
+article because a group to which it has been posted is not listed in
+your <filename>active</filename> file. In this case, the article is moved to the <systemitem role="newsgroup">junk</systemitem>
+group.<footnote id="X-087-2-FNCN01"><para> There may be a difference
+between the groups that exist at your site and those that your site
+is willing to receive. For example, the subscription list might
+specify <systemitem role="newsgroup">comp.all</systemitem>, which
+should send all newsgroups below the <systemitem
+role="newsgroup">comp</systemitem> hierarchy, but at your site you
+might not list several of the <systemitem
+role="newsgroup">comp</systemitem> newsgroups in the
+<filename>active</filename> file. Articles posted to those groups will
+be moved to <systemitem role="newsgroup">junk</systemitem>.
+</para>
+</footnote>
+<command>relaynews</command> also checks for stale or misdated articles
+and reject them. Incoming batches that fail for any other reason are moved
+to <filename>/var/spool/news/in.coming/bad</filename>, and an error message
+is logged.
+</para>
+
+<para>
+After this, the article is relayed to all other sites that request news
+from these groups, using the transport specified for each particular site. To
+make sure an article isn't sent to a site that has already seen it, each
+destination site is checked against the article's <literal>Path:</literal>
+header field, which contains the list of sites the article has traversed so
+far, written in the UUCP-style bang-path source-routing style described in
+<xref linkend="X-087-2-mail">. If the destination site's name does not
+appear in this list, the article is sent to it.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>UUCP</secondary></indexterm>
+<indexterm><primary>UUCP</primary><secondary>news</secondary></indexterm>
+C News is commonly used to relay news between UUCP sites, although it is
+also possible to use it in an NNTP environment. To deliver news to a remote
+UUCP site, either in single articles or whole batches, <command>uux</command>
+is used to execute the <command>rnews</command> command on the remote site and
+feed the article or batch to it on standard input.
+Refer to <xref linkend="X-087-2-uucp">, for more information on UUCP.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>batching</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>batching</secondary></indexterm>
+Batching is the term used to describe sending large bundles of
+individual articles all in one transmission. When batching is
+enabled for a given site, C News does not send any incoming article
+immediately; instead, it appends its path name to a file, usually called
+<filename>out.going/site/togo</filename>. Periodically, a program is executed
+from a <command>crontab</command> entry by the <command>cron</command> program,
+which reads this file and bundles all of the listed articles into one or more
+file, optionally compressing them and sending them to <command>rnews</command>
+at the remote site.<footnote id="X-087-2-FNCN02"><para>
+Note that this should be the <command>crontab</command> of
+<systemitem role="userid">news</systemitem>; file permissions will not be 
+mangled.
+</para>
+</footnote>
+
+</para>
+
+<para>
+<xref linkend="X-087-2-cnews.fig.flow"> shows the news flow through
+<command>relaynews</command>. Articles may be relayed to the local site
+(denoted by <systemitem role="keyword">ME</systemitem>), to a site named
+<systemitem role="sitename">ponderosa</systemitem> via email, and a site
+named <systemitem role="sitename">moria</systemitem>, for which batching is
+enabled.
+</para>
+
+<figure id="X-087-2-cnews.fig.flow">
+<title>News flow through relaynews</title>
+<graphic fileref="lag2_2101.jpg"></graphic>
+</figure>
+
+</sect1>
+
+<sect1><title>Installation</title>
+<para>
+<indexterm id="idx-configuringCNews-1" class="startofrange"><primary>configuring</primary><secondary>C News</secondary></indexterm>
+<indexterm id="idx-configuringUsenetnews-1" class="startofrange"><primary>configuring</primary><secondary>Usenet news</secondary></indexterm>
+<indexterm id="chcn.cnews.install" class="startofrange"><primary>C News</primary><secondary>installing</secondary></indexterm> 
+C News should be available in a prepackaged format for any modern Linux
+distribution, so installation will be easy. If not, or if you want to
+install from the original source distribution, then of course you
+can.<footnote id="X-087-2-FNCN03">
+<para>
+You can obtain the C News source distribution from its home site at
+<systemitem role="sitename">ftp.cs.toronto.edu</systemitem>
+<filename>/pub/c-news/c-news.tar.Z</filename>
+</para>
+</footnote> No matter how you install it, you will need to edit the C
+News configuration files. Their formats are described in the following
+list:
+</para>
+
+<variablelist>
+<varlistentry><term><filename>sys</filename></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>sys file</secondary></indexterm>
+The <filename>sys</filename> file controls which newsgroups your site
+receives and forwards. We discuss it in detail in the following
+section.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><filename>active</filename></term>
+<listitem><para>
+Not usually edited by the administration; contains directions for handling 
+articles in each newsgroup the site handles.
+
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>organization</filename></term>
+<listitem><para>
+This file should contain your organization's name, for example,
+&ldquo;Virtual Brewery, Inc.&rdquo; On your home machine, enter
+&ldquo;private site,&rdquo; or anything else you like. Most people
+will not consider your site properly configured if you haven't customized
+this file.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>newsgroups</filename></term>
+<listitem><para>
+This file is a list of all newsgroups, with a one-line description of each
+one's purpose. These descriptions are frequently used by your newsreader
+when displaying the list of all groups to which you are subscribed.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>mailname</filename></term>
+<listitem><para>
+Your site's mail name, e.g., <systemitem role="sitename">vbrew.com</systemitem>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>whoami</filename></term>
+<listitem><para>
+Your site's name for news purposes. Quite often, the UUCP site name is used,
+e.g., <systemitem role="sitename">vbrew</systemitem>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>explist</filename></term>
+<listitem><para>
+You should probably edit this file to reflect your preferred expiration times
+for special newsgroups. Disk space may play an important role in your choices.
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+<indexterm><primary>C News</primary><secondary>creating initial configuration</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>active file</secondary></indexterm>
+To create an initial hierarchy of newsgroups, obtain 
+<filename>active</filename> and <filename>newsgroups</filename> files
+from the site that feeds you. Install them in <filename>/etc/news</filename>,
+making sure they are owned by <systemitem role="userid">news</systemitem> and
+have a mode of 644, using the <command>chmod</command> command. Remove all
+<systemitem role="newsgroup">to.*</systemitem> groups from the active file,
+and add <systemitem role="newsgroup">to.my-site</systemitem>,
+<systemitem role="newsgroup">to.feed-site</systemitem>,
+<systemitem role="newsgroup">junk</systemitem>, and
+<systemitem role="newsgroup">control</systemitem>. The
+<systemitem role="newsgroup">to.*</systemitem> groups are normally used for
+exchanging ihave/sendme messages, but you should list them regardless of
+whether you plan to use ihave/sendme or not. Next, replace all article
+numbers in the second and third field of <filename>active</filename> using
+the following commands:
+
+<screen>
+# <userinput>cp active active.old</userinput>
+# <userinput>sed 's/ [0-9]* [0-9]* / 0000000000 00001 /' active.old > active</userinput>
+# <userinput>rm active.old</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm><primary>sed command (UNIX)</primary></indexterm> 
+The second command invokes the <command>sed</command> stream
+editor. This invocation replaces two strings of digits with a string of
+zeroes and the string <literal>000001</literal>, respectively.
+</para>
+
+<para>
+Finally, create the news spool directory and the subdirectories used for
+incoming and outgoing news:
+
+<screen>
+# <userinput>cd /var/spool</userinput>
+# <userinput>mkdir news news/in.coming news/out.going news/out.master</userinput>
+# <userinput>chown -R news.news news</userinput>
+# <userinput>chmod -R 755 news</userinput>
+</screen>
+</para>
+<?troff .wcon_off>
+
+<para>
+If you're using precompiled newsreaders sourced from a different
+distribution to the C News server you have running, you may find that
+some expect the news spool in <filename>/usr/spool/news</filename>
+rather than <filename>/var/spool/news</filename>. If your newsreader
+doesn't seem to find any articles, create a symbolic link from
+<?troff .ne 10>
+<filename>/usr/spool/news</filename> to
+<filename>/var/spool/news</filename> like this:
+<screen>
+# <userinput>ln -sf /usr/spool/news /var/spool/news</userinput>
+</screen>
+</para>
+
+<para>
+Now you are ready to receive news. Note that you don't have to create the
+individual newsgroup spool directories. C News automatically creates
+spool directories for any newsgroup it receives an article for, if one doesn't
+already exist.
+</para>
+
+<para>
+In particular, this happens to <emphasis>all</emphasis> groups to which an 
+article has been cross-posted. So, after a while, you will find your news spool
+cluttered with directories for newsgroups you have never subscribed
+to, like <systemitem role="newsgroup">alt.lang.teco</systemitem>. You may
+prevent this by either removing all unwanted groups from
+<filename>active</filename>, or by regularly running a shell script that 
+removes all empty directories below <filename>/var/spool/news</filename>
+(except <filename>out.going</filename> and <filename>in.coming</filename>,
+of course).
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>usenet</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>newsmaster</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>newsmaster</secondary></indexterm>
+<indexterm><primary>newsmaster</primary></indexterm>
+C News needs a user to send error messages and status reports to. By
+default, this is <systemitem role="userid">usenet</systemitem>. If you
+use the default, you have to set up an alias for it that forwards all
+of its mail to one or more responsible person. You may also override
+this behavior by setting the environment variable <systemitem
+role="keyword">NEWSMASTER</systemitem> to the appropriate name. You
+have to do so in <systemitem role="userid">news</systemitem>'s
+<filename>crontab</filename> file, as well as every time you invoke an
+administrative tool manually, so installing an alias is probably
+easier. Mail aliases are described in <xref linkend="X-087-2-sendmail">, and <xref linkend="X-087-2-exim">.
+</para>
+
+<para>
+<indexterm><primary SORTAS="etc/passwd file">/etc/passwd file</primary><secondary>real user names</secondary></indexterm>
+<indexterm><primary>real user names</primary></indexterm>
+<indexterm><primary>full user names</primary></indexterm>
+While you're hacking <filename>/etc/passwd</filename>, make sure that every
+user has her real name in the <systemitem role="keyword">pw_gecos</systemitem>
+field of the password file (this is the fourth field). It is a question of
+Usenet netiquette that the sender's real name appears in the
+<literal>From:</literal> field of the article. Of course, you will want to
+do so anyway when you use mail.
+</para>
+<indexterm class="endofrange" startref="chcn.cnews.install"> 
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.sys"><title>The sys File</title>
+<para>
+<indexterm id="idx-CNewsfilenamesysfilenamefile-1" 
+class="startofrange"><primary>C News</primary><secondary>sys 
+file</secondary></indexterm>
+<indexterm><primary>sys file (/etc/news)</primary></indexterm>
+The <filename>sys</filename> file, located in
+<filename>/etc/news</filename>, controls which hierarchies you receive
+and forward to other sites. Although there are maintenance tools named
+<command>addfeed</command> and <command>delfeed</command>, we think
+it's better to maintain this file by hand.
+</para>
+
+<para>
+The <filename>sys</filename> file contains entries for each site to
+which you forward news, as well as a description of the groups you
+will accept. The first line is a
+<systemitem role="keyword">ME</systemitem> entry that describes your
+system. It's a safe bet to use the following:
+
+<screen>
+ME:all/all::
+</screen>
+
+You also have to add a line for each site to which you feed news.
+Each line looks like this:
+
+<screen>
+<replaceable>site</replaceable>[/<replaceable>exclusions</replaceable>]:<replaceable>grouplist</replaceable>[/<replaceable>distlist</replaceable>][:<replaceable>flags</replaceable>[:<replaceable>cmds</replaceable>]]
+</screen>
+</para>
+
+<para>
+Entries may be continued across newlines using a backslash
+(<systemitem role="keyword">\</systemitem>) at the end of the line to be
+continued. A hash sign (<systemitem role="keyword">#</systemitem>) denotes a
+comment.
+</para> 
+
+<variablelist>
+<varlistentry><term><replaceable>site</replaceable></term>
+<listitem><para>
+This is the name of the site the entry applies to. One usually
+chooses the site's UUCP name for this.  There has to be an entry
+for your site in the <filename>sys</filename> file too, or you will not
+receive any articles yourself.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>receiving news</secondary></indexterm>
+<indexterm><primary>receiving news</primary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>receiving</secondary></indexterm>
+The special site name <systemitem role="keyword">ME</systemitem> denotes your
+site. The <systemitem role="keyword">ME</systemitem> entry defines all groups
+you are willing to store locally. Articles that aren't matched by the
+<systemitem role="keyword">ME</systemitem> line will go to the
+<systemitem role="newsgroup">junk</systemitem> group.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>excluding sites</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>hostname aliases</secondary></indexterm>
+<indexterm><primary>aliases</primary><secondary>C News and</secondary></indexterm>
+C News rejects any articles that have already passed through this site to
+prevent loops. C News does this by ensuring that the local site name does not
+appear in the <literal>Path:</literal> of the article. Some sites may be known
+by a number of valid names. For example, some sites use their fully qualified
+domain name in this field, or an alias like
+<literal>news.</literal><replaceable>site.domain</replaceable>. To ensure the
+loop prevention mechanism works, it is important to add all aliases to the 
+exclusion list, separating them by commas.
+</para>
+
+<para>
+<?troff .hw contain>
+<?troff .hw orcnet>
+For the entry applying to site <systemitem role="sitename">moria</systemitem>,
+for instance, the <replaceable>site</replaceable> field would contain
+<systemitem role="keyword">moria/moria.orcnet.org</systemitem>. If
+<systemitem role="sitename">moria</systemitem> were also by an alias of
+<systemitem role="sitename">news.orcnet.org</systemitem>, then our
+<replaceable>site</replaceable> field would contain
+<systemitem role="keyword">moria/moria.orcnet.org,news.orcnet.org</systemitem>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><replaceable>grouplist</replaceable></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>exchanging news</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>limiting a feed</secondary></indexterm>
+This is a comma-separated subscription list of groups and hierarchies
+for this particular site. A hierarchy may be specified by giving the
+hierarchy's prefix (such as <systemitem
+role="newsgroup">comp.os</systemitem> for all groups whose names start
+with this prefix), optionally followed by the keyword <systemitem
+role="newsgroup">all</systemitem> (e.g., <systemitem
+role="newsgroup">comp.os.all</systemitem>&thinsp;).
+</para>
+
+<para>
+You can exclude a hierarchy or group from forwarding by preceding it with an
+exclamation mark. If a newsgroup is checked against the list, the longest
+match applies. For example, if <replaceable>grouplist</replaceable>
+contains this list:
+
+<screen>
+!comp,comp.os.linux,comp.folklore.computers
+</screen>
+
+no groups from the <systemitem role="newsgroup">comp</systemitem> hierarchy
+except <systemitem role="newsgroup">comp.folklore.computers</systemitem> and
+all groups below <systemitem role="newsgroup">comp.os.linux</systemitem> will
+be fed to that site.
+</para>
+
+<para>
+If the site requests to be forwarded all news you receive yourself, enter
+<systemitem role="keyword">all</systemitem> as
+<replaceable>grouplist</replaceable>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><replaceable>distlist</replaceable></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>limiting a feed</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>distribution</secondary></indexterm>
+This value is offset from the <replaceable>grouplist</replaceable> by
+a slash and contains a list of distributions to be forwarded. Again,
+you may exclude certain distributions by preceding them with an
+exclamation mark. All distributions are denoted by <systemitem
+role="keyword">all</systemitem>.  Omitting
+<replaceable>distlist</replaceable> implies a list of <systemitem
+role="keyword">all</systemitem>.
+</para>
+<?troff .wcon_off>
+
+<para>
+For example, you may use a distribution list of
+<systemitem role="keyword">all,!local</systemitem> to prevent news meant only 
+for local use from being sent to remote sites.
+</para>
+
+<para>
+There are usually at least two distributions:
+<systemitem role="keyword">world</systemitem>, which is often the default
+distribution used when none is specified by the user, and
+<systemitem role="keyword">local</systemitem>. There may be other
+distributions that apply to a certain region, state, country,
+etc. Finally, there are two distributions used by C News only;
+these are <systemitem role="keyword">sendme</systemitem> and
+<systemitem role="keyword">ihave</systemitem>, and are used for
+the sendme/ihave protocol.
+</para>
+
+<para>
+The use of distributions is a subject of debate. The distribution
+field in a news article can be created arbitrarily, but for a
+distribution to be effective, the news servers in the network must
+know it. Some misbehaving newsreaders create bogus distributions by
+simply assuming the top-level newsgroup hierarchy of the article
+destination is a reasonable distribution.  For example, one might
+assume <systemitem role="newsgroup">comp</systemitem> to be a
+reasonable distribution to use when posting to the <systemitem
+role="newsgroup">comp.os.linux.networking</systemitem>
+newsgroup. Distributions that apply to regions are often questionable,
+too, because news may travel outside of your region when sent across
+the Internet.<footnote id="X-087-2-FNCN04"><para> It is not uncommon
+for an article posted in say, Hamburg, to go to Frankfurt via
+<systemitem role="sitename">reston.ans.net</systemitem> in the
+Netherlands, or even via some site in the U.S.
+</para>
+</footnote>
+Distributions applying to an organization, however, are
+very meaningful; e.g., to prevent confidential information from
+leaving the company network.  This purpose, however, is generally
+served better by creating a separate newsgroup or hierarchy.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><replaceable>flags</replaceable></term>
+<listitem><para>
+This option describes certain parameters for the feed. It may be
+empty or a combination of the following:
+
+ <variablelist>
+ <varlistentry><term><literal>F</literal></term>
+ <listitem><para>
+<indexterm><primary>C News</primary><secondary>batching</secondary></indexterm>
+ This flag enables batching.
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>f</literal></term>
+ <listitem><para>
+<indexterm><primary>C News</primary><secondary>batching</secondary></indexterm>
+ This is almost identical to the <literal>F</literal> flag,
+ but allows C News to calculate the size of outgoing batches more precisely,
+ and should probably be used in preference.
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>I</literal></term>
+ <listitem><para>
+<indexterm><primary>C News</primary><secondary>ihave/sendme</secondary></indexterm>
+ This flag makes C News produce an article list suitable
+ for use by ihave/sendme. Additional modifications to the
+ <filename>sys</filename> and the <filename>batchparms</filename> file are
+ required to enable ihave/sendme.
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>n</literal></term>
+ <listitem><para>
+<indexterm><primary>C News</primary><secondary>NNTP support</secondary></indexterm>
+ This creates batch files for active NNTP transfer clients like
+ <command>nntpxmit</command> (see <xref linkend="X-087-2-nntp">).
+ The batch files contain the article's filename along with its message ID.
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>L</literal></term>
+ <listitem><para>
+ This tells C News to transmit only articles posted at your site. This flag
+ may be followed by a decimal number <replaceable>n</replaceable>, which
+ makes C News transfer articles posted only within <replaceable>n</replaceable>
+ hops from your site. C News determines the number of hops from the
+ <replaceable>Path:</replaceable> field.
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>u</literal></term>
+ <listitem><para>
+ This tells C News to batch only articles from unmoderated groups. 
+ </para></listitem>
+ </varlistentry>
+   
+ <varlistentry><term><literal>m</literal></term>
+ <listitem><para>
+ This tells C News to batch only articles from moderated groups. 
+ </para></listitem>
+ </varlistentry>
+ </variablelist>
+</para>
+
+<para>
+You may use at most one of <literal>F</literal>,
+<literal>f</literal>,
+<literal>I</literal>, or
+<literal>n</literal>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><replaceable>cmds</replaceable></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>rnews command</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>exchanging news</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>sending news</secondary></indexterm>
+This field contains a command that will be executed for each article,
+unless you enable batching. The article will be fed to the command on
+standard input. This should be used for very small feed only;
+otherwise, the load on both systems will be too high.
+</para>
+
+<para>
+The default command is:
+
+<screen>
+uux - -r -z <replaceable>remote-system</replaceable>!rnews
+</screen>
+</para>
+
+<para>
+This invokes <command>rnews</command> on the remote system, feeding it
+the article on standard input.
+</para>
+
+<para>
+The default search path for commands given in this field is
+<filename>/bin:/usr/bin:/usr/lib/news/batch</filename>. The latter
+directory contains a number of shell scripts whose names start with
+<command>via</command>&thinsp;; they are briefly described later in this chapter.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>batching</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>togo file</secondary></indexterm>
+If batching is enabled using one of the
+<literal>F</literal>,
+<literal>f</literal>,
+<literal>I</literal>, or
+<literal>n</literal> flags, C News expects to find a
+filename in this field rather than a command. If the filename does not
+begin with a slash (/&thinsp;), it is assumed to be relative to
+<filename>/var/spool/news/out.going</filename>. If the field is
+empty, it defaults to <filename>remote-system/togo</filename>. The file is
+expected to be in the same format as the <filename>remote-system/togo</filename> file and contain a list of articles to transmit.
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+<para>
+When setting up C News, you will most probably have to write your own
+<filename>sys</filename> file. Here is a sample file for
+<systemitem role="sitename">vbrew.com</systemitem>, from which you may copy 
+what you need:
+</para>
+
+<screen>
+# We take whatever they give us.
+ME:all/all::
+# We send everything we receive to moria, except for local and
+# brewery-related articles. We use batching.
+moria/moria.orcnet.org:all,!to,to.moria/all,!local,!brewery:f:
+# We mail comp.risks to jack@ponderosa.uucp
+ponderosa:comp.risks/all::rmail jack@ponderosa.uucp
+# swim gets a minor feed
+swim/swim.twobirds.com:comp.os.linux,rec.humor.oracle/all,!local:f:
+# Log mail map articles for later processing
+usenet-maps:comp.mail.maps/all:F:/var/spool/uumaps/work/batch
+</screen>
+
+<indexterm class="endofrange" startref="idx-CNewsfilenamesysfilenamefile-1">
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.active"><title>The active File</title>
+
+<para>
+<indexterm><primary>C News</primary><secondary>active file</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>list of current groups</secondary></indexterm>
+<indexterm><primary>active.times file (/var/lib/news)</primary></indexterm> 
+The <filename>active</filename> file is located in
+<filename>/etc/</filename>, and lists all groups known at your site
+and the articles currently online. You will rarely have to touch it, but
+we explain it nevertheless for sake of completion. Entries take the
+following form:
+
+<screen>
+<replaceable>newsgroup</replaceable> <replaceable>high</replaceable> <replaceable>low</replaceable> <replaceable>perm</replaceable>
+</screen>
+</para>
+
+<para>
+<replaceable>newsgroup</replaceable> is the group's name.
+<replaceable>low</replaceable> and <replaceable>high</replaceable> are the
+lowest and highest numbers of articles currently available. If none are
+available at the moment, <replaceable>low</replaceable> is equal to
+<replaceable>high</replaceable>+1.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>update low water mark</secondary></indexterm>
+At least that's what the <replaceable>low</replaceable> field is meant to do.
+However, for efficiency, C News doesn't update this field. This wouldn't be
+such a big loss if there weren't newsreaders that depend on it. For
+instance, <command>trn</command> checks this field to see if it can purge any
+articles from its thread database. To update the <replaceable>low</replaceable>
+field, you therefore have to run the <command>updatemin</command> command
+regularly (or, in earlier versions of C News, the <command>upact</command>
+script).
+</para>
+
+<para>
+<replaceable>perm</replaceable> is a parameter detailing the access users are
+granted to the group. It takes one of the following values:
+
+<variablelist>
+<varlistentry><term><systemitem role="keyword">y</systemitem></term>
+<listitem><para>
+Users are allowed to post to this group.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">n</systemitem></term>
+<listitem><para>
+Users are not allowed to post to this group. However, the group may still
+be read.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">x</systemitem></term>
+<listitem><para>
+This group has been disabled locally. This happens sometimes when news
+administrators (or their superiors) take offense at articles posted to
+certain groups.
+</para>
+
+<para>
+Articles received for this group are not stored locally, although they are
+forwarded to the sites that request them.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><systemitem role="keyword">m</systemitem></term>
+<listitem><para>
+This denotes a moderated group. When a user tries to post to this group,
+an intelligent newsreader notifies her of this and send the article to
+the moderator instead. The moderator's address is taken from the
+<filename>moderators</filename> file in <filename>/var/lib/news</filename>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><literal>=</literal><replaceable>real-group</replaceable></term>
+<listitem><para>
+This marks <replaceable>newsgroup</replaceable> as being a local alias for
+another group, namely <replaceable>real-group</replaceable>. All articles
+posted to <replaceable>newsgroup</replaceable> will be redirected to it.
+</para></listitem>
+</varlistentry>
+</variablelist>
+</para>
+
+<para>
+In C News, you will generally not have to access this file directly.
+Groups can be added or deleted locally using
+<command>addgroup</command> and <command>delgroup</command> (see the
+section <xref linkend="X-087-2-cnews.maint">&rdquo; later in this chapter).  A
+<systemitem role="keyword">newgroup</systemitem> control message adds
+a group for the whole of Usenet, while a <systemitem
+role="keyword">rmgroup</systemitem> message deletes a group.
+<emphasis>Never send such a message yourself!</emphasis> For
+instructions on how to create a newsgroup, read the monthly postings
+in <systemitem role="newsgroup">news.announce.newusers</systemitem>.
+</para>
+
+<para>
+<indexterm><primary>active.times file (/var/lib/news)</primary></indexterm> 
+The <filename>active.times</filename> file is closely related to the 
+<filename>active</filename> file. Whenever a group is created, C News logs
+a message to this file containing the name of the group created, the date of
+creation, whether it was done by a
+<systemitem role="keyword">newgroup</systemitem> control message or locally,
+and who did it. This is convenient for newsreaders that may notify
+the user of any recently created groups. It is also used by the
+<command>NEWGROUPS</command> command of NNTP.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.batcher"><title>Article Batching</title>
+
+<para>
+<indexterm id="idx-CNewssendingnews-1" class="startofrange"><primary>C News</primary><secondary>sending news</secondary></indexterm>
+<indexterm id="idx-CNewsbatching-1" class="startofrange"><primary>C News</primary><secondary>article batching</secondary></indexterm>
+<indexterm id="idx-batchingnews-1" class="startofrange"><primary>batching</primary><secondary>news</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>articles</secondary><tertiary>batching</tertiary></indexterm>
+<INDEXTERM><PRIMARY>articles (news)</PRIMARY><SECONDARY>batching</SECONDARY></INDEXTERM>
+News batches follow a particular format that is the same for
+B News, C News, and INN. Each article is preceded by a line like this:
+
+<screen>
+#! rnews <replaceable>count</replaceable>
+</screen>
+</para>
+
+<para>
+<replaceable>count</replaceable> is the number of bytes in the article. When
+you use batch compression, the resulting file is compressed as a whole and
+preceded by another line, indicated by the message to be used for unpacking.
+The standard compression tool is
+<systemitem role="newsgroup">compress</systemitem>, which is marked by:
+
+<screen>
+#! cunbatch
+</screen>
+</para>
+
+<para>
+Sometimes, when the news server sends batches via mail software that
+removes the eighth bit from all data, a compressed batch may be
+protected using what is called <emphasis>c7-encoding</emphasis>; these
+batches will be marked by <command>c7unbatch</command>.
+</para>
+
+<para>
+When a batch is fed to <command>rnews</command> on the remote site, it
+checks for these markers and processes the batch appropriately.  Some
+sites also use other compression tools, like <command>gzip</command>,
+and precede their gzipped files with the word
+<command>zunbatch</command> instead. C News does not recognize
+nonstandard headers like these; you have to modify the source to
+support them.
+</para>
+
+<para>
+<indexterm><primary>sendbatches command</primary></indexterm>
+<indexterm><primary>C News</primary><secondary>sending news</secondary></indexterm>
+In C News, article batching is performed by
+<filename>/usr/lib/news/batch/sendbatches</filename>,
+which takes a list of articles from the <filename>site/togo</filename> file
+and puts them into several newsbatches.  It should be executed once per hour,
+or even more frequently, depending on the volume of traffic. Its operation
+is controlled by the <filename>batchparms</filename> file in
+<filename>/var/lib/news</filename>. This file describes the maximum batch
+size allowed for each site, the batching and optional compression program
+to be used, and the transport for delivering it to the remote site. You
+may specify batching parameters on a per-site basis, as well as a set of
+default parameters for sites not explicitly mentioned.
+</para>
+
+<para>
+When installing C News, you will most likely find a
+<filename>batchparms</filename> file in your distribution that contains
+a reasonable default entry, so there's a good chance that you won't have
+to touch the file. Just in case, we describe its format. Each line consists
+of six fields, separated by spaces or tabs:
+
+<screen>
+<replaceable>site</replaceable> <replaceable>size</replaceable> <replaceable>max</replaceable> <replaceable>batcher</replaceable> <replaceable>muncher</replaceable> <replaceable>transport</replaceable>
+</screen>
+</para>
+<?troff .wcon_off>
+
+<variablelist>
+<varlistentry><term><replaceable>site</replaceable></term>
+<listitem><para>
+<replaceable>site</replaceable> is the name of the site to which the entry 
+applies. The <filename>togo</filename> file for this site must reside in
+<filename>out.going&thinsp;/togo</filename> below the news spool. A site name of
+<systemitem role="keyword">/default/</systemitem> denotes the default entry and
+is to match any site not directly specified with an entry unique to it.
+</para></listitem></varlistentry>
+
+<varlistentry><term><replaceable>size</replaceable></term>
+<listitem><para>
+<replaceable>size</replaceable> is the maximum size of article batches
+created (before compression). For single articles larger than this, C News
+makes an exception and puts each in a single batch by itself.
+</para></listitem></varlistentry>
+
+<varlistentry><term><replaceable>max</replaceable></term>
+<listitem><para>
+<replaceable>max</replaceable> is the maximum number of batches created and
+scheduled for transfer before batching stalls for this particular site. This
+is useful in case the remote site should be down for a long time,
+because it prevents C News from cluttering your UUCP spool directories 
+with zillions of newsbatches.
+</para>
+
+<para>
+C News determines the number of queued batches using the
+<command>queuelen</command> script in <filename>/usr/lib/news/</filename>.
+If you've installed C News in a prepackaged format, the script should not
+need any editing, but if you choose to use a different flavor of spool
+directories, for example, Taylor UUCP, you might have to write your
+own. If you don't care about the number of spool files (because you're the only
+person using your computer and you don't write articles by the megabyte),
+you may replace the script's contents by a simple <command>exit 0</command>
+statement.
+</para></listitem></varlistentry>
+
+
+<varlistentry><term><replaceable>batcher</replaceable></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>ihave/sendme</secondary></indexterm>
+The <replaceable>batcher</replaceable> field contains the command used for
+producing a batch from the list of articles in the <filename>togo</filename>
+file. For regular feeds, this is usually <command>batcher</command>. For
+other purposes, alternative batchers may be provided. For instance, the
+ihave/sendme protocol requires the article list to be turned into 
+<emphasis>ihave</emphasis> or <emphasis>sendme</emphasis> control messages, 
+which are posted to the newsgroup
+<systemitem role="newsgroup">to.site</systemitem>. This is performed by
+<command>batchih</command> and <command>batchsm</command>.
+</para></listitem></varlistentry>
+
+
+<varlistentry><term><replaceable>muncher</replaceable></term>
+<listitem>
+<para>
+<indexterm><primary>C News</primary><secondary>compressing batches</secondary></indexterm>
+The <replaceable>muncher</replaceable> field specifies the compression
+command. Usually, this is <systemitem
+role="newsgroup">compcun</systemitem>, a script that produces a
+compressed batch.<footnote id="X-087-2-FNCN06"><para> As shipped with
+C News, <systemitem role="newsgroup">compcun</systemitem> uses
+<systemitem role="newsgroup">compress</systemitem> with the 12-bit
+option, since this is the lowest common denominator for most
+sites. You may produce a copy of the script, say <systemitem
+role="newsgroup">compcun16</systemitem>, for which you use 16-bit
+compression. The improvement is not too impressive, though.
+</para>
+</footnote>
+ Alternatively, suppose you create a muncher that uses
+<command>gzip</command>, say <userinput>gzipcun</userinput> (note that you
+have to write it yourself&thinsp;).  You have to make sure that
+<command>uncompress</command> on the remote site is patched to
+recognize files compressed with <command>gzip</command>.
+</para>
+
+<para>
+If the remote site does not have an <command>uncompress</command> command,
+you may specify <command>nocomp</command>, which does not do any compression.
+</para></listitem></varlistentry>
+
+
+<varlistentry><term><replaceable>transport</replaceable></term>
+<listitem>
+<para>
+The last field, <replaceable>transport</replaceable>, describes the
+transport to be used. A number of standard commands for different
+transports are available; their names begin with
+<command>via</command>.  <command>sendbatches</command> passes them
+the destination sitename on the command line. If the
+<filename>batchparms</filename> entry is not <systemitem
+role="keyword">/default/</systemitem>, <command>sendbatches</command>
+derives the sitename from the <replaceable>site</replaceable> field by
+stripping it of anything after and including the first dot or
+slash. If the <systemitem role="keyword">batchparms</systemitem> entry
+is <systemitem role="keyword">/default/</systemitem>, the directory
+names in <filename>out.going</filename> are used.
+</para></listitem></varlistentry>
+</variablelist>
+<?troff .Nd 10>
+
+<para>
+To perform batching for a specific site, use the following command:
+
+<screen>
+# <userinput>su news -c "/usr/lib/news/batch/sendbatches site"</userinput>
+</screen>
+</para>
+
+<para>
+<indexterm id="idx-CNewsbatchparameters-1" class="startofrange"><primary>C News</primary><secondary>batch parameters</secondary></indexterm>
+When invoked without arguments, <command>sendbatches</command> handles all
+batch queues. The interpretation of &ldquo;all&rdquo; depends on the presence
+of a default entry in <filename>batchparms</filename>. If one is found, all
+directories in <filename>/var/spool/news/out.going</filename> are checked;
+otherwise, <command>sendbatches</command> cycles through all entries in
+<filename>batchparms</filename>, processing just the sites found there.
+Note that <command>sendbatches</command>, when scanning the
+<filename>out.going</filename> directory, takes only those directories
+that contain no dots or at signs (<systemitem role="keyword">@</systemitem>)
+as sitenames.
+</para>
+
+<para>
+<indexterm><primary>rnews command</primary></indexterm>
+<indexterm><primary>uux command</primary></indexterm>
+<indexterm><primary>C News</primary><secondary>UUCP</secondary></indexterm>
+There are two commands that use <command>uux</command> to execute
+<command>rnews</command> on the remote system:
+<command>viauux</command> and <command>viauuxz</command>. The latter
+sets the <option>&ndash;z</option> flag for <command>uux</command> to
+keep older versions from returning success messages for each article
+delivered. Another command, <command>viamail</command>, sends article
+batches to the user <systemitem role="userid">rnews</systemitem> on
+the remote system via mail.  Of course, this requires that the remote
+system somehow feeds all mail for <systemitem
+role="userid">rnews</systemitem> to its local news system.  For a
+complete list of these transports, refer to the
+<filename>newsbatch</filename> manual page.
+</para>
+
+<para>
+All commands from the last three fields must be located in either
+<filename>out.going/site</filename> or
+<filename>/usr/lib/news/batch</filename>. Most of them are scripts; you 
+can easily tailor new tools for your personal needs. They are
+invoked through pipes. The list of articles is fed to the batcher on standard
+input, which produces the batch on standard output. This is piped into the
+muncher, and so on.
+</para>
+
+<para>
+Here is a sample file:
+</para>
+
+<screen>
+# batchparms file for the brewery
+# site        | size   |max    |batcher  |muncher    |transport
+#-------------+--------+-------+---------+-----------+-----------
+/default/       100000  22      batcher   compcun     viauux
+swim             10000  10      batcher   nocomp      viauux
+</screen>
+
+<indexterm class="endofrange" startref="idx-CNewsbatchparameters-1">
+<indexterm class="endofrange" startref="idx-CNewssendingnews-1">
+<indexterm class="endofrange" startref="idx-CNewsbatching-1">
+<indexterm class="endofrange" startref="idx-batchingnews-1">
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.explist"><title>Expiring News</title>
+
+<para>
+<indexterm id="idx-CNewsexpiring-1" class="startofrange"><primary>C News</primary><secondary>expiration of news in</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>expiration of</secondary></indexterm>
+<indexterm><primary>cron</primary><secondary>expiring mail from</secondary></indexterm> 
+In B News, expiration needs to be performed by a program called
+<command>expire</command>, which took a list of newsgroups as arguments,
+along with a time specification after which articles had to be expired.
+To have different hierarchies expire at different times, you had to write a
+script that invoked <command>expire</command> for each of them separately.
+C News offers a more convenient solution. In a file called
+<filename>explist</filename>, you may specify newsgroups and expiration
+intervals.  A command called <command>doexpire</command> is usually run once
+a day from <command>cron</command> and processes all groups according to this
+list.
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>archiving</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>archiving articles</secondary></indexterm>
+Occasionally, you may want to retain articles from certain groups even
+after they have been expired; for example, you might want to keep
+programs posted to <systemitem role="newsgroup">comp.sources.unix</systemitem>.
+This is called <emphasis>archiving</emphasis>. <filename>explist</filename>
+permits you to mark groups for archiving.
+</para>
+<?troff .Nd 10>
+
+<para>
+An entry in <filename>explist</filename> looks like this:
+
+<screen>
+<replaceable>grouplist</replaceable> <replaceable>perm</replaceable> <replaceable>times</replaceable> <replaceable>archive</replaceable>
+</screen>
+</para>
+
+<para>
+<replaceable>grouplist</replaceable> is a comma-separated list of
+newsgroups to which the entry applies. Hierarchies may be specified by
+giving the group name prefix, optionally appended with <systemitem
+role="keyword">all</systemitem>. For example, for an entry applying to
+all groups below <systemitem role="newsgroup">comp.os</systemitem>,
+enter either <userinput>comp.os</userinput> or
+<userinput>comp.os.all</userinput>.
+</para>
+
+<para>
+When <emphasis>expiring</emphasis> news from a group, the name is
+checked against all entries in <filename>explist</filename> in the
+order given. The first matching entry applies. For example, to throw
+away the majority of <systemitem role="newsgroup">comp</systemitem>
+after four days, except for <systemitem
+role="newsgroup">comp.os.linux.announce</systemitem>, which you want
+to keep for a week, you simply have an entry for the latter, which
+specifies a seven-day expiration period, followed by an expiration
+period for <systemitem role="newsgroup">comp</systemitem>, which
+specifies four days.
+</para>
+
+<para>
+The <replaceable>perm</replaceable> field details if the entry applies to
+moderated, unmoderated, or any groups. It may take the values
+<systemitem role="keyword">m</systemitem>,
+<systemitem role="keyword">u</systemitem>, or
+<systemitem role="keyword">x</systemitem>, which denote moderated, unmoderated,
+or any type.
+</para>
+
+<para>
+The third field, <replaceable>times</replaceable>, usually contains
+only a single number. This is the number of days after which articles 
+expire if they haven't been assigned an artificial expiration
+date in an <literal>Expires:</literal> field in the article
+header. Note that this is the number of days counting from its
+<emphasis>arrival</emphasis> at your site, not the date of posting.
+</para>
+
+<para>
+The <replaceable>times</replaceable> field may, however, be more
+complex than that. It may be a combination of up to three numbers
+separated from one another by dashes. The first denotes the number of
+days that have to pass before the article is considered a candidate
+for expiration, even if the <literal>Expires:</literal> field would
+have it expire already. It is rarely useful to use a value other than
+zero. The second field is the previously mentioned default number of days
+after which it will be expired. The third is the number of days after
+which an article will be expired unconditionally, regardless of
+whether it has an <literal>Expires:</literal> field or not.  If only
+the middle number is given, the other two take default values. These
+may be specified using the special entry <systemitem
+role="keyword">/bounds/</systemitem>, which is described a little
+later.
+</para>
+
+<para>
+The fourth field, <replaceable>archive</replaceable>, denotes whether the
+newsgroup is to be archived and where.  If no archiving is intended, a dash
+should be used. Otherwise, you either use a full pathname (pointing to a
+directory) or an at sign (@). The at sign denotes the default archive
+directory, which must then be given to <command>doexpire</command> by using
+the <option>&ndash;a</option> flag on the command line.  An archive directory
+should be owned by <systemitem role="userid">news</systemitem>. When
+<command>doexpire</command> archives an article from say,
+<systemitem role="newsgroup">comp.sources.unix</systemitem>, it stores it in
+the directory <systemitem role="newsgroup">comp/sources/unix</systemitem> below
+the archive directory, creating it if necessary. The archive directory itself,
+however, will not be created.
+</para>
+
+<para>
+There are two special entries in your <filename>explist</filename> file that
+<command>doexpire</command> relies on.  Instead of a list of newsgroups, they
+have the keywords <systemitem role="keyword">/bounds/</systemitem> and
+<systemitem role="keyword">/expired/</systemitem>. The
+<systemitem role="keyword">/bounds/</systemitem> entry contains the default
+values for the three values of the <replaceable>times</replaceable> field
+described previously.
+</para>
+
+<para>
+The <systemitem role="keyword">/expired/</systemitem> field determines how
+long C News will hold onto lines in the <filename>history</filename> file. 
+C News will not remove a line from the history file
+once the corresponding article(s) have been expired, but will hold onto it
+in case a duplicate should arrive after this date. If you are fed by only
+one site, you can keep this value small. Otherwise, a couple of weeks is
+advisable on UUCP networks, depending on the delays you experience with
+articles from these sites.
+</para>
+
+<para>
+Here is a sample <filename>explist</filename> file with rather tight
+expiry intervals:
+
+<screen>
+# keep history lines for two weeks. No article gets more than three months
+/expired/                       x       14      -
+/bounds/                        x       0-1-90  -
+# groups we want to keep longer than the rest
+comp.os.linux.announce          m       10      -
+comp.os.linux                   x       5       -
+alt.folklore.computers          u       10      -
+rec.humor.oracle                m       10      -
+soc.feminism                    m       10      -
+# Archive *.sources groups
+comp.sources,alt.sources        x       5       @
+# defaults for tech groups
+comp,sci                        x       7       -
+# enough for a long weekend
+misc,talk                       x       4       -
+# throw away junk quickly
+junk                            x       1       -
+# control messages are of scant interest, too
+control                         x       1       -
+# catch-all entry for the rest of it
+all                             x       2       -
+</screen>
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>update low water mark</secondary></indexterm>
+Expiring presents several potential problems. One is that your newsreader
+might rely on the third field of the <emphasis>active</emphasis> file 
+described earlier, which contains the number
+of the lowest article online. When expiring articles, C News does not update
+this field. If you need (or want) to have this field represent the real
+situation, you need to run a program called <command>updatemin</command> after
+each run of <command>doexpire</command>. (In older versions of C News, a 
+script called <command>upact</command> did this.)
+</para>
+
+<para>
+<indexterm><primary>C News</primary><secondary>history file</secondary></indexterm>
+C News does not expire by scanning the newsgroup's directory, but simply
+checks the <filename>history</filename> file if the article is due for
+expiration.<footnote id="X-087-2-FNCN07"><para>
+The article's date of arrival is kept in the middle field of the history
+line and given in seconds since January 1, 1970.
+</para>
+</footnote>
+If your history file somehow gets out of sync, articles may be around on
+your disk forever because C News has literally forgotten
+them.<footnote id="X-087-2-FNCN08"><para>
+I don't know <emphasis>why</emphasis> this happens, but it does from
+time to time.
+</para>
+</footnote>
+You can repair this by using the <command>addmissing</command> script in
+<filename>/usr/lib/news/maint</filename>, which will add missing articles
+to the <filename>history</filename> file or <command>mkhistory</command>,
+which rebuilds the entire file from scratch. Don't forget to become user
+<systemitem role="userid">news</systemitem> before invoking it, or else you
+will wind up with a <filename>history</filename> file unreadable by
+C News.
+
+
+</para>
+
+<indexterm class="endofrange" startref="idx-CNewsexpiring-1">
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.misc"><title>Miscellaneous Files</title>
+
+<para>
+There are a number of files that control the behavior of C News, but are not
+essential. All of them reside in <filename>/etc/news</filename>. We describe 
+them briefly here:
+</para>
+
+<variablelist>
+<varlistentry><term><filename>newsgroups</filename></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>list of current groups</secondary></indexterm>
+<indexterm><primary>newsgroups</primary><secondary>file (/etc/news)</secondary></indexterm> 
+This is a companion file of <filename>active</filename> that contains a list
+of each newsgroup name along with a one-line description of its main topic.
+This file is automatically updated when C News receives a
+<systemitem role="keyword">checknews</systemitem> control message.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>localgroups</filename></term>
+<listitem><para>
+<indexterm><primary>localgroups file (/etc/news)</primary></indexterm> 
+If you have a lot of local groups, you can keep C News from complaining about 
+them each time you receive a <literal>checkgroups</literal> message by putting their names and descriptions in this file, just as they would
+appear in <filename>newsgroups</filename>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>mailpaths</filename></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>moderated groups</secondary></indexterm>
+<indexterm><primary>mailpaths file (/etc/news)</primary></indexterm> 
+This file contains the moderator's address for each moderated group. Each
+line contains the group name followed by the moderator's email address
+(offset by a tab).
+</para>
+
+<para>
+Two special entries are provided as defaults:
+<systemitem role="keyword">backbone</systemitem> and
+<systemitem role="keyword">internet</systemitem>. Both provide, in bang-path
+notation, the path to the nearest backbone site and the site that understands
+RFC-822 style addresses (<systemitem role="emailaddr">user@host</systemitem>).
+The default entries are:
+
+<screen>
+internet           backbone
+</screen>
+</para>
+
+<para>
+You do not have to change the <systemitem
+role="keyword">internet</systemitem> entry if you have
+<command>exim</command> or <command>sendmail</command> installed; they
+understand RFC-822 addressing.
+</para>
+
+<para>
+The <systemitem role="keyword">backbone</systemitem> entry is used whenever a
+user posts to a moderated group whose moderator is not listed explicitly. If
+the newsgroup's name is <systemitem role="newsgroup">alt.sewer</systemitem>
+and the <systemitem role="keyword">backbone</systemitem> entry contains
+<systemitem role="emailaddr">path!%s</systemitem>, C News will mail the
+article to <systemitem role="emailaddr">path!alt-sewer</systemitem>, hoping
+that the backbone machine is able to forward the article. To find out which
+path to use, ask the news-admin at the site that feeds you. As a last resort,
+you can also use <systemitem role="emailaddr">uunet.uu.net!%s</systemitem>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>distributions</filename></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>limiting a feed</secondary></indexterm>
+This file is not really a C News file, but is used by some newsreaders
+and <command>nntpd</command>. It contains the list of distributions recognized
+by your site and a description of their (intended) effects. For example,
+Virtual Brewery has the following file:
+
+<screen>
+world         everywhere in the world
+local         Only local to this site
+nl            Netherlands only
+mugnet        MUGNET only
+fr            France only
+de            Germany only
+brewery       Virtual Brewery only
+</screen>
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>log</filename></term>
+<listitem><para>
+<indexterm><primary>C News</primary><secondary>log files</secondary></indexterm>
+This file contains a log of all C News activities. It is culled regularly by
+running <command>newsdaily</command>&thinsp;; copies of the old log files are kept in
+<filename>log.o</filename>, <filename>log.oo</filename>, etc.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>errlog</filename></term>
+<listitem><para>
+This is a log of all error messages created by C News. These messages do not include
+logs of articles junked due to being sent to an invalid wrong group or other
+user errors. This file is mailed to the newsmaster
+(<systemitem role="userid">usenet</systemitem> by default)
+automatically by <command>newsdaily</command> if it is not found empty.
+</para>
+
+<para>
+<?troff .hw companions>
+<filename>errlog</filename> is cleared by <command>newsdaily</command>.
+<filename>errlog.o</filename> keeps old copies and companions.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>batchlog</filename></term>
+<listitem><para>
+This file logs all runs of <command>sendbatches</command>. It is usually of scant
+interest. It is also attended by <command>newsdaily</command>.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term><filename>watchtime</filename></term>
+<listitem><para>
+This is an empty file created each time <command>newswatch</command> runs.
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.control"><title>Control Messages</title>
+
+<para>
+<indexterm><primary>news (network)</primary><secondary>control messages</secondary></indexterm>
+<indexterm><primary>C News</primary><secondary>control messages in</secondary></indexterm> 
+The Usenet news protocol knows a special category of articles that
+evoke certain responses or actions by the news system. These are called
+<emphasis>control</emphasis> messages. They are recognized by the presence of a
+<replaceable>Control:</replaceable> field in the article header, which contains the
+name of the control operation to be performed. There are several types of them,
+all of which are handled by shell scripts located in
+<filename>/usr/lib/news/ctl</filename>.
+</para>
+
+<para>
+Most of these messages perform their action automatically at the time the article
+is processed by C News without notifying the newsmaster. By default, only
+<systemitem role="keyword">checkgroups</systemitem> messages will be handed
+to the newsmaster, but you may change this by editing the scripts.
+</para>
+
+<sect2 id="X-087-2-cnews.control.cancel"><title>The cancel Message</title>
+
+<para>
+<indexterm><primary>cancel control message</primary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>cancel article</secondary></indexterm>
+The most widely known message is <systemitem
+role="keyword">cancel</systemitem>, with which a user can cancel an
+article sent earlier. This effectively removes the article from the
+spool directories, if it exists. The <systemitem
+role="keyword">cancel</systemitem> message is forwarded to all sites
+that receive news from the groups affected, regardless of whether the
+article has been seen already. This takes into account the possibility
+that the original article has been delayed over the cancellation
+message. Some news systems allow users to cancel other people's
+messages; this is, of course, a definite no-no.
+</para>
+
+</sect2>
+<?troff .wcon_off>
+
+<sect2 id="X-087-2-cnews.control.addgroup"><title>newgroup and rmgroup</title>
+
+<para>
+<indexterm><primary>newgroup control message</primary></indexterm>
+<indexterm><primary>rmgroup control message</primary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>adding new groups</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>removing old groups</secondary></indexterm>
+<indexterm><primary>newsgroups</primary><secondary>creating</secondary></indexterm> 
+<indexterm><primary>newsgroups</primary><secondary>deleting</secondary></indexterm> 
+Two messages dealing with creation or removal of newsgroups are the
+<systemitem role="keyword">newgroup</systemitem> and
+<systemitem role="keyword">rmgroup</systemitem> messages. Newsgroups below the
+&ldquo;usual&rdquo; hierarchies may be created only after a discussion and
+voting has been held among Usenet readers. The rules applying to the
+<systemitem role="newsgroup">alt</systemitem> hierarchy allow for something
+close to anarchy. For more information, see the regular postings in
+<systemitem role="newsgroup">news.announce.newusers</systemitem> and
+<systemitem role="newsgroup">news.announce.newgroups</systemitem>.  Never send
+a <systemitem role="keyword">newgroup</systemitem> or
+<systemitem role="keyword">rmgroup</systemitem> message yourself unless you
+definitely know that you are allowed to.
+</para>
+</sect2>
+
+<sect2 id="X-087-2-cnews.control.checkgroups"><title>The checkgroups Message</title>
+
+<para>
+<indexterm><primary>checkgroups control message</primary></indexterm>
+<indexterm><primary>C News</primary><secondary>updating active files</secondary></indexterm>
+<indexterm><primary>news (network)</primary><secondary>updating active files</secondary></indexterm>
+<systemitem role="keyword">checkgroups</systemitem> messages are sent by news
+administrators to make all sites within a network synchronize their
+<filename>active</filename> files with the realities of Usenet. For example,
+commercial Internet Service Providers might send out such a message to their
+customers' sites.  Once a month, the &ldquo;official&rdquo;
+<systemitem role="keyword">checkgroups</systemitem> message for the major
+hierarchies is posted to
+<systemitem role="newsgroup">comp.announce.newgroups</systemitem> by its
+moderator. However, it is posted as an ordinary article, not as a control
+message. To perform the <systemitem role="keyword">checkgroups</systemitem>
+operation, save this article to a file, say <filename>/tmp/check</filename>,
+remove everything up to the beginning of the control message itself, and feed
+it to the <systemitem role="keyword">checkgroups</systemitem> script using the
+following command:
+
+<screen>
+# <userinput>su news -c "/usr/lib/news/ctl/checkgroups" &lt; /tmp/check</userinput>
+</screen>
+</para>
+
+<para>
+This will update your <filename>newsgroups</filename> file from the new list 
+of groups, adding the groups
+listed in <filename>localgroups</filename>. The old
+<filename>newsgroups</filename> file will be moved to
+<filename>newsgroups.bac</filename>. Note that posting the message locally 
+rarely works, because <command>inews</command>, the command that accepts 
+and posts articles from users, refuses to accept that large an article.
+</para>
+
+<para>
+If C News finds mismatches between the
+<systemitem role="keyword">checkgroups</systemitem> list and the
+<filename>active</filename> file, it produces a list of commands that
+would bring your site up to date and mails it to the news administrator. 
+</para>
+
+<para>
+The output typically looks like this:
+
+<screen>
+From news Sun Jan 30 16:18:11 1994
+Date: Sun, 30 Jan 94 16:18 MET
+From: news (News Subsystem)
+To: usenet
+Subject: Problems with your active file
+The following newsgroups are not valid and should be removed.
+        alt.ascii-art
+        bionet.molbio.gene-org
+        comp.windows.x.intrisics
+        de.answers
+You can do this by executing the commands:
+         /usr/lib/news/maint/delgroup alt.ascii-art
+         /usr/lib/news/maint/delgroup bionet.molbio.gene-org
+         /usr/lib/news/maint/delgroup comp.windows.x.intrisics
+         /usr/lib/news/maint/delgroup de.answers
+The following newsgroups were missing.
+        comp.binaries.cbm
+        comp.databases.rdb
+        comp.os.geos
+        comp.os.qnx
+        comp.unix.user-friendly
+        misc.legal.moderated
+        news.newsites
+        soc.culture.scientists
+        talk.politics.crypto
+        talk.politics.tibet
+</screen>
+</para>
+
+<para>
+When you receive a message like this from your news system, don't
+believe it automatically. Depending on who sent the
+<systemitem role="keyword">checkgroups</systemitem> message, it may lack a few
+groups or even entire hierarchies; you should be careful about removing
+any groups. If you find groups are listed as missing that you want to carry
+at your site, you have to add them using the <command>addgroup</command>
+script. Save the list of missing groups to a file and feed it to the
+following little script:
+
+<programlisting>
+#!/bin/sh
+#
+WHOIAM=`whoami`
+if [ "$WHOIAM" != "news" ]
+then
+	echo "You must run $0 as user 'news'" >&2
+	exit 1
+fi
+#
+cd /usr/lib/news
+while read group; do
+    if grep -si "^$group[[:space:]].*moderated" newsgroup; then
+        mod=m
+    else
+        mod=y
+    fi
+    /usr/lib/news/maint/addgroup $group $mod
+done
+</programlisting>
+
+</para>
+</sect2>
+
+<sect2 id="X-087-2-cnews.control.sendsys"><title>sendsys, version, and senduuname</title>
+
+<para>
+<indexterm><primary>checkgroups control message</primary></indexterm>
+Finally, there are three messages that can be used to find out about
+the network's topology. These are <systemitem
+role="keyword">sendsys</systemitem>, <systemitem
+role="keyword">version</systemitem>, and <systemitem
+role="keyword">senduuname</systemitem>. They cause C News to return
+the <filename>sys</filename> file to the sender, as well as a software
+version string and the output of <command>uuname</command>,
+respectively. C News is very laconic about <systemitem
+role="keyword">version</systemitem> messages; it returns a simple,
+unadorned <literal>C</literal>.
+</para>
+
+<para>
+Again, you should <emphasis>never</emphasis> issue such a message unless you
+have made sure that it cannot leave your (regional) network. Replies to
+<systemitem role="keyword">sendsys</systemitem> messages can quickly bring down
+a UUCP network.<footnote id="X-087-2-FNCN09"><para>
+I wouldn't try this on the Internet, either.
+</para>
+</footnote>
+</para>
+
+</sect2>
+</sect1>
+
+<sect1 id="X-087-2-cnews.nfs"><title>C News in an NFS Environment</title>
+
+<para>
+<indexterm><primary>configuring</primary><secondary>C News</secondary><tertiary>on a LAN</tertiary></indexterm>
+<indexterm><primary>C News</primary><secondary>in NFS</secondary></indexterm>
+<indexterm><primary>NFS (Network File System)</primary><secondary>C News in</secondary></indexterm> 
+<indexterm><primary>Local Area Networks (LANs)</primary><secondary>news</secondary></indexterm>
+A simple way to distribute news within a local network is to keep all
+news on a central host and export the relevant directories via NFS so
+that newsreaders may scan the articles directly. The overhead involved
+in retrieving and threading articles is significantly lower than
+NNTP. NNTP, on the other hand, wins in a heterogeneous network where
+equipment varies widely among hosts, or where users don't have
+equivalent accounts on the server machine.
+</para>
+
+<para>
+When you use NFS, articles posted on a local host have to be forwarded to
+the central machine because accessing adminstrative files might
+otherwise expose the system to race conditions that leave the files
+inconsistent. Also, you might want to protect your news spool area by
+exporting it read-only, which also requires forwarding to the central
+machine.
+</para>
+
+<para>
+C News handles this central machine configuration transparently to the user.
+When you post an article, your newsreader usually invokes
+<command>inews</command> to inject the article into the news system. This
+command runs a number of checks on the article, completes the header, and
+checks the file <filename>server</filename> in <filename>/etc/news</filename>.
+If this file exists and contains a hostname different from the local host's
+name, <command>inews</command> is invoked on that server host via
+<command>rsh</command>. Since the <command>inews</command> script uses a
+number of binary commands and support files from C News, you have to either
+have C News installed locally or mount the news software from the server.
+</para>
+
+<para>
+For the <command>rsh</command> invocation to work properly, each user who
+posts news must have an equivalent account on the server system, i.e., one
+to which she can log in without being asked for a password.
+</para>
+
+<para>
+Make sure that the hostname given in <filename>server</filename> literally
+matches the output of the <command>hostname</command> command on the server
+machine, or else C News will loop forever in an attempt to deliver the article.
+We discuss NFS is detail in <xref linkend="X-087-2-nfs">.
+</para>
+
+</sect1>
+
+<sect1 id="X-087-2-cnews.maint"><title>Maintenance Tools and Tasks</title>
+
+<para>
+<indexterm><primary>cron</primary><secondary>running</secondary><tertiary>newsdaily in</tertiary></indexterm> 
+Despite the complexity of C News, a news administrator's life can be fairly
+easy; C News provides you with a wide variety of maintenance tools.
+Some of these are intended to be run regularly from <command>cron</command>,
+like <command>newsdaily</command>.  Using these scripts greatly reduces
+daily care and feeding requirements of your C News installation.
+</para>
+<?troff .wcon_off>
+
+<para>
+Unless stated otherwise, these commands are located in
+<filename>/usr/lib/news/maint</filename>.  (Note that you must become user
+<systemitem role="userid">news</systemitem> before invoking these commands.
+Running them as a superuser may render critical newsfiles inaccessible to C News.):
+</para>
+
+<variablelist>
+<varlistentry><term><command>newsdaily</command></term>
+<listitem><para>
+The name already says it: run this once a day.  It is an important script
+that helps you keep log files small, retaining copies of each from the last
+three runs.  It also tries to sense anomalies, like stale batches in the
+incoming and outgoing directories, postings to unknown or moderated newsgroups,
+etc. Resulting error messages are mailed to the newsmaster.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>newswatch</command></term>
+<listitem><para>
+This script should be run regularly to look for anomalies in the
+news system, once an hour or so. It is intended to detect problems that will
+have an immediate effect on the operability of your news system, in which case it mails a trouble report to the newsmaster. Things checked include stale lock files
+that don't get removed, unattended input batches, and disk space shortage.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>addgroup</command></term>
+<listitem><para>
+This script adds a group to your site locally. The proper invocation is:
+
+<screen>
+addgroup <replaceable>groupname</replaceable> y|n|m|=<replaceable>realgroup</replaceable>
+</screen>
+</para>
+
+<para>
+The second argument has the same meaning as the flag in the
+<filename>active</filename> file, meaning that anyone may post to the group
+(<systemitem role="keyword">y</systemitem>), that no one may post
+(<systemitem role="keyword">n</systemitem>), that it is moderated
+(<systemitem role="keyword">m</systemitem>), or that it is an alias for another
+group (<systemitem role="keyword">=</systemitem><replaceable>realgroup</replaceable>).  You might also want to use <command>addgroup</command> when the 
+first articles in a newly created group arrive earlier than the
+<systemitem role="keyword">newgroup</systemitem> control message that is
+intended to create it.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>delgroup</command></term>
+<listitem><para>
+This script allows you to delete a group locally. Invoke it as:
+
+<screen>
+delgroup <replaceable>groupname</replaceable>
+</screen>
+</para>
+
+<para>
+You still have to delete the articles that remain in the newsgroup's spool
+directory. Alternatively, you might leave it to the natural course of events
+(i.e., expiration) to make them go away.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>addmissing</command></term>
+<listitem><para>
+This script adds missing articles to the <filename>history</filename> 
+file. Run it when there are articles that seem to hang around forever.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>newsboot</command></term>
+<listitem><para>
+This script should be run at system boot time. It removes any lock files
+left over when news processes were killed at shutdown, and closes and executes
+any batches left over from NNTP connections that were terminated when shutting
+down the system.
+</para></listitem>
+</varlistentry>
+
+<?troff .sp -1p>
+<varlistentry><term><command>newsrunning</command></term>
+<listitem><para>
+This script resides in <filename>/usr/lib/news/input</filename> and may be used to disable unbatching of incoming news, for instance during work hours. You may turn off unbatching by invoking:
+
+<screen>
+<?troff .sp -1p>
+/usr/lib/news/input/newsrunning off
+<?troff .sp -1p>
+</screen>
+</para>
+
+<para>
+It is turned on by using <systemitem role="keyword">on</systemitem> instead of
+<systemitem role="keyword">off</systemitem>.
+</para></listitem>
+</varlistentry>
+</variablelist>
+<indexterm class="endofrange" startref="idx-configuringCNews-1">
+<indexterm class="endofrange" startref="idx-configuringUsenetnews-1">
+<indexterm class="endofrange" startref="idx-CNews-1">
+</sect1>
+</chapter>

@@ -1,0 +1,2520 @@
+<chapter id="X-087-2-sendmail"><title>Sendmail</title>
+<INDEXTERM id="idx-configuringsendmail" class=startofrange><PRIMARY>configuring</PRIMARY><SECONDARY>sendmail</SECONDARY></INDEXTERM>
+<INDEXTERM id="idx-commandsendmailcommand-1" class=startofrange><PRIMARY>sendmail</PRIMARY></INDEXTERM>
+
+<sect1><title>Introduction to sendmail</title>
+<para>
+It's been said that you aren't a <emphasis>real</emphasis> Unix system
+administrator until you've edited a <filename>sendmail.cf</filename> file.
+It's also been said that you're crazy if you've attempted to do so twice.
+</para>
+
+<para>
+<command>sendmail</command> is an incredibly powerful mail
+program. It's also incredibly difficult to learn and understand. Any
+program whose definitive reference (<command>sendmail</command>, by
+Bryan Costales and Eric Allman, published by O'Reilly) is 1,050 pages long scares most people
+off. Information on the <command>sendmail</command> reference is
+contained in the bibliography at the end of this book.
+</para>
+
+<para>
+<indexterm><primary>sendmail.cf file</primary></indexterm>
+Fortunately, new versions of sendmail are different. You no longer need to 
+directly edit the cryptic <filename>sendmail.cf</filename> file; the 
+new version provides a configuration utility that will create the
+<filename>sendmail.cf</filename> file for you based on much simpler macro
+files. You do not need to understand the
+complex syntax of the <filename>sendmail.cf</filename> file; the macro files 
+don't require you to. Instead, you need only list items, such as the name of 
+features you wish to include in your configuration, and specify some of the 
+parameters that determine how that feature operates. A traditional 
+Unix utility called <command>m4</command> then takes your
+macro configuration data and mixes it with the data it reads from template
+files containing the actual <filename>sendmail.cf</filename> syntax, to
+produce your <filename>sendmail.cf</filename> file.
+</para>
+
+<para>
+In this chapter we introduce <command>sendmail</command> and describe
+how to install, configure and test it, using the Virtual Brewery as an
+example. If the information presented here helps make the task of
+configuring <command>sendmail</command> less daunting for you, we hope
+you'll gain the confidence to tackle more complex configurations on
+your own.
+</para>
+
+</sect1>
+
+<sect1><title>Installing sendmail</title>
+<para>
+<indexterm><primary>sendmail</primary><secondary>installing</secondary></indexterm>
+<indexterm><primary>installing</primary><secondary>sendmail</secondary></indexterm>
+The <command>sendmail</command> mail transport agent is included in
+prepackaged form in most Linux distributions. Installation in this case is
+relatively simple. Despite this fact, there are some good reasons to install
+<command>sendmail</command> from source, especially if you are security
+conscious. The <command>sendmail</command> program is very complex and has
+earned a reputation over the years for containing bugs that allow security
+breaches. One of the best known examples is the RTM Internet worm that
+exploited a buffer overflow problem in early versions of
+<command>sendmail</command>. We touched on this briefly in 
+<xref linkend="X-087-2-firewall">. Most security exploits involving buffer 
+overflows rely on all copies of <command>sendmail</command> on different 
+machines being identical, as the exploits rely on data being stored in 
+specific locations. This, of course, is precisely what happens with 
+<command>sendmail</command> installed from Linux distributions. Compiling 
+<command>sendmail</command> from source yourself can help reduce this risk. 
+Modern versions of <command>sendmail</command> are less vulnerable because 
+they have come under exceedingly close scrutiny as security has become a more 
+widespread concern throughout the Internet community.
+</para>
+
+<para>
+<indexterm><primary>code, obtaining for</primary><secondary>sendmail</secondary></indexterm>
+The <command>sendmail</command> source code is available via anonymous FTP from
+<systemitem role="sitename">ftp.sendmail.org</systemitem>.
+</para>
+
+<para>
+Compilation is very simple bceause the <command>sendmail</command> source
+package directly supports Linux. The steps involved in compiling
+<command>sendmail</command> are:
+
+<screen><userinput>
+# cd /usr/local/src
+# tar xvfz sendmail.8.9.3.tar.gz
+# cd src
+# ./Build
+</userinput>
+</screen>
+
+You need <literal>root</literal> permissions to complete the installation
+of the resulting binary files using:
+
+<screen><userinput>
+# cd obj.Linux.2.0.36.i586
+# make install
+</userinput>
+</screen>
+
+You have now installed the <command>sendmail</command> binary into the 
+<filename>/usr/sbin</filename> directory. Several symbolic links to
+the <command>sendmail</command> binary will be installed into the
+<filename>/usr/bin/</filename> directory. We'll talk about those links when 
+we discuss common tasks in running <command>sendmail</command>.
+</para>
+
+</sect1>
+
+<sect1><title>Overview of Configuration Files</title>
+
+<para>
+<INDEXTERM id="sendmail.config.files" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>configuration files</SECONDARY></INDEXTERM>
+<INDEXTERM id="config.files.sendmail" class=startofrange><PRIMARY>configuration files</PRIMARY><SECONDARY>sendmail</SECONDARY></INDEXTERM>
+Traditionally, <command>sendmail</command> was set up through a system
+configuration file (typically called
+<filename>/etc/mail/sendmail.cf</filename>, or in older distributions,
+<filename>/etc/sendmail.cf</filename>, or even
+<filename>/usr/lib/sendmail.cf</filename>&thinsp;) that is not
+anything close to any language you've seen before. Editing the
+<filename>sendmail.cf</filename> file to provide customized behavior
+can be a humbling experience.
+</para>
+
+<para>
+<?troff .hw understand>
+Today <command>sendmail</command> makes all configuration
+options macro driven with an easy-to-understand syntax. The macro method 
+generates configurations to cover most installations, but you always have
+the option of tuning the resultant <filename>sendmail.cf</filename> manually
+to work in a more complex environment.
+</para>
+
+</sect1>
+
+<sect1><title>The sendmail.cf and sendmail.mc Files</title>
+
+<para>
+<INDEXTERM><PRIMARY>m4 macro processor</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail.df file</PRIMARY></INDEXTERM>
+<INDEXTERM id="sendmail.cf.file" class=startofrange><PRIMARY>sendmail.cf file</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail.mc file</PRIMARY></INDEXTERM>
+The <command>m4</command> macro processor program generates the 
+<filename>sendmail.df</filename> file when it processes the macro 
+configuration file provided by the local system administrator. Throughout the 
+remainder of this chapter we will refer to this configuration file as the 
+<filename>sendmail.mc</filename> file.
+</para>
+
+<para>
+The configuration process is basically a matter of creating a suitable
+<filename>sendmail.mc</filename> file that includes macros that describe
+your desired configuration. The macros are expressions that the
+<command>m4</command> macro processor understands and expands into
+the complex <filename>sendmail.cf</filename> syntax. The macro expressions
+are made up of the macro name (the text in capital letters at the start),
+which can be likened to a function in a programming language, and some
+parameters (the text within brackets) that are used in the expansion. The
+parameters may be passed literally into the <filename>sendmail.cf</filename>
+output or may be used to govern the way the macro processing occurs.
+</para>
+
+<para>
+A <filename>sendmail.mc</filename> file for a minimal configuration (UUCP or
+SMTP with all nonlocal mail being relayed to a directly connected
+smart host) can be as short as 10 or 15 lines, excluding comments.
+</para>
+
+<sect2><title>Two Example sendmail.mc Files</title>
+
+<para>
+<INDEXTERM><PRIMARY>sendmail.mc file</PRIMARY><SECONDARY>two examples</SECONDARY></INDEXTERM>
+If you're an administator of a number of different mail hosts, you might not
+want to name your configuration file <filename>sendmail.mc</filename>.
+Instead, it is common practice to name it after the
+host&mdash;<filename>vstout.m4</filename> in our case. The name doesn't
+really matter as long as the output is called
+<filename>sendmail.cf</filename>. Providing a unique name for the
+configuration file for each host allows you to keep all configuration files
+in the same directory and is just an administrative convenience. Let's look
+at two example macro configuration files so we know where we are
+heading.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>configuring</PRIMARY><SECONDARY>sendmail</SECONDARY><TERTIARY>for SMTP</TERTIARY></INDEXTERM>
+Most <command>sendmail</command> configurations today use SMTP only. It is
+very simple to configure <command>sendmail</command> for SMTP. 
+<xref linkend="X-087-2-sendmail.mc.smtp"> expects a DNS name server to be 
+available to resolve hosts and will attempt to accept and deliver all mail 
+for hosts using just SMTP.
+</para>
+
+<example id="X-087-2-sendmail.mc.smtp">
+<title>Sample Configuration File vstout.smtp.m4</title>
+<screen>
+divert(-1)
+#
+# Sample configuration file for vstout - smtp only
+#
+divert(0)
+VERSIONID(`@(#)sendmail.mc	8.7 (Linux) 3/5/96')
+OSTYPE(`linux')
+#
+# Include support for the local and smtp mail transport protocols.
+MAILER(`local')
+MAILER(`smtp')
+#
+FEATURE(rbl)
+FEATURE(access_db)
+# end
+</screen>
+</example>
+
+<para>
+A <filename>sendmail.mc</filename> file for
+<systemitem role="sitename">vstout</systemitem> at the Virtual Brewery is shown
+in <xref linkend="X-087-2-sendmail.mc.uucpsmtp">.
+<systemitem role="sitename">vstout</systemitem> uses SMTP to talk to all hosts
+on the Brewery's LAN, and you'll see the commonality with the generic SMTP-only 
+configuration just presented. In addition, the 
+<systemitem role="sitename">vstout</systemitem> configuration sends all mail 
+for other destinations to <systemitem role="sitename">moria</systemitem>, 
+its Internet relay host, via UUCP.
+</para>
+
+<example id="X-087-2-sendmail.mc.uucpsmtp">
+<title>Sample Configuration File vstout.uucpsmtp.m4</title>
+<screen>
+divert(-1)
+#
+# Sample configuration file for vstout
+#
+divert(0)
+VERSIONID(`@(#)sendmail.mc	8.7 (Linux) 3/5/96')
+OSTYPE(`linux')
+dnl
+# moria is our smart host, using the "uucp-new" transport.
+define(`SMART_HOST', `uucp-new:moria')
+dnl
+# Support the local, smtp and uucp mail transport protocols.
+MAILER(`local')
+MAILER(`smtp')
+MAILER(`uucp')
+LOCAL_NET_CONFIG
+# This rule ensures that all local mail is delivered using the
+# smtp transport, everything else will go via the smart host.
+R$* &lt; @ $* .$m. &gt; $*	$#smtp $@ $2.$m. $: $1 &lt; @ $2.$m. &gt; $3
+dnl
+#
+FEATURE(rbl)
+FEATURE(access_db)
+# end
+</screen>
+</example>
+
+<para>
+If you compare and contrast the two configurations, you might be able to
+work out what each of the configuration parameters does. We'll explain them
+all in detail.
+</para>
+</sect2>
+
+<sect2><title>Typically Used sendmail.mc Parameters</title>
+<para>
+<INDEXTERM id="sendmail.mc.parameters" class=startofrange><PRIMARY>sendmail.mc file</PRIMARY><SECONDARY>parameters</SECONDARY></INDEXTERM>
+<INDEXTERM id="macro.defs.sendmail" class=startofrange><PRIMARY>macro definitions, sendmail.mc file</PRIMARY></INDEXTERM>
+A few of the items in the <filename>sendmail.mc</filename> file are required
+all the time; others can be ignored if you can get away with defaults.
+The general sequence of the definitions in the <filename>sendmail.mc</filename>
+is as follows:
+
+<orderedlist>
+<listitem><para>
+<systemitem role="keyword">VERSIONID</systemitem>
+</para></listitem>
+
+<listitem><para>
+<systemitem role="keyword">OSTYPE</systemitem>
+</para></listitem>
+
+<listitem><para>
+<systemitem role="keyword">DOMAIN</systemitem>
+</para></listitem>
+
+<listitem><para>
+<systemitem role="keyword">FEATURE</systemitem>
+</para></listitem>
+
+<listitem><para>
+Local macro definitions
+</para></listitem>
+
+<listitem><para>
+<systemitem role="keyword">MAILER</systemitem>
+</para></listitem>
+
+<listitem><para>
+<systemitem role="keyword">LOCAL_*</systemitem> rulesets
+</para></listitem>
+</orderedlist>
+
+We'll talk about each of these in turn in the following sections and refer
+to our examples in <xref linkend="X-087-2-sendmail.mc.smtp"> and
+<xref linkend="X-087-2-sendmail.mc.uucpsmtp">, when appropriate, to explain them.
+</para>
+
+<sect3><title>Comments</title>
+<para>
+Lines in the <filename>sendmail.mc</filename> file that begin with the
+<literal>#</literal> character are not parsed by <command>m4</command>, and
+will by default be output directly into the
+<filename>sendmail.cf</filename> file. This is useful if you want to comment 
+on what your configuration is doing in both the input and output files.
+</para>
+
+<para>
+To allow comments in your <filename>sendmail.mc</filename> that are 
+<emphasis>not</emphasis> placed into the
+<filename>sendmail.cf</filename>, you can use the <command>m4</command>
+<systemitem role="keyword">divert</systemitem> and
+<systemitem role="keyword">dnl</systemitem> tokens.
+<systemitem role="keyword">divert(-1)</systemitem> will cause all output to
+cease. <systemitem role="keyword">divert(0)</systemitem> will cause output to
+be restored to the default. Any output generated by lines between
+these will be discarded. In our example, we've used this mechanism to
+provide a comment that appears only in the <filename>sendmail.mc</filename>
+file. To achieve the same result for a single line, you can use the
+<systemitem role="keyword">dnl</systemitem> token that means, literally,
+&ldquo;starting at the beginning of the next line, delete all characters up
+to and including the next newline.&rdquo; We've used this in
+our example, too.
+</para>
+
+<para>
+These are standard <command>m4</command> features, and you can obtain more
+information on them from its manual page.
+</para>
+</sect3>
+
+<sect3><title>VERSIONID and OSTYPE</title>
+<para>
+<INDEXTERM><PRIMARY>VERSIONID macro defintion</PRIMARY></INDEXTERM>
+<screen>
+VERSIONID(`@(#)sendmail.mc  8.9 (Linux) 01/10/98')
+</screen>
+<?troff .Nd 10>
+The <literal>VERSIONID</literal> macro is optional, but is useful to record
+the version of the sendmail configuration in the
+<filename>sendmail.cf</filename> file. So you'll often encounter it, and we 
+recommend it. In any case, be sure to include:
+</para>
+
+<para>
+<screen>
+OSTYPE(`linux')
+</screen>
+
+<INDEXTERM><PRIMARY>OSTYPE macro definition</PRIMARY></INDEXTERM>
+This is probably the most important definition. The
+<literal>OSTYPE</literal> macro causes a file of definitions to be
+included that are good defaults for your operating system. Most of the
+definitions in an <literal>OSTYPE</literal> macro file set the
+pathnames of various configuration files, mailer program paths and
+arguments, and the location of directories sendmail uses to store
+messages. The standard sendmail source code release includes such
+a file for Linux, which would be included by the previous
+example. Some Linux distributions, notably the Debian distribution,
+include their own definition file that is completely Linux-FHS
+compliant. When your distribution does this, you should probably use
+its definition instead of the Linux default one.
+</para>
+
+<para>
+The <systemitem role="keyword">OSTYPE</systemitem> definition should
+be one of the first definitions to appear in your
+<filename>sendmail.mc</filename> file, as many other definitions
+depend upon it.
+</para>
+</sect3>
+
+<sect3><title>DOMAIN</title>
+<para>
+<INDEXTERM><PRIMARY>DOMAIN macro definition</PRIMARY></INDEXTERM>
+The <systemitem role="keyword">DOMAIN</systemitem> macro is useful
+when you wish to configure a large number of machines on the same
+network in a standard way. It you're configuring a small number of
+hosts, it probably isn't worth bothering with. You typically configure
+items, such as the name of mail relay hosts or hubs that all hosts on
+your network will use.
+</para>
+
+<para>
+The standard installation contains a directory of <command>m4</command> macro 
+templates used to drive the configuration process. This directory is usually 
+named <filename>/usr/share/sendmail.cf</filename> or something similar. Here 
+you will find a subdirectory called <filename>domain</filename> that 
+contains domain-specific configuration templates. To make use of the 
+<systemitem role="keyword">DOMAIN</systemitem> macro, you must create your 
+own macro file containing the standard definitions you require for your site, 
+and write it into the <filename>domain</filename> subdirectory. You'd 
+normally include only the macro definitions that were unique to your domain 
+here, such as smart host definitions or relay hosts, but you are not limited 
+to these.
+</para>
+
+<para>
+The <command>sendmail</command> source distribution comes with a number of
+sample domain macro files that you can use to model your own.
+</para>
+
+<para>
+If you saved your domain macro file as
+<filename>/usr/share/sendmail.cf/domain/vbrew.m4</filename>, you'd
+include definitions in your <filename>sendmail.mc</filename> using:
+
+<screen>
+DOMAIN(`vbrew')
+</screen>
+</para>
+</sect3>
+
+<sect3><title>FEATURE</title>
+<para>
+<INDEXTERM><PRIMARY>FEATURE macro definition</PRIMARY></INDEXTERM>
+The <systemitem role="keyword">FEATURE</systemitem> macro enables you to
+include predefined <command>sendmail</command> features in your configuration.
+These <command>sendmail</command> features make the supported configurations
+very simple to use. There are a large number, and throughout this
+chapter we'll talk about only a few of the more useful and important ones.
+You can find full details of the features available in the
+<filename>CF</filename> file included in the source package.
+</para>
+
+<para>
+To use any of the features listed, you should include a line in your
+<filename>sendmail.mc</filename> that looks like:
+
+<screen>
+FEATURE(<replaceable>name</replaceable>)
+</screen>
+
+where <replaceable>name</replaceable> is substituted with the feature name. 
+Some features take one optional parameter. If you wish to use
+something other than the default, you should use an entry that looks like:
+
+<screen>
+FEATURE(<replaceable>name</replaceable>, <replaceable>param</replaceable>)
+</screen>
+
+where <replaceable>param</replaceable> is the parameter to supply.
+</para>
+</sect3>
+
+<sect3><title>Local macro definitions</title>
+<para>
+<INDEXTERM><PRIMARY>local macro definitions</PRIMARY></INDEXTERM>
+The standard <command>sendmail</command> macro configuration files provide
+lots of hooks and variables with which you can customize your configuration.
+These are called <command>local macro definitions</command>. Many of them 
+are listed in the <filename>CF</filename> file in the 
+<command>sendmail</command> source package.
+</para>
+
+<para>
+The local macro definitions are usually invoked by supplying the name of the
+macro with an argument representing the value you wish to assign to the
+variable the macro manages. Again, we'll explore some of the more common
+local macro definitions in the examples we present later in the chapter.
+</para>
+</sect3>
+
+<sect3><title>Defining mail transport protocols</title>
+<para>
+<INDEXTERM><PRIMARY>MAILER macro definition</PRIMARY></INDEXTERM>
+If you want <command>sendmail</command> to transport mail in any way other
+than by local delivery, you must tell it which transports to use. The
+<literal>MAILER</literal> macro makes this very easy. The current version of
+<command>sendmail</command> supports a variety of mail transport protocols;
+some of these are experimental, others are probably rarely used.
+</para>
+
+<para>
+In our network we need the SMTP transport to send and receive mail
+among the hosts on our local area network, and the UUCP transport to send
+and receive mail from our smart host. To achieve this, we simply include both
+the <literal>smtp</literal> and <literal>uucp</literal> mail transports. The
+<literal>local</literal> mail transport is included by default, but may be
+defined for clarity, if you wish. If you are including both the
+<literal>smtp</literal> and the <literal>uucp</literal> mailers in your
+configuration, you must always be sure to define the <literal>smtp</literal>
+mailer first.
+</para>
+
+<para>
+The more commonly used transports available to you using the
+<systemitem role="keyword">MAILER</systemitem> macro are described in the
+following list:
+
+<variablelist id="X-087-2-sendmail.mailers">
+<varlistentry>
+	<term><systemitem role="keyword">local</systemitem></term>
+	<listitem><para>
+	This transport includes both the local delivery agent used to send
+	mail into the mailbox of users on this machine and the
+	<systemitem role="keyword">prog</systemitem> mailer used to send messages
+	to local programs. This transport is included by default.
+	</para></listitem>
+</varlistentry>
+<varlistentry>
+	<term><systemitem role="keyword">smtp</systemitem></term>
+	<listitem><para>
+	This transport implements the Simple Mail Transport Protocol (SMTP),
+	which is the most common means of transporting mail on the Internet.
+	When you include this transport, four mailers are configured: 
+        <literal>smtp</literal> (basic SMTP), <literal>esmtp</literal> (Extended SMTP), <literal>smtp8</literal> (8bit binary clean SMTP), 
+        and <literal>relay</literal> (specifically designed for gatewaying 
+        messages between hosts).
+	</para></listitem>
+</varlistentry>
+<varlistentry>
+	<term><systemitem role="keyword">uucp</systemitem></term>
+	<listitem><para>
+	The <systemitem role="keyword">uucp</systemitem> transport provides
+	support for two mailers: 
+        <systemitem role="keyword">uucp-old</systemitem>, which is the 
+        traditional UUCP, and
+	<systemitem role="keyword">uucp-new</systemitem>, which allows multiple
+	recipients to be handled in one transfer.
+	</para></listitem>
+</varlistentry>
+<varlistentry>
+	<term><systemitem role="keyword">usenet</systemitem></term>
+	<listitem><para>
+	This mailer allows you to send mail messages directly into
+	Usenet style news networks. Any local message directed to an address
+	of <emphasis>news.group.usenet</emphasis> will be fed into the 
+        news network for the <emphasis>news.group</emphasis> newsgroup.
+	</para></listitem>
+</varlistentry>
+<varlistentry>
+	<term><systemitem role="keyword">fax</systemitem></term>
+	<listitem><para>
+	If you have the HylaFAX software installed, this mailer will
+	allow you to direct email to it so that you may build an email-fax
+	gateway. This feature is experimental at the time of writing and more
+	information may be obtained from
+	<systemitem role="url">http://www.vix.com/hylafax/</systemitem>.
+	</para></listitem>
+</varlistentry>
+</variablelist>
+</para>
+
+<para>
+There are others, such as the <systemitem role="keyword">pop</systemitem>,
+<systemitem role="keyword">procmail</systemitem>,
+<systemitem role="keyword">mail11</systemitem>,
+<systemitem role="keyword">phquery</systemitem>, and
+<systemitem role="keyword">cyrus</systemitem> that are useful, but less
+common. If your curiosity is piqued, you can read about these
+in the sendmail book or the documentation supplied in the source package.
+</para>
+</sect3>
+
+<sect3><title>Configure mail routing for local hosts</title>
+<para>
+<INDEXTERM><PRIMARY>LOCAL_NET_CONFIG macro definition</PRIMARY></INDEXTERM>
+The Virtual Brewery's configuration is probably more complex than most sites 
+require. Most sites today would use the SMTP transport only and do not
+have to deal with UUCP at all. In our configuration we've configured a
+&ldquo;smart host&rdquo; that is used to handle all outgoing mail.
+Since we are using the SMTP transport on our local network we must tell
+<command>sendmail</command> that it is not to send local mail via the
+smart host. The <literal>LOCAL_NET_CONFIG</literal> macro allows you to
+insert sendmail rules directly into the output <filename>sendmail.cf</filename>
+to modify the way that local mail is handled. We'll talk more about rewrite
+rules later on, but for the moment you should accept that the rule we've
+supplied in our example specifies that any mail destined for hosts in the
+<systemitem role="sitename">vbrew.com</systemitem> domain should be delivered
+directly to the target hosts using the SMTP mail transport.
+</para>
+</sect3>
+<INDEXTERM startref="sendmail.mc.parameters" class=endofrange>
+<INDEXTERM startref="macro.defs.sendmail" class=endofrange>
+</sect2>
+
+<INDEXTERM startref="sendmail.config.files" class=endofrange>
+<INDEXTERM startref="config.files.sendmail" class=endofrange>
+<INDEXTERM startref="sendmail.cf.file" class=endofrange>
+</sect1>
+
+<sect1><title>Generating the sendmail.cf File</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail.cf file</PRIMARY><SECONDARY>generating</SECONDARY></INDEXTERM>
+When you have completed editing your <command>m4</command> configuration file, you must process it
+to produce the <filename>/etc/mail/sendmail.cf</filename> file read by
+<command>sendmail</command>. This is straightforward, as illustrated by the 
+following example:
+</para>
+
+<screen>
+# <userinput>cd /etc/mail</userinput>
+# <userinput>m4 /usr/share/sendmail.cf/m4/cf.m4 vstout.uucpsmtp.mc >sendmail.cf</userinput>
+</screen>
+
+<para>
+This command invokes the <command>m4</command> macro processor,
+supplying it the name of two macro definition files to
+process. <command>m4</command> processes the files in the order
+given. The first file is a standard <command>sendmail</command> macro
+template supplied with the <command>sendmail</command> source package,
+the second, of course, is the file containing our own macro
+definitions. The output of the command is directed to the
+<filename>/etc/mail/sendmail.cf</filename> file, which is our target
+file.
+</para>
+
+<para>
+You may now start <command>sendmail</command> with the new configuration.
+</para>
+
+</sect1>
+
+<sect1><title>Interpreting and Writing Rewrite Rules</title>
+<para>
+<INDEXTERM id="sendmail.rewrite.rules" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>rewrite rules</SECONDARY></INDEXTERM>
+<INDEXTERM id="rewrite.rules" class=startofrange><PRIMARY>rewrite rules (sendmail)</PRIMARY></INDEXTERM>
+Arguably the most powerful feature of <command>sendmail</command> is the
+rewrite rule. Rewrite rules are used by <command>sendmail</command> to
+determine how to process a received mail message. <command>sendmail</command>
+passes the addresses from the <emphasis>headers</emphasis> of a mail message
+through collections of rewrite rules called <emphasis>rulesets</emphasis> The
+rewrite rules transform a mail address from one form to another and you can
+think of them as being similar to a command in your editor that replaces all
+text matching a specified pattern with another.
+</para>
+
+<para>
+Each rule has a lefthand side and a righthand side, separated by at least
+one tab character. When <command>sendmail</command> is processing mail it
+scans through the rewriting rules looking for a match on the lefthand side.
+If an address matches the lefthand side of a rewrite rule, the address is
+replaced by the righthand side and processed again.
+</para>
+
+<sect2><title>sendmail.cf R and S Commands</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail.cf file</PRIMARY><SECONDARY>R and S commands</SECONDARY></INDEXTERM>
+In the <filename>sendmail.cf</filename> file, the rulesets are defined using
+commands coded as
+<literal>S</literal><replaceable>n</replaceable>, where
+<replaceable>n</replaceable> specifies the ruleset that is
+considered the current one.
+</para>
+
+<para>
+The rules themselves appear in commands coded as
+<command>R</command>. As each <command>R</command> command is read, it is 
+added to the current ruleset.
+</para>
+
+<para>
+If you're dealing only with the <filename>sendmail.mc</filename> file,
+you won't need to worry about <command>S</command> commands at
+all, as the macros will build those for you. You will need to manually code
+your <command>R</command> rules.
+</para>
+<?troff .Nd 10>
+<para>
+A <command>sendmail</command> ruleset therefore looks like:
+
+<screen>
+<literal>S</literal><replaceable>n</replaceable>
+<literal>R</literal><replaceable>lhs</replaceable> <replaceable>rhs</replaceable>
+<literal>R</literal><replaceable>lhs2</replaceable> <replaceable>rhs2</replaceable>
+</screen>
+</para>
+</sect2>
+
+<sect2><title>Some Useful Macro Definitions</title>
+<para>
+<command>sendmail</command> uses a number of standard macro definitions
+internally. The most useful of these in writing rulesets are:
+</para>
+
+<variablelist>
+
+<varlistentry><term>$j</term>
+<listitem><para>
+The fully qualified domain name of this host.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>$w</term>
+<listitem><para>
+The hostname component of the FQDN.
+</para></listitem>
+</varlistentry>
+
+<varlistentry><term>$m</term>
+<listitem><para>
+The domain name component of the FQDN.
+</para></listitem>
+</varlistentry>
+
+</variablelist>
+
+<para>
+We can incorporate these macro definitions in our rewrite rules. Our
+Virtual Brewery configuration uses the <literal>$m</literal> macro.
+</para>
+
+</sect2>
+
+<sect2><title>The Lefthand Side</title>
+<para>            
+In the lefthand side of a rewriting rule, you specify a pattern that will
+match an address you wish to transform. Most characters are matched literally,
+but there are a number of characters that have special meaning; these are
+described in the following list. The rewrite rules 
+for the lefthand side are:
+</para>           
+
+<variablelist id="X-087-2-sendmail.rewrite.lhs">
+
+<varlistentry>
+<term><literal>$@</literal></term>
+<listitem><para>
+Match exactly zero tokens
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$*</literal></term>
+<listitem><para>
+Match zero or more tokens
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$+</literal></term>
+<listitem><para>
+Match one or more tokens
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$-</literal></term>
+<listitem><para>
+Match exactly one token
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$=</literal><replaceable>x</replaceable></term>
+<listitem><para>
+Match any phrase in class <replaceable>x</replaceable>
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$~</literal><replaceable>x</replaceable></term>
+<listitem><para>
+Match any word not in class <replaceable>x</replaceable>
+</para></listitem>
+</varlistentry>
+
+</variablelist>
+
+<para>
+A token is a string of characters delimited by spaces. There is no way
+to include spaces in a token, nor is it necessary, as the expression
+patterns are flexible enough to work around this need. When a rule
+matches an address, the text matched by each of the patterns in the
+expression will be assigned to special variables that we'll use in the
+righthand side. The only exception to this is the
+<literal>$@</literal>, which matches no tokens and therefore will
+never generate text to be used on the righthand side.
+</para>
+</sect2>
+
+<sect2><title>The Righthand Side</title>
+<para>
+When the lefthand side of a rewrite rule matches an address, the
+original text is deleted and replaced by the righthand side of the
+rule. All tokens in the righthand side are copied literally, unless
+they begin with a dollar sign.  Just as for the lefthand side, a
+number of metasymbols may be used on the righthand side. These are
+described in the following list. The rewrite rules for the righthand
+side are:
+</para>
+
+<variablelist id="X-087-2-sendmail.rewrite.rhs">
+
+<varlistentry>
+<term><literal>$</literal><replaceable>n</replaceable></term>
+<listitem><para>
+This metasymbol is replaced with the <replaceable>n</replaceable>'th
+expression from the lefthand side.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<literal>$[</literal><replaceable>name</replaceable><literal>$]</literal>
+</term>
+<listitem><para>
+This metasymbol resolves hostname to canonical name. It is replaced
+by the canonical form of the host name supplied.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<literal>$(</literal><replaceable>map key</replaceable><literal> $@</literal><replaceable>arguments</replaceable><literal> $:</literal><replaceable>default</replaceable><literal> $)</literal>
+</term>
+<listitem><para>
+This is the more general form of lookup. The output is the result of
+looking up <replaceable>key</replaceable> in the map named
+<emphasis>map</emphasis> passing
+<replaceable>arguments</replaceable> as arguments. The
+<emphasis>map</emphasis> can be any of the maps that
+<command>sendmail</command> supports such as the
+<literal>virtusertable</literal> that we describe a little later. If
+the lookup is unsuccessful, <replaceable>default</replaceable> will be
+output. If a default is not supplied and lookup fails, the input is
+unchanged and <replaceable>key</replaceable> is output.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$&gt;</literal><replaceable>n</replaceable></term>
+<listitem><para>
+This will cause the rest of this line to be parsed and then given to
+ruleset <replaceable>n</replaceable> to evaluate. The output of the called
+ruleset will be written as output to this rule. This is the mechanism
+that allows rules to call other rulesets.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$#</literal><replaceable>mailer</replaceable></term>
+<listitem><para>
+This metasymbol causes ruleset evaluation to halt and specifies the
+mailer that should be used to transport this message in the next step
+of its delivery. This metasymbol should be called only from ruleset
+0 or one of its subroutines. This is the final stage of address parsing
+and should be accompanied by the next two metasymbols.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$@</literal><replaceable>host</replaceable></term>
+<listitem><para>
+This metasymbol specifies the host that this message will be forwarded to. If
+the destination host is the local host, it may be omitted. The
+<replaceable>host</replaceable> may be a colon-separated list of destination
+hosts that will be tried in sequence to deliver the message.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$:</literal><replaceable>user</replaceable></term>
+<listitem><para>
+This metasymbol specifies the target user for the mail message.
+</para></listitem>
+</varlistentry>
+
+</variablelist>
+
+<para>
+A rewrite rule that matches is normally tried repeatedly until it fails to
+match, then parsing moves on to the next rule. This behavior can be changed
+by preceding the righthand side with one of two special righthand side metaymbols described in the following list.
+The rewrite rules for a righthand side loop control metasymbols are:</para>
+
+<variablelist id="X-087-2-sendmail.rewrite.rhs.special">
+
+<varlistentry>
+<term><literal>$@</literal></term>
+<listitem><para>
+This metasymbol causes the ruleset to return with the remainder of
+the righthand side as the value. No other rules in the ruleset are
+evaluated.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>$:</literal></term>
+<listitem><para>
+This metasymbol causes this rule to terminate immediately, but the
+rest of the current ruleset is evaluated.
+</para></listitem>
+</varlistentry>
+
+</variablelist>
+
+</sect2>
+
+<sect2><title>A Simple Rule Pattern Example</title>
+<para>
+To better see how the macro substitution patterns operate, consider the
+following rule lefthand side:
+
+<screen>
+$* &lt; $+ &gt;
+</screen>
+</para>
+
+<para>
+This rule matches &ldquo;Zero or more tokens, followed by the &lt;
+character, followed by one or more tokens, followed by the &gt;
+character.&rdquo;
+</para>
+
+<para>
+If this rule were applied to <literal>brewer@vbrew.com</literal> or
+<literal>Head Brewer &lt; &gt;</literal>, the rule would not
+match. The first string would not match because it does not include a
+&lt; character, and the second would fail because
+<literal>$+</literal> matches <emphasis>one or more</emphasis> tokens
+and there are no tokens between the <literal>&lt;&gt;</literal> characters. In any case
+in which a rule does not match, the righthand side of the rule is not
+used.
+</para>
+
+<para>
+If the rule were applied to <literal>Head Brewer &lt; brewer@vbrew.com
+&gt;</literal>, the rule would match, and on the righthand side
+<literal>$1</literal> would be substituted with <literal>Head
+Brewer</literal> and <literal>$2</literal> would be substituted with
+<literal>brewer@vbrew.com</literal>.
+</para>
+
+<para>
+If the rule were applied to <literal>&lt; brewer@vbrew.com
+&gt;</literal> the rule would match because <literal>$*</literal>
+matches <emphasis>zero</emphasis> or more tokens, and on the righthand
+side <literal>$1</literal> would be substituted with the empty string.
+</para>
+</sect2>
+
+<sect2><title>Ruleset Semantics</title>
+<para>
+<INDEXTERM id="ruleset.semantics" class=startofrange><PRIMARY>ruleset semantics (sendmail)</PRIMARY></INDEXTERM>
+<INDEXTERM id="sendmail.ruleset.semantics" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>ruleset semantics</SECONDARY></INDEXTERM>
+Each of the <command>sendmail</command> rulesets is called upon to
+perform a different task in mail processing. When you are writing
+rules, it is important to understand what each of the rulesets are
+expected to do.  We'll look at each of the rulesets that the
+<command>m4</command> configuration scripts allow us to modify:
+</para>
+
+<variablelist>
+<varlistentry>
+<term>LOCAL_RULE_3</term>
+<listitem><para>
+<INDEXTERM><PRIMARY>LOCAL_RULE_3 sendmail ruleset</PRIMARY></INDEXTERM>
+Ruleset 3 is responsible for converting an address in an arbitrary
+format into a common format that <command>sendmail</command> will then
+process.  The output format expected is the familiar looking
+<replaceable>local-part</replaceable><literal>@</literal><replaceable>host-domain-spec</replaceable>.
+</para>
+
+<para>
+Ruleset 3 should place the hostname part of the converted address inside the
+<literal>&lt;</literal> and <literal>&gt;</literal> characters to make parsing by later rulesets easier. Ruleset
+3 is applied before <command>sendmail</command> does any other processing
+of an email address, so if you want <command>sendmail</command> to gateway mail from some system
+that uses some unusual address format, you should add a rule using the
+<literal>LOCAL_RULE_3</literal> macro to convert addresses into the common 
+format.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>LOCAL_RULE_0 and LOCAL_NET_CONFIG</term>
+<listitem><para>
+<INDEXTERM><PRIMARY>LOCAL_RULE_0 sendmail ruleset</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>LOCAL_NET_CONFIG macro definition</PRIMARY></INDEXTERM>
+Ruleset 0 is applied to recipient addresses by <command>sendmail</command>
+after Ruleset 3. The <literal>LOCAL_NET_CONFIG</literal> macro causes rules to
+be inserted into the <emphasis>bottom half</emphasis> of Ruleset 0.
+</para>
+
+<para>
+Ruleset 0 is expected to perform the delivery of the message to the recipient,
+so it must resolve to a triple that specifies each of the mailer, host, and
+user. The rules will be placed before any smart host definition you may
+include, so if you add rules that resolve addresses appropriately, any address
+that matches a rule will not be handled by the smart host. This is how we
+handle the direct <command>smtp</command> for the users on our local LAN in 
+our example.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>LOCAL_RULE_1 and LOCAL_RULE_2</term>
+<listitem><para>
+<INDEXTERM><PRIMARY>LOCAL_RULE_1 sendmail ruleset</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>LOCAL_RULE_2 sendmail ruleset</PRIMARY></INDEXTERM>
+Ruleset 1 is applied to all sender addresses and Ruleset 2 is applied to all
+recipient addresses. They are both usually empty.
+</para></listitem>
+</varlistentry>
+</variablelist>
+
+<sect3><title>Interpreting the rule in our example</title>
+<para>
+Our sample in <xref linkend="X-087-2-sendmail.rewrite.example"> uses the
+<literal>LOCAL_NET_CONFIG</literal> macro to declare a local rule that
+ensures that any mail within our domain is delivered directly using the
+<command>smtp</command> mailer. Now that we've looked at how rewrite rules
+are constructed, we will be able to understand how this rule works. Let's take
+another look at it.
+</para>
+
+<example id="X-087-2-sendmail.rewrite.example">
+<title>Rewrite Rule from vstout.uucpsmtp.m4</title>
+<screen>
+LOCAL_NET_CONFIG
+# This rule ensures that all local mail is delivered using the
+# smtp transport, everything else will go via the smart host.
+R$* &lt; @ $* .$m. &gt; $*  $#smtp $@ $2.$m. $: $1 &lt; @ $2.$m. &gt; $3
+</screen>
+</example>
+
+<para>
+We know that the <literal>LOCAL_NET_CONFIG</literal> macro will cause the
+rule to be inserted somewhere near the end of ruleset 0, but before any
+smart host definition. We also know that ruleset 0 is the last ruleset to
+be executed and that it should resolve to a three-tuple specifying the
+mailer, user, and host.
+</para>
+
+<para>
+We can ignore the two comment lines; they don't do anything useful. The rule
+itself is the line beginning with <literal>R</literal>. We know
+that the <literal>R</literal> is a <command>sendmail</command> command and that
+it adds this rule to the current ruleset, in this case ruleset
+<literal>0</literal>. Let's look at the lefthand side and the righthand side
+in turn.
+</para>
+
+<para>
+The lefthand side looks like: 
+<literal>$* &lt; @ $* .$m. &gt; $*</literal>.
+</para>
+
+<para>
+Ruleset 0 expects &lt; and &gt; characters because it is fed by ruleset 3.
+Ruleset 3 converts addresses into a common form and to make parsing easier,
+it also places the host part of the mail address inside &lt;&gt;s.
+</para>
+
+<para>
+This rule matches any mail address that looks like:
+<literal>'DestUser &lt; @ somehost.ourdomain. &gt; Some Text'</literal>. That is, it matches mail for any user at any host within our domain.
+</para>
+
+<para>
+You will remember that the text matched by metasymbols on the lefthand
+side of a rewrite rule is assigned to macro definitions for use on the
+righthand side. In our example, the first <literal>$*</literal> matches 
+all text from the start of the address until the &lt; character.
+All of this text is assigned to <literal>$1</literal> for use on
+the righthand side. Similarly the second <literal>$*</literal> in our
+rewrite rule is assigned to <literal>$2</literal>, and the last is 
+assigned to <literal>$3</literal>.
+</para>
+
+<para>
+We now have enough to understand the lefthand side. This rule matches
+mail for any user at any host within our domain. It assigns the username to
+$1, the hostname to <literal>$2</literal>, and any trailing text to 
+<literal>$3</literal>. The righthand side is then invoked to process these.
+</para>
+
+<para>
+Let's now look at what we're expecting to see outputed. The righthand side of
+our example rewrite rule looks like:
+
+<literal>$#smtp $@ $2.$m. $: $1 &lt; @ $2.$m. &gt; $3</literal>.
+</para>
+
+<para>
+When the righthand side of our ruleset is processed, each of the metasymbols
+are interpreted and relevant substitutions are made.
+</para>
+
+<para>
+The <literal>$#</literal> metasymbol causes this rule to resolve
+to a specific mailer, <emphasis>smtp</emphasis> in our case.
+</para>
+
+<para>
+The <literal>$@</literal> resolves the target host. In our example,
+the target host is specified as <literal>$2.$m.</literal>, which
+is the fully qualified domain name of the host on in our domain. The FQDN is
+constructed of the hostname component assigned to 
+<literal>$2</literal> from our lefthand side with our domain
+name (<literal>.$m.</literal>) appended.
+</para>
+
+<para>
+The <literal>$:</literal> metasymbol specifies the target user,
+which we again captured from the lefthand side and had stored in 
+<literal>$1</literal>.
+</para>
+
+<para>
+We preserve the contents of the &lt;&gt; section, and any
+trailing text, using the data we collected from the lefthand side of the
+rule.
+</para>
+
+<para>
+Since this rule resolves to a mailer, the message is forwarded to the mailer
+for delivery. In our example, the message would be forwarded to the destination
+host using the SMTP protocol.
+</para>
+</sect3>
+</sect2>
+<INDEXTERM startref="ruleset.semantics" class=endofrange>
+<INDEXTERM startref="sendmail.ruleset.semantics" class=endofrange>
+<INDEXTERM startref="sendmail.rewrite.rules" class=endofrange>
+<INDEXTERM startref="rewrite.rules" class=endofrange>
+</sect1>
+
+<sect1><title>Configuring sendmail Options</title>
+<para>
+<INDEXTERM id="sendmail.config.options" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>options, configuring</SECONDARY></INDEXTERM>
+<command>sendmail</command> has a number of options that allow you to
+customize the way it performs certain tasks. There are a large number of
+these, so we've listed only a few of the more commonly used ones in
+the upcoming list.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>m4 macro processor</PRIMARY><SECONDARY>configuring sendmail options</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail.cf file</PRIMARY><SECONDARY>configuring sendmail options</SECONDARY></INDEXTERM>
+To configure any of these options, you may either define them in the
+<command>m4</command> configuration file, which is the preferable method,
+or you may insert them directly into the <filename>sendmail.cf</filename>
+file. For example, if we wished to have <command>sendmail</command> fork
+a new job for each mail message to be delivered, we might add the following
+line to our <command>m4</command> configuration file:
+
+<screen>
+define(&lsquo;confSEPARATE_PROC&rsquo;,&lsquo;true&rsquo;)
+</screen>
+</para>
+
+<para>
+The corresponding <filename>sendmail.cf</filename> entry created is:
+
+<screen>
+O ForkEachJob=true
+</screen>
+</para>
+
+
+<para>
+<?troff .hw equivalents>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>m4 options</SECONDARY></INDEXTERM>
+The following list describes common <emphasis>sendmail m4</emphasis> options (and
+<filename>sendmail.cf</filename> equivalents):
+</para>
+
+<variablelist id="X-087-2-sendmail.common.options">
+
+<varlistentry>
+<term><literal>confMIN_FREE_BLOCKS</literal>
+<literal>(MinFreeBlocks)</literal></term> <listitem><para> There are
+occasions when a problem might prevent the immediate delivery of mail
+messages, causing messages to be queued in the mail spool. If your
+mail host processes large volumes of mail, it is possible for the mail
+spool to grow to such a size that it fills the filesystem supporting
+the spool.  To prevent this, <command>sendmail</command> provides this
+option to specify the minimum number of free disk blocks that must
+exist before a mail message will be accepted. This allows you to
+ensure that <command>sendmail</command> never causes your spool
+filesystem to be filled (Default: 100).  </para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>confME_TOO</literal> <literal>(MeToo)</literal></term>
+<listitem><para>
+When a mail target such as an email alias is expanded, it is sometimes 
+possible for the sender to appear in the
+recipient list. This option determines whether the originators of an
+email message will receive a copy if they appear in the expanded
+recipient list. Valid values are &ldquo;true&rdquo; and
+&ldquo;false&rdquo; (Default: false).
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>confMAX_DAEMON_CHILDREN</literal> <literal>(MaxDaemonChildren)</literal></term>
+<listitem><para>
+Whenever <command>sendmail</command> receives an SMTP connection
+from a remote host, it spawns a new copy of itself to deal with the
+incoming mail message. This way, it is possible for
+<command>sendmail</command> to be processing multiple incoming mail messages
+simulatanenously. While this is useful, each new copy of
+<command>sendmail</command> consumes memory in the host computer. If
+an unusually large number of incoming connections are received,
+by chance, because of a problem or a malicious attack, it
+is possible for <command>sendmail</command> daemons to consume all
+system memory. This option provides you with a means of limiting the
+maximum number of daemon children that will be spawned. When this
+number is reached, new connections are rejected until some of
+the existing children have terminated
+(Default: undefined).
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>confSEPARATE_PROC</literal> <literal>(ForkEachJob)</literal></term>
+<listitem><para>
+When processing the mail queue and sending mail messages,
+<command>sendmail</command> processes one mail message at a time. When this
+option is enabled, <command>sendmail</command> will fork a new copy of
+itself for each message to be delivered. This is particularly useful
+when there are some mail messages that are stuck in the queue because
+of a problem with the target host
+(Default: false).
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><literal>confSMTP_LOGIN_MSG</literal> <literal>(SmtpGreetingMessage)</literal></term>
+<listitem><para>
+Whenever a connection is made to <command>sendmail</command>, a
+greeting message is sent. By default, this message contains the hostname,
+name of the mail transfer agent, the sendmail version number, the local
+version number, and the current date. RFC821 specifies that the first word
+of the greeting should be the fully qualified domain name of the host, but
+the rest of the greeting can be configured however you please. You can specify
+sendmail macros here and they will be expanded when used. The only people
+who will see this message are suffering system administrators diagnosing
+mail delivery problems or strongly curious people interested in discovering
+how your machine is configured. You can relieve some of the tedium of their
+task by customizing the welcome message with some witticisms; be nice.
+The word &ldquo;EMSTP&rdquo; will be inserted between the first and second
+words by <command>sendmail</command>, as this is the signal to remote hosts
+that we support the ESMTP protocol
+(Default: <literal>$j Sendmail $v/$Z; $b</literal>).
+</para></listitem>
+</varlistentry>
+</variablelist>
+<INDEXTERM startref="sendmail.config.options" class=endofrange>
+</sect1>
+
+<sect1><title>Some Useful sendmail Configurations</title>
+<para>
+<INDEXTERM id="sendmail.configs" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>important configurations</SECONDARY></INDEXTERM>
+There are myriad possible <command>sendmail</command> configurations.
+In this space we'll illustrate just a few important types of configuration
+that will be useful in many <command>sendmail</command> installations.
+</para>
+
+<sect2><title>Trusting Users to Set the From: Field</title>
+<para>
+It is sometimes useful to overwrite the <literal>From:</literal> field of
+an outgoing mail message. Let's say you have a web-based program that 
+generates email. Normally the
+mail message would appear to come from the user who owned the web server
+process. We might want to specify some other source address so that the mail
+appears to have originated from some other user or address on that machine.
+<command>sendmail</command> provides a means of specifying which systems
+users are to be entrusted with the ability to do this.
+</para>
+
+<para>
+The <literal>use_ct_file</literal> feature enables the specification and
+use of a file that lists the names of trusted users. By default, a small
+number of system users are trusted by <command>sendmail</command>
+(<literal>root</literal>, for example). The default filename for this feature
+is <filename>/etc/mail/trusted-users</filename> in systems exploiting the
+<filename>/etc/mail/</filename> configuration directory and
+<filename>/etc/sendmail.ct</filename> in those that don't. You can specify
+the name and location of the file by overriding the
+<literal>confCT_FILE</literal> definition.
+</para>
+
+<para>
+Add FEATURE(use_ct_file) to your 
+<filename>sendmail.mc</filename> file to enable the feature.
+</para>
+</sect2>
+
+<sect2><title>Managing Mail Aliases</title>
+<para>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>aliases</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>aliases</PRIMARY><SECONDARY>email</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>managaing email aliases</SECONDARY></INDEXTERM>
+Mail aliases are a powerful feature that enable mail to be directed to
+mailboxes that are alternate names for users or processes on a
+destination host. For example, it is common practice to have feedback
+or comments relating to a World Wide Web server to be directed to
+&ldquo;webmaster.&rdquo; Often there isn't a user known as
+&ldquo;webmaster&rdquo; on the target machine, instead it is an alias
+of another system user. Another common use of mail aliases is
+exploited by mailing list server programs in which an alias directs
+incoming messages to the list server program for handling.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>/etc/aliases file</PRIMARY></INDEXTERM>
+The <filename>/etc/aliases</filename> file is where the aliases are stored.
+The <command>sendmail</command> program consults this file when determining
+how to handle an incoming mail message. If it finds an entry in this file
+matching the target user in the mail message, it redirects the message to
+wherever the entry describes.
+</para>
+
+<para>
+Specifically there are three things that aliases allow to happen:
+
+<itemizedlist>
+<listitem><para>
+They provide a shorthand or well-known name for mail to be addressed to in
+order to go to one or more persons.
+</para></listitem>
+<listitem><para>
+<?troff .hw program>
+They can invoke a program with the mail message as the input to the program.
+</para></listitem>
+<listitem><para>
+They can send mail to a file.
+</para></listitem>
+</itemizedlist>
+</para>
+
+<para>
+<?troff .hw compliant>
+All systems require aliases for
+<systemitem role="userid">Postmaster</systemitem> and
+<systemitem role="userid">MAILER-DAEMON</systemitem> to be RFC-compliant.
+</para>
+
+<para>
+Always be extremely aware of security when defining aliases that invoke
+programs or write to programs, since <command>sendmail</command> generally
+runs with <systemitem role="userid">root</systemitem> permissions.
+</para>
+
+<para>
+Details concerning mail aliases may be found in the
+<filename>aliases(5)</filename> manual page. A sample
+<filename>aliases</filename> file is shown
+in <xref linkend="X-087-2-samp.alias.fig">.
+</para>
+
+<example id="X-087-2-samp.alias.fig">
+<title>Sample aliases File</title>
+<screen>
+#
+# The following two aliases must be present to be RFC-compliant.
+# It is important to resolve them to 'a person' who reads mail routinely.
+#
+postmaster:    root                            # required entry
+MAILER-DAEMON: postmaster                      # required entry
+#
+#
+# demonstrate the common types of aliases
+#
+usenet:        janet                           # alias for a person
+admin:         joe,janet                       # alias for several people
+newspak-users: :include:/usr/lib/lists/newspak # read recipients from file
+changefeed:    |/usr/local/lib/gup             # alias that invokes program
+complaints:    /var/log/complaints             # alias writes mail to file
+#
+</screen>
+</example>
+<?troff .Nd 10>
+<para>
+Whenever you update the <filename>/etc/aliases</filename> file, be
+sure to run the command:
+
+<screen>
+# <userinput>/usr/bin/newaliases</userinput>
+</screen>
+
+to rebuild the database that <command>sendmail</command> uses internally.
+The <command>/usr/bin/newaliases</command> command is a symbolic link to the
+<command>sendmail</command> executable, and when invoked this way,
+behaves exactly as though it were invoked as:
+
+<screen>
+# <userinput>/usr/lib/sendmail -bi</userinput>
+</screen>
+
+The <command>newaliases</command> command is an alternative and more
+convenient way to do this.
+</para>
+
+</sect2>
+
+<sect2><title>Using a Smart Host</title>
+<para>
+<INDEXTERM><PRIMARY>smart host configurations</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>smart host configurations</SECONDARY></INDEXTERM>
+Sometimes a host finds mail that it is unable to deliver directly to
+the desired remote host. It is often convenient to have a single host on a
+network take on the role of managing transmission of mail to remote hosts
+that are difficult to reach, rather than have each local host try to do this
+independently.
+</para>
+
+<para>
+There are a few good reasons to have a single host take on mail
+management.  You can simplify management by having only one host 
+with a comprehensive mail configuration that knows how to handle all
+of the different mail transport types, such as UUCP, Usenet, etc. All
+other hosts need only a single tranport protocol to send their mail to
+this central host. Hosts that fill this central mail routing and
+forwarding role are called <emphasis>smart hosts</emphasis>.  If you
+have a smart host that will accept mail from you, you can send it mail
+of any sort and it will manage the routing and transmission of that
+mail to the desired remote destinations.
+</para>
+
+<para>
+Another good application for smart host configurations is to manage
+transmission of mail across a private firewall. An organization may
+elect to install a private IP network and use their own,
+unregistered IP addresses.  The private network may be connected to
+the Internet through a firewall.  Sending mail to and from hosts in
+the private network to the outside world using SMTP would not be
+possible in a conventional configuration because the hosts are not
+able to accept or establish direct network connections to hosts on the
+Internet. Instead, the organization could elect to have the firewall
+provide a mail smart host function. The smart host running on the
+firewall is able to establish direct network connections with hosts
+both on the private network and on the Internet. The smart host would
+accept mail from both hosts on the private network and the Internet,
+store them in local storage and then manage the retransmission of that
+mail to the correct host directly.
+</para>
+
+<para>
+Smart hosts are usually used when all other methods of delivery have
+failed.  In the case of the organization with the private network, it
+would be perfectly reasonable to have the hosts attempt to deliver
+mail directly first, and if that fails then to send it to the smart
+host. This relieves the smart host of a lot of traffic because other
+hosts can directly send mail to other hosts on the private network.
+</para>
+
+<para>
+<INDEXTERM><PRIMARY>SMART_HOST macro</PRIMARY></INDEXTERM>
+<command>sendmail</command> provides a simple method of configuring
+a smart host using the <literal>SMART_HOST</literal> feature; when 
+implementing it in the Virtual Brewery configuration, we do exactly this. The 
+relevant portions of our configuration that define the smart host are:
+
+<screen>
+define(`SMART_HOST', `uucp-new:moria')
+LOCAL_NET_CONFIG
+# This rule ensures that all local mail is delivered using the
+# smtp transport, everything else will go via the smart host.
+R$* &lt; @ $* .$m. &gt; $*	$#smtp $@ $2.$m. $: $1 &lt; @ $2.$m. &gt; $3
+</screen>
+</para>
+
+<para>
+The <literal>SMART_HOST</literal> macro allows you to specify the host that
+should relay all outgoing mail that you are unable to deliver directly,
+and the mail transport protocol to use to talk to it.
+</para>
+
+<para>
+In our configuration we are using the <literal>uucp-new</literal> transport
+to UUCP host <emphasis role="bold">moria</emphasis>. If we wanted to configure
+<command>sendmail</command> to use an SMTP-based Smart Host, we would instead
+use something like:
+
+<screen>
+
+define(`SMART_HOST', `mail.isp.net')
+</screen>
+
+We don't need to specify SMTP as the transport, as it is the default.
+</para>
+
+<para>
+Can you guess what the <literal>LOCAL_NET_CONFIG</literal> macro and the
+rewrite rule might be doing?
+</para>
+
+<para>
+The <literal>LOCAL_NET_CONFIG</literal> macro allows you to add raw
+<command>sendmail</command> rewrite rules to your configuration that define
+what mail should stay within the local mail system. In our example, we've used 
+a rule that matches any email address where the host belongs to our
+domain (<literal>.$m.</literal>) and rewrite it so that it is sent directly 
+to the <literal>SMTP</literal> mailer.
+This ensures that any message for a host on our local domain is directed
+immediately to the SMTP mailer and forwarded to that host, rather than falling
+through to our smart host, which is the default treatment.
+</para>
+
+</sect2>
+
+<sect2><title>Managing Unwanted or Unsolicited Mail (Spam)</title>
+<para>
+<INDEXTERM id="sendmail.spam" class=startofrange><PRIMARY>spamming</PRIMARY></INDEXTERM>
+<INDEXTERM id="unsol.mail.managing" class=startofrange><PRIMARY>unsolicited mail, managing</PRIMARY></INDEXTERM>
+<INDEXTERM id="email.unsolicited" class=startofrange><PRIMARY>email</PRIMARY><SECONDARY>unsolicited</SECONDARY></INDEXTERM>
+<INDEXTERM id="email.manag.spam" class=startofrange><PRIMARY>email</PRIMARY><SECONDARY>managing spam</SECONDARY></INDEXTERM>
+If you've subscribed to a mailing list, published your email address on a
+web site, or posted an article to UseNet, you will most likely have
+begun to receive unsolicited advertising email. It is commonplace now
+for people to scour the net in search of email addresses to add to mailing
+lists that they then sell to companies seeking to advertise their products.
+This sort of mass-mailing behavior is commonly called spamming. 
+</para>
+<?troff .Nd 15>
+<para>
+The Free
+On-line Dictionary of Computing offers a mail-specific definition of 
+spam as:<footnote id="X-087-2-FNSD01"><para>The Free On-Line 
+Dictionary of Computing can be found packaged in many Linux
+distributions, or online at its home page at
+<systemitem role="url">http://wombat.doc.ic.ac.uk/foldoc/</systemitem>.
+</para>
+</footnote>
+
+</para>
+
+<blockquote>
+<para>
+2. (A narrowing of sense 1, above) To indiscrimately send large amounts of
+unsolicited e-mail meant to promote a product or service. Spam in this sense
+is sort of like the electronic equivalent of junk mail sent to "Occupant."
+</para>
+<para>
+In the 1990s, with the rise in commercial awareness of the net, there are
+actually scumbags who offer spamming as a "service" to companies wishing to
+advertise on the net. They do this by mailing to collections of e-mail
+addresses, Usenet news, or mailing lists.  Such practises have caused outrage
+and aggressive reaction by many net users against the individuals concerned.
+</para>
+</blockquote>
+
+
+<para>
+Fortunately, <command>sendmail</command> includes some support for mechanisms
+that can help you deal with unsolicited mail.
+</para>
+
+<sect3><title>The Real-time Blackhole List</title>
+<para>
+<INDEXTERM><PRIMARY>Real-time Blackhole List (RBL)</PRIMARY></INDEXTERM>
+The Real-time Blackhole List is a public facility provided to help reduce the
+volume of unsolicited advertising you have to contend with. Known email
+sources and hosts are listed in a queryable database on the Internet. They're
+entered there by people who have received unsolicited advertising from some
+email address. Major domains sometimes find themselves on the list because of 
+slip-ups in shutting down spam. While some people complain about 
+particular choices made by the maintainers of the list, it remains 
+very popular and disagreements are usually worked out quickly. Full details 
+on how the service is operated may be found
+from the home site of the Mail Abuse Protection System at
+<emphasis>http://maps.vix.com/rbl/</emphasis>.
+</para>
+
+<para>
+If you enable this <command>sendmail</command> feature, it will test the source
+address of each incoming mail message against the Real-time Blackhole List to
+determine whether to accept the message. If you run a large site
+with many users, this feature could save a considerable volume of disk space.
+This feature accepts a parameter to specify the name of the
+server to use. The default is the main server at
+<systemitem role="sitename">rbl.maps.vix.com</systemitem>.
+</para>
+
+<para>
+To configure the Real-time Blackhole List feature, add the following
+macro declaration to your <filename>sendmail.mc</filename> file:
+
+<screen>
+FEATURE(rbl)
+</screen>
+</para>
+
+<para>
+Should you wish to specify some other RBL server, you would use a
+declaration that looks like:
+
+<screen>
+FEATURE(rbl,`rbl.host.net')
+</screen>
+</para>
+
+</sect3>
+
+<sect3 id="X-087-2-sendmail.accessdb"><title>The access database</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>access database</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>access_db feature (sendmail)</PRIMARY></INDEXTERM>
+An alternative system that offers greater flexibility and control at
+the cost of manual configuration is the <command>sendmail</command>
+<systemitem role="keyword">access_db</systemitem> feature. The access
+database allows you to configure which hosts or users you will accept
+mail from and which you will relay mail for.
+</para>
+
+<para>
+Managing who you will relay mail for is important, as it is another technique
+commonly employed by spamming hosts to circumvent systems such as the Real-time
+Blackhole List just described. Instead of sending the mail to you directly,
+spammers will relay the mail via some other unsuspecting host who allows it.
+The incoming SMTP connection then doesn't come from the known spamming host,
+it instead comes from the relay host. To ensure that your own mail hosts
+aren't used in this way, you should relay mail only for known hosts. Versions
+of <command>sendmail</command> that are 8.9.0 or newer have
+relaying disabled by default, so for those you'll need to use the access
+database to enable individual hosts to relay.
+</para>
+
+<para>
+The general idea is simple. When a new incoming SMTP connection is received,
+<command>sendmail</command> retrieves the message header information and then
+consults the access database to see whether it should proceed to accept
+the body of the message itself.
+</para>
+
+<para>
+The access database is a collection of rules that describe what action should
+be taken for messages received from nominated hosts. The default access control
+file is called <filename>/etc/mail/access</filename>. The table has a simple
+format. Each line of the table contains an access rule. The lefthand side of
+each rule is a pattern used to match the sender of an incoming mail message.
+It may be a complete email address, a hostname, or an IP address. The 
+righthand side is the action to take. There are five types of action you may
+configure. These are:
+</para>
+
+<variablelist>
+<varlistentry>
+<term>OK</term>
+<listitem><para>
+Accept the mail message.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>RELAY</term>
+<listitem><para>
+Accept messages from this host or user even if they are not destined
+for our host; that is, accept messages for relaying to other hosts from
+this host.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>REJECT</term>
+<listitem><para>
+Reject the mail with a generic message.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>DISCARD</term>
+<listitem><para>
+Discard the message using the <literal>$#discard</literal> mailer.
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term>### any text</term>
+<listitem><para>
+Return an error message using <replaceable>###</replaceable> as
+the error code (which should be RFC-821 compliant) and &ldquo;any
+text&rdquo; as the message.
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+<?troff .Nd 15>
+<para>
+An example <filename>/etc/mail/access</filename> might look like:
+
+<screen>
+friends@cybermail.com   REJECT
+aol.com                 REJECT
+207.46.131.30           REJECT
+postmaster@aol.com      OK
+linux.org.au            RELAY
+</screen>
+</para>
+
+<para>
+This example would reject any email received from
+<systemitem role="email">friends@cybermail.com</systemitem>,
+any host in the domain <emphasis role="bold">aol.com</emphasis>
+and the host <emphasis role="bold">207.46.131.30</emphasis>.
+The next rule would accept email from
+<systemitem role="email">postmaster@aol.com</systemitem> despite the fact
+that the domain itself has a reject rule. The last rule allows relaying
+of mail from any host in the
+<emphasis role="bold">linux.org.au</emphasis> domain.
+</para>
+
+<para>
+To enable the access database feature, use the following declaration in your
+<filename>sendmail.mc</filename> file:
+
+<screen>
+FEATURE(access_db)
+</screen>
+</para>
+
+<para>
+The default definition builds the database using
+<literal>hash -o /etc/mail/access</literal>, which generates
+a simple hashed database from the plain text file. This is perfectly adequate
+in most installations. There are other options that you should consider if
+you intend to have a large access database. Consult the <emphasis>sendmail</emphasis> book or
+other <command>sendmail</command> documentation for details.
+</para>
+
+</sect3>
+
+<sect3><title>Barring users from receiving mail</title>
+<para>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>barring users from receiving</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>blacklist_recipients feature (sendmail)</PRIMARY></INDEXTERM>
+If you have users or automated processes that send mail but will never
+need to receive it, it is sometimes useful to refuse to accept mail destined
+for them. This saves wasted disk-space storing mail that will never be
+read. The <systemitem role="keyword">blacklist_recipients</systemitem>
+feature, when used in combination with the
+<systemitem role="keyword">access_db</systemitem> feature, allows you to
+disable the receipt of mail for local users.
+</para>
+
+<para>
+To enable the feature, you add the following lines to your
+<filename>sendmail.mc</filename> file, if they're not already there:
+
+<screen>
+FEATURE(access_db)
+FEATURE(blacklist_recipients)
+</screen>
+</para>
+
+<para>
+To disable receipt of mail for a local user, simply add his details
+into the access database. Usually you would use the
+<replaceable>###</replaceable> entry style that would return a
+meaningful error message to the sender so they know why the mail is
+not being delivered. This feature applies equally well to users in
+virtual mail domains, and you must include the virtual mail domain
+in the access database specification. Some sample
+<filename>/etc/mail/access</filename> entries might look like:
+
+<screen>
+daemon          550 Daemon does not accept or read mail.
+flacco          550 Mail for this user has been administratively disabled.
+grump@dairy.org 550 Mail disabled for this recipient.
+</screen>
+</para>
+
+</sect3>
+<INDEXTERM startref="sendmail.spam" class=endofrange>
+<INDEXTERM startref="unsol.mail.managing" class=endofrange>
+<INDEXTERM startref="email.unsolicited" class=endofrange>
+<INDEXTERM startref="email.manag.spam" class=endofrange>
+</sect2>
+
+<sect2><title>Configuring Virtual Email Hosting</title>
+<para>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>virtual hosting</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>virtual email hosting</SECONDARY></INDEXTERM>
+Virtual email hosting provides a host the capability of accepting and
+delivering mail on behalf of a number of different domains as though it were
+a number of separate mail hosts. Most commonly, virtual hosting is exploited by
+Internet Application Providers in combination with virtual web hosting, but
+it's simple to configure and you never know when you might be in a position to
+virtual host a mailing list for your favorite Linux project, so we'll
+describe it here.
+</para>
+
+<sect3><title>Accepting mail for other domains</title>
+<para>
+<INDEXTERM><PRIMARY>virtual email hosting</PRIMARY><SECONDARY>accepting mail for other domains</SECONDARY></INDEXTERM>
+When <command>sendmail</command> receives an email message, it compares the
+destination host in the message headers to the local host name. If they
+match, <command>sendmail</command> accepts the message for local delivery;
+if they differ, <command>sendmail</command> may decide to accept the message
+and attempt to forward it on to the final destination (See
+<xref linkend="X-087-2-sendmail.accessdb">&rdquo; earlier in this chapter for details on how to configure
+<command>sendmail</command> to accept mail for forwarding&thinsp;).
+</para>
+
+<para>
+If we wish to configure virtual email hosting, the first thing we need to do
+is to convince <command>sendmail</command> that it should also accept mail
+for the domains that we are hosting. Fortunately, this is a very simple thing
+to do.
+</para>
+
+<para>
+The <command>sendmail</command>
+<systemitem role="keyword">use_cw_file</systemitem> feature allows us to
+specify the name of a file where we store domain names for which 
+<command>sendmail</command> accepts mail. To configure the feature, add the 
+feature declaration to your <filename>sendmail.mc</filename> file:
+
+<screen>
+FEATURE(use_cw_file)
+</screen>
+</para>
+
+<para>
+The default name of the file will be
+<filename>/etc/mail/local-host-names</filename> for distributions using
+the <filename>/etc/mail/</filename> configuration directory or
+<filename>/etc/sendmail.cw</filename> for those that don't. Alternatively,
+you can specify the name and location of the file by overriding the
+<literal>confCW_FILE</literal> macro using a variation on:
+
+<screen>
+define(`confCW_FILE',`/etc/virtualnames')
+</screen>
+</para>
+
+<para>
+To stick with the default filename, if we wished to offer virtual hosting to 
+the <emphasis role="bold">bovine.net</emphasis>, <emphasis role="bold">dairy.org</emphasis>, and
+<emphasis role="bold">artist.org</emphasis> domains, we would create a
+<filename>/etc/mail/local-host-names</filename> that looks like:
+
+<screen>
+bovine.net
+dairy.org
+artist.org
+</screen>
+</para>
+
+<para>
+When this is done, and assuming appropriate DNS records exist that point those
+domain names to our host, <command>sendmail</command> will accept mail
+messages for those domains as though they were destined for our real domain
+name.
+</para>
+</sect3>
+
+<sect3><title>Forwarding virtual-hosted mail to other destinations</title>
+<para>
+<INDEXTERM><PRIMARY>virtual email hosting</PRIMARY><SECONDARY>forwarding mail to other destinations</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>virtusertable feature</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>virtusertable feature (sendmail)</PRIMARY></INDEXTERM>
+The <command>sendmail</command>
+<systemitem role="keyword">virtusertable</systemitem> feature configures
+support for the virtual user table, where we configure virtual
+email hosting. The virtual user table maps incoming mail destined for some 
+<emphasis>user@host</emphasis> to some <emphasis>otheruser@otherhost</emphasis>.
+You can think of this as an advanced mail alias feature, one that operates
+using not just the destination user, but also the destination domain.
+</para>
+
+<para>
+To configure the <systemitem role="keyword">virtusertable</systemitem>
+feature, add the feature to your <filename>sendmail.mc</filename>
+configuration as shown:
+
+<screen>
+FEATURE(virtusertable)
+</screen>
+</para>
+
+<para>
+By default, the file containing the rules to perform translations will be
+<filename>/etc/mail/virtusertable</filename>. You can override this by
+supplying an argument to the macro definition; consult a
+detailed <command>sendmail</command> reference to learn about what options
+are available.
+</para>
+
+<para>
+The format of the virtual user table is very simple. The lefthand side of
+each line contains a pattern representing the original destination mail
+address; the righthand side has a pattern representing the mail address the
+virtual hosted address will be mapped to.
+</para>
+
+<para>
+The following example shows three possible types of entries:
+
+<screen>
+samiam@bovine.net     colin
+sunny@bovine.net      darkhorse@mystery.net
+@dairy.org            mail@jhm.org
+@artist.org           $1@red.firefly.com
+</screen>
+
+In this example, we are virtual hosting three domains:
+<emphasis role="bold">bovine.net</emphasis>, <emphasis role="bold">dairy.org</emphasis>, and
+<emphasis role="bold">artist.org</emphasis>.
+</para>
+
+<para>
+The first entry redirects mail sent to a user in the
+<emphasis role="bold">bovine.net</emphasis> virtual domain to a local
+user on the machine. The second entry redirects mail to a user in the same
+virtual domain to a user in another domain. The third example redirects all
+mail addressed to any user in the <emphasis role="bold">dairly.org</emphasis> virtual
+domain to a single remote mail address. Finally, the last entry redirects
+any mail to a user in the <emphasis role="bold">artist.org</emphasis> virtual domain to
+the same user in another domain; for example,
+<systemitem role="email">julie@artists.org</systemitem> would be redirected to
+<systemitem role="email">julie@red.firefly.com</systemitem>.
+</para>
+</sect3>
+</sect2>
+<INDEXTERM startref="sendmail.configs" class=endofrange>
+</sect1>
+
+<sect1><title>Testing Your Configuration</title>
+<para>
+<INDEXTERM id="sendmail.testing.config" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>testing the configuration</SECONDARY></INDEXTERM>
+<INDEXTERM id="testing.sendmail.config" class=startofrange><PRIMARY>testing</PRIMARY><SECONDARY>sendmail configuration</SECONDARY></INDEXTERM>
+The <command>m4</command> command processes the macro definition files
+according to its own syntax rules without understanding anything about correct
+<command>sendmail</command> syntax; so there won't be any error messages if
+you've gotten anything wrong in your macro definition file. For this reason,
+it is very important that you thoroughly test your configuration. Fortunately,
+<command>sendmail</command> provides a relatively easy way of doing this.
+</para>
+
+<para>
+<command>sendmail</command> supports an &ldquo;address test&rdquo; mode that 
+allows us to test our configuration and identify any errors. In this mode
+of operation, we invoke <command>sendmail</command> from the command line,
+and it prompts us for a ruleset specification and a destination mail address.
+<command>sendmail</command> then processes that destination address using
+the rules specified, displaying the output of each rewrite rule as it proceeds.
+To place <command>sendmail</command> into this mode, we invoke it with the
+<literal>&ndash;bt</literal> argument: 
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt;
+</screen>
+
+<para>
+The default configuration file used is the
+<filename>/etc/mail/sendmail.cf</filename> file; you can specify an alternate
+configuration file using the <literal>&ndash;C</literal> argument. To test our configuration, we need to select a number of addresses to process
+that will tell us that each of our mail-handing requirements are met. To
+illustrate this, we'll work through a test of our more complicated UUCP
+configuration shown in <xref linkend="X-087-2-sendmail.mc.uucpsmtp">.
+</para>
+
+<para>
+First we'll test that <command>sendmail</command> is able to deliver mail to
+local users on the system. In these tests we expect all addresses to be
+rewritten to the <emphasis role="bold">local</emphasis> mailer on this machine:
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; <userinput>3,0 isaac</userinput>
+rewrite: ruleset   3   input: isaac
+rewrite: ruleset  96   input: isaac
+rewrite: ruleset  96 returns: isaac
+rewrite: ruleset   3 returns: isaac
+rewrite: ruleset   0   input: isaac
+rewrite: ruleset 199   input: isaac
+rewrite: ruleset 199 returns: isaac
+rewrite: ruleset  98   input: isaac
+rewrite: ruleset  98 returns: isaac
+rewrite: ruleset 198   input: isaac
+rewrite: ruleset 198 returns: $# local $: isaac
+rewrite: ruleset   0 returns: $# local $: isaac
+</screen>
+
+<para>
+This output shows us how <command>sendmail</command> processes mail addressed
+to <emphasis role="bold">isaac</emphasis> on this system. Each line shows us what information
+has been supplied to a ruleset or the result obtained from processing by a
+ruleset. We told <command>sendmail</command> we wished to use rulesets 3 and
+0 to process the address. Ruleset 0 is what is normally invoked and we forced
+ruleset 3 because it is not tested by default. The last line shows us that
+the result of ruleset 0 does indeed direct mail to <emphasis role="bold">isaac</emphasis> to the
+<emphasis role="bold">local</emphasis> mailer.
+</para>
+<?troff .Nd 15>
+<para>
+Next we'll test mail addressed to our SMTP address: <emphasis role="bold">isaac@vstout.vbrew.com</emphasis>. We should be able
+to produce the same end result as our last example:
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; 3,0 isaac@vstout.vbrew.com
+rewrite: ruleset   3   input: isaac @ vstout . vbrew . com
+rewrite: ruleset  96   input: isaac &lt; @ vstout . vbrew . com &gt;
+rewrite: ruleset  96 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset   3 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset   0   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 199   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 199 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset  98   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset  98 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 198   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 198 returns: $# local $: isaac
+rewrite: ruleset   0 returns: $# local $: isaac
+</screen>
+
+<para>
+Again, this test passed. Next we'll test mail to our UUCP style address:
+<emphasis role="bold">vstout!isaac</emphasis>.
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; 3,0 vstout!isaac
+rewrite: ruleset   3   input: vstout ! isaac
+rewrite: ruleset  96   input: isaac &lt; @ vstout . UUCP &gt;
+rewrite: ruleset  96 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset   3 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset   0   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 199   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 199 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset  98   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset  98 returns: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 198   input: isaac &lt; @ vstout . vbrew . com . &gt;
+rewrite: ruleset 198 returns: $# local $: isaac
+rewrite: ruleset   0 returns: $# local $: isaac
+</screen>
+
+<para>
+This test has also passed. These tests confirm that any mail received
+for local users on this machine will be properly delivered irrespective of
+how the address is formatted. If you've defined any aliases for your machine, such as virtual hosts, you should repeat these tests for each of the
+alternate names by which this host is known to ensure they also work correctly.
+</para>
+
+<para>
+Next we will test that mail addressed to other hosts in the
+<emphasis role="bold">vbrew.com</emphasis> domain is delivered
+directly to that host using the SMTP mailer:
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; 3,0 isaac@vale.vbrew.com
+rewrite: ruleset   3   input: isaac @ vale . vbrew . com
+rewrite: ruleset  96   input: isaac &lt; @ vale . vbrew . com &gt;
+rewrite: ruleset  96 returns: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset   3 returns: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset   0   input: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset 199   input: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset 199 returns: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset  98   input: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset  98 returns: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset 198   input: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset 198 returns: $# smtp $@ vale . vbrew . com . /
+    $: isaac &lt; @ vale . vbrew . com . &gt;
+rewrite: ruleset   0 returns: $# smtp $@ vale . vbrew . com . /
+    $: isaac &lt; @ vale . vbrew . com . &gt;
+</screen>
+
+<para>
+We can see that this test has directed the message to the SMTP mailer
+to be forwarded directly to the <emphasis role="bold">vale.vbrew.com</emphasis> host and
+specifies the user <emphasis role="bold">isaac</emphasis>. This test confirms that our
+<literal>LOCAL_NET_CONFIG</literal> definition works correctly. For
+this test to succeed, the destination hostname must be able to be
+resolved correctly, so it must either have an entry in our
+<filename>/etc/hosts</filename> file, or in our local DNS. We can see
+what happens if the destination hostname isn't able to be resolved by
+intentionally specifying an unknown host:
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; 3,0 isaac@vXXXX.vbrew.com
+rewrite: ruleset   3   input: isaac @ vXXXX . vbrew . com
+rewrite: ruleset  96   input: isaac &lt; @ vXXXX . vbrew . com &gt;
+vXXXX.vbrew.com: Name server timeout
+rewrite: ruleset  96 returns: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset   3 returns: isaac &lt; @ vXXXX . vbrew . com &gt;
+== Ruleset 3,0 (3) status 75
+rewrite: ruleset   0   input: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset 199   input: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset 199 returns: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset  98   input: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset  98 returns: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset 198   input: isaac &lt; @ vXXXX . vbrew . com &gt;
+rewrite: ruleset  95   input: &lt; uucp-new : moria &gt; isaac &lt;/
+    @ vXXXX . vbrew . com &gt;
+rewrite: ruleset  95 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ vXXXX . vbrew . com &gt;
+rewrite: ruleset 198 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ vXXXX . vbrew . com &gt;
+rewrite: ruleset   0 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ vXXXX . vbrew . com &gt;
+</screen>
+
+<para>
+This result is very different. First, ruleset 3
+returned an error message indicating the hostname could not be resolved.
+Second, we deal with this situation by relying
+on the other key feature of our configuration, the smart host. The smart host
+will is to handle any mail that is otherwise undeliverable. The hostname
+we specified in this test was unable to be resolved and the rulesets determined
+that the mail should be forwarded to our smart host 
+<emphasis role="bold">moria</emphasis> using
+the <emphasis role="bold">uucp-new</emphasis> mailer. Our smart host might be better connected 
+and know what to do with the address.
+</para>
+
+<para>
+Our final test ensures that any mail addressed to a host not within our
+domain is delivered to our smart host. This should produce a result similar
+to our previous example:
+</para>
+
+<screen>
+# <userinput>/usr/sbin/sendmail -bt</userinput>
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &lt;ruleset&gt; &lt;address&gt;
+&gt; 3,0 isaac@linux.org.au
+rewrite: ruleset   3   input: isaac @ linux . org . au
+rewrite: ruleset  96   input: isaac &lt; @ linux . org . au &gt;
+rewrite: ruleset  96 returns: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset   3 returns: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset   0   input: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset 199   input: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset 199 returns: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset  98   input: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset  98 returns: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset 198   input: isaac &lt; @ linux . org . au . &gt;
+rewrite: ruleset  95   input: &lt; uucp-new : moria &gt; isaac &lt;/
+    @ linux . org . au . &gt;
+rewrite: ruleset  95 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ linux . org . au . &gt;
+rewrite: ruleset 198 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ linux . org . au . &gt;
+rewrite: ruleset   0 returns: $# uucp-new $@ moria $: isaac &lt;/
+    @ linux . org . au . &gt;
+</screen>
+
+<para>
+The results of this test indicate that the hostname was resolved, and that the
+message would still have been routed to our smart host. This proves that our
+<literal>LOCAL_NET_CONFIG</literal> definition works correctly and it handled
+both cases correctly. This test was also successful, so we can happily assume
+our configuration is correct and use it.
+</para>
+<INDEXTERM startref="sendmail.testing.config" class=endofrange>
+<INDEXTERM startref="testing.sendmail.config" class=endofrange>
+</sect1>
+
+<sect1><title>Running sendmail</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>running</SECONDARY></INDEXTERM>
+The <command>sendmail</command> daemon can be run in either of two
+ways. One way is to have to have it run from the <command>inetd</command>
+daemon; the alternative, and more commonly used method is to run
+<command>sendmail</command> as a standalone daemon. It is also common for
+mailer programs to invoke <command>sendmail</command> as a user command
+to accept locally generated mail for delivery.
+</para>
+
+<para>
+When running <command>sendmail</command> in standalone mode, place the command
+in an <filename>rc</filename> file so it starts at boot time. The syntax
+used is commonly:
+
+<screen>
+/usr/sbin/sendmail -bd -q10m
+</screen>
+
+The <literal>-bd</literal> argument tells <command>sendmail</command> to run
+as a daemon. It will fork and run in the background. The
+<literal>-q10m</literal> argument tells <command>sendmail</command>
+to check its queue every ten minutes. You may choose to use a different queue to check time.
+</para>
+
+<para>
+To run <command>sendmail</command> from the <command>inetd</command> network
+daemon, you'd use an entry like:
+
+<screen>
+smtp  stream  tcp nowait  nobody  /usr/sbin/sendmail -bs
+</screen>
+
+The <literal>-bs</literal> argument here tells <command>sendmail</command>
+to use the SMTP protocol on stdin/stdout, which is required for use with
+<command>inetd</command>.
+</para>
+
+<para>
+The <command>runq</command> command is usually a symlink to the
+<command>sendmail</command> binary and is a more convenient form of:
+
+<screen>
+# <userinput>sendmail -q</userinput>
+</screen>
+</para>
+
+<para>
+When <command>sendmail</command> is invoked this way, it processes any mail
+waiting in the queue to be transmitted. When running
+<command>sendmail</command> from <command>inetd</command> you must also create
+a <command>cron</command> job that runs the <command>runq</command> command
+periodically to ensure that the mail spool is serviced periodically.
+</para>
+
+<para>
+A suitable <command>cron</command> table entry would be similar to:
+
+<screen>
+# Run the mail spool every fifteen minutes
+0,15,30,45     *     *     *     *     /usr/bin/runq
+</screen>
+</para>
+
+<para>
+In most installations <command>sendmail</command> processes the queue
+every 15 minutes as shown in our <filename>crontab</filename> example,
+attempting to transmit any messages there.
+</para>
+
+</sect1>
+
+<sect1><title>Tips and Tricks</title>
+<para>
+<INDEXTERM id="sendmail.mgmt.tools" class=startofrange><PRIMARY>sendmail</PRIMARY><SECONDARY>management tools</SECONDARY></INDEXTERM>
+There are a number of things you can do to make managing a
+<command>sendmail</command> site efficient. A number of management tools are
+provided in the <command>sendmail</command> package; let's look at the most
+important of these.
+</para>
+
+<sect2><title>Managing the Mail Spool</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>managing the mail spool</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>mail spool, managing</PRIMARY></INDEXTERM>
+Mail is queued in the <filename>/var/spool/mqueue</filename> directory
+before being transmitted. This directory is called the mail spool.
+The <command>sendmail</command> program provides a means of displaying a
+formatted list of all spooled mail messages and their status.
+</para>
+
+<para>
+The <command>/usr/bin/mailq</command> command is a symbolic link to the
+<command>sendmail</command> executable and behaves indentically to:
+
+<screen>
+# <userinput>sendmail -bp</userinput>
+</screen>
+
+The output displays the message ID, its size, the time it was placed in the
+queue, who sent it, and a message indicating its current status. The following
+example shows a mail message stuck in the queue with a  problem:
+
+<screen>
+$ <userinput>mailq</userinput>
+                Mail Queue (1 request)
+--Q-ID-- --Size-- -----Q-Time----- ------------Sender/Recipient------------
+RAA00275      124 Wed Dec  9 17:47 root
+                 (host map: lookup (tao.linux.org.au): deferred)
+                                   terry@tao.linux.org.au
+</screen>
+
+This message is still in the mail queue because the destination host
+IP address could not be resolved.
+</para>
+
+<para>
+We can force <command>sendmail</command> to process the queue now by issuing
+the <filename>/usr/bin/runq</filename> command.
+</para>
+
+<para>
+The <command>runq</command> command produces no output.
+<command>sendmail</command> will begin processing the mail queue in the
+background.
+</para>
+</sect2>
+
+<sect2><title>Forcing a Remote Host to Process its Mail Queue</title>
+<para>
+<INDEXTERM><PRIMARY>email</PRIMARY><SECONDARY>queue</SECONDARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>processing mail queues</SECONDARY></INDEXTERM>
+If you use a temporary dial-up Internet connection with a
+<emphasis>fixed</emphasis> IP address and rely on an MX host to collect your
+mail while you are disconnected, you will find it useful to force the MX host
+to process its mail queue soon after you establish your connection.
+</para>
+
+<para>
+A small <command>perl</command> program is included with the
+<command>sendmail</command> distribution that makes this simple for mail
+hosts that support it. The <command>etrn</command> script has much the same
+effect on a remote host as the <command>runq</command> command has on our
+own. If we invoke the command as shown in this example:
+
+<screen>
+# <userinput>etrn vstout.vbrew.com</userinput>
+</screen>
+
+we will force the host <emphasis role=bold>vstout.vbrew.com</emphasis> to process any mail queued for our local machine.
+</para>
+
+<para>
+Typically you'd add this command to your PPP <filename>ip-up</filename> script
+so that it is executed soon after your network connection is established.
+</para>
+
+</sect2>
+
+<sect2><title>Analyzing Mail Statistics</title>
+<para>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>analyzing mail statistics</SECONDARY></INDEXTERM>
+<command>sendmail</command> collects data on mail traffic volumes and
+some information on hosts to which it has delivered mail. There are
+two commands available to display this information,
+<command>mailstats</command>, and <command>hoststat</command>.
+</para>
+
+<sect3><title>mailstats</title>
+<para>
+<INDEXTERM><PRIMARY>mailstats command</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>mailstats command</SECONDARY></INDEXTERM>
+The <command>mailstats</command> command displays statistics on the
+volume of mail processed by <command>sendmail</command>. The time at
+which data collection commenced is printed first, followed by a table
+with one row for each configured mailer and one showing a summary
+total of all mail. Each line presents eight items of information:
+
+<informaltable>
+<tgroup cols=2>
+<thead>
+<row>
+	<entry>Field</entry>
+	<entry>Meaning</entry>
+</row>
+</thead>
+<tbody>
+<row>
+	<entry><literal>M</literal></entry>
+	<entry>The mailer (transport protocol) number</entry>
+</row>
+<row>
+	<entry><literal>msgsfr</literal></entry>
+	<entry>The number of messages received from the mailer</entry>
+</row>
+<row>
+	<entry><literal>bytes_from</literal></entry>
+	<entry>The Kbytes of mail from the mailer</entry>
+</row>
+<row>
+	<entry><literal>msgsto</literal></entry>
+	<entry>The number of messages sent to the mailer</entry>
+</row>
+<row>
+	<entry><literal>bytes_to</literal></entry>
+	<entry>The Kbytes of mail sent to the mailer</entry>
+</row>
+<row>
+        <entry><literal>msgsreg</literal></entry>
+        <entry>The number of messages rejected</entry>
+</row>
+<row>
+        <entry><literal>msgsdis</literal></entry>
+        <entry>The number of messages discarded</entry>
+</row>
+<row>
+	<entry><literal>Mailer</literal></entry>
+	<entry>The name of the mailer</entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+
+A sample of the output of the <command>mailstats</command> command is shown
+in <xref linkend="X-087-2-sendmail.mailstats">.
+</para>
+
+<example id="X-087-2-sendmail.mailstats">
+<title>Sample Output of the mailstats Command</title>
+<screen>
+<prompt>#</prompt> <userinput>/usr/sbin/mailstats</userinput>
+Statistics from Sun Dec 20 22:47:02 1998
+ M   msgsfr  bytes_from   msgsto    bytes_to  msgsrej msgsdis  Mailer
+ 0        0          0K       19        515K        0       0  prog
+ 3       33        545K        0          0K        0       0  local
+ 5       88        972K      139       1018K        0       0  esmtp
+=============================================================
+ T      121       1517K      158       1533K        0       0
+</screen>
+</example>
+
+<para>
+This data is collected if the <emphasis>StatusFile</emphasis> option is enabled
+in the <filename>sendmail.cf</filename> file and the status file exists.
+Typically you'd add the following to your <filename>sendmail.cf</filename>
+file:
+
+<screen>
+# status file
+O StatusFile=/var/log/sendmail.st
+</screen>
+</para>
+
+<para>
+To restart the statistics collection, you need to make the statistics
+file zero length:
+
+<screen>
+&gt; /var/log/sendmail.st
+</screen>
+
+and restart <command>sendmail</command>.
+</para>
+
+</sect3>
+
+<sect3><title>hoststat</title>
+<para>
+<INDEXTERM><PRIMARY>hostat command</PRIMARY></INDEXTERM>
+<INDEXTERM><PRIMARY>sendmail</PRIMARY><SECONDARY>hostat command</SECONDARY></INDEXTERM>
+The <command>hoststat</command> command displays information about the
+status of hosts that
+<command>sendmail</command> has attempted to deliver mail to. The
+<command>hoststat</command> command is equivalent to invoking
+<command>sendmail</command> as:
+
+<screen>
+<userinput>sendmail -bh</userinput>
+</screen>
+</para>
+
+<para>
+The output presents each host on a line of its own, and for each the
+time since delivery was attempted to it, and the status message
+received at that time.
+</para>
+
+<para>
+<xref linkend="X-087-2-sendmail.hoststat"> shows the sort of output you can
+expect from the <command>hoststat</command> command. Note that most of the
+results indicate successful delivery. The result for
+<emphasis role="bold">earthlink.net</emphasis>, on the other hand, indicates
+that delivery was unsuccessful. The status message can sometimes help 
+determine the cause of the failure. In this case, the connection timed out, 
+probably because the host was down or unreachable at the time delivery was 
+attempted.
+</para>
+
+<example id="X-087-2-sendmail.hoststat">
+<title>Sample Output of the oststat Command</title>
+<screen>
+<prompt>#</prompt> <userinput>hoststat</userinput>
+ -------------- Hostname ---------- How long ago ---------Results---------
+ mail.telstra.com.au                    04:05:41 250 Message accepted for
+ scooter.eye-net.com.au              81+08:32:42 250 OK id=0zTGai-0008S9-0
+ yarrina.connect.com.a               53+10:46:03 250 LAA09163 Message acce
+ happy.optus.com.au                  55+03:34:40 250 Mail accepted
+ mail.zip.com.au                        04:05:33 250 RAA23904 Message acce
+ kwanon.research.canon.com.au        44+04:39:10 250 ok 911542267 qp 21186
+ linux.org.au                        83+10:04:11 250 IAA31139 Message acce
+ albert.aapra.org.au                    00:00:12 250 VAA21968 Message acce
+ field.medicine.adelaide.edu.au      53+10:46:03 250 ok 910742814 qp 721
+ copper.fuller.net                   65+12:38:00 250 OAA14470 Message acce
+ amsat.org                            5+06:49:21 250 UAA07526 Message acce
+ mail.acm.org                        53+10:46:17 250 TAA25012 Message acce
+ extmail.bigpond.com                 11+04:06:20 250 ok
+ earthlink.net                       45+05:41:09 Deferred: Connection time 
+</screen>
+</example>
+
+<para>
+The <command>purgestat</command> command flushes the collected host data and
+is equivalent to invoking sendmail as:
+
+<screen>
+# <userinput>sendmail -bH</userinput>
+</screen>
+
+</para>
+
+<para>The statistics will continue to grow until you purge them. You might 
+want to periodically run the <command>purgestat</command> command to make it 
+easier to search and find recent entries, especially if you have a busy site. 
+You could put the command into a <filename>crontab</filename> file so it 
+runs automatically, or just do it yourself occasionally.
+</para>
+
+</sect3>
+</sect2>
+<INDEXTERM startref="sendmail.mgmt.tools" class=endofrange>
+</sect1>
+<INDEXTERM startref="idx-configuringsendmail" class=endofrange>
+<INDEXTERM startref="idx-commandsendmailcommand-1" class=endofrange>
+</chapter>
+
