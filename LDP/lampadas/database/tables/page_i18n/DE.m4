@@ -253,6 +253,11 @@ insert([privacy], [Datenschutz], [],
     Werbe-E-Mails schicken ("spam") noch Sie bei E-Mailverteilern eintragen.
 ])
 
+insert([sitemap], [Site Map], [],
+[
+    |tabsitemap|
+])
+
 insert([newuser], [Neue Benutzer], [],
 [
     <p>Füllen Sie bitte dieses Formular aus,

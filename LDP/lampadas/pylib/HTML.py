@@ -658,6 +658,42 @@ class TableFactory:
             box = box + self.section_menu(uri, user, section.code)
         return box
 
+    def sitemap(self, uri, user):
+        log(3, 'Creating sitemap')
+        box = ''
+        box = '<table class="navbox"><tr><th colspan="2">|strsitemap|</th></tr>\n'
+        section_codes = lampadasweb.sections.sort_by('sort_order')
+        page_codes = lampadasweb.pages.sort_by('sort_order')
+        for section_code in section_codes:
+            section = lampadasweb.sections[section_code]
+            if section.only_registered or section.only_admin or section.only_sysadmin > 0:
+                if user==None or section.registered_count==0:
+                    continue
+            if section.only_admin > 0:
+                if (user.admin==0 and user.sysadmin==0) or (section.admin_count==0):
+                    continue
+            if section.only_sysadmin > 0:
+                if user.sysadmin==0 or section.sysadmin_count==0:
+                    continue
+
+            box = box + '<tr><th class="label">' +  section.name[uri.lang] + '</th><td>\n'
+            for page_code in page_codes:
+                page = lampadasweb.pages[page_code]
+                if page.section_code==section_code:
+                    if page.only_registered or page.only_admin or page.only_sysadmin > 0:
+                        if user==None:
+                            continue
+                    if page.only_admin > 0:
+                        if user.admin==0 and user.sysadmin==0:
+                            continue
+                    if page.only_sysadmin > 0:
+                        if user.sysadmin==0:
+                            continue
+                    box = box + '<a href="/' + page.code + '">' + page.menu_name[uri.lang] + '</a><br>\n'
+            box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        return box
+
     def recent_news(self, uri):
         log(3, 'Creating recent news')
         box = '<table class="box"><tr><th>|strdate|</th><th>|strnews|</th></tr>\n'
@@ -957,6 +993,8 @@ class PageFactory:
                     newstring = self.tablef.doctable(uri, build_user, type_code=uri.code)
                 if token=='tabsubtopicdocs':
                     newstring = self.tablef.doctable(uri, build_user, subtopic_code=uri.code)
+                if token=='tabsitemap':
+                    newstring = self.tablef.sitemap(uri, build_user)
             
                 # Blocks and Strings
                 # 

@@ -279,6 +279,11 @@ insert([privacy], [Privacy Policy], [],
     your consent.
 ])
 
+insert([sitemap], [Site Map], [],
+[
+    |tabsitemap|
+])
+
 insert([newuser], [New User], [],
 [
     <p>To create a new user account, fill out this form.

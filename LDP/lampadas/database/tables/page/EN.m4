@@ -24,6 +24,7 @@ insert(about,               default,    help,       1,  f,  f,  f)
 insert(lampadas,            default,    help,       2,  f,  f,  f)
 insert(copyright,           default,    help,       3,  f,  f,  f)
 insert(privacy,             default,    help,       4,  f,  f,  f)
+insert(sitemap,             default,    help,       5,  f,  f,  f)
 
 insert(newuser,             default,    none,       0,  f,  f,  f)
 insert(mailpass,            default,    none,       0,  f,  f,  f)

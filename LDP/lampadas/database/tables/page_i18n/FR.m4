@@ -139,6 +139,11 @@ insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
 	Confidentialit&eacute;
 ])
 
+insert([sitemap], [Site Map], [],
+[
+    |tabsitemap|
+])
+
 insert([newuser], [New User], [],
 [
     <p>To create a new user account, fill out this form.
