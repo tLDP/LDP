@@ -261,6 +261,7 @@ class Doc:
 		self.Files		= DocFiles(self.ID)
 		self.Ratings		= DocRatings(self.ID)
 		self.Ratings.Parent	= self
+		self.Versions		= DocVersions(self.ID)
 
 	def Save(self):
 		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
@@ -429,6 +430,48 @@ class DocRating:
 		DB.Exec(self.sql)
 		self.sql = "INSERT INTO doc_vote (doc_id, user_id, vote) VALUES (" + str(self.DocID) + ", " + str(self.UserID) + ", " + str(self.Rating) + ")"
 		DB.Exec(self.sql)
+		DB.Commit()
+
+
+# DocVersions
+
+class DocVersions(LampadasCollection):
+	"""
+	A collection object providing access to document revisions.
+	"""
+
+	def __init__(self, DocID):
+		self.data = {}
+		assert not DocID == None
+		self.DocID = DocID
+		self.sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(DocID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDocVersion = DocVersion()
+			newDocVersion.Load(DocID, row)
+			self.data[newDocVersion.ID] = newDocVersion
+
+
+class DocVersion:
+	"""
+	A release of the document.
+	"""
+
+	def Load(self, DocID, row):
+		assert not DocID == None
+		assert not row == None
+		self.DocID	= DocID
+		self.ID		= row[0]
+		self.Version	= trim(row[1])
+		self.PubDate	= trim(row[2])
+		self.Initials	= trim(row[3])
+		self.Notes	= trim(row[4])
+
+	def Save(self):
+		self.sql = "UPDATE document_rev SET version=" + wsq(self.Version) + ", pub_date=" + wsq(self.PubDate) + ", initials=" + wsq(self.Initials) + ", notes=" + wsq(self.Notes) + "WHERE doc_id=" + str(self.DocID) + " AND rev_id" + wsq(self.ID)
+		assert DB.Exec(self.sql) == 1
 		DB.Commit()
 
 
