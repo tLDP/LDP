@@ -9,7 +9,7 @@ insert([users], [Liste der Benutzer], [],
     <p>|tabusers|
 ])
 
-insert([sessions], [User Sessions], [],
+insert([sessions], [Benutzersitzungen], [],
 [
     |tabsessions|
 ])
@@ -46,9 +46,10 @@ insert([home], [|strproject|], [Home],
         <li>korean - Koreanisch sprechender Benutzer.</li>
     </ul>
 
-    <p>Alle diese Konten benutzen das Kennwort &quot;password&quot;.
-    Log in as one of them, and check it out, or create your own
-    account using the "Create Account" link to the right.
+    <p>Alle diese Konten benutzen das Kennwort "password".
+    Sie können einen dieser Namen ausprobieren oder auch ein 
+    eigenes Benutzerkonto anlegen (oben, rechts, der 
+    Link "Benutzerkonto anlegen").
 ])
 
 insert([doctable], [Documentenliste], [],
@@ -374,19 +375,19 @@ insert([account_created], [Benutzerkonto angelegt], [],
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ])
 
-insert([user], [Benutzerdaten ändern], [Add User],
+insert([user], [Benutzerdaten ändern], [Neuer Benutzer],
 [
     |tabuser|
 ])
 
 insert([logged_in], [Angemeldet], [],
 [
-    <p>Sie wurden im System angemeldet.
+    <p>Sie sind im System angemeldet.
 ])
 
 insert([logged_out], [Abgemeldet], [],
 [
-    <p>Sie wurden im System abgemeldet.
+    <p>Sie sind im System abgemeldet.
 ])
 
 insert([type], [|type.name|], [],
