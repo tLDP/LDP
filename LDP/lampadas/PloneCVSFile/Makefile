@@ -14,6 +14,7 @@ install: all
 	$(INSTALLMOD) version.txt $(modprefix)/PloneCVSFile
 	$(INSTALLMOD) __init__.py $(modprefix)/PloneCVSFile
 	$(INSTALLMOD) PloneCVSFile.py $(modprefix)/PloneCVSFile
+	$(INSTALLMOD) OMF.py $(modprefix)/PloneCVSFile
 	
 	$(INSTALLDIR) $(modprefix)/PloneCVSFile/skins
 	#$(INSTALLMOD) skins/* $(modprefix)/PloneCVSFile/skins
@@ -25,11 +26,11 @@ install: all
 	$(INSTALLMOD) dtml/create.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/cvsregistry_formpart.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/cvssandbox_formpart.dtml $(modprefix)/PloneCVSFile/dtml
-	$(INSTALLMOD) dtml/cvsfilepath_formpart.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/cvs.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/cvs_form.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/lampadas_cvs.dtml $(modprefix)/PloneCVSFile/dtml
 	$(INSTALLMOD) dtml/lampadas_cvs_form.dtml $(modprefix)/PloneCVSFile/dtml
+	$(INSTALLMOD) dtml/omf_metadata.dtml $(modprefix)/PloneCVSFile/dtml
 
 uninstall:
 	rm -rf $(modprefix)/PloneCVSFile

@@ -15,7 +15,7 @@ from socket import gethostname
 factory_type_information = (
     {'id': 'CMF CVS File',
      'content_icon': 'www/fish.gif',
-     'meta_type': 'CMFCVSFile',
+     'meta_type': 'CMF CVS File',
      'product': 'PloneCVSFile',
      'factory': 'addPloneCVSFile',
      'immediate_view': 'index_html',

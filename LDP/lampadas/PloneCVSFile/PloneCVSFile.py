@@ -20,6 +20,11 @@ from Products.CVSFile.ICVSFile import ICVSFile
 
 # CMFCore imports
 from Products.CMFCore.PortalContent import PortalContent
+from Products.CMFCore.CMFCatalogAware import CMFCatalogAware
+from Products.CMFCore.DynamicType import DynamicType
+
+# OFS imports
+from OFS.SimpleItem import SimpleItem
 
 # Python builtins
 import os
@@ -111,17 +116,18 @@ class PloneCVSFile(CVSFile, PortalContent):
         CVSFile.__init__(self, id, title, description, relativeFilePath)
         
     
-    meta_type = 'CMFCVSFile'  # This is the name Zope will use for the Product in
+    meta_type = 'CMF CVS File'  # This is the name Zope will use for the Product in
                               # the "addProduct" list
 
     __implements__ = ICVSFile
 
     # This tuple defines a dictionary for each tab in the management interface
     # label = label of tab, action = url it links to
-    manage_options = ExternalFile.manage_options + (
-	{'label':'CVS',	     'action': 'manage_cvsForm'},
-    {'label':'Lampadas', 'action': 'manage_lampadasForm'}
-        )
+    manage_options = ( ExternalFile.manage_options + (
+    	{'label':'CVS',	          'action': 'manage_cvsForm'},
+        {'label':'Lampadas',      'action': 'manage_lampadasForm'},
+        {'label':'OMF Meta-data', 'action': 'manage_metadata'}
+    ) +  CMFCatalogAware.manage_options )
 
     _security = ClassSecurityInfo()
 
@@ -158,6 +164,8 @@ class PloneCVSFile(CVSFile, PortalContent):
     set('Add CVSFile comment', ('Owner', 'Manager', 'Authenticated'))
     set = None
 
+    manage_metadata = DTMLFile('dtml/omf_metadata', globals())
+    
     def inCMF(self):
         """Return true if this object is in a CMF portal.
         """
