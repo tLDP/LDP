@@ -104,6 +104,9 @@ if ( $chkLICENSE eq "on" ) { $LICENSE = "checked "; }
 if ( $chkVERSION eq "on" ) { $VERSION = "checked "; }
 if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
 
+# connect to the database
+$conn=Pg::connectdb("dbname=$dbmain");
+
 # print the page
 print header(-expires=>'now');
 print "<html><head>\n";
@@ -128,6 +131,7 @@ print "<a href='/help/'>Help</a> ";
 print "<p><form action='document_edit.pl' method=POST>\n";
 print "<p>Jump to a document by ID: <input type=text size=5 name=doc_id>\n";
 print "<input type=submit value=Jump>\n";
+
 print "</form>\n";
 
 print "<form name=filter method=POST action='document_list.pl'>";
@@ -197,6 +201,30 @@ print "</td>\n";
 
 print "</tr></table>\n";
 print "<input type=submit value=Reload>\n";
+$username=$query->remote_user();
+$result=$conn->exec("SELECT count(*) FROM username WHERE username='$username'");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+@row = $result->fetchrow;
+if ($row[0] > 0) {
+	$result=$conn->exec("SELECT maintainer_id FROM username WHERE username='$username'");
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+	@row = $result->fetchrow;
+	$maintainer_id = $row[0];
+	if ($maintainer_id > 0) {
+		$result=$conn->exec("SELECT doc_id FROM document_maintainer WHERE maintainer_id=$maintainer_id");
+		die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+		while (@row = $result->fetchrow) {
+			if ($doc_id_sql) {
+				$doc_id_sql .= " OR doc_id=$row[0]";
+			} else {
+				$doc_id_sql = "(doc_id=$row[0]";
+			}
+		}
+		$doc_id_sql .= ")";
+	}
+	print "<input type=submit value='My Documents' name=MyDocuments>\n";
+}
+
 
 print "</form>\n";
 
@@ -221,10 +249,19 @@ if ( $URL ) { print "<th>URL</th>"; }
 print "</tr>\n";
 
 
-# Connect and load the tuples
-$conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename FROM document, pub_status, review_status lr, review_status tr $WHERE AND document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status";
+# load the tuples
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, filename";
+$sql .= " FROM document,";
+$sql .= " pub_status,";
+$sql .= " review_status lr,";
+$sql .= " review_status tr";
+$sql .= " $WHERE";
+$sql .= " AND document.pub_status=pub_status.pub_status";
+$sql .= " AND document.review_status = lr.review_status";
+$sql .= " AND document.tech_review_status = tr.review_status";
 if ( $strSTATUS ) { $sql = $sql . " AND document.pub_status='" . $strSTATUS . "'" };
+$MyDocuments = param("MyDocuments");
+if (($doc_id_sql) and ($MyDocuments)) { $sql .= " AND $doc_id_sql" }
 $sql = $sql . " ORDER BY $SORT1";
 #print "<tr><td colspan=20>$sql</td></tr>";
 

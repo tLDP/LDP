@@ -125,6 +125,7 @@ if ($preview or $docbook) {
 	$sgmlfile =~ s/\.txt/\.sgml/;
 	$htmlfile = $txtfile;
 	$htmlfile =~ s/\.txt/\.html/;
+	system("rm $sgmlfile");
 
 	open(TXT, "> $txtfile");
 	print TXT $wiki;
@@ -228,13 +229,14 @@ sub printheader {
 
 	print "<h1>$title Wiki</h1>\n";
 
-	print "<p><a href='/index.html'>Index</a> ";
-	print "<a href='/cgi-bin/document_list.pl'>Documents</a> ";
-	print "<a href='/cgi-bin/topic_list.pl'>Topics</a> ";
-	print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a> ";
-	print "<a href='/cgi-bin/editor_list.pl'>Editors</a> ";
-	print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a> ";
-	print "<a href='/help/'>Help</a> ";
+	print "<p><a href='/index.html'>Index</a>&nbsp;|&nbsp;";
+	print "<a href='/cgi-bin/document_list.pl'>Documents</a>&nbsp;|&nbsp;";
+	print "<a href='/cgi-bin/topic_list.pl'>Topics</a>&nbsp;|&nbsp;";
+	print "<a href='/cgi-bin/maintainer_list.pl'>Maintainers</a>&nbsp;|&nbsp;";
+	print "<a href='/cgi-bin/editor_list.pl'>Editors</a>&nbsp;|&nbsp;";
+	print "<a href='/cgi-bin/ldp_stats.pl'>Statistics</a>&nbsp;|&nbsp;";
+	print "<a href='/help/'>Help</a>&nbsp;|&nbsp;";
+	print "<a href='/help/wiki.html'>Page Help</a>";
 
 	print "<p>";
 	print "<a href='document_edit.pl?doc_id=$doc_id'>Meta-Data</a>\n";
