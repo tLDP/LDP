@@ -1,5 +1,4 @@
-m4_define(insert,
-[INSERT INTO document(doc_id, lang, title, version, isbn,
+m4_define(insert, [INSERT INTO document(doc_id, lang, title, version, isbn,
 type_code, format_code, dtd_code, dtd_version,
 license_code, abstract,
 url, ref_url,
@@ -14,4 +13,4 @@ VALUES ($1, 'I18N_lang_code', '$2', '$3', '$4',
 '$13', '$14', '$15',
 '$16', '$17', '$18',
 '$19', '$20', $21,
-$22, $23);])m4_dnl
+'$22', $23);])m4_dnl

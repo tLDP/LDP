@@ -289,27 +289,27 @@ insert([newuser], [New User], [],
     <p>To create a new user account, fill out this form.
     <p>
     <form name="newuser" action="data/save/newuser" method=GET>
-        <table class="form">
+        <table class="box">
             <tr>
-                <td align=right>*Username</td>
+                <td class="label">*Username</td>
                 <td><input type=text name=username size=20></input></td>
             </tr>
             <tr>
-                <td align=right>*Enter your email address.<br>
+                <td class="label">*Enter your email address.<br>
 		  Your password will be mailed to this address,
 		  so it must be valid.</td>
                 <td><input type=text name=email size=20></input></td>
             </tr>
             <tr>
-                <td align=right>First Name</td>
+                <td class="label">First Name</td>
                 <td><input type=text name=first_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Middle Name</td>
+                <td class="label">Middle Name</td>
                 <td><input type=text name=middle_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Surname</td>
+                <td class="label">Surname</td>
                 <td><input type=text name=surname size=20></input></td>
             </tr>
             <tr>

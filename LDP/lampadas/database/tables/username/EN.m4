@@ -4,13 +4,13 @@ insert(admin, Site, [], Administrator,
 	Please change the password before your Lampadas server goes live!],
 	[default])
 
-insert(sysadmin, Site, [], Administrator,
+insert(sysadmin, System, [], Administrator,
 	[], t, t, password,
 	[This is the System Administrator account.
 	Please change the password before your Lampadas server goes live!],
 	[default])
 
-insert(user, John, [Q.], User,
+insert(english, John, [Q.], User,
 	[], f, f, password,
-	[This is a test account. It should be deleted before release!],
+	[This is a test English account. It should be deleted before release!],
 	[default])

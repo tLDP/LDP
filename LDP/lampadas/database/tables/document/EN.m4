@@ -1,11 +1,13 @@
-insert(1, [Test DocBook XML HOWTO], [1.0], [],
-[howto], [xml], [DocBook], [4.1.2],
-[gfdl], [This is a test document.],
-[http://www.tldp.org/FAQ/Linux-FAQ/], [],
+insert(1, [Apache Overview HOWTO], [0.7], [],
+[adminguide], [sgml], [DocBook], [4.1],
+[gfdl],
+[This document gives you an overview of the Apache webserver and related projects.
+It provides pointers for further information and implementation details.],
+[http://www.tldp.org/HOWTO/Apache-Overview-HOWTO.html], [],
 [N], [U], [U],
-[2002-07-01], [2002-07-02], [2002-07-03],
+[1970-01-01], [2002-02-28], [2002-01-01],
 f, f, 0,
-NULL, NULL)
+[APACHE_SERIES_ID], NULL)
 
 insert(2, [Test DocBook SGML HOWTO], [1.0], [],
 [howto], [sgml], [DocBook], [4.1.2],

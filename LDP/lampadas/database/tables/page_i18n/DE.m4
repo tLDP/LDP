@@ -266,27 +266,27 @@ insert([newuser], [Neue Benutzer], [],
     
     <p>
     <form name="newuser" action="data/save/newuser" method=GET>
-        <table class="form">
+        <table class="box">
             <tr>
-                <td align=right>*Benutzername</td>
+                <td class="label">*Benutzername</td>
                 <td><input type=text name=username size=20></input></td>
             </tr>
             <tr>
-                <td align=right>*Ihre E-Mailadresse.
+                <td class="label">*Ihre E-Mailadresse.
 		<br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
 		muss sie gültig sein.</td>
                 <td><input type=text name=email size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Vorname</td>
+                <td class="label">Vorname</td>
                 <td><input type=text name=first_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Zweiter Vorname</td>
+                <td class="label">Zweiter Vorname</td>
                 <td><input type=text name=middle_name size=20></input></td>
             </tr>
             <tr>
-                <td align=right>Nachname</td>
+                <td class="label">Nachname</td>
                 <td><input type=text name=surname size=20></input></td>
             </tr>
             <tr>
