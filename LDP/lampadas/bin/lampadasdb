@@ -9,20 +9,12 @@ Usage: lampadas.sh [-h | --help] ACTION DATABASE
 
 Where ACTION is one of:
 
-	create
-		Create new data tables.
-
-	drop
-		Drop all tables.
-		
-	delete
-		Delete all data.
-		
-	load
-		Load data from files in /tmp.
-	
-	save
-		Copy data to files in /tmp.
+    create       Create new data tables.
+    defaults     Insert default values
+    drop         Drop all tables.
+    delete       Delete all data.
+    load         Load data from files in /tmp.
+    save         Copy data to files in /tmp.
 "
 }
 
@@ -31,24 +23,53 @@ create()
 	psql $1 -qf "$2/create.sql"
 }
 
+defaults()
+{
+	find $2 -type f -name '[A-Z][A-Z].m4' \
+	| while read file
+	do
+		echo "AAA $file ..."
+		lang=${file%.m4}
+		echo "BBB $lang ..."
+		lang=${lang##*/}
+		echo "CCC $lang ..."
+		m4 -P -DI18N_lang_code=${lang} "$2/insert.m4" $file | psql $1
+	done
+}
+
 drop()
 {
-	psql $1 -c "DROP TABLE $3;"
+	echo "DROP TABLE $3;"
 }
 
 delete()
 {
-	psql $1 -c "DELETE from $3;"
+	echo "DELETE from $3;"
 }
 
 load()
 {
-	psql $1 -c "copy $3 from '/tmp/$3';"
+	echo "copy $3 from '/tmp/$3';"
 }
 
 save()
 {
-	echo "Saving $3"
+	echo "copy $3 to '/tmp/$3';"
+}
+
+#---------------------------------------------
+
+one_sql_per_table()
+{
+  find $SQLDIR/tables -type d -maxdepth 1 -mindepth 1 ! -name CVS \
+  | while read file
+  do "$1" "$2" "$file" ${file##*/}
+  done
+}
+
+all_together()
+{
+  one_sql_per_table "$@" | psql $2
 }
 
 #---------------------------------------------
@@ -60,25 +81,22 @@ while test $# -gt 0 ; do
 		usage
 		exit 1
 		;;
-	"usage" | "create" | "drop" | "delete" | "load" | "save" )
-		COMMAND="${1}"
-		shift
-		DBNAME="${1}"
+	"drop" | "delete" | "load" | "save" )
+		WRAPPER=all_together
+		break ;;
+	"defaults" | "create" )
+		WRAPPER=one_sql_per_table
 		break
 		;;
-	*)	echo "Invalid command: ${1}"
+	*)	echo "Invalid command: $1"
 		exit 1
 		;;
     esac
 done
 
-if [ -z "$COMMAND" -o -z "$DBNAME" ]; then
+if [ $# -ne 2 ]; then
  	usage
 	exit 1
 fi
 
-find $SQLDIR/tables -type d -maxdepth 1 -mindepth 1 ! -name CVS \
-| while read tab
-do
-	"$COMMAND" "$DBNAME" "$tab" $(basename "$tab")
-done 
+$WRAPPER "$@"
