@@ -79,6 +79,7 @@ Where options is:
 our_smtp = "localhost"
 addr_suffix = "tldp.org"
 passwd_users_file = "/etc/passwd"
+where_send="ser@pld-linux.org"
 
 # Config end. Do not change anything below.
 # -----------------------------------------------------------
