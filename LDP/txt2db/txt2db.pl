@@ -128,8 +128,7 @@ sub proc_txt {
 		# 
 		while ($line =~ /\[\[/) {
 			unless ($line =~ /\]\]/) {
-				print "txt2db: ERROR unterminated '[[' tag on line $linenumber.\n";
-				exit(1);
+				$buf .= "ERROR unterminated '[[' tag on line $linenumber.\n";
 			}
 
 			# separate link url from link name
@@ -201,6 +200,7 @@ sub proc_txt {
 		#	<sect2>
 		#	<sect3>
 		#	<programlisting>
+		#	<literallayout>
 	
 		# forget about nopara
 		if ($noparadepth == 0) {
@@ -211,6 +211,8 @@ sub proc_txt {
 		#
 		if ((($line =~ /^<para>/) or
 		     ($line =~ /^<sect/) or
+		     ($line =~ /^<screen>/) or
+		     ($line =~ /^<literallayout>/) or
 		     ($line =~ /^<programlisting>/)) and
 		    ($noparadepth == 0)) { 
 		    	&closepara;
@@ -343,7 +345,7 @@ sub proc_txt {
 		#
 		} else {
 			if (($para == 0) and ($noparatag eq '')) {
-				$line =~ s/^/<para>/;
+				$line = "<para>" . $line;
 				$para = 1;
 			} else {
 				$line .= " ";
@@ -357,8 +359,7 @@ sub proc_txt {
 	&close1;
 
 	if ($noparadepth > 0) {
-		print "txt2db: ERROR tag $noparatag on line $noparaline unterminated.\n";
-		exit(1);
+		$buf .= "ERROR tag $noparatag on line $noparaline unterminated.\n";
 	}
 }
 
