@@ -8,7 +8,7 @@ insert([admin], [Administration], [],
     <p>Werkzeuge für Administratoren.
 ])
 
-insert([users], [User List], [],
+insert([users], [Liste der Benutzer], [],
 [
     |tabusers|
 ])
@@ -20,9 +20,9 @@ insert([sysadmin], [System-Administration], [],
 
 insert([my], [Meine Homepage], [],
 [
-    <p>This is your personal home page.
+    <p>Dies ist Ihre persönliche Homepage.
 
-    <p>This table lists documents you have volunteered to contribute to:
+    <p>Und dies sind die Dokumente an denen sie mitarbeiten:
 
     |session_user_docs|
 ])
@@ -47,9 +47,9 @@ insert([news], [Neuigkeiten], [],
     |tabrecentnews|
 ])
 
-insert([staff], [Staff], [],
+insert([staff], [Team], [],
 [
-    List the members of your project\'s staff here.
+    Führen Sie hier die Mitglieder Ihres Projekteams an.
 ])
 
 insert([contribute], [Mitarbeit bei |strproject|],
@@ -78,7 +78,7 @@ insert([contribute], [Mitarbeit bei |strproject|],
     
     <li>Übersetzen Sie Dokumentation
 
-    <p>Übersetzer sind rar und werden von uns sehr gesch&auml;tzt.
+    <p>Übersetzer sind rar und werden von uns sehr geschätzt.
     Unser Ziel ist es, die gesamte Dokumentation in so vielen Sprachen wie
     möglich anzubieten.
     </li>
@@ -119,26 +119,27 @@ insert([maint_wanted], [Instandhalter gesucht], [],
     |tabmaint_wanted|
 ])
 
-insert([wishlist], [Wishlist Documents], [],
+insert([wishlist], [Dokumentwunschliste], [],
 [
     |tabwishlist|
 ])
 
-insert([pending], [Pending Documents], [],
+insert([pending], [Dokumentwarteschlange], [],
 [
     |tabpending|
 ])
 
-insert([resources], [Other Resources], [],
+insert([resources], [Andere Hilfsmittel], [],
 [
     <ul>
+        m4_dnl holy penguin droppings, it's a meta command!
         <li>Insert some resources for German authors.
     </ul>
 ])
 
-insert([maillists], [Mailing Lists], [],
+insert([maillists], [Mailing-Listen], [],
 [
-    List your project\'s mailing lists here.
+    Führen Sie hier die Mailing-Listen Ihres Projekts an.
 ])
 
 insert([about], [Über |strproject|], [Über |strprojectshort|],
@@ -153,8 +154,8 @@ insert([lampadas], [Über Lampadas], [],
     <a href="http://www.tldp.org">Linux-Dokumentations-Projekts</a>
     entwickelt und ist freie Software (GPL).
     
-    <p>Lampadas ist eine m&auml;chtige und flexible Plattform, ausgelegt
-    für gro&szlig;e Projekte wie LDP. Es bietet eine interaktive
+    <p>Lampadas ist eine mächtige und flexible Plattform, ausgelegt
+    für große Projekte wie LDP. Es bietet eine interaktive
     Umgebung um Dokumentation zu schreiben, zu verwalten,
     zu veröffentlichen und zu lesen.
 
@@ -200,7 +201,7 @@ insert([copyright], [Copyright], [],
     Die Benutzung dieser Web-Site kann Sie mit Fäkalsprache,
     Gotteslästerung, Pornographie und ähnlichen Dingen konfrontieren.
     Alle Inhalte dieser Art sowie alle belegten Urheberrechtsverletzungen
-    werden von uns prompt entfernt, wenn wir davon Kenntnis erlangen.
+    werden von uns prompt entfernt - wenn wir davon Kenntnis erlangen.
 
     <p>Die Lampadas Software wird unter den Bedingungen der GNU General
     Public License (GPL) veröffentlich.
@@ -211,7 +212,7 @@ insert([copyright], [Copyright], [],
     <p>Wir bemühen uns, genaue Information zu liefern. Aber wir
     garantieren weder Genauigkeit, Vollständigkeit oder irgend
     eine andere Eigenschaft. Genau genommen geben wir keinerlei
-    Garantie oder Sicherheit über irgend etwas. 
+    Garantie oder Sicherheit für irgend etwas. 
 
     <p>Die Benutzung von Informationen, Downloads, Software oder
     irgend einer anderen Ressource dieser Web-Site geschieht
