@@ -17,36 +17,35 @@ class Page(Persistence):
             return self.dms.template.get_by_id(self.template_code)
         elif attribute=='section':  
             return self.dms.section.get_by_id(self.section_code)
-        elif attribute in ('title', 'menu_name', 'page', 'version'):
-            title     = LampadasCollection()
-            menu_name = LampadasCollection()
-            page      = LampadasCollection()
-            version   = LampadasCollection()
-            i18ns = self.dms.page_i18n.get_by_keys([['page_code', '=', self.code]])
-            for key in i18ns.keys():
-                i18n = i18ns[key]
+        elif attribute=='i18n':
+            self.i18n = self.dms.page_i18n.get_by_keys([['page_code', '=', self.code]])
+            return self.i18n
+        elif attribute=='title':
+            title = LampadasCollection()
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
                 title[i18n.lang] = i18n.title
+            return title
+        elif attribute=='menu_name':
+            menu_name = LampadasCollection()
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
                 if i18n.menu_name=='':
                     menu_name[i18n.lang] = i18n.title
                 else:
                     menu_name[i18n.lang] = i18n.menu_name
+            return menu_name
+        elif attribute=='page':
+            page = LampadasCollection()
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
                 page[i18n.lang] = i18n.page
+            return page
+        elif attribute=='version':
+            version = LampadasCollection()
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
                 version[i18n.lang] = i18n.version
-            if attribute=='title':
-                return title
-            elif attribute=='menu_name':
-                return menu_name
-            elif attribute=='page':
-                return page
-            else:
-                return version
+            return version
         else:
             raise AttributeError('No such attribute %s' % attribute)
-
-    def untranslated_lang_keys(self, lang):
-        untranslated = []
-        supported_langs = self.dms.language.get_by_keys([['supported', '=', 't']])
-        for key in supported_langs.keys():
-            if key not in self.title.keys():
-                untranslated.append(key)
-        return untranslated

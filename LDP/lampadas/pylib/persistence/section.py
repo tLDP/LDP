@@ -22,12 +22,14 @@ class Section(Persistence):
             return self.pages.count([['only_admin', '=', 0]])
         elif attribute=='nonsysadmin_count':
             return self.pages.count([['only_sysadmin', '=', 0]])
+        elif attribute=='i18n':
+            self.i18n = self.dms.section_i18n.get_by_keys([['section_code', '=', self.code]])
+            return self.i18n
         elif attribute=='name':
             name = LampadasCollection()
-            i18ns = self.dms.section_i18n.get_by_keys([['section_code', '=', self.code]])
-            for key in i18ns.keys():
-                i18n = i18ns[key]
-                name[i18n.lang] = i18n.section_name
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
+                name[i18n.lang] = i18n.name
             return name
         else:
             raise AttributeError('No such attribute %s' % attribute)

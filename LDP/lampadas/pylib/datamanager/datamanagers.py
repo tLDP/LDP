@@ -57,6 +57,7 @@ from datamanager.username            import Username
 from datamanager.webstring           import WebString
 from datamanager.webstring_i18n      import WebStringI18n
 
+
 class DataManagers(LampadasCollection):
     """
     A collection of the available data managers.
@@ -121,7 +122,7 @@ class DataManagers(LampadasCollection):
         for key in self.keys():
             self[key].dms = self
 
-    def set_object_classes(self, persistence):
+    def set_objects(self, persistence):
         """
         Tells the datamanagers in this collection what classes to use when
         instantiating new objects.

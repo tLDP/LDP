@@ -144,6 +144,19 @@ class DataTable(LampadasCollection):
         object.changed = 0
         object.key = self.get_key(object)
 
+    def get_row_key(self, row):
+        if len(self.key_list) > 1:
+            newkey = ''
+        for key in self.field_list:
+            field = self.fields[key]
+            if field.key_field==1:
+                value = field.field_to_attr(row[field.index])
+                if len(self.key_list)==1:
+                    newkey = value
+                else:
+                    newkey = trim(newkey + ' ' + str(value))
+        return newkey
+
     def get_key(self, object):
         if len(self.key_list) > 1:
             newkey = ''
@@ -305,9 +318,15 @@ class DataManager(DataTable):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            object = self.row_to_object(row)
-            #print 'Updating in ' + self.table.name + ' cache: ' + str(object.key)
-            self.cache.add(object)
+            key = self.table.get_row_key(row)
+            if self.cache.has_key(key):
+                object = self.cache[key]
+                self.table.load_row(object, row)
+                #print 'Updating in ' + self.table.name + ' cache: ' + str(object.key)
+            else:
+                object = self.row_to_object(row)
+                self.cache.add(object)
+                #print 'Adding in ' + self.table.name + ' cache: ' + str(object.key)
 
     def get_cached(self):
         #print 'Pulling ' + self.table.name + ' from cache.'

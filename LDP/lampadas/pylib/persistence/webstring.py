@@ -13,18 +13,21 @@ class WebString(Persistence):
                 if key not in self.string.keys():
                     untranslated.append(key)
             return untranslated
-        elif attribute in ('string', 'version'):
-            webstring = LampadasCollection()
+        elif attribute=='i18n':
+            self.i18n = self.dms.string_i18n.get_by_keys([['string_code', '=', self.code]])
+            return self.i18n
+        elif attribute=='version':
             version = LampadasCollection()
-            i18ns = self.dms.string_i18n.get_by_keys([['string_code', '=', self.code]])
-            for key in i18ns.keys():
-                i18n = i18ns[key]
-                webstring[i18n.lang] = i18n.string
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
                 version[i18n.lang] = i18n.version
-            if attribute=='string':
-                return webstring
-            else:
-                return version
+            return version
+        elif attribute=='string':
+            string = LampadasCollection()
+            for key in self.i18n.keys():
+                i18n = self.i18n[key]
+                string[i18n.lang] = i18n.string
+            return string
         else:
             raise AttributeError('No such attribute %s' % attribute)
 

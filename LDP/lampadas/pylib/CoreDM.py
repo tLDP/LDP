@@ -9,7 +9,7 @@ import persistence
 from datamanager.cache import CACHE_UNLIMITED
 
 dms = datamanager.DataManagers()
-dms.set_object_classes(persistence)
+dms.set_objects(persistence)
 
 # Cache only 100 entries in the log.
 dms.log.cache.set_size(100)

@@ -41,7 +41,7 @@ import datamanager
 import persistence
 
 dms = datamanager.DataManagers()
-dms.set_object_classes(persistence)
+dms.set_objects(persistence)
 
 print 'Preloading data...'
 blocks = dms.document.get_all()
