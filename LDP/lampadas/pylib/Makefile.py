@@ -92,6 +92,7 @@ class Projects(LampadasCollection):
     def make(self, name='all'):
         log(3, 'Running project Makefile target: ' + name)
         for doc_id in self.sort_by('doc_id'):
+            print 'Building document: ' + str(doc_id)
             self[doc_id].make(name)
 
     def write(self):
@@ -279,8 +280,6 @@ class Project:
         if self.doc.errors.count() > 0 or self.doc.files.error_count > 0 or self.doc.mirror_time=='':
             return
 
-        print 'Making target: ' + name
-
         # Build the target
         target = self.targets[name]
         high_timestamp = 0
@@ -294,8 +293,6 @@ class Project:
                     high_timestamp = dep_timestamp
                 if exit_status<>0:
                     return (exit_status, 0)
-
-        print 'back to ' + name
 
         # All dependencies are buil, so now this target
         # is ready to be built.
@@ -318,7 +315,7 @@ class Project:
                 #print 'Running: ' + command
                 exit_status = os.system(command)
                 if exit_status<>0:
-                    doc.errors.add(ERR_MAKE_EXIT_STATUS)
+                    self.doc.errors.add(ERR_MAKE_EXIT_STATUS)
                     return(exit_status, timestamp)
 
             # Reread our timestamp. It's like to have changed.
