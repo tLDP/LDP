@@ -5,13 +5,13 @@
   <sect1>
     <title>Analysis</title>
 
-    <para>In the previous phase of the project we added a lot of new commands
-    and as a result the root disk has a lot more functionality. But there are
-    still a few things lacking. One thing that really stands out is that there
-    was no way to mount disks. In order to get a read-write root filesystem we
-    had to resort to passing the <parameter>rw</parameter> kernel parameter
-    through LILO. This is fine for an emergency situation, but a normal system
-    boot process should do things differently.</para>
+    <para>In the previous chapter we added a lot of new commands by installing
+    coreutils and as a result the root disk has a lot more functionality. But
+    there are still a few things lacking. One thing that really stands out is
+    that there was no way to mount disks. In order to get a read-write root
+    filesystem we had to resort to passing the <parameter>rw</parameter>
+    kernel parameter through LILO. This is fine for an emergency situation,
+    but a normal system boot process should do things differently.</para>
 
     <para>Most GNU/Linux distributions take several steps to mount
     filesystems. Watching the boot process or digging into the startup scripts
@@ -93,6 +93,13 @@
     <sect2>
       <title>Finding source code</title>
 
+      <para>In the previous chapter we used manpages to help us find source
+      code. In this chapter we will use a tool called the Linux Software Map
+      (LSM). LSM is a database of GNU/Linux software that tracks such things
+      as package name, author, names of binaries that make up the package and
+      download sites. Using an LSM search engine we can locate packages using
+      command names as keywords.</para>
+
       <para>If we search Ibiblio&#39;s Linux Software Map (LSM) at <ulink
       url="http://www.ibiblio.org/pub/linux/">http://www.ibiblio.org/pub/Linux/</ulink>
       for the keyword &#34;fsck&#34; we get a large number of matches. Since
@@ -103,11 +110,12 @@
       package contains the utilities <command>e2fsck</command>,
       <command>mke2fs</command>, <command>dumpe2fs</command>,
       <command>fsck</command> and more. We also find out that the LSM entry
-      for e2fsprogs has not been updated since 1999. There is almost certainly
-      a newer version out there somewhere. Another good Internet resource for
-      source code is SourceForge at <ulink url="http://sourceforge.net">http://sourceforge.net</ulink>.
-      Using the keyword &#34;e2fsprogs&#34; in the SourceForge search engine
-      results in a much newer version of e2fsprogs.</para>
+      for e2fsprogs has not been updated for a while. There is almost
+      certainly a newer version out there somewhere. Another good Internet
+      resource for source code is SourceForge at <ulink
+      url="http://sourceforge.net">http://sourceforge.net</ulink>. Using the
+      keyword &#34;e2fsprogs&#34; in the SourceForge search engine results in
+      a much newer version of e2fsprogs.</para>
 
       <para>Finding <command>fsck</command> was quite an adventure, but now we
       can move on to finding <command>mount</command> and <command>umount</command>.
@@ -149,14 +157,14 @@
       Therefore we need to devise a way of determining the status of the
       filesystems before mounting them. The manpage for <command>fsck</command>
       gives some insight into how this can be accomplished using return codes.
-      Basically, a return code of zero or one means the filesystem is okay and
-      two or greater means some kind of manual intervention is needed. A
-      simple if-then statement could evaluate the <command>fsck</command>
-      return code to determine whether or not the filesystem should be
-      mounted. For help on writing shell scripts we can turn to the BASH(1)
-      manpage and the Advanced BASH Scripting Guide. Both references are
-      freely available from the Linux Documentation Project at <ulink
-      url="http://www.tldp.org">http://www.tldp.org</ulink>.</para>
+      Basically, if <command>fsck</command> returns code of zero or one it
+      means the filesystem is okay and a return code of two or greater means
+      some kind of manual intervention is needed. A simple if-then statement
+      could evaluate the <command>fsck</command> return code to determine
+      whether or not the filesystem should be mounted. For help on writing
+      shell scripts we can turn to the BASH(1) manpage and the Advanced BASH
+      Scripting Guide. Both references are freely available from the Linux
+      Documentation Project at <ulink url="http://www.tldp.org">http://www.tldp.org</ulink>.</para>
     </sect2>
 
     <sect2>
@@ -174,18 +182,68 @@
       the various disks. We will need to include all of these to have
       everything work right.</para>
 
-      <para>The <filename>/etc/fstab</filename> file is just a simple text
-      file that can be created with any editor. We will need an entry for the
-      root filesystem and for the proc filesystem. The reason for the proc
-      filesystem entry is so we can create <filename>/etc/mtab</filename> as a
-      symlink that points to <filename>/proc/mounts</filename>. The
-      <filename>/proc/mounts</filename> file contains almost exactly the same
-      information as the traditional <filename>/etc/mtab</filename> file. We
-      just have to make sure the proc filesystem is mounted before anything
-      else. The only thing left is to create device files. We will need
-      <filename>/dev/ram0</filename>, because that is where the root
-      filesystem is located. We also need <filename>/dev/fd0</filename> to
-      mount other floppy disks and <filename>/dev/null</filename>.</para>
+      <sect3>
+        <title>/etc/fstab</title>
+
+        <para>The <filename>/etc/fstab</filename> file is just a simple text
+        file that can be created with any editor. We will need an entry for
+        the root filesystem and for the proc filesystem. Information about the
+        format of this file can be found in the fstab(5) manpage or by looking
+        at the <filename>/etc/fstab</filename> file on any of the popular
+        GNU/Linux distributions.</para>
+      </sect3>
+
+      <sect3>
+        <title>/etc/mtab</title>
+
+        <para>The <filename>/etc/mtab</filename> file presents a unique
+        challenge, because it does not contain static information like
+        <filename>fstab</filename>. The <filename>mtab</filename> file tracks
+        mounted filesystems and therefore its contents change from time to
+        time. We are particularly interested in the state of
+        <filename>mtab</filename> when the system first starts up, before any
+        filesystems are mounted. At this point <filename>/etc/mtab</filename>
+        should be empty so we will need to configure a startup script to
+        create an empty <filename>/etc/mtab</filename> before any filesystems
+        are mounted. But it is not possible to create any files in the
+        <filename>/etc</filename> directory because <filename>/</filename> is
+        read-only at startup. This creates a paradox. We cannot create an
+        empty <filename>mtab</filename>, because the <filename>/</filename>
+        filesystem is not mounted as writable and we should not mount any
+        filesystems until we have created an empty <filename>mtab</filename>.
+        In order to sidestep this problem we need to do the following:</para>
+
+        <orderedlist>
+          <listitem>
+            <para>Remount <filename>/</filename> as read-write, but use the
+            <option>-n</option> option so that <command>mount</command> does
+            not attempt to write an entry to <filename>/etc/mtab</filename>
+            which is read-only at this point.</para>
+          </listitem>
+
+          <listitem>
+            <para>Create an empty <filename>/etc/mtab</filename> file now that
+            the filesystem is writable.</para>
+          </listitem>
+
+          <listitem>
+            <para>Remount <filename>/</filename> as read-write again, this
+            time using the <option>-f</option> option so that an entry is
+            written into <filename>/etc/mtab</filename>, but
+            <filename>/</filename> is not actually mounted a second time.</para>
+          </listitem>
+        </orderedlist>
+      </sect3>
+
+      <sect3>
+        <title>Device files</title>
+
+        <para>The only thing left to do is to create device files. We will
+        need <filename>/dev/ram0</filename>, because that is where the root
+        filesystem is located. We also need <filename>/dev/fd0</filename> to
+        mount other floppy disks and <filename>/dev/null</filename> for use by
+        some of the system commands.</para>
+      </sect3>
     </sect2>
   </sect1>
 
@@ -195,7 +253,8 @@
     <sect2>
       <title>Install utilities from e2fsprogs</title>
 
-      <para><programlisting><prompt>bash#</prompt> cd /usr/src/e2fsprogs-1.29
+      <para><programlisting><prompt>bash#</prompt> cd /usr/src/e2fsprogs-1.34
+<prompt>bash#</prompt> export CC=&#34;gcc -mcpu=i386&#34;
 <prompt>bash#</prompt> ./configure --host=i386-pc-linux-gnu
 <prompt>bash#</prompt> make
 <prompt>bash#</prompt> cd e2fsck
@@ -209,7 +268,7 @@
     <sect2>
       <title>Install utilities from util-linux</title>
 
-      <para><programlisting><prompt>bash#</prompt> cd /usr/src/util-linux-2.11u</programlisting></para>
+      <para><programlisting><prompt>bash#</prompt> cd /usr/src/util-linux-2.11z</programlisting></para>
 
       <para>Use a text editor to make the following changes to
       <filename>MCONFIG</filename>:</para>
@@ -266,36 +325,16 @@
     </sect2>
 
     <sect2>
-      <title>Create mtab and fstab files</title>
+      <title>Create the fstab file</title>
 
       <para><programlisting><prompt>bash#</prompt> cd ~/staging/etc
-<prompt>bash#</prompt> ln -s /proc/mounts mtab</programlisting></para>
+</programlisting></para>
 
-      <para>Use an editor like vi emacs or pico to create the following file
+      <para>Use an editor like vi, emacs or pico to create the following file
       and save it as <filename>~/staging/etc/fstab</filename>.</para>
 
-      <para><programlisting>proc		/proc	proc	noauto		0	0
+      <para><programlisting>proc		/proc	proc	defaults	0	0
 /dev/ram0	/	ext2	defaults	1	1</programlisting></para>
-    </sect2>
-
-    <sect2>
-      <title>Write a script to mount the proc filesystem</title>
-
-      <para><programlisting><prompt>bash#</prompt> mkdir ~/staging/etc/init.d
-<prompt>bash#</prompt> cd ~/staging/etc/init.d</programlisting></para>
-
-      <para>Use an editor to create the following shell script and save it as
-      <filename>~/staging/etc/init.d/proc_fs</filename>:</para>
-
-      <para><programlisting>#!/bin/sh
-#
-# proc_fs - mount the proc filesystem
-#
-PATH=/sbin:/bin ; export PATH
-
-mount -t proc proc /proc
-#
-# end of proc_fs</programlisting></para>
     </sect2>
 
     <sect2>
@@ -316,17 +355,16 @@ if [ $(($?)) -gt $((1)) ]; then
   /bin/sh
 else
   echo &#34;Remounting / as read-write.&#34;
-  mount -o remount,rw /
+  mount -n -o remount,rw /
+  echo -n &#62; /etc/mtab
+  mount -f -o remount,rw /
   echo &#34;Mounting local filesystems.&#34;
-  mount -a
+  mount -a -t nonfs,nosmbfs
 fi
 #
 # end of local_fs</programlisting></para>
 
-      <para>Set execute permissions on the scripts.</para>
-
-      <para><programlisting><prompt>bash#</prompt> chmod +x proc_fs
-<prompt>bash#</prompt> chmod +x local_fs</programlisting></para>
+      <para>Set execute permissions on the script.<programlisting><prompt>bash#</prompt> chmod +x local_fs</programlisting></para>
     </sect2>
 
     <sect2>
@@ -390,32 +428,33 @@ Freeing unused kernel memory: 178k freed
     </sect2>
 
     <sect2>
-      <title>Test proc_fs and local_fs scripts</title>
+      <title>Test the local_fs script</title>
 
-      <para>Run the scripts by typing the following commands at the shell
+      <para>Run the script by typing the following commands at the shell
       prompt:</para>
 
       <para><programlisting><prompt>bash#</prompt> PATH=/sbin:/bin:/etc/init.d ; export PATH
-<prompt>bash#</prompt> proc_fs
 <prompt>bash#</prompt> cat /etc/mtab
 <prompt>bash#</prompt> local_fs
+<prompt>bash#</prompt> cat /etc/mtab
 <prompt>bash#</prompt> df</programlisting></para>
 
       <para>If everything is working properly, then the screen output should
       look something like the example below.</para>
 
       <para><screen><prompt>bash#</prompt> PATH=/sbin:/bin:/etc/init.d ; export PATH
-<prompt>bash#</prompt> proc_fs
 <prompt>bash#</prompt> cat /etc/mtab
-/dev/root / ext2 ro 0 0
-proc /proc proc rw 0 0
+cat: /etc/mtab: No such file or directory
 <prompt>bash#</prompt> local_fs
 /dev/ram0: clean 74/1024 files 3178/4096 blocks
 Remounting / as read-write.
 Mounting local filesystems.
+<prompt>bash#</prompt> cat /etc/mtab
+/dev/ram0 / ext2 rw 0 0
+proc /proc proc rw 0 0
 <prompt>bash#</prompt> df
 Filesystem      1k-blocks       Used Available Use% Mounted on
-/dev/root       3963            3045 918        77% /
+/dev/ram0       3963            3045 918        77% /
 </screen></para>
     </sect2>
 
@@ -438,8 +477,7 @@ Filesystem      1k-blocks       Used Available Use% Mounted on
       <title>System shutdown</title>
 
       <para><programlisting><prompt>bash#</prompt> cd /
-<prompt>bash#</prompt> umount /dev/fd0
-<prompt>bash#</prompt> sync</programlisting></para>
+<prompt>bash#</prompt> umount /dev/fd0</programlisting></para>
 
       <para>Remove the diskette from fd0 and restart the system using
       <keycap>CTRL</keycap>-<keycap>ALT</keycap>-<keycap>DELETE</keycap>.</para>
