@@ -1778,7 +1778,7 @@ class TabNews(Table):
 # from having this tag applied.
 
                 box.write('<tr><th class="sectionlabel" colspan="2">%s %s</th></tr>\n'
-                          '<tr class="%s"><td class="label nontabular" align="top">%s</td>\n'
+                          '<tr class="%s"><td class="nontabular" align="top"><b>%s</b></td>\n'
                           '               <td class="nontabular">%s</td>\n'
                           '</tr>\n'
                           % (edit_icon,
