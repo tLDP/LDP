@@ -104,7 +104,8 @@ if __name__ == '__main__' :
     print "db_name= " + config.db_name
     assert config.log_file > ''
     print "log_file=" + config.log_file
-    print "log-sql=" + str(config.log_sql)
+    print "log_level=" + str(config.log_level)
+    print "log_sql=" + str(config.log_sql)
     print "log_console=" + str(config.log_console)
     print "interface=" + config.interface
     print "port=" + str(config.port)
