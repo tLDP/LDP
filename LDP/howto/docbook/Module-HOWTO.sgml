@@ -1,0 +1,5533 @@
+<!DOCTYPE Article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<Article>
+
+<artheader>
+
+<title>Linux Loadable Kernel Module HOWTO</title>
+<author>
+<firstName>Bryan</firstName>
+<surname>Henderson</surname>
+<authorblurb>
+<para>
+<ulink URL="mailto:bryanh@giraffe-data.com">&#60;bryanh@giraffe-data.com&#62;
+</ulink>
+</para>
+</authorblurb>
+
+</author>
+
+<pubdate>01 June 2001</pubdate>
+
+<revhistory>
+   <revision>
+     <revnumber>v1.00</revnumber>
+     <date>2001-06-14</date>
+     <authorinitials>bh</authorinitials>
+     <revremark>
+         Initial release.
+     </revremark>
+   </revision>
+</revhistory>
+
+<abstract>
+<para>
+This is the HOWTO for Linux loadable kernel modules (LKMs).  It
+explains what they are and how to use and create them.  It also
+includes documentation of parameters and other details of use of some
+particular modules.
+</para>
+</abstract>
+
+</artheader>
+
+<sect1>
+<title>Preface</title>
+<para>
+Copyright and license information, as well as credits, are at the end
+of this document.
+</para>
+<para>
+This HOWTO is maintained by Bryan Henderson, bryanh@giraffe-data.com.
+It was released May 31, 2001.  You can get the current version of
+this HOWTO from 
+<ulink URL="http://linuxdoc.org">the Linux Documentation Project</ulink>.
+</para>
+</sect1>
+
+<sect1>
+<title>
+Introduction to Linux Loadable Kernel Modules
+</title>
+<para>
+If you want to add code to a Linux kernel, the most basic way to do
+that is to add some source files to the kernel source tree and
+recompile the kernel.  In fact, the kernel configuration process
+consists mainly of choosing which files to include in the kernel to be
+compiled.
+</para>
+<para>
+But you can also add code to the Linux kernel while it is running.  A
+chunk of code that you add in this way is called a loadable kernel
+module.  These modules can do lots of things, but they typically are
+one of three things: 1) device drivers; 2) filesystem drivers; 3)
+system calls.  The kernel isolates certain functions, including these,
+especially well so they don't have to be intricately wired into the
+rest of the kernel.
+</para>
+
+<sect2>
+<title>
+Terminology
+</title>  
+<para>
+Loadable kernel modules are often called just kernel modules or just
+modules, but those are rather misleading terms because there are lots
+of kinds of modules in the world and various pieces built into the
+base kernel can easily be called modules.  We use the term loadable
+kernel module or LKM for the particular kinds of modules this HOWTO is
+about.
+</para>
+<para>
+Some people think of LKMs as outside of the kernel.  They speak of
+LKMs communicating with the kernel.  This is a mistake; LKMs (when
+loaded) are very much part of the kernel.  The correct term for the
+part of the kernel that is bound into the image that you boot, i.e.
+all of the kernel <Emphasis>except</Emphasis> the LKMs, is "base
+kernel."  LKMs communicate with the base kernel.
+</para>
+<para>
+In some other operating systems, the equivalent of a Linux LKM is
+called a "kernel extension."
+</para>
+<para>
+Now what is &quot;Linux&quot;?  Well, first of all, the name is used for
+two entirely different things, and only one of them is really relevant
+here:
+<orderedlist>
+<listitem><para>
+The kernel and related items distributed as a package by Linus Torvalds.
+</para></listitem>
+<listitem><para>
+A class of operating systems that traditionally are based on the Linux
+kernel.
+</para></listitem>
+</orderedlist>
+</para>
+<para>
+Only the first of these is likely to cause some confusion when talking
+about LKMs.  Is an LKM part of Linux or not?  Though an LKM is always
+part of the kernel, it is part of Linux if it is distributed in the
+Linux kernel package, and not otherwise.  Thus, if you have a device
+driver LKM that came with your device loaded into your kernel, you
+can't, strictly speaking, say that your kernel is Linux.  Rather, it's
+a slight extension of Linux.
+</para>
+
+</sect2>
+
+<sect2>
+<title>
+History of Loadable Kernel Modules
+</title>
+<para>
+LKMs did not exist in Linux in the beginning.  Anything we use an LKM
+for today was built into the base kernel at kernel build time instead.
+LKMs have been around at least since Linux 1.2 (1995).
+</para>
+<para>
+Device drivers and such were always quite modular, though.  When LKMs
+were invented, only a small amount of work was needed on these modules
+to make them buildable as LKMs.  However, it had to be done on each
+and every one, so it took some time.  Since about 2000, virtually
+everything that makes sense as an LKM has at least had the option of
+being an LKM.
+</para>
+</sect2>
+
+<sect2 id="thecase">
+<title>
+The Case For Loadable Kernel Modules
+</title>
+<para>
+You often have a choice between putting a module into the kernel by
+loading it as an LKM or binding it into the base kernel.  LKMs have a 
+lot of advantages over binding into the base kernel and I recommend
+them wherever possible.
+</para>
+<para>
+One advantage is that you don't have to rebuild your kernel as often.
+This saves you time and spares you the possibility of introducing an
+error in rebuilding and reinstalling the base kernel.  Once you have a
+working base kernel, it is good to leave it untouched as long as
+possible.
+</para>
+  
+<para>
+Another advantage is that LKMs help you diagnose system problems.  A
+bug in a device driver which is bound into the kernel can stop your
+system from booting at all.  And it can be really hard to tell which
+part of the base kernel caused the trouble.  If the same device driver
+is an LKM, though, the base kernel is up and running before the device
+driver even gets loaded.  If your system dies after the base kernel is
+up and running, it's an easy matter to track the problem down to the
+trouble-making device driver and just not load that device driver
+until you fix the problem.
+</para>
+<para>
+LKMs can save you memory, because you have to have them loaded
+only when you're actually using them.  All parts of the base kernel stay
+loaded all the time.  And in real storage, not just virtual storage.
+</para>
+<para>
+LKMs are much faster to maintain and debug.  What would require a full
+reboot to do with a filesystem driver built into the kernel, you can
+do with a few quick commands with LKMs.  You can try out different
+parameters or even change the code repeatedly in rapid succession,
+without waiting for a boot.
+</para>
+<para>
+LKMs are not slower, by the way, than base kernel modules.  Calling
+either one is simply a branch to the memory location where it resides.
+</para>
+<para>
+Sometimes you <emphasis>have</emphasis> to build something into the
+base kernel instead of making it an LKM.  Anything that is necessary
+to get the system up far enough to load LKMs must obviously be built
+into the base kernel.  For example, the driver for the disk drive that
+contains the root filesystem must be built into the base kernel.
+</para>
+</sect2>
+
+<sect2>
+<title>
+What LKMs Can't Do
+</title>
+<para>
+There is a tendency to think of LKMs like user space programs.  They
+do share a lot of their properties, but LKMs are definitely not user
+space programs.  They are part of the kernel.  As such, they have free
+run of the system and can easily crash it.  
+</para>
+
+
+</sect2>
+
+<sect2>
+<title>
+What LKMs Are Used For
+</title>
+<para>
+There are six main things LKMs are used for:
+
+<itemizedlist>
+<listitem>
+<para>
+Device drivers.  A device driver is designed for a specific piece of
+hardware.  The kernel uses it to communicate with that piece of
+hardware without having to know any details of how the hardware works.
+For example, there is a device driver for ATA disk drives.  There is
+one for NE2000 compatible Ethernet cards.  To use any device, the
+kernel must contain a device driver for it.
+</para>
+</listitem>
+<listitem>
+<para>
+Filesystem drivers.  A filesystem driver interprets the contents of a
+filesystem (which is typically the contents of a disk drive) as files
+and directories and such.  There are lots of different ways of storing
+files and directories and such on disk drives, on network servers, and
+in other ways.  For each way, you need a filesystem driver.  For
+example, there's a filesystem driver for the ext2 filesystem type used
+almost universally on Linux disk drives.  There is one for the MS-DOS
+filesystem too, and one for NFS.
+</para>
+</listitem>
+<listitem>
+<para>
+System calls.  User space programs use system calls to get services
+from the kernel.  For example, there are system calls to read a file,
+to create a new process, and to shut down the system.  Most system
+calls are integral to the system and very standard, so are always
+built into the base kernel (no LKM option).  But you can invent a
+system call of your own and install it as an LKM.  Or you can decide
+you don't like the way Linux does something and override an existing
+system call with an LKM of your own.
+</para>
+</listitem>
+<listitem>
+<para>
+Network drivers.  A network driver interprets a network protocol.  It
+feeds and consumes data streams at various layers of the kernel's
+networking function.  For example, if you want an IPX link in your
+network, you would use the IPX driver.
+</para>
+</listitem>
+<listitem>
+<para>
+TTY line disciplines.  These are essentially augmentations of device
+drivers for terminal devices.
+</para>
+</listitem>
+<listitem>
+<para>
+Executable interpreters.  An executable interpreter loads and runs an
+executable.  Linux is designed to be able to run executables in
+various formats, and each must have its own executable interpreter.
+</para>
+</listitem>
+</itemizedlist>
+</para>
+</sect2>
+
+</sect1>
+
+<sect1>
+<title>
+Making Loadable Kernel Modules
+</title>
+<para>
+An LKM lives in a single ELF object file (normally named like
+"serial.o").  You typically keep all your LKM object files in a
+particular directory (near your base kernel image makes sense).  When
+you use the <command>insmod</command> program to insert an LKM into
+the kernel, you give the name of that object file.
+</para>
+<para>
+For the LKMs that are part of Linux, you build them as part of the
+same kernel build process that generates the base kernel image.  See
+the README file in the Linux source tree.  In short, after you make
+the base kernel image with a command such as 
+<command>make zImage</command>, 
+you will make all the LKMs with the command
+<screen>
+make modules     
+</screen>
+</para>
+<para>
+This results in a bunch of symbolic links in the
+<literal>modules</literal> directory of the Linux source tree, which
+point to the LKM object files elsewhere in the tree.  These LKMs are
+ready to load, but you probably want to install them in some
+appropriate directory.  The conventional place is <filename
+class="directory">/lib/modules/KERNEL_RELEASE</filename>, where
+KERNEL_RELEASE is something like "2.2.16".  The command
+<command>
+make modules_install
+</command>
+will copy them all over there.
+</para>
+
+<para>
+Part of configuring the Linux kernel (at build time) is choosing which
+parts of the kernel to bind into the base kernel and which parts to
+generate as separate LKMs.  In the basic question-and-answer
+configuration (<command>make config</command>), you are asked, for
+each optional part of the kernel, whether you want it bound into the
+kernel (a "Y" response), created as an LKM (an "M" response), or just
+skipped completely (an "N" response).  Other configuration methods are
+similar.
+</para>
+<para>
+As explained in <xref linkend="thecase">, you should have
+only the bare minimum bound into the base kernel.  And only skip
+completely the parts that you're sure you'll never want.  There is
+very little to lose by building an LKM that you won't use.  Some
+compile time, some disk space, some chance of a problem in the code
+killing the kernel build.  That's it.
+</para>
+<para>
+As part of the configuration dialog you also must choose whether to
+use symbol versioning or not.  This choice affects building both the
+base kernel and the LKMs and it is crucial you get it right.  See
+<xref linkend=basekerncompat>.
+</para>
+<para>
+LKMs that are not part of Linux (i.e. not distributed with the Linux kernel)
+have their own build procedures which I will not cover.  The goal of any
+such procedure, though, is always to end up with an ELF object file.
+</para>
+<para>
+You don't necessarily have to rebuild all your LKMs and your base
+kernel image at the same time (e.g. you could build just the base
+kernel and use LKMs you built earlier with it) but it is always a good
+idea.  See <xref linkend=basekerncompat>.
+</para>
+</sect1>
+
+<sect1>
+<title>
+LKM Utilities
+</title>
+<para>
+The programs you need to load and unload and otherwise work with LKMs
+are in the package <application>modutils</application>.  You can find
+this package in
+<ulink url="http://www.kernel.org/pub/linux/utils/kernel/modutils">
+this directory</ulink>.
+</para>
+
+<para>
+This package contains the following programs to help you use LKMs:
+<variablelist>
+    <varlistentry> <term>insmod</term> <listitem>
+        <para>Insert an LKM into the kernel.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>rmmod</term> <listitem>
+        <para>Remove an LKM from the kernel.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>depmod</term> <listitem>
+        <para>Determine interdependencies between LKMs.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>kerneld</term> <listitem>
+        <para>Kerneld daemon program</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>ksyms</term> <listitem>
+        <para>Display symbols that are exported by the kernel for 
+        use by new LKMs.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>lsmod</term> <listitem>
+        <para>List currently loaded LKMs.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>modinfo</term> <listitem>
+        <para>Display contents of <literal>.modinfo</literal> section in an 
+        LKM object file.</para>
+        </listitem> </varlistentry>
+    <varlistentry>
+        <term>modprobe</term> <listitem>
+        <para>
+        Insert or remove an LKM or set 
+        of LKMs intelligently.  For example, if you must load A before
+        loading B, Modprobe will automatically load A when you tell it
+        to load B.
+        </para>
+        </listitem> </varlistentry>
+    </variablelist>
+</para>
+<para>
+Changes to the kernel often require changes to
+<application>modutils</application>, so be sure you're using a current
+version of <application>modutils</application> whenever you upgrade
+your kernel.  <application>modutils</application> is always backward
+compatible (it works with older kernels), so there's no such thing as
+having too new a <application>modutils</application>.
+</para>
+<para>
+Warning: <command>modprobe</command> invokes <command>insmod</command>
+and has its location hardcoded as <filename>/sbin/insmod</filename>.
+There may be other instances in <application>modutils</application> of
+the PATH not being used to find programs.  So either modify the source
+code of <application>modutils</application> before you build it, or
+make sure you install the programs in their conventional directories.
+</para>
+
+</sect1>
+
+
+<sect1>
+<title>
+How To Insert And Remove LKMs
+</title>
+<para>
+The basic programs for inserting and removing LKMs are
+<command>insmod</command> and
+<command>rmmod</command>.  See their man pages for details.
+</para>
+<para>
+Inserting an LKM is conceptually easy: Just type, as superuser, a
+command like
+<screen>
+insmod serial.o
+</screen>
+(<filename>serial.o</filename> contains the device driver for serial
+ports (UARTs)).
+</para>
+<para>
+However, I would be misleading you if I said the command just works.  It
+is very common, and rather maddening, for the command to fail either with
+a message about a module/kernel version mismatch or a pile of unresolved
+symbols.
+</para>
+<para>
+If it does work, though, the way to prove to yourself that you know what
+you're doing is to look at <filename>/proc/modules</filename> as 
+described in <xref linkend="procmodules">.
+</para>
+<para>
+Now lets look at a more difficult insertion.  If you try
+<screen>
+insmod msdos.o
+</screen>
+you will probably get a raft of error messages like:
+<screen>
+  msdos.o: unresolved symbol fat_date_unix2dos
+  msdos.o: unresolved symbol fat_add_cluster1
+  msdos.o: unresolved symbol fat_put_super
+  ...
+</screen>
+</para>
+<para>
+This is because msdos.o contains external symbol references to the
+symbols mentioned and there are no such symbols exported by the kernel.
+To prove this, do a 
+<screen>
+cat /proc/ksyms
+</screen>
+to list every symbol that is exported by the kernel (i.e. available
+for binding to LKMs).  You will see that 'fat_date_unix2dos' is
+nowhere in the list.
+</para>
+<para>
+How do you get it into the list?  By loading another LKM, one which
+defines those symbols and exports them.  In this case, it is the LKM
+in the file <filename>fat.o</filename>.  So do
+<screen>
+  insmod fat.o
+</screen>
+and then see that &quot;fat_date_unix2dos&quot; is in 
+<filename>/proc/ksyms</filename>.  Now redo the
+<screen>
+insmod msdos.o
+</screen>
+and it works.  Look at 
+<filename>/proc/modules</filename> and see that both LKMs are loaded
+and one depends on the other:
+<screen>
+msdos                   5632   0 (unused)
+fat                    30400   0 [msdos]
+</screen>
+</para>
+<para>
+How did I know <filename>fat.o</filename> was the module I was
+missing?  Just a little ingenuity.  A more robust way to address this
+problem is to use <command>depmod</command> and
+<command>modprobe</command> instead of
+<command>insmod</command>, as discussed below.
+</para>
+<para>
+When your symbols look like &quot;fat_date_unix2dos_R83fb36a1&quot;,
+the problem may be more complex than just getting prerequisite LKMs
+loaded.  See <xref linkend=basekerncompat>.
+</para>
+<para>
+When the error message is "kernel/module version mismatch," see
+<xref linkend=basekerncompat>.
+</para>
+<para>
+Often, you need to pass parameters to the LKM when you insert it.  For
+example, a device driver wants to know the address and IRQ of the
+device it is supposed to drive.  Or the network driver wants to know
+how much diagnostic tracing you want it to do.  Here is an example of
+that:
+</para>
+<screen>
+insmod ne.o io=0x300 irq=11
+</screen>
+<para>
+Here, I am loading the device driver for my NE2000-like Ethernet adapter
+and telling it to drive the Ethernet adapter at IO address 0x300, which
+generates interrupts on IRQ 11.
+</para>
+<para>
+There are no standard parameters for LKMs and very few conventions.
+Each LKM author decides what parameters <command>insmod</command> will
+take for his LKM.  Hence, you will find them documented in the
+documentation of the LKM.  This HOWTO also compiles a lot of LKM
+parameter information in <xref linkend="individual">.  For general
+information about LKM parameters, see <xref linkend="parm">.
+</para>
+<para>
+To remove an LKM from the kernel, the command is like
+<screen>
+rmmod ne
+</screen>
+</para>
+<para>
+There is a command <command>lsmod</command> to list the
+currently loaded LKMs, but all it does is dump the contents of
+<filename>/proc/modules</filename>, with column headings, so you may
+just want to go to the horse's mouth and forget about
+<command>lsmod</command>.
+</para>
+
+<sect2>
+<title>
+Intelligent Loading Of LKMs - Modprobe
+</title>
+<para>
+Once you have module loading and unloading figured out using
+<command>insmod</command> and <command>rmmod</command>, you can let
+the system do more of the work for you by using the higher level
+program <command>modprobe</command>.  See the
+<command>modprobe</command> man page for details.
+</para>
+<para>
+The main thing that <command>modprobe</command> does is automatically
+load the prerequisites of an LKM you request.  It does this with the
+help of a file that you create with <command>depmod</command> and keep
+on your system.
+</para>
+<para>
+Example:
+<screen>
+modprobe msdos
+</screen>
+</para>
+<para>
+This performs <command>insmod msdos.o</command>, but before that does
+<command>insmod fat.o</command>, since you have to have
+<filename>fat.o</filename> loaded before you can load
+<filename>msdos.o</filename>.
+</para>
+<para>
+Note that with <command>modprobe</command>, you don't name the object
+module; you name the module (and <command>modprobe</command> infers
+the name of the object module, e.g.  "msdos.o" from "msdos").
+</para>
+<para>
+<command>depmod</command> scans your LKM object files (typically all
+the <filename>.o</filename> files in the appropriate <filename
+class="directory">/lib/modules</filename> subdirectory) and figures
+out which LKMs prerequire (refer to symbols in) other LKMs.  It
+generates a dependency file (typically named
+<filename>modules.dep</filename>), which you normally keep in
+<filename class="directory">/lib/modules</filename> for use by
+<command>modprobe</command>.
+</para>
+<para>
+You can use <command>modprobe</command> to remove stacks of LKMs as
+well.
+</para>
+<para>
+Via the LKM configuration file (typically
+<filename>/etc/modules.conf</filename>), you can fine tune the
+dependencies and do other fancy things to control LKM selections.  And
+you can specify programs to run when you insert and remove LKMs, for
+example to initialize a device driver.
+</para>
+<para>
+If you are maintaining one system and memory is not in short supply,
+it is probably easier to avoid <command>modprobe</command> and the
+various files and directories it needs, and just do raw
+<command>insmod</command>s in a startup script.
+</para>
+</sect2>
+
+
+<sect2>
+<title>
+Kerneld
+</title>
+<para>
+You can cause an LKM to be loaded automatically when the kernel first
+needs it.  You do this with the Kerneld (<literal>kerneld</literal>)
+daemon, which makes use of a special kernel function designed for this
+purpose.
+</para>
+<para>
+As an example, let's say you run a program that executes an open
+system call for a file in an MS-DOS filesystem.  But you don't have a
+filesystem driver for the MS-DOS filesystem either bound into your
+base kernel or loaded as an LKM.  So the kernel does not know how to
+access the file you're opening on the disk.
+</para>
+<para>
+The kernel recognizes that it has no filesystem driver for MS-DOS, but
+that the Kerneld daemon is running, so it notifies
+Kerneld that it needs a filesystem driver for MS-DOS.  Kerneld knows
+where you keep your LKM of the MS-DOS filesystem driver, so it loads
+it and tells the kernel it did.  The kernel then proceeds with the
+open.
+</para>
+<para>
+Kerneld is explained at length in the Kerneld mini-HOWTO, available from
+the <ulink URL="http://www.ldp.org">Linux Documentation Project</ulink>.
+</para>
+<para>
+Kerneld also removes modules that haven't been used in a while
+(typically 1 minute).  So by using Kerneld, you can keep only parts of
+the kernel that are presently needed loaded, and save memory.  
+</para>
+<para>
+This is less important than it once was, with memory being much
+cheaper.  If you don't need to save memory, you shouldn't bother with
+the complexity of Kerneld.  Just load everything you might need via an
+initialization script and keep it loaded.
+</para>
+<para>
+Kerneld uses <command>modprobe</command>, ergo
+<command>insmod</command>, to insert LKMs.
+</para>
+</sect2>
+
+<sect2 id="procmodules">
+<title>/proc/modules</title>
+<para>
+To see the presently loaded LKMs, do
+<screen>
+cat /proc/modules
+</screen>
+</para>
+<para>
+You see a line like 
+</para>
+<screen>
+serial                   24484   0
+</screen>
+<para>
+The left column is the name of the LKM, which is normally the name of
+the object file from which you loaded it, minus the ".o" suffix.
+You can, however, choose any name you like with an option on 
+<command>insmod</command>.
+</para>
+<para>
+The "24484" is the size in bytes of the LKM in memory.
+</para>
+<para>
+The "0" is the use count.  It tells how many things presently depend
+on the LKM being loaded.  Typical &quot;things&quot; are open devices
+or mounted fileystems.  It is important because you cannot remove an
+LKM unless the use count is zero.  The LKM itself maintains this
+count, but the module manager uses it to decide whether to permit an
+unload.
+</para>
+<para>
+There is an exception to the above description of the use count.  You
+may see -1 in the use count column.  What that means is that this LKM
+rdoes not use use counts to determine when it is OK to unload.
+Instead, the LKM has registered a subroutine that the module manager
+can call that will return an indication of whether or not it is OK to
+unload the LKM.  In this case, the LKM ought to provide you with some
+custom interface, and some documentation, to determine when the LKM is
+free to be unloaded.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id=basekerncompat>
+<Title>
+LKM - Base Kernel Compatibility
+</Title>
+<para>
+The designers of loadable kernel modules realized there would be a
+problem with having the kernel in multiple files, possibly distributed
+independently of one another.  What if the LKM
+<filename>mydriver.o</filename> was written and compiled to work with
+the Linux 1.2.1 base kernel, and then someone tried to load it into a
+Linux 1.2.2 kernel?  What if there was a change between 1.2.1 and
+1.2.2 in the way a kernel subroutine that
+<filename>mydriver.o</filename> calls works?  These are internal
+kernel subroutines, so what's to stop them from changing from one
+release to the next?  You could end up with a broken kernel.
+</para>
+<para>
+To address this problem, the creators of LKMs endowed them with a
+kernel version number.  The special <literal>.modinfo</literal>
+section of the <filename>mydriver.o</filename> object file in this example has
+"1.2.1" in it because it was compiled using header files from Linux
+1.2.1.  Try to load it into a 1.2.2 kernel and
+<command>insmod</command> notices the mismatch and fails,
+telling you you have a kernel version mismatch.
+</para>
+<para>
+But wait.  What's the chance that there really is an incompatibility
+between Linux 1.2.1 and 1.2.2 that will affect
+<filename>mydriver.o</filename>?  <filename>mydriver.o</filename> only
+calls a few subroutines and accesses a few data structures.  Surely
+they don't change with every minor release.  Must we recompile every
+LKM against the header files for the particular kernel into which we
+want to insert it?
+</para>
+<para>
+To ease this burden, <command>insmod</command> has a
+<parameter>-f</parameter> option that "forces"
+<command>insmod</command> to ignore the kernel version
+mismatch and insert the module anyway.  Because it is so unusual for
+there to be a significant difference between any two kernel versions,
+I recommend you always use <parameter>-f</parameter>.  You will, however,
+still get a warning message about the mismatch.  There's no way to
+shut that off.
+</para>
+<para>
+But LKM designers still wanted to address the problem of incompatible
+changes that do occasionally happen.  So they invented a very clever
+way to allow the LKM insertion process to be sensitive to the actual
+content of each kernel subroutine the LKM uses.  It's called symbol
+versioning (or sometimes less clearly, "module versioning.").  It's
+optional, and you select it when you configure the kernel via the
+"CONFIG_MODVERSIONS" kernel configuration option.  
+</para>
+<para>
+When you build a base kernel or LKM with symbol versioning, the
+various symbols exported for use by LKMs get defined as macros.  The
+definition of the macro is the same symbol name plus a hexadecimal
+checksum of the actual source code for the subroutine named by the
+symbol.  So let's look at the <function>register_chrdev</function>
+subroutine.  <function>register_chrdev</function> is a subroutine in
+the base kernel that device driver LKMs often call.  With symbol
+versioning, there is a C macro definition like
+</para>
+<programlisting>
+  #define register_chrdev register_chrdev_Rc8dc8350
+</programlisting>
+<para>
+This macro definition is in effect both in the C source file that
+defines <function>register_chrdev</function> and in any C source file
+that refers to <function>register_chrdev</function>, so while your
+eyes see <function>register_chrdev</function> as you read the code,
+the C preprocessor knows that the function is really called
+<function>register_chrdev_Rc8dc8350</function>.
+</para>
+<para>
+What is the meaning of that garbage suffix?  It is a checksum of the 
+actual C source code of the function in question.  I.e. if you change
+even one character of that source code, this suffix changes.
+</para>
+<para>
+So let's say someone changes the parameter list of
+<function>register_chrdev</function> between Linux 1.2.1 and Linux
+1.2.2.  In 1.2.1, <literal>register_chrdev</literal> is a macro for
+<literal>register_chrdev_Rc8dc8350</literal>, but in 1.2.2, it is a
+macro for <literal>register_chrdev_R12f8dc01</literal>.  In
+<filename>mydriver.o</filename>, compiled with Linux 1.2.1 header
+files, there is an external reference to
+<varname>register_chrdev_Rc8dc8350</varname>, but there is no such
+symbol exported by the 1.2.2 base kernel.  Instead, the 1.2.2 base
+kernel exports a symbol <varname>register_chrdev_R12f8dc01</varname>.
+</para>
+<para>
+So if you try to insmod this 1.2.1 <filename>mydriver.o</filename>
+into this 1.2.2 base kernel, you will fail.  And the error message
+isn't one about mismatched kernel versions, but simply "unresolved
+symbol reference."
+</para>
+<para>
+As clever as this is, it actually works against you much more than it
+works for you.  Here's why: As a practical matter, kernel developers
+simply can't change the interfaces between LKMs and the rest of the
+kernel in ways that aren't backward compatible.  As much as they may
+try to reserve that privilege for themselves by declaring there to be
+no promise of forward compatibility, in the cold light of day, they
+would cause too much pain in the world by exercising it.  So they
+might do it sometimes when they feel they have no other choice, but it
+is extremely rare.  However, even a backward compatible change -- even
+a change to a comment -- changes the checksum in the symbol and
+prevents the LKM from being inserted.
+</para>
+<para>
+And there's no way an option like <parameter>-f</parameter> on
+<command>insmod</command> can get around this.
+</para>
+<para>
+So it is generally not wise to use symbol versioning.
+</para>
+<para>
+Of course, if you have a base kernel that was compiled with symbol
+versioning, then you must have all your LKMs compiled likewise, and
+vice versa.  Otherwise, you're guaranteed to get those "unresolved
+symbol reference" errors.
+</para>
+</sect1>
+
+<sect1>
+<title>
+How To Boot Without A Disk Device Driver
+</title>
+<para>
+For most systems, the ATA disk device driver must be bound into the
+base kernel because the root filesystem is on an ATA disk
+<footnote><para>You probably know this type of disk as
+&quot;IDE&quot;.  Strictly speaking, IDE is an incorrect appelation.
+IDE refers to the &quot;Integrated Drive Electronics&quot; which all
+modern disk drives, notably all SCSI disk drives, use.  The first IDE
+drives in common usage were ATA, and the names kind of got confused.
+ATA, like SCSI, is a precise specification of electrical signals,
+commands, etc.  </para></footnote> and the kernel cannot mount the
+root filesystem, much less read any LKMs from it, without the ATA disk
+driver.  But if you really want the device driver for your root
+filesystem to be an LKM, here's how to do it with Initrd:
+</para>
+<para>
+"Initrd" is the name of the "initial ramdisk" feature of Linux.  With
+this, you have your loader (probably LILO) load a filesystem into
+memory (as a ramdisk) before starting the kernel.  When it starts the
+kernel, it tells it to mount the ramdisk as the root filesystem.  You
+put the disk device driver for your real root filesystem and all the
+software you need to load it in that ramdisk filesystem.  Your startup
+programs (which live in the ramdisk) eventually mount the real (disk)
+filesystem as the root filesystem.  Note that a ramdisk doesn't
+require any device driver.
+</para>
+<para>
+This does not free you, however, from having to bind into the base
+kernel 1) the filesystem driver for the filesystem in your ramdisk,
+and 2) the executable interpreter for the programs in the ramdisk.
+</para>
+</sect1>
+
+
+<sect1 id="parm">
+<title>
+About Module Parameters
+</title>
+<para>
+It is useful to compare parameters that get passed to LKMs and parameters
+that get passed to modules that are bound into the base kernel, especially
+since modules often can be run either way.
+</para>
+<para>
+We've seen above that you pass parameters to an LKM by specifying
+something like <literal>io=0x300</literal> on the
+<command>insmod</command> command.  For a module that is bound into
+the base kernel, you pass parameters to it via the kernel boot
+parameters.  One common way to specify kernel boot parameters is at a
+<command>lilo</command> boot prompt.  Another is with an
+<literal>append</literal> statement in the <command>lilo</command>
+configuration file.
+</para>
+<para>
+The kernel initializes an LKM at the time you load it.  It initializes
+a bound-in module at boot time.
+</para>
+<para>
+Since there is only one string of kernel boot parameters, you need
+some way to identify which parameters go to which modules.  The rule
+for this is that if there is a module named <literal>xyz</literal>,
+then a kernel boot parameter named <parameter>xyz</parameter> is for
+that module.  The value of a kernel boot parameter is an arbitrary
+string that makes sense only to the module.
+</para>
+<para>
+This is why you sometimes see an LKM whose only parameter is its own
+name.  E.g. you load the Mitsumi CDROM driver with a command like
+<screen>
+  insmod mcd mcd=0x340
+</screen>
+It seems ridiculous to have the parameter named
+<parameter>mcd</parameter> instead of, say, <parameter>io</parameter>,
+but this is done for consistency with the case where you bind
+<literal>mcd</literal> into the base kernel, in which case you would
+select the I/O port address with the characters
+<parameter>mcd=0x340</parameter> in the kernel boot parameters.
+</para>
+</sect1>
+
+<sect1>
+<title>
+Persistent Data
+</title>
+<para>
+Some LKMs are set up to retain information from one load to the next.
+This is called persistent data.  When you remove one of these LKMs
+with <command>rmmod</command>, <command>rmmod</command> extracts
+certain values from the LKM's working storage and stores them in a
+file.  When you next insert the LKM with <command>insmod</command>,
+<command>insmod</command> reads the persistent data from the file and
+inserts it into the LKM.
+</para>
+<para>
+See the <parameter>--persist</parameter> option on
+<command>insmod</command> and <command>rmmod</command>.
+</para>
+<para>
+Persistent data was introduced in November 2000.
+</para>
+</sect1>
+
+<sect1>
+<title>
+Technical Details
+</title>
+
+<sect2 id=howtheywork>
+<title>
+How They Work
+</title>
+<para>
+<command>insmod</command> makes an <function>init_module</function>
+system call to load the LKM into kernel memory.  Loading it is the
+easy part, though.  How does the kernel know to use it?  The answer is
+that the <function>init_module</function> system call invokes the
+LKM's initialization routine right after it loads the LKM.
+<command>insmod</command> passes to <function>init_module</function>
+the address of the subroutine in the LKM named
+<function>init_module</function> as its initialization routine.
+</para>
+<para>
+(This is confusing -- every LKM has a subroutine named
+<function>init_module</function>, and the base kernel has a system
+call by that same name, which is accessible via a subroutine in the
+standard C library also named <function>init_module</function>).
+</para>
+<para>
+The LKM author set up <function>init_module</function> to call a
+kernel function that registers the subroutines that the LKM contains.
+For example, a character device driver's
+<function>init_module</function> subroutine might call the kernel's
+<function>register_chrdev</function> subroutine, passing the major and
+minor number of the device it intends to drive and the address of its
+own "open" routine among the arguments.
+<function>register_chrdev</function> records in base kernel tables
+that when the kernel wants to open that particular device, it should
+call the open routine in our LKM.
+</para>
+<para>
+But the astute reader will now ask how the LKM's
+<function>init_module</function> subroutine knew the address of the
+base kernel's <function>register_chrdev</function> subroutine.  This
+is not a system call, but an ordinary subroutine bound into the base
+kernel.  Calling it means branching to its address.  The answer to
+this is <command>insmod</command> relocation.
+<command>insmod</command> functions as a relocating linker/loader.
+The LKM object file contains an external reference to the symbol
+<varname>register_chrdev</varname>.  <command>insmod</command> does a
+<function>query_module</function> system call to find out the
+addresses of various symbols that the existing kernel exports.
+<varname>register_chrdev</varname> is among these.
+<function>query_module</function> returns the address for which
+<varname>register_chrdev</varname> stands and
+<command>insmod</command> patches that into the LKM where it refers to
+<varname>register_chrdev</varname>.
+</para>
+<para>
+If you want to see the kind of information <command>insmod</command>
+can get from a <function>query_module</function> system call, look at
+the contents of <filename>/proc/ksyms</filename>.
+</para>
+<para>
+Note that some LKMs call subroutines in other LKMs.  They can do this
+because of the <literal>__ksymtab</literal> and
+<literal>.kstrtab</literal> sections in the LKM object files.  These
+sections together list the external symbols within the LKM object file
+that are supposed to be accessible by other LKMs inserted in the
+future.  <command>insmod</command> looks at
+<literal>__ksymtab</literal> and <literal>.kstrtab</literal> and tells
+the kernel to add those symbols to its exported kernel symbols table.
+</para>
+<para>
+To see this for yourself, insert the LKM <filename>msdos.o</filename>
+and then notice in <filename>/proc/ksyms</filename> the symbol
+<varname>fat_add_cluster</varname> (which is the name of a subroutine
+in the <filename>fat.o</filename> LKM).
+</para>
+</sect2>
+
+<sect2>
+<title>
+The .modinfo Section
+</title>
+<para>
+An ELF object file consists of various named sections.  Some of them
+are basic parts of an object file, for example the
+<literal>.text</literal> section contains executable code that a
+loader loads.  But you can make up any section you want and have it
+used by special programs.  For the purposes of Linux LKMs, there is
+the <literal>.modinfo</literal> section.  An LKM doesn't have to have
+a section named <literal>.modinfo</literal> to work, but the macros
+you're supposed to use to code an LKM cause one to be generated, so
+they generally do.
+</para>
+<para>
+To see the sections of an object file, including the
+<literal>.modinfo</literal> section if it exists, use the
+<command>objdump</command> program.  For example:
+</para>
+<para>
+To see all the sections in the object file for the msdos LKM:
+<screen>
+objdump msdos.o --section-headers
+</screen>
+To see the contents of the <literal>.modinfo</literal> section:
+<screen>
+objdump msdos.o --full-contents --section=.modinfo
+</screen>
+</para>
+<para>
+You can use the <command>modinfo</command> program to interpret the
+contents of the <literal>.modinfo</literal> section.
+</para>
+<para>
+So what is in the <literal>.modinfo</literal> section and who uses it?
+<command>insmod</command> uses the <literal>.modinfo</literal> section
+for the following:
+<itemizedlist>
+<listitem>
+<para>
+It contains the kernel release number for which the module was built.
+I.e. of the kernel source tree whose header files were used in
+compiling the module.
+</para>
+<para>
+<command>insmod</command> uses that information as explained in 
+<xref linkend=basekerncompat>.
+</para>
+</listitem>
+<listitem>
+<para>
+It describes the form of the LKM's parameters.
+<command>insmod</command> uses this information to format the
+parameters you supply on the <command>insmod</command> command line
+into data structure initial values, which <command>insmod</command>
+inserts into the LKM as it loads it.
+</para>
+</listitem>
+</itemizedlist>
+</para>
+</sect2>
+
+
+<sect2>
+<title>
+The __ksymtab And .kstrtab Sections
+</title>
+<para>
+Two other sections you often find in an LKM object file are named
+<literal>__ksymtab</literal> and <literal>.kstrtab</literal>.
+Together, they list symbols in the LKM that should be accessible
+(exported) to other parts of the kernel.  A symbol is just a text name
+for an address in the LKM.  LKM A's object file can refer to an
+address in LKM B by name (say, <literal>getBinfo</literal>").  When
+you insert LKM A, after having inserted LKM B,
+<command>insmod</command> can insert into LKM A the actual address
+within LKM B where the data/subroutine named
+<literal>getBinfo</literal> is loaded.
+</para>
+<para>
+See <xref linkend=howtheywork> for more mind-numbing details of symbol binding.
+</para>
+</sect2>
+
+</sect1>
+
+
+<sect1>
+<title>
+Writing Your Own Loadable Kernel Module
+</title>
+<para>
+<ulink url="http://linuxdoc.org/LDP/lkmpg"><citetitle>The Linux Kernel
+Module Programming Guide</citetitle></ulink> is a complete explanation
+of writing your own LKM.
+</para>
+<para>
+It is, however, a little out of date.  Here are a few things about
+writing an LKM that aren't in there.
+</para>
+
+<sect2>
+<title>
+Improving On Use Counts
+</title>
+<para>
+In the original design, the LKM increments and decrements its use
+count to tell the module manager whether it is OK to unload it.  For
+example, if it's a filesystem driver, it would increment the use count
+when someone mounts a filesystem of the type it drives, and decrement
+it at unmount time.
+</para>
+<para>
+Now, there is a more flexible alternative.  Your LKM can register a
+function that the module manager will call whenever it wants to know
+if it is OK to unload the module.  If the function returns a
+<literal>true</literal> value, that means the LKM is busy and cannot
+be unloaded.  If it returns a <literal>false</literal> value, the LKM
+is idle and can be unloaded.  The module manager holds the big kernel
+lock from before calling the module-busy function until after its
+cleanup subroutine returns or sleeps, and unless you've done something
+odd, that should mean that your LKM cannot become busy between the
+time that you report "not busy" and the time you clean up.
+</para>
+<para>
+So how do you register the module-busy function?  By putting its
+address in the unfortunately named <varname>can_unload</varname> field
+in the module descriptor ("struct module").  The name is truly
+unfortunate because the boolean value it returns is the exact opposite
+of what "can unload" means: true if the module manager
+<emphasis>cannot</emphasis> unload the LKM.
+</para>
+<para>
+The module manager ensures that it does not attempt to unload the
+module before its initialization subroutine has returned or sleeps, so
+you are safe in setting the <varname>can_unload</varname> field
+anywhere in the initialization subroutine except after a sleep.
+</para>
+</sect2>
+</sect1>
+
+<sect1>
+<title>
+Related Documentation
+</title>
+<para>
+For modules that are part of Linux (i.e. distributed with the base
+kernel), you can sometimes find documentation in the <filename
+class="directory">Documentation</filename> subdirectory of the Linux
+source code.
+</para>
+<para>
+Many LKMs can be alternatively bound into the base kernel.  If you do
+that, you will pass parameters to them via the kernel "command line,"
+which in its most basic form means via a prompt at boot time.
+<citetitle>The BootPrompt HOWTO</citetitle> by Paul Gortmaker
+<email>Paul.Gortmaker@anu.edu.au</email> will help you with that.  It
+is available from the <ulink url="http://www.ldp.org">Linux
+Documentation Project</ulink>.
+</para>
+<para>
+Don't forget that the source code of Linux and any LKM is always the
+documentation of last resort, and the most trustworthy.
+</para>
+</sect1>
+
+<sect1 id="individual">
+<title>
+Individual Modules
+</title>
+<para>
+In this chapter, I document individual LKMs.  Where possible, I do this
+by reference to more authoritative documentation for the particular LKM
+(probably maintained by the same person who maintains the LKM code).
+</para>
+<sect2>
+<title>
+Executable Interpreters
+</title>
+<para>
+You must have at least one executable interpreter bound into the
+base kernel, because in order to load an executable interpreter LKM,
+you have to run an executable and something has to interpret that
+executable.
+</para>
+<para>
+That one bound-in executable interpreter is almost certainly the ELF
+interpreter, since virtually all executables in a Linux system are
+ELF.
+</para>
+<para>
+Historical note: Before ELF existed on Linux (c. 1995), the normal
+executable format was a.out.  For a while, part ELF/part a.out
+systems were common.  Some still exist.
+</para>
+<sect3>
+<title>
+binfmt_aout: executable interpreter for a.out format
+</title>
+<para>
+a.out is the venerable executable format that was common in Unix's
+early history and originally Linux's only executable format.  To this
+day, the default name of the executable output file of the GNU
+compiler is <filename>a.out</filename> (regardless of what it's format
+is).
+</para>
+<para>
+If you try to run an a.out executable without this, your
+<function>exec</function> system call fails with a "cannot execute
+binary file" error.
+</para>
+<para>
+There are no LKM parameters.
+</para>
+<para>
+Example:
+<screen>
+modprobe binfmt_aout
+</screen></para>
+</sect3>
+
+<sect3>
+<title>
+binfmt_elf: executable interpreter for ELF format
+</title>
+<para>
+ELF is the normal executable format on Linux systems.
+</para>
+<para>
+It's almost inconceivable that you wouldn't have this executable
+interpreter bound into the base kernel (if for no other reason that
+your <command>insmod</command> is probably an ELF executable).
+However, it is conceptually possible to leave it out of the base
+kernel and insert it as an LKM.
+</para>
+<para>
+There are no LKM parameters.
+</para>
+<para>
+Example:
+<screen>
+modprobe binfmt_elf
+</screen>
+</para>
+</sect3>
+
+<sect3>
+<title>
+binfmt_java: executable interpreter for Java bytecode
+</title>
+<para>
+Java is a relatively modern object oriented programming language.
+Java programs are traditionally compiled into "Java bytecode" which is
+meant to be interpreted by a Java bytecode interpreter.  The point of
+this new object language is that the bytecode object files are
+portable: Although different systems require different object formats,
+as long as each system has a bytecode interpreter, it can run bytecode
+object files.  (This only works for a while, of course.  If
+portability were that easy, all systems today would use the same
+object format anyway).
+</para>
+<para>
+While the intent was that the bytecode interpreter would run as a user
+space program, with this LKM you can make the Linux kernel interpret
+Java bytecode like any other executable format.  So you can run a
+program compiled from Java the same as you would run a program
+compiled from C (e.g. type its name at a command shell prompt).
+</para>
+<para>
+In practice, the advantages of the intermediate bytecode language have
+not been proven and it is quite common to compile Java directly to a
+more traditional executable format, such as ELF.  If you do that, you
+don't need <command>binfmt_java</command>.
+</para>
+<para>
+There are no LKM parameters.
+</para>
+<para>
+Example:
+<screen>
+modprobe binfmt_java
+</screen>
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>
+Block Device Drivers
+</title>
+<sect3>
+<title>
+floppy: floppy disk driver
+</title>
+<para>
+This is the device driver for floppy disks.  You need this in order to 
+access a floppy disk in any way.
+</para>
+<para>
+This LKM is documented in the file <filename>README.fd</filename> in
+the <filename class="directory">linux/drivers/block
+directory</filename> of the Linux source tree. For detailed up to date
+information refer directly to this file.
+</para>
+<para>
+Note that if you boot (or might boot) from a floppy disk or with a
+root filesystem on a floppy disk, you must have this driver bound into
+the base kernel, because your system will need it before it has a
+chance to insert the LKM.
+</para>
+<para>
+Example:
+<screen>  
+  modprobe floppy 'floppy="daring two_fdc 0,thinkpad 0x8,fifo_depth"'
+</screen>
+</para>
+<para>
+There is only one LKM parameter: <parameter>floppy</parameter>.  But
+it contains many subparameters.  The reason for this unusual parameter
+format is to be consistent with the way you would specify the same
+things in the kernel boot parameters if the driver were bound into the
+base kernel.
+</para>
+<para>
+The value of <parameter>floppy</parameter> is a sequence of
+blank-delimited words.  Each of those words is one of the following
+sequences of comma-delimited words:
+</para>
+<variablelist>
+<varlistentry> <term>asus_pci</term>
+    <listitem><para>
+         Sets the bit mask of allowed drives to allow only units 0 and
+         1.  Obsolete, as this is the default setting anyways
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>daring</term>
+    <listitem><para>
+         Tells the floppy driver that you have a well behaved floppy
+         controller.  This allows more efficient and smoother
+         operation, but may fail on certain controllers.  This may
+         speed up certain operations.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>0,daring</term>
+    <listitem><para>
+          Tells the floppy driver that your floppy controller should be used
+          with caution.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>one_fdc</term>
+    <listitem><para>
+          Tells the floppy driver that you have only floppy controller
+          (default).
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term><varname>address</varname>,two_fdc</term>
+    <listitem><para>
+          Tells the floppy driver that you have two floppy
+          controllers. The second floppy controller is assumed to be
+          at <varname>address</varname>. This option is not needed if
+          the second controller is at address 0x370, and if you use
+          the 'cmos' option
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>two_fdc</term> 
+    <listitem><para>
+        Like above, but with default address
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>thinkpad</term>
+    <listitem><para>
+          Tells the floppy driver that you have an IBM Thinkpad model
+          notebook computer.  Thinkpads use an inverted convention for
+          the disk change line.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>0,thinkpad</term>
+    <listitem><para>
+           Tells the floppy driver that you don't have a Thinkpad.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>nodma</term>
+    <listitem>
+        <para>
+           Tells the floppy driver not to use DMA for data transfers.
+           This is needed on HP Omnibooks, which don't have a workable
+           DMA channel for the floppy driver.  This option is also
+           useful if you frequently get "Unable to allocate DMA
+           memory" messages.  Indeed, DMA memory needs to be
+           continuous in physical memory, and is thus harder to find,
+           whereas non-DMA buffers may be allocated in virtual
+           memory. However, I advise against this if you have an FDC
+           without a FIFO (8272A or 82072). 82072A and later are
+           OK).  You also need at least a 486 to use nodma.  If you use
+           nodma mode, I suggest you also set the FIFO threshold to 10
+           or lower, in order to limit the number of data transfer
+           interrupts.
+        </para>
+        <para>
+           If you have a FIFO-able FDC, the floppy driver
+           automatically falls back on non DMA mode if it can't find
+           any DMA-able memory.  If you want to avoid this, explicitly
+           specify "yesdma".
+        </para>
+        </listitem>
+    </varlistentry>
+<varlistentry><term>omnibook</term> 
+    <listitem><para>
+        Same as <parameter>nodma</parameter>.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>yesdma</term>
+    <listitem><para>
+           Tells the floppy driver that a workable DMA channel is available
+           (the default).
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>nofifo</term>
+    <listitem><para>
+           Disables the FIFO entirely. This is needed if you get "Bus
+           master arbitration error" messages from your Ethernet card (or
+           from other devices) while accessing the floppy.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>fifo</term>
+    <listitem><para>
+           Enables the FIFO (default)
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term><varname>threshold</varname>,fifo_depth</term>
+    <listitem>
+        <para>
+           Sets the FIFO threshold.  This is mostly relevant in DMA
+           mode.  If this is higher, the floppy driver tolerates more
+           interrupt latency, but it triggers more interrupts (i.e. it
+           imposes more load on the rest of the system).  If this is
+           lower, the interrupt latency should be lower too (faster
+           processor).  The benefit of a lower threshold is fewer
+           interrupts.  
+           </para>
+        <para>
+           To tune the fifo threshold, switch on over/underrun
+           messages using 'floppycontrol --messages'.  Then access a
+           floppy disk.  If you get a huge amount of "Over/Underrun -
+           retrying" messages, then the fifo threshold is too low.
+           Try with a higher value, until you only get an occasional
+           Over/Underrun.
+           </para>    
+       <para>
+           The value must be between 0 and 0xf, inclusive.
+           </para>
+       <para>
+           As you insert and remove the LKM to try different values,
+           remember to redo the 'floppycontrol --messages' every time
+           you insert the LKM.  You shouldn't normally have to tune
+           the fifo, because the default (0xa) is reasonable.
+           </para>
+       </listitem>
+    </varlistentry>
+<varlistentry> 
+<term><varname>drive</varname>,<varname>type</varname>,cmos</term>
+    <listitem>
+        <para>
+           Sets the CMOS type of <varname>drive</varname> to
+           <varname>type</varname>.  This is mandatory if you have
+           more than two floppy drives (only two can be described in
+           the physical CMOS), or if your BIOS uses non-standard CMOS
+           types.  The CMOS types are:
+           <variablelist>           
+           <varlistentry> <term>0</term>
+               <listitem><para>
+                   Use the value of the physical CMOS
+                   </para></listitem>
+               </varlistentry>
+           <varlistentry> <term>1</term>
+               <listitem><para>5 1/4 DD</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>2</term>
+               <listitem><para>5 1/4 HD</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>3</term>
+               <listitem><para>3 1/2 DD</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>4</term>
+               <listitem><para>3 1/2 HD</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>5</term>
+               <listitem><para>3 1/2 ED</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>6</term>
+               <listitem><para>3 1/2 ED</para></listitem>
+               </varlistentry>
+           <varlistentry> <term>16</term>
+               <listitem><para>unknown or not installed</para></listitem>
+               </varlistentry>
+           </variablelist>
+           </para>
+       <para>
+           (Note: there are two valid types for ED drives. This is
+           because 5 was initially chosen to represent floppy
+           <emphasis>tapes</emphasis>, and 6 for ED drives.  AMI
+           ignored this, and used 5 for ED drives.  That's why the
+           floppy driver handles both)
+           </para>
+        </listitem>
+    </varlistentry>
+<varlistentry> <term>unexpected_interrupts</term>
+    <listitem><para>
+           Print a warning message when an unexpected interrupt is received.
+           (default behavior) 
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>no_unexpected_interrupts</term> 
+    <listitem><para>
+           Don't print a message when an unexpected interrupt is
+           received.  This is needed on IBM L40SX laptops in certain
+           video modes.  (There seems to be an interaction between
+           video and floppy. The unexpected interrupts only affect
+           performance, and can safely be ignored.)
+           </para></listitem>
+    </varlistentry>
+<varlistentry><term>L40SX</term>
+    <listitem><para>
+        Same as <parameter>no_unexpected_interrupts</parameter>.
+        </para></listitem>
+    </varlistentry>
+<varlistentry> <term>broken_dcl</term>
+    <listitem><para>
+           Don't use the disk change line, but assume that the disk
+           was changed whenever the device node is reopened.  Needed
+           on some boxes where the disk change line is broken or
+           unsupported.  This should be regarded as a stopgap measure,
+           indeed it makes floppy operation less efficient due to
+           unneeded cache flushings, and slightly more unreliable.
+           Please verify your cable, connection and jumper settings if
+           you have any DCL problems.  However, some older drives, and
+           also some laptops are known not to have a DCL.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>debug</term>
+    <listitem><para>
+           Print debugging messages
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>messages</term>
+    <listitem><para>
+           Print informational messages for some operations (disk change
+           notifications, warnings about over and underruns, and about
+           autodetection)
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>silent_dcl_clear</term>
+    <listitem><para>
+           Uses a less noisy way to clear the disk change line (which
+           doesn't involve seeks).  Implied by daring.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term><varname>nr</varname>,irq</term>
+    <listitem><para>
+           Tells the driver to expect interrupts on IRQ
+           <varname>nr</varname> instead of the conventional IRQ 6.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term><varname>nr</varname>,dma</term>
+    <listitem><para>
+           Tells the driver to use DMA channel <varname>nr</varname>
+           instead of the
+           conventional DMA channel 2.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>slow</term>
+    <listitem><para>
+           Use PS/2 stepping rate: PS/2 floppies have much slower step
+           rates than regular floppies.  It's been recommended that
+           take about 1/4 of the default speed in some more extreme
+           cases.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term><varname>mask</varname>,allowed_drive_mask </term>
+    <listitem><para>
+           Sets the bitmask of allowed drives to <varname>mask</varname>.  
+           By default,
+           only units 0 and 1 of each floppy controller are allowed.
+           This is done because certain non-standard hardware (ASUS
+           PCI motherboards) mess up the keyboard when accessing units
+           2 or 3.  This option is somewhat obsoleted by the 'cmos'
+           option.
+           </para></listitem>
+    </varlistentry>
+<varlistentry> <term>all_drives</term>
+    <listitem><para>
+           Sets the bitmask of allowed drives to all drives.  Use this
+           if you have more than two drives connected to a floppy
+           controller.
+           </para></listitem>
+    </varlistentry>
+</variablelist>
+</sect3>
+
+<sect3>
+<title>
+loop: loop device driver
+</title>
+<para>
+This module lets you mount a filesystem that is stored in a regular
+file (in another filesystem).  One use of this is to test an ISO 9660
+filesystem before irreversibly burning it onto a CD.  You build the
+filesystem in a 650 MB regular file.  That file will be the input to
+the CD burning program.  But you can define that file as a loopback
+device and then mount the filesystem right from the file.  It can also
+give you a handy way to transmit collections of files over a network.
+It's like a tar file, only you don't have to pack and unpack it -- you
+just mount the original file.
+</para>
+<para>
+You can also encrypt or compress the file.  To do that, you need a
+recent version of mount and other patches for DES and IDEA. They can
+</para>
+<para>
+Do not confuse these loop devices with the "loopback device"
+used for network connections from the machine to itself.  That isn't
+actually a device at all - it's a network interface.
+</para>
+<para>
+Example:
+<screen>
+modprobe loop
+</screen>
+</para>
+<para>
+The module has no parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+linear: linear (non-RAID) disk array device driver
+</title>
+<para>
+This driver lets you combine several disk partitions into one
+logical block device.
+</para>
+<para>
+If you use this, then your multiple devices driver will be able to use
+the so-called linear mode, i.e. it will combine the disk
+partitions by simply appending one to the other.
+</para>
+<para>
+See <citetitle>Software-RAID-HOWTO</citetitle>.
+</para>
+<para>
+Example:
+<screen>
+modprobe linear
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+raid0: RAID-0 device driver
+</title>
+<para>
+This driver lets you combine several disk partitions into one logical
+block device.
+</para>
+<para>
+If you use this, then your multiple devices driver will be able to use
+the so-called raid0 mode, i.e. it will combine the disk partitions
+into one logical device in such a fashion as to fill them up evenly,
+one chunk here and one chunk there. This will increase the throughput
+rate if the partitions reside on distinct disks.
+</para>
+<para>
+See <citetitle>Software-RAID-HOWTO</citetitle>.
+</para>
+<para>
+Example:
+<screen>
+modprobe raid0
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+rd: ramdisk device driver
+</title>
+<para>
+A ramdisk is a block device whose storage is composed of system memory
+(real memory; not virtual).  You can use it like a very fast disk
+device and also in circumstances where you need a device, but don't
+have traditional hardware devices to play with.
+</para>
+<para>
+A common example of the latter is for a rescue system -- a system
+you use to diagnose and repair your real system.  Since you don't
+want to mess with your real disks, you run off ramdisks.  You might
+load data into these ramdisks from external media such as floppy 
+disks.
+</para>
+<para>
+Sometimes, you have your boot loader (e.g. <command>lilo</command>)
+create a ramdisk and load it with data (perhaps from a floppy disk).
+Of course, if you do this, you cannot use the LKM version of the
+ramdisk driver because the driver will have to be in the kernel at
+boot time.
+</para>
+<para>
+A ramdisk is actually conceptually simple in Linux.  Disk devices
+operate through memory because of the buffer cache.  The only
+difference with a ramdisk is that you never actually get past the
+buffer cache to a real device.  This is because with a ramdisk, 1)
+when you first access a particular block, Linux just assumes it is
+all zeroes; and 2) the device's buffer cache blocks are never
+written to the device, ergo never stolen for use with other devices.
+This means reads and writes are always to the buffer cache and never
+reach the device.
+</para>
+<para>
+There is additional information about ramdisks in the file
+<filename>Documentation/ramdisk.txt</filename> in the Linux source
+tree.
+</para>
+<para>
+Example:
+<screen>
+  modprobe rd
+</screen>
+</para>
+<para>
+There are no module parameters that you can supply to the LKM, but
+if you bind the module into the base kernel, there are kernel parameters
+you can pass to it.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+xd: XT disk device driver
+</title>
+<para>
+Very old 8 bit hard disk controllers used in the IBM XT computer.  No,
+the existence of XT disk support does NOT mean that you can run Linux
+on an IBM XT :).
+</para>
+<para>
+Example:
+<screen>
+modprobe xd
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id=SCSI>
+<title>
+SCSI Drivers
+</title>
+<para>
+Detailed information about SCSI drivers is in 
+<citetitle>SCSI-2.4-HOWTO</citetitle>.
+</para>
+<para>
+Linux's SCSI function is implemented in three layers, and there are
+LKMs for all of them.
+</para>
+<para>
+In the middle is the mid-level driver or SCSI core.  This consists of
+the <command>scsi_mod</command> LKM.  It does all those things that
+are common among SCSI devices regardless of what SCSI adapter you use
+and what class of device (disk, scanner, CD-ROM drive, etc.) it is.
+</para>
+<para>
+There is a low-level driver for each kind of SCSI adapter --
+typically, a different driver for each brand.  For example, the
+low-level driver for Advansys adapters (made by the company which is
+now Connect.com) is named <command>advansys</command>.  (If you are
+comparing ATA (aka IDE) and SCSI disk devices, this is a major
+difference -- ATA is simple and standard enough that one driver works
+with all adapters from all companies.  SCSI is less standard and as a
+result you should have less confidence in any particular adapter being
+perfectly compatible with your system).
+</para>
+<para>
+High-level drivers present to the rest of the kernel an interface
+appropriate to a certain class of devices.  The SCSI high-level driver
+for tape devices, <command>st</command>, for example, has ioctls to
+rewind.  The high-level SCSI driver for CD-ROM drives,
+<command>sr</command>, does not.
+</para>
+<para>
+Note that you rarely need a high-level driver specific to a certain 
+brand of device.  At this level, there is little room for one brand to
+be distinguishable from another.
+</para>
+<para>
+One SCSI high-level driver that deserves special mention is
+<command>sg</command>.  This driver, called the "SCSI generic" driver,
+is a fairly thin layer that presents a rather raw representation of
+the SCSI mid-level driver to the rest of the kernel.  User space
+programs that operate through the SCSI generic driver (because they
+access device special files whose major number is the one registered
+by <command>sg</command> (to wit, 21)) have a detailed understanding
+of SCSI protocols, whereas user space programs that operate through
+other SCSI high-level drivers typically don't even know what SCSI is.
+<citetitle>SCSI-Programming-HOWTO</citetitle> has complete
+documentation of the SCSI generic driver.
+</para>
+<para>
+The layering order of the SCSI modules belies the way the LKMs depend
+upon each other and the order in which they must be loaded.  You
+always load the mid-level driver first and unload it last.  The
+low-level and high-level drivers can be loaded and unloaded in any
+order after that, and they hook themselves into and establish
+dependency on the mid-level driver at both ends.  If you don't have a
+complete set, you will get a "device not found" error when you try to
+access a device.
+</para>
+<para>
+Most SCSI low-level (adapter) drivers don't have LKM parameters; they
+do generally autoprobe for card settings.  If your card responds to
+some unconventional port address you must bind the driver into the
+base kernel and use kernel &quot;command line&quot; options.  See
+<citetitle>BootPrompt-HOWTO</citetitle>.  Or you can twiddle The
+Source and recompile.
+</para>
+<para>
+Many SCSI low-level drivers have documentation in the <filename
+class="directory">drivers/scsi</filename> directory in the Linux
+source tree, in files called <filename>README.</filename>*.
+</para>
+
+<sect3>
+<title>
+scsi_mod: SCSI mid-level driver
+</title>
+<para>
+Example:
+<screen>
+modprobe scsi_mod
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+sd_mod: SCSI high-level driver for disk devices
+</title>
+<para>
+Example:
+<screen>
+modprobe sd_mod
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+st: SCSI high-level driver for tape devices
+</title>
+<para>
+Example:
+<screen>
+modprobe st
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+sr_mod: SCSI high-level driver for CD-ROM drives
+</title>
+<para>
+Example:
+<screen>
+modprobe sr_mod
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+sg: SCSI high-level driver for generic SCSI devices
+</title>
+<para>
+See the explanation of this special high-level driver above.
+</para>
+<para>
+Example:
+<screen>
+modprobe sg
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+wd7000: SCSI low-level driver for 7000FASST
+</title>
+<para>
+Example:
+<screen>
+modprobe wd7000
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver atoprobes the card and requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+aha154x: SCSI low-level driver for Adaptec AHA152X/2825
+</title>
+<para>
+Example:
+<screen>
+modprobe aha154x
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver atoprobes the card and requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+aha1542: SCSI low-level driver for Adaptec AHA1542
+</title>
+<para>
+Example:
+<screen>
+modprobe aha1542
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card at 0x330 and 0x334 only.
+</para>
+</sect3>
+
+<sect3>
+<title>
+aha1740: SCSI low-level driver for Adaptec AHA1740 EISA
+</title>
+<para>
+Example:
+<screen>
+modprobe aha1740
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This driver autoprobes the card.
+</para>
+</sect3>
+
+<sect3>
+<title>
+aic7xxx: SCSI low-level driver for Adaptec AHA274X/284X/294X
+</title>
+<para>
+Example:
+<screen>
+modprobe aic7xxx
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card and BIOS must be enabled.
+</para>
+</sect3>
+
+<sect3>
+<title>
+advansys: SCSI low-level driver for AdvanSys/Connect.com
+</title>
+<para>
+Example:
+<screen>
+modprobe advansys asc_iopflag=1 asc_ioport=0x110,0x330 asc_dbglvl=1
+</screen>
+</para>
+<para>
+Module Parameters:
+<variablelist>
+    <varlistentry> <term>asc_iopflag</term> <listitem>
+        <variablelist>
+            <varlistentry> <term>1</term> <listitem>
+                  <para>enable port scanning</para>
+                  </listitem></varlistentry> 
+            <varlistentry><term>0</term> <listitem>
+                  <para>disable port scanning</para>
+                  </listitem></varlistentry>
+            </variablelist>
+        </listitem></varlistentry>
+    <varlistentry> <term>asc_ioport</term> <listitem>
+        <para>I/O port addresses to scan for Advansys SCSI adapters</para>
+        </listitem></varlistentry>
+    <varlistentry> <term>asc_dbglvl</term> <listitem>
+        <para>
+        debugging level:
+        <variablelist>        
+            <varlistentry> <term>0</term> <listitem>
+                <para>Errors only</para>
+                </listitem></varlistentry>
+             <varlistentry> <term>1</term> <listitem>
+                 <para>High level tracing</para>
+                 </listitem></varlistentry>
+             <varlistentry> <term>2-N</term> <listitem>
+                 <para>Verbose tracing</para>
+                 </listitem></varlistentry>
+             </variablelist>
+         </para>
+         </listitem></varlistentry>
+    </variablelist>
+</para>
+<para>
+If you bind this driver into the base kernel, you can pass parameters
+to it via the kernel boot parameters.  See
+<citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+in2000: SCSI low-level driver for Always IN2000
+</title>
+<para>
+Example:
+<screen>
+modprobe in2000
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This driver autoprobes the card.  No BIOS is required.
+</para>
+</sect3>
+
+<sect3>
+<title>
+BusLogic: SCSI low-level driver for BusLogic
+</title>
+<para>
+The list of BusLogic cards this driver can drive is long.  Read file
+<filename>drivers/scsi/README.BusLogic</filename> in the Linux source
+tree to get the total picture.
+</para>
+<para>
+Example:
+<screen>
+modprobe BusLogic
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+If you bind this driver into the base kernel, you can pass parameters
+to it via the kernel boot parameters.  See
+<citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+dtc: SCSI low-level driver for DTC3180/3280
+</title>
+<para>
+Example:
+<screen>
+modprobe dtc
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card.
+</para>
+</sect3>
+
+<sect3>
+<title>
+eata: SCSI low-level driver for EATA ISA/EISA 
+</title>
+<para>
+This driver handles DPT PM2011/021/012/022/122/322.
+</para>
+<para>
+Example:
+<screen>
+modprobe eata
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+eata_dma: SCSI low-level driver for EATA-DMA
+</title>
+<para>
+This driver handles DPT, NEC, AT&amp;T, SNI, AST, Olivetti, and Alphatronix.
+</para>
+<para>
+This driver handles DPT Smartcache, Smartcache III and SmartRAID.
+</para>
+<para>
+Example:
+<screen>
+modprobe eata_dma
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+Autoprobe works in all configurations.
+</para>
+</sect3>
+
+<sect3>
+<title>
+eata_pio: SCSI low-level driver for EATA-PIO
+</title>
+<para>
+This driver handles old DPT PM2001, PM2012A.
+</para>
+<para>
+Example:
+<screen>
+  modprobe eata_pio
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+fdomain: SCSI low-level driver for Future Domain 16xx
+</title>
+<para>
+Example:
+<screen>
+modprobe fdomain
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This driver autoprobes the card and  requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+NCR5380: SCSI low-level driver for NCR5380/53c400
+</title>
+<para>
+Example:
+<screen>
+modprobe NCR5380 ncr_irq=xx ncr_addr=xx ncr_dma=xx ncr_5380=1   \
+                 ncr_53c400=1
+</screen>
+for a port mapped NCR5380 board:
+<screen>
+modprobe g_NCR5380 ncr_irq=5 ncr_addr=0x350 ncr_5380=1
+</screen>
+for a memory mapped NCR53C400 board with interrupts disabled:
+<screen>
+modprobe g_NCR5380 ncr_irq=255 ncr_addr=0xc8000 ncr_53c400=1
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry> <term>ncr_irq</term> <listitem>
+        <para>
+        the irq the driver is to service.  255 means no or DMA interrupt.
+        254 to autoprobe for an IRQ line if overridden on the command line.
+        </para> 
+        </listitem></varlistentry>
+    <varlistentry> <term>ncr_addr</term> <listitem>
+        <para>
+        the I/O port address or memory mapped I/O address, whichever
+        is appropriate, that the driver is to drive
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ncr_dma</term> <listitem>
+        <para>
+        the DMA channel the driver is to use
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ncr_5380</term> <listitem>
+        <para>
+        1 = set up for a NCR5380 board
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ncr_53c400</term> <listitem>
+        <para>
+        1 = set up for a NCR53C400 board
+        </para> 
+        </listitem></varlistentry>
+    </variablelist>
+</para>
+<para>
+If you bind this driver into the base kernel, you can pass parameters
+to it via the kernel boot parameters.  See
+<citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+NCR53c406a: SCSI low-level driver for NCR53c406a
+</title>
+<para>
+Example:
+<screen>
+modprobe NCR53c406a
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+53c7,8xx.o: SCSI low-level driver for NCR53c7,8xx
+</title>
+<para>
+Example:
+<screen>
+modprobe 53c7,8xx
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card and requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ncr53c8xx: SCSI low-level driver for PCI-SCS NCR538xx family
+</title>
+<para>
+Example:
+<screen>
+modprobe ncr53c8xx
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+ppa: low-level SCSI driver for IOMEGA parallel port ZIP drive
+</title>
+<para>
+See the file <filename>drivers/scsi/README.ppa</filename> in the Linux
+source tree for details.
+</para>
+<para>
+Example:
+<screen>
+modprobe ppa ppa_base=0x378 ppa_nybble=1
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry> <term>ppa_base</term> <listitem>
+        <para>
+        Base address of the PPA's I/O port.  Default 0x378.
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ppa_speed_high</term> <listitem>
+        <para>
+        Delay used in data transfers, in microseconds.  Default is 1.
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ppa_speed_low</term> <listitem>
+        <para>
+        Delay used in other operations, in microseconds.  Default is 6.
+        </para>
+        </listitem></varlistentry>
+    <varlistentry> <term>ppa_nybble</term> <listitem>
+        <para>
+        1 = Use 4-bit mode.  0 = don't.  Default is 0.
+        </para>
+        </listitem></varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+pas16: SCSI low-level driver for PAS16
+</title>
+<para>
+Example:
+<screen>
+modprobe pas16
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card.  No BIOS is required.
+</para>
+</sect3>
+
+<sect3>
+<title>
+qlogicfas: SCSI low-level driver for Qlogic FAS
+</title>
+<para>
+Example:
+<screen>
+modprobe qlogicfas
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+qlogicisp: SCSI low-level driver for Qlogic ISP
+</title>
+<para>
+Example:
+<screen>
+modprobe qlogicisp
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+Requires firmware.
+</para>
+</sect3>
+
+<sect3>
+<title>
+seagate: SCSI low-level driver for Seagate, Future Domain
+</title>
+<para>
+This driver is for Seagate ST-02 and Future Domain TMC-8xx.
+</para>
+<para>
+Example:
+<screen>
+  modprobe seagate
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes for address only.  The IRQ is fixed at 5.
+The driver requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+t128: SCSI low-level driver for Trantor T128/T128F/T228
+</title>
+<para>
+Example:
+<screen>
+  modprobe t128
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card.  The driver requires installed BIOS.
+</para>
+</sect3>
+
+<sect3>
+<title>
+u14-34f: SCSI low-level driver for UltraStor 14F/34F
+</title>
+<para>
+Example:
+<screen>
+  modprobe u14-34f
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+<para>
+This driver autoprobes the card, but <emphasis>not</emphasis> the
+0x310 port.  No BIOS is required.
+</para>
+</sect3>
+<sect3>
+<title>
+ultrastor: low-level SCSI driver for UltraStor
+</title>
+<para>
+Example:
+<screen>
+modprobe ultrastor
+</screen>
+</para>
+<para>
+There are no module parameters for the LKM, but if you bind this module
+into the base kernel, you can pass some parameters via the Linux boot
+parameters.  See <citetitle>BootPrompt-HOWTO</citetitle>.
+</para>
+</sect3>
+
+</sect2>
+
+<sect2>
+<title>
+Network Device Drivers
+</title>
+
+<sect3>
+<title>
+bsd_comp: optional BSD compressor for PPP
+</title>
+<para>
+Example:
+<screen>
+modprobe bsd_comp
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>ppp</command>.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+slhc: SLHC compressor for PPP
+</title>
+<para>
+This module contains routines to compress and uncompress tcp packets
+(for transmission over low speed serial lines).  
+</para>
+<para>
+These routines are required by PPP (also ISDN-PP) and SLIP protocols,
+and are used by the LKMs that implement those protocols.
+</para>
+<para>
+Example:
+<screen>
+modprobe slhc
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+8390: General NS8390 Ethernet driver core
+</title>
+<para>
+This is driver code for the 8390 Ethernet chip on which many Ethernet
+adapters are based.  This is not a complete interface driver; the 
+routines in this module are used by drivers for particular Ethernet
+adapters, such as <command>ne</command> and <command>3c503</command>.
+</para>
+<para>
+Example:
+<screen> 
+modprobe 8390
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+dummy: Dummy network interface driver
+</title>
+<para>
+This is said to be a bit-bucket device (i.e. traffic you send to this
+device is consigned into oblivion) with a configurable IP address. It
+is most commonly used in order to make your currently inactive SLIP
+address seem like a real address for local programs.
+</para>
+<para>
+However, it also functions as a sort of loopback device.  You
+configure it for a particular IP address and any packet you send to
+that IP address via this interface comes back and appears as a packet
+received by that interface for that IP address.  This is especially
+handy for an IP address that would normally be reflected by another
+interface (a PPP interface, perhaps), but that interface is down right
+now.
+</para>
+<para>
+You can have multiple dummy interfaces.  They are named 
+<literal>dummy0</literal>, <literal>dummy1</literal>,
+etc.
+</para>
+<para>
+Example:
+<screen>
+modprobe dummy
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+eql: serial line load balancer
+</title>
+<para>
+If you have two serial connections to some other computer (this
+usually requires two modems and two telephone lines) and you use PPP
+(a protocol for sending internet traffic over telephone lines) or SLIP
+(an older alternative to PPP) on them, you can make them behave like
+one double speed connection using this driver.
+</para>
+<para>
+Example:
+<screen>
+modprobe eql
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+dlci: frame relay DLCI driver
+</title>
+<para>
+This implements the frame relay protocol; frame relay is a fast
+low-cost way to connect to a remote internet access provider or to
+form a private wide area network.  The one physical line from your box
+to the local "switch" (i.e. the entry point to the frame relay
+network) can carry several logical point-to-point connections to other
+computers connected to the frame relay network.  To use frame relay,
+you need supporting hardware (FRAD) and certain programs from the net-
+tools package as explained in
+<filename>Documentation/networking/framerelay.txt</filename> in the
+Linux source tree.
+</para>
+<para>
+Example:
+<screen>
+modprobe dlci
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+sdla: Sangoma S502A FRAD driver
+</title>
+<para>
+This is a driver for the Sangoma S502A, S502E and S508 Frame Relay
+Access Devices.  These are multi-protocol cards, but this driver can
+drive only frame relay right now.  Please read
+<filename>Documentation/networking/framerelay.txt</filename> in the
+Linux source tree.
+</para>
+<para>
+Example:
+<screen>
+modprobe sdla
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>dlci</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+plip: PLIP network interface driver
+</title>
+<para>
+PLIP (Parallel Line Internet Protocol) is used to create a mini
+network consisting of two (or, rarely, more) local machines.  The
+parallel ports (the connectors virtually all ISA-descendant computers
+have that are normally used to attach printers) are connected using
+"null printer" or "Turbo Laplink" cables which can transmit 4 bits at
+a time or using special PLIP cables, to be used on bidirectional
+parallel ports only, which can transmit 8 bits at a time.  The cables
+can be up to 15 meters long.  This works also if one of the machines
+runs DOS/Windows and has some PLIP software installed, e.g.  the
+Crynwr PLIP packet driver and <application>winsock</application> or
+NCSA's <command>telnet</command>.
+</para>
+<para>
+See <citetitle>PLIP-Install-HOWTO</citetitle>.
+</para>
+<para>
+Example:
+<screen>
+modprobe plip io=0x378 irq=7
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry> <term>io</term>
+        <listitem><para>
+            Port address of parallel port driver is to drive.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry> <term>irq</term>
+        <listitem><para>
+            IRQ number of IRQ driver is to service.  Default is IRQ 5 for
+            port at 0x3bc, IRQ 7 for port at 0x378, and IRQ 9 for port
+            at 0x278.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+
+If you don't specify the <parameter>io</parameter> parameter, the
+driver probes addresses 0x278, 0x378, and 0x3bc.
+</para>
+
+</sect3>
+<sect3>
+
+<title>
+ppp: PPP network protocol driver
+</title>
+<para>
+PPP (Point to Point Protocol) is the most common protocol to use over
+a serial port (with or without a modem attached) to create an IP
+network link between two computers.
+</para>
+<para>
+Along with this kernel driver, you need the user space program
+<command>pppd</command> running.
+</para>
+<para>
+See <citetitle>PPP-HOWTO</citetitle>.
+</para>
+<para>
+Example:
+<screen>
+modprobe ppp
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>slhc</command>.
+</para>
+<para>
+The module also accesses serial devices, which are driven by the
+<command>serial</command> module, so it depends on that module too.
+This dependency is not detected by <command>depmod</command>, so you
+either have to declare it manually or load <command>serial</command>
+explicitly.
+</para>
+</sect3>
+
+<sect3>
+<title>
+slip: SLIP network protocol driver
+</title>
+<para>
+SLIP (Serial Line Internet Protocol) is like PPP, only older and simpler.
+</para>
+<para>
+Example:
+<screen>
+modprobe slip slip_maxdev=1
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry> <term>slip_maxdev</term>
+        <listitem><para>
+            Maximum number of devices the driver may use at one time.  Default
+            is 256.
+            </para></listitem>
+    </varlistentry>
+</variablelist>
+</para>
+<para>
+This module depends on module <command>slhc</command>.
+</para>
+<para>
+The module also accesses serial devices, which are driven by the
+<command>serial</command> module, so it depends on that module too.
+This dependency is not detected by <command>depmod</command>, so you
+either have to declare it manually or load <command>serial</command>
+explicitly.
+</para>
+</sect3>
+
+<sect3>
+<title>
+baycom: BAYCOM AX.25 amateur radio driver
+</title>
+<para>
+This is a driver for Baycom style simple amateur radio modems that
+connect to either a serial interface or a parallel interface. The
+driver works with the ser12 and par96 designs. 
+</para>
+<para>
+For more information, see <ulink
+url="http://www.baycom.org/~tom<">http://www.baycom.org/~tom</ulink>.
+</para>
+<para>
+Example:
+<screen>
+modprobe baycom modem=1 iobase=0x3f8 irq=4 options=1
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>major</term>
+        <listitem><para>
+            major number the driver should use; default 60
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>modem</term>
+        <listitem><para>        
+            modem type of the first channel (minor 0):
+            <variablelist>
+                <varlistentry><term>1</term>
+                    <listitem><para>ser12</para></listitem>
+                    </varlistentry>
+                <varlistentry><term>2</term>
+                    <listitem><para>par96/par97</para></listitem>
+                    </varlistentry>
+                </variablelist>            
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>iobase</term>
+        <listitem><para>
+            base address of the port the driver is to drive.  Common
+            values are for ser12 0x3f8, 0x2f8, 0x3e8, 0x2e8 and for
+            par96/par97 0x378, 0x278, 0x3bc.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Common values are 3 and 4 for ser12
+            and 7 for for par96/par97.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>options</term>
+        <listitem><variablelist>
+            <varlistentry><term>0</term>
+                <listitem><para>use hardware DCD</para></listitem>
+                </varlistentry>
+            <varlistentry><term>1</term>
+                <listitem><para>use software DCD</para></listitem>
+                </varlistentry>
+            </variablelist></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+<sect3>
+<title>
+strip: STRIP (Metricom starmode radio IP) driver
+</title>
+<para>
+STRIP is a radio protocol developed for the <ulink
+url="http://mosquitonet.stanford.edu/">MosquitoNet project</ulink> to
+send Internet traffic using Metricom radios.  Metricom radios are
+small, battery powered, 100kbit/sec packet radio transceivers, about
+the size and weight of a wireless telephone.  (You may also have heard
+them called "Metricom modems" but we avoid the term "modem" because it
+misleads many people into thinking that you can plug a Metricom modem
+into a phone line and use it as a modem.)  You can use STRIP on any
+Linux machine with a serial port, although it is obviously most useful
+for people with laptop computers.
+</para>
+<para>
+Example:
+<screen>
+modprobe strip
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+<sect3>
+<title>
+wavelan: WaveLAN driver
+</title>
+<para>
+WaveLAN card are for wireless ethernet-like networking.  This driver
+drives AT&amp;T GIS and NCR WaveLAN cards.
+</para>
+<para>
+Example:
+<screen>
+modprobe wavelan io=0x390 irq=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  Default is 0x390.  You can set
+            a different address on the card, but it is not recommended.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is 0.  Any other value
+            is ignored and the card still services IRQ 0.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+wic: WIC Radio IP bridge driver
+</title>
+<para>
+This is a driver for the WIC parallel port radio bridge.
+</para>
+<para>
+Example:
+<screen>
+modprobe wic
+</screen>
+</para>
+<para>
+It appears that devices <literal>wic0</literal>,
+<literal>wic1</literal> and <literal>wic2</literal> are directly
+related to corresponding <literal>lp</literal><varname>N</varname>
+ports.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+scc: Z8530 SCC kiss emulation driver
+</title>
+<para>
+These cards are used to connect your Linux box to an amateur radio in
+order to communicate with other computers.  If you want to use this,
+read <filename>Documentation/networking/z8530drv.txt</filename> in the
+Linux kernel source tree and <citetitle>HAM-HOWTO</citetitle>.
+</para>
+<para>
+Example:
+<screen>
+modprobe scc
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+3c501: 3COM 3c501 Ethernet driver
+</title>
+<para>
+This is a driver for 3COM's 3c501 Ethernet adapter.
+</para>
+<para>
+Example:
+
+modprobe 3c501 io=0x280 irq=5
+
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.
+            </para></listitem>
+            </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is 5.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+If you don't specify an I/O port, the driver probes addresses 0x280 
+and 0x300.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+3c503: 3COM 3c503 driver
+</title>
+<para>
+This is a driver for 3COM's 3c503 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe 3c503 io=0x300 irq=5 xcvr=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card. 
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service. 
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>xcvr</term>
+        <listitem><para>
+            Determines whether to use external tranceiver.
+            <variablelist>        
+                <varlistentry><term>0</term>
+                    <listitem><para>
+                         no
+                         </para></listitem>
+                     </varlistentry>
+                 <varlistentry><term>1</term>
+                     <listitem><para>
+                         yes
+                         </para></listitem>
+                     </varlistentry>
+                 </variablelist>
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+If you don't specify an I/O port, the driver probes addresses 0x300,
+0x310, 0x330, 0x350, 0x250, 0x280, 0x2A0, and 0x2E0. 
+</para>
+<para>        
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+3c505: 3COM 3c505 driver
+</title>
+<para>
+This is a driver for 3COM's 3c505 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe 3c503 io=0x300 irq=5 xcvr=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card. 
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service. 
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+
+If you don't specify an I/O port, the driver probes addresses 0x300,
+0x280, and 0x310.
+</para>
+<para>        
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+
+<title>
+3c507: 3COM 3c507 driver
+</title>
+<para>
+This is a driver for 3COM's 3c507 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe 3c503 io=0x300 irq=5 xcvr=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card. 
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service. 
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+
+If you don't specify an I/O port, the driver probes addresses 0x300,
+0x320, 0x340, and 0x280.
+</para>
+<para>        
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+3c509: 3COM 3c509/3c579 driver
+</title>
+<para>
+This is a driver for 3COM's 3c507 and 3c579 Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe 3c503 io=0x300 irq=5 xcvr=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card. 
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service. 
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+Module load-time probing Works reliably only on EISA, ISA ID-PROBE IS
+NOT RELIABLE!  Bind this driver into the base kernel for now, if you
+need it auto-probing on an ISA-bus machine. 
+</para>
+</sect3>
+
+<sect3>
+<title>
+3c59x: 3COM 3c590 series "Vortex" driver
+</title>
+<para>
+This is a driver for the following 3COM Ethernet adapters:
+<itemizedlist>
+    <listitem><para>3c590 Vortex 10Mbps.         </para></listitem>
+    <listitem><para>3c595 Vortex 100baseTX.      </para></listitem>
+    <listitem><para>3c595 Vortex 100baseT4.      </para></listitem>
+    <listitem><para>3c595 Vortex 100base-MII.    </para></listitem>
+    <listitem><para>EISA Vortex 3c597.           </para></listitem>
+</itemizedlist>
+</para>
+<para>
+Example:
+<screen>
+modprobe 3c59x debug=1 options=0,,12
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>debug</term>
+        <listitem><para>
+            A number selecting the level of debug messages.  
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>options</term>
+        <listitem>
+            <para>
+            This is a string of options numbers separated by commas.
+            There is one option number for each adapter that the driver
+            drives (for the case that you have multiple Ethernet adapters
+            in the system of types driven by this driver).  The order of
+            the option numbers is the order of the cards assigned by the
+            PCI BIOS.
+            </para>
+            <para>
+            Each number represents a binary value.  In that value, the
+            lower 3 bits is the media type:
+            </para>
+            <variablelist>  
+                <varlistentry><term>0</term>
+                <listitem><para>10baseT</para></listitem>
+                </varlistentry>
+            <varlistentry><term>1</term>
+                <listitem><para>10Mbs AUI</para></listitem>
+                </varlistentry>
+            <varlistentry><term>2</term>
+                <listitem><para>undefined</para></listitem>
+                </varlistentry>
+            <varlistentry><term>3</term>
+                <listitem><para>10base2 (BNC)</para></listitem>
+                </varlistentry>
+            <varlistentry><term>4</term>
+                <listitem><para>100base-TX</para></listitem>
+                </varlistentry>
+            <varlistentry><term>5</term>
+                <listitem><para>100base-FX</para></listitem>
+                </varlistentry>
+            <varlistentry><term>6</term>
+                 <listitem><para>MII (not yet available)</para></listitem>
+                 </varlistentry>
+            <varlistentry><term>7</term>
+                 <listitem><para>Use default setting</para></listitem>
+                 </varlistentry>
+            </variablelist>
+            <para>
+            The next bit (the "8" bit) is on for full duplex, off for half.
+            </para>
+            <para>  
+            The next bit (the "16" bit) is on to enable bus-master, which is
+            for experimental use only.
+            </para>
+            </listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>        
+Details of the device driver implementation are at the top of the
+source file.
+</para>
+</sect3>
+
+<sect3>
+<title>
+wd: Western Digital/SMC WD80*3 driver
+</title>
+<para>
+This is a driver for the Western Digital WD80*3 Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe wd io=0x300 irq=5 mem=0x0D0000 mem_end=0x0D8000
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+<varlistentry><term>io</term>
+<listitem><para>
+        Address of I/O port on the card. 
+</para></listitem>
+</varlistentry>
+<varlistentry><term>irq</term>
+<listitem><para>
+        IRQ the driver is to service. 
+</para></listitem>
+</varlistentry>
+<varlistentry><term>mem</term>
+<listitem><para>
+        Shared memory address
+</para></listitem>
+</varlistentry>
+<varlistentry><term>mem_end</term>
+<listitem><para>
+        End of shared memory (address of next byte after it).
+</para></listitem>
+</varlistentry>
+</variablelist>
+</para>
+<para>
+If you don't specify an I/O port, the driver probes 0x300, 0x280, 0x380,
+and 0x240.
+</para>
+<para>
+If you don't specify an IRQ, the driver reads it from the adapter's EEPROM
+and with ancient cards that don't have it, the driver uses autoIRQ.
+</para>
+<para>
+The driver depends on module <command>8390</command>.
+</para>
+
+</sect3>
+<sect3>
+<title>
+smc-ultra: SMC Ultra/EtherEZ driver
+</title>
+<para>
+This is a driver for the Western Digital WD80*3 Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe smc-ultra io=0x200 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x200, 0x220, 0x240, 0x280, 0x300, 0x340,
+            and 0x380.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is the value read from the
+            adapter's EEPROM.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This driver depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+smc9194: SMC 9194 driver
+</title>
+<para>
+This is a driver for SMC's 9000 series of Ethernet cards.
+</para>
+<para>
+Example:
+<screen>
+modprobe smc9194 io=0x200 irq=5 ifport=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x200, 0x220, etc. up through 0x3E0.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>ifport</term>
+        <listitem><para>
+            Type of Ethernet.
+            <variablelist>
+                <varlistentry><term>0</term>
+                    <listitem><para>autodetect</para></listitem>
+                    </varlistentry>
+                <varlistentry><term>1</term>
+                    <listitem><para>TP</para></listitem>
+                    </varlistentry>
+                <varlistentry><term>2</term>
+                    <listitem><para>AUI (or 10base2)</para></listitem>
+                    </varlistentry>
+                </variablelist>
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+The debug level is settable in the source code.
+</para>
+</sect3>
+
+<sect3>
+<title>
+at1700: AT1700 driver
+</title>
+<para>
+This is a driver for the AT1700 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe at1700 io=0x260 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x260, 0x280, 0x2A0, 0x240, 0x340, 0x320,
+            0x380, and 0x300.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+e2100: Cabletron E21xx driver
+</title>
+<para>
+Example:
+<screen>
+modprobe e2100 io=0x300 irq=5 mem=0xd0000 xcvr=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x300, 0x280, 0x380, and 0x220.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the card is to generate and the driver is to service.  (The
+            driver sets this value in the card).
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>mem</term>    
+        <listitem><para>
+            shared memory address.  Default is 0xd0000.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>xcvr</term>
+        <listitem><variablelist>
+            <varlistentry><term>0</term>
+                <listitem><para>
+                    Don't select external transceiver
+                    </para></listitem>  
+                </varlistentry>
+            <varlistentry><term>1</term> 
+                <listitem><para>
+                    Select external transceiver
+                    </para></listitem>
+                </varlistentry>        
+            </variablelist></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+depca: DEPCA, DE10x, DE200, DE201, DE202, DE422 driver
+</title>
+<para>
+This is a driver for the DEPCA, DE10x, DE200, DE201, DE202, and DE422 
+Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe depca io=0x200 irq=7
+</screen>
+</para>
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x300, and 0x200 on an ISA machine or
+            0x0c00 on an EISA machine.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is 7.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</sect3>
+
+<sect3>
+<title>
+ewrk3: EtherWORKS 3 (DE203, DE204, DE205) driver
+</title>
+<para>
+This is a driver for the EtherWORKS 3 (DE203, D3204, and DE205) 
+Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe ewrk3 io=0x300 irq=5
+</screen>
+</para>
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.   Default is 0x300.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is 5.
+            </para></listitem>
+        </varlistentry>
+</variablelist>
+<para>
+On an EISA bus, this driver does EISA probing.
+</para>
+<para>
+On an ISA bus, this driver does no autoprobing when loaded as an LKM.
+However, if you bind it into the base kernel, it probes addresses
+0x100, 0x120, etc. up through 0x3C0 except 0x1E0 and 0x320.
+</para>
+</sect3>
+
+<sect3>
+<title>
+eexpress: EtherExpress 16 driver
+</title>
+<para>
+This is a driver for the EtherExpress 16 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe eexpress io=0x300 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x300, 0x270, 0x320, and 0x340.
+            1</para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  The default is the value read
+            from the adapter's EEPROM.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+eepro: EtherExpressPro driver
+</title>
+<para>
+This is a driver for the EtherExpressPro Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe eepro io=0x200 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x200, 0x240, 0x280, 0x2C0, 0x300, 0x320, 0x340,
+            and 0x360.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+fmv18k: Fujitsu FMV-181/182/183/184 driver
+</title>
+<para>
+This is a driver for the Fujitsu FMV-181, FMV-182, FMV-183, FMV-183,
+and FMV-184 Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe fmv18x io=0x220 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x220, 0x240, 0x260, 0x280, 0x2a0, 0x2c0,
+            0x300, and 0x340.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+hp-plus: HP PCLAN+ (27247B and 27252A) driver
+</title>
+<para>
+This is a driver for HP's PCLAN+ (27247B and 27252A) Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe hp-plus io=0x200 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x200, 0x240, 0x280, 0x2C0, 0x300, 0x320, and
+            0x340.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  The default is the value the driver
+            reads from the adapter's configuration register.
+            </para></listitem>
+        </varlistentry>
+    </variablelist></para>
+<para>
+This module depends on  module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+hp: HP PCLAN (27245, 27xxx) driver
+</title>
+<para>
+This is a driver for HP's PCLAN (27245 and other 27xxx series) Ethernet
+adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe hp io=0x300 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this, 
+            the adapter probes 0x300, 0x320, 0x340, 0x280, 0x2C0, 0x200, 
+            and 0x240.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  If you don't specify this, the
+            driver determines it by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+hp100: HP 10/100VG PCLAN (ISA, EISA, PCI) driver
+</title>
+<para>
+This is a driver for HP's 10/100VG PCLAN Ethernet adapters.  It works with
+the ISA, EISA, and PCI versions.
+</para>
+<para>
+Example:
+<screen>
+modprobe hp100 hp100_port=0x100
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>hp100_port</term>
+        <listitem><para>
+            Base address of I/O ports on the card.  If you don't specify this,
+            the driver autoprobes 0x100, 0x120, etc. up through 0x3E0 on an
+            ISA bus.  It does EISA probing on an EISA bus.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+eth16i: ICL EtherTeam 16i/32 driver
+</title>
+<para>
+This is a driver for ICL's EtherTeam 16i (eth16i) and 32i (eth32i)
+Ethernet adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe eth16i io=0x2a0 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  If you don't specify this,
+            the adapter probes the following adddresses.  For the eth16i
+            adapter: 0x260, 0x280, 0x2A0, 0x340, 0x320, 0x380, and 0x300.
+            For the eth32i: 0x1000, 0x2000, 0x3000, 0x4000, 0x5000,
+            0x6000, 0x7000, 0x8000, 0x9000, 0xA000, 0xB000, 0xC000,
+            0xD000, 0xE000, and 0xF000.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  If you don't specify this, the
+            driver determines it by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+ne: NE2000/NE1000 driver
+</title>
+<para>
+This is a driver for the venerable NE2000 Ethernet adapter, its
+NE1000 forerunner, and all the generic Ethernet adapters that emulate
+this de facto standard card.
+</para>
+<para>
+Example:
+<screen>
+modprobe ne io=0x300 irq=11
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            Address of I/O port on the card.  This parameter is mandatory,
+            but you may specify 0x000 to have the driver autoprobe 0x300,
+            0x280, 0x320, 0x340, and 0x360.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  If you don't specify this, the
+            driver determines it by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ni52: NI5210 driver
+</title>
+<para>
+This is a driver for the NI5210 Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe ni52 io=0x360 irq=9 memstart=0xd0000 memend=0xd4000
+</screen>
+</para>
+</sect3>
+
+<sect3>
+<title>
+ac3200: Ansel Communications EISA 3200 driver
+</title>
+<para>
+This is a driver for the Ansel Communications EISA 3200 Ethernet
+adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe ac3200
+</screen>
+</para>
+<para>
+This module depends on module <command>8390</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+apricot: Apricot Xen-II on board ethernet driver
+</title>
+<para>
+Example:
+<screen>
+modprobe apricot io=0x300 irq=10
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            address of base I/O port on card.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ that driver is to service.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+de4x5: DE425, DE434, DE435, DE450, DE500 driver
+</title>
+<para>
+This is a driver for the DE425, DE434, DE435, DE450, and DE500
+Ethernet adapters.
+</para>
+<para>
+Example:
+<screen> 
+modprobe de4x5 io=0x000b irq=10 is_not_dec=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            address of base I/O port.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>is_not_dec</term>
+        <listitem><para>
+            For a non-DEC card using the DEC 21040, 21041, or 21140 chip,
+            set this to 1.
+        </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+tulip: DECchip Tulip (dc21x4x) PCI driver
+</title>
+<para>
+Example:
+<screen>
+modprobe tulip
+</screen>
+</para>
+<para>
+Read <filename>Documentation/networking/tulip.txt</filename> in the Linux
+source tree.
+</para>
+
+</sect3>
+<sect3>
+<title>
+dgrs: Digi Intl RightSwitch SE-X driver
+</title>
+<para>
+This is a driver for the Digi International RightSwitch SE-X EISA and
+PCI boards.  These boards have a 4 (EISA) or 6 (PCI) port Ethernet
+switch and a NIC combined into a single board.
+</para>
+<para>
+There is a tool for setting up input and output packet filters on each
+port, called <command>dgrsfilt</command>.
+</para>
+<para>
+The management tool lets you watch the performance graphically, as
+well as set the SNMP agent IP and IPX addresses, IEEE Spanning Tree,
+and Aging time.  These can also be set from the command line when the
+driver is loaded.
+</para>
+<para>
+There is also a companion management tool, called
+<command>xrightswitch</command>.
+</para>
+<para>
+Examples:
+<screen>
+modprobe dgrs debug=1 dma=0 spantree=0 hashexpire=300 ipaddr=199,86,8,221
+modprobe ipxnet=111
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>debug</term>
+        <listitem><para>
+            Level of debugging messages to print
+            </para></listitem>        
+        </varlistentry>
+    <varlistentry><term>dma</term>
+        <listitem> 
+            <variablelist> 
+                <varlistentry><term>0</term>
+                    <listitem><para>
+                        Disable DMA on PCI card
+                        </para></listitem>
+                    </varlistentry>
+                <varlistentry><term>1</term> 
+                    <listitem><para>
+                        Enable DMA on PCI card
+                        </para></listitem>   
+                    </varlistentry>          
+                </variablelist>
+            </listitem>        
+        </varlistentry>
+    <varlistentry><term>spantree</term>
+        <listitem> 
+            <variablelist> 
+                <varlistentry><term>0</term>
+                    <listitem><para>
+                        Disable IEEE spanning tree
+                        </para></listitem>
+                    </varlistentry>
+                <varlistentry><term>1</term> 
+                    <listitem><para>
+                        Enable IEEE spanning tree
+                        </para></listitem>   
+                    </varlistentry>          
+                </variablelist>
+            </listitem>        
+        </varlistentry>
+    <varlistentry><term>hashexpire</term>
+        <listitem><para>
+            Change address aging time, in seconds.  Defaults is 300.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>ipaddr</term>
+        <listitem><para>
+            SNMP agent IP address.  Value is IP address in dotted decimal
+            notation, except with commas instead of periods.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>ipxnet</term>
+        <listitem><para>
+            SNMP agent IPX network number
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+
+<title>
+de600: D-Link DE600 pocket adapter driver
+</title>
+<para>
+This is a driver for the D-Link DE600 pocket Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe de600 de600_debug=0
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>de600_debug</term>
+        <listitem><para>
+            The driver expects the adapter to be at port 0x378 and
+            generate IRQ 7.  This is the same as the DOS
+            <filename>lpt1</filename> device.  These are compile time
+            options.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+de620: D-Link DE620 pocket adapter driver
+</title>
+<para>
+This is a driver for the D-Link DE620 pocket Ethernet adapter.
+</para>
+<para>
+Example:
+<screen>
+modprobe de620 bnc=0 utp=0 io=0x378 irq=7
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>bnc</term>
+        <listitem><variablelist>
+            <varlistentry><term>1</term> 
+                <listitem><para>
+                    Network is 10Base2
+                    </para></listitem>
+                </varlistentry>
+            <varlistentry><term>0</term> 
+                <listitem><para>
+                    Network is not 10Base2
+                    </para></listitem>
+                </varlistentry>
+            </variablelist></listitem>
+        </varlistentry>
+    <varlistentry><term>utp</term>
+        <listitem><variablelist>
+            <varlistentry><term>1</term> 
+                <listitem><para>
+                    Network is 10BaseT
+                    </para></listitem>
+                </varlistentry>
+            <varlistentry><term>0</term> 
+                <listitem><para>
+                    Network is not 10BaseT
+                    </para></listitem>
+                </varlistentry>
+            </variablelist></listitem>
+        </varlistentry>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            I/O port address of port driver is to drive.  Default is 0x378.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ driver is to service.  Default is 7.
+            </para></listitem>        
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+You can't specify both <parameter>bnc=1</parameter> and
+<parameter>utp=1</parameter>.
+</para>
+</sect3>
+
+<sect3>
+
+<title>
+ibmtr: Tropic chipset based token ring adapter driver
+</title>
+<para>
+Example:
+</para>
+<para>
+<screen>
+modprobe ibmtr io=0xa20 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            I/O port address of port driver is to drive.  Default is 0xa20.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ driver is to service.  By default, the driver determines the
+            IRQ by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+arcnet: ARCnet driver
+</title>
+<para>
+Read The Fine Information in
+<filename>Documentation/networking/arcnet.txt</filename> in the Linux
+source tree.  Also Arcnet hardware information
+<filename>arcnet-hardware.txt</filename> is found in same place.
+</para>
+<para>
+Example:
+<screen>
+modprobe arcnet io=0x300 irq=2 shmem=0xd0000 device=arc1
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem><para>
+            I/O port address of port driver is to drive.  If you don't
+            specify this, the driver probes addresses 0x300, 0x2E0, 0x2F0,
+            0x2D0, 0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x260, 0x270,
+            0x280, 0x290, 0x2A0, 0x2B0, 0x2C0, 0x310, 0x320, 0x330, 0x340,
+            0x350, 0x360, 0x370, 0x380, 0x390, 0x3A0, 0x3E0, and 0x3F0.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ driver is to service.  By default, the driver determines the
+            IRQ by autoIRQ probing.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>device</term>
+        <listitem><para>
+            device name.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+isdn: basic ISDN functions
+</title>
+<para>
+This module provides ISDN functions used by ISDN adapter drivers.
+</para>
+<para>
+Setting up ISDN networking is a complicated task.  Read documentation
+found in <filename>Documentation/isdn</filename> in the Linux source
+tree.
+</para>
+<para>
+Example:
+<screen>
+modprobe isdn
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>slhc</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+icn: ICN 2B and 4B driver
+</title>
+<para>
+This is a driver for the ICN 2B and ICN 4B ISDN adapters.
+</para>
+<para>
+Example:
+<screen>
+modprobe icn portbase=0x320 membase=0xd0000 icn_id=idstring icn_id2=idstring2
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>portbase</term>
+        <listitem><para>
+            Address of the base I/O port on the adapter.  Defaults is 0x320.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>membase</term>
+        <listitem><para>
+            Address of shared memory.  Default is 0xd0000.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>icn_id</term>
+        <listitem><para>
+            idstring for the first adapter.  Must start with a character!
+            This parameter is required.    
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>icn_id2</term>
+        <listitem><para>
+            idstring for the second adapter.  Must start with a character!  
+            This parameter is required with the double card.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This module depends on module <command>isdn</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+pcbit: PCBIT-D driver
+</title>
+<para>
+This is a driver for the PCBIT-D ISDN adapter driver.
+</para>
+<para>
+Example:
+<screen>
+modprobe pcbit mem=0xd0000 irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>mem</term>
+        <listitem><para>
+            Shared memory address.  Default is 0xd0000
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>irq</term>
+        <listitem><para>
+            IRQ the driver is to service.  Default is 5.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+This module depend on module <command>isdn</command>.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+teles: Teles/NICCY1016PC/Creatix driver
+</title>
+<para>
+This is a driver for the Teles/NICCY1016PC/Creatix ISDN adapter.
+It can drive up to 16 cards.
+</para>
+<para>
+Example:
+<screen>
+modprobe teles io=0xd0000,15,0xd80,2 teles_id=idstring
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>io</term>
+        <listitem>
+            <para>
+            This is a whole collection of parameters in one.  It's syntax is
+    
+            <parameter>io=</parameter><varname>card1options</varname>
+            [<parameter>,</parameter><varname>card2options</varname>
+            <parameter>,</parameter>...]
+              
+            where <varname>card1options</varname> is a set of options
+            for the first card, etc.
+            </para>
+            <para>        
+            The syntax of <varname>card1options</varname>, etc. is
+    
+            <varname>sharedmem</varname><parameter>,</parameter>    
+            <varname>irq</varname><parameter>,</parameter>
+            <varname>portbase</varname><parameter>,</parameter>
+            <varname>dprotocol</varname>
+            
+            <variablelist>                
+                <varlistentry><term>sharedmem</term>
+                    <listitem><para>
+                        Address of shared memory.  Default 0xd0000
+                        </para></listitem>
+                    </varlistentry>
+                <varlistentry><term>irq</term>
+                    <listitem><para>
+                        IRQ driver is to service.
+                        </para></listitem>
+                    </varlistentry>
+                <varlistentry><term>portbase</term>
+                    <listitem><para>
+                        Address of base I/O port.
+                        </para></listitem>
+                    </varlistentry>
+                <varlistentry><term>dprotocol</term>
+                    <listitem><para>
+                        D-channel protocol of the card
+                        <variablelist>
+                            <varlistentry><term>1</term>
+                                <listitem><para>1TR6</para></listitem>
+                                </varlistentry>
+                            <varlistentry><term>2</term>
+                                <listitem><para>
+                                    EDSS1.  This is the default.  
+                                    </para></listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para></listitem>      
+                    </varlistentry>
+                </variablelist>  
+            </para>
+            </listitem>        
+        </varlistentry>                      
+    <varlistentry><term>teles_id</term>
+        <listitem><para>
+            Driver ID for accessing with utilities and identification
+            when using a line monitor.  Value must start with a
+            character!  Default: none.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+The driver determines the type of card from the port, irq and shared
+memory address:
+<itemizedlist>
+    <listitem><para>port == 0, shared memory != 0   -> Teles S0-8
+        </para></listitem>
+    <listitem><para>port != 0, shared memory != 0   -> Teles S0-16.0
+        </para></listitem>
+    <listitem><para>port != 0, shared memory == 0   -> Teles S0-16.3
+        </para></listitem>
+    </itemizedlist>
+</para>
+<para>
+This module depends on module <command>isdn</command>.
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>
+CDROM Device Drivers
+</title>
+<sect3>
+<title>
+axtcd: Aztech/Orchid/Okano/Wearnes/TXC/CDROM driver
+</title>
+<para>
+This is a driver for the Aztech, Orchid, Okano, Wearnes, TXC, and
+CDROM devices (which have special non-SCSI non-ATA interfaces).
+</para>
+<para>
+Example:
+<screen>
+  modprobe aztcd aztcd=0x340
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>aztcd</term>
+        <listitem><para>
+            address of base I/O port
+             </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+Read <filename>Documentation/cdrom/aztcd</filename> in the Linux
+source tree for full information.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+gscd: Goldstar R420 CDROM driver
+</title>
+<para>
+This is a driver for the Goldstar R420 CDROM drive, which does not use
+either an ATA or SCSI interface.
+</para>
+<para>
+Example: 
+<screen>
+modprobe gscd gscd=0x340
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>gscd</term>
+        <listitem><para>
+            address of base I/O port.  Default is 0x340, which will
+            work for most applications.  You select the address of the
+            drive with the PN801-1 through PN801-4 jumpers on the
+            Goldstar Interface Card.  Appropriate settings are: 0x300,
+            0x310, 0x320, 0x330, 0x340, 0x350, 0x360, 0x370, 0x380,
+            0x390, 0x3A0, 0x3B0, 0x3C0, 0x3D0, 0x3E0, and 0x3F0.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+sbpcd: Sound Blaster CDROM driver
+</title>
+<para>
+This is a driver for the Matsushita, Panasonic, Creative, Longshine, and
+TEAC CDROM drives that don't attach via ATA or SCSI.
+</para>
+<para>
+Example:
+<screen>
+modprobe sbpcd sbpcd=0x340
+</screen></para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>sbpcd</term>
+        <listitem><para>
+             address of base I/O port
+             </para></listitem>
+         </varlistentry>
+     </variablelist>
+</para>
+<para>
+An additional parameter is an SBPRO setting, as described in 
+<filename>Documentation/cdrom/sbpcd</filename> in the Linux source tree.
+</para>
+</sect3>
+
+<sect3>
+<title>
+mcd: Mitsumi CDROM driver
+</title>
+<para>
+This is a driver for Mitsumi CDROM drives that don't attach via ATA
+or SCSI.  It does not handle XA or multisession.
+</para>
+<para>
+Example:
+<screen>
+modprobe mcd mcd=0x300,11,0x304,5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>mcd</term>
+        <listitem><para>
+            This is a comma separated list of i/o base addresses and IRQs,
+            in pairs.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+
+<title>mcdx: Mitsumi XA/MultiSession driver
+</title>
+<para>
+This driver is like <command>mcd</command>, only it has XA and
+multisession functions.
+</para>
+<para>
+Example:
+<screen>
+modprobe mcdx mcdx=0x300,11,0x304,5
+</screen></para>
+
+</sect3>
+
+<sect3>
+<title>
+optcd: Optics Storage DOLPHIN 8000AT CDROM driver
+</title>
+<para>
+This is the driver for the so-called "dolphin" CDROM drive form Optics
+Storage, with the 34-pin Sony-compatible interface.  For the
+ATA-compatible Optics Storage 8001 drive, you will want the ATAPI
+CDROM driver.  The driver also seems to work with the Lasermate
+CR328A.
+</para>
+<para>
+Example:
+<screen>
+modprobe optcd optcd=0x340
+</screen></para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>optcd</term>
+        <listitem><para>
+            address of base I/O port
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+cm206: Philips/LMS CM206 CDROM driver
+</title>
+<para>
+This is the driver for the Philips/LMS cm206 CDROM drive in
+combination with the cm260 host adapter card.
+</para>
+<para>
+Example:
+<screen>
+modprobe cm206 cm206=0x300,11
+</screen></para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>cm206</term>
+        <listitem><para>
+            The address of the base I/O port the driver is to drive and
+            the IRQ the driver is to service, separated by a comma.  It doesn't
+            matter what order you put them in, and you may specify just one,
+            in which case the other defaults.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+sjcd: Sanyo CDR-H94A CDROM driver
+</title>
+<para>
+Example:
+<screen>
+modprobe sjcd sjcd_base=0x340
+</screen></para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>sjcd_base</term>
+        <listitem><para>
+            address of the base I/O port the driver is to drive.
+            Default is 0x340.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+<para>
+The driver uses no IRQ and no DMA channel.        
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+isp16: ISP16/MAD16/Mozart soft configurable cdrom driver
+</title>
+<para>
+This is a driver for the ISP16 or MAD16 or Mozart soft configurable
+cdrom interface.
+</para>
+<para>
+Example:
+<screen>
+modprobe isp16 isp16_cdrom_base=0x340 isp16_cdrom_irq=3
+         isp16_cdrom_dma=0 isp16_cdrom_type=Sanyo
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>isp16_cdrom_base</term>
+        <listitem><para>
+            address of base I/O port the driver is to drive.  Valid values
+            are 0x340, 0x320, 0x330, and 0x360.
+            </para></listitem>        
+        </varlistentry>
+    <varlistentry><term>isp16_cdrom_irq</term>
+        <listitem><para>        
+            IRQ the driver is to service.  Valid values are 0, 3, 5, 7, 9, 10, 
+            and 11.
+            </para></listitem>   
+        </varlistentry>
+    <varlistentry><term>isp16_cdrom_dma</term>
+        <listitem><para>
+            DMA channel the driver is to use with the device.  Valid
+            values are 0, 3, 5, 6, and 7.
+            </para></listitem>        
+        </varlistentry>
+    <varlistentry><term>isp16_cdrom_type</term>
+        <listitem><para>        
+            Type of device being driven.  Valid values are
+            <literal>noisp16</literal>, <literal>Sanyo</literal>,
+            <literal>Panasonic</literal>, <literal>Sony</literal> and
+            <literal>Mitsumi</literal>.  Note that these values are
+            case sensitive.
+            </para></listitem>        
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+cdu31a: Sony CDU31A/CDU33A CDROM driver
+</title>
+<para>
+Example:
+<screen>
+  modprobe cdu31a cdu31a_port=0x340 cdu31a_irq=5
+</screen>
+</para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>cdu31a_port</term>
+        <listitem><para>
+            address of base I/O port the driver is to drive.  This parameter
+            is mandatory.
+            </para></listitem>
+        </varlistentry>
+    <varlistentry><term>cdu31a_irq</term>
+        <listitem><para>        
+            IRQ the driver is to service.  If you don't specify this,
+            the driver does not use interrupts.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+
+<sect3>
+<title>
+sonycd535: Sony CDU535 CDROM driver
+</title>
+<para>
+Example:
+<screen>
+modprobe sonycd535 sonycd535=0x340
+</screen></para>
+<para>
+Parameters:
+<variablelist>
+    <varlistentry><term>sonycd535</term>
+        <listitem><para>
+            address of the base I/O port the driver is to drive.
+            </para></listitem>
+        </varlistentry>
+    </variablelist>
+</para>
+</sect3>
+</sect2>
+<sect2>
+<title>
+Filesystem Drivers
+</title>
+<sect3>
+<title>
+minix: Minix filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe minix
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ext: "Extended" filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe ext
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+ext2:  "Second extended" filessystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe ext2
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+xiafs:  xiafs filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe xiafs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+
+<sect3>
+<title>fat:  DOS FAT filesystem functions
+</title>
+<para>
+This module provides services for use by the MSDOS and VFAT
+filesystem drivers.
+</para>
+<para>
+Example:
+<screen>
+modprobe fat
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+
+<sect3>
+<title>
+msdos:  MSDOS filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe msdos
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on the module <command>fat</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+vfat: VFAT (Windows-95) filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe vfat
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>fat</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>umsdos:  UMSDOS filesystem driver
+</title>
+<para>
+This is a driver for the UMSDOS filesystem type, which is a unix style
+filesystem built on top of an MSDOS FAT filesystem.
+</para>
+<para>
+Example:
+<screen>
+modprobe vfat
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on the <command>fat</command> and
+<command>msdos</command> modules.
+</para>
+
+</sect3>
+
+<sect3>
+<title>nfs:  NFS filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe nfs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+
+
+<sect3>
+<title>smbfs:  SMB filesystem driver
+</title>
+<para>
+SMBFS is a filesystem type which has an SMB protocol interface. This
+is the protocol Windows for Workgroups, Windows NT or Lan Manager use
+to talk to each other.  SMBFS was inspired by Samba, the program
+written by Andrew Tridgell that turns any unix host into a file server
+for DOS or Windows clients.  See <ulink
+url="ftp://nimbus.anu.edu.au/pub/tridge/samba/">
+ftp://nimbus.anu.edu.au/pub/tridge/samba/</ulink> for this interesting
+program suite and lots of more information on SMB and NetBIOS over
+TCP/IP. There you also find explanation for concepts like netbios name
+or share.
+</para>
+<para>
+To use SMBFS, you need a special mount program, which can be found
+in the ksmbfs package, found on
+<ulink url="ftp://ibiblio.org/pub/Linux/system/Filesystems/smbfs">
+ftp://ibiblio.org/pub/Linux/system/Filesystems/smbfs</ulink>.
+</para>
+<para>
+Example:
+<screen>
+modprobe smbfs
+</screen>
+</para>
+<para>
+There are no module parameters
+</para>
+</sect3>
+
+
+<sect3>
+<title>ncpfs:  NCP (Netware) filesystem driver
+</title>
+<para>
+NCPFS is a filesystem type which has an NCP protocol interface,
+designed by the Novell Corporation for their NetWare product.  NCP is
+functionally similar to the NFS used in the TCP/IP community.  To
+mount a Netware filesystem, you need a special mount program, which
+can be found in the <application>ncpfs</application> package.
+Homesite for <application>ncpfs</application> is 
+<ulink url="ftp.gwdg.de/pub/linux/misc/ncpfs">
+ftp.gwdg.de/pub/linux/misc/ncpfs</ulink>, but Ibiblio and its many
+mirrors will have it as well.
+</para>
+<para>
+Related products are <application>Linware</application> and
+<application>Mars_nwe</application>, which will give Linux partial
+NetWare Server functionality.
+</para>
+<para>
+<application>Mars_nwe</application> can be found on <ulink
+url="ftp.gwdg.de/pub/linux/misc/ncpfs">
+ftp.gwdg.de/pub/linux/misc/ncpfs</ulink>.
+</para>
+<para>
+Example:
+<screen>
+modprobe ncpfs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>ipx</command>.
+</para>
+</sect3>
+
+<sect3>
+<title>
+isofs: ISO 9660 (CDROM) filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe isofs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+hpfs: OS/2 HPFS filesystem driver
+</title>
+<para>
+This filesystem driver for OS/2's HPFS filesystem provides only read-only
+access.
+</para>
+<para>
+Example:
+<screen>
+modprobe hpfs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+
+<title>sysv:  System V and Coherent filesystem driver
+</title>
+<para>
+This is the implementation of the SystemV/Coherent filesystem type for
+Linux.
+</para>
+<para>
+It implements all of
+<itemizedlist>
+<listitem><para>Xenix FS</para></listitem>
+<listitem><para>SystemV/386 FS</para></listitem>
+<listitem><para>Coherent FS</para></listitem>
+</itemizedlist>
+</para>
+<para>
+Example:
+<screen>
+modprobe sysv
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+affs: Amiga FFS filesystem driver
+</title>
+<para>
+Example:
+<screen>
+modprobe affs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+
+<sect3>
+<title>
+ufs: UFS filesystem driver
+</title>
+<para>
+Apparently for mounting disks with FreeBSD and/or Sun partitions.  No
+documentation exists, apart from The Source.
+</para>
+<para>
+This filesystem driver provides only read-only access.
+</para>
+<para>
+Example:
+<screen>
+modprobe ufs
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+</sect2>
+
+<sect2>
+<title>
+Miscellaneous Device Driver
+</title>
+<sect3>
+<title>
+misc: device driver for "miscellaneous" character devices
+</title>
+<para>
+A whole bunch of device types that don't appear in large enough numbers on 
+a system to deserve major numbers of their own share Major Number 10 and
+are collectively called "miscellaneous" character devices.  This module
+provides the common interface to serve that major number, but there are
+individual drivers for the specific device types.  Those drivers register
+themselves with this driver.
+</para>
+<para>
+Example:
+<screen>
+modprobe misc
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+</sect2>
+
+<sect2>
+<title>
+Serial Device Drivers
+</title>
+
+<sect3>
+<title>
+serial: serial communication port (UART) device driver
+</title>
+<para>
+This driver drives conventional serial ports (UARTs), but not some
+of the specialized high performance multi-port devices.
+</para>
+<para>
+NOTE: <command>serial</command> is required by other modules, such as
+<command>ppp</command> and <command>slip</command>.  Also it is
+required by serial mice and accordingly by
+<application>gpm</application>.  However this isn't the regular kind
+of dependency that is detected by module handling tools, so you must
+load <command>serial</command> manually.
+</para>
+<para>
+Example:
+<screen>
+modprobe serial
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+cyclades: Cyclades async mux device driver
+</title>
+<para>
+Example:
+<screen>
+  modprobe cyclades
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+The intelligent boards also need to have their firmware code
+downloaded to them. This is done via a user level application supplied
+in the driver package called
+<application>stlload</application>. Compile this program where ever
+you dropped the package files, by typing <command>make</command>. In
+its simplest form you can then type <command>stlload</command> in this
+directory and that will download firmware into board 0 (assuming board
+0 is an EasyConnection 8/64 board). To download to an ONboard, Brumby
+or Stallion do:
+</para>
+<para>
+Read the information in the file
+<filename>Documentation/stallion.txt</filename> in the Linux source
+tree.
+</para>
+
+</sect3>
+
+<sect3>
+
+<title>stallion: Stallion EasyIO or EC8/32 device driver
+</title>
+<para>
+The intelligent boards also need to have their firmware code
+downloaded to them. This is done via a user level application supplied
+in the driver package called <application>stlload</application>.
+</para>
+<para>
+Read the information in the file
+<filename>Documentation/stallion.txt</filename> in the Linux source
+tree.
+</para>
+<para>
+Example:
+<screen>
+  modprobe stallion
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+</sect3>
+
+<sect3>
+<title>
+istallion: Stallion EC8/64, ONboard, Brumby device driver
+</title>
+<para>
+The intelligent boards also need to have their firmware code
+downloaded to them. This is done via a user level application supplied
+in the driver package called <application>stlload</application>.
+</para>
+<para>
+Read the information at /usr/src/linux/drivers/char/README.stallion.
+</para>
+<para>
+Example:
+<screen>
+modprobe istallion
+</screen></para>
+<para>
+There are no module parameters.
+</para>
+
+</sect3>
+<sect3>
+<title>
+riscom8: SDL RISCom/8 card device driver
+</title>
+<para>
+Example:
+<screen>
+modprobe riscom8 iobase=0xXXX iobase1=0xXXX iobase2=...
+</screen>
+</para>
+<para>
+This driver can drive up to 4 boards at time.
+</para>
+
+</sect3>
+
+</sect2>
+
+<sect2>
+<title>
+Parallel Device Drivers
+</title>
+<sect3>
+<title>
+lp: Parallel printer device driver 
+</title>
+<para>
+Example:
+<screen>
+  modprobe lp.o io=0x378 irq=0
+</screen>
+</para>
+<para>
+This driver probes ports 0x278, 0x378, and 0x3bc.
+</para>
+<para>
+Note: loading <command>lp</command> without any parameters will
+grab all parallel ports.
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>
+Bus Mouse Device Drivers
+</title>
+<sect3>
+<title>
+atixlmouse: ATIXL busmouse driver
+</title>
+<para>
+Example:
+<screen>
+modprobe atixlmouse
+</screen>
+</para>
+<para>
+There are no parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+
+</sect3>
+
+
+<sect3>
+<title>
+busmouse: Logitech busmouse driver
+</title>
+<para>
+Example:
+<screen>
+modprobe busmouse
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+ </para>
+</sect3>
+<sect3>
+<title>
+msbusmouse: Microsoft busmouse driver
+</title>
+<para>
+Example:
+<screen>
+modprobe msbusmouse
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+
+</sect3>
+<sect3>
+<title>
+psaux: PS/2 mouse (aka "auxiliary device") driver
+</title>
+<para>
+Example:
+<screen>
+modprobe psaux
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+</sect3>
+</sect2>
+
+<sect2>
+<title>
+Tape Device Drivers
+</title>
+<para>
+For SCSI tape device drivers, see <xref linkend=SCSI>.  There are no
+LKMs for QIC-02 tape devices, but there is a device driver you can
+bind into the base kernel.
+</para>
+
+<sect3>
+<title>
+ftape: floppy tape (QIC-80/Travan) device driver
+</title>
+<para>
+Example:
+<screen>
+modprobe ftape tracing=3
+</screen>
+</para>
+<para>
+Optional parameter <parameter>tracing</parameter> can take following
+values
+
+<variablelist>
+<varlistentry><term>0</term><listitem><para>bugs
+</para></listitem></varlistentry>
+<varlistentry><term>1</term><listitem><para>+ errors
+</para></listitem></varlistentry>
+<varlistentry><term>2</term><listitem><para>+ warnings
+</para></listitem></varlistentry>
+<varlistentry><term>3</term><listitem><para>+ information
+</para></listitem></varlistentry>
+<varlistentry><term>4</term><listitem><para>+ more information
+</para></listitem></varlistentry>
+<varlistentry><term>5</term><listitem><para>+ program flow
+</para></listitem></varlistentry>
+<varlistentry><term>6</term><listitem><para>+ fdc/dma info
+</para></listitem></varlistentry>
+<varlistentry><term>7</term><listitem><para>+ data flow
+</para></listitem></varlistentry>
+<varlistentry><term>8</term><listitem><para>+ everything else
+</para></listitem></varlistentry>
+</variablelist></para>
+<para>
+The default is 3.
+</para>
+
+</sect3></sect2>
+
+<sect2>
+<title>
+Watchdog Timers
+</title>
+<sect3>
+<title>
+WDT: WDT Watchdog timer device driver
+</title>
+<para>
+Example:
+<screen>
+modprobe wdt
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+The device address is hardcoded as 0x240.  The IRQ is hardcoded as 14.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+
+</sect3>
+<sect3>
+<title>
+softdog: Software Watchdog Timer
+</title>
+<para>
+Example:
+<screen>
+  modprobe softdog
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+
+</sect3>
+<sect3>
+<title>
+pcwd: Berkshire Products PC Watchdog Driver
+</title>
+<para>
+Example:
+<screen>
+modprobe pcwd
+</screen>
+</para>
+<para>
+There are no module parameters.
+</para>
+<para>
+This module depends on module <command>misc</command>.
+</para>
+</sect3></sect2>
+
+
+<sect2>
+<title>
+Sound Device Drivers
+</title>
+<para>Configuring sound is a complex task.  Read the files in
+directory <filename class=directory>Documention/sound</filename> in
+the Linux source tree.
+</para>
+<para>
+Example:
+<screen>
+modprobe sound
+</screen>
+</para>
+<para>
+Option: dma_buffsize=32768
+</para>
+
+</sect2>
+</sect1>
+
+<sect1>
+<title>
+Maintenance Of This Document
+</title>
+<para>
+This HOWTO is enthusiastically maintained by Bryan Henderson
+<email>bryanh@giraffe-data.com</email>.  If you find something
+incorrect or incomplete or can't understand something, Bryan wants to
+know so maybe the next reader can be saved the trouble you had.
+</para>
+<para>
+The source for this document is DocBook SGML, and is available from
+the <ulink url="http://www.ldp.org">Linux Documentation Project</ulink>.
+</para>
+</sect1>
+
+
+<sect1>
+<title>
+History
+</title>
+<para>
+I have derived this (in 2001) from the HOWTO of the same name by
+Laurie Tischler, dated 1997.  While I have kept all of the information
+from that original document (where it is still useful), I have
+rewritten the presentation entirely and have added a lot of other
+information.  The original HOWTO's primary purpose was to document
+LKM parameters.
+</para>
+<para>
+The original HOWTO was first released (Release 1.0) June 20, 1996,
+with a second release (1.1) October 20, 1996.
+</para>
+<para>
+The first release of Bryan's rewrite was in June 2001.
+</para>
+
+</sect1>
+
+
+<sect1>
+<title>
+Copyright
+</title>
+<para>Here is Lauri Tischler's copyright notice from the original document
+from which this is derived:
+</para>
+<para>
+This document is Copyright <trademark
+class="copyright">1996</trademark> by Lauri Tischler.  Permisson is
+granted to make and distribute verbatim copies of this manual provided
+the copyright notice and this permission notice are preserved on all
+copies.
+</para>
+<para>
+Permission is granted to copy and distribute modified versions of this
+document under the conditions for verbatim copying, provided that this
+copyright notice is included exactly as in the original, and that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+</para>
+<para>
+Permission is granted to copy and distribute translations of this
+document into another language, under the above conditions for
+modified versions.
+</para>
+<para>
+Bryan Henderson, the current maintainer and contributing author of
+this document, licenses it under the same terms as above.  His work is
+Copyright <trademark class="copyright">2001</trademark>.
+</para>
+
+</sect1>
+</Article>
+
+
+
