@@ -42,7 +42,7 @@ C++ Programming HOW-TO
 <author>Al Dev (Alavoor Vasudevan) 
        <htmlurl url="mailto:alavoor@yahoo.com"
              name="alavoor@yahoo.com">
-<date>v30.0, 27 Jan 2001
+<date>v31.0, 01 Feb 2001
 <abstract>
 This document provides a comprehensive list of C++ URL 
 pointers, links to C++ online textbooks, and programming tips on C++. 
@@ -3070,6 +3070,262 @@ See the section <ref id="stlref" name="STL References">
 
 
 
+<chapt> Threads in C++
+-->
+<sect> Threads in C++
+<p>
+<itemize>
+<item> IBM pthread User Guide, Thread concepts, API reference
+<url url="http://www.as400.ibm.com/developer/threads/uguide/document.htm">
+and mirror site is at
+<url name="IBM main site" url="http://java.icmc.sc.usp.br/library/books/ibm_pthreads/document.htm">
+<p>
+<item> QpThread Library for C++ provides object oriented framework in C++
+for threads and Unix signals on top of system level threads (currently POSIX Threads) 
+<url url="http://lin.fsid.cvut.cz/~kra/index.html">
+<p>
+<item> ThreadJack supports Java-like multi-thread programming
+model with platform independent C++ class library
+<url url="http://www.esm.co.jp/divisions/open-sys/ThreadJack/index-e.html">
+and here is the
+<url name="download-site" url="http://www.esm.co.jp/divisions/open-sys/ThreadJack/source-dl-e.html">
+<p>
+<item> APE is the "APE Portable Environment" and class libraries for 
+writing portable threaded servers in C++, under UNIX (pthread) and Win32 API's.
+APE provides portable class abstraction for threads, sockets, file handling, and
+synchronization objects. The goal of APE is to make writing threaded
+servers in C++ both practical and convient, even for small 
+and simple projects, and hence simplicity and low runtime overhead 
+are design goals <url url="http://www.voxilla.org/projects/projape.html">
+<p>
+<item> Portabale Thread Lib <url url="http://www.media.osaka-cu.ac.jp/~k-abe/PTL">
+<p>
+<item> Thread-Recyling in C++ <url url="http://www.sigs.de/html/kuhlmann.html">
+</itemize>
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect1> Designing a Thread Class in C++
+<p>
+This section is written by 
+<htmlurl url="mailto:ryte@geocities.com"
+	name="Ryan Teixeira">
+and the document is located
+<url name="here" url="http://www.geocities.com/SiliconValley/Heights/6038/dthreads.html">
+.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> Introduction
+<p>
+Multi threaded programming is becomming ever more popular. This section 
+presents a design for a C++ class that will encapsulate the threading
+mechanism. Certain aspects of thread programming, like mutexes and semaphores 
+are not discussed here. Also, operating system calls to manipulate threads are 
+shown in a generic form.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> Brief Introduction To Threads
+<p>
+To understand threads one must think of several
+programs running at once. Imagine further 
+that all these programs have access to the same set of
+global variables and function calls.  
+Each of these programs would represent a thread of
+execution and is thus called a thread.  
+The important differentiation is that each thread does not have to wait 
+for any other thread to proceed. All the threads proceed 
+simultaneously. To use a metaphor, they are like runners 
+in a race, no runner waits for another runner. They
+all proceed at their own rate.
+
+Why use threads you might ask. Well threads can often
+improve the performance of an application and they do not incur 
+significant overhead to implement. They effectively give 
+good bang for a buck. Imagine an image server program
+that must service requests for images.  
+The program gets a request for an image from another program. It must 
+then retieve the image from a database and send it to the program that
+requested it. If the server were implemented in a single threaded 
+approach, only one program could request at a time. When it was busy 
+retrieving an image and sending it to a requestor, it could not 
+service other requests. Of course one could still implement such a system without
+using threads. It would be a challenge though. Using threads, one can very
+naturally design a system to handle multiple requests. A simple approach
+would be to create a thread for each request received. The main 
+thread would create this thread upon receipt of a request. The thread
+would then be responsible for the conversation with the client
+program from that point on. After retrieving the image, the thread would 
+terminate itself. This would provide a smooth system 
+that would continue to service requests even though it
+was busy serviceing other requests at the same time.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> Basic Approach
+<p>
+The create a thread, you must specify a function that will become the entry 
+point for the thread. At the operating system level, this is a
+normal function. We have to do a few tricks to wrap a C++ class around it 
+because the entry function cannot be a normal member function 
+of a class. However, it can be a static member function of a class. This is 
+what we will use as the entry point. There is a gotcha here though.
+Static member functions do not have access to the this pointer of 
+a C++ object. They can only access static data. Fortunately, 
+there is way to do it. Thread entry point functions take a void * 
+as a parameter so that the caller can typecast any data and pass in to 
+the thread. We will use this to pass this to the static function. The static 
+function will then typecast the void * and use it to call a non 
+static member function.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> The Implementation
+<p>
+It should be mentioned that we are going to discuss a thread class with 
+limited functionality. It is possible to do more with threads
+than this class will allow.
+
+<code>
+class Thread
+{
+   public:
+      Thread();
+      int Start(void * arg);
+   protected:
+      int Run(void * arg);
+      static void * EntryPoint(void*);
+      virtual void Setup();
+      virtual void Execute(void*);
+      void * Arg() const {return Arg_;}
+      void Arg(void*){Arg_ = a;}
+   private:
+      THREADID ThreadId_;
+      void * Arg_;
+
+};
+
+Thread::Thread() {}
+
+int Thread::Start(void * arg)
+{
+   Arg(arg); // store user data
+   int code = thread_create(Thread::EntryPoint, this, & ThreadId_);
+   return code;
+}
+
+int Thread::Run(void * arg)
+{
+   Setup();
+   Execute( arg );
+}
+
+/*static */
+void * Thread::EntryPoint(void * pthis)
+{
+   Thread * pt = (Thread*)pthis;
+   pthis->Run( Arg() );
+}
+
+virtual void Thread::Setup()
+{
+        // Do any setup here
+}
+
+virtual void Thread::Execute(void* arg)
+{
+        // Your code goes here
+}
+</code>
+
+It is important to understand that we are wrapping a C++ object 
+around a thread. Each object will provide an interface to a single thread. The
+thread and the object are not the same.  
+The object can exist without a thread. In this implementation, the
+thread does not actually exist until the Start function is called.
+
+Notice that we store the user argument in the class.
+This is necessary because we need a place to store it temporarily until the thread is
+started. The operating system thread call allows us to pass an argument but we have used it to
+pass the this pointer. So we store the real user argument in the class itself and when the
+execute function is called it can get access to the argument.
+
+<bf>Thread(); </bf>
+This is the constructor. 
+
+<bf>int Start(void * arg); </bf>
+This function provides the means to create the thread
+and start it going. The argument arg provides a way for user data to be passed into the
+thread. Start() creates the thread by calling the operating system thread creation function.
+
+<bf>int Run(void * arg); </bf>
+This is a protected function that should never be
+tampered with.
+
+<bf>static void * EntryPoint(void * pthis); </bf>
+This function serves as the entry point to the thread.
+It simply casts pthis to Thread * and 
+
+<bf>virtual void Setup(); </bf>
+This function is called after the thread has been
+created but before Execute() is called. If you override this function, remember to call the
+parent class Execute().
+
+<bf>virtual void Execute(void *); </bf>
+You must override this function to provide your own
+functionality.
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> Using The Thread Class
+<p>
+To use the thread class, you derive a new class. you
+override the Execute() function where you provide your own functionality. You may override
+the Setup() function to do any start up 
+duties before Execute is called. If you override
+Setup(), remember to call the parent class Setup().
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+-->
+<sect2> Conclusion
+<p>
+This section presented an implementation of a thread class written in C++. 
+Of course it is a simple approach but it provides a sound foundation
+upon which to build a more robust design. 
+
+If you have comments or suggestions, email to 
+<htmlurl url="mailto:ryte@geocities.com"
+	name="Ryan Teixeira">
+<!-- 
+	*******************************************
+	************ End of Section ***************
+	*******************************************
+
+
+
+
 <chapt change> C++ Utilities
 -->
 <sect> C++ Utilities
@@ -3088,6 +3344,22 @@ and at <url url="http://aldev.50megs.com/cpphowto/cpp_PortabilityGuide.html" nam
 <url url="http://www.angelfire.com/nv/aldev/cpphowto/cpp_Snippets.html">
 and at <url url="http://aldev.50megs.com/cpphowto/cpp_Snippets.html" name="mirror site">
 and at <url url="http://www.strangecreations.com/library/snippets" name="snippets site">
+<p>
+<item> escape ISB for C++ - Provides information on how to
+develop and program distributed, object-based applications in C++ for 
+Windows and Unix using the Netscape Internet Service Broker 
+<url url="http://docs.iplanet.com/docs/manuals/enterprise/cpluspg/contents.htm">
+<p>
+<item> Common c++ <url url="http://www.voxilla.org/projects/projape.html">
+<p>
+<item> Large List of free C++ libs
+<url url="http://www.thefreecountry.com/developercity/freelib.html">
+<p>
+<item> C++ Tools <url url="http://development.freeservers.com">
+<p>
+<item> C++ Tools CUJ <url url="http://www.cuj.com/code">
+<p>
+<item> C++libs Univ of vaasa <url url="http://garbo.uwasa.fi/pc/c-lang.html">
 </itemize>
 <!-- 
 	*******************************************
