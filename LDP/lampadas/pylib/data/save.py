@@ -72,10 +72,16 @@ def document(req, username, doc_id,
              lang, maintainer_wanted,
              license_code, license_version, copyright_holder,
              short_desc, sk_seriesid, replaced_by_id,
-             lint_time, pub_time, mirror_time):
+             lint_time, pub_time, mirror_time,
+             delete=''):
 
     if not doc_id:
         return error("A required parameter is missing. Please go back and correct the error.")
+
+    if delete=='on':
+        lampadas.docs.delete(int(doc_id))
+        redirect(req, '../../document_deleted' + referer_lang_ext(req))
+        return
 
     doc = lampadas.docs[int(doc_id)]
     if doc==None:

@@ -455,6 +455,7 @@ class Docs(LampadasCollection):
         doc.ratings.clear()
         doc.topics.clear()
         doc.notes.clear()
+        doc.collections.clear()
         self.adjust_lang_count(doc.lang, -1)
 
         sql = ('DELETE from document WHERE doc_id=' + str(id))

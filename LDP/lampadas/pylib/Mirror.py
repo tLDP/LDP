@@ -143,8 +143,8 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
-        command = 'lampadas-filter ' + workdir
-        os.system(command)
+#        command = 'lampadas-filter ' + workdir
+#        os.system(command)
         
         if doc.errors.count('mirror')==0 and doc.files.error_count==0:
             doc.mirror_time = now_string()

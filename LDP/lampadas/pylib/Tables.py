@@ -167,6 +167,7 @@ class Tables(LampadasCollection):
         if uri.id > 0:
             lintadas.check_doc(uri.id)
             doc = lampadas.docs[uri.id]
+            delete_widget = widgets.delete() + '|strdelete| '
             box.write('<form method=GET action="|uri.base|data/save/document" '\
                       'name="document">')
         else:
@@ -177,6 +178,7 @@ class Tables(LampadasCollection):
             doc.pub_status_code = 'P'
             doc.review_status_code = 'U'
             doc.tech_review_status_code = 'U'
+            delete_widget = ''
             box.write('<form method=GET action="|uri.base|data/save/newdocument" '\
                       'name="document">')
 
@@ -240,7 +242,7 @@ class Tables(LampadasCollection):
                   '    <td class="label">|strreplacedby|</td><td colspan="3">%s</td></tr>\n'
                   '<tr><td class="label">|strisbn|</td><td>%s</td>\n'
                   '    <td class="label">|strencoding|</td><td>%s</td></tr>\n'
-                  '<tr><td></td><td>%s</td></tr>'
+                  '<tr><td></td><td>%s%s</td></tr>'
                   '</table></form>'
                   % (sessions.session.username, doc.id,
                      widgets.title(metadata.title, css_class=title_class),
@@ -269,7 +271,7 @@ class Tables(LampadasCollection):
                      widgets.replaced_by_id(doc.replaced_by_id),
                      widgets.isbn(metadata.isbn, css_class=isbn_class),
                      widgets.encoding(metadata.encoding, css_class=encoding_class),
-                     widgets.save()))
+                     delete_widget, widgets.save()))
         return box.get_value()
 
     def viewdocversions(self, uri):
@@ -1535,220 +1537,6 @@ class Tables(LampadasCollection):
                ))
         return box.get_value()
 
-    def tablint_time_stats(self, uri):
-        log(3, 'Creating lint_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strlint_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strlint_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['lint_time']
-        odd_even = OddEven()
-        for key in stattable.sort_by('label'):
-            stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabmirror_time_stats(self, uri):
-        log(3, 'Creating mirror_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strmirror_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strmirror_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['mirror_time']
-        odd_even = OddEven()
-        for key in stattable.sort_by('label'):
-            stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabpub_time_stats(self, uri):
-        log(3, 'Creating pub_time_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_time_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strpub_time|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['pub_time']
-        odd_even = OddEven()
-        for key in stattable.sort_by('label'):
-            stat = stattable[key]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabpub_status_stats(self, uri):
-        log(3, 'Creating pub_status_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strpub_status_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strstatus|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['pub_status']
-        odd_even = OddEven()
-        for key in lampadas.pub_statuses.sort_by('sort_order'):
-            stat = stattable[key]
-            if stat==None:
-                stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(),
-                        lampadas.pub_statuses[key].name[uri.lang], 
-                        stat.value, 
-                        fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabdoc_error_stats(self, uri):
-        log(3, 'Creating doc_error_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strid|</th>\n' \
-                             '<th class="collabel">|strerror|</th>\n' \
-                             '<th class="collabel">|strtype|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['doc_error']
-        odd_even = OddEven()
-        for key in stattable.sort_by('label'):
-            stat = stattable[key]
-            error = errors[key]
-            errortype = errortypes[error.err_type_code]
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td>%s</td>\n' \
-                          '<td>%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(),
-                        stat.label, 
-                        errortype.name[uri.lang],
-                        error.name[uri.lang], 
-                        stat.value))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td></td><td></td><td align="right">%s</td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabdoc_format_stats(self, uri):
-        log(3, 'Creating doc_format_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strdoc_format_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strformat|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['doc_format']
-        odd_even = OddEven()
-        for key in lampadas.formats.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
-            if stat==None:
-                stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(),
-                        lampadas.formats[key].name[uri.lang], 
-                        stat.value, 
-                        fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabdoc_dtd_stats(self, uri):
-        log(3, 'Creating doc_dtd_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="3">|strdoc_dtd_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strdtd|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['doc_dtd']
-        odd_even = OddEven()
-        for key in lampadas.dtds.sort_by('code'):
-            stat = stattable[key]
-            if stat==None:
-                stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(),
-                        lampadas.dtds[key].code, 
-                        stat.value, 
-                        fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
-    def tabdoc_lang_stats(self, uri):
-        log(3, 'Creating doc_lang_stats table')
-        box = WOStringIO('<table class="box">\n' \
-                         '<tr><th colspan="4">|strdoc_lang_stats|</th></tr>\n' \
-                         '<tr><th class="collabel">|strlanguage_code|</th>\n' \
-                             '<th class="collabel">|strlanguage|</th>\n' \
-                             '<th class="collabel" align="right">|strcount|</th>\n' \
-                             '<th class="collabel" align="right">|strpct|</th>\n' \
-                         '</tr>\n')
-        stattable = stats['doc_lang']
-        odd_even = OddEven()
-        for key in languages.sort_by_lang('name', uri.lang):
-            stat = stattable[key]
-            if stat==None:
-                stat = Stat()
-            box.write('<tr class="%s"><td class="label">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                          '<td align="right">%s</td>\n' \
-                      '</tr>\n'
-                      % (odd_even.get_next(),
-                        languages[key].code, 
-                        languages[key].name[uri.lang],
-                        stat.value, 
-                        fpformat.fix(stattable.pct(key) * 100, 2)))
-        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
-                      '<td align="right">%s</td><td></td>\n' \
-                  '</tr></table>'
-                  % (odd_even.get_next(), stattable.sum()))
-        return box.get_value()
-        
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
         box = '''<form name="mailpass" action="|uri.base|data/save/mailpass">
@@ -2349,6 +2137,291 @@ class TabEditThisPage(Table):
         else:
             return '<center><a href="|uri.base|page_edit/|uri.page_code||uri.lang_ext|">|stredit_this_page|</a></center>'
 
+class TabLintTimeStats(Table):
+    
+    def __init__(self):
+        Table.__init__(self, 'lint_time_stats', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating lint_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strlint_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strlint_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['lint_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+      
+class TabMirrorTimeStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'mirror_time_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating mirror_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strmirror_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strmirror_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['mirror_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+class TabPubTimeStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pub_time_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating pub_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strpub_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+class TabPubStatusStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pub_status_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating pub_status_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_status_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strstatus|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_status']
+        odd_even = OddEven()
+        for key in lampadas.pub_statuses.sort_by('sort_order'):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.pub_statuses[key].name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+class TabDocErrorStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'doc_error_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating doc_error_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="4">|strdoc_error_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strid|</th>\n' \
+                             '<th class="collabel">|strerror|</th>\n' \
+                             '<th class="collabel">|strtype|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_error']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            error = errors[key]
+            errortype = errortypes[error.err_type_code]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td>%s</td>\n' \
+                          '<td>%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        stat.label, 
+                        errortype.name[uri.lang],
+                        error.name[uri.lang], 
+                        stat.value))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td></td><td></td><td align="right">%s</td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+class TabDocFormatStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'doc_format_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating doc_format_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strdoc_format_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strformat|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_format']
+        odd_even = OddEven()
+        for key in lampadas.formats.sort_by_lang('name', uri.lang):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.formats[key].name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+
+class TabPubDocFormatStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pub_doc_format_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating pub_doc_format_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_doc_format_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strformat|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_doc_format']
+        odd_even = OddEven()
+        for key in lampadas.formats.sort_by_lang('name', uri.lang):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.formats[key].name[uri.lang], 
+                        stat.value, 
+                        fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+
+class TabDocDTDStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'doc_dtd_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating doc_dtd_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strdoc_dtd_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strdtd|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['doc_dtd']
+        odd_even = OddEven()
+        for key in lampadas.dtds.sort_by('code'):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.dtds[key].code, 
+                        stat.value, 
+                        fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+
+class TabPubDocDTDStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pub_doc_dtd_stats', self.method)
+        
+    def method(self, uri):
+        log(3, 'Creating pub_doc_dtd_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_doc_dtd_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strdtd|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_doc_dtd']
+        odd_even = OddEven()
+        for key in lampadas.dtds.sort_by('code'):
+            stat = stattable[key]
+            if stat==None:
+                stat = Stat()
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(),
+                        lampadas.dtds[key].code, 
+                        stat.value, 
+                        fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+
 class TabDocLangStats(Table):
 
     def __init__(self):
@@ -2363,6 +2436,35 @@ class TabDocLangStats(Table):
                              '<th class="collabel" align="right">|strpct|</th>\n' \
                          '</tr>\n')
         stattable = stats['doc_lang']
+        odd_even = OddEven()
+        for key in languages.sort_by_lang('name', uri.lang):
+            stat = stattable[key]
+            if stat==None: continue
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), languages[stat.label].name[uri.lang], stat.value, fpformat.fix(stattable.pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
+class TabPubDocLangStats(Table):
+
+    def __init__(self):
+        Table.__init__(self, 'pub_doc_lang_stats', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating pub_doc_lang_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strpub_doc_lang_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strlanguage|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['pub_doc_lang']
         odd_even = OddEven()
         for key in languages.sort_by_lang('name', uri.lang):
             stat = stattable[key]
@@ -2395,6 +2497,16 @@ class TableMap(LampadasCollection):
         self['tabomf'] = TabOMF()
         self['tabfile_metadata'] = TabFileMetadata()
         self['tabedit_this_page'] = TabEditThisPage()
+        self['tabpub_status_stats'] = TabPubStatusStats()
+        self['tablint_time_stats'] = TabLintTimeStats()
+        self['tabmirror_time_stats'] = TabMirrorTimeStats()
+        self['tabpub_time_stats'] = TabPubTimeStats()
+        self['tabdoc_error_stats'] = TabDocErrorStats()
+        self['tabpub_doc_format_stats'] = TabPubDocFormatStats()
+        self['tabpub_doc_dtd_stats'] = TabPubDocDTDStats()
+        self['tabpub_doc_lang_stats'] = TabPubDocLangStats()
+        self['tabdoc_format_stats'] = TabDocFormatStats()
+        self['tabdoc_dtd_stats'] = TabDocDTDStats()
         self['tabdoc_lang_stats'] = TabDocLangStats()
 
 tables = Tables()

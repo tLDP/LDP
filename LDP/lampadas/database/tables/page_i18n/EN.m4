@@ -65,7 +65,17 @@ insert([recentnews], [Recent News], [],
 
 insert([stats], [Current Statistics], [],
 [
+    <h1>Global Document Statistics</h1>
+
     |tabpub_status_stats|
+
+    <p>These statistics include all documents in the database, regardless of their status.
+
+    <p>|tabdoc_format_stats|
+    <p>|tabdoc_dtd_stats|
+    <p>|tabdoc_lang_stats|
+
+    <p><hr>
 
     <h1>Publishing Statistics</h1>
 
@@ -104,9 +114,9 @@ insert([stats], [Current Statistics], [],
     <p>The following tables give statistics on various document
     meta-data:
     
-    <p>|tabdoc_format_stats|
-    <p>|tabdoc_dtd_stats|
-    <p>|tabdoc_lang_stats|
+    <p>|tabpub_doc_format_stats|
+    <p>|tabpub_doc_dtd_stats|
+    <p>|tabpub_doc_lang_stats|
 ])
 
 insert([staff], [Staff], [],
@@ -533,12 +543,17 @@ insert([view_document], [|doc.title|], [],
     |tabviewdoc|
     <p>|tabdocerrors|
     <p>|tabviewdocfiles|
-    <p>|tabviewdocfileerrors|
+    <p>|tabdocfileerrors|
     <p>|tabviewdocusers|
     <p>|tabviewdocversions|
     <p>|tabviewdoctopics|
     <p>|tabviewdocnotes|
     <p>|tabdoctranslations|
+])
+
+insert([document_deleted], [Document Deleted], [],
+[
+    The document has been deleted from the database.
 ])
 
 insert([news_edit], [Edit News], [],

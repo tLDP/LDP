@@ -332,20 +332,6 @@ class PageFactory:
                     newstring = tables.tabsearch(uri, lang=uri.lang)
                 elif token=='tabsplashlanguages':
                     newstring = tables.tabsplashlanguages(uri)
-                elif token=='tablint_time_stats':
-                    newstring = tables.tablint_time_stats(uri)
-                elif token=='tabmirror_time_stats':
-                    newstring = tables.tabmirror_time_stats(uri)
-                elif token=='tabpub_time_stats':
-                    newstring = tables.tabpub_time_stats(uri)
-                elif token=='tabpub_status_stats':
-                    newstring = tables.tabpub_status_stats(uri)
-                elif token=='tabdoc_error_stats':
-                    newstring = tables.tabdoc_error_stats(uri)
-                elif token=='tabdoc_format_stats':
-                    newstring = tables.tabdoc_format_stats(uri)
-                elif token=='tabdoc_dtd_stats':
-                    newstring = tables.tabdoc_dtd_stats(uri)
                 elif token=='tabdocument_tabs':
                     newstring = tables.tabdocument_tabs(uri)
                 elif token=='tabdocument_icon_box':

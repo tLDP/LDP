@@ -73,14 +73,58 @@ insert([recentnews], [|strproject| News], [|strprojectshort| News],
 
 insert([stats], [Current Statistics], [],
 [
+    <h1>Global Document Statistics</h1>
+
     |tabpub_status_stats|
-    <p>|tabdoc_error_stats|
-    <p>|tablint_time_stats|
-    <p>|tabmirror_time_stats|
-    <p>|tabpub_time_stats|
+
+    <p>These statistics include all documents in the database, regardless of their status.
+
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
     <p>|tabdoc_lang_stats|
+
+    <p><hr>
+
+    <h1>Publishing Statistics</h1>
+
+    <p>These statistics show the state of the document publication
+    system.
+
+    <p>The first table indicates when Lintadas (the Lampadas error
+    checker) was run on each document:
+    
+    <p>|tablint_time_stats|
+
+    <p><hr>
+
+    <p>This table indicates when documents were successfully mirrored:
+
+    <p>|tabmirror_time_stats|
+
+    <p><hr>
+
+    <p>This table indicates when documents were successfully published:
+
+    <p>|tabpub_time_stats|
+
+    <p><hr>
+
+    <p>This table indicates what document errors have been identified by
+    Lintadas, or during mirroring or publication:
+
+    <p>|tabdoc_error_stats|
+
+    <h1>Published Document Statistics</h1>
+
+    <p>The rest of these statistics only report on documents that
+    have been successfully published.
+
+    <p>The following tables give statistics on various document
+    meta-data:
+    
+    <p>|tabpub_doc_format_stats|
+    <p>|tabpub_doc_dtd_stats|
+    <p>|tabpub_doc_lang_stats|
 ])
 
 insert([staff], [Staff], [],
@@ -362,12 +406,17 @@ insert([view_document], [|doc.title|], [],
     |tabviewdoc|
     <p>|tabdocerrors|
     <p>|tabviewdocfiles|
-    <p>|tabviewdocfileerrors|
+    <p>|tabdocfileerrors|
     <p>|tabviewdocusers|
     <p>|tabviewdocversions|
     <p>|tabviewdoctopics|
     <p>|tabviewdocnotes|
     <p>|tabdoctranslations|
+])
+
+insert([document_deleted], [Document Deleted], [],
+[
+    The document has been deleted from the database.
 ])
 
 insert([news_edit], [Edit News], [],

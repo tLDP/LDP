@@ -1,6 +1,6 @@
 CREATE TABLE string
 (
-	string_code		CHAR(20)	NOT NULL,
+	string_code		CHAR(40)	NOT NULL,
 	created			TIMESTAMP	NOT NULL	DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL	DEFAULT now(),
 

@@ -49,6 +49,7 @@ insert(document_notes,       default,    [],         0,  [doc],              t, 
 insert(document_translation, default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_errors,      default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_admin,       default,    [],         0,  [doc],              t,  t,  f,  f)
+insert(document_deleted,     default,    [],         0,  [],                 t,  t,  f,  f)
 insert(view_document,        default,    [],         0,  [doc],              f,  f,  f,  f)
 insert(news_edit,            default,    [],         0,  [news],             f,  f,  t,  f)
 insert(page_edit,            default,    [],         0,  [page],             f,  f,  t,  f)
