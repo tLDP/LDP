@@ -99,15 +99,17 @@ while (@row = $result->fetchrow) {
 	$name  = $row[0];
 	$email = $row[1];
 	$sgml .= "    <author>\n";
+	$sgml .= "      <firstname>$name</firstname>\n";
 	$sgml .= "      <affiliation>\n";
 	$sgml .= "        <address>\n";
-	$sgml .= "          <firstname>$name</firstname>\n";
+	$sgml .= "          <email><ulink url='mailto:$email'><citetitle>$email</citetitle></ulink></email>\n";
 	$sgml .= "        </address>\n";
 	$sgml .= "      </affiliation>\n";
 	$sgml .= "    </author>\n";
 }	
 
-$sgml .= "    <revhistory>\n";
+$revhistory = 0;
+
 $result = $conn->exec("SELECT version, pub_date, initials, notes FROM document_rev WHERE doc_id = $doc_id ORDER BY pub_date DESC");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 while (@row = $result->fetchrow) {
@@ -116,14 +118,16 @@ while (@row = $result->fetchrow) {
 	$rev_date = $row[1];
 	$rev_init = $row[2];
 	$rev_note = $row[3];
+	$sgml .= "    <revhistory>\n" unless ($revhistory);
 	$sgml .= "      <revision>\n";
 	$sgml .= "        <revnumber>$rev_version</revnumber>\n";
 	$sgml .= "        <date>$rev_date</date>\n";
 	$sgml .= "        <authorinitials>$rev_init</authorinitials>\n";
 	$sgml .= "        <revremark>$rev_note</revremark>\n";
 	$sgml .= "      </revision>\n";
+	$revhistory++;
 }	
-$sgml .= "    </revhistory>\n";	
+$sgml .= "    </revhistory>\n" if ($revhistory);
 $sgml .= "  </articleinfo>\n";
 	
 open(SGML, $sgmlfile);
