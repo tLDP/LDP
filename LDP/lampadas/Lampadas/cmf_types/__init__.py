@@ -1,3 +1,2 @@
-import DDocument
-import Fact
+import Document
 #import DFolder
