@@ -57,7 +57,8 @@ sub Reset {
     $txtfile = '';
     $dbfile = '';
     $verbose = 0;
-    $doctype = 0;
+    $doctype = '';
+    $articleclass = '';
     $nonet = 0;
 
     # These maintain state
@@ -85,7 +86,7 @@ sub new {
 }
 
 sub ProcessFile {
-    ($self, $txtfile, $dbfile, $verbose, $doctype, $nonet, $encoding) = @_;
+    ($self, $txtfile, $dbfile, $verbose, $doctype, $articleclass, $nonet, $encoding) = @_;
 
     # Read from STDIN if no input file given
     # 
@@ -125,11 +126,19 @@ sub ProcessFile {
         $buf .= '  %ISOnum;' . "\n";
         $buf .= "\]\>\n";
         $buf .= "\n";
-        $buf .= '<article>' . "\n";
+        if ($articleclass) {
+		$buf .= "<article class='$articleclass'>\n";
+	} else {
+		$buf .= '<article>' . "\n";
+	}
     } elsif ($doctype eq 'SGML') {
         print "Adding SGML DOCTYPE and article tags." if ($verbose);
         $buf = '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
-        $buf .= '<article>' . "\n";
+        if ($articleclass) {
+		$buf .= "<article class='$articleclass'>\n";
+	} else {
+		$buf .= '<article>' . "\n";
+	}
     }
 
     # read in the text file
@@ -220,7 +229,7 @@ sub ProcessLine {
         } elsif ($link =~ /^link:/) {
             $link =~ s/^link://;
             $linkname =~ s/^link://;
-            $line =~ s/\[\[.*?\]\]/<xref linkend='$link' endterm='$link'\>\<\/xref\>/;
+            $line =~ s/\[\[.*?\]\]/<xref linkend='$link' endterm='$link-title'\/\>/;
         } elsif ($link =~ /^mailto:/) {
             $linkname =~ s/^mailto://;
             $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
@@ -235,28 +244,29 @@ sub ProcessLine {
             if ($nonet) {
                 $line =~ s/\[\[.*?\]\]/<citetitle>$link<\/citetitle>/;
             } else {
-                $tempfile = "/tmp/wt2db-" . $rand;
-                $cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
-                print "$cmd\n" if ($verbose > 1);
-                $return = system("$cmd");
-                unless ($return) {
-                    open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
-                    $link = '';
-                    while ($url_line = <URL>) {
-                        $url_line =~ s/\n//;
-                        if ($url_line =~ /identifier/) {
-                            $link .= $url_line;
-                        }
-                    }
-                    close(URL);
-                    unlink $tempfile;
-                }
-                $link =~ s/^.*?<identifier>//;
-                $link =~ s/<\/identifier>.*?$//;
-                if ($link eq '') {
-                    $linkname = "ERROR: LDP namespace resolution failure on $linkname";
-                }
-                $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+                #$tempfile = "/tmp/wt2db-" . $rand;
+                #$cmd = "wget -q http://db.linuxdoc.org/cgi-pub/ldp-xml.pl?name=$link -O $tempfile";
+                #print "$cmd\n" if ($verbose > 1);
+                #$return = system("$cmd");
+                #unless ($return) {
+                #    open(URL, "$tempfile") || die "wt2db: cannot open temporary file ($!)\n\n";
+                #    $link = '';
+                #    while ($url_line = <URL>) {
+                #        $url_line =~ s/\n//;
+                #        if ($url_line =~ /identifier/) {
+                #            $link .= $url_line;
+                #        }
+                #    }
+                #    close(URL);
+                #    unlink $tempfile;
+                #}
+                #$link =~ s/^.*?<identifier>//;
+                #$link =~ s/<\/identifier>.*?$//;
+                #if ($link eq '') {
+                #    $linkname = "ERROR: LDP namespace resolution failure on $linkname";
+                #}
+                #$line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+                $line =~ s/\[\[.*?\]\]/<citetitle>$linkname<\/citetitle>/;
             }
         } elsif ($link =~ /^file:/) {
             $linkname =~ s/^file://;
@@ -475,7 +485,7 @@ sub ProcessLine {
         if ($id eq '') {
             $line = "<question><para>$title</para></question>";
         } else {
-            $line = "<question id='$id'><para>$title</para></question>";
+            $line = "<question id='$id'><para id='$id-title'>$title</para></question>";
         }
         unless ($qandaentry) {
             $line = "<qandaentry>\n" . $line;
@@ -627,6 +637,7 @@ sub closepara {
 }
 
 sub trimline {
+    chomp($line);
     $line =~ s/\s+$//;
     $line =~ s/^\s+//;
 }
