@@ -6,6 +6,11 @@ m4_dnl  it in translations when the translation is up to date.
 m4_dnl  "menu_name" is the short name of the page, which is
 m4_dnl  typically listed in sidebar menus.
 
+insert([index], [|strproject|], [Splash Page],
+[
+    |tabsplashlanguages|
+], 0)
+
 insert([newdocument], [Dokument hinzufügen], [],
 [
     |tabeditdoc|

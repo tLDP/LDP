@@ -27,4 +27,6 @@
      of multiple HTML files, those templates or parameters could be
      entered here. -->
 
+<xsl:param name="chunk.quietly" select="1"/>
+
 </xsl:stylesheet>

@@ -1,5 +1,6 @@
-insert(strproject,          [PROJECT])
-insert(strprojectshort,     [PROJ])
+insert(strwelcometo,        [Bienvenue à])
+insert(strproject,          [Lampadas])
+insert(strprojectshort,     [Lampadas])
 insert(strhome,             [Racine])
 insert(strdoctable,         [Table des documents])
 insert(strdocdetails,       [D&eacute;tails du Document])

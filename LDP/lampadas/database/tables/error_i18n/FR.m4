@@ -16,4 +16,6 @@ insert(5,
 insert(6,
   [Fichier illisible],
   [Ce fichier existe, mais est illisible.])
-
+insert(7,
+  [Cannot determine file format],
+  [Lampadas cannot determine what format this file is stored in, so it cannot be published.])

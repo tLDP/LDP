@@ -3,6 +3,11 @@ m4_dnl  The last field is the version number. Please bump it
 m4_dnl  by one if you're the primary author, and synchronize
 m4_dnl  it in translations when the translation is up to date.
 
+insert([index], [|strproject|], [Splash Page],
+[
+    |tabsplashlanguages|
+], 0)
+
 insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|

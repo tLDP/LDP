@@ -3,6 +3,11 @@ m4_dnl  The last field is the version number. Please bump it
 m4_dnl  by one if you're the primary author, and synchronize
 m4_dnl  it in translations when the translation is up to date.
 
+insert([index], [|strproject|], [Splash Page],
+[
+    |tabsplashlanguages|
+], 1)
+
 insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|
@@ -21,11 +26,11 @@ insert([sessions], [User Sessions], [],
 
 insert([my], [My Home], [],
 [
-    <p>This is your personal home page.
+    <p>This is your personal home page.</p>
 
-    <p>This table lists documents you have volunteered to contribute to:
+    <p>This table lists documents you have volunteered to contribute to:</p>
 
-    <p>|session_user_docs|
+    <p>|session_user_docs|</p>
 ], 1)
 
 insert([home], [|strproject|], [Home], 
@@ -97,7 +102,7 @@ insert([staff], [Staff], [],
 
 insert([contribute], [Contributing to |strproject|], [Contributing to |strprojectshort|],
 [
-    As a member of this Lampadas community, you can collaborate with
+    <p>As a member of this Lampadas community, you can collaborate with
     hundreds or even thousands of others to produce documentation,
     which can then be shared with others all around the world over the
     Web.

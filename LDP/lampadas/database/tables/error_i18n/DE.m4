@@ -16,3 +16,6 @@ insert(5,
 insert(6,
   [Datei nicht lesbar],
   [Die Datei existiert, Lampadas kann aber nicht davon lesen.])
+insert(7,
+  [Cannot determine file format],
+  [Lampadas cannot determine what format this file is stored in, so it cannot be published.])

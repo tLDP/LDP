@@ -1,3 +1,4 @@
+insert(strwelcometo)
 insert(strproject)
 insert(strprojectshort)
 insert(strhome)

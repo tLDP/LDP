@@ -1,23 +1,71 @@
+insert(splash,
+[
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+	<html>
+      |blkhead|
+	  <body>
+        |body|
+	  </body>
+	</html>
+])
+
+insert(index,
+[
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+	<html>
+      |blkhead|
+	  <body>
+	    <table class="layout" width="100%">
+	      <tr>
+            <td class="sidebarleft">
+              |blklogo|
+            </td>
+            <td class="body" width="100%" colspan="2">
+              |blkheader|
+            </td>
+	      </tr>
+	      <tr>
+            <td class="sidebarleft" valign="top">
+              |navmenus|
+              <p>|navtopics|
+              <p>|navtypes|
+              <p>|navlanguages|
+            </td>
+            <td class="body" width="100%" valign="top">
+              |body|
+            </td>
+            <td class="sidebarright" valign="top">
+              |navlogin|
+              <p>|navsessions|
+            </td>
+	      </tr>
+	      <tr>
+            <td colspan="3">
+              |blkfooter|
+            </td>
+	      </tr>
+        </table>
+	  </body>
+	</html>
+])
+
 insert(default,
 [
     <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 	<html>
-	  <head>
-	    <title>|title|</title>
-	    <link rel="stylesheet" href="|uri.base|css/|stylesheet|.css" type="text/css">
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	  </head>
+      |blkhead|
 	  <body>
 	    <table class="layout" width="100%">
 	      <tr>
-            <td>
+            <td class="sidebarleft">
+              |blklogo|
+            </td>
+            <td class="body" width="100%">
               |blkheader|
             </td>
 	      </tr>
-        </table>
-	    <table class="layout" width="100%">
 	      <tr>
-            <td class="sidebarleft" valign="top" width="250">
+            <td class="sidebarleft" valign="top">
               |navmenus|
               <p>|navtopics|
               <p>|navtypes|
@@ -27,8 +75,6 @@ insert(default,
               |body|
             </td>
 	      </tr>
-        </table>
-	    <table class="layout" width="100%">
 	      <tr>
             <td>
               |blkfooter|
@@ -39,47 +85,3 @@ insert(default,
 	</html>
 ])
 
-insert(index,
-[
-    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-	<html>
-	  <head>
-	    <title>|title|</title>
-	    <link rel="stylesheet" href="|uri.base|css/|stylesheet|.css" type="text/css">
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	  </head>
-	  <body>
-	    <table class="layout" width="100%">
-	      <tr>
-            <td>
-              |blkheader|
-            </td>
-	      </tr>
-        </table>
-	    <table class="layout" width="100%">
-	      <tr>
-            <td class="sidebarleft" valign="top" width="250">
-              |navmenus|
-              <p>|navtopics|
-              <p>|navtypes|
-              <p>|navlanguages|
-            </td>
-            <td class="body" width="100%" valign="top">
-              |body|
-            </td>
-            <td class="sidebarright" valign="top" width="250">
-              |navlogin|
-              <p>|navsessions|
-            </td>
-	      </tr>
-        </table>
-	    <table class="layout" width="100%">
-	      <tr>
-            <td>
-              |blkfooter|
-            </td>
-	      </tr>
-        </table>
-	  </body>
-	</html>
-])

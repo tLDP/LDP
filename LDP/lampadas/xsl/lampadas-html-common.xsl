@@ -69,6 +69,8 @@
      single line. -->
 <xsl:param name="admon.graphics.path">images/</xsl:param>
 
+<xsl:param name="chunk.quietly" select="1"/>
+
 
 <!-- Make funcsynopsis look pretty -->
 <xsl:param name="funcsynopsis.decoration" select="1" doc:type="boolean"/>
