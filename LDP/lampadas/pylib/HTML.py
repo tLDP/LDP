@@ -256,7 +256,7 @@ class TableFactory:
             box = box + '<form method=POST action="data/save/document" name="document">'
         else:
             doc = Doc()
-            box = box + '<form method=POST action="docadd" name="document">'
+            box = box + '<form method=POST action="data/save/newdocument" name="document">'
             
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
         box = box + '<tr>\n'
@@ -356,8 +356,8 @@ class TableFactory:
         log(3, "all section menus complete")
         return box
 
-    def news(self, lang):
-        log(3, 'Creating news')
+    def recent_news(self, lang):
+        log(3, 'Creating recent news')
         box = '<table class="box"><tr><th>|date|</th><th>|news|</th></tr>\n'
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
@@ -368,7 +368,7 @@ class TableFactory:
                 box = box + '<td>' + news.i18n[lang].news + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
-        log(3, 'News table complete')
+        log(3, 'Recent news table complete')
         return box
 
     def topics(self, lang):
@@ -480,8 +480,8 @@ class PageFactory:
                     newstring = self.tablef.doc(uri.id, uri.language)
                 if token=='tabmenus':
                     newstring = self.tablef.menus(uri.language)
-                if token=='tabnews':
-                    newstring = self.tablef.news(uri.language)
+                if token=='tabrecentnews':
+                    newstring = self.tablef.recent_news(uri.language)
                 if token=='tabtopics':
                     newstring = self.tablef.topics(uri.language)
                 if token=='tabsubtopics':

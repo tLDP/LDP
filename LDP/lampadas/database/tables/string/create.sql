@@ -1,6 +1,6 @@
 CREATE TABLE string
 (
-	string_code		CHAR(12)	NOT NULL,
+	string_code		CHAR(20)	NOT NULL,
 
 	PRIMARY KEY (string_code)
 );

@@ -13,7 +13,7 @@ insert([doctable], [DocTable], DocTable,
 
 insert([news], [|project| News], [|projectshort| News],
 [
-    |tabnews|
+    |tabrecentnews|
 ])
 
 insert([contribute], [Contributing to |project|], [Contributing],
@@ -192,4 +192,3 @@ insert([404], [Error 404, Page Not Found], Error,
     you have probably found a bug.
     If you believe that to be the case, please file a bug report for the Lampadas developers.
 ])
-
