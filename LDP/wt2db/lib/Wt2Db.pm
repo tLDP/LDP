@@ -62,7 +62,7 @@ sub new {
 }
 
 sub ProcessFile {
-	($self, $txtfile, $dbfile, $verbose, $article) = @_;
+	($self, $txtfile, $dbfile, $verbose, $doctype) = @_;
 
 	# Read from STDIN if no input file given
 	# 
@@ -87,11 +87,17 @@ sub ProcessFile {
 
 	# wrap article if requested
 	#
-	if ($article) {
-		$buf = '<?xml version="1.0" standalone="no"?>';
-		$buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN"' . "\n";
-     		$buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"[]>';
+	if ($doctype eq 'XML') {
+		print "Adding XML DOCTYPE and article tags." if ($verbose);
+		$buf = '<?xml version="1.0" standalone="no"?>' . "\n";
+		$buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"' . "\n";
+     		$buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"';
+		$buf .= "\[\]\>\n";
 		$buf .= "\n";
+		$buf .= '<article>' . "\n";
+	} elsif ($doctype eq 'SGML') {
+		print "Adding SGML DOCTYPE and article tags." if ($verbose);
+		$buf = '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
 		$buf .= '<article>' . "\n";
 	}
 
@@ -107,7 +113,7 @@ sub ProcessFile {
 
 	# wrap article if requested
 	#
-	if ($article) {
+	if ($doctype) {
 		$buf .= '</article>' . "\n";
 	}
 	
