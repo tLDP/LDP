@@ -1,0 +1,291 @@
+<!doctype linuxdoc system>
+<article>
+<title>Multiboot with GRUB Mini-HOWTO
+<author>Ivan Kanis, <htmlurl url="mailto:ivank@juliva.com"
+name="ivank@juliva.com">
+<date>v01, 2001-15-1
+<abstract>
+This document describes how to install Windows 98, Windows 2000, DOS
+and Linux using GRUB.
+</abstract>
+
+<sect>Why ?
+
+<p>I wanted to be able to boot all operating systems without having to go
+through multiple menus. I know I can install NT on top of win9x on top
+of DOS. I would have to go through the NT menu then the win9x menu in
+order to boot DOS. I wanted to be able to boot all these operating
+systems at once.
+
+<p>This turned out to be quite a challenge. The problem with Microsoft
+operating system is that they all want to boot from the primary
+partition. This is where GRUB comes in. It can hide primary
+partitions. You can use up to 3 partitions to install Microsoft
+operating systems. GRUB will hide the other 2 partitions so that the
+operating systems will not see it. This means you will need another
+partition to share data between DOS, Win9x and Windows 2000. The 4th
+partition is used for the extended partition.
+
+<p>I also wanted a menu system and GRUB provides a nice one. 
+
+<p>Another nice feature of GRUB is that it supports reiserfs so I don't
+need to keep my /boot file in a separate ext2 partition.
+
+<sect>Installation procedure
+
+<sect1>Preparing boot floppies
+
+<p>You will need 3 floppy disks. Make the first floppy a DOS
+bootable disk. Copy fdisk.exe and sys.exe onto this floppy disk.
+
+<quote>
+<verb>
+FORMAT /S A:
+COPY FDISK.EXE A:
+COPY SYS.EXE A:
+</verb>
+</quote>
+
+<p> Use your second
+floppy disk to make a Windows 98 emergency disk. You will use the third 
+floppy for GRUB shortly.
+
+<sect1>Installing linux
+
+<p>Install your favorite distribution of linux. You will need to use
+fdisk to partition your hard disk. Calculate ahead of time how much
+disk space each of your operating systems will take.
+
+<p>Here is how I partitioned my hard disk:
+
+<quote>
+<verb>
+   Device Boot    Start       End    Blocks   Id  System
+/dev/hda1             1         6     48163+  16  Hidden FAT16
+/dev/hda2             7        19    104422+  16  Hidden FAT16
+/dev/hda3            20       593   4610655   1b  Hidden Win95 FAT32
+/dev/hda4           594      3737  25254180    5  Extended
+/dev/hda5           594       848   2048256    6  FAT16
+/dev/hda6           849      2123  10241406    7  HPFS/NTFS
+/dev/hda7          2124      2140    136521   82  Linux swap
+/dev/hda8          2141      2523   3076416   83  Linux
+</verb>
+</quote>
+
+<p>My first partition is for booting Windows 2000. 10MG should be plenty
+to do that. This partition will only contains the file necessary to
+boot NT such as boot.ini, ntldr, ntdetect.com, etc... NT will reside
+in partition 6 in my example. This partition is Hidden FAT16.
+
+<p>The second partition is for DOS. I deemed 100M sufficient. This is
+FAT16 too
+
+<p>The third partition is for Win9x. I gave it 5G and made it FAT32 for
+performance.
+
+<p>Next create the extended partition for the remaining of your hard
+disk. This shows up as partition 4 on fdisk.
+
+<p>Create a 2GB partition. This partitions is used to share data
+between all operating systems. Make sure that all the sum of all above
+partitions are less than 8GB. This is a DOS limitation.
+
+<p>Next create your Windows 2000 partition. I gave it 10G since this
+breed of windows is a bloated pig. I made it a HPFS/NTFS partition for speed.
+
+<p>Next add your swap partition and linux partition. Make sure you do not
+have a separate partition for /boot. Things look better in GRUB if you
+keep /boot in the root partition.
+
+<p>After you have installed linux go ahead and format the fat16 partitions:
+<quote>
+<verb>
+mkdosfs /dev/hda1
+mkdosfs /dev/hda2
+mkdosfs /dev/hda6
+</verb>
+</quote>
+
+<sect1>Installing GRUB
+
+<p>Make sure you have the latest version of GRUB. I am using version
+0.5.96.1. The version that came with my distribution was out of date
+and gave me a lot of grief. You can download the latest version at
+http://www.fsf.org.
+
+<p> Now you'll want to install GRUB on the floppy disk. You don't want to
+install it on the hard disk yet because Windows 2000 will overwrite
+it.
+
+<quote>
+<verb>
+grub-install '(fd0)'
+</verb>
+</quote>
+
+<p>Create the following menu.lst for GRUB. This file lives in /boot/grub.
+
+<quote>
+<verb>
+#
+# Sample boot menu configuration file
+#
+
+# Boot automatically after a minute. 
+timeout 60
+
+# By default, boot the second entry.
+default 1
+
+# Fallback to the first entry.
+fallback 0
+
+title Windows 2000 
+unhide (hd0,0)
+hide (hd0,1)
+hide (hd0,2)
+rootnoverify (hd0,0)
+chainloader +1
+makeactive
+
+# For booting Linux
+title  Linux
+root (hd0,7)
+kernel /boot/vmlinuz-2.2.17 root=/dev/hda8 video=matrox:vesa:261
+
+title Windows 98
+hide (hd0,0)
+hide (hd0,1)
+unhide (hd0,2)
+rootnoverify (hd0,2)
+chainloader +1
+makeactive
+
+title DOS 6.22
+hide (hd0,0)
+unhide (hd0,1)
+hide (hd0,2)
+rootnoverify (hd0,1)
+chainloader +1
+makeactive
+
+# For booting Linux
+title  Linux (single user)
+root (hd0,7)
+kernel /boot/vmlinuz-2.2.17 root=/dev/hda8 video=matrox:vesa:261 single
+
+title Partition 2 (floppy)
+hide (hd0,0)
+unhide (hd0,1)
+hide (hd0,2)
+chainloader (fd0)+1
+
+title Partition 3 (floppy)
+hide (hd0,0)
+hide (hd0,1)
+unhide (hd0,2)
+chainloader (fd0)+1
+</verb>
+</quote>
+
+
+<p>Check that you can boot linux with the floppy disk. If you are having
+trouble you can drop in GRUB's command line and figure out what is
+going on. GRUB is very well documented, if you have any trouble please
+take a look at the documentation.
+
+<sect1>Installing windows 2000:
+
+<p>I had to initialize the first partition before installing windows
+2000. Insert the DOS startup disk and reboot your computer. Once you
+get to the DOS prompt do the followings:
+
+<quote>
+<verb>
+FDISK /MBR
+SYS C:
+</verb>
+</quote>
+
+<p>Now you can go ahead and install windows 2000. At some point
+Windows 2000 will prompt you for the partition on which you want to
+install. The partition you created with fdisk should show up as
+damaged or unformatted partition. Go ahead and select it.
+
+<p>To hide the Windows 2000 menu edit a file called boot.ini that should
+be in the C: drive. Change the timeout value from 30 to 0.
+
+<quote>
+<verb>
+[boot loader]
+timeout=0
+default=multi(0)disk(0)rdisk(1)partition(1)\WINNT
+[operating systems]
+...
+</verb>
+</quote>
+
+<sect1>Installing DOS.
+
+<p>Insert the GRUB disk. When you see the menu insert
+the DOS boot disk. Select partition 2 (floppy) from the menu.Hit
+enter. This will boot the floppy disk and hide partition 1 and 3.
+
+<p>Run FDISK and check that the C: drive is partition 2. Next install
+DOS:
+
+<quote>
+<verb>
+SYS C: 
+</verb>
+</quote>
+
+<sect1>Installing Windows 98
+
+<p>Insert the GRUB disk. When you see the menu insert
+the Windows 98 Emergency disk. Select partition 3 (floppy) from the menu.Hit
+enter. This will boot the floppy disk and hide partition 1 and 2.
+
+<p>Run FDISK and check that the C: drive is partition 3. Next install
+Windows 98:
+
+<quote>
+<verb>
+SYS C: 
+</verb>
+</quote>
+
+<sect1>The final touch
+
+<p>Test that everything is working from GRUB:
+
+<p>You should be able to boot from all 4 operating systems from the GRUB
+floppy disk.
+
+<p>If everything looks right you can go ahead and install GRUB on your
+hard disk. From linux type:
+
+<quote>
+<verb>
+grub-install /dev/hda
+</verb>
+</quote>
+
+<p>You should now be able to boot all 4 operating systems from the GRUB
+menu. Enjoy!
+
+<sect>References
+<p>I have found these links useful while setting up my system.
+<itemize>
+<item>
+<url url="http://www.gnu.org/software/grub/grub.html" name="GNU GRUB">
+</item>
+<item>
+<url url="http://www.linuxdoc.org/HOWTO/mini/Linux+DOS+Win95+OS2.html" name="The Linux-DOS-Win95-OS2 mini-HOWTO">
+</itemize>
+<sect>Feedback <p>I would like to hear about your experience (good or
+bad) with this document. If you have some instructions for adding
+another OS please send them to <htmlurl url="mailto:ivank@juliva.com"
+name="me"> so that I can add them.
+</article>
+
