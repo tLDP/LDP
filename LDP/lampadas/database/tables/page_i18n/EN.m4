@@ -373,13 +373,8 @@ insert([mailpass], [Mail Password], [],
 
 insert([topic], [View Topic], [],
 [
-    |tabsubtopics|
-], 1)
-
-insert([subtopic], [View Subtopic], [],
-[
-    |tabsubtopic|
-    <p>|tabsubtopicdocs|
+    |tabtopics|
+    <p>|tabtopicdocs|
 ], 1)
 
 insert([document], [Edit All Document Meta-data], [],

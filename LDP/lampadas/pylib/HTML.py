@@ -223,7 +223,7 @@ class PageFactory:
                 elif token=='navmenus':
                     newstring = tables.section_menus(uri)
                 elif token=='navtopics':
-                    newstring = tables.topics(uri)
+                    newstring = tables.navtopics(uri)
                 elif token=='navtypes':
                     newstring = tables.types(uri)
                 elif token=='navsessions':
@@ -232,8 +232,10 @@ class PageFactory:
                     newstring = tables.languages(uri)
 
                 # Tables
-                elif token=='tabsubtopics':
-                    newstring = tables.subtopics(uri)
+                elif token=='tabtopics':
+                    newstring = tables.tabtopics(uri)
+                elif token=='tabtopic':
+                    newstring = tables.tabtopic(uri)
                 elif token=='tabdocs':
                     newstring = tables.doctable(uri, lang=uri.lang)
                 elif token=='tabmaint_wanted':
@@ -274,12 +276,10 @@ class PageFactory:
                     newstring = tables.user(uri)
                 elif token=='tabrecentnews':
                     newstring = tables.recent_news(uri)
-                elif token=='tabsubtopic':
-                    newstring = tables.subtopic(uri)
                 elif token=='tabtypedocs':
                     newstring = tables.doctable(uri, type_code=uri.code, lang=uri.lang)
-                elif token=='tabsubtopicdocs':
-                    newstring = tables.doctable(uri, subtopic_code=uri.code, lang=uri.lang)
+                elif token=='tabtopicdocs':
+                    newstring = tables.doctable(uri, topic_code=uri.code, lang=uri.lang)
                 elif token=='tabsitemap':
                     newstring = tables.sitemap(uri)
                 elif token=='tabsessions':

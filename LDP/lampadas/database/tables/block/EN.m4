@@ -12,7 +12,7 @@ insert([blklogo],
     <table class="logo">
       <tr>
         <td valign="middle">
-          <a href="|base|home|uri.lang_ext|" alt=="Home"><img src="|uri.base|images/ldp200x80.png" alt="LDP" height="80" width="200"></a>
+          <a href="|uri.base|home|uri.lang_ext|" alt=="Home"><img src="|uri.base|images/ldp200x80.png" alt="LDP" height="80" width="200"></a>
         </td>
       </tr>
     </table>

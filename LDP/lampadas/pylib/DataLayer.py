@@ -37,6 +37,7 @@ from Database import db
 from Log import log
 from BaseClasses import *
 from SourceFiles import sourcefiles
+from Languages import languages
 import string
 import os.path
 
@@ -77,7 +78,7 @@ class Lampadas:
         self.errors.load()
         self.formats         = Formats()
         self.formats.load()
-        self.languages       = Languages()
+        self.languages       = languages
         self.languages.load()
         self.pub_statuses    = PubStatuses()
         self.pub_statuses.load()
@@ -85,8 +86,6 @@ class Lampadas:
         self.review_statuses.load()
         self.topics          = Topics()
         self.topics.load()
-        self.subtopics       = Subtopics()
-        self.subtopics.load()
         self.users           = Users()
 
 # Roles
@@ -276,7 +275,7 @@ class Docs(LampadasCollection):
             doc.ratings[docrating.username] = docrating
 
     def load_topics(self):
-        sql = "SELECT doc_id, subtopic_code FROM document_topic"
+        sql = "SELECT doc_id, topic_code FROM document_topic"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -285,7 +284,7 @@ class Docs(LampadasCollection):
             doc = self[doc_id]
             doctopic = DocTopic()
             doctopic.load_row(row)
-            doc.topics[doctopic.subtopic_code] = doctopic
+            doc.topics[doctopic.topic_code] = doctopic
 
     def load_notes(self):
         sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes'
@@ -836,29 +835,29 @@ class DocTopics(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, subtopic_code FROM document_topic WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, topic_code FROM document_topic WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             doctopic = DocTopic()
             doctopic.load_row(row)
-            self.data[doctopic.subtopic_code] = doctopic
+            self.data[doctopic.topic_code] = doctopic
 
-    def add(self, subtopic_code):
-        sql = 'INSERT INTO document_topic(doc_id, subtopic_code) VALUES (' + str(self.doc_id) + ', ' + wsq(subtopic_code) + ')'
+    def add(self, topic_code):
+        sql = 'INSERT INTO document_topic(doc_id, topic_code) VALUES (' + str(self.doc_id) + ', ' + wsq(topic_code) + ')'
         db.runsql(sql)
         db.commit()
         doctopic = DocTopic()
         doctopic.doc_id = self.doc_id
-        doctopic.subtopic_code = subtopic_code
-        self.data[doctopic.subtopic_code] = doctopic
+        doctopic.topic_code = topic_code
+        self.data[doctopic.topic_code] = doctopic
 
-    def delete(self, subtopic_code):
-        sql = 'DELETE FROM document_topic WHERE doc_id=' + str(self.doc_id) + ' AND subtopic_code=' + wsq(subtopic_code)
+    def delete(self, topic_code):
+        sql = 'DELETE FROM document_topic WHERE doc_id=' + str(self.doc_id) + ' AND topic_code=' + wsq(topic_code)
         db.runsql(sql)
         db.commit()
-        del self.data[subtopic_code]
+        del self.data[topic_code]
 
     def clear(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
@@ -874,7 +873,7 @@ class DocTopic:
 
     def load_row(self, row):
         self.doc_id   = row[0]
-        self.subtopic_code  = trim(row[1])
+        self.topic_code  = trim(row[1])
 
 
 # DocNotes
@@ -1121,51 +1120,6 @@ class Format:
         self.code = trim(row[0])
 
 
-# Languages
-
-class Languages(LampadasCollection):
-    """
-    A collection object of all languages supported by the ISO 639
-    standard.
-    """
-
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT lang_code, supported FROM language"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            language = Language()
-            language.load_row(row)
-            self.data[language.code] = language
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT lang_code, lang, lang_name FROM language_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            lang_code = trim(row[0])
-            lang      = trim(row[1])
-            language  = self[lang_code]
-            language.name[lang] = trim(row[2])
-
-class Language:
-    """
-    Defines a language supported by Lampadas. Documents can be translated into,
-    and Lampadas can be localized for, any language supported by ISO 639.
-    """
-
-    def __init__(self):
-        self.name = LampadasCollection()
-
-    def load_row(self, row):
-        self.code      = trim(row[0])
-        self.supported = tf2bool(row[1])
-
-
 # PubStatuses
 
 class PubStatuses(LampadasCollection):
@@ -1273,14 +1227,14 @@ class Topics(LampadasCollection):
         self.data = {}
 
     def load(self):
-        sql = "SELECT topic_code, topic_num FROM topic"
+        sql = "SELECT parent_code, topic_code, sort_order FROM topic"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newTopic = Topic()
-            newTopic.load_row(row)
-            self.data[newTopic.code] = newTopic
+            topic = Topic()
+            topic.load_row(row)
+            self.data[topic.code] = topic
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n"
         cursor = db.select(sql)
@@ -1292,7 +1246,19 @@ class Topics(LampadasCollection):
             lang = row[1]
             topic.name[lang] = trim(row[2])
             topic.description[lang] = trim(row[3])
+        self.calc_titles()
 
+    def calc_titles(self):
+        for topic_code in self.sort_by('sort_order'):
+            topic = self[topic_code]
+            topic.title = LampadasCollection()
+            parent_code = topic.parent_code
+            for lang in languages.supported_keys():
+                topic.title[lang] = ''
+                if parent_code > '':
+                    topic.title[lang] = self[parent_code].title[lang] + ': '
+                topic.title[lang] = topic.title[lang] + topic.name[lang]
+    
 class Topic:
     """
     Each document can be assigned an arbitrary number of topics.
@@ -1300,90 +1266,39 @@ class Topic:
     to help them find a document on the subject in which they are interested.
     """
 
-    def __init__(self, topic_code=None, TopicNum=None):
+    def __init__(self, parent_code='', topic_code='', sort_order=0):
         self.name = LampadasCollection()
         self.description = LampadasCollection()
-        if topic_code==None: return
-        self.code = topic_code
-        self.num  = TopicNum
+        self.parent_code = parent_code
+        self.code        = topic_code
+        self.sort_order  = sort_order
+        self.docs = TopicDocs(topic_code)
 
     def load_row(self, row):
-        self.code = trim(row[0])
-        self.num  = safeint(row[1])
-
-
-# Subtopics
-
-class Subtopics(LampadasCollection):
-    """
-    A collection object of all subtopics.
-    """
-    
-    def __init__(self):
-        self.data = {}
-
-    def load(self):
-        sql = "SELECT subtopic_code, subtopic_num, topic_code FROM subtopic"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            newSubtopic = Subtopic()
-            newSubtopic.load_row(row)
-            self.data[newSubtopic.code] = newSubtopic
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT subtopic_code, lang, subtopic_name, subtopic_desc FROM subtopic_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            subtopic_code = trim(row[0])
-            subtopic = self[subtopic_code]
-            lang = row[1]
-            subtopic.name[lang] = trim(row[2])
-            subtopic.description[lang] = trim(row[3])
-
-class Subtopic:
-    """
-    Each document can be assigned an arbitrary number of topics.
-    The web interface allows a user to browse through document topics,
-    to help them find a document on the subject in which they are interested.
-    """
-
-    def __init__(self, subtopic_code=None, subtopic_num=None, topic_code=None):
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if subtopic_code==None: return
-        self.code       = subtopic_code
-        self.num        = subtopic_num
-        self.topic_code = subtopic_code
-        self.docs       = SubtopicDocs(subtopic_code)
-
-    def load_row(self, row):
-        self.code       = trim(row[0])
-        self.num        = safeint(row[1])
-        self.topic_code = trim(row[2])
-        self.docs       = SubtopicDocs(self.code)
+        self.parent_code = trim(row[0])
+        self.code        = trim(row[1])
+        self.sort_order  = safeint(row[2])
+        self.docs        = TopicDocs(self.code)
 
 
 # SubtopicDocs
 
-class SubtopicDocs(LampadasCollection):
+class TopicDocs(LampadasCollection):
 
-    def __init__(self, subtopic_code):
+    def __init__(self, topic_code):
         self.data = {}
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT doc_id FROM document_topic WHERE subtopic_code=' + wsq(subtopic_code)
+        sql = 'SELECT doc_id FROM document_topic WHERE topic_code=' + wsq(topic_code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newSubtopicDoc = SubtopicDoc()
-            newSubtopicDoc.subtopic_code = subtopic_code
-            newSubtopicDoc.doc_id = row[0]
-            self.data[newSubtopicDoc.doc_id] = newSubtopicDoc
+            topicdoc = TopicDoc()
+            topicdoc.topic_code = topic_code
+            topicdoc.doc_id = row[0]
+            self.data[topicdoc.doc_id] = topicdoc
 
-class SubtopicDoc:
+class TopicDoc:
 
     def __init__(self):
         pass

@@ -368,15 +368,10 @@ insert([mailpass], [Kennwort schicken], [],
     <p>|tabmailpass|
 ], 1)
 
-insert([topic], [Liste der Themen], [],
+insert([topic], [View Topic], [],
 [
-    |tabsubtopics|
-], 1)
-
-insert([subtopic], [Liste der Unterthemen], [],
-[
-    |tabsubtopic|
-    <p>|tabsubtopicdocs|
+    |tabtopics|
+    <p>|tabtopicdocs|
 ], 1)
 
 insert([document], [Alle Metadaten des Dokuments ändern], [],

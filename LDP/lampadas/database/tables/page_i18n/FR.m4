@@ -269,15 +269,10 @@ insert([mailpass], [Mail Password], [],
     <p>|tabmailpass|
 ], 1)
 
-insert([topic], [View Topic], [View Topic],
+insert([topic], [View Topic], [],
 [
-    |tabsubtopics|
-], 1)
-
-insert([subtopic], [View Subtopic], [],
-[
-    |tabsubtopic|
-    <p>|tabsubtopicdocs|
+    |tabtopics|
+    <p>|tabtopicdocs|
 ], 1)
 
 insert([document], [Méta-données du doc], [Méta-données du doc],

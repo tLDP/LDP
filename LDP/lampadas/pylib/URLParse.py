@@ -51,7 +51,7 @@ class URI:
         self.parameter = ""
         self.anchor = ""
 
-        self.page_code = "home"
+        self.page_code = ''
 
         # If the URL specifies a user, doc, etc., it is stored in one
         # of these attributes.
@@ -67,10 +67,13 @@ class URI:
         # w/o caring what type might be there.
         self.data = []
 
-        self.uri = uri
+        if uri > '' and uri[0]=='/':
+            self.uri = uri[1:]
+        else:
+            self.uri = uri
 
         self.base = ''
-        for i in range(self.uri.count('/') -1):
+        for i in range(self.uri.count('/')):
             self.base += '../'
         
         protocol, host, path, params, query, fragment = urlparse.urlparse(uri)
@@ -84,9 +87,9 @@ class URI:
         self.parameter = query
         self.anchor = fragment
        
-        # Default page if none was passed, is home
+        # Default page if none was passed, is index
         if path in ('', '/'):
-            path='home.html'
+            path='index.html'
 
         # Discard initial and terminal /
         if len(path) > 0:
@@ -133,7 +136,7 @@ class URI:
             if item in ('doc',):
                 self.id = int(data[0])
                 data = data[1:]
-            elif item in ('topic', 'subtopic', 'type', 'report'):
+            elif item in ('topic', 'type', 'report'):
                 self.code = data[0]
                 data = data[1:]
             elif item in ('user',):
@@ -170,5 +173,4 @@ if __name__=='__main__':
     import sys
 
     foo = URI(sys.argv[1])
-    #foo = URI('http://localhost:8000/EN/editdoc/1/home?docid=1#foo')
     foo.printdebug()

@@ -20,6 +20,7 @@
 
 from Globals import *
 from Log import log
+from BaseClasses import *
 from DataLayer import lampadas, Doc, User
 from SourceFiles import sourcefiles
 from WebLayer import lampadasweb
@@ -32,7 +33,10 @@ EDIT_ICON = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="
             'border="0" hspace="5" vspace="0" align="top">'
 MAKE_ICON = 'MAKE'
 
-class Tables:
+class Tables(LampadasCollection):
+
+    def __init__(self):
+        self.data = {}
 
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
@@ -319,25 +323,23 @@ class Tables:
         box = box + '<th class="collabel">|straction|</th>\n'
         box = box + '</tr>\n'
         doc = lampadas.docs[uri.id]
-        topic_codes = lampadas.topics.sort_by('num')
-        subtopic_codes = lampadas.subtopics.sort_by('num')
+        topic_codes = lampadas.topics.sort_by('sort_order')
         for topic_code in topic_codes:
-            for subtopic_code in subtopic_codes:
-                if lampadas.subtopics[subtopic_code].topic_code==topic_code:
-                    doctopic = doc.topics[subtopic_code]
-                    if doctopic:
-                        box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
-                        box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
-                        box = box + '<input type=hidden name="subtopic_code" value=' + str(doctopic.subtopic_code) + '>\n'
-                        box = box + '<tr>\n'
-                        box = box + '<td>' + lampadas.topics[topic_code].name[uri.lang] + ': ' + lampadas.subtopics[doctopic.subtopic_code].name[uri.lang] + '</td>\n'
-                        box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
-                        box = box + '</tr>\n'
-                        box = box + '</form>\n'
+            doctopic = doc.topics[topic_code]
+            if doctopic:
+                topic = lampadas.topics[topic_code]
+                box = box + '<form method=GET action="/data/save/deldocument_topic" name="document_topic">'
+                box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
+                box = box + '<input type=hidden name="topic_code" value=' + topic_code + '>\n'
+                box = box + '<tr><td>' + topic.title[uri.lang]
+                box = box + '</td>\n'
+                box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
+                box = box + '</tr>\n'
+                box = box + '</form>\n'
         box = box + '<form method=GET action="/data/save/newdocument_topic" name="document_topic">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
-        box = box + '<td>' + widgets.subtopic_code('', uri.lang) + '</td>\n'
+        box = box + '<td>' + widgets.topic_code('', uri.lang) + '</td>\n'
         box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
         box = box + '</tr>\n'
         box = box + '</form>\n'
@@ -627,7 +629,7 @@ class Tables:
                  title=None,
                  pub_status_code=None,
                  type_code=None,
-                 subtopic_code=None,
+                 topic_code=None,
                  username=None,
                  maintained=None,
                  maintainer_wanted=None,
@@ -682,9 +684,9 @@ class Tables:
             if not type_code==None:
                 if doc.type_code <> type_code:
                     continue
-            if not subtopic_code==None:
-                subtopic = lampadas.subtopics[subtopic_code]
-                if subtopic.docs[doc.id]==None:
+            if not topic_code==None:
+                topic = lampadas.topics[topic_code]
+                if topic.docs[doc.id]==None:
                     continue
             if not maintained==None:
                 if doc.maintained <> maintained:
@@ -875,44 +877,50 @@ class Tables:
         box.write('</table>\n')
         return box.get_value()
 
-    def topics(self, uri):
-        log(3, 'Creating topics menu')
-        box = WOStringIO('''<table class="navbox">
-        <tr><th>|strtopics|</th></tr>
-        <tr><td><ol>''')
-        keys = lampadas.topics.sort_by('num')
-        for key in keys:
-            topic = lampadas.topics[key]
-            box.write('<li><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></li>\n'
-                      % (topic.code, topic.name[uri.lang]))
-        box.write('</ol></td></tr></table>\n')
-        return box.get_value()
+    def navtopics(self, uri):
+        if self['navtopics']==None:
+            self['navtopics'] = LampadasCollection()
+            self['navtopics'].html = LampadasCollection()
+        if self['navtopics'].html[uri.lang]==None:
+            log(3, 'Creating navtopics menu')
+            box = WOStringIO('''<table class="navbox">
+            <tr><th>|strtopics|</th></tr>
+            <tr><td>''')
+            keys = lampadas.topics.sort_by('sort_order')
+            for key in keys:
+                topic = lampadas.topics[key]
+                if topic.parent_code=='':
+                    box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
+                              % (topic.code, topic.name[uri.lang]))
+            box.write('</td></tr></table>\n')
+            self['navtopics'].html[uri.lang] = box.get_value()
+        return self['navtopics'].html[uri.lang]
 
-    def subtopics(self, uri):
-        log(3, 'Creating subtopics menu')
+    def tabtopics(self, uri):
+        log(3, 'Creating tabtopics table')
         topic = lampadas.topics[uri.code]
         box = WOStringIO('''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>|topic.description|</td></tr>
-        <tr><td><ol>
-        ''' % topic.name[uri.lang] )
-        keys = lampadas.subtopics.sort_by('num') 
+        <tr><td>
+        ''' % topic.title[uri.lang])
+        keys = lampadas.topics.sort_by('sort_order') 
         for key in keys:
-            subtopic = lampadas.subtopics[key]
-            if subtopic.topic_code==uri.code:
-                box.write('<li><a href="|uri.base|subtopic/%s|uri.lang_ext|">%s</a>\n'
-                          % (subtopic.code, subtopic.name[uri.lang]))
-        box.write('</ol></td></tr>\n</table>\n')
+            topic = lampadas.topics[key]
+            if topic.parent_code==uri.code:
+                box.write('<a href="|uri.base|topic/%s|uri.lang_ext|">%s</a><br>\n'
+                          % (topic.code, topic.name[uri.lang]))
+        box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
-    def subtopic(self, uri):
-        log(3, 'Creating subtopic table')
-        subtopic = lampadas.subtopics[uri.code]
+    def tabtopic(self, uri):
+        log(3, 'Creating tabtopic table')
+        topic = lampadas.topics[uri.code]
         box = '''<table class="box" width="100%%">
         <tr><th>%s</th></tr>
         <tr><td>%s</td><tr>
         </table>
-        ''' % (subtopic.name[uri.lang], subtopic.description[uri.lang])
+        ''' % (topic.title[uri.lang], topic.description[uri.lang])
         return box
 
     def types(self, uri):
@@ -1074,7 +1082,7 @@ class Tables:
             % (widgets.title(''),
                widgets.pub_status_code('', uri.lang),
                widgets.type_code('', uri.lang),
-               widgets.subtopic_code('', uri.lang),
+               widgets.topic_code('', uri.lang),
                widgets.tf('maintained', '', uri.lang),
                widgets.tf('maintainer_wanted', '', uri.lang),
                widgets.lang(uri.lang, uri.lang),

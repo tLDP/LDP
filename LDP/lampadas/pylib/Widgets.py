@@ -281,22 +281,18 @@ class Widgets:
         combo.write("</select>")
         return combo.get_value()
 
-    def subtopic_code(self, value, lang):
-        combo = WOStringIO('<select name="subtopic_code">\n')
+    def topic_code(self, value, lang):
+        combo = WOStringIO('<select name="topic_code">\n')
         combo.write('<option></option>')
-        topic_codes = lampadas.topics.sort_by('num')
-        subtopic_codes = lampadas.subtopics.sort_by('num')
+        topic_codes = lampadas.topics.sort_by('sort_order')
         for topic_code in topic_codes:
             topic = lampadas.topics[topic_code]
-            for subtopic_code in subtopic_codes:
-                subtopic = lampadas.subtopics[subtopic_code]
-                if subtopic.topic_code==topic_code:
-                    combo.write("<option ")
-                    if subtopic.code==value:
-                        combo.write("selected ")
-                    combo.write("value='" + str(subtopic.code) + "'>")
-                    combo.write(topic.name[lang] + ': ' + subtopic.name[lang])
-                    combo.write("</option>\n")
+            combo.write("<option ")
+            if topic.code==value:
+                combo.write("selected ")
+            combo.write("value='" + topic.code + "'>")
+            combo.write(topic.title[lang])
+            combo.write("</option>\n")
         combo.write("</select>")
         return combo.get_value()
 

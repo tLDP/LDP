@@ -157,14 +157,14 @@ def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, ac
         docversion.save()
         go_back(req)
     
-def newdocument_topic(req, doc_id, subtopic_code):
+def newdocument_topic(req, doc_id, topic_code):
     doc = lampadas.docs[int(doc_id)]
-    doc.topics.add(subtopic_code)
+    doc.topics.add(topic_code)
     go_back(req)
     
-def deldocument_topic(req, doc_id, subtopic_code):
+def deldocument_topic(req, doc_id, topic_code):
     doc = lampadas.docs[int(doc_id)]
-    doc.topics.delete(subtopic_code)
+    doc.topics.delete(topic_code)
     go_back(req)
 
 def newdocument_note(req, doc_id, notes, creator):

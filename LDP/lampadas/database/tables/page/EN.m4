@@ -33,7 +33,6 @@ insert(sitemap,             default,    help,       5,  [],                 f,  
 insert(newuser,             default,    [],         0,  [],                 t,  f,  f,  f)
 insert(mailpass,            default,    [],         0,  [],                 t,  f,  f,  f)
 insert(topic,               default,    [],         0,  [topic],            t,  f,  f,  f)
-insert(subtopic,            default,    [],         0,  [subtopic],         t,  f,  f,  f)
 insert(document,            default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_main,       default,    [],         0,  [doc],              t,  t,  f,  f)
 insert(document_files,      default,    [],         0,  [doc],              t,  t,  f,  f)
