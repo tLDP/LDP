@@ -16,6 +16,7 @@ $error = 0;
 $maxerrors = 10;
 $verbose = 0;
 $outputtype = "HTML";
+$maxrunonlines = 20;
 
 # files
 # 
@@ -231,9 +232,12 @@ $replacement = "";
 # I keep these in general alphabetical order, except that @end tags
 # are put right after their opening form.
 #
-# Note: Only the left side should be escaped!
+# Note: Neither side needs to be escaped.
 #
 %substitutions = (
+#	'@@'			=>'@',
+#	'@\{'			=>'{',
+#	'@\}'			=>'}',
 	'@.'			=>'.',
 	'@!'			=>'!',
 	'@*'			=>'',
@@ -284,8 +288,6 @@ $replacement = "";
 	'@`i'			=>'&igrave;',
 	'@`o'			=>'&ograve;',
 	'@`u'			=>'&ugrave;',
-#	'@\{'			=>'{',			# do these manually at the end so brackets match
-#	'@\}'			=>'}',
 	'@~A'			=>'&Atilde;',
 	'@~E'			=>'&Etilde;',
 	'@~I'			=>'&Itilde;',
@@ -540,10 +542,11 @@ LINE:	while ($line = <$fh>) {
 		
 		&message("LINE $currentline: $line") if ($verbose > 1);
 
-		$line =~ s/&/&amp;/g;		# keep before the &lt; &gt; so we don't clobber them
+		$line =~ s/&/&amp;/g;		# do first, before writing new amps
 		$line =~ s/\</&lt;/g;
 		$line =~ s/\>/&gt;/g;
-		$line =~ s/\@\@\}/DCM_AT\}/g;
+		
+		$line =~ s/\@\@/DCM_AT/g;	# temporary, so @-commands parse later
 		$line =~ s/\@\{/DCM_LB/g;
 		$line =~ s/\@\}/DCM_RB/g;
 
@@ -602,7 +605,7 @@ LINE:	while ($line = <$fh>) {
 				# This doesn't appear in the source, but can appear
 				# in macros, so replace them with cross references.
 				#
-				$line =~ s/DCM_LB(.*?)DCM_RB/\@ref\{$1\}/g;
+				$line =~ s/\@\{(.*?)\@\}/\@ref\{$1\}/g;
 				&message("macro line: $line") if ($verbose > 2);
 				$macrotext .= $line;
 				$macrolinecount++;
@@ -751,11 +754,6 @@ sub matchblock {
 # the rest are all inline processing
 #
 sub convertinline {
-
-	# Do this first to avoid @@foo from being
-	# identified as a command later.
-	$line =~ s/\@\@/DCM_AT/;
-
 TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 	
 		$command = $line;
@@ -865,6 +863,9 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		$line =~ s/$key/$substitutions{$key}/g
 	}
 	$line =~ s/DCM_AT/\@/gi;
+	$line =~ s/DCM_LB/\{/gi;
+	$line =~ s/DCM_RB/\}/gi;
+
 }
 
 sub replaceinline {
@@ -926,7 +927,7 @@ sub replacespecsubst {
 		$keystring = $contents;
 			
 		# I found at least one case where <keycap> is already here:
-		# gTop<keycap>RET</keycap>, in the info manual.
+		# @kbd{gTop<keycap>RET</keycap>}, in the info manual.
 		# If we have those, throw away the keycap tags and hyphenate,
 		# so we can keycombo properly.
 		#
@@ -1043,10 +1044,10 @@ sub writeline {
 	my $temp = &trim($line);
 	
 	&convertinline;
-	unless (&bracketsmatch($line)) {
-		&raiseerror("brackets do not match in line: $line");
-		last;
-	}
+#	unless (&bracketsmatch($line)) {
+#		&raiseerror("brackets do not match in line: $line");
+#		last;
+#	}
 
 	unless ($literal) {
 		if ($temp eq '') {
@@ -1060,11 +1061,6 @@ sub writeline {
 			}
 		}
 	}
-	$line =~ s/\@\@/\@/g;
-	$line =~ s/DCM_AT/\@/gi;
-	$line =~ s/DCM_LB/\{/gi;
-	$line =~ s/DCM_RB/\}/gi;
-
 	$buf .= $line . "\n";
 	if (($linenumber % 1000 == 0) and ($inabstract == 0)) {
 		print $outfh $buf;
@@ -1536,6 +1532,8 @@ sub defindex {
 
 sub bracketsmatch {
 	my $bline = ' ' . $_[0] . ' ';
+	$bline =~ s/\@\{//g;
+	$bline =~ s/\@\}//g;
 	my $left = scalar split(/\{/, $bline) - 1;
 	my $right = scalar split(/\}/, $bline) - 1;
 	if ($right == $left) {
@@ -1544,8 +1542,9 @@ sub bracketsmatch {
 	} else {
 		$badbracketlines++;
 		&message("unmatched \{\} (left: $left, right: $right) on line $line") if ($verbose > 1);
-		if ($badbracketlines >= 20) {
+		if ($badbracketlines >= $maxrunonlines) {
 			&raiseerror("Mismatched brackets starting on line $badbracketstartline: $line");
+			exit(1);
 		}
 	}
 	return ($right == $left);	
