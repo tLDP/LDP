@@ -34,25 +34,8 @@ tree is broken.
 
 import unittest
 from Globals import *
-#from BaseClasses import *
-#from Config import config
-#from Database import db
-#from Languages import languages
-#from Docs import docs, Doc
-#from Users import users, User
-#from Types import types
-#from Licenses import licenses
-#from DTDs import dtds
-#from Formats import formats
-#from PubStatuses import pub_statuses
-#from Topics import topics
-#from DocTopics import doctopics, DocTopics, DocTopic
-#from DocErrs import docerrs, DocErr
-#from DocRatings import docratings, DocRating
-#from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
-#import os
 
 import datamanager
 import persistence
@@ -61,13 +44,29 @@ dms = datamanager.DataManagers()
 dms.set_object_classes(persistence)
 
 print 'Preloading data...'
+blocks = dms.document.get_all()
+collections = dms.collection.get_all
 docs = dms.document.get_all()
+dtds = dms.dtd.get_all()
+encodings = dms.encoding.get_all()
+errors = dms.error.get_all()
+error_types = dms.error_type.get_all()
+formats = dms.format.get_all()
+languages = dms.language.get_all()
+licenses = dms.license.get_all()
+news = dms.news.get_all()
+pages = dms.page.get_all()
+pub_statuses = dms.pub_status.get_all()
+review_status = dms.review_status.get_all()
+roles = dms.role.get_all()
+sections = dms.section.get_all()
+sessions = dms.session.get_all()
+sourcefiles = dms.sourcefile.get_all()
+templates = dms.template.get_all()
 topics = dms.topic.get_all()
 types = dms.type.get_all()
-errs = dms.error.get_all()
-sourcefiles = dms.sourcefile.get_all()
-dtds = dms.dtd.get_all()
-licenses = dms.license.get_all()
+users = dms.username.get_all()
+webstrings = dms.webstring.get_all()
 print 'Done.'
 
 BIN = '/home/david/ldp/cvs/LDP/lampadas/bin/'
@@ -226,19 +225,23 @@ class testDocErrs(unittest.TestCase):
     def testDocErrs(self):
         log(3, 'testing DocErrs')
         
+        limit = 50
         keys = docs.keys()
         for key in keys:
+            limit = limit - 1
+            if limit==0:
+                break
             doc = docs[key]
             assert not doc==None
-            docerrs = doc.errors
-            if docerrs.count() > 0:
+            docerrors = doc.errors
+            if docerrors.count() > 0:
                 log(3, "found a doc with errors")
-                for docerrkey in docerrs.keys():
-                    docerr = docerrs[docerrkey]
+                for docerrkey in docerrors.keys():
+                    docerr = docerrors[docerrkey]
                     assert not docerr==None
                     assert docerr.doc_id==doc.id
                     assert docerr.err_id > 0
-                    err = errs[docerr.err_id]
+                    err = errors[docerr.err_id]
                     assert not err==None
                     assert err.id==docerr.err_id
             else:
@@ -361,117 +364,125 @@ class test_dtds(unittest.TestCase):
         log(3, 'testing DTDs done')
 
 
-#class testFormats(unittest.TestCase):
-#
-#    def testFormats(self):
-#        log(3, 'testing Formats')
-#        assert formats.count() > 0
-#        assert not formats['xml']==None
-#        assert formats['xml'].name['EN'] > ''
-#        assert formats['xml'].description['EN'] > ''
-#        log(3, 'testing Formats done')
-#
-#
-#class testLanguages(unittest.TestCase):
-#
-#    def testLanguages(self):
-#        log(3, 'testing Languages')
-#        assert not languages==None
-#        assert not languages['EN']==None
-#        assert languages['EN'].supported
-#        assert languages['EN'].name['EN']=='English'
-#        assert languages['FR'].supported
-#        assert languages['FR'].name['EN']=='French'
-#        assert languages['DE'].supported
-#        assert languages['DE'].name['EN']=='German'
-#        assert languages.count()==136
-#        log(3, 'testing Languages done')
-#
-#
-#class testPubStatuses(unittest.TestCase):
-#    
-#    def testPubStatuses(self):
-#        log(3, 'testing PubStatuses')
-#        assert not pub_statuses==None
-#        assert pub_statuses.count() > 0
-#        
-#        # Ensure that the default publication statuses are in the database
-#        # for all supported languages, and that they all have names and
-#        # descriptions.
-#        for pub_status in ('C', 'D', 'N', 'P', 'W'):
-#            assert not pub_statuses[pub_status]==None
-#            for lang in languages.supported_keys('EN'):
-#                assert pub_statuses[pub_status].name[lang] > ''
-#                assert pub_statuses[pub_status].description[lang] > ''
-#        log(3, 'testing PubStatuses done')
-#        
-#
-#class testTopics(unittest.TestCase):
-#
-#    def testTopics(self):
-#        log(3, 'testing Topics')
-#        assert not topics==None
-#        assert topics.count() > 0
-#        keys = topics.keys()
-#        for key in keys:
-#            topic = topics[key]
-#            assert topic.name['EN'] > ''
-#        log(3, 'testing Topics done')
-#
-#
-#class testUsers(unittest.TestCase):
-#
-#    def testUsers(self):
-#        log(3, 'testing Users')
-#        assert not users==None
-#
-#        user = users['testuser']
-#        if not user==None:
-#            users.delete('testuser')
-#
-#        user = users['testuser']
-#        assert user==None
-#        
-#        count = users.count()
-#        assert count > 0
-#
-#        user = User(users)
-#        user.username    = 'testuser'
-#        user.first_name  = 'j'
-#        user.middle_name = 'random'
-#        user.surname     = 'hacker'
-#        user.email       = 'foo@example.com'
-#        user.admin       = 1
-#        user.sysadmin    = 1
-#        user.password    = 'pw'
-#        user.notes       = 'notes go here'
-#        users.add(user)
-#        user = users['testuser']
-#        assert not user==None
-#        assert user.username=='testuser'
-#        assert user.email=='foo@example.com'
-#        
-#        users.delete(user.username)
-#        assert users.count()==count
-#        log(3, 'testing Users done')
-#
-#
-#class testUserDocs(unittest.TestCase):
-#
-#    def testUserDocs(self):
-#        log(3, 'testing UserDocs')
-#        user = users['david']
-#        assert user.docs.count() > 0
-#        assert not user.docs==None
-#        for key in user.docs.keys():
-#            userdoc = user.docs[key]
-#            assert not userdoc==None
-#            assert not userdoc.doc_id==None
-#            assert userdoc.doc_id > 0
-#            assert userdoc.active==1 or userdoc.active==0
-#        log(3, 'testing UserDocs done')
-#
-#
+class testFormats(unittest.TestCase):
+
+    def testFormats(self):
+        log(3, 'testing Formats')
+        assert formats.count() > 0
+        assert not formats['xml']==None
+        assert formats['xml'].name['EN'] > ''
+        assert formats['xml'].description['EN'] > ''
+        log(3, 'testing Formats done')
+
+
+class testLanguages(unittest.TestCase):
+
+    def testLanguages(self):
+        log(3, 'testing Languages')
+        assert not languages==None
+        assert not languages['EN']==None
+        assert languages['EN'].supported
+        assert languages['EN'].name['EN']=='English'
+        assert languages['FR'].supported
+        assert languages['FR'].name['EN']=='French'
+        assert languages['DE'].supported
+        assert languages['DE'].name['EN']=='German'
+        assert languages.count()==136
+        log(3, 'testing Languages done')
+
+
+class testPubStatuses(unittest.TestCase):
+    
+    def testPubStatuses(self):
+        log(3, 'testing PubStatuses')
+        assert not pub_statuses==None
+        assert pub_statuses.count() > 0
+        
+        # Ensure that the default publication statuses are in the database
+        # for all supported languages, and that they all have names and
+        # descriptions.
+        for pub_status in ('C', 'D', 'N', 'P', 'W'):
+            assert not pub_statuses[pub_status]==None
+            supported = dms.language.get_by_keys([['supported', '=', YES]])
+            for key in supported.keys():
+                language = languages[key]
+                assert pub_statuses[pub_status].name[language.code] > ''
+                assert pub_statuses[pub_status].description[language.code] > ''
+        log(3, 'testing PubStatuses done')
+        
+
+class testTopics(unittest.TestCase):
+
+    def testTopics(self):
+        log(3, 'testing Topics')
+        assert not topics==None
+        assert topics.count() > 0
+        keys = topics.keys()
+        for key in keys:
+            topic = topics[key]
+            assert topic.name['EN'] > ''
+        log(3, 'testing Topics done')
+
+
+class testUsers(unittest.TestCase):
+
+    def testUsers(self):
+        log(3, 'testing Users')
+        assert not users==None
+
+        user = users['testuser']
+        if not user==None:
+            users.delete(user)
+
+        user = users['testuser']
+        assert user==None
+        
+        count = users.count()
+        assert count > 0
+
+        user = dms.username.new()
+        assert user.changed==0
+        user.username    = 'testuser'
+        assert user.changed==1
+        user.first_name  = 'j'
+        user.middle_name = 'random'
+        user.surname     = 'hacker'
+        user.email       = 'foo@example.com'
+        user.admin       = 1
+        user.sysadmin    = 1
+        user.password    = 'pw'
+        user.notes       = 'notes go here'
+        assert user.in_database==0
+        users.add(user)
+        assert user.in_database==1
+        assert user.key==user.username
+
+        user = users['testuser']
+        assert not user==None
+        assert user.username=='testuser'
+        assert user.email=='foo@example.com'
+        
+        users.delete(user)
+        assert users.count()==count
+        log(3, 'testing Users done')
+
+
+class testUserDocs(unittest.TestCase):
+
+    def testUserDocs(self):
+        log(3, 'testing UserDocs')
+        user = users['david']
+        assert user.documents.count() > 0
+        assert not user.documents==None
+        for key in user.documents.keys():
+            userdoc = user.documents[key]
+            assert not userdoc==None
+            assert not userdoc.doc_id==None
+            assert userdoc.doc_id > 0
+            assert userdoc.active==1 or userdoc.active==0
+        log(3, 'testing UserDocs done')
+
+
 class testURLParse(unittest.TestCase):
     """
     FIXME: not all attributes of the URI object are tested... is this ok? --nico
@@ -518,6 +529,31 @@ class testURLParse(unittest.TestCase):
                        ('http',  'localhost', '8000', '/', '.es.html', 1, '', 'document_main', '',   ''))
 
 
+def print_cache_stats():
+    print 'Cache statistics:'
+    print '  blocks:          %s/%s' % (blocks.dms.cache.hits, blocks.dms.cache.misses)
+    print '  collections:     %s/%s' % (collections.dms.cache.hits, collections.dms.cache.misses)
+    print '  documents:       %s/%s' % (documents.dms.cache.hits, documents.dms.cache.misses)
+    print '  dtds:            %s/%s' % (dtds.dms.cache.hits, dtds.dms.cache.misses)
+    print '  errors:          %s/%s' % (errors.dms.cache.hits, errors.dms.cache.misses)
+    print '  error_types:     %s/%s' % (error_types.dms.cache.hits, error_types.dms.cache.misses)
+    print '  formats:         %s/%s' % (formats.dms.cache.hits, formats.dms.cache.misses)
+    print '  languages:       %s/%s' % (languages.dms.cache.hits, languages.dms.cache.misses)
+    print '  licenses:        %s/%s' % (licenses.dms.cache.hits, licenses.dms.cache.misses)
+    print '  news:            %s/%s' % (news.dms.cache.hits, news.dms.cache.misses)
+    print '  pages:           %s/%s' % (pages.dms.cache.hits, pages.dms.cache.misses)
+    print '  pub_statuses:    %s/%s' % (pub_statuses.dms.cache.hits, pub_statuses.dms.cache.misses)
+    print '  review_statuses: %s/%s' % (review_statuses.dms.cache.hits, review_statuses.dms.cache.misses)
+    print '  roles:           %s/%s' % (roles.dms.cache.hits, roles.dms.cache.misses)
+    print '  sections:        %s/%s' % (sections.dms.cache.hits, sections.dms.cache.misses)
+    print '  sessions:        %s/%s' % (sessions.dms.cache.hits, sessions.dms.cache.misses)
+    print '  sourcefiles:     %s/%s' % (sourcefiles.dms.cache.hits, sourcefiles.dms.cache.misses)
+    print '  templates:       %s/%s' % (templates.dms.cache.hits, templates.dms.cache.misses)
+    print '  topics:          %s/%s' % (topics.dms.cache.hits, topics.dms.cache.misses)
+    print '  types:           %s/%s' % (types.dms.cache.hits, types.dms.cache.misses)
+    print '  users:           %s/%s' % (users.dms.cache.hits, users.dms.cache.misses)
+    print '  webstrings:      %s/%s' % (webstrings.dms.cache.hits, webstrings.dms.cache.misses)
+
 if __name__=="__main__":
     log(3, 'testing commands')
     for command in EXTERNAL_TESTS:
@@ -527,3 +563,4 @@ if __name__=="__main__":
         log(3, 'testing command: ' + command + ' done')
     log(3, 'testing commands done')
     unittest.main()
+    print_cache_stats()

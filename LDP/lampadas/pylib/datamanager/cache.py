@@ -26,6 +26,8 @@ class Cache(LampadasCollection):
     def __init__(self):
         LampadasCollection.__init__(self)
         self.cache_size = 0
+        self.hits = 0
+        self.misses = 0
 
     def set_cache_size(self, size):
         """
@@ -48,6 +50,7 @@ class Cache(LampadasCollection):
 #        print 'Caching object ' + str(object) + ', ' + str(object.key)
         object.last_access = now_string()
         self[object.key] = object
+        self.adjust_size()
 
     def delete(self, object):
         """Deletes the object from the cache."""
@@ -59,4 +62,8 @@ class Cache(LampadasCollection):
         object = self[key]
         if object:
             object.last_access = now_string()
+            self.hits += 1
+        else:
+            self.misses += 1
         return object
+

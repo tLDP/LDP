@@ -193,7 +193,7 @@ class DataManager(DataTable):
         
         Does not read from the cache, but writes into it.
         """
-        set = DataSet(self.dms)
+        set = DataSet(self, sql)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -201,7 +201,6 @@ class DataManager(DataTable):
             object = self.row_to_object(row)
             set[object.key] = object
             self.cache.add(object)
-        self.cache.adjust_size()
         return set
 
     def new(self):
@@ -209,6 +208,7 @@ class DataManager(DataTable):
         for key in self.table.fields.keys():
             field = self.table.fields[key]
             setattr(object, field.attribute, field.get_default())
+        object.changed = 0
         return object
 
     def row_to_object(self, row):
@@ -279,9 +279,10 @@ class DataManager(DataTable):
 
 class DataSet(LampadasCollection):
 
-    def __init__(self, dms):
+    def __init__(self, dms, sql):
         super(DataSet, self).__init__()
         self.dms = dms
+        self.sql = sql
 
     def average(self, attribute):
         """Returns the average of the requested attribute."""
@@ -325,3 +326,14 @@ class DataSet(LampadasCollection):
             value = getattr(object, attribute)
             minimum = min(minimum, value)
         return minimum
+
+    def add(self, object):  
+        self.dms.save(object)
+        self[object.key] = object
+
+    def delete(self, object):
+        if object.in_database==0:
+            return
+        self.dms.delete(object)
+        if self.has_key(object.key):
+            del self[object.key]
