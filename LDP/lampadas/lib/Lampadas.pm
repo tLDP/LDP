@@ -6,10 +6,11 @@
 # 
 package Lampadas;
 
-use Mail::Sendmail;
-use String::Random;
+use Lampadas::Database;
 
+use CGI qw(:standard);
 use Exporter;
+
 @ISA	= qw(Exporter);
 @EXPORT	= qw(
 	new,
@@ -51,10 +52,7 @@ use Exporter;
 	Mail,
 );
 
-use CGI qw(:standard);
 $CGI	= new CGI;
-
-use Lampadas::Database;
 $DB	= new Lampadas::Database;
 
 # Initialize global variables
@@ -480,6 +478,7 @@ sub AdminBox {
 }
 
 sub Login {
+	use String::Random;
 	my $L = shift;
 	my $title = shift;
 	my $username = $CGI->param('username');
@@ -540,6 +539,7 @@ sub Logout {
 }
 
 sub NewUser {
+	use String::Random;
 	my $L = shift;
 	my ($username, $first_name, $middle_name, $surname, $email, $admin, $password) = @_;
 	unless ($password) {
@@ -582,6 +582,7 @@ sub Redirect {
 }
 
 sub Mail {
+	use Mail::Sendmail;
 	my $L = shift;
 	my ($to, $subject, $message) = @_;
 	my $from = Config($foo, 'local_email');

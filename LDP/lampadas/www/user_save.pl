@@ -4,10 +4,10 @@ use CGI qw(:standard);
 $CGI = new CGI;
 
 use Lampadas;
-use Database;
+use Lampadas::Database;
 
 $L = new Lampadas;
-$DB = new Database;
+$DB = new Lampadas::Database;
 
 # Read parameters
 $user_id	= param('user_id');

@@ -3,10 +3,10 @@
 use CGI qw(:standard);
 use Pg;
 use Lampadas;
-use Database;
+use Lampadas::Database;
 
 $L = new Lampadas;
-$DB = new Database;
+$DB = new Lampadas::Database;
 
 $query = new CGI;
 $dbmain = "ldp";
