@@ -16,6 +16,7 @@ Where ACTION is one of:
    delete   Delete all data.
    load     Load data from files in \$LAMPADAS_SPOOL.
    save     Copy data to files in \$LAMPADAS_SPOOL.
+   export   Like save, but format is valid input for insert.
 
 Where OPTION can chosen from:
 
@@ -94,7 +95,7 @@ build_makefile()
     echo "$tables" | sed -e 's/\([^[:space:]]*\)/_\1: ; @echo "\1"/'
     echo ""
 
-    find_sql '*.sql' | while read file; do
+    find_sql create.sql -o -name view.sql | while read file; do
       dir=${file%/*}
       table=${dir##*/}
       suffix="[[:space:]]*\([_[:alnum:]]*\).*/_$table: _\1/p"
@@ -190,6 +191,68 @@ m4script()
 }
 
 #---------------------------------------------
+psqlcmd()
+{
+  # the record separator is a tabstop + a newline + a tabstop
+  psql -q -A -F '], [' -P tuples_only -R "	
+	" -v I18N_lang_code=\'$1\' $LAMPADAS_DB \
+  < "$2" \
+  | "$LAMPADAS_SQL/common.export"
+}
+
+ExportM4()
+{
+  local s='[[:space:]]'
+  local right="[[:space:]]*=[[:space:]]*:I18N_lang_code.*"
+
+  make -f $TABLE_ORDER \
+  | while read table
+  do
+    m4cmd="$LAMPADAS_SQL/$table/export.m4"
+    tabledir="$LAMPADAS_DATA/$table"
+    test -e "$m4cmd" -a -d "$tabledir" || continue
+
+    # we name have a table directory and an export.m4 file
+    # search that file for the where-clause that selects
+    # the language
+
+    field=$( sed -ne "s/.*\<\([[:alnum:]]*\)$right/\1/p" "$m4cmd" )
+    if [ -z "$field" ]; then
+      echo "Error in $m4cmd"
+      echo "No where-clause of type '= :I18N_lang_code' found."
+      exit -1
+    fi
+
+    dst_dir="$LAMPADAS_SPOOL/$table"
+    if [ ! -d "$dst_dir" ]; then
+      if ! mkdir "$LAMPADAS_SPOOL/$table"; then
+        echo "ERROR: Can't create directory $dst_dir"
+	exit -1
+      fi 
+    fi 
+
+    # we know the field name, now select all available languages
+    psql -q -A -P tuples_only \
+    	-c "SELECT DISTINCT $field FROM $table;" \
+	$LAMPADAS_DB \
+    | while read lang
+    do
+      # for each language execute the export script
+      # and store the results
+
+      echo "$table/$lang ($field)"
+      filter="$LAMPADAS_SQL/${lang}.output"
+      if [ -x "$filter" ]; then
+        psqlcmd "$lang" "$m4cmd" | "$filter" > $dst_dir/$lang.m4
+      else
+        psqlcmd "$lang" "$m4cmd" > $dst_dir/$lang.m4
+      fi
+    done
+  done
+  exit 0
+}
+
+#---------------------------------------------
 # main()
 
 
@@ -206,7 +269,7 @@ while true; do
       "-spool" ) shift; LAMPADAS_SPOOL="$1"; shift ;;
       "-sql" ) shift; LAMPADAS_SQL="$1"; shift ;;
       "-m4debug" ) shift; M4DEBUG="-d$1"; shift ;;
-      "create" | "drop" | "delete" | "load" | "save" )
+      "create" | "drop" | "delete" | "load" | "save" | "export" )
               COMMAND=$1
               break
 	      ;;
@@ -227,6 +290,8 @@ check_var "$LAMPADAS_SQL" "LAMPADAS_SQL" "sql"
 
 TABLE_ORDER="$LAMPADAS_SPOOL/table_order.mak"
 need_rebuild "$TABLE_ORDER" && build_makefile
+
+[ "$COMMAND" = "export" ] && ExportM4
 
 sql="$LAMPADAS_SPOOL/$1.sql"
 if need_rebuild "$sql"; then
