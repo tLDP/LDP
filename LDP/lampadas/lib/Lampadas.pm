@@ -76,6 +76,7 @@ use Exporter;
 	UserTable,
 	UserDocsTable,
 	UserNotesTable,
+	DocsTable,
 	DocTable,
 	DocVersionsTable,
 	DocUsersTable,
@@ -244,7 +245,7 @@ sub AddUserNote {
 }
 
 sub Docs {
-	my $self = shift;
+	my ($self) = @_;
 	my %docs = ();
 	my $sql = "SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
 	my $result = $DB->Recordset($sql);
@@ -426,9 +427,9 @@ sub Classes {
 	my $sql = "SELECT class, class_name FROM class";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
-		$class		= &trim($row[0]);
-		$classname	= &trim($row[1]);
-		$classes{$class} = $classname;
+		$class			= &trim($row[0]);
+		$classname		= &trim($row[1]);
+		$classes{$class}{name}	= $classname;
 	}
 	return %classes;
 }
@@ -806,7 +807,7 @@ sub UserTable {
 	$table .= "<table width='100%' class='box'>\n";
 	$table .= "<form name=edit method=POST action='user_save.pl'>";
 	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
-	$table .= "<tr><th colspan=2>User Details</th><th>Notes</th></tr>\n";
+	$table .= "<tr><th colspan=2>User Details</th><th>Comments</th></tr>\n";
 	$table .= "<tr><th>Username</th><td><input type=text name='username' size=30 value='$user{username}'></input></td>\n";
 	$table .= "<td rowspan=5 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
 	$table .= "</tr>\n";
@@ -838,6 +839,7 @@ sub UserDocsTable {
 	my %docs = UserDocs($foo, $user_id);
 	my $table = '';
 	$table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=6>User Documents</th></tr>\n";
 	$table .= "<tr><th>Title</th><th>Class</th><th>Doc Status</th><th>Role</th><th>Active</th><th>Feedback Email</th></tr>\n";
 	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
 		$table .= "<tr>";
@@ -881,9 +883,294 @@ sub UserNotesTable {
 	return $table;
 }
 
+sub DocsTable {
+	my ($self) = @_;
+	my %docs = Docs();
+	my %classes = Classes();
+	my %pubstatuses = PubStatuses();
+	my %reviewstatuses = ReviewStatuses();
+
+	my $mypub_status = Param($foo,'strSTATUS');
+	$mypub_status = "N" unless ($mypub_status);
+	my %myclasses = ();
+	foreach $class (keys %classes) {
+		$param = "chk" . $class;
+		if (Param($foo, "$param") eq 'on') {
+			$myclasses{$class} = 1;
+		}
+	}
+
+	my $table = '';
+
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=100>Document Table</th></tr>\n";
+	$table .= "<tr><td align=center colspan=100>\n";
+
+	$table .= "<table style:'width:100%' class='box'>";
+	$table .= "<form name=filter method=POST action='document_list.pl'>";
+	$table .= "<tr><th>Classes</th><th>Optional Fields</th><th>Sort By</th>";
+	$table .= "<th>Status</th>" if (Maintainer());
+	$table .= "</tr>";
+	$table .= "<tr><td valign=top>\n";
+	$table .= '<table><tr><td>';
+	foreach $class (sort keys %classes) {
+		my $name = 'chk' . $class;
+		my $value = Param($foo, $name);
+		if ($value eq 'on') {
+			$table .= "<input type='checkbox' checked name='$name'>$class<br>\n";
+		} else {
+			$table .= "<input type='checkbox' name='$name'>$class<br>\n";
+		}
+	}
+	$table .= "</td></tr></table>\n";
+
+	$table .= "</td>\n";
+
+	# Optional Fields
+	#
+	$chkSTATUS       = Param($foo, 'chkSTATUS');
+	$chkCLASS        = Param($foo,'chkCLASS');
+	$chkFORMAT       = Param($foo,'chkFORMAT');
+	$chkDTD          = Param($foo,'chkDTD');
+	$chkPUBDATE      = Param($foo,'chkPUBDATE');
+	$chkLASTUPDATE   = Param($foo,'chkLASTUPDATE');
+	$chkTICKLEDATE   = Param($foo,'chkTICKLEDATE');
+	$chkREVIEWSTATUS = Param($foo,'chkREVIEWSTATUS');
+	$chkTECHSTATUS   = Param($foo,'chkTECHSTATUS');
+	$chkURL          = Param($foo,'chkURL');
+	$chkMAINTAINED   = Param($foo,'chkMAINTAINED');
+	$chkLICENSE      = Param($foo,'chkLICENSE');
+	$chkVERSION      = Param($foo,'chkVERSION');
+	$chkFILENAME     = Param($foo,'chkFILENAME');
+	$chkRATING       = Param($foo,'chkRATING');
+
+	$SORT	= Param($foo,'strSORT');
+	$SORT	= "title" unless ($SORT);
+
+	$strSTATUS = Param($foo,'strSTATUS');
+
+	# if we're not reloading, or aren't a maintainer, the default is to show only Active ('N') documents.
+	unless (($reload eq 'Reload') or (Maintainer())) {
+		$strSTATUS = 'N';
+	}
+
+	$reload = Param($foo,'Reload');
+
+	$STATUS = "";
+	$CLASS = "";
+	$FORMAT = "";
+	$DTD = "";
+	$PUBDATE = "";
+	$LASTUPDATE = "";
+	$TICKLEDATE = "";
+	$REVIEWSTATUS = "";
+	$TECHSTATUS = "";
+	$URL = "";
+	$MAINTAINED = "";
+	$LICENSE = "";
+	$VERSION = "";
+	$FILENAME = "";
+	$RATING = "";
+
+	if ( $chkSTATUS eq "on" ) { $STATUS = "checked "; }
+	if ( $chkCLASS eq "on" ) { $CLASS = "checked "; }
+	if ( $chkFORMAT eq "on" ) { $FORMAT = "checked "; }
+	if ( $chkDTD eq "on" ) { $DTD = "checked "; }
+	if ( $chkPUBDATE eq "on" ) { $PUBDATE = "checked "; }
+	if ( $chkLASTUPDATE eq "on" ) { $LASTUPDATE = "checked "; }
+	if ( $chkTICKLEDATE eq "on" ) { $TICKLEDATE = "checked "; }
+	if ( $chkREVIEWSTATUS eq "on" ) { $REVIEWSTATUS = "checked "; }
+	if ( $chkTECHSTATUS eq "on" ) { $TECHSTATUS = "checked "; }
+	if ( $chkURL eq "on" ) { $URL = "checked "; }
+	if ( $chkMAINTAINED eq "on" ) { $MAINTAINED = "checked "; }
+	if ( $chkLICENSE eq "on" ) { $LICENSE = "checked "; }
+	if ( $chkVERSION eq "on" ) { $VERSION = "checked "; }
+	if ( $chkFILENAME eq "on" ) { $FILENAME = "checked "; }
+	if ( $chkRATING eq "on" ) { $RATING = "checked "; }
+
+	$table .= "<td valign=top>\n";
+	$table .= "<table><tr><td valign=top>\n";
+	$table .= "<input type=checkbox $STATUS name=chkSTATUS>Status<br>\n" if (Maintainer());
+	$table .= "<input type=checkbox $CLASS name=chkCLASS>Class<br>\n";
+	$table .= "<input type=checkbox $URL name=chkURL>URL<br>\n";
+	$table .= "<input type=checkbox $RATING name=chkRATING>Rating<br>\n";
+	if (Maintainer()) {
+		$table .= "<input type=checkbox $FORMAT name=chkFORMAT>Format<br>\n";
+		$table .= "<input type=checkbox $DTD name=chkDTD>DTD<br>\n";
+		$table .= "<input type=checkbox $PUBDATE name=chkPUBDATE>Pub Date<br>\n";
+		$table .= "<input type=checkbox $LASTUPDATE name=chkLASTUPDATE>Last Update<br>\n";
+		$table .= "</td><td valign=top>\n";
+		$table .= "<input type=checkbox $TICKLEDATE name=chkTICKLEDATE>Tickle Date<br>\n";
+		$table .= "<input type=checkbox $REVIEWSTATUS name=chkREVIEWSTATUS>Review Status<br>\n";
+		$table .= "<input type=checkbox $TECHSTATUS name=chkTECHSTATUS>Tech Status<br>\n";
+		$table .= "<input type=checkbox $MAINTAINED name=chkMAINTAINED>Maintained<br>\n";
+		$table .= "<input type=checkbox $LICENSE name=chkLICENSE>License<br>\n";
+		$table .= "<input type=checkbox $VERSION name=chkVERSION>Version<br>\n";
+		$table .= "<input type=checkbox $FILENAME name=chkFILENAME>Filename<br>\n";
+	}
+	$table .= "</td></tr></table>\n";
+	$table .= "</td>\n";
+
+	$table .= "<td valign=top>\n";
+	$table .= "<select name=strSORT>\n";
+	if ( $SORT eq "title" ) { $table .= '<option selected value="title">Title</option>'; } else { $table .= '<option value="title">Title</option>' }
+	if ( $SORT eq "class" ) { $table .= '<option selected value="class">Class</option>'; } else { $table .= '<option value="class">Class</option>' }
+	if ( $SORT eq "rating" ) { $table .= '<option selected value="rating">Rating</option>'; } else { $table .= '<option value="rating">Rating</option>' }
+	if (Maintainer()) {
+		if ( $SORT eq "document.pub_status" ) { $table .= '<option selected value="document.pub_status">Status</option>'; } else { $table .= '<option value="document.pub_status">Status</option>' }
+		if ( $SORT eq "review_status_name" ) { $table .= '<option selected value="review_status_name">Review Status</option>'; } else { $table .= '<option value="review_status_name">Review Status</option>' }
+		if ( $SORT eq "tech_review_status_name" ) { $table .= '<option selected value="tech_review_status_name">Tech Review Status</option>'; } else { $table .= '<option value="tech_review_status_name">Tech Review Status</option>' }
+		if ( $SORT eq "format" ) { $table .= '<option selected value="format">Format</option>'; } else { $table .= '<option value="format">Format</option>' }
+		if ( $SORT eq "dtd" ) { $table .= '<option selected value="dtd">DTD</option>'; } else { $table .= '<option value="dtd">DTD</option>' }
+		if ( $SORT eq "pub_date" ) { $table .= '<option selected value="pub_date">Publication Date</option>'; } else { $table .= '<option value="pub_date">Publication Date</option>' }
+		if ( $SORT eq "last_update" ) { $table .= '<option selected value="last_update">Last Update</option>'; } else { $table .= '<option value="last_update">Last Update</option>' }
+		if ( $SORT eq "tickle_date" ) { $table .= '<option selected value="tickle_date">Tickle Date</option>'; } else { $table .= '<option value="tickle_date">Tickle Date</option>' }
+		if ( $SORT eq "url" ) { $table .= '<option selected value="url">URL</option>'; } else { $table .= '<option value="url">URL</option>' }
+		if ( $SORT eq "maintained" ) { $table .= '<option selected value="maintained">Maintained</option>'; } else { $table .= '<option value="maintained">Maintained</option>' }
+		if ( $SORT eq "license" ) { $table .= '<option selected value="license">License</option>'; } else { $table .= '<option value="license">License</option>' }
+		if ( $SORT eq "filename" ) { $table .= '<option selected value="filename">Filename</option>'; } else { $table .= '<option value="filename">Filename</option>' }
+	}
+	$table .= "</select><br>";
+	$table .= "</td>\n";
+
+	if (Maintainer()) {
+		$table .= "<td valign=top>\n";
+		$table .= "<select name=strSTATUS>\n";
+		$table .= "<option></option>\n";
+		if ( $strSTATUS eq "N" ) { $table .= '<option selected value="N">Active</option>'; } else { $table .= '<option value="N">Active</option>' }
+		if ( $strSTATUS eq "?" ) { $table .= '<option selected value="?">Unknown</option>'; } else { $table .= '<option value="?">Unknown</option>' }
+		if ( $strSTATUS eq "A" ) { $table .= '<option selected value="A">Archived</option>'; } else { $table .= '<option value="A">Archived</option>' }
+		if ( $strSTATUS eq "D" ) { $table .= '<option selected value="D">Deleted</option>'; } else { $table .= '<option value="D">Deleted</option>' }
+		if ( $strSTATUS eq "O" ) { $table .= '<option selected value="O">Offsite</option>'; } else { $table .= '<option value="O">Offsite</option>' }
+		if ( $strSTATUS eq "P" ) { $table .= '<option selected value="P">Pending</option>'; } else { $table .= '<option value="P">Pending</option>' }
+		if ( $strSTATUS eq "R" ) { $table .= '<option selected value="R">Replaced</option>'; } else { $table .= '<option value="R">Replaced</option>' }
+		if ( $strSTATUS eq "W" ) { $table .= '<option selected value="W">Wishlist</option>'; } else { $table .= '<option value="W">Wishlist</option>' }
+		if ( $strSTATUS eq "C" ) { $table .= '<option selected value="C">Cancelled</option>'; } else { $table .= '<option value="C">Cancelled</option>' }
+		$table .= "</select>\n";
+		$table .= "</td>\n";
+	}
+	$table .= "</tr>\n";
+	$table .= "<tr><td colspan=4>\n";
+	$table .= "<input type=submit name=Reload value=Reload>\n";
+	$table .= "</td></tr>\n";
+	$table .= "</form>\n";
+	$table .= "</table>\n";
+
+	$table .= "</td></tr>\n";
+
+	$table .= "<tr><th>Title</th>";
+	$table .= "<th>Status</th>" if (Param($foo, chkSTATUS));
+	$table .= "<th>Review</th>" if (Param($foo, chkREVIEWSTATUS));
+	$table .= "<th>Tech Status</th>" if (Param($foo, chkTECHSTATUS));
+	$table .= "<th>Rating</th>" if (Param($foo, chkRATING));
+	$table .= "<th>Maintained</th>" if (Param($foo, chkMAINTAINED));
+	$table .= "<th>License</th>" if (Param($foo, chkLICENSE));
+	$table .= "<th>Version</th>" if (Param($foo, chkVERSION));
+	$table .= "<th>Filename</th>" if (Param($foo, chkFILENAME));
+	$table .= "<th>Class</th>" if (Param($foo, chkCLASS));
+	$table .= "<th>Format</th>" if (Param($foo, chkFORMAT));
+	$table .= "<th>DTD</th>" if (Param($foo, chkDTD));
+	$table .= "<th>Pub Date</th>" if (Param($foo, chkPUBDATE));
+	$table .= "<th>Last Update</th>" if (Param($foo, chkLASTUPDATE));
+	$table .= "<th>Tickle Date</th>" if (Param($foo, chkTICKLEDATE));
+	$table .= "<th>URL</th>" if (Param($foo, chkURL));
+	
+	my $sort = Param($foo, strSORT);
+	if ($sort eq 'class') {
+		@docids = sort { $docs{$a}{class} cmp $docs{$b}{class} } keys %docs;
+	} elsif ($sort eq 'rating') {
+		@docids = sort { $docs{$a}{rating} <=> $docs{$b}{rating} } keys %docs;
+	} elsif ($sort eq 'pub_status') {
+		@docids = sort { $docs{$a}{pub_status} cmp $docs{$b}{pub_status} } keys %docs;
+	} elsif ($sort eq 'review_status_name') {
+		@docids = sort { $reviewstatuses{$docs{$a}{review_status}}{name} cmp $reviewstatuses{$docs{$b}{review_status}}{name} } keys %docs;
+	} elsif ($sort eq 'tech_review_status_name') {
+		@docids = sort { $reviewstatuses{$docs{$a}{tech_review_status}}{name} cmp $reviewstatuses{$docs{$b}{tech_review_status}}{name} } keys %docs;
+	} elsif ($sort eq 'format') {
+		@docids = sort { $docs{$a}{format} cmp $docs{$b}{format} } keys %docs;
+	} elsif ($sort eq 'dtd') {
+		@docids = sort { $docs{$a}{dtd} cmp $docs{$b}{dtd} } keys %docs;
+	} elsif ($sort eq 'pub_date') {
+		@docids = sort { $docs{$a}{pub_date} cmp $docs{$b}{pub_date} } keys %docs;
+	} elsif ($sort eq 'last_update') {
+		@docids = sort { $docs{$a}{last_update} cmp $docs{$b}{last_update} } keys %docs;
+	} elsif ($sort eq 'tickle_date') {
+		@docids = sort { $docs{$a}{tickle_date} cmp $docs{$b}{tickle_date} } keys %docs;
+	} elsif ($sort eq 'url') {
+		@docids = sort { $docs{$a}{url} cmp $docs{$b}{url} } keys %docs;
+	} elsif ($sort eq 'maintained') {
+		@docids = sort { $docs{$a}{maintained} cmp $docs{$b}{maintained} } keys %docs;
+	} elsif ($sort eq 'license') {
+		@docids = sort { $docs{$a}{license} cmp $docs{$b}{license} } keys %docs;
+	} elsif ($sort eq 'filename') {
+		@docids = sort { $docs{$a}{filename} cmp $docs{$b}{filename} } keys %docs;
+	} else {
+		@docids = sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs;
+	}
+	
+	foreach $doc_id (@docids) {
+
+		$classok = 1;
+		foreach $class (keys %myclasses) {
+			$classok = 0;
+			if ($docs{$doc_id}{class} eq $myclasses{$class} ) {
+				$classok = 1;
+			}
+		}
+		next unless ($classok);
+
+		my $pub_statusok = 1;
+		if ($mypub_status) {
+			$pub_statusok = 0;
+			if ($docs{$doc_id}{pub_status} eq $mypub_status) {
+				$pub_statusok = 1;
+			}
+		}
+		next unless ($pub_statusok);
+
+		$table .= "<tr>";
+		if (Maintainer()) {
+			$table .= "<td>";
+			$table .= "<a href='document_edit.pl?doc_id=$doc_id'>$docs{$doc_id}{title}</a>";
+			$table .= "&nbsp;&nbsp;&nbsp;<a href='$docs{$doc_id}{url}'>Go!</a>" if ($docs{$doc_id}{url});
+			$table .= "</td>\n";
+		} elsif ($docs{$doc_id}{url}) {
+			$table .= "<td>";
+			$table .= "&nbsp;&nbsp;&nbsp;<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
+			$table .= "</td>\n";
+		}
+		$table .= "<td>$pubstatuses{$docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, chkSTATUS));
+		$table .= "<td>$reviewstatuses{$docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, chkREVIEWSTATUS));
+		$table .= "<td>$reviewstatuses{$docs{$doc_id}{tech_review_status}}{name}</td>" if (Param($foo, chkTECHSTATUS));
+		$table .= "<td>$docs{$doc_id}{rating}</td>" if (Param($foo, chkRATING));
+		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, chkMAINTAINED));
+		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, chkLICENSE));
+		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, chkVERSION));
+		$table .= "<td>$docs{$doc_id}{filename}</td>" if (Param($foo, chkFILENAME));
+		$table .= "<td>$docs{$doc_id}{class}</td>" if (Param($foo, chkCLASS));
+		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, chkFORMAT));
+		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, chkDTD));
+		$table .= "<td>$docs{$doc_id}{pub_date}</td>" if (Param($foo, chkPUBDATE));
+		$table .= "<td>$docs{$doc_id}{last_update}</td>" if (Param($foo, chkLASTUPDATE));
+		if (Param($foo, chkTICKLEDATE)) {
+			$tickle_date = $docs{$doc_id}{tickle_date};
+			$date = `date -I`;
+			if ($date gt $tickle_date) {
+				$table .= "<td><font color=red>$tickle_date</font></td>";
+			} else {
+				$table .= "<td>$tickle_date</td>";
+			}
+		}
+	
+		$table .= "<td>$docs{$doc_id}{url}</td>" if (Param($foo, chkURL));
+		$table .= "</tr>\n";
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
 sub DocTable {
-	my $self = shift;
-	my $doc_id = shift;
+	my ($self, $doc_id) = @_;
 	if ($doc_id) {
 		my %doc = Doc($foo, $doc_id);
 	} else {
@@ -1202,7 +1489,7 @@ sub BarGraphTable {
 		for ( $i = 1; $i <= 10; $i++ ) {
 			$graph .= "<td class='";
 			if ( $value >= $i ) { $graph .= "baron" } else { $graph .= "baroff" }
-			$graph .= "'>&nbsp;&nbsp;</td>\n";
+			$graph .= "'>&nbsp;</td>\n";
 		}
 		$graph .= "</tr></table>\n";
 	} else {
@@ -1216,7 +1503,7 @@ sub DocVersionsTable {
 	my $table = '';
 	my %docversions = DocVersions($foo, $doc_id);
 	
-	$table .= "<table class='box'>\n";
+	$table .= "<table style='width:100%' class='box'>\n";
 	$table .= "<tr><th colspan=6>Document Versions</th></tr>\n";
 	$table .= "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
 	foreach $key (sort { $docversions{$a}{pub_date} cmp $docversions{$b}{pub_date} } keys %docversions) {
@@ -1389,7 +1676,7 @@ sub DocRatingTable {
 sub DocNotesTable {
 	my ($self, $doc_id) = @_;
 	my %docnotes = DocNotes($foo, $doc_id);
-	my $table = "<table class='box'>\n";
+	my $table = "<table style='width:100%' class='box'>\n";
 	$table .= "<form name=notes method=POST action='document_note_add.pl'>\n";
 	$table .= "<tr><th colspan=3>Document Notes</th></tr>\n";
 	$table .= "<tr><th>Date and Time</th><th>User</th><th>Notes</th></tr>\n";

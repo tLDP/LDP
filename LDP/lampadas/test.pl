@@ -53,9 +53,9 @@ $DB = new Lampadas::Database;
 #&DocCount();
 #&DocCountByClass("'HOWTO'");
 #&DocCountByPubStatus("'N'");
-&PubStatusStatsTable();
-
-&MiscStatsTable();
+#&PubStatusStatsTable();
+#&MiscStatsTable();
+DocsTable();
 
 sub Topic {
 	my $topic_num = shift;
@@ -412,3 +412,12 @@ sub PubStatusStatsTable{
 sub MiscStatsTable {
 	print $L->MiscStatsTable();
 }
+
+sub DocsTable {
+	my %classes = (FAQ=>1, GUIDE=>1);
+	my %pubstatuses = (N=>1);
+#	my %wheres = (class=>\%classes, pub_status=>\%pubstatuses);
+	my %wheres = ();
+	print $L->DocsTable(\%wheres);
+}
+
