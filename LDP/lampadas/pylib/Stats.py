@@ -44,6 +44,7 @@ class Stats(LampadasCollection):
         self['pub_time'] = StatTable()
         self['doc_error'] = StatTable()
         self['doc_format'] = StatTable()
+        self['doc_dtd'] = StatTable()
         
     def calc(self):
         self.reset()
@@ -55,7 +56,6 @@ class Stats(LampadasCollection):
             # Increment document counts
             self['general'].inc('doc_count')
             self['pub_status'].inc(doc.pub_status_code)
-            self['doc_format'].inc(doc.format_code)
             
             # Increment error counts
             for key in doc.errors.sort_by('err_id'):
@@ -70,6 +70,11 @@ class Stats(LampadasCollection):
                 if doc.mirror_time > '':
                     pub_time = date2str(doc.pub_time)
                     self['pub_time'].inc(pub_time)
+                    
+                    if doc.pub_time > '':
+                        self['doc_format'].inc(doc.format_code)
+                        self['doc_dtd'].inc(doc.dtd_code)
+
 
 class StatTable(LampadasCollection):
     """Holds a set of statistics."""
@@ -96,7 +101,7 @@ class StatTable(LampadasCollection):
         """Returns the requested value's percentage of the total."""
         
         if self[label]==None:
-            print 'ERROR: label not found'
+            print 'ERROR: label ' + label + ' not found'
             return float(0)
         return float(self[label].value)/self.sum()
 
