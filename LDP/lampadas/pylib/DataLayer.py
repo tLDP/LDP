@@ -85,7 +85,7 @@ class Classes(LampadasCollection):
     """
     
     def Load(self):
-        sql = "SELECT class_id FROM class"
+        sql = "SELECT class_id, sort_order FROM class"
         self.cursor = db.select(sql)
         while (1):
             row = self.cursor.fetchone()
@@ -106,7 +106,9 @@ class Class:
         self.ID = ClassID
 
     def Load(self, row):
-        self.ID = row[0]
+        self.ID         = row[0]
+        self.sort_order = row[1]
+
         sql = "SELECT lang, class_name, class_desc FROM class_i18n WHERE class_id=" + str(self.ID)
         self.cursor = db.select(sql)
         while (1):
@@ -122,9 +124,9 @@ class ClassI18n:
     """
 
     def Load(self, row):
-        self.Lang		= row[0]
-        self.Name		= trim(row[1])
-        self.Description	= trim(row[2])
+        self.Lang        = row[0]
+        self.Name        = trim(row[1])
+        self.Description = trim(row[2])
 
     
 # Cfg

@@ -334,7 +334,7 @@ class TableFactory:
     def doctable(self, lang):
         log(3, "Creating doctable")
         box = ''
-        box = box + '<table class="box"><tr><th colspan="2">Title</th></tr>'
+        box = box + '<table class="box"><tr><th colspan="2">|title|</th></tr>'
         keys = lampadas.Docs.sort_by("Title")
         for key in keys:
             doc = lampadas.Docs[key]
@@ -373,7 +373,7 @@ class TableFactory:
 
     def topics(self, lang):
         log(3, 'Creating topics table')
-        box = '<table class="navbox"><tr><th colspan="2">|topics|</th></tr>\n'
+        box = '<table class="navbox"><tr><th>|topics|</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.topics.sort_by('num')
         for key in keys:
@@ -388,7 +388,7 @@ class TableFactory:
     def subtopics(self, topic_code, lang):
         log(3, 'Creating subtopics table')
         topic = lampadas.topics[topic_code]
-        box = '<table class="navbox"><tr><th colspan="2">' + topic.i18n[lang].name + '</th></tr>\n'
+        box = '<table class="navbox"><tr><th>' + topic.i18n[lang].name + '</th></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.subtopics.sort_by('num')
         for key in keys:
@@ -399,6 +399,20 @@ class TableFactory:
         box = box + '</ol></td></tr>\n'
         box = box + '</table>\n'
         log(3, "Topics table complete")
+        return box
+
+    def classes(self, lang):
+        log(3, 'Creating classes table')
+        box = '<table class="navbox"><tr><th>|classes|</th></tr>\n'
+        box = box + '<tr><td>\n'
+        keys = lampadas.Classes.sort_by('sort_order')
+        for key in keys:
+            Class = lampadas.Classes[key]
+            box = box + '<a href="class/' + str(Class.ID) + '">\n'
+            box = box + Class.I18n[lang].Name + '</a><br>\n'
+        box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        log(3, "Classes table complete")
         return box
 
 
@@ -486,6 +500,8 @@ class PageFactory:
                     newstring = self.tablef.topics(uri.language)
                 if token=='tabsubtopics':
                     newstring = self.tablef.subtopics(uri.code, uri.language)
+                if token=='tabclasses':
+                    newstring = self.tablef.classes(uri.language)
             
                 # Blocks and Strings
                 # 
@@ -494,18 +510,20 @@ class PageFactory:
                     if block == None:
                         string = lampadasweb.strings[token]
                         if string == None:
-                            newstring = 'ERROR (' + token + ')'
                             log(1, 'Could not replace token ' + token)
                         else:
                             newstring = string.i18n[uri.language].string
                     else:
                         newstring = block.i18n[uri.language].block
                 
+                # Add an error message if the token was not found
+                # 
                 if newstring == '':
                     log(1, 'Could not replace token ' + token)
-                else:
-                    html = html.replace(html[pos:pos2+1], newstring)
-                    html = html.replace('\|', 'DCM_PIPE')
+                    newstring = 'ERROR (' + token + ')'
+                
+                html = html.replace(html[pos:pos2+1], newstring)
+                html = html.replace('\|', 'DCM_PIPE')
                 
                 pos = html.find('|')
         

@@ -156,6 +156,8 @@ class PageI18n:
         self.title      = trim(row[1])
         self.menu_name	= trim(row[2])
         self.page       = trim(row[3])
+        if self.menu_name == '':
+            self.menu_name = self.title
 
 
 # Strings
