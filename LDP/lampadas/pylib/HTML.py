@@ -659,8 +659,8 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><th class="label">|strusername|</td><td><input type=text name=username size=12></input></td></tr>\n'
-            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password name=password size=12></input></td></tr>\n'
+            box = box + '<tr><td class="label">|strusername|</td><td><input type=text name=username size=12></input></td></tr>\n'
+            box = box + '<tr><td class="label">|strpassword|</td><td><input type=password name=password size=12></input></td></tr>\n'
             box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
             box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
             box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
