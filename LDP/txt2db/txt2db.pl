@@ -70,6 +70,7 @@ sub usage {
 
 sub proc_txt {
 	my($f) = @_;
+	my($dbnesting);
 
 	# read in the text file
 	#
@@ -82,68 +83,103 @@ sub proc_txt {
 		# blank lines
 		if ($line eq '') {
 			&closepara;
+			&closelist;
+			&closeorderedlist;
 			next;
 		}
+
+		# pass DocBook right on through
+		#
+		if ($line =~ /^</) {
+			&closepara;
+			$closelist;
+			&closeorderedlist;
+
+			$tag = $line;
+			$tag =~ s/^.*<//;
+			$tag =~ s/>.*$//;
+
+			$buf .= $line;
+
+			$dbnesting = 1;
+			while (<TXT>) {
+				$line = $_;
+				if ($line =~ /<$tag>/) {
+					$dbnesting = $dbnesting + 1;
+				}
+				if ($line =~ /<\/$tag>/) {
+					$dbnesting = $dbnesting - 1;
+					$buf .= $line;
+					if ($dbnesting == 0) {
+						last;
+					}
+				} else {
+					$buf .= $line;
+				}
+			}
+			next;
+		}
+
 		
 		if ($line =~ /^=\w/) {
 			&close1;
-			$level1 = 1;
 			&splittitle;
 			if ($id eq '') {
 				$line = "<sect1><title>$title</title>\n";
 			} else {
 				$line = "<sect1 id='$id'><title>$title</title>\n";
 			}
+			$level1 = 1;
 		} elsif ($line =~ /^==\w/) {
 			&close2;
-			$level2 = 1;
 			&splittitle;
 			if ($id eq '') {
 				$line = "<sect2><title>$title</title>\n";
 			} else {
 				$line = "<sect2 id='$id'><title>$title</title>\n";
 			}
+			$level2 = 1;
 		} elsif ($line =~ /^===\w/) {
 			&close3;
-			$level3 = 1;
 			&splittitle;
 			if ($id eq '') {
 				$line = "<sect3><title>$title</title>\n";
 			} else {
 				$line = "<sect3 id='$id'><title>$title</title>\n";
 			}
+			$level3 = 1;
 		} elsif ($line =~ /^#/) {
 			if ($orderedlist == 0) {
-				$orderedlist = 1;
 				$buf .= "\n<orderedlist>\n";
+				$orderedlist = 1;
 			}
 			&closelistitem;
-			$listitem = 1;
 			$line =~ s/^#//;
 			$line =~ s/^/\n<listitem><para>/;
+			$listitem = 1;
 			$para = 1;
 		} elsif ($line =~ /^\*/) {
 			if ($list == 0) {
-				$list = 1;
 				$buf .= "\n<simplelist>\n";
+				$list = 1;
 			}
 			&closelistitem;
-			$listitem = 1;
 			$line =~ s/^\*//;
 			$line =~ s/^/\n<listitem><para>/;
+			$listitem = 1;
 			$para = 1;
 		}
 		else {
 			&closeorderedlist;
 			if ( $para == 0 ) {
-				$para = 1;
 				$line =~ s/^/<para>/;
+				$para = 1;
 			} else {
 				$line .= " ";
 			}
 		}
 
-		# links
+		# ulink
 		# 
 		if ($line =~ /\[\[/) {
 			$link = $line;
@@ -158,6 +194,19 @@ sub proc_txt {
 			}
 			$line =~ s/\[\[.*\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
 		}
+
+		# emphasis
+		#
+		while ($line =~ /'''.*'''/) {
+			$line =~ s/'''/<emphasis>/;
+			$line =~ s/'''/<\/emphasis>/;
+		}
+
+		# filename
+		#
+		$line =~ s/\[/<filename>/;
+		$line =~ s/\]/<\/filename>/;
+
 		$buf .= $line;
 	}
 	# close nesting
