@@ -26,6 +26,7 @@ import unittest
 from Config import config
 from Database import db
 from DataLayer import lampadas
+from URLParse import URI
 from Log import log
 import commands
 
@@ -72,7 +73,7 @@ class testClasses(unittest.TestCase):
     def testClasses(self):
         log(3, 'testing classes')
         assert not lampadas.Classes == None
-        assert lampadas.Classes.Count() > 0
+        assert lampadas.Classes.count() > 0
         log(3, 'testing classes done')
 
 
@@ -90,13 +91,13 @@ class testDocs(unittest.TestCase):
     def testDocs(self):
         log(3, 'testing Docs')
         assert not lampadas.Docs == None
-        assert lampadas.Docs.Count() > 0
+        assert lampadas.Docs.count() > 0
 
         db.runsql("DELETE FROM document where title='testharness'")
         db.commit()
     
         self.OldID = db.read_value('SELECT max(doc_id) from document')
-        self.NewID = lampadas.Docs.Add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
+        self.NewID = lampadas.Docs.add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
         assert self.NewID > 0
         assert self.OldID + 1 == self.NewID
         
@@ -152,7 +153,7 @@ class testDocErrs(unittest.TestCase):
         for key in keys:
             Doc = lampadas.Docs[key]
             assert not Doc == None
-            if Doc.Errs.Count() > 0:
+            if Doc.Errs.count() > 0:
                 log("found a doc with errors")
                 for Err in Doc.Errs:
                     assert not Err == None
@@ -167,7 +168,7 @@ class testDocFiles(unittest.TestCase):
         log(3, 'testing DocFiles')
         Doc = lampadas.Docs[100]
         assert not Doc == None
-        assert Doc.Files.Count() > 0
+        assert Doc.Files.count() > 0
         keys = Doc.Files.keys()
         for key in keys:
             File = Doc.Files[key]
@@ -184,34 +185,34 @@ class testDocRatings(unittest.TestCase):
         Doc = lampadas.Docs[100]
         assert not Doc == None
         Doc.Ratings.Clear()
-        assert Doc.Ratings.Count() == 0
+        assert Doc.Ratings.count() == 0
         assert Doc.Rating == 0
 
         # Add UserID: 1   Rating: 5   -- Avg: 5
 
-        Doc.Ratings.Add(1, 5)
-        assert Doc.Ratings.Count() == 1
+        Doc.Ratings.add(1, 5)
+        assert Doc.Ratings.count() == 1
         assert Doc.Ratings.Average == 5
         assert Doc.Rating == 5
 
         # Add UserID: 2   Rating: 7   -- Avg: 6
         
-        Doc.Ratings.Add(2, 7)
-        assert Doc.Ratings.Count() == 2
+        Doc.Ratings.add(2, 7)
+        assert Doc.Ratings.count() == 2
         assert Doc.Ratings.Average == 6
         assert Doc.Rating == 6
 
         # Del UserID: 1
     
         Doc.Ratings.Del(1)
-        assert Doc.Ratings.Count() == 1
+        assert Doc.Ratings.count() == 1
         assert Doc.Ratings.Average == 7
         assert Doc.Rating == 7
 
         # Clear again
 
         Doc.Ratings.Clear()
-        assert Doc.Ratings.Count() == 0
+        assert Doc.Ratings.count() == 0
         assert Doc.Ratings.Average == 0
         assert Doc.Rating == 0
         log(3, 'testing DocRatings done')
@@ -226,7 +227,7 @@ class testDocVersions(unittest.TestCase):
         for key in keys:
             Doc = lampadas.Docs[key]
             assert not Doc == None
-            if Doc.Versions.Count() > 0:
+            if Doc.Versions.count() > 0:
                 found = 1
                 vkeys = Doc.Versions.keys()
                 for vkey in vkeys:
@@ -242,7 +243,7 @@ class testDTDs(unittest.TestCase):
 
     def testDTDs(self):
         log(3, 'testing DTDs')
-        assert lampadas.DTDs.Count() > 0
+        assert lampadas.DTDs.count() > 0
         assert not lampadas.DTDs['DocBook'] == None
         log(3, 'testing DTDs done')
 
@@ -251,7 +252,7 @@ class testFormats(unittest.TestCase):
 
     def testFormats(self):
         log(3, 'testing Formats')
-        assert lampadas.Formats.Count() > 0
+        assert lampadas.Formats.count() > 0
         assert not lampadas.Formats[1] == None
         assert not lampadas.Formats[1].I18n == None
         assert not lampadas.Formats[1].I18n['EN'] == None
@@ -264,11 +265,13 @@ class testLanguages(unittest.TestCase):
 
     def testLanguages(self):
         log(3, 'testing Languages')
+        assert not lampadas.Languages == None
+        assert not lampadas.Languages['EN'] == None
         assert lampadas.Languages['EN'].Supported
         assert lampadas.Languages['EN'].I18n['EN'].Name == 'English'
         assert lampadas.Languages['FR'].Supported
         assert lampadas.Languages['FR'].I18n['EN'].Name == 'French'
-        assert lampadas.Languages.Count() == 136
+        assert lampadas.Languages.count() == 136
         log(3, 'testing Languages done')
 
 
@@ -277,7 +280,7 @@ class testPubStatuses(unittest.TestCase):
     def testPubStatuses(self):
         log(3, 'testing PubStatuses')
         assert not lampadas.PubStatuses == None
-        assert lampadas.PubStatuses.Count() > 0
+        assert lampadas.PubStatuses.count() > 0
         assert not lampadas.PubStatuses['A'] == None
         assert not lampadas.PubStatuses['A'].I18n == None
         assert not lampadas.PubStatuses['A'].I18n['EN'] == None
@@ -291,7 +294,7 @@ class testTopics(unittest.TestCase):
     def testTopics(self):
         log(3, 'testing Topics')
         assert not lampadas.Topics == None
-        assert lampadas.Topics.Count() > 0
+        assert lampadas.Topics.count() > 0
         keys = lampadas.Topics.keys()
         for key in keys:
             Topic = lampadas.Topics[key]
@@ -305,13 +308,13 @@ class testUsers(unittest.TestCase):
     def testUsers(self):
         log(3, 'testing Users')
         assert not lampadas.Users == None
-        assert lampadas.Users.Count() > 0
+        assert lampadas.Users.count() > 0
 
         db.runsql("DELETE FROM username where email='foo@example.com'")
         db.commit()
     
         self.OldID = db.read_value('SELECT MAX(user_id) from username')
-        self.NewID = lampadas.Users.Add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
+        self.NewID = lampadas.Users.add('testuser', 'j', 'random', 'hacker', 'foo@example.com', 1, 1, 'pw', 'notes go here', 'default')
         assert self.NewID > 0
         assert self.OldID + 1 == self.NewID
         
@@ -333,7 +336,7 @@ class testUserDocs(unittest.TestCase):
         log(3, 'testing UserDocs')
         self.User = lampadas.User(11)
         assert len(self.User.Docs) > 0
-        assert self.User.Docs.Count() > 0
+        assert self.User.Docs.count() > 0
         assert not self.User.Docs == None
         for UserDoc in self.User.Docs:
             assert not UserDoc == None
@@ -343,64 +346,54 @@ class testUserDocs(unittest.TestCase):
         log(3, 'testing UserDocs done')
 
 
-#class testConverter(unittest.TestCase):
-#
-#	import Converter
-#
-#	def setUp(self):
-#		self.C = Converter.Converter()
-#
-#	def run(self, dir, base, ext, output):
-#		self.filename	= dir + base + ext
-#		self.xmlnew		= dir + base + '.xml.new'
-#		self.md5new		= dir + base + '.md5.new'
-#		self.md5old		= dir + base + '.md5.old'
-#	
-#		fd = open(self.xmlnew, 'w')
-#		fd.write(output + "\n")
-#		fd.close()
-#
-#		newchecksum = commands.getoutput('md5sum < ' + self.xmlnew)
-#		newchecksum = newchecksum + "\n"
-#		
-#		fd = open(self.md5new, 'w')
-#		fd.write(newchecksum)
-#		fd.close()
-#
-#		fd = open(self.md5old, 'r')
-#		oldchecksum = fd.read()
-#		fd.close()
-#
-#		assert oldchecksum == newchecksum
-#
-#	def testWikiText(self):
-#		
-#		output = self.C.wikitext('test/wt/Lampadas.wt')
-#		self.run('test/wt/', 'Lampadas', '.wt', output)
-#
-#	def testTexinfo(self):
-#		output = self.C.texinfo('test/texinfo/texinfo.txi')
-#		self.run('test/texinfo/', 'texinfo', '.txi', output)
-#
-#	def testDBSGML(self):
-#		output = self.C.dbsgml('test/db3.0sgml/RPM-HOWTO.sgml')
-#		self.run('test/db3.0sgml/', 'RPM-HOWTO', '.sgml', output)
-#		
-#		output = self.C.dbsgml('test/db3.1sgml/XFree86-Second-Mouse.sgml')
-#		self.run('test/db3.1sgml/', 'XFree86-Second-Mouse', '.sgml', output)
-#
-#		output = self.C.dbsgml('test/db4.1sgml/Small-Memory.sgml')
-#		self.run('test/db4.1sgml/', 'Small-Memory', '.sgml', output)
+class testUserDocs(unittest.TestCase):
 
-#class testHTML(unittest.TestCase):
-    
-#	def setUp(self):
-#		self.HTML = HTMlampadas.HTMLFactory()
+    def testUserDocs(self):
+        log(3, 'testing UserDocs')
+        self.User = lampadas.User(11)
+        assert len(self.User.Docs) > 0
+        assert self.User.Docs.count() > 0
+        assert not self.User.Docs == None
+        for UserDoc in self.User.Docs:
+            assert not UserDoc == None
+            assert not UserDoc.DocID == None
+            assert UserDoc.DocID > 0
+            assert UserDoc.Active == 1 or UserDoc.Active == 0
+            assert UserDoc.ID == UserDoc.DocID
+        log(3, 'testing UserDocs done')
 
-#	def testHTML(self):
-#		assert not self.HTMlampadas.Page == None
-#		assert self.HTMlampadas.Page('test', 'EN') > ''
+class testURLParse(unittest.TestCase):
 
+    def check_uri(self, url, protocol, server, port, path, language, forcelang, service, id, format, filename, parameter, anchor):
+        uri = URI(url)
+        assert uri.protocol     == protocol
+        assert uri.server       == server
+        assert uri.port         == port
+        assert uri.language     == language
+        assert uri.force_lang   == forcelang
+        assert uri.service      == service
+        assert uri.id           == id
+        assert uri.format       == format
+        assert uri.filename     == filename
+        assert uri.parameter    == parameter
+        assert uri.anchor       == anchor
+        
+    def testURLParse(self):
+        #               uri                         protocol    server          port    path    language    forcelang   service id  format  filename    parameter   anchor
+        self.check_uri('',                          '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('/',                         '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('/home',                     '',         '',             '',     '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('FR',                        '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('FR/',                       '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('FR/home',                   '',         '',             '',     '/',    'FR',       1,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('/doc',                      '',         '',             '',     '/',    'EN',       0,          'doc',  0,  '',     '',         '',         '')
+        self.check_uri('/doc/1',                    '',         '',             '',     '/',    'EN',       0,          'doc',  1,  '',     '',         '',         '')
+        self.check_uri('/doc/1/xml',                '',         '',             '',     '/',    'EN',       0,          'doc',  1,  'xml',  '',         '',         '')
+        self.check_uri('ES/doc/1/xml',              '',         '',             '',     '/',    'ES',       1,          'doc',  1,  'xml',  '',         '',         '')
+        self.check_uri('/ES/doc/1/xml',             '',         '',             '',     '/',    'ES',       1,          'doc',  1,  'xml',  '',         '',         '')
+        self.check_uri('http://localhost:8000',     'http',     'localhost',    '8000', '/',    'EN',       0,          '',     0,  '',     'home',     '',         '')
+        self.check_uri('http://localhost/doc/1',    'http',     'localhost',    '',     '/',    'EN',       0,          'doc',  1,  '',     '',         '',         '')
+       
 
 if __name__ == "__main__":
-    unittest.main()
+	unittest.main()

@@ -28,10 +28,8 @@ local Lampdas system.
 # Modules ##################################################################
 
 from DataLayer import lampadas
-from Lintadas import lintadas
 from Log import log
 from Config import config
-from Makefile import makefile
 
 # Constants
 
@@ -49,7 +47,6 @@ class Mirror:
         log(3, 'Mirroring all documents')
         for dockey in lampadas.Docs.keys():
             self.mirror_doc(dockey)
-        makefile.write_main_makefile()
 
     def mirror_doc(self, DocID):
         log(3, 'Mirroring document ' + str(DocID))
@@ -116,8 +113,6 @@ class Mirror:
                 for file in self.os.listdir(self.cachedir):
                     if file[-5:] <> '.html':
                         self.Doc.Files.Add(self.Doc.ID, file)
-
-            lintadas.CheckDoc(DocID)
 
         log(3, 'Mirroring document ' + str(DocID) + ' complete.')
         
