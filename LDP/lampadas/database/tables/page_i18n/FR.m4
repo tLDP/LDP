@@ -1,8 +1,3 @@
-insert([test], [Page de Test],
-[
-	Page de Test
-])
-
 insert([404], [Introuvable],
 [
 	Introuvable
@@ -85,59 +80,3 @@ insert([editdoc], [M&eacute;ta-donn&eacute;es du doc],
 [
 	|tabeditdoc|
 ])
-
-insert([downloads], [T&eacute;l&eacute;chargement],
-[
-	<p>
-	En plus des HOWTOs, Guides et autres documents que nous publions, nous d&eacute;veloppons des outils pour ceux qui produisent de la documentaion. Ces programmes sont disponibles sous licence GPL.
-	</p>
-
-	<hr>
-
-	<p>
-	<strong>db2omf</strong>
-	</p>
-	<p>
-	Db2omf lit un fichier DocBook (XML ou SGML),
-	et produit un fichier <a href="http://www.ibiblio.org/osrt/omf/">OMF</a> qui peut 
-	&ecirc;tre ajout&eacute; &agrave; une base
-	<a href="http://scrollkeeper.sourceforge.net">ScrollKeeper</a>.
-	</p>
-
-	<ul>
-	<p>
-	<li><a href="db2omf-0.4.tar.gz">Version 0.4</a> (archive tar.gz, 11k)</li>
-	<li><a href="db2omf-0.5.tar.gz">Version 0.5</a> (archive tar.gz, 11k)</li>
-	</ul>
-
-	<p>
-	<strong>texi2db</strong>
-	</p>
-	<p>
-	Texi2db convertit un fichier
-	<a href="http://www.texinfo.org">GNU Texinfo</a> en un fichier DocBook XML.
-	</p>
-	<ul>
-
-	<p>
-	<li><a href="texi2db-0.3.tar.gz">Version 0.3</a> (archive tar.gz, 23k)</li>
-	<li><a href="texi2db-0.4.tar.gz">Version 0.4</a> (archive tar.gz, 24k)</li>
-	<li><a href="texi2db-0.4.1.tar.gz">Version 0.4.1</a> (archive tar.gz, 24k)</li>
-
-	</ul>
-
-	<p>
-	<strong>wt2db</strong>
-	</p>
-	<p>
-	Wt2db convertit un fichier
-	<a href="http://www.tldp.org/HOWTO/WikiText-HOWTO/index.html">WikiText</a>
-	en un fichier DocBook XML/SGML.
-	</p>
-
-	<ul>
-	<p>
-	<li><a href="wt2db-0.3.tar.gz">Version 0.3</a> (archive tar.gz, 12k)</li>
-	</ul>
-])
-

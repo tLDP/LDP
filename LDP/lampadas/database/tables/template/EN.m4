@@ -10,7 +10,10 @@ insert(default,
 	    <table class="layout" style="width:100%">
 	      <tr><td colspan=2>|header|</td></tr>
 	      <tr>
-		<td width="200" valign="top">|boxmainmenu|</td>
+		<td width="200" valign="top">
+            |boxmainmenu|
+            |tabmenus|
+        </td>
 		<td valign="top">|body|</td>
 	      </tr>
 	      <tr><td colspan=2>|footer|</td></tr>
