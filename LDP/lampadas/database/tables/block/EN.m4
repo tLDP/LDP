@@ -1,7 +1,7 @@
 insert([blkhead], [
 <head>
     <title>|title|</title>
-    <link rel="stylesheet" href="|uri.base|css/ldp.css" type="text/css">
+    <link rel="stylesheet" href="|uri.base|themes/|theme|/lampadas.css" type="text/css">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 </head>])
 
@@ -32,7 +32,7 @@ insert([blkfooter], [
     <td align="center">
       <a href="|uri.base|copyright|uri.lang_ext|">|strcopyright|</a> \\|
       <a href="|uri.base|privacy|uri.lang_ext|">|strprivacy|</a> \\|
-      <a href="|uri.base|lampadas|uri.lang_ext|">|strabout_lamp|</a>
+      <a href="|uri.base|about|uri.lang_ext|">|strabout_lamp|</a>
     </td>
   </tr>
 </table>

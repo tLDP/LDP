@@ -37,44 +37,48 @@ import os
 import fpformat
 import string
 
+ICON_CELLS_COUNT = 4
 
 # MimeType icons for downloadable formats. Not all are used yet.
-ASCII_ICON_SM   = '<img src="|uri.base|images/icons/ascii22x22.png"   alt="Text"   align="middle">'
-ASCII_ICON      = '<img src="|uri.base|images/icons/ascii32x32.png"   alt="Text"   align="middle">'
-ASCII_ICON_BIG  = '<img src="|uri.base|images/icons/ascii48x48.png"   alt="Text"   align="middle">'
-CSS_ICON_SM     = '<img src="|uri.base|images/icons/css22x22.png"     alt="CSS"    align="middle">'
-CSS_ICON        = '<img src="|uri.base|images/icons/css32x32.png"     alt="CSS"    align="middle">'
-CSS_ICON_BIG    = '<img src="|uri.base|images/icons/css48x48.png"     alt="CSS"    align="middle">'
-EDIT_ICON_SM    = '<img src="|uri.base|images/icons/edit22x22.png"    alt="Edit"   align="middle">'
-EDIT_ICON       = '<img src="|uri.base|images/icons/edit32x32.png"    alt="Edit"   align="middle">'
-EDIT_ICON_BIG   = '<img src="|uri.base|images/icons/edit48x48.png"    alt="Edit"   align="middle">'
-FOLDER_ICON_SM  = '<img src="|uri.base|images/icons/folder22x22.png"  alt="Folder" align="middle">'
-FOLDER_ICON     = '<img src="|uri.base|images/icons/folder32x32.png"  alt="Folder" align="middle">'
-FOLDER_ICON_BIG = '<img src="|uri.base|images/icons/folder48x48.png"  alt="Folder" align="middle">'
-HTML_ICON_SM    = '<img src="|uri.base|images/icons/html22x22.png"    alt="HTML"   align="middle">'
-HTML_ICON       = '<img src="|uri.base|images/icons/html32x32.png"    alt="HTML"   align="middle">'
-HTML_ICON_BIG   = '<img src="|uri.base|images/icons/html48x48.png"    alt="HTML"   align="middle">'
-INFO_ICON_SM    = '<img src="|uri.base|images/icons/info22x22.png"    alt="Info"   align="middle">'
-INFO_ICON       = '<img src="|uri.base|images/icons/info32x32.png"    alt="Info"   align="middle">'
-INFO_ICON_BIG   = '<img src="|uri.base|images/icons/info48x48.png"    alt="Info"   align="middle">'
-LOG_ICON_SM     = '<img src="|uri.base|images/icons/log22x22.png"     alt="Log"    align="middle">'
-LOG_ICON        = '<img src="|uri.base|images/icons/log32x32.png"     alt="Log"    align="middle">'
-LOG_ICON_BIG    = '<img src="|uri.base|images/icons/log48x48.png"     alt="Log"    align="middle">'
-MULTI_ICON_SM   = '<img src="|uri.base|images/icons/multi22x22.png"   alt="Multi"  align="middle">'
-MULTI_ICON      = '<img src="|uri.base|images/icons/multi32x32.png"   alt="Multi"  align="middle">'
-MULTI_ICON_BIG  = '<img src="|uri.base|images/icons/multi48x48.png"   alt="Multi"  align="middle">'
-PDF_ICON_SM     = '<img src="|uri.base|images/icons/pdf22x22.png"     alt="PDF"    align="middle">'
-PDF_ICON        = '<img src="|uri.base|images/icons/pdf32x32.png"     alt="PDF"    align="middle">'
-PDF_ICON_BIG    = '<img src="|uri.base|images/icons/pdf48x48.png"     alt="PDF"    align="middle">'
-PS_ICON_SM      = '<img src="|uri.base|images/icons/ps22x22.png"      alt="PS"     align="middle">'
-PS_ICON         = '<img src="|uri.base|images/icons/ps32x32.png"      alt="PS"     align="middle">'
-PS_ICON_BIG     = '<img src="|uri.base|images/icons/ps48x48.png"      alt="PS"     align="middle">'
-TGZ_ICON_SM     = '<img src="|uri.base|images/icons/tgz22x22.png"     alt="TGZ"    align="middle">'
-TGZ_ICON        = '<img src="|uri.base|images/icons/tgz32x32.png"     alt="TGZ"    align="middle">'
-TGZ_ICON_BIG    = '<img src="|uri.base|images/icons/tgz48x48.png"     alt="TGZ"    align="middle">'
-UNK_ICON_SM     = '<img src="|uri.base|images/icons/unknown22x22.png" alt="?"      align="middle">'
-UNK_ICON        = '<img src="|uri.base|images/icons/unknown32x32.png" alt="?"      align="middle">'
-UNK_ICON_BIG    = '<img src="|uri.base|images/icons/unknown48x48.png" alt="?"      align="middle">'
+ASCII_ICON_SM   = '<img src="|uri.base|themes/|theme|/images/ascii22x22.png"   alt="Text"   align="middle">'
+ASCII_ICON      = '<img src="|uri.base|themes/|theme|/images/ascii32x32.png"   alt="Text"   align="middle">'
+ASCII_ICON_BIG  = '<img src="|uri.base|themes/|theme|/images/ascii48x48.png"   alt="Text"   align="middle">'
+CSS_ICON_SM     = '<img src="|uri.base|themes/|theme|/images/css22x22.png"     alt="CSS"    align="middle">'
+CSS_ICON        = '<img src="|uri.base|themes/|theme|/images/css32x32.png"     alt="CSS"    align="middle">'
+CSS_ICON_BIG    = '<img src="|uri.base|themes/|theme|/images/css48x48.png"     alt="CSS"    align="middle">'
+EDIT_ICON_SM    = '<img src="|uri.base|themes/|theme|/images/edit22x22.png"    alt="Edit"   align="middle">'
+EDIT_ICON       = '<img src="|uri.base|themes/|theme|/images/edit32x32.png"    alt="Edit"   align="middle">'
+EDIT_ICON_BIG   = '<img src="|uri.base|themes/|theme|/images/edit48x48.png"    alt="Edit"   align="middle">'
+FOLDER_ICON_SM  = '<img src="|uri.base|themes/|theme|/images/folder22x22.png"  alt="Folder" align="middle">'
+FOLDER_ICON     = '<img src="|uri.base|themes/|theme|/images/folder32x32.png"  alt="Folder" align="middle">'
+FOLDER_ICON_BIG = '<img src="|uri.base|themes/|theme|/images/folder48x48.png"  alt="Folder" align="middle">'
+HTML_ICON_SM    = '<img src="|uri.base|themes/|theme|/images/html22x22.png"    alt="HTML"   align="middle">'
+HTML_ICON       = '<img src="|uri.base|themes/|theme|/images/html32x32.png"    alt="HTML"   align="middle">'
+HTML_ICON_BIG   = '<img src="|uri.base|themes/|theme|/images/html48x48.png"    alt="HTML"   align="middle">'
+INFO_ICON_SM    = '<img src="|uri.base|themes/|theme|/images/info22x22.png"    alt="Info"   align="middle">'
+INFO_ICON       = '<img src="|uri.base|themes/|theme|/images/info32x32.png"    alt="Info"   align="middle">'
+INFO_ICON_BIG   = '<img src="|uri.base|themes/|theme|/images/info48x48.png"    alt="Info"   align="middle">'
+LOG_ICON_SM     = '<img src="|uri.base|themes/|theme|/images/log22x22.png"     alt="Log"    align="middle">'
+LOG_ICON        = '<img src="|uri.base|themes/|theme|/images/log32x32.png"     alt="Log"    align="middle">'
+LOG_ICON_BIG    = '<img src="|uri.base|themes/|theme|/images/log48x48.png"     alt="Log"    align="middle">'
+MULTI_ICON_SM   = '<img src="|uri.base|themes/|theme|/images/multi22x22.png"   alt="Multi"  align="middle">'
+MULTI_ICON      = '<img src="|uri.base|themes/|theme|/images/multi32x32.png"   alt="Multi"  align="middle">'
+MULTI_ICON_BIG  = '<img src="|uri.base|themes/|theme|/images/multi48x48.png"   alt="Multi"  align="middle">'
+PDF_ICON_SM     = '<img src="|uri.base|themes/|theme|/images/pdf22x22.png"     alt="PDF"    align="middle">'
+PDF_ICON        = '<img src="|uri.base|themes/|theme|/images/pdf32x32.png"     alt="PDF"    align="middle">'
+PDF_ICON_BIG    = '<img src="|uri.base|themes/|theme|/images/pdf48x48.png"     alt="PDF"    align="middle">'
+PS_ICON_SM      = '<img src="|uri.base|themes/|theme|/images/ps22x22.png"      alt="PS"     align="middle">'
+PS_ICON         = '<img src="|uri.base|themes/|theme|/images/ps32x32.png"      alt="PS"     align="middle">'
+PS_ICON_BIG     = '<img src="|uri.base|themes/|theme|/images/ps48x48.png"      alt="PS"     align="middle">'
+TGZ_ICON_SM     = '<img src="|uri.base|themes/|theme|/images/tgz22x22.png"     alt="TGZ"    align="middle">'
+TGZ_ICON        = '<img src="|uri.base|themes/|theme|/images/tgz32x32.png"     alt="TGZ"    align="middle">'
+TGZ_ICON_BIG    = '<img src="|uri.base|themes/|theme|/images/tgz48x48.png"     alt="TGZ"    align="middle">'
+UNK_ICON_SM     = '<img src="|uri.base|themes/|theme|/images/unknown22x22.png" alt="?"      align="middle">'
+UNK_ICON        = '<img src="|uri.base|themes/|theme|/images/unknown32x32.png" alt="?"      align="middle">'
+UNK_ICON_BIG    = '<img src="|uri.base|themes/|theme|/images/unknown48x48.png" alt="?"      align="middle">'
+VIEW_ICON_SM    = 'View'
+VIEW_ICON       = 'View'
+VIEW_ICON_BIG   = 'View'
 
 
 class Tables(LampadasCollection):
@@ -85,28 +89,10 @@ class Tables(LampadasCollection):
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
-    def doc(self, uri):
-        if (sessions.session and sessions.session.user.can_edit(doc_id=uri.id)==1):
-            return self.editdoc(uri)
-        elif uri.id > 0:
-            doc = lampadas.docs[uri.id]
-            if doc.pub_time > '':
-                if config.user_can_see_doc==1:
-                    return self.viewdoc(uri)
-            else:
-                if config.user_can_see_unpublished==1:
-                    return self.viewdoc(uri)
-
     def viewdoc(self, uri):
         doc = lampadas.docs[uri.id]
         if doc==None:
             return '|blknotfound|'
-        if doc.pub_time > '':
-            if config.user_can_see_doc==0:
-                return '|blknopermission|'
-        else:
-            if config.user_can_see_unpublished==0:
-                return '|blknopermission|'
 
         lintadas.check_doc(uri.id)
         metadata = doc.metadata()
@@ -250,23 +236,23 @@ class Tables(LampadasCollection):
                   '<tr><td></td><td>%s</td></tr>'
                   '</table></form>'
                   % (sessions.session.username, doc.id,
-                     widgets.title(metadata.title, title_class),
-                     widgets.short_desc,
-                     widgets.abstract(metadata.abstract, abstract_class),
+                     widgets.title(metadata.title, css_class=title_class),
+                     widgets.short_desc(doc.short_desc),
+                     widgets.abstract(metadata.abstract, css_class=abstract_class),
                      widgets.pub_status_code(doc.pub_status_code, uri.lang),
                      widgets.type_code(doc.type_code, uri.lang),
-                     widgets.version(metadata.version, version_class),
+                     widgets.version(metadata.version, css_class=version_class),
                      widgets.short_title(doc.short_title),
                      widgets.review_status_code(doc.review_status_code, uri.lang), 
                      widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang),
-                     widgets.pub_date(metadata.pub_date, pub_date_class), widgets.last_update(doc.last_update),
+                     widgets.pub_date(metadata.pub_date, css_class=pub_date_class), widgets.last_update(doc.last_update),
                      widgets.lint_time(doc.lint_time), widgets.mirror_time(doc.mirror_time), widgets.pub_time(doc.pub_time),
                      widgets.tickle_date(doc.tickle_date),
                      bool2yesno(doc.maintained),
                      self.bar_graph(doc.rating, 10, uri.lang),
-                     widgets.format_code(metadata.format_code, format_code_class, uri.lang),
-                     widgets.dtd_code(metadata.dtd_code, dtd_code_class, uri.lang),
-                     widgets.dtd_version(metadata.dtd_version, dtd_version_class, uri.lang),
+                     widgets.format_code(metadata.format_code, uri.lang, css_class=format_code_class),
+                     widgets.dtd_code(metadata.dtd_code, uri.lang, css_class=dtd_code_class),
+                     widgets.dtd_version(metadata.dtd_version, uri.lang, css_class=dtd_version_class),
                      widgets.lang(doc.lang, uri.lang),
                      widgets.tf('maintainer_wanted', doc.maintainer_wanted),
                      widgets.license_code(doc.license_code, uri.lang),
@@ -274,48 +260,29 @@ class Tables(LampadasCollection):
                      widgets.copyright_holder(doc.copyright_holder),
                      widgets.sk_seriesid(doc.sk_seriesid),
                      widgets.replaced_by_id(doc.replaced_by_id),
-                     widgets.isbn(metadata.isbn, isbn_class),
+                     widgets.isbn(metadata.isbn, css_class=isbn_class),
                      widgets.save()))
         return box.get_value()
-
-    def docversions(self, uri):
-        if (sessions.session and sessions.session.user.can_edit(doc_id=uri.id)==1):
-            return self.editdocversions(uri)
-        elif uri.id > 0:
-            doc = lampadas.docs[uri.id]
-            if doc.pub_time > '':
-                if config.user_can_see_doc==1:
-                    return self.viewdocversions(uri)
-            else:
-                if config.user_can_see_unpublished==1:
-                    return self.viewdocversions(uri)
 
     def viewdocversions(self, uri):
         doc = lampadas.docs[uri.id]
         if doc==None:
             return '|blknotfound|'
-        if doc.pub_time > '':
-            if config.user_can_see_doc==0:
-                return '|blknopermission|'
-        else:
-            if config.user_can_see_unpublished==0:
-                return '|blknopermission|'
 
         log(3, 'Creating viewdocversions table')
         doc = lampadas.docs[uri.id]
         metadata = doc.metadata()
         box = WOStringIO('<table class="box" width="100%">\n'
-                         '<tr><th colspan="6">|strdocversions|</th></tr>\n'
+                         '<tr><th colspan="4">|strdocversions|</th></tr>\n'
                          '<tr><th class="collabel">|strversion|</th>\n'
                          '    <th class="collabel">|strdate|</th>\n'
                          '    <th class="collabel">|strinitials|</th>\n'
-                         '    <th class="collabel">|strcomments|</th>\n'
-                         '    <th class="collabel" colspan="2">|straction|</th></tr>')
+                         '    <th class="collabel">|strcomments|</th></tr>\n')
         odd_even = OddEven()
         keys = doc.versions.sort_by('pub_date')
         for key in keys:
             version = doc.versions[key]
-            box.write('<tr class="%s"><td>%s<td><td>%s</td><td>%s</td><td style="width:100%">%s</td></tr>\n'
+            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%%">%s</td></tr>\n'
                       % (odd_even.get_next(), version.version, version.pub_date, version.initials, version.notes))
         box.write('</table>')
         return box.get_value()
@@ -341,7 +308,7 @@ class Tables(LampadasCollection):
             box.write('<form method=GET action="|uri.base|data/save/document_version" name="document_version">'
                       '<input name="rev_id" type=hidden value="%s">\n'
                       '<input name="doc_id" type=hidden value="%s">\n'
-                      '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%">%s</td><td>%s|strdelete|</td><td>%s</td></tr>\n'
+                      '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td style="width:100%%">%s</td><td>%s|strdelete|</td><td>%s</td></tr>\n'
                       '</form>\n'
                       % (version.id,
                       version.doc_id,
@@ -359,38 +326,58 @@ class Tables(LampadasCollection):
                   % (doc.id, odd_even.get_next(), widgets.version(''), widgets.pub_date(''), widgets.initials(''), widgets.notes(''), widgets.add()))
         return box.get_value()
 
-    def docfiles(self, uri):
-        if not sessions.session:
-            return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
-            return '|blknopermission|'
+    def viewdocfiles(self, uri):
+        doc = lampadas.docs[uri.id]
+        if doc==None:
+            return '|blknotfound|'
 
-        log(3, 'Creating docfiles table')
-        doc = lampadas.docs[uri.id]
-        
-        box = WOStringIO('''<table class="box" width="100%%">
-        <tr><th colspan="6">%s</th></tr>
-        ''' % ('|strdocfiles|'))
-        doc = lampadas.docs[uri.id]
+        log(3, 'Creating viewdocfiles table')
+        box = WOStringIO('<table class="box" width="100%%">'
+                         '<tr><th colspan="6">%s</th></tr>'
+                         % ('|strdocfiles|'))
         keys = doc.files.sort_by('filename')
         for key in keys:
-
             lintadas.check_file(key)
             docfile = doc.files[key]
             sourcefile = sourcefiles[key]
-            display_filename = widgets.filename_compressed(sourcefile.filename)
             if sourcefile.errors.count() > 0:
                 css_class = ' error'
             else:
                 css_class = ''
-            if sourcefile.format_code=='':
-                format_code_string = '|strunknown|'
+            box.write('<tr><td class="sectionlabel%s" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td></tr>\n'
+                      '<tr><td class="label">|strprimary|</td><td>%s</td>\n'
+                      '    <td class="label">|strfilesize|</td><td>%s</td>\n'
+                      '    <td class="label">|strupdated|</td><td>%s</td></tr>\n'
+                      '<tr><td class="label">|strformat|</td><td>%s</td>\n'
+                      '    <td class="label">|strdtd|</td><td>%s</td>\n'
+                      '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n'
+                      % (css_class, uri.base, docfile.filename, uri.lang_ext,
+                         widgets.filename_compressed(sourcefile.filename),
+                         widgets.tf('top', docfile.top, view=1), sourcefile.filesize, sourcefile.updated,
+                         widgets.format_code(sourcefile.format_code, uri.lang, view=1),
+                         widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
+                         widgets.filemode(sourcefile.filemode)))
+        box.write('</table>')
+        return box.get_value()
+
+    def editdocfiles(self, uri):
+        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+            return '|blknopermission|'
+
+        log(3, 'Creating editdocfiles table')
+        box = WOStringIO('<table class="box" width="100%%">'
+                         '<tr><th colspan="6">%s</th></tr>'
+                         % ('|strdocfiles|'))
+        doc = lampadas.docs[uri.id]
+        keys = doc.files.sort_by('filename')
+        for key in keys:
+            lintadas.check_file(key)
+            docfile = doc.files[key]
+            sourcefile = sourcefiles[key]
+            if sourcefile.errors.count() > 0:
+                css_class = ' error'
             else:
-                format_code_string = lampadas.formats[sourcefile.format_code].name[uri.lang]
-            if sourcefile.dtd_code=='':
-                dtd_code_string = '|strunknown|'
-            else:
-                dtd_code_string = lampadas.dtds[sourcefile.dtd_code].name[uri.lang]
+                css_class = ''
             box.write('<form method=GET action="|uri.base|data/save/document_file" name="document_file">' \
                       '<input type=hidden name="doc_id" value="%s">\n' \
                       '<input type=hidden name="filename" value="%s">\n' \
@@ -403,10 +390,11 @@ class Tables(LampadasCollection):
                       '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n' \
                       '<tr><td colspan="5"></td><td><input type="checkbox" name="delete">|strdelete|<input type="submit" name="action" value="|strsave|"></td></tr>\n' \
                       '</form>'
-                      % (doc.id, docfile.filename, css_class, uri.base, docfile.filename, uri.lang_ext, display_filename,
-                         widgets.tf('top', docfile.top), sourcefile.filesize, sourcefile.modified,
-                         format_code_string,
-                         dtd_code_string,
+                      % (doc.id, docfile.filename, css_class, uri.base, docfile.filename, uri.lang_ext,
+                         widgets.filename_compressed(sourcefile.filename),
+                         widgets.tf('top', docfile.top), sourcefile.filesize, sourcefile.updated,
+                         widgets.format_code(sourcefile.format_code, uri.lang, view=1),
+                         widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
                          widgets.filemode(sourcefile.filemode)))
         
         # Add a new docfile
@@ -417,81 +405,95 @@ class Tables(LampadasCollection):
                   '<td><input type="submit" name="action" value="|stradd|"></td></tr>\n'
                   '</form>\n'
                   '</table>\n'
-                  % (doc.id, widgets.tf('top', (doc.files.count()==1))))
+                  % (doc.id, widgets.tf('top', (doc.files.count()==0))))
         return box.get_value()
         
-
-    def docusers(self, uri):
-        if not sessions.session:
-            return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
-            return '|blknopermission|'
-
-        log(3, 'Creating docusers table')
+    def viewdocusers(self, uri):
         doc = lampadas.docs[uri.id]
-        box = '''
-        <table class="box" width="100%">
-        <tr><th colspan="6">|strdocusers|</th></tr>
-        <tr>
-        <th class="collabel">|strusername|</th>
-        <th class="collabel">|stractive|</th>
-        <th class="collabel">|strrole|</th>
-        <th class="collabel">|stremail|</th>
-        <th class="collabel" colspan="2">|straction|</th>
-        </tr>
-        '''
-        doc = lampadas.docs[uri.id]
+        if doc==None:
+            return '|blknotfound|'
+
+        log(3, 'Creating viewdocusers table')
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="4">|strdocusers|</th></tr>'
+                         '<tr><th class="collabel">|strusername|</th>'
+                         '    <th class="collabel">|stractive|</th>'
+                         '    <th class="collabel">|strrole|</th>'
+                         '    <th class="collabel">|stremail|</th></tr>')
         keys = doc.users.sort_by('username')
         odd_even = OddEven()
         for key in keys:
             docuser = doc.users[key]
-            box = box + '<form method=GET action="|uri.base|data/save/document_user" name="document_user">'
-            box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
-            box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
-            box = box + '<tr class="' + odd_even.get_next() + '">\n'
+            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n'
+                      % (odd_even.get_next(),
+                         docuser.username,
+                         widgets.tf('active', docuser.active, view=1),
+                         widgets.role_code(docuser.role_code, uri.lang, view=1),
+                         docuser.email))
+
+        box.write('</table>\n')
+        return box.get_value()
+        
+    def editdocusers(self, uri):
+        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+            return '|blknopermission|'
+
+        log(3, 'Creating editdocusers table')
+        doc = lampadas.docs[uri.id]
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="6">|strdocusers|</th></tr>'
+                         '<tr><th class="collabel">|strusername|</th>'
+                         '    <th class="collabel">|stractive|</th>'
+                         '    <th class="collabel">|strrole|</th>'
+                         '    <th class="collabel">|stremail|</th>'
+                         '    <th class="collabel" colspan="2">|straction|</th></tr>')
+        keys = doc.users.sort_by('username')
+        odd_even = OddEven()
+        for key in keys:
+            docuser = doc.users[key]
+            box.write('<form method=GET action="|uri.base|data/save/document_user" name="document_user">'
+                      '<input type=hidden name="doc_id" value="%s">\n'
+                      '<input type=hidden name="username" value="%s">\n'
+                      '<tr class="%s">\n'
+                      % (doc.id, docuser.username, odd_even.get_next()))
             if sessions.session:
                 if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
-                    box = box + '<td><a href="|uri.base|user/' + docuser.username + '">' + docuser.username + '</a></td>\n'
+                    box.write('<td><a href="|uri.base|user/%s">%s</a></td>\n'
+                              % (docuser.username, docuser.username))
                 else:
-                    box = box + '<td>' + docuser.username + '</td>\n'
+                    box.write('<td>%s</td>\n' % docuser.username)
             else:
-                box = box + '<td>' + docuser.username + '</td>\n'
-            box = box + '<td>' + widgets.tf('active', docuser.active) + '</td>\n'
-            box = box + '<td>' + widgets.role_code(docuser.role_code, uri.lang) + '</td>\n'
-            box = box + '<td><input type="text" name=email size="15" value="' +docuser.email + '"></td>\n'
-            box = box + '<td><input type=checkbox name="delete">|strdel|</td>\n'
-            box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
-            box = box + '</tr>\n'
-            box = box + '</form>\n'
-        box = box + '<form method=GET action="|uri.base|data/save/newdocument_user" name="document_user">'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<tr>\n'
-        box = box + '<td>' + '<input type="text" name="username"></td>\n'
-        box = box + '<td>' + widgets.tf('active', 1) + '</td>\n'
-        box = box + '<td>' + widgets.role_code('', uri.lang) + '</td>\n'
-        box = box + '<td><input type="text" name=email size="15"></td>\n'
-        box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
-        box = box + '</tr>\n'
-        box = box + '</form>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<td>%s</td>\n' % docuser.username)
+            box.write('<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n'
+                      '</form>\n'
+                      % (widgets.tf('active', docuser.active),
+                         widgets.role_code(docuser.role_code, uri.lang),
+                         widgets.email(docuser.email),
+                         widgets.delete(),
+                         widgets.save()))
+
+        box.write('<form method=GET action="|uri.base|data/save/newdocument_user" name="document_user">'
+                  '<input name="doc_id" type=hidden value="%s">\n'
+                  '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td></td><td>%s</td></tr>\n'
+                  '</form></table>\n'
+                  % (doc.id,
+                  widgets.username(''),
+                  widgets.tf('active', 1),
+                  widgets.role_code('', uri.lang),
+                  widgets.email(''),
+                  widgets.add()))
+        return box.get_value()
         
-
-    def doctopics(self, uri):
-        if not sessions.session:
-            return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
-            return '|blknopermission|'
-
-        log(3, 'Creating doctopics table')
+    def viewdoctopics(self, uri):
         doc = lampadas.docs[uri.id]
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strtopic|</th>\n'
-        box = box + '<th class="collabel">|straction|</th>\n'
-        box = box + '</tr>\n'
+        if doc==None:
+            return '|blknotfound|'
+
+        log(3, 'Creating viewdoctopics table')
+        doc = lampadas.docs[uri.id]
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th>|strdoctopics|</th></tr>\n'
+                         '<tr><th class="collabel">|strtopic|</th></tr>\n')
         doc = lampadas.docs[uri.id]
         topic_codes = lampadas.topics.sort_by('sort_order')
         odd_even = OddEven()
@@ -499,72 +501,104 @@ class Tables(LampadasCollection):
             doctopic = doc.topics[topic_code]
             if doctopic:
                 topic = lampadas.topics[topic_code]
-                box = box + '<form method=GET action="|uri.base|data/save/deldocument_topic" name="document_topic">'
-                box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
-                box = box + '<input type=hidden name="topic_code" value=' + topic_code + '>\n'
-                box = box + '<tr class="' + odd_even.get_next() + '"><td><a href="|uri.base|topic/' + topic_code + '|uri.lang_ext|">' + topic.title[uri.lang] + '</a>'
-                box = box + '</td>\n'
-                box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
-                box = box + '</tr>\n'
-                box = box + '</form>\n'
-        box = box + '<form method=GET action="|uri.base|data/save/newdocument_topic" name="document_topic">'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<tr>\n'
-        box = box + '<td>' + widgets.topic_code('', uri.lang) + '</td>\n'
-        box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
-        box = box + '</tr>\n'
-        box = box + '</form>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td></tr>'
+                          % (odd_even.get_next(), topic_code, topic.title[uri.lang]))
+        box.write('</table>')
+        return box.get_value()
 
-
-    def docnotes(self, uri):
-        if not sessions.session:
-            return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
+    def editdoctopics(self, uri):
+        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
-        log(3, 'Creating docnotes table')
+        log(3, 'Creating editdoctopics table')
         doc = lampadas.docs[uri.id]
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel">|strdate_time|</th>\n'
-        box = box + '<th class="collabel">|strusername|</th>\n'
-        box = box + '<th class="collabel">|strcomments|</th>\n'
-        box = box + '<th class="collabel">|straction|</th>\n'
-        box = box + '</tr>\n'
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
+                         '<tr><th class="collabel">|strtopic|</th>\n'
+                         '    <th class="collabel">|straction|</th></tr>\n')
         doc = lampadas.docs[uri.id]
-        note_ids = doc.notes.sort_by('date_entered')
+        topic_codes = lampadas.topics.sort_by('sort_order')
+        odd_even = OddEven()
+        for topic_code in topic_codes:
+            doctopic = doc.topics[topic_code]
+            if doctopic:
+                topic = lampadas.topics[topic_code]
+                box.write('<form method=GET action="|uri.base|data/save/deldocument_topic" name="document_topic">\n'
+                          '<input type=hidden name="doc_id" value="%s">\n'
+                          '<input type=hidden name="topic_code" value="%s">\n'
+                          '<tr class="%s"><td><a href="|uri.base|topic/%s|uri.lang_ext|">%s</a></td>'
+                          '               <td><input type=submit name="action" value="|strdelete|"></td></tr>\n'
+                          '</form>\n'
+                          % (doc.id, topic_code, odd_even.get_next(), topic_code, topic.title[uri.lang]))
+        box.write('<form method=GET action="|uri.base|data/save/newdocument_topic" name="document_topic">\n'
+                  '<input name="doc_id" type=hidden value="%s">\n'
+                  '<tr><td>%s</td><td>%s</td></tr>'
+                  '</form></table>\n'
+                  % (doc.id,
+                     widgets.topic_code('', uri.lang),
+                     widgets.add()))
+        return box.get_value()
+
+    def viewdocnotes(self, uri):
+        doc = lampadas.docs[uri.id]
+        if doc==None:
+            return '|blknotfound|'
+
+        log(3, 'Creating viewdocnotes table')
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="3">|strdocnotes|</th></tr>\n'
+                         '<tr><th class="collabel">|strdate_time|</th>\n'
+                         '    <th class="collabel">|strusername|</th>\n'
+                         '    <th class="collabel">|strcomments|</th></tr>\n')
+        note_ids = doc.notes.sort_by('created')
         odd_even = OddEven()
         for note_id in note_ids:
             note = doc.notes[note_id]
-            box = box + '<tr class="' + odd_even.get_next() + '">\n'
-            box = box + '<td>' + note.date_entered + '</td>\n'
-            box = box + '<td>' + note.creator + '</td>\n'
-            box = box + '<td>' + note.notes + '</td>\n'
-            box = box + '<td></td>\n'
-            box = box + '</tr>\n'
-        box = box + '<form method=GET action="|uri.base|data/save/newdocument_note" name="document_note">'
-        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-        box = box + '<input name="creator" type=hidden value=' + sessions.session.username + '>\n'
-        box = box + '<tr><td></td><td></td>\n'
-        box = box + '<td><textarea name="notes" rows=5 cols=40 style="width:100%"></textarea></td>\n'
-        box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
-        box = box + '</tr>\n'
-        box = box + '</form>\n'
-        box = box + '</table>\n'
-        return box
+            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td></tr>\n'
+                      % (odd_even.get_next(), note.created, note.creator, note.notes))
+        box.write('</table>\n')
+        return box.get_value()
 
+    def editdocnotes(self, uri):
+        if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
+            return '|blknopermission|'
+
+        log(3, 'Creating editdocnotes table')
+        doc = lampadas.docs[uri.id]
+        box = WOStringIO('<table class="box" width="100%">'
+                         '<tr><th colspan="4">|strdocnotes|</th></tr>\n'
+                         '<tr><th class="collabel">|strdate_time|</th>\n'
+                         '    <th class="collabel">|strusername|</th>\n'
+                         '    <th class="collabel">|strcomments|</th>\n'
+                         '    <th class="collabel">|straction|</th></tr>\n')
+        note_ids = doc.notes.sort_by('created')
+        odd_even = OddEven()
+        for note_id in note_ids:
+            note = doc.notes[note_id]
+            box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td></td></tr>\n'
+                      % (odd_even.get_next(), note.created, note.creator, note.notes))
+        box.write('<form method=GET action="|uri.base|data/save/newdocument_note" name="document_note">'
+                  '<input name="doc_id" type=hidden value="%s">\n'
+                  '<input name="creator" type=hidden value="%s">\n'
+                  '<tr><td></td><td></td>\n'
+                  '<td>%s</td>\n'
+                  '<td>%s</td></tr>\n'
+                  '</form></table>\n'
+                  % (doc.id, sessions.session.username,
+                     widgets.notes(''), widgets.add()))
+        return box.get_value()
 
     def doctranslations(self, uri):
         """
         Builds a table of all available translations of a document.
         Based on the DocTable.
         """
-        log(3, 'Creating doctranslations table')
+        
         doc = lampadas.docs[uri.id]
+        if doc==None:
+            return '|blknotfound|'
+
+        log(3, 'Creating doctranslations table')
         return self.doctable(uri, sk_seriesid=doc.sk_seriesid,
                              columns={'|strlanguage|':  'lang',
                                       '|strversion|':   'version',
@@ -580,7 +614,7 @@ class Tables(LampadasCollection):
 
         if sessions.session and sessions.session.user.can_edit(uri.id)==1:
             doc = lampadas.docs[uri.id]
-            box = WOStringIO('<table><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
+            box = WOStringIO('<table class="box"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
                              '<tr><td class="label">|strdoc_check_errors|</td>\n' \
                              '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
                              '    <td class="label">|strlint_time|</td>\n' \
@@ -637,25 +671,18 @@ class Tables(LampadasCollection):
         doc = lampadas.docs[uri.id]
         if doc==None:
             return '|blknotfound|'
-        if doc.pub_time > '':
-            if config.user_can_see_doc==0:
-                return '|blknopermission|'
-        else:
-            if config.user_can_see_unpublished==0:
-                return '|blknopermission|'
 
-        log(3, 'Creating docerrors table')
-        
         if doc.errors.count()==0:
             return ''
 
+        log(3, 'Creating docerrors table')
         box = WOStringIO('<table class="box" width="100%">'
                         '<tr><th colspan="4">|strdocerrs|</th></tr>\n'
                         '<tr><th class="collabel">|strtimestamp|</th>\n'
                         '    <th class="collabel">|strid|</th>\n'
                         '    <th class="collabel">|strtype|</th>\n'
                         '    <th class="collabel">|strerror|</th></tr>\n')
-        err_ids = doc.errors.sort_by('date_entered')
+        err_ids = doc.errors.sort_by('created')
         odd_even = OddEven()
         for err_id in err_ids:
             docerror = doc.errors[err_id]
@@ -663,7 +690,7 @@ class Tables(LampadasCollection):
             errtype = errortypes[error.err_type_code]
             box.write('<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s<br><pre>%s</pre></td></tr>'
                       % (odd_even.get_next(),
-                         docerror.date_entered,
+                         docerror.created,
                          docerror.err_id,
                          errtype.name[uri.lang],
                          error.name[uri.lang],
@@ -672,17 +699,14 @@ class Tables(LampadasCollection):
         return box.get_value()
 
     def docfileerrors(self, uri):
-        if not sessions.session:
-            return '|blknopermission|'
-        elif sessions.session.user.can_edit(doc_id=uri.id)==0:
-            return '|blknopermission|'
-
-        log(3, 'Creating docfileerrors table')
         doc = lampadas.docs[uri.id]
+        if doc==None:
+            return '|blknotfound|'
 
         if doc.files.error_count==0:
             return ''
 
+        log(3, 'Creating docfileerrors table')
         box = WOStringIO('<table class="box" width="100%">\n'
                          '<tr>\n<th colspan="3">|strfileerrs|</th>\n</tr>\n'
                          '<tr>\n<th class="collabel">|strid|</th>\n'
@@ -692,7 +716,7 @@ class Tables(LampadasCollection):
         odd_even = OddEven()
         for filename in filenames:
             sourcefile = sourcefiles[filename]
-            err_ids = sourcefile.errors.sort_by('date_entered')
+            err_ids = sourcefile.errors.sort_by('created')
             for err_id in err_ids:
                 fileerror = sourcefile.errors[err_id]
                 error = errors[err_id]
@@ -712,23 +736,19 @@ class Tables(LampadasCollection):
         sourcefile = sourcefiles[uri.filename]
         display_filename = widgets.filename_compressed(sourcefile.filename)
 
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
-        box = box + '<tr><th colspan="2" class="sectionlabel">' + display_filename + '</th></tr>\n'
+        box = WOStringIO('<table class="box" width="100%%">'
+                         '<tr><th colspan="2">|strfilereports|</th></tr>\n'
+                         '<tr><th colspan="2" class="sectionlabel">%s</th></tr>\n'
+                         % display_filename)
         report_codes = lampadasweb.file_reports.sort_by_lang('name', uri.lang)
         odd_even = OddEven()
         for report_code in report_codes:
             report = lampadasweb.file_reports[report_code]
             if report.only_cvs==0 or sourcefile.in_cvs==1:
-                box = box + '<tr class="' + odd_even.get_next() + '">\n'
-                box = box + '<td><a href="|uri.base|file_report/' + report.code + '/'
-                box = box + uri.filename + uri.lang_ext + '">'
-                box = box + report.name[uri.lang] + '</a></td>\n'
-                box = box + '<td>' + report.description[uri.lang] + '</td>\n'
-                box = box + '</tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<tr class="%s"><td><a href="|uri.base|file_report/%s/%s%s">%s</a></td><td>%s</td></tr>\n'
+                % (odd_even.get_next, report.code, uri.filename, uri.lang_ext, report.name[uri.lang], report.description[uri.lang]))
+        box.write('</table>\n')
+        return box.get_value()
 
     def filereport(self, uri):
         if not sessions.session:
@@ -760,30 +780,32 @@ class Tables(LampadasCollection):
         child_stdout.close()
         child_stderr.close()
 
-        box = ''
-        box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th>' + report.name[uri.lang] + '</th></tr>\n'
-        box = box + '<tr><th class="collabel">|stroutput|</th></tr>\n'
-        box = box + '<tr class="odd"><td><pre>' + stdout + '</pre></td></tr>\n'
-        box = box + '<tr><th class="collabel">|strerrors|</th></tr>\n'
-        box = box + '<tr class="odd"><td><pre>' + stderr + ' </pre></td></tr>\n'
+        box = WOStringIO('<table class="box" width="100%%">'
+                         '<tr><th>%s</th></tr>\n'
+                         '<tr><th class="collabel">|stroutput|</th></tr>\n'
+                         '<tr class="odd"><td><pre>%s</pre></td></tr>\n'
+                         '<tr><th class="collabel">|strerrors|</th></tr>\n'
+                         '<tr class="odd"><td><pre>%s</pre></td></tr>\n'
+                         % (report.name[uri.lang], stdout, stderr))
         if sessions.session:
             if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
-                box = box + '<tr><th class="collabel">|strcommand|</th></tr>\n'
-                box = box + '<tr class="odd"><td><pre>' + command + '</pre></td></tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<tr><th class="collabel">|strcommand|</th></tr>\n'
+                          '<tr class="odd"><td><pre>%s</pre></td></tr>\n'
+                          % command)
+        box.write('</table>\n')
+        return box.get_value()
 
     def letters(self, uri):
         log(3, 'Creating letter table')
-        box = '<table class="tab"><tr>\n'
+        box = WOStringIO('<table class="tab"><tr>\n')
         for letter in string.uppercase:
             if letter==uri.letter:
-                box = box + '<th class="selected_tab">' + letter + '</th>\n'
+                box.write('<th class="selected_tab">%s</th>\n' % letter)
             else:
-                box = box + '<th><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
-        box = box + '</tr></table>\n'
-        return box
+                box.write('<th><a href="|uri.base|%s/%s|uri.lang_ext|">%s</a></th>\n'
+                % (uri.page_code, letter, letter))
+        box.write('</tr></table>\n')
+        return box.get_value()
         
     def users(self, uri):
         if not sessions.session:
@@ -792,24 +814,20 @@ class Tables(LampadasCollection):
             return '|tabnopermission|'
         elif uri.letter=='':
             return ''
+            
         log(3, 'Creating users table')
-        box = '<table class="box" width="100%"><tr><th colspan="3">|strusers|</th></tr>\n'
-        box = box + '<tr>\n'
-        box = box + '<th class="collabel" colspan="2">|strusername|</th>\n'
-        box = box + '<th class="collabel">|strname|</th>\n'
-        box = box + '</tr>\n';
+        box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="3">|strusers|</th></tr>\n'
+                         '<tr><th class="collabel" colspan="2">|strusername|</th>\n'
+                         '    <th class="collabel">|strname|</th></tr>\n')
         if uri.letter > '':
             usernames = lampadas.users.letter_keys(uri.letter)
             odd_even = OddEven()
             for username in usernames:
                 user = lampadas.users[username]
-                box = box + '<tr class="' + odd_even.get_next() + '">\n'
-                box = box + '<td><a href="|uri.base|user/' + username + '|uri.lang_ext|">' + EDIT_ICON_SM + '</a></td>\n'
-                box = box + '<td>' + username + '</td>\n'
-                box = box + '<td>' + user.name + '</a></td>\n'
-                box = box + '</tr>\n'
-        box = box + '</table>\n'
-        return box
+                box.write('<tr class="%s"><td><a href="|uri.base|user/%s|uri.lang_ext|">%s</a></td><td>%s</td><td>%s</a></td></tr>\n'
+                          % (odd_even.get_next(), username, EDIT_ICON_SM, username, user.name))
+        box.write('</table>\n')
+        return box.get_value()
 
     def user(self, uri):
         if sessions.session==None:
@@ -821,44 +839,54 @@ class Tables(LampadasCollection):
             user = lampadas.users[uri.username]
             if user==None:
                 return '|blknotfound|'
-            box = '<form method=GET action="|uri.base|data/save/user" name="user">\n'
+            box = WOStringIO('<form method=GET action="|uri.base|data/save/user" name="user">\n')
         else:
             user = User()
-            box = '<form method=GET action="/data/save/newuser" name="user">\n'
-        box = box + '<table class="box" width="100%">\n'
-        box = box + '<tr><th colspan=2>|struserdetails|</th></tr>\n'
-        box = box + '<tr><td class="label">|strusername|</td>'
+            box = WOStringIO('<form method=GET action="/data/save/newuser" name="user">\n')
+        box.write('<table class="box" width="100%">\n'
+                  '<tr><th colspan=2>|struserdetails|</th></tr>\n'
+                  '<tr><td class="label">|strusername|</td>')
         if user.username=='':
-            box = box + '<td><input type="text" name="username"></td>\n'
+            box.write('<td><input type="text" name="username"></td></tr>\n')
         else:
-            box = box + '<td><input name="username" type=hidden value=' + user.username + '>' + user.username + '</td></tr>\n'
-        box = box + '<tr><td class="label">|strfirst_name|</td><td><input type="text" name=first_name size="15" value="' + user.first_name + '"></td></tr>\n'
-        box = box + '<tr><td class="label">|strmiddle_name|</td><td><input type="text" name=middle_name size="15" value="' + user.middle_name + '"></td></tr>\n'
-        box = box + '<tr><td class="label">|strsurname|</td><td><input type="text" name=surname size="15" value="' + user.surname + '"></td></tr>\n'
-        box = box + '<tr><td class="label">|stremail|</td><td><input type="text" name=email size="15" value="' + user.email + '"></td></tr>\n'
-        box = box + '<tr><td class="label">|strstylesheet|</td><td><input type="text" name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
+            box.write('<td><input name="username" type=hidden value="%s">%s</td></tr>\n'
+                      % (user.username, user.username))
+        box.write('<tr><td class="label">|strfirst_name|</td><td>%s</td></tr>\n'
+                  '<tr><td class="label">|strmiddle_name|</td><td>%s</td></tr>\n'
+                  '<tr><td class="label">|strsurname|</td><td>%s</td></tr>\n'
+                  '<tr><td class="label">|stremail|</td><td>%s</td></tr>\n'
+                  '<tr><td class="label">|strstylesheet|</td><td>%s</td></tr>\n'
+                  % (widgets.first_name(user.first_name),
+                     widgets.middle_name(user.middle_name),
+                     widgets.surname(user.surname),
+                     widgets.email(user.email),
+                     widgets.stylesheet(user.stylesheet)))
+
         if user.username=='':
-            box = box + '<tr><td class="label">|strpassword|</td><td><input type="text" name=password size="12"></td></tr>\n'
+            box.write('<tr><td class="label">|strpassword|</td><td>%s</td></tr>\n'
+                      % widgets.newpassword())
         else:
             if sessions.session:
                 if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
-                    box = box + '<tr><td class="label">|strpassword|</td><td>' + user.password + '</td></tr>\n'
-            box = box + '<tr><td class="label">|strnewpassword|</td><td><input type="text" name=password size="12"></td></tr>\n'
+                    box.write('<tr><td class="label">|strpassword|</td><td>%s</td></tr>\n' % user.password)
+            box.write('<tr><td class="label">|strnewpassword|</td><td>%s</td></tr>\n' % widgets.newpassword())
         if sessions.session.user and (sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0):
-            box = box + '<tr><td class="label">|stradmin|</td><td>' + widgets.tf('admin', user.admin) + '</td></tr>\n'
+            box.write('<tr><td class="label">|stradmin|</td><td>%s</td></tr>\n' % widgets.tf('admin', user.admin))
         else:
-            box = box + '<input name="admin" type="hidden" value="' + str(user.admin) + '">\n'
-            box = box + '<tr><td class="label">|stradmin|</td><td>' + bool2yesno(user.admin) + '</td></tr>\n'
+            box.write('<input name="admin" type="hidden" value="%s">\n'
+                      '<tr><td class="label">|stradmin|</td><td>%s</td></tr>\n'
+                      % (user.admin, bool2yesno(user.admin)))
         if sessions.session.user and sessions.session.user.sysadmin > 0:
-            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + widgets.tf('sysadmin', user.sysadmin) + '</td></tr>\n'
+            box.write('<tr><td class="label">|strsysadmin|</td><td>%s</td></tr>\n' % widgets.tf('sysadmin', user.sysadmin))
         else:
-            box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
-            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
-        box = box + '<tr><td class="label">|strcomments|</td><td style="width:100%"><textarea rows=6 name="notes" wrap=soft style="width:100%;">' + user.notes + '</textarea></td></tr>\n'
-        box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
-        box = box + '</table>\n'
-        box = box + '</form>\n'
-        return box
+            box.write('<input name="sysadmin" type="hidden" value="%s">\n'
+                      '<tr><td class="label">|strsysadmin|</td><td>%s</td></tr>\n'
+                      % (user.sysadmin, bool2yesno(user.sysadmin)))
+        box.write('<tr><td class="label">|strcomments|</td><td style="width:100%%">%s</td></tr>\n'
+                  '<tr><td></td><td>%s</td></tr>\n'
+                  '</table></form>\n'
+                  % (widgets.notes(user.notes), widgets.save()))
+        return box.get_value()
         
     def doctable(self, uri,
                  title='',
@@ -905,10 +933,10 @@ class Tables(LampadasCollection):
 
         # Table header for compact layout
         if layout=='compact':
-            colspan = 4 + len(columns)
+            colspan = ICON_CELLS_COUNT + len(columns) + 1
             box = WOStringIO('<table class="box" width="100%%"><tr><th colspan="%s">|strdoctable|</th></tr>\n'
-                             % str(colspan))
-            box.write('<tr><th class="collabel" colspan="4" align="center">|strtitle|</th>')
+                             '<tr><th class="collabel" colspan="%s" align="center">|strtitle|</th>'
+                             % (colspan, ICON_CELLS_COUNT + 1))
             for column in columns.keys():
                 box.write('<th class="collabel">%s</td>' % column)
             box.write('</tr>\n')
@@ -923,8 +951,10 @@ class Tables(LampadasCollection):
 
             # Don't include unpublished documents
             # except for admins and owners, unless config says otherwise
-            if doc.pub_time=='' and (sessions.session==None or sessions.session.user.can_edit(doc_id=doc.id)==0) and (config.user_can_see_unpublished==0):
-                continue
+            if doc.pub_time=='':
+                if sessions.session==None:
+                    if config.world_can_see_unpublished==0:
+                        continue
 
             # Filter documents according to parameters passed in
             # by the calling routine.
@@ -1109,7 +1139,7 @@ class Tables(LampadasCollection):
         return box.get_value()
         
     def document_icon_cells(self, doc_id, cell_type='td'):
-        """Returns a series of three cells populated with icons for the document."""
+        """Returns a series of cells populated with icons for the document."""
 
         doc = lampadas.docs[doc_id]
 
@@ -1127,17 +1157,20 @@ class Tables(LampadasCollection):
         else:
             box.write('<%s></%s>\n' % (cell_type, cell_type))
             
-        # Edit icon
-#        if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
-#            box.write('<%s width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></%s>\n'
-#                      % (cell_type, str(doc.id), EDIT_ICON_SM, cell_type))
-#        else:
-#            box.write('<%s></%s>\n' % (cell_type, cell_type))
-        box.write('<%s width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></%s>\n'
-                  % (cell_type, str(doc.id), EDIT_ICON_SM, cell_type))
-        
-        return box.get_value()
+        # View icon
+        box.write('<%s width=22><a href="|uri.base|view_document/%s|uri.lang_ext|">%s</a></%s>\n'
+                  % (cell_type, str(doc.id), VIEW_ICON_SM, cell_type))
 
+        # Edit icon
+        if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+            box.write('<%s width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></%s>\n'
+                      % (cell_type, str(doc.id), EDIT_ICON_SM, cell_type))
+        else:
+            box.write('<%s width=22></%s>\n'
+                      % (cell_type, cell_type))
+
+        return box.get_value()
+       
     def userdocs(self, uri, username=''):
         """
         Displays a DocTable containing documents linked to a user.
@@ -1394,7 +1427,7 @@ class Tables(LampadasCollection):
             <th class="collabel">|strtimestamp|</th>
             </tr>
             ''')
-            keys = sessions.sort_by_desc('timestamp')
+            keys = sessions.sort_by_desc('created')
             odd_even = OddEven()
             for key in keys:
                 session = sessions[key]
@@ -1408,7 +1441,7 @@ class Tables(LampadasCollection):
                        session.username, session.username,
                        session.ip_address,
                        session.uri,
-                       session.timestamp))
+                       session.created))
             box.write('</table>\n')
             return box.get_value()
         return '|nopermission|'
@@ -1755,23 +1788,21 @@ class Tables(LampadasCollection):
         box = WOStringIO('<table class="tab"><tr>\n')
        
         # Determine which tab is selected and establish classes.
-        main_selected1        = ''
-        main_selected2        = ''
-        files_selected1       = ''
-        files_selected2       = ''
+        main_selected         = ''
+        files_selected        = ''
         versions_selected     = ''
         topics_selected       = ''
         users_selected        = ''
         notes_selected        = ''
         translations_selected = ''
+        errors_selected1      = ''
+        errors_selected2      = ''
         admin_selected        = ''
         all_selected          = ''
         if uri.page_code=='document_main':
-            main_selected1          = ' class="selected_tab"'
-            main_selected2          = ' selected_tab'
+            main_selected           = ' class="selected_tab"'
         elif uri.page_code=='document_files':
-            files_selected1         = ' class="selected_tab"'
-            files_selected2         = ' selected_tab'
+            files_selected          = ' class="selected_tab"'
         elif uri.page_code=='document_revs':
             versions_selected       = ' class="selected_tab"'
         elif uri.page_code=='document_topics':
@@ -1782,25 +1813,26 @@ class Tables(LampadasCollection):
             notes_selected          = ' class="selected_tab"'
         elif uri.page_code=='document_translation':
             translations_selected   = ' class="selected_tab"'
+        elif uri.page_code=='document_errors':
+            errors_selected1   = '  selected_tab'
+            errors_selected2   = ' class="selected_tab"'
         elif uri.page_code=='document_admin':
             admin_selected   = ' class="selected_tab"'
         elif uri.page_code=='document':
             all_selected            = ' class="selected_tab"'
 
-        # Write the tags, inserting the class.
-        if document.errors.count()==0:
-            box.write('<th%s><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>\n' % (main_selected1))
-        else:
-            box.write('<th class="error%s"><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>\n' % (main_selected2))
-        if document.files.error_count==0:
-            box.write('<th%s><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>\n' % (files_selected1))
-        else:
-            box.write('<th class="error%s"><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>\n' % (files_selected2))
+        # Write the tags, inserting the class on the erorrs tab.
+        box.write('<th%s"><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>\n' % (main_selected))
+        box.write('<th%s><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>\n' % (files_selected))
         box.write('<th%s><a href="|uri.base|document_revs/|uri.id||uri.lang_ext|">|strversions|</a></th>\n' % (versions_selected))
         box.write('<th%s><a href="|uri.base|document_topics/|uri.id||uri.lang_ext|">|strtopics|</a></th>\n' % (topics_selected))
         box.write('<th%s><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>\n' % (users_selected))
         box.write('<th%s><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>\n' % (notes_selected))
         box.write('<th%s><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></th>\n' % (translations_selected))
+        if document.errors.count() > 0 or document.files.error_count > 0:
+            box.write('<th class="error%s"><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected1))
+        else:
+            box.write('<th%s><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected2))
         box.write('<th%s><a href="|uri.base|document_admin/|uri.id||uri.lang_ext|">|stradmin|</a></th>\n' % (admin_selected))
         box.write('<th%s><a href="|uri.base|document/|uri.id||uri.lang_ext|">|strall|</a></th>\n' % (all_selected))
         box.write('</tr></table>\n')

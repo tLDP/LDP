@@ -6,8 +6,11 @@ CREATE TABLE document_rev
 	pub_date		DATE,
 	initials		CHAR(3)		NOT NULL,
 	notes			TEXT,
+	created			TIMESTAMP	NOT NULL DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 
 	PRIMARY KEY (rev_id)
 );
 
-CREATE INDEX document_rev_idx ON (doc_id);
+CREATE INDEX document_rev_idx ON document_rev (doc_id);
+

@@ -13,7 +13,7 @@ CREATE TABLE sourcefile
 	isbn			TEXT,
 	encoding		CHAR(12),
 	created			TIMESTAMP	NOT NULL	DEFAULT now(),
-	updated			TIMESTAMP,	
+	updated			TIMESTAMP	NOT NULL	DEFAULT now(),
 	
 	PRIMARY KEY (filename)
 );

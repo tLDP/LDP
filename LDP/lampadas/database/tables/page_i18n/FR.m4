@@ -6,23 +6,23 @@ m4_dnl  it in translations when the translation is up to date.
 insert([index], [|strproject|], [Splash Page],
 [
     |tabsplashlanguages|
-], 0)
+])
 
 insert([adddocument], [Add Document], [],
 [
     |tabeditdoc|
-], 1)
+])
 
 insert([users], [User List], [],
 [
     |tabletters|
     |tabusers|
-], 1)
+])
 
 insert([sessions], [User Sessions], [],
 [
     |tabsessions|
-], 1)
+])
 
 insert([my], [My Home Page], [],
 [
@@ -31,7 +31,7 @@ insert([my], [My Home Page], [],
     <p>This table lists documents you have volunteered to contribute to:
 
     <p>|session_user_docs|
-], 1)
+])
 
 insert([home], [|strproject|], [Home],
 [
@@ -54,22 +54,22 @@ insert([home], [|strproject|], [Home],
     <p>All of these accounts use the password &quot;password&quot;.
     Log in as one of them, and check it out, or create your own
     account using the "Create Account" link to the right.
-], 1)
+])
 
 insert([doctable], [Browse Documents], [],
 [
 	|tabdocs|z
-], 1)
+])
 
 insert([search], [Search], [],
 [
     |tabsearch|
-], 0)
+])
 
 insert([recentnews], [|strproject| News], [|strprojectshort| News],
 [
 	|tabrecentnews|
-], 1)
+])
 
 insert([stats], [Current Statistics], [],
 [
@@ -81,12 +81,12 @@ insert([stats], [Current Statistics], [],
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
     <p>|tabdoc_lang_stats|
-], 1)
+])
 
 insert([staff], [Staff], [],
 [
     List the members of your project\'s staff here.
-], 1)
+])
 
 insert([contribute], [Contribuer à Lampadas], [Contribuer à Lampadas],
 [
@@ -120,7 +120,7 @@ insert([contribute], [Contribuer à Lampadas], [Contribuer à Lampadas],
 	<p>Si vous avez une compétence particulière, n\'hésitez pas à écrire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 	</li>
 	</ul>
-], 1)
+])
 
 insert([unmaintained], [Unmaintained Documents], [],
 [
@@ -149,39 +149,39 @@ insert([unmaintained], [Unmaintained Documents], [],
     so we can correct the problem.
     
     <p>|tabunmaintained|
-], 0)
+])
 
 insert([maint_wanted], [New Maintainer Wanted], [],
 [
     |tabmaint_wanted|
-], 1)
+])
 
 insert([pending], [Pending Documents], [],
 [
     |tabpending|
-], 1)
+])
 
 insert([wishlist], [Wishlist Documents], [],
 [
     |tabwishlist|
-], 1)
+])
 
 insert([resources], [Other Resources], [],
 [
     <ul>
         <li>Insert some resources for French authors.
     </ul>
-], 1)
+])
 
 insert([maillists], [Mailing Lists], [],
 [
     List your project\'s mailing lists here.
-], 1)
+])
 
 insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
 [
 	Remplacez ce texte par la description de votre projet.
-], 1)
+])
 
 insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
 [
@@ -222,22 +222,22 @@ insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
     from many people and many sources, and disseminating it widely to others.
-], 1)
+])
 
 insert([copyright], [Le Copyright], [Le Copyright],
 [
 	Copyright 2002 David Merrill.
-], 1)
+])
 
 insert([privacy], [Confidentialité], [Confidentialité],
 [
 	Confidentialité
-], 1)
+])
 
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|
-], 1)
+])
 
 insert([newuser], [New User], [],
 [
@@ -271,7 +271,7 @@ insert([newuser], [New User], [],
         </table
     </form>
     <p>*Required Fields
-], 1)
+])
 
 insert([mailpass], [Mail Password], [],
 [
@@ -279,69 +279,68 @@ insert([mailpass], [Mail Password], [],
     password mailed to you.
 
     <p>|tabmailpass|
-], 1)
+])
 
 insert([topic], [View Topic], [],
 [
     |tabtopics|
     <p>|tabtopicdocs|
-], 1)
+])
 
 insert([document], [|doc.title|], [],
 [
-	|tabeditdoc|
+    |blkdocument_nav_bar|
+    |tabeditdoc|
     <p>|tabdocerrors|
-    <p>|tabdocfiles|
+    <p>|tabeditdocfiles|
     <p>|tabdocfileerrors|
-    <p>|tabdocusers|
-    <p>|tabdocversions|
-    <p>|tabdoctopics|
-    <p>|tabdocnotes|
+    <p>|tabeditdocusers|
+    <p>|tabeditdocversions|
+    <p>|tabeditdoctopics|
+    <p>|tabeditdocnotes|
     <p>|tabdoctranslations|
-], 2])
+])
 
 insert([document_main], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     |tabeditdoc|
-    <p>|tabdocerrors|
 ])
 
 insert([document_files], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     <p>|tabfile_metadata|
-    <p>|tabdocfiles|
-    <p>|tabdocfileerrors|
+    <p>|tabeditdocfiles|
 ])
 
 insert([document_users], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocusers|
+    |blkdocument_nav_bar|
+    |tabeditdocusers|
 ])
 
 insert([document_revs], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocversions|
+    |blkdocument_nav_bar|
+    |tabeditdocversions|
 ])
 
 insert([document_topics], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdoctopics|
+    |blkdocument_nav_bar|
+    |tabeditdoctopics|
 ])
 
 insert([document_notes], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocnotes|
+    |blkdocument_nav_bar|
+    |tabeditdocnotes|
 ])
 
 insert([document_translation], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdoctranslations|
 ])
 
@@ -349,6 +348,26 @@ insert([document_admin], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     |tabdocadmin|
+])
+
+insert([document_errors], [|doc.title|], [],
+[
+    |blkdocument_nav_bar|
+    |tabdocerrors|
+    <p>|tabdocfileerrors|
+])
+
+insert([view_document], [|doc.title|], [],
+[
+    |tabviewdoc|
+    <p>|tabdocerrors|
+    <p>|tabviewdocfiles|
+    <p>|tabviewdocfileerrors|
+    <p>|tabviewdocusers|
+    <p>|tabviewdocversions|
+    <p>|tabviewdoctopics|
+    <p>|tabviewdocnotes|
+    <p>|tabdoctranslations|
 ])
 
 insert([news_edit], [Edit News], [],
@@ -369,116 +388,116 @@ insert([string_edit], [Edit String], [],
 insert([404], [Introuvable], [Introuvable],
 [
 	Introuvable
-], 1)
+])
 
 insert([user_exists], [User Exists], [],
 [
     <p>That username is already taken. Please select another username and try again.
-], 1)
+])
 
 insert([username_required], [Username Required] [],
 [
     <p>Username is a required field. Please enter a username and try again.
-], 1)
+])
 
 insert([email_exists], [Email Exists], [],
 [
     <p>That email address is already in the database.
     If you already have an account but have forgotten your password,
     you can have it <a href="mailpass">mailed</a> to you.
-], 1)
+])
 
 insert([account_created], [Account Created], [],
 [
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
-], 1)
+])
 
 insert([password_mailed], [Password Mailed], [],
 [
     <p>Your password has been mailed to you.
     If you continue to have problems logging in, please write
     the site administrator for assistance.
-], 1)
+])
 
 insert([user], [|user.username| - |user.name|], [],
 [
     |tabuser|
     <p>|user.docs|
-], 1)
+])
 
 insert([adduser], [Add User], [Add User],
 [
     |tabuser|
-], 1)
+])
 
 insert([logged_in], [Logged In], [],
 [
     <p>You have been logged into the system.
-], 1)
+])
 
 insert([logged_out], [Logged Out], [],
 [
     <p>You have been logged out of the system.
-], 1)
+])
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-], 1)
+])
 
 insert([sourcefile], [Source File], [],
 [
-    |tabfile_reports|
-    <p>|tabfile_metadata|
-], 1)
+    |tabfile_metadata|
+    <p>|tabfile_reports|
+])
 
 insert([file_report], [File Report], [],
 [
     |tabfile_report|
-], 1)
+])
 
 insert([errors], [Error List], [],
 [
     |taberrors|
-], 0)
+])
 
 insert([collection], [|collection.name|], [],
 [
     |tabcollection|
-], 1)
+])
 
 insert([news], [News List], [],
 [
     |tabnews|
-], 1)
+])
 
 insert([addnews], [Add News], [],
 [
     |tabnewsitem|
-], 1)
+])
 
 insert([pages], [Web Page List], [],
 [
     |tabpages|
-], 1)
+])
 
 insert([addpage], [Add Web Page], [],
 [
     |tabpage|
-], 1)
+])
 
 insert([strings], [String List], [],
 [
     |tabstrings|
-], 1)
+])
 
 insert([addstring], [Add String], [],
 [
     |tabstring|
-], 1)
+])
 
 insert([omf], [OpenSource Meta-data Framework XML Output], [OMF XML Output],
-[|tabomf|], 0)
+[|tabomf|])
 
 

@@ -111,7 +111,7 @@ def document(req, username, doc_id,
     doc.save()
     go_back(req)
 
-def newdocument_user(req, doc_id, username, active, role_code, email, action):
+def newdocument_user(req, doc_id, username, active, role_code, email):
     user = lampadas.users[username]
     if user==None or user.username<>username:
         return error('User not found.')
@@ -120,7 +120,7 @@ def newdocument_user(req, doc_id, username, active, role_code, email, action):
         doc.users.add(username, role_code, email, int(active))
         go_back(req)
     
-def document_user(req, doc_id, username, active, role_code, email, action, delete=''):
+def document_user(req, doc_id, username, active, role_code, email, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.users.delete(username)
@@ -141,7 +141,7 @@ def newdocument_file(req, doc_id, filename, top):
     doc.files.add(doc_id, filename, int(top))
     go_back(req)
     
-def document_file(req, doc_id, filename, top, action, delete=''):
+def document_file(req, doc_id, filename, top, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.files.delete(filename)
@@ -152,12 +152,12 @@ def document_file(req, doc_id, filename, top, action, delete=''):
         file.save()
         go_back(req)
     
-def newdocument_version(req, doc_id, version, pub_date, initials, notes, action):
+def newdocument_version(req, doc_id, version, pub_date, initials, notes):
     doc = lampadas.docs[int(doc_id)]
     doc.versions.add(version, pub_date, initials, notes)
     go_back(req)
     
-def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, action, delete=''):
+def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, delete=''):
     doc = lampadas.docs[int(doc_id)]
     if delete=='on':
         doc.versions.delete(int(rev_id))

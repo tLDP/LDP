@@ -26,6 +26,7 @@ The API is documented in the Lampadas Programmer's Guide.
 from DataLayer import lampadas
 from WebLayer import lampadasweb
 from Languages import languages
+from SourceFiles import sourcefiles
 from Log import log
 import urlparse
 import os
@@ -134,6 +135,10 @@ class URI:
         
         # If the page specifies that it includes an object,
         # read the identifier for the object.
+
+        # FIXME: As a temporary fix, we reload any embedded data, to overcome
+        # the shortcomings of the caching system. We really need to just
+        # fix the cache, but this is a quick fix for now.
         data = self.data
         for item in page.data:
             if len(data)==0:
@@ -141,9 +146,41 @@ class URI:
             if item in ('doc', 'news'):
                 self.id = int(data[0])
                 data = data[1:]
+                if item=='doc':
+                    doc = lampadas.docs[self.id]
+                    if doc:
+                        doc.load()
+                elif item=='news':
+                    news = lampadasweb.news[self.id]
+                    if news:
+                        news.load()
             elif item in ('collection', 'topic', 'type', 'report', 'page', 'string'):
                 self.code = data[0]
                 data = data[1:]
+                if item=='collection':
+                    collection = lampadas.collections[self.code]
+                    if collection:
+                        collection.load()
+                elif item=='topic':
+                    topic = lampadas.topics[self.code]
+                    if topic:
+                        topic.load()
+                elif item=='type':
+                    type = lampadas.types[self.code]
+                    if type:
+                        type.load()
+                elif item=='report':
+                    report = lampadasweb.file_reports[self.code]
+                    if report:
+                        report.load()
+                elif item=='page':
+                    page = lampadasweb.pages[self.code]
+                    if page:
+                        page.load()
+                elif item=='string':
+                    webstring = lampadasweb.strings[self.code]
+                    if webstring:
+                        webstring.load()
             elif item in ('user',):
                 self.username = data[0]
                 data = data[1:]
@@ -152,6 +189,9 @@ class URI:
                 data = data[1:]
             elif item in ('filename',):
                 self.filename = string.join(data, '/')
+                sourcefile = sourcefiles[self.filename]
+                if sourcefile:
+                    sourcefile.load()
                 break
 
     def printdebug(self):

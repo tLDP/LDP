@@ -9,23 +9,23 @@ m4_dnl  typically listed in sidebar menus.
 insert([index], [|strproject|], [Splash-Seite],
 [
     |tabsplashlanguages|
-], 0)
+])
 
 insert([adddocument], [Dokument hinzufügen], [],
 [
     |tabeditdoc|
-], 1)
+])
 
 insert([users], [Liste der Benutzer], [],
 [
     |tabletters|
     |tabusers|
-], 1)
+])
 
 insert([sessions], [Benutzersitzungen], [],
 [
     |tabsessions|
-], 1)
+])
 
 insert([my], [Meine Homepage], [],
 [
@@ -34,7 +34,7 @@ insert([my], [Meine Homepage], [],
     <p>Und dies sind die Dokumente an denen sie mitarbeiten:
 
     <p>|session_user_docs|
-], 1)
+])
 
 insert([home], [|strproject|], [Home], 
 [
@@ -63,22 +63,22 @@ insert([home], [|strproject|], [Home],
     Sie können einen dieser Namen ausprobieren oder auch ein 
     eigenes Benutzerkonto anlegen (oben, rechts, der 
     Link "Benutzerkonto anlegen").
-], 1)
+])
 
 insert([doctable], [Dokumente durchsehen], [],
 [
 	|tabdocs|
-], 1)
+])
 
 insert([search], [Suche], [],
 [
     |tabsearch|
-], 1)
+])
 
 insert([recentnews], [Neuigkeiten], [],
 [
     |tabrecentnews|
-], 1)
+])
 
 insert([stats], [Current Statistics], [],
 [
@@ -90,12 +90,12 @@ insert([stats], [Current Statistics], [],
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
     <p>|tabdoc_lang_stats|
-], 1)
+])
 
 insert([staff], [Projektteam], [],
 [
     Führen Sie hier die Mitglieder Ihres Projekteams an.
-], 1)
+])
 
 insert([contribute], [Mitarbeit bei |strproject|],
     [Mitarbeit bei |strprojectshort|],
@@ -146,7 +146,7 @@ insert([contribute], [Mitarbeit bei |strproject|],
     </li>
 
     </ul>
-], 1)
+])
 
 insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
 [
@@ -180,22 +180,22 @@ insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
     beheben können.
     
     <p>|tabunmaintained|
-], 1)
+])
 
 insert([maint_wanted], [Instandhalter gesucht], [],
 [
     |tabmaint_wanted|
-], 1)
+])
 
 insert([wishlist], [Wunschliste], [],
 [
     |tabwishlist|
-], 1)
+])
 
 insert([pending], [Dokumente in Arbeit], [],
 [
     |tabpending|
-], 1)
+])
 
 insert([resources], [Andere Hilfsmittel], [],
 [
@@ -208,17 +208,17 @@ insert([resources], [Andere Hilfsmittel], [],
         <li><a href="http://home.t-online.de/home/lerch/neolog.htm"
 	  >Deutsche Wörter sind schön!</a></li>
     </ul>
-], 1)
+])
 
 insert([maillists], [Mailing-Listen], [],
 [
     Führen Sie hier die Mailing-Listen Ihres Projekts an.
-], 1)
+])
 
 insert([about], [Über |strproject|], [Über |strprojectshort|],
 [
     Ersetzen Sie diesen Text mit Angaben über Ihr Projekt.
-], 1)
+])
 
 insert([lampadas], [Über Lampadas], [],
 [
@@ -260,7 +260,7 @@ insert([lampadas], [Über Lampadas], [],
     <p>In jeder dieser Bedeutungen ist Lampadas ein angemessener Name
     für ein Projekt, dass geschaffen wurde, um Informationen zwischen
     vielen Menschen auszutauschen und zu verbreiten.
-], 1)
+])
 
 insert([copyright], [Copyright], [],
 [
@@ -305,7 +305,7 @@ insert([copyright], [Copyright], [],
     Diese Bestimmung ermöglicht es den Autoren, ihre Kommentare
     unabhängig von den Lizenzbestimmungen des betreffenden Dokuments
     in die Dokumentation aufzunehmen.
-], 1)
+])
 
 insert([privacy], [Datenschutz], [],
 [
@@ -325,13 +325,13 @@ insert([privacy], [Datenschutz], [],
     
     <p>Ohne Ihre Zustimmung werden wir Ihnen weder unverlangten
     Werbe-E-Mails schicken ("spam") noch Sie bei E-Mailverteilern eintragen.
-], 1)
+])
 
 m4_dnl FIXME: there has to be German expression for it
 insert([sitemap], [Site Map], [],
 [
     |tabsitemap|
-], 1)
+])
 
 insert([newuser], [Neue Benutzer], [],
 [
@@ -370,7 +370,7 @@ insert([newuser], [Neue Benutzer], [],
     <p>* Unbedingt erforderlich
     <br>** Da Ihr Kennwort zu dieser Adresse geschickt wird,
     muss sie gültig sein.
-], 1)
+])
 
 insert([mailpass], [Kennwort schicken], [],
 [
@@ -378,69 +378,67 @@ insert([mailpass], [Kennwort schicken], [],
     Wir schicken Ihnen anschließend Ihr Kennwort per E-Mail.
 
     <p>|tabmailpass|
-], 1)
+])
 
 insert([topic], [View Topic], [],
 [
     |tabtopics|
     <p>|tabtopicdocs|
-], 1)
+])
 
 insert([document], [|doc.title|], [],
 [
+    |blkdocument_nav_bar|
     |tabeditdoc|
-    <p>|tabdocerrors|
-    <p>|tabdocfiles|
+    <p>|tabeditdocfiles|
     <p>|tabdocfileerrors|
-    <p>|tabdocusers|
-    <p>|tabdocversions|
-    <p>|tabdoctopics|
-    <p>|tabdocnotes|
+    <p>|tabeditdocusers|
+    <p>|tabeditdocversions|
+    <p>|tabeditdoctopics|
+    <p>|tabeditdocnotes|
     <p>|tabdoctranslations|
-], 2)
+])
 
 insert([document_main], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     |tabeditdoc|
-    <p>|tabdocerrors|
 ])
 
 insert([document_files], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     <p>|tabfile_metadata|
-    <p>|tabdocfiles|
-    <p>|tabdocfileerrors|
+    <p>|tabeditdocfiles|
 ])
 
 insert([document_users], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocusers|
+    |blkdocument_nav_bar|
+    |tabeditdocusers|
 ])
 
 insert([document_revs], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocversions|
+    |blkdocument_nav_bar|
+    |tabeditdocversions|
 ])
 
 insert([document_topics], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdoctopics|
+    |blkdocument_nav_bar|
+    |tabeditdoctopics|
 ])
 
 insert([document_notes], [|doc.title|], [],
 [
-    |tabdocument_tabs|
-    |tabdocnotes|
+    |blkdocument_nav_bar|
+    |tabeditdocnotes|
 ])
 
 insert([document_translation], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdoctranslations|
 ])
 
@@ -448,6 +446,26 @@ insert([document_admin], [|doc.title|], [],
 [
     |blkdocument_nav_bar|
     |tabdocadmin|
+])
+
+insert([document_errors], [|doc.title|], [],
+[
+    |blkdocument_nav_bar|
+    |tabdocerrors|
+    <p>|tabdocfileerrors|
+])
+
+insert([view_document], [|doc.title|], [],
+[
+    |tabviewdoc|
+    <p>|tabdocerrors|
+    <p>|tabviewdocfiles|
+    <p>|tabviewdocfileerrors|
+    <p>|tabviewdocusers|
+    <p>|tabviewdocversions|
+    <p>|tabviewdoctopics|
+    <p>|tabviewdocnotes|
+    <p>|tabdoctranslations|
 ])
 
 insert([news_edit], [Edit News], [],
@@ -476,19 +494,19 @@ insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
     kommen, haben Sie wahrscheinlich einen Software-Fehler gefunden.
     In diesem Fall schicken Sie bitte einen Fehlerbericht an die 
     Lampadas-Entwickler.
-], 1)
+])
 
 insert([user_exists], [Benutzername bereits vorhanden], [],
 [
     <p>Dieser Benutzername wird bereits verwendet. Wählen Sie bitte einen
     anderen Namen und probieren Sie es erneut.
-], 1)
+])
 
 insert([username_required], [Benutzername erforderlich] [],
 [
     <p>Das Feld "Benutzername" ist zwingend notwendig.
     Tragen Sie bitte einen Namen ein und probieren Sie es erneut.
-], 1)
+])
 
 insert([email_exists], [E-Mailadresse bereits vorhanden], [],
 [
@@ -496,99 +514,99 @@ insert([email_exists], [E-Mailadresse bereits vorhanden], [],
     Wenn Sie bereits über Benutzerkonto verfügen, aber Ihr Kennwort
     vergessen haben, können Sie es sich <a href="mailpass">schicken</a>
     lassen.
-], 1)
+])
 
 insert([account_created], [Benutzerkonto angelegt], [],
 [
     <p>Ihr Benutzerkonto wurde angelegt und das Kennwort per E-Mail
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
-], 1)
+])
 
 insert([password_mailed], [Kennwort wurde zugeschickt], [],
 [
     <p>Ihr Kennwort wurde Ihnen per E-Mail zugeschickt.
     Bitte benachrichtigen Sie den Administrator dieser Web-Site
     wenn Sie noch weiter Probleme bei der Anmeldung haben.
-], 1)
+])
 
 insert([user], [|user.username| - |user.name|], [],
 [
     |tabuser|
     <p>|user.docs|
-], 1)
+])
 
 insert([adduser], [Add User], [Add User],
 [
     |tabuser|
-], 1)
+])
 
 insert([logged_in], [Angemeldet], [],
 [
     <p>Sie sind im System angemeldet.
-], 1)
+])
 
 insert([logged_out], [Abgemeldet], [],
 [
     <p>Sie sind im System abgemeldet.
-], 1)
+])
 
 insert([type], [|type.name|], [],
 [
     |tabtypedocs|
-], 1)
+])
 
 insert([sourcefile], [Quelldatei], [],
 [
-    |tabfile_reports|
-    <p>|tabfile_metadata|
-], 3)
+    |tabfile_metadata|
+    <p>|tabfile_reports|
+])
 
 insert([file_report], [Report einer Datei], [],
 [
     |tabfile_report|
-], 2)
+])
 
 insert([errors], [Liste der Fehler], [],
 [
     |taberrors|
-], 1)
+])
 
 insert([collection], [|collection.name|], [],
 [
     |tabcollection|
-], 1)
+])
 
 insert([news], [News List], [],
 [
     |tabnews|
-], 1)
+])
 
 insert([addnews], [Add News], [],
 [
     |tabnewsitem|
-], 1)
+])
 
 insert([pages], [Web Page List], [],
 [
     |tabpages|
-], 1)
+])
 
 insert([addpage], [Add Web Page], [],
 [
     |tabpage|
-], 1)
+])
 
 insert([strings], [String List], [],
 [
     |tabstrings|
-], 1)
+])
 
 insert([addstring], [Add String], [],
 [
     |tabstring|
-], 1)
+])
 
 insert([omf], [OpenSource Meta-data Framework XML Output], [OMF XML Output],
-[|tabomf|], 0)
+[|tabomf|])
 
 

@@ -165,11 +165,8 @@ class PageFactory:
                     newstring = config.root_dir
                 elif token=='port':
                     newstring = str(config.port)
-                elif token=='stylesheet':
-                    if sessions.session:
-                        newstring = sessions.session.user.stylesheet
-                    else:
-                        newstring='default'
+                elif token=='theme':
+                    newstring = config.theme
                 elif token=='version':
                     newstring = VERSION
 
@@ -274,28 +271,43 @@ class PageFactory:
                     newstring = tables.doctable(uri, pub_status_code='P', lang=uri.lang)
                 elif token=='tabwishlist':
                     newstring = tables.doctable(uri, pub_status_code='W', lang=uri.lang)
-                elif token=='tabeditdoc':
-                    newstring = tables.doc(uri)
-                elif token=='tabdocfiles':
-                    newstring = tables.docfiles(uri)
-                elif token=='tabdocusers':
-                    newstring = tables.docusers(uri)
-                elif token=='tabdocversions':
-                    newstring = tables.docversions(uri)
-                elif token=='tabdoctopics':
-                    newstring = tables.doctopics(uri)
-                elif token=='tabdocerrors':
-                    newstring = tables.docerrors(uri)
+                elif token=='tabdocfileerrors':
+                    newstring = tables.docfileerrors(uri)
                 elif token=='tabfile_reports':
                     newstring = tables.filereports(uri)
                 elif token=='tabfile_report':
                     newstring = tables.filereport(uri)
-                elif token=='tabdocfileerrors':
-                    newstring = tables.docfileerrors(uri)
-                elif token=='tabdocnotes':
-                    newstring = tables.docnotes(uri)
+                elif token=='tabdocerrors':
+                    newstring = tables.docerrors(uri)
+
+                elif token=='tabeditdoc':
+                    newstring = tables.editdoc(uri)
+                elif token=='tabeditdocfiles':
+                    newstring = tables.editdocfiles(uri)
+                elif token=='tabeditdocversions':
+                    newstring = tables.editdocversions(uri)
+                elif token=='tabeditdoctopics':
+                    newstring = tables.editdoctopics(uri)
+                elif token=='tabeditdocusers':
+                    newstring = tables.editdocusers(uri)
+                elif token=='tabeditdocnotes':
+                    newstring = tables.editdocnotes(uri)
                 elif token=='tabdoctranslations':
                     newstring = tables.doctranslations(uri)
+                
+                elif token=='tabviewdoc':
+                    newstring = tables.viewdoc(uri)
+                elif token=='tabviewdocfiles':
+                    newstring = tables.viewdocfiles(uri)
+                elif token=='tabviewdocversions':
+                    newstring = tables.viewdocversions(uri)
+                elif token=='tabviewdocusers':
+                    newstring = tables.viewdocusers(uri)
+                elif token=='tabviewdoctopics':
+                    newstring = tables.viewdoctopics(uri)
+                elif token=='tabviewdocnotes':
+                    newstring = tables.viewdocnotes(uri)
+
                 elif token=='tabcvslog':
                     newstring = tables.cvslog(uri)
                 elif token=='tabletters':

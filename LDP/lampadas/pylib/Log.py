@@ -33,6 +33,7 @@ Logs are assigned one of the following severities:
 """
 
 from Config import config
+from Database import db
 import time
 
 
@@ -48,6 +49,7 @@ class Log:
         self.write(level, message)
 
     def write(self, level, message):
+        db.log(level, message)
         if config.log_level >= level:
             logmessage = time.ctime(time.time()) + ' ' + message
             try:
@@ -69,10 +71,4 @@ log = Log()
 
 
 if __name__=="__main__":
-    config.log_level = 3
-    config.log_sql = 1
-    config.log_console = 1
-    log(1, 'level 1')
-    log(2, 'level 2')
-    log(3, 'level 3')
-
+    pass

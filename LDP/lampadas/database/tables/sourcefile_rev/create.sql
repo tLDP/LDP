@@ -7,7 +7,7 @@ CREATE TABLE sourcefile_rev
 	initials		CHAR(3)		NOT NULL,
 	notes			TEXT,
 	created			TIMESTAMP	NOT NULL	DEFAULT now(),
-	updated			TIMESTAMP,
+	updated			TIMESTAMP	NOT NULL	DEFAULT now(),
 
 	PRIMARY KEY (rev_id)
 );

@@ -32,7 +32,7 @@ import htmlentitydefs
 
 # Globals
 
-VERSION = '0.9.1-cvs'
+VERSION = '0.9.2-cvs'
 
 # Document errors
 ERR_NO_SOURCE_FILE      = 001
@@ -251,7 +251,20 @@ def html_encode(text):
 
 def escape_tokens(text):
     return text.replace('|', '\|')
-    
+   
+def string_match(text1, text2):
+    """Determines if the strings match except for whitespace and line breaks, etc."""
+
+    WHITESPACE = ('\t', '\r', '\n', ' ')
+
+    temp1 = text1
+    for char in WHITESPACE:
+        temp1 = temp1.replace(char, '')
+    temp2 = text2
+    for char in WHITESPACE:
+        temp2 = temp2.replace(char, '')
+    return temp1==temp2
+
 class WOStringIO:
     """
     Write-Only pure python extra fast buffer.

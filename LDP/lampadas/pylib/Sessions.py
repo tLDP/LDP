@@ -56,7 +56,7 @@ class Sessions(LampadasCollection):
 
     def load(self):
         self.data = {}
-        sql = 'SELECT username, ip_address, uri, timestamp FROM session'
+        sql = 'SELECT username, ip_address, uri, created FROM session'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -65,7 +65,7 @@ class Sessions(LampadasCollection):
             session.username   = trim(row[0])
             session.ip_address = trim(row[1])
             session.uri        = trim(row[2])
-            session.timestamp  = time2str(row[3])
+            session.created    = time2str(row[3])
             self.data[session.username] = session
     
     def add(self, username, ip_address, uri=''):
@@ -116,17 +116,17 @@ class Session:
         self.user = None
         if username:
             self.user = lampadas.users[username]
-            sql = 'SELECT username, ip_address, uri, timestamp FROM session WHERE username=' + wsq(username)
+            sql = 'SELECT username, ip_address, uri, created FROM session WHERE username=' + wsq(username)
             cursor = db.select(sql)
             row = cursor.fetchone()
             if row:
                 self.username   = trim(row[0])
                 self.ip_address = trim(row[1])
                 self.uri        = trim(row[2])
-                self.timestamp  = time2str(row[3])
+                self.created    = time2str(row[3])
                 
     def refresh(self, ip_address, uri=''):
-        sql = 'UPDATE session SET timestamp=now(), ip_address=' + wsq(ip_address) + ', uri=' + wsq(uri) + ' WHERE username=' + wsq(self.username)
+        sql = 'UPDATE session SET updated=now(), ip_address=' + wsq(ip_address) + ', uri=' + wsq(uri) + ' WHERE username=' + wsq(self.username)
         updated = db.runsql(sql)
         db.commit()
         if updated==0:

@@ -5,6 +5,8 @@ CREATE TABLE license_i18n
 	license_short_name	CHAR(20)	NOT NULL,
 	license_name		TEXT		NOT NULL,
 	license_desc		TEXT,
+	created			TIMESTAMP	NOT NULL DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 
 	PRIMARY KEY (license_code, lang)
 );

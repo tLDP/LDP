@@ -31,6 +31,8 @@ CREATE TABLE stats (
 	license_NONFREE		INT4,
 	license_UNKNOWN		INT4,
 	rating_avg		REAL,
+	created			TIMESTAMP	NOT NULL	DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL	DEFAULT now(),
 
 	PRIMARY KEY (date_entered)
 );

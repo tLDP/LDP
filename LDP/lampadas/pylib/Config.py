@@ -53,6 +53,7 @@ class Config:
     hostname = ''
     root_dir = ''
     file_dir = ''
+    theme = ''
     cvs_root = ''
     cache_dir = ''
     xslt_html = ''
@@ -62,7 +63,7 @@ class Config:
     admin_email = ''
     db2omf = ''
     wt2db = ''
-    user_can_see_doc = 0
+    world_can_see_unpublished = 0
     user_can_see_unpublished = 0
     user_can_add_doc = 0
     admin_can_add_page = 0
@@ -88,38 +89,39 @@ class Config:
 
         self.config.readfp(open(self.config_file))
 
-        self.project_name             = self.read_var('MAIN', 'project_name')
-        self.project_short            = self.read_var('MAIN', 'project_short')
-        self.db_type                  = self.read_var('DB', 'dbtype')
-        self.db_name                  = self.read_var('DB', 'dbname')
-        self.db_host                  = self.read_var('DB', 'dbhost')
-        self.log_file                 = self.read_var('LOG', 'logfile')
-        self.log_level                = int(self.read_var('LOG', 'loglevel'))
-        self.log_sql                  = int(self.read_var('LOG', 'logsql'))
-        self.log_console              = int(self.read_var('LOG', 'logcon'))
-        self.interface                = self.read_var('WEBSERVER', 'interface')
-        self.port                     = self.read_var('WEBSERVER', 'port')
-        self.hostname                 = self.read_var('WEBSERVER', 'hostname')
-        self.root_dir                 = self.read_var('WEBSERVER', 'rootdir')
-        self.file_dir                 = self.read_var('WEBSERVER', 'filedir')
-        self.cvs_root                 = self.read_var('CVS', 'cvsroot')
-        self.cache_dir                = self.read_var('MIRROR', 'cachedir')
-        self.xslt_html                = self.read_var('XSLT', 'xslt_html')
-        self.xslt_chunk               = self.read_var('XSLT', 'xslt_chunk')
-        self.xslt_print               = self.read_var('XSLT', 'xslt_print')
-        self.smtp_server              = self.read_var('MAIL', 'smtp_server')
-        self.admin_email              = self.read_var('MAIL', 'admin_email')
-        self.db2omf                   = self.read_var('MAKE', 'db2omf')
-        self.wt2db                    = self.read_var('MAKE', 'wt2db')
-        self.user_can_see_doc         = int(self.read_var('PERMISSIONS', 'user_can_see_doc'))
-        self.user_can_see_unpublished = int(self.read_var('PERMISSIONS', 'user_can_see_unpublished'))
-        self.user_can_add_doc         = int(self.read_var('PERMISSIONS', 'user_can_add_doc'))
-        self.admin_can_add_page       = int(self.read_var('PERMISSIONS', 'admin_can_add_page'))
-        self.admin_can_edit_page      = int(self.read_var('PERMISSIONS', 'admin_can_edit_page'))
-        self.admin_can_add_string     = int(self.read_var('PERMISSIONS', 'admin_can_add_string'))
-        self.admin_can_edit_string    = int(self.read_var('PERMISSIONS', 'admin_can_edit_string'))
-        self.admin_can_add_user       = int(self.read_var('PERMISSIONS', 'admin_can_add_user'))
-        self.admin_can_edit_user      = int(self.read_var('PERMISSIONS', 'admin_can_edit_user'))
+        self.project_name              = self.read_var('MAIN', 'project_name')
+        self.project_short             = self.read_var('MAIN', 'project_short')
+        self.db_type                   = self.read_var('DB', 'dbtype')
+        self.db_name                   = self.read_var('DB', 'dbname')
+        self.db_host                   = self.read_var('DB', 'dbhost')
+        self.log_file                  = self.read_var('LOG', 'logfile')
+        self.log_level                 = int(self.read_var('LOG', 'loglevel'))
+        self.log_sql                   = int(self.read_var('LOG', 'logsql'))
+        self.log_console               = int(self.read_var('LOG', 'logcon'))
+        self.interface                 = self.read_var('WEBSERVER', 'interface')
+        self.port                      = self.read_var('WEBSERVER', 'port')
+        self.hostname                  = self.read_var('WEBSERVER', 'hostname')
+        self.root_dir                  = self.read_var('WEBSERVER', 'rootdir')
+        self.file_dir                  = self.read_var('WEBSERVER', 'filedir')
+        self.theme                     = self.read_var('WEBSERVER', 'theme')
+        self.cvs_root                  = self.read_var('CVS', 'cvsroot')
+        self.cache_dir                 = self.read_var('MIRROR', 'cachedir')
+        self.xslt_html                 = self.read_var('XSLT', 'xslt_html')
+        self.xslt_chunk                = self.read_var('XSLT', 'xslt_chunk')
+        self.xslt_print                = self.read_var('XSLT', 'xslt_print')
+        self.smtp_server               = self.read_var('MAIL', 'smtp_server')
+        self.admin_email               = self.read_var('MAIL', 'admin_email')
+        self.db2omf                    = self.read_var('MAKE', 'db2omf')
+        self.wt2db                     = self.read_var('MAKE', 'wt2db')
+        self.world_can_see_unpublished = int(self.read_var('PERMISSIONS', 'world_can_see_unpublished'))
+        self.user_can_see_unpublished  = int(self.read_var('PERMISSIONS', 'user_can_see_unpublished'))
+        self.user_can_add_doc          = int(self.read_var('PERMISSIONS', 'user_can_add_doc'))
+        self.admin_can_add_page        = int(self.read_var('PERMISSIONS', 'admin_can_add_page'))
+        self.admin_can_edit_page       = int(self.read_var('PERMISSIONS', 'admin_can_edit_page'))
+        self.admin_can_add_string      = int(self.read_var('PERMISSIONS', 'admin_can_add_string'))
+        self.admin_can_edit_string     = int(self.read_var('PERMISSIONS', 'admin_can_edit_string'))
+        self.admin_can_add_user        = int(self.read_var('PERMISSIONS', 'admin_can_add_user'))
+        self.admin_can_edit_user       = int(self.read_var('PERMISSIONS', 'admin_can_edit_user'))
 
     def read_var(self, section, name):
         if not self.config.has_section(section) :
@@ -147,6 +149,7 @@ class Config:
         text += 'root_dir=' + self.root_dir + '\n'
         text += 'cvs_root=' + self.cvs_root + '\n'
         text += 'file_dir=' + self.file_dir + '\n'
+        text += 'theme=' + self.theme + '\n'
         text += 'cache_dir=' + self.cache_dir + '\n'
         text += 'xslt_html=' + self.xslt_html + '\n'
         text += 'xslt_chunk=' + self.xslt_chunk + '\n'
@@ -155,7 +158,7 @@ class Config:
         text += 'admin_email=' + self.admin_email + '\n'
         text += 'db2omf=' + self.db2omf + '\n'
         text += 'wt2db=' + self.wt2db + '\n'
-        text += 'user_can_see_doc=' + str(self.user_can_see_doc) + '\n'
+        text += 'world_can_see_unpublished=' + str(self.world_can_see_unpublished) + '\n'
         text += 'user_can_see_unpublished=' + str(self.user_can_see_unpublished) + '\n'
         text += 'user_can_add_doc=' + str(self.user_can_add_doc) + '\n'
         text += 'admin_can_add_page=' + str(self.admin_can_add_page) + '\n'

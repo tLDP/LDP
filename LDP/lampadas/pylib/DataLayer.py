@@ -28,9 +28,6 @@ performed through this layer.
 
 # Modules
 
-# FIXME import * is considered evil for you can pollute your namespace if
-# the imported module changes or makes a mistake --nico
-
 from Globals import *
 from Config import config
 from Database import db
@@ -256,7 +253,7 @@ class Docs(LampadasCollection):
             doc.remove_duplicate_metadata()
 
     def load_errors(self):
-        sql = "SELECT doc_id, err_id, date_entered, notes FROM document_error"
+        sql = "SELECT doc_id, err_id, created, notes FROM document_error"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -308,7 +305,7 @@ class Docs(LampadasCollection):
             doc.versions[docversion.id] = docversion
 
     def load_ratings(self):
-        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote"
+        sql = "SELECT doc_id, username, created, vote FROM doc_vote"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -345,7 +342,7 @@ class Docs(LampadasCollection):
             doc.collections[doccollection.collection_code] = doccollection
 
     def load_notes(self):
-        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes'
+        sql = 'SELECT note_id, doc_id, created, notes, creator FROM notes'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -465,13 +462,14 @@ class Doc:
         self.notes                   = DocNotes()
         self.notes.doc_id            = self.id
         if id==0: return
-        self.load(id)
+        self.load()
 
-    def load(self, id):
+    def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid, replaced_by_id, lint_time, pub_time, mirror_time, first_pub_date FROM document WHERE doc_id=" + str(self.id)
         cursor = db.select(sql)
         row = cursor.fetchone()
+        if row==None: return
         self.load_row(row)
         self.errors                  = DocErrs(self.id)
         self.files                   = DocFiles(self.id)
@@ -526,28 +524,28 @@ class Doc:
         if topfile:
             sourcefile = sourcefiles[topfile.filename]
             updated = 0
-            if self.format_code==sourcefile.format_code:
+            if string_match(self.format_code, sourcefile.format_code)==1:
                 self.format_code = ''
                 updated = 1
-            if self.dtd_code==sourcefile.dtd_code:
+            if string_match(self.dtd_code, sourcefile.dtd_code)==1:
                 self.dtd_code = ''
                 updated = 1
-            if self.dtd_version==sourcefile.dtd_version:
+            if string_match(self.dtd_version, sourcefile.dtd_version)==1:
                 self.dtd_version = ''
                 updated = 1
-            if self.title==sourcefile.title:
+            if string_match(self.title, sourcefile.title)==1:
                 self.title = ''
                 updated = 1
-            if self.abstract==sourcefile.abstract:
+            if string_match(self.abstract, sourcefile.abstract)==1:
                 self.abstract = ''
                 updated = 1
-            if self.version==sourcefile.version:
+            if string_match(self.version, sourcefile.version)==1:
                 self.version = ''
                 updated = 1
-            if self.pub_date==sourcefile.pub_date:
+            if string_match(self.pub_date, sourcefile.pub_date)==1:
                 self.pub_date = ''
                 updated = 1
-            if self.isbn==sourcefile.isbn:
+            if string_match(self.isbn, sourcefile.isbn)==1:
                 self.isbn = ''
                 updated = 1
             if updated==1:
@@ -562,21 +560,21 @@ class Doc:
         docfile = self.find_top_file()
         if docfile:
             sourcefile = sourcefiles[docfile.filename]
-            if self.format_code==sourcefile.format_code:
+            if string_match(self.format_code, sourcefile.format_code)==1:
                 self.format_code = ''
-            if self.dtd_code==sourcefile.dtd_code:
+            if string_match(self.dtd_code, sourcefile.dtd_code)==1:
                 self.dtd_code = ''
-            if self.dtd_version==sourcefile.dtd_version:
+            if string_match(self.dtd_version, sourcefile.dtd_version)==1:
                 self.dtd_version = ''
-            if self.title==sourcefile.title:
+            if string_match(self.title, sourcefile.title)==1:
                 self.title = ''
-            if self.abstract==sourcefile.abstract:
+            if string_match(self.abstract, sourcefile.abstract)==1:
                 self.abstract = ''
-            if self.version==sourcefile.version:
+            if string_match(self.version, sourcefile.version)==1:
                 self.version = ''
-            if self.pub_date==sourcefile.pub_date:
+            if string_match(self.pub_date, sourcefile.pub_date)==1:
                 self.pub_date = ''
-            if self.isbn==sourcefile.isbn:
+            if string_match(self.isbn, sourcefile.isbn)==1:
                 self.isbn = ''
         
         # Always recalculate the rating when saving a document.
@@ -657,7 +655,7 @@ class DocErrs(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, err_id, date_entered, notes FROM document_error WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, err_id, created, notes FROM document_error WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -703,7 +701,7 @@ class DocErrs(LampadasCollection):
         doc_err = DocErr()
         doc_err.doc_id = self.doc_id
         doc_err.err_id = err_id
-        doc_err.date_entered = now_string()
+        doc_err.created = now_string()
         doc_err.notes = notes
         self.data[doc_err.err_id] = doc_err
         db.commit()
@@ -714,10 +712,10 @@ class DocErr:
     """
 
     def load_row(self, row):
-        self.doc_id	      = safeint(row[0])
-        self.err_id       = safeint(row[1])
-        self.date_entered = time2str(row[2])
-        self.notes        = trim(row[3])
+        self.doc_id	 = safeint(row[0])
+        self.err_id  = safeint(row[1])
+        self.created = time2str(row[2])
+        self.notes   = trim(row[3])
 
 
 # DocFiles
@@ -911,7 +909,7 @@ class DocRatings(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, username, created, vote FROM doc_vote WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -925,7 +923,7 @@ class DocRatings(LampadasCollection):
         docrating = DocRating()
         docrating.doc_id   = self.doc_id
         docrating.username = username
-        docrating.date_entered = now_string()
+        docrating.created  = now_string()
         docrating.rating   = rating
         docrating.save()
         self.data[docrating.username] = docrating
@@ -950,10 +948,10 @@ class DocRating:
 
     def load_row(self, row):
         assert not row==None
-        self.doc_id       = row[0]
-        self.username     = row[1]
-        self.date_entered = time2str(row[2])
-        self.rating       = row[3]
+        self.doc_id   = row[0]
+        self.username = row[1]
+        self.created  = time2str(row[2])
+        self.rating   = row[3]
 
     def save(self):
         """
@@ -1170,7 +1168,7 @@ class DocNotes(LampadasCollection):
     def load(self):
         self.data = {}
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes WHERE doc_id=' + str(self.doc_id)
+        sql = 'SELECT note_id, doc_id, created, notes, creator FROM notes WHERE doc_id=' + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -1185,10 +1183,10 @@ class DocNotes(LampadasCollection):
         db.runsql(sql)
         db.commit()
         docnote = DocNote()
-        docnote.id = note_id
-        docnote.doc_id = self.doc_id
-        docnote.date_entered = now_string()
-        docnote.notes = notes
+        docnote.id      = note_id
+        docnote.doc_id  = self.doc_id
+        docnote.created = now_string()
+        docnote.notes   = notes
         docnote.creator = creator
         self.data[docnote.id] = docnote
 
@@ -1211,11 +1209,11 @@ class DocNote:
     """
 
     def load_row(self, row):
-        self.id           = row[0]
-        self.doc_id       = row[1]
-        self.date_entered = time2str(row[2])
-        self.notes        = trim(row[3])
-        self.creator      = trim(row[4])
+        self.id      = row[0]
+        self.doc_id  = row[1]
+        self.created = time2str(row[2])
+        self.notes   = trim(row[3])
+        self.creator = trim(row[4])
 
 
 # Licenses
@@ -1751,9 +1749,10 @@ class User:
         if not doc_id==None:
             if self.docs.has_key(doc_id):
                 return 1
+            if self.admin==1:
+                return 1
             if doc_id==0:
-                if self.admin==1:
-                    return config.user_can_add_doc
+                return config.user_can_add_doc
                     
         if not page_code==None:
             if self.admin==1:

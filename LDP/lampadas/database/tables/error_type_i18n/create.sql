@@ -4,6 +4,8 @@ CREATE TABLE error_type_i18n
 	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
 	err_type_name		TEXT		NOT NULL,
 	err_type_desc		TEXT,
+	created			TIMESTAMP	NOT NULL DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 
 	PRIMARY KEY (err_type_code, lang)
 );

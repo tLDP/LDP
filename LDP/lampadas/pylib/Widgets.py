@@ -52,7 +52,6 @@ class Widgets:
         keys = lampadas.formats.sort_by_lang('name', lang)
         for key in keys:
             format = lampadas.formats[key]
-            assert not format==None
             combo.write("<option ")
             if format.code==value:
                 combo.write("selected ")
@@ -77,7 +76,6 @@ class Widgets:
         keys = lampadas.dtds.sort_by_lang('name', lang)
         for key in keys:
             dtd = lampadas.dtds[key]
-            assert not dtd==None
             combo.write("<option ")
             if dtd.code==value:
                 combo.write("selected ")
@@ -88,11 +86,11 @@ class Widgets:
         return combo.get_value()
         
     def dtd_version(self, value, lang, css_class='', view=0):
-        input = WOStringIO('<input type="text" name="dtd_version" size="6" value="%s"%s>' % (value, css_class))
+        input = WOStringIO('<input type="text" name="dtd_version" size="5" value="%s"%s>' % (value, css_class))
         return input.get_value()
 
     def title(self, value, css_class='', view=0):
-        return WOStringIO('<input type=text name="title" style="width:100%%" value="%s"%s>' % (escape_tokens(value), css_class)).get_value()
+        return '<input type=text name="title" style="width:100%%" value="%s"%s>' % (escape_tokens(value), css_class)
 
     def abstract(self, value, css_class='', view=0):
         return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, value)
@@ -115,7 +113,7 @@ class Widgets:
     def mirror_time(self, value, view=0):
         return '<input type=text name="mirror_time" size="11" maxlength="10" value="%s">' % (value)
 
-    def pub_time(self, value, view0):
+    def pub_time(self, value, view=0):
         return '<input type=text name="pub_time" size="11" maxlength="10" value="%s">' % (value)
 
     def title_compressed(self, value):
@@ -129,10 +127,10 @@ class Widgets:
         return text
         
     def short_title(self, value):
-        return WOStringIO('<input type=text name="short_title" style="width:100%%" value="%s">' % value).get_value()
+        return '<input type=text name="short_title" style="width:100%%" value="%s">' % value
 
     def menu_name(self, value):
-        return WOStringIO('<input type=text name="menu_name" style="width:100%%" value="%s">' % escape_tokens(value)).get_value()
+        return '<input type=text name="menu_name" style="width:100%%" value="%s">' % escape_tokens(value)
 
     def short_desc(self, value):
         return '<input type=text name="short_desc" style="width:100%" value="' + value + '">'
@@ -161,6 +159,7 @@ class Widgets:
             v1, v2 = '', ' selected'
         else:
             v1, v2 = '', ''
+            
         return WOStringIO('<select name="%s">\n' \
                           '<option></option>\n' \
                           '<option value="1"%s>|stryes|</option>\n' \
@@ -169,7 +168,7 @@ class Widgets:
                           % (name, v1, v2)).get_value()
 
     def notes(self, value):
-        return '<textarea name="notes" wrap="soft" style="width:100%; height:100%;">' + value + '</textarea>'
+        return '<textarea name="notes" wrap="soft" rows="6" cols="10" style="width:100%">' + value + '</textarea>'
     
     def doctable_layout(self, value='compact'):
         if value=='compact':
@@ -184,19 +183,23 @@ class Widgets:
                           '</select>\n'
                           % ('layout', compact, expanded)).get_value()
 
-
     def username(self, value):
-        return '<input type=text name="username" size="15" maxlength="40" value="' + value + '">'
+        return '<input type=text name="username" size="15" maxlength="40" value="%s">' % value
 
     def stylesheet(self, value):
-        return '<select name="stylesheet">\n</select>\n'
+        return '<input type=text name="stylesheet" size="12" maxlength="12" value="%s">' % value
     
-    def role_code(self, value, lang):
+    def role_code(self, value, lang, view=0):
+        if view==1:
+            role = lampadas.roles[value]
+            if role:
+                return role.name[lang]
+            return ''
+
         combo = WOStringIO("<select name='role_code'>\n")
         keys = lampadas.roles.sort_by_lang('name', lang)
         for key in keys:
             role = lampadas.roles[key]
-            assert not role==None
             combo.write("<option ")
             if role.code==value:
                 combo.write("selected ")
@@ -490,7 +493,7 @@ class Widgets:
 
     def filemode(self, value):
         if value > 0:
-            return WOStringIO(octal2permission(value)).get_value()
+            return octal2permission(value)
         else:
             return '|strunknown|'
 
@@ -544,13 +547,31 @@ class Widgets:
         text = text.replace('/ /', '//')
         return text
 
+    def email(self, value):
+        return '<input type="text" name="email" size="15" value="%s">' % value
+        
     def delete(self):
         return '<input type="checkbox" name="delete">'
 
     def add(self):
-        return '<input type="submit" name="save" value="|stradd|">'
+        return '<input type="submit" name="add" value="|stradd|">'
 
     def save(self):
         return '<input type="submit" name="save" value="|strsave|">'
+
+    def first_name(self, value):
+        return '<input type=text name="first_name" size="12" value="%s">' % value
+
+    def middle_name(self, value):
+        return '<input type=text name="middle_name" size="12" value="%s">' % value
+
+    def surname(self, value):
+        return '<input type=text name="surname" size="12" value="%s">' % value
+
+    def newpassword(self):
+        return '<input type="text" name="password" size="12" value="">'
+
+    def password(self, value):
+        return '<input type="password" name="password" size="12" value="%s">' % value
 
 widgets = Widgets()

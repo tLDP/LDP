@@ -65,7 +65,7 @@ class SourceFiles(LampadasCollection):
         self.load_file_errors()
 
     def load_file_errors(self):
-        sql = 'SELECT filename, err_id, date_entered FROM file_error'
+        sql = 'SELECT filename, err_id, created FROM file_error'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -271,7 +271,7 @@ class SourceFile:
             # Look for DocType declaration
             m = re.search('DOCTYPE(.*?)>', header, flags)
             if m:
-                doctype = m.group(1)
+                doctype = trim(m.group(1))
 
                 # Look for DocBook declaration
                 m = re.search('DOCBOOK(.*)', doctype, flags)
@@ -290,40 +290,40 @@ class SourceFile:
                         if m: dtd_version = trim(m.group(1))
                         else:
                             m = re.search('(.*?)\[', doctype, flags)
-                            if m: dtd_version = m.group(1)
+                            if m: dtd_version = trim(m.group(1))
                             else: dtd_version = trim(doctype)
 
             m = re.search('<TITLE>(.*?)</TITLE>', header, flags)
             if m:
-                title = m.group(1)
+                title = trim(m.group(1))
 
             m = re.search('<ABSTRACT>(.*?)</ABSTRACT>', header, flags)
             if m:
-                abstract = m.group(1)
+                abstract = trim(m.group(1))
 
             if dtd_code=='docbook':
                 m = re.search('<PUBDATE>(.*?)</PUBDATE>', header, flags)
                 if m:
-                    pub_date = m.group(1)
+                    pub_date = trim(m.group(1))
             elif dtd_code=='linuxdoc':
                 m = re.search('<VERSION>(.*?)</VERSION>', header, flags)
                 if m:
-                    version = m.group(1)
+                    version = trim(m.group(1))
                 m = re.search('<DATE>(.*?)</DATE>', header, flags)
                 if m:
-                    pub_date = m.group(1)
+                    pub_date = trim(m.group(1))
             
             m = re.search('<ISBN>(.*?)</ISBN>', header, flags)
             if m:
-                isbn = m.group(1)
+                isbn = trim(m.group(1))
 
             m = re.search("ENCODING='(.*?)'", header, flags)
             if m:
-                encoding = m.group(1)
+                encoding = trim(m.group(1))
             else:
                 m = re.search('ENCODING="(.*?)"', header, flags)
                 if m:
-                    encoding = m.group(1)
+                    encoding = trim(m.group(1))
                 
             #print 'header=' + header
             #print 'dtd_code=' + dtd_code
@@ -379,7 +379,7 @@ class FileErrs(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT filename, err_id, date_entered FROM file_error WHERE filename=" + wsq(self.filename)
+        sql = "SELECT filename, err_id, created FROM file_error WHERE filename=" + wsq(self.filename)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -408,7 +408,7 @@ class FileErrs(LampadasCollection):
         file_err = FileErr()
         file_err.filename = self.filename
         file_err.err_id = err_id
-        file_err.date_entered = now_string()
+        file_err.created = now_string()
         self.data[file_err.err_id] = file_err
         db.commit()
 
@@ -423,7 +423,7 @@ class FileErr:
         self.load()
 
     def load(self):
-        sql = 'SELECT filename, err_id, date_entered FROM file_error WHERE filename=' + wsq(self.filename)
+        sql = 'SELECT filename, err_id, created FROM file_error WHERE filename=' + wsq(self.filename)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -431,9 +431,9 @@ class FileErr:
             self.load_row(row)
     
     def load_row(self, row):
-        self.filename     = trim(row[0])
-        self.err_id       = safeint(row[1])
-        self.date_entered = time2str(row[2])
+        self.filename = trim(row[0])
+        self.err_id   = safeint(row[1])
+        self.created  = time2str(row[2])
 
 
 sourcefiles = SourceFiles()

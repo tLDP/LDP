@@ -30,6 +30,8 @@ CREATE TABLE document
 	pub_time		TIMESTAMP,
 	mirror_time		TIMESTAMP,
 	first_pub_date		TEXT,
+	created			TIMESTAMP	NOT NULL DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 
 	PRIMARY KEY (doc_id)
 );

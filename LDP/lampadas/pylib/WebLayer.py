@@ -317,6 +317,10 @@ class String:
         self.code = string_code
         self.string = LampadasCollection()
 
+    def load(self):
+        """No need to load, we only have a code field.""" 
+        pass
+        
     def load_row(self, row):
         self.code = trim(row[0])
         sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.code)
@@ -434,6 +438,9 @@ class NewsItem:
 class FileReports(LampadasCollection):
 
     def __init__(self):
+        self.load()
+
+    def load(self):
         self.data = {}
         sql = 'SELECT report_code, only_cvs, command FROM file_report'
         cursor = db.select(sql)
@@ -459,6 +466,21 @@ class FileReport:
     def __init__(self):
         self.name = LampadasCollection()
         self.description = LampadasCollection()
+
+    def load(self):
+        sql = 'SELECT report_code, only_cvs, command FROM file_report WHERE report_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
+        sql = 'SELECT report_code, lang, report_name, report_desc FROM file_report_i18n WHERE report_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang = trim(row[1])
+            self.name[lang] = trim(row[2])
+            self.description[lang] = trim(row[3])
 
     def load_row(self, row):
         self.code     = trim(row[0])

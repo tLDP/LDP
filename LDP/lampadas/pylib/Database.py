@@ -31,11 +31,11 @@ AUTOCOMMIT = 1
 
 # Modules ##################################################################
 
+from Globals import *
+from Config import config
+import pyPgSQL
 import os
 import pwd
-import pyPgSQL
-from Config import config
-from Log import log
 import types
 import sys
 
@@ -56,10 +56,9 @@ class Database:
     #
     # I like Python :-)
     #
-    def execute(self, sql, params=None) :
-        if config.log_sql :
-            log(3, sql+' '+str(params))
-        
+    def execute(self, sql, params=None, log=1) :
+
+        # FIXME: Log these commands as well as runsql. I'm getting errors, though -- maybe the % character?
         for k in params.keys():
             if type(params[k])==types.StringType:
                 if params[k]=='':
@@ -71,14 +70,14 @@ class Database:
     
     def select(self, sql):
         if config.log_sql:
-            log(3, sql)
+            self.log(3, sql)
         cursor = self.connection.cursor()
         cursor.execute(sql)
         return cursor
 
     def read_value(self, sql):
         if config.log_sql:
-            log(3, sql)
+            self.log(3, sql)
         cursor = self.connection.cursor()
         cursor.execute(sql)
         row = cursor.fetchone()
@@ -97,9 +96,9 @@ class Database:
     def next_id(self, table, field):
         return self.max_id(table, field) + 1
 
-    def runsql(self, sql):
-        if config.log_sql:
-            log(3, sql)
+    def runsql(self, sql, log=1):
+        if config.log_sql and log==1:
+            self.log(3, sql)
         cursor = self.connection.cursor()
         cursor.execute(sql)
         return cursor.rowcount
@@ -109,6 +108,12 @@ class Database:
         if whereclause > '':
             sql = sql + ' WHERE ' + whereclause
         return int(self.read_value(sql))
+
+    def log(self, level, message, username=''):
+        if config.log_level >= level:
+            sql = 'INSERT INTO log(level, username, message) VALUES (%s, %s, %s)' % (level, wsq(username), wsq(message))
+            db.runsql(sql, log=0)
+            db.commit()
 
     def commit(self):
         if AUTOCOMMIT==0:
@@ -150,6 +155,5 @@ def get_database(db_type, db_name, db_host):
         raise UnknownDBException('Unknown database type %s, host is %s' % (db_type, db_host))
     return db
 
-log(2, '               **********Initializing DataLayer**********')
 db = get_database(config.db_type, config.db_name, config.db_host)
 

@@ -4,6 +4,8 @@ CREATE TABLE review_status_i18n
 	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
 	review_status_name	TEXT,
 	review_status_desc	TEXT,
+	created			TIMESTAMP	NOT NULL DEFAULT now(),
+	updated			TIMESTAMP	NOT NULL DEFAULT now(),
 	
 	PRIMARY KEY (review_status_code, lang)
 );
