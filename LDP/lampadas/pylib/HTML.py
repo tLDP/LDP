@@ -791,7 +791,9 @@ class TableFactory:
         box = box + '<tr><th>' + report.name[uri.lang] + '</th></tr>\n'
         box = box + '<tr><td><h2>|stroutput|</h2><pre>' + stdout + '</pre></td></tr>\n'
         box = box + '<tr><td><h2>|strerrors|</h2><pre>' + stderr + '</pre></td></tr>\n'
-        box = box + '<tr><td><h2>|strcommand|</h2><pre>' + command + '</pre></td></tr>\n'
+        if sessions.session:
+            if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+                box = box + '<tr><td><h2>|strcommand|</h2><pre>' + command + '</pre></td></tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -1127,13 +1129,15 @@ class TableFactory:
         for section_code in section_codes:
             section = lampadasweb.sections[section_code]
             if section.only_registered or section.only_admin or section.only_sysadmin > 0:
-                if user==None or section.registered_count==0:
+                if sessions.session==None or section.registered_count==0:
                     continue
             if section.only_admin > 0:
-                if (user.admin==0 and user.sysadmin==0) or (section.admin_count==0):
+                if sessions.session==None: continue
+                if (sessions.session.user.admin==0 and sessions.session.user.sysadmin==0) or (section.admin_count==0):
                     continue
             if section.only_sysadmin > 0:
-                if user.sysadmin==0 or section.sysadmin_count==0:
+                if sessions.session==None: continue
+                if sessions.session.user.sysadmin==0 or section.sysadmin_count==0:
                     continue
 
             box = box + '<tr><td class="label">' +  section.name[uri.lang] + '</td><td>\n'
@@ -1141,13 +1145,14 @@ class TableFactory:
                 page = lampadasweb.pages[page_code]
                 if page.section_code==section_code:
                     if page.only_registered or page.only_admin or page.only_sysadmin > 0:
-                        if user==None:
-                            continue
+                        if sessions.session==None: continue
                     if page.only_admin > 0:
-                        if user.admin==0 and user.sysadmin==0:
+                        if sessions.session==None: continue
+                        if sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
                             continue
                     if page.only_sysadmin > 0:
-                        if user.sysadmin==0:
+                        if sessions.session==None: continue
+                        if sessions.session.user.sysadmin==0:
                             continue
                     box = box + '<a href="/' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
             box = box + '</td></tr>\n'

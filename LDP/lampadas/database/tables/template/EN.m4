@@ -17,7 +17,7 @@ insert(default,
         </table>
 	    <table class="layout" width="100%">
 	      <tr>
-            <td class="sidebarleft" valign="top">
+            <td class="sidebarleft" valign="top" width="250">
               |navmenus|
               <p>|navtopics|
               <p>|navtypes|
@@ -58,7 +58,7 @@ insert(index,
         </table>
 	    <table class="layout" width="100%">
 	      <tr>
-            <td class="sidebarleft" valign="top">
+            <td class="sidebarleft" valign="top" width="250">
               |navmenus|
               <p>|navtopics|
               <p>|navtypes|
@@ -67,7 +67,7 @@ insert(index,
             <td class="body" width="100%" valign="top">
               |body|
             </td>
-            <td class="sidebarright" valign="top">
+            <td class="sidebarright" valign="top" width="250">
               |navlogin|
               <p>|navsessions|
             </td>
