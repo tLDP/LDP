@@ -2,7 +2,7 @@
 # May need to be invoked with  #!/bin/bash2  on older machines.
 
 # Cards:
-# deals four random hands from a deck of cards.
+# Deals four random hands from a deck of cards.
 
 UNPICKED=0
 PICKED=1
@@ -17,9 +17,9 @@ CARDS=52
 declare -a Deck
 declare -a Suits
 declare -a Cards
-# It would have been easier and more intuitive
-# with a single, 3-dimensional array.
-# Perhaps a future version of Bash will support multidimensional arrays.
+#  It would have been easier and more intuitive
+#+ with a single, 3-dimensional array.
+#  Perhaps a future version of Bash will support multidimensional arrays.
 
 
 initialize_Deck ()
@@ -73,7 +73,7 @@ printf %-4s $Card
 }
 
 seed_random ()  # Seed random number generator.
-{
+{               # What happens if you don't do this?
 seed=`eval date +%s`
 let "seed %= 32766"
 RANDOM=$seed
@@ -94,7 +94,7 @@ do
     parse_card $t
 
     u=$cards_picked+1
-    # Change back to 1-based indexing (temporarily).
+    # Change back to 1-based indexing (temporarily). Why?
     let "u %= $CARDS_IN_SUIT"
     if [ "$u" -eq 0 ]   # Nested if/then condition test.
     then
@@ -114,7 +114,7 @@ return 0
 
 
 # Structured programming:
-# entire program logic modularized in functions.
+# Entire program logic modularized in functions.
 
 #================
 seed_random
@@ -122,9 +122,9 @@ initialize_Deck
 initialize_Suits
 initialize_Cards
 deal_cards
+#================
 
 exit 0
-#================
 
 
 
@@ -132,7 +132,7 @@ exit 0
 # Add comments to thoroughly document this script.
 
 # Exercise 2:
-# Revise the script to print out each hand sorted in suits.
+# Add a routine (function) to print out each hand sorted in suits.
 # You may add other bells and whistles if you like.
 
 # Exercise 3:

@@ -1,7 +1,5 @@
 #!/bin/bash
-
 # Creating a swapfile.
-# This script must be run as root.
 
 ROOT_UID=0         # Root has $UID 0.
 E_WRONG_USER=65    # Not root?
@@ -11,6 +9,8 @@ BLOCKSIZE=1024
 MINBLOCKS=40
 SUCCESS=0
 
+
+# This script must be run as root.
 if [ "$UID" -ne "$ROOT_UID" ]
 then
   echo; echo "You must be root to run this script."; echo
