@@ -224,7 +224,7 @@ print "</td>\n";
 print "</tr>\n<tr>\n";
 
 print "<th align=right>Abstract</th>";
-print "<td colspan=5><textarea name=abstract rows=8 cols=60 style='width:100%' wrap>$abstract</textarea></td>\n";
+print "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$abstract</textarea></td>\n";
 
 print "</tr>\n";
 

@@ -12,7 +12,9 @@ $conn=Pg::connectdb("dbname=$dbmain");
 $username = $query->remote_user();
 $result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
 @row = $result->fetchrow;
-if ($username ne $row[0]) {
+$founduser = $row[0];
+$founduser =~ s/\s+$//;
+if ($username ne $founduser) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {

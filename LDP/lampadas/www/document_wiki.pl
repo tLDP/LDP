@@ -45,7 +45,9 @@ die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 $username = $query->remote_user();
 $result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
 @row = $result->fetchrow;
-if ($username ne $row[0]) {
+$founduser = $row[0];
+$founduser =~ s/\s+$//;
+if ($username ne $founduser) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {

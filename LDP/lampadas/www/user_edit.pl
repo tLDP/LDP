@@ -16,7 +16,9 @@ $conn=Pg::connectdb("dbname=$dbmain");
 $realusername = $query->remote_user();
 $result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$realusername'");
 @row = $result->fetchrow;
-if ($realusername ne $row[0]) {
+$founduser = $row[0];
+$founduser =~ s/\s+$//;
+if ($realusername ne $founduser) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {

@@ -15,7 +15,9 @@ $conn=Pg::connectdb("dbname=$dbmain");
 $username = $query->remote_user();
 $result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
 @row = $result->fetchrow;
-if ($username ne $row[0]) {
+$founduser = $row[0];
+$founduser =~ s/\s+$//;
+if ($username ne $founduser) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {
@@ -25,7 +27,7 @@ if ($username ne $row[0]) {
 	}
 }
 
-$result=$conn->exec("SELECT username, first_name, surname, maintainer_id, email, admin, editor_id FROM username ORDER BY surname, first_name");
+$result=$conn->exec("SELECT username, first_name, surname, maintainer_id, email, admin, editor_id FROM username ORDER BY username");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 # print the page
