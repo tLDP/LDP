@@ -50,7 +50,7 @@ class Blocks(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newBlock = Block()
-            newBlock.load(row)
+            newBlock.load_row(row)
             self.data[newBlock.code] = newBlock
 
 class Block:
@@ -58,7 +58,7 @@ class Block:
     def __init__(self):
         self.block = LampadasCollection()
 
-    def load(self, row):
+    def load_row(self, row):
         self.code  = trim(row[0])
         self.block = trim(row[1])
 
@@ -69,13 +69,13 @@ class Sections(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT section_code, sort_order, only_registered, only_admin, only_sysadmin FROM section"
+        sql = "SELECT section_code, sort_order, only_dynamic, only_registered, only_admin, only_sysadmin FROM section"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             newSection = Section()
-            newSection.load(row)
+            newSection.load_row(row)
             self.data[newSection.code] = newSection
 
 class Section:
@@ -83,12 +83,14 @@ class Section:
     def __init__(self):
         self.name = LampadasCollection()
 
-    def load(self, row):
+    def load_row(self, row):
         self.code		      = trim(row[0])
         self.sort_order       = safeint(row[1])
-        self.only_registered  = tf2bool(row[2])
-        self.only_admin       = tf2bool(row[3])
-        self.only_sysadmin    = tf2bool(row[4])
+        self.only_dynamic     = tf2bool(row[2])
+        self.only_registered  = tf2bool(row[3])
+        self.only_admin       = tf2bool(row[4])
+        self.only_sysadmin    = tf2bool(row[5])
+        self.dynamic_count    = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_dynamic'))
         self.registered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_registered or only_admin or only_sysadmin'))
         self.admin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_admin or only_sysadmin'))
         self.sysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE only_sysadmin'))
@@ -107,13 +109,13 @@ class Pages(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = "SELECT page_code, section_code, sort_order, template_code, data, only_registered, only_admin, only_sysadmin FROM page"
+        sql = "SELECT page_code, section_code, sort_order, template_code, data, only_dynamic, only_registered, only_admin, only_sysadmin FROM page"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             newPage = Page()
-            newPage.load(row)
+            newPage.load_row(row)
             self.data[newPage.code] = newPage
 
 class Page:
@@ -123,15 +125,16 @@ class Page:
         self.menu_name = LampadasCollection()
         self.page = LampadasCollection()
 
-    def load(self, row):
+    def load_row(self, row):
         self.code            = trim(row[0])
         self.section_code	 = trim(row[1])
         self.sort_order      = safeint(row[2])
         self.template_code	 = trim(row[3])
         self.data            = trim(row[4]).split()
-        self.only_registered = tf2bool(row[5])
-        self.only_admin      = tf2bool(row[6])
-        self.only_sysadmin   = tf2bool(row[7])
+        self.only_dynamic    = tf2bool(row[5])
+        self.only_registered = tf2bool(row[6])
+        self.only_admin      = tf2bool(row[7])
+        self.only_sysadmin   = tf2bool(row[8])
         sql = "SELECT lang, title, menu_name, page FROM page_i18n WHERE page_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
@@ -160,7 +163,7 @@ class Strings(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newString = String()
-            newString.load(row)
+            newString.load_row(row)
             self.data[newString.code] = newString
 
 class String:
@@ -171,7 +174,7 @@ class String:
     def __init__(self, string_code=None):
         self.string = LampadasCollection()
 
-    def load(self, row):
+    def load_row(self, row):
         self.code = trim(row[0])
         sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.code)
         cursor = db.select(sql)
@@ -194,12 +197,12 @@ class Templates(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newTemplate = Template()
-            newTemplate.load(row)
+            newTemplate.load_row(row)
             self.data[newTemplate.code] = newTemplate
 
 class Template:
 
-    def load(self, row):
+    def load_row(self, row):
         self.code       = trim(row[0])
         self.template   = trim(row[1])
 
