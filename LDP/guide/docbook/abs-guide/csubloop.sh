@@ -4,7 +4,7 @@
 variable1=`for i in 1 2 3 4 5
 do
   echo -n "$i"                 #  The 'echo' command is critical
-done`                          #+ to command substitution.
+done`                          #+ to command substitution here.
 
 echo "variable1 = $variable1"  # variable1 = 12345
 
@@ -17,5 +17,7 @@ do
 done`
 
 echo "variable2 = $variable2"  # variable2 = 0123456789
+
+# It's possible to embed a loop within a variable declaration.
 
 exit 0

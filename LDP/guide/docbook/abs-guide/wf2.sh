@@ -2,7 +2,7 @@
 # wf2.sh: Crude word frequency analysis on a text file.
 
 # Uses 'xargs' to decompose lines of text into single words.
-# Compare this example to the "wf.sh" script that follows.
+# Compare this example to the "wf.sh" script later on.
 
 
 # Check for input file on command line.
@@ -25,20 +25,20 @@ fi
 
 
 
-#######################################################
+########################################################
 cat "$1" | xargs -n1 | \
 #  List the file, one word per line. 
 tr A-Z a-z | \
-# Shift characters to lowercase.
+#  Shift characters to lowercase.
 sed -e 's/\.//g'  -e 's/\,//g' -e 's/ /\
 /g' | \
 #  Filter out periods and commas, and
 #+ change space between words to linefeed,
-  sort | uniq -c | sort -nr
-# Finally prefix occurrence count and sort numerically.
-#######################################################
+sort | uniq -c | sort -nr
+#  Finally prefix occurrence count and sort numerically.
+########################################################
 
-#  This does the same job as the "wf.sh" example that follows,
+#  This does the same job as the "wf.sh" example,
 #+ but a bit more ponderously, and it runs more slowly.
 
 exit 0

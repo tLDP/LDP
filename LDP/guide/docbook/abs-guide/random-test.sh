@@ -7,9 +7,8 @@ PIPS=6          # A die has 6 pips.
 MAXTHROWS=600   # Increase this, if you have nothing better to do with your time.
 throw=0         # Throw count.
 
-zeroes=0        #  Must initialize counts to zero,
-ones=0          #+ since an uninitialized variable is null, not zero.
-twos=0
+ones=0          #  Must initialize counts to zero,
+twos=0          #+ since an uninitialized variable is null, not zero.
 threes=0
 fours=0
 fives=0

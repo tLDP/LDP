@@ -1,7 +1,7 @@
 #!/bin/bash
 # copydir.sh
 
-#  Copy (verbose) all files in current directory
+#  Copy (verbose) all files in current directory ($PWD)
 #+ to directory specified on command line.
 
 E_NOARGS=65
@@ -13,7 +13,17 @@ then
 fi  
 
 ls . | xargs -i -t cp ./{} $1
-#  This is the exact equivalent of
+#            ^^ ^^      ^^
+#  -t is "verbose" (output command line to stderr) option.
+#  -i is "replace strings" option.
+#  {} is a placeholder for output text.
+#  This is similar to the use of a curly bracket pair in "find."
+#
+#  List the files (ls),
+#+ pass the output of "ls" as arguments to "xargs" (-i -t options),
+#+ then copy (cp) these arguments ({}) to new directory ($1).  
+#
+#  The net result is the exact equivalent of
 #+   cp * $1
 #+ unless any of the filenames has "whitespace" characters.
 

@@ -2,7 +2,14 @@
 # Hunting variables with a trap.
 
 trap 'echo Variable Listing --- a = $a  b = $b' EXIT
-# EXIT is the name of the signal generated upon exit from a script.
+#  EXIT is the name of the signal generated upon exit from a script.
+#
+#  The command specified by the "trap" doesn't execute until
+#+ the appropriate signal is sent.
+
+echo "This prints before the \"trap\" --"
+echo "even though the script sees the \"trap\" first."
+echo
 
 a=39
 

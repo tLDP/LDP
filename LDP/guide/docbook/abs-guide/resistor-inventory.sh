@@ -5,11 +5,11 @@
 # ============================================================== #
 # Data
 
-B1723_value=470                                   # ohms
-B1723_powerdissip=.25                             # watts
-B1723_colorcode="yellow-violet-brown"             # color bands
-B1723_loc=173                                     # where they are
-B1723_inventory=78                                # how many
+B1723_value=470                                   # Ohms
+B1723_powerdissip=.25                             # Watts
+B1723_colorcode="yellow-violet-brown"             # Color bands
+B1723_loc=173                                     # Where they are
+B1723_inventory=78                                # How many
 
 B1724_value=1000
 B1724_powerdissip=.25
@@ -51,10 +51,12 @@ done
 
 echo; echo
 
-# Exercise:
-# --------
-# Rewrite this script using arrays, rather than indirect variable referencing.
-# Which method is more straightforward and intuitive?
+# Exercises:
+# ---------
+# 1) Rewrite this script to read its data from an external file.
+# 2) Rewrite this script to use arrays,
+#+   rather than indirect variable referencing.
+#    Which method is more straightforward and intuitive?
 
 
 # Notes:

@@ -36,6 +36,9 @@ case "$answer" in
 esac
 
 find . -inum $inum -exec rm {} \;
+#                           ^^
+#        Curly brackets are placeholder
+#+       for text output by "find."
 echo "File "\"$1"\" deleted!"
 
 exit 0

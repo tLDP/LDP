@@ -8,12 +8,14 @@ IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
 DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
                  # Make sure it exists.
+                 # Exercise: Add a test for this.
 
-# Uses Joerg Schilling's "cdrecord" package.
-# (http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html)
+# Uses Joerg Schilling's "cdrecord" package:
+# http://www.fokus.fhg.de/usr/schilling/cdrecord.html
 
 #  If this script invoked as an ordinary user, need to suid cdrecord
-#+ (chmod u+s /usr/bin/cdrecord, as root).
+#+ chmod u+s /usr/bin/cdrecord, as root.
+#  Of course, this creates a security hole, though a relatively minor one.
 
 if [ -z "$1" ]
 then
@@ -31,7 +33,7 @@ ls -lRF $IMAGE_DIRECTORY > $IMAGE_DIRECTORY/$CONTENTSFILE
 echo "Creating table of contents."
 
 # Create an image file preparatory to burning it onto the CDR.
-mkisofs -r -o $IMAGFILE $IMAGE_DIRECTORY
+mkisofs -r -o $IMAGEFILE $IMAGE_DIRECTORY
 echo "Creating ISO9660 file system image ($IMAGEFILE)."
 
 # Burn the CDR.

@@ -133,3 +133,5 @@ elif [ "${ACTION}" = "remove" ]; then
         mv -f /etc/.fstab.new /etc/fstab
     fi
 fi
+
+exit 0

@@ -8,8 +8,8 @@ done
 
 echo
 
-# Entire 'list' enclosed in quotes creates a single variable.
 for planet in "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune Pluto"
+# Entire 'list' enclosed in quotes creates a single variable.
 do
   echo $planet
 done

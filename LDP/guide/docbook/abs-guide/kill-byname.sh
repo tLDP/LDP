@@ -21,13 +21,15 @@ then
 fi
 
 
-# ---------------------------------------------------------
-# Notes:
-# -i is the "replace strings" option to xargs.
-# The curly braces are the placeholder for the replacement.
-# 2&>/dev/null suppresses unwanted error messages.
-# ---------------------------------------------------------
 PROCESS_NAME="$1"
 ps ax | grep "$PROCESS_NAME" | awk '{print $1}' | xargs -i kill {} 2&>/dev/null
+#                                                       ^^      ^^
+
+# -----------------------------------------------------------
+# Notes:
+# -i is the "replace strings" option to xargs.
+# The curly brackets are the placeholder for the replacement.
+# 2&>/dev/null suppresses unwanted error messages.
+# -----------------------------------------------------------
 
 exit $?
