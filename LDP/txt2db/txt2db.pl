@@ -79,57 +79,81 @@ sub usage {
 
 sub proc_txt {
 	my($f) = @_;
-	my($dbnesting);
+	my ($noparatag,
+	    $noparadepth);
+
+	$noparadepth = 0;
 
 	# read in the text file
 	#
 	open(TXT, "$f") || die "txt2db: cannot open $f ($!)\n";
 	while (<TXT>) {
-		$line = $_;
+		$originalline = $_;
+		$line = $originalline;
 		&trimline;
 
 		# blank lines
 		if ($line eq '') {
-			&closenonsect;
-			&closelists;
-			next;
-		}
-
-		# pass DocBook right on through -- must be in <para> or <sect?> tags
-		#
-		if (($line =~ /^<para/) or ($line =~ /^<sect/)) {
-			&closenonsect;
-
-			$tag = $line;
-			$tag =~ s/^.*<//;
-			$tag =~ s/>.*$//;
-
-			$buf .= $line;
-
-			$dbnesting = 1;
-			while (<TXT>) {
-				$line = $_;
-				if ($line =~ /<$tag>/) {
-					$dbnesting = $dbnesting + 1;
-				}
-				if ($line =~ /<\/$tag>/) {
-					$dbnesting = $dbnesting - 1;
-					$buf .= $line;
-					if ($dbnesting == 0) {
-						last;
-					}
-				} else {
-					$buf .= $line;
-				}
+			if ($noparadepth == 0) {
+				&closenonsect;
+				&closelists;
+				next;
 			}
-			next;
 		}
 
 		# capitalize hints that can be entered in lowercase
+		#
 		$line =~ s/^q:/Q:/;
 		$line =~ s/^a:/A:/;
 
-		if ($line =~ /^===/) {
+		# this block defines DocBook structures that won't be broken up with 
+		# paragraphs when we hit empty lines:
+		#
+		#	<para>
+		#	<sect1>
+		#	<sect2>
+		#	<sect3>
+		#	<programlisting>
+	
+		# forget about nopara
+		if ($noparadepth == 0) {
+			$noparatag = "";
+		}
+		
+		# start a new nopara section
+		#
+		if ((($line =~ /^<para>/) or
+		     ($line =~ /^<sect/) or
+		     ($line =~ /^<programlisting>/)) and
+		    ($noparadepth == 0)) { 
+		    	&closepara;
+#			&closenonsect;
+
+			$noparatag = $line;
+			$noparatag =~ s/^.*?<//;
+			$noparatag =~ s/>.*?$//;
+		}
+
+		# count noparadepth
+		#
+		if ($noparatag ne '') {
+			$temp = $line;
+			while ($temp =~ /<$noparatag>/) {
+				$temp =~ s/<?$noparatag>//;
+				$noparadepth ++;
+			}
+			while ($temp =~ /<\/$noparatag>/) {
+				$temp =~ s/<?\/$noparatag>//;
+				$noparadepth --;
+			}
+
+			# recover original line -- no whitespace modifiers
+			#
+			$line = $originalline;
+
+		# sect3
+		#
+		} elsif ($line =~ /^===/) {
 			&close3;
 			&splittitle;
 			if ($id eq '') {
@@ -138,6 +162,9 @@ sub proc_txt {
 				$line = "<sect3 id='$id'><title>$title</title>\n";
 			}
 			$level3 = 1;
+
+		# sect2
+		#
 		} elsif ($line =~ /^==/) {
 			&close2;
 			&splittitle;
@@ -147,6 +174,9 @@ sub proc_txt {
 				$line = "<sect2 id='$id'><title>$title</title>\n";
 			}
 			$level2 = 1;
+
+		# sect1
+		#
 		} elsif ($line =~ /^=/) {
 			&close1;
 			&splittitle;
@@ -156,6 +186,9 @@ sub proc_txt {
 				$line = "<sect1 id='$id'><title>$title</title>\n";
 			}
 			$level1 = 1;
+
+		# orderedlist
+		#
 		} elsif ($line =~ /^#/) {
 			&closeitemizedlist;
 			if ($orderedlist == 0) {
@@ -168,6 +201,9 @@ sub proc_txt {
 			$line =~ s/^/\n<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
+
+		# itemizedlist
+		#
 		} elsif ($line =~ /^\*/) {
 			&closeorderedlist;
 			if ($itemizedlist == 0) {
@@ -180,6 +216,9 @@ sub proc_txt {
 			$line =~ s/^/\n<listitem><para>/;
 			$listitem = 1;
 			$para = 1;
+
+		# question
+		#
 		} elsif ($line =~ /^Q:/) {
 			&closeqandaentry;
 			$line =~ s/^Q://;
@@ -198,14 +237,20 @@ sub proc_txt {
 				$line = "<qandaset defaultlabel='qanda'>\n". $line;
 				$qandaset = 1;
 			}
-			
+
+		# answer
+		#
 		} elsif ($line =~ /^A:/) {
 			$line =~ s/^A://;
 			&trimline;
 			&closeanswer;
 			$line = "<answer><para>" . $line . "</para>\n";
+
+		# para
+		#
 		} else {
-			if ( $para == 0 ) {
+			print "line: $line, noparatag=$noparatag\n";
+			if (($para == 0) and ($noparatag eq '')) {
 				$line =~ s/^/<para>/;
 				$para = 1;
 			} else {
