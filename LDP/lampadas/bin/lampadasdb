@@ -1,6 +1,7 @@
 #!/bin/sh
 
 SQLDIR=/usr/local/share/lampadas/sql
+TABLESDIR=$SQLDIR/tables
 
 usage()
 {
@@ -18,58 +19,62 @@ Where ACTION is one of:
 "
 }
 
-create()
+find_sql()
 {
-	psql $1 -qf "$2/create.sql"
+  local name=${1:-create}
+  find $TABLESDIR -type f -name $1 -maxdepth 2 -mindepth 2
 }
 
-defaults()
+find_table()
 {
-	find $2 -type f -name '[A-Z][A-Z].m4' \
-	| while read file
-	do
-		echo "AAA $file ..."
-		lang=${file%.m4}
-		echo "BBB $lang ..."
-		lang=${lang##*/}
-		echo "CCC $lang ..."
-		m4 -P -DI18N_lang_code=${lang} "$2/insert.m4" $file | psql $1
-	done
+  # first -e removes trailing file name, e.g. "/create.sql"
+  # second -e removes all leading directories
+  find_sql "$@" | sed -e "s#/$1\$##" -e "s#.*/##"
+}
+create()
+{
+  find_sql create.sql | xargs -r cat
+  find_sql view.sql | xargs -r cat
+  find_sql indexes.sql | xargs -r cat
+  find_sql permissions.sql | xargs -r cat
 }
 
 drop()
 {
-	echo "DROP TABLE $3;"
+  find_table create.sql | sed -e 's#\(.*\)#DROP TABLE \1;#'
+  find_table view.sql | sed -e 's#\(.*\)#DROP VIEW \1;#'
 }
 
 delete()
 {
-	echo "DELETE from $3;"
+  find_table create.sql | sed -e 's#\(.*\)#DELETE from \1;#'
 }
 
 load()
 {
-	echo "copy $3 from '/tmp/$3';"
+  find_table create.sql | sed -e "s#\(.*\)#copy \1 from '/tmp/\1';#"
 }
 
 save()
 {
-	echo "copy $3 to '/tmp/$3';"
+  find_table create.sql | sed -e "s#\(.*\)#copy \1 to '/tmp/\1';#"
 }
 
-#---------------------------------------------
-
-one_sql_per_table()
+defaults()
 {
-  find $SQLDIR/tables -type d -maxdepth 1 -mindepth 1 ! -name CVS \
-  | while read file
-  do "$1" "$2" "$file" ${file##*/}
+  find_table insert.m4 \
+  | while read table
+  do
+    find $TABLESDIR/$table -type f -name '[A-Z][A-Z].m4' \
+    | while read file
+    do
+      lang=${file%.m4}
+      lang=${lang##*/}
+      echo "-- $table/$lang --"
+      m4 -P -DI18N_lang_code=${lang} "$TABLESDIR/$table/insert.m4" $file
+      echo ""
+    done
   done
-}
-
-all_together()
-{
-  one_sql_per_table "$@" | psql $2
 }
 
 #---------------------------------------------
@@ -81,11 +86,7 @@ while test $# -gt 0 ; do
 		usage
 		exit 1
 		;;
-	"drop" | "delete" | "load" | "save" )
-		WRAPPER=all_together
-		break ;;
-	"defaults" | "create" )
-		WRAPPER=one_sql_per_table
+	"create" | "drop" | "delete" | "load" | "save" | "defaults" )
 		break
 		;;
 	*)	echo "Invalid command: $1"
@@ -99,4 +100,10 @@ if [ $# -ne 2 ]; then
 	exit 1
 fi
 
-$WRAPPER "$@"
+(
+  echo "-- Created by lampadasdb.sh, do not edit"
+  date "+-- %c"
+  echo
+  "$@" 
+) > $TABLESDIR/$1.sql \
+&& psql $2 -qf $TABLESDIR/$1.sql
