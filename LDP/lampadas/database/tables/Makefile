@@ -32,6 +32,7 @@ tabs =	audience \
 	review_status \
 	review_status_i18n \
 	role \
+	role_i18n \
 	section \
 	section_i18n \
 	stats \
