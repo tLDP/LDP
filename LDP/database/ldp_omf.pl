@@ -11,7 +11,7 @@ $query = new CGI;
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status ORDER BY doc_id";
+$sql = "SELECT doc_id, title, pub_status_name, class, format, tickle_date, dtd, lr.review_status_name, tr.review_status_name as tech_review_status_name, url, pub_date, last_update, maintained, license, version, abstract FROM document, pub_status, review_status lr, review_status tr WHERE document.pub_status=pub_status.pub_status AND document.review_status = lr.review_status and document.tech_review_status = tr.review_status and document.pub_status='N' ORDER BY doc_id";
 
 $doc=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
@@ -93,7 +93,26 @@ while (@row = $doc->fetchrow) {
 	print "  <type>$class</type>\n";
 
 	#FORMAT
-	print "  <format dtd='$dtd' mime='text/sgml'/>\n";
+	if ( $format eq 'XML' ) {
+		print "  <format dtd='$dtd' mime='text/xml'/>\n";
+	}
+	if ( $format eq 'SGML' ) {
+		if ( $dtd eq 'HTML' ) {
+			print "  <format dtd='$dtd' mime='text/html'/>\n";
+		}
+		else {
+			print "  <format dtd='$dtd' mime='text/sgml'/>\n";
+		}
+	}
+	if ( $format eq 'TEXT' ) {
+		print "  <format mime='text/plain'/>\n";
+	}
+	if ( $format eq 'PDF' ) {
+		print "  <format mime='application/pdf'/>\n";
+	}
+	if ( $format eq 'LaTeX' ) {
+		print "  <format mime='application/x-latex'/>\n";
+	}
 
 	#IDENTIFIER
 	print "  <identifier>$url</identifier>\n";
