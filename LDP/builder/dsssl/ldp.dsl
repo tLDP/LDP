@@ -1,23 +1,46 @@
-<!DOCTYPE style-sheet PUBLIC "-//James Clark//DTD DSSSL Style Sheet//EN" [
+<!DOCTYPE style-sheet PUBLIC
+          "-//James Clark//DTD DSSSL Style Sheet//EN" [
 <!ENTITY % html "IGNORE">
 <![%html;[
 <!ENTITY % print "IGNORE">
-<!ENTITY docbook.dsl SYSTEM "docbook.dsl" CDATA dsssl>
+<!ENTITY docbook.dsl PUBLIC
+         "-//Norman Walsh//DOCUMENT DocBook HTML Stylesheet//EN"
+         CDATA dsssl>
 ]]>
 <!ENTITY % print "INCLUDE">
 <![%print;[
-<!ENTITY docbook.dsl SYSTEM "docbook.dsl" CDATA dsssl>
+<!ENTITY docbook.dsl PUBLIC
+         "-//Norman Walsh//DOCUMENT DocBook Print Stylesheet//EN"
+         CDATA dsssl>
 ]]>
 ]>
 
 <style-sheet>
 
+;; ------------------------------------------------------------------------
+;; ldp.dsl - LDP Customized DSSSL Stylesheet
+;; v1.10, 2002-12-04
+;; Copyright (C) 2002-2000
+;;
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, write to the Free Software
+;; Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+;; ------------------------------------------------------------------------
+
 <style-specification id="print" use="docbook">
 <style-specification-body> 
 
-;; ==============================
 ;; customize the print stylesheet
-;; ==============================
 
 (declare-characteristic preserve-sdata?
   ;; this is necessary because right now jadetex does not understand
@@ -76,15 +99,34 @@
   ;; Use graphics in admonitions?
   #f)
 
+(define %default-quadding%
+  ;; Full justification.
+  'justify)
+
+(define (book-titlepage-verso-elements)
+  ;;added publisher, releaseinfo to the default list
+  (list (normalize "title")
+        (normalize "subtitle")
+        (normalize "corpauthor")
+        (normalize "authorgroup")
+        (normalize "author")
+        (normalize "publisher")
+        (normalize "releaseinfo")
+        (normalize "editor")
+        (normalize "edition")
+        (normalize "pubdate")
+        (normalize "copyright")
+        (normalize "abstract")
+        (normalize "legalnotice")
+        (normalize "revhistory")))
+
 </style-specification-body>
 </style-specification>
 
 
 <!--
-;; ===================================================
-;; customize the html stylesheet; borrowed from Cygnus
-;; at http://sourceware.cygnus.com/ (cygnus-both.dsl)
-;; ===================================================
+;; customize the html stylesheet; parts borrowed from 
+;; Cygnus at http://sourceware.cygnus.com/ (cygnus-both.dsl)
 -->
 
 <style-specification id="html" use="docbook">
@@ -183,6 +225,9 @@
 (define (book-titlepage-recto-elements)
   ;; elements on a book's titlepage
   ;; note: added revhistory to the default list
+  ;; note: added othercredit to the default list
+  ;; note: added releaseinfo to the default list
+  ;; note: added publisher to the default list
   (list (normalize "title")
         (normalize "subtitle")
         (normalize "graphic")
@@ -190,6 +235,9 @@
         (normalize "corpauthor")
         (normalize "authorgroup")
         (normalize "author")
+        (normalize "othercredit")
+        (normalize "releaseinfo")
+        (normalize "publisher")
         (normalize "editor")
         (normalize "copyright")
         (normalize "pubdate")
@@ -212,26 +260,33 @@
         (normalize "abstract")
         (normalize "legalnotice")))
 
-(mode article-titlepage-recto-mode
-
- (element contrib
+(define (process-contrib #!optional (sosofo (process-children)))
   ;; print out with othercredit information; for translators, etc.
   (make sequence
     (make element gi: "SPAN"
           attributes: (list (list "CLASS" (gi)))
           (process-children))))
 
- (element othercredit
+(define (process-othercredit #!optional (sosofo (process-children)))
   ;; print out othercredit information; for translators, etc.
   (let ((author-name  (author-string))
         (author-contrib (select-elements (children (current-node))
                                           (normalize "contrib"))))
     (make element gi: "P"
          attributes: (list (list "CLASS" (gi)))
-         (make element gi: "B"  
+         (make element gi: "B"
               (literal author-name)
               (literal " - "))
          (process-node-list author-contrib))))
+
+(mode article-titlepage-recto-mode
+  (element contrib (process-contrib))
+  (element othercredit (process-othercredit))
+)
+
+(mode book-titlepage-recto-mode
+  (element contrib (process-contrib))
+  (element othercredit (process-othercredit))
 )
 
 (define (article-title nd)
@@ -251,11 +306,9 @@
         ""
         (node-list-first titles))))
 
-
 (mode subtitle-mode
   ;; do not print subtitle on subsequent pages
   (element subtitle (empty-sosofo)))
-
 
 ;; Redefinition of $verbatim-display$
 ;; Origin: dbverb.dsl
