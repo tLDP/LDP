@@ -26,6 +26,21 @@ paragraph
 [[http://www.tldp.org]]
 [[http://www.tldp.org|The Linux Documentation Project]]
 
+*one
+    **two
+    **two, again
+    /**
+
+    ## ordered
+    /#
+
+    **two once more
+    **two yet again
+/*
+
+
+Foo
+
 ";
 
 $outbuf = '';
