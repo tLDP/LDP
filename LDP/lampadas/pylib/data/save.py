@@ -234,7 +234,7 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
 
 def newnews(req, pub_date):
     newsitem = lampadasweb.news.add(pub_date)
-    redirect(req, '../../news/' + str(newsitem.id) + referer_lang_ext(req))
+    redirect(req, '../../news_edit/' + str(newsitem.id) + referer_lang_ext(req))
 
 def news(req, news_id, pub_date):
     newsitem = lampadasweb.news[int(news_id)]

@@ -1798,7 +1798,7 @@ class TabNewsItem(Table):
             box = WOStringIO('<form method=GET action="|uri.base|data/save/news">\n' \
                              '<table class="box"><tr><th colspan="5">|strnews|</th></tr>\n' \
                              '<input type=hidden name="news_id" value="%s">\n' \
-                             '<tr><td class="label">|strpub_date|</td>\n' \
+                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
                              '    <td><input type=text name="pub_date" value="%s"></td>\n' \
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                              '</tr>\n' \
@@ -1806,36 +1806,37 @@ class TabNewsItem(Table):
                              '</form>\n' % (news.id, news.pub_date))
 
             # List the available translations
-            box.write('<table class="box"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
+            box.write('<table class="box" style="width:100%"><tr><th colspan="3">|strtranslations|</th></tr>\n' \
                       '<tr><th class="collabel">|strlanguage|</td>\n' \
                       '    <th class="collabel" colspan="2">|strnews|</td>' \
                       '</tr>')
 
+            odd_even = OddEven()
             for lang in languages.supported_keys():
                 if not news.news[lang]==None:
                     box.write('<form method=GET action="|uri.base|data/save/news_lang">\n' \
                               '<input type=hidden name="news_id" value="%s">\n' \
                               '<input type=hidden name="lang" value="%s">\n' \
-                              '<tr><td class="label">%s:</td>' \
+                              '<tr class="%s"><td class="label">%s:</td>' \
                               '    <td><textarea name="news" rows="6" cols="40" style="width:100%%">%s</textarea></td>' \
                               '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
                               '</tr></form>'
-                              % (news.id, lang, languages[lang].name[uri.lang], news.news[lang]))
+                              % (news.id, lang, odd_even.get_next(), languages[lang].name[uri.lang], news.news[lang]))
 
             # Add a new translation
             box.write('<form method=GET action="|uri.base|data/save/newnews_lang">\n' \
                       '<input type=hidden name="news_id" value="%s">\n' \
-                      '<tr><td>%s:</td>' \
+                      '<tr class="%s"><td>%s:</td>' \
                       '    <td><textarea name="news" rows="6" cols="40" style="width:100%%"></textarea></td>' \
                       '    <td><input type=submit name="save" value="|stradd|"></td>\n' \
                       '</tr></form>'
-                      % (news.id, widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
+                      % (news.id, odd_even.get_next(), widgets.lang('', uri.lang, allow_null=0, allow_unsupported=0)))
             box.write('</table>')
         else:
             news = NewsItem()
             box = WOStringIO('<form method=GET action="|uri.base|data/save/newnews">\n' \
                              '<table class="box"><tr><th colspan="3">|stradd_news|</th></tr>\n' \
-                             '<tr><td class="label">|strpub_date|</td>\n' \
+                             '<tr class="odd"><td class="label">|strpub_date|</td>\n' \
                              '    <td><input type=text name="pub_date" value="%s"></td>\n' \
                              '    <td colspan="2"><input type=submit name="save" value="|stradd|"></td>\n' \
                              '</tr>\n' \

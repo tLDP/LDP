@@ -436,7 +436,7 @@ insert([collection], [|collection.name|], [],
     |tabcollection|
 ], 1)
 
-insert([news], [|strnews|], [],
+insert([news], [News List], [],
 [
     |tabnews|
 ], 1)

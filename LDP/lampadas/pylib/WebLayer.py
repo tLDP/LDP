@@ -230,9 +230,12 @@ class NewsItems(LampadasCollection):
     
 class NewsItem:
 
-    def __init__(self, id=0, pub_date=now_string()):
+    def __init__(self, id=0, pub_date=None):
         self.id       = id
-        self.pub_date = pub_date
+        if pub_date==None:
+            self.pub_date = now_string()
+        else:
+            self.pub_date = pub_date
         self.news = LampadasCollection()
 
     def load_row(self, row):
