@@ -1,0 +1,498 @@
+#!/usr/bin/perl
+#
+# DESC:  Script for creating an OMF (OpenSource Metadata Framework) file
+#        from DocBook SGML.
+#
+# USAGE: db2omf {-o <output_file>} <docbook_file>.sgml
+#
+# Greg Ferguson <gferg@sgi.com>
+#
+# 12Mar2001	0.1	initial release
+# 26Mar2001	0.2	modified public identifier
+# 06jun2001	0.3	various clean-up, rm'd some elements that are not clear
+#
+
+# output stream flush
+#
+$| = 1;
+
+use Text::Wrap qw($columns &wrap);
+$columns = 70;
+
+$_vrs              = '0.3';
+$_res_template     = '';
+$_creator_template = '';
+
+my($in_f, $out_f) = '';
+
+
+# read in cmd-line arguments
+#
+while(1) {
+
+    if($ARGV[0] eq "-o") {
+       shift(@ARGV);
+       $out_f = $ARGV[0];
+       shift(@ARGV);
+    } elsif($ARGV[0] eq "-h") {
+       &usage();
+    } else {
+       $in_f = $ARGV[0];
+       shift(@ARGV);
+    }
+
+    if($ARGV[0] eq '') {
+       last;
+    }
+}
+
+if( $in_f eq '' ) {
+    print "db2omf: ERROR <docbook_file>.sgml not specified.\n\n";
+    &usage();
+} elsif( !(-r $in_f) ) {
+    print "db2omf: ERROR cannot read $f ($!)\n\n";
+    &usage();
+}
+
+if( $out_f eq '' ) {
+    $in_f =~ /([^\/]+)\.sgml$/i;
+    $out_f = $1 . ".omf";
+}
+
+
+# get today's date; timestamp the template entries
+#
+my(@t_comps) = localtime(time());
+$i = (($t_comps[5])+0) + 1900;
+my($y) = "$i";
+$i = (($t_comps[4])+0) + 1;
+my($m) = "$i";
+my($d) = $t_comps[3];
+$_today = "${y}" . (length($m) == 1 ? '0' : '') . "${m}" . 
+          (length($d) == 1 ? '0' : '') . "${d}";
+
+
+# read in the OMF resource template
+#
+while(<DATA>){
+      $_res_template .= $_;
+}
+close(DATA);
+
+$_creator_template ="    <creator created=\"%%DATE\">\n" .
+                    "      <person created=\"%%DATE\">\n" .
+                    "        <firstName created=\"%%DATE\">\n" .
+                    "          %%FIRSTNAME\n" .
+                    "        </firstName>\n" .
+                    "        <lastName created=\"%%DATE\">\n" .
+                    "          %%LASTNAME\n" .
+                    "        </lastName>\n" .
+                    "        <email created=\"%%DATE\">\n" .
+                    "          %%EMAIL\n" .
+                    "        </email>\n" .
+                    "      </person>\n" .
+                    "    </creator>";
+
+$_creator_template =~ s/%%DATE/$_today/g;
+$_res_template     =~ s/%%DATE/$_today/g;
+
+&proc_sgml($in_f);
+
+$_res_template =~ s/%%CREATOR/$_creator_template/;
+$_res_template =~ s/%%SGML/$in_f/;
+
+# write out the OMF file
+#
+open(OMF, "> $out_f") || die "db2omf: cannot write to $out_f ($!)\n";
+print OMF $_res_template, "\n";
+close(OMF);
+
+
+print "db2omf: created $out_f from $in_f\n";
+exit(0);
+
+
+
+#
+#
+#
+sub proc_sgml {
+
+    my($f) = @_;
+
+    my($buf,$vers,$auth,$tmp,$y,$m,$d,$s) = '';
+    my($i, $notfound) = 0;
+
+    # read in file (book/article info area only)
+    #
+    open(DBF, "$f") || die "db2omf: cannot open $f ($!)\n";
+    while(<DBF>) {
+
+      if($notfound == 0) {
+         if( $_ =~ /<article/i || $_ =~ /<book/i ) {
+             $notfound = 1;
+         } else {
+             next;
+         }
+      }
+      if($_ =~ /^</ && !($_ =~ />\n$/)) {
+         chop;
+      }
+      if($_ =~ /<\/artheader/i || /<\/articleinfo/i || $_ =~ /<\/bookinfo/i) {
+         $buf .= $_;
+         last;
+      }
+      if($_ ne '') {
+         $buf .= $_;
+      }
+    }
+    close(DBF);
+    $buf =~ s/\r//g;
+
+    # grab title; clean it up
+    #
+    ($s) = ($buf =~ m#<title>\s*(.*?)\s*</title>#is);
+    $s =~ s/\n//g;
+    $s =~ s/<subtitle>\s*(.*?)\s*<\/subtitle>//gi;
+    $s =~ s/<[^>]*>//gs;
+    $s =~ s/[\s\.\ ]+$//g;
+    $s =~ s/^[\s\.\ ]+//g;
+    $s =~ s/&lowbar;/_/g;
+    $_res_template =~ s/%%TITLE/$s/;
+
+
+    # document type; based on title (or filename...)
+    #
+    if( $s =~ /how[\ ]*to/i || $f =~ /how[\ ]*to/i ) {
+        $_res_template =~ s/%%TYPE/HOWTO/;
+    } elsif( $s =~ /guide/i ) {
+        $_res_template =~ s/%%TYPE/guide/;
+    } else {
+        $_res_template =~ s/%%TYPE//;
+    }
+
+
+    # keywords; based on title
+    #
+    $s = lc($s);
+    $s =~ s/[\-\;\,\:\(\)\+\/\\]+/\ /g;
+
+    my($wrd) = '';
+    my(@wrds) = ('to', 'the', 'and', 'is', 'a',
+                 'of', 'for', 'from', 'but', 'brief', 'at', 'how',
+                 'with', 'on', 'off', 'via', 'list', 'la', 'le', 'mini');
+    foreach $wrd (@wrds) {
+       $s =~ s/[\ ]+$wrd[\ ]+/\ /g;
+    }
+    $s =~ s/cd\ rom/cd-rom/g;
+    $s =~ s/i\ o/i\/o/g;
+
+    @wrds = split(/\ /, $s);
+    %seen = ();
+    @wrds = grep(!$seen{$_}++, @wrds);
+    $s = '';
+    foreach (sort(@wrds)) {
+      $s .= "    <keywords created=\"${_today}\">" . $_ . "</keywords>\n";
+    }
+    $_res_template =~ s/%%KEYWORDS/$s/g;
+
+
+    # grab author/email
+    # XXX TODO: only grabbing one author...
+    #
+    ($auth) = ($buf =~ m#<author>\s*(.*?)\s*</author>#is);
+    ($s) = ($auth =~ m#<firstname>\s*(.*?)\s*</firstname>#is);
+    $_creator_template =~ s/%%FIRSTNAME/$s/;
+    ($s) = ($auth =~ m#<surname>\s*(.*?)\s*</surname>#is);
+    $_creator_template =~ s/%%LASTNAME/$s/;
+    ($s) = ($auth =~ m#<email>\s*(.*?)\s*</email>#is);
+    $_creator_template =~ s/%%EMAIL/$s/;
+
+
+    # grab description/abstract; clean it up
+    #
+    ($s) = ($buf =~ m#<abstract>\s*(.*?)\s*</abstract>#is);
+    $s =~ s/<indexterm>\s*(.*?)\s*<\/indexterm>//gim;
+    $s =~ s/<[^>]*>//gs;
+    $s =~ s/\n/\ /g;
+    $s =~ s/[\ ]{2,}/\ /g;
+    $tmp = wrap('      ', '       ', $s);
+    $_res_template =~ s/%%DESC/$tmp/;
+
+
+    # grab rev/date; take the last entry
+    # XXX TODO: sometimes <revhistory> resides outside the meta area...
+    #
+    $vers = '';
+    $tmp  = '';
+
+    ($tmp) = ($buf =~ m#<pubdate[^>]*>\s*(.*?)\s*</pubdate>#is);
+
+    if( $tmp eq '' || $buf =~ /<revhistory>/i ) {
+
+        # grab rev/date; take the first entry, or should it be the last?!
+        #
+        if( $buf =~ m#<revnumber>\s*(.*?)\s*</revnumber>#gis ) {
+            $vers = $1;
+        }
+        if( $buf =~ m#<date>\s*(.*?)\s*</date>#gis ) {
+            $tmp = $1;
+        } elsif( $buf =~ m#<releaseinfo>\s*(.*?)\s*</releaseinfo>#gis ) {
+            $tmp = $1;
+        }
+    }
+
+    if( $vers eq '' && $tmp ne '' ) {
+
+        # pull the version out of the <{pub}date> specification
+        #
+        if( $tmp =~ /[Rr]+evision:[\ ]+([\w\.\-]+)[,\ ]+/ ) {
+            $vers = $1;
+        } elsif( $tmp =~ /[Vv]+ersion[\ ]+([\w\.\-]+)[,\ ]+/ ) {
+            $vers = $1;
+        } elsif( $tmp =~ /[Vv]+([\w\.\-]+)[,\ ]+/ ) {
+            $vers = $1;
+        } elsif( $tmp =~ /[Vv\.\,]+\ ([\w\.\-]+)[,\ ]+/ ) {
+            $vers = $1;
+        } elsif( $tmp =~ /[Vv]+er[\.\ ]+([\w]+)\-([\w]+)\-([\w]+)\-([\w]+)/ ) {
+            $vers = $4;
+        } elsif( $tmp =~ /^([\d\.]+)[,\ ]+/ ) {
+            $vers = $1;
+        }
+
+        if( $tmp =~ /[Vv]+[\,\ ]+[\d]+[\ ]+[A-Za-z]+[\ ]+[\d]{4}/
+            ||
+            $tmp =~ /draft[\,\ ]+/i ) {
+            # date is the version, so null it
+            #
+            $vers = '';
+        }
+    }
+
+    if( $vers eq '' || !($vers =~ /\d+/) || $vers =~/\d\d\d\d/ ) {
+
+        # a fallback, rarely needed...
+        #
+        if( open(HTF_REV, "grep -i '<revnumber>' $f |") ) {
+            $vers = <HTF_REV>;
+            chop($vers);
+            close(HTF_REV);
+
+            $vers =~ s/<[^>]*>//gs;
+            $vers =~ s/^[Vv]//;
+            $vers =~ s/^[\s\.\,\;\ \"\>]+//g;
+        }
+
+        if( $vers eq '' ) {
+            ($vers) = ($buf =~ m#<edition>\s*(.*?)\s*</edition>#is);
+            $vers =~ s/revision//i;
+            $vers =~ s/version//i;
+            $vers =~ s/ver//i;
+            $vers =~ s/v//i;
+            $vers =~ s/^[\s\.\,\;\ \"\>]+//g;
+        }
+
+        if( $vers eq '' ) {
+            $vers = '1.0(?)';
+        }
+
+    } else {
+        $vers =~ s/^[Vv]//;
+        $vers =~ s/^\.//;
+    }
+
+    $tmp =~ s/(?:rd|nd|st|th)[\ \,]+/,\ /g;
+
+    if( $tmp =~ /(\d\d\d\d)[\/\-]+(\d\d)[\/\-]+(\d\d)/ ) {
+
+       $y = $1;
+       $m = $2;
+       $d = $3;
+
+    } elsif( $tmp =~ /\w+[\ ]+([\w]+)[\ ]+([\d]+)[\ ]+[\d\:]+[\ ]+\w+[\ ]+(\d\d\d\d)/ ) {
+
+       $y = $3;
+       $m = &get_date($1);
+       $d = $2;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+
+    } elsif( $tmp =~ /(\w+)[\.,\ ]+(\d+)[,\ ]+(\d\d\d\d)/ ) {
+
+       $m = &get_date($1);
+       $d = $2;
+       $y = $3;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+
+    } elsif( $tmp =~ /[\ ]+(\w+)[\,\.\ ]+(\d\d\d\d)/ ) {
+
+       $y = $2;
+       $m = &get_date($1);
+       $d = '01';
+       if( $tmp =~ /(\d+)[\ ]+[\w\.]+[\ ]+\d\d\d\d/ ) {
+           $d = $1;
+           if( length($d) == 1 ) {
+               $d = "0$d";
+           }
+       }
+
+    } elsif( $tmp =~ /(\d+)[\/\.]+(\d+)[\/\.]+(\d\d\d\d)/ ) {
+       $y = $3;
+       $m = $1;
+       if( length($m) == 1 ) {
+           $m = "0$m";
+       }
+       $d = $2;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+ 
+    } elsif( $tmp =~ /[Vv]+er[\.\ ]+([\w]+)\-([\w]+)\-([\w]+)\-([\w]+)/ ) {
+
+       $y = $1;
+       $m = &get_date($2);
+       if( length($m) == 1 ) {
+           $m = "0$m";
+       }
+       $d = $3;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+
+    } elsif( $tmp =~ /(\d\d\d\d)\-([\w]+)\-(\d\d)/ ) {
+
+       $y = $1;
+       $m = &get_date($2);
+       $d = $3;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+
+    } elsif( $tmp =~ /([\d]+)[\ ]+([\w]+)[,\ ]+(\d\d\d\d)/ ) {
+
+       $y = $3;
+       $m = &get_date($2);
+       $d = $1;
+       if( length($d) == 1 ) {
+           $d = "0$d";
+       }
+    } elsif( $tmp =~ /([\w]+)[\ \,]+(\d\d\d\d)/ ) {
+
+       $y = $2;
+       $m = &get_date($1);
+       $d = '01';
+    }
+
+    if( !($y =~ /^2/ || $y =~ /^1/) ) {
+          $y = '';
+    }
+    if( !($y =~ /^\d\d\d\d$/) ) {
+          $y = '';
+    }
+    if( $m eq '00' ) {
+        $y = '';
+    }
+
+    $s = "${y}${m}${d}";
+    if( $y eq '' ) {
+        $s = $_today;
+    }
+
+    $_res_template =~ s/%%VERSION/$vers/;
+    $_res_template =~ s/%%V_DATE/$s/;
+    $_res_template =~ s/%%C_DATE/$s/;
+    return;
+}
+
+
+#
+#
+#
+sub get_date {
+
+    my($str) = @_;
+
+    if($str =~ /^Jan/i ) {
+       return '01';
+    } elsif($str =~ /^Feb/i ) {
+       return '02';
+    } elsif($str =~ /^Mar/i ) {
+       return '03';
+    } elsif($str =~ /^Apr/i ) {
+       return '04';
+    } elsif($str =~ /^May/i ) {
+       return '05';
+    } elsif($str =~ /^Jun/i ) {
+       return '06';
+    } elsif($str =~ /^Jul/i ) {
+       return '07';
+    } elsif($str =~ /^Aug/i ) {
+       return '08';
+    } elsif($str =~ /^Sep/i ) {
+       return '09';
+    } elsif($str =~ /^Oct/i ) {
+       return '10';
+    } elsif($str =~ /^Nov/i ) {
+       return '11';
+    } elsif($str =~ /^Dec/i ) {
+       return '12';
+    }
+
+    return '00';
+}
+
+
+#
+#
+#
+sub usage {
+    print "\ndb2omf {-o <output_file>} <docbook_file>.sgml\n\n",
+          "db2omf - version $_vrs\n\n";
+    exit(0);
+}
+
+
+
+# __END__ delimits the script from the data section;
+# the following data is read in by the "DATA" filehandle
+
+__END__
+
+<?xml version='1.0'?>
+<!DOCTYPE omf PUBLIC "-//Open Source Metadata Framework (OMF) //DTD OMF.dtd V1.1//EN" 
+   "http://www.ibiblio.org/pub/Linux/metadata/OMF.dtd">
+
+<omf xmlns="http://www.ibiblio.org/osrt/omf/" created="%%DATE" agent="db2omf">
+
+  <resource created="%%DATE">
+
+    <title created="%%DATE">%%TITLE</title>
+    <date created="%%DATE">%%C_DATE</date>
+
+%%CREATOR
+
+    <versionGroup created="%%DATE">
+      <version created="%%DATE">
+        <id created="%%DATE">
+          %%VERSION
+        </id>
+        <date created="%%DATE">
+          %%V_DATE
+        </date>
+      </version>
+    </versionGroup>
+
+%%KEYWORDS
+    <description created="%%DATE">
+%%DESC
+    </description>
+
+    <type created="%%DATE">%%TYPE</type>
+    <format created="%%DATE" dtd="DocBook" mime="text/sgml" />
+    <identifier created="%%DATE" url="file:/%%SGML" />
+  </resource>
+</omf>
+
