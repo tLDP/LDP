@@ -128,6 +128,8 @@ class Makefile:
                 Makefile = Makefile + "\n"
 
                 Makefile = Makefile + "all:\tbuild\n\n"
+
+                Makefile = Makefile + 'rebuild:\tclean build\n\n'
                 
                 Makefile = Makefile + "build:\tdocbook xml html index txt omf\n\n"
 
@@ -180,8 +182,6 @@ class Makefile:
                 Makefile = Makefile + "\trm -f *.log\n"
                 Makefile = Makefile + "\n"
 
-                Makefile = Makefile + "rebuild:\tclean build\n\n"
-            
                 fh = open(dir + 'Makefile', 'w')
                 fh.write(Makefile)
                 fh.close
@@ -205,6 +205,7 @@ class Makefile:
                     if file.top==1:
     #                    if (file.format_code=='sgml' and doc.dtd_code=='DocBook') or (file.format_code=='sgml' and doc.dtd_code=='LinuxDoc') or file.format_code=='xml' or file.format_code=='wikitext' or file.format_code=='text':
                         makeneeded = 1
+                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) rebuild 2>>make.log\n"
                         docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) all 2>>make.log\n"
                         docbookmake = docbookmake + '\tcd ' + str(docid) + '; $(MAKE) xml 2>>make.log\n'
                         xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) xml 2>>make.log\n"
@@ -213,10 +214,10 @@ class Makefile:
                         txtmake = txtmake + "\tcd " + str(docid) + "; $(MAKE) txt 2>>make.log\n"
                         omfmake = omfmake + "\tcd " + str(docid) + "; $(MAKE) omf 2>>db2omf.log\n"
                         cleanmake = cleanmake + "\tcd " + str(docid) + "; $(MAKE) clean 2>>make.log\n"
-                        rebuildmake = rebuildmake + "\tcd " + str(docid) + "; $(MAKE) rebuild 2>>make.log\n"
 
         if makeneeded:
             Makefile = "all:\tbuild\n\n"
+            Makefile = Makefile + "rebuild:\n" + rebuildmake + "\n\n"
             Makefile = Makefile + "build:\tdocs\n\n"
             Makefile = Makefile + "docs:\n" + docsmake + "\n\n"
             Makefile = Makefile + "docbook:\n" + docbookmake + "\n\n"
@@ -226,7 +227,6 @@ class Makefile:
             Makefile = Makefile + "txt:\n" + txtmake + "\n\n"
             Makefile = Makefile + "omf:\n" + omfmake + "\n\n"
             Makefile = Makefile + "clean:\n" + cleanmake + "\n\n"
-            Makefile = Makefile + "rebuild:\n" + rebuildmake + "\n\n"
 
             fh = open(config.cache_dir + 'Makefile', 'w')
             fh.write(Makefile)
