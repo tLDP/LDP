@@ -37,3 +37,7 @@ export LAMPADAS_XSL="$LAMPADAS_ROOT/xsl"
 
 # used by cron/lampadas to run cron jobs
 export LAMPADAS_CRON="$LAMPADAS_ROOT/cron"
+
+export LAMPADAS_CVS=/var/cache/lampadas/LDP
+export LAMPADAS_CACHE=/var/cache/lampadas/docs
+
