@@ -186,7 +186,6 @@ class Project:
     def __init__(self, doc_id):
         self.doc_id = int(doc_id)
         self.doc = lampadas.docs[self.doc_id]
-        self.metadata = self.doc.metadata()
         self.workdir = config.cache_dir + str(self.doc_id) + '/work/'
         self.filename = ''
         self.targets  = Targets()
@@ -245,7 +244,7 @@ class Project:
 
         # The default embedded DocBook in WikiText is XML
         if sourcefile.format_code=='wikitext':
-            if self.metadata.format_code=='sgml':
+            if metadata.format_code=='sgml':
                 self.targets.add(dbsgmlfile,    [sourcefile.file_only], [Command(config.wt2db + ' -n -s ' + sourcefile.file_only + ' -o ' + dbsgmlfile, errors_to='log/wt2db.log', stderr_check=1)])
                 self.targets.add('dbsgml',      [dbsgmlfile],           [])
                 self.targets.add(xmlfile,       [dbsgmlfile],           [Command('xmllint --sgml ' + dbsgmlfile, output_to=xmlfile, errors_to='log/xmllint.log', stderr_check=1)])
@@ -290,9 +289,18 @@ class Project:
         # IT'S ALL DOCBOOK XML HERE! #
         ##############################
         
+        encoding = metadata.encoding
+        if encoding=='':
+            encoding = languages[self.doc.lang].encoding
+
         # Everybody gets encoded into UTF-8 here
-        self.targets.add(utfxmlfile,            [xmlfile],              [Command('iconv -f ISO-8859-1  -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
-                                                                         Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+        if encoding in ('UTF-8', ''):
+            self.targets.add(utfxmlfile,            [xmlfile],              [Command('cat ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
+                                                                             Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+        else:
+            self.targets.add(utfxmlfile,            [xmlfile],              [Command('iconv -f ' + encoding + ' -t UTF-8 ' + xmlfile, output_to=utftempxmlfile, errors_to='log/iconv.log', stderr_check=1),
+                                                                             Command('xmllint --encode UTF-8 ' + utftempxmlfile, output_to=utfxmlfile, errors_to='log/xmllint.log', stderr_check=1)])
+
         self.targets.add('utfxml',              [utfxmlfile],           [])
         
         # Everybody gets xml tidied before processing further

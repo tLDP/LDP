@@ -93,7 +93,7 @@ class Widgets:
         return '<input type=text name="title" style="width:100%%" value="%s"%s>' % (escape_tokens(value), css_class)
 
     def abstract(self, value, css_class='', view=0):
-        return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, value)
+        return '<textarea name="abstract" rows="6" cols="20" style="width:100%%"%s>%s</textarea>' % (css_class, html_encode(value))
 
     def news(self, value, view=0):
         return '<textarea name="news" rows="6" cols="20" style="width:100%%">%s</textarea>' % (value)
@@ -109,6 +109,27 @@ class Widgets:
 
     def isbn(self, value, css_class='', view=0):
         return '<input type=text name="isbn" size="13" maxlength="13" value="%s"%s>' % (value, css_class)
+
+    def encoding(self, value, css_class='', view=0):
+        if view==1:
+            encoding = lampadas.encodings[value]
+            if encoding:
+                return encoding.encoding
+            return ''
+            
+        combo = WOStringIO('<select name="encoding"%s>\n' % css_class)
+        combo.write('<option></option>')
+        keys = lampadas.encodings.sort_by('encoding')
+        for key in keys:
+            encoding = lampadas.encodings[key]
+            combo.write("<option ")
+            if encoding.encoding==value:
+                combo.write("selected ")
+            combo.write("value='" + encoding.encoding + "'>")
+            combo.write(encoding.encoding)
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
 
     def initials(self, value, view=0):
         return '<input type=text name="initials" size="6" maxlength="5" value="%s">' % (value)
@@ -282,10 +303,10 @@ class Widgets:
             if doc.sk_seriesid==value:
                 combo.write("selected ")
             if doc.short_title > '':
-                combo.write("value='%s'>%s</option>\n"
+                combo.write('value="%s">%s</option>\n'
                             % (str(doc.sk_seriesid), doc.short_title + ' (' + doc.lang + ')'))
             else:
-                combo.write("value='%s'>%s</option>\n"
+                combo.write('value="%s">%s</option>\n'
                             % (str(doc.sk_seriesid), metadata.title[:40] + ' (' + doc.lang + ')'))
         combo.write("</select>\n")
         return combo.get_value()

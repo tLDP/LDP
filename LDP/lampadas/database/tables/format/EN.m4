@@ -6,3 +6,5 @@ insert(latex)
 insert(wikitext)
 insert(texinfo)
 insert(shell)
+insert(dir)
+

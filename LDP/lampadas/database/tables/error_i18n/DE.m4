@@ -41,3 +41,6 @@ insert(303,
 insert(304,
     [Make command wrote zero-length file.],
     [A command created an output file, but the length of that file is zero.])
+insert(305,
+    [Error replacing entities with UTF-8 characters.],
+    [Tried to filter the source file through lampadas-filter, but it returned an error code.])

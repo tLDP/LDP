@@ -126,7 +126,8 @@ class Tables(LampadasCollection):
                          '    <td class="label">|strcopyright_holder|</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strtrans_master|</td><td colspan="3">%s</td></tr>\n'
                          '    <td class="label">|strreplacedby|</td><td colspan="3">%s</td></tr>\n'
-                         '<tr><td class="label">|strisbn|</td><td>%s</td><td></td></tr>\n'
+                         '<tr><td class="label">|strisbn|</td><td>%s</td>\n'
+                         '    <td class="label">|strencoding|</td><td>%s</td></tr>\n'
                          '</table>'
                          % (metadata.title,
                             doc.short_desc,
@@ -152,8 +153,8 @@ class Tables(LampadasCollection):
                             doc.copyright_holder,
                             widgets.sk_seriesid(doc.sk_seriesid, view=1),
                             widgets.replaced_by_id(doc.replaced_by_id, view=1),
-                            metadata.isbn
-                            ))
+                            metadata.isbn,
+                            metadata.encoding))
         return box.get_value()
 
     def editdoc(self, uri):
@@ -190,6 +191,7 @@ class Tables(LampadasCollection):
         version_class     = ''
         pub_date_class    = ''
         isbn_class        = ''
+        encoding_class    = ''
         if doc.format_code=='' and metadata.format_code > '':
             format_code_class = ' class="defaulted"'
         if doc.dtd_code=='' and metadata.dtd_code > '':
@@ -206,6 +208,8 @@ class Tables(LampadasCollection):
             pub_date_class = ' class="defaulted"'
         if doc.isbn=='' and metadata.isbn > '':
             isbn_class = ' class="defaulted"'
+        if doc.encoding=='' and metadata.encoding > '':
+            encoding_class = ' class="defaulted"'
             
         box.write('<input name="username" type="hidden" value="%s">\n'
                   '<input name="doc_id" type="hidden" value="%s">\n'
@@ -234,7 +238,8 @@ class Tables(LampadasCollection):
                   '    <td class="label">|strcopyright_holder|</td><td>%s</td></tr>\n'
                   '<tr><td class="label">|strtrans_master|</td><td colspan="3">%s</td></tr>\n'
                   '    <td class="label">|strreplacedby|</td><td colspan="3">%s</td></tr>\n'
-                  '<tr><td class="label">|strisbn|</td><td>%s</td><td></td></tr>\n'
+                  '<tr><td class="label">|strisbn|</td><td>%s</td>\n'
+                  '    <td class="label">|strencoding|</td><td>%s</td></tr>\n'
                   '<tr><td></td><td>%s</td></tr>'
                   '</table></form>'
                   % (sessions.session.username, doc.id,
@@ -263,6 +268,7 @@ class Tables(LampadasCollection):
                      widgets.sk_seriesid(doc.sk_seriesid),
                      widgets.replaced_by_id(doc.replaced_by_id),
                      widgets.isbn(metadata.isbn, css_class=isbn_class),
+                     widgets.encoding(metadata.encoding, css_class=encoding_class),
                      widgets.save()))
         return box.get_value()
 
@@ -353,12 +359,15 @@ class Tables(LampadasCollection):
                       '<tr><td class="label">|strformat|</td><td>%s</td>\n'
                       '    <td class="label">|strdtd|</td><td>%s</td>\n'
                       '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n'
+                      '<tr><td class="label">|strencoding|</td><td>%s</td>\n'
+                      '    <td colspan="2"></td></tr>\n'
                       % (css_class, uri.base, docfile.filename, uri.lang_ext,
                          widgets.filename_compressed(sourcefile.filename),
                          widgets.tf('top', docfile.top, view=1), sourcefile.filesize, sourcefile.updated,
                          widgets.format_code(sourcefile.format_code, uri.lang, view=1),
                          widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
-                         widgets.filemode(sourcefile.filemode)))
+                         widgets.filemode(sourcefile.filemode),
+                         widgets.encoding(sourcefile.encoding, view=1)))
         box.write('</table>')
         return box.get_value()
 
@@ -390,14 +399,17 @@ class Tables(LampadasCollection):
                       '<tr><td class="label">|strformat|</td><td>%s</td>\n' \
                       '    <td class="label">|strdtd|</td><td>%s</td>\n' \
                       '    <td class="label">|strfilemode|</td><td>%s</td></tr>\n' \
-                      '<tr><td colspan="5"></td><td><input type="checkbox" name="delete">|strdelete|<input type="submit" name="action" value="|strsave|"></td></tr>\n' \
+                      '<tr><td class="label">|strencoding|</td><td>%s</td>\n' \
+                      '    <td colspan="3"></td><td>%s|strdelete|%s</td></tr>\n' \
                       '</form>'
                       % (doc.id, docfile.filename, css_class, uri.base, docfile.filename, uri.lang_ext,
                          widgets.filename_compressed(sourcefile.filename),
                          widgets.tf('top', docfile.top), sourcefile.filesize, sourcefile.updated,
                          widgets.format_code(sourcefile.format_code, uri.lang, view=1),
                          widgets.dtd_code(sourcefile.dtd_code, uri.lang, view=1),
-                         widgets.filemode(sourcefile.filemode)))
+                         widgets.filemode(sourcefile.filemode),
+                         sourcefile.encoding,
+                         widgets.delete(), widgets.save()))
         
         # Add a new docfile
         box.write('<tr><td class="sectionlabel" colspan="6">|stradd_docfile|</td></tr>'
@@ -880,6 +892,7 @@ class Tables(LampadasCollection):
                  last_update='',
                  tickle_date='',
                  isbn='',
+                 encoding='',
                  rating='',
                  format_code='',
                  dtd_code='',
@@ -985,6 +998,9 @@ class Tables(LampadasCollection):
                     continue
             if isbn > '':
                 if metadata.isbn <> isbn:
+                    continue
+            if encoding > '':
+                if metadata.encoding <> encoding:
                     continue
             if rating > '':
                 if doc.rating <> int(rating):
@@ -1094,6 +1110,7 @@ class Tables(LampadasCollection):
                                           last_update=last_update,
                                           tickle_date=tickle_date,
                                           isbn=isbn,
+                                          encoding=encoding,
                                           rating=rating,
                                           format_code=format_code,
                                           dtd_code=dtd_code,
@@ -1450,7 +1467,7 @@ class Tables(LampadasCollection):
     def tabsearch(self, uri, title='', short_title='', pub_status_code='', type_code='', topic_code='',
                     username='', maintained='', maintainer_wanted='', lang='', review_status_code='',
                     tech_review_status_code='', pub_date='', last_update='', tickle_date='',
-                    isbn='', rating='', format_code='', dtd_code='', license_code='',
+                    isbn='', encoding='', rating='', format_code='', dtd_code='', license_code='',
                     copyright_holder='', sk_seriesid='', abstract='', short_desc='', collection_code='',
                     layout='compact'):
         log(3, 'Creating tabsearch table')
@@ -1474,6 +1491,7 @@ class Tables(LampadasCollection):
             <tr><td class="label">|strupdated|</td><td>%s</td></tr>
             <tr><td class="label">|strtickle_date|</td><td>%s</td></tr>
             <tr><td class="label">|strisbn|</td><td>%s</td></tr>
+            <tr><td class="label">|strencoding|</td><td>%s</td></tr>
             <tr><td class="label">|strrating|</td><td>%s</td></tr>
             <tr><td class="label">|strformat|</td><td>%s</td></tr>
             <tr><td class="label">|strdtd|</td><td>%s</td></tr>
@@ -1503,6 +1521,7 @@ class Tables(LampadasCollection):
                widgets.last_update(last_update),
                widgets.tickle_date(tickle_date),
                widgets.isbn(isbn),
+               widgets.encoding(encoding),
                widgets.rating(rating),
                widgets.format_code(format_code, uri.lang),
                widgets.dtd_code(dtd_code, uri.lang),
@@ -1861,7 +1880,7 @@ class DocAdmin(Table):
 
         if sessions.session and sessions.session.user.can_edit(uri.id)==1:
             doc = lampadas.docs[uri.id]
-            box = WOStringIO('<table class="box nontabular"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
+            box = WOStringIO('<table class="box nontabular" width="100%%"><tr><th colspan="4">|strdoc_admin|</th></tr>\n' \
                              '<tr><td class="label">|strdoc_check_errors|</td>\n' \
                              '    <td><a href="|uri.base|data/admin/run_lintadas?doc_id=%s">|strrun|</a></td>\n' \
                              '    <td class="label">|strlint_time|</td>\n' \
@@ -2300,6 +2319,7 @@ class TabFileMetadata(Table):
                          '<tr><td class="label">|strversion|:</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strpub_date|:</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strisbn|:</td><td>%s</td></tr>\n'
+                         '<tr><td class="label">|strencoding|:</td><td>%s</td></tr>\n'
                          '</table>\n'
                          % (sourcefile.filename,
                             format_name,
@@ -2309,7 +2329,8 @@ class TabFileMetadata(Table):
                             sourcefile.abstract,
                             sourcefile.version,
                             sourcefile.pub_date,
-                            sourcefile.isbn))
+                            sourcefile.isbn,
+                            sourcefile.encoding))
         return box.get_value()
 
 class TabEditThisPage(Table):

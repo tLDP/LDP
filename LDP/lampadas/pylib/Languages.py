@@ -37,7 +37,7 @@ class Languages(LampadasCollection):
         self.supported = LampadasCollection()
 
     def load(self):
-        sql = "SELECT lang_code, supported FROM language"
+        sql = "SELECT lang_code, supported, encoding FROM language"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -84,6 +84,7 @@ class Language:
     def load_row(self, row):
         self.code      = trim(row[0])
         self.supported = tf2bool(row[1])
+        self.encoding  = trim(row[2])
 
 
 languages = Languages()

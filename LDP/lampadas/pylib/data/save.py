@@ -35,7 +35,7 @@ import string
 def newdocument(req, username, doc_id,
              format_code, dtd_code, dtd_version,
              title, abstract, version,
-             pub_date, isbn,
+             pub_date, isbn, encoding,
              short_title,
              pub_status_code, type_code,
              review_status_code, tech_review_status_code,
@@ -49,7 +49,7 @@ def newdocument(req, username, doc_id,
     
     doc = lampadas.docs.add(title, short_title, type_code,
           format_code, dtd_code, dtd_version,
-          version, last_update, isbn,
+          version, last_update, isbn, encoding,
           pub_status_code, review_status_code, tickle_date, pub_date,
           tech_review_status_code, license_code, license_version,
           copyright_holder, abstract, short_desc, lang, sk_seriesid,
@@ -64,7 +64,7 @@ def newdocument(req, username, doc_id,
 def document(req, username, doc_id,
              format_code, dtd_code, dtd_version,
              title, abstract, version,
-             pub_date, isbn,
+             pub_date, isbn, encoding,
              short_title,
              pub_status_code, type_code,
              review_status_code, tech_review_status_code,
@@ -86,10 +86,11 @@ def document(req, username, doc_id,
     doc.dtd_code                = dtd_code
     doc.dtd_version             = dtd_version
     doc.title                   = title
-    doc.abstract                = abstract
+    doc.abstract                = html_decode(abstract)
     doc.version                 = version
     doc.pub_date                = pub_date
     doc.isbn                    = isbn
+    doc.encoding                = encoding
     doc.short_title             = short_title
     doc.pub_status_code         = pub_status_code
     doc.type_code               = type_code

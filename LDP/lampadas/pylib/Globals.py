@@ -54,6 +54,7 @@ ERR_MAKE_NO_SOURCE      = 301  # A source file does not exist and has no target.
 ERR_MAKE_EXIT_STATUS    = 302  # A command returned a nonzero exit (failure) code.
 ERR_MAKE_STDERR         = 303  # Something was written to STDERR
 ERR_MAKE_ZERO_LENGTH    = 304  # Command produced a zero-length file.
+ERR_MAKE_FILTER         = 305  # An error occurred running a file through lampadas-filter.
 
 # This will be tested in the order listed
 FILEMODE_MASKS = ((0400, 'r'),
@@ -242,11 +243,31 @@ def new_sk_seriesid():
 def html_encode(text):
     """Encodes all entities in the text using htmlentitydefs."""
 
+    temp = text.replace('<', '&lt;')
+    temp = temp.replace('>', '&gt;')
+    temp = temp.replace('"', '&quot;')
+    return temp
+
     temp = text;
     for entity in htmlentitydefs.entitydefs.keys():
         char = htmlentitydefs.entitydefs[entity]
-	if char <> '"':
-		temp = temp.replace(char, '&' + entity + ';')
+        if char <> '"':
+            temp = temp.replace(char, '&' + entity + ';')
+    return temp
+
+def html_decode(text):
+    """Decodes all entities in the text using htmlentitydefs."""
+
+    temp = text.replace('&lt;', '<')
+    temp = temp.replace('&gt;', '>')
+    temp = temp.replace('&quot;', '"')
+    return temp
+
+    temp = text;
+    for entity in htmlentitydefs.entitydefs.keys():
+        char = htmlentitydefs.entitydefs[entity]
+        if char <> '"':
+            temp = temp.relace('&' + entity + ';', char)
     return temp
 
 def escape_tokens(text):

@@ -111,6 +111,9 @@ class Lintadas:
         sourcefile.filesize = filestat[stat.ST_SIZE]
         sourcefile.filemode = filestat[stat.ST_MODE]
         sourcefile.modified = time.ctime(filestat[stat.ST_MTIME])
+        
+        if stat.S_ISDIR(sourcefile.filemode)==1:
+            sourcefile.format_code = 'dir'
 
         # If we were able to read format code, post it to the document,
         if sourcefile.format_code=='':

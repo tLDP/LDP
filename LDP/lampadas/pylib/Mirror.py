@@ -119,8 +119,13 @@ class Mirror:
                     log(2, 'Cannot mirror missing file: ' + filename)
                     docfile.errors.add(ERR_MIRROR_NO_SOURCE)
                     continue
-                log(3, 'mirroring local file ' + filename)
-                command = 'cd ' + workdir + '; cp -pu ' + filename + ' .'
+
+                if sourcefile.format_code=='dir':
+                    log(3, 'mirroring local directory ' + filename)
+                    command = 'cd ' + workdir + '; cp -upr ' + filename + ' .'
+                else:
+                    log(3, 'mirroring local file ' + filename)
+                    command = 'cd ' + workdir + '; cp -up ' + filename + ' .'
                 print command
                 os.system(command)
         
@@ -138,6 +143,9 @@ class Mirror:
                     if file[-5:] <> '.html':
                         doc.files.add(doc.id, file)
 
+        command = 'lampadas-filter ' + workdir
+        os.system(command)
+        
         if doc.errors.count('mirror')==0 and doc.files.error_count==0:
             doc.mirror_time = now_string()
         doc.files.save()

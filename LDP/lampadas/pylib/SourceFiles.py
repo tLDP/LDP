@@ -334,6 +334,8 @@ class SourceFile:
             #print 'pub_date=' + pub_date
             #print 'isbn=' + isbn
             #print 'encoding=' + encoding
+        
+        encoding = encoding.upper()
 
         # Decide whether we need to save this data
         if format_code  <> self.format_code or \
