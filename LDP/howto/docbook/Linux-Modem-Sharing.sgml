@@ -1,0 +1,365 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article class="whitepaper" id="Modem-Sharing-HOWTO">
+
+<!-- Written using guidance provided in the LDP Author Guide. aeg -->
+
+<artheader>
+  <title>Modem Sharing mini-HOWTO</title>
+
+  <author>
+    <firstname>Friedemann</firstname>
+    <surname>Baitinger</surname>
+    <affiliation>
+      <address>
+        <email>baiti@toplink.net</email>
+      </address>
+    </affiliation>
+  </author>
+
+  <editor>
+    <firstname>Anthony</firstname>
+    <othername>E.</othername>
+    <surname>Greene</surname>
+    <affiliation>
+      <address>
+        <email>agreene@pobox.com</email>
+      </address>
+    </affiliation>
+  </editor>
+
+  <pubdate>v1.11, 2001-07-12</pubdate>
+
+  <revhistory>
+    <revision>
+      <revnumber>v1.11</revnumber>
+      <date>2001-07-12</date>
+      <authorinitials>aeg</authorinitials>
+      <revremark>Converted to DocBook SGML</revremark>
+    </revision>
+
+    <revision>
+      <revnumber>v1.10</revnumber>
+      <date>1999-09-11</date>
+      <authorinitials>fb</authorinitials>
+      <revremark>Added "Feedback from the Users" section</revremark>
+    </revision>
+
+    <revision>
+      <revnumber>v1.01</revnumber>
+      <date>1997-06-12</date>
+      <authorinitials>fb</authorinitials>
+      <revremark>Converted source to HTML</revremark>
+    </revision>
+  </revhistory>
+
+  <abstract>
+    <para>Describes how to setup a Linux system to share a modem with other systems over a TCP/IP network.</para>
+  </abstract>
+
+  <keywordset>
+    <keyword>modem</keyword>
+    <keyword>share</keyword>
+    <keyword>dialup</keyword>
+    <keyword>ppp</keyword>
+    <keyword>masquerade</keyword>
+    <keyword>Masqdialer</keyword>
+  </keywordset>
+
+</artheader>
+
+<sect1 id="legalnotice">
+<title>Legal Notice</title>
+
+    <para>
+     Copyright &copy; 1997 Friedemann Baitinger. This document may be 
+     distributed only subject to the terms and conditions set forth in 
+     the GNU Free Documentation License at 
+     &lt;<ulink url="http://www.gnu.org/copyleft/fdl.html">
+     http://www.gnu.org/copyleft/fdl.html</ulink>&gt;. 
+    </para>
+    
+</sect1>
+
+<!-- This should generate a page break in the print versions. aeg -->
+<beginpage/>
+
+<sect1 id="the-server-side">
+<title>The Server Side</title>
+
+<para>It is assumed that the server is a Linux system with either:</para>
+
+  <itemizedlist>
+    <listitem><para>a modem attached to a <filename>/dev/ttySx</filename> device</para></listitem>
+    <listitem><para>an 'isdn4linux'-emulated modem mapped to a <filename>/dev/ttyIx</filename> device</para></listitem>
+  </itemizedlist>
+
+<para>The easiest setup I can think of uses a five lines perl script to implement a 
+modem daemon in <filename>/usr/sbin/modemd</filename>:</para>
+
+<programlisting>   
+#!/usr/bin/perl
+select((select(STDOUT), $| = 1)[$[]);
+select((select(STDIN), $| = 1)[$[]);
+exec 'cu -s 115200 -l /dev/ttyS1';
+die '$0: Cant exec cu: $!\n';
+</programlisting>
+
+<para>The modem daemon is started by the <command>inetd</command> process 
+if a client connects to the appropriate port as described below. The 
+<command>modemd</command> simply connects the socket handle with STDIN 
+and STDOUT of the <command>cu</command> command and lets 
+<command>cu</command> handle the actual modem device.</para>
+
+<para>The existence of the modem daemon must be made known to the 
+<command>inetd</command> process by updating its configuration file, 
+usually <filename>/etc/inetd.conf</filename> like:</para>
+
+<screen>
+#
+# modem daemon
+#
+modem stream tcp nowait root /usr/sbin/tcpd /usr/sbin/modemd /dev/ttyS1
+</screen>
+
+<para>In order to make this work, an entry to 
+<filename>/etc/services</filename> needs to be added like:</para>
+
+<screen>   
+modem           2006/tcp        modemd
+</screen>
+
+<para>This associates a symbolic name with an explicit port, 2006 in the
+example. The portnumber could be any number not already assigned to an
+existing service. After these changes have been made, a signal must be
+sent to the inetd process in order to let <command>inetd</command> 
+re-read and process its configuration file:</para>
+
+<screen>   
+<prompt>bash#</prompt> ps | grep inetd
+194  ?  S     0:00 /usr/sbin/inetd
+
+<prompt>bash#</prompt> kill -HUP 194
+</screen>
+
+<para>Now the server side is ready to accept requests from clients. The
+correct function can be verified by:</para>
+
+<screen>
+<prompt>bash$</prompt> telnet localhost modem
+
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+</screen>
+
+<para>You are now connected to the modem. You can now issue 
+<command>AT</command> commands in order to verify the setup:</para>
+
+<screen>   
+atz
+atz
+OK
+
+ati1
+ati1
+Linux ISDN
+OK
+
+^]
+telnet&gt;quit
+<prompt>bash$</prompt>
+</screen>
+
+<para>Instead of using the Perl script as a modem server, there is also a
+program named <productname>Masqdialer</productname> available at
+<ulink url="http://w3.cpwright.com/mserver/">http://w3.cpwright.com/mserver/</ulink>.</para>
+
+<para>With <productname>Masqdialer</productname> you can export any number 
+of modems connected to your server to any host that can connect the server 
+via TCP/IP on a given port with a binary data stream.</para>
+
+<sect2 id="masqdialer-installation">
+<title>Masqdialer Installation</title>
+
+<para>Before compiling check config.h for compile time options:</para>
+
+<itemizedlist>
+  <listitem><para>set the path for the config file to your liking</para></listitem>
+  <listitem><para>set the path for the lock file to your liking</para></listitem>
+</itemizedlist>
+
+<para>Do <command>make all</command>.</para>
+
+<para>Copy the binaries (<filename>mserver</filename> and 
+<filename>tcpconn</filename>) into a suitable directory 
+such as <systemitem>/usr/local/sbin/</systemitem>. Copy 
+<filename>mserver.conf</filename> into the path that you specified in 
+<filename>config.h</filename>.</para>
+
+<para><productname>Masqdialer</productname> could be started from one of 
+your system startup scripts. A simple 
+<command>/usr/local/sbin/mserver</command> will run it as a daemon.</para>
+</sect2>
+
+<sect2 id="masqdialer-configuration">
+<title>Masqdialer Configuration</title>
+
+<para>A line in <filename>mserver.conf</filename> could look like 
+this:</para>
+
+<screen>
+5800 /dev/ttyS1      115200,8,N,1    *.foo.org,192.168.2.1
+</screen>
+
+<para>which would mean that a modem connected to 
+<filename>/dev/ttyS1</filename> can be connected via port 5800 from 
+anywhere in the domain foo.org and from host 192.168.2.1. Any other 
+hosts are rejected. Pitfall: If you don't specify hosts then 
+<emphasis>ANY</emphasis> host will be allowed to connect.  The serial 
+line settings are fixed and cannot be changed from the client side. You 
+can export several modems on a single port. 
+<productname>Masqdialer</productname> only locks the modem devices by 
+use of UUCP style lock files when they are actually in use thus 
+allowing other programs to take advantage of them.</para>
+
+</sect2>
+</sect1>
+
+
+<sect1 id="the-client-side">
+<title>The Client Side</title>
+
+<para>At this time, only Windows client setups are described here. On the
+client PC, a COM-port redirector for TCP/IP is required. The best
+program for this purpose I have found is 
+<productname>DialOut/IP</productname> from Tactical Software for 
+<productname>Windows 3.1</productname> and 
+<productname>Windows 95</productname>.  (The <productname>Windows 
+3.1</productname> version can be used under <productname>Windows 
+NT</productname> for 16-bit applications only.  A 32-bit
+version for <productname>Windows NT</productname> is due late summer 
+1997.)</para>
+
+<para><productname>DialOut/IP</productname> presents the shared modem on 
+a new virtual COM port that it adds to <productname>Windows</productname>.  
+This virtual COM port can be used by <productname>Windows</productname> 
+programs as if the shared modem is directly connected.  Most client 
+applications (including <productname>Windows 95</productname> dial-up 
+networking) accept this and work as if there were a real COM port and 
+modem, with the general exception being fax applications or any others 
+that need access to UART control lines. <productname>DialOut/IP</productname> 
+can be configured to provide telnet protocol processing, but that 
+feature applies to certain modem pool products and not to the 
+Linux setup described in this file.  Note 
+that, despite its name, <productname>DialOut/IP</productname> 
+can be used also by applications that wait for incoming calls.</para>
+
+<para>On <ulink url="http://www.tactical-sw.com/">http://www.tactical-sw.com/</ulink> 
+there is a page for downloading a fully functional evaluation 
+version that times out in 1-2 weeks.  Installation and configuration 
+is handled by a setup program, with installation details in the 
+<filename>README.TXT</filename> file.  When you run 
+<productname>DialOut/IP</productname>, you enter the IP address 
+and port number of the shared modem.</para>
+
+<para><productname>DialOut/IP</productname> is a commercial product that 
+is licensed on a per-modem basis, that is, the price depends on the number 
+of modems that you are sharing. The license states that you can install 
+the software on any number of PC's that access the shared modems.</para>
+
+</sect1>
+
+
+
+<sect1 id="security-considerations">
+<title>Security Considerations</title>
+
+<para>If you have only one modem for all your hosts in your local area
+network, there is probably no reason to worry about security here.
+However, if any one or more of the hosts in your LAN are connected to
+the Internet by other means than using the modem we have just setup as
+a modem server, then security considerations are required, otherwise
+anybody can do a <command>telnet your_host modem</command> and dial 
+out long distance or even international calls at will.</para>
+
+<para>I suggest to install and configure tcp-wrappers in order to protect
+the modem server against unauthorized access.</para>
+
+</sect1>
+
+
+
+<sect1 id="examples">
+<title>Examples</title>
+
+<para>I am using the setup as described in 
+<link linkend="the-server-side">The Server Side</link> and 
+<link linkend="the-client-side">The Client Side</link> to run
+<productname>Quicken</productname> on 
+my <productname>Windows 95</productname> <productname>ThinkPad</productname> 
+and do home banking with the modem attached to my
+Linux machine. The "modem" in my case is not 
+even a real modem, it is an emulated modem on an ISDN-So card. 
+<productname>Quicken</productname> just sees a COM port, it 
+doesn't know that the device attached to the COM port is actually at 
+the other end of my Ethernet LAN, nor does it know that it is not a 
+standard analog modem but an ISDN device which happens to understand 
+<command>AT</command> commands.</para>
+</sect1>
+
+<sect1 id="feedback-from-users">
+<title>Feedback From Users</title>
+
+<para>Since the first release of this document in June 1997 
+I have received many email messages related to the subject. In most of 
+the messages people were seeking more help to get the modem sharing 
+configured and running.</para>
+
+<para>Recently I received an interesting feedback from 
+<ulink url="mailto:Karsten%20Hilbert%20%3CKarsten.Hilbert@gmx.net%3E?subject=Masqdialer%20client">Karsten.Hilbert@gmx.net</ulink>. Karsten pointed out that 
+although <productname>DialOut/IP</productname> may be a good client 
+program he'd like to have a 
+<ulink url="http://www.gnu.org/">GPL'ed</ulink> client. Karsten mentioned 
+the Software Bazaar 
+&lt;<ulink url="http://visar.csustan.edu/bazaar/">http://visar.csustan.edu/bazaar/</ulink>&gt; 
+and he volunteered to put in an offer. Here is what Karsen wrote:</para>
+
+<screen>
+     Date: Fri, 27 Aug 1999 17:46:39 +0200 (CEST)
+     From: Karsten Hilbert &lt;med94ecz@studserv.uni-leipzig.de&gt;
+     Reply-To: Karsten Hilbert &lt;Karsten.Hilbert@gmx.net&gt;
+     To: baiti@toplink.net
+     Subject: Windows-Modemsharing-Howto
+
+     Hi !
+
+     The howto mentions DialOut/IP as a good tool to connect Windows
+     clients to a linux server sharing a modem.
+
+     I agree. However, it would be more attractive to have a free,
+     GPL'ed client, wouldn't it ? This I thought and decided to offer
+     some money for the implementation of such a client on the
+     Software Bazaar. If someone grabs the project I will pay him a
+     certain amount of money if it is completed and functional. After
+     that the client would be GPL'ed.
+
+     Now, I can only offer so much money :) But other people could
+     join in and offer some, too, thus increasing the incentive.
+     Wouldn't your howto be a perfect place to mention this
+     possibility ?
+
+     The Bazaar can be found at:
+
+      http://visar.csustan.edu/bazaar/
+
+     Thought I could mention this to you.
+
+
+     Karsten
+</screen>
+
+</sect1>
+
+</article>
+
