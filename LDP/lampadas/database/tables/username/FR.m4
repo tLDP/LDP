@@ -1,4 +1,4 @@
 insert(french, French, [], User,
 	[], f, f, password,
-	[This is the German test account.],
+	[This is the French test account.],
 	[default])

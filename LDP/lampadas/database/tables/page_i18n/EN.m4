@@ -42,17 +42,24 @@ insert([home], [|strproject|], [Home],
     This happens at least once a day and sometimes
     several times a day.
     The system is fairly stable, although some half-
-    implemented features will cause bugs.
+    implemented features will cause ugly error dumps.
     
-    <p>This demo site is populated with the following example users.
+    <p>This demo site is populated with data from the LDPDB.
+    If you had an account on the LDPDB, you have one here.
+    However, because passwords on the LDPDB are stored only in
+    hashed form, I was unable to port them over, and you\'ve been
+    given a new password. To get it, click the "Mail Password"
+    link and your new password will be mailed to your address
+    of record.
+
+    <p>There are also a set of additional test users.
     Log in as one of them to see the site through their eyes.
     The pages change depending on your access level.
-    All passwords are "password".
+    These users\'passwords are "password".
 
     <ul>
         <li>sysadmin - the SUPERUSER, who manages the system.</li>
         <li>admin - the Site Administrator, who manages the content.</li>
-        <li>english - an English-speaking user.</li>
         <li>french - a French-speaking user.</li>
         <li>german - a German-speaking user.</li>
         <li>korean - a Korean-speaking user.</li>
@@ -348,8 +355,10 @@ insert([newuser], [New User], [],
 
 insert([mailpass], [Mail Password], [],
 [
-    <p>Please enter your username or email address to have your
+    <p>Please enter your email address to have your
     password mailed to you.
+
+    <p>|tabmailpass|
 ], 1)
 
 insert([topic], [View Topic], [],
@@ -407,6 +416,13 @@ insert([account_created], [Account Created], [],
 [
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
+], 1)
+
+insert([password_mailed], [Password Mailed], [],
+[
+    <p>Your password has been mailed to you.
+    If you continue to have problems logging in, please write
+    the site administrator for assistance.
 ], 1)
 
 insert([user], [Edit User Record], [Add User],

@@ -1,6 +1,8 @@
 insert(author,       [Autor],
 [Jemand der eine neues Dokument schreibt, ]m4_dnl
 [oder ein bestehendes stark überarbeitet.])
+insert(coauthor,     [Co-author],
+[A person who assists in writing the document.])
 insert(maintainer,   [Instandhalter],
 [Jemand der ein Dokument auf dem letzten Stand hält.]) 
 insert(comaintainer, [Vize-Instandhalter],

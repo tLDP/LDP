@@ -1,5 +1,7 @@
 insert(author,       [Author],
 [A person who writes or who substantially rewrites the document.])
+insert(coauthor,     [Co-author],
+[A person who assists in writing the document.])
 insert(maintainer,   [Maintainer],
 [A person who does not write the document, but who keeps it updated.])
 insert(comaintainer, [Co-maintainer],

@@ -962,6 +962,15 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
+    def tabmailpass(self, uri):
+        log(3, 'Creating mailpass table')
+        box = '<form name="mailpass" action="data/save/mailpass">'
+        box += '<table class="box"><tr><th colspan="2">|strmail_passwd|</th></tr>\n'
+        box += '<tr><td><input type=text name=email></td>\n'
+        box += '<td align=center><input type=submit name=mailpass value="|strmail_passwd|"></td></tr>\n'
+        box += '</table>\n'
+        box += '</form>\n'
+        return box
 
 # PageFactory
 
@@ -1159,6 +1168,8 @@ class PageFactory:
                     newstring = self.tablef.sitemap(uri, build_user)
                 if token=='tabsessions':
                     newstring = self.tablef.tabsessions(uri, build_user)
+                if token=='tabmailpass':
+                    newstring = self.tablef.tabmailpass(uri)
             
                 # Blocks and Strings
                 # 

@@ -1,3 +1,5 @@
+m4_dnl  license_code, lang, license_short_name, license_name, license_desc
+
 insert(gpl, [GPL], [GNU General Public License],
     [The most popular Free Software license.
     It is usually used for software, but was commonly used for
@@ -34,4 +36,7 @@ insert(pd, [PD], [Public Domain],
 insert(none, [None], [No License],
     [A document with no license is covered under normal laws of copyright.
     It cannot be distributed, published or modified and is considered proprietary.])
-    
+   
+insert(other, [Other], [Other License],
+    [Some other license.])
+

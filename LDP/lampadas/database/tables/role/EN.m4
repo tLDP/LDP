@@ -1,4 +1,5 @@
 insert(author)
+insert(coauthor)
 insert(maintainer)
 insert(comaintainer)
 insert(converter)

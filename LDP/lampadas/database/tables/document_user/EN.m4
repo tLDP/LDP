@@ -1,6 +1,0 @@
-insert(1,   [english], [author], [david@lupercalia.net], [t])
-insert(2,   [english], [author], [david@lupercalia.net], [t])
-insert(3,   [english], [author], [david@lupercalia.net], [t])
-insert(4,   [english], [author], [david@lupercalia.net], [t])
-insert(5,   [english], [author], [david@lupercalia.net], [t])
-insert(6,   [english], [author], [david@lupercalia.net], [t])

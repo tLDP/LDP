@@ -25,12 +25,27 @@ The Globals module implements low level utility and convenience routines.
 # Modules
 
 import time
+import string
+import whrandom
 
 
 # Globals
 
 VERSION = '0.3-cvs'
 
+
+def random_string(length):
+    """
+    Returns a string of random alphanumeric characters.
+    It is intended for password generation, although it can
+    be used for other purposes as well.
+    """
+    
+    chars = string.letters + string.digits
+    password = ''
+    for x in range(length):
+        password += whrandom.choice(chars)
+    return password
 
 def wsq(astring):
     """
@@ -46,10 +61,10 @@ def wsq(astring):
     
     if astring==None:
         return 'NULL'
-    elif astring=='':
+    elif trim(astring)=='':
         return 'NULL'
     else:
-        return "'" + astring.replace("'", "''") + "'"
+        return "'" + trim(astring.replace("'", "''")) + "'"
 
 def dbint(anint):
     """

@@ -1460,6 +1460,15 @@ class Users:
                 return trim(row[0])
         return ''
 
+    def find_email_user(self, email):
+        sql = 'SELECT username FROM username WHERE email=' + wsq(email)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row:
+            username = trim(row[0])
+            user = self[username]
+            return user
+        
     def letter_keys(self, letter):
         keys = []
         sql = 'SELECT username FROM username WHERE upper(substr(username,1,1))=' + wsq(letter.upper())

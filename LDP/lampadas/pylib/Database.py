@@ -67,11 +67,15 @@ class Database:
             value = row[0]
         return value
 
-    def next_id(self, table, field):
+    def max_id(self, table, field):
         sql = 'SELECT MAX(' + field + ') FROM ' + table
         max_id = self.read_value(sql)
         if max_id==None:
             max_id = 0
+        return max_id
+        
+    def next_id(self, table, field):
+        max_id = self.max_id(table, field)
         max_id = max_id + 1
         return max_id
 

@@ -227,6 +227,14 @@ insert([newuser], [New User], [],
     <p>*Required Fields
 ], 1])
 
+insert([mailpass], [Mail Password], [],
+[
+    <p>Please enter your email address to have your
+    password mailed to you.
+
+    <p>|tabmailpass|
+], 1)
+
 insert([topic], [View Topic], [View Topic],
 [
     |tabsubtopics|
@@ -276,6 +284,13 @@ insert([account_created], [Account Created], [],
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
 ], 1])
+
+insert([password_mailed], [Password Mailed], [],
+[
+    <p>Your password has been mailed to you.
+    If you continue to have problems logging in, please write
+    the site administrator for assistance.
+], 1)
 
 insert([user], [Edit User Record], [Add User],
 [

@@ -1,5 +1,0 @@
-insert(301, [korean], [author], [david@lupercalia.net], [t])
-insert(302, [korean], [author], [david@lupercalia.net], [t])
-insert(303, [korean], [author], [david@lupercalia.net], [t])
-insert(304, [korean], [author], [david@lupercalia.net], [t])
-insert(305, [korean], [author], [david@lupercalia.net], [t])

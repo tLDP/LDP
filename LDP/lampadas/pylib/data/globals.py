@@ -19,7 +19,9 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
+from Config import config
 from mod_python import apache
+import smtplib
 
 def redirect(req, url):
     req.headers_out['location'] = url
@@ -31,3 +33,14 @@ def go_back(req):
     else:
         url = '/'
     redirect(req, url)
+
+def send_mail(email, message):
+    """
+    Sends an email to the user.
+    """
+
+    server = smtplib.SMTP(config.smtp_server)
+    server.set_debuglevel(1)
+    server.sendmail(config.admin_email, email, message)
+    server.quit()
+

@@ -1,0 +1,421 @@
+#! /usr/bin/python
+#
+LDP_DB      = 'ldp'
+LAMPADAS_DB = 'scratch'
+
+from Globals import *
+from Database import get_database
+from BaseClasses import *
+import string
+
+
+# Globals
+
+ldp = get_database('pgsql', LDP_DB)
+lampadas = get_database('pgsql', LAMPADAS_DB)
+
+# Doc ids in the ldp database are all bumped by this much to avoid
+# collissions with existing docs in the database. This lets us
+# load the LDP data on top of any existing data.
+# 
+doc_id_offset = lampadas.max_id('document', 'doc_id')
+
+
+class Name:
+
+    def __init__(self, fullname):
+        name = fullname
+        name = name.replace('Dr\.', '')
+        name = name.replace(', II', '')
+        name = name.replace(', III', '')
+        name = string.split(name)
+        if len(name)==1:
+            self.first_name  = name[0]
+            self.middle_name = ''
+            self.surname     = ''
+        elif len(name)==2:
+            self.first_name  = name[0]
+            self.middle_name = ''
+            self.surname     = name[1]
+        elif len(name)==3:
+            self.first_name  = name[0]
+            self.middle_name = name[1]
+            self.surname     = name[2]
+        elif len(name)==4:
+            self.first_name  = name[0]
+            mi1              = name[1]
+            mi2              = name[2]
+            self.middle_name = mi1 + ' ' + mi2
+            self.surname     = name[3]
+            
+            miu = mi2.upper()
+            if miu=='DE' or miu=='DER' or miu=='DOS' or miu=='VAN' or miu=='DA':
+                self.surname = mi2 + self.surname
+                self.middle_name = mi1
+        else:
+            print "ERROR: found a five word name, cannot parse it: " + string.join(name)
+        
+        mi = string.upper(self.middle_name)
+        if mi=='VAN' or mi=='VAN DER' or mi=='VAN DEN' or mi=='DE' or mi=='DE LA' or mi=='DER' or mi=='DOS' or mi=='DA':
+            self.surname = self.middle_name + ' ' + self.surname
+            self.middle_name = ''
+        
+    
+class OldMaintainers(LampadasCollection):
+   
+    def __init__(self):
+        self.data = {}
+        sql = 'SELECT maintainer_id, maintainer_name, email FROM maintainer'
+        cursor = ldp.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            maintainer = OldMaintainer()
+            maintainer.load_row(row)
+            self[maintainer.id] = maintainer
+
+
+class OldMaintainer:
+
+    def load_row(self, row):
+        self.id    = row[0]
+        self.name  = trim(row[1])
+        self.email = trim(row[2])
+        name = Name(self.name)
+        self.first_name  = name.first_name
+        self.middle_name = name.middle_name
+        self.surname     = name.surname
+        
+
+class OldEditors(LampadasCollection):
+    
+    def __init__(self):
+        self.data = {}
+        sql = 'SELECT editor_id, editor_name, email, notes FROM editor'
+        cursor = ldp.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            editor = OldEditor()
+            editor.load_row(row)
+            self[editor.id] = editor
+
+maintainers = OldMaintainers()
+maintainer_ids = maintainers.keys()
+
+
+class OldEditor:
+
+    def load_row(self, row):
+        self.id    = row[0]
+        self.name  = trim(row[1])
+        self.email = trim(row[2])
+        self.notes = trim(row[3])
+
+        name = Name(self.name)
+        self.first_name  = name.first_name
+        self.middle_name = name.middle_name
+        self.surname     = name.surname
+        
+editors = OldEditors()
+editor_ids = editors.keys()
+
+
+class OldUsers(LampadasCollection):
+    
+    def __init__(self):
+        self.data = {}
+        sql = 'SELECT username, first_name, surname, email, admin, maintainer_id, editor_id FROM username'
+        cursor = ldp.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            user = OldUser()
+            user.load_row(row)
+            self[user.username] = user
+
+class OldUser:
+
+    def load_row(self, row):
+        self.username      = string.lower(trim(row[0]))
+        self.first_name    = trim(row[1])
+        self.surname       = trim(row[2])
+        self.email         = trim(row[3])
+        self.admin         = tf2bool(row[4])
+        self.maintainer_id = row[5]
+        self.editor_id     = row[6]
+
+users = OldUsers()
+usernames = users.keys()
+
+
+class NewUsers(LampadasCollection):
+
+    def save(self):
+        keys = self.keys()
+        for key in keys:
+            user = self[key]
+            user.save()
+
+    def find_maintainer(self, maintainer_id):
+        keys = self.keys()
+        for key in keys:
+            user = self[key]
+            if user.maintainer_id==maintainer_id:
+                return user
+        
+
+    def find_editor(self, editor_id):
+        keys = self.keys()
+        for key in keys:
+            user = self[key]
+            if user.editor_id==editor_id:
+                return user
+
+class NewUser:
+
+    def __init__(self):
+        self.username      = ''
+        self.first_name    = ''
+        self.middle_name = ''
+        self.surname       = ''
+        self.email         = ''
+        self.admin         = 0
+        self.notes         = ''
+        self.password      = random_string(12)
+        self.maintainer_id = 0
+        self.editor_id     = 0
+
+    def username_from_name(self):
+        self.username = self.first_name + self.middle_name + self.surname
+        self.username = self.username.lower()
+        self.username = self.username.replace('&','')
+        self.username = self.username.replace('.','')
+        
+    def username_from_email(self):
+        self.username = self.email
+        
+    def save(self):
+        sql = 'INSERT INTO username(username, first_name, middle_name, surname, '
+        sql += 'email, admin, notes, password) '
+        sql += 'VALUES(' + wsq(self.username) + ', ' + wsq(self.first_name) + ', ' + wsq(self.middle_name) + ', ' + wsq(self.surname) + ', '
+        sql += wsq(self.email) + ', ' + wsq(bool2tf(self.admin)) + ', ' + wsq(self.notes) + ', ' + wsq(self.password) + ')'
+        lampadas.runsql(sql)
+        lampadas.commit()
+
+newusers = NewUsers()
+newusernames = newusers.keys()
+
+
+###################################################################3
+
+def copy_users():
+    # Copy users over
+    for username in usernames:
+        user = users[username]
+        newuser = NewUser()
+        newuser.username      = user.username
+        newuser.first_name    = user.first_name
+        newuser.surname       = user.surname
+        newuser.email         = user.email
+        newuser.admin         = user.admin
+        newuser.maintainer_id = user.maintainer_id
+        newuser.editor_id     = user.editor_id
+        newusers[newuser.username]    = newuser
+
+    # Merge maintainer data
+    for maintainer_id in maintainer_ids:
+        maintainer = maintainers[maintainer_id]
+        newuser = newusers.find_maintainer(maintainer_id)
+        if newuser:
+            newuser.maintainer_id = maintainer_id
+            if newuser.email=='':
+                newuser.email = maintainer.email
+        else:
+            newuser = NewUser()
+            newuser.first_name    = maintainer.first_name
+            newuser.middle_name   = maintainer.middle_name
+            newuser.surname       = maintainer.surname
+            newuser.email         = maintainer.email
+            newuser.maintainer_id = maintainer.id
+            newuser.username_from_name()
+            if newusers[newuser.username]:
+                print 'NOTICE: maintainer username is taken: ' +newuser.username
+                newuser.username_from_email()
+                print '           using email changed it to: ' + newuser.username
+                if newusers[newuser.username]:
+                    print "ERROR: cannot generate unique username for: " + newuser.username + ', ' + newuser.name
+                    continue
+            newusers[newuser.username] = newuser
+    
+    # Merge editor data
+    for editor_id in editor_ids:
+        editor = editors[editor_id]
+        newuser = newusers.find_editor(editor_id)
+        if newuser:
+            newuser.editor_id = editor_id
+            newuser.notes = editor.notes
+            if newuser.email=='':
+                newuser.email = editor.email
+        else:
+            newuser = NewUser()
+            newuser.first_name  = editor.first_name
+            newuser.middle_name = editor.middle_name
+            newuser.surname     = editor.surname
+            newuser.email       = editor.email
+            newuser.notes       = editor.notes
+            newuser.editor_id   = editor.id
+            newuser.username_from_name()
+            if newusers[newuser.username]:
+                print 'NOTICE: editor username is taken: ' +newuser.username
+                newuser.username_from_email()
+                print '       using email changed it to: ' + newuser.username
+                if newusers[newuser.username]:
+                    print "ERROR: cannot generate unique username for: " + newuser.username + ', ' + newuser.name
+                    continue
+            newusers[newuser.username] = newuser
+
+    # Save the new data
+    newusers.save()
+
+def copy_documents():
+    sql = 'SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document'
+    cursor = ldp.select(sql)
+    while (1):
+        row = cursor.fetchone()
+        if row==None: break
+        doc_id              = row[0]
+        title               = trim(row[1])
+        filename            = trim(row[2])
+        type                = trim(row[3])
+        format              = trim(row[4])
+        dtd                 = trim(row[5])
+        dtd_version         = trim(row[6])
+        version             = trim(row[7])
+        last_update         = date2str(row[8])
+        url                 = trim(row[9])
+        isbn                = trim(row[10])
+        pub_status          = trim(row[11])
+        review_status       = trim(row[12])
+        tickle_date         = date2str(row[13])
+        pub_date            = date2str(row[14])
+        ref_url             = trim(row[15])
+        tech_review_status  = trim(row[16])
+        maintained          = tf2bool(row[17])
+        license             = trim(row[18])
+        abstract            = trim(row[19])
+        rating              = safeint(row[20])
+
+        # adjust doc_id to lie above any existing documents
+        doc_id = doc_id + doc_id_offset
+        
+        type = type.lower()
+        if type=='guide':
+            type = 'userguide'
+        if type=='mini':
+            type = 'howto'
+        if type=='backgrounder':
+            type = 'intro'
+        if type=='quick':
+            type = 'quickref'
+
+        format = format.lower()
+        if format=='wiki':
+            format = 'wikitext'
+
+        # Lampadas doesn't understand LDP-specific licensing
+        # to this degree.
+        license = license.lower()
+        if license=='boilerplate':
+            license = 'free'
+        if license=='howtol' or license=='ldpcl' or license=='oldldpl':
+            license = 'ldpl'
+       
+        # unknown status should just be NULL
+        if pub_status=='?':
+            pub_status = ''
+        
+        # offsite records do not get copies
+        if pub_status=='O':
+            continue
+        
+        # replaced pub_status is gone -- it wasn't really a pub
+        # status. The status for these is deleted, with a separate
+        # field to indicate what document replaced it.
+        if pub_status=='R':
+            pub_status = 'D'
+
+        sql = 'INSERT INTO document(doc_id, lang, title, type_code, format_code, dtd_code, dtd_version, version, last_update, url, '
+        sql += 'isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, '
+        sql += 'license_code, abstract, rating) '
+        sql += 'VALUES(' + str(doc_id) + ', ' + wsq('EN') + ', ' + wsq(title) + ', ' + wsq(type) + ', ' + wsq(format) + ', ' + wsq(dtd) + ', ' + wsq(dtd_version) + ', ' + wsq(version) + ', ' + wsq(last_update) + ', ' + wsq(url) + ', '
+        sql += wsq(isbn) + ',' + wsq(pub_status) + ', ' 
+        sql += wsq(review_status) + ', ' + wsq(tickle_date) + ', ' 
+        sql += wsq(pub_date) + ',' + wsq(ref_url) + ', '
+        sql += wsq(tech_review_status) + ', ' + wsq(bool2tf(maintained)) + ', '
+        sql += wsq(license) + ', ' + wsq(abstract) + ', ' + str(rating) + ')'
+        lampadas.runsql(sql)
+        lampadas.commit()
+
+def copy_document_users():
+    sql = 'SELECT doc_id, maintainer_id, role, active, email FROM document_maintainer'
+    cursor = ldp.select(sql)
+    while (1):
+        row = cursor.fetchone()
+        if row==None: break
+        doc_id        = row[0]
+        maintainer_id = row[1]
+        role          = trim(row[2])
+        active        = tf2bool(row[3])
+        email         = trim(row[4])
+
+        role = role.lower()
+        role = role.replace('-','')
+
+        user = newusers.find_maintainer(maintainer_id)
+        username = user.username
+
+        sql = 'INSERT INTO document_user (doc_id, username, role_code, email, active) '
+        sql += 'VALUES (' + str(doc_id) + ', ' + wsq(username) + ', ' + wsq(role) + ', ' 
+        sql += wsq(email) + ', ' + wsq(bool2tf(active)) + ')'
+        lampadas.runsql(sql)
+        lampadas.commit()
+
+def copy_document_topics():
+    pass
+
+def copy_document_revs():
+    pass
+
+def copy_document_files():
+    pass
+
+def copy_notes():
+    pass
+
+# This will probably be deleted -- this script will then
+# load LDP data right on top of any default data.
+def clear_old():
+    lampadas.runsql('DELETE FROM notes')
+    lampadas.runsql('DELETE FROM document_error')
+    lampadas.runsql('DELETE FROM document_file')
+    lampadas.runsql('DELETE FROM document_rev')
+    lampadas.runsql('DELETE FROM document_topic')
+    lampadas.runsql('DELETE FROM document_user')
+    lampadas.runsql('DELETE FROM document')
+    lampadas.runsql('DELETE FROM username')
+    lampadas.commit()
+
+
+def main():
+#    clear_old()
+    copy_users()
+    copy_documents()
+    copy_document_users()
+    copy_document_topics()
+    copy_document_revs()
+    copy_document_files()
+    copy_notes()
+
+
+main()

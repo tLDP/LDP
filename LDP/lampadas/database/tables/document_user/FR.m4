@@ -1,5 +1,0 @@
-insert(101, [french], [author], [david@lupercalia.net], [t])
-insert(102, [french], [author], [david@lupercalia.net], [t])
-insert(103, [french], [author], [david@lupercalia.net], [t])
-insert(104, [french], [author], [david@lupercalia.net], [t])
-insert(105, [french], [author], [david@lupercalia.net], [t])

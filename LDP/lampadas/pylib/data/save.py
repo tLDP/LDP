@@ -19,6 +19,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
+from Globals import *
 from globals import *
 from Config import config
 from DataLayer import lampadas
@@ -26,9 +27,6 @@ from HTML import page_factory
 from Lintadas import lintadas
 from Log import log
 from mod_python import apache
-import smtplib
-import string
-import whrandom
 
 def newdocument(req, username, doc_id, title, url, ref_url, pub_status_code, type_code,
              review_status_code, tech_review_status_code, maintainer_wanted,
@@ -177,31 +175,11 @@ def newaccount(req, username, email, first_name, middle_name, surname):
     if lampadas.users.is_email_taken(email):
         return page_factory.page('email_exists')
 
-    password = random_password()
-    mail_password(email, password)
+    password = random_string(12)
+    send_mail(email, 'Your password for Lampadas is: ' + password)
+
     lampadas.users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
     return page_factory.page('account_created')
-
-def random_password():
-    """
-    Establishes a random password, 10 characters long.
-    """
-    
-    chars = string.letters + string.digits
-    password = ''
-    for x in range(10):
-        password += whrandom.choice(chars)
-    return password
-
-def mail_password(email, password):
-    """
-    Mails the password to the user.
-    """
-
-    server = smtplib.SMTP(config.smtp_server)
-    server.set_debuglevel(1)
-    server.sendmail(config.admin_email, email, 'Your password is ' + password)
-    server.quit()
 
 def newuser(req, username, email, first_name, middle_name, surname, stylesheet, password, admin, sysadmin, notes):
     """
@@ -237,6 +215,14 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
     referer = req.headers_in['referer']
     req.headers_out['location'] = referer
     req.status = apache.HTTP_MOVED_TEMPORARILY
+
+def mailpass(req, email):
+    user = lampadas.users.find_email_user(email)
+    if user:
+        send_mail(email, 'Your password for Lampadas is: ' + user.password)
+        redirect(req, '/password_mailed')
+    else:
+        return error('User not found.')
 
 def error(message):
     return message

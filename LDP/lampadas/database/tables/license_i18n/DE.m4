@@ -1,3 +1,5 @@
+m4_dnl  license_code, lang, license_short_name, license_name, license_desc
+
 insert(gpl, [GPL], [GNU General Public License],
     [Die populärste Lizenz für freie Software.
     Wird eigentlich nur für Software verwendet, war aber vor
@@ -38,3 +40,6 @@ insert(none, [Keine], [Keine Lizenz],
     des Urheberrechts bzw. Copyright. Es kann nicht verändert,
     veröffentlicht oder sonstwie verteilt werden und wird als
     proprietär betrachtet.])
+
+insert(other, [Other], [Other License],
+    [Some other license.])

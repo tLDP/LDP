@@ -318,8 +318,10 @@ insert([newuser], [Neue Benutzer], [],
 
 insert([mailpass], [Kennwort schicken], [],
 [
-    <p>Bitte geben Sie Benutzernamen oder E-Mailaddresse an.
+    <p>Bitte geben Sie E-Mailaddresse an.
     Wir schicken Ihnen anschließend Ihr Kennwort per E-Mail.
+
+    <p>|tabmailpass|
 ], 1)
 
 insert([topic], [Liste der Themen], [],
@@ -381,6 +383,13 @@ insert([account_created], [Benutzerkonto angelegt], [],
 [
     <p>Ihr Benutzerkonto wurde angelegt und das Kennwort per E-Mail
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
+], 1)
+
+insert([password_mailed], [Password Mailed], [],
+[
+    <p>Your password has been mailed to you.
+    If you continue to have problems logging in, please write
+    the site administrator for assistance.
 ], 1)
 
 insert([user], [Benutzerdaten ändern], [Neuer Benutzer],

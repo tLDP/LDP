@@ -126,6 +126,12 @@ class URI:
                 if len(path[-1]) > 0:
                     self.filename = path[-1]
 
+        # FIXME: Code to pull the language code from the filename,
+        # rather than from the path: home.fr for french, etc.
+        # This will make it easy to configure the static site to serve
+        # the right language in Apache.
+        
+
     def printdebug(self):
         print "URI: [%s]"      % self.uri
         print "Base: [%s]"     % self.base
