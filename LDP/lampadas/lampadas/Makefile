@@ -3,7 +3,7 @@ build:	tap
 tap:
 	mktap lampadas
 
-debug:	tap
+start:	tap
 	twistd -n -f lampadas.tap
 
 clean:

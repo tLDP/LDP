@@ -12,7 +12,7 @@ from twisted.spread import pb
 
 def connected(perspective):
     print 'Connected.'
-    perspective.callRemote('get_block_by_code', code='blkheader').addCallbacks(success, failure).setTimeout(3)
+    perspective.callRemote('get_block_by_code', code='blkheader').addCallbacks(success, failure)
 
 def connect_failure(error):
     print "Error connecting to ObjectService.."
@@ -20,7 +20,6 @@ def connect_failure(error):
 
 def success(block):
     print 'ObjectService gave me block: ' + block.code
-    print 'Success!'
     reactor.stop()
 
 def failure(error):
