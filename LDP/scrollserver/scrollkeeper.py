@@ -1,6 +1,10 @@
-import sys, os, commands, string
+#import sys
+#import os
+import commands
+#import string
+#import urllib
+
 from xml.dom.minidom import parse
-import urllib
 
 class TOCSection:
 
