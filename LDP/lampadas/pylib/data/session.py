@@ -64,7 +64,3 @@ def logout(req, username):
     log(3, 'clearing cookie')
     req.headers_out['Set-Cookie']='lampadas=foo; path=/; expires=Wed, 09-Nov-1980 23:59:00 GMT'
     return page_factory.page('logged_out')
-
-#    req.headers_out['location'] = '/home'
-#    req.status = apache.HTTP_MOVED_TEMPORARILY
-

@@ -3,14 +3,10 @@ insert([newdocument], [Dokument hinzufügen], [],
     |tabeditdoc|
 ])
 
-insert([admin], [Administration], [],
-[
-    <p>Werkzeuge für Administratoren.
-])
-
 insert([users], [Liste der Benutzer], [],
 [
-    |tabusers|
+    |tabletters|
+    <p>|tabusers|
 ])
 
 insert([sysadmin], [System-Administration], [],
@@ -24,7 +20,7 @@ insert([my], [Meine Homepage], [],
 
     <p>Und dies sind die Dokumente an denen sie mitarbeiten:
 
-    |session_user_docs|
+    <p>|session_user_docs|
 ])
 
 insert([home], [|strproject|], [Home], 

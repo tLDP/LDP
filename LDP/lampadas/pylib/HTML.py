@@ -46,7 +46,7 @@ import os
 
 # Constants
 
-EDIT_ICON = '<img src="images/edit.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
+EDIT_ICON = '<img src="images/edit64x64.png" alt="Edit" height="20" width="20" border="0" hspace="5" vspace="0" align="top">'
 
 
 # ComboFactory
@@ -612,19 +612,34 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
+    def letters(self, uri):
+        log(3, 'Creating letter table')
+        box = '<table class="box"><tr>\n'
+        for letter in string.uppercase:
+            if letter==uri.letter:
+                box = box + '<td>' + letter + '</td>\n'
+            else:
+                box = box + '<td><a href="' + uri.filename + '/' + letter + '">' + letter + '</a></td>\n'
+        box = box + '</tr></table>\n'
+        return box
+        
     def users(self, uri, build_user):
         log(3, 'Creating users table')
-        box = ''
+        box = '<table class="box"><tr><th colspan=2>|strusers|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strusername|</th>\n'
+        box = box + '<th class="collabel">|strname|</th>\n'
+        box = box + '</tr>\n';
         if uri.letter > '':
-            box = "List of users goes here."
-            # FIXME: finish this. Must handle other character sets as well.
-        else:
-            box += '<ul>\n'
-            for letter in string.uppercase:
-                box = box + '<li><a href="' + uri.base + '/' + letter + '">' + letter + '</a>\n'
-            box += '</ul>\n'
+            usernames = lampadas.users.letter_keys(uri.letter)
+            for username in usernames:
+                user = lampadas.users[username]
+                box = box + '<tr>\n'
+                box = box + '<td><a href="/user/' + username + '">' + username + '</a></td>\n'
+                box = box + '<td>' + user.name + '</a></td>\n'
+                box = box + '</tr>\n'
+        box = box + '</table>\n'
         return box
-    
 
     def user(self, uri, build_user):
         if not build_user:
@@ -1093,6 +1108,8 @@ class PageFactory:
                     newstring = self.tablef.docnotes(uri, build_user)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
+                if token=='tabletters':
+                    newstring = self.tablef.letters(uri)
                 if token=='tabusers':
                     newstring = self.tablef.users(uri, build_user)
                 if token=='tabuser':

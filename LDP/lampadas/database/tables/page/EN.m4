@@ -1,8 +1,7 @@
 insert(newdocument,         default,    user,       1,  t,  f,  f)
 
-insert(admin,               default,    admin,      1,  f,  t,  f)
-insert(users,               default,    admin,      2,  f,  t,  f)
-insert(user,                default,    admin,      3,  f,  t,  f)
+insert(users,               default,    admin,      1,  f,  t,  f)
+insert(user,                default,    admin,      2,  f,  t,  f)
 
 insert(sysadmin,            default,    sysadmin,   1,  f,  f,  t)
 

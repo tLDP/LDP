@@ -3,14 +3,10 @@ insert([newdocument], [Add Document], [],
     |tabeditdoc|
 ])
 
-insert([admin], [Admin Page], [],
-[
-    <p>Admin tools.
-])
-
 insert([users], [User List], [],
 [
-    |tabusers|
+    |tabletters|
+    <p>|tabusers|
 ])
 
 insert([sysadmin], [Sysadmin Page], [],
@@ -24,7 +20,7 @@ insert([my], [My Home], [],
 
     <p>This table lists documents you have volunteered to contribute to:
 
-    |session_user_docs|
+    <p>|session_user_docs|
 ])
 
 insert([home], [|strproject|], [Home],

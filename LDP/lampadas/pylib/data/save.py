@@ -19,6 +19,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
+from globals import *
 from Config import config
 from DataLayer import lampadas
 from HTML import page_factory
@@ -239,13 +240,3 @@ def user(req, username, first_name, middle_name, surname, email, stylesheet, pas
 
 def error(message):
     return message
-
-def redirect(req, url):
-    req.headers_out['location'] = url
-    req.status = apache.HTTP_MOVED_TEMPORARILY
-
-def go_back(req):
-    referer = req.headers_in['referer']
-    req.headers_out['location'] = referer
-    req.status = apache.HTTP_MOVED_TEMPORARILY
-

@@ -36,6 +36,7 @@ from BaseClasses import *
 from Config import config
 from Database import db
 from Log import log
+import string
 
 
 # Lampadas
@@ -58,6 +59,7 @@ class Lampadas:
         return User(username)
 
     def load(self):
+        log(3, 'Loading Lampadas data')
         self.types           = Types()
         self.types.load()
         self.docs            = Docs()
@@ -1311,6 +1313,18 @@ class Users:
                 return trim(row[0])
         return ''
 
+    def letter_keys(self, letter):
+        keys = []
+        sql = 'SELECT username FROM username WHERE upper(substr(username,1,1))=' + wsq(letter.upper())
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            username = trim(row[0])
+            keys = keys + [username]
+        keys.sort()
+        return keys
+        
 class User:
     """
     A user who is known by the system can login to manipulate documents
