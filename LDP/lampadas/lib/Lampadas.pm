@@ -28,10 +28,16 @@ use Exporter;
 	Docs,
 	Doc,
 	DocUsers,
+	
 	Roles,
 	Classes,
 	PubStatuses,
+	ReviewStatuses,
 	Licenses,
+	Topics,
+	Subtopics,
+	Formats,
+	DTDs,
 
 	StartPage,
 	EndPage,
@@ -40,7 +46,18 @@ use Exporter;
 	RoleCombo,
 	ClassCombo,
 	PubStatusCombo,
+	ReviewStatusCombo,
+	TechReviewStatusCombo,
 	LicenseCombo,
+	TopicCombo,
+	SubtopicCombo,
+	FormatCombo,
+	DTDCombo,
+
+	UsersTable,
+	UserTable,
+	UserDocsTable,
+	DocTable,
 	
 	TitleBox,
 	LoginBox,
@@ -63,7 +80,6 @@ $currentuser_id = 0;
 &ReadCookie;
 
 @errors = ();			# System errors, displayed on the next page
-
 $debug = 0;			# Set this to 1 to get debugging messages
 
 sub new {
@@ -112,17 +128,18 @@ sub Maintainer {
 sub Users {
 	my $self = shift;
 	my %users = ();
-	my $sql = "SELECT user_id, username, admin, first_name, middle_name, surname FROM username";
+	my $sql = "SELECT user_id, username, first_name, middle_name, surname, email, admin FROM username";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$user_id = $row[0];
 		$users{$user_id}{id}		= $row[0];
 		$users{$user_id}{username}	= &trim($row[1]);
-		$users{$user_id}{admin}		= &yn2bool($row[2]);
-		$users{$user_id}{first_name}	= &trim($row[3]);
-		$users{$user_id}{middle_name}	= &trim($row[4]);
-		$users{$user_id}{surname}	= &trim($row[5]);
+		$users{$user_id}{first_name}	= &trim($row[2]);
+		$users{$user_id}{middle_name}	= &trim($row[3]);
+		$users{$user_id}{surname}	= &trim($row[4]);
 		$users{$user_id}{name}		= &trim(&trim($users{$user_id}{first_name} . ' ' . $users{$user_id}{middle_name}) . ' ' . $users{$user_id}{surname});
+		$users{$user_id}{email}		= &trim($row[5]);
+		$users{$user_id}{admin}		= &yn2bool($row[6]);
 	}
 	return %users;
 }
@@ -131,15 +148,16 @@ sub User {
 	my $self = shift;
 	my $user_id = shift;
 	my %user = ();
-	my $sql = "SELECT username, admin, first_name, middle_name, surname FROM username WHERE user_id=$user_id";
+	my $sql = "SELECT username, first_name, middle_name, surname, email, admin FROM username WHERE user_id=$user_id";
 	my @row = $DB->Row("$sql");
 	$user{id}		= $user_id;
 	$user{username}		= &trim($row[0]);
-	$user{admin}		= &yn2bool($row[1]);
-	$user{first_name}	= &trim($row[2]);
-	$user{middle_name}	= &trim($row[3]);
-	$user{surname}		= &trim($row[4]);
+	$user{first_name}	= &trim($row[1]);
+	$user{middle_name}	= &trim($row[2]);
+	$user{surname}		= &trim($row[3]);
 	$user{name}		= &trim(&trim($user{first_name} . ' ' . $user{middle_name}) . ' ' . $user{surname});
+	$user{email}		= &trim($row[4]);
+	$user{admin}		= &yn2bool($row[5]);
 
 	return %user;
 }
@@ -148,13 +166,18 @@ sub UserDocs {
 	my $self = shift;
 	my $user_id = shift;
 	my %docs = ();
-	$sql = "SELECT distinct doc_id, role, active FROM document_user WHERE user_id=$user_id";
+	$sql = "SELECT d.doc_id, d.title, d.class, d.pub_status, ps.pub_status_name, du.role, du.active, du.email FROM document d, document_user du, pub_status ps WHERE d.doc_id=du.doc_id AND d.pub_status = ps.pub_status AND user_id=$user_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
-		$doc_id			= $row[0];
-		$docs{$doc_id}{id}	= $doc_id;
-		$docs{$doc_id}{role}	= &trim($row[1]);;
-		$docs{$doc_id}{active}	= &yn2bool($row[2]);
+		$doc_id				= $row[0];
+		$docs{$doc_id}{id}		= $doc_id;
+		$docs{$doc_id}{title}		= &trim($row[1]);
+		$docs{$doc_id}{class}		= &trim($row[2]);
+		$docs{$doc_id}{pub_status}	= &trim($row[3]);
+		$docs{$doc_id}{pub_status_name}	= &trim($row[4]);
+		$docs{$doc_id}{role}		= &trim($row[5]);
+		$docs{$doc_id}{active}		= &yn2bool($row[6]);
+		$docs{$doc_id}{email}		= &trim($row[7]);
 	}
 	return %docs;
 }
@@ -189,7 +212,7 @@ sub Docs {
 		$docs{$doc_id}{rating}			= &trim($row[20]);
 	}
 	return %docs;
-}
+6}
 
 sub Doc {
 	my $self = shift;
@@ -247,7 +270,6 @@ sub Roles {
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
 		$role = &trim($row[0]);
-		print "Loaded role: $role\n";
 		$roles{$role} = $role;
 	}
 	return %roles;	
@@ -279,6 +301,18 @@ sub PubStatuses {
 	return %pubstatuses;
 }
 
+sub ReviewStatuses {
+	my %reviewstatuses = ();
+	my $sql = "SELECT review_status, review_status_name FROM review_status";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$reviewstatus		= &trim($row[0]);
+		$reviewstatusname	= &trim($row[1]);
+		$reviewstatuses{$reviewstatus}{name} = $reviewstatusname;
+	}
+	return %reviewstatuses;
+}
+
 sub Licenses {
 	my %licenses = ();
 	my $sql = "SELECT license FROM license";
@@ -288,6 +322,69 @@ sub Licenses {
 		$licenses{$license} = $license;
 	}
 	return %licenses;
+}
+
+sub Topics {
+	my %topics = ();
+	my $sql = "select topic_num, topic_name, topic_description from topic";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$topicnum	= &trim($row[0]);
+		$topicname	= &trim($row[1]);
+		$topicdesc	= &trim($row[2]);
+		$topics{$topicnum}{num}		= $topicnum;
+		$topics{$topicnum}{name}	= $topicname;
+		$topics{$topicnum}{description}	= $topicdesc;
+	}
+	return %topics;
+}
+
+sub Subtopics {
+	my $self = shift;
+	my $topic_num = shift;
+	my %subtopics = ();
+	my $sql = "select topic.topic_num, topic_name, topic_description, subtopic_num, subtopic_name, subtopic_description from subtopic, topic where subtopic.topic_num = topic.topic_num";
+	$sql .= " WHERE topic_num = $topic_num" if ($topic_num);
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$topicnum	= &trim($row[0]);
+		$topicname	= &trim($row[1]);
+		$topicdesc	= &trim($row[2]);
+		$subtopicnum	= &trim($row[3]);
+		$subtopicname	= &trim($row[4]);
+		$subtopicdesc	= &trim($row[5]);
+		$key		= $topicnum . '.' . $subtopicnum;
+		$subtopics{$key}{topicnum}	= $topicnum;
+		$subtopics{$key}{topicname}	= $topicname;
+		$subtopics{$key}{topicdesc}	= $topicdesc;
+		$subtopics{$key}{num}		= $subtopicnum;
+		$subtopics{$key}{name}		= $subtopicname;
+		$subtopics{$key}{description}	= $subtopicdesc;
+	}
+	return %subtopics;
+}
+
+sub Formats {
+	my %formats = ();
+	my $sql = "select format, format_name from format";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$format		= &trim($row[0]);
+		$formatname	= &trim($row[1]);
+		$formats{$format}{name}	= $formatname;
+	}
+	return %formats;
+}
+
+sub DTDs {
+	my %dtds = ();
+	my $sql = "select dtd from dtd";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$dtd		= &trim($row[0]);
+		$dtds{$dtd}{dtd}	= $dtd;
+	}
+	return %dtds;
 }
 
 sub ReadCookie {
@@ -391,6 +488,40 @@ sub PubStatusCombo {
 	return $pubstatuscombo;
 }
 
+sub ReviewStatusCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %reviewstatuses = ReviewStatuses();
+	my $reviewstatuscombo = "<select name='review_status'>\n";
+	$reviewstatuscombo .= "<option></option\n";
+	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
+		if ($selected eq $reviewstatus) {
+			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
+		} else {
+			$reviewstatuscombo .= "<option value='$reviewstatus'>$reviewstatuses{$reviewstatus}{name}</option>\n";
+		}
+	}
+	$reviewstatuscombo .= "</select>\n";
+	return $reviewstatuscombo;
+}
+
+sub TechReviewStatusCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %reviewstatuses = ReviewStatuses();
+	my $reviewstatuscombo = "<select name='tech_review_status'>\n";
+	$reviewstatuscombo .= "<option></option\n";
+	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
+		if ($selected eq $reviewstatus) {
+			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
+		} else {
+			$reviewstatuscombo .= "<option value='$reviewstatus'>$reviewstatuses{$reviewstatus}{name}</option>\n";
+		}
+	}
+	$reviewstatuscombo .= "</select>\n";
+	return $reviewstatuscombo;
+}
+
 sub LicenseCombo {
 	my $self = shift;
 	my $selected = shift;
@@ -406,6 +537,244 @@ sub LicenseCombo {
 	}
 	$licensecombo .= "</select>\n";
 	return $licensecombo;
+}
+
+sub TopicCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %topics = Topics();
+	my $topiccombo = "<select name='topic'>\n";
+	foreach $topic (sort { $a <=> $b } keys %topics) {
+		if ($selected eq $topic) {
+			$topiccombo .= "<option value='$topic' selected>$topics{$topic}{num}. $topics{$topic}{name}</option>\n";
+		} else {
+			$topiccombo .= "<option value='$topic'>$topics{$topic}{num}. $topics{$topic}{name}</option>\n";
+		}
+	}
+	$topiccombo .= "</select>\n";
+	return $topiccombo;
+}
+
+sub SubtopicCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %subtopics = Subtopics();
+	my $subtopiccombo = "<select name='topic'>\n";
+	foreach $subtopic (sort { $subtopics{$a}{topicnum} * 100 + $subtopics{$a}{num} <=> $subtopics{$b}{topicnum} * 100 + $subtopics{$b}{num} } keys %subtopics) {
+		if ($selected eq $subtopic) {
+			$subtopiccombo .= "<option value='$subtopic' selected>$subtopics{$subtopic}{topicnum}.$subtopics{$subtopic}{num}. $subtopics{$subtopic}{topicname}: $subtopics{$subtopic}{name}</option>\n";
+		} else {
+			$subtopiccombo .= "<option value='$subtopic'>$subtopics{$subtopic}{topicnum}.$subtopics{$subtopic}{num}. $subtopics{$subtopic}{topicname}: $subtopics{$subtopic}{name}</option>\n";
+		}
+	}
+	$subtopiccombo .= "</select>\n";
+	return $subtopiccombo;
+}
+
+sub FormatCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %formats = Formats();
+	my $formatcombo = "<select name='format'>\n";
+	$formatcombo .= "<option></option>\n";
+	foreach $format (sort { $formats{$a}{name} <=> $formats{$b}{name} } keys %formats) {
+		if ($selected eq $format) {
+			$formatcombo .= "<option selected>$format</option>\n";
+		} else {
+			$formatcombo .= "<option>$format</option>\n";
+		}
+	}
+	$formatcombo .= "</select>\n";
+	return $formatcombo;
+}
+
+sub DTDCombo {
+	my $self = shift;
+	my $selected = shift;
+	my %dtds = DTDs();
+	my $dtdcombo = "<select name='dtd'>\n";
+	$dtdcombo .= "<option></option>\n";
+	foreach $dtd (sort { $dtds{$a}{dtd} <=> $dtds{$b}{dtd} } keys %dtds) {
+		if ($selected eq $dtd) {
+			$dtdcombo .= "<option selected>$dtd</option>\n";
+		} else {
+			$dtdcombo .= "<option>$dtd</option>\n";
+		}
+	}
+	$dtdcombo .= "</select>\n";
+	return $dtdcombo;
+}
+
+sub UsersTable {
+	my $table = "<table class='box'>\n";
+	my %users = Users();
+	$table .= "<tr><th>Username</th><th>First Name</th><th>Middle Name</th><th>Surname</th><th>Email</th><th>Admin</th></tr>\n";
+	foreach $key (sort { uc($users{$a}{username}) cmp uc($users{$b}{username}) } keys %users) {
+		$table .= "<tr><td>" . a({href=>"user_edit.pl?user_id=$users{$key}{id}"},"$users{$key}{username}") . "</td>";
+		$table .= "<td>$users{$key}{first_name}</td>\n";
+		$table .= "<td>$users{$key}{middle_name}</td>\n";
+		$table .= "<td>$users{$key}{surname}</td>\n";
+		$table .= "<td>$users{$key}{email}</td>\n";
+		$table .= "<td>" . bool2yn($users{$key}{admin}) . "</td>\n";
+		$table .= "</tr>";
+		$count++;
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub UserTable {
+	my $self = shift;
+	my $user_id = shift;
+	my %user = User($foo, $user_id);
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<form name=edit method=POST action='user_save.pl'>";
+	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
+	$table .= "<tr><th colspan=2>User Details</th></tr>\n";
+	$table .= "<tr><th>Username:</th><td><input type=text name='username' size=30 value='$user{username}'></input></td></tr>\n";
+	$table .= "<tr><th>First Name:</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Middle Name:</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
+	$table .= "<tr><th>Surname:</th><td><input type=text name='surname' size=30 value='$user{surname}'></input></td></tr>\n";
+	$table .= "<tr><th>Email:</th><td><input type=text name='email' size=30 value='$user{email}'></input></td></tr>\n";
+	if (&Admin()) {
+		$table .= "<tr><th>Admin:</th><td><select name='admin'>\n";
+		if ($user{admin}) {
+			$table .= "<option selected value='t'>Yes</option>\n";
+			$table .= "<option value='f'>No</option>\n";
+		} else {
+			$table .= "<option value='t'>Yes</option>\n";
+			$table .= "<option selected value='f'>No</option>\n";
+		}
+		$table .= "</select></td></tr>\n";
+	}
+	$table .= "<tr><th>New Password:</th><td><input type=password name='password' size=12></input></td></tr>";
+	$table .= "<tr><td></td><td><input type=submit value=Save></td></tr>";
+	$table .= "</form>";
+	$table .= "</table>";
+	return $table;
+}
+
+sub UserDocsTable {
+	my $self = shift;
+	my $user_id = shift;
+	my %docs = UserDocs($foo, $user_id);
+	my $table = '';
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th>Title</th><th>Class</th><th>Doc Status</th><th>Role</th><th>Active</th><th>Feedback Email</th></tr>\n";
+	foreach $doc (sort { uc($docs{$a}{title}) cmp uc($docs{$b}{title}) } keys %docs) {
+		$table .= "<tr>";
+		$table .= "<td valign=top><a href='document_edit.pl?doc_id=$docs{$doc}{id}'>$docs{$doc}{title}</a>\n";
+		if ($docs{$doc}{url}) {
+			$table .= " <a href=$docs{$doc}{url}>Go!</a>"
+		}
+		$table .= "</td>\n";
+		$table .= "<td valign=top>$docs{$doc}{class}</td>\n";
+		$table .= "<td valign=top>$docs{$doc}{pub_status_name}</td>\n";
+		$table .= "<td valign=top>$docs{$doc}{role}</td>\n";
+		$table .= "<td valign=top>" . &bool2yn($docs{$doc}{active}) . "</td>\n";
+		$table .= "<td valign=top>$docs{$doc}{email}</td>\n";
+		$table .= "</tr>\n";
+	}
+	$table .= "</table>\n";
+	return $table;
+}
+
+sub DocTable {
+	my $self = shift;
+	my $doc_id = shift;
+	my %doc = Doc($foo, $doc_id);
+	my $doctable = '';
+	$doctable .= "<table class='box'>\n";
+	$doctable .= "<form method=POST action='document_save.pl' name='edit'>\n";
+	$doctable .= "<tr>\n";
+	$doctable .= "<th colspan=6>Document Details</th>\n";
+	$doctable .= "</tr>\n";
+	$doctable .= "<tr>\n";
+	$doctable .= "<th align=right>Title:</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
+	$doctable .= "</tr>\n";
+	$doctable .= "<tr>\n";
+	$doctable .= "<th align=right>Filename:</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right><a href='$url'>URL</a>:</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right><a href='$ref_url'>Home</a>:</th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Status:</th><td>";
+	$doctable .= PubStatusCombo($foo, $doc{pub_status});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>Class:</th><td>\n";
+	$doctable .= ClassCombo($foo, $doc{class});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>Maintained:</th><td>\n";
+	if ($doc{maintained}) {
+		$doctable .= 'Yes';
+	} else {
+		$doctable .= 'No';
+	}
+	$doctable .= "</td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Review Status:</th><td>";
+	$doctable .= ReviewStatusCombo($foo, $doc{review_status});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>Tech Review:</th><td>";
+	$doctable .= TechReviewStatusCombo($foo, $doc{tech_review_status});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right><a href='/help/license.html'>?</a>&nbsp;License:</th><td>";
+	$doctable .= LicenseCombo($foo, $doc{license});
+	$doctable .= "</td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Published:</th><td><input type=text name=pub_date size=10 value='$doc{pub_date}'></td>";
+	$doctable .= "<th align=right>Updated:</th><td><input type=text name=last_update size=10 value='$doc{last_update}'></td>";
+	$doctable .= "<th align=right>Version:</th><td><input type=text name=version size=10 value='$doc{version}'></td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Format:</th><td>";
+	$doctable .= FormatCombo($foo, $doc{format});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>DTD:</th><td>";
+	$doctable .= DTDCombo($foo, $doc{dtd});
+	$doctable .= "</td>";
+	$doctable .= "<th align=right>DTD Version:</th><td>";
+	$doctable .= "<input type=text name=dtd_version size=10 value='$doc{dtd_version}'>";
+	$doctable .= "</td>";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value='$doc{tickle_date}'></td>";
+	$doctable .= "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$doc{isbn}'></td>";
+	$doctable .= "<th align=right>Rating</th>\n";
+	$doctable .= "<td>";
+	if ( $doc{rating} > 0 ) {
+	  $doctable .= "<table class='bargraph'>\n";
+	  for ( $i = 1; $i <= 10; $i++ ) {
+	    $doctable .= "<td class='";
+	    if ( $doc{rating} >= $i ) { $doctable .= "baron" } else { $doctable .= "baroff" }
+	    $doctable .= "'>&nbsp;&nbsp;</td>\n";
+	  }
+	  $doctable .= "</tr></table>\n";
+	}
+	else {
+	  $doctable .= "Not rated";
+	}
+	$doctable .= "</td>\n";
+	$doctable .= "</tr>\n<tr>\n";
+	$doctable .= "<th align=right>Abstract</th>";
+	$doctable .= "<td colspan=5><textarea name=abstract rows=6 cols=60 style='width:100%' wrap>$doc{abstract}</textarea></td>\n";
+	$doctable .= "</tr>\n";
+	$doctable .= "<tr>\n";
+	$doctable .= "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
+	$doctable .= "<td colspan=4>I am working on ways to provide easy online collaborative editing,
+	and always for new ways to make writing for the LDP easier.
+
+	<p>&quot;WikiText&quot; is a kind of specially formatted text used in lots of
+	WikiWikiWebs. It makes writing extremely simple. I've implemented a very basic
+	WikiText-style editing format that can be converted into DocBook.
+
+	<p>For more information, read the <a href='/help/wiki.html'>help page</a>.</td>\n";
+
+	$doctable .= "<td align=right><input type=submit name=save value=Save> <input type=submit name=saveandexit value='Save/Exit'></td>\n";
+	$doctable .= "</tr>\n";
+	$doctable .= "</form>\n";
+	$doctable .= "</table>\n";
+	return $doctable;
 }
 
 sub NavBar {
@@ -479,7 +848,7 @@ sub AdminBox {
 
 sub Login {
 	use String::Random;
-	my $L = shift;
+	my $self = shift;
 	my $title = shift;
 	my $username = $CGI->param('username');
 	push @errors, "Param('username'): " . $username if ($debug);
@@ -540,7 +909,7 @@ sub Logout {
 
 sub NewUser {
 	use String::Random;
-	my $L = shift;
+	my $self = shift;
 	my ($username, $first_name, $middle_name, $surname, $email, $admin, $password) = @_;
 	unless ($password) {
 		my $pwgen = new String::Random;
@@ -577,13 +946,13 @@ sub Redirect {
 		my $rootdir = Config($foo, 'root_dir');
 		$url = 'http://' . $hostname . $rootdir . $url;
 	}
-	$CGI->redirect($url);
+	print $CGI->redirect($url);
 	exit;
 }
 
 sub Mail {
 	use Mail::Sendmail;
-	my $L = shift;
+	my $self = shift;
 	my ($to, $subject, $message) = @_;
 	my $from = Config($foo, 'local_email');
 	my $smtp = Config($foo, 'smtp_server');
@@ -610,6 +979,15 @@ sub yn2bool {
 		return 1;
 	} else {
 		return 0;
+	}
+}
+
+sub bool2yn {
+	my $temp = shift;
+	if ($temp) {
+		return 'Yes';
+	} else {
+		return 'No';
 	}
 }
 1;

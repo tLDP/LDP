@@ -9,23 +9,39 @@ $L = new Lampadas;
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
-&UserDocs(11);
+#&UserDocs(11);
 &Doc(473);
-&DocUsers(473);
-&User(11);
-&Roles();
-&Classes();
-&PubStatuses();
-&Users();
-&Docs();
-&Config();
-&NewUser();
+#&DocUsers(473);
+#&User(11);
+#&Roles();
+#&Classes();
+#&PubStatuses();
+#&ReviewStatuses();
+#&Licenses();
+#&Topics();
+#&Subtopics();
+#&Formats();
+#&DTDs();
+#&Users();
+#&Docs();
+#&Config();
+#&NewUser();
 
-&NavBar();
-&RoleCombo();
-&ClassCombo();
-&PubStatusCombo();
-&LicenseCombo();
+#&NavBar();
+#&RoleCombo();
+#&ClassCombo();
+#&PubStatusCombo();
+#&ReviewStatusCombo();
+#&TechReviewStatusCombo();
+#&LicenseCombo();
+#&TopicCombo();
+#&SubtopicCombo();
+#&FormatCombo();
+#&DTDCombo();
+#&UsersTable();
+#&UserTable(11);
+#&UserDocsTable(11);
+&DocTable(471);
 
 sub UserDocs {
 	my $user_id = shift;
@@ -44,6 +60,17 @@ sub Doc {
 	print "DocID: $doc{id}\n";
 	print "Title: $doc{title}\n";
 	print "Filename: $doc{filename}\n";
+	print "URL: $doc{url}\n";
+	print "Ref: $doc{ref_url}\n";
+	print "PubStatus: $doc{pub_status}\n";
+	print "ReviewStatus: $doc{review_status}\n";
+	print "TR Status: $doc{tech_review_status}\n";
+	print "License: $doc{license}\n";
+	print "Published: $doc{pub_date}\n";
+	print "Updated: $doc{last_update}\n";
+	print "Version: $doc{version}\n";
+	print "Format: $doc{format}\n";
+	print "DTD: $doc{dtd}\n";
 	print "\n";
 }
 
@@ -93,12 +120,70 @@ sub Classes {
 }
 
 sub PubStatuses {
-	$pubstatuses = $L->PubStatuses();
+	%pubstatuses = $L->PubStatuses();
 	print "PubStatuses:\n";
 	foreach $pubstatus (keys %pubstatuses) {
-		print "$pubstatus\n";
+		print "$pubstatus: $pubstatuses{$pubstatus}{name}\n";
 	}
 	print "Count: " . scalar $pubstatuses . "\n";
+	print "\n";
+}
+
+sub ReviewStatuses {
+	%reviewstatuses = $L->ReviewStatuses();
+	print "ReviewStatuses:\n";
+	foreach $reviewstatus (keys %reviewstatuses) {
+		print "$reviewstatus: $reviewstatuses{$reviewstatus}{name}\n";
+	}
+	print "Count: " . scalar $reviewstatuses . "\n";
+	print "\n";
+}
+
+sub Licenses {
+	%licenses = $L->Licenses();
+	print "Licenses:\n";
+	foreach $license (keys %licenses) {
+		print "$license\n";
+	}
+	print "Count: " . scalar $licenses . "\n";
+	print "\n";
+}
+
+sub Topics {
+	%topics = $L->Topics();
+	print "Topics:\n";
+	foreach $topic (sort { $a <=> $b } keys %topics) {
+		print $topics{$topic}{num} . ", " . $topics{$topic}{name} . ", " . $topics{$topic}{description} . "\n";
+	}
+	print "Count: " . scalar $topics . "\n";
+	print "\n";
+}
+
+sub Subtopics {
+	%subtopics = $L->Subtopics();
+	print "Subtopics:\n";
+	foreach $subtopic (sort { $a <=> $b } keys %subtopics) {
+		print $subtopics{$subtopic}{topicnum} . "." . $subtopics{$subtopic}{num} . " " . $subtopics{$subtopic}{name} . ", " . $subtopics{$subtopic}{description} . "\n";
+	}
+	print "Count: " . scalar $topics . "\n";
+	print "\n";
+}
+
+sub Formats {
+	%formats = $L->Formats();
+	print "Formats:\n";
+	foreach $format (sort { $format{$a}{name} <=> $format{$b}{name} } keys %formats) {
+		print "$format: $formats{$format}{name}\n";
+	}
+	print "\n";
+}
+
+sub DTDs {
+	%dtds = $L->DTDs();
+	print "DTDs:\n";
+	foreach $dtd (sort { $dtd{$a}{dtd} <=> $dtd{$b}{dtd} } keys %dtds) {
+		print "$dtd: $dtds{$dtd}{dtd}\n";
+	}
 	print "\n";
 }
 
@@ -157,8 +242,71 @@ sub PubStatusCombo {
 	print "\n";
 }
 
+sub ReviewStatusCombo {
+	print "ReviewStatusCombo:\n";
+	print $L->ReviewStatusCombo("P");
+	print "\n";
+}
+
+sub TechReviewStatusCombo {
+	print "TechReviewStatusCombo:\n";
+	print $L->TechReviewStatusCombo("P");
+	print "\n";
+}
+
 sub LicenseCombo {
 	print "LicenseCombo:\n";
-	print $L->LicenseCombo("BOILERPLATE");
+	print $L->LicenseCombo("GFDL");
+	print "\n";
+}
+
+sub TopicCombo {
+	print "TopicCombo:\n";
+	print $L->TopicCombo("5");
+	print "\n";
+}
+
+sub SubtopicCombo {
+	print "SubtopicCombo:\n";
+	print $L->SubtopicCombo("5.1");
+	print "\n";
+}
+
+sub FormatCombo {
+	print "FormatCombo:\n";
+	print $L->FormatCombo("XML");
+	print "\n";
+}
+
+sub DTDCombo {
+	print "DTDCombo:\n";
+	print $L->DTDCombo("DocBook");
+	print "\n";
+}
+
+sub UsersTable {
+	print "UsersTable:\n";
+	print $L->UsersTable();
+	print "\n";
+}
+
+sub UserTable {
+	my $user_id = shift;
+	print "UserTable:\n";
+	print $L->UserTable($user_id);
+	print "\n";
+}
+
+sub UserDocsTable {
+	my $user_id = shift;
+	print "UserDocsTable:\n";
+	print $L->UserDocsTable($user_id);
+	print "\n";
+}
+
+sub DocTable {
+	my $doc_id = shift;
+	print "DocTable:\n";
+	print $L->DocTable($doc_id);
 	print "\n";
 }

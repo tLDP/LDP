@@ -17,7 +17,6 @@ WriteMakefile(
     NOECHO        => '',
     VERSION_FROM  => 'lib/Lampadas.pm',
     EXE_FILES	  => '',
-    TESTS         => 'lib/test.pl',
     PREREQ_PM     => { 
                        'Mail::Sendmail'	=> 0,
 		       'String::Random'	=> 0,
