@@ -2225,6 +2225,19 @@ class TabFileMetadata(Table):
                             sourcefile.isbn))
         return box.get_value()
 
+class TabEditThisPage(Table):
+    
+    def __init__(self):
+        Table.__init__(self, 'edit_this_page', self.method)
+
+    def method(self, uri):
+        log(3, 'Creating edit_this_page table')
+        if not sessions.session:
+            return ''
+        elif sessions.session.user.can_edit(page_code=uri.page_code)==0:
+            return ''
+        return '<center><a href="|uri.base|page_edit/|uri.page_code||uri.lang_ext|">|stredit_this_page|</a></center>'
+
 class TableMap(LampadasCollection):
 
     def __init__(self):
@@ -2241,6 +2254,7 @@ class TableMap(LampadasCollection):
         self['tabstring'] = TabString()
         self['tabomf'] = TabOMF()
         self['tabfile_metadata'] = TabFileMetadata()
+        self['tabedit_this_page'] = TabEditThisPage()
 
 tables = Tables()
 tablemap = TableMap()
