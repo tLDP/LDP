@@ -1,0 +1,3724 @@
+<!doctype linuxdoc system>
+
+<!-- LyX 1.1 created this file. For more info see http://www.lyx.org/ -->
+<article>
+<title>
+KernelAnalysis-HOWTO
+</title>
+<author>
+Roberto Arcomano 
+</author>
+<date>
+v0.5, 27 April 2002
+</date>
+<abstract>
+This document tries to explain some things about the Linux Kernel, such
+ as the most important components, how they work, and so on. This HOWTO should
+ help prevent the reader from needing to browse all the kernel source files
+ searching for the"right function," declaration, and definition, and then linking
+ each to the other. You can find the latest version of this document at <url url="http://bertolinux.fatamorgana.com" name="http://bertolinux.fatamorgana.com"> If
+ you have suggestions to help make this document better, please submit your
+ ideas to me at the following address: <url url="mailto:berto@fatamorgana.com" name="berto@fatamorgana.com">
+</abstract>
+<sect>
+Introduction
+<sect1>
+Introduction
+<p>
+This HOWTO tries to define how parts of the<bf> </bf>Linux Kernel work, what are
+ the main functions and data structures used, and how the "wheel spins". You can
+ find the latest version of this document at <url url="http://www.fatamorgana.com/bertolinux" name="http://www.fatamorgana.com/bertolinux"> If you have suggestions to help
+ make this document better, please submit your ideas to me at the following
+ address: <url url="mailto:berto@fatamorgana.com" name="berto@fatamorgana.com">Code used within this document refers to the Linux Kernel version
+ 2.4.x, which is the last stable kernel version at time of writing this HOWTO.
+</p>
+<p>
+
+</p>
+<sect1>
+Copyright
+<p>
+Copyright (C) 2000,2001 Roberto Arcomano. This document is free; you can
+ redistribute it and/or modify it under the terms of the GNU General Public
+ License as published by the Free Software Foundation; either version 2 of the
+ License, or (at your option) any later version. This document is distributed
+ in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+ the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ See the GNU General Public License for more details. You can get a copy of
+ the GNU GPL <url url="http://www.gnu.org/copyleft/gpl.html" name="here">
+</p>
+<sect1>
+Translations
+<p>
+If you want to translate this document you are free to do so. However,
+ you will need to do the following: 
+</p>
+<p>
+<enum>
+ <item>
+Check that another version of the document doesn't already exist at your
+ local LDP
+ <item>
+Maintain all 'Introduction' sections (including 'Introduction', 'Copyright',
+ 'Translations' , 'Credits').
+</enum>
+</p><p>
+No need to ask me to translate! You just have to let me know (if you want)
+ about your translation.
+</p>
+<p>
+Thank you for your translation!
+</p>
+<sect1>
+Credits
+<p>
+Thanks to <url url="http://www.linuxdoc.org" name="Linux Documentation Project"> for publishing and uploading my document quickly.
+</p>
+<sect>
+Syntax used
+<sect1>
+Function Syntax
+<p>
+When speaking about a function, we write: 
+</p>
+<p>
+<verb>
+&quot;function_name  &lsqb; file location . extension &rsqb;&quot;
+</verb>
+</p><p>
+For example: 
+</p>
+<p>
+<verb>
+&quot;schedule &lsqb;kernel/sched.c&rsqb;&quot; 
+</verb>
+</p><p>
+tells us that we talk about 
+</p>
+<p>
+&quot;schedule&quot; 
+</p>
+<p>
+function retrievable from file 
+</p>
+<p>
+&lsqb; kernel/sched.c &rsqb;
+</p>
+<p>
+Note: We also assume /usr/src/linux as the starting directory.
+</p>
+<sect1>
+Indentation
+<p>
+Indentation in source code is 3 blank characters.
+</p>
+<sect1>
+InterCallings Analysis
+<sect2>
+Overview
+<p>
+We use the"InterCallings Analysis "(ICA) to see (in an indented fashion)
+ how kernel functions call each other. 
+</p>
+<p>
+For example, the sleep_on command is described in ICA below:
+</p>
+<p>
+<verb>
+|sleep_on
+|init_waitqueue_entry      --
+|__add_wait_queue            |   enqueuing request  
+   |list_add                 |
+      |__list_add          -- 
+   |schedule              ---     waiting for request to be executed
+      |__remove_wait_queue --   
+      |list_del              |   dequeuing request
+         |__list_del       -- 
+ 
+                          sleep_on ICA
+
+</verb>
+</p><p>
+The indented ICA is followed by functions' locations:
+</p>
+<p>
+<itemize>
+ <item>
+sleep_on &lsqb;kernel/sched.c&rsqb;
+ <item>
+init_waitqueue_entry &lsqb;include/linux/wait.h&rsqb;
+ <item>
+__add_wait_queue
+ <item>
+list_add &lsqb;include/linux/list.h&rsqb;
+ <item>
+__list_add
+ <item>
+schedule &lsqb;kernel/sched.c&rsqb;
+ <item>
+__remove_wait_queue &lsqb;include/linux/wait.h&rsqb;
+ <item>
+list_del &lsqb;include/linux/list.h&rsqb;
+ <item>
+__list_del
+</itemize>
+</p><p>
+Note: We don't specify anymore file location, if specified just before.
+</p>
+<sect2>
+Details
+<p>
+In an ICA a line like looks like the following 
+</p>
+<p>
+<verb>
+ function1 -&gt; function2
+</verb>
+</p><p>
+means that &lt; function1 &gt; is a generic pointer to another function.
+ In this case &lt; function1 &gt;  points to &lt; function2 &gt;.
+</p>
+<p>
+When we write:
+</p>
+<p>
+<verb>
+  function:
+</verb>
+</p><p>
+it means that &lt; function &gt; is not a real function. It is a label
+ (typically assembler label).
+</p>
+<p>
+In many sections we may report a ''C'' code or a ''pseudo-code''. In real
+ source files, you could use ''assembler'' or ''not structured'' code.  This
+ difference is for learning purposes.
+</p>
+<sect2>
+Pros of using ICA
+<p>
+The advantages of using ICA (InterCallings Analysis) are many:
+</p>
+<p>
+<itemize>
+ <item>
+You get an overview of what happens when you call a kernel function 
+ <item>
+Function locations are indicated after the function, so ICA could also
+ be considered as a little ''function reference''
+ <item>
+InterCallings Analysis (ICA) is useful in sleep/awake mechanisms, where
+ we can view what we do before sleeping, the proper sleeping action, and what
+ we'll do after waking up (after schedule).
+</itemize>
+</p><sect2>
+Cons of using ICA
+<p>
+<itemize>
+ <item>
+Some of the disadvantages of using ICA are listed below:
+</itemize>
+</p><p>
+As all theoretical models, we simplify reality avoiding many details, such
+ as real source code and special conditions.
+</p>
+<p>
+<itemize>
+ <item>
+Additional diagrams should be added to better represent stack conditions,
+ data values, and so on.
+</itemize>
+</p><sect>
+Fundamentals
+<sect1>
+What is the kernel?
+<p>
+The kernel is the "core" of any computer system: it is the  "software" which
+ allows users to share computer resources.
+</p>
+<p>
+The kernel can be thought ofas the main software of the OS (Operating System),
+ which may also include graphics management. 
+</p>
+<p>
+For example, under Linux (like other Unix-like OSs), the XFree environment
+ doesn't belong to the Linux Kernel, because it manages only graphical operations
+ (it uses user mode I/O to access video card devices). 
+</p>
+<p>
+By contrast, Windows environments (Win9x, WinME, WinNT, Win2K, WinXP, and
+ so on) are a mix between a graphical environment and kernel.
+</p>
+<sect1>
+What is the difference between User Mode and Kernel Mode?
+<sect2>
+Overview
+<p>
+Many years ago, when computers were as big as a room, users ran their applications
+ with much difficulty and, sometimes, their applications crashed the computer.
+ 
+</p>
+<sect2>
+Operative modes
+<p>
+To avoid having applications that constantly crashed, newer OSs were designed
+ with 2 different operative modes:
+</p>
+<p>
+<enum>
+ <item>
+Kernel Mode: the machine operates with critical data structure, direct
+ hardware (IN/OUT or memory mapped), direct memory, IRQ, DMA, and so on.
+ <item>
+User Mode: users can run applications.
+</enum>
+<p>
+<verb>
+                      
+               |          Applications           /|&bsol;
+               |         ______________           |
+               |         | User Mode  |           |  
+               |         ______________           | 
+               |               |                  |  
+Implementation |        _______ _______           |   Abstraction
+    Detail     |        | Kernel Mode |           |
+               |        _______________           |
+               |               |                  |
+               |               |                  | 
+               |               |                  |
+              &bsol;|/          Hardware               |
+</verb>
+</p><p>
+Kernel Mode "prevents" User Mode applications from damaging the system or
+ its features.
+</p>
+<p>
+Modern microprocessors implement in hardware at least 2 different states.
+ For example under Intel, 4 states determine the PL (Privilege Level). It is
+ possible to use 0,1,2,3 states, with 0 used in Kernel Mode. 
+</p>
+<p>
+Unix OS requires only 2 privilege levels, and we will use such a paradigm
+ as point of reference.
+</p>
+<sect1>
+Switching from User Mode to Kernel Mode
+<sect2>
+When do we switch?
+<p>
+Once we understand that there are 2 different modes, we have to know when
+ we switch from one to the other.
+</p>
+<p>
+Typically, there are 2 points of switching:
+</p>
+<p>
+<enum>
+ <item>
+When calling a System Call: after calling a System Call, the task voluntary
+ calls pieces of code living in Kernel Mode
+ <item>
+When an IRQ (or exception) comes: after the IRQ an IRQ handler (or exception
+ handler) is called, then control returns back to the task that was interrupted
+ like nothing was happened.
+</enum>
+</p><sect2>
+System Calls
+<p>
+System calls are like special functions that manage OS routines which live
+ in Kernel Mode.
+</p>
+<p>
+A system call can be called when we:
+</p>
+<p>
+<itemize>
+ <item>
+access an I/O device or a file (like read or write)
+ <item>
+need to access privileged information (like pid, changing scheduling policy
+ or other information)
+ <item>
+need to change execution context (like forking or executing some other
+ application) 
+ <item>
+need to execute a particular command (like ''chdir'', ''kill", ''brk'',
+ or ''signal'')
+</itemize>
+<p>
+<verb>
+                                 |                |
+                         -------&gt;| System Call i  | (Accessing Devices)
+|                |       |       |  &lsqb;sys_read()&rsqb;  |
+| ...            |       |       |                |
+| system_call(i) |--------       |                |
+|   &lsqb;read()&rsqb;     |               |                |
+| ...            |               |                |
+| system_call(j) |--------       |                |  
+|   &lsqb;get_pid()&rsqb;  |       |       |                |
+| ...            |       -------&gt;| System Call j  | (Accessing kernel data structures)
+|                |               |  &lsqb;sys_getpid()&rsqb;|
+                                 |                | 
+ 
+    USER MODE                        KERNEL MODE
+ 
+  
+                        Unix System Calls Working 
+</verb>
+</p><p>
+System calls are almost the only interface used by User Mode to talk with
+ low level resources (hardware). The only exception to this statement is when
+ a process uses ''ioperm'' system call. In this case a device can be accessed
+ directly by User Mode process (IRQs cannot be used).
+</p>
+<p>
+NOTE: Not every ''C'' function is a system call, only some of them.
+</p>
+<p>
+Below is a list of System Calls under Linux Kernel 2.4.17, from &lsqb;
+ arch/i386/kernel/entry.S &rsqb;
+</p>
+<p>
+<verb>
+        .long SYMBOL_NAME(sys_ni_syscall)       /* 0  -  old &quot;setup()&quot; system call*/
+        .long SYMBOL_NAME(sys_exit)
+        .long SYMBOL_NAME(sys_fork)
+        .long SYMBOL_NAME(sys_read)
+        .long SYMBOL_NAME(sys_write)
+        .long SYMBOL_NAME(sys_open)             /* 5 */
+        .long SYMBOL_NAME(sys_close)
+        .long SYMBOL_NAME(sys_waitpid)
+        .long SYMBOL_NAME(sys_creat)
+        .long SYMBOL_NAME(sys_link)
+        .long SYMBOL_NAME(sys_unlink)           /* 10 */
+        .long SYMBOL_NAME(sys_execve)
+        .long SYMBOL_NAME(sys_chdir)
+        .long SYMBOL_NAME(sys_time)
+        .long SYMBOL_NAME(sys_mknod)
+        .long SYMBOL_NAME(sys_chmod)            /* 15 */
+        .long SYMBOL_NAME(sys_lchown16)
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old break syscall holder */
+        .long SYMBOL_NAME(sys_stat)
+        .long SYMBOL_NAME(sys_lseek)
+        .long SYMBOL_NAME(sys_getpid)           /* 20 */
+        .long SYMBOL_NAME(sys_mount)
+        .long SYMBOL_NAME(sys_oldumount)
+        .long SYMBOL_NAME(sys_setuid16)
+        .long SYMBOL_NAME(sys_getuid16)
+        .long SYMBOL_NAME(sys_stime)            /* 25 */
+        .long SYMBOL_NAME(sys_ptrace)
+        .long SYMBOL_NAME(sys_alarm)
+        .long SYMBOL_NAME(sys_fstat)
+        .long SYMBOL_NAME(sys_pause)
+        .long SYMBOL_NAME(sys_utime)            /* 30 */
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old stty syscall holder */
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old gtty syscall holder */
+        .long SYMBOL_NAME(sys_access)
+        .long SYMBOL_NAME(sys_nice)
+        .long SYMBOL_NAME(sys_ni_syscall)       /* 35 */                /* old ftime syscall holder */
+        .long SYMBOL_NAME(sys_sync)
+        .long SYMBOL_NAME(sys_kill)
+        .long SYMBOL_NAME(sys_rename)
+        .long SYMBOL_NAME(sys_mkdir)
+        .long SYMBOL_NAME(sys_rmdir)            /* 40 */
+        .long SYMBOL_NAME(sys_dup)
+        .long SYMBOL_NAME(sys_pipe)
+        .long SYMBOL_NAME(sys_times)
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old prof syscall holder */
+        .long SYMBOL_NAME(sys_brk)              /* 45 */
+        .long SYMBOL_NAME(sys_setgid16)
+        .long SYMBOL_NAME(sys_getgid16)
+        .long SYMBOL_NAME(sys_signal)
+        .long SYMBOL_NAME(sys_geteuid16)
+        .long SYMBOL_NAME(sys_getegid16)        /* 50 */
+        .long SYMBOL_NAME(sys_acct)
+        .long SYMBOL_NAME(sys_umount)                                   /* recycled never used phys() */
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old lock syscall holder */
+        .long SYMBOL_NAME(sys_ioctl)
+        .long SYMBOL_NAME(sys_fcntl)            /* 55 */
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old mpx syscall holder */
+        .long SYMBOL_NAME(sys_setpgid)
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old ulimit syscall holder */
+        .long SYMBOL_NAME(sys_olduname)
+        .long SYMBOL_NAME(sys_umask)            /* 60 */
+        .long SYMBOL_NAME(sys_chroot)
+        .long SYMBOL_NAME(sys_ustat)
+        .long SYMBOL_NAME(sys_dup2)
+        .long SYMBOL_NAME(sys_getppid)
+        .long SYMBOL_NAME(sys_getpgrp)          /* 65 */
+        .long SYMBOL_NAME(sys_setsid)
+        .long SYMBOL_NAME(sys_sigaction)
+        .long SYMBOL_NAME(sys_sgetmask)
+        .long SYMBOL_NAME(sys_ssetmask)
+        .long SYMBOL_NAME(sys_setreuid16)       /* 70 */
+        .long SYMBOL_NAME(sys_setregid16)
+        .long SYMBOL_NAME(sys_sigsuspend)
+        .long SYMBOL_NAME(sys_sigpending)
+        .long SYMBOL_NAME(sys_sethostname)
+        .long SYMBOL_NAME(sys_setrlimit)        /* 75 */
+        .long SYMBOL_NAME(sys_old_getrlimit)
+        .long SYMBOL_NAME(sys_getrusage)
+        .long SYMBOL_NAME(sys_gettimeofday)
+        .long SYMBOL_NAME(sys_settimeofday)
+        .long SYMBOL_NAME(sys_getgroups16)      /* 80 */
+        .long SYMBOL_NAME(sys_setgroups16)
+        .long SYMBOL_NAME(old_select)
+        .long SYMBOL_NAME(sys_symlink)
+        .long SYMBOL_NAME(sys_lstat)
+        .long SYMBOL_NAME(sys_readlink)         /* 85 */
+        .long SYMBOL_NAME(sys_uselib)
+        .long SYMBOL_NAME(sys_swapon)
+        .long SYMBOL_NAME(sys_reboot)
+        .long SYMBOL_NAME(old_readdir)
+        .long SYMBOL_NAME(old_mmap)             /* 90 */
+        .long SYMBOL_NAME(sys_munmap)
+        .long SYMBOL_NAME(sys_truncate)
+        .long SYMBOL_NAME(sys_ftruncate)
+        .long SYMBOL_NAME(sys_fchmod)
+        .long SYMBOL_NAME(sys_fchown16)         /* 95 */
+        .long SYMBOL_NAME(sys_getpriority)
+        .long SYMBOL_NAME(sys_setpriority)
+        .long SYMBOL_NAME(sys_ni_syscall)                               /* old profil syscall holder */
+        .long SYMBOL_NAME(sys_statfs)
+        .long SYMBOL_NAME(sys_fstatfs)          /* 100 */
+        .long SYMBOL_NAME(sys_ioperm)
+        .long SYMBOL_NAME(sys_socketcall)
+        .long SYMBOL_NAME(sys_syslog)
+        .long SYMBOL_NAME(sys_setitimer)
+        .long SYMBOL_NAME(sys_getitimer)        /* 105 */
+        .long SYMBOL_NAME(sys_newstat)
+        .long SYMBOL_NAME(sys_newlstat)
+        .long SYMBOL_NAME(sys_newfstat)
+        .long SYMBOL_NAME(sys_uname)
+        .long SYMBOL_NAME(sys_iopl)             /* 110 */
+        .long SYMBOL_NAME(sys_vhangup)
+        .long SYMBOL_NAME(sys_ni_syscall)       /* old &quot;idle&quot; system call */
+        .long SYMBOL_NAME(sys_vm86old)
+        .long SYMBOL_NAME(sys_wait4)
+        .long SYMBOL_NAME(sys_swapoff)          /* 115 */
+        .long SYMBOL_NAME(sys_sysinfo)
+        .long SYMBOL_NAME(sys_ipc)
+        .long SYMBOL_NAME(sys_fsync)
+        .long SYMBOL_NAME(sys_sigreturn)
+        .long SYMBOL_NAME(sys_clone)            /* 120 */
+        .long SYMBOL_NAME(sys_setdomainname)
+        .long SYMBOL_NAME(sys_newuname)
+        .long SYMBOL_NAME(sys_modify_ldt)
+        .long SYMBOL_NAME(sys_adjtimex)
+        .long SYMBOL_NAME(sys_mprotect)         /* 125 */
+        .long SYMBOL_NAME(sys_sigprocmask)
+        .long SYMBOL_NAME(sys_create_module)
+        .long SYMBOL_NAME(sys_init_module)
+        .long SYMBOL_NAME(sys_delete_module)
+        .long SYMBOL_NAME(sys_get_kernel_syms)  /* 130 */
+        .long SYMBOL_NAME(sys_quotactl)
+        .long SYMBOL_NAME(sys_getpgid)
+        .long SYMBOL_NAME(sys_fchdir)
+        .long SYMBOL_NAME(sys_bdflush)
+        .long SYMBOL_NAME(sys_sysfs)            /* 135 */
+        .long SYMBOL_NAME(sys_personality)
+        .long SYMBOL_NAME(sys_ni_syscall)       /* for afs_syscall */
+        .long SYMBOL_NAME(sys_setfsuid16)
+        .long SYMBOL_NAME(sys_setfsgid16)
+        .long SYMBOL_NAME(sys_llseek)           /* 140 */
+        .long SYMBOL_NAME(sys_getdents)
+        .long SYMBOL_NAME(sys_select)
+        .long SYMBOL_NAME(sys_flock)
+        .long SYMBOL_NAME(sys_msync)
+        .long SYMBOL_NAME(sys_readv)            /* 145 */
+        .long SYMBOL_NAME(sys_writev)
+        .long SYMBOL_NAME(sys_getsid)
+        .long SYMBOL_NAME(sys_fdatasync)
+        .long SYMBOL_NAME(sys_sysctl)
+        .long SYMBOL_NAME(sys_mlock)            /* 150 */
+        .long SYMBOL_NAME(sys_munlock)
+        .long SYMBOL_NAME(sys_mlockall)
+        .long SYMBOL_NAME(sys_munlockall)
+        .long SYMBOL_NAME(sys_sched_setparam)
+        .long SYMBOL_NAME(sys_sched_getparam)   /* 155 */
+        .long SYMBOL_NAME(sys_sched_setscheduler)
+        .long SYMBOL_NAME(sys_sched_getscheduler)
+        .long SYMBOL_NAME(sys_sched_yield)
+        .long SYMBOL_NAME(sys_sched_get_priority_max)
+        .long SYMBOL_NAME(sys_sched_get_priority_min)  /* 160 */
+        .long SYMBOL_NAME(sys_sched_rr_get_interval)
+        .long SYMBOL_NAME(sys_nanosleep)
+        .long SYMBOL_NAME(sys_mremap)
+        .long SYMBOL_NAME(sys_setresuid16)
+        .long SYMBOL_NAME(sys_getresuid16)      /* 165 */
+        .long SYMBOL_NAME(sys_vm86)
+        .long SYMBOL_NAME(sys_query_module)
+        .long SYMBOL_NAME(sys_poll)
+        .long SYMBOL_NAME(sys_nfsservctl)
+        .long SYMBOL_NAME(sys_setresgid16)      /* 170 */
+        .long SYMBOL_NAME(sys_getresgid16)
+        .long SYMBOL_NAME(sys_prctl)
+        .long SYMBOL_NAME(sys_rt_sigreturn)
+        .long SYMBOL_NAME(sys_rt_sigaction)
+        .long SYMBOL_NAME(sys_rt_sigprocmask)   /* 175 */
+        .long SYMBOL_NAME(sys_rt_sigpending)
+        .long SYMBOL_NAME(sys_rt_sigtimedwait)
+        .long SYMBOL_NAME(sys_rt_sigqueueinfo)
+        .long SYMBOL_NAME(sys_rt_sigsuspend)
+        .long SYMBOL_NAME(sys_pread)            /* 180 */
+        .long SYMBOL_NAME(sys_pwrite)
+        .long SYMBOL_NAME(sys_chown16)
+        .long SYMBOL_NAME(sys_getcwd)
+        .long SYMBOL_NAME(sys_capget)
+        .long SYMBOL_NAME(sys_capset)           /* 185 */
+        .long SYMBOL_NAME(sys_sigaltstack)
+        .long SYMBOL_NAME(sys_sendfile)
+        .long SYMBOL_NAME(sys_ni_syscall)               /* streams1 */
+        .long SYMBOL_NAME(sys_ni_syscall)               /* streams2 */
+        .long SYMBOL_NAME(sys_vfork)            /* 190 */
+        .long SYMBOL_NAME(sys_getrlimit)
+        .long SYMBOL_NAME(sys_mmap2)
+        .long SYMBOL_NAME(sys_truncate64)
+        .long SYMBOL_NAME(sys_ftruncate64)
+        .long SYMBOL_NAME(sys_stat64)           /* 195 */
+        .long SYMBOL_NAME(sys_lstat64)
+        .long SYMBOL_NAME(sys_fstat64)
+        .long SYMBOL_NAME(sys_lchown)
+        .long SYMBOL_NAME(sys_getuid)
+        .long SYMBOL_NAME(sys_getgid)           /* 200 */
+        .long SYMBOL_NAME(sys_geteuid)
+        .long SYMBOL_NAME(sys_getegid)
+        .long SYMBOL_NAME(sys_setreuid)
+        .long SYMBOL_NAME(sys_setregid)
+        .long SYMBOL_NAME(sys_getgroups)        /* 205 */
+        .long SYMBOL_NAME(sys_setgroups)
+        .long SYMBOL_NAME(sys_fchown)
+        .long SYMBOL_NAME(sys_setresuid)
+        .long SYMBOL_NAME(sys_getresuid)
+        .long SYMBOL_NAME(sys_setresgid)        /* 210 */
+        .long SYMBOL_NAME(sys_getresgid)
+        .long SYMBOL_NAME(sys_chown)
+        .long SYMBOL_NAME(sys_setuid)
+        .long SYMBOL_NAME(sys_setgid)
+        .long SYMBOL_NAME(sys_setfsuid)         /* 215 */
+        .long SYMBOL_NAME(sys_setfsgid)
+        .long SYMBOL_NAME(sys_pivot_root)
+        .long SYMBOL_NAME(sys_mincore)
+        .long SYMBOL_NAME(sys_madvise)
+        .long SYMBOL_NAME(sys_getdents64)       /* 220 */
+        .long SYMBOL_NAME(sys_fcntl64)
+        .long SYMBOL_NAME(sys_ni_syscall)       /* reserved for TUX */
+        .long SYMBOL_NAME(sys_ni_syscall)       /* Reserved for Security */
+        .long SYMBOL_NAME(sys_gettid)
+        .long SYMBOL_NAME(sys_readahead)        /* 225 */
+
+
+</verb>
+</p><sect2>
+IRQ Event
+<p>
+When an IRQ comes, the task that is running is interrupted in order to
+ service the IRQ Handler.
+</p>
+<p>
+After the IRQ is handled, control returns backs exactly to point of interrupt,
+ like nothing  happened.
+</p>
+<p>
+<verb>
+
+           
+              Running Task 
+             |-----------|          (3)
+NORMAL       |   |       | &lsqb;break execution&rsqb; IRQ Handler
+EXECUTION (1)|   |       |     -------------&gt;|---------| 
+             |  &bsol;|/      |     |             |  does   |         
+ IRQ (2)----&gt;| ..        |-----&gt;             |  some   |      
+             |   |       |&lt;-----             |  work   |       
+BACK TO      |   |       |     |             |  ..(4). |
+NORMAL    (6)|  &bsol;|/      |     &lt;-------------|_________|
+EXECUTION    |___________|  &lsqb;return to code&rsqb;
+                                    (5)
+               USER MODE                     KERNEL MODE
+
+         User-&gt;Kernel Mode Transition caused by IRQ event
+     
+</verb>
+</p><p>
+The numbered steps below refer to the sequence of events in the diagram
+ above:
+</p>
+<p>
+<enum>
+ <item>
+Process is executing
+ <item>
+IRQ comes while the task is running.
+ <item>
+Task is interrupted to call an "Interrupt handler".
+ <item>
+The "Interrupt handler" code is executed.
+ <item>
+Control returns back to task user mode (as if nothing happened)
+ <item>
+Process returns back to normal execution
+</enum>
+</p><p>
+Special interest has the Timer IRQ, coming every TIMER ms to manage:
+</p>
+<p>
+<enum>
+ <item>
+Alarms
+</enum>
+</p><p>
+System and task counters (used by schedule to decide when stop a process
+ or for accounting)
+</p>
+<p>
+<enum>
+ <item>
+Multitasking based on wake up mechanism after TIMESLICE time.
+</enum>
+</p><sect1>
+Multitasking
+<sect2>
+Mechanism
+<p>
+The key point of modern OSs is the "Task". The Task is an application running
+ in memory sharing all resources (included CPU and Memory) with other Tasks.
+</p>
+<p>
+This "resource sharing" is managed by the  "Multitasking Mechanism". The Multitasking
+ Mechanism switches from one task to another after a "timeslice" time. Users have
+ the "illusion" that they own all resources. We can also imagine a single user
+ scenario, where a user can have the "illusion" of running many tasks at the same
+ time.
+</p>
+<p>
+To implement this multitasking, the task uses "the state" variable, which
+ can be:
+</p>
+<p>
+<enum>
+ <item>
+READY, ready for execution
+ <item>
+BLOCKED, waiting for a resource
+</enum>
+</p><p>
+The task state is managed by its presence in a relative list: READY list
+ and BLOCKED list.
+</p>
+<sect2>
+Task Switching
+<p>
+The movement from one task to another is called ''Task Switching''. many
+ computers have a hardware instruction which automatically performs this operation.
+ Task Switching occurs in the following cases:
+</p>
+<p>
+<enum>
+ <item>
+After Timeslice ends: we need to schedule a "Ready for execution" task and
+ give it access.
+ <item>
+When a Task has to wait for a device: we need to schedule a new task and
+ switch to it *
+</enum>
+</p><p>
+* We schedule another task to prevent   "Busy Form Waiting", which occurs
+ when we are waiting for a device instead performing other work.
+</p>
+<p>
+Task Switching is managed by the "Schedule" entity.
+</p>
+<p>
+<verb>
+ 
+Timer    |           |
+ IRQ     |           |                            Schedule
+  |      |           |                     ________________________
+  |-----&gt;|   Task 1  |&lt;------------------&gt;|(1)Chooses a Ready Task |
+  |      |           |                    |(2)Task Switching       |
+  |      |___________|                    |________________________|   
+  |      |           |                               /|&bsol;
+  |      |           |                                | 
+  |      |           |                                |
+  |      |           |                                |
+  |      |           |                                |      
+  |-----&gt;|   Task 2  |&lt;-------------------------------|
+  |      |           |                                |
+  |      |___________|                                |
+  .      .     .     .                                .
+  .      .     .     .                                .
+  .      .     .     .                                .
+  |      |           |                                |
+  |      |           |                                |
+  ------&gt;|   Task N  |&lt;--------------------------------
+         |           |
+         |___________| 
+    
+            Task Switching based on TimeSlice
+ 
+</verb>
+</p><p>
+A typical Timeslice for Linux is about 10 ms.
+</p>
+<p>
+<verb>
+
+ 
+
+ |           |            
+ |           | Resource    _____________________________
+ |   Task 1  |-----------&gt;|(1) Enqueue Resource request |
+ |           |  Access    |(2)  Mark Task as blocked    |
+ |           |            |(3)  Choose a Ready Task     |
+ |___________|            |(4)    Task Switching        |
+                          |_____________________________|
+                                       |
+                                       |
+ |           |                         |
+ |           |                         |
+ |   Task 2  |&lt;-------------------------
+ |           |  
+ |           |
+ |___________|
+ 
+     Task Switching based on Waiting for a Resource
+ 
+</verb>
+</p><sect1>
+Microkernel vs Monolithic OS
+<sect2>
+Overview
+<p>
+Until now we viewed so called Monolithic OS, but there is also another
+ kind of OS: ''Microkernel''.
+</p>
+<p>
+A Microkernel OS uses Tasks, not only for user mode processes, but also
+ as a real kernel manager, like Floppy-Task, HDD-Task, Net-Task and so on. Some
+ examples are Amoeba, and Mach. 
+</p>
+<sect2>
+Pros and Cons of Microkernal OS 
+<p>
+PROS:
+</p>
+<p>
+<itemize>
+ <item>
+OS is simpler to maintain because each Task manages a single kind of operation.
+ So if you want to modify networking, you modify Net-Task (ideally, if it is
+ not needed a structural update).
+</itemize>
+</p><p>
+CONS:
+</p>
+<p>
+<itemize>
+ <item>
+Performances are worse than Monolithic OS, because you have to add 2*TASK_SWITCH
+ times (the first to enter the specific Task, the second to go out from it).
+</itemize>
+</p><p>
+My personal opinion is that, Microkernels are a good didactic example (like
+ Minix) but they are not ''optimal'', so not really suitable. Linux uses a few
+ Tasks, called "Kernel Threads" to implement a little microkernel structure (like
+ kswapd, which is used to retrieve memory pages from mass storage). In this
+ case there are no problems with perfomance because swapping is a very slow
+ job.
+</p>
+<sect1>
+Networking
+<sect2>
+ISO OSI levels
+<p>
+Standard ISO-OSI describes a network architecture with the following levels:
+</p>
+<p>
+<enum>
+ <item>
+Physical level (examples: PPP and Ethernet)
+ <item>
+Data-link level (examples: PPP and Ethernet)
+ <item>
+Network level (examples: IP, and X.25)
+ <item>
+Transport level (examples: TCP, UDP)
+ <item>
+Session level (SSL)
+ <item>
+Presentation level (FTP binary-ascii coding)
+ <item>
+Application level (applications like Netscape)
+</enum>
+</p><p>
+The first 2 levels listed above are often implemented in hardware. The
+ nextlevels are in software (or firmware for routers).
+</p>
+<p>
+Many protocols are used by an OS: one of these is TCP/IP (the most important
+ living on 3-4 levels).
+</p>
+<sect2>
+What does the kernel?
+<p>
+The kernel doesn't know anything (only addresses) about first 2 levels
+ of ISO-OSI.
+</p>
+<p>
+In RX it:
+</p>
+<p>
+<enum>
+ <item>
+Manages handshake with low levels devices (like ethernet card or modem)
+ receiving "frames" from them.
+ <item>
+Builds TCP/IP "packets" from "frames" (like Ethernet or PPP ones), 
+ <item>
+Convers ''packets'' in ''sockets'' passing them to the right application
+ (using port number) or
+ <item>
+Forwards packets to the right queue
+</enum>
+<p>
+<verb>
+frames         packets              sockets
+NIC ---------&gt; Kernel ----------&gt; Application
+                  |    packets
+                  --------------&gt; Forward
+                        - RX - 
+</verb>
+</p><p>
+In TX  stage it:
+</p>
+<p>
+<enum>
+ <item>
+Converts sockets or 
+ <item>
+Queues datas into TCP/IP ''packets''
+ <item>
+Splits ''packets" into "frames" (like Ethernet or PPP ones)
+ <item>
+Sends ''frames'' using HW drivers
+</enum>
+<p>
+<verb>
+sockets       packets                     frames
+Application ---------&gt; Kernel ----------&gt; NIC
+              packets     /|&bsol;    
+Forward  -------------------
+                        - TX -  
+
+
+</verb>
+</p><sect1>
+Virtual Memory
+<sect2>
+Segmentation
+<p>
+Segmentation is the first method to solve memory allocation problems: it
+ allows you to compile source code without caring where the application will
+ be placed in memory. As a matter of fact, this feature helps applications developers
+ develop independently from the OS
+</p>
+<p>
+<verb>
+     
+            |       Stack        |
+            |          |         |
+            |         &bsol;|/        |
+            |        Free        | 
+            |         /|&bsol;        |     Segment &lt;---&gt; Process    
+            |          |         |
+            |        Heap        |
+            | Data uninitialized |
+            |  Data initialized  |
+            |       Code         |
+            |____________________|  
+ 
+                   Segment  
+
+</verb>
+</p><p>
+We can say that a segment is the logical entity of an application, or the
+ image of the application in memory.
+</p>
+<p>
+When programming, we don't care where our data is put in memory, we only
+ care about the offset inside our segment (our application).
+</p>
+<p>
+We are used to attributing a Segment for each Process and vice versa. In
+ Linux this is not true. Linux uses only 4 segments for either Kernel and all
+ Processes.
+</p>
+<sect3>
+Problems of Segmentation
+<p>
+<verb>
+ 
+                                 ____________________
+                          -----&gt;|                    |-----&gt;
+                          | IN  |     Segment A      | OUT
+ ____________________     |     |____________________|   
+|                    |____|     |                    |   
+|     Segment B      |          |     Segment B      |
+|                    |____      |                    |   
+|____________________|    |     |____________________|   
+                          |     |     Segment C      |   
+                          |     |____________________|
+                          -----&gt;|     Segment D      |-----&gt; 
+                            IN  |____________________| OUT 
+ 
+                     Segmentation problem
+
+
+</verb>
+</p><p>
+I the diagram above, we want to get exit processes A, and D and enter process
+ B. As we can see there is enough space for B, but we cannot split it in 2 pieces,
+ so we CANNOT load it (memory out).
+</p>
+<p>
+The reason this problem occurs is because pure segments are continuous
+ areas (because they are logical areas) and cannot be split.
+</p>
+<sect2>
+Pagination
+<p>
+<verb>
+ 
+             ____________________
+            |     Page 1         |
+            |____________________|
+            |     Page 2         |
+            |____________________| 
+            |      ..            |     Segment &lt;---&gt; Process    
+            |____________________|
+            |     Page n         |
+            |____________________|
+            |                    |
+            |____________________|
+            |                    |
+            |____________________|  
+ 
+                   Segment  
+ 
+</verb>
+</p><p>
+Pagination splits memory in &quot;n&quot; pieces, each one with a fixed
+ length.
+</p>
+<p>
+A process may be loaded in one or more Pages.When memory is freed, all
+ pages are freed (see Segmentation Problem, before).
+</p>
+<p>
+Pagination is also used for another important purpose, "Swapping". If a page
+ is not present in physical memory then it generates an exception, which will
+ make the kernel search for the page in mass storage.  This allows the kernel
+  to load more applications than it could using only physical memory.
+</p>
+<sect3>
+Pagination Problem
+<p>
+<verb>
+             ____________________
+   Page X   |     Process Y      |
+            |____________________|
+            |                    |
+            |       WASTED       |
+            |       SPACE        |
+            |____________________|  
+   
+              Pagination Problem 
+ 
+</verb>
+</p><p>
+In the diagram above, we can see what is wrong with the pagination policy.
+ When a Process Y loads into Page X, ALL memory space of the Page is allocated,
+ so the remaining space at the end of Page is wasted.
+</p>
+<sect2>
+Segmentation and Pagination
+<p>
+How can we solve segmentation and pagination problems? Using either 2 policies.
+</p>
+<p>
+<verb>
+ 
+                                  |      ..            |
+                                  |____________________|
+                            -----&gt;|      Page 1        |
+                            |     |____________________|
+                            |     |      ..            |
+ ____________________       |     |____________________|
+|                    |      |----&gt;|      Page 2        |
+|      Segment X     |  ----|     |____________________|
+|                    |      |     |       ..           |
+|____________________|      |     |____________________|
+                            |     |       ..           |
+                            |     |____________________|
+                            |----&gt;|      Page 3        |
+                                  |____________________|
+                                  |       ..           |
+ 
+</verb>
+</p><p>
+Process X, identified by Segment X, is split in 3 pieces and each of one
+ is loaded in a page.
+</p>
+<p>
+We do not have the following:
+</p>
+<p>
+<enum>
+ <item>
+Segmentation problem: we allocate per Pages, so we also free  Pages and
+ we manage free space in an optimized way.
+ <item>
+Pagination problem: only last page wastes space, but we can decide to use
+ very small pages, for example 4096 bytes length (losing at maximum 4096*N_Tasks
+ bytes) and manage hierarchical paging (using 2 or 3 levels of paging)
+</enum>
+<p>
+<verb>
+ 
+ 
+
+                          |         |           |         |
+                          |         |   Offset2 |  Value  |
+                          |         |        /|&bsol;|         |
+                  Offset1 |         |-----    | |         |
+                      /|&bsol; |         |    |    | |         |
+                       |  |         |    |   &bsol;|/|         | 
+                       |  |         |    ------&gt;|         |
+                      &bsol;|/ |         |           |         |
+ Base Paging Address ----&gt;|         |           |         |
+                          | ....... |           | ....... |
+                          |         |           |         |    
+ 
+                     Hierarchical Paging
+</verb>
+</p><sect>
+Linux Startup
+<p>
+We start the Linux kernel first from C code executed from ''startup_32:''
+ asm label:
+</p>
+<p>
+<verb>
+|startup_32:
+   |start_kernel
+      |lock_kernel
+      |trap_init
+      |init_IRQ
+      |sched_init
+      |softirq_init
+      |time_init
+      |console_init 
+      |&num;ifdef CONFIG_MODULES 
+         |init_modules 
+      |&num;endif 
+      |kmem_cache_init 
+      |sti 
+      |calibrate_delay 
+      |mem_init
+      |kmem_cache_sizes_init
+      |pgtable_cache_init
+      |fork_init
+      |proc_caches_init 
+      |vfs_caches_init
+      |buffer_init
+      |page_cache_init
+      |signals_init 
+      |&num;ifdef CONFIG_PROC_FS 
+        |proc_root_init 
+      |&num;endif 
+      |&num;if defined(CONFIG_SYSVIPC) 
+         |ipc_init
+      |&num;endif 
+      |check_bugs      
+      |smp_init
+      |rest_init
+         |kernel_thread
+         |unlock_kernel
+         |cpu_idle
+</verb>
+<p>
+<itemize>
+ <item>
+startup_32 &lsqb;arch/i386/kernel/head.S&rsqb;
+ <item>
+start_kernel &lsqb;init/main.c&rsqb;
+ <item>
+lock_kernel &lsqb;include/asm/smplock.h&rsqb;
+ <item>
+trap_init &lsqb;arch/i386/kernel/traps.c&rsqb;
+ <item>
+init_IRQ &lsqb;arch/i386/kernel/i8259.c&rsqb;
+ <item>
+sched_init &lsqb;kernel/sched.c&rsqb;
+ <item>
+softirq_init &lsqb;kernel/softirq.c&rsqb;
+ <item>
+time_init &lsqb;arch/i386/kernel/time.c&rsqb;
+ <item>
+console_init &lsqb;drivers/char/tty_io.c&rsqb;
+ <item>
+init_modules &lsqb;kernel/module.c&rsqb;
+ <item>
+kmem_cache_init &lsqb;mm/slab.c&rsqb;
+ <item>
+sti &lsqb;include/asm/system.h&rsqb;
+ <item>
+calibrate_delay &lsqb;init/main.c&rsqb;
+ <item>
+mem_init &lsqb;arch/i386/mm/init.c&rsqb;
+ <item>
+kmem_cache_sizes_init &lsqb;mm/slab.c&rsqb;
+ <item>
+pgtable_cache_init &lsqb;arch/i386/mm/init.c&rsqb;
+ <item>
+fork_init &lsqb;kernel/fork.c&rsqb;
+ <item>
+proc_caches_init 
+ <item>
+vfs_caches_init &lsqb;fs/dcache.c&rsqb;
+ <item>
+buffer_init &lsqb;fs/buffer.c&rsqb;
+ <item>
+page_cache_init &lsqb;mm/filemap.c&rsqb;
+ <item>
+signals_init &lsqb;kernel/signal.c&rsqb;
+ <item>
+proc_root_init &lsqb;fs/proc/root.c&rsqb;
+ <item>
+ipc_init &lsqb;ipc/util.c&rsqb;
+ <item>
+check_bugs &lsqb;include/asm/bugs.h&rsqb;
+ <item>
+smp_init &lsqb;init/main.c&rsqb;
+ <item>
+rest_init
+ <item>
+kernel_thread &lsqb;arch/i386/kernel/process.c&rsqb;
+ <item>
+unlock_kernel &lsqb;include/asm/smplock.h&rsqb;
+ <item>
+cpu_idle &lsqb;arch/i386/kernel/process.c&rsqb;
+</itemize>
+</p><p>
+The last function ''rest_init'' does the following:
+</p>
+<p>
+<enum>
+ <item>
+launches the kernel thread ''init''
+ <item>
+calls unlock_kernel
+ <item>
+makes the kernel run cpu_idle routine, that will be the idle loop executing
+ when nothing is scheduled
+</enum>
+</p><p>
+In fact the start_kernel procedure never ends. It will execute cpu_idle
+ routine endlessly.
+</p>
+<p>
+TODO: How kswapd_init is called?
+</p>
+<sect>
+Linux Peculiarities
+<sect1>
+Overview
+<p>
+Linux has some peculiarities that distinguish it from other OSs. These
+ peculiarities include:Pagination only
+</p>
+<p>
+<enum>
+ <item>
+Softirq
+ <item>
+Kernel threads
+ <item>
+Kernel modules
+ <item>
+''Proc'' directory
+</enum>
+</p><sect2>
+Flexibility Elements
+<p>
+Points 4 and 5 give system administrators an enormous flexibility on system
+ configuration from user mode allowing them to solve also critical kernel bugs
+ or specific problems without have to reboot the machine. For example, if you
+ needed to change something on a big server and you didn't want to make a reboot,
+ you could prepare the kernel to talk with a module, that you'll write. 
+</p>
+<sect1>
+Pagination only
+<p>
+Linux doesn't use segmentation to distinguish Tasks from each other; it
+ uses pagination. (Only 2 segments are used for all Tasks, CODE and DATA/STACK)
+ 
+</p>
+<p>
+We can also say that an interTask page fault never occurs, because each
+ Task uses a set of Page Tables that are different for each Task. These tables
+ cannot point to the same physical addresses.
+</p>
+<sect2>
+Linux segments
+<p>
+Under the Linux kernel only 4 segments exist: 
+</p>
+<p>
+<enum>
+ <item>
+Kernel Code &lsqb;0x10&rsqb;
+ <item>
+Kernel Data / Stack &lsqb;0x18&rsqb;
+ <item>
+User Code &lsqb;0x23&rsqb;
+ <item>
+User Data / Stack &lsqb;0x2b&rsqb;
+</enum>
+</p><p>
+&lsqb;syntax is ''Purpose &lsqb;Segment&rsqb;''&rsqb;
+</p>
+<p>
+Under Intel architecture, the segment registers used are:
+</p>
+<p>
+<itemize>
+ <item>
+CS for Code Segment
+ <item>
+DS for Data Segment
+ <item>
+SS for Stack Segment
+ <item>
+ES for Alternative Segment (for example used to make a memory copy between
+ 2 different segments)
+</itemize>
+</p><p>
+So, every Task uses 0x23 for code and 0x2b for data/stack.
+</p>
+<sect2>
+Linux pagination
+<p>
+Under Linux 3 levels of pages are used, depending on the architecture.
+ Under Intel only 2 levels are supported. Linux also supports Copy on Write
+ mechanisms (please see Cap.10 for more information).
+</p>
+<sect2>
+Why don't interTasks address conflicts exist?
+<p>
+The answer is very very simple: interTask  address conflicts cannot exist
+ because  they are impossible. Linear -&gt; physical mapping is done by "Pagination",
+ so it just needs to assign physical pages in an univocal fashion.
+</p>
+<sect2>
+Do we need to defragment memory?
+<p>
+No. Page assigning is a dynamic process. We need a page only when a Task
+ asks for it, so we choose it from free memory paging in an ordered fashion.
+ When we want to release the page, we only have to add it to the free pages
+ list.
+</p>
+<sect2>
+What about Kernel Pages?
+<p>
+Kernel pages have a problem: they can be allocated in a dynamic fashion
+ but we cannot have a guarantee that they are in contiguous area allocation,
+ because linear kernel space is equivalent to physical kernel space.
+</p>
+<p>
+For Code Segment there is no problem. Boot code is allocated at boot time
+ (so we have a fixed amount of memory to allocate), and on modules we only have
+ to allocate a memory area which could contain module code.
+</p>
+<p>
+The real problem is the stack segment because each Task uses some kernel
+ stack pages. Stack segments must be contiguous (according to stack definition),
+ so we have to establish a maximum limit for each Task's stack dimension. If
+ we exceed this limit bad things happen. We overwrite kernel mode process data
+ structures.
+</p>
+<p>
+The structure of the Kernel helps us, because kernel functions are never:
+</p>
+<p>
+<itemize>
+ <item>
+recursive
+ <item>
+intercalling more than N times.
+</itemize>
+</p><p>
+Once we know N, and we know the average of static variables for all kernel
+ functions, we can estimate a stack limit.
+</p>
+<p>
+If you want to try the problem out, you can create a module with a function
+ inside calling itself many times. After a fixed number of times, the kernel
+ module will hang because of a page fault exception handler (typically write
+ to a read-only page).
+</p>
+<sect1>
+Softirq
+<p>
+When an IRQ comes, task switching is deferred until later to get better
+ performance. Some Task jobs (that could have to be done just after the IRQ
+ and that could take much CPU in interrupt time, like building up a TCP/IP packet)
+ are queued and will be done at scheduling time (once a time-slice will end).
+</p>
+<p>
+In recent kernels (2.4.x) the softirq mechanisms are given to a kernel_thread:
+ ''ksoftirqd_CPUn''. n stands for the number of CPU executing kernel_thread
+ (in a monoprocessor system ''ksoftirqd_CPU0'' uses PID 3).
+</p>
+<sect2>
+Preparing Softirq
+<sect2>
+Enabling Softirq
+<p>
+''cpu_raise_softirq'' is a routine that will wake_up ''ksoftirqd_CPU0''
+ kernel thread, to let it manage the enqueued job.
+</p>
+<p>
+<verb>
+|cpu_raise_softirq
+   |__cpu_raise_softirq
+   |wakeup_softirqd
+      |wake_up_process
+</verb>
+<p>
+<itemize>
+ <item>
+cpu_raise_softirq &lsqb;kernel/softirq.c&rsqb;
+ <item>
+__cpu_raise_softirq &lsqb;include/linux/interrupt.h&rsqb;
+ <item>
+wakeup_softirq &lsqb;kernel/softirq.c&rsqb;
+ <item>
+wake_up_process &lsqb;kernel/sched.c&rsqb;
+</itemize>
+</p><p>
+''__cpu_raise_softirq'' routing will set right bit in the vector describing
+ softirq pending.
+</p>
+<p>
+''wakeup_softirq'' uses ''wakeup_process'' to wake up ''ksoftirqd_CPU0''
+ kernel thread.
+</p>
+<sect2>
+Executing Softirq
+<p>
+TODO: describing data structures involved in softirq mechanism.
+</p>
+<p>
+When kernel thread ''ksoftirqd_CPU0'' has been woken up, it will execute
+ queued jobs
+</p>
+<p>
+The code of ''ksoftirqd_CPU0'' is (main endless loop):
+</p>
+<p>
+<verb>
+for (;;) &lcub;
+   if (!softirq_pending(cpu)) 
+      schedule();
+      __set_current_state(TASK_RUNNING);
+   while (softirq_pending(cpu)) &lcub; 
+      do_softirq(); 
+      if (current-&gt;need_resched) 
+         schedule 
+   &rcub;
+   __set_current_state(TASK_INTERRUPTIBLE)
+&rcub;
+</verb>
+<p>
+<itemize>
+ <item>
+ksoftirqd &lsqb;kernel/softirq.c&rsqb;
+</itemize>
+</p><p>
+
+</p>
+<sect1>
+Kernel Threads
+<p>
+Even though Linux is a monolithic OS, a few ''kernel threads'' exist to
+ do  housekeeping work. 
+</p>
+<p>
+These Tasks don't utilize USER memory; they share KERNEL memory. They also
+ operate at the highest privilege (RING 0 on a i386 architecture) like any other
+ kernel mode piece of code.
+</p>
+<p>
+Kernel threads are created by ''kernel_thread &lsqb;arch/i386/kernel/process&rsqb;''
+ function, which calls ''clone'' &lsqb;arch/i386/kernel/process.c&rsqb; system
+ call from assembler (which is a ''fork'' like system call):
+</p>
+<p>
+<verb>
+int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
+&lcub;
+        long retval, d0;
+ 
+        __asm__ __volatile__(
+                &quot;movl &percnt;&percnt;esp,&percnt;&percnt;esi&bsol;n&bsol;t&quot;
+                &quot;int &dollar;0x80&bsol;n&bsol;t&quot;         /* Linux/i386 system call */
+                &quot;cmpl &percnt;&percnt;esp,&percnt;&percnt;esi&bsol;n&bsol;t&quot;  /* child or parent? */
+                &quot;je 1f&bsol;n&bsol;t&quot;             /* parent - jump */
+                /* Load the argument into eax, and push it.  That way, it does
+                 * not matter whether the called function is compiled with
+                 * -mregparm or not.  */
+                &quot;movl &percnt;4,&percnt;&percnt;eax&bsol;n&bsol;t&quot;
+                &quot;pushl &percnt;&percnt;eax&bsol;n&bsol;t&quot;               
+                &quot;call *&percnt;5&bsol;n&bsol;t&quot;          /* call fn */
+                &quot;movl &percnt;3,&percnt;0&bsol;n&bsol;t&quot;        /* exit */
+                &quot;int &dollar;0x80&bsol;n&quot;
+                &quot;1:&bsol;t&quot;
+                :&quot;=&amp;a&quot; (retval), &quot;=&amp;S&quot; (d0)
+                :&quot;0&quot; (__NR_clone), &quot;i&quot; (__NR_exit),
+                 &quot;r&quot; (arg), &quot;r&quot; (fn),
+                 &quot;b&quot; (flags | CLONE_VM)
+                : &quot;memory&quot;);
+        return retval;
+&rcub;
+</verb>
+</p><p>
+Once called, we have a new Task (usually with very low PID number, like
+ 2,3, etc.) waiting for a very slow resource, like swap or usb event. A very
+ slow resource is used because we would have a task switching overhead otherwise.
+</p>
+<p>
+Below is a list of most common kernel threads (from ''ps x'' command):
+</p>
+<p>
+<verb>
+PID      COMMAND
+ 1        init
+ 2        keventd
+ 3        kswapd
+ 4        kreclaimd
+ 5        bdflush
+ 6        kupdated
+ 7        kacpid
+67        khubd
+
+</verb>
+</p><p>
+'init' kernel thread is the first process created, at boot time. It will
+ call all other User Mode Tasks (from file /etc/inittab) like console daemons,
+ tty daemons and network daemons (''rc'' scripts).
+</p>
+<sect1>
+Kernel Modules
+<sect2>
+Overview
+<p>
+Linux Kernel modules are pieces of code (examples: fs, net, and hw driver)
+ running in kernel mode that you can add at runtime.
+</p>
+<p>
+The Linux core cannot be modularized: scheduling and interrupt management
+ or core network, and so on.
+</p>
+<p>
+Under "/lib/modules/KERNEL_VERSION/" you can find all the modules installed
+ on your system.
+</p>
+<sect2>
+Module loading and unloading
+<p>
+To load a module, type the following:
+</p>
+<p>
+<verb>
+insmod MODULE_NAME parameters
+
+example: insmod ne io=0x300 irq=9
+</verb>
+</p><p>
+NOTE: You can use modprobe in place of insmod if you want the kernel automatically
+ search some parameter (for example when using PCI driver, or if you have specified
+ parameter under /etc/conf.modules file).
+</p>
+<p>
+To unload a module, type the following:
+</p>
+<p>
+<verb>
+ rmmod MODULE_NAME
+</verb>
+</p><sect2>
+Module definition
+<p>
+A module always contains:
+</p>
+<p>
+<enum>
+ <item>
+"init_module" function, executed at insmod (or modprobe) command 
+ <item>
+"cleanup_module" function, executed at rmmod command
+</enum>
+</p><p>
+If these functions are not in the module, you need to add 2 macros to specify
+ what functions  will act as init and exit module:
+</p>
+<p>
+<enum>
+ <item>
+module_init(FUNCTION_NAME)
+ <item>
+module_exit(FUNCTION_NAME)
+</enum>
+</p><p>
+NOTE: a module can "see" a kernel variable only if it has been exported (with
+ macro EXPORT_SYMBOL).
+</p>
+<sect2>
+A useful trick for adding flexibility to your kernel
+<p>
+<verb>
+// kernel sources side
+void (*foo_function_pointer)(void *);
+ 
+if (foo_function_pointer)
+  (foo_function_pointer)(parameter);
+  
+ 
+
+
+// module side
+extern void (*foo_function_pointer)(void *);
+
+void my_function(void *parameter) &lcub;
+  //My code
+&rcub;
+ 
+int init_module() &lcub;
+  foo_function_pointer = &amp;my_function;
+&rcub;
+
+int cleanup_module() &lcub;
+  foo_function_pointer = NULL;
+&rcub;
+</verb>
+</p><p>
+This simple trick allows you to have very high flexibility in your Kernel,
+ because when you load the module you'll make "my_function" routine execute. This
+ routine will do everything you want to do: for example ''rshaper'' module works
+ in this kind of matter.
+</p>
+<p>
+Notice that the whole module mechanism is possible thanks to some global
+ variables exported to modules, such as head list (allowing you to extend the
+ list as much as you want). Typical examples are fs, generic devices (char,
+ block, net, telephony). You have to prepare the kernel to accept your new module;
+ in some cases you have to create an infrastructure (like telephony one, that
+ was recently created) to be as standard as possible.
+</p>
+<sect1>
+Proc directory
+<p>
+Proc fs is located in the  /proc directory, which is a special directory
+ allowing you to talk directly with kernel.
+</p>
+<p>
+Linux uses ''proc'' directory to support direct kernel communications:
+ this is necessary in many cases. An example of whne direct kernel communication
+ may occur are when you want to enable ''proxy-arp'' feature on one interface
+ and not in others, you want to change max number of threads, or if you want
+ to debug some bus state, like ISA or PCI, to know what cards are installed
+ and what I/O addresses and IRQs are assigned to them.
+</p>
+<p>
+<verb>
+scsi 
+power 
+pci 
+dri 
+ide 
+misc 
+irq 
+mtrr 
+bus 
+tty 
+driver 
+fs
+sys 
+sysvipc 
+net 
+slabinfo 
+kcore 
+kmsg 
+execdomains 
+iomem 
+swaps 
+mounts 
+locks 
+cmdline 
+ioports 
+dma 
+filesystems 
+interrupts 
+partitions 
+devices 
+stat 
+ksyms 
+modules 
+cpuinfo 
+version 
+meminfo 
+uptime 
+loadavg 
+self
+</verb>
+</p><p>
+In the directory there are also all the tasks using PID as file names (you
+ have access to all Task information, like path of binary file, memory used,
+ and so on).
+</p>
+<p>
+The interesting point is that you cannot only see kernel values (for example,
+ see info about any task or about network options enabled of your TCP/IP stack)
+ but you are also able to modify some of it, typically that ones under /proc/sys
+ directory:
+</p>
+<p>
+<verb>
+/proc/sys/ 
+          acpi
+          dev
+          debug
+          fs
+          proc
+          net
+          vm
+          kernel
+</verb>
+</p><sect2>
+/proc/sys/kernel
+<p>
+Below are ery important and well-know kernel values, ready to be modified:
+</p>
+<p>
+<verb>
+overflowgid
+overflowuid
+random
+threads-max // Max number of threads, typically 16384
+sysrq // kernel hack: you can view istant register values and more
+sem
+msgmnb
+msgmni
+msgmax
+shmmni
+shmall
+shmmax
+rtsig-max
+rtsig-nr
+modprobe // modprobe file location
+printk
+ctrl-alt-del
+cap-bound
+panic
+domainname // domain name of your Linux box
+hostname // host name of your Linux box
+version // date info about kernel compilation
+osrelease // kernel version (i.e. 2.4.5)
+ostype // Linux!
+</verb>
+</p><sect2>
+/proc/sys/net
+<p>
+This can be considered the most useful proc subdirectory. It allows you
+ to change very important settings for your network kernel configuration.
+</p>
+<p>
+<verb>
+core
+ipv4
+ipv6
+unix
+ethernet
+802
+</verb>
+</p><sect3>
+/proc/sys/net/core
+<p>
+Listed below are general net settings, like "netdev_max_backlog" (typically
+ 300), the length of all your network packets. This value can limit your network
+ bandwidth when receiving packets, Linux has to wait up to scheduling time to
+ flush buffers (due to bottom half mechanism), about 1000/HZ ms
+</p>
+<p>
+<verb>
+  300    *        100             =     30 000
+packets     HZ(Timeslice freq)         packets/s
+ 
+30 000   *       1000             =      30 M
+packets     average (Bytes/packet)   throughput Bytes/s
+</verb>
+</p><p>
+If you want to get higher throughput, you need to increase netdev_max_backlog,
+ by typing:
+</p>
+<p>
+<verb>
+echo 4000 &gt; /proc/sys/net/core/netdev_max_backlog
+</verb>
+</p><p>
+Note: Warning for some HZ values: under some architecture (like alpha or
+ arm-tbox) it is 1000, so you can have 300 MBytes/s of average throughput.
+</p>
+<sect3>
+/proc/sys/net/ipv4
+<p>
+"ip_forward", enables or disables ip forwarding in your Linux box. This is
+ a generic setting for all devices, you can  specify  each device you choose.
+</p>
+<sect4>
+/proc/sys/net/ipv4/conf/interface
+<p>
+I think this is the most useful /proc entry, because it allows you to change
+ some net settings to support wireless networks (see <url url="http://bertolinux.fatamorgana.com/wireless/english" name="Wireless-HOWTO"> for more information).
+</p>
+<p>
+Here are some examples of when you could use this setting:
+</p>
+<p>
+<itemize>
+ <item>
+"forwarding", to enable ip forwarding for your interface
+ <item>
+"proxy_arp", to enable proxy arp feature. For more see Proxy arp HOWTO under
+ <url url="http://www.linuxdoc.org" name="Linux Documentation Project"> and <url url="http://bertolinux.fatamorgana.com/wireless/english" name="Wireless-HOWTO"> for proxy arp use in Wireless networks.
+ <item>
+"send_redirects" to avoid interface to send ICMP_REDIRECT (as before, see
+ <url url="http://bertolinux.fatamorgana.com/wireless/english" name="Wireless-HOWTO"> for more).
+</itemize>
+</p><sect>
+Linux Multitasking
+<sect1>
+Overview
+<p>
+This section will analyze data structures--the mechanism used to manage
+ multitasking environment under Linux.
+</p>
+<sect2>
+Task States
+<p>
+A Linux Task can be one of the following states (according to &lsqb;include/linux.h&rsqb;):
+</p>
+<p>
+<enum>
+ <item>
+TASK_RUNNING, it means that it is in the "Ready List"
+ <item>
+TASK_INTERRUPTIBLE, task waiting for a signal or a resource (sleeping)
+ <item>
+TASK_UNINTERRUPTIBLE, task waiting for a resource (sleeping), it is in
+ same "Wait Queue"
+ <item>
+TASK_ZOMBIE, task child without father
+ <item>
+TASK_STOPPED, task being debugged
+</enum>
+</p><sect2>
+Graphical Interaction
+<p>
+<verb>
+       ______________     CPU Available     ______________
+      |              |  ----------------&gt;  |              |
+      | TASK_RUNNING |                     | Real Running |  
+      |______________|  &lt;----------------  |______________|
+                           CPU Busy
+            |   /|&bsol;       
+Waiting for |    | Resource  
+ Resource   |    | Available             
+           &bsol;|/   |      
+    ______________________                     
+   |                      |
+   | TASK_INTERRUPTIBLE / |
+   | TASK-UNINTERRUPTIBLE |
+   |______________________|
+ 
+                     Main Multitasking Flow
+</verb>
+</p><sect1>
+Timeslice
+<sect2>
+PIT 8253 Programming
+<p>
+Each 10 ms (depending on Hz value) an IRQ0 comes, which helps us in a multitasking
+ environment. This signal comes from PIC 8259 (in arch i386) where it is connected
+ to PIT 8253 with a clock of 1.19318 MHz.
+</p>
+<p>
+<verb>
+    _____         ______        ______        
+   | CPU |&lt;------| 8259 |------| 8253 |
+   |_____| IRQ0  |______|      |___/|&bsol;|
+                                    |_____ CLK 1.193.180 MHz
+          
+// From include/asm/param.h
+&num;ifndef HZ 
+&num;define HZ 100 
+&num;endif
+ 
+// From include/asm/timex.h
+&num;define CLOCK_TICK_RATE 1193180 /* Underlying HZ */
+ 
+// From include/linux/timex.h
+&num;define LATCH ((CLOCK_TICK_RATE + HZ/2) / HZ) /* For divider */
+ 
+// From arch/i386/kernel/i8259.c
+outb_p(0x34,0x43); /* binary, mode 2, LSB/MSB, ch 0 */ 
+outb_p(LATCH &amp; 0xff , 0x40); /* LSB */
+outb(LATCH &gt;&gt; 8 , 0x40); /* MSB */
+ 
+</verb>
+</p><p>
+So we program 8253 (PIT, Programmable Interval Timer) with LATCH = (1193180/HZ)
+ = 11931.8 when HZ=100 (default). LATCH indicates the frequency divisor factor.
+</p>
+<p>
+LATCH = 11931.8 gives to 8253 (in output) a frequency of 1193180 / 11931.8
+ = 100 Hz, so period = 10ms
+</p>
+<p>
+So Timeslice = 1/HZ.
+</p>
+<p>
+With each Timeslice we temporarily interrupt current process execution
+ (without task switching), and we do some housekeeping work, after which we'll
+ return back to our previous process.
+</p>
+<sect2>
+Linux Timer IRQ ICA
+<p>
+<verb>
+Linux Timer IRQ
+IRQ 0 &lsqb;Timer&rsqb;
+ |  
+&bsol;|/
+|IRQ0x00_interrupt        //   wrapper IRQ handler
+   |SAVE_ALL              ---   
+      |do_IRQ                |   wrapper routines
+         |handle_IRQ_event  ---
+            |handler() -&gt; timer_interrupt  // registered IRQ 0 handler
+               |do_timer_interrupt
+                  |do_timer  
+                     |jiffies++;
+                     |update_process_times  
+                     |if (--counter &lt;= 0) &lcub; // if time slice ended then
+                        |counter = 0;        //   reset counter           
+                        |need_resched = 1;   //   prepare to reschedule
+                     |&rcub;
+         |do_softirq
+         |while (need_resched) &lcub; // if necessary
+            |schedule             //   reschedule
+            |handle_softirq
+         |&rcub;
+   |RESTORE_ALL
+ 
+</verb>
+</p><p>
+Functions can be found under:
+</p>
+<p>
+<itemize>
+ <item>
+IRQ0x00_interrupt, SAVE_ALL: include/asm/hw_irq.h
+ <item>
+do_IRQ, handle_IRQ_event: arch/i386/kernel/irq.c
+ <item>
+timer_interrupt, do_timer_interrupt: arch/i386/kernel/time.c
+ <item>
+do_timer, update_process_times: kernel/timer.c
+ <item>
+do_softirq: kernel/soft_irq.c
+ <item>
+RESTORE_ALL, while loop: arch/i386/kernel/entry.S
+</itemize>
+</p><p>
+Notes:
+</p>
+<p>
+<enum>
+ <item>
+Function "IRQ0x00_interrupt" (like others IRQ0xXY_interrupt) is directly
+ pointed by IDT (Interrupt Descriptor Table, similar to Real Mode Interrupt
+ Vector Table, see Cap 10 for more), so EVERY interrupt coming to the processor
+ is managed by "IRQ0x&num;NR_interrupt" routine, where &num;NR is the interrupt
+ number. We refer to it as "wrapper irq handler".
+ <item>
+wrapper routines are executed, like "do_IRQ","handle_IRQ_event" &lsqb;arch/i386/kernel/irq.c&rsqb;.
+ <item>
+After this, control is passed to official IRQ routine (pointed by "handler()"),
+ previously registered with "request_irq" &lsqb;arch/i386/kernel/irq.c&rsqb;,
+ in this case "timer_interrupt" &lsqb;arch/i386/kernel/time.c&rsqb;.
+ <item>
+"timer_interrupt" &lsqb;arch/i386/kernel/time.c&rsqb; routine is executed
+ and, when it ends,
+ <item>
+control backs to some assembler routines &lsqb;arch/i386/kernel/entry.S&rsqb;.
+</enum>
+</p><p>
+Description: 
+</p>
+<p>
+To manage Multitasking, Linuxs (like every other Unix) uses a  ''counter''
+ variable to keep track of how much CPU was used by the task. So, on each IRQ
+ 0, the counter is decremented (point 4) and, when it reaches 0, we need to
+ switch task to manage timesharing (point 4 "need_resched" variable is set to
+ 1, then, in point 5 assembler routines control "need_resched" and call, if needed,
+ "schedule" &lsqb;kernel/sched.c&rsqb;).
+</p>
+<sect1>
+Scheduler
+<p>
+The scheduler is the piece of code that chooses what Task has to be executed
+ at a given time.
+</p>
+<p>
+Any time you need to change running task, select a candidate. Below is
+ the ''schedule &lsqb;kernel/sched.c&rsqb;'' function.
+</p>
+<p>
+<verb>
+|schedule
+   |do_softirq // manages post-IRQ work
+   |for each task
+      |calculate counter
+   |prepare_to__switch // does anything
+   |switch_mm // change Memory context (change CR3 value)
+   |switch_to (assembler)
+      |SAVE ESP
+      |RESTORE future_ESP
+      |SAVE EIP
+      |push future_EIP *** push parameter as we did a call 
+         |jmp __switch_to (it does some TSS work) 
+         |__switch_to()
+          ..
+         |ret *** ret from call using future_EIP in place of call address
+      new_task
+
+</verb>
+</p><sect1>
+Bottom Half, Task Queues. and Tasklets
+<sect2>
+Overview
+<p>
+In classic Unix, when an IRQ comes (from a device), Unix makes  "task switching"
+ to interrogate the task that requested the device.
+</p>
+<p>
+To improve performance, Linux can postpone the non-urgent work until later,
+ to better manage high speed event.
+</p>
+<p>
+This function is managed since kernel 1.x by the "bottom half" (BH). The
+ irq handler "marks" a bottom half, to be executed later, perhaps in scheduling
+ time.
+</p>
+<p>
+In the latest kernels there is a "task queue"that is more  dynamic than BH
+ and there is also a "tasklet" to manage multiprocessor environments.
+</p>
+<p>
+BH schema is:
+</p>
+<p>
+<enum>
+ <item>
+Declaration
+ <item>
+Mark
+ <item>
+Execution
+</enum>
+</p><sect2>
+Declaration
+<p>
+<verb>
+&num;define DECLARE_TASK_QUEUE(q) LIST_HEAD(q)
+&num;define LIST_HEAD(name) &bsol;
+   struct list_head name = LIST_HEAD_INIT(name) 
+struct list_head &lcub; 
+   struct list_head *next, *prev; 
+&rcub;;
+&num;define LIST_HEAD_INIT(name) &lcub; &amp;(name), &amp;(name) &rcub; 
+ 
+      ''DECLARE_TASK_QUEUE'' &lsqb;include/linux/tqueue.h, include/linux/list.h&rsqb; 
+</verb>
+</p><p>
+"DECLARE_TASK_QUEUE(q)" macro is used to declare a structure named "q" managing
+ task queue.
+</p>
+<sect2>
+Mark
+<p>
+Here is the ICA schema for "mark_bh" &lsqb;include/linux/interrupt.h&rsqb;
+ function:
+</p>
+<p>
+<verb>
+|mark_bh(NUMBER)
+   |tasklet_hi_schedule(bh_task_vec + NUMBER)
+      |insert into tasklet_hi_vec
+         |__cpu_raise_softirq(HI_SOFTIRQ) 
+            |soft_active |= (1 &lt;&lt; HI_SOFTIRQ)
+ 
+                   ''mark_bh''&lsqb;include/linux/interrupt.h&rsqb;
+</verb>
+</p><p>
+For example, when an IRQ handler wants to "postpone" some work, it would
+  "mark_bh(NUMBER)", where NUMBER is a BH declarated (see section before).
+</p>
+<sect2>
+Execution
+<p>
+We can see this calling from "schedule" &lsqb;kernel/sched.c&rsqb; function:
+</p>
+<p>
+<verb>
+/* Do &quot;administrative&quot; work here while we don't hold any locks */ 
+|if (softirq_active(this_cpu) &amp; softirq_mask(this_cpu)) 
+   |do_softirq();
+      |for (active=softirq_active &amp; softirq_mask;active;active &gt;&gt;= 1)
+         |softirq_vec++-&gt;action();
+                   
+                  ''schedule'' &lsqb;kernel/sched.c&rsqb;
+</verb>
+</p><sect1>
+Very low level routines
+<p>
+set_intr_gate
+</p>
+<p>
+set_trap_gate
+</p>
+<p>
+set_task_gate (not used).
+</p>
+<p>
+(*interrupt)&lsqb;NR_IRQS&rsqb;(void) = &lcub; IRQ0x00_interrupt, IRQ0x01_interrupt,
+ ..&rcub;
+</p>
+<p>
+NR_IRQS = 224 &lsqb;kernel 2.4.2&rsqb;
+</p>
+<sect1>
+Task Switching
+<sect2>
+When does Task switching occur?
+<p>
+Now we'll see how the Linux Kernel switchs from one task to another.
+</p>
+<p>
+Task Switching is needed in many cases, such as the following:
+</p>
+<p>
+<itemize>
+ <item>
+when TimeSlice ends, we need to give access to some other task
+ <item>
+when a task decide to access a resource, it sleeps for it, so we have to
+ choose another task
+ <item>
+when a task waits for a pipe, we have to give access to other task, which
+ would write to pipe
+</itemize>
+</p><sect2>
+Task Switching
+<p>
+<verb>
+                           TASK SWITCHING TRICK
+old_IP: push esi
+old_IP: push edi
+old_IP: push ebp
+old_IP: push new_IP
+old_IP:   jmp C_function
+old_IP:   ..
+old_IP:   ret    * point of real change EIP
+new_IP: pop ebp 
+new_IP: pop edi
+new_IP: pop esi
+      U S E R   M O D E                 K E R N E L     M O D E
+
+ |          |     |          |       |          |     |          |
+ |          |     |          | Timer |          |     |          |
+ |          |     |  Normal  |  IRQ  |          |     |          |
+ |          |     |   Exec   |------&gt;|Timer_Int.|     |          |
+ |          |     |     |    |       | ..       |     |          |
+ |          |     |    &bsol;|/   |       |schedule()|     | Task1 Ret|
+ |          |     |          |       |_switch_to|&lt;--  |  Address |
+ |__________|     |__________|       |          |  |  |          |
+                                     |          |  |S |          | 
+Task1 Data/Stack   Task1 Code        |          |  |w |          |
+                                     |          | T|i |          |
+                                     |          | a|t |          |
+ |          |     |          |       |          | s|c |          |
+ |          |     |          | Timer |          | k|h |          |
+ |          |     |  Normal  |  IRQ  |          |  |i |          | 
+ |          |     |   Exec   |------&gt;|Timer_Int.|  |n |          |
+ |          |     |     |    |       | ..       |  |g |          |
+ |          |     |    &bsol;|/   |       |schedule()|  |  | Task2 Ret|
+ |          |     |          |       |_switch_to|&lt;--  |  Address |
+ |__________|     |__________|       |__________|     |__________|
+ 
+Task2 Data/Stack   Task2 Code        Kernel Code  Kernel Data/Stack
+</verb>
+</p><sect1>
+Fork
+<sect2>
+Overview
+<p>
+Fork is used to create another task. We start from a Task Parent, and we
+ copy many data structures to Task Child.
+</p>
+<p>
+<verb>
+ 
+                               |         |
+                               | ..      |
+         Task Parent           |         |
+         |         |           |         |
+         |  fork   |----------&gt;|  CREATE |   
+         |         |          /|   NEW   |
+         |_________|         / |   TASK  |
+                            /  |         |
+             ---           /   |         |
+             ---          /    | ..      |
+                         /     |         |
+         Task Child     / 
+         |         |   /
+         |  fork   |&lt;-/
+         |         |
+         |_________|
+              
+                       Fork SysCall
+</verb>
+</p><sect2>
+What is not copied
+<p>
+New Task just created (''Task Child'') is almost equal to Parent (''Task
+ Parent''), there are only few differences:
+</p>
+<p>
+<enum>
+ <item>
+obviously PID
+ <item>
+child ''fork()'' will return 0, while parent ''fork()'' will return PID
+ of Task Child
+ <item>
+All child data pages are marked ''READ + EXECUTE'', no "WRITE'' (while parent
+ has WRITE right for its own pages) so, when a write request comes, a ''Page
+ Fault'' exception is generated which will create a new independent page: this
+ mechanism is called ''Copy on Write'' (see Cap.10 for more).
+</enum>
+</p><sect2>
+Fork ICA
+<p>
+<verb>
+|sys_fork 
+   |do_fork
+      |alloc_task_struct 
+         |__get_free_pages
+       |p-&gt;state = TASK_UNINTERRUPTIBLE
+       |copy_flags
+       |p-&gt;pid = get_pid    
+       |copy_files
+       |copy_fs
+       |copy_sighand
+       |copy_mm // should manage CopyOnWrite (I part)
+          |allocate_mm
+          |mm_init
+             |pgd_alloc -&gt; get_pgd_fast
+                |get_pgd_slow
+          |dup_mmap
+             |copy_page_range
+                |ptep_set_wrprotect
+                   |clear_bit // set page to read-only              
+          |copy_segments // For LDT
+       |copy_thread
+          |childregs-&gt;eax = 0  
+          |p-&gt;thread.esp = childregs // child fork returns 0
+          |p-&gt;thread.eip = ret_from_fork // child starts from fork exit
+       |retval = p-&gt;pid // parent fork returns child pid
+       |SET_LINKS // insert of task to list pointers
+       |nr_threads++ // Global variable
+       |wake_up_process(p) // Now we can wake up just created child
+       |return retval
+              
+               fork ICA
+ 
+</verb>
+<p>
+<itemize>
+ <item>
+sys_fork &lsqb;arch/i386/kernel/process.c&rsqb;
+ <item>
+do_fork &lsqb;kernel/fork.c&rsqb;
+ <item>
+alloc_task_struct &lsqb;include/asm/processor.c&rsqb;
+ <item>
+__get_free_pages &lsqb;mm/page_alloc.c&rsqb;
+ <item>
+get_pid &lsqb;kernel/fork.c&rsqb;
+ <item>
+copy_files 
+ <item>
+copy_fs
+ <item>
+copy_sighand
+ <item>
+copy_mm
+ <item>
+allocate_mm
+ <item>
+mm_init
+ <item>
+pgd_alloc -&gt; get_pgd_fast &lsqb;include/asm/pgalloc.h&rsqb;
+ <item>
+get_pgd_slow
+ <item>
+dup_mmap &lsqb;kernel/fork.c&rsqb;
+ <item>
+copy_page_range &lsqb;mm/memory.c&rsqb;
+ <item>
+ptep_set_wrprotect &lsqb;include/asm/pgtable.h&rsqb;
+ <item>
+clear_bit &lsqb;include/asm/bitops.h&rsqb;
+ <item>
+copy_segments &lsqb;arch/i386/kernel/process.c&rsqb;
+ <item>
+copy_thread
+ <item>
+SET_LINKS &lsqb;include/linux/sched.h&rsqb;
+ <item>
+wake_up_process &lsqb;kernel/sched.c&rsqb;
+</itemize>
+</p><sect2>
+Copy on Write
+<p>
+To implement Copy on Write for Linux:
+</p>
+<p>
+<enum>
+ <item>
+Mark all copied pages as read-only, causing a Page Fault when a child tries
+ to write to them.
+ <item>
+Page Fault handler creates a new page for the Task caused exception.
+</enum>
+<p>
+<verb>
+ 
+ | Page 
+ | Fault 
+ | Exception
+ |
+ |
+ -----------&gt; |do_page_fault
+                 |handle_mm_fault
+                    |handle_pte_fault 
+                       |do_wp_page        
+                          |alloc_page      // Allocate a new page
+                          |break_cow
+                             |copy_cow_page // Copy old page to new one
+                             |establish_pte // reconfig Page Table pointers
+                                |set_pte
+                            
+              Page Fault ICA
+ 
+</verb>
+<p>
+<itemize>
+ <item>
+do_page_fault &lsqb;arch/i386/mm/fault.c&rsqb; 
+ <item>
+handle_mm_fault &lsqb;mm/memory.c&rsqb;
+ <item>
+handle_pte_fault 
+ <item>
+do_wp_page
+ <item>
+alloc_page &lsqb;include/linux/mm.h&rsqb;
+ <item>
+break_cow &lsqb;mm/memory.c&rsqb;
+ <item>
+copy_cow_page
+ <item>
+establish_pte
+ <item>
+set_pte &lsqb;include/asm/pgtable-3level.h&rsqb;
+</itemize>
+</p><sect1>
+Special Tasks: kernel threads
+<p>
+Kernel threads are created by ''clone() &lsqb;arch/i386/kernel/process.c&rsqb;''
+</p>
+<p>
+Initialization routines:
+</p>
+<p>
+<verb>
+|do_initcalls
+   |kswapd_init
+      |kernel_thread
+         |syscall fork (at low level to execute fn())
+</verb>
+</p><p>
+do_initcalls &lsqb;init/main.c&rsqb;
+</p>
+<p>
+kswapd_init &lsqb;mm/vmscan.c&rsqb;
+</p>
+<p>
+kernel_thread &lsqb;arch/i386/kernel/process.c&rsqb;
+</p>
+<p>
+''kswapd_init'' creates a new kernel_thread, ''kswapd''you can find in
+ &lsqb;mm/vmscan.c&rsqb;.
+</p>
+<p>
+TODO: find when is called function passed by clone system call.
+</p>
+<sect>
+Linux Memory Management
+<sect1>
+Overview
+<p>
+Linux uses segmentation + pagination, which simplifies notation. 
+</p>
+<sect2>
+Segments
+<p>
+Linux uses only 4 segments:
+</p>
+<p>
+<itemize>
+ <item>
+2 segments (code and data/stack) for KERNEL SPACE from &lsqb;0xC000 0000&rsqb;
+ (3 GB) to &lsqb;0xFFFF FFFF&rsqb; (4 GB)
+ <item>
+2 segments (code and data/stack) for USER SPACE from &lsqb;0&rsqb; (0 GB)
+ to &lsqb;0xBFFF FFFF&rsqb; (3 GB)
+</itemize>
+<p>
+<verb>
+                               __
+   4 GB---&gt;|                |    |
+           |     Kernel     |    |  Kernel Space (Code + Data/Stack)
+           |                |  __|
+   3 GB---&gt;|----------------|  __
+           |                |    |
+           |                |    |
+   2 GB---&gt;|                |    |
+           |     Tasks      |    |  User Space (Code + Data/Stack)
+           |                |    |
+   1 GB---&gt;|                |    |
+           |                |    |
+           |________________|  __| 
+ 0x00000000
+          Kernel/User Linear addresses
+ 
+</verb>
+</p><sect1>
+Specific i386 implementation
+<p>
+Again, Linux implements Pagination using 3 Levels of Paging, but in i386
+ architecture only 2 of them are really used:
+</p>
+<p>
+<verb>
+ 
+   ------------------------------------------------------------------
+   L    I    N    E    A    R         A    D    D    R    E    S    S
+   ------------------------------------------------------------------
+        &bsol;___/                 &bsol;___/                     &bsol;_____/ 
+ 
+     PD offset              PF offset                 Frame offset 
+     &lsqb;10 bits&rsqb;              &lsqb;10 bits&rsqb;                 &lsqb;12 bits&rsqb;       
+          |                     |                          |
+          |                     |     -----------          |        
+          |                     |     |  Value  |----------|---------
+          |     |         |     |     |---------|   /|&bsol;    |        |
+          |     |         |     |     |         |    |     |        |
+          |     |         |     |     |         |    | Frame offset |
+          |     |         |     |     |         |   &bsol;|/             |
+          |     |         |     |     |---------|&lt;------            |
+          |     |         |     |     |         |      |            |
+          |     |         |     |     |         |      | x 4096     |
+          |     |         |  PF offset|_________|-------            |
+          |     |         |       /|&bsol; |         |                   |
+      PD offset |_________|-----   |  |         |          _________|
+            /|&bsol; |         |    |   |  |         |          | 
+             |  |         |    |  &bsol;|/ |         |         &bsol;|/
+ _____       |  |         |    ------&gt;|_________|   PHYSICAL ADDRESS 
+|     |     &bsol;|/ |         |    x 4096 |         |
+| CR3 |--------&gt;|         |           |         |
+|_____|         | ....... |           | ....... |
+                |         |           |         |    
+ 
+               Page Directory          Page File
+
+                       Linux i386 Paging
+ 
+
+
+</verb>
+</p><sect1>
+Memory Mapping
+<p>
+Linux manages Access Control with Pagination only, so different Tasks will
+ have the same segment addresses, but different CR3 (register used to store
+ Directory Page Address), pointing to different Page Entries.
+</p>
+<p>
+In User mode a task cannot overcome 3 GB limit (0 x C0 00 00 00), so only
+ the  first 768 page directory entries are meaningful (768*4MB = 3GB).
+</p>
+<p>
+When a Task goes in Kernel Mode (by System call or by IRQ) the other 256
+ pages directory entries become important, and they point to the same page files
+ as all other Tasks (which are the same as the Kernel).
+</p>
+<p>
+Note that Kernel (and only kernel) Linear Space is equal to Kernel Physical
+ Space, so:
+</p>
+<p>
+<verb>
+ 
+            ________________ _____                    
+           |Other KernelData|___  |  |                |
+           |----------------|   | |__|                |
+           |     Kernel     |&bsol;  |____|   Real Other   |
+  3 GB ---&gt;|----------------| &bsol;      |   Kernel Data  |
+           |                |&bsol; &bsol;     |                |
+           |              __|_&bsol;_&bsol;____|__   Real       |
+           |      Tasks     |  &bsol; &bsol;   |     Tasks      |
+           |              __|___&bsol;_&bsol;__|__   Space      |
+           |                |    &bsol; &bsol; |                |
+           |                |     &bsol; &bsol;|----------------|
+           |                |      &bsol; |Real KernelSpace|
+           |________________|       &bsol;|________________|
+      
+           Logical Addresses          Physical Addresses
+ 
+</verb>
+</p><p>
+Linear Kernel Space corresponds to Physical Kernel Space  translated  3
+ GB down (in fact page tables are something like &lcub; "00000000", "00000001" &rcub;,
+ so they operate no virtualization, they only report physical addresses  they
+ take from linear ones).
+</p>
+<p>
+Notice that you'll not have an "addresses conflict" between Kernel and User
+ spaces because we can manage physical addresses with Page Tables.
+</p>
+<sect1>
+Low level memory allocation
+<sect2>
+Boot Initialization
+<p>
+We start from kmem_cache_init (launched by start_kernel &lsqb;init/main.c&rsqb;
+ at boot up).
+</p>
+<p>
+<verb>
+|kmem_cache_init
+   |kmem_cache_estimate
+
+</verb>
+</p><p>
+kmem_cache_init &lsqb;mm/slab.c&rsqb;
+</p>
+<p>
+kmem_cache_estimate
+</p>
+<p>
+Now we continue with mem_init (also launched by start_kernel&lsqb;init/main.c&rsqb;)
+</p>
+<p>
+<verb>
+|mem_init
+   |free_all_bootmem
+      |free_all_bootmem_core
+</verb>
+</p><p>
+mem_init &lsqb;arch/i386/mm/init.c&rsqb;
+</p>
+<p>
+free_all_bootmem &lsqb;mm/bootmem.c&rsqb;
+</p>
+<p>
+free_all_bootmem_core
+</p>
+<sect2>
+Run-time allocation
+<p>
+Under Linux, when we want to allocate memory, for example during "copy_on_write"
+ mechanism (see Cap.10), we call:
+</p>
+<p>
+<verb>
+|copy_mm 
+   |allocate_mm = kmem_cache_alloc
+      |__kmem_cache_alloc
+         |kmem_cache_alloc_one
+            |alloc_new_slab
+               |kmem_cache_grow
+                  |kmem_getpages
+                     |__get_free_pages
+                        |alloc_pages
+                           |alloc_pages_pgdat
+                              |__alloc_pages
+                                 |rmqueue   
+                                 |reclaim_pages
+
+</verb>
+</p><p>
+Functions can be found under:
+</p>
+<p>
+<itemize>
+ <item>
+copy_mm &lsqb;kernel/fork.c&rsqb;
+ <item>
+allocate_mm &lsqb;kernel/fork.c&rsqb;
+ <item>
+kmem_cache_alloc &lsqb;mm/slab.c&rsqb;
+ <item>
+__kmem_cache_alloc 
+ <item>
+kmem_cache_alloc_one
+ <item>
+alloc_new_slab
+ <item>
+kmem_cache_grow
+ <item>
+kmem_getpages
+ <item>
+__get_free_pages &lsqb;mm/page_alloc.c&rsqb;
+ <item>
+alloc_pages &lsqb;mm/numa.c&rsqb;
+ <item>
+alloc_pages_pgdat
+ <item>
+__alloc_pages &lsqb;mm/page_alloc.c&rsqb;
+ <item>
+rm_queue
+ <item>
+reclaim_pages &lsqb;mm/vmscan.c&rsqb;
+</itemize>
+</p><p>
+TODO: Understand Zones
+</p>
+<sect1>
+Swap
+<sect2>
+Overview
+<p>
+Swap is managed by the kswapd daemon (kernel thread).
+</p>
+<sect2>
+kswapd
+<p>
+As other kernel threads, kswapd has a main loop that wait to wake up.
+</p>
+<p>
+<verb>
+|kswapd
+   |// initialization routines
+   |for (;;) &lcub; // Main loop
+      |do_try_to_free_pages
+      |recalculate_vm_stats
+      |refill_inactive_scan
+      |run_task_queue
+      |interruptible_sleep_on_timeout // we sleep for a new swap request
+   |&rcub;
+</verb>
+<p>
+<itemize>
+ <item>
+kswapd &lsqb;mm/vmscan.c&rsqb;
+ <item>
+do_try_to_free_pages
+ <item>
+recalculate_vm_stats &lsqb;mm/swap.c&rsqb;
+ <item>
+refill_inactive_scan &lsqb;mm/vmswap.c&rsqb;
+ <item>
+run_task_queue &lsqb;kernel/softirq.c&rsqb;
+ <item>
+interruptible_sleep_on_timeout &lsqb;kernel/sched.c&rsqb;
+</itemize>
+</p><sect2>
+When do we need swapping?
+<p>
+Swapping is needed when we have to access:
+</p>
+<p>
+<enum>
+ <item>
+A page that is not in physical memory
+ <item>
+A page that still doesn't exist (typically when we write to a new allocated
+ but still not accessed page or when we try to write to a read-only page, i.e.
+ after a fork, see copy on write for more).
+</enum>
+</p><p>
+Linux uses ''kswapd'' kernel thread to carry out this purpose. When the
+ Task receives a page fault exception (caused by point 1 or 2) we do the following:
+</p>
+<p>
+<verb>
+ 
+ | Page Fault Exception
+ | cause by all these conditions: 
+ |   a-) User page 
+ |   b-) Read or write access 
+ |   c-) Page not present
+ |
+ |
+ -----------&gt; |do_page_fault
+                 |handle_mm_fault
+                    |pte_alloc 
+                       |pte_alloc_one
+                          |__get_free_page = __get_free_pages
+                             |alloc_pages
+                                |alloc_pages_pgdat
+                                   |__alloc_pages
+                                      |wakeup_kswapd // We wake up kernel thread kswapd
+   
+                   Page Fault ICA
+ 
+</verb>
+<p>
+<itemize>
+ <item>
+do_page_fault &lsqb;arch/i386/mm/fault.c&rsqb; 
+ <item>
+handle_mm_fault &lsqb;mm/memory.c&rsqb;
+ <item>
+pte_alloc
+ <item>
+pte_alloc_one &lsqb;include/asm/pgalloc.h&rsqb;
+ <item>
+__get_free_page &lsqb;include/linux/mm.h&rsqb;
+ <item>
+__get_free_pages &lsqb;mm/page_alloc.c&rsqb;
+ <item>
+alloc_pages &lsqb;mm/numa.c&rsqb;
+ <item>
+alloc_pages_pgdat
+ <item>
+__alloc_pages
+ <item>
+wakeup_kswapd &lsqb;mm/vmscan.c&rsqb;
+</itemize>
+</p><sect>
+Linux Networking
+<sect1>
+How is Linux networking done?
+<p>
+There exists a device driver for each kind of NIC. Inside it, Linux will
+ ALWAYS call a standard high level routing: "netif_rx &lsqb;net/core/dev.c&rsqb;",
+ which will controls what 3 level protocol the frame belong to, and it will
+ call the right 3 level function (so we'll use a pointer to the function to
+ determine which is right).
+</p>
+<sect1>
+TCP example
+<p>
+We'll see now an example of what happens when we send a TCP packet to Linux,
+ starting from ''netif_rx &lsqb;net/core/dev.c&rsqb;'' call.
+</p>
+<sect2>
+Interrupt management: "netif_rx"
+<p>
+<verb>
+|netif_rx
+   |__skb_queue_tail
+      |qlen++
+      |* simple pointer insertion *    
+   |cpu_raise_softirq
+      |softirq_active(cpu) |= (1 &lt;&lt; NET_RX_SOFTIRQ) // set bit NET_RX_SOFTIRQ in the BH vector
+ 
+</verb>
+</p><p>
+Functions:
+</p>
+<p>
+<itemize>
+ <item>
+__skb_queue_tail &lsqb;include/linux/skbuff.h&rsqb;
+ <item>
+cpu_raise_softirq &lsqb;kernel/softirq.c&rsqb;
+</itemize>
+</p><sect2>
+Post Interrupt management: "net_rx_action"
+<p>
+Once IRQ interaction is ended, we need to follow the next part of the frame
+ life and examine what NET_RX_SOFTIRQ does.
+</p>
+<p>
+We will next call ''net_rx_action &lsqb;net/core/dev.c&rsqb;'' according
+ to "net_dev_init &lsqb;net/core/dev.c&rsqb;".
+</p>
+<p>
+<verb>
+|net_rx_action
+   |skb = __skb_dequeue (the exact opposite of __skb_queue_tail)
+   |for (ptype = first_protocol; ptype &lt; max_protocol; ptype++) // Determine 
+      |if (skb-&gt;protocol == ptype)                               // what is the network protocol
+         |ptype-&gt;func -&gt; ip_rcv // according to ''struct ip_packet_type &lsqb;net/ipv4/ip_output.c&rsqb;''
+ 
+    **** NOW WE KNOW THAT PACKET IS IP ****
+         |ip_rcv
+            |NF_HOOK (ip_rcv_finish)
+               |ip_route_input // search from routing table to determine function to call
+                  |skb-&gt;dst-&gt;input -&gt; ip_local_deliver // according to previous routing table check, destination is local machine
+                     |ip_defrag // reassembles IP fragments
+                        |NF_HOOK (ip_local_deliver_finish)
+                           |ipprot-&gt;handler -&gt; tcp_v4_rcv // according to ''tcp_protocol &lsqb;include/net/protocol.c&rsqb;''
+ 
+     **** NOW WE KNOW THAT PACKET IS TCP ****
+                           |tcp_v4_rcv   
+                              |sk = __tcp_v4_lookup 
+                              |tcp_v4_do_rcv
+                                 |switch(sk-&gt;state) 
+
+     *** Packet can be sent to the task which uses relative socket ***
+                                 |case TCP_ESTABLISHED:
+                                    |tcp_rcv_established
+                                       |__skb_queue_tail // enqueue packet to socket
+                                       |sk-&gt;data_ready -&gt; sock_def_readable 
+                                          |wake_up_interruptible
+                                
+
+     *** Packet has still to be handshaked by 3-way TCP handshake ***
+                                 |case TCP_LISTEN:
+                                    |tcp_v4_hnd_req
+                                       |tcp_v4_search_req
+                                       |tcp_check_req
+                                          |syn_recv_sock -&gt; tcp_v4_syn_recv_sock
+                                       |__tcp_v4_lookup_established
+                                 |tcp_rcv_state_process
+
+                    *** 3-Way TCP Handshake ***
+                                    |switch(sk-&gt;state)
+                                    |case TCP_LISTEN: // We received SYN
+                                       |conn_request -&gt; tcp_v4_conn_request
+                                          |tcp_v4_send_synack // Send SYN + ACK
+                                             |tcp_v4_synq_add // set SYN state
+                                    |case TCP_SYN_SENT: // we received SYN + ACK
+                                       |tcp_rcv_synsent_state_process
+                                          tcp_set_state(TCP_ESTABLISHED)
+                                             |tcp_send_ack
+                                                |tcp_transmit_skb
+                                                   |queue_xmit -&gt; ip_queue_xmit
+                                                      |ip_queue_xmit2
+                                                         |skb-&gt;dst-&gt;output
+                                    |case TCP_SYN_RECV: // We received ACK
+                                       |if (ACK)
+                                          |tcp_set_state(TCP_ESTABLISHED)
+                              
+</verb>
+</p><p>
+Functions can be found under:
+</p>
+<p>
+<itemize>
+ <item>
+net_rx_action &lsqb;net/core/dev.c&rsqb;
+ <item>
+__skb_dequeue &lsqb;include/linux/skbuff.h&rsqb;
+ <item>
+ip_rcv &lsqb;net/ipv4/ip_input.c&rsqb;
+ <item>
+NF_HOOK -&gt; nf_hook_slow &lsqb;net/core/netfilter.c&rsqb;
+ <item>
+ip_rcv_finish &lsqb;net/ipv4/ip_input.c&rsqb;
+ <item>
+ip_route_input &lsqb;net/ipv4/route.c&rsqb;
+ <item>
+ip_local_deliver &lsqb;net/ipv4/ip_input.c&rsqb;
+ <item>
+ip_defrag &lsqb;net/ipv4/ip_fragment.c&rsqb;
+ <item>
+ip_local_deliver_finish &lsqb;net/ipv4/ip_input.c&rsqb;
+ <item>
+tcp_v4_rcv &lsqb;net/ipv4/tcp_ipv4.c&rsqb;
+ <item>
+__tcp_v4_lookup
+ <item>
+tcp_v4_do_rcv
+ <item>
+tcp_rcv_established &lsqb;net/ipv4/tcp_input.c&rsqb;
+ <item>
+__skb_queue_tail &lsqb;include/linux/skbuff.h&rsqb;
+ <item>
+sock_def_readable &lsqb;net/core/sock.c&rsqb;
+ <item>
+wake_up_interruptible &lsqb;include/linux/sched.h&rsqb;
+ <item>
+tcp_v4_hnd_req &lsqb;net/ipv4/tcp_ipv4.c&rsqb;
+ <item>
+tcp_v4_search_req
+ <item>
+tcp_check_req
+ <item>
+tcp_v4_syn_recv_sock
+ <item>
+__tcp_v4_lookup_established
+ <item>
+tcp_rcv_state_process &lsqb;net/ipv4/tcp_input.c&rsqb;
+ <item>
+tcp_v4_conn_request &lsqb;net/ipv4/tcp_ipv4.c&rsqb;
+ <item>
+tcp_v4_send_synack
+ <item>
+tcp_v4_synq_add
+ <item>
+tcp_rcv_synsent_state_process &lsqb;net/ipv4/tcp_input.c&rsqb;
+ <item>
+tcp_set_state &lsqb;include/net/tcp.h&rsqb;
+ <item>
+tcp_send_ack &lsqb;net/ipv4/tcp_output.c&rsqb;
+</itemize>
+</p><p>
+Description:
+</p>
+<p>
+<itemize>
+ <item>
+First we determine protocol type (IP, then TCP)
+ <item>
+NF_HOOK (function) is a wrapper routine that first manages the network
+ filter (for example firewall), then it calls ''function''.
+ <item>
+After we manage 3-way TCP Handshake which consists of:
+</itemize>
+<p>
+<verb>
+SERVER (LISTENING)                       CLIENT (CONNECTING)
+                           SYN 
+                   &lt;-------------------
+ 
+ 
+                        SYN + ACK
+                   -------------------&gt;
+
+ 
+                           ACK 
+                   &lt;-------------------
+
+                    3-Way TCP handshake
+
+</verb>
+<p>
+<itemize>
+ <item>
+In the end we only have to launch "tcp_rcv_established &lsqb;net/ipv4/tcp_input.c&rsqb;"
+ which gives the packet to the user socket and wakes it up.
+ <item>
+Signals are used to wake up tasks waiting for a socket?
+</itemize>
+</p><sect>
+Linux File System
+<p>
+TODO
+</p>
+<sect>
+Useful Tips
+<sect1>
+Stack and Heap
+<sect2>
+Overview
+<p>
+Here we view how "stack" and "heap" are allocated in memory
+</p>
+<sect2>
+Memory allocation
+<p>
+<verb>
+
+FF..        |                 | &lt;-- bottom of the stack
+       /|&bsol;  |                 |   | 
+ higher |   |                 |   |   stack
+ values |   |                 |  &bsol;|/  growing
+            |                 |
+XX..        |                 | &lt;-- top of the stack &lsqb;Stack Pointer&rsqb;
+            |                 |
+            |                 |
+            |                 |
+00..        |_________________| &lt;-- end of stack &lsqb;Stack Segment&rsqb;
+                 
+                   Stack
+
+</verb>
+</p><p>
+Memory address values start from 00.. (which is also where Stack Segment
+ begins) and they grow going toward FF.. value.
+</p>
+<p>
+XX.. is the actual value of the Stack Pointer.
+</p>
+<p>
+Stack is used by functions for:
+</p>
+<p>
+<enum>
+ <item>
+global variables  
+ <item>
+local variables
+ <item>
+return address
+</enum>
+</p><p>
+For example, for a classical function
+</p>
+<p>
+<verb>
+
+ |ret-type declaration foo_function (parameter_1, parameter_2, ..., parameter_n) &lcub;
+    |variable_1 declaration;
+    |variable_2 declaration;
+      ..
+    |variable_n declaration;
+   
+    |// Body function
+    |dynamic variable_1 declaration;
+    |dynamic variable_2 declaration;
+     ..
+    |dynamic variable_n declaration;
+   
+    |// Code is inside Code Segment, not Data/Stack segment!
+    
+    |return (ret-type) value; // often it is inside some register, for i386 eax register is used.
+ |&rcub;
+we have
+
+          |                       |
+          | 1. parameter_1 pushed | &bsol;
+    S     | 2. parameter_2 pushed |  | Before 
+    T     | ...................   |  | the calling
+    A     | n. parameter_n pushed | /
+    C     | ** Return address **  | -- Calling
+    K     | 1. local variable_1   | &bsol; 
+          | 2. local variable_2   |  | After
+          | .................     |  | the calling
+          | n. local variable_n   | /
+          |                       | 
+         ...                     ...   Free
+         ...                     ...   stack
+          |                       |
+    H     | n. dynamic variable_n | &bsol;
+    E     | ...................   |  | Allocated by
+    A     | 2. dynamic variable_2 |  | malloc &amp; kmalloc
+    P     | 1. dynamic variable_1 | /
+          |_______________________|
+        
+            Typical stack usage
+ 
+Note: variables order can be different depending on hardware architecture.
+
+</verb>
+</p><sect1>
+Application vs Process
+<sect2>
+Base definition
+<p>
+We have to distinguish 2 concepts:
+</p>
+<p>
+<itemize>
+ <item>
+Application: that is the useful code we want to execute
+ <item>
+Process: that is the IMAGE on memory of the application (it depends on
+ memory strategy used, segmentation and/or Pagination).
+</itemize>
+</p><p>
+Often Process is also called Task or Thread.
+</p>
+<sect1>
+Locks
+<sect2>
+Overview
+<p>
+2 kind of locks:
+</p>
+<p>
+<enum>
+ <item>
+intraCPU
+ <item>
+interCPU
+</enum>
+</p><sect1>
+Copy_on_write
+<p>
+Copy_on_write is a mechanism used to reduce memory usage. It postpones
+ memory allocation until the memory is really needed.
+</p>
+<p>
+For example, when a task executes the "fork()" system call (to create another
+ task), we still use the same memory pages as the  parent, in read only mode.
+ When the new task WRITES into the old page, it causes an exception and the
+ page is copied and marked "rw" (read, write).
+</p>
+<p>
+<verb>
+ 
+1-) Page X is shared between Task Parent and Task Child
+ Task Parent
+ |         | RW Access  ______
+ |         |----------&gt;|Page X|    
+ |_________|           |______|
+                          /|&bsol;
+                           |
+ Task Child                | 
+ |         | R Access      |  
+ |         |----------------                
+ |_________| 
+ 
+ 
+2-) Write request from Task Child
+ Task Parent
+ |         | RW Access  ______
+ |         |----------&gt;|Page X|    
+ |_________|           |______|
+                          /|&bsol;
+                           |
+ Task Child                | 
+ |         | W Access      |  
+ |         |----------------                
+ |_________| 
+ 
+ 
+3-) Final Configuration: Task Parent and Task Child have an independent copy of the Page, X and Y
+ Task Parent
+ |         | RW Access  ______
+ |         |----------&gt;|Page X|    
+ |_________|           |______|
+              
+              
+ Task Child
+ |         | RW Access  ______
+ |         |----------&gt;|Page Y|    
+ |_________|           |______|
+ 
+ 
+
+</verb>
+</p><sect1>
+User space and Kernel space
+<sect2>
+Definition
+<p>
+Under Linux, 2 kinds of segments are used:
+</p>
+<p>
+<enum>
+ <item>
+Kernel space, from 3 GB to 4 GB
+ <item>
+User space segments, from 0 to 3 GB
+</enum>
+</p><p>
+Addresses are intended ''linear'' (so segment relative, before "pagination").
+</p>
+<sect2>
+Graphical representation
+<p>
+<verb>
+                               __
+   4 GB---&gt;|                |    |
+           |     Kernel     |    |  Kernel Space
+           |                |  __|
+   3 GB---&gt;|----------------|  __
+           |                |    |
+           |                |    |
+   2 GB---&gt;|                |    |
+           |     Tasks      |    |  User Space
+           |                |    |
+   1 GB---&gt;|                |    |
+           |                |    |
+           |________________|  __| 
+ 0x00000000
+          Kernel/User Linear spaces
+ 
+</verb>
+</p><p>
+Linux uses only 4 segments (2 in User mode and 2 in Kernel mode). It manages
+ Access Control with Pagination only, so different Tasks will have same segment
+ addresses, but different CR3 (register used to store Directory Page Address),
+ pointing to different Page Entries.
+</p>
+<p>
+In User mode, a task cannot overcome the 3 GB limit (0 x C0 00 00 00),
+ so only the first 768 page directory entries are meaningful (768*4MB = 3GB).
+</p>
+<p>
+When a Task goes in Kernel Mode (by System call or by IRQ) the other 256
+ pages of directory entries become important, and they point to the same page
+ file as all other Tasks (which are the same of the Kernel).
+</p>
+<p>
+Only  Kernel Linear Space is equal to Kernel Physical Space, so:
+</p>
+<p>
+<verb>
+ 
+            ________________ _____                    
+           |Other KernelData|___  |  |                |
+           |----------------|   | |__|                |
+           |     Kernel     |&bsol;  |____|   Real Other   |
+  3 GB ---&gt;|----------------| &bsol;      |   Kernel Data  |
+           |                |&bsol; &bsol;     |                |
+           |              __|_&bsol;_&bsol;____|__   Real       |
+           |      Tasks     |  &bsol; &bsol;   |     Tasks      |
+           |              __|___&bsol;_&bsol;__|__   Space      |
+           |                |    &bsol; &bsol; |                |
+           |                |     &bsol; &bsol;|----------------|
+           |                |      &bsol; |Real KernelSpace|
+           |________________|       &bsol;|________________|
+      
+           Logical Addresses          Physical Addresses
+ 
+</verb>
+<p>
+<itemize>
+ <item>
+Linear Kernel Space corresponds to Physical Kernel Space, only translated
+ of 3 GB down (in fact page tables are something like &lcub; "00000000", "00000001"
+ &rcub;, so they operate no virtualization, they only report physical addresses
+ as they take from linear ones).
+ <item>
+Notice that you'll not have a "addresses conflict" between Kernel and User
+ spaces because we can manage physical addresses with Page Tables.
+</itemize>
+</p><sect>
+80386 specific details
+<sect1>
+Boot procedure
+<p>
+<verb>
+bbootsect.s &lsqb;arch/i386/boot&rsqb;
+setup.S (+video.S) 
+head.S (+misc.c) &lsqb;arch/i386/boot/compressed&rsqb;
+start_kernel &lsqb;init/main.c&rsqb;
+</verb>
+</p><sect1>
+80386 (and more) Descriptors
+<sect2>
+Overview
+<p>
+Descriptors are data structure used by Intel microprocessor i386+ to virtualize
+ memory.
+</p>
+<sect2>
+Kind of descriptors
+<p>
+<itemize>
+ <item>
+GDT (Global Descriptor Table)
+ <item>
+LDT (Local Descriptor Table)
+ <item>
+IDT (Interrupt Descriptor Table)
+</itemize>
+</p><sect>
+IRQ 
+<sect1>
+Overview
+<p>
+IRQ is an asyncronous signal sent to microprocessor to advertise  a requested
+ work is completed
+</p>
+<sect1>
+Interaction schema
+<p>
+<verb>
+                                 |&lt;--&gt;  IRQ(0) &lsqb;Timer&rsqb;
+                                 |&lt;--&gt;  IRQ(1) &lsqb;Device 1&rsqb;
+                                 | ..
+                                 |&lt;--&gt;  IRQ(n) &lsqb;Device n&rsqb;
+    _____________________________| 
+     /|&bsol;      /|&bsol;          /|&bsol;
+      |        |            |
+     &bsol;|/      &bsol;|/          &bsol;|/
+ 
+    Task(1)  Task(2) ..   Task(N)
+              
+             
+             IRQ - Tasks Interaction Schema
+  
+
+</verb>
+</p><sect2>
+What happens?
+<p>
+A typical O.S. uses many IRQ signals to interrupt normal process execution
+ and does some housekeeping work. So:
+</p>
+<p>
+<enum>
+ <item>
+IRQ (i) occurs and Task(j) is interrupted
+ <item>
+IRQ(i)_handler is executed
+ <item>
+control backs to Task(j) interrupted
+</enum>
+</p><p>
+Under Linux, when an IRQ comes, first the IRQ wrapper routine (named "interrupt0x??")
+ is called, then the "official" IRQ(i)_handler will be executed. This allows some
+ duties like timeslice preemption.
+</p>
+<sect>
+Utility functions
+<sect1>
+list_entry &lsqb;include/linux/list.h&rsqb;
+<p>
+Definition:
+</p>
+<p>
+<verb>
+&num;define list_entry(ptr, type, member) &bsol;
+((type *)((char *)(ptr)-(unsigned long)(&amp;((type *)0)-&gt;member)))
+</verb>
+</p><p>
+Meaning:
+</p>
+<p>
+"list_entry" macro is used to retrieve a parent struct pointer, by using
+ only one of internal struct pointer. 
+</p>
+<p>
+Example:
+</p>
+<p>
+<verb>
+struct __wait_queue &lcub;
+   unsigned int flags; 
+   struct task_struct * task; 
+   struct list_head task_list;
+&rcub;;
+struct list_head &lcub; 
+   struct list_head *next, *prev; 
+&rcub;;
+
+// and with type definition:
+typedef struct __wait_queue wait_queue_t;
+
+// we'll have
+wait_queue_t *out list_entry(tmp, wait_queue_t, task_list);
+
+// where tmp point to list_head
+</verb>
+</p><p>
+So, in this case, by means of *tmp pointer &lsqb;list_head&rsqb; we retrieve
+ an *out pointer &lsqb;wait_queue_t&rsqb;.
+</p>
+<p>
+<verb>
+
+ ____________ &lt;---- *out &lsqb;we calculate that&rsqb;
+|flags       |             /|&bsol;
+|task *--&gt;   |              |
+|task_list   |&lt;----    list_entry
+|  prev * --&gt;|    |         |
+|  next * --&gt;|    |         |
+|____________|    ----- *tmp &lsqb;we have this&rsqb;
+ 
+</verb>
+</p><sect1>
+Sleep 
+<sect2>
+Sleep code
+<p>
+Files: 
+</p>
+<p>
+<itemize>
+ <item>
+kernel/sched.c
+ <item>
+include/linux/sched.h
+ <item>
+include/linux/wait.h
+ <item>
+include/linux/list.h
+</itemize>
+</p><p>
+Functions:
+</p>
+<p>
+<itemize>
+ <item>
+interruptible_sleep_on
+ <item>
+interruptible_sleep_on_timeout
+ <item>
+sleep_on
+ <item>
+sleep_on_timeout
+</itemize>
+</p><p>
+Called functions:
+</p>
+<p>
+<itemize>
+ <item>
+init_waitqueue_entry
+ <item>
+__add_wait_queue
+ <item>
+list_add
+ <item>
+__list_add
+ <item>
+__remove_wait_queue
+</itemize>
+</p><p>
+InterCallings Analysis:
+</p>
+<p>
+<verb>
+|sleep_on
+   |init_waitqueue_entry  --
+   |__add_wait_queue        |   enqueuing request to resource list
+      |list_add              |
+         |__list_add        -- 
+   |schedule              ---     waiting for request to be executed
+      |__remove_wait_queue --   
+      |list_del              |   dequeuing request from resource list
+         |__list_del        -- 
+ 
+
+</verb>
+</p><p>
+Description:
+</p>
+<p>
+Under Linux each resource (ideally an object shared between many users
+ and many processes), , has a queue to manage ALL tasks requesting it.
+</p>
+<p>
+This queue is called "wait queue" and it consists of many items we'll call
+ the"wait queue element":
+</p>
+<p>
+<verb>
+***   wait queue structure &lsqb;include/linux/wait.h&rsqb;  ***
+
+
+struct __wait_queue &lcub;
+   unsigned int flags; 
+   struct task_struct * task; 
+   struct list_head task_list;
+&rcub;
+struct list_head &lcub; 
+   struct list_head *next, *prev; 
+&rcub;;
+</verb>
+</p><p>
+Graphic working: 
+</p>
+<p>
+<verb>
+        ***  wait queue element  ***
+
+                             /|&bsol;
+                              |
+       &lt;--&lsqb;prev *, flags, task *, next *&rsqb;--&gt;
+ 
+                     
+
+
+                 ***  wait queue list ***  
+ 
+          /|&bsol;           /|&bsol;           /|&bsol;                /|&bsol;
+           |             |             |                  |
+--&gt; &lt;--&lsqb;task1&rsqb;--&gt; &lt;--&lsqb;task2&rsqb;--&gt; &lt;--&lsqb;task3&rsqb;--&gt; .... &lt;--&lsqb;taskN&rsqb;--&gt; &lt;--
+|                                                                  |
+|__________________________________________________________________|
+          
+
+           
+              ***   wait queue head ***
+
+       task1 &lt;--&lsqb;prev *, lock, next *&rsqb;--&gt; taskN
+   
+ 
+</verb>
+</p><p>
+"wait queue head" point to first (with next *) and last (with prev *) elements
+ of the "wait queue list".
+</p>
+<p>
+When a new element has to be added, "__add_wait_queue" &lsqb;include/linux/wait.h&rsqb;
+ is called, after which  the generic routine "list_add" &lsqb;include/linux/wait.h&rsqb;,
+ will be executed and will workother kinds of lists:
+</p>
+<p>
+<verb>
+***   function list_add &lsqb;include/linux/list.h&rsqb;  ***
+
+// classic double link list insert
+static __inline__ void __list_add (struct list_head * new,  &bsol;
+                                   struct list_head * prev, &bsol;
+                                   struct list_head * next) &lcub; 
+   next-&gt;prev = new; 
+   new-&gt;next = next; 
+   new-&gt;prev = prev; 
+   prev-&gt;next = new; 
+&rcub;
+</verb>
+</p><p>
+For a complete description, we call  "__list_del" &lsqb;include/linux/list.h&rsqb;
+ function called by "list_del" &lsqb;include/linux/list.h&rsqb; inside "remove_wait_queue"
+ &lsqb;include/linux/wait.h&rsqb;:
+</p>
+<p>
+<verb>
+***   function list_del &lsqb;include/linux/list.h&rsqb;  ***
+
+
+// classic double link list delete
+static __inline__ void __list_del (struct list_head * prev, struct list_head * next) &lcub; 
+   next-&gt;prev = prev; 
+   prev-&gt;next = next; 
+&rcub;
+</verb>
+</p><sect2>
+Stack consideration
+<p>
+A typical list (or queue) is usually managed allocating it into the Heap
+ (see Cap.10 for Heap and Stack definition and about where variables are allocated).
+ Otherwise here, we statically allocate Wait Queue data in a local variable
+ (Stack), then function is interrupted by scheduling, in the end, (returning
+ from scheduling) we'll erase local variable.
+</p>
+<p>
+<verb>
+  new task &lt;----|          task1 &lt;------|          task2 &lt;------|
+                |                       |                       |
+                |                       |                       | 
+|..........|    |       |..........|    |       |..........|    | 
+|wait.flags|    |       |wait.flags|    |       |wait.flags|    |
+|wait.task_|____|       |wait.task_|____|       |wait.task_|____|   
+|wait.prev |--&gt;         |wait.prev |--&gt;         |wait.prev |--&gt;
+|wait.next |--&gt;         |wait.next |--&gt;         |wait.next |--&gt;   
+|..        |            |..        |            |..        |    
+|schedule()|            |schedule()|            |schedule()|     
+|..........|            |..........|            |..........|    
+|__________|            |__________|            |__________|     
+ 
+   Stack                   Stack                   Stack
+</verb>
+</p><sect>
+Static variables
+<sect1>
+Overview
+<p>
+Linux is written in ''C'' language, and as every application has:
+</p>
+<p>
+<enum>
+ <item>
+Local variables (used by above functions)
+ <item>
+Module variables (inside the source file and relative only to that module)
+ <item>
+Global/Static variables present in only 1 copy (the same for all modules)
+</enum>
+</p><p>
+When a Static variable is modified by a module, all other modules will
+ see the new value.
+</p>
+<p>
+Static variables under Linux are very important, cause they are the only
+ kind to add new support to kernel: they typically are pointers to the head
+ of a list of registered elements, which can be:
+</p>
+<p>
+<itemize>
+ <item>
+added
+ <item>
+deleted
+ <item>
+maybe modified
+</itemize>
+<p>
+<verb>
+                           _______      _______      _______
+Global variable  -------&gt; |Item(1)| -&gt; |Item(2)| -&gt; |Item(3)|  ..
+                          |_______|    |_______|    |_______|
+</verb>
+</p><sect1>
+Main variables
+<sect2>
+Current
+<p>
+<verb>
+                           ________________
+Current ----------------&gt; | Actual process |
+                          |________________|
+</verb>
+</p><p>
+Current points to ''task_struct'' structure, which contains all data about
+ a process like:
+</p>
+<p>
+<itemize>
+ <item>
+pid, name, state, counter, policy of scheduling
+ <item>
+pointers to many data structures like: files, vfs, other processes, signals...
+</itemize>
+</p><p>
+Current is not a real variable, it is 
+</p>
+<p>
+<verb>
+static inline struct task_struct * get_current(void) &lcub; 
+   struct task_struct *current; 
+   __asm__(&quot;andl &percnt;&percnt;esp,&percnt;0; &quot;:&quot;=r&quot; (current) : &quot;0&quot; (&tilde;8191UL)); 
+   return current; 
+&rcub;
+&num;define current get_current()
+</verb>
+</p><p>
+Above lines just takes value of ''esp'' register (stack pointer) and get
+ it available like a variable, from which we can point to our task_struct structure.
+</p>
+<p>
+From ''current'' element we can access directly to any other process (ready,
+ stopped or in any other state) kernel data structure, for example changing
+ STATE (like a I/O driver does), PID, presence in ready list or blocked list,
+ etc.
+</p>
+<p>
+
+</p>
+<sect2>
+Registered filesystems
+<p>
+<verb>
+                       ______      _______      ______
+file_systems  ------&gt; | ext2 | -&gt; | msdos | -&gt; | ntfs |
+ &lsqb;fs/super.c&rsqb;         |______|    |_______|    |______|
+</verb>
+</p><p>
+When you use command like ''modprobe some_fs'' you will add a new entry
+ to file systems list, while removing it (by using ''rmmod'') will delete it.
+</p>
+<sect2>
+Mounted filesystems
+<p>
+<verb>
+                        ______      _______      ______
+mount_hash_table  ----&gt;|   /  | -&gt; | /usr  | -&gt; | /var |
+&lsqb;fs/namespace.c&rsqb;       |______|    |_______|    |______|
+</verb>
+</p><p>
+When you use ''mount'' command to add a fs, the new entry will be inserted
+ in the list, while an ''umount'' command will delete the entry.
+</p>
+<sect2>
+Registered Network Packet Type
+<p>
+<verb>
+                        ______      _______      ______ 
+     ptype_all  ------&gt;|  ip  | -&gt; |  x25  | -&gt; | ipv6 |
+&lsqb;net/core/dev.c&rsqb;       |______|    |_______|    |______|
+</verb>
+</p><p>
+For example, if you add support for IPv6 (loading relative module) a new
+ entry will be added in the list.
+</p>
+<sect2>
+Registered Network Internet Protocol
+<p>
+<verb>
+                          ______      _______      _______ 
+inet_protocol_base -----&gt;| icmp | -&gt; |  tcp  | -&gt; |  udp  |
+&lsqb;net/ipv4/protocol.c&rsqb;    |______|    |_______|    |_______|
+</verb>
+</p><p>
+Also others packet type have many internal protocols in each list (like
+ IPv6).
+</p>
+<p>
+<verb>
+                          ______      _______      _______ 
+inet6_protos -----------&gt;|icmpv6| -&gt; | tcpv6 | -&gt; | udpv6 |
+&lsqb;net/ipv6/protocol.c&rsqb;    |______|    |_______|    |_______|
+</verb>
+</p><sect2>
+Registered Network Device
+<p>
+<verb>
+                          ______      _______      _______ 
+dev_base ---------------&gt;|  lo  | -&gt; |  eth0 | -&gt; |  ppp0 |
+&lsqb;drivers/core/Space.c&rsqb;   |______|    |_______|    |_______|
+</verb>
+</p><sect2>
+Registered Char Device
+<p>
+<verb>
+                          ______      _______      ________ 
+chrdevs ----------------&gt;|  lp  | -&gt; | keyb  | -&gt; | serial |
+&lsqb;fs/devices.c&rsqb;           |______|    |_______|    |________|
+</verb>
+</p><p>
+''chrdevs'' is not a pointer to a real list, but it is a standard vector.
+</p>
+<sect2>
+Registered Block Device
+<p>
+<verb>
+                          ______      ______      ________ 
+bdev_hashtable ---------&gt;|  fd  | -&gt; |  hd  | -&gt; |  scsi  |
+&lsqb;fs/block_dev.c&rsqb;         |______|    |______|    |________|
+</verb>
+</p><p>
+''bdev_hashtable'' is an hash vector.
+</p>
+<sect>
+Links
+<p>
+<url url="http://www.kernel.org" name="Official Linux kernels and patches download site">
+</p>
+<p>
+<url url="http://jungla.dit.upm.es/~ jmseyas/linux/kernel/hackers-docs.html" name="Great documentation about Linux Kernel">
+</p>
+<p>
+<url url="http://www.uwsg.indiana.edu/hypermail/linux/kernel/index.html" name="Official Kernel Mailing list">
+</p>
+<p>
+<url url="http://www.linuxdoc.org/guides.html" name="Linux Documentation Project Guides">
+</p>
+
+
+</article>
