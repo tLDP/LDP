@@ -18,9 +18,9 @@ insert([blkfooter],
     <table class="footer" width="100%">
       <tr>
         <td align="center">
-          <a href="copyright">|strcopyright|</a> \\|
-          <a href="privacy">|strprivacy|</a> \\|
-          <a href="lampadas">|strabout_lamp|</a>
+          <a href="copyright|uri.lang_ext|">|strcopyright|</a> \\|
+          <a href="privacy|uri.lang_ext|">|strprivacy|</a> \\|
+          <a href="lampadas|uri.lang_ext|">|strabout_lamp|</a>
         </td>
       </tr>
     </table>
