@@ -1,11 +1,11 @@
 insert(author,       [Autor],
 [Jemand der eine neues Dokument schreibt, ]m4_dnl
 [oder ein bestehendes stark überarbeitet.])
-insert(coauthor,     [Co-author],
-[A person who assists in writing the document.])
+insert(coauthor,     [Co-Author],
+[Jemand der dem Autor beim Schreiben hilft.])
 insert(maintainer,   [Instandhalter],
 [Jemand der ein Dokument auf dem letzten Stand hält.]) 
-insert(comaintainer, [Vize-Instandhalter],
+insert(comaintainer, [Co-Instandhalter],
 [Jemand der dem Instandhalter hilft, ]m4_dnl
 [aber nicht für das Dokument verantwortlich ist.])
 insert(converter,    [Konverter],

@@ -29,7 +29,7 @@ insert(nonfree, [Unfrei], [Andere unfreie Lizenz],
     Kopien oder unentgeltliche oder gewinnorientierte Veröffentlichungen
     einschränkt.])
 
-insert(pd, [PD], [Public Domain],
+insert(pd, [Public Domain], [Public Domain],
     [Dokumente in Öffentlichem Besitz sind technisch gesehen
     unlizensiert. Der Autor hat auf alle Rechte endgültig verzichtet.
     Sein Werk kann uneingeschränkt verwendet werden, unentgeltlich,
@@ -41,5 +41,5 @@ insert(none, [Keine], [Keine Lizenz],
     veröffentlicht oder sonstwie verteilt werden und wird als
     proprietär betrachtet.])
 
-insert(other, [Other], [Other License],
-    [Some other license.])
+insert(other, [Andere], [Andere Lizenz],
+    [Irgend eine andere Lizenz.])

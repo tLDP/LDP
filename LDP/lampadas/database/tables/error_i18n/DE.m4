@@ -5,11 +5,11 @@ insert(2,
   [Datei nicht beschreibbar],
   [Die Quelldatei existiert, ist aber nicht beschreibbar.])
 insert(3,
-  [No source files],
-  [No source files are listed for the document.])
+  [Keine Quelldateien],
+  [Für dieses Dokument sind keine Quelldateien registriert.])
 insert(4,
-  [No primary files],
-  [No source file is designated as primary.])
+  [Keine Primärdatei],
+  [Keine der Quelldateien wurde zur Primärdatei erklärt.])
 insert(5,
-  [Multiple primary files],
-  [More than one file is designated as primary.])
+  [Mehrer Primärdateien],
+  [Mehr als eine Datei wurde zur Primärdatei erklärt.])
