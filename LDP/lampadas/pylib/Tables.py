@@ -2224,20 +2224,19 @@ class TabFileMetadata(Table):
             sourcefile = dms.sourcefile.get_by_id(uri.filename)
         elif uri.id > 0:
             doc = dms.document.get_by_id(uri.id)
-            docfile = doc.top_file
-            if docfile==None:
+            topfile = doc.top_file
+            if topfile==None:
                 return ''
-            sourcefile = docfile.sourcefile
         
         # Read the format_name
-        format = sourcefile.format
+        format = topfile.format
         if format:
             format_name = format.name[uri.lang]
         else:
             format_name = ''
 
         # Read the dtd_name
-        dtd = sourcefile.dtd
+        dtd = topfile.dtd
         if dtd:
             dtd_name = dtd.name[uri.lang]
         else:
@@ -2252,16 +2251,16 @@ class TabFileMetadata(Table):
                          '<tr><td class="label">|strisbn|:</td><td>%s</td></tr>\n'
                          '<tr><td class="label">|strencoding|:</td><td>%s</td></tr>\n'
                          '</table>\n'
-                         % (sourcefile.filename,
+                         % (topfile.filename,
                             format_name,
                             dtd_name,
-                            sourcefile.dtd_version,
-                            sourcefile.title,
-                            sourcefile.abstract,
-                            sourcefile.version,
-                            sourcefile.pub_date,
-                            sourcefile.isbn,
-                            sourcefile.encoding))
+                            topfile.dtd_version,
+                            topfile.title,
+                            topfile.abstract,
+                            topfile.version,
+                            topfile.pub_date,
+                            topfile.isbn,
+                            topfile.encoding))
         return box.get_value()
 
 class TabEditThisPage(Table):
