@@ -3,44 +3,44 @@ m4_dnl  The last field is the version number. Please bump it
 m4_dnl  by one if you're the primary author, and synchronize
 m4_dnl  it in translations when the translation is up to date.
 
-insert([index], [|strproject|], [Splash Page],
+insert([index], [|strproject|], [Couverture],
 [
     |tabsplashlanguages|
 ])
 
-insert([adddocument], [Add Document], [],
+insert([adddocument], [Ajouter un Document], [],
 [
     |tabeditdoc|
 ])
 
-insert([users], [User List], [],
+insert([users], [Liste des Utilisateurs], [],
 [
     |tabletters|
     |tabusers|
 ])
 
-insert([sessions], [User Sessions], [],
+insert([sessions], [Sessions d'Utilisateurs], [],
 [
     |tabsessions|
 ])
 
-insert([my], [My Home Page], [],
+insert([my], [Ma Page], [],
 [
-    <p>This is your personal home page.
+    <p>Ceci est votre page personnelle.
 
-    <p>This table lists documents you have volunteered to contribute to:
+    <p>Cette table fait la liste des documents pour lequel vous vous êtes porté volontaire:
 
     <p>|session_user_docs|
 ])
 
-insert([home], [|strproject|], [Home],
+insert([home], [|strproject|], [Accueil],
 [
 	<p>Ce système est en cours de développement. Son code est modifié en permanence ce qui le rend instable.
 
 	<p>Merci de ne pas envoyer de rapport de bogue pour le moment
 
-    <p>This demo site provides the following users. Log in as one of
-    them to see the site through their eyes!
+    <p>Ce site de démonstration offre les utilisateurs suivants. Incarnez-les pour
+    voir le site avec leurs yeux !
 
     <ul>
         <li>sysadmin - the SUPERUSER, who manages the system.</li>
@@ -56,22 +56,22 @@ insert([home], [|strproject|], [Home],
     account using the "Create Account" link to the right.
 ])
 
-insert([doctable], [Browse Documents], [],
+insert([doctable], [Consulter Documents], [],
 [
 	|tabdocs|z
 ])
 
-insert([search], [Search], [],
+insert([search], [Recherche], [],
 [
     |tabsearch|
 ])
 
-insert([recentnews], [|strproject| News], [|strprojectshort| News],
+insert([recentnews], [|strproject| Nouvelles], [|strprojectshort| Nouvelles],
 [
 	|tabrecentnews|
 ])
 
-insert([stats], [Current Statistics], [],
+insert([stats], [Statistiques actuelles], [],
 [
     <h1>Global Document Statistics</h1>
 
@@ -166,7 +166,7 @@ insert([contribute], [Contribuer à Lampadas], [Contribuer à Lampadas],
 	</ul>
 ])
 
-insert([unmaintained], [Unmaintained Documents], [],
+insert([unmaintained], [Documents Non maintenus], [],
 [
     <p>If you wish to become the maintainer for one of these unmaintained
     documents, please follow these steps:
@@ -195,29 +195,29 @@ insert([unmaintained], [Unmaintained Documents], [],
     <p>|tabunmaintained|
 ])
 
-insert([maint_wanted], [New Maintainer Wanted], [],
+insert([maint_wanted], [Nouveau Maintaineur Recherché], [],
 [
     |tabmaint_wanted|
 ])
 
-insert([pending], [Pending Documents], [],
+insert([pending], [Documents en Attente], [],
 [
     |tabpending|
 ])
 
-insert([wishlist], [Wishlist Documents], [],
+insert([wishlist], [Documents Souhaités], [],
 [
     |tabwishlist|
 ])
 
-insert([resources], [Other Resources], [],
+insert([resources], [Autres Ressources], [],
 [
     <ul>
-        <li>Insert some resources for French authors.
+        <li>Ajouter ici des ressources utiles pour les auteurs français.
     </ul>
 ])
 
-insert([maillists], [Mailing Lists], [],
+insert([maillists], [Listes Diffusion], [],
 [
     List your project\'s mailing lists here.
 ])
@@ -227,7 +227,7 @@ insert([about], [A propos de |strproject|], [A propos de |strprojectshort|],
 	Remplacez ce texte par la description de votre projet.
 ])
 
-insert([lampadas], [A propos de Lampadas], [A propos de Lampadas],
+insert([lampadas], [Pourquoi Lampadas], [Pourquoi Lampadas],
 [
     <p>This website is based on version |version| of the Lampadas
     Documentation Management System,
@@ -278,12 +278,12 @@ insert([privacy], [Confidentialité], [Confidentialité],
 	Confidentialité
 ])
 
-insert([sitemap], [Site Map], [],
+insert([sitemap], [Plan du site], [],
 [
     |tabsitemap|
 ])
 
-insert([newuser], [New User], [],
+insert([newuser], [Nouvel Utilisateur], [],
 [
     <p>To create a new user account, fill out this form.
     <p>
@@ -317,7 +317,7 @@ insert([newuser], [New User], [],
     <p>*Required Fields
 ])
 
-insert([mailpass], [Mail Password], [],
+insert([mailpass], [Envoi du Mot de Passe], [],
 [
     <p>Please enter your email address to have your
     password mailed to you.
@@ -325,7 +325,7 @@ insert([mailpass], [Mail Password], [],
     <p>|tabmailpass|
 ])
 
-insert([topic], [View Topic], [],
+insert([topic], [Voir Sujet], [],
 [
     |tabtopics|
     <p>|tabtopicdocs|
@@ -419,17 +419,17 @@ insert([document_deleted], [Document Deleted], [],
     The document has been deleted from the database.
 ])
 
-insert([news_edit], [Edit News], [],
+insert([news_edit], [Editer Nouvelles], [],
 [
     |tabnewsitem|
 ])
 
-insert([page_edit], [Edit Web Page], [],
+insert([page_edit], [Editer Page Web], [],
 [
     |tabpage|
 ])
 
-insert([string_edit], [Edit String], [],
+insert([string_edit], [Editer Chaîne], [],
 [
     |tabstring|
 ])
@@ -439,12 +439,12 @@ insert([404], [Introuvable], [Introuvable],
 	Introuvable
 ])
 
-insert([user_exists], [User Exists], [],
+insert([user_exists], [Utilisateur Existe], [],
 [
     <p>That username is already taken. Please select another username and try again.
 ])
 
-insert([username_required], [Username Required] [],
+insert([username_required], [Nom d'utilisateur nécessaire] [],
 [
     <p>Username is a required field. Please enter a username and try again.
 ])
@@ -456,13 +456,13 @@ insert([email_exists], [Email Exists], [],
     you can have it <a href="mailpass">mailed</a> to you.
 ])
 
-insert([account_created], [Account Created], [],
+insert([account_created], [Compte créé], [],
 [
     <p>Your account has been created, and your password has been mailed to you.
     Please check your email.
 ])
 
-insert([password_mailed], [Password Mailed], [],
+insert([password_mailed], [Mot de Passe Envoyé], [],
 [
     <p>Your password has been mailed to you.
     If you continue to have problems logging in, please write
@@ -475,7 +475,7 @@ insert([user], [|user.username| - |user.name|], [],
     <p>|user.docs|
 ])
 
-insert([adduser], [Add User], [Add User],
+insert([adduser], [Add User], [Ajout Utilisateur],
 [
     |tabuser|
 ])
@@ -495,18 +495,18 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ])
 
-insert([sourcefile], [Source File], [],
+insert([sourcefile], [Fichier Source], [],
 [
     |tabfile_metadata|
     <p>|tabfile_reports|
 ])
 
-insert([file_report], [File Report], [],
+insert([file_report], [Rapport], [],
 [
     |tabfile_report|
 ])
 
-insert([errors], [Error List], [],
+insert([errors], [Liste d'Erreurs], [],
 [
     |taberrors|
 ])
@@ -516,32 +516,32 @@ insert([collection], [|collection.name|], [],
     |tabcollection|
 ])
 
-insert([news], [News List], [],
+insert([news], [Nouvelles], [],
 [
     |tabnews|
 ])
 
-insert([addnews], [Add News], [],
+insert([addnews], [Ajout Nouvelle], [],
 [
     |tabnewsitem|
 ])
 
-insert([pages], [Web Page List], [],
+insert([pages], [Liste des Pages Web], [],
 [
     |tabpages|
 ])
 
-insert([addpage], [Add Web Page], [],
+insert([addpage], [Ajout Page Web], [],
 [
     |tabpage|
 ])
 
-insert([strings], [String List], [],
+insert([strings], [Liste de Chaînes de Caractères], [],
 [
     |tabstrings|
 ])
 
-insert([addstring], [Add String], [],
+insert([addstring], [Ajout Chaîne], [],
 [
     |tabstring|
 ])

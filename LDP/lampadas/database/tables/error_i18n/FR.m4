@@ -17,11 +17,11 @@ insert(103,
     [Fichier protégé en écriture],
     [Ce fichier existe, mais est protégé en écriture.])
 insert(104,
-    [Cannot determine file format],
-    [Lampadas cannot determine what format this file is stored in, so it cannot be published.])
+    [Format de fichier indéterminé],
+    [Lampadas ne peut déterminer le format de ce fichier contenant ce document et ne donc pas le publier.])
 insert(201,
-    [Could not mirror file, file not found.],
-    [The mirroring system was unable to locate the source file for mirroring.])
+    [Impossible de faire un miroir, fichier introuvable.],
+    [Le système de miroir n\'a pas réussi à copier le fichier source car il est introuvable.])
 insert(202,
     [Could not retrieve remote file.],
     [The mirroring system was unable to retrieve a remote file over HTTP or FTP.])
