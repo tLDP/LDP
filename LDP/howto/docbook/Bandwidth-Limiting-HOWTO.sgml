@@ -15,11 +15,10 @@
 
     <revhistory>
        <revision>
-         <revnumber>0.1</revnumber>
-         <date>2001-05-02</date>
+         <revnumber>0.2</revnumber>
+         <date>2001-05-20</date>
          <authorinitials>tc</authorinitials>
          <revremark>
-           Initial release.
          </revremark>
        </revision>
     </revhistory>
@@ -67,6 +66,12 @@ or criticisms. If you find a mistake or a typo in this document (and you will
 find a lot of them, as English is not my native language), please let me know
 so I can correct it in the next version. Thanks.</para>
 </sect2>
+<sect2>
+<title>Thanks</title>
+<para>I would like to thank Ami M. Echeverri lula@pollywog.com who helped me to
+convert the HOWTO into SGML format and corrected some mistakes. I also want to
+thank Ryszard Prosowicz prosowicz@poczta.fm for useful suggestions.</para>
+</sect2>
 </sect1>
 
 <sect1 id="prep">
@@ -75,7 +80,7 @@ so I can correct it in the next version. Thanks.</para>
 <itemizedlist>
 <listitem><para>We have 115,2 kbits/s ppp (modem) internet link (115,2/10
 = 11,5 kbytes/s); yes, there are such types of connection! With eth connections
-(network card) we divide 115,2 by 8; with ppp we divide by 10, because
+(network card) we would divide 115,2 by 8; with ppp we divide by 10, because
 of start/stop bits (8 + 1 + 1 = 10).</para>
 </listitem>
 <listitem><para>We have some LAN stations and their users are doing bulk downloads
@@ -193,12 +198,12 @@ no_cache deny QUERY
 #Memory the Squid will use. Well, Squid will use far more than that.
 cache_mem 16 MB
 #250 means that Squid will use 250 megabytes of disk space
-cache_dir ufs /proxy 250 16 256
+cache_dir ufs /cache 250 16 256
 redirect_rewrites_host_header off
 cache_replacement_policy GDSF
 acl localnet src 192.168.1.0/255.255.255.0
 acl localhost src 127.0.0.1/255.255.255.255
-acl Safe_ports port 80 443 210 119 70 21 1025-65535
+acl Safe_ports port 80 443 210 119 70 20 21 1025-65535
 acl CONNECT method CONNECT
 acl all src 0.0.0.0/0.0.0.0
 http_access allow localnet
@@ -267,12 +272,13 @@ delay_class 2 2
  
 #The numbers here are values in bytes;
 #we must remember that Squid doesn't consider start/stop bits
-#6000/150000 are values for the whole network
-#5000/150000 are values for the single IP
+#5000/150000 are values for the whole network
+#5000/120000 are values for the single IP
 #after downloaded files exceed about 150000 bytes,
+#(or even twice or three times as much)
 #they will continue to download at about 5000 bytes/s
  
-delay_parameters 2 6000/150000 5000/150000
+delay_parameters 2 5000/150000 5000/120000
 delay_access 2 allow magic_words2
  
 #EOF</programlisting>
@@ -345,7 +351,7 @@ can't delete/change name of files on remote <filename>ftp</filename> servers.
 <para>When we block ports 20 and 21, we won't be able to delete/change name
 of files on remote <filename>ftp</filename> servers.</para>
 </listitem>
-<listitem><para>IE5.5 has a bug (at least mine has) -- it doesn't use a proxy
+<listitem><para>IE5.5 has a bug -- it doesn't use a proxy
 to retrieve the <filename>ftp</filename> directory. Instead it connects directly
 via IP-masquerade.</para>
 <para>When we block ports 20 and 21, we won't be able to browse through <filename>
@@ -357,8 +363,41 @@ downloads using other methods. We will deal with it in chapter 4.</para>
 </sect3>
 <sect3>
 <title>Linux 2.4.x kernels (iptables)</title>
-<para>FIXME: Unfortunately, I don't know much about IP-tables, please help
-:(((</para>
+<para>We must make sure that nobody will try to cheat and use a proxy
+server other than ours. Public proxies usually run on 3128 and 8080 ports:</para>
+<para><command>/sbin/iptables -A FORWARD -s ! 192.168.1.1 -d ! 192.168.1.1 --dport 3128
+-p TCP -j DROP</command></para>
+<para><command>/sbin/iptables -A FORWARD -s ! 192.168.1.1 -d ! 192.168.1.1 --dport 8080
+-p TCP -j DROP</command></para>
+<para>We must also make sure that nobody will try to cheat and connect to the
+internet directly (IP-masquerade) to download web pages:</para>
+<para><command>/sbin/iptables -A FORWARD -s ! 192.168.1.1 -d ! 192.168.1.1 --dport 80
+-p TCP -j DROP</command></para>
+<para><command>/sbin/iptables -A FORWARD -s ! 192.168.1.1 -d ! 192.168.1.1 --dport 443
+-p TCP -j DROP</command></para>
+<para>If everything is working, we add these lines to the end of our initializing
+scripts. Usually, it can be <literal>/etc/rc.d/rc.local</literal>.</para>
+<para>We might think to block <filename>ftp</filename> traffic (ports
+20 and 21) to force our LAN users to use Squid, but it's not a good idea
+for at least two reasons:</para>
+<itemizedlist>
+<listitem><para>Squid is a http proxy with <filename>ftp</filename> support,
+not a real <filename>ftp</filename> proxy. It can download from <filename>
+ftp</filename>, it can also upload to some <filename>ftp</filename>, but it
+can't delete/change name of files on remote <filename>ftp</filename> servers.
+</para>
+<para>When we block ports 20 and 21, we won't be able to delete/change name
+of files on remote <filename>ftp</filename> servers.</para>
+</listitem>
+<listitem><para>IE5.5 has a bug -- it doesn't use a proxy
+to retrieve the <filename>ftp</filename> directory. Instead it connects directly
+via IP-masquerade.</para>
+<para>When we block ports 20 and 21, our LAN users won't be able to browse
+through <filename>ftp</filename> directories, using IE5.5.</para>
+</listitem>
+</itemizedlist>
+<para>So, we will block excessive <filename>ftp</filename>
+downloads using other methods. We will deal with it in chapter 4.</para>
 </sect3></sect2></sect1>
 
 <sect1 id="cbq">
@@ -433,14 +472,24 @@ WEIGHT=5Kbit
 PRIO=5
 #Windows Media Player
 RULE=:1755,192.168.1.0/24
-#Real Player uses TCP port 554 or UDP ports near 3369, I don't know exactly
+#Real Player uses TCP port 554, for UDP it uses different ports,
+#but generally RealAudio in UDP doesn't consume much bandwidth
 RULE=:554,192.168.1.0/24
-RULE=:3360,192.169.1.0/24:3380
+RULE=:7070,192.169.1.0/24
 #Napster uses ports 6699 and 6700, maybe some other?
-RULE=:6699,192.168.1.0/24:6799
+RULE=:6699,192.168.1.0/24
+RULE=:6700,192.168.1.0/24
+#Audiogalaxy uses ports around 41000, thera are many of them,
+#so keep in mind I didn't list all of them here
+RULE=:41060,192.168.1.0/24
+RULE=:41133,192.168.1.0/24
+#Some clever users can connect to SOCKS servers when using Napster,
+#Audiogalaxy etc.; it's also a good idea to do so
+#when you run your own SOCKS proxy
+RULE=:1080,192.168.1.0/24
 #Add any other ports you want; you can easily check
 #ports that programs use with IPTraf
-#RULE=:from_port,192.168.1.0/24:to_port
+#RULE=:port,192.168.1.0/24
 
 </programlisting>
 </sect2></sect1>
@@ -460,6 +509,19 @@ cbq.init</command> script?</title>
 <para>Yes. Look inside this script; there are some examples.</para>
 </sect2>
 <sect2>
+<title>CBQ sometimes doesn't work for no reason.</title>
+<para>Generally it shouldn't occur. Sometimes, you can observe mass downloads, though you 
+think you have blocked all ports Napster or Audiogalaxy uses. Well, there is always one more
+port open for mass downloads. To find it, you can use IPTraf. As there can be possibly
+thousands of such ports, it can be really hard task for you.
+To make it easier, you can consider running your own SOCKS proxy - Napster, Audiogalaxy
+and many programs can use SOCKS proxies, so it's much easier to deal with just one port
+(1080), than to do so with thousands of possibilites. Don't forget to close all ports for traffic,
+and leave open ports like 25 and 119 (SMTP and POP3), and other you think might be useful. You will
+find a link to NEC SOCKS proxy at the end of this HOWTO. If you intend to use it: don't forget to
+apply a patch that can be found on their page.</para>
+</sect2>
+<sect2>
 <title>Delay pools are stupid; why can't I download something at full speed
 when the network is used only by me?</title>
 <para>Unfortunately, you can't do much about it.</para>
@@ -468,12 +530,18 @@ it, for example, at 1.00 am, so that Squid won't use delay pools, then reconfigu
 it again, let's say at 7.30 am, to use delay pools.</para>
 </sect2>
 <sect2>
-<title>CBQ is stupi; why can't I download something at full speed when the
+<title>CBQ is stupid; why can't I download something at full speed when the
 network is used only be me?</title>
 <para>Lucky you, it's possible!</para>
 <para>There are to ways to achieve it.</para>
-<para>The first is the easy one, similar to the solution we made with Squid. To
-do that, just look inside the <command>cbq.init</command><?Pub Caret> script.
+<para>The first is the easy one, similar to the solution we've made with Squid. Insert a line
+similar to the one below to your CBQ config files placed in
+<filename>/etc/sysconfig/cbq/</filename>:</para>
+<programlisting>
+TIME=15:00-16:00;110Kbit/11Kbit
+TIME=00:00-08:00;110Kbit/11Kbit
+</programlisting>
+<para>You can have multiple TIME parameters in your CBQ config files.
 </para>
 <para>The second way is harder, but more intelligent. You can read about it in the Linux
 2.4 Advanced Routing HOWTO.</para>
@@ -512,6 +580,10 @@ http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html
 <para>IPCHAINS</para>
 <para><ulink url="http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.html">
 http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.html
+</ulink></para>
+<para>NEC SOCKS proxy server</para>
+<para><ulink url="http://www.socks.nec.com/cgi-bin/download.pl">
+http://www.socks.nec.com/cgi-bin/download.pl
 </ulink></para>
 </sect2>
 </sect1>
