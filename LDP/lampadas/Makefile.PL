@@ -2,7 +2,7 @@
 ##
 ## Makefile for the Lampadas Perl module.
 ##
-## Copyright (c) 2002, David Merrill. All rights reserved.
+## Copyright (c) 2000, 2001, 2002, David Merrill. All rights reserved.
 ## This code is free software; you can redistribute it and/or modify
 ## it under the same terms as Perl itself.
 ##
@@ -24,6 +24,7 @@ WriteMakefile(
 		       'Pg'		=> 0,
 		       'FileHandle'	=> 0,
 		       'Date::Calc'	=> 0,
+		       'Wt2Db'		=> 0,
                      },
 
 );

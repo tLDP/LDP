@@ -1245,7 +1245,7 @@ sub DocTable {
 	}
 	$doctable .= "</th><td colspan=5><input type=text name=filename size=60 style='width:100%' value='$doc{filename}'></td>\n";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right><a href='$url'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
+	$doctable .= "<th align=right><a href='$doc{url}'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right><a href='$ref_url'>Home</a></th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
