@@ -4,7 +4,7 @@
 
 <title>Transparent Proxy with Linux and Squid mini-HOWTO</title>
 <author>Daniel Kiracofe</author>
-<date>v1.13, January 2002</date>
+<date>v1.15, August 2002</date>
 <abstract>
 This document provides information on how to setup a transparent caching
 HTTP proxy server using only Linux and squid.
@@ -23,7 +23,7 @@ directed to its author, Daniel Kiracofe, at drk@unxsoft.com.
 <sect1>
 Copyrights and Trademarks 
 <p>
-Copyright 2000-2001 by UnxSoft Ltd (www.unxsoft.com)
+Copyright 2000-2002 by Daniel Kiracofe
 </p>
 <p>
 This manual may be reproduced in whole or in part, without fee, subject
@@ -121,10 +121,10 @@ A cleaner solution is to get a web proxy that is aware of transparent proxying
 Scope of this document
 <p>
 This document will focus on squid version 2.4 and Linux kernel version
- 2.4, the most current stable releases as of this writing (December 2001). It 
+ 2.4, the most current stable releases as of this writing (August 2002). It 
 should also work with most of the later 2.3 kernels. If you need information 
 about  earlier releases of squid or Linux, you can find some earlier 
-documents at <htmlurl url="http://www.unxsoft.com/transproxy.html" name="www.unxsoft.com/transproxy.html">. 
+documents at <htmlurl url="http://users.gurulink.com/transproxy/" name="http://users.gurulink.com/transproxy/">. Note that this site has moved from it's previous location.
 </p>
 <p>
 If you are using a development kernel or a development version of squid, you are on your own.  This document may help you, but YMMV.
@@ -146,11 +146,19 @@ document that pertain to the kernel and iptables rules.  Ignore the squid
 specific sections, and instead look at 
 <htmlurl url="http://lupo.campus.uniroma2.it/progetti/mod_tproxy/" name="http://lupo.campus.uniroma2.it/progetti/mod_tproxy/"> for source code and 
 instructions for a transparent proxy module for Apache (thanks to Cristiano Paris (c.paris@libero.it) for contributing this).
+<sect1>
+HTTPS
 <p>Finally, as far as transparently proxing HTTPS (e.g. secure web pages using
-SSL, etc.), you can't do it.  Don't even ask.  For the explanation, do a 
+SSL, TSL, etc.), you can't do it.  Don't even ask.  For the explanation, do a 
 search for 'man-in-the-middle attack'.  Note that you probably don't
-really need to transparently proxy HTTPS anyway, since squid does not
-cache secure pages.
+really need to transparently proxy HTTPS anyway, since squid can not
+cache secure pages.  
+<sect1>
+Proxy Authentication
+<p>
+You cannot use Proxy Authentication transparently.  See the 
+<htmlurl url="http://www.squid-cache.org/Doc/FAQ/FAQ.html" name="Squid FAQ">
+for (slightly) more details.
 <sect>
 Configuring the Kernel
 <p>
@@ -169,7 +177,7 @@ If your kernel is not configured for transparent proxying, you will need
 </p>
 <p>
 The options you need to set in your configuration are as follows (Note:
- none of these can be built as modules)
+if you prefer modules, some (but not all) of these can be built as modules. Luckily, everything that is not modularizable is probably got in your kernel anyway.)
 </p>
 <p>
 <itemize>
@@ -213,7 +221,8 @@ Setting up squid
 Now, we need to get squid up and running. Download the latest source tarball
  from <htmlurl url="http://www.squid-cache.org" name="www.squid-cache.org">.
 Make sure you get a STABLE version, not a DEVEL version.
- The latest as of this writing was squid-2.4.STABLE3.tar.gz.  Note that AFAIK, you must have squid-2.4 for linux kernel 2.4.  The reason is that the 
+ The latest as of this writing was squid-2.4.STABLE4.tar.gz.  Note that AFAIK,
+you must have squid-2.4 for linux kernel 2.4.  The reason is that the 
 mechanism by which the process determines the original destination address
 has changed from linux 2.2, and only squid-2.4 has this new code in it. (For those of you who are interested, previously the getsockname() call was hacked to provide the original destination address, but now the call is getsockopt() with a level of SOL_IP and an option of SO_ORIGINAL_DST).
 </p>
@@ -314,19 +323,23 @@ redirecting HTTP connections to local ports, could we do the same thing
 but to a  remote box (e.g., the machine with squid running is not the same 
 machine as iptables is running on).  The answer is yes, but it takes a little different magic words. If you only want to redirect to the local box 
 (the normal case), skip this section.
-(Thanks to Giles Coochey for help writing this section).
 </p><p>
 For the purposes of example commands, let's assume we have two boxes called squid-box and iptables-box, and that they are on the network local-network.  In the commands below, replace these strings with the actual IP addresses or 
 name of your machines and network. 
 </p><p>
-First, the machine that squid will be running on, squid-box.
+I will present two different approaches here.
+<sect1>
+First method (simpler, but does not work for some esoteric cases)
+<p>
+
+First, we need to machine that squid will be running on, squid-box.
 You do not need iptables 
 or any special kernel options on this machine, just squid.  You *will*, 
 however, need the 'http_accel' options as described above.  (Previous version 
 of this HOWTO suggested that you did not need those options.  That was a 
 mistake. Sorry to have confused people...) 
 </p><p>
-Now, the machine that iptables will be running on, iptables-box You will need to configure the kernel as described above, except that you don't need the REDIRECT target support).  Now, for the iptables commands. You need three:
+Now, the machine that iptables will be running on, iptables-box You will need to configure the kernel as described in section 3 above, except that you don't need the REDIRECT target support).  Now, for the iptables commands. You need three:
 </p><p>
 <itemize>
 <item>iptables -t nat -A PREROUTING -i eth0 -s ! <bf>squid-box</bf> -p tcp --dport 80 -j DNAT --to <bf>squid-box</bf>:3128
@@ -345,8 +358,67 @@ commands accordingly.
 </p><p>
 Add these commands to your appropriate startup scripts under /etc/rc.d/
 </p><p>
+(Thanks to Giles Coochey for help writing this section).
+<sect1>
+Second method (more complicated, but more general)
+<p>
+Our first shot at this works good, but there is a minor drawback in that
+HTTP/1.0 connections without the Host header do not get handled properly.
+Connections that are fully or partially HTTP/1.1 compliant work fine.  As
+most modern web browsers send the Host header, this is not a problem for
+most people.  However, some small programs or embedded devices may send
+only very simple HTTP/1.0 requests.  If you want to support these, we'll
+ need to do a little more work.
+Namely, on iptables-box we'll need the following options enabled in the kernel
+in addition to what was specified above:
 
-<sect1>What if iptables-box is on a dynamic IP?
+<itemize>
+<item>IP: advanced router                        
+<item>IP: policy routing                              
+<item>IP: use netfilter MARK value as routing key   
+<item>IP: Netfilter Configuration ->  Packet mangling
+<item>IP: Netfilter Configuration ->  MARK target support 
+</itemize>
+
+You'll also need the iproute2 tools.  Your distribution probably already
+has them installed, but if not, look at ftp://ftp.inr.ac.ru/ip-routing/
+<p>
+You'll want to use the following set of commands on iptables-box:
+<itemize>
+<item>iptables -t mangle -A PREROUTING -j ACCEPT -p tcp --dport 80 -s <bf>squid-box</bf>
+<item>iptables -t mangle -A PREROUTING -j MARK --set-mark 3 -p tcp --dport 80
+<item>ip rule add fwmark 3 table 2
+<item>ip route add default via <bf>squid-box</bf> dev eth1 table 2
+</itemize>
+Note that the choice of firewall mark (3) and routing table (2) was fairly
+arbitrary.  If you are already using policy routing or firewall marking for
+some other purpose, make sure you choose unique numbers here. Otherwise,
+don't worry about it. 
+<p>
+
+Next, squid-box.  Use this command, which should look remarkably similar to a
+command we've seen previously.
+<itemize>
+<item>iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 3128
+</itemize>
+As before, add all of these commands to the appropriate startup scripts.
+<p>
+Here is a brief explanation of how this works: in method one, we used Network
+Address Translation to get the packets to the other box.  The result of this
+is that the packet gets altered.  This alteration is what causes some kinds
+of clients mentioned above to fail. In method two,
+we use a magic thing called policy routing.  The first thing we do is to
+select the packets we want.  Thus, all packets on port 80, except those
+coming from squid-box itself, are MARKed.  Then, when the kernel goes to
+make a routing decision, the MARKed packets aren't routing using the normal
+routing table that you access with the ``route'' command but with a special
+table.  This special table has only one entry, a default gateway to squid-box.
+Thus, the packet is sent merrily on it's way without every having been altered.
+So, even HTTP/1.0 connections can be handled perfectly. 
+(Thanks to Michal Svoboda for suggesting and helping to write this section)
+<p>
+
+<sect1>Method One: What if iptables-box is on a dynamic IP?
 <p>
 If the iptables-box is on a dynamic IP address (e.g. a dialup PPP connection, or a DHCP assigned IP address from a cable modem, etc.), then you will want to
 make a slight change to the above commands.  Replace the second command with this one:
@@ -367,7 +439,8 @@ Warning, this is really esoteric stuff.  If you need it, you'll know.  If
 not, skip this section.  Thanks to Lewis Shobbrook (lshobbrook@fasttrack.net.au) for contributing to this section.
 <p>
 If you are trying to setup a transparent proxy on a Linux machine that has
-been configured as a bridge, you will need to add one additional command.
+been configured as a bridge, you will need to add one additional iptables 
+command to what we had in section 5.
 Specifically, you need to explicitly allow connections to the machine
 on port 3128 (or any other port squid is listening on), otherwise the 
 machine will just forward them over to the other interface like a good 
@@ -402,7 +475,7 @@ Hints: insmod errors can be caused by incorrect module parameters;
 including invalid IO or IRQ parameters.<p>
 perhaps iptables or your kernel needs to be upgraded...<p>
 </tscreen>
-then you are probably running Red Hat 7.1.  The folks at Red Hat, in all 
+then you are probably running Red Hat 7.x.  The folks at Red Hat, in all 
 their wisdom, decided to load the ipchains module by default on startup.
 I guess this was for backwards compatibility for those who haven't learned
 iptables yet.  However, the problem is that ipchains and iptables are
@@ -410,18 +483,21 @@ mutually incompatible.  Since ipchains has been secretly loaded by RH, you
 cannot use iptables commands.  To see if this is your problem, do the 
 command ``lsmod'' and look for the module named ``ipchains''.  If you 
 see it, that is your problem.  The quick fix is to execute the command
-``rmmod ipchains'' before you issue any iptables commands.  Long term,
-you'll want to search through RH's setup scripts and remove the reference
-to ipchains in the first place (I don't really know where this is, as 
-I've never used RH 7.1 myself).
+``rmmod ipchains'' before you issue any iptables commands.  To permanently
+remove these commands from your startup scripts, the following command
+should work:  ``/sbin/chkconfig --level 2345 ipchains off''.
+(Thanks to Rasmus Glud for pointing this command out to me).
 
 <sect>
 Further Resources
 <p>
 Should you still need assistance, you may wish to check the squid FAQ or
- the squid mailing list at www.squid-cache.org. You may also e-mail me at drk@unxsoft.com, and I'll try to answer your questions if time permits (sometimes 
+ the squid mailing list at www.squid-cache.org. You may also e-mail me at 
+drk@unxsoft.com, and I'll try to answer your questions if time permits (sometimes 
 it does, but sometimes it doesn't).  Please, please, please, send the output of
-``iptables -t nat -L'' and relavent portions of any configuration files in your e-mail, or else I will probably not be able to help you out much.
+``iptables -t nat -L'' and relavent portions of any configuration files in your
+e-mail, or else I will probably not be able to help you out much.  And please
+make sure you've read the whole HOWTO before asking a question.
 Regrettably, even though this document has been translated to many
 different languages, I can only answer questions asked in English.
 </p>
