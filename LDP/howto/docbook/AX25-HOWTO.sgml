@@ -14,7 +14,7 @@
 </Address>
 </Affiliation>
 </Author>
-<PubDate>v2.0, 19 September 2001</PubDate>
+<PubDate>v2.1, 19 September 2001</PubDate>
 
 <Abstract>
 
@@ -71,39 +71,8 @@ from some other environment to Linux without learning about Linux itself.
 
 <ListItem>
 <Para>
-Document has a new maintainer.
-</Para>
-</ListItem>
-
-<ListItem>
-<Para>
-Converted to DocBook SGML format. Converted most tabular information to use tables.
-</Para>
-</ListItem>
-
-<ListItem>
-<Para>
-Released under GNU FDL license.
-</Para>
-</ListItem>
-
-<ListItem>
-<Para>
-Added information on new drivers for Baycom, YAM, 6PACK, and user mode soundmodem.
-</Para>
-</ListItem>
-
-<ListItem>
-<Para>
-Added APRS section.
-</Para>
-</ListItem>
-
-<ListItem>
-<Para>
-Many miscellaneous updates to reflect changes since document
-was last updated in 1997. There are likely still many errors
-or outdated information.
+Updated IPIP tunnelling section to reflect iproute2 package (thanks to
+Milan Kalina).
 </Para>
 </ListItem>
 
@@ -5570,6 +5539,7 @@ netrom  VK2KTJ-9        LINUX   235     Linux Switch Port
 </Para>
 
 <Para>
+Note the following:
 
 <ItemizedList>
 <ListItem>
@@ -5641,269 +5611,80 @@ minimal linux configuration.
 
 <Sect2><Title>IPIP encapsulated gateway configuration</Title>
 
-<!-- TODO:
-     Update this section to reflect latest kernel and iproute2 package
-     (see warning below).
--->
-
-<Warning>
 <Para>
-Some information here on tunnelling is out of date. The setup has
-changed since the 2.0.x kernel, now the "ip" command from the iproute2
-package should be used, as described in the Advanced Routing
-HOWTO.
-</Para>
-</Warning>
-
-<Para>
-Linux is now very commonly used for TCP/IP encapsulated gateways around
-the world. The new tunnel driver supports multiple encapsulated routes
-and makes the older <Emphasis>ipip</Emphasis> daemon obsolete.
+Linux is now very commonly used for TCP/IP encapsulated gateways
+around the world. The 2.2 and 2.4 kernels provide a new method, making
+the old <Literal>ipip</Literal> configuration obsolete. The
+<Literal>ip</Literal> command contained in the IPROUTE2 package is now
+the main tool, as described in the <ULink
+URL="http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html">Linux 2.4
+Advanced Routing HOWTO</ULink>.
 </Para>
 
 <Para>
-A typical configuration would look similar to the following.
+A typical configuration would look similar to the following:
 </Para>
 
 <Para>
 <Screen>
-                                         . . . . . .
-  ___               _________        .
-   | Network       /         \     .    Network
-   | 154.27.3/24   |         |    .     44.136.16/24       \ | /
-   |               | Linux   |   .                          \|/
-   |               |         |  .   _____      __________    |
-   |          eth0 | IPIP    |  .  /     \    /          \   |
-___|_______________|         |_____| TNC |____|  Radio   |___/
-   |   154.27.3.20 | Gateway |  .  \_____/    \__________/
-   |               |         | sl0
-   |               |         | 44.136.16.1
-   |               |         |    .
-   |               |         |     .
-   |               \_________/       .
-  _|_                                    . . . . . .
+   __________                      _________
+  /          \      Internet      /         \ 44.177.155.0/24
+  |          |                    |         |     ______
+  |   UCSD   |                    |  Linux  |    /      \
+  |          |                    |         |    |      |
+  | ampr.org | eth1          eth0 |  IPIP   |    |  PR  |
+  |          |____________________|         |____| Node |
+  |44.0.0.0/8|                    | Gateway |    |      |
+  |          |y.y.y.y      x.x.x.x|         |    |      |
+  |          |                    |         |    \______/
+  |          |                    |         |
+  \__________/                    \_________/
 </Screen>
 </Para>
 
 <Para>
-The configuration files of interest are:
+The configuration file for this example is the following:
 </Para>
 
 <Para>
 <Screen>
-# /etc/rc.net
-# This file is a simple configuration that provides one KISS AX.25
-# radio port, one Ethernet device, and utilizes the kernel tunnel driver
-# to perform the IPIP encapsulation/decapsulation
+# /etc/rc.d/rc.tunnel
+# This file is a simple configuration that provides the IPIP encapsulation,
+# commonly used when utilising the ampr.org (44.0.0.0/8) routing via UCSD.
+# The script is located on IPIP gateway with eth0 interface, connected directly
+# to the internet and other (e.g. sl0) interface, connected to packet radio
+# subnet, e.g. 44.177.155/24.
 #
-echo "/etc/rc.net"
+IP_eth0=x.x.x.x
+IP_eth1=y.y.y.y
 echo "  Configuring:"
 #
-echo -n "    loopback:"
-/sbin/ifconfig lo 127.0.0.1
-/sbin/route add 127.0.0.1
+ip tunnel add ucsd remote $IP_eth1 mode ipip
+# 'ucsd' is (any suitable) tunnel name
+ifconfig ucsd $IP_eth0 up
+# tunnel initialisation
+ip route add 44/8 dev ucsd via $IP_eth1 onlink
+# tells that tunnel should be used when sending packets to ampr.org network
+# onlink is the magic word, do not forget
 echo " done."
-#
-echo -n "    ethernet:"
-/sbin/ifconfig eth0 154.27.3.20 netmask 255.255.255.0 \
-		broadcast 154.27.3.255 up
-/sbin/route add 154.27.3.20 eth0
-/sbin/route add -net 154.27.3.0 netmask 255.255.255.0 eth0
-echo " done."
-#
-echo -n "    AX.25: "
-kissattach -i 44.136.16.1 -m 512 /dev/ttyS1 4800
-/sbin/ifconfig sl0 netmask 255.255.255.0 broadcast 44.136.16.255
-/sbin/route add -host 44.136.16.1 sl0
-/sbin/route add -net 44.136.16.0 netmask 255.255.255.0 window 1024 sl0
-#
-echo -n "    tunnel:"
-/sbin/ifconfig tunl0 44.136.16.1 mtu 512 up
-#
-echo done.
-#
-echo -n "Routing ... "
-source /etc/ipip.routes
-echo done.
 #
 # end.
 </Screen>
 </Para>
 
 <Para>
-and:
-</Para>
-
-<Para>
-<Screen>
-# /etc/ipip.routes
-# This file is generated using the munge script
-#
-/sbin/route add -net 44.134.8.0 netmask 255.255.255.0 tunl0 gw 134.43.26.1
-/sbin/route add -net 44.34.9.0 netmask 255.255.255.0 tunl0 gw 174.84.6.17
-/sbin/route add -net 44.13.28.0 netmask 255.255.255.0 tunl0 gw 212.37.126.3
-   ...
-   ...
-   ...
-</Screen>
-</Para>
-
-<Para>
-<Literal>/etc/ax25/axports</Literal>
-
-<Screen>
-# name  callsign        speed   paclen  window  description
-4800    VK2KTJ-0        4800    256     2       144.800 MHz
-</Screen>
-</Para>
-
-<Para>
-Some points to note here are:
-</Para>
-
-<Para>
-
-<ItemizedList>
-<ListItem>
-
-<Para>
-The new tunnel driver uses the <Emphasis>gw</Emphasis> field in the routing table
-in place of the <Emphasis>pointopoint</Emphasis> parameter to specify the address of
-the remote IPIP gateway. This is why it now supports multiple routes per
-interface.
-</Para>
-</ListItem>
-<ListItem>
-
-<Para>
-You <Emphasis>can</Emphasis> configure two network devices with the same address.
-In this example both the <Literal>sl0</Literal> and the <Literal>tunl0</Literal> devices have
-been configured with the IP address of the radio port. This is done so that
-the remote gateway sees the correct address from your gateway in encapsulated
-datagrams sent to it.
-</Para>
-</ListItem>
-<ListItem>
-
-<Para>
-The route commands used to specify the encapsulated routes can be
-automatically generated by a modified version of the <Emphasis>munge</Emphasis> script.
-This is included below. The route commands would then be written to a separate
-file and read in using the <Emphasis>bash</Emphasis> <Literal>source /etc/ipip.routes</Literal>
-command (assuming you called the file with the routing commands
-<Literal>/etc/ipip.routes</Literal>) as illustrated. The source file must be in the
-NOS route command format.
-</Para>
-</ListItem>
-<ListItem>
-
-<Para>
-Note the use of the <Emphasis>window</Emphasis> argument on the
-<Emphasis>route</Emphasis> command. Setting this parameter to an
-appropriate value improves the performance of your radio link.
-</Para>
-</ListItem>
-
-</ItemizedList>
-
-</Para>
-
-<Para>
-The new tunnel-munge script:
-</Para>
-
-<Para>
-<Screen>
-#!/bin/sh
-#
-# From: Ron Atkinson &lt;n8fow@hamgate.cc.wayne.edu&gt;
-#
-#  This script is basically the 'munge' script written by Bdale N3EUA
-#  for the IPIP daemon and is modified by Ron Atkinson N8FOW. It's
-#  purpose is to convert a KA9Q NOS format gateways route file
-#  (usually called 'encap.txt') into a Linux routing table format
-#  for the IP tunnel driver.
-#
-#	 Usage: Gateway file on stdin, Linux route format file on stdout.
-#               eg.  tunnel-munge &lt; encap.txt &gt; ampr-routes
-#
-# NOTE: Before you use this script be sure to check or change the
-#       following items:
-#
-#     1) Change the 'Local routes' and 'Misc user routes' sections
-#        to routes that apply to your own area (remove mine please!)
-#     2) On the fgrep line be sure to change the IP address to YOUR
-#        gateway Internet address. Failure to do so will cause serious
-#        routing loops.
-#     3) The default interface name is 'tunl0'. Make sure this is
-#        correct for your system.
-
-echo "#"
-echo "# IP tunnel route table built by $LOGNAME on `date`"
-echo "# by tunnel-munge script v960307."
-echo "#"
-echo "# Local routes"
-echo "route add -net 44.xxx.xxx.xxx netmask 255.mmm.mmm.mmm dev sl0"
-echo "#"
-echo "# Misc user routes"
-echo "#"
-echo "# remote routes"
-
-fgrep encap | grep "^route" | grep -v " XXX.XXX.XXX.XXX" | \
-awk '{
-	split($3, s, "/")
-	split(s[1], n,".")
-	if	(n[1] == "")	n[1]="0"
-	if	(n[2] == "")	n[2]="0"
-	if	(n[3] == "")	n[3]="0"
-	if	(n[4] == "")	n[4]="0"
-	if	(s[2] == "1")	mask="128.0.0.0"
-	else if	(s[2] == "2")	mask="192.0.0.0"
-	else if	(s[2] == "3")	mask="224.0.0.0"
-	else if	(s[2] == "4")	mask="240.0.0.0"
-	else if	(s[2] == "5")	mask="248.0.0.0"
-	else if	(s[2] == "6")	mask="252.0.0.0"
-	else if	(s[2] == "7")	mask="254.0.0.0"
-	else if	(s[2] == "8")	mask="255.0.0.0"
-	else if	(s[2] == "9")	mask="255.128.0.0"
-	else if	(s[2] == "10")	mask="255.192.0.0"
-	else if	(s[2] == "11")	mask="255.224.0.0"
-	else if	(s[2] == "12")	mask="255.240.0.0"
-	else if	(s[2] == "13")	mask="255.248.0.0"
-	else if	(s[2] == "14")	mask="255.252.0.0"
-	else if	(s[2] == "15")	mask="255.254.0.0"
-	else if	(s[2] == "16")	mask="255.255.0.0"
-	else if	(s[2] == "17")	mask="255.255.128.0"
-	else if	(s[2] == "18")	mask="255.255.192.0"
-	else if	(s[2] == "19")	mask="255.255.224.0"
-	else if	(s[2] == "20")	mask="255.255.240.0"
-	else if	(s[2] == "21")	mask="255.255.248.0"
-	else if	(s[2] == "22")	mask="255.255.252.0"
-	else if	(s[2] == "23")	mask="255.255.254.0"
-	else if	(s[2] == "24")	mask="255.255.255.0"
-	else if	(s[2] == "25")	mask="255.255.255.128"
-	else if	(s[2] == "26")	mask="255.255.255.192"
-	else if	(s[2] == "27")	mask="255.255.255.224"
-	else if	(s[2] == "28")	mask="255.255.255.240"
-	else if	(s[2] == "29")	mask="255.255.255.248"
-	else if	(s[2] == "30")	mask="255.255.255.252"
-	else if	(s[2] == "31")	mask="255.255.255.254"
-	else 			mask="255.255.255.255"
-
-if (mask == "255.255.255.255")	
-	printf "route add -host %s.%s.%s.%s gw %s dev tunl0\n"\
-		,n[1],n[2],n[3],n[4],$5
-else				
-	printf "route add -net %s.%s.%s.%s gw %s netmask %s dev tunl0\n"\
-		,n[1],n[2],n[3],n[4],$5,mask
- }'
-
-echo "#"
-echo "# default the rest of amprnet via mirrorshades.ucsd.edu"
-echo "route add -net 44.0.0.0 gw 128.54.16.18 netmask 255.0.0.0 dev tunl0"
-echo "#"
-echo "# the end"
-</Screen>
+In any case, the tunnel must be set up on both sides of the route.
+The tunnelling interface configured above is used for both
+encapsulation and decapsulation. However, the same principle can be
+used for one of those tasks, exclusively. When needed, the standard
+routing (via UCSD), used in previous example, can be avoided by
+setting the IPIP tunneling between two PR stations, where only one of
+them has its own internet (public) non-ampr IP address. The task is
+then to set up the one-way IPIP tunnel, to achieve a quicker and more
+stable route from non-ampr IP address to ampr IP address station. In
+this case, the setup, mentioned above, is used for encapsulation. The
+other side of the route can leave out the route setting, due to its
+pure decapsulation task.
 </Para>
 
 </Sect2>
@@ -6746,7 +6527,7 @@ The following people have contributed to this document in one way or another,
 knowingly or unknowingly. In no particular order (as I find them):
 Jonathon Naylor, Thomas Sailer, Joerg Reuter, Ron Atkinson, Alan Cox, Craig
 Small, John Tanner, Brandon Allbery, Hans Alblas, Klaus Kudielka, Carl Makin,
-John Ackermann, Riley Williams.
+John Ackermann, Riley Williams, Milan Kalina.
 </Para>
 
 </Sect1>
