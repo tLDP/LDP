@@ -115,12 +115,12 @@ sub ProcessFile {
     if ($doctype eq 'XML') {
         print "Adding XML DOCTYPE and article tags\n" if ($verbose);
         $buf = '<?xml version="1.0" encoding="' . $encoding . '" standalone="no"?>' . "\n";
-        $buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"' . "\n";
-        $buf .= '    "http://docbook.org/xml/4.1.2/docbookx.dtd"';
+        $buf .= '<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"' . "\n";
+        $buf .= '    "http://docbook.org/xml/4.3/docbookx.dtd"';
         $buf .= "\[\n";
         $buf .= '<!ENTITY % ISOnum PUBLIC' . "\n";
         $buf .= '  "ISO 8879:1986//ENTITIES Numeric and Special Graphic//EN//XML"' . "\n";
-        $buf .= '  "http://docbook.org/xml/4.1.2/ent/iso-num.ent">' . "\n";
+        $buf .= '  "http://docbook.org/xml/4.3/ent/iso-num.ent">' . "\n";
         $buf .= '  %ISOnum;' . "\n";
         $buf .= "\]\>\n";
         $buf .= "\n";
