@@ -32,6 +32,7 @@ from Config import config
 from Log import log
 from URLParse import URI
 from DataLayer import *
+from SourceFiles import sourcefiles
 from WebLayer import lampadasweb
 from Lintadas import lintadas
 from Sessions import sessions
@@ -135,37 +136,6 @@ class ComboFactory:
                                 % (str(doc.sk_seriesid),doc.title[:40]))
         combo.write("</select>\n")
         return combo.get_value()
-
-#    def dtd(self, value, lang):
-#        combo = WOStringIO('<select name="dtd_code">\n' \
-#                           '<option></option>')
-#        keys = lampadas.dtds.sort_by('dtd_code')
-#        for key in keys:
-#            dtd = lampadas.dtds[key]
-#            assert not dtd==None
-#            combo.write("<option ")
-#            if dtd.dtd_code==value:
-#                combo.write("selected ")
-#            combo.write("value='%s'>%s</option>\n"
-#                        % (dtd.dtd_code,dtd.dtd_code))
-#        combo.write("</select>\n")
-#        return combo.get_value()
-#    
-#    def format(self, value, lang):
-#        combo = WOStringIO('<select name="format_code">\n' \
-#                           '<option></option>')
-#        keys = lampadas.formats.sort_by_lang('name', lang)
-#        for key in keys:
-#            format = lampadas.formats[key]
-#            assert not format==None
-#            combo.write("<option ")
-#            if format.code==value:
-#                combo.write("selected ")
-#            combo.write("value='" + str(format.code) + "'>")
-#            combo.write(format.name[lang])
-#            combo.write("</option>\n")
-#        combo.write("</select>")
-#        return combo.get_value()
 
     def language(self, value, lang):
         combo = WOStringIO("<select name='lang'>\n")
@@ -297,7 +267,8 @@ class TableFactory:
 
         box = WOStringIO()
         if uri.id > 0:
-            lintadas.check(uri.id)
+            lintadas.check_doc(uri.id)
+            lintadas.import_doc_metadata(uri.id)
             doc = lampadas.docs[uri.id]
             box.write('<form method=GET action="/data/save/document" '\
                       'name="document">')
@@ -430,63 +401,73 @@ class TableFactory:
 
         log(3, 'Creating docfiles table')
         doc = lampadas.docs[uri.id]
+        
         box = '''
         <table class="box" width="100%">
-        <tr><th colspan="8">|strdocfiles|</th></tr>
-        <tr>
-        <th class="collabel">|strfilename|</th>
-        <th class="collabel">|strprimary|</th>
-        <th class="collabel">|strformat|</th>
-        <th class="collabel">|strupdated|</th>
-        <th class="collabel">|strfilesize|</th>
-        <th class="collabel">|strfilemode|</th>
-        <th class="collabel" colspan="2">|straction|</th>
-        </tr>
+        <tr><th colspan="6">|strdocfiles|</th></tr>
         '''
         doc = lampadas.docs[uri.id]
         keys = doc.files.sort_by('filename')
         for key in keys:
-            file = doc.files[key]
+            lintadas.check_file(key)
+            docfile = doc.files[key]
+            sourcefile = sourcefiles[key]
             box = box + '<form method=GET action="/data/save/document_file" name="document_file">'
-            box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
-            box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + file.filename + '">\n'
+            box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
+            box = box + '<input type=hidden name="filename" size=30 style="width:100%" value="' + docfile.filename + '">\n'
             box = box + '<tr>\n'
-            if file.errors.count() > 0:
-                box = box + '<td class="error">' + file.filename + '</td>\n'
+            if sourcefile.errors.count() > 0:
+                box = box + '<td class="sectionlabel error" colspan="6">' + docfile.filename + '</td>\n'
             else:
-                box = box + '<td><a href="/file_reports/' + file.filename + uri.lang_ext + '">' + file.filename + '</a></td>\n'
-            box = box + '<td>'  + combo_factory.tf('top', file.top, uri.lang) + '</td>\n'
-            if file.format_code > '':
-                box = box + '<td>'  + lampadas.formats[file.format_code].name[uri.lang] + '</td>\n'
+                box = box + '<td class="sectionlabel" colspan="6"><a href="/sourcefile/' + docfile.filename + uri.lang_ext + '">' + docfile.filename + '</a></td>\n'
+            box = box + '</tr>\n'
+            box = box + '<tr>\n'
+            box = box + '<th class="label">|strprimary|</th>'
+            box = box + '<td>'  + combo_factory.tf('top', docfile.top, uri.lang) + '</td>\n'
+            box = box + '<th class="label">|strfilesize|</th>'
+            box = box + '<td>' + str(sourcefile.filesize) + '</td>\n'
+            box = box + '<th class="label">|strupdated|</th>'
+            if sourcefile.modified > '':
+                box = box + '<td>' + sourcefile.modified + '</td>\n'
             else:
-                box = box + '<td></td>\n'
-            box = box + '<td>' + file.modified + '</td>\n'
-            box = box + '<td>' + str(file.filesize) + '</td>\n'
-            box = box + '<td>' + str(file.filemode) + '</td>\n'
-
+                box = box + '<td>|strunknown|</td>\n'
+            box = box + '</tr>\n'
+            box = box + '<tr>\n'
+            box = box + '<th class="label">|strformat|</th>'
+            if sourcefile.format_code > '':
+                box = box + '<td>'  + lampadas.formats[sourcefile.format_code].name[uri.lang] + '</td>\n'
+            else:
+                box = box + '<td>|strunknown|</td>\n'
+            box = box + '<th class="label">|strfilemode|</th>'
+            if sourcefile.filemode > '':
+                box = box + '<td>' + str(sourcefile.filemode) + '</td>\n'
+            else:
+                box = box + '<td>|strunknown|</td>\n'
             box = box + '''
             <td><input type="checkbox" name="delete">|strdelete|</td>
-            <td><input type="submit" name="action" value="|strsave|">
-            </td>
+            <td><input type="submit" name="action" value="|strsave|"></td>
             </tr>
-            </form>
             '''
+            box = box + '</form>'
+        
+        # Add a new docfile
+        box = box + '<tr>\n'
         box = box + '<form method=GET action="/data/save/newdocument_file" name="document_file">'
         box = box + '<input name="doc_id" type="hidden" value="' + str(doc.id) + '">\n'
+        box = box + '<td colspan="6"><input type="text" name="filename" size="30" style="width:100%"></td>\n'
+        box = box + '</tr>\n'
         box = box + '<tr>\n'
-        box = box + '<td><input type="text" name="filename" size="30" style="width:100%"></td>\n'
+        box = box + '<th class="label">|strprimary|</th>'
         box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
         box = box + '<td></td>\n'
         box = box + '<td></td>\n'
         box = box + '<td></td>\n'
-        box = box + '<td></td>\n'
         box = box + '''
-        <td></td>
         <td><input type="submit" name="action" value="|stradd|"></td>
         </tr>
         </form>
-        </table>
         '''
+        box = box + '</table>\n'
         return box
         
 
@@ -517,7 +498,13 @@ class TableFactory:
             box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
             box = box + '<input type=hidden name="username" value=' + docuser.username + '>\n'
             box = box + '<tr>\n'
-            box = box + '<td>' + docuser.username + '</td>\n'
+            if sessions.session:
+                if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
+                    box = box + '<td><a href="/user/' + docuser.username + '">' + docuser.username + '</a></td>\n'
+                else:
+                    box = box + '<td>' + docuser.username + '</td>\n'
+            else:
+                box = box + '<td>' + docuser.username + '</td>\n'
             box = box + '<td>' + combo_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
             box = box + '<td>' + combo_factory.role(docuser.role_code, uri.lang) + '</td>\n'
             box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></td>\n'
@@ -638,23 +625,15 @@ class TableFactory:
             if sessions.session.user.can_edit(doc_id=doc_id)==0:
                 continue
             if doc.lang==uri.lang:
-                show_doc = 0
-                show_files = 0
-                if doc.errors.count() > 0:
-                    show_doc = 1
-                else:
-                    filenames = doc.files.keys()
-                    for filename in filenames:
-                        if doc.files[filename].errors.count() > 0:
-                            show_files = 1
-                            break
-                if show_doc==1 or show_files==1:
+                uri.id = doc_id
+                doctable = self.docerrors(uri)
+                filestable = self.docfileerrors(uri)
+                if doctable > '' or filestable > '':
                     box = box + '<h1>' + doc.title + '</h1>'
-                    uri.id = doc_id
-                if show_doc==1:
-                    box = box + '<p>' + self.docerrors(uri)
-                if show_files==1:
-                    box = box + '<p>' + self.docfileerrors(uri)
+                if doctable > '':
+                    box = box + '<p>' + doctable
+                if filestable > '':
+                    box = box + '<p>' + filestable
         return box
 
     def docerrors(self, uri):
@@ -665,6 +644,10 @@ class TableFactory:
 
         log(3, 'Creating docerrors table')
         doc = lampadas.docs[uri.id]
+        
+        if doc.errors.count()==0:
+            return ''
+
         box = ''
         box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="2">|strdocerrs|</th></tr>\n'
@@ -690,18 +673,22 @@ class TableFactory:
             return '|blknopermission|'
 
         log(3, 'Creating filereports table')
+        sourcefile = sourcefiles[uri.filename]
+
         box = ''
         box = box + '<table class="box" width="100%">'
-        box = box + '<tr><th colspan="2">|strfilereports| |uri.filename|</th></tr>\n'
-        report_codes = lampadasweb.file_reports.sort_by('name')
+        box = box + '<tr><th colspan="2">|strfilereports|</th></tr>\n'
+        box = box + '<tr><th colspan="2" class="sectionlabel">|uri.filename|</th></tr>\n'
+        report_codes = lampadasweb.file_reports.sort_by_lang('name', uri.lang)
         for report_code in report_codes:
             report = lampadasweb.file_reports[report_code]
-            box = box + '<tr>\n'
-            box = box + '<td><a href="/file_report/' + report.code + '/'
-            box = box + uri.filename + uri.lang_ext + '">'
-            box = box + report.name[uri.lang] + '</a></td>\n'
-            box = box + '<td>' + report.description[uri.lang] + '</td>\n'
-            box = box + '</tr>\n'
+            if report.only_cvs==0 or sourcefile.in_cvs==1:
+                box = box + '<tr>\n'
+                box = box + '<td><a href="/file_report/' + report.code + '/'
+                box = box + uri.filename + uri.lang_ext + '">'
+                box = box + report.name[uri.lang] + '</a></td>\n'
+                box = box + '<td>' + report.description[uri.lang] + '</td>\n'
+                box = box + '</tr>\n'
         box = box + '</table>\n'
         return box
 
@@ -716,9 +703,10 @@ class TableFactory:
         # Build and execute the command
         report = lampadasweb.file_reports[uri.code]
         command = report.command
+        sourcefile = sourcefiles[uri.filename]
 
         fh = open('/tmp/lampadas_filename.txt', 'w')
-        fh.write(uri.filename + '\n')
+        fh.write(sourcefile.localname + '\n')
         fh.close()
         
         child_stdin, child_stdout, child_stderr  = os.popen3(command)
@@ -745,6 +733,10 @@ class TableFactory:
 
         log(3, 'Creating docfileerrors table')
         doc = lampadas.docs[uri.id]
+
+        if doc.file_error_count()==0:
+            return ''
+
         box = ''
         box = box + '<table class="box" width="100%">'
         box = box + '<tr><th colspan="3">|strfileerrs|</th></tr>\n'
@@ -755,13 +747,14 @@ class TableFactory:
         box = box + '</tr>\n'
         filenames = doc.files.sort_by('filename')
         for filename in filenames:
-            file = doc.files[filename]
-            err_ids = file.errors.sort_by('date_entered')
+            sourcefile = sourcefiles[filename]
+            err_ids = sourcefile.errors.sort_by('date_entered')
             for err_id in err_ids:
-                fileerror = file.errors[err_id]
+                fileerror = sourcefile.errors[err_id]
                 error = lampadas.errors[err_id]
                 box = box + '<tr>\n'
                 box = box + '<td>' + str(fileerror.err_id) + '</td>\n'
+                box = box + '<td>' + sourcefile.filename + '</td>\n'
                 box = box + '<td>' + error.name[uri.lang] + '</td>\n'
                 box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -784,6 +777,8 @@ class TableFactory:
             return '|tabnopermission|'
         elif sessions.session.user.admin==0 and sessions.session.user.sysadmin==0:
             return '|tabnopermission|'
+        elif uri.letter=='':
+            return ''
         log(3, 'Creating users table')
         box = '<table class="box" width="100%"><tr><th colspan=2>|strusers|</th></tr>\n'
         box = box + '<tr>\n'
@@ -936,11 +931,18 @@ class TableFactory:
         return box
 
     def userdocs(self, uri, username=''):
+        """
+        Displays a DocTable containing documents linked to a user.
+        The default is to display docs for the logged-on user.
+        """
         if sessions.session==None:
             return '|nopermission|'
         if sessions.session.user.can_edit(username=username)==0:
             return '|nopermission|'
-        return self.doctable(uri, username=sessions.session.username)
+        if username > '':
+            return self.doctable(uri, username=username)
+        else:
+            return self.doctable(uri, username=sessions.session.username)
 
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
@@ -1368,7 +1370,7 @@ class PageFactory:
                         newstring = '|blknotfound|'
                 if token=='user.docs':
                     if sessions.session:
-                        newstring = self.tablef.userdocs(uri, sessions.session.username)
+                        newstring = self.tablef.userdocs(uri, uri.username)
                     else:
                         newstring = '|blknotfound|'
 

@@ -1,3 +1,5 @@
-insert([cvs_log],  [/home/david/ldp/cvs/LDP/lampadas/bin/file_reports/cvs_log])
-insert([file_listing],      [/home/david/ldp/cvs/LDP/lampadas/bin/file_reports/file_listing])
+insert([cvs_log], t,
+    [/home/david/ldp/cvs/LDP/lampadas/bin/file_reports/cvs_log])
+insert([file_listing], f,
+    [/home/david/ldp/cvs/LDP/lampadas/bin/file_reports/file_listing])
 

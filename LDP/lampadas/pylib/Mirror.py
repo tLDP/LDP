@@ -82,7 +82,7 @@ class Mirror:
                 os.mkdir(cachedir)
 
             file		= doc.files[filekey]
-            filename	= file.filename
+            filename	= file.localname
             file_only	= file.file_only
             cachename	= cachedir + file_only
             
@@ -91,11 +91,11 @@ class Mirror:
                 # It is expensive to copy local documents into a cache directory,
                 # but it avoids publishing documents directly out of CVS.
                 # Some publishing tools leave clutter in the directory on failure.
-                if not os.access(config.cvs_root + filename, os.F_OK):
+                if not os.access(filename, os.F_OK):
                     log(2, 'Cannot mirror missing file: ' + filename)
                     continue
                 log(3, 'mirroring local file ' + filename)
-                command = 'cd ' + cachedir + '; cp -pu ' + config.cvs_root + filename + ' .'
+                command = 'cd ' + cachedir + '; cp -pu ' + filename + ' .'
                 os.system(command)
         
             else:

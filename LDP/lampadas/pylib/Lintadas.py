@@ -32,6 +32,7 @@ from Globals import *
 from Config import config
 from Log import log
 from DataLayer import lampadas
+from SourceFiles import sourcefiles
 import os
 import stat
 import string
@@ -55,6 +56,16 @@ ERR_FILE_NOT_READABLE = 6
 # Lintadas
 
 class Lintadas:
+    """
+    Updates file and document meta-data and analyzes  it for errors.
+
+    NOTE: You must always check files *before* checking documents,
+    so that the file meta-data is up to date. Checking the documents
+    will pull the top file's meta-data over into the document.
+
+    Alternatively, you can call import_docs_metadata() at any time
+    to only upload meta-data from files to documents.
+    """
 
     # This is a list of file extensions and the file types
     # they represent.
@@ -66,118 +77,65 @@ class Lintadas:
         'texi': 'texinfo',
     }
 
-    def check_all(self):
+    def check_files(self):
+        keys = sourcefiles.keys()
+        for key in keys:
+            self.check_file(key)
+            
+    def check_docs(self):
         keys = lampadas.docs.keys()
         for key in keys:
-            self.check(key)
+            self.check_doc(key)
     
-    def check(self, doc_id):
-        """
-        Check for errors at the document level.
-        """
+    def check_file(self, filename):
+        log(3, 'Running Lintadas on file ' + filename)
+        sourcefile = sourcefiles[filename]
 
-        log(3, 'Running Lintadas on document ' + str(doc_id))
-        doc = lampadas.docs[doc_id]
-        filenames = doc.files.keys()
-        usernames = doc.users.keys()
-       
-        # See if the document is maintained
-        maintained = 0
-        for username in usernames:
-            docuser = doc.users[username]
-            if docuser.active==1 and (docuser.role_code=='author' or docuser.role_code=='maintainer'):
-                maintained = 1
-        doc.maintained = maintained
+        # CLear out errors before checking
+        sourcefile.errors.clear()
 
-        # Clear any existing errors
-        doc.errors.clear()
-        for filename in filenames:
-            file = doc.files[filename]
-            file.errors.clear()
-
-        # If document is not active or archived, do not flag
-        # any errors against it.
-        if doc.pub_status_code<>'N' and doc.pub_status_code<>'A':
+        # Do not check remote files.
+        # FIXME: It should check the local file if it has been
+        # downloaded already.
+        if sourcefile.local==0:
+            log(3, 'Skipping remote file ' + filename)
+            return
+        
+        filename = sourcefile.localname
+        
+        # If file the is missing, flag error and stop.
+        if os.access(filename, os.F_OK)==0:
+            sourcefile.errors.add(ERR_FILE_NOT_FOUND)
             return
 
-        # Flag an error against the *doc* if there are no files.
-        if doc.files.count()==0:
-            doc.errors.add(ERR_NO_SOURCE_FILE)
+        # If file is not readable, flag error and top.
+        if os.access(filename, os.R_OK)==0:
+            sourcefile.errors.add(ERR_FILE_NOT_READABLE)
+            return
+
+        # Read file information
+        filestat = os.stat(filename)
+        sourcefile.filesize = filestat[stat.ST_SIZE]
+        sourcefile.filemode = filestat[stat.ST_MODE]
+        sourcefile.modified = time.ctime(filestat[stat.ST_MTIME])
+
+        # Determine file format.
+        file_extension = string.lower(string.split(filename, '.')[-1])
+        if self.extensions.has_key(file_extension) > 0:
+            sourcefile.format_code = self.extensions[file_extension]
+        
+        # If we were able to read format code, post it to the document,
+        if sourcefile.format_code=='':
+            sourcefile.errors.add(ERR_NO_FORMAT_CODE)
+
+        # Determine DTD for SGML and XML files
+        if sourcefile.format_code=='xml' or sourcefile.format_code=='sgml':
+            sourcefile.dtd_code, sourcefile.dtd_version = self.read_file_dtd(filename)
         else:
-
-            # Count the number of top files. There muse be exactly one.
-            # This takes advantage of the fact that true=1 and false=0.
-            top = 0
-            for filename in filenames:
-                top = top + doc.files[filename].top
-            if top==0:
-                doc.errors.add(ERR_NO_PRIMARY_FILE)
-            if top > 1:
-                doc.errors.add(ERR_TWO_PRIMARY_FILES)
-
-            for filename in filenames:
-                file = doc.files[filename]
-                file.errors.clear()
-
-                # Do not check remote files.
-                # FIXME: It should check the local file if it has been
-                # downloaded already.
-                if file.local==0:
-                    log(3, 'Skipping remote file ' + filename)
-                    continue
-                
-                log(3, 'Checking filename ' + filename)
-                if file.in_cvs==1:
-                    filename = file.cvsname
-                else:
-                    filename = file.localname
-                
-                # If file the is missing, flag error and stop.
-                if os.access(filename, os.F_OK)==0:
-                    file.errors.add(ERR_FILE_NOT_FOUND)
-                    continue
-
-                # If file is not readable, flag error and top.
-                if os.access(filename, os.R_OK)==0:
-                    file.errors.add(ERR_FILE_NOT_READABLE)
-                    continue
-
-                # Read file information
-                filestat = os.stat(filename)
-                file.filesize = filestat[stat.ST_SIZE]
-                file.filemode = filestat[stat.ST_MODE]
-                file.modified = time.ctime(filestat[stat.ST_MTIME])
-
-                # Determine file format.
-                file_extension = string.lower(string.split(filename, '.')[-1])
-                if self.extensions.has_key(file_extension) > 0:
-                    file.format_code = self.extensions[file_extension]
-                
-                # If we were able to read format code, post it to the document,
-                if file.format_code=='':
-                    file.errors.add(ERR_NO_FORMAT_CODE)
-
-                # Determine DTD for SGML and XML files
-                if file.format_code=='xml' or file.format_code=='sgml':
-                    file.dtd_code, file.dtd_version = self.read_file_dtd(filename)
-                else:
-                    file.dtd_code = 'N/A'
-                    file.dtd_version = ''
-                
-                # If this was the top file, post to document.
-                if file.top==1:
-                    doc.format_code = file.format_code
-                    doc.dtd_code = file.dtd_code
-                    doc.dtd_version = file.dtd_version
-
-                # FIXME: need a way to keep track of who is managing these fields.
-                # Probably it should be managed by Lampadas, but allow the user
-                # the ability to override it with their setting.
-                
-                file.save()
-
-        doc.save()
-        log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
+            sourcefile.dtd_code = 'N/A'
+            sourcefile.dtd_version = ''
+        
+        sourcefile.save()
 
     def read_file_dtd(self, filename):
         """
@@ -221,6 +179,68 @@ class Lintadas:
             
         return dtd_code, dtd_version
 
+    def check_doc(self, doc_id):
+        """
+        Check for errors at the document level.
+        """
+
+        log(3, 'Running Lintadas on document ' + str(doc_id))
+        doc = lampadas.docs[doc_id]
+        filenames = doc.files.keys()
+        usernames = doc.users.keys()
+       
+        # See if the document is maintained
+        maintained = 0
+        for username in usernames:
+            docuser = doc.users[username]
+            if docuser.active==1 and (docuser.role_code=='author' or docuser.role_code=='maintainer'):
+                maintained = 1
+        doc.maintained = maintained
+
+        # Clear any existing errors
+        doc.errors.clear()
+
+        # If document is not active or archived, do not flag
+        # any errors against it.
+        if doc.pub_status_code<>'N' and doc.pub_status_code<>'A':
+            return
+
+        # Flag an error against the *doc* if there are no files.
+        if doc.files.count()==0:
+            doc.errors.add(ERR_NO_SOURCE_FILE)
+        else:
+
+            # Count the number of top files. There muse be exactly one.
+            # This takes advantage of the fact that true=1 and false=0.
+            top = 0
+            for filename in filenames:
+                if doc.files[filename].top:
+                    top = top + 1
+            if top==0:
+                doc.errors.add(ERR_NO_PRIMARY_FILE)
+            if top > 1:
+                doc.errors.add(ERR_TWO_PRIMARY_FILES)
+
+        doc.save()
+        log(3, 'Lintadas run on document ' + str(doc_id) + ' complete')
+
+    def import_docs_metadata(self):
+        doc_ids = lampadas.docs.keys()
+        for doc_id in doc_ids:
+            self.import_doc_metadata(doc_id)
+
+    def import_doc_metadata(self, doc_id):
+        doc = lampadas.docs[doc_id]
+        filenames = doc.files.keys()
+        for filename in filenames:
+            docfile = doc.files[filename]
+            if docfile.top==1:
+                sourcefile      = sourcefiles[filename]
+                doc.format_code = sourcefile.format_code
+                doc.dtd_code    = sourcefile.dtd_code
+                doc.dtd_version = sourcefile.dtd_version
+                doc.save()
+
 
 lintadas = Lintadas()
 
@@ -236,12 +256,16 @@ def main():
     config.log_level = 3
     docs = sys.argv[1:]
     if len(docs)==0:
-        print "Running Lintadas on all documents..."
-        lintadas.check_all()
+        print 'Running Lintadas on all documents...'
+        lintadas.check_docs()
+        print 'Running Lintadas on all files...'
+        lintadas.check_files()
+        print 'Updating Meta-data on all documents...'
+        lintadas.import_docs_metadata()
     else:
         for doc_id in docs:
             print "Running Lintadas on document " + str(doc_id)
-            lintadas.check(int(doc_id))
+            lintadas.check_doc(int(doc_id))
 
 def usage():
     print "Lintadas version " + VERSION

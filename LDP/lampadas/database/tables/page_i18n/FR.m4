@@ -278,13 +278,13 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [Méta-données du doc], [Méta-données du doc],
 [
 	|tabeditdoc|
+    <p>|tabdocerrors|
     <p>|tabdocfiles|
     <p>|tabdocfileerrors|
     <p>|tabdocusers|
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
-    <p>|tabdocerrors|
 ], 2])
 
 insert([404], [Introuvable], [Introuvable],
@@ -343,7 +343,7 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([file_reports], [File Reports], [],
+insert([sourcefile], [Source File], [],
 [
     |tabfile_reports|
 ], 1)

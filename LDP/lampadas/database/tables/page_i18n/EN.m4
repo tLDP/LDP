@@ -380,13 +380,13 @@ insert([subtopic], [View Subtopic], [],
 insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 [
     |tabeditdoc|
+    <p>|tabdocerrors|
     <p>|tabdocfiles|
     <p>|tabdocfileerrors|
     <p>|tabdocusers|
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
-    <p>|tabdocerrors|
 ], 2)
 
 insert([404], [Error 404, Page Not Found], Error,
@@ -452,10 +452,10 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([file_reports], [File Reports], [],
+insert([sourcefile], [Source File], [],
 [
     |tabfile_reports|
-], 2)
+], 3)
 
 insert([file_report], [File Report], [],
 [

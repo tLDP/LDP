@@ -32,10 +32,11 @@ performed through this layer.
 # the imported module changes or makes a mistake --nico
 
 from Globals import *
-from BaseClasses import *
 from Config import config
 from Database import db
 from Log import log
+from BaseClasses import *
+from SourceFiles import sourcefiles
 import string
 import os.path
 
@@ -203,8 +204,7 @@ class Docs(LampadasCollection):
             self[doc.id] = doc
         self.load_errors()
         self.load_users()
-        self.load_files()
-        self.load_file_errors()
+        self.load_docfiles()
         self.load_versions()
         self.load_ratings()
         self.load_topics()
@@ -235,8 +235,8 @@ class Docs(LampadasCollection):
             doc.users[docuser.username] = docuser
 
 
-    def load_files(self):
-        sql = "SELECT doc_id, filename, top, format_code, dtd_code, dtd_version, filesize, filemode, modified FROM document_file"
+    def load_docfiles(self):
+        sql = "SELECT doc_id, filename, top FROM document_file"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -246,23 +246,6 @@ class Docs(LampadasCollection):
             docfile = DocFile()
             docfile.load_row(row)
             doc.files[docfile.filename] = docfile
-
-
-    def load_file_errors(self):
-        doc_ids = self.keys()
-        sql = 'SELECT filename, err_id, date_entered FROM file_error'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            filename = trim(row[0])
-            for doc_id in doc_ids:
-                doc = self[doc_id]
-                if doc.files[filename]:
-                    fileerr = FileErr()
-                    fileerr.load_row(row)
-                    doc.files[filename].errors[fileerr.err_id] = fileerr
-                    break
 
 
     def load_versions(self):
@@ -319,13 +302,13 @@ class Docs(LampadasCollection):
 # rather than passing in all these parameters. --nico
 
     def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid):
-        self.id = db.next_id('document', 'doc_id')
+        id = db.next_id('document', 'doc_id')
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status, review_status, tickle_date, pub_date, tech_review_status, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
+        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status, review_status, tickle_date, pub_date, tech_review_status, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
-        doc = Doc(self.id)
-        self[self.id] = doc
+        doc = Doc(id)
+        self[id] = doc
         return doc
     
     def delete(self, id):
@@ -448,6 +431,14 @@ class Doc:
         db.runsql(sql)
         db.commit()
 
+    def file_error_count(self):
+        error_count = 0
+        docfiles = self.files.keys()
+        for docfile in docfiles:
+            sourcefile = sourcefiles[docfile]
+            error_count = error_count + sourcefile.errors.count()
+        return error_count
+
 
 # DocErrs
 
@@ -524,34 +515,29 @@ class DocFiles(LampadasCollection):
 
     def load(self):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, filename, top, format_code, dtd_code, dtd_version FROM document_file WHERE doc_id=" + str(self.doc_id)
+        sql = "SELECT doc_id, filename, top FROM document_file WHERE doc_id=" + str(self.doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             docfile = DocFile()
             docfile.load_row(row)
-            docfile.errors = FileErr(docfile.filename)
             self.data[docfile.filename] = docfile
 
-    def error_count(self):
-        count = 0
-        for key in self.keys():
-            count = count + self[key].errors.count()
-        return count
+    def add(self, doc_id, filename, top):
+        # First, add a sourcefile record if it doesn't exist
+        sourcefile = sourcefiles[filename]
+        if sourcefile==None:
+            sourcefiles.add(filename)
 
-    def add(self, doc_id, filename, top, format_code=None, dtd_code=None, dtd_version=None):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'INSERT INTO document_file (doc_id, filename, top, format_code, dtd_code, dtd_version) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ', ' + wsq(format_code) + ', ' + wsq(dtd_code) + ', ' + wsq(dtd_version) + ')'
+        sql = 'INSERT INTO document_file (doc_id, filename, top) VALUES (' + str(doc_id) + ', ' + wsq(filename) + ', ' + wsq(bool2tf(top)) + ')'
         assert db.runsql(sql)==1
         db.commit()
         file = DocFile()
         file.doc_id = doc_id
         file.filename = filename
-        file.errors.filename = filename
         file.top = top
-        file.format_code = format_code
-        file.calc_local()
         file.save()
         self.data[file.filename] = file
         return file
@@ -571,136 +557,16 @@ class DocFiles(LampadasCollection):
         db.commit()
         self.data = {}
 
+    def error_count(self):
+        count = 0
+        for key in self.keys():
+            sourcefile = sourcefiles[key]
+            count = count + sourcefile.errors.count()
+        return count
+
 class DocFile:
     """
     An association between a document and a file.
-    """
-
-    def __init__(self, filename=''):
-        self.filename = filename
-        self.calc_local()
-        self.format_code = ''
-        self.dtd_code    = ''
-        self.dtd_version = ''
-        self.filesize    = 0
-        self.filemode    = ''
-        self.modified    = ''
-        self.errors = FileErrs()
-        self.errors.filename = self.filename
-        if filename=='': return
-        self.load(filename)
-
-    def load(self, filename):
-        sql = 'SELECT doc_id, filename, top, format_code, dtd_code, dtd_version filesize, filemode, modified FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(filename)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        self.load_row(row)
-        self.errors = FileErrs(self.filename)
-    
-    def load_row(self, row):
-        self.doc_id      = row[0]
-        self.filename    = trim(row[1])
-        self.calc_local()
-        self.top         = tf2bool(row[2]) 
-        self.format_code = trim(row[3])
-        self.dtd_code = trim(row[4])
-        self.dtd_version = trim(row[5])
-        self.filesize    = safeint(row[6])
-        self.filemode    = trim(row[7])
-        self.modified    = time2str(row[8])
-        self.file_only	= os.path.split(self.filename)[1]
-        self.basename	= os.path.splitext(self.file_only)[0]
-        self.errors.filename = self.filename
-        
-    def save(self):
-        # FIXME -- trying to start replacing wsq(), etc. --nico 
-        #sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
-        #db.runsql(sql)
-        dict = {'top':bool2tf(self.top),
-                'format_code':self.format_code,
-                'dtd_code':self.dtd_code,
-                'dtd_version':self.dtd_version,
-                'doc_id':self.doc_id,
-                'filename':self.filename,
-                'filesize':999,
-                'filemode':self.filemode,
-                'modified':self.modified,
-                }
-        sql = sqlgen.update('document_file',dict,['doc_id','filename'])
-        db.execute(sql,dict)
-        db.commit()
-
-    def calc_local(self):
-        if self.filename[:7]=='http://' or self.filename[:6]=='ftp://':
-            self.local = 0
-            self.localname = ''
-            self.in_cvs = 0
-            self.cvsname = ''
-        else:
-            self.local = 1
-            if self.filename[:7]=='file://':
-                self.localname = self.filename[7:]
-                self.in_cvs = 0
-                self.cvsname = ''
-            else:
-                self.localname = self.filename
-                self.in_cvs = 1
-                self.cvsname = config.cvs_root + self.filename
-
-
-# FileErrs
-
-class FileErrs(LampadasCollection):
-    """
-    A collection object providing access to all file errors, as identified by the
-    Lintadas subsystem.
-    """
-
-    def __init__(self, filename=''):
-        self.data = {}
-        self.filename = filename
-        if filename > '':
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT filename, err_id, date_entered FROM file_error WHERE filename=" + wsq(self.filename)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            file_err = FileErr()
-            file_err.load_row(row)
-            self.data[file_err.err_id] = file_err
-
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM file_error WHERE filename=" + wsq(self.filename)
-        db.runsql(sql)
-        db.commit()
-        self.data = {}
-
-    def count(self):
-        return db.count('file_error','filename=' + wsq(self.filename))
-        
-# FIXME: Try instantiating a FileErr object, then adding it to the *document*
-# rather than passing all these parameters here. --nico
-
-    def add(self, err_id):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO file_error(filename, err_id) VALUES (" + wsq(self.filename) + ", " + str(err_id) + ')'
-        assert db.runsql(sql)==1
-        file_err = FileErr()
-        file_err.filename = self.filename
-        file_err.err_id = err_id
-        file_err.date_entered = now_string()
-        self.data[file_err.err_id] = file_err
-        db.commit()
-
-class FileErr:
-    """
-    An error filed against a document by the Lintadas subsystem.
     """
 
     def __init__(self, filename=''):
@@ -709,17 +575,27 @@ class FileErr:
         self.load()
 
     def load(self):
-        sql = 'SELECT filename, err_id, date_entered FROM file_error WHERE filename=' + wsq(self.filename)
+        sql = 'SELECT doc_id, filename, top FROM document_file WHERE doc_id=' + str(self.doc_id) + ' AND filename=' + wsq(self.filename)
         cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            self.load_row(row)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
     
     def load_row(self, row):
-        self.filename     = trim(row[0])
-        self.err_id       = safeint(row[1])
-        self.date_entered = time2str(row[2])
+        self.doc_id      = row[0]
+        self.filename    = trim(row[1])
+        self.top         = tf2bool(row[2]) 
+        
+    def save(self):
+        # FIXME -- trying to start replacing wsq(), etc. --nico 
+        #sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
+        #db.runsql(sql)
+        dict = {'doc_id':self.doc_id,
+                'filename':self.filename,
+                'top':bool2tf(self.top)}
+        sql = sqlgen.update('document_file',dict,['doc_id','filename'])
+        db.execute(sql,dict)
+        db.commit()
 
 
 # DocUsers

@@ -242,7 +242,7 @@ class FileReports(LampadasCollection):
 
     def __init__(self):
         self.data = {}
-        sql = 'SELECT report_code, command FROM file_report'
+        sql = 'SELECT report_code, only_cvs, command FROM file_report'
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -268,8 +268,9 @@ class FileReport:
         self.description = LampadasCollection()
 
     def load_row(self, row):
-        self.code    = trim(row[0])
-        self.command = trim(row[1])
+        self.code     = trim(row[0])
+        self.only_cvs = tf2bool(row[1])
+        self.command  = trim(row[2])
 
 
 # WebLayer

@@ -42,5 +42,5 @@ insert(password_mailed,     default,    [],         0,  [],                 f,  
 insert(logged_in,           default,    [],         0,  [],                 f,  f,  f)
 insert(logged_out,          default,    [],         0,  [],                 f,  f,  f)
 insert(type,                default,    [],         0,  [type],             f,  f,  f)
-insert(file_reports,        default,    [],         0,  [filename],         f,  f,  f)
+insert(sourcefile,          default,    [],         0,  [filename],         f,  f,  f)
 insert(file_report,         default,    [],         0,  [report filename],  f,  f,  f)

@@ -377,13 +377,13 @@ insert([subtopic], [Liste der Unterthemen], [],
 insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
 [
     |tabeditdoc|
+    <p>|tabdocerrors|
     <p>|tabdocfiles|
     <p>|tabdocfileerrors|
     <p>|tabdocusers|
     <p>|tabdocversions|
     <p>|tabdoctopics|
     <p>|tabdocnotes|
-    <p>|tabdocerrors|
 ], 2)
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
@@ -453,7 +453,7 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([file_reports], [Report von Dateien], [],
+insert([sourcefile], [Source File], [],
 [
     |tabfile_reports|
 ], 2)

@@ -24,6 +24,11 @@ Lampadas Database Module
 This module generates a Database object for accessing a back-end RDBMS
 """
 
+# Globals ##################################################################
+
+AUTOCOMMIT = 1
+
+
 # Modules ##################################################################
 
 import pyPgSQL
@@ -104,7 +109,8 @@ class Database:
 
     def commit(self):
         log(3, 'Committing database')
-        self.connection.commit()
+        if AUTOCOMMIT==0:
+            self.connection.commit()
 
 
 # Specific derived DB classes ##################################################
@@ -114,7 +120,7 @@ class PgSQLDatabase(Database):
     def __init__(self,db_name):
         from pyPgSQL import PgSQL
         self.connection = PgSQL.connect(database=db_name)
-
+        self.connection.autocommit = AUTOCOMMIT
 
 class MySQLDatabase(Database):
 

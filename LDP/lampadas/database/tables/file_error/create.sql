@@ -1,6 +1,6 @@
 CREATE TABLE file_error
 (
-	filename		TEXT		NOT NULL	REFERENCES document_file(filename),
+	filename		TEXT		NOT NULL	REFERENCES sourcefile(filename),
 	err_id			INT4		NOT NULL	REFERENCES error(err_id),
 	date_entered		TIMESTAMP	NOT NULL DEFAULT now(),
 
