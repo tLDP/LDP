@@ -1,21 +1,22 @@
 #!/usr/bin/python2
 
+import os
 import string
 import StringIO
 import SimpleHTTPServer
 import scrollkeeper
- 
+
 BaseClass = SimpleHTTPServer.SimpleHTTPRequestHandler
 ScrollKeeper = scrollkeeper.ScrollKeeper()
-  
+
 CounterTemplate = """ <H1>Server
 Statistics</H1>
-   
+
 This <A HREF=./>server</A> has been accessed
 <b>%d</b> times.  """
-    
+
 count = 0
-     
+
 class MyRequestHandler(BaseClass):
 
 	def do_GET(self):
@@ -78,7 +79,8 @@ class MyRequestHandler(BaseClass):
 		return StringIO.StringIO(text)
 
 def ScrollServer():
+	os.system("rm -rf /var/cache/scrollserver/*")
 	SimpleHTTPServer.test(MyRequestHandler)
 
-ScrollServer()  
- 
+ScrollServer()
+

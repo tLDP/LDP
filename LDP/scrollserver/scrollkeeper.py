@@ -1,5 +1,3 @@
-#!/usr/bin/python2
-
 import sys, os, commands, string
 from xml.dom.minidom import parse
 import urllib
@@ -45,7 +43,7 @@ class TOC:
 					self.Sections = self.Sections + [newSection]
 		else:
 			print "ERROR, not a TOC"
-		
+
 
 class Document:
 
@@ -93,7 +91,8 @@ class Document:
 
 			sgmlfile = sgmlfile[0]
 			xsl_stylesheet = "/usr/share/sgml/docbook/xsl-stylesheets-1.29/html/docbook.xsl"
-			
+                        xsl_stylesheet = "/home/david/scrollserver/stylesheets/docbook/docbook.xsl"
+
 			cmd = "cd /var/cache/scrollserver; mkdir " + self.ID + "; cd " + self.ID + "; xsltproc --docbook --timing " + xsl_stylesheet + " " + sgmlfile + " > index.html"
 
 			#print cmd
@@ -120,11 +119,15 @@ class Document:
 	def HTML(self):
 		if self.Format == "text/sgml":
 			htmlfile = "/var/cache/scrollserver/" + self.ID + "/index.html"
-			if not os.path.isfile(htmlfile):
-				self.Prepare()
-			elif os.stat(htmlfile)[9] < os.stat(self.SourceFile)[9]:
-				self.Prepare()
+
+			# Comment this, uncomment below to enable caching.
+			self.Prepare()
 			
+#			if not os.path.isfile(htmlfile):
+#				self.Prepare()
+#			elif os.stat(htmlfile)[9] < os.stat(self.SourceFile)[9]:
+#				self.Prepare()
+
 			text = FileContents(htmlfile)
 			
 		else:
