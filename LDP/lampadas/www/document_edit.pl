@@ -216,10 +216,6 @@ print "<td colspan=5><textarea name=abstract rows=10 cols=60 wrap>$abstract</tex
 
 print "</tr>\n<tr>\n";
 
-print "<td align=right>Abstract</td><td colspan=10><textarea name=abstract rows=10 cols=60 wrap></textarea>\n";
-
-print "</tr>\n<tr>\n";
-
 print "<td align=right>Rating</td><td>";
 
 if ( $vote > 0 ) {
