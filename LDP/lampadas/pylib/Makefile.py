@@ -34,6 +34,7 @@ XSLTPROC_PARAMS = ''
 from BaseClasses import *
 from Globals import *
 from Docs import docs
+from DocErrs import DocErr
 from SourceFiles import sourcefiles
 from Languages import languages
 from Config import config
@@ -396,7 +397,11 @@ class Project:
 
                     # Abort if the command returns an exit code.
                     if exit_status<>0:
-                        self.doc.errors.add(self.doc.id, ERR_MAKE_EXIT_STATUS, str(exit_status) + ': ' + cmd_split)
+                        docerr = DocErr()
+                        docerr.doc_id = self.doc.id
+                        docerr.err_id = ERR_MAKE_EXIT_STATUS
+                        docerr.notes = str(exit_status) + ': ' + cmd_split
+                        self.doc.errors.add(docerr)
                         log(0, 'ERROR: The command returned error code ' + str(exit_status) + '.')
                     
                     # Abort if there is anything written to STDERR.
@@ -405,7 +410,11 @@ class Project:
                         err_text = fh.read()
                         fh.close()
                         if err_text > '':
-                            self.doc.errors.add(self.doc.id, ERR_MAKE_STDERR, cmd_split + '\n\n' + err_text)
+                            docerr = DocErr()
+                            docerr.doc_id = self.doc.id
+                            docerr.err_id = ERR_MAKE_STDERR
+                            docerr.notes = cmd_split + '\n\n' + err_text
+                            self.doc.errors.add(docerr)
                             log(0, 'ERROR: The command wrote to STDERR.')
                             if exit_status==0:
                                 exit_status = 1;
@@ -414,7 +423,11 @@ class Project:
                     filestat = os.stat(self.workdir + command.output_to)
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
-                        self.doc.errors.add(self.doc.id, ERR_MAKE_ZERO_LENGTH, cmd_split)
+                        docerr = DocErr()
+                        docerr.doc_id = self.doc.id
+                        docerr.err_id = ERR_MAKE_ZERO_LENGTH
+                        docerr.notes = cmd_split
+                        self.doc.errors.add(docerr)
                         log(0, 'ERROR: The command left a zero-length file. Removing.')
                         if exit_status==0:
                             exit_status = 2;

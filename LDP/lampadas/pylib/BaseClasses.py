@@ -30,6 +30,7 @@ import string
 import copy
 import types
 import sys
+import md5
 
 # TODO: Write testing routines that go through trying to write random data into the database
 # whilc executing random deletes, etc.
@@ -154,18 +155,20 @@ class DataField:
 
     def field_to_attr(self, value):
         if self.data_type in ('string', ''):      return trim(value)
-        elif self.data_type in ('int', 'float'):  return safeint(value)
+        elif self.data_type in ('sequence', 'int', 'float'):  return safeint(value)
         elif self.data_type=='time':              return time2str(value)
         elif self.data_type=='date':              return date2str(value)
         elif self.data_type=='bool':              return tf2bool(value)
         elif self.data_type=='created':           return time2str(value)
         elif self.data_type=='updated':           return time2str(value)
+        elif self.data_type=='creator':           return trim(value)
+        elif self.data_type=='updater':           return trim(value)
         else:
-            print 'Unrecognized type: ' + type_name
+            print 'Unrecognized type: ' + self.data_type
             sys.exit(1)
 
     def attr_to_field(self, value):
-        if self.data_type in ('int', 'float'):
+        if self.data_type in ('sequence', 'int', 'float'):
             if self.nullable==1 and value==0:
                 return 'NULL'
             else:
@@ -176,6 +179,8 @@ class DataField:
         elif self.data_type=='time':    return wsq(str(value))
         elif self.data_type=='created': return wsq(str(value))
         elif self.data_type=='updated': return wsq(now_string())
+        elif self.data_type=='creator': return wsq(value)
+        elif self.data_type=='updater': return wsq(value)
         else:
             print 'ERROR: Unrecognized data type definition, see DataObject.attr_to_field()'
             print 'Table= ' + self.parent.table
@@ -261,7 +266,7 @@ class DataCollection(LampadasCollection):
             #original_count = self.count()
             self.updated = now_string()
             #print self.count()
-            #print 'Loading since ' + updated + '...'
+            #print 'Loading ' + self.table + ' since ' + updated + '...'
             if updated > '':
                 sql = 'SELECT identifier FROM deleted WHERE table_name=' + wsq(self.table) + ' AND deleted >= ' + wsq(updated)
                 #print sql
@@ -325,6 +330,11 @@ class DataCollection(LampadasCollection):
     def add(self, object):
         if self.parent_collection==None:
             object.parent = self
+            for field in self.indexfields:
+                data_field = self.map[field]
+                if data_field.data_type=='sequence':
+                    new_id = db.next_id(self.table, data_field.field_name)
+                    setattr(object, data_field.attribute, new_id)
             sql = 'INSERT INTO %s (%s) VALUES (%s)' % (self.table, object.fields(), object.values())
             db.runsql(sql)
             db.commit()
@@ -351,6 +361,11 @@ class DataCollection(LampadasCollection):
             self.parent_collection.delete(id)
             self.refresh_filters()
         
+    def save(self):
+        for key in self.keys():
+            object = self[key]
+            object.save()
+            
     def refresh_keys(self):
         for key in self.keys():
             object = self[key]
@@ -428,6 +443,15 @@ class DataObject:
 
     def __init__(self, parent=None):
         self.parent = parent
+        self.md5 = ''
+
+    def calculate_md5(self):
+        m = md5.new()
+        for field in self.parent.allfields:
+            data_field = self.parent.map[field]
+            value = str(getattr(self, data_field.attribute))
+            m.update(value)
+        return m.hexdigest()
 
     def where(self):
         where_string = ''
@@ -495,6 +519,7 @@ class DataObject:
             setattr(self, attribute, value)
             i += 1
         self.id = self.build_id(self.parent.idfields)
+        self.md5 = self.calculate_md5()
 
     def load_i18n_row(self, row):
         lang = row[1]
@@ -506,24 +531,31 @@ class DataObject:
             coll[lang] = value
             setattr(self, field, coll)
             i += 1
+        self.md5 = self.calculate_md5()
 
     def save(self):
-        field_list = []
-        sql = WOStringIO('UPDATE %s SET ' % self.parent.table)
-        for key in self.parent.map.keys():
-            data_field = self.parent.map[key]
-            value = getattr(self, data_field.attribute)
-            value = data_field.attr_to_field(value)
-            field_list.append('%s=%s' % (key, value))
-        sql.write(string.join(field_list, ', '))
-        sql.write(self.where())
-        db.runsql(sql.get_value())
+        new_md5 = self.calculate_md5()
+        if new_md5 <> self.md5:
+            field_list = []
+            sql = WOStringIO('UPDATE %s SET ' % self.parent.table)
+            for key in self.parent.map.keys():
+                data_field = self.parent.map[key]
+                value = getattr(self, data_field.attribute)
+                value = data_field.attr_to_field(value)
+                field_list.append('%s=%s' % (key, value))
+            sql.write(string.join(field_list, ', '))
+            sql.write(self.where())
+            db.runsql(sql.get_value())
+            db.commit()
+            self.md5 = self.calculate_md5()
         
     def delete(self):
         sql = 'DELETE FROM ' + self.parent.table + self.where()
         db.runsql(sql)
+        db.commit()
         sql = 'INSERT INTO deleted(table_name, identifier) VALUES (%s, %s)' % (wsq(self.parent.table), wsq(str(self.build_id())))
         db.runsql(sql)
+        db.commit()
 
 class Filter:
 

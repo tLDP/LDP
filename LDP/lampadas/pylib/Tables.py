@@ -700,7 +700,7 @@ class Tables(LampadasCollection):
         if doc==None:
             return '|blknotfound|'
 
-        if doc.files.error_count==0:
+        if doc.files.error_count()==0:
             return ''
 
         log(3, 'Creating docfileerrors table')
@@ -1049,7 +1049,7 @@ class Tables(LampadasCollection):
                 if doc.pub_time > '':
                     box.write('<td style="width:100%%"><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
                               % (str(doc.id), display_title))
-                elif doc.errors.count() > 0 or doc.files.error_count > 0:
+                elif doc.errors.count() > 0 or doc.files.error_count() > 0:
                     box.write('<td style="width:100%%" class="error">%s</td>\n' % display_title)
                 else:
                     box.write('<td style="width:100%%">%s</td>\n' % display_title)
@@ -1078,7 +1078,7 @@ class Tables(LampadasCollection):
                 block_editlink = '<td width=32><a href="|uri.base|document_main/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a></td>'
 
                 # Format the title based on the presence of errors.
-                if doc.errors.count() > 0 or doc.files.error_count > 0:
+                if doc.errors.count() > 0 or doc.files.error_count() > 0:
                     block_title = '<th colspan="4" class="error">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
                 else:
                     block_title = '<th colspan="4">' + html_encode(widgets.title_compressed(metadata.title)) + '</th>'
@@ -1617,7 +1617,7 @@ class Tables(LampadasCollection):
         box.write('<th%s><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>\n' % (users_selected))
         box.write('<th%s><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>\n' % (notes_selected))
         box.write('<th%s><a href="|uri.base|document_translation/|uri.id||uri.lang_ext|">|strtranslations|</a></th>\n' % (translations_selected))
-        if document.errors.count() > 0 or document.files.error_count > 0:
+        if document.errors.count() > 0 or document.files.error_count() > 0:
             box.write('<th class="error%s"><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected1))
         else:
             box.write('<th%s><a href="|uri.base|document_errors/|uri.id||uri.lang_ext|">|strerrors|</a></th>\n' % (errors_selected2))

@@ -69,7 +69,7 @@ class Mirror:
             os.mkdir(logdir)
 
         # Do not attempt to mirror a document which has document or file errors.
-        if doc.errors.count('doc') > 0 or doc.files.error_count > 0:
+        if doc.errors.count('doc') > 0 or doc.files.error_count() > 0:
             print 'Not mirroring document ' + str(doc.id) + '; it has errors.'
             return
 
@@ -146,7 +146,7 @@ class Mirror:
 #        command = 'lampadas-filter ' + workdir
 #        os.system(command)
         
-        if doc.errors.count('mirror')==0 and doc.files.error_count==0:
+        if doc.errors.count('mirror')==0 and doc.files.error_count()==0:
             doc.mirror_time = now_string()
         doc.files.save()
         doc.save()

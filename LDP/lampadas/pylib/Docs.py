@@ -25,6 +25,11 @@ from BaseClasses import *
 from DocTopics import doctopics, DocTopics
 from DocErrs import docerrs, DocErrs
 from DocFiles import docfiles, DocFiles
+from DocVersions import docversions, DocVersions
+from DocRatings import docratings, DocRatings
+from DocCollections import doccollections, DocCollections
+from DocNotes import docnotes, DocNotes
+
 from SourceFiles import sourcefiles
 from ErrorTypes import errortypes
 from Errors import errors
@@ -81,15 +86,15 @@ class Docs(DataCollection):
             doc = self[key]
             if updated=='':
                 self.adjust_lang_count(doc.lang, 1)
-                doc.users.doc_id    = doc.id
-                doc.versions.doc_id = doc.id
-                doc.ratings.doc_id  = doc.id
-                doc.notes.doc_id    = doc.id
+                doc.users.doc_id = doc.id
+                doc.topics.refresh_filters()
+                doc.errors.refresh_filters()
+                doc.files.refresh_filters()
+                doc.versions.refresh_filters()
+                doc.ratings.refresh_filters()
+                doc.collections.refresh_filters()
+                doc.notes.refresh_filters()
         self.load_users()
-        self.load_versions()
-        self.load_ratings()
-        self.load_collections()
-        self.load_notes()
 
     def load_users(self):
         sql = "SELECT doc_id, username, role_code, email, active FROM document_user"
@@ -103,55 +108,6 @@ class Docs(DataCollection):
             docuser.load_row(row)
             doc.users[docuser.username] = docuser
 
-
-    def load_versions(self):
-        sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[0]
-            doc = self[doc_id]
-            docversion = DocVersion()
-            docversion.load_row(row)
-            doc.versions[docversion.id] = docversion
-
-    def load_ratings(self):
-        sql = "SELECT doc_id, username, created, vote FROM doc_vote"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[0]
-            doc = self[doc_id]
-            doc.ratings.parent = doc
-            docrating = DocRating()
-            docrating.load_row(row)
-            doc.ratings[docrating.username] = docrating
-
-    def load_collections(self):
-        sql = "SELECT doc_id, collection_code FROM document_collection"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[0]
-            doc = self[doc_id]
-            doccollection = DocCollection()
-            doccollection.load_row(row)
-            doc.collections[doccollection.collection_code] = doccollection
-
-    def load_notes(self):
-        sql = 'SELECT note_id, doc_id, notes, creator, created FROM notes'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doc_id = row[1]
-            doc = self[doc_id]
-            docnote = DocNote()
-            docnote.load_row(row)
-            doc.notes[docnote.id] = docnote
 
     def adjust_lang_count(self, lang_code, delta):
         """
@@ -255,33 +211,24 @@ class Doc(DataObject):
         self.first_pub_date          = ''
         self.users                   = DocUsers()
         self.users.doc_id            = self.id
-        self.versions                = DocVersions()
-        self.versions.doc_id         = self.id
-        self.ratings                 = DocRatings()
-        self.ratings.doc_id          = self.id
-        self.ratings.parent          = self.id
-        self.collections             = DocCollections()
-        self.collections.doc_id      = self.id
-        self.notes                   = DocNotes()
-        self.notes.doc_id            = self.id
         self.topics = doctopics.apply_filter(DocTopics, Filter(self, 'id', '=', 'doc_id'))
         self.errors = docerrs.apply_filter(DocErrs, Filter(self, 'id', '=', 'doc_id'))
         self.files = docfiles.apply_filter(DocFiles, Filter(self, 'id', '=', 'doc_id'))
+        self.versions = docversions.apply_filter(DocVersions, Filter(self, 'id', '=', 'doc_id'))
+        self.ratings = docratings.apply_filter(DocRatings, Filter(self, 'id', '=', 'doc_id'))
+        self.collections = doccollections.apply_filter(DocCollections, Filter(self, 'id', '=', 'doc_id'))
+        self.notes = docnotes.apply_filter(DocNotes, Filter(self, 'id', '=', 'doc_id'))
 
     def load(self):
         DataObject.load(self)
-        self.users                   = DocUsers(self.id)
-        self.versions                = DocVersions(self.id)
-        self.ratings                 = DocRatings(self.id)
-        self.ratings.parent          = self
-        self.collections             = DocCollections(self.id)
-        self.notes                   = DocNotes(self.id)
-
-    def load_row(self, row):
-        DataObject.load_row(self, row)
+        self.users = DocUsers(self.id)
         self.topics.refresh_filters()
         self.errors.refresh_filters()
         self.files.refresh_filters()
+        self.versions.refresh_filters()
+        self.ratings.refresh_filters()
+        self.collections.refresh_filters()
+        self.notes.refresh_filters()
 
     def remove_duplicate_metadata(self):
         # FIXME: This is temporary code to get rid of redundant
@@ -486,269 +433,6 @@ class DocUser:
         sql = "DELETE FROM document_user WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
         db.runsql(sql)
         db.commit()
-
-
-# DocRatings
-
-class DocRatings(LampadasCollection):
-    """
-    A collection object providing access to all ratings placed on documents by users.
-    """
-
-    def __init__(self, doc_id=0):
-        self.data = {}
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, username, created, vote FROM doc_vote WHERE doc_id=" + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            docrating = DocRating()
-            docrating.load_row(row)
-            self.doc_id = docrating.doc_id
-            self.data[docrating.username] = docrating
-
-    def add(self, username, rating):
-        docrating = DocRating()
-        docrating.doc_id   = self.doc_id
-        docrating.username = username
-        docrating.created  = now_string()
-        docrating.rating   = rating
-        docrating.save()
-        self.data[docrating.username] = docrating
-
-    def delete(self, username):
-        if self.data[username]==None: return
-        del self.data[username]
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.doc_id) + ' AND username=' + wsq(username)
-        db.runsql(sql)
-        
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
-        self.data = {}
-
-class DocRating:
-    """
-    A rating of a document, assigned by a registered user.
-    """
-
-    def load_row(self, row):
-        assert not row==None
-        self.doc_id   = row[0]
-        self.username = row[1]
-        self.created  = time2str(row[2])
-        self.rating   = row[3]
-
-    def save(self):
-        """
-        FIXME: use cursor.execute(sql,params) instead! --nico
-        """
-        sql = "DELETE from doc_vote WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
-        db.runsql(sql)
-        sql = "INSERT INTO doc_vote (doc_id, username, vote) VALUES (" + str(self.doc_id) + ", " + wsq(self.username) + ", " + str(self.rating) + ")"
-        db.runsql(sql)
-        db.commit()
-
-
-# DocVersions
-
-class DocVersions(LampadasCollection):
-    """
-    A collection object providing access to document revisions.
-    """
-
-    def __init__(self, doc_id=0):
-        LampadasCollection.__init__(self)
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            docversion = DocVersion()
-            docversion.load_row(row)
-            self.data[docversion.id] = docversion
-
-    def add(self, version, pub_date, initials, notes):
-        newrev_id = db.next_id('document_rev', 'rev_id')
-        sql = 'INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES (' + str(self.doc_id) + ', ' + str(newrev_id) + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes) + ')'
-        db.runsql(sql)
-        db.commit()
-        docversion = DocVersion()
-        docversion.id = newrev_id
-        docversion.doc_id = self.doc_id
-        docversion.version = version
-        docversion.pub_date = pub_date
-        docversion.initials = initials
-        docversion.notes = notes
-        self.data[docversion.id] = docversion
-
-    def delete(self, rev_id):
-        sql = 'DELETE FROM document_rev WHERE rev_id=' + str(rev_id)
-        db.runsql(sql)
-        db.commit()
-        del self.data[rev_id]
-
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM document_rev WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
-        db.commit()
-        self.data = {}
-
-class DocVersion:
-    """
-    A release of the document.
-    """
-
-    def load_row(self, row):
-        self.doc_id   = row[0]
-        self.id       = row[1]
-        self.version  = trim(row[2])
-        self.pub_date = date2str(row[3])
-        self.initials = trim(row[4])
-        self.notes    = trim(row[5])
-
-    def save(self):
-        """
-        FIXME: use cursor.execute(sql,params) instead! --nico
-        """
-        sql = "UPDATE document_rev SET version=" + wsq(self.version) + ", pub_date=" + wsq(self.pub_date) + ", initials=" + wsq(self.initials) + ", notes=" + wsq(self.notes) + "WHERE doc_id=" + str(self.doc_id) + " AND rev_id=" + str(self.id)
-        assert db.runsql(sql)==1
-        db.commit()
-
-
-# DocCollections
-
-class DocCollections(LampadasCollection):
-    """
-    A collection object providing access to document collections.
-    """
-
-    def __init__(self, doc_id=0):
-        LampadasCollection.__init__(self)
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, collection_code FROM document_collection WHERE doc_id=" + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            doccollection = DocCollection()
-            doccollection.load_row(row)
-            self.data[doccollection.collection_code] = doccollection
-
-    def add(self, collection_code):
-        sql = 'INSERT INTO document_collection(doc_id, collection_code) VALUES (' + str(self.doc_id) + ', ' + wsq(collection_code) + ')'
-        db.runsql(sql)
-        db.commit()
-        doccollection = DocCollection()
-        doccollection.doc_id = self.doc_id
-        doccollection.collection_code = collection_code
-        self.data[doccollection.collection_code] = doccollection
-
-    def delete(self, collection_code):
-        sql = 'DELETE FROM document_collection WHERE doc_id=' + str(self.doc_id) + ' AND collection_code=' + wsq(collection_code)
-        db.runsql(sql)
-        db.commit()
-        del self.data[collection_code]
-
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM document_collection WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
-        db.commit()
-        self.data = {}
-
-class DocCollection:
-    """
-    A collection for the document.
-    """
-
-    def load_row(self, row):
-        self.doc_id   = row[0]
-        self.collection_code  = trim(row[1])
-
-
-# DocNotes
-
-class DocNotes(LampadasCollection):
-    """
-    A collection object providing access to document notes.
-    """
-
-    def __init__(self, doc_id=0):
-        self.data = {}
-        self.doc_id = doc_id
-        if doc_id > 0:
-            self.load()
-
-    def load(self):
-        self.data = {}
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT note_id, doc_id, notes, creator, created FROM notes WHERE doc_id=' + str(self.doc_id)
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            docnote = DocNote()
-            docnote.load_row(row)
-            self[docnote.id] = docnote
-
-    def add(self, notes, creator):
-        note_id = db.next_id('notes', 'note_id')
-        sql = 'INSERT INTO notes(note_id, doc_id, notes, creator) VALUES (' + str(note_id) + ', ' + str(self.doc_id) + ', ' + wsq(notes) + ', ' + wsq(creator) + ')'
-        db.runsql(sql)
-        db.commit()
-        docnote = DocNote()
-        docnote.id      = note_id
-        docnote.doc_id  = self.doc_id
-        docnote.created = now_string()
-        docnote.notes   = notes
-        docnote.creator = creator
-        self.data[docnote.id] = docnote
-
-    def delete(self, note_id):
-        sql = 'DELETE FROM notes WHERE note_id=' + str(note_id) 
-        db.runsql(sql)
-        db.commit()
-        del self.data[note_id]
-
-    def clear(self):
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "DELETE FROM notes WHERE doc_id=" + str(self.doc_id)
-        db.runsql(sql)
-        db.commit()
-        self.data = {}
-
-class DocNote:
-    """
-    A note for the document.
-    """
-
-    def load_row(self, row):
-        self.id      = row[0]
-        self.doc_id  = row[1]
-        self.notes   = trim(row[2])
-        self.creator = trim(row[3])
-        self.created = time2str(row[4])
 
 docs = Docs()
 docs.load()

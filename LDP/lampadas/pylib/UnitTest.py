@@ -48,6 +48,7 @@ from PubStatuses import pub_statuses
 from Topics import topics
 from DocTopics import doctopics, DocTopics, DocTopic
 from DocErrs import DocErr
+from DocRatings import DocRating
 from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
@@ -212,7 +213,7 @@ class testDocErrs(unittest.TestCase):
                 err.notes  = ''
                 doc.errors.add(err)
                 assert doc.errors.count()==1
-                doc.errors.delete(ERR_NO_SOURCE_FILES)
+                doc.errors.delete(ERR_NO_SOURCE_FILE)
                 assert doc.errors.count()==0
         log(3, 'testing DocErrs done')
     
@@ -245,37 +246,40 @@ class testDocRatings(unittest.TestCase):
             doc = docs[dockey]
             assert not doc==None
             doc.ratings.clear()
-            doc.calc_rating()
             assert doc.ratings.count()==0
-            assert doc.rating==0
+            assert doc.ratings.averge()==0
 
             # Add Userid: 1   Rating: 5   -- Avg: 5
 
-            doc.ratings.add('david', 5)
-            doc.calc_rating()
+            docrating = DocRating()
+            docrating.doc_id = doc.id
+            docrating.vote = 5
+            docrating.username = 'david'
+            doc.ratings.add(docrating)
             assert doc.ratings.count()==1
-            assert doc.rating==5
+            assert doc.ratings.average()==5
 
             # Add Userid: 2   Rating: 7   -- Avg: 6
             
-            doc.ratings.add('admin', 7)
-            doc.calc_rating()
+            docrating = DocRating()
+            docrating.doc_id = doc.id
+            docrating.vote = 7
+            docrating.username = 'admin'
+            doc.ratings.add(docrating)
             assert doc.ratings.count()==2
-            assert doc.rating==6
+            assert doc.ratings.average()==6
 
             # Del Userid: 1
         
             doc.ratings.delete('david')
-            doc.calc_rating()
             assert doc.ratings.count()==1
             assert doc.rating==7
 
             # Clear again
 
             doc.ratings.clear()
-            doc.calc_rating()
             assert doc.ratings.count()==0
-            assert doc.rating==0
+            assert doc.ratings.average()==0
         log(3, 'testing DocRatings done')
 
 

@@ -1,1 +1,1 @@
-GRANT ALL ON document_note TO "www-data";
+GRANT ALL ON document_notes TO "www-data";

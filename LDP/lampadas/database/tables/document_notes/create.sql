@@ -1,7 +1,7 @@
-CREATE TABLE document_note (
+CREATE TABLE document_notes (
 	note_id			INT4		NOT NULL,
 	doc_id			INT4		NOT NULL	REFERENCES document(doc_id),
-	note			TEXT,
+	notes			TEXT,
 	creator			CHAR(40)	NOT NULL	REFERENCES username(username),
 	created			TIMESTAMP	NOT NULL DEFAULT now(),
 	updated			TIMESTAMP	NOT NULL DEFAULT now(),
