@@ -1148,8 +1148,8 @@ class Languages(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             lang_code = trim(row[0])
-            language = self[lang_code]
-            lang          = trim(row[1])
+            lang      = trim(row[1])
+            language  = self[lang_code]
             language.name[lang] = trim(row[2])
 
 class Language:

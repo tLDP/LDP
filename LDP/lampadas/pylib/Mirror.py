@@ -28,6 +28,7 @@ local Lampdas system.
 # Modules ##################################################################
 
 from DataLayer import lampadas
+from SourceFiles import sourcefiles
 from Log import log
 from Config import config
 import urllib
@@ -52,27 +53,28 @@ class Mirror:
         doc = lampadas.docs[doc_id]
         
         # decide if the document is remote
-        local = 1
+        docremote = 0
         filekeys = doc.files.keys()
         for filekey in filekeys:
-            if doc.files[filekey].local==0:
-                local = 0
+            if sourcefiles[filekey].local==0:
+                docremote = 1
         
-        # delete list of local files if document is remote
-        if local==0:
+        # If document has a single remote file,
+        # delete list of local files.
+        if docremote==1:
             filekeys = doc.files.keys()
             for filekey in filekeys:
-                if doc.files[filekey].local:
+                if sourcefiles[filekey].local==1:
                     doc.files[filekey].delete()
 
         # mirror all files into cache, whether from remote
         # or local storage
         #
         # filename can look like:
-        #   http://foo.org/foo.sgml     Pull via HTTP
-        #   ftp://foo.org/foo.sgml      Pull via FTP
-        #   file://foo.org/foo.sgml     Local, but outside CVS
-        #   howto/docbook/big-memory-howto.sgml
+        #   http://foo.org/foo.sgml             Pull via HTTP
+        #   ftp://foo.org/foo.sgml              Pull via FTP
+        #   file://foo.org/foo.sgml             Local, but outside CVS
+        #   howto/docbook/big-memory-howto.sgml In CVS tree
         # 
         for filekey in filekeys:
             
@@ -81,12 +83,13 @@ class Mirror:
             if not os.access(cachedir, os.F_OK):
                 os.mkdir(cachedir)
 
-            file		= doc.files[filekey]
-            filename	= file.localname
-            file_only	= file.file_only
-            cachename	= cachedir + file_only
+            docfile     = doc.files[filekey]
+            sourcefile  = sourcefiles[filekey]
+            filename    = sourcefile.localname
+            file_only   = sourcefile.file_only
+            cachename   = cachedir + file_only
             
-            if file.local==1:
+            if sourcefile.local==1:
 
                 # It is expensive to copy local documents into a cache directory,
                 # but it avoids publishing documents directly out of CVS.
@@ -101,7 +104,7 @@ class Mirror:
             else:
                 try:
                     log(3, 'mirroring remote file ' + filename)
-                    urllib.urlretrieve(file.filename, cachename)
+                    urllib.urlretrieve(sourcefile.filename, cachename)
                 except IOError:
                     log(0, 'error retrieving remote file ' + filename)
                     continue

@@ -90,7 +90,6 @@ class Section:
         self.nonregistered_count = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_registered=' + wsq('f') + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
         self.nonadmin_count      = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_admin=' + wsq('f') + ' AND only_sysadmin=' + wsq('f') + ''))
         self.nonsysadmin_count   = int(db.read_value('SELECT COUNT(*) FROM page WHERE section_code=' + wsq(self.code) + ' AND only_sysadmin=' + wsq('f') + ''))
-        print self.code + ': ' + str(self.nonregistered_count) + ', ' + str(self.nonsysadmin_count) + ', ' + str(self.nonadmin_count)
         sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):

@@ -117,18 +117,18 @@ class Database:
 
 class PgSQLDatabase(Database):
 
-    def __init__(self,db_name):
+    def __init__(self, db_name, db_host):
         from pyPgSQL import PgSQL
-        self.connection = PgSQL.connect(database=db_name)
+        self.connection = PgSQL.connect(database=db_name, host=db_host)
         self.connection.autocommit = AUTOCOMMIT
 
 class MySQLDatabase(Database):
 
-    def __init__(self,db_name):
+    def __init__(self, db_name, db_host):
         from pyMySQL import MySQL
         self.connection = MySQL.connection(db_name=db_name)
 
-def get_database(db_type, db_name):
+def get_database(db_type, db_name, db_host):
     """
     Connect to the database specified in Config.
 
@@ -137,13 +137,13 @@ def get_database(db_type, db_name):
     if db_name=='':
         raise UnknownDBException('Database name not specified')
     elif db_type=='pgsql':
-        db = PgSQLDatabase(db_name)
+        db = PgSQLDatabase(db_name, db_host)
     elif db_type=='mysql':
-        db = MySQLDatabase(db_name)
+        db = MySQLDatabase(db_name, db_host)
     else:
-        raise UnknownDBException('Unknown database type %s' % db_type)
+        raise UnknownDBException('Unknown database type %s, host is %s' % (db_type, db_host))
     return db
 
 log(2, '               **********Initializing DataLayer**********')
-db = get_database(config.db_type, config.db_name)
+db = get_database(config.db_type, config.db_name, config.db_host)
 

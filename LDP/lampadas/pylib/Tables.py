@@ -26,7 +26,7 @@ from WebLayer import lampadasweb
 from Widgets import widgets
 from Sessions import sessions
 from Lintadas import lintadas
-
+import os
 
 EDIT_ICON = '<img src="|uri.base|images/edit.png" alt="Edit" height="20" width="20" '\
             'border="0" hspace="5" vspace="0" align="top">'
@@ -65,52 +65,52 @@ class Tables:
         ''' % (sessions.session.username, doc.id))
         box.write('''<table class="box" width="100%%">
         <tr><th colspan="6">|strdocdetails|</th></tr>
-        <tr><th class="label">|strtitle|</th>
+        <tr><td class="label">|strtitle|</td>
         <td colspan="5">
         <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
         box.write('<tr>')
-        box.write('<th class="label">|strstatus|</th><td>' + widgets.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strtype|</th><td>' + widgets.type_code(doc.type_code, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strstatus|</td><td>' + widgets.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strtype|</td><td>' + widgets.type_code(doc.type_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n')
-        box.write('<th class="label">|strshort_title|<td><input type=text name="short_title" value="' + doc.short_title + '"></td>\n')
+        box.write('<td class="label">|strversion|</td><td><input type=text name="version" value="' + doc.version + '"></td>\n')
+        box.write('<td class="label">|strshort_title|</td><td><input type=text name="short_title" value="' + doc.short_title + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strwriting|</th><td>' + widgets.review_status_code(doc.review_status_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|straccuracy|</th><td>' + widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strwriting|</td><td>' + widgets.review_status_code(doc.review_status_code, uri.lang) + '</td>\n')
+        box.write('<td class="label">|straccuracy|</td><td>' + widgets.tech_review_status_code(doc.tech_review_status_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strpub_date|</th><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
-        box.write('<th class="label">|strupdated|</th><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n')
+        box.write('<td class="label">|strpub_date|</td><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
+        box.write('<td class="label">|strupdated|</td><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strtickle_date|</th><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>')
-        box.write('<th class="label">|strisbn|</th><td><input type=text name="isbn" value="' + doc.isbn + '"></td>')
+        box.write('<td class="label">|strtickle_date|</td><td><input type=text name="tickle_date" value="' + doc.tickle_date + '"></td>')
+        box.write('<td class="label">|strisbn|</td><td><input type=text name="isbn" value="' + doc.isbn + '"></td>')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strmaintained|</th><td>' + bool2yesno(doc.maintained) + '</td>\n')
-        box.write('<th class="label">|strrating|</th><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strmaintained|</td><td>' + bool2yesno(doc.maintained) + '</td>\n')
+        box.write('<td class="label">|strrating|</td><td>' + self.bar_graph(doc.rating, 10, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strformat|</th>')
+        box.write('<td class="label">|strformat|</td>')
         if doc.format_code > '':
             box.write('<td>'  + lampadas.formats[doc.format_code].name[uri.lang] + '</td>\n')
         else:
             box.write('<td></td>\n')
-        box.write('<th class="label">|strdtd|</th><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
+        box.write('<td class="label">|strdtd|</td><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strlanguage|</th><td>' + widgets.lang(doc.lang, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strmaint_wanted|</th><td>' + widgets.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strlanguage|</td><td>' + widgets.lang(doc.lang, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strmaint_wanted|</td><td>' + widgets.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strlicense|</th><td>' + widgets.license_code(doc.license_code, uri.lang))
+        box.write('<td class="label">|strlicense|</td><td>' + widgets.license_code(doc.license_code, uri.lang))
         box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
-        box.write('<th class="label">|strcopyright_holder|</th><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
+        box.write('<td class="label">|strcopyright_holder|</td><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strtrans_master|<td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
+        box.write('<td class="label">|strtrans_master|</td><td colspan="3">' + widgets.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
         box.write('''
         </tr>
         <tr>
-          <th class="label">|strabstract|</th>
+          <td class="label">|strabstract|</td>
           <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
         </tr>
         <tr>
-          <th class="label">|strshort_desc|</th>
+          <td class="label">|strshort_desc|</td>
           <td colspan="5"><input type=text name="short_desc" style="width:100%%" value="%s"></td>
         </tr>
         <tr>
@@ -195,29 +195,30 @@ class Tables:
             box.write('<input type=hidden name="filename" size=30 style="width:100%" value="' + docfile.filename + '">\n')
             box.write('<tr>\n')
             if sourcefile.errors.count() > 0:
-                box.write('<td class="sectionlabel error" colspan="6">' + docfile.filename + '</td>\n')
+                box.write('<td class="sectionlabel error" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td>\n'
+                    % (uri.base, docfile.filename, uri.lang_ext, docfile.filename))
             else:
-                box.write('<td class="sectionlabel" colspan="6"><a href="|uri.base|sourcefile/' + docfile.filename + uri.lang_ext + '">' + docfile.filename + '</a></td>\n')
+                box.write('<td class="sectionlabel" colspan="6"><a href="%ssourcefile/%s%s">%s</a></td>\n'
+                    % (uri.base, docfile.filename, uri.lang_ext, docfile.filename))
             box.write('</tr>\n')
             box.write('<tr>\n')
-            box.write('<th class="label">|strprimary|</th>')
+            box.write('<td class="label">|strprimary|</td>')
             box.write('<td>'  + widgets.tf('top', docfile.top, uri.lang) + '</td>\n')
-            box.write('<th class="label">|strfilesize|</th>')
+            box.write('<td class="label">|strfilesize|</td>')
             box.write('<td>' + str(sourcefile.filesize) + '</td>\n')
-            box.write('<th class="label">|strupdated|</th>')
+            box.write('<td class="label">|strupdated|</td>')
             if sourcefile.modified > '':
                 box.write('<td>' + sourcefile.modified + '</td>\n')
             else:
                 box.write('<td>|strunknown|</td>\n')
             box.write('</tr>\n')
             box.write('<tr>\n')
-            box.write('<th class="label">|strformat|</th>')
+            box.write('<td class="label">|strformat|</td>')
             if sourcefile.format_code > '':
                 box.write('<td>'  + lampadas.formats[sourcefile.format_code].name[uri.lang] + '</td>\n')
             else:
                 box.write('<td>|strunknown|</td>\n')
-            box.write('<th class="label">|strfilemode|</th>')
-            print sourcefile.filemode
+            box.write('<td class="label">|strfilemode|</td>')
             box.write('<td>' + widgets.filemode(sourcefile.filemode) + '</td>\n')
             box.write('''
             <td><input type="checkbox" name="delete">|strdelete|</td>
@@ -233,7 +234,7 @@ class Tables:
         box.write('<td colspan="6"><input type="text" name="filename" size="30" style="width:100%"></td>\n')
         box.write('</tr>\n')
         box.write('<tr>\n')
-        box.write('<th class="label">|strprimary|</th>')
+        box.write('<td class="label">|strprimary|</td>')
         box.write('<td>'  + widgets.tf('top', 0, uri.lang) + '</td>\n')
         box.write('<td></td>\n')
         box.write('<td></td>\n')
@@ -538,15 +539,14 @@ class Tables:
         box = box + '</table>\n'
         return box
 
-
     def letters(self, uri):
         log(3, 'Creating letter table')
         box = '<table class="box" width="100%"><tr>\n'
         for letter in string.uppercase:
             if letter==uri.letter:
-                box = box + '<th>' + letter + '</th>\n'
+                box = box + '<td>' + letter + '</td>\n'
             else:
-                box = box + '<th><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></th>\n'
+                box = box + '<td><a href="|uri.base|' + uri.page_code + '/' + letter + '|uri.lang_ext|">' + letter + '</a></td>\n'
         box = box + '</tr></table>\n'
         return box
         
@@ -590,32 +590,34 @@ class Tables:
             box = '<form method=GET action="/data/save/newuser" name="user">\n'
         box = box + '<table class="box" width="100%">\n'
         box = box + '<tr><th colspan=2>|struserdetails|</th><th>|strcomments|</th></tr>\n'
-        box = box + '<tr><th class="label">|strusername|</th>'
+        box = box + '<tr><td class="label">|strusername|</td>'
         if user.username=='':
             box = box + '<td><input type=text name="username"></td>\n'
         else:
             box = box + '<td><input name="username" type=hidden value=' + uri.username + '>' + uri.username + '</td>\n'
         box = box + '<td rowspan=10 style="width:100%"><textarea name="notes" wrap=soft style="width:100%; height:100%">' + user.notes + '</textarea></td></tr>\n'
-        box = box + '<tr><th class="label">|strfirst_name|</th><td><input type=text name=first_name size="15" value="' + user.first_name + '"></td></tr>\n'
-        box = box + '<tr><th class="label">|strmiddle_name|</th><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></td></tr>\n'
-        box = box + '<tr><th class="label">|strsurname|</th><td><input type=text name=surname size="15" value="' + user.surname + '"></td></tr>\n'
-        box = box + '<tr><th class="label">|stremail|</th><td><input type=text name=email size="15" value="' + user.email + '"></td></tr>\n'
-        box = box + '<tr><th class="label">|strstylesheet|</th><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
+        box = box + '<tr><td class="label">|strfirst_name|</td><td><input type=text name=first_name size="15" value="' + user.first_name + '"></td></tr>\n'
+        box = box + '<tr><td class="label">|strmiddle_name|</td><td><input type=text name=middle_name size="15" value="' + user.middle_name + '"></td></tr>\n'
+        box = box + '<tr><td class="label">|strsurname|</td><td><input type=text name=surname size="15" value="' + user.surname + '"></td></tr>\n'
+        box = box + '<tr><td class="label">|stremail|</td><td><input type=text name=email size="15" value="' + user.email + '"></td></tr>\n'
+        box = box + '<tr><td class="label">|strstylesheet|</td><td><input type=text name=stylesheet size="12" value="' + user.stylesheet + '"></td></tr>\n'
         if user.username=='':
-            box = box + '<tr><th class="label">|strpassword|</th><td><input type=text name=password size="12"></td></tr>\n'
+            box = box + '<tr><td class="label">|strpassword|</td><td><input type=text name=password size="12"></td></tr>\n'
         else:
             if sessions.session:
                 if sessions.session.user.admin==1 or sessions.session.user.sysadmin==1:
-                    box = box + '<tr><th class="label">|strpassword|</th><td>' + user.password + '</td></tr>\n'
-            box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password size="12"></td></tr>\n'
-        if sessions.session.user and sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0:
-            box = box + '<tr><th class="label">|stradmin|</th><td>' + widgets.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
-            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + widgets.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+                    box = box + '<tr><td class="label">|strpassword|</td><td>' + user.password + '</td></tr>\n'
+            box = box + '<tr><td class="label">|strnewpassword|</td><td><input type=text name=password size="12"></td></tr>\n'
+        if sessions.session.user and (sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0):
+            box = box + '<tr><td class="label">|stradmin|</td><td>' + widgets.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
         else:
             box = box + '<input name="admin" type="hidden" value="' + str(user.admin) + '">\n'
+            box = box + '<tr><td class="label">|stradmin|</td><td>' + bool2yesno(user.admin) + '</td></tr>\n'
+        if sessions.session.user and sessions.session.user.sysadmin > 0:
+            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + widgets.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+        else:
             box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
-            box = box + '<tr><th class="label">|stradmin|</th><td>' + bool2yesno(user.admin) + '</td></tr>\n'
-            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
+            box = box + '<tr><td class="label">|strsysadmin|</td><td>' + bool2yesno(user.sysadmin) + '</td></tr>\n'
         box = box + '<tr><td></td><td><input type=submit name=save value=|strsave|></td></tr>\n'
         box = box + '</table>\n'
         box = box + '</form>\n'
@@ -782,7 +784,7 @@ class Tables:
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
-        box = WOStringIO('<table class="navbox" width="210"><tr><th>%s</th></tr>\n' \
+        box = WOStringIO('<table class="navbox"><tr><th>%s</th></tr>\n' \
                          '<tr><td>' % section.name[uri.lang])
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
@@ -828,19 +830,14 @@ class Tables:
         page_codes = lampadasweb.pages.sort_by('sort_order')
         for section_code in section_codes:
             section = lampadasweb.sections[section_code]
-            if section.only_dynamic and lampadasweb.static:
+            if section.static_count==0 and lampadasweb.static:
                 continue
-            if section.only_registered or section.only_admin or section.only_sysadmin > 0:
-                if sessions.session==None or section.registered_count==0:
-                    continue
-            if section.only_admin > 0:
-                if sessions.session==None: continue
-                if (sessions.session.user.admin==0 and sessions.session.user.sysadmin==0) or (section.admin_count==0):
-                    continue
-            if section.only_sysadmin > 0:
-                if sessions.session==None: continue
-                if sessions.session.user.sysadmin==0 or section.sysadmin_count==0:
-                    continue
+            if section.nonregistered_count==0 and sessions.session==None:
+                continue
+            if section.nonadmin_count==0 and (sessions.session==None or sessions.session.user.admin==0):
+                continue
+            if section.nonsysadmin_count==0 and (sessions.session==None or sessions.session.user.sysadmin==0):
+                continue
 
             box = box + '<tr><td class="label">' +  section.name[uri.lang] + '</td><td>\n'
             for page_code in page_codes:
@@ -880,7 +877,7 @@ class Tables:
 
     def topics(self, uri):
         log(3, 'Creating topics menu')
-        box = WOStringIO('''<table class="navbox" width="210">
+        box = WOStringIO('''<table class="navbox">
         <tr><th>|strtopics|</th></tr>
         <tr><td><ol>''')
         keys = lampadas.topics.sort_by('num')
@@ -920,7 +917,7 @@ class Tables:
 
     def types(self, uri):
         log(3, 'Creating types menu')
-        box = WOStringIO('''<table class="navbox" width="210">
+        box = WOStringIO('''<table class="navbox">
         <tr><th>|strtypes|</th></tr>
         <tr><td>''')
         keys = lampadas.types.sort_by('sort_order')
@@ -936,7 +933,7 @@ class Tables:
             return ''
         if sessions.session:
             log(3, 'Creating active user box')
-            box = '''<table class="navbox" width="210">
+            box = '''<table class="navbox">
             <tr><th>|stractive_user|</th></tr>
             <form name="logout" action="/data/session/logout">
             <input name="username" type="hidden" value="%s">
@@ -950,7 +947,7 @@ class Tables:
             ''' % sessions.session.username
         else:
             log(3, 'Creating login box')
-            box = '''<table class="navbox" width="210">
+            box = '''<table class="navbox">
             <tr><th colspan="2">|strlogin|</th></tr>
             <form name="login" action="/data/session/login" method="GET">
             <tr>
@@ -975,7 +972,7 @@ class Tables:
     def navsessions(self, uri):
         if sessions.session and sessions.session.user.admin > 0:
             log(3, 'Creating navsessions table')
-            box = WOStringIO('''<table class="navbox" width="210">
+            box = WOStringIO('''<table class="navbox">
             <tr><th>|strsessions|</th></tr>
             <tr><td>
             ''')
@@ -1019,7 +1016,7 @@ class Tables:
 
     def languages(self, uri):
         log(3, 'Creating languages table')
-        box = WOStringIO('''<table class="navbox" width="210">
+        box = WOStringIO('''<table class="navbox">
         <tr><th>|strlanguages|</th></tr>
         <tr><td>
         ''')
@@ -1049,27 +1046,27 @@ class Tables:
             <table class="box">\n
             <form name="search" action="/data/search/document">
             <tr><th colspan="2">|strsearch|</th></tr>\n
-            <tr><th class="label">|strtitle|</th><td>%s</td></tr>
-            <tr><th class="label">|strstatus|</th><td>%s</td></tr>
-            <tr><th class="label">|strtype|</th><td>%s</td></tr>
-            <tr><th class="label">|strtopic|</th><td>%s</td></tr>
-            <tr><th class="label">|strmaintained|</th><td>%s</td></tr>
-            <tr><th class="label">|strmaint_wanted|</th><td>%s</td></tr>
-            <tr><th class="label">|strlanguage|</th><td>%s</td></tr>
-            <tr><th class="label">|strwriting|</th><td>%s</td></tr>
-            <tr><th class="label">|straccuracy|</th><td>%s</td></tr>
-            <tr><th class="label">|strpub_date|</th><td>%s</td></tr>
-            <tr><th class="label">|strupdated|</th><td>%s</td></tr>
-            <tr><th class="label">|strtickle_date|</th><td>%s</td></tr>
-            <tr><th class="label">|strisbn|</th><td>%s</td></tr>
-            <tr><th class="label">|strrating|</th><td>%s</td></tr>
-            <tr><th class="label">|strformat|</th><td>%s</td></tr>
-            <tr><th class="label">|strdtd|</th><td>%s</td></tr>
-            <tr><th class="label">|strlicense|</th><td>%s</td></tr>
-            <tr><th class="label">|strcopyright_holder|</th><td>%s</td></tr>
-            <tr><th class="label">|strtrans_master|</th><td>%s</td></tr>
-            <tr><th class="label">|strabstract|</th><td>%s</td></tr>
-            <tr><th class="label">|strshort_desc|</th><td>%s</td></tr>
+            <tr><td class="label">|strtitle|</td><td>%s</td></tr>
+            <tr><td class="label">|strstatus|</td><td>%s</td></tr>
+            <tr><td class="label">|strtype|</td><td>%s</td></tr>
+            <tr><td class="label">|strtopic|</td><td>%s</td></tr>
+            <tr><td class="label">|strmaintained|</td><td>%s</td></tr>
+            <tr><td class="label">|strmaint_wanted|</td><td>%s</td></tr>
+            <tr><td class="label">|strlanguage|</td><td>%s</td></tr>
+            <tr><td class="label">|strwriting|</td><td>%s</td></tr>
+            <tr><td class="label">|straccuracy|</td><td>%s</td></tr>
+            <tr><td class="label">|strpub_date|</td><td>%s</td></tr>
+            <tr><td class="label">|strupdated|</td><td>%s</td></tr>
+            <tr><td class="label">|strtickle_date|</td><td>%s</td></tr>
+            <tr><td class="label">|strisbn|</td><td>%s</td></tr>
+            <tr><td class="label">|strrating|</td><td>%s</td></tr>
+            <tr><td class="label">|strformat|</td><td>%s</td></tr>
+            <tr><td class="label">|strdtd|</td><td>%s</td></tr>
+            <tr><td class="label">|strlicense|</td><td>%s</td></tr>
+            <tr><td class="label">|strcopyright_holder|</td><td>%s</td></tr>
+            <tr><td class="label">|strtrans_master|</td><td>%s</td></tr>
+            <tr><td class="label">|strabstract|</td><td>%s</td></tr>
+            <tr><td class="label">|strshort_desc|</td><td>%s</td></tr>
             <tr><td></td><td><input type="submit" value="|strsearch|"></td></tr>
             </form>
             </table>
@@ -1111,4 +1108,23 @@ class Tables:
         '''
         return box
 
+    def tabsplashlanguages(self, uri):
+        """
+        Creates a fancy splash page for selecting a language.
+        """
+        log(3, 'Creating tabslashlanguages table')
+        box = WOStringIO('<p class="hide"><div class="map">\n' \
+                         '<p id="p1">|strprojectshort|</p>\n')
+        id = 1
+        langkeys = lampadas.languages.keys()
+        for langkey in langkeys:
+            language = lampadas.languages[langkey]
+            if language.supported==1:
+                id = id + 1
+                box.write('<p id="p%s"><a href="%s.%s.html">%s</a></p>\n'
+                    % (str(id), 'home', langkey.lower(), language.name[language.code]))
+        box.write('</div>')
+        return box.get_value()
+
 tables = Tables()
+

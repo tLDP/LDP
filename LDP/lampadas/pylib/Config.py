@@ -34,13 +34,14 @@ class ConfigFileReadErrorException(Exception) :
     
 class Config:
     """
-    Basic configuration options (dbname, dbtype), used to know where we can find
+    Basic configuration options (db_name, db_type), used to know where we can find
     the database.
     """
 
     config_file = ''
     db_type = ''
     db_name = ''
+    db_host = ''
     log_file = ''
     log_level = 0
     log_sql = ''
@@ -75,6 +76,7 @@ class Config:
 
         self.db_type        = self.read_var('DB', 'dbtype')
         self.db_name        = self.read_var('DB', 'dbname')
+        self.db_host        = self.read_var('DB', 'dbhost')
         self.log_file       = self.read_var('LOG', 'logfile')
         self.log_level      = int(self.read_var('LOG', 'loglevel'))
         self.log_sql        = int(self.read_var('LOG', 'logsql'))
@@ -105,6 +107,7 @@ class Config:
         print "config_file=" + self.config_file
         print "db_type=" + self.db_type
         print "db_name=" + self.db_name
+        print "db_host=" + self.db_host
         print "log_file=" + self.log_file
         print "log_level=" + str(self.log_level)
         print "log_sql=" + str(self.log_sql)

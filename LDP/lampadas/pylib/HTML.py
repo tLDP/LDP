@@ -130,7 +130,14 @@ class PageFactory:
                 elif token=='title':
                     newstring = page.title[uri.lang]
                 elif token=='body':
-                    newstring = page.page[uri.lang]
+                    if page.only_registered==1 and sessions.session==None:
+                        newstring = '|blknopermission|'
+                    elif page.only_admin==1 and (sessions.session==None or sessions.session.user.admin==0):
+                        newstring = '|blknopermission|'
+                    elif page.only_sysadmin==1 and (sessions.session==None or sessions.session.user.sysadmin==0):
+                        newstring = '|blknopermission|'
+                    else:
+                        newstring = page.page[uri.lang]
                 elif token=='base':
                     newstring = 'http://' + config.hostname
                     if config.port > '':
@@ -285,6 +292,8 @@ class PageFactory:
                     newstring = tables.errors(uri)
                 elif token=='tabsearch':
                     newstring = tables.tabsearch(uri)
+                elif token=='tabsplashlanguages':
+                    newstring = tables.tabsplashlanguages(uri)
             
                 # Blocks and Strings
                 if newstring==None:
