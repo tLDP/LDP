@@ -1,11 +1,11 @@
 insert([admin], [Administration], [],
 [
-    <p>Werkzeuge f&uuml;r Administratoren.
+    <p>Werkzeuge für Administratoren.
 ])
 
 insert([sysadmin], [System-Administration], [],
 [
-    <p>Werkzeuge f&uuml;r System-Administratoren.
+    <p>Werkzeuge für System-Administratoren.
 ])
 
 insert([my], [Meine Homepage], [],
@@ -38,18 +38,18 @@ insert([contribute], [Contributing to |strproject|],
 [
     Als Mitglied der Lampadas-Gemeinde arbeiten Sie mit
     hunderten oder gar tausenden Anderen zusammen an Dokumentation
-    die &uuml;ber\'s Netz weltweit ver&ouml;ffentlicht wird.
+    die über\'s Netz weltweit veröffentlicht wird.
 
-    <p>Lampadas soll weltweite Mitarbeit so einfach wie m&ouml;glich machen.
-    Wir k&ouml;nnen viele Arten von Hilfe brauchen.
+    <p>Lampadas soll weltweite Mitarbeit so einfach wie möglich machen.
+    Wir können viele Arten von Hilfe brauchen.
     Nach aufsteigendem Aufwand sortiert:
 
     <ul>
     <li>Bewerten Sie Dokumentation
 
     <p>Jedes Dokument hat eine von den Lesern vergebene Bewertung auf
-    einer Skala von 1 bis 10. Durch diese Beurteilung k&ouml;nnen wir
-    uns auf verbesserungsbed&uuml;rftige Dokumente konzentrieren.
+    einer Skala von 1 bis 10. Durch diese Beurteilung können wir
+    uns auf verbesserungsbedürftige Dokumente konzentrieren.
     </li>
 
     <li>Melden Sie Fehler
@@ -57,32 +57,32 @@ insert([contribute], [Contributing to |strproject|],
     <p>Schicken Sie uns jeden gefunden Fehler, egal in welchem Dokument.
     </li>
     
-    <li>&Uuml;bersetzen Sie Dokumentation
+    <li>Übersetzen Sie Dokumentation
 
-    <p>&Uuml;bersetzer sind rar und werden von uns sehr gesch&auml;tzt.
+    <p>Übersetzer sind rar und werden von uns sehr gesch&auml;tzt.
     Unser Ziel ist es, die gesamte Dokumentation in so vielen Sprachen wie
-    m&ouml;glich anzubieten.
+    möglich anzubieten.
     </li>
 
     <li>Schreiben Sie ein Handbuch
 
     <p>Gute Autoren mit solidem technischen Wissen sind herzlich
     eingeladen unsere Sammlung um ein neues Dokument zu bereichern.
-    Lampadas stellt einige Werkzeuge f&uuml;r Autoren zur Verf&uuml;gung.
+    Lampadas stellt einige Werkzeuge für Autoren zur Verfügung.
     </li>
     
     <li>Helfen Sie Lampadas
 
-    <p>Programmierer und &Uuml;bersetzer k&ouml;nnen uns an der
+    <p>Programmierer und Übersetzer können uns an der
     Weiterentwicklung der Software hinter Lampadas helfen.
 
     <p>Das Lampadas-Systems kann Meldungen in verschiedenen Sprachen
-    anzeigen. &Uuml;bersetzer f&uuml;r weitere Sprachen werden dringend
-    ben&ouml;tigt. Momentan ist Lampadas verf&uuml;gbar in:
+    anzeigen. Übersetzer für weitere Sprachen werden dringend
+    benötigt. Momentan ist Lampadas verfügbar in:
 
     <ul>
     <li>Englisch</li>
-    <li>Franz&ouml;sisch</li>
+    <li>Französisch</li>
     <li>Deutsch</li>
     </ul>
     </li>
@@ -90,12 +90,12 @@ insert([contribute], [Contributing to |strproject|],
     </ul>
 ])
 
-insert([about], [&Uuml;ber |strproject|], [&Uuml;ber |strprojectshort|],
+insert([about], [Über |strproject|], [Über |strprojectshort|],
 [
-    Ersetzen Sie diesen Text mit Angaben &uuml;ber Ihr Projekt.
+    Ersetzen Sie diesen Text mit Angaben über Ihr Projekt.
 ])
 
-insert([lampadas], [&Uuml;ber Lampadas], [],
+insert([lampadas], [Über Lampadas], [],
 [
     <p>Diese Web-Site basiert auf Version |version| des
     Dokumentenverwaltungssystems Lampadas. Sie wird im Rahmen des
@@ -103,33 +103,34 @@ insert([lampadas], [&Uuml;ber Lampadas], [],
     entwickelt und ist freie Software (GPL).
     
     <p>Lampadas ist eine m&auml;chtige und flexible Plattform, ausgelegt
-    f&uuml;r gro&szlig;e Projekte wie LDP. Es bietet eine interaktive
+    für gro&szlig;e Projekte wie LDP. Es bietet eine interaktive
     Umgebung um Dokumentation zu schreiben, zu verwalten,
-    zu ver&ouml;ffentlichen und zu lesen.
+    zu veröffentlichen und zu lesen.
 
     <p>Lampadas schafft eine Gemeinschaft von Autoren, Redakteuren,
     technische Experten und Lesern die zusammen Dokumente erarbeiten
     und Wissen austauschen.
 
-    <h1>Wwarum Lampadas?</h1>
+    <h1>Warum Lampadas?</h1>
 
-    <p>In Frank Herberts Dune-Trilogie (dt.
-    &quot;Der W&uuml;stenplanet&quot;) ist Lampadas der Ausbildungsplanet
-    der Bene Gesserit. Er spielt eine Rolle im letzten Band
-    &quot;Chapterhouse: Dune&quot;.
+    <p>In Frank Herberts Wüstenplanet-Serie (eng. "Dune") ist Lampadas
+    der Ausbildungsplanet der Bene Gesserit. Er spielt eine wesentliche
+    Rolle im letzten Band "Die Ordensburg des Wüstenplaneten"
+    (eng. "Chapterhouse: Dune").
 
-    Before the planet can be destroyed by hordes of Honored Matres,
-    Reverend Mother Lucia orders the planet to share Other Memory,
-    two by two then four by four, until all the students hold within
-    them the composite knowledge and memories of the entire planet.
-    After the planet is annihilated by the Honored Matres, the precious
-    knowledge is carried back to the Bene Gesserit Chapterhouse by the
-    lone holder of the precious cargo, Rebecca.
+    Vor der Zerstörung des Planeten durch die Horden der Geehrten
+    Matres läßt die Ehrwürdige Mutter Lucilla die Bewohner ihr
+    Wissen in einem übersinnlichen Gedächtnis teilen. Erst zu zweit,
+    dann zu viert - bis alle Schüler die gesamte Erfahrung und Erinnerung
+    des Planeten in sich halten.
+    Nach der Vernichtung dieser Welt wird das wertvolle Wissen
+    durch die alleinige Inhaberin Rebecca zur Ordensburg der Bene
+    Gesserit zurückgebracht.
 
-    <p>Herbert apparently took the name from the city of Lampadas,
-    which was an ancient seat of learning and scholarship.
-    Also, the word lampadas is the accusative form of the word
-    "Torch" in ancient Greek.
+    <p>Herbert entlehnte den Namen anscheinend von der antiken Stadt
+    Lampadas, ein Ort des Wissens und der Lehre.
+    Ausserdem ist "Lampadas" die Akusativform des altgriechischen
+    Wortes für Fackel.
 
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
@@ -307,3 +308,5 @@ insert([cvslog], [CVS Log], [],
     |tabcvslog|
 ])
 
+
+ö
