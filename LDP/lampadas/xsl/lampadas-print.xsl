@@ -11,7 +11,7 @@
 
 <!-- Change this to the path to where you have installed Norman
      Walsh's XSL stylesheets.  -->
-<xsl:import href="/usr/share/sgml/docbook/docbook-xsl-1.41/fo/docbook.xsl"/>
+<xsl:import href="/usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl"/>
 
 <!-- Customized parameters and templates go here. -->
 

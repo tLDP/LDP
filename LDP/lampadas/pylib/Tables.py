@@ -939,8 +939,8 @@ class Tables:
             <input name="username" type="hidden" value="%s">
             <tr><td align="center">
             <a href="|uri.base|user/|session_username||uri.lang_ext|">|session_name|</a>
-            </td></tr>
-            <tr><td align="center"><input type="submit" name="logout"
+            <p>
+            <input type="submit" name="logout"
             value="|strlog_out|"></td></tr>
             </form>
             </table>
