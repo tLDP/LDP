@@ -12,6 +12,7 @@ $DB = new Lampadas::Database;
 #&UserDocs(11);
 #&Doc(473);
 #&DocUsers(473);
+&DocTopics(471);
 #&User(11);
 #&Roles();
 #&Classes();
@@ -43,7 +44,9 @@ $DB = new Lampadas::Database;
 #&UserDocsTable(11);
 #&DocTable(471);
 #&NewDocTable();
-&DocVersionsTable(471);
+#&DocVersionsTable(471);
+#&DocUsersTable(471);
+#&DocTopicsTable(471);
 
 sub UserDocs {
 	my $user_id = shift;
@@ -87,6 +90,19 @@ sub DocUsers {
 		print "middle_name: $docusers{$key}{middle_name}\n";
 		print "surname: $docusers{$key}{surname}\n";
 		print "name: $docusers{$key}{name}\n";
+	}
+	print "\n";
+}
+
+sub DocTopics {
+	my $doc_id = shift;
+	%doctopics = $L->DocTopics($doc_id);
+	print "Topics for document $doc_id:\n";
+	foreach $key (keys %doctopics) {
+		print "topic: $doctopics{$key}{topic_num}, ";
+		print "$doctopics{$key}{subtopic_num}, ";
+		print "$doctopics{$key}{topic_name}, ";
+		print "$doctopics{$key}{subtopic_name}\n";
 	}
 	print "\n";
 }
@@ -324,6 +340,20 @@ sub DocVersionsTable {
 	my $doc_id = shift;
 	print "DocVersionsTable:\n";
 	print $L->DocVersionsTable($doc_id);
+	print "\n";
+}
+
+sub DocUsersTable {
+	my $doc_id = shift;
+	print "DocUsersTable:\n";
+	print $L->DocUsersTable($doc_id);
+	print "\n";
+}
+
+sub DocTopicsTable {
+	my $doc_id = shift;
+	print "DocTopicsTable:\n";
+	print $L->DocTopicsTable($doc_id);
 	print "\n";
 }
 

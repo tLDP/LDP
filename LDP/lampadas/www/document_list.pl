@@ -111,10 +111,6 @@ if ( $chkRATING eq "on" ) { $RATING = "checked "; }
 # print the page
 $L->StartPage('Document List');
 
-#print "<form action='document_edit.pl' method=POST>\n";
-#print "Jump to a document by ID: <input type=text size=5 name=doc_id>\n";
-#print "<input type=submit value=Jump name=Jump>\n";
-#print "</form>\n";
 
 
 print "<table class='box'>";

@@ -21,7 +21,6 @@ unless ($L->Admin()) {
 }
 
 $DB->Exec("DELETE FROM document_topic WHERE doc_id=$doc_id AND topic_num=$topic_num AND subtopic_num=$subtopic_num");
-
 $L->Redirect($caller);
 
 

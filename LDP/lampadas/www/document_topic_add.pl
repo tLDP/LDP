@@ -23,7 +23,11 @@ unless ($L->Admin()) {
 $topic_num    = $topic_subtopic_num[0];
 $subtopic_num = $topic_subtopic_num[1];
 
-$DB->Exec("INSERT INTO document_topic (doc_id, topic_num, subtopic_num) VALUES ($doc_id, $topic_num, $subtopic_num)");
+$sql = "INSERT INTO document_topic (doc_id, topic_num, subtopic_num) VALUES ($doc_id, $topic_num, $subtopic_num)";
+$DB->Exec($sql);
 
-$L->Redirect($caller);
+$L->StartPage("Saved");
+print "Saved";
+print "<p>$sql";
+$L->EndPage();
 

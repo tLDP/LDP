@@ -25,12 +25,17 @@ use Exporter;
 	Users,
 	User,
 	UserDocs,
+
 	Docs,
 	Doc,
 	AddDoc,
+
 	DocUsers,
+	DocTopics,
 	DocVersions,
 	AddDocVersion,
+	SaveDocVersion,
+	DelDocVersion,
 	
 	Roles,
 	Classes,
@@ -63,12 +68,13 @@ use Exporter;
 	DocTable,
 	NewDocTable,
 	DocVersionsTable,
+	DocUsersTable,
+	DocTopicsTable,
 	
+	NavBox,
 	TitleBox,
 	LoginBox,
 	AdminBox,
-	NavBox,
-
 
 	Login,
 	Logout,
@@ -262,18 +268,36 @@ sub DocUsers {
 	my $sql = "SELECT document_user.user_id, role, document_user.email, active, username, first_name, middle_name, surname FROM document_user, username WHERE document_user.user_id = username.user_id AND doc_id=$doc_id";
 	my $recordset = $DB->Recordset($sql);
 	while (@row = $recordset->fetchrow) {
-		$user_id = $row[0];
-		$docusers{$user_id}{id}			= &trim($row[0]);
-		$docusers{$user_id}{role}		= &trim($row[1]);
-		$docusers{$user_id}{email}		= &trim($row[2]);
-		$docusers{$user_id}{active}		= &yn2bool($row[3]);
-		$docusers{$user_id}{username}		= &trim($row[4]);
-		$docusers{$user_id}{first_name}		= &trim($row[5]);
-		$docusers{$user_id}{middle_name}	= &trim($row[6]);
-		$docusers{$user_id}{surname}		= &trim($row[7]);
-		$docusers{$user_id}{name}		= &trim(&trim($docusers{$user_id}{first_name} . ' ' . $docusers{$user_id}{middle_name}) . ' ' . $docusers{$user_id}{surname});
+		$user_id	= $row[0];
+		$role		= &trim($row[1]);
+		$key		= $user_id . $role;
+		$docusers{$key}{id}		= &trim($row[0]);
+		$docusers{$key}{role}		= &trim($row[1]);
+		$docusers{$key}{email}		= &trim($row[2]);
+		$docusers{$key}{active}		= &yn2bool($row[3]);
+		$docusers{$key}{username}	= &trim($row[4]);
+		$docusers{$key}{first_name}	= &trim($row[5]);
+		$docusers{$key}{middle_name}	= &trim($row[6]);
+		$docusers{$key}{surname}	= &trim($row[7]);
+		$docusers{$key}{name}		= &trim(&trim($docusers{$key}{first_name} . ' ' . $docusers{$key}{middle_name}) . ' ' . $docusers{$key}{surname});
 	}
 	return %docusers;
+}
+
+sub DocTopics {
+	my ($self, $doc_id) = @_;
+	my %doctopics = ();
+	my $sql = "SELECT dt.topic_num, dt.subtopic_num, t.topic_name, s.subtopic_name FROM topic t, subtopic s, document_topic dt WHERE t.topic_num = s.topic_num AND dt.topic_num = s.topic_num AND dt.subtopic_num = s.subtopic_num AND dt.doc_id = $doc_id";
+	print "$sql\n";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$key = $row[0] . '.' . $row[1];
+		$doctopics{$key}{topic_num}	= $row[0];
+		$doctopics{$key}{subtopic_num}	= $row[1];
+		$doctopics{$key}{topic_name}	= &trim($row[2]);
+		$doctopics{$key}{subtopic_name}	= &trim($row[3]);
+	}
+	return %doctopics;
 }
 
 sub DocVersions {
@@ -797,16 +821,15 @@ sub DocTable {
 	$doctable .= "<th align=right>Rating</th>\n";
 	$doctable .= "<td>";
 	if ( $doc{rating} > 0 ) {
-	  $doctable .= "<table class='bargraph'>\n";
-	  for ( $i = 1; $i <= 10; $i++ ) {
-	    $doctable .= "<td class='";
-	    if ( $doc{rating} >= $i ) { $doctable .= "baron" } else { $doctable .= "baroff" }
-	    $doctable .= "'>&nbsp;&nbsp;</td>\n";
-	  }
-	  $doctable .= "</tr></table>\n";
-	}
-	else {
-	  $doctable .= "Not rated";
+		$doctable .= "<table class='bargraph'>\n";
+		for ( $i = 1; $i <= 10; $i++ ) {
+			$doctable .= "<td class='";
+			if ( $doc{rating} >= $i ) { $doctable .= "baron" } else { $doctable .= "baroff" }
+			$doctable .= "'>&nbsp;&nbsp;</td>\n";
+		}
+		$doctable .= "</tr></table>\n";
+	} else {
+		$doctable .= "Not rated";
 	}
 	$doctable .= "</td>\n";
 	$doctable .= "</tr>\n<tr>\n";
@@ -849,8 +872,7 @@ sub NewDocTable {
 }
 
 sub DocVersionsTable {
-	my $self = shift;
-	my $doc_id = shift;
+	my ($self, $doc_id) = @_;
 	my $table = '';
 	my %docversions = DocVersions($foo, $doc_id);
 	
@@ -889,6 +911,117 @@ sub DocVersionsTable {
 	$table .= "</tr>\n";
 
 	$table .= "</table>\n";
+	return $table;
+}
+
+sub DocUsersTable {
+	my ($self, $doc_id) = @_;
+	my $table = '';
+	my %docusers = DocUsers($foo, $doc_id);
+	
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=6>Document Contributors</th></tr>\n";
+	$table .= "<tr><th>Status</th><th>Role</th><th>Name</th><th>Feedback Email</th><th colspan=2>Action</th></tr>";
+	foreach $key (sort keys %docusers) {
+		$table .= "<tr>";
+		$table .= "<form method=POST action='document_user_save.pl'>";
+		$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+		$table .= "<input type=hidden name=doc_id value=$doc_id>";
+		$table .= "<input type=hidden name=user_id value=$docusers{id}>";
+
+		$table .= '<td valign=top><select name="active">';
+		if ($docusers{active}) {
+			$table .= '<option selected value="t">Active</option>';
+			$table .= '<option value="f">Inactive</option>';
+		} else {
+			$table .= '<option value="t">Active</option>';
+			$table .= '<option selected value="f">Inactive</option>';
+		}
+		$table .= "</select></td>";
+
+		$table .= "<td valign=top>";
+		$table .= RoleCombo($foo, $docusers{$key}{role});
+		$table .= "</td>\n";
+
+		$table .= "<td valign=top><a href='user_edit.pl?user_id=$docusers{$key}{id}'>$name</a></td>\n";
+		$table .= "<td valign=top><input type=text name=email width=20 size=20 value='$docusers{$key}{email}'></input></td>\n";
+		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
+		$table .= "<td valign=top><input type=submit value=Save></td>\n";
+		$table .= "</form>";
+		$table .= "</tr>\n";
+	}
+
+	# For assigning a new contributor
+	$table .= "<tr>";
+	$table .= "<form method=POST action='document_user_add.pl'>";
+	$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>";
+
+	$table .= '<td valign=top><select name="active">';
+	$table .= '<option value="t">Active</option>';
+	$table .= '<option value="f">Inactive</option>';
+	$table .= "</select></td>";
+
+	$table .= "<td valign=top>";
+	$table .= RoleCombo();
+	$table .= "</td>\n";
+
+	$table .= "<td valign=top>";
+
+	$sql = "SELECT user_id, first_name, middle_name, surname FROM username ORDER BY first_name, middle_name, surname";
+	$authors_result = $DB->Recordset($sql);
+
+	$table .= "<select name=user_id\n";
+	$table .= "<option>\n";
+	while (@row = $authors_result->fetchrow) {
+		$user_id = $row[0];
+		$first_name	= &trim($row[1]);
+		$middle_name	= &trim($row[2]);
+		$surname	= &trim($row[3]);
+		$name = &trim(&trim("$first_name $middle_name") . " " . $surname);
+		$table .= "<option value=$user_id>$name</option>\n"
+	}
+	$table .= "</select>\n";
+	$table .= "</td>\n";
+
+	$table .= "<td valign=top><input type=text name=email width=20 size=20></td>\n";
+	$table .= "<td valign=top></td>\n";
+	$table .= "<td valign=top><input type=submit value=Add></td>\n";
+	$table .= "</form>";
+	$table .= "</tr>\n";
+
+	$table .= "<tr><td colspan=5><small>Note: Deleting a record here doesn't delete the user. It only deletes the association between the user and this document.</small></td></tr>\n";
+	$table .= "</table>\n";
+}
+
+sub DocTopicsTable {
+	my ($self, $doc_id) = @_;
+	my %doctopics = DocTopics($foo, $doc_id);
+	my $table = "<table class='box'>";
+	$table .= "<tr><th colspan=2>Document Topics</th></tr>\n";
+	$table .= "<tr><th>Topic</th><th>Action</th></tr>\n";
+	foreach $key (keys %doctopics) {
+  		$table .= "<tr>\n";
+		$table .= "<form method=POST action='document_topic_del.pl'>\n";
+		$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+		$table .= "<input type=hidden name=doc_id value=$doc_id>";
+		$table .= "<input type=hidden name=topic_num value=$doctopics{$key}{topic_num}>";
+		$table .= "<input type=hidden name=subtopic_num value=$doctopics{$key}{subtopic_num}>";
+		$table .= "<td>$doctopics{$key}{topic_num}.$doctopics{$key}{subtopic_num} $doctopics{$key}{topic_name}: $doctopics{$key}{subtopic_name}</td>";
+		$table .= "<td valign=top><input type=submit value=Delete></td>\n";
+		$table .= "</form>\n";
+		$table .= "</tr>\n";
+	}
+	$table .= "<tr>";
+	$table .= "<form method=POST action='document_topic_add.pl'>";
+	$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>";
+	$table .= "<td valign=top>\n";
+	$table .= SubtopicCombo();
+	$table .= "</td>\n";
+	$table .= "<td valign=top><input type=submit value=Add></td>\n";
+	$table .= "</form>\n";
+	$table .= "</tr></table>\n";
 	return $table;
 }
 
