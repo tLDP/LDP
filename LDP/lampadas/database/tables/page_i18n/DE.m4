@@ -1,14 +1,14 @@
 insert([admin], [Administration], [],
 [
-    <p>Werkzeuge f&uml;r Administratoren.
+    <p>Werkzeuge f&uuml;r Administratoren.
 ])
 
 insert([sysadmin], [System-Administration], [],
 [
-    <p>Werkzeuge f&uml;r System-Administratoren.
+    <p>Werkzeuge f&uuml;r System-Administratoren.
 ])
 
-insert([my], [My Home], [],
+insert([my], [Meine Homepage], [],
 [
     |session_user_docs|
 ])
@@ -97,24 +97,27 @@ insert([about], [&Uuml;ber |strproject|], [&Uuml;ber |strprojectshort|],
 
 insert([lampadas], [&Uuml;ber Lampadas], [],
 [
-    <p>This website is based on version |version| of the Lampadas Documentation Management System,
-    a Free Software (GPL) platform developed by
-    <a href="http://www.tldp.org">The Linux Documentation Project</a>.
+    <p>Diese Web-Site basiert auf Version |version| des
+    Dokumentenverwaltungssystems Lampadas. Sie wird im Rahmen des
+    <a href="http://www.tldp.org">Linux-Dokumentations-Projekts</a>
+    entwickelt und ist freie Software (GPL).
     
-    <p>Lampadas is a powerful, flexible platform designed to support large documentation
-    projects such as the LDP.
-    It provides an interactive environment for writing, managing,
-    publishing and reading documentation.
+    <p>Lampadas ist eine m&auml;chtige und flexible Plattform, ausgelegt
+    f&uuml;r gro&szlig;e Projekte wie LDP. Es bietet eine interaktive
+    Umgebung um Dokumentation zu schreiben, zu verwalten,
+    zu ver&ouml;ffentlichen und zu lesen.
 
-    <p>Lampadas creates a collaborative community which
-    includes authors, editors, technical experts, and readers all working
-    together to produce documentation, and to share information with each other.
+    <p>Lampadas schafft eine Gemeinschaft von Autoren, Redakteuren,
+    technische Experten und Lesern die zusammen Dokumente erarbeiten
+    und Wissen austauschen.
 
-    <h1>Why Lampadas?</h1>
+    <h1>Wwarum Lampadas?</h1>
 
-    <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas as the name
-    of the Bene Gesserit teaching planet, which plays a role in the final book,
-    Chapterhouse: Dune.
+    <p>In Frank Herberts Dune-Trilogie (dt.
+    &quot;Der W&uuml;stenplanet&quot;) ist Lampadas der Ausbildungsplanet
+    der Bene Gesserit. Er spielt eine Rolle im letzten Band
+    &quot;Chapterhouse: Dune&quot;.
+
     Before the planet can be destroyed by hordes of Honored Matres,
     Reverend Mother Lucia orders the planet to share Other Memory,
     two by two then four by four, until all the students hold within
@@ -125,7 +128,8 @@ insert([lampadas], [&Uuml;ber Lampadas], [],
 
     <p>Herbert apparently took the name from the city of Lampadas,
     which was an ancient seat of learning and scholarship.
-    Also, the word lampadas is the accusative form of the word "Torch" in ancient Greek.
+    Also, the word lampadas is the accusative form of the word
+    "Torch" in ancient Greek.
 
     <p>In all of these senses, Lampadas seems an appropriate name for
     this project, which is created to facilitate sharing information
