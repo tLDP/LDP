@@ -129,12 +129,18 @@ class RequestHandler(BaseClass):
 		htmlpath = htmlbase + docid
 		htmlfile = htmlpath + "/index.html"
 
-		if document.Format == "text/html":
-			text = '<html><head><meta http-equiv="refresh" content="0; url=' + document.URL + '"></head></html>'
-			return self.send_Text(text)
+#	Uncomment to debug file and path problems
+#		print "xmlpath:" + xmlpath
+#		print "htmlpath:" + htmlpath
+#		print "htmlfile:" + htmlfile
+#		print "xmlfile:" + xmlfile
+#		print "format:" + document.Format
 
 		FileCache ("", htmlpath, "mkdir " + htmlpath)
-		FileCache (xmlfile, htmlfile, "xsltproc --docbook " + xsltparam + " stylesheets/docbook/docbook.xsl " + xmlfile + " > " + htmlfile)
+		
+		if document.Format == "text/sgml":
+			FileCache (xmlfile, htmlfile, "xsltproc --docbook " + xsltparam + " stylesheets/docbook/docbook.xsl " + xmlfile + " > " + htmlfile)
+			
 		os.system("ln -s --target-directory=" + htmlpath + " " + xmlpath + "/*")
 		return self.send_File(htmlfile)
 
@@ -147,7 +153,6 @@ class RequestHandler(BaseClass):
 		refuri = URI(referer)
 
 		if refuri.Filename == "docid":
-			print refuri.Parameter
 			document = ScrollKeeper.DocumentByID(refuri.Parameter)
 			filename = htmlbase + document.ID + "/" + uri.Path + "/" + uri.Filename
 			return self.send_File(filename)
