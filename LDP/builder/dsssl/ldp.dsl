@@ -19,6 +19,63 @@
 ;; customize the print stylesheet
 ;; ==============================
 
+(declare-characteristic preserve-sdata?
+  ;; this is necessary because right now jadetex does not understand
+  ;; symbolic entities, whereas things work well with numeric entities.
+  "UNREGISTERED::James Clark//Characteristic::preserve-sdata?"
+  #f)
+
+(define %generate-article-toc%
+  ;; Should a Table of Contents be produced for Articles?
+  #t)
+
+(define (toc-depth nd)
+  2)
+
+(define %generate-article-titlepage-on-separate-page%
+  ;; Should the article title page be on a separate page?
+  #t)
+
+(define %section-autolabel%
+  ;; Are sections enumerated?
+  #t)
+
+(define %footnote-ulinks%
+  ;; Generate footnotes for ULinks?
+  #f)
+
+(define %bop-footnotes%
+  ;; Make "bottom-of-page" footnotes?
+  #f)
+
+(define %body-start-indent%
+  ;; Default indent of body text
+  0pi)
+
+(define %para-indent-firstpara%
+  ;; First line start-indent for the first paragraph
+  0pt)
+
+(define %para-indent%
+  ;; First line start-indent for paragraphs (other than the first)
+  0pt)
+
+(define %block-start-indent%
+  ;; Extra start-indent for block-elements
+  0pt)
+
+(define formal-object-float
+  ;; Do formal objects float?
+  #t)
+
+(define %hyphenation%
+  ;; Allow automatic hyphenation?
+  #t)
+
+(define %admon-graphics%
+  ;; Use graphics in admonitions?
+  #f)
+
 </style-specification-body>
 </style-specification>
 
@@ -33,20 +90,19 @@
 <style-specification id="html" use="docbook">
 <style-specification-body> 
 
-;; this is necessary because right now jadetex does not understand
-;; symbolic entities, whereas things work well with numeric entities.
 (declare-characteristic preserve-sdata?
+  ;; this is necessary because right now jadetex does not understand
+  ;; symbolic entities, whereas things work well with numeric entities.
   "UNREGISTERED::James Clark//Characteristic::preserve-sdata?"
   #f)
 
-;; put the legal notice in a separate file
 (define %generate-legalnotice-link%
+  ;; put the legal notice in a separate file
   #t)
 
-;; use graphics in admonitions, and have their path be "stylesheet-images"
-;; NO: they do not yet look very good
 (define %admon-graphics-path%
-  "./stylesheet-images/")
+  ;; use graphics in admonitions, set their
+  "../images/")
 
 (define %admon-graphics%
   #f)
@@ -70,6 +126,7 @@
   #t)
 
 (define (chunk-skip-first-element-list)
+  ;; forces the Table of Contents on separate page
   '())
 
 (define %root-filename%
