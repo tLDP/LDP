@@ -94,7 +94,15 @@ procfile_read(char *buffer,
 int init_module()
 {
 	int rv = 0;
+
 	Our_Proc_File = create_proc_entry("test", 0644, NULL);
+	
+	if (Our_Proc_File == NULL) {
+		rv = -ENOMEM;
+		remove_proc_entry("test", &proc_root);
+		printk(KERN_INFO "Error: Could not initialize /proc/test\n");
+	}
+	
 	Our_Proc_File->read_proc = procfile_read;
 	Our_Proc_File->owner = THIS_MODULE;
 	Our_Proc_File->mode = S_IFREG | S_IRUGO;
@@ -102,16 +110,7 @@ int init_module()
 	Our_Proc_File->gid = 0;
 	Our_Proc_File->size = 37;
 
-	printk(KERN_INFO "Trying to create /proc/test:\n");
-
-	if (Our_Proc_File == NULL) {
-		rv = -ENOMEM;
-		remove_proc_entry("test", &proc_root);
-		printk(KERN_INFO "Error: Could not initialize /proc/test\n");
-	} else {
-		printk(KERN_INFO "Success!\n");
-	}
-
+	printk(KERN_INFO "Created /proc/test:\n");	
 	return rv;
 }
 

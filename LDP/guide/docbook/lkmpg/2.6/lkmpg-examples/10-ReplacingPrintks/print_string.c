@@ -46,15 +46,25 @@ static void print_string(char *str)
 		 *
 		 * The function's 1st parameter is the tty to write to,
 		 * because the same function would normally be used for all 
-		 * tty's of a certain type.  The 2nd parameter controls whether
-		 * the function receives a string from kernel memory (false, 0)
-		 * or from user memory (true, non zero).  The 3rd parameter is
-		 * a pointer to a string.  The 4th parameter is the length of
-		 * the string.
+		 * tty's of a certain type.  The 2nd parameter controls 
+		 * whether the function receives a string from kernel
+		 * memory (false, 0) or from user memory (true, non zero). 
+		 * BTW: this param has been removed in Kernels > 2.6.9
+		 * The (2nd) 3rd parameter is a pointer to a string.
+		 * The (3rd) 4th parameter is the length of the string.
+		 *
+		 * As you will see below, sometimes it's necessary to use
+		 * preprocessor stuff to create code that works for different
+		 * kernel versions. The (naive) approach we've taken here 
+		 * does not scale well. The right way to deal with this 
+		 * is described in section 2 of 
+		 * linux/Documentation/SubmittingPatches
 		 */
 		((my_tty->driver)->write) (my_tty,	/* The tty itself */
+#if ( LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9) )		
 					   0,	/* Don't take the string 
 						   from user space        */
+#endif
 					   str,	/* String                 */
 					   strlen(str));	/* Length */
 
@@ -72,7 +82,12 @@ static void print_string(char *str)
 		 * MS Windows, the ASCII standard was strictly adhered to,
 		 * and therefore a newline requirs both a LF and a CR.
 		 */
+
+#if ( LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,9) )		
 		((my_tty->driver)->write) (my_tty, 0, "\015\012", 2);
+#else
+		((my_tty->driver)->write) (my_tty, "\015\012", 2);
+#endif
 	}
 }
 

@@ -150,8 +150,13 @@ static struct inode_operations Inode_Ops_4_Our_Proc_File = {
  */
 int init_module()
 {
-	int rv = 0;
 	Our_Proc_File = create_proc_entry(PROC_ENTRY_FILENAME, 0644, NULL);
+	
+	if (Our_Proc_File == NULL){
+		printk(KERN_INFO "Error: Could not initialize /proc/test\n");
+		return -ENOMEM;
+	}
+	
 	Our_Proc_File->owner = THIS_MODULE;
 	Our_Proc_File->proc_iops = &Inode_Ops_4_Our_Proc_File;
 	Our_Proc_File->proc_fops = &File_Ops_4_Our_Proc_File;
@@ -160,13 +165,7 @@ int init_module()
 	Our_Proc_File->gid = 0;
 	Our_Proc_File->size = 80;
 
-	if (Our_Proc_File == NULL) {
-		rv = -ENOMEM;
-		remove_proc_entry(PROC_ENTRY_FILENAME, &proc_root);
-		printk(KERN_INFO "Error: Could not initialize /proc/test\n");
-	}
-
-	return rv;
+	return 0;	/* success */
 }
 
 void cleanup_module()

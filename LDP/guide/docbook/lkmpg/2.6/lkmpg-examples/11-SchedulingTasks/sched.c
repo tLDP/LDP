@@ -116,19 +116,20 @@ int __init init_module()
 	queue_delayed_work(my_workqueue, &Task, 100);
 
 	Our_Proc_File = create_proc_entry(PROC_ENTRY_FILENAME, 0644, NULL);
-	Our_Proc_File->read_proc = procfile_read;
-	Our_Proc_File->owner = THIS_MODULE;
-	Our_Proc_File->mode = S_IFREG | S_IRUGO;
-	Our_Proc_File->uid = 0;
-	Our_Proc_File->gid = 0;
-	Our_Proc_File->size = 80;
-
 	if (Our_Proc_File == NULL) {
 		rv = -ENOMEM;
 		remove_proc_entry(PROC_ENTRY_FILENAME, &proc_root);
 		printk(KERN_INFO "Error: Could not initialize /proc/%s\n",
 		       PROC_ENTRY_FILENAME);
 	}
+	
+	
+	Our_Proc_File->read_proc = procfile_read;
+	Our_Proc_File->owner = THIS_MODULE;
+	Our_Proc_File->mode = S_IFREG | S_IRUGO;
+	Our_Proc_File->uid = 0;
+	Our_Proc_File->gid = 0;
+	Our_Proc_File->size = 80;
 
 	return rv;
 }
