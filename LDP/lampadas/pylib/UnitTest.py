@@ -24,9 +24,9 @@ L = DataLayer.Lampadas()
 
 # Unit Tests ###################################################################
 
-class testConfig(unittest.TestCase):
+class testConfigFIle(unittest.TestCase):
 
-	def testConfig(self):
+	def testConfigFIle(self):
 		assert Config.DBType == "pgsql", "DBType is not valid"
 		assert Config.DBName == "lampadas", "Database name is not valid"
 
@@ -43,6 +43,66 @@ class testDatabase(unittest.TestCase):
 		self.Cursor = DB.Cursor
 		assert not self.Cursor == None
 
+
+class testClasses(unittest.TestCase):
+
+	def testClasses(self):
+		assert not L.Classes == None
+		assert L.Classes.Count > 0
+
+
+class testConfig(unittest.TestCase):
+
+	def testConfig(self):
+		assert not L.Config == None
+		assert not L.Config['cvs_root'] == None
+		assert L.Config['project_short'] == 'LDP'
+
+class testDocs(unittest.TestCase):
+
+	def testDocs(self):
+		assert not L.Docs == None
+		assert L.Docs.Count > 0
+
+		DB.Exec("DELETE FROM document where title='testharness'")
+		DB.Commit()
+	
+		self.OldID = DB.Value('SELECT max(doc_id) from document')
+		self.NewID = L.Docs.Add('testharness', 1, 'XML', 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
+		assert self.NewID > 0
+		assert self.OldID + 1 == self.NewID
+		
+		self.Doc = L.Doc(self.NewID)
+		assert not self.Doc == None
+		assert self.Doc.ID == self.NewID
+		assert self.Doc.Title == 'testharness'
+		
+		L.Docs.Del(self.NewID)
+		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
+		assert self.NewID == self.OldID
+
+	def testMapping(self):
+		self.Doc = L.Docs[1]
+		assert not self.Doc == None
+		assert not self.Doc.Title == ''
+		assert self.Doc.ID == 1
+		self.Doc = L.Docs[2]
+		assert self.Doc.ID == 2
+
+	def testSave(self):
+		self.Doc = L.Docs[1]
+		self.Title = self.Doc.Title
+		self.Doc.Title = 'Foo'
+		assert self.Doc.Title == 'Foo'
+		self.Doc.Save()
+		self.Doc2 = L.Docs[1]
+		assert self.Doc2.Title == 'Foo'
+		
+		self.Doc.Title = self.Title
+		assert self.Doc.Title == self.Title
+		self.Doc.Save()
+		self.Doc2 = L.Docs[1]
+		assert self.Doc2.Title == self.Title
 
 class testUsers(unittest.TestCase):
 
@@ -85,48 +145,6 @@ class testUserDocs(unittest.TestCase):
 			assert UserDoc.Active == 1 or UserDoc.Active == 0
 
 
-class testDocs(unittest.TestCase):
-
-	def testDocs(self):
-		assert not L.Docs == None
-		assert L.Docs.Count > 0
-
-		DB.Exec("DELETE FROM document where title='testharness'")
-		DB.Commit()
-	
-		self.OldID = DB.Value('SELECT max(doc_id) from document')
-		self.NewID = L.Docs.Add('testharness', 1, 'XML', 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
-		assert self.NewID > 0
-		assert self.OldID + 1 == self.NewID
-		
-		self.Doc = L.Doc(self.NewID)
-		assert not self.Doc == None
-		assert self.Doc.ID == self.NewID
-		assert self.Doc.Title == 'testharness'
-		
-		L.Docs.Del(self.NewID)
-		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
-		assert self.NewID == self.OldID
-
-	def testMapping(self):
-		self.Doc = L.Docs[1]
-		assert not self.Doc == None
-		assert not self.Doc.Title == ''
-
-	def testSave(self):
-		self.Doc = L.Docs[1]
-		self.Title = self.Doc.Title
-		self.Doc.Title = 'Foo'
-		assert self.Doc.Title == 'Foo'
-		self.Doc.Save()
-		self.Doc2 = L.Doc(1)
-		assert self.Doc2.Title == 'Foo'
-		
-		self.Doc.Title = self.Title
-		assert self.Doc.Title == self.Title
-		self.Doc.Save()
-		self.Doc2 = DataLayer.Doc(1)
-		assert self.Doc2.Title == self.Title
 
 if __name__ == "__main__":
 	unittest.main()

@@ -15,6 +15,7 @@ import Database
 import Log
 from string import strip
 from types import StringType
+#from UserDict import UserDict
 
 
 # Globals
@@ -60,7 +61,7 @@ class LampadasList:
 		self.list.append(item)
 		
 	def Count(self):
-		return len(data)
+		return len(self.list)
 
 
 class LampadasCollection:
@@ -74,13 +75,24 @@ class LampadasCollection:
 	subclassable, so this can be rewritten to take advantage of that.
 	"""
 
-	col = {}
+	def __init__(self):
+		self.data = {}
 
-	def __getitem__(self, id):
-		return self.col[id]
-	
+	def __getitem__(self, key):
+		try:
+			item = self.data[key]
+		except KeyError:
+			item = None
+		return item
+
+	def __setitem__(self, key, item):
+		self.data[key] = item
+
+	def __delitem__(self, key):
+		del self.data[key]
+
 	def Count(self):
-		return len(self.col)
+		return len(self.data)
 
 
 # Lampadas
@@ -97,14 +109,178 @@ class Lampadas:
 	"""
 	
 	def __init__(self):
-		self.Docs = Docs()
-		self.Users = Users()
+		self.Classes	= Classes()
+		self.Classes.Load()
+		self.Config	= Config()
+		self.Config.Load()
+		self.Docs	= Docs()
+		self.Docs.Load()
+		self.Users	= Users()
 
 	def User(self, UserID):
 		return User(UserID)
 
 	def Doc(self, DocID):
 		return Doc(DocID)
+
+
+# Class
+
+class Classes(LampadasCollection):
+	"""
+	A collection object of all document classes (HOWTO, FAQ, etc).
+	"""
+	
+	def Load(self):
+		self.sql = "SELECT class_id FROM class"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newClass = Class()
+			newClass.Load(row)
+			self.data[newClass.ID] = newClass
+
+#	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
+#		self.id = DB.Value('SELECT max(doc_id) from document') + 1
+#		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
+#		assert DB.Exec(self.sql) == 1
+#		DB.Commit()
+#		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
+#		newDoc = Doc(self.NewID)
+#		self[self.NewID] = newDoc
+#		return self.NewID
+	
+#	def Del(self, id):
+#		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
+#		assert DB.Exec(self.sql) == 1
+#		DB.Commit()
+#		del self[id]
+
+
+
+class Class:
+
+	def __init__(self, ClassID=None):
+		self.I18n = {}
+		if ClassID==None: return
+		self.ID = ClassID
+		self.sql = "SELECT class_id FROM class WHERE class_id=" + str(ClassID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			self.Load(row)
+
+	def Load(self, row):
+		self.ID = row[0]
+		self.sql = "SELECT lang, class_name, class_description FROM class_i18n WHERE class_id=" + str(self.ID)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newClassI18n = ClassI18n()
+			newClassI18n.Load(self.row)
+			self.I18n[newClassI18n.Lang] = newClassI18n
+
+# ClassI18n
+
+class ClassI18n:
+
+	def Load(self, row):
+		self.Lang		= row[0]
+		self.Name		= trim(row[1])
+		self.Description	= trim(row[2])
+
+	
+# Config
+
+class Config(LampadasCollection):
+
+	def Load(self):
+		self.sql = "SELECT name, value FROM config"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			self[trim(row[0])] = trim(row[1])
+		
+
+
+# Documents
+
+class Docs(LampadasCollection):
+	"""
+	A collection object providing access to all documents.
+	"""
+
+	def Load(self):
+		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			row = self.cursor.fetchone()
+			if row == None: break
+			newDoc = Doc()
+			newDoc.Load(row)
+			self[newDoc.ID] = newDoc
+
+	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
+		self.id = DB.Value('SELECT max(doc_id) from document') + 1
+		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
+		newDoc = Doc(self.NewID)
+		self[self.NewID] = newDoc
+		return self.NewID
+	
+	def Del(self, id):
+		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+		del self[id]
+
+
+class Doc:
+	"""
+	A document in any format, whether local or remote.
+	"""
+
+	def __init__(self, id=None):
+		if id == None: return
+		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+		self.cursor = DB.Select(self.sql)
+		row = self.cursor.fetchone()
+		self.Load(row)
+
+	def Load(self, row):
+		self.ID			= row[0]
+		self.Title		= trim(row[1])
+		self.ClassID		= row[2]
+		self.Format		= trim(row[3])
+		self.DTD		= trim(row[4])
+		self.DTDVersion		= trim(row[5])
+		self.Version		= trim(row[6])
+		self.LastUpdate		= trim(row[7])
+		self.URL		= trim(row[8])
+		self.ISBN		= trim(row[9])
+		self.PubStatus		= trim(row[10])
+		self.ReviewStatus	= trim(row[11])
+		self.TickleDate		= trim(row[12])
+		self.PubDate		= trim(row[13])
+		self.HomeURL		= trim(row[14])
+		self.TechReviewStatus	= trim(row[15])
+		self.Maintained		= tf2bool(row[16])
+		self.License		= trim(row[17])
+		self.Abstract		= trim(row[18])
+		self.Rating		= row[19]
+		self.LanguageCode	= trim(row[20])
+		self.SeriesID		= trim(row[21])
+
+	def Save(self):
+		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + wsq(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+		DB.Exec(self.sql)
+		DB.Commit()
 
 
 # Users
@@ -138,98 +314,22 @@ class User:
 	def __init__(self, id) :
 		self.sql = 'SELECT user_id, username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE user_id=' + str(id)
 		self.cursor = DB.Select(self.sql)
-		data = self.cursor.fetchone()
-		self.ID		= data[0]
-		self.Username	= trim(data[1])
-		self.SessionID	= trim(data[2])
-		self.FirstName	= trim(data[3])
-		self.MiddleName	= trim(data[4])
-		self.Surname	= trim(data[5])
-		self.Email	= trim(data[6])
-		self.IsAdmin	= tf2bool(data[7])
-		self.IsSyadmin	= tf2bool(data[8])
-		self.Password	= trim(data[9])
-		self.Notes	= trim(data[10])
-		self.Stylesheet	= trim(data[11])
+		row = self.cursor.fetchone()
+		self.ID		= row[0]
+		self.Username	= trim(row[1])
+		self.SessionID	= trim(row[2])
+		self.FirstName	= trim(row[3])
+		self.MiddleName	= trim(row[4])
+		self.Surname	= trim(row[5])
+		self.Email	= trim(row[6])
+		self.IsAdmin	= tf2bool(row[7])
+		self.IsSyadmin	= tf2bool(row[8])
+		self.Password	= trim(row[9])
+		self.Notes	= trim(row[10])
+		self.Stylesheet	= trim(row[11])
 		self.Name	= trim(trim(self.FirstName + ' ' + self.MiddleName) + ' ' + self.Surname)
 
 		self.Docs = UserDocs(self.ID)
-
-
-# Documents
-
-class Docs(LampadasCollection):
-	"""
-	A collection object providing access to all documents.
-	"""
-
-	def __init__(self):
-		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
-		self.cursor = DB.Select(self.sql)
-		while (1):
-			data = self.cursor.fetchone()
-			if data == None: break
-			newDoc = Doc()
-			newDoc.__load__(data)
-			self.col[newDoc.ID] = newDoc
-
-	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
-		self.id = DB.Value('SELECT max(doc_id) from document') + 1
-		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
-		assert DB.Exec(self.sql) == 1
-		DB.Commit()
-		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
-		newDoc = Doc(self.NewID)
-		self.col[self.NewID] = newDoc
-		return self.NewID
-	
-	def Del(self, id):
-		self.sql = ('DELETE from document WHERE doc_id=' + str(id))
-		assert DB.Exec(self.sql) == 1
-		DB.Commit()
-		del self.col[id]
-
-
-class Doc:
-	"""
-	A document in any format, whether local or remote.
-	"""
-
-	def __init__(self, id=None):
-		if id == None: return
-		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
-		self.cursor = DB.Select(self.sql)
-		data = self.cursor.fetchone()
-		self.__load__(data)
-
-	def __load__(self, data):
-		self.ID			= data[0]
-		self.Title		= trim(data[1])
-		self.ClassID		= data[2]
-		self.Format		= trim(data[3])
-		self.DTD		= trim(data[4])
-		self.DTDVersion		= trim(data[5])
-		self.Version		= trim(data[6])
-		self.LastUpdate		= trim(data[7])
-		self.URL		= trim(data[8])
-		self.ISBN		= trim(data[9])
-		self.PubStatus		= trim(data[10])
-		self.ReviewStatus	= trim(data[11])
-		self.TickleDate		= trim(data[12])
-		self.PubDate		= trim(data[13])
-		self.HomeURL		= trim(data[14])
-		self.TechReviewStatus	= trim(data[15])
-		self.Maintained		= tf2bool(data[16])
-		self.License		= trim(data[17])
-		self.Abstract		= trim(data[18])
-		self.Rating		= data[19]
-		self.LanguageCode	= trim(data[20])
-		self.SeriesID		= trim(data[21])
-
-	def Save(self):
-		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + wsq(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
-		DB.Exec(self.sql)
-		DB.Commit()
 
 
 # UserDocs
@@ -248,7 +348,7 @@ class UserDocs(LampadasList):
 			row = self.cursor.fetchone()
 			if row == None: break
 			newUserDoc = UserDoc(UserID, row[0])
-			newUserDoc.__load__(row)
+			newUserDoc.Load(row)
 			self.list = self.list + [newUserDoc]
 
 	def Add(self, DocID, Role, Email, Active):
@@ -276,9 +376,9 @@ class UserDoc:
 		self.sql = "SELECT doc_id, user_id, role, email, active FROM document_user WHERE doc_id=" + str(DocID) + " AND user_id=" + str(UserID)
 		self.cursor = DB.Select(self.sql)
 		row = self.cursor.fetchone()
-		self.__load__(row)
+		self.Load(row)
 
-	def __load__(self, row):
+	def Load(self, row):
 		assert not row == None
 		self.DocID		= row[0]
 		self.UserID		= row[1]
