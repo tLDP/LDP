@@ -2,9 +2,10 @@ DROP TABLE format_i18n;
 
 CREATE TABLE format_i18n
 (
-	format			CHAR(12)	NOT NULL,
+	format_id		INT4		NOT NULL,
 	lang			CHAR(2)		NOT NULL,
 	format_name		TEXT		NOT NULL,
+	format_desc		TEXT,
 
-	PRIMARY KEY (format, lang)
+	PRIMARY KEY (format_id, lang)
 );

@@ -196,7 +196,7 @@ class Docs(LampadasCollection):
 	"""
 
 	def Load(self):
-		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+		self.sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
@@ -205,9 +205,9 @@ class Docs(LampadasCollection):
 			newDoc.Load(self.row)
 			self[newDoc.ID] = newDoc
 
-	def Add(self, Title, ClassID, Format, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
+	def Add(self, Title, ClassID, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatus, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatus, License, Abstract, LanguageCode, SeriesID):
 		self.id = DB.Value('SELECT max(doc_id) from document') + 1
-		self.sql = "INSERT INTO document(doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + wsq(Format) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
+		self.sql = "INSERT INTO document(doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + str(ClassID) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatus) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatus) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(LanguageCode) + ", " + wsq(SeriesID) + ")"
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
 		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
@@ -228,7 +228,7 @@ class Doc:
 
 	def __init__(self, id=None):
 		if id == None: return
-		self.sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+		self.sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
 		self.cursor = DB.Select(self.sql)
 		self.row = self.cursor.fetchone()
 		self.Load(self.row)
@@ -237,7 +237,7 @@ class Doc:
 		self.ID			= row[0]
 		self.Title		= trim(row[1])
 		self.ClassID		= row[2]
-		self.Format		= trim(row[3])
+		self.FormatID		= row[3]
 		self.DTD		= trim(row[4])
 		self.DTDVersion		= trim(row[5])
 		self.Version		= trim(row[6])
@@ -264,7 +264,7 @@ class Doc:
 		self.Versions		= DocVersions(self.ID)
 
 	def Save(self):
-		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format=" + wsq(self.Format) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+		self.sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_id=" + str(self.ClassID) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatus) + ", review_status=" + wsq(self.ReviewStatus) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatus) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.LanguageCode) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
 		DB.Exec(self.sql)
 		DB.Commit()
 
@@ -326,7 +326,7 @@ class DocFiles(LampadasCollection):
 		self.data = {}
 		assert not DocID == None
 		self.DocID = DocID
-		self.sql = "SELECT filename, format FROM document_file WHERE doc_id=" + str(DocID)
+		self.sql = "SELECT filename, format_id FROM document_file WHERE doc_id=" + str(DocID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
@@ -345,10 +345,10 @@ class DocFile:
 		assert not row == None
 		self.DocID	= DocID
 		self.Filename	= trim(row[0])
-		self.Format	= trim(row[1])
+		self.FormatID	= row[1]
 
 	def Save(self):
-		self.sql = "UPDATE document_file SET format=" + wsq(self.Format) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+		self.sql = "UPDATE document_file SET format_id=" + str(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
 		assert DB.Exec(self.sql) == 1
 		DB.Commit()
 
@@ -554,25 +554,25 @@ class Formats(LampadasCollection):
 	
 	def __init__(self):
 		self.data = {}
-		self.sql = "SELECT format FROM format"
+		self.sql = "SELECT format_id FROM format"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
 			newFormat = Format()
 			newFormat.Load(row)
-			self.data[newFormat.Format] = newFormat
+			self.data[newFormat.ID] = newFormat
 
 class Format:
 
-	def __init__(self, Format=None):
+	def __init__(self, FormatID=None):
 		self.I18n = {}
-		if Format==None: return
-		self.Code = Format
+		if FormatID==None: return
+		self.ID = FormatID
 
 	def Load(self, row):
-		self.Format = trim(row[0])
-		self.sql = "SELECT lang, format_name FROM format_i18n WHERE format=" + wsq(self.Format)
+		self.ID = row[0]
+		self.sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_id=" + str(self.ID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
@@ -588,6 +588,7 @@ class FormatI18n:
 	def Load(self, row):
 		self.Lang		= row[0]
 		self.Name		= trim(row[1])
+		self.Description	= trim(row[2])
 
 
 # Languages
@@ -599,7 +600,7 @@ class Languages(LampadasCollection):
 
 	def __init__(self):
 		self.data = {}
-		self.sql = "SELECT isocode, language_name FROM language"
+		self.sql = "SELECT isocode FROM language"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
@@ -693,25 +694,25 @@ class Strings(LampadasCollection):
 	
 	def __init__(self):
 		self.data = {}
-		self.sql = "SELECT string_code FROM string"
+		self.sql = "SELECT string_id FROM string"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
 			newString = String()
 			newString.Load(row)
-			self.data[newString.Code] = newString
+			self.data[newString.ID] = newString
 
 class String:
 
-	def __init__(self, StringCode=None):
+	def __init__(self, StringID=None):
 		self.I18n = {}
-		if StringCode==None: return
-		self.Code = StringCode
+		if StringID==None: return
+		self.ID = StringID
 
 	def Load(self, row):
-		self.Code = trim(row[0])
-		self.sql = "SELECT lang, string FROM string_i18n WHERE string_code=" + wsq(self.Code)
+		self.ID = row[0]
+		self.sql = "SELECT lang, string FROM string_i18n WHERE string_id=" + str(self.ID)
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()

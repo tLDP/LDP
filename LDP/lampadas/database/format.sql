@@ -2,7 +2,7 @@ DROP TABLE format;
 
 CREATE TABLE format
 (
-	format			CHAR(12)	NOT NULL,
+	format_id	INT4	NOT NULL,
 
-	PRIMARY KEY (format)
+	PRIMARY KEY (format_id)
 );

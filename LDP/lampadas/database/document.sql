@@ -5,7 +5,7 @@ CREATE TABLE document
 	doc_id			INT4		NOT NULL,
 	title			TEXT		NOT NULL,
 	class_id		INT4,
-	format			CHAR(12),
+	format_id		INT4,
 	dtd			CHAR(12),
 	dtd_version		CHAR(12),
 	version			CHAR(12),

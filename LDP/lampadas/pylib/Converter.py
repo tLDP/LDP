@@ -21,15 +21,15 @@ import commands
 
 class Converter:
 
-	def ConvertSGMLFile(self, filename, format):
-		if format == 'XML' or format == 'SGML':
+	def ConvertSGMLFile(self, Filename, Format):
+		if Format == 'XML' or Format == 'SGML':
 			command = 'xsltproc '
-			if format == 'SGML':
+			if Format == 'SGML':
 				command = command + '--docbook '
-			command = command + '/usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl ' + filename
+			command = command + '/usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl ' + Filename
 			result = commands.getoutput(command)
 		else:
-			return "FORMAT NOT YET SUPPORTED"
+			return 'FORMAT ' + Format + ' NOT YET SUPPORTED'
 		return result
 
 

@@ -65,7 +65,7 @@ class testDocs(unittest.TestCase):
 		DB.Commit()
 	
 		self.OldID = DB.Value('SELECT max(doc_id) from document')
-		self.NewID = L.Docs.Add('testharness', 1, 'XML', 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
+		self.NewID = L.Docs.Add('testharness', 1, 1, 'DocBook', '4.1.2', '1.0', '2002-04-04', 'http://www.example.com/HOWTO.html', 'ISBN', 'N', 'N', '2002-04-05', '2002-04-10', 'http://www.home.com', 'N', 'GFDL', 'This is a document.', 'EN', 'fooseries')
 		assert self.NewID > 0
 		assert self.OldID + 1 == self.NewID
 		
@@ -73,6 +73,7 @@ class testDocs(unittest.TestCase):
 		assert not self.Doc == None
 		assert self.Doc.ID == self.NewID
 		assert self.Doc.Title == 'testharness'
+		assert self.Doc.FormatID == 1
 		
 		L.Docs.Del(self.NewID)
 		self.NewID = DB.Value('SELECT MAX(doc_id) from document')
@@ -198,7 +199,11 @@ class testFormats(unittest.TestCase):
 
 	def testFormats(self):
 		assert L.Formats.Count() > 0
-		assert not L.Formats['XML'] == None
+		assert not L.Formats[1] == None
+		assert not L.Formats[1].I18n == None
+		assert not L.Formats[1].I18n['EN'] == None
+		assert L.Formats[1].I18n['EN'].Name > ''
+		assert L.Formats[1].I18n['EN'].Description > ''
 
 class testLanguages(unittest.TestCase):
 
@@ -223,8 +228,8 @@ class testStrings(unittest.TestCase):
 	def testStrings(self):
 		assert not L.Strings == None
 		assert L.Strings.Count() > 0
-		assert not L.Strings['header'] == None
-		assert L.Strings['test'].I18n['EN'].Text == 'Test Text'
+		assert not L.Strings[1] == None
+		assert L.Strings[1].I18n['EN'].Text == 'Test Text'
 
 class testTopics(unittest.TestCase):
 
@@ -264,7 +269,7 @@ class testUsers(unittest.TestCase):
 class testUserDocs(unittest.TestCase):
 
 	def setUp(self):
-		self.User = L.User(1)
+		self.User = L.User(11)
 		assert len(self.User.Docs) > 0
 		assert self.User.Docs.Count() > 0
 

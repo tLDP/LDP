@@ -294,30 +294,38 @@ while (@row = $result->fetchrow) {
 	$class = $row[0];
 	$class_name = $row[1];
 	$class_id++;
-	$sql = "INSERT INTO class_new (class_id) VALUES ($class_id)";
-	$conn->exec($sql);
-	$sql = "INSERT INTO class_i18n(class_id, lang, class_name, class_description) VALUES ($class_id, 'EN', " . wsq($class) . ", " . wsq($class_name) . ")";
-	$conn->exec($sql);
+	$conn->exec("INSERT INTO class_new (class_id) VALUES ($class_id)");
+	$conn->exec("INSERT INTO class_i18n(class_id, lang, class_name, class_description) VALUES ($class_id, 'EN', " . wsq($class) . ", " . wsq($class_name) . ")");
 }
 
 # i18n support in format table
 #
-$conn->exec("CREATE TABLE format_new (format CHAR(12) NOT NULL, PRIMARY KEY (format))");
-$conn->exec("CREATE TABLE format_i18n (format CHAR(12) NOT NULL, lang CHAR(2) NOT NULL, format_name CHAR(20) NOT NULL, PRIMARY KEY (format, lang))");
-$conn->exec("INSERT INTO format_i18n SELECT format, 'EN' as lang, format_name FROM format");
-$conn->exec("INSERT INTO format_new SELECT format FROM format");
+$conn->exec("CREATE TABLE format_new (format_id INT4 NOT NULL, PRIMARY KEY (format_id))");
+$conn->exec("DROP TABLE format_i18n");
+$conn->exec("CREATE TABLE format_i18n (format_id INT4 NOT NULL, lang CHAR(2) NOT NULL, format_name CHAR(20) NOT NULL, format_desc TEXT, PRIMARY KEY (format_id, lang))");
+$result = $conn->exec("SELECT format, format_name FROM format");
+$format_id = 0;
+while (@row = $result->fetchrow) {
+	$format_id++;
+	$format_name = $row[0];
+	$format_desc = $row[1];
+	$conn->exec("INSERT INTO format_new (format_id) VALUES ($format_id)");
+	$conn->exec("INSERT INTO format_i18n (format_id, lang, format_name, format_desc) VALUES ($format_id, 'EN' as lang, " . wsq($format_name) . ", " . wsq($format_desc) . ")");
+}
 
 # i18n support in pub_status table
 #
+$conn->exec("DROP TABLE pub_status_new");
 $conn->exec("CREATE TABLE pub_status_new (pub_status CHAR(1) NOT NULL, PRIMARY KEY (pub_status))");
-$conn->exec("CREATE TABLE pub_status_i18n (pub_status CHAR(1) NOT NULL, lang CHAR(2) NOT NULL, pub_status_name TEXT NOT NULL, pub_status_description TEXT NOT NULL, PRIMARY KEY (pub_status, lang))");
-$conn->exec("INSERT INTO pub_status_i18n SELECT pub_status, 'EN' as lang, pub_status_name, pub_status_description FROM pub_status");
+$conn->exec("DROP TABLE pub_status_i18n");
+$conn->exec("CREATE TABLE pub_status_i18n (pub_status CHAR(1) NOT NULL, lang CHAR(2) NOT NULL, pub_status_name TEXT NOT NULL, pub_status_desc TEXT NOT NULL, PRIMARY KEY (pub_status, lang))");
+$conn->exec("INSERT INTO pub_status_i18n SELECT pub_status, 'EN' as lang, pub_status_name, pub_status_desc FROM pub_status");
 $conn->exec("INSERT INTO pub_status_new SELECT pub_status FROM pub_status");
 
 # i18n support in topic table
 #
-$conn->exec("CREATE TABLE topic_new (topic_num INT4 NOT NULL, PRIMARY KEY (topic_num)");
-$conn->exec("CREATE TABLE topic_i18n (topic_num INT4 NOT NULL, lang CHAR(2) NOT NULL, topic_name TEXT NOT NULL, topic_description TEXT, PRIMARY KEY(topic_num, lang)");
+$conn->exec("CREATE TABLE topic_new (topic_num INT4 NOT NULL, PRIMARY KEY (topic_num))");
+$conn->exec("CREATE TABLE topic_i18n (topic_num INT4 NOT NULL, lang CHAR(2) NOT NULL, topic_name TEXT NOT NULL, topic_description TEXT, PRIMARY KEY(topic_num, lang))");
 $conn->exec("INSERT INTO topic_new SELECT topic_num FROM topic");
 $conn->exec("INSERT INTO topic_i18n SELECT topic_num, 'EN' as lang, topic_name, topic_description FROM topic");
 
@@ -325,8 +333,8 @@ $conn->exec("INSERT INTO topic_i18n SELECT topic_num, 'EN' as lang, topic_name, 
 # Convert class to class_id
 # 
 $conn->exec("DROP TABLE document_new");
-$conn->exec("CREATE TABLE document_new (doc_id INT4 NOT NULL, title TEXT NOT NULL, class_id INT4, format CHAR(12), dtd CHAR(12), dtd_version CHAR(12), version CHAR(12), last_update DATE, URL TEXT, ISBN TEXT, pub_status CHAR, review_status CHAR, tickle_date DATE, pub_date DATE, ref_url TEXT, tech_review_status CHAR, maintained BOOLEAN DEFAULT False, license CHAR(12), abstract TEXT, rating REAL, lang CHAR(2), PRIMARY KEY (doc_id))");
-$conn->exec("INSERT INTO document_new SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c WHERE d.class=c.class_name");
+$conn->exec("CREATE TABLE document_new (doc_id INT4 NOT NULL, title TEXT NOT NULL, class_id INT4, format_id INT4, dtd CHAR(12), dtd_version CHAR(12), version CHAR(12), last_update DATE, URL TEXT, ISBN TEXT, pub_status CHAR, review_status CHAR, tickle_date DATE, pub_date DATE, ref_url TEXT, tech_review_status CHAR, maintained BOOLEAN DEFAULT False, license CHAR(12), abstract TEXT, rating REAL, lang CHAR(2), PRIMARY KEY (doc_id))");
+$conn->exec("INSERT INTO document_new SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c, format_i18n f WHERE d.class=c.class_name AND d.format=f.format_name");
 $conn->exec("UPDATE document_new SET lang='EN'");
 
 # Add document sk_seriesid values
@@ -377,7 +385,7 @@ $conn->exec("UPDATE document SET filename='howto/' || filename where class='TEMP
 # Create document_file table
 #
 $conn->exec("DROP TABLE document_file");
-$conn->exec("CREATE TABLE document_file(doc_id INT4 NOT NULL, filename TEXT NOT NULL, format CHAR(12), PRIMARY KEY (doc_id, filename))");
+$conn->exec("CREATE TABLE document_file(doc_id INT4 NOT NULL, filename TEXT NOT NULL, format_id INT4, PRIMARY KEY (doc_id, filename))");
 $conn->exec("INSERT INTO document_file(doc_id, filename) SELECT doc_id, filename FROM document WHERE filename<>''");
 
 # Create document_error table
@@ -385,13 +393,17 @@ $conn->exec("INSERT INTO document_file(doc_id, filename) SELECT doc_id, filename
 $conn->exec("DROP TABLE document_error");
 $conn->exec("CREATE TABLE document_error(doc_id INT4 NOT NULL, err_id INT4 NOT NULL)");
 
+# Create language table
+#
+$conn->exec("DROP TABLE language");
+$conn->exec("CREATE TABLE language(isocode CHAR(2) NOT NULL, PRIMARY KEY (isocode))");
+$conn->exec("DROP TABLE language_i18n");
+$conn->exec("CREATE TABLE language_i18n(isocode CHAR(2) NOT NULL, lang CHAR(2), language_name TEXT NOT NULL, PRIMARY KEY (isocode, lang))");
+
 # Create string table
 # 
 $conn->exec("DROP TABLE string");
 $conn->exec("CREATE TABLE string (string_id INT4 NOT NULL, PRIMARY KEY (string_id))");
-
-# Create string_i18n table
-# 
 $conn->exec("DROP TABLE string_i18n");
 $conn->exec("CREATE TABLE string_i18n (string_id INT4 NOT NULL, lang CHAR(2) NOT NULL, string TEXT NOT NULL, PRIMARY KEY (string_id, lang))");
 
@@ -401,7 +413,7 @@ $conn->exec("DROP TABLE error");
 $conn->exec("CREATE TABLE error (err_id INT4 NOT NULL, PRIMARY KEY (err_id))");
 
 $conn->exec("DROP TABLE error_i18n");
-$conn->exec("CREATE TABLE error_i18n (err_id INT4 NOT NULL, err_name TEXT NOT NULL, err_desc TEXT PRIMARY KEY (err_id))");
+$conn->exec("CREATE TABLE error_i18n (err_id INT4 NOT NULL, err_name TEXT NOT NULL, err_desc TEXT,  PRIMARY KEY (err_id))");
 
 
 # Copy the new tables over to replace the old ones
@@ -418,6 +430,7 @@ $conn->exec("DROP TABLE format");
 $conn->exec("DROP TABLE maintainer");
 $conn->exec("DROP TABLE maintainer_notes");
 $conn->exec("DROP TABLE notes");
+$conn->exec("DROP TABLE pub_status");
 $conn->exec("DROP TABLE role");
 $conn->exec("DROP TABLE topic");
 $conn->exec("DROP TABLE username");
@@ -428,6 +441,7 @@ $conn->exec("ALTER TABLE document_wiki_new RENAME TO document_wiki");
 $conn->exec("ALTER TABLE doc_vote_new RENAME TO doc_vote");
 $conn->exec("ALTER TABLE format_new RENAME TO format");
 $conn->exec("ALTER TABLE notes_new RENAME TO notes");
+$conn->exec("ALTER TABLE pub_status_new RENAME TO pub_status");
 $conn->exec("ALTER TABLE role_new RENAME TO role");
 $conn->exec("ALTER TABLE topic_new RENAME TO topic");
 $conn->exec("ALTER TABLE username_new RENAME TO username");

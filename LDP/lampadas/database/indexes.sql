@@ -1,7 +1,7 @@
 ALTER TABLE class_i18n		ADD CONSTRAINT class_id_fk		FOREIGN KEY (class_id)			REFERENCES class(class_id);
 ALTER TABLE class_i18n		ADD CONSTRAINT class_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE document		ADD CONSTRAINT class_id_fk		FOREIGN KEY (class_id)			REFERENCES class(class_id);
-ALTER TABLE document		ADD CONSTRAINT format_fk		FOREIGN KEY (format)			REFERENCES format(format);
+ALTER TABLE document		ADD CONSTRAINT format_id_fk		FOREIGN KEY (format_id)			REFERENCES format(format_id);
 ALTER TABLE document		ADD CONSTRAINT dtd_fk			FOREIGN KEY (dtd)			REFERENCES dtd(dtd);
 ALTER TABLE document		ADD CONSTRAINT pub_status_fk		FOREIGN KEY (pub_status)		REFERENCES pub_status(pub_status);
 ALTER TABLE document		ADD CONSTRAINT review_status_fk		FOREIGN KEY (review_status)		REFERENCES review_status(review_status);
@@ -10,7 +10,7 @@ ALTER TABLE document		ADD CONSTRAINT license_fk		FOREIGN KEY (license)			REFEREN
 ALTER TABLE document		ADD CONSTRAINT language_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE document_error	ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_file	ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
-ALTER TABLE document_file	ADD CONSTRAINT format_fk		FOREIGN KEY (format)			REFERENCES format(format);
+ALTER TABLE document_file	ADD CONSTRAINT format_id_fk		FOREIGN KEY (format_id)			REFERENCES format(format_id);
 ALTER TABLE document_rev	ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_topic	ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE document_topic	ADD CONSTRAINT topic_num_fk		FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
@@ -23,15 +23,15 @@ ALTER TABLE doc_vote		ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCE
 ALTER TABLE doc_vote		ADD CONSTRAINT user_id_fk		FOREIGN KEY (user_id)			REFERENCES username(user_id);
 ALTER TABLE error_i18n		ADD CONSTRAINT err_id_fk		FOREIGN KEY (err_id)			REFERENCES error(err_id);
 ALTER TABLE error_i18n		ADD CONSTRAINT lang_fk			FOREIGN KEY (lang)			REFERENCES language(isocode);
-ALTER TABLE format_i18n		ADD CONSTRAINT format_fk		FOREIGN KEY (format)			REFERENCES format(format);
+ALTER TABLE format_i18n		ADD CONSTRAINT format_id_fk		FOREIGN KEY (format_id)			REFERENCES format(format_id);
 ALTER TABLE format_i18n		ADD CONSTRAINT format_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
-ALTER TABLE language_i18n	ADD CONSTRAINT language_fk		FOREIGN KEY (language)			REFERENCES language(isocode);
+ALTER TABLE language_i18n	ADD CONSTRAINT language_fk		FOREIGN KEY (isocode)			REFERENCES language(isocode);
 ALTER TABLE language_i18n	ADD CONSTRAINT language_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE notes		ADD CONSTRAINT doc_id_fk		FOREIGN KEY (doc_id)			REFERENCES document(doc_id);
 ALTER TABLE notes		ADD CONSTRAINT creator_id_fk		FOREIGN KEY (creator_id)		REFERENCES username(user_id);
 ALTER TABLE pub_status_i18n	ADD CONSTRAINT pub_status_fk		FOREIGN KEY (pub_status)		REFERENCES pub_status(pub_status);
 ALTER TABLE pub_status_i18n	ADD CONSTRAINT pub_status_lang_fk	FOREIGN KEY (lang)			REFERENCES language(isocode);
-ALTER TABLE string_i18n		ADD CONSTRAINT string_code_fk		FOREIGN KEY (string_code)		REFERENCES string(string_code);
+ALTER TABLE string_i18n		ADD CONSTRAINT string_id_fk		FOREIGN KEY (string_id)			REFERENCES string(string_id);
 ALTER TABLE string_i18n		ADD CONSTRAINT string_lang_fk		FOREIGN KEY (lang)			REFERENCES language(isocode);
 ALTER TABLE subtopic		ADD CONSTRAINT topic_num_fk		FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
 ALTER TABLE topic_i18n		ADD CONSTRAINT topic_num_fk		FOREIGN KEY (topic_num)			REFERENCES topic(topic_num);
