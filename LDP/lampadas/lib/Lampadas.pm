@@ -6,145 +6,148 @@
 # 
 package Lampadas;
 
+#use diagnostics;
 use strict;
+
 use Lampadas::Database;
 use HTML::Entities;
 use HTTP::SimpleLinkChecker;
 
 use CGI qw(:standard);
-use Exporter;
+#use Exporter;
 
-my @ISA	= qw(Exporter);
-my @EXPORT	= qw(
-		new,
-		Param,
-		Config,
-
-		RequestedLanguage,
-		CurrentUserID,
-		CurrentUser,
-		Admin,
-		SysAdmin,
-		Maintainer,
-
-		Users,
-		User,
-		UserDocs,
-		UserFiles,
-		UserNotes,
-		AddUserNote,
-
-		Docs,
-		Doc,
-		AddDoc,
-		SaveDoc,
-		Lintadas,
-		LintadasDoc,
-
-		DocFiles,
-		AddDocFile,
-		SaveDocFile,
-		DocErrors,
-		DocUsers,
-		DocTopics,
-		DocNotes,
-		DocVersions,
-		AddDocVersion,
-		SaveDocVersion,
-		DelDocVersion,
-	
-		Roles,
-		Classes,
-		PubStatuses,
-		ReviewStatuses,
-		Licenses,
-		Topics,
-		Topic,
-		SaveTopic,
-		Subtopics,
-		SaveSubtopic,
-		Formats,
-		DTDs,
-		Stylesheets,
-		Strings,
-		String,
-		AddString,
-		SaveString,
-		DelString,
-		Errors,
-		AddError,
-	
-		DocCount,
-		DocCountByClass,
-		DocCountByPubStatus,
-
-		StartPage,
-		EndPage,
-
-		RoleCombo,
-		ClassCombo,
-		PubStatusCombo,
-		ReviewStatusCombo,
-		TechReviewStatusCombo,
-		LicenseCombo,
-		TopicCombo,
-		SubtopicCombo,
-		FormatCombo,
-		DTDCombo,
-		CSSCombo,
-
-		UsersTable,
-		UserTable,
-		NewUserTable,
-		UserDocsTable,
-		UserNotesTable,
-		DocsTable,
-		DocTable,
-		DocVersionsTable,
-		DocErrorsTable,
-		DocFilesTable,
-		DocUsersTable,
-		DocTopicsTable,
-		DocRatingTable,
-		DocNotesTable,
-		StringsTable,
-		ErrorsTable,
-		TopicsTable,
-		TopicTable,
-		SubtopicsTable,
-		TopicDocsTable,
-		MessagesTable,
-		NavBar,
-
-		PubStatusStatsTable,
-		LicenseStatsTable,
-		FreeNonfreeStatsTable,
-		ClassStatsTable,
-		FormatStatsTable,
-		DTDStatsTable,
-		FormatDTDStatsTable,
-		DetailedStatsTable,
-		MiscStatsTable,
-	
-		BarGraphTable,
-
-		NavBox,
-		UserBox,
-		TopicsBox,
-		HeaderBox,
-		LoginBox,
-		AdminBox,
-		EditImage,
-
-		Login,
-		Logout,
-		AddUser,
-		SaveUser,
-		AddMessage,
-		Mail,
-
-		CVSUpdate,
-);
+#my @ISA	= qw(Exporter);
+#my @EXPORT	= qw(
+#		new
+#		Param
+#		Config
+#
+#		RequestedLanguage
+#		CurrentUserID
+#		CurrentUser
+#		Admin
+#		SysAdmin
+#		Maintainer
+#
+#		Users
+#		User
+#		UserDocs
+#		UserFiles
+#		UserNotes
+#		AddUserNote
+#
+#		Docs
+#		Doc
+#		AddDoc
+#		SaveDoc
+#		Lintadas
+#		LintadasDoc
+#
+#		DocFiles
+#		AddDocFile
+#		SaveDocFile
+#		DocErrors
+#		DocUsers
+#		DocTopics
+#		DocNotes
+#		DocVersions
+#		AddDocVersion
+#		SaveDocVersion
+#		DelDocVersion
+#	
+#		Roles
+#		Classes
+#		PubStatuses
+#		ReviewStatuses
+#		Licenses
+#		Topics
+#		Topic
+#		SaveTopic
+#		Subtopics
+#		SaveSubtopic
+#		Formats
+#		DTDs
+#		Stylesheets
+#		Strings
+#		String
+#		AddString
+#		SaveString
+#		DelString
+#		Errors
+#		AddError
+#	
+#		DocCount
+#		DocCountByClass
+#		DocCountByPubStatus
+#
+#		StartPage
+#		EndPage
+#
+#		RoleCombo
+#		ClassCombo
+#		PubStatusCombo
+#		ReviewStatusCombo
+#		TechReviewStatusCombo
+#		LicenseCombo
+#		TopicCombo
+#		SubtopicCombo
+#		FormatCombo
+#		DTDCombo
+#		CSSCombo
+#
+#		UsersTable
+#		UserTable
+#		NewUserTable
+#		UserDocsTable
+#		UserNotesTable
+#		DocsTable
+#		DocTable
+#		DocVersionsTable
+#		DocErrorsTable
+#		DocFilesTable
+#		DocUsersTable
+#		DocTopicsTable
+#		DocRatingTable
+#		DocNotesTable
+#		StringsTable
+#		ErrorsTable
+#		TopicsTable
+#		TopicTable
+#		SubtopicsTable
+#		TopicDocsTable
+#		MessagesTable
+#		NavBar
+#
+#		PubStatusStatsTable
+#		LicenseStatsTable
+#		FreeNonfreeStatsTable
+#		ClassStatsTable
+#		FormatStatsTable
+#		DTDStatsTable
+#		FormatDTDStatsTable
+#		DetailedStatsTable
+#		MiscStatsTable
+#	
+#		BarGraphTable
+#
+#		NavBox
+#		UserBox
+#		TopicsBox
+#		HeaderBox
+#		LoginBox
+#		AdminBox
+#		SysAdminBox
+#		EditImage
+#
+#		Login
+#		Logout
+#		AddUser
+#		SaveUser
+#		AddMessage
+#		Mail
+#
+#		CVSUpdate
+#);
 
 my $CGI	= new CGI;
 my $DB	= new Lampadas::Database;
@@ -154,17 +157,19 @@ my $DB	= new Lampadas::Database;
 my $VERSION = '0.1';
 my $currentuser_id = 0;
 my %currentuser = ();
-&ReadCookie;
 
 my @messages = ();			# System messages, displayed on the next page
 my $debug = 0;			# Set this to 1 to get debugging messages
 my $foo;
+
+my %g_docs = ();
 
 sub new {
 	my $that = shift;
 	my $class = ref($that) || $that;
 	my $self = {};
 	bless $self, $class;
+	_getDocs();
 	return $self;
 }
 
@@ -210,10 +215,12 @@ sub RequestedLanguage {
 }
 
 sub CurrentUserID {
+	&ReadCookie();
 	return $currentuser_id;
 }
 
 sub CurrentUser {
+	&ReadCookie();
 	return %currentuser;
 }
 
@@ -335,35 +342,37 @@ sub AddUserNote {
 }
 
 sub Docs {
-	my ($self) = @_;
-	my %docs = ();
+	return %g_docs;
+}
+
+sub _getDocs {
+	%g_docs = ();
 	my $sql = "SELECT doc_id, title, class_id, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document";
 	my $result = $DB->Recordset($sql);
 	my @row;
 	while (@row = $result->fetchrow) {
 		my $doc_id	= $row[0];
-		$docs{$doc_id}{id}			= &trim($row[0]);
-		$docs{$doc_id}{title}			= &trim($row[1]);
-		$docs{$doc_id}{class_id}		= &trim($row[2]);
-		$docs{$doc_id}{format}			= &trim($row[3]);
-		$docs{$doc_id}{dtd}			= &trim($row[4]);
-		$docs{$doc_id}{dtd_version}		= &trim($row[5]);
-		$docs{$doc_id}{version}			= &trim($row[6]);
-		$docs{$doc_id}{last_update}		= &trim($row[7]);
-		$docs{$doc_id}{url}			= &trim($row[8]);
-		$docs{$doc_id}{isbn}			= &trim($row[9]);
-		$docs{$doc_id}{pub_status}		= &trim($row[10]);
-		$docs{$doc_id}{review_status}		= &trim($row[11]);
-		$docs{$doc_id}{tickle_date}		= &trim($row[12]);
-		$docs{$doc_id}{pub_date}		= &trim($row[13]);
-		$docs{$doc_id}{ref_url}			= &trim($row[14]);
-		$docs{$doc_id}{tech_review_status}	= &trim($row[15]);
-		$docs{$doc_id}{maintained}		= &trim($row[16]);
-		$docs{$doc_id}{license}			= &trim($row[17]);
-		$docs{$doc_id}{abstract}		= &trim($row[18]);
-		$docs{$doc_id}{rating}			= &trim($row[19]);
+		$g_docs{$doc_id}{id}			= &trim($row[0]);
+		$g_docs{$doc_id}{title}			= &trim($row[1]);
+		$g_docs{$doc_id}{class_id}		= &trim($row[2]);
+		$g_docs{$doc_id}{format}		= &trim($row[3]);
+		$g_docs{$doc_id}{dtd}			= &trim($row[4]);
+		$g_docs{$doc_id}{dtd_version}		= &trim($row[5]);
+		$g_docs{$doc_id}{version}		= &trim($row[6]);
+		$g_docs{$doc_id}{last_update}		= &trim($row[7]);
+		$g_docs{$doc_id}{url}			= &trim($row[8]);
+		$g_docs{$doc_id}{isbn}			= &trim($row[9]);
+		$g_docs{$doc_id}{pub_status}		= &trim($row[10]);
+		$g_docs{$doc_id}{review_status}		= &trim($row[11]);
+		$g_docs{$doc_id}{tickle_date}		= &trim($row[12]);
+		$g_docs{$doc_id}{pub_date}		= &trim($row[13]);
+		$g_docs{$doc_id}{ref_url}		= &trim($row[14]);
+		$g_docs{$doc_id}{tech_review_status}	= &trim($row[15]);
+		$g_docs{$doc_id}{maintained}		= &trim($row[16]);
+		$g_docs{$doc_id}{license}		= &trim($row[17]);
+		$g_docs{$doc_id}{abstract}		= &trim($row[18]);
+		$g_docs{$doc_id}{rating}		= &trim($row[19]);
 	}
-	return %docs;
 }
 
 sub Doc {
@@ -432,9 +441,8 @@ sub SaveDoc {
 
 sub Lintadas {
 	my $self = @_;
-	my %docs = Docs();
 	my $doc_id;
-	foreach $doc_id (keys %docs) {
+	foreach $doc_id (keys %g_docs) {
 		LintadasDoc($foo, $doc_id);
 	}
 }
@@ -955,7 +963,7 @@ sub DocCountByPubStatus {
 
 sub ReadCookie {
 	my $session_id = $CGI->cookie('lampadas_session');
-	my $currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'");
+	$currentuser_id = $DB->Value("SELECT user_id FROM username WHERE session_id='$session_id'");
 	if ($currentuser_id) {
 		%currentuser = User($foo, $currentuser_id);
 	}
@@ -970,6 +978,7 @@ sub StartPage {
 	} else {
 		print $CGI->header(-expires=>'now');
 	}
+	ReadCookie();
 
 	my %user = CurrentUser();
 	my $stylesheet = $user{stylesheet};
@@ -999,6 +1008,7 @@ sub StartPage {
 	LoginBox() unless ($currentuser_id);
 	UserBox();
 	AdminBox() if (Maintainer());
+	SysAdminBox() if (SysAdmin());
 	NavBox();
 	TopicsBox();
 	print "</td><td valign=top>\n";
@@ -1245,7 +1255,7 @@ sub UserTable {
 	$table .= "</tr>\n";
 	$table .= "<tr><th>First Name</th><td><input type=text name='first_name' size=20 value='$user{first_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Middle Name</th><td><input type=text name='middle_name' size=20 value='$user{middle_name}'></input></td></tr>\n";
-	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=20 value='" . html($user{surname}) . "'></input></td></tr>\n";
+	$table .= "<tr><th>Surname</th><td><input type=text name='surname' size=20 value='" . html_encode($user{surname}) . "'></input></td></tr>\n";
 	$table .= "<tr><th>Email</th><td><input type=text name='email' size=20 value='$user{email}'></input></td></tr>\n";
 	$table .= "<tr><th>Stylesheet</th><td>";
 	$table .= StylesheetCombo($foo, $user{stylesheet});
@@ -1379,7 +1389,6 @@ sub UserNotesTable {
 
 sub DocsTable {
 	my ($self) = @_;
-	my %docs = Docs();
 	my %userdocs = UserDocs($foo, CurrentUserID());
 	my %classes = Classes();
 	my %pubstatuses = PubStatuses();
@@ -1464,7 +1473,6 @@ sub DocsTable {
 	$table .= "</tr>";
 	$table .= "<tr><td align=center valign=top>\n";
 	$table .= "<table><tr><td>";
-	my $class_id;
 	foreach $class_id (sort { $classes{$a}{name} cmp $classes{$b}{name} } keys %classes) {
 		my $name = 'chkCLASS' . $class_id;
 		my $value = Param($foo, $name);
@@ -1570,33 +1578,33 @@ sub DocsTable {
 	my $sort = Param($foo, 'strSORT');
 	my @docids;
 	if ($sort eq 'class') {
-		@docids = sort { $classes{$docs{$a}{class_id}}{name} cmp $classes{$docs{$b}{class_id}}{name} } keys %docs;
+		@docids = sort { $classes{$g_docs{$a}{class_id}}{name} cmp $classes{$g_docs{$b}{class_id}}{name} } keys %g_docs;
 	} elsif ($sort eq 'rating') {
-		@docids = sort { $docs{$a}{rating} <=> $docs{$b}{rating} } keys %docs;
+		@docids = sort { $g_docs{$a}{rating} <=> $g_docs{$b}{rating} } keys %g_docs;
 	} elsif ($sort eq 'pub_status') {
-		@docids = sort { $docs{$a}{pub_status} cmp $docs{$b}{pub_status} } keys %docs;
+		@docids = sort { $g_docs{$a}{pub_status} cmp $g_docs{$b}{pub_status} } keys %g_docs;
 	} elsif ($sort eq 'review_status_name') {
-		@docids = sort { $reviewstatuses{$docs{$a}{review_status}}{name} cmp $reviewstatuses{$docs{$b}{review_status}}{name} } keys %docs;
+		@docids = sort { $reviewstatuses{$g_docs{$a}{review_status}}{name} cmp $reviewstatuses{$g_docs{$b}{review_status}}{name} } keys %g_docs;
 	} elsif ($sort eq 'tech_review_status_name') {
-		@docids = sort { $reviewstatuses{$docs{$a}{tech_review_status}}{name} cmp $reviewstatuses{$docs{$b}{tech_review_status}}{name} } keys %docs;
+		@docids = sort { $reviewstatuses{$g_docs{$a}{tech_review_status}}{name} cmp $reviewstatuses{$g_docs{$b}{tech_review_status}}{name} } keys %g_docs;
 	} elsif ($sort eq 'format') {
-		@docids = sort { $docs{$a}{format} cmp $docs{$b}{format} } keys %docs;
+		@docids = sort { $g_docs{$a}{format} cmp $g_docs{$b}{format} } keys %g_docs;
 	} elsif ($sort eq 'dtd') {
-		@docids = sort { $docs{$a}{dtd} cmp $docs{$b}{dtd} } keys %docs;
+		@docids = sort { $g_docs{$a}{dtd} cmp $g_docs{$b}{dtd} } keys %g_docs;
 	} elsif ($sort eq 'pub_date') {
-		@docids = sort { $docs{$a}{pub_date} cmp $docs{$b}{pub_date} } keys %docs;
+		@docids = sort { $g_docs{$a}{pub_date} cmp $g_docs{$b}{pub_date} } keys %g_docs;
 	} elsif ($sort eq 'last_update') {
-		@docids = sort { $docs{$a}{last_update} cmp $docs{$b}{last_update} } keys %docs;
+		@docids = sort { $g_docs{$a}{last_update} cmp $g_docs{$b}{last_update} } keys %g_docs;
 	} elsif ($sort eq 'tickle_date') {
-		@docids = sort { $docs{$a}{tickle_date} cmp $docs{$b}{tickle_date} } keys %docs;
+		@docids = sort { $g_docs{$a}{tickle_date} cmp $g_docs{$b}{tickle_date} } keys %g_docs;
 	} elsif ($sort eq 'url') {
-		@docids = sort { $docs{$a}{url} cmp $docs{$b}{url} } keys %docs;
+		@docids = sort { $g_docs{$a}{url} cmp $g_docs{$b}{url} } keys %g_docs;
 	} elsif ($sort eq 'maintained') {
-		@docids = sort { $docs{$a}{maintained} cmp $docs{$b}{maintained} } keys %docs;
+		@docids = sort { $g_docs{$a}{maintained} cmp $g_docs{$b}{maintained} } keys %g_docs;
 	} elsif ($sort eq 'license') {
-		@docids = sort { $docs{$a}{license} cmp $docs{$b}{license} } keys %docs;
+		@docids = sort { $g_docs{$a}{license} cmp $g_docs{$b}{license} } keys %g_docs;
 	} else {
-		@docids = sort { &sortTitle($docs{$a}{title}) cmp &sortTitle($docs{$b}{title}) } keys %docs;
+		@docids = sort { &sortTitle($g_docs{$a}{title}) cmp &sortTitle($g_docs{$b}{title}) } keys %g_docs;
 	}
 
 	my $doc_id;
@@ -1606,7 +1614,7 @@ sub DocsTable {
 			my $classok = 0;
 			my $class_id;
 			foreach $class_id (keys %myclasses) {
-				if ($docs{$doc_id}{class_id} eq $class_id) {
+				if ($g_docs{$doc_id}{class_id} eq $class_id) {
 					$classok = 1;
 				}
 			}
@@ -1615,13 +1623,13 @@ sub DocsTable {
 
 		if ($mypub_status) {
 			my $pub_statusok = 0;
-			if ($docs{$doc_id}{pub_status} eq $mypub_status) {
+			if ($g_docs{$doc_id}{pub_status} eq $mypub_status) {
 				$pub_statusok = 1;
 			}
 			next unless ($pub_statusok);
 		}
 
-		next unless (($docs{$doc_id}{url}) or Admin() or (exists $userdocs{$doc_id}));
+		next unless (($g_docs{$doc_id}{url}) or Admin() or (exists $userdocs{$doc_id}));
 
 		$table .= "<tr>";
 		if (Maintainer()) {
@@ -1632,33 +1640,33 @@ sub DocsTable {
 			$table .= "</td>";
 
 			$table .= "<td>";
-			if ($docs{$doc_id}{url}) {
-				$table .= "<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
+			if ($g_docs{$doc_id}{url}) {
+				$table .= "<a href='$g_docs{$doc_id}{url}'>$g_docs{$doc_id}{title}</a>";
 			} else {
-				$table .= $docs{$doc_id}{title};
+				$table .= $g_docs{$doc_id}{title};
 			}
 			$table .= "</td>\n";
-		} elsif ($docs{$doc_id}{url}) {
+		} elsif ($g_docs{$doc_id}{url}) {
 			$table .= "<td>";
-			$table .= "<a href='$docs{$doc_id}{url}'>$docs{$doc_id}{title}</a>";
+			$table .= "<a href='$g_docs{$doc_id}{url}'>$g_docs{$doc_id}{title}</a>";
 			$table .= "</td>\n";
 		} else {
 			next;
 		}
-		$table .= "<td>$pubstatuses{$docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, 'chkSTATUS'));
-		$table .= "<td>$reviewstatuses{$docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, 'chkREVIEWSTATUS'));
-		$table .= "<td>$reviewstatuses{$docs{$doc_id}{tech_review_status}}{name}</td>" if (Param($foo, 'chkTECHSTATUS'));
-		$table .= "<td>$docs{$doc_id}{rating}</td>" if (Param($foo, 'chkRATING'));
-		$table .= "<td>$docs{$doc_id}{maintained}</td>" if (Param($foo, 'chkMAINTAINED'));
-		$table .= "<td>$docs{$doc_id}{license}</td>" if (Param($foo, 'chkLICENSE'));
-		$table .= "<td>$docs{$doc_id}{version}</td>" if (Param($foo, 'chkVERSION'));
-		$table .= "<td>$classes{$docs{$doc_id}{class_id}}{name}</td>" if (Param($foo, 'chkCLASS'));
-		$table .= "<td>$docs{$doc_id}{format}</td>" if (Param($foo, 'chkFORMAT'));
-		$table .= "<td>$docs{$doc_id}{dtd}</td>" if (Param($foo, 'chkDTD'));
-		$table .= "<td>$docs{$doc_id}{pub_date}</td>" if (Param($foo, 'chkPUBDATE'));
-		$table .= "<td>$docs{$doc_id}{last_update}</td>" if (Param($foo, 'chkLASTUPDATE'));
+		$table .= "<td>$pubstatuses{$g_docs{$doc_id}{pub_status}}{name}</td>" if (Param($foo, 'chkSTATUS'));
+		$table .= "<td>$reviewstatuses{$g_docs{$doc_id}{review_status}}{name}</td>" if (Param($foo, 'chkREVIEWSTATUS'));
+		$table .= "<td>$reviewstatuses{$g_docs{$doc_id}{tech_review_status}}{name}</td>" if (Param($foo, 'chkTECHSTATUS'));
+		$table .= "<td>$g_docs{$doc_id}{rating}</td>" if (Param($foo, 'chkRATING'));
+		$table .= "<td>$g_docs{$doc_id}{maintained}</td>" if (Param($foo, 'chkMAINTAINED'));
+		$table .= "<td>$g_docs{$doc_id}{license}</td>" if (Param($foo, 'chkLICENSE'));
+		$table .= "<td>$g_docs{$doc_id}{version}</td>" if (Param($foo, 'chkVERSION'));
+		$table .= "<td>$classes{$g_docs{$doc_id}{class_id}}{name}</td>" if (Param($foo, 'chkCLASS'));
+		$table .= "<td>$g_docs{$doc_id}{format}</td>" if (Param($foo, 'chkFORMAT'));
+		$table .= "<td>$g_docs{$doc_id}{dtd}</td>" if (Param($foo, 'chkDTD'));
+		$table .= "<td>$g_docs{$doc_id}{pub_date}</td>" if (Param($foo, 'chkPUBDATE'));
+		$table .= "<td>$g_docs{$doc_id}{last_update}</td>" if (Param($foo, 'chkLASTUPDATE'));
 		if (Param($foo, 'chkTICKLEDATE')) {
-			my $tickle_date = $docs{$doc_id}{tickle_date};
+			my $tickle_date = $g_docs{$doc_id}{tickle_date};
 			my $date = `date -I`;
 			if ($date gt $tickle_date) {
 				$table .= "<td><font color=red>$tickle_date</font></td>";
@@ -1667,7 +1675,7 @@ sub DocsTable {
 			}
 		}
 	
-		$table .= "<td>$docs{$doc_id}{url}</td>" if (Param($foo, 'chkURL'));
+		$table .= "<td>$g_docs{$doc_id}{url}</td>" if (Param($foo, 'chkURL'));
 		$table .= "</tr>\n";
 	}
 	$table .= "</table>\n";
@@ -2603,10 +2611,15 @@ sub AdminBox {
 	print "<tr><td><a href='error_list.pl'>View All Errors</a></td></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Manage User Accounts</a></td></tr>\n";
 	print "<tr><td><a href='document_new.pl'>Add a Document</a></td></tr>\n";
-	if (SysAdmin()) {
-		print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
-		print "<tr><td><a href='string_edit.pl'>Edit Strings</a></td></tr>\n";
-	}
+	print "</td></tr></table>\n";
+}
+
+sub SysAdminBox {
+	return unless SysAdmin();
+	print "<table class='navbox'>\n";
+	print "<tr><th>SysAdmin Tools</th></tr>\n";
+	print "<tr><td><a href='cvs_update.pl'>Force CVS Update</a></td></tr>\n";
+	print "<tr><td><a href='string_edit.pl'>Edit Strings</a></td></tr>\n";
 	print "</td></tr></table>\n";
 }
 
@@ -2810,7 +2823,7 @@ sub wsq {
 	}
 }
 
-sub html {
+sub html_encode {
 	my $temp = shift;
 	$temp =~ s/\'/&#39\;/;
 	return $temp;

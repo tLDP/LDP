@@ -4,18 +4,20 @@
 # 
 package Lampadas::Database;
 
+#use diagnostics;
 use strict;
 
 use Pg;
-use Exporter;
+#use Exporter;
 use FileHandle;
 
-my @ISA	= qw(Exporter);
-my @EXPORT	= qw(
-		new,
-		Row,
-		Value,
-		Exec);
+#my @ISA	= qw(Exporter);
+#my @EXPORT = qw(
+#	new
+#	Row
+#	Value
+#	Exec
+#);
 
 my $conn;
 my $debug = 0;
