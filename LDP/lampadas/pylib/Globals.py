@@ -34,6 +34,10 @@ import htmlentitydefs
 
 VERSION = '0.9.5-cvs'
 
+YES = 1
+NO  = 0
+
+
 # How many items to clear from a cache when it is full
 # and we're adding another object to it.
 CACHE_REMOVAL_DELTA     = 10
