@@ -90,10 +90,12 @@ class Target:
             else:
                 dep_text = dep_text + ' ' + key
         dep_text = dep_text + '\n'
-        cmd_text = ''
+        cmd_text = '\t'
         for key in self.commands.sort_by('sort_order'):
             command = self.commands[key]
-            cmd_text += '\t' + command.command
+            if command.errors_to > '':
+                cmd_text += 'rm ' + command.errors_to + '; '
+            cmd_text += command.command
             if command.output_to > '':
                 cmd_text += ' > ' + command.output_to
             if command.errors_to > '':
