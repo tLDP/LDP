@@ -87,8 +87,9 @@ class Tables(LampadasCollection):
         elif sessions.session.user.can_edit(doc_id=uri.id)==0:
             return '|blknopermission|'
 
-        box = WOStringIO('<table class="box" width="100%">')
-        box.write('<tr><th colspan="6">|strdocdetails|</th></tr>')
+        box = WOStringIO('<table class="box" width="100%">' \
+                         '<tr><th colspan="6">|strdocdetails|</th></tr>')
+                
         if uri.id > 0:
             lintadas.check_doc(uri.id)
             lintadas.import_doc_metadata(uri.id)
@@ -120,8 +121,7 @@ class Tables(LampadasCollection):
         <tr>
           <td class="label">|strabstract|</td>
           <td colspan="5"><textarea name="abstract" rows="6" cols="40" style="width:100%%" wrap>%s</textarea></td>
-        </tr>''' % (doc.short_desc,
-                    doc.abstract))
+        </tr>''' % (doc.short_desc, doc.abstract))
         box.write('<tr>')
         box.write('<td class="label">|strstatus|</td><td>' + widgets.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
         box.write('<td class="label">|strtype|</td><td>' + widgets.type_code(doc.type_code, uri.lang) + '</td>\n')
@@ -522,7 +522,7 @@ class Tables(LampadasCollection):
             box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
             box = box + '<td>' + error.name[uri.lang]
             if docerror.notes > '':
-                box = box + '<br><pre>' + html_encode(docerror.notes) + '</pre>'
+                box = box + '<br><pre>' + docerror.notes + '</pre>'
             box = box + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -722,39 +722,44 @@ class Tables(LampadasCollection):
         return box
         
     def doctable(self, uri,
-                 title=None,
-                 pub_status_code=None,
-                 type_code=None,
-                 topic_code=None,
-                 username=None,
-                 maintained=None,
-                 maintainer_wanted=None,
-                 lang=None,
-                 review_status_code=None,
-                 tech_review_status_code=None,
-                 pub_date=None,
-                 last_update=None,
-                 tickle_date=None,
-                 isbn=None,
-                 rating=None,
-                 format_code=None,
-                 dtd_code=None,
-                 license_code=None,
-                 copyright_holder=None,
-                 sk_seriesid=None,
-                 abstract=None,
-                 short_desc=None,
-                 collection_code=None,
+                 title='',
+                 short_title='',
+                 pub_status_code='',
+                 type_code='',
+                 topic_code='',
+                 username='',
+                 maintained='',
+                 maintainer_wanted='',
+                 lang='',
+                 review_status_code='',
+                 tech_review_status_code='',
+                 pub_date='',
+                 last_update='',
+                 tickle_date='',
+                 isbn='',
+                 rating='',
+                 format_code='',
+                 dtd_code='',
+                 license_code='',
+                 copyright_holder='',
+                 sk_seriesid='',
+                 abstract='',
+                 short_desc='',
+                 collection_code='',
                  columns={},
                  layout='compact',
+                 show_search=0
                 ):
         """
         Creates a listing of all documents which fit the parameters passed in.
 
-        You can select a layout from "compact" or "block". Compact is onel line
-        per document; block is a table per document. The block layout does
+        You can select a layout from "compact" or "expanded". Compact is one line
+        per document; expanded is a table per document. The expanded layout does
         not accept additional columns to be requested, and ignores the columns{}
         parameter.
+
+        The DocTable includes its own search form, although the search form
+        can also stand alone.
         """
 
         log(3, "Creating doctable")
@@ -768,7 +773,7 @@ class Tables(LampadasCollection):
             for column in columns.keys():
                 box.write('<th class="collabel">%s</td>' % column)
             box.write('</tr>\n')
-        elif layout=='block':
+        elif layout=='expanded':
             box = WOStringIO('')
 
         keys = lampadas.docs.sort_by("title")
@@ -783,80 +788,83 @@ class Tables(LampadasCollection):
 
             # Filter documents according to parameters passed in
             # by the calling routine.
-            if not username==None:
+            if username > '':
                 if doc.users[username]==None:
                     continue
-            if not lang==None:
+            if lang > '':
                 if doc.lang <> lang:
                     continue
-            if not pub_status_code==None:
+            if pub_status_code > '':
                 if doc.pub_status_code <> pub_status_code:
                     continue
             
             # If any other parameters were specified, limit the documents
             # to those which match the requirements.
-            if not type_code==None:
+            if type_code > '':
                 if doc.type_code <> type_code:
                     continue
-            if not topic_code==None:
+            if topic_code > '':
                 topic = lampadas.topics[topic_code]
                 if topic.docs[doc.id]==None:
                     continue
-            if not maintained==None:
-                if doc.maintained <> maintained:
+            if maintained > '':
+                if doc.maintained <> int(maintained):
                     continue
-            if not maintainer_wanted==None:
-                if doc.maintainer_wanted <> maintainer_wanted:
+            if maintainer_wanted > '':
+                if doc.maintainer_wanted <> int(maintainer_wanted):
                     continue
-            if not title==None:
+            if title > '':
                 if doc.title.upper().find(title.upper())==-1:
                     continue
-            if not review_status_code==None:
+            if short_desc > '':
+                if doc.short_title.upper().find(short_title.upper())==-1:
+                    continue
+            if review_status_code > '':
                 if doc.review_status_code <> review_status_code:
                     continue
-            if not review_status_code==None:
+            if review_status_code > '':
                 if doc.review_status_code <> review_status_code:
                     continue
-            if not tech_review_status_code==None:
+            if tech_review_status_code > '':
                 if doc.tech_review_status_code <> tech_review_status_code:
                     continue
-            if not pub_date==None:
+            if pub_date > '':
                 if doc.pub_date <> pub_date:
                     continue
-            if not last_update==None:
+            if last_update > '':
                 if doc.last_update <> last_update:
                     continue
-            if not tickle_date==None:
+            if tickle_date > '':
                 if doc.tickle_date <> tickle_date:
                     continue
-            if not isbn==None:
+            if isbn > '':
                 if doc.isbn <> isbn:
                     continue
-            if not rating==None:
-                if doc.rating <> rating:
+            if rating > '':
+                if doc.rating <> int(rating):
                     continue
-            if not format_code==None:
+            if format_code > '':
                 if doc.format_code <> format_code:
                     continue
-            if not dtd_code==None:
+            if dtd_code > '':
                 if doc.dtd_code <> dtd_code:
                     continue
-            if not license_code==None:
+            if license_code > '':
                 if doc.license_code <> license_code:
                     continue
-            if not copyright_holder==None:
+            if copyright_holder > '':
                 if doc.copyright_holder.upper().find(copyright_holder.upper())==-1:
                     continue
-            if not sk_seriesid==None:
+            if sk_seriesid > '':
                 if doc.sk_seriesid.find(sk_seriesid)==-1:
                     continue
-            if not abstract==None:
+            if abstract > '':
                 if doc.abstract.upper().find(abstract.upper())==-1:
                     continue
-            if not short_desc==None:
+            if short_desc > '':
                 if doc.short_desc.upper().find(short_desc.upper())==-1:
                     continue
-            if not collection_code==None:
+            if collection_code > '':
                 if collection_code not in doc.collections.keys():
                     continue
 
@@ -871,25 +879,7 @@ class Tables(LampadasCollection):
             if layout=='compact':
                 box.write('<tr class="%s">\n' % odd_even.get_next())
                
-                # Link to the online output
-                if doc.pub_time > '':
-                    box.write('<td width=22><a href="|uri.base|doc/%s/index.html">%s</a></td>\n'
-                              % (str(doc.id), HTML_ICON_SM))
-                else:
-                    box.write('<td></td>\n')
-                
-                # Folder icon
-                if (sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1) or doc.pub_time > '':
-                    box.write('<td width=22><a href="|uri.base|docdownloads/%s/">%s</a></td>\n' % (str(doc.id), FOLDER_ICON_SM))
-                else:
-                    box.write('<td></td>')
-                    
-                # Edit icon
-                if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
-                    box.write('<td width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></td>\n'
-                              % (str(doc.id), EDIT_ICON_SM))
-                else:
-                    box.write('<td></td>')
+                box.write(self.document_icon_cells(doc.id, 'td'))
 
                 # Format the title differently to flag its status
                 if doc.pub_time > '':
@@ -907,7 +897,7 @@ class Tables(LampadasCollection):
                 box.write('</tr>\n')
 
             # This is a blocky extended listing, complete with abstracts.
-            elif layout=='block':
+            elif layout=='expanded':
 
                 # Link to the online output.
                 if doc.pub_time > '':
@@ -916,10 +906,10 @@ class Tables(LampadasCollection):
                     block_indexlink = '<td width=32></td>'
                 
                 # Folder icon
-                if (sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1) or doc.pub_time > '':
+                if doc.pub_time > '':
                     block_dllink = '<td width=32><a href="|uri.base|docdownloads/' + str(doc.id) + '/">' + FOLDER_ICON + '</a></td>'
                 else:
-                    box.write('<td width=32></td>')
+                    block_dllink = ('<td width=32></td>')
 
                 # Edit icon
                 if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
@@ -949,6 +939,70 @@ class Tables(LampadasCollection):
         if layout=='compact':
             box.write('</table>\n')
 
+        # The DocTable can carry along its own search form that stays in sync
+        # for filtering the data. Insert it here if show_search was passed in.
+        if show_search==1:
+            box.write(self.tabsearch(uri, title=title,
+                                          short_title=short_title,
+                                          pub_status_code=pub_status_code,
+                                          type_code=type_code,
+                                          topic_code=topic_code,
+                                          username=username,
+                                          maintained=maintained,
+                                          maintainer_wanted=maintainer_wanted,
+                                          lang=lang,
+                                          review_status_code=review_status_code,
+                                          tech_review_status_code=tech_review_status_code,
+                                          pub_date=pub_date,
+                                          last_update=last_update,
+                                          tickle_date=tickle_date,
+                                          isbn=isbn,
+                                          rating=rating,
+                                          format_code=format_code,
+                                          dtd_code=dtd_code,
+                                          license_code=license_code,
+                                          copyright_holder=copyright_holder,
+                                          sk_seriesid=sk_seriesid,
+                                          abstract=abstract,
+                                          short_desc=short_desc,
+                                          collection_code=collection_code,
+                                          layout=layout))
+
+        return box.get_value()
+
+    def tabdocument_icon_box(self, uri):
+        """Returns a navigation box of document icons."""
+
+        box = WOStringIO('<table><tr>%s</tr></table>'
+                        % (self.document_icon_cells(uri.id)))
+        return box.get_value()
+        
+    def document_icon_cells(self, doc_id, cell_type='td'):
+        """Returns a series of three cells populated with icons for the document."""
+
+        doc = lampadas.docs[doc_id]
+
+        # Link to the online output
+        if doc.pub_time > '':
+            box = WOStringIO('<%s width=22><a href="|uri.base|doc/%s/index.html">%s</a></%s>\n'
+                            % (cell_type,str(doc.id), HTML_ICON_SM, cell_type))
+        else:
+            box = WOStringIO('<%s></%s>\n' % (cell_type, cell_type))
+        
+        # Folder icon
+        if doc.mirror_time > '':
+            box.write('<%s width=22><a href="|uri.base|docdownloads/%s/">%s</a></%s>\n'
+                     % (cell_type, str(doc.id), FOLDER_ICON_SM, cell_type))
+        else:
+            box.write('<%s></%s>\n' % (cell_type, cell_type))
+            
+        # Edit icon
+        if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
+            box.write('<%s width=22><a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a></%s>\n'
+                      % (cell_type, str(doc.id), EDIT_ICON_SM, cell_type))
+        else:
+            box.write('<%s></%s>\n' % (cell_type, cell_type))
+        
         return box.get_value()
 
     def userdocs(self, uri, username=''):
@@ -1270,7 +1324,12 @@ class Tables(LampadasCollection):
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
-    def tabsearch(self, uri):
+    def tabsearch(self, uri, title='', short_title='', pub_status_code='', type_code='', topic_code='',
+                    username='', maintained='', maintainer_wanted='', lang='', review_status_code='',
+                    tech_review_status_code='', pub_date='', last_update='', tickle_date='',
+                    isbn='', rating='', format_code='', dtd_code='', license_code='',
+                    copyright_holder='', sk_seriesid='', abstract='', short_desc='', collection_code='',
+                    layout='compact'):
         log(3, 'Creating tabsearch table')
         box = WOStringIO()
         box.write('''
@@ -1278,9 +1337,11 @@ class Tables(LampadasCollection):
             <form name="search" action="/data/search/document">
             <tr><th colspan="2">|strsearch|</th></tr>\n
             <tr><td class="label">|strtitle|</td><td>%s</td></tr>
+            <tr><td class="label">|strshort_title|</td><td>%s</td></tr>
             <tr><td class="label">|strstatus|</td><td>%s</td></tr>
             <tr><td class="label">|strtype|</td><td>%s</td></tr>
             <tr><td class="label">|strtopic|</td><td>%s</td></tr>
+            <tr><td class="label">|strusername|</td><td>%s</td></tr>
             <tr><td class="label">|strmaintained|</td><td>%s</td></tr>
             <tr><td class="label">|strmaint_wanted|</td><td>%s</td></tr>
             <tr><td class="label">|strlanguage|</td><td>%s</td></tr>
@@ -1298,34 +1359,63 @@ class Tables(LampadasCollection):
             <tr><td class="label">|strtrans_master|</td><td>%s</td></tr>
             <tr><td class="label">|strabstract|</td><td>%s</td></tr>
             <tr><td class="label">|strshort_desc|</td><td>%s</td></tr>
+            <tr><td class="label">|strcollection|</td><td>%s</td></tr>
+            <tr><td class="label">|strlayout|</td><td>%s</td></tr>
             <tr><td></td><td><input type="submit" value="|strsearch|"></td></tr>
             </form>
             </table>
             '''
-            % (widgets.title(''),
-               widgets.pub_status_code('', uri.lang),
-               widgets.type_code('', uri.lang),
-               widgets.topic_code('', uri.lang),
-               widgets.tf('maintained', '', uri.lang),
-               widgets.tf('maintainer_wanted', '', uri.lang),
-               widgets.doc_lang(uri.lang, uri.lang),
-               widgets.review_status_code('', uri.lang),
-               widgets.tech_review_status_code('', uri.lang),
-               widgets.pub_date(''),
-               widgets.last_update(''),
-               widgets.tickle_date(''),
-               widgets.isbn(''),
-               widgets.rating(''),
-               widgets.format_code('', uri.lang),
-               widgets.dtd_code(''),
-               widgets.license_code('', uri.lang),
-               widgets.copyright_holder(''),
-               widgets.sk_seriesid(''),
-               widgets.abstract(''),
-               widgets.short_desc('')
+            % (widgets.title(title),
+               widgets.short_title(short_title),
+               widgets.pub_status_code(pub_status_code, uri.lang),
+               widgets.type_code(type_code, uri.lang),
+               widgets.topic_code(topic_code, uri.lang),
+               widgets.username(username),
+               widgets.tf('maintained', maintained, uri.lang),
+               widgets.tf('maintainer_wanted', maintainer_wanted, uri.lang),
+               widgets.doc_lang(lang, uri.lang),
+               widgets.review_status_code(review_status_code, uri.lang),
+               widgets.tech_review_status_code(tech_review_status_code, uri.lang),
+               widgets.pub_date(pub_date),
+               widgets.last_update(last_update),
+               widgets.tickle_date(tickle_date),
+               widgets.isbn(isbn),
+               widgets.rating(rating),
+               widgets.format_code(format_code, uri.lang),
+               widgets.dtd_code(dtd_code),
+               widgets.license_code(license_code, uri.lang),
+               widgets.copyright_holder(copyright_holder),
+               widgets.sk_seriesid(sk_seriesid),
+               widgets.abstract(abstract),
+               widgets.short_desc(short_desc),
+               widgets.collection_code(collection_code, uri.lang),
+               widgets.doctable_layout(layout)
                ))
         return box.get_value()
 
+    def tablint_time_stats(self, uri):
+        log(3, 'Creating lint_time_stats table')
+        box = WOStringIO('<table class="box">\n' \
+                         '<tr><th colspan="3">|strlint_time_stats|</th></tr>\n' \
+                         '<tr><th class="collabel">|strlint_time|</th>\n' \
+                             '<th class="collabel" align="right">|strcount|</th>\n' \
+                             '<th class="collabel" align="right">|strpct|</th>\n' \
+                         '</tr>\n')
+        stattable = stats['lint_time']
+        odd_even = OddEven()
+        for key in stattable.sort_by('label'):
+            stat = stattable[key]
+            box.write('<tr class="%s"><td class="label">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                          '<td align="right">%s</td>\n' \
+                      '</tr>\n'
+                      % (odd_even.get_next(), stat.label, stat.value, fpformat.fix(stats['lint_time'].pct(key) * 100, 2)))
+        box.write('<tr class="%s"><td class="label">|strtotal|</td>\n' \
+                      '<td align="right">%s</td><td></td>\n' \
+                  '</tr></table>'
+                  % (odd_even.get_next(), stattable.sum()))
+        return box.get_value()
+        
     def tabmirror_time_stats(self, uri):
         log(3, 'Creating mirror_time_stats table')
         box = WOStringIO('<table class="box">\n' \
@@ -1584,15 +1674,15 @@ class DocTable(Table):
         Table.__init__(self, 'doctable', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='compact')
+        return tables.doctable(uri, lang=uri.lang, layout='compact', show_search=0)
 
-class DocTableBlock(Table):
+class DocTableExpanded(Table):
 
     def __init__(self):
-        Table.__init__(self, 'doctableblock', self.method)
+        Table.__init__(self, 'doctableexpanded', self.method)
 
     def method(self, uri):
-        return tables.doctable(uri, lang=uri.lang, layout='block')
+        return tables.doctable(uri, lang=uri.lang, layout='expanded', show_search=0)
 
 
 class TableMap(LampadasCollection):
@@ -1600,7 +1690,7 @@ class TableMap(LampadasCollection):
     def __init__(self):
         self.data = {}
         self['tabdocs'] = DocTable()
-        self['tabdocs_block'] = DocTableBlock()
+        self['tabdocs_expanded'] = DocTableExpanded()
 
 tables = Tables()
 tablemap = TableMap()

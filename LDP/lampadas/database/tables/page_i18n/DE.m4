@@ -72,7 +72,7 @@ insert([doctable], [Dokumente durchsehen], [],
 
 insert([document_list], [Liste der Dokumente], [],
 [
-    |tabdocs_block|
+    |tabdocs_expanded|
 ], 0)    
 
 insert([search], [Suche], [],
@@ -89,6 +89,7 @@ insert([stats], [Current Statistics], [],
 [
     |tabpub_status_stats|
     <p>|tabdoc_error_stats|
+    <p>|tablint_time_stats|
     <p>|tabmirror_time_stats|
     <p>|tabpub_time_stats|
     <p>|tabdoc_format_stats|

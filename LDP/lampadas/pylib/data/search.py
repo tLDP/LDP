@@ -34,9 +34,11 @@ import os
 
 def document(req,
              title='',
+             short_title='',
              pub_status_code='',
              type_code='',
              topic_code='',
+             username='',
              maintained='',
              maintainer_wanted='',
              lang='',
@@ -54,6 +56,9 @@ def document(req,
              sk_seriesid='',
              abstract='',
              short_desc='',
+             collection_code='',
+             columns={},
+             layout='compact'
              ):
     """
     Returns the results of a document search.
@@ -74,27 +79,32 @@ def document(req,
     # be rather expensive. -- DCM
     save_page = page.page[uri.lang]
     table = tables.doctable(uri, 
-                            title                   = empty2None_str(title),
-                            pub_status_code         = empty2None_str(pub_status_code),
-                            type_code               = empty2None_str(type_code),
-                            topic_code              = empty2None_str(topic_code),
-                            maintained              = empty2None_int(maintained),
-                            maintainer_wanted       = empty2None_int(maintainer_wanted),
-                            lang                    = empty2None_str(lang),
-                            review_status_code      = empty2None_str(review_status_code),
-                            tech_review_status_code = empty2None_str(tech_review_status_code),
-                            pub_date                = empty2None_str(pub_date),
-                            last_update             = empty2None_str(last_update),
-                            tickle_date             = empty2None_str(tickle_date),
-                            isbn                    = empty2None_str(isbn),
-                            rating                  = empty2None_str(rating),
-                            format_code             = empty2None_str(format_code),
-                            dtd_code                = empty2None_str(dtd_code),
-                            license_code            = empty2None_str(license_code),
-                            copyright_holder        = empty2None_str(copyright_holder),
-                            sk_seriesid             = empty2None_str(sk_seriesid),
-                            abstract            = empty2None_str(abstract),
-                            short_desc          = empty2None_str(short_desc))
+                            title                   = title,
+                            short_title             = short_title,
+                            pub_status_code         = pub_status_code,
+                            type_code               = type_code,
+                            topic_code              = topic_code,
+                            username                = username,
+                            maintained              = maintained,
+                            maintainer_wanted       = maintainer_wanted,
+                            lang                    = lang,
+                            review_status_code      = review_status_code,
+                            tech_review_status_code = tech_review_status_code,
+                            pub_date                = pub_date,
+                            last_update             = last_update,
+                            tickle_date             = tickle_date,
+                            isbn                    = isbn,
+                            rating                  = rating,
+                            format_code             = format_code,
+                            dtd_code                = dtd_code,
+                            license_code            = license_code,
+                            copyright_holder        = copyright_holder,
+                            sk_seriesid             = sk_seriesid,
+                            abstract                = abstract,
+                            short_desc              = short_desc,
+                            collection_code         = collection_code,
+                            layout                  = layout,
+                            show_search             = 1)
 
     page.page[uri.lang] = page.page[uri.lang].replace('|tabdocs|', table)
     uri = URI('doctable' + referer_lang_ext(req))
@@ -104,14 +114,3 @@ def document(req,
     # Restore the original page
     page.page[uri.lang] = save_page
     return html
-
-def empty2None_str(astring):
-    if astring=='':
-        return None
-    return astring
-
-def empty2None_int(astring):
-    if astring=='':
-        return None
-    return int(astring)
-

@@ -55,7 +55,7 @@ insert([doctable], [Document Table], [],
 
 insert([document_list], [Detailed Document Table], [],
 [
-    |tabdocs_block|
+    |tabdocs_expanded|
 ], 1)    
 
 insert([search], [Search], [],
@@ -71,9 +71,38 @@ insert([news], [Recent News], [],
 insert([stats], [Current Statistics], [],
 [
     |tabpub_status_stats|
-    <p>|tabdoc_error_stats|
+
+    <h1>Publishing Statistics</h1>
+
+    <p>These statistics show the state of the document publication
+    system.
+
+    <p>The first table indicates when Lintadas (the Lampadas error
+    checker) was run on each document:
+    
+    <p>|tablint_time_stats|
+
+    <p>This table indicates when documents were successfully mirrored:
+    
     <p>|tabmirror_time_stats|
+
+    <p>This table indicates when documents were successfully published:
+    
     <p>|tabpub_time_stats|
+
+    <p>This table indicates what document errors have been identified by
+    Lintadas, or during mirroring or publication:
+    
+    <p>|tabdoc_error_stats|
+
+    <h1>Published Document Statistics</h1>
+
+    <p>The rest of these statistics only report on documents that
+    have been successfully published.
+
+    <p>The following tables give statistics on various document
+    meta-data:
+    
     <p>|tabdoc_format_stats|
     <p>|tabdoc_dtd_stats|
 ], 1)
@@ -415,7 +444,7 @@ insert([topic], [View Topic], [],
 
 insert([document], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabeditdoc|
     <p>|tabdocerrors|
     <p>|tabdocfiles|
@@ -429,45 +458,45 @@ insert([document], [|doc.title|], [],
 
 insert([document_main], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
 insert([document_files], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
 insert([document_users], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdocusers|
 ])
 
 insert([document_revs], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdocversions|
 ])
 
 insert([document_topics], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdoctopics|
 ])
 
 insert([document_notes], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdocnotes|
 ])
 
 insert([document_translation], [|doc.title|], [],
 [
-    |tabdocument_tabs|
+    |blkdocument_nav_bar|
     |tabdoctranslations|
 ])
 

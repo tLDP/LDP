@@ -25,7 +25,10 @@ from mod_python import apache
 import smtplib
 
 def referer_lang_ext(req):
-    url = req.headers_in['referer']
+    try:
+        url = req.headers_in['referer']
+    except KeyError:
+        url = ''
     uri = URI(url)
     return uri.lang_ext
     

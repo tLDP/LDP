@@ -112,6 +112,10 @@ class URI:
                     self.lang = lang.upper()
                     self.lang_ext = '.' + lang.lower() + '.html'
                     path = path[:-3]
+                else:
+                    self.lang_ext = '.' + 'en.html'
+            else:
+                self.lang_ext = '.' + 'en.html'
 
         # Split up the path
         if path.count('/')==0:

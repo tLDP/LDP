@@ -500,6 +500,7 @@ class Doc:
         self.lint_time               = time2str(row[26])
         self.pub_time                = time2str(row[27])
         self.mirror_time             = time2str(row[28])
+
     def save(self):
         """
         FIXME: use cursor.execute(sql,params) instead! --nico

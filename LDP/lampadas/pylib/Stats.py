@@ -40,6 +40,7 @@ class Stats(LampadasCollection):
         self.data = {}
         self['general']  = StatTable(['doc_count'])
         self['pub_status'] = StatTable()
+        self['lint_time'] = StatTable()
         self['mirror_time'] = StatTable()
         self['pub_time'] = StatTable()
         self['doc_error'] = StatTable()
@@ -61,19 +62,26 @@ class Stats(LampadasCollection):
             for key in doc.errors.sort_by('err_id'):
                 self['doc_error'].inc(key)
 
-            # Only track mirroring stats for publishable docs
+            # Only track stats for publishable docs
             if doc.pub_status_code=='N':
-                mirror_time = date2str(doc.mirror_time)
-                self['mirror_time'].inc(mirror_time)
 
-                # Only track publishing stats for mirrored docs
-                if doc.mirror_time > '':
-                    pub_time = date2str(doc.pub_time)
-                    self['pub_time'].inc(pub_time)
-                    
-                    if doc.pub_time > '':
-                        self['doc_format'].inc(doc.format_code)
-                        self['doc_dtd'].inc(doc.dtd_code)
+                # Track when errors were checked.
+                lint_time = date2str(doc.lint_time)
+                self['lint_time'].inc(lint_time)
+
+                # Must be error-checked before mirroring.
+                if doc.lint_time > '':
+                    mirror_time = date2str(doc.mirror_time)
+                    self['mirror_time'].inc(mirror_time)
+
+                    # Only track publishing stats for mirrored docs
+                    if doc.mirror_time > '':
+                        pub_time = date2str(doc.pub_time)
+                        self['pub_time'].inc(pub_time)
+                        
+                        if doc.pub_time > '':
+                            self['doc_format'].inc(doc.format_code)
+                            self['doc_dtd'].inc(doc.dtd_code)
 
 
 class StatTable(LampadasCollection):

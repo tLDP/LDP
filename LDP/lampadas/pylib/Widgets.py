@@ -51,6 +51,9 @@ class Widgets:
         text = string.join(parts, ' + ')
         return text
         
+    def short_title(self, value):
+        return WOStringIO('<input type=text name="short_title" style="width:100%%" value="%s">' % value).get_value()
+
     def abstract(self, value):
         return '<input type=text name="abstract" style="width:100%" value="' + value + '">'
 
@@ -84,10 +87,27 @@ class Widgets:
             v1, v2 = '', ''
         return WOStringIO('<select name="%s">\n' \
                           '<option></option>\n' \
-                          '<option value="1"%s>|stryes|</option>\n' \
-                          '<option value="0"%s>|strno|</option>\n' \
+                          '<option value="compact"%s>|stryes|</option>\n' \
+                          '<option value="expanded"%s>|strno|</option>\n' \
                           '</select>\n'
                           % (name, v1, v2)).get_value()
+
+    def doctable_layout(self, value='compact'):
+        if value=='compact':
+            compact, expanded = ' selected', ''
+        elif value=='expanded':
+            compact, expanded = '', ' selected'
+        else:
+            compact, expanded = 'compact', ''
+        return WOStringIO('<select name="%s">\n' \
+                          '<option value="compact"%s>|strcompact_layout|</option>\n' \
+                          '<option value="expanded"%s>|strexpanded_layout|</option>\n' \
+                          '</select>\n'
+                          % ('layout', compact, expanded)).get_value()
+
+
+    def username(self, value):
+        return '<input type=text name="username" width="15" maxlength="40" value="' + value + '">'
 
     def stylesheet(self, value):
         return '<select name="stylesheet">\n</select>\n'
@@ -103,6 +123,21 @@ class Widgets:
                 combo.write("selected ")
             combo.write("value='%s'>%s</option>\n"
                         % (role.code,role.name[lang]))
+        combo.write("</select>")
+        return combo.get_value()
+
+    def collection_code(self, value, lang):
+        combo = WOStringIO("<select name='collection_code'>\n" \
+                           "<option></option>\n")
+        keys = lampadas.collections.sort_by('sort_order')
+        for key in keys:
+            collection = lampadas.collections[key]
+            assert not collection==None
+            combo.write("<option ")
+            if collection.code==value:
+                combo.write("selected ")
+            combo.write("value='%s'>%s</option>\n"
+                        % (collection.code, collection.name[lang]))
         combo.write("</select>")
         return combo.get_value()
 

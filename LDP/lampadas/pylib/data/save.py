@@ -75,6 +75,7 @@ def document(req, username, doc_id,
     if doc==None:
         return error("Cannot find document " + str(doc_id))
 
+    # Save all data to the document.
     doc.title                   = title
     doc.short_title             = short_title
     doc.pub_status_code         = pub_status_code

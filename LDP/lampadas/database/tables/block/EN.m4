@@ -63,3 +63,12 @@ insert([blknotfound], [
     <td>|strnotfound|</td>
   </tr>
 </table>])
+
+insert([blkdocument_nav_bar], [
+<table class="layout">
+  <tr>
+    <td>|tabdocument_icon_box|</td>
+    <td>|tabdocument_tabs|</td>
+  </tr>
+</table>])
+

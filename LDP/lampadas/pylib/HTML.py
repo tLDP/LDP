@@ -265,14 +265,10 @@ class PageFactory:
                     newstring = tables.tabtopics(uri)
                 elif token=='tabtopic':
                     newstring = tables.tabtopic(uri)
-#                elif token=='tabdocs':
-#                    newstring = tables.doctable(uri, lang=uri.lang, layout='compact')
-#                elif token=='tabdocs_block':
-#                    newstring = tables.doctable(uri, lang=uri.lang, layout='block')
                 elif token=='tabmaint_wanted':
-                    newstring = tables.doctable(uri, maintainer_wanted=1, lang=uri.lang)
+                    newstring = tables.doctable(uri, maintainer_wanted='1', lang=uri.lang)
                 elif token=='tabunmaintained':
-                    newstring = tables.doctable(uri, maintained=0, lang=uri.lang)
+                    newstring = tables.doctable(uri, maintained='0', lang=uri.lang)
                 elif token=='tabpending':
                     newstring = tables.doctable(uri, pub_status_code='P', lang=uri.lang)
                 elif token=='tabwishlist':
@@ -322,9 +318,11 @@ class PageFactory:
                 elif token=='taberrors':
                     newstring = tables.errors(uri)
                 elif token=='tabsearch':
-                    newstring = tables.tabsearch(uri)
+                    newstring = tables.tabsearch(uri, lang=uri.lang)
                 elif token=='tabsplashlanguages':
                     newstring = tables.tabsplashlanguages(uri)
+                elif token=='tablint_time_stats':
+                    newstring = tables.tablint_time_stats(uri)
                 elif token=='tabmirror_time_stats':
                     newstring = tables.tabmirror_time_stats(uri)
                 elif token=='tabpub_time_stats':
@@ -339,6 +337,8 @@ class PageFactory:
                     newstring = tables.tabdoc_dtd_stats(uri)
                 elif token=='tabdocument_tabs':
                     newstring = tables.tabdocument_tabs(uri)
+                elif token=='tabdocument_icon_box':
+                    newstring = tables.tabdocument_icon_box(uri)
             
                 # Tables, Blocks and Strings
                 if newstring==None:
