@@ -5,7 +5,7 @@
  </title>
  <author>Derek Ney  <tt><url url="mailto:derek@hipgraphics.com" name="derek@hipgraphics.com"></tt>
  </author>
- <date>Mar 24, 2000
+ <date>Nov 9, 2000
  </date>
  <abstract>Configuring a Linux system to act as a firewall and bridge with a DSL network connection
  </abstract>
@@ -20,6 +20,10 @@
  <p>The newest version may be found in different formats at the LDP homepage <url url="http://www.linuxdoc.org/" name="http://www.linuxdoc.org/">.
  </p>
  <sect2>Version History
+ <p>v0.04 (Nov 9, 2000)</p>
+ <p><itemize>
+  <item>Updated for newer bridge configuration utility bridgex
+ </itemize></p>
  <p>v0.03 (Mar 24, 2000)</p>
  <p><itemize>
   <item>Fixed up URL for BRCFG.tgz
@@ -80,7 +84,7 @@
   <item>Route packets between the local and global net (bridging)
   <item>Filter the packets to stop some from traversing the firewall
  </itemize></p>
- <p>The <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Briding mini-Howto">
+ <p>The <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Bridging mini-Howto">
  gives detailed instructions that solves the first problem by routing packets
  between the two sides of the network (local and global). This works by putting
  both NIC's into "promiscuous" mode such that they sniff all the packets on
@@ -93,7 +97,7 @@
  to the firewall code, so the firewall will have no effect.
  </p>
  <p>It turns out you can assign your NIC's IP addresses and still use them as a
- bridge. Although the <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Briding mini-Howto">
+ bridge. Although the <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Bridging mini-Howto">
  does not do this (well actually, it uses loopback addresses), it works fine.
  That solves one problem. For the firewall problem, we turn to a fine kernel patch
  at <url url="http://ac2i.tzo.com/bridge_filter/" name="http://ac2i.tzo.com/bridge_filter/">
@@ -119,7 +123,7 @@
  <p>I found a good deal of information on the net that I used to finally
  get things working. Some of the information was useful, but inaccurate.
  </p>
- <p>The <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Briding mini-Howto">
+ <p>The <url url="http://www.linuxdoc.org/HOWTO/mini/Bridge.html" name="Bridging mini-Howto">
  was instrumental in getting things up. Unfortunately using it alone does not
  implement a firewall.
  </p>
@@ -212,9 +216,9 @@
  <p>At this point, you have verified that all the hardware is working.
  </p>
  <sect1>Bridge Config
- <p> You will need the <url url="ftp://ftp.tux.org/people/alan-cox/BRCFG.tgz" name="bridge configuration utility">
- from Alan Cox; this
- allows you to control the bridging in your kernel when CONFIG_BRIDGE is turned on. <bf>BRCFG</bf> is distributed
+ <p> Depending upon your kernel version you will need either the 
+<url url="ftp://ftp.tux.org/people/alan-cox/BRCFG.tgz" name="old bridge configuration utility (BRCFG)"> for kernels before 2.2.14, or the <url url="http://lrp.plain.co.nz/tarballs/bridgex_0.30.tar.gz" name="new bridge configuration utility (bridgex)"> for later kernels; these utilities
+ allow you to control the bridging in your kernel when CONFIG_BRIDGE is turned on. <bf>BRCFG</bf> is distributed
  as source with pre-compiled executables. I do not know what kernel the executable was compiled with, but I got
  different results after I recompiled it with my kernel (2.2.13) include files. Unfortunately, to do this I had
  to patch them slightly. Here are the patches:
@@ -241,6 +245,21 @@ diff -C 3 -r /tmp/BRCFG/brcfg.c ./brcfg.c
  </verb></p> 
  <p>Apply the patch, recompile <bf>brcfg</bf> and install it somewhere appropriate
  (I chose <bf>/usr/sbin</bf>).
+ </p>
+ <p>For kernels later than 2.2.13 you definitely want to use the newer bridge
+configuration utility 
+<url url="http://lrp.plain.co.nz/tarballs/bridgex_0.30.tar.gz" name="bridgex">.
+I am not sure if it works with earlier kernels or not. Not that the URL for this
+utility is found in the kernel configuration help file 
+<bf>/usr/src/linux/Documentation/Configure.help</bf>, so if the URL mentioned
+here is not correct, look in the help file (it is the help for the 
+<bf>CONFIG_BRIDGE</bf> kernel configuration item. The bridgex tarball contains
+an already compiled executable, but you should probably remake it using
+the included Makefile. Note that the bridgex
+utility takes slightly different arguments than does the BRCFG package (that
+will be covered later when I talk about configuring the bridge).
+</p>
+
  <sect1>Kernel Configuration
  <p> You will need to patch and configure your kernel for bridging and the bridging filter
  (as well as firewalling, networking, etc. if you do not already have it). The following
@@ -272,11 +291,13 @@ diff -C 3 -r /tmp/BRCFG/brcfg.c ./brcfg.c
  ETH1_MASK=$ETH0_MASK           # the DSL side netmask, should be the same as eth0
  ETH1_BROAD=$ETH1_BROAD         # ditto for the broadcast address
  </verb></p>
- <p> Next I created a script in <bf>/etc/rc.d/init.d/bridge</bf> to setup the bridge:
+ <p> Next I created a script in <bf>/etc/rc.d/init.d/bridge</bf> to setup the bridge.
+ I include two scripts here. The first script is used with the old BRCFG utility,
+ the second for the newer bridgex. First the one for the older BRCFG:
  <p><verb>
 #!/bin/sh
 #
-# bridge      This shell script takes care of installing bridging for dsl
+# bridge      This shell script takes care of installing bridging for dsl with BRCFG
 #
 # description: Uses brcfg to start bridging and ifconfigs eths
 # processname: bridge
@@ -323,7 +344,64 @@ esac
 
 exit 0
  </verb></p>
- <p> This script is run during bootup. It assigns addresses to each NIC, adds a default route
+ <p>The next script is the one to use with the newer bridge configuration utility bridgex.
+ Note that bridgex is much more configurable than the older BRCFG and so you may want
+ to look man page included with the bridgex tarball and custom configure this script:
+ <p><verb>
+#!/bin/sh
+#
+# bridge      This shell script takes care of installing bridging for dsl with BRCFG
+#!/bin/sh
+#
+# bridge      This shell script takes care of installing bridging for dsl with bridgex
+#
+# description: Uses brcfg to start bridging and ifconfigs eths
+# processname: bridge
+# config: 
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# See how we were called.
+case "$1" in
+  start)
+        echo -n "Configuring bridge: "
+        ifconfig eth0 $ETH0_ADDR netmask $ETH0_MASK broadcast $ETH0_BROAD
+        ifconfig eth1 $ETH1_ADDR netmask $ETH1_MASK broadcast $ETH1_BROAD
+        route add default gw $GATEWAY dev $GATEWAYDEV
+        ifconfig eth0 promisc
+        ifconfig eth1 promisc
+        brcfg start
+        brcfg device eth0 enable
+        brcfg device eth1 enable
+        echo
+        ;;
+  stop)
+        # Stop daemons.
+        brcfg stop
+        ifconfig eth0 down
+        ifconfig eth1 down
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  status)
+        ifconfig eth0
+        ifconfig eth1
+        brcfg
+        ;;
+  *)
+        echo "Usage: bridge {start|stop|restart|status}"
+        exit 1
+esac
+
+exit 0
+ </verb></p>
+ <p> The script is run during bootup. It assigns addresses to each NIC, adds a default route
  that goes to the DSL router, adds a specific route direct to the DSL router, puts each NIC
  in "promiscuous" mode, and then enables bridging. I linked this script into the following
  directories in <bf>/etc/rc.d</bf>: 
