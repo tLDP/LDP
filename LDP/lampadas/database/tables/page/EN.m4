@@ -1,3 +1,4 @@
+m4_dnl name                 template    menu    order   data                dyn reg adm sysadmin
 insert(my,                  default,    user,       1,  [],                 t,  t,  f,  f)
 insert(newdocument,         default,    user,       2,  [],                 t,  t,  f,  f)
                                                                                 
@@ -32,7 +33,13 @@ insert(newuser,             default,    [],         0,  [],                 t,  
 insert(mailpass,            default,    [],         0,  [],                 t,  f,  f,  f)
 insert(topic,               default,    [],         0,  [topic],            t,  f,  f,  f)
 insert(subtopic,            default,    [],         0,  [subtopic],         t,  f,  f,  f)
-insert(editdoc,             default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document,            default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_main,       default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_files,      default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_users,      default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_revs,       default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_topics,     default,    [],         0,  [doc],              t,  f,  f,  f)
+insert(document_notes,      default,    [],         0,  [doc],              t,  f,  f,  f)
 insert(404,                 default,    [],         0,  [],                 t,  f,  f,  f)
 insert(user_exists,         default,    [],         0,  [],                 t,  f,  f,  f)
 insert(username_required,   default,    [],         0,  [],                 t,  f,  f,  f)

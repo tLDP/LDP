@@ -377,8 +377,9 @@ insert([subtopic], [View Subtopic], [],
     <p>|tabsubtopicdocs|
 ], 1)
 
-insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
+insert([document], [Edit All Document Meta-data], [],
 [
+    |blkdocument_tabs|
     |tabeditdoc|
     <p>|tabdocerrors|
     <p>|tabdocfiles|
@@ -388,6 +389,44 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
     <p>|tabdoctopics|
     <p>|tabdocnotes|
 ], 2)
+
+insert([document_main], [Edit Document Meta-data], [],
+[
+    |blkdocument_tabs|
+    |tabeditdoc|
+    <p>|tabdocerrors|
+])
+
+insert([document_files], [Edit Document Files], [],
+[
+    |blkdocument_tabs|
+    |tabdocfiles|
+    <p>|tabdocfileerrors|
+])
+
+insert([document_users], [Edit Document Users], [],
+[
+    |blkdocument_tabs|
+    |tabdocusers|
+])
+
+insert([document_revs], [Edit Document Versions], [],
+[
+    |blkdocument_tabs|
+    |tabdocversions|
+])
+
+insert([document_topics], [Edit Document Topics], [],
+[
+    |blkdocument_tabs|
+    |tabdoctopics|
+])
+
+insert([document_notes], [Document Notes], [],
+[
+    |blkdocument_tabs|
+    |tabdocnotes|
+])
 
 insert([404], [Error 404, Page Not Found], Error,
 [

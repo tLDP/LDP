@@ -54,3 +54,18 @@ insert([blknotfound],
       </tr>
     </table>
 ])
+
+insert([blkdocument_tabs],
+[
+    <table>
+        <tr>
+            <th><a href="|uri.base|document_main/|uri.id||uri.lang_ext|">|strdetails|</a></th>
+            <th><a href="|uri.base|document_files/|uri.id||uri.lang_ext|">|strfiles|</a></th>
+            <th><a href="|uri.base|document_revs/|uri.id||uri.lang_ext|">|strversions|</a></th>
+            <th><a href="|uri.base|document_topics/|uri.id||uri.lang_ext|">|strtopics|</a></th>
+            <th><a href="|uri.base|document_users/|uri.id||uri.lang_ext|">|strusers|</a></th>
+            <th><a href="|uri.base|document_notes/|uri.id||uri.lang_ext|">|strnotes|</a></th>
+            <th><a href="|uri.base|document/|uri.id||uri.lang_ext|">|strall|</a></th>
+        </tr>
+    </table>
+])

@@ -374,7 +374,7 @@ insert([subtopic], [Liste der Unterthemen], [],
     <p>|tabsubtopicdocs|
 ], 1)
 
-insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
+insert([document], [Metadaten eines Dokuments ändern], [Metadaten ändern],
 [
     |tabeditdoc|
     <p>|tabdocerrors|
@@ -385,6 +385,38 @@ insert([editdoc], [Metadaten eines Dokuments ändern], [Metadaten ändern],
     <p>|tabdoctopics|
     <p>|tabdocnotes|
 ], 2)
+
+insert([document_main], [Edit Document Meta-data], [],
+[
+    |tabeditdoc|
+    <p>|tabdocerrors|
+])
+
+insert([document_files], [Edit Document Files], [],
+[
+    |tabdocfiles|
+    <p>|tabdocfileerrors|
+])
+
+insert([document_users], [Edit Document Users], [],
+[
+    |tabdocusers|
+])
+
+insert([document_revs], [Edit Document Versions], [],
+[
+    |tabdocversions|
+])
+
+insert([document_topics], [Edit Document Topics], [],
+[
+    |tabdoctopics|
+])
+
+insert([document_notes], [Document Notes], [],
+[
+    |tabdocnotes|
+])
 
 insert([404], [Fehler 404, Seite nicht gefunden], Fehler,
 [

@@ -275,7 +275,7 @@ insert([subtopic], [View Subtopic], [],
     <p>|tabsubtopicdocs|
 ], 1)
 
-insert([editdoc], [Méta-données du doc], [Méta-données du doc],
+insert([document], [Méta-données du doc], [Méta-données du doc],
 [
 	|tabeditdoc|
     <p>|tabdocerrors|
@@ -286,6 +286,38 @@ insert([editdoc], [Méta-données du doc], [Méta-données du doc],
     <p>|tabdoctopics|
     <p>|tabdocnotes|
 ], 2])
+
+insert([document_main], [Edit Document Meta-data], [],
+[
+    |tabeditdoc|
+    <p>|tabdocerrors|
+])
+
+insert([document_files], [Edit Document Files], [],
+[
+    |tabdocfiles|
+    <p>|tabdocfileerrors|
+])
+
+insert([document_users], [Edit Document Users], [],
+[
+    |tabdocusers|
+])
+
+insert([document_revs], [Edit Document Versions], [],
+[
+    |tabdocversions|
+])
+
+insert([document_topics], [Edit Document Topics], [],
+[
+    |tabdoctopics|
+])
+
+insert([document_notes], [Document Notes], [],
+[
+    |tabdocnotes|
+])
 
 insert([404], [Introuvable], [Introuvable],
 [

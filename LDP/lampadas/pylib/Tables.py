@@ -742,7 +742,7 @@ class Tables:
                     continue
 
             # Only show documents with errors if the user owns them
-            if doc.errors > 0 or doc.files.error_count > 0:
+            if doc.errors.count() > 0 or doc.files.error_count > 0:
                 if sessions.session==None:
                     continue
                 elif sessions.session.user.can_edit(doc_id=doc.id)==0:
@@ -752,7 +752,7 @@ class Tables:
             box.write('<tr><td>')
 
             if sessions.session and sessions.session.user.can_edit(doc_id=doc.id)==1:
-                box.write('<a href="|uri.base|editdoc/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
+                box.write('<a href="|uri.base|document_main/%s|uri.lang_ext|">%s</a>' % (str(doc.id), EDIT_ICON))
             box.write('</td>\n')
             box.write('<td>')
             box.write('</td>\n')
@@ -784,8 +784,8 @@ class Tables:
     def section_menu(self, uri, section_code):
         log(3, "Creating section menu: " + section_code)
         section = lampadasweb.sections[section_code]
-        box = '<table class="navbox" width="210"><tr><th>' + section.name[uri.lang] + '</th></tr>\n'
-        box = box + '<tr><td>'
+        box = WOStringIO('<table class="navbox" width="210"><tr><th>%s</th></tr>\n' \
+                         '<tr><td>' % section.name[uri.lang])
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
             page = lampadasweb.pages[key]
@@ -801,9 +801,10 @@ class Tables:
                 if page.only_sysadmin > 0:
                     if sessions.session.user.sysadmin==0:
                         continue
-                box = box + '<a href="|uri.base|' + page.code + '|uri.lang_ext|">' + page.menu_name[uri.lang] + '</a><br>\n'
-        box = box + '</td></tr></table>\n'
-        return box
+                box.write('<a href="|uri.base|%s|uri.lang_ext|">%s</a><br>\n' 
+                    % (page.code, page.menu_name[uri.lang]))
+        box.write('</td></tr></table>\n')
+        return box.get_value()
 
     def section_menus(self, uri):
         log(3, "Creating all section menus")
