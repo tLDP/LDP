@@ -374,7 +374,7 @@ insert([subtopic], [Liste der Unterthemen], [],
     <p>|tabsubtopicdocs|
 ], 1)
 
-insert([document], [Metadaten eines Dokuments ändern], [Metadaten ändern],
+insert([document], [Alle Metadaten des Dokuments ändern], [],
 [
     |tabeditdoc|
     <p>|tabdocerrors|
@@ -386,34 +386,34 @@ insert([document], [Metadaten eines Dokuments ändern], [Metadaten ändern],
     <p>|tabdocnotes|
 ], 2)
 
-insert([document_main], [Edit Document Meta-data], [],
+insert([document_main], [Metadaten des Dokuments ändern], [],
 [
     |tabeditdoc|
     <p>|tabdocerrors|
 ])
 
-insert([document_files], [Edit Document Files], [],
+insert([document_files], [Dateien des Dokuments ändern], [],
 [
     |tabdocfiles|
     <p>|tabdocfileerrors|
 ])
 
-insert([document_users], [Edit Document Users], [],
+insert([document_users], [Benutzer des Dokuments ändern], [],
 [
     |tabdocusers|
 ])
 
-insert([document_revs], [Edit Document Versions], [],
+insert([document_revs], [Versionierung des Dokuments ändern], [],
 [
     |tabdocversions|
 ])
 
-insert([document_topics], [Edit Document Topics], [],
+insert([document_topics], [Themen Dokuments ändern], [],
 [
     |tabdoctopics|
 ])
 
-insert([document_notes], [Document Notes], [],
+insert([document_notes], [Anmerkungen zum Dokument], [],
 [
     |tabdocnotes|
 ])

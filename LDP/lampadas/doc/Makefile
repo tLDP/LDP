@@ -25,40 +25,36 @@ install: all
 	$(INSTALLDOC) lampadas.conf.5 $(man5prefix)/lampadas.conf.5
 
 clean:
-	rm -f $(docs)
-	rm -f *.html
-	rm -rf Lampadas.xml
+	rm -f core* *~ *.html $(docs) Lampadas.xml
 
-xml:	Lampadas.xml
-
+xml:	Lampadas.xml Lampadas.a
 html:	Lampadas.html
-
 index:	index.html
 
 index.html:	Lampadas.xml
-	xsltproc ../xsl/lampadas-html-chunk.xsl Lampadas.xml
+	xsltproc --nonet ../xsl/lampadas-html-chunk.xsl $? > $@
 
 Lampadas.html:	Lampadas.xml
-	xsltproc ../xsl/lampadas-html.xsl Lampadas.xml > Lampadas.html
+	xsltproc --nonet ../xsl/lampadas-html.xsl Lampadas.xml $? > $@
 	
-Lampadas.xml:	Lampadas.wt
-	wt2db -x Lampadas.wt -o Lampadas.xml
-	
-preview: Lampadas.html
+preview: # Lampadas.html
 #	galeon Lampadas.html
-	mozilla -remote "openURL(file:///home/david/ldp/cvs/LDP/lampadas/doc/Lampadas.html)"
+	mozilla -remote "openURL(file://`pwd`/Lampadas.html)"
 
-.SUFFIXES: .sgml .1 .5
+.SUFFIXES: .xml .wt .sgml .1 .5
+
+.wt.xml:
+	wt2db -n -x $< -o $*.xml
 
 .sgml.1:
-	if which docbook-to-man; then \
+	@if which docbook-to-man; then \
 	  docbook-to-man $< > $@; \
         else \
 	  docbook2man $<; \
         fi
 
 .sgml.5:
-	if which docbook-to-man; then \
+	@if which docbook-to-man; then \
 	  docbook-to-man $< > $@; \
         else \
 	  docbook2man $<; \
