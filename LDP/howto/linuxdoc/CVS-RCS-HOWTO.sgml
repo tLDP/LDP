@@ -706,7 +706,7 @@ shell scripts.
 # This will get just one single directory tree
 #	unix> cotree.sh <directory name>
 
-# See also cofiles.sh and ciall.sh
+# See also cofiles.sh
 
 ###############################################################
 # Setting up RCS (Revision Control System)
@@ -753,7 +753,18 @@ check_out_directory()
 		# which inside RCS will be RCS/sample,vv,v
 		# ls RCS | cut -d',' -f1 | xargs co
 		# Use match to end of name $, as below -
-		ls RCS | sed -e's/,v$//g' | xargs co
+		# Use ls RCS/* to avoid getting the names ./ and ../
+		#ls RCS/* | cut -d'/' -f2 | sed -e's/,v$//g' | xargs co
+		if [ -d RCS ]; then
+			ls RCS/* | cut -d'/' -f2 | sed -e's/,v$//g' | \
+			while read ii
+			do
+				#echo "ii is : $ii"
+				if [ -f "RCS/$ii,v" ]; then
+					co $ii
+				fi
+			done
+		fi
 	)
 }
 
@@ -810,7 +821,7 @@ fi
 
 # cofiles.sh (Check Out files shell script)
 # cofiles.sh - Check out all the files in current directory from RCS
-# See also cotree.sh and 'man rcsclean' and ciall.sh
+# See also cotree.sh and 'man rcsclean'
 
 if [ ! -d RCS ]; then
 	print "\nDirectory RCS does not exist!!"
@@ -818,9 +829,11 @@ if [ ! -d RCS ]; then
 	exit
 fi
 
+#echo "No. of args = " $# " and all args " $@
+
 while true
 do
-	print -n "\n\nDo you want check-out all files in in read-write mode? <y/n> [n]: "
+	print -n "\n\nCheck-out all files in read-write mode? <y/n> [n]: "
 	read ans
 	if [ "$ans" = "" -o "$ans" = "n" -o "$ans" = "N" ]; then
 		ans="N"
@@ -834,14 +847,51 @@ do
 done
 #echo "The ans is : " $ans
 
-
-# This fails in case of filename=sample,vv in RCS/sample,vv,v
-# ls RCS | cut -d',' -f1 | xargs co
-# Use match to end of name $, as below -
-if [ "$ans" = "Y" ]; then
-	ls RCS | sed -e's/,v$//g' | xargs co -l 
+if [ $# -eq 0 ]; then
+	# The 'ls RCS' fails in case of filename=sample,vv in RCS/sample,vv,v
+	# ls RCS | cut -d',' -f1 | xargs co
+	# Use match to end of name $, as below -
+	if [ "$ans" = "Y" ]; then
+		ls RCS | sed -e's/,v$//g' | xargs co -l 
+	else
+		ls RCS | sed -e's/,v$//g' | xargs co
+	fi
+elif [ $# -eq 1 ]; then
+	if [ -f "RCS/$1,v" ]; then
+		# Here, in this case $1 will be like dbalter.sql
+		# and not like db*.sql....
+		#echo "One arg, no. of args = " $# " and all args " $@
+		if [ "$ans" = "Y" ]; then
+			co -l "$1"
+		else
+			co "$1"
+		fi
+	else
+		# For case where $1=db*.sql and there is no db*.sql in
+		# current directory
+		#echo "No files... no. of args = " $# " and all args " $@
+		tmpaa="RCS/$1,v"  # will be like RCS/db*.sql,v
+		ls $tmpaa | \
+		while read ii
+		do
+			#echo "ii is : $ii"
+			if [ "$ans" = "Y" ]; then
+				co -l "$ii"
+			else
+				co "$ii"
+			fi
+		done
+	fi
 else
-	ls RCS | sed -e's/,v$//g' | xargs co
+	for ii in $@
+	do
+		#echo "ii is : $ii,v"
+		if [ "$ans" = "Y" ]; then
+			co -l "$ii"
+		else
+			co "$ii"
+		fi
+	done
 fi
 </code>
 <!-- 
@@ -865,6 +915,18 @@ fi
 # 'description' for every file
 # And for files already in RCS, it does regular check-in command
 
+
+# To convert filenames to lower case filenames, use this
+# technique - use 'tr', see 'man tr'
+#ls * | \
+#while read ii
+#do
+#	jj=`echo $ii | tr [A-Z] [a-z] `
+#	echo "ii is : $ii"
+#	echo "jj is : $jj"
+#	mv $ii $jj
+#done
+
 if [ ! -d RCS ]; then
 	print "\nDirectory RCS does not exist!!"
 	print "\nWill be creating RCS directory now ...\n"
@@ -876,15 +938,24 @@ print "Please enter description (will be used for"
 print -n "all the files checked in) : "
 read description
 
-find * -prune -type f | 
+#find * -prune -type f | 
+
+# The number of args is zero or more.... 
+if  [ $# -eq 0 ]; then
+	listoffiles="*"
+else
+	listoffiles="$@"
+fi
+
+find $listoffiles -prune -type f | 
 while read ii
 do
 	#echo $ii
 	if [ -f "RCS/$ii,v" ]; then
-		print "The file $ii already in RCS"
-		ci $ii 
+		#print "The file $ii already in RCS"
+		ci -m"$description" $ii 
 	else
-		print "The file $ii is new file"
+		#print "The file $ii is new file"
 		ci $ii << EOF
 $description
 EOF
