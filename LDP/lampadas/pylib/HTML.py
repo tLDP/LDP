@@ -17,6 +17,7 @@ import WebLayer
 import Converter
 import commands
 from string import split
+import sys
 
 
 # Globals
@@ -59,7 +60,7 @@ class PageFactory:
 			page = self.DocPage(DocID, lang)
 		else:
 			Page = self.Pages[pagecode] 
-			assert not Page == None
+			assert not Page == None, 'page ' + pagecode + ' not found'
 			Template = self.Templates[Page.TemplateCode]
 			assert not Template == None
 			page = Template.Template
@@ -183,4 +184,14 @@ class ComboFactory:
 #print output
 
 
-#if __name__ == "__main__":
+def main():
+	F = PageFactory()
+	for arg in sys.argv[1:]:
+		print F.Page(arg, 'EN')
+
+def usage():
+	print "HTML.py version " + VERSION
+
+
+if __name__ == "__main__":
+	main()

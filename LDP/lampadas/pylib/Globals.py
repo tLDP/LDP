@@ -8,6 +8,7 @@ The Globals module implements low level utility and convenience routines.
 
 from string import strip
 
+VERSION = '0.3-pre'
 
 def wsq(astring):
 	"""

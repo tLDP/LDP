@@ -108,7 +108,7 @@ def main():
 			Lintadas.CheckDoc(Doc)
 
 def usage():
-	print "HTML.py version " + VERSION
+	print "Lintadas version " + VERSION
 	print
 	print "This is part of the Lampadas System"
 	print
