@@ -33,6 +33,8 @@ Logs are assigned one of the following severities:
 """
 
 from Config import config
+import time
+
 
 # Modules ##################################################################
 
@@ -42,24 +44,21 @@ class Log:
     Write to the system log.
     """
 
-    import time
-
     def __call__(self, level, message):
         self.write(level, message)
 
     def write(self, level, message):
         if config.log_level >= level:
-            timestamp = self.time.time()
-            logmessage = self.time.ctime(self.time.time()) + ' ' + message
-            self.log = open(config.log_file, 'a+')
-            self.log.write(logmessage + "\n")
-            self.log.close
+            logmessage = time.ctime(time.time()) + ' ' + message
+            log_file = open(config.log_file, 'a+')
+            log_file.write(logmessage + "\n")
+            log_file.close
             if config.log_console > 0:
                 print logmessage
 
     def truncate(self):
-        self.log = open(config.log_file, 'w+')
-        self.log.close
+        log = open(config.log_file, 'w+')
+        log.close
 
 
 log = Log()

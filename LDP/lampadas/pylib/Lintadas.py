@@ -62,9 +62,9 @@ class Lintadas:
 			File = Doc.Files[key]
 
 			if File.IsLocal:
-				log.write(3, 'Checking filename ' + key)
+				log(3, 'Checking filename ' + key)
 			else:
-				log.write(3, 'Skipping remote file ' + key)
+				log(3, 'Skipping remote file ' + key)
 				continue
 
 			# Determine file format
@@ -89,7 +89,7 @@ class Lintadas:
 				if lampadas.Formats[formatkey].I18n['EN'].Name == DocFormat:
 					Doc.FormatID = formatkey
 			
-			log.write(3, 'file format is ' + FileFormat)
+			log(3, 'file format is ' + FileFormat)
 			
 			# Determine DTD for SGML and XML files
 			if FileFormat == 'XML' or FileFormat == 'SGML':
@@ -109,7 +109,7 @@ class Lintadas:
 				else:
 					Doc.DTD = ''
 
-			log.write(3, 'doc dtd is ' + Doc.DTD)
+			log(3, 'doc dtd is ' + Doc.DTD)
 
 			Doc.Save()
 			File.Save()

@@ -27,6 +27,7 @@ The API is documented in the Lampadas Programmer's Guide. A summary:
 
 import string
 from DataLayer import lampadas
+from Log import log
 
 def splitterm(term, sep):
     """
@@ -45,7 +46,8 @@ def splitterm(term, sep):
 class URI:
 
     def __init__(self, uri):
-    
+
+        log(3, "parsing URI: " + uri)
         self.protocol = ""
         self.server = ""
         self.port = ""

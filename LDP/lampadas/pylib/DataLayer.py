@@ -38,8 +38,7 @@ from Database import db
 from Log import log
 
 
-# Globals
-
+log(2, '               **********Initializing DataLayer**********')
 db.connect(config.db_type, config.db_name)
 
 # Lampadas

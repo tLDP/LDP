@@ -1,55 +1,57 @@
 #!/usr/bin/python
 
 from Log import log
-#from HTML import PageFactory
-from Globals import VERSION
+from HTML import page_factory
 from Config import config
-#From URLParse import URI
+from URLParse import URI
+from mod_python import apache
+import os
+import string
 
-#from mod_python import apache
 
 def handler(req):
 
-    from URLParse import URI
-
-    req.content_type = 'text/plain'
-    req.send_http_header()
-
+    log(3, 'handling request: ' + req.uri)
     uri = URI(req.uri)
 
-    filename = config.file_dir + uri.Path + '/' + uri.Filename
+    filename = config.file_dir + uri.path + '/' + uri.filename
     filename = filename.replace('//','/')
-    log.Write(3, 'looking for file ' + filename)
+    filename = filename.replace('//','/')
+    filename = filename.replace('//','/')
+    log(3, 'looking for file ' + filename)
     
     if os.path.isfile(filename):
-        send_File(filename)
+        send_File(req, filename)
 
-    log.Write(3, 'Sending dynamic page')
-    send_HTML(P.Page(self.path))
+    log(3, 'Sending dynamic page: ' + req.uri)
+    send_HTML(req, page_factory.page(req.uri))
 
     return apache.OK
 
-def send_String(string):
-    req.write(string_d
 
-def send_HTML(HTML):
+def send_HTML(req, HTML):
     """
     Send the passed HTML page.
     """
-    #self.send_response(200)
+    log(3, 'Sending HTML')
     req.content_type = 'text/html'
-#    self.send_header("Content-length", len(HTML))
-#    self.end_headers()
-    send_String(HTML)
-    
-def send_File(self, filename):
+    req.send_http_header()
+
+    req.write(req.method + '<p>')
+    if not req.args == None:
+        req.write(req.args)
+    req.write(HTML)
+
+
+def send_File(req, filename):
     """
-    Send the requested file.
+    Send a file.
     """
-    log.Write(3, 'Sending file ' + filename)
+    log(3, 'Sending file ' + filename)
     temp = string.split(filename, ".")
     if len(temp) > 1:
         fileext = temp[1]
+        log(3, 'extension is ' + temp[1])
     else:
         if os.path.isfile(filename + ".png"):
             fileext = "png"
@@ -77,23 +79,20 @@ def send_File(self, filename):
         mimetype = "text/plain"
 
     fd = open(filename, 'r')
-    filesize = os.fstat(fd.fileno())[stat.ST_SIZE]
-    self.send_response(200)
-    self.send_header("Content-type", mimetype)
-    self.send_header("Content-length", filesize)
-    self.end_headers()
-    return fd
+    req.content_type = mimetype
+    req.send_http_header()
+    file_contents = fd.read()
+    req.write(file_contents)
 
-def send_Text(self, text):
+
+def send_Text(req, text):
     """
     Send a text message.
     """
-    self.send_response(200)
-    self.send_header("Content-type", "text/plain")
-    self.send_header("Content-length", len(text))
-    self.end_headers()
-    return StringIO.StringIO(text)
-
+    log(3, 'Sending text')
+    req.content_type = 'text/plain'
+    req.send_http_header()
+    req.write(text)
 
 
 if __name__ == '__main__':
