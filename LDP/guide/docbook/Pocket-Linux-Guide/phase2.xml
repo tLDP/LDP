@@ -46,15 +46,16 @@
 
       <para>Next, we should strip any binaries that get copied to the root
       disk. The manpage for <command>strip</command> does not give much
-      description of what it does other than to say, &#34;strip discards all
-      symbols from the object files.&#34; It seems like removing pieces of a
+      description of what it does other than to say, "strip discards all
+      symbols from the object files." It seems like removing pieces of a
       binary would render it useless, but this is not the case. The reason it
       works is because a large number of these discarded symbols are used for
       debugging. While debugging symbols are very helpful to programmers
       working to improve the code, they do not do much for the average
       end-user other than take up more disk space. And since space is at a
       premium, we should definitely remove as many symbols as possible from
-      BASH and any other binaries before we copy over them to the ramdisk.</para>
+      BASH and any other binaries before we copy over them to the
+      ramdisk.</para>
 
       <para>The process of stripping files to save space also works with
       shared library files. But when stripping libraries it is important to
@@ -79,12 +80,10 @@
       compress it and write it out to floppy.</para>
 
       <note>
-        <para>For this to work, we need to make sure the kernel is configured
-        with ramdisk support and a default size of 4,096K. If the ramdisk size
-        is something other than 4096K this can be fixed by adding the line
-        &#34;ramdisk=4096&#34; to the development system&#39;s
-        <filename>lilo.conf</filename> file. The lilo.conf(5) man page
-        provides additional information.</para>
+        <para>For this to work, we need to make sure the system used for
+        building has ramdisk support. If ramdisk is not available it is also
+        possible to use a loopback device. See the Bootdisk-HOWTO for more
+        information on using loopback devices.</para>
       </note>
     </sect2>
   </sect1>
@@ -92,25 +91,25 @@
   <sect1>
     <title>Construction</title>
 
-    <para>This section is written using ramdisk seven (<filename>/dev/ram7</filename>)
-    to build the root image. There is nothing particularly special about
-    ramdisk seven and it is possible to use any of the other available
-    ramdisks provided they are not already in use.</para>
+    <para>This section is written using ramdisk seven
+    (<filename>/dev/ram7</filename>) to build the root image. There is nothing
+    particularly special about ramdisk seven and it is possible to use any of
+    the other available ramdisks provided they are not already in use.</para>
 
     <sect2>
       <title>Create a ramdisk</title>
 
       <para><programlisting><prompt>bash#</prompt> dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
-<prompt>bash#</prompt> mke2fs -m0 /dev/ram7
+<prompt>bash#</prompt> mke2fs -m0 /dev/ram7 4096
 <prompt>bash#</prompt> mount /dev/ram7 /mnt</programlisting></para>
     </sect2>
 
     <sect2>
       <title>Rebuild the BASH shell</title>
 
-      <para><programlisting><prompt>bash#</prompt> cd /usr/src/bash-2.05a
+      <para><programlisting><prompt>bash#</prompt> cd /usr/src/bash-3.0
 <prompt>bash#</prompt> make distclean
-<prompt>bash#</prompt> export CC=&#34;gcc -mcpu=i386&#34;
+<prompt>bash#</prompt> export CC="gcc -mcpu=i386"
 <prompt>bash#</prompt> ./configure --enable-minimal-config --host=i386-pc-linux-gnu
 <prompt>bash#</prompt> make
 <prompt>bash#</prompt> strip bash</programlisting></para>
@@ -121,13 +120,23 @@
 
       <para><programlisting><prompt>bash#</prompt> ldd bash</programlisting></para>
 
-      <para>Note the output from the <command>ldd</command> command. It should
+      <para>View the output from the <command>ldd</command> command. It should
       look similar to the example below.</para>
 
       <screen>bash# ldd bash
-  libdl.so.2 =&#62; /lib/libdl.so.2 (0x4001d000)
-  libc.so.6 =&#62; /lib/libc.so.6 (0x40020000)
-  /lib/ld-linux.so.2 =&#62; /lib/ld-linux.so.2 (0x40000000)</screen>
+  libdl.so.2 =&gt; /lib/libdl.so.2 (0x4001d000)
+  libc.so.6 =&gt; /lib/libc.so.6 (0x40020000)
+  /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)</screen>
+
+      <note>
+        <para>Some systems may have a slightly different library set up. For
+        example, you may see <computeroutput>libc.so.6 =&gt;
+        /lib/tls/libc.so.6</computeroutput> rather than
+        <computeroutput>libc.so.6 =&gt; /lib/libc.so.6</computeroutput> as
+        shown in the example. If your <command>ldd</command> output does not
+        match the example then use the path given by your
+        <command>ldd</command> command when completing the next step.</para>
+      </note>
     </sect2>
 
     <sect2>
@@ -140,15 +149,17 @@
 <prompt>bash#</prompt> strip --strip-unneeded -o /mnt/lib/libdl.so.2 /lib/libdl.so.2
 <prompt>bash#</prompt> strip --strip-unneeded -o /mnt/lib/libc.so.6 /lib/libc.so.6
 <prompt>bash#</prompt> strip --strip-unneeded -o /mnt/lib/ld-linux.so.2 /lib/ld-linux.so.2
-<prompt>bash#</prompt> chmod +x /mnt/lib/*</programlisting><note><para>Using
-      <command>strip -o</command> might seem an odd way to copy library files
-      from the development system to the ramdisk. What it does is strip the
-      symbols while the file is in transit from the source location to the
-      destination. This has the effect of stripping symbols from the library
-      on the ramdisk without altering the libraries on the development system.
-      Unfortunately file permissions are lost when copying libraries this way
-      which is why the <command>chmod +x</command> command is then used to set
-      the execute flag on all of the libraries on the rootdisk.</para></note></para>
+<prompt>bash#</prompt> chmod +x /mnt/lib/ld-linux.so.2</programlisting><note>
+          <para>Using <command>strip -o</command> might seem an odd way to
+          copy library files from the development system to the ramdisk. What
+          it does is strip the symbols while the file is in transit from the
+          source location to the destination. This has the effect of stripping
+          symbols from the library on the ramdisk without altering the
+          libraries on the development system. Unfortunately file permissions
+          are lost when copying libraries this way which is why the
+          <command>chmod +x</command> command is then used to set the execute
+          flag for the rootdisk's dynamic loader.</para>
+        </note></para>
     </sect2>
 
     <sect2>
@@ -163,14 +174,14 @@
 
       <para><programlisting><prompt>bash#</prompt> cd /
 <prompt>bash#</prompt> umount /dev/ram7
-<prompt>bash#</prompt> dd if=/dev/ram7 of=~/phase2-image bs=1k
+<prompt>bash#</prompt> dd if=/dev/ram7 of=~/phase2-image bs=1k count=4096
 <prompt>bash#</prompt> gzip -9 ~/phase2-image</programlisting></para>
     </sect2>
 
     <sect2>
       <title>Copy the compressed image to diskette</title>
 
-      <para>Insert the floppy labeled &#34;root disk&#34; into drive fd0.</para>
+      <para>Insert the floppy labeled "root disk" into drive fd0.</para>
 
       <para><programlisting><prompt>bash#</prompt> dd if=~/phase2-image.gz of=/dev/fd0 bs=1k</programlisting></para>
     </sect2>
@@ -179,6 +190,13 @@
   <sect1>
     <title>Implementation</title>
 
+    <para>Successful implementation of this phase is probably the most
+    difficult part of the Pocket Linux Guide. If you need help getting things
+    to work please visit the <ulink
+    url="http://pocket-linux.sourceforge.net">Pocket Linux Guide Resource
+    Site</ulink> to browse the troubleshooting forum and subscribe to the
+    mailing list.</para>
+
     <sect2>
       <title>System startup</title>
 
@@ -186,13 +204,21 @@
 
       <itemizedlist>
         <listitem>
-          <para>Restart the PC using the lilo boot disk from the previous
+          <para>Restart the PC using the boot disk from the previous
           chapter.</para>
         </listitem>
 
         <listitem>
-          <para>At the LILO prompt, type <userinput>bootdisk init=/bin/sh</userinput>
-          and press <keycap>Enter</keycap>.</para>
+          <para>At the <prompt>grub&gt;</prompt> prompt, type
+          <userinput>kernel (fd0)/boot/vmlinuz init=/bin/sh root=/dev/fd0
+          load_ramdisk=1 prompt_ramdisk=1</userinput> and press
+          <keycap>Enter</keycap>.</para>
+        </listitem>
+
+        <listitem>
+          <para>Type <userinput>boot</userinput> at the
+          <prompt>grub&gt;</prompt> prompt and press
+          <keycap>Enter</keycap>.</para>
         </listitem>
 
         <listitem>
@@ -200,17 +226,23 @@
         </listitem>
       </itemizedlist>
 
-      <para>The screen output should be similar to the following example:</para>
+      <para>The screen output should be similar to the following
+      example:</para>
 
-      <para><screen>boot: bootdisk init=/bin/sh
-Loading bootdisk
-Uncompressing Linux... Ok, booting kernel.
+      <para><screen>GNU GRUB version 0.95
+
+grub&gt; kernel (fd0)/boot/vmlinuz init=/bin/sh root=/dev/fd0 load_ramdisk=1 prompt_ramdisk=1
+   [Linux-bzImage, setup=0xc00, size=0xce29b]
+
+grub&gt; boot
+
+Linux version 2.4.26
 ..
 .. [various kernel messages]
 ..
-VFS: Insert root floppy to be loaded into RAM disk and press ENTER
+VFS: Insert root floppy disk to be loaded into RAM disk and press ENTER
 RAMDISK: Compressed image found at block 0
-VFS: Mounted root (ext2 filesystem) read-write.
+VFS: Mounted root (ext2 filesystem) readonly.
 Freeing unused kernel memory: 178k freed
 # _</screen></para>
     </sect2>
