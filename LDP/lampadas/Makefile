@@ -1,16 +1,21 @@
-all:	docs conf
+all:	pylib conf docs
 
 install: docs conf
-	cd doc; $(MAKE) install
+	cd pylib; $(MAKE) install
 	cd conf; $(MAKE) install
+	cd doc; $(MAKE) install
 
 clean:
-	cd doc; $(MAKE) clean
+	cd pylib; $(MAKE) clean
 	cd conf; $(MAKE) clean
+	cd doc; $(MAKE) clean
 
-docs:
-	cd doc; $(MAKE) all
+pylib:
+	cd pylib; $(MAKE) all
 
 conf:
 	cd conf; $(MAKE) all
+
+docs:
+	cd doc; $(MAKE) all
 
