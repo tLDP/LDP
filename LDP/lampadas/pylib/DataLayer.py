@@ -51,9 +51,6 @@ class LampadasList:
 	def __delitem__(self, key):
 		del self.list[key]
 
-	def keys(self):
-		return self.list.keys()
-	
 	def items(self):
 		return self.list.items()
 
