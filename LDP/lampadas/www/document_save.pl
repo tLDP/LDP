@@ -3,6 +3,9 @@
 use CGI qw(:standard);
 use Pg;
 
+use Lampadas;
+$L = new Lampadas;
+
 $query = new CGI;
 $dbmain = "ldp";
 @row;
@@ -42,27 +45,16 @@ $version       =~ s/\'/\'\'/;
 $save		= param('save');
 $saveandexit	= param('saveandexit');
 
-$conn=Pg::connectdb("dbname=$dbmain");
 
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
-	exit;
-} else {
-	if ($row[1] ne 't') {
-		$maintainer_id = $row[2];
-		$result=$conn->exec("SELECT count(*) FROM document_user WHERE user_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
-		@row = $result->fetchrow;
-		unless ($row[0]) {
-			print $query->redirect("../wrongpermission.html");
-			exit;
-		}
+unless ($L->Admin()) {
+	%userdocs = $L->UserDocs($L->CurrentUserID());
+	unless ($userdocs{$doc_id}) {
+		print $query->redirect("../wrongpermission.html");
+		exit;
 	}
 }
+
+$conn=Pg::connectdb("dbname=$dbmain");
 
 #This is horribly inefficient, but allows partial saves.
 #For our volume, it hardly matters.

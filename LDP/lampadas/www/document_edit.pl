@@ -79,7 +79,7 @@ if ($vote_count > 0) {
 }
 
 
-$L->StartPage($title);
+$L->StartPage("$title ($doc_id)");
 
 print "<p><table class='box'>\n";
 print "<form method=POST action='document_save.pl' name='edit'>\n";
@@ -106,27 +106,12 @@ print "</tr>\n<tr>\n";
 
 print "<th align=right>Status:</th><td>";
 print "<select name=pub_status>";
-if ( $pub_status eq "N" ) { print '<option selected value="N">Active</option>'; } else { print '<option value="N">Active</option>' }
-if ( $pub_status eq "?" ) { print '<option selected value="?">Unknown</option>'; } else { print '<option value="?">Unknown</option>' }
-if ( $pub_status eq "A" ) { print '<option selected value="A">Archived</option>'; } else { print '<option value="A">Archived</option>' }
-if ( $pub_status eq "D" ) { print '<option selected value="D">Deleted</option>'; } else { print '<option value="D">Deleted</option>' }
-if ( $pub_status eq "O" ) { print '<option selected value="O">Offsite</option>'; } else { print '<option value="O">Offsite</option>' }
-if ( $pub_status eq "P" ) { print '<option selected value="P">Pending</option>'; } else { print '<option value="P">Pending</option>' }
-if ( $pub_status eq "R" ) { print '<option selected value="R">Replaced</option>'; } else { print '<option value="R">Replaced</option>' }
-if ( $pub_status eq "W" ) { print '<option selected value="W">Wishlist</option>'; } else { print '<option value="W">Wishlist</option>' }
-if ( $pub_status eq "C" ) { print '<option selected value="C">Cancelled</option>'; } else { print '<option value="C">Cancelled</option>' }
-print "</select></td>";
+print $L->PubStatusCombo($pub_status);
+print "</td>";
 
 print "<th align=right>Class:</th><td>\n";
-print "<select name=class>";
-if ( $class eq "BACKGROUNDER" ) { print '<option value="BACKGROUNDER" selected>Backgrounder</option>'; } else { print '<option value="BACKGROUNDER">Backgrounder</option>' }
-if ( $class eq "HOWTO" ) { print '<option selected>HOWTO</option>'; } else { print '<option>HOWTO</option>' }
-if ( $class eq "MINI" ) { print '<option selected>MINI</option>'; } else { print '<option>MINI</option>' }
-if ( $class eq "FAQ" ) { print '<option selected>FAQ</option>'; } else { print '<option>FAQ</option>' }
-if ( $class eq "QUICK" ) { print '<option selected>QUICK</option>'; } else { print '<option>QUICK</option>' }
-if ( $class eq "GUIDE" ) { print '<option selected>GUIDE</option>'; } else { print '<option>GUIDE</option>' }
-if ( $class eq "TEMPLATE" ) { print '<option selected>TEMPLATE</option>'; } else { print '<option>TEMPLATE</option>' }
-print "</select></td>";
+print $L->ClassCombo($class);
+print "</td>";
 
 print "<th align=right>Maintained:</th><td>\n";
 if ( $maintained eq "t" ) { print 'Yes'; } else { print 'No' }
@@ -151,19 +136,8 @@ if ( $tech_review_status eq "R" ) { print '<option selected value="R">Completed<
 print "</select></td>";
 
 print "<th align=right><a href='/help/license.html'>?</a>&nbsp;License:</th><td>";
-print "<select name=license>";
-if ( $license eq "" )  { print '<option selected></option>'; } else { print '<option></option>' }
-if ( $license eq "GFDL" )  { print '<option selected>GFDL</option>'; } else { print '<option>GFDL</option>' }
-if ( $license eq "LDPL" ) { print '<option selected>LDPL</option>'; } else { print '<option>LDPL</option>' }
-if ( $license eq "LDPCL" ) { print '<option selected>LDPCL</option>'; } else { print '<option>LDPCL</option>' }
-if ( $license eq "HOWTOL" ) { print '<option selected>HOWTOL</option>'; } else { print '<option>HOWTOL</option>' }
-if ( $license eq "BOILERPLATE" ) { print '<option value="BOILERPLATE" selected>Boilerplate</option>'; } else { print '<option value="BOILERPLATE">Boilerplate</option>' }
-if ( $license eq "OPL" )  { print '<option selected>OPL</option>'; } else { print '<option>OPL</option>' }
-if ( $license eq "GPL" )  { print '<option selected>GPL</option>'; } else { print '<option>GPL</option>' }
-if ( $license eq "NONE" )  { print '<option selected>NONE</option>'; } else { print '<option>NONE</option>' }
-if ( $license eq "PD" )  { print '<option selected>PD</option>'; } else { print '<option>PD</option>' }
-if ( $license eq "OTHER" )  { print '<option selected>OTHER</option>'; } else { print '<option>OTHER</option>' }
-print "</select></td>";
+print $L->LicenseCombo();
+print "</td>";
 
 print "</tr>\n<tr>\n";
 

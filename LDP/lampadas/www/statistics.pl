@@ -3,6 +3,9 @@
 use CGI qw(:standard);
 use Pg;
 use Date::Calc qw(:all);
+use Lampadas;
+
+$L = new Lampadas;
 
 $baseurl = "http://www.linuxdoc.org";
 $basesql = "SELECT doc_id, title, class, ref_url, version, format FROM document ";
@@ -10,14 +13,7 @@ $dbmain='ldp';
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
-print header;
-
-print "<html><head><title>LDP Statistics</title><link rel=stylesheet href='/ldp.css' type='text/css'>";
-print "<body>";
-
-print "<h1>Statistics</h1>\n\n";
-
-system("./navbar.pl");
+$L->StartPage('Statistics');
 
 $sql = "select count(*) from document";
 $result=$conn->exec($sql);

@@ -8,17 +8,17 @@ $dbmain = "ldp";
 @row;
 
 # Read parameters
-$caller        = param('caller');
-$doc_id        = param('doc_id');
-$maintainer_id = param('maintainer_id');
-$active        = param('active');
-$role          = param('role');
-$email         = param('email');
+$caller		= param('caller');
+$doc_id		= param('doc_id');
+$user_id	= param('user_id');
+$active		= param('active');
+$role		= param('role');
+$email		= param('email');
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
 $username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+$result=$conn->exec("SELECT username, admin, user_id FROM username WHERE username='$username'");
 @row = $result->fetchrow;
 $founduser = $row[0];
 $founduser =~ s/\s+$//;
@@ -37,23 +37,23 @@ if ($username ne $founduser) {
 	}
 }
 
-#print header;
-#print start_html;
-$sql = "INSERT INTO document_maintainer(doc_id, maintainer_id, active, role, email) VALUES ($doc_id, $maintainer_id, '$active', '$role', '$email' )";
+$sql = "INSERT INTO document_user(doc_id, user_id, active, role, email) VALUES ($doc_id, $user_id, '$active', '$role', '$email' )";
 $result=$conn->exec($sql);
 
+#print header;
+#print start_html;
+#print "<p>$sql\n";
+
 #update the maintained field in the document record
-$sql = "SELECT COUNT(*) as active_maintainers FROM document_maintainer WHERE doc_id=$doc_id AND (role='Author' OR role='Co-Author' OR role='Maintainer') AND active='t'";
+$sql = "SELECT COUNT(*) as active_users FROM document_users WHERE doc_id=$doc_id AND (role='Author' OR role='Co-Author' OR role='Maintainer') AND active='t'";
 $result=$conn->exec($sql);
 @row = $result->fetchrow;
-$active_maintainers = $row[0];
-if ( $active_maintainers > 0 ) { $maintained = "t" } else { $maintained = "f" }
+$active_users = $row[0];
+if ( $active_users > 0 ) { $maintained = "t" } else { $maintained = "f" }
 $sql = "UPDATE document SET maintained='$maintained' WHERE doc_id=$doc_id";
 $result=$conn->exec($sql);
 
-#print header;
-#print start_html;
-#print $sql;
+#print "<p>$sql\n";
 #print end_html;
 #exit;
 

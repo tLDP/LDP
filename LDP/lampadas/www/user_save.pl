@@ -1,11 +1,12 @@
 #! /usr/bin/perl
 # 
 use CGI qw(:standard);
+$CGI = new CGI;
 
 use Lampadas;
-$L = new Lampadas;
-
 use Database;
+
+$L = new Lampadas;
 $DB = new Database;
 
 # Read parameters
@@ -26,9 +27,13 @@ $password	= param('password');
 $password	=~ s/\s+$//;
 
 
-$DB->Exec("UPDATE username SET username='$username', first_name = '$first_name', middle_name='$middle_name', surname='$surname', email='$email', admin='$admin' WHERE user_id=" . $L->CurrentUserID);
+$DB->Exec("UPDATE username SET username='$username', first_name='$first_name', middle_name='$middle_name', surname='$surname', email='$email', admin='$admin' WHERE user_id='$user_id'");
 if ($password) {
-	$DB->Exec("UPDATE username SET password='$password' WHERE user_id=" . $L->CurrentUserID);
+	$DB->Exec("UPDATE username SET password='$password' WHERE user_id='$user_id'");
 }
 
-$L->Redirect("user_edit.pl?user_id=" . $L->CurrentUserID);
+$url = "user_edit.pl?user_id=$user_id";
+$L->StartPage("User Saved");
+print "The changes have been saved.\n";
+$L->EndPage();
+

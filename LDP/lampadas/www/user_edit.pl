@@ -53,7 +53,7 @@ if ($L->Admin) {
 	if ($admin eq 'f') { print "<option selected value='f'>No</option>\n" } else { print "<option value='f'>No</option>\n" }
 	print "</select></td></tr>\n";
 }
-print "<tr><th>New Password:</th><td><input type=text name='password' size=12></input></td></tr>";
+print "<tr><th>New Password:</th><td><input type=password name='password' size=12></input></td></tr>";
 print "<tr><td></td><td><input type=submit value=Save></td></tr>";
 print "</table>";
 print "</form>";
