@@ -41,8 +41,8 @@
 <firstname>David</firstname> <othername role="mi">A.</othername><surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>v2.51, 3 September 2000</pubdate>
-<edition>v2.51</edition>
+<pubdate>v2.60, 10 November 2000</pubdate>
+<edition>v2.60</edition>
 <!-- FYI: The LDP claims they don't use the "edition" tag.  -->
 <copyright>
  <year>1999</year>
@@ -548,9 +548,10 @@ authorized parties in authorized ways.
 <listitem>
 
 <para>
-<emphasis remap="it">Availability</emphasis>, meaning that the assets are accessible to the
-authorized parties.
-This goal is often referred to by its antonym, denial of service.
+<emphasis remap="it">Availability</emphasis>,
+meaning that the assets are accessible to the authorized 
+parties in a timely manner (as determined by the systems requirements).
+The failure to meet this goal is called a denial of service.
 </para>
 </listitem>
 
@@ -585,6 +586,18 @@ so that you'll know when you've met them.
  Maximum Security's appendix:
     http://www.uzsci.net/documentation/Books/Max_Security/apa/apa.htm
  -->
+
+<para>
+Sometimes these goals are a response to a known set of threats,
+and sometimes some of these goals are required by law.
+For example, for U.S. banks and other financial institutions,
+there's a new privacy law called the ``Gramm-Leach-Bliley'' (GLB) Act.
+This law mandates disclosure of personal information shared and
+means of securing that data, requires disclosure of personal information
+that will be shared with third parties, and directs institutions to
+give customers a chance to opt out of data sharing.
+[Jones 2000]
+</para>
 
 <para>
 Saltzer [1974] and later Saltzer and Schroeder [1975]
@@ -881,6 +894,9 @@ out of the entire source tree took 10 full-time developers
 one and a half years to complete.
 "It?s a hell of a lot of work and I think that explains why it hasn't
 been done by many people," he said.  www.openbsd.org.
+
+???: add info about smartcards, e.g., how to code algorithms so the
+key won't be exposed by power fluctuations.
 
 -->
 
@@ -1478,24 +1494,7 @@ The portable way to create new processes it use the fork(2) call.
 BSD introduced a variant called vfork(2) as an optimization technique.
 The bottom line with vfork(2) is simple: <emphasis remap="it">don't</emphasis> use it if you
 can avoid it.
-In vfork(2), unlike fork(2),  the child borrows the parent's memory
-and thread of control until a call to execve(2V) or an exit occurs;
-the parent process is suspended while the child is using its resources.
-The rationale is that in old BSD systems, fork(2) would actually cause
-memory to be copied while vfork(2) would not.
-Linux never had this problem; because Linux used copy-on-write
-semantics internally, Linux only copies pages when they changed
-(actually, there are still some tables that have to be copied; in most
-circumstances their overhead is not significant).
-Nevertheless, since some programs depend on vfork(2),
-recently Linux implemented the BSD vfork(2) semantics
-(previously it had been an alias for fork(2)).
-The problem with vfork(2) is that it's actually fairly tricky for a
-process to not interfere with its parent, especially in high-level languages.
-The result: programs using vfork(2) can easily fail when code changes
-or even when compiler versions change.
-Avoid vfork(2) in most cases; its primary use is to support old
-programs that needed vfork's semantics.
+See <xref linkend="avoid-vfork"> for more information.
 </para>
 
 <para>
@@ -2650,14 +2649,26 @@ The global variable environ is defined in &lt;unistd.h&gt;; C/C++ users will
 want to &num;include this header file.
 You will need to manipulate this value before spawning threads, but that's
 rarely a problem, since you want to do these manipulations very early in
-the program's execution.
+the program's execution (usually before threads are spawned).
 Another way is to use the undocumented clearenv() function.
 clearenv() has an odd history; it was supposed to be defined in POSIX.1, but
 somehow never made it into that standard.
 However, clearenv() is defined in POSIX.9
 (the Fortran 77 bindings to POSIX), so there is a quasi-official status for it.
+In Linux,
 clearenv() is defined in &lt;stdlib.h&gt;, but before using &num;include
 to include it you must make sure that &lowbar;&lowbar;USE&lowbar;MISC is &num;defined.
+A somewhat more ``official'' was to cause __USE_MISC to be defined
+is to #define either _SVID_SOURCE or _BSD_SOURCE, then
+#include &lt;features.h&gt; -
+these are the official feature test macros.
+To be honest, I use the approach of setting ``environ'';
+manipulating such low-level components is possibly non-portable, but 
+it assures you that you get a clean (and safe) environment.
+In the rare case where you need later access to the entire set of
+variables, you could save the ``environ'' variable's value somewhere,
+but this is rarely necessary; nearly all programs need only a few values,
+and the rest can be dropped.
 </para>
 
 <para>
@@ -3303,7 +3314,8 @@ url="http://destroy.net/machines/security/">http://destroy.net/machines/security
 </para>
 
 <para>
-Most programming languages are essentially immune to this problem, either
+Most high-level programming languages are essentially
+immune to this problem, either
 because they automatically resize arrays (e.g., Perl), or because they normally
 detect and prevent buffer overflows (e.g., Ada95).
 However, the C language provides no protection against
@@ -3420,17 +3432,52 @@ reduction in performance, for no good reason in most cases.
 <para>
 <!-- from Hudin Lucian, BUGTRAQ - 29 Jun 2000 -->
 <!-- David A. Wheeler checked it and found that it was WRONG - 18 July 2000 -->
-One posting on bugtraq claimed that you can use sprintf()
-without buffer overflows by using the ``field width'' capability of sprintf().
-Unfortunately, this isn't true; the field width specifies a minimum
-width, not a maximum, so overlong strings can still overflow a
-fixed-length buffer even with field width specifiers.
-Here's an example of this approach that doesn't work:
+<!-- Sean Winn reaffirmed this 28 Oct 2000.  Wheeler rechecked, and found
+     that his code was wrong.  Text here was rewritten as a result. -->
+You can also use sprintf() while preventing
+buffer overflows, but you need to be careful when doing so;
+it's so easy to misapply that it's hard to recommend.
+The sprintf control string can contain various conversion specifiers
+(e.g., "%s"), and the control specifiers can have optional
+field width (e.g., "%10s") and precision (e.g., "%.10s") specifications.
+These look quite similar (the only difference is a period)
+but they are very different.
+The field width only
+specifies a <emphasis>minimum</emphasis> length and is
+completely worthless for preventing buffer overflows.
+In contrast, the precision specification specifies the maximum
+length that that particular string may have in its output when
+used as a string conversion specifier - and thus it can be used
+to protect against buffer overflows.
+Note that the precision specification only specifies the total maximum
+length when dealing with a string; it has a different meaning for
+other conversion operations.
+If the size is given as "*", then you can pass the maximum size
+as a parameter (e.g., the result of a sizeof() operation).
+This is most easily shown by an example - here's the wrong and right
+way to use sprintf() to protect against buffer overflows:
 <programlisting width="61">
- /* WARNING: This DOES NOT WORK. */
- char buf[BUFSIZ];
- sprintf(buf, "%.*s", BUFSIZ, "big-long-string");
+ char buf[BUFFER_SIZE];
+ sprintf(buf, "%*s",  sizeof(buf)-1, "long-string");  /* WRONG */
+ sprintf(buf, "%.*s", sizeof(buf)-1, "long-string");  /* RIGHT */
 </programlisting>
+In theory, sprintf() should be very helpful because you can use it
+to specify complex formats.
+Sadly, it's easy to get things wrong with sprintf().
+If the format is complex, you
+need to make sure that the destination is large enough for the largest
+possible size of the <emphasis>entire</emphasis>
+format, but the precision field only controls
+the size of one parameter.
+The "largest possible" value is often hard to determine when a
+complicated output is being created.
+If a program doesn't allocate quite enough space for the longest possible
+combination, a buffer overflow vulnerability may open up.
+Also, sprintf() appends a NUL to the destination
+after the entire operation is complete -
+this extra character is easy to forget and creates an opportunity
+for off-by-one errors.
+So, while this works, it can be painful to use in some circumstances.
 </para>
 
 </sect2>
@@ -5108,16 +5155,19 @@ those characters.
 </para>
 
 <para>
-A number of programs have ``escape'' codes that
-perform ``extra'' activities; make sure that these can't be included
-(unless you intend for them to be in the message).
+A number of programs, especially those designed for human interaction,
+have ``escape'' codes that perform ``extra'' activities.
+One of the more common (and dangerous) escape codes is one that brings
+up a command line.
+Make sure that these ``escape'' commands can't be included
+(unless you're sure that the specific command is safe).
 For example, many line-oriented mail programs (such as mail or mailx) use
 tilde (~) as an escape character, which can then be used to send a number
 of commands.
 As a result, apparantly-innocent commands such as
 ``mail admin < file-from-user'' can be used to execute arbitrary programs.
-Interactive programs such as vi and emacs have ``escape'' mechanisms
-that normally allow users to run arbitrary shell commands from their session.
+Interactive programs such as vi, emacs, and ed have ``escape'' mechanisms
+that allow users to run arbitrary shell commands from their session.
 Always examine the documentation of programs you call to search for
 escape mechanisms.
 </para>
@@ -5189,6 +5239,34 @@ directories.
 
 </sect1>
 
+<sect1 id="call-intentional-apis">
+<title>Call Only Interfaces Intended for Programmers</title>
+
+<para>
+Call only application programming interfaces (APIs) that are
+intended for use by programs.
+Usually a program can invoke any other program,
+including those that are really designed for human interaction.
+However, it's usually unwise to invoke a program intended for human
+interaction in the same way a human would.
+The problem is that programs's human interfaces are intentionally rich
+in functionality and are often difficult to completely control.
+Usually the same program can be invoked
+As discussed in <xref linkend="limit-call-outs">,
+interactive programs often have ``escape'' codes;
+programs shouldn't usually just call
+mail, mailx, ed, vi, and emacs, at least not without checking
+their input.
+Usually there are parameters to give you safer access to the program's
+functionality,
+or a different API or application that's intended for use by programs.
+Use those instead.
+For example, instead of an editor (like ed, vi, or emacs), use sed
+where you can.
+</para>
+</sect1>
+
+
 <sect1 id="check-returns">
 <title>Check All System Call Returns</title>
 
@@ -5203,6 +5281,136 @@ External users of server programs and CGI scripts
 may be able to cause resource exhaustion simply by making a large number
 of simultaneous requests.
 If the error cannot be handled gracefully, then fail open as discussed earlier.
+</para>
+
+</sect1>
+
+<sect1 id="avoid-vfork">
+<title>Avoid Using vfork(2)</title>
+
+<para>
+The portable way to create new processes in Unix-like systems
+is to use the fork(2) call.
+BSD introduced a variant called vfork(2) as an optimization technique.
+In vfork(2), unlike fork(2),  the child borrows the parent's memory
+and thread of control until a call to execve(2V) or an exit occurs;
+the parent process is suspended while the child is using its resources.
+The rationale is that in old BSD systems, fork(2) would actually cause
+memory to be copied while vfork(2) would not.
+Linux never had this problem; because Linux used copy-on-write
+semantics internally, Linux only copies pages when they changed
+(actually, there are still some tables that have to be copied; in most
+circumstances their overhead is not significant).
+Nevertheless, since some programs depend on vfork(2),
+recently Linux implemented the BSD vfork(2) semantics
+(previously vfork(2) had been an alias for fork(2)).
+</para>
+
+<para>
+There are a number of problems with vfork(2).
+From a portability point-of-view,
+the problem with vfork(2) is that it's actually fairly tricky for a
+process to not interfere with its parent, especially in high-level languages.
+The ``not interfering'' requirement applies to the actual machine code
+generated, and many compilers generate hidden temporaries and other
+code structures that cause unintended interference.
+The result: programs using vfork(2) can easily fail when the code changes
+or even when compiler versions change.
+</para>
+
+<para>
+For secure programs it gets worse on Linux systems, because
+Linux (at least 2.2 versions through 2.2.17) is vulnerable to a
+race condition in vfork()'s implementation.
+If a privileged process uses a vfork(2)/execve(2) pair in Linux
+to execute user commands, there's a race condition
+while the child process is already running as the target user`s
+UID, but hasn`t entered execve(2) yet.
+The user may be able to send signals, including SIGSTOP, to this process.
+Due to the semantics of
+vfork(2), the privileged parent process would then be blocked as well.
+As a result, an unprivileged process could cause the privileged process
+to halt, resulting in a denial-of-service of the privileged process' service.
+FreeBSD and OpenBSD, at least, have code to specifically deal with this
+case, so to my knowledge they are not vulnerable to this problem.
+My thanks to Solar Designer, who noted and documented this
+problem in Linux on the ``security-audit'' mailing list on October 7, 2000.
+<!-- 
+http://www.geocrawler.com/search/?config=302&words=Designer+vfork
+http://www.geocrawler.com/archives/3/302/2000/10/0/4460856/
+-->
+</para>
+
+<para>
+The bottom line with vfork(2) is simple:
+<emphasis remap="it">don't</emphasis> use vfork(2) in your programs.
+This shouldn't be difficult; the primary use of vfork(2) is to support old
+programs that needed vfork's semantics.
+</para>
+</sect1>
+
+<sect1 id="embedded-content-bugs">
+<title>Counter Web Bugs When Retrieving Embedded Content</title>
+<para>
+Some data formats can embed references to content that is automatically
+retrieved when the data is viewed (not waiting for a user to select it).
+If it's possible to cause this data to be retrieved through the
+Internet (e.g., through the World Wide Wide), then there is a
+potential to use this capability to obtain information about readers
+without the readers' knowledge, and in some cases to force the reader
+to perform activities without the reader's consent.
+This privacy concern is sometimes called a ``web bug.''
+</para>
+
+<para>
+In a web bug, a reference is intentionally inserted into a document
+and used by the content author to track
+where (and how often) a document is being read.
+The author can also watch how a ``bugged'' document
+is passed from one person to another or from one organization to another. 
+</para>
+
+<para>
+The HTML format has had this issue for some time.
+According to the
+<ulink url="http://www.privacyfoundation.org">Privacy Foundation</ulink>:
+<blockquote>
+<para>
+Web bugs are used extensively today by Internet
+advertising companies on Web pages and
+in HTML-based email messages for tracking.
+They are typically 1-by-1 pixel in size to make them
+invisible on the screen to disguise the fact that they are used for tracking.
+</para>
+</blockquote>
+</para>
+
+<para>
+What is more concerning is that other document formats seem to have
+such a capability, too.
+When viewing HTML from a web site with a web browser, there are other
+ways of getting information on who is browsing the data, but when
+viewing a document in another format from an email few users expect
+that the mere act of reading the document can be monitored.
+However, for many formats, reading a document can be monitored.
+For example, it has been recently determined that Microsoft Word can
+support web bugs;
+see
+<ulink url="http://www.privacyfoundation.org/advisories/advWordBugs.html">
+the Privacy Foundation advisory for more information </ulink>.
+As noted in their advisory,
+recent versions of Microsoft Excel and Microsoft Power Point can also
+be bugged.
+In some cases, cookies can be used to obtain even more information.
+</para>
+
+<para>
+Web bugs are primarily an issue with the design of the file format.
+If your users value their privacy, you probably will want to limit the
+automatic downloading of included files.
+One exception might be when the file itself is being downloaded
+(say, via a web browser); downloading other files from the same location
+at the same time is much less likely to be a concern from users.
 </para>
 
 </sect1>
@@ -5374,9 +5582,6 @@ published in the July 18, 2000 edition of
 <!-- This paper can be hard to extract, but it's there -->
 </para>
 
-<!-- ???: Can internationalization lookups be controlled by an
-     untrusted user?  Obviously, the language can be selected, but can the
-     user supply "their own" strings? If so, that's a security hole! -->
 <para>
 Of course, this all begs the question as to whether or not the
 internationalization lookup is, in fact, secure.
@@ -5755,8 +5960,28 @@ A set of slides describing Java's security model are freely available at
 </para>
 
 <para>
+Obviously, a great deal depends on the kind of application you're developing.
+Java code intended for use on the client side has a completely different
+environment (and trust model) than code on a server side.
+The general principles apply, of course; for example, you must
+checking and filter any input from an untrusted source.
+However, in Java there are some ``hidden'' inputs or potential inputs that you
+need to be wary of, as discussed below.
+Johnathan Nightingale [2000] made an interesting statement
+summarizing many of the issues in Java programming:
+<blockquote>
+<para>
+... the big thing with Java programming is minding your inheritances.
+If you inherit methods from parents, interfaces, or
+parents' interfaces, you risk opening doors to your code. 
+</para>
+</blockquote>
+<!-- Secprog, Wed, 1 Nov 2000 18:46:43 -0500, Re: Secure Java programming -->
+</para>
+
+<para>
 The following are a few key guidelines, based on Gong [1999],
-McGraw [1999], and Sun's guidance:
+McGraw [1999], Sun's guidance, and my own experience:
 
 <orderedlist>
 
@@ -5771,6 +5996,45 @@ Make methods private unless these is a good reason to do otherwise
 These non-private methods must protect themselves, because they may
 receive tainted data (unless you've somehow arranged to protect them).
 </para></listitem>
+
+<listitem><para>
+The JVM may not actually enforce the accessibility modiifiers
+(e.g., ``private'') at run-time in an application
+(as opposed to an applet).
+My thanks to John Steven (Cigital Inc.), who pointed this out
+on the ``Secure Programming'' mailing list on November 7, 2000.
+The issue is that it all depends on what class loader
+the class requesting the access was loaded with.
+If the class was loaded with a trusted class loader (including the null/
+primordial class loader),
+the access check returns "TRUE" (allowing access).
+For example, this works
+(at least with Sun's 1.2.2 VM ; it might not work with
+other implementations):
+<orderedlist>
+<listitem><para>write a victim class (V) with a public field, compile it.</para></listitem>
+<listitem><para>write an 'attack' class (A) that accesses that field, compile it </para></listitem>
+<listitem><para>change V's public field to private, recompile</para></listitem>
+<listitem><para>run A - it'll access V's (now private) field.</para></listitem>
+</orderedlist>
+</para>
+<para>
+However, the situation is different with applets.
+If you convert A to an applet and run it as an applet
+(e.g., with appletviewer or browser), its class loader is no
+longer a trusted (or null) class loader.
+Thus, the code will throw
+java.lang.IllegalAccessError, with the message that
+you're trying to access a field V.secret from class A.
+</para></listitem>
+<!-- Source: SECPROG
+Date:    Tue, 7 Nov 2000 16:52:47 -0500
+From:    John Steven jsteven@CIGITAL.COM
+Subject: Re: Java and 'private'
+
+I looked into this w/ the Java 1.1 VM Spec., and the 1.2.2 VM source,
+'spent only a short amount of time on it-mileage may vary.
+-->
 
 <listitem><para>
 Avoid using static field variables. Such variables are attached to the
@@ -6195,6 +6459,9 @@ to hide authentication information, as well as to support privacy.
 <para>
 For background information and code, you should probably look at
 the classic text ``Applied Cryptography'' [Schneier 1996].
+The newsgroup ``sci.crypt'' has a series of FAQ's; you can find them
+at many locations, including
+<ulink url="http://www.landfield.com/faqs/cryptography-faq">http://www.landfield.com/faqs/cryptography-faq</ulink>.
 Linux-specific resources include the Linux Encryption HOWTO at
 <ulink
 url="http://marc.mutz.com/Encryption-HOWTO/">http://marc.mutz.com/Encryption-HOWTO/</ulink>.
@@ -6363,7 +6630,7 @@ You may find some auditing tools helpful for finding potential security flaws.
 Here are a few:
 <itemizedlist>
 <listitem><para>
-ITS4 from Reliable Software Technologies (RST)
+ITS4 from Cigital (formerly Reliable Software Technologies, RST)
 statically checks C/C++ code.
 ITS4 works by performing
 pattern-matching on source code, looking for patterns known to be
@@ -6371,20 +6638,20 @@ possibly dangerous (e.g., certain function calls).
 It is available free for non-commercial use, including its source code
 and with certain modification and redistribution rights.
 One warning; the tool's licensing claims can be initially misleading.
-RST claims that ITS4 is ``open source'' but, in fact, its license
+Cigital claims that ITS4 is ``open source'' but, in fact, its license
 does not meet the
 <ulink url="http://www.opensource.org/osd.html">Open
 Source Definition</ulink> (OSD).
 In particular, ITS4's license fails point 6, which forbids
 ``non-commercial use only'' clauses in open source licenses.
-It's unfortunate that RST insists on using the term
+It's unfortunate that Cigital insists on using the term
 ``open source'' to describe their license.
 ITS4 is a fine tool, released under a
 fairly generous license for commercial software, yet
 using the term this way can give the appearance of a company
 trying to gain the cachet of ``open source'' without actually
 being open source.
-RST says that they simply don't accept the OSD definition and
+Cigital says that they simply don't accept the OSD definition and
 that they wish to use a different definition instead.
 Nothing legally prevents this, but the OSD definition is used by
 over 5000 software projects (at least all those hosted by SourceForge
@@ -6394,7 +6661,7 @@ journalists (such as those of the Economist),
 and many other organizations.
 Most programmers don't want to wade through license agreements,
 so using this other definition can be confusing.
-I do not believe RST has any intention to mislead; they're
+I do not believe Cigital has any intention to mislead; they're
 a reputable company with very reputable and honest people.
 It's unfortunate that this particular position of theirs
 leads (in my opinion) to unnecessary confusion.
@@ -6958,6 +7225,16 @@ Beej's Guide to Network Programming Using Internet Sockets.
 13-Jan-1999.
 Version 1.5.5.
 <ulink url="http://www.ecst.csuchico.edu/~beej/guide/net">http://www.ecst.csuchico.edu/~beej/guide/net</ulink>
+</para>
+
+<para>
+[Jones 2000]
+Jones, Jennifer.
+October 30, 2000.
+``Banking on Privacy''.
+InfoWorld, Volume 22, Issue 44.
+San Mateo, CA: International Data Group (IDG).
+pp. 1-12.
 </para>
 
 <para>
@@ -8427,8 +8704,9 @@ and you can also see his web site at
 ???:  http://soledad.cs.ucdavis.edu/
  describes Linux BSM, an auditing project.
 
+ ???: Could add a discussion of legal issues and requirements,
+ U.S. and internationally.
+
 
 -->
-
-
 </book>
