@@ -3,10 +3,11 @@
 <title> Text-Terminal-HOWTO </title>
 <author> David S. Lawyer <url url="mailto:dave@lafn.org">  
 
-<date> v1.12, May 2000 
+<date> v1.13, June 2000 
 <!--
 Change log:
-v1.12 lilo.conf for serial console, reset -> setterm -reset (due to
+v1.13 killing getty permanently, reset bug+, man lilo
+v1.12 May 2000 lilo.conf for serial console, reset -> setterm -reset (due to
 bug), scrolling region 25-line problem, sharing+, JavaStation-HOWTO.
 v1.11 2 March 2000 New link to vtprint, links to char-sets +, typos
 v1.10 Modem status interrupts work, Rubini said no.  DoubleVision.
@@ -138,10 +139,8 @@ sites see: <url url="http://linuxdoc.org/mirrors.html">.
 Various formats are available.  If you only want to quickly check the
 date of the latest version look at <url
 url="http://linuxdoc.org/HOWTO/Text-Terminal-HOWTO.html">.  The
-version your are currently reading is: v1.12, May 2000 .  New in this version
-is: lilo.conf for serial console, reset -> setterm -reset 
-(due to bug), scrolling region 25-line problem, sharing+, 
-JavaStation-HOWTO .
+version your are currently reading is: v1.13, June 2000 .  New in this version
+is: killing getty permanently, reset bug+, man lilo. .
 
 <sect1> Related HOWTO's <label id="related_howtos">
 <p> Go to the websites shown above to get these.
@@ -1893,16 +1892,15 @@ everything works OK because each inline coupler is also a null-modem
 adapter.  Two null-modem devices in series result in a straight-thru
 connection.
 
-RJ45 and RJ48 are 8-conductor (or 10-conductor for some computer
-applications) telephone plugs.  The 10-conductor ones are allegedly
-wider and will not mate with 8-conductor ones.  They are used for both
-flat telephone cable and round twisted pair cable.  The cable end of
-the connector may be different for round and flat cable and both RJ45
-and RJ48 may be 8 or 10 conductor so make sure you get the right one.
-RJ48 has an extra tab so that a RJ48 plug will not push into a RJ45
-jack (but a RJ45 plug will mate with a RJ48 jack).  They're used on
-some multiport serial cards and networks.  Heres the pin numbers for
-an 8-conductor:
+RJ45 and RJ48 are usually 8-conductor modular telephone plugs.
+However some are 10-conductor and are allegedly wider and will not
+mate with 8-conductor ones.  They are used for both flat telephone
+cable and round twisted pair cable.  The cable end of the connector
+may be different for round and flat cable and both RJ45 and RJ48 may
+be 8 or 10 conductor so make sure you get the right one.  RJ48 has an
+extra tab so that a RJ48 plug will not push into a RJ45 jack (but a
+RJ45 plug will mate with a RJ48 jack).  They're used on some multiport
+serial cards and networks.  Heres the pin numbers for an 8-conductor:
 
 <tscreen><verb>
   Plug                          Jack
@@ -2998,7 +2996,10 @@ which runs <tt/stty/ since on seldom need it.
 
 <sect1> Setserial <label id="set_serial">
 <!-- setserial.H  begin  (in MM TT SS)
-<sect1>What is Setserial ? <label id="set_serial"> -->
+<sect1>What is Setserial ? <label id="set_serial">
+Change Log:
+May 2000: <sect2> IRQs near end ttyS0 -> ttyS1 + clarity 
+-->
 <p> This part is in 3 HOWTOs: Modem, Serial, and Text-Terminal.  There
 are some minor differences, depending on which HOWTO it appears in.
 
@@ -3010,8 +3011,8 @@ set in the port's hardware, what type of UART you have, etc.  It can
 also show how the driver is currently set.  In addition, it can be
 made to probe the hardware and try to determine the UART type and IRQ,
 but this has severe limitations.  See <ref id="probing_ss"
-name="Probing">.  Note that it can't set the IRQ, etc in the hardware
-of PnP serial ports.
+name="Probing">.  Note that it can't set the IRQ or the port address
+in the hardware of PnP serial ports.
 
 If you only have one or two built-in serial ports, they will usually
 get set up correctly without using setserial.  Otherwise (or if there
@@ -3028,10 +3029,10 @@ equivalent was compiled into your kernel).  If you should (for some
 reason) unload the serial module later on, the changes previously made
 by <tt/setserial/ will be forgotten by the kernel.  So <tt/setserial/
 must be run again to reestablish them.  In addition to running via a
-start-up script, something akin to <tt/setserial/ also runs when the
-serial module is loaded (or the like).  Thus when you watch the
-start-up messages on the screen it may look like it ran twice, and in
-fact it has.
+start-up script, something akin to <tt/setserial/ also runs earlier
+when the serial module is loaded (or the like).  Thus when you watch
+the start-up messages on the screen it may look like it ran twice, and
+in fact it has.
 
 Setserial can set the time that the port will keep operating after
 it's closed (in order to output any characters still in its buffer in
@@ -3057,7 +3058,14 @@ Note that setserial calls an IO address a "port".  If you type:
 setserial -g /dev/ttyS*
 </verb></tscreen> 
 you'll see some info about how that device driver is configured for
-your ports.  Add a -a to the option -g to see more info although few
+your ports.  Note that where it says <tt>"UART: unknown"</tt> it
+probably means that no uart exists.  In other words you probably have
+no such serial port and the other info shown about the port is
+meaningless and should be ignored.  If you really do have such a
+serial port, setserial doesn't recognize it and that needs to be
+fixed.
+
+If you add -a to the option -g you will see more info although few
 people need to deal with (or understand) this additional info since
 the default settings you see usually work fine.  In normal cases the
 hardware is set up the same way as "setserial" reports, but if you are
@@ -3066,7 +3074,11 @@ In fact, you can run "setserial" and assign a purely fictitious I/O
 port address, any IRQ, and whatever uart type you would like to have.
 Then the next time you type "setserial ..." it will display these
 bogus values without complaint.  Of course the serial port driver will
-not work correctly (if at all) with such bogus values.  
+not work correctly (if at all) if you attempt to use such a port.
+Thus when giving parameters to "setserial" anything goes.  It gives
+you no warning if what you tell it is incorrect and will allow you to
+create conflicts in IRQs and I/O port addresses that will have
+disastrous results later on.
 
 While assignments made by setserial are lost when the PC is powered
 off, a configuration file may restore them (or a previous
@@ -3279,10 +3291,11 @@ Debian labeled obsolete files with "...pre-2.15".
 
 <sect2> IRQs
 
-<p> By default, both ttyS0 and ttyS2 share IRQ 4, while ttyS0 and
-ttyS3 share IRQ 3.  But sharing serial interrupts is not permitted
-unless you: 1. have kernel 2.2 or better, and 2. you've complied in
-support for this, and 3. your serial hardware supports it.  See 
+<p> By default, both ttyS0 and ttyS2 will share IRQ 4, while ttyS1 and
+ttyS3 share IRQ 3.  But actually sharing serial interrupts (using them
+in running programs) is not permitted unless you: 1. have kernel 2.2
+or better, and 2. you've complied in support for this, and 3. your
+serial hardware supports it.  See 
 Serial-HOWTO: Interrupt sharing and Kernels 2.2+. 
 
 
@@ -3837,7 +3850,8 @@ commands commonly used at the terminal are:
 
 <itemize>
 <item> clear (to clear the screen)
-<item> setterm -reset (to reset the terminal)
+<item> reset (to reset the terminal
+<item> setterm -reset (alternative for "reset" in case of bug)
 </itemize>
 
 <sect1> Starting Up the Terminal
@@ -3948,7 +3962,7 @@ leave some temporary files lying around as well as a corrupted
 interface.  Killing the login shell should result in a startup of
 getty with a new login prompt.
 
-<label id="ctrl-s">
+<label id="ctrl_s">
 People new to Linux may unintentionally press Ctrl-S (^S) (or the "No
 Scroll" key) which mysteriously freezes the screen (although that is
 what this key is supposed to do if you use software flow-control).  To
@@ -3962,23 +3976,29 @@ using hardware flow-control is to prevent such freezes.
 <p> This includes the case of a "frozen display" = "hung terminal" of
 the previous section.
 
-<sect2> Symptoms
+<sect2> Symptoms and Some Fixes <label id="symptoms_">
 <p> When the display doesn't look right, or when what you type doesn't
 display correctly (if at all), or nothing happens when you type a
 command, you may have a corrupted terminal interface.  In rare cases
 when the serial port hardware gets itself corrupted, the only fix may
-be to cycle power (turn off the PC and reboot).  The corruption may be
-due to things such as bug in the program you're using, a hardware
-failure (including an obscure hardware defect that you can normally
-live with), or possibly an incorrect configuration.  If everything was
-working normally but it suddenly goes bad, it may be that the
-interface got corrupted by something you did.  Three mistakes you
-might have made to corrupt the interface are: 
+be to cycle power (turn off the PC and reboot).  Sometimes logging in
+again will solve the problem.  To do this kill the shell process
+running on the terminal (or kill getty if it's running).  You do this
+from another terminal.  Once killed, a new getty process respawns
+which hopefully will end the corruption.  Recycling power (or
+resetting) for the terminal may help too.
+
+The corruption may be due to things such as bug in the program you're
+using, a hardware failure (including an obscure hardware defect that
+you can normally live with), or possibly an incorrect configuration.
+If everything was working normally but it suddenly goes bad, it may be
+that the interface got corrupted by something you did.  Three mistakes
+you might have made to corrupt the interface are: 
 
 <itemize> 
 <item> <ref id="sent_bin" name="Sent Terminal Binary">
 <item> <ref id="abnormal_exit" name="Abnormally Exited a Program"> 
-<item> <ref id="ctrl-s" name="Typed ctrl-S by mistake"> 
+<item> <ref id="ctrl_s" name="Typed ctrl-S by mistake"> 
 </itemize>
 
 <sect2> Sent Terminal Binary Characters <label id="sent_bin">
@@ -3998,17 +4018,28 @@ a remote computer may send binary to your screen.  There are numerous
 other ways it can happen so be prepared for it.  Even a supposed ASCII
 file may contain unwanted control codes.
 
-To fix this problem reset the terminal.  You may try typing "setterm
--reset" (although you may not be able to see what you're typing).
-This will send the reset string from the terminfo entry to the
-terminal.  If the correct set-up has been saved inside the terminal,
-then pressing a special key(s) (perhaps in setup mode) may restore
-this setting.  Then you might still need to use "tset" to send the
-init string if you use it to set up your terminal.  Note that the
-"reset" command appears to be broken for terminals that have been set
-to "clocal" with stty or the like.  I've substituted "setterm -reset"
-for it and submitted a bug report in Mar. 2000.
+To fix this problem reset the terminal.  Type either just "reset" (may
+be broken) or "setterm -reset" (followed by a &lt;return&gt of
+course).  You may not be able to see what you're typing.  This will
+send the reset string from the terminfo entry to the terminal.  As an
+alternative to this, if the correct set-up has been saved inside the
+terminal then pressing a special key(s) (perhaps in setup mode) may
+restore the settings.  Then you might still need to use "tset" to send
+the init string if you use it to set up your terminal.
 
+Note that the "reset" command appears to be broken for terminals that
+need "clocal" set since "reset" seems to unset "clocal".  In this case
+instead of fixing the problem, "reset" only compounds it by disabling
+communication between the terminal and computer.  You will likely need
+to log in again and hope the getty sets "clocal".  If you see a login
+prompt without asking for it, you're in luck.  Otherwise see <ref
+id="symptoms_" name="Symptoms and Some Fixes"> for how to get a login
+prompt.  You should try out "reset" before you need it and use
+"setterm -reset" if "reset" logs you out or otherwise doesn't work
+right.  I submitted a bug report in Mar. 2000 so "reset" could be
+fixed by now.
+
+<ref id="symptoms_" name="Symptoms and Some Fixes">
 <sect2> Abnormally Exited a Program <label id="abnormal_exit">
 <p> Large application programs (such as editors) often use the stty
 command (or the like) in their code to temporarily change the stty
@@ -4195,16 +4226,19 @@ file that runs each time you login or start up the computer.
 system are normally only sent to the console (the PC monitor).  Some
 of the messages sent to the console at boot-time may also be seen on
 any terminal after the boot succeeds by typing the command: dmesg.  If
-the boot fails this will not be of any use.  It's possible to modify
-the Linux kernel so as to make a terminal serve as the console and
-receive all the messages from Linux intended for the console.
-Unfortunately, the messages from the BIOS (which display on the
-monitor when a PC is first started) will not display on this terminal.  
+the boot failed this will not be of any use since the terminal can't
+work without an operating system.  It's possible to modify the Linux
+kernel so as to make a terminal serve as the console and receive all
+the messages from Linux intended for the console.  Unfortunately, the
+messages from the BIOS (which display on the monitor when a PC is
+first started) will not display on this terminal (but still display on
+the monitor).  
 
 Some people do this when they run a PC without a monitor or keyboard.
-Normally a PC will not start up without a keyboard and monitor but
-some BIOSs permit one to do it.  You will likely need to set this up
-in the BIOS using the CMOS menus when you start your PC.
+Normally, a PC will not start up without a keyboard and video card but
+some BIOSs permit it.  If you are lucky enough to have such a BIOS
+that supports "console re-direct" you will likely then need to setup
+the BIOS using the CMOS menus when you start your PC.
 
 <sect2> For Kernels 2.2 or higher
 <p> The instructions for creating a serial-console are included with
@@ -4213,9 +4247,10 @@ the device /dev/console is linked to tty0 (the PC console).  For a
 serial-console you create a new /dev/console which is a true device
 (and not linked to something else).  You must also put a statement
 regarding the serial-console into /etc/lilo.conf and then run lilo.
-This is because the equivalent of "setserial" needs to be run to set up
-your serial-console before the kernel is loaded.  See the above
-mentioned documentation for more details.
+This is because the equivalent of "setserial" needs to be run to set
+up your serial-console before the kernel is loaded.  See the above
+mentioned documentation and the man page for lilo.conf for more
+details.
 
 Here is an example <tt>/etc/lilo.conf</tt> file contents (for ttyS0):
 <tscreen><verb>
@@ -4391,16 +4426,16 @@ the next section.
 
 <sect1> Terminal Was Working OK <label id="term_was_ok">
 <p> When a formerly working terminal suddenly goes bad it is often
-easy to find the problem.  That's because if you think about what
-recently happened it will likely give a clue to the cause of the
-problem.
+easy to find the problem.  That's because (except for hardware
+failures) the problem is likely due to something that you did (or
+something the software you used did).
 
 The problem may be obvious such as an error message when the terminal
-is first turned on.  If it makes a noise it likely needs repair.  See
-<ref id="repair_" name="Repair & Diagnose">.  First, think about what
-has been done or changed recently as it's likely the cause of the
-problem.  Did the problem happen just after new system software was
-installed or after a change in the configuration?
+is first turned on.  If it makes a strange noise it likely needs
+repair.  See <ref id="repair_" name="Repair & Diagnose">.  First,
+think about what has been done or changed recently as it's likely the
+cause of the problem.  Did the problem happen just after new system
+software was installed or after a change in the configuration?
 
 If the terminal isn't responding correctly (if at all) to what you
 type to it, you may have a <ref id="corrupt_interface" name="Corrupted
@@ -5779,6 +5814,10 @@ See <url url="http://www.wyse.com/terminal/">.
 <sect2> Wyse 60
 <p> Display adjustments (must remove cover): Brightness VR202, Height
 VR302, Width VR101 (also affects height).
+
+<sect2> Wyse 85
+<p> Can emulate VT52/T100/VT200.  Press F3 for setup.  Scroll thru
+setup with up/down keys.
 
 <sect2> Wyse 99-GT
 <p> Here is the setup Menus of the Wyse99GT (late 1980's).  Note that
