@@ -1310,7 +1310,6 @@ sub DocsTable {
 	# Documents
 	#
 	$table .= "<table class='box'>\n";
-
 	$table .= "<tr><th colspan='2'>Title</th>";
 	$table .= "<th>Status</th>" if (Param($foo, chkSTATUS));
 	$table .= "<th>Review</th>" if (Param($foo, chkREVIEWSTATUS));
@@ -1327,7 +1326,8 @@ sub DocsTable {
 	$table .= "<th>Last Update</th>" if (Param($foo, chkLASTUPDATE));
 	$table .= "<th>Tickle Date</th>" if (Param($foo, chkTICKLEDATE));
 	$table .= "<th>URL</th>" if (Param($foo, chkURL));
-	
+	$table .= "</tr>\n";
+
 	my $sort = Param($foo, strSORT);
 	if ($sort eq 'class') {
 		@docids = sort { $classes{$docs{$a}{class_id}}{name} cmp $classes{$docs{$b}{class_id}}{name} } keys %docs;
@@ -1361,25 +1361,23 @@ sub DocsTable {
 	
 	foreach $doc_id (@docids) {
 
-		$classok = 1;
-		foreach $class_id (keys %myclasses) {
-			$classok = 0;
-			if ($docs{$doc_id}{class_id} eq $class_id) {
-				$classok = 1;
-				last;
+		if (scalar keys %myclasses) {
+			my $classok = 0;
+			foreach $class_id (keys %myclasses) {
+				if ($docs{$doc_id}{class_id} eq $class_id) {
+					$classok = 1;
+				}
 			}
+			next unless ($classok);
 		}
-		next unless ($classok);
 
-		my $pub_statusok = 1;
 		if ($mypub_status) {
-			$pub_statusok = 0;
+			my $pub_statusok = 0;
 			if ($docs{$doc_id}{pub_status} eq $mypub_status) {
 				$pub_statusok = 1;
-				last;
 			}
+			next unless ($pub_statusok);
 		}
-		next unless ($pub_statusok);
 
 		next unless (($docs{$doc_id}{url}) or Admin() or (exists $userdocs{$doc_id}));
 
