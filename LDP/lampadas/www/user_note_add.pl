@@ -1,10 +1,7 @@
 #! /usr/bin/perl
 
 use Lampadas;
-use Lampadas::Database;
-
 $L = new Lampadas;
-$DB = new Lampadas::Database;
 
 # Read parameters
 $user_id	= $L->Param('user_id');

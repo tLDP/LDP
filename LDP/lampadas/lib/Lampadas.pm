@@ -35,6 +35,7 @@ use Exporter;
 	AddDoc,
 	SaveDoc,
 	Lintadas,
+	LintadasDoc,
 
 	DocFiles,
 	DocErrors,
@@ -824,7 +825,7 @@ sub ReviewStatusCombo {
 	my $selected = shift;
 	my %reviewstatuses = ReviewStatuses();
 	my $reviewstatuscombo = "<select name='review_status'>\n";
-	$reviewstatuscombo .= "<option></option\n";
+	$reviewstatuscombo .= "<option></option>\n";
 	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
 		if ($selected eq $reviewstatus) {
 			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
@@ -841,7 +842,7 @@ sub TechReviewStatusCombo {
 	my $selected = shift;
 	my %reviewstatuses = ReviewStatuses();
 	my $reviewstatuscombo = "<select name='tech_review_status'>\n";
-	$reviewstatuscombo .= "<option></option\n";
+	$reviewstatuscombo .= "<option></option>\n";
 	foreach $reviewstatus (sort { $reviewstatuses{$a}{name} cmp $reviewstatuses{$b}{name} } keys %reviewstatuses) {
 		if ($selected eq $reviewstatus) {
 			$reviewstatuscombo .= "<option value='$reviewstatus' selected>$reviewstatuses{$reviewstatus}{name}</option>\n";
@@ -1401,6 +1402,7 @@ sub DocTable {
 	my ($self, $doc_id) = @_;
 	if ($doc_id) {
 		my %doc = Doc($foo, $doc_id);
+		LintadasDoc($foo, $doc_id);
 	} else {
 		my %doc = ();
 		$doc{dtd} = "DocBook";
@@ -1421,9 +1423,21 @@ sub DocTable {
 	$doctable .= "<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style='width:100%' value='$doc{title}'></td>\n";
 	$doctable .= "</tr>\n";
 	$doctable .= "<tr>\n";
-	$doctable .= "<th align=right><a href='$doc{url}'>URL</a></th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
+	$doctable .= "<th align=right>";
+	if ($doc{url}) {
+		$doctable .= "<a href='$doc{url}'>URL</a>";
+	} else {
+		$doctable .= "URL";
+	}
+	$doctable .= "</th><td colspan=5><input type=text name=url size=60 style='width:100%' value='$doc{url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
-	$doctable .= "<th align=right><a href='$ref_url'>Home URL</a></th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
+	$doctable .= "<th align=right>";
+	if ($ref_url) {
+		$doctable .= "<a href='$ref_url'>Home URL</a>";
+	} else {
+		$doctable .= "Home URL";
+	}
+	$doctable .= "</th><td colspan=5><input type=text name=ref_url size=60 style='width:100%' value='$doc{ref_url}'></td>";
 	$doctable .= "</tr>\n<tr>\n";
 	$doctable .= "<th align=right>Status</th><td>";
 	$doctable .= PubStatusCombo($foo, $doc{pub_status});
@@ -2284,17 +2298,15 @@ sub Logout {
 sub AddUser {
 	use String::Random;
 	my ($self, $username, $first_name, $middle_name, $surname, $email, $admin, $password, $notes) = @_;
-
+	my $message = '';
 	if ($username and $email) {
 		$count = $DB->Value("SELECT COUNT(*) FROM username WHERE username='$username'");
 		if ($count) {
-			StartPage($foo, 'Duplicate Account');
-			print "<p>The username you requested, '$username', is already taken.\n";
+			$message = "The username you requested, '$username', is already taken.\n";
 		} else {
 			$count = $DB->Value("SELECT COUNT(*) FROM username WHERE email='$email'");
 			if ($count) {
-				StartPage($foo, 'Duplicate Account');
-				print "<p>There is already an account using your email address.\n";
+				$message = "There is already an account using your email address.\n";
 			} else {
 				unless ($password) {
 					my $pwgen = new String::Random;
@@ -2308,25 +2320,21 @@ sub AddUser {
 				if ($newuser{username} eq $username) {
 					StartPage($foo, 'Account Created');
 					Mail($foo, $email, 'Lampadas Password', "Your Lampadas password is $password");
-					print "<p>Your account has been created.\n";
-					print "<p>Your password has been mailed to your email address,\n";
-					print "and you can use it to log in.\n";
-					print "Once you log in for the first time,\n";
-					print "you can change your password.\n";
+					$message = "Your account has been created.\n";
+					$message .= "<p>Your password has been mailed to your email address,\n";
+					$message .= "and you can use it to log in.\n";
+					$message .= "Once you log in for the first time,\n";
+					$message .= "you can change your password.\n";
 				} else {
-					StartPage($foo, 'Error Creating Account');
-					print "<p>There was an error creating your account.\n";
-					print "Please try again, and if the problem persists, notify the webmaster.\n";
+					$message = "There was an error creating your account.\n";
+					$message .= "Please try again, and if the problem persists, notify the webmaster.\n";
 				}
 			}
 		}
 	} else {
-		StartPage($foo, 'Missing Information');
-		print "<p>You didn't fill out all of the fields in the form.\n";
+		$message = "You didn't fill out all of the fields in the form.\n";
 	}
-
-	EndPage();
-
+	return $message;
 }
 
 sub SaveUser {

@@ -5,7 +5,6 @@
 #
 use Lampadas;
 $L = new Lampadas;
-
 use Lampadas::Database;
 $DB = new Lampadas::Database;
 
@@ -19,21 +18,21 @@ $DB = new Lampadas::Database;
 #Roles();
 #Classes();
 #PubStatuses();
-#ReviewStatuses();
+ReviewStatuses();
 #Licenses();
-#Topics();
+##Topics();
 #Subtopics();
 #Formats();
 #DTDs();
 #Users();
 #Docs();
 #Config();
-#NewUser();
+#AddUser();
 #NavBar();
 #RoleCombo();
 #ClassCombo();
 #PubStatusCombo();
-#ReviewStatusCombo();
+ReviewStatusCombo();
 #TechReviewStatusCombo();
 #LicenseCombo();
 #TopicCombo();
@@ -44,7 +43,7 @@ $DB = new Lampadas::Database;
 #UserTable(11);
 #UserDocsTable(11);
 #DocTable(471);
-#NewDocTable();
+#DocTable();
 #DocVersionsTable(471);
 #DocUsersTable(471);
 #DocTopicsTable(471);
@@ -56,7 +55,9 @@ $DB = new Lampadas::Database;
 #MiscStatsTable();
 #TopicDocsTable();
 #Lintadas();
-DocErrorsTable(1);
+#DocErrorsTable(1);
+
+print "All tests run.\n\n";
 
 sub Topic {
 	my $topic_num = shift;
@@ -258,8 +259,9 @@ sub Config {
 	print "\n";
 }
 
-sub NewUser {
-	%newuser = $L->NewUser('test user', 'test', 'x.', 'user', 'test@example.com', 't', 'password');
+sub AddUser {
+	$DB->Exec("DELETE FROM username WHERE username='test user'");
+	%newuser = $L->AddUser('test user', 'test', 'x.', 'user', 'test@example.com', 't', 'password', 'notes!');
 	print "New User: " . $newuser{username} . "\n";
 	print "\n";
 	$DB->Exec("DELETE FROM username WHERE username='test user'");
@@ -355,12 +357,6 @@ sub DocTable {
 	my $doc_id = shift;
 	print "DocTable:\n";
 	print $L->DocTable($doc_id);
-	print "\n";
-}
-
-sub NewDocTable {
-	print "NewDocTable:\n";
-	print $L->NewDocTable();
 	print "\n";
 }
 
