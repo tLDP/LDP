@@ -1,13 +1,16 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
 
-<article>
+<!-- Linux Documentation Project trick - make the article's id "index" so
+     the default HTML page is the title page: -->
+
+<article id="index">
 
 <artheader>
 <title>Program Library HOWTO</title>
 <author><firstname>David A.</firstname> <surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>version 0.75, 31 October 2000</pubdate>
+<pubdate>version 0.81, 19 December 2000</pubdate>
 <abstract>
 <para>
 This HOWTO for programmers
@@ -121,7 +124,8 @@ permit programmers to link to their library, but don't want to give
 the library source code (which is an advantage to the library vendor, but
 obviously not an advantage to the programmer trying to use the library).
 In theory, code in static ELF libraries that is linked into an
-executable should run slightly faster (by 1-5%), but in practice this
+executable should run slightly faster (by 1-5%) than a shared library
+or a dynamically loaded library, but in practice this
 rarely seems to be the case due to other confounding factors.
 </para>
 <para>
@@ -373,7 +377,7 @@ is a colon-separated set of directories where libraries should be
 searched for first, before
 the standard set of directories; this is useful when debugging
 a new library or using a nonstandard library for special purposes.
-The environment variable LD_PRELOAD lists object files with functions that
+The environment variable LD_PRELOAD lists shared libraries with functions that
 override the standard set, just as /etc/ld.so.preload does. 
 These are implemented by the loader /lib/ld-linux.so.
 I should note that, while LD_LIBRARY_PATH works on many
@@ -403,7 +407,8 @@ best way to learn about them is to read the source code.
 Permitting user control over dynamically linked libraries
 would be disastrous for setuid/setgid programs
 if special measures weren't taken.
-Therefore, in GNU loader, if the
+Therefore, in the GNU loader (which loads the rest of the program
+on program start-up), if the
 program is setuid or setgid these variables
 (and other similar variables) are ignored or greatly limited in
 what they can do.
@@ -552,9 +557,13 @@ library (at least to implement their own libraries), so most programs
 at least include this one.
 </para></listitem>
 </itemizedlist>
-Beware: do <emphasis>not</emphasis> run ldd on a program you don't trust;
-as is clearly stated in the ldd(1) manual, ldd works by calling the
-program directly; an untrusted program could execute unexpected code.
+Beware: do <emphasis>not</emphasis> run ldd on a program you don't trust.
+As is clearly stated in the ldd(1) manual, ldd works by (in certain cases)
+by setting a special environment variable
+(for ELF objects, LD_TRACE_LOADED_OBJECTS) and then executing the program.
+It may be possible for an untrusted program to force the ldd user to
+run arbitrary code (instead of simply showing the ldd information).
+So, for safety's sake, don't use ldd on programs you don't trust to execute.
 </para>
 </sect2>
 
@@ -709,7 +718,7 @@ If you're still interested in directly using the interface supported
 by Linux and Solaris, read on.
 </para>
 
-<sect2>
+<sect2 id="dlopen">
 <title>dlopen()</title>
 <para>
 The dlopen(3) function opens a library and prepares it for use.
@@ -718,16 +727,26 @@ In C its prototype is:
   void * dlopen(const char *filename, int flag);
 </programlisting>
 If filename begins with ``/'' (i.e., it's an absolute path),
-dlopen() won't search for a library.
+dlopen() will just try to use it (it won't search for a library).
 Otherwise, dlopen() will search for the library
 in the following order:
 <orderedlist>
 <listitem><para>A colon-separated list of directories in the user's
                 LD_LIBRARY path environment variable.
 </para></listitem>
-<listitem><para>The list of libraries specified in /etc/ld.so.cache.
+<listitem><para>The list of libraries specified in /etc/ld.so.cache
+(which is generated from /etc/ld.so.conf).
 </para></listitem>
-<listitem><para>/usr/lib, followed by /lib.
+<listitem><para>/lib, followed by /usr/lib.
+Note the order here; this is the reverse of the order used by the
+old a.out loader.
+The old a.out loader, when loading a program, first searched
+/usr/lib, then /lib (see the man page ld.so(8)).
+This shouldn't normally matter, since
+a library should only be in one or the other directory
+(never both), and different libraries with the same name are a disaster
+waiting to happen.
+<!-- Michael Kerrisk found that it's /lib, then /usr/lib -->
 </para></listitem>
 </orderedlist>
 In dlopen(), the value of
@@ -771,7 +790,7 @@ See <xref linkend="init-and-fini"> for more information.
 </para>
 </sect2>
 
-<sect2>
+<sect2 id="dlerror">
 <title>dlerror()</title>
 <para>
 Errors can be reported by calling dlerror(), which returns a string
@@ -781,7 +800,7 @@ will return NULL until another error has been encountered.
 </para>
 </sect2>
 
-<sect2>
+<sect2 id="dlsym">
 <title>dlsym()</title>
 <para>
 There's no point in loading a DL library if you can't use it.
@@ -821,7 +840,7 @@ A code snippet would look like this:
 </para>
 </sect2>
 
-<sect2>
+<sect2 id="dlclose">
 <title>dlclose()</title>
 <para>
 The converse of dlopen() is dlclose(), which closes a DL library.
@@ -833,10 +852,12 @@ Thus, it's not a problem for the same program
 to load the same library multiple times.
 If a library is deallocated, its function _fini is called (if it exists);
 see <xref linkend="init-and-fini"> for more information.
+Note: dlclose() returns 0 on success, and non-zero on error; some
+Linux manual pages don't mention this.
 </para>
 </sect2>
 
-<sect2>
+<sect2 id="dl-library-example">
 <title>DL Library Example</title>
 <para>
 Here's an example from the man page of dlopen(3).
@@ -845,6 +866,7 @@ it checks for errors at every step (recommended):
 <programlisting>
 <![CDATA[
 
+    #include <stdlib.h>
     #include <stdio.h>
     #include <dlfcn.h>
 
@@ -899,7 +921,7 @@ the ``-rdynamic'' flag doesn't always work for gcc on non-Linux systems.
 <sect1 id="miscellaneous">
 <title>Miscellaneous</title>
 
-<sect2>
+<sect2 id="nm">
 <title>nm command</title>
 <para>
 The nm(1) command can report the list of
@@ -951,11 +973,14 @@ documentation locally installed at
 Two special functions aid in initializing and finalizing a module:
 _init and _fini.
 If a function ``_init'' is exported in a library,
-then it is called whenever dllopen() is called to open the library.
+then it is called when the library is first opened
+(via dlopen() or simply as a shared library).
 In a C program, this just means that you defined some function
 named _init.
 There is a corresponding function called _fini, which is called whenever a
-client calls dlclose() to release a library (and it's released).
+client finishes using the library
+(via a call dlclose() that brings its reference count to zero, or
+on normal exit of the program).
 The C prototypes for these functions are:
 <programlisting>
   void _init(void);
@@ -976,7 +1001,7 @@ as well as help in creating it.
 
 </sect2>
 
-<sect2>
+<sect2 id="shared-scripts">
 <title>Shared Libraries Can Be Scripts</title>
 <para>
 It's worth noting that the GNU loader
@@ -1003,7 +1028,7 @@ info:ld#Option Commands.
 </para>
 </sect2>
 
-<sect2>
+<sect2 id="gnu-libtool">
 <title>GNU libtool</title>
 <para>
 If you're building an application that should port to many systems,
@@ -1215,6 +1240,7 @@ LD_LIBRARY_PATH="." ./demo_use
    dynamically load libraries */
 #include <dlfcn.h>
 
+#include <stdlib.h>
 #include <stdio.h>
 
 /* Note that we don't have to include "libhello.h".
