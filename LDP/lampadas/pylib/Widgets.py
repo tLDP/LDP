@@ -186,9 +186,6 @@ class Widgets:
     def username(self, value):
         return '<input type=text name="username" size="15" maxlength="40" value="%s">' % value
 
-    def stylesheet(self, value):
-        return '<input type=text name="stylesheet" size="12" maxlength="12" value="%s">' % value
-    
     def role_code(self, value, lang, view=0):
         if view==1:
             role = lampadas.roles[value]

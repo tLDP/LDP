@@ -1541,13 +1541,31 @@ class Topic:
     """
 
     def __init__(self, parent_code='', topic_code='', sort_order=0):
+        self.code        = topic_code
+        self.sort_order  = sort_order
         self.name = LampadasCollection()
         self.description = LampadasCollection()
         self.parent_code = parent_code
-        self.code        = topic_code
-        self.sort_order  = sort_order
         self.docs = TopicDocs(topic_code)
+        if topic_code > '':
+            self.load()
 
+    def load(self):
+        sql = 'SELECT parent_code, topic_code, sort_order FROM topic WHERE topic_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = 'SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n WHERE topic_code=' + wsq(self.code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang = row[1]
+            self.name[lang] = trim(row[2])
+            self.description[lang] = trim(row[3])
+        
     def load_row(self, row):
         self.parent_code = trim(row[0])
         self.code        = trim(row[1])
@@ -1653,9 +1671,9 @@ class Users:
     def count(self):
         return db.read_value('SELECT count(*) from username')
 
-    def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet):
+    def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ", " + wsq(stylesheet) + ")"
+        sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ")"
         assert db.runsql(sql)==1
         db.commit()
         user = self[username]
@@ -1725,11 +1743,10 @@ class User:
         self.sysadmin       = 0
         self.password       = ''
         self.notes          = ''
-        self.stylesheet     = ''
         self.name           = ''
 
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE username=' + wsq(username)
+        sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes FROM username WHERE username=' + wsq(username)
         cursor = db.select(sql)
         row = cursor.fetchone()
         if row==None:
@@ -1744,7 +1761,6 @@ class User:
         self.sysadmin       = tf2bool(row[7])
         self.password       = trim(row[8])
         self.notes          = trim(row[9])
-        self.stylesheet     = trim(row[10])
         self.name           = trim(trim(self.first_name + ' ' + self.middle_name) + ' ' + self.surname)
 
         self.docs = UserDocs(self.username)
@@ -1753,7 +1769,7 @@ class User:
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
-        sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ', stylesheet=' + wsq(self.stylesheet) + ' WHERE username=' + wsq(self.username)
+        sql = 'UPDATE username SET session_id=' + wsq(self.session_id) + ', first_name=' + wsq(self.first_name) + ', middle_name=' + wsq(self.middle_name) + ', surname=' + wsq(self.surname) + ', email=' + wsq(self.email) + ', admin=' + wsq(bool2tf(self.admin)) + ', sysadmin=' + wsq(bool2tf(self.sysadmin)) + ', password=' + wsq(self.password) + ', notes=' + wsq(self.notes) + ' WHERE username=' + wsq(self.username)
         db.runsql(sql)
         db.commit()
 

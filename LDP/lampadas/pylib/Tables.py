@@ -97,7 +97,7 @@ class Tables(LampadasCollection):
         lintadas.check_doc(uri.id)
         metadata = doc.metadata()
 
-        box = WOStringIO('<table class="box nontabular" width="100%%">' \
+        box = WOStringIO('<table class="box" width="100%%">' \
                          '<tr><th colspan="6">|strdocdetails|</th></tr>'
                          '<tr><td class="label">|strtitle|</td><td colspan="5">%s</td></tr>\n'
                          '<tr><td class="label">|strshort_desc|</td><td colspan="5">%s</td></tr>\n'
@@ -158,7 +158,7 @@ class Tables(LampadasCollection):
         if (sessions.session==None or sessions.session.user.can_edit(doc_id=uri.id)==0):
             return '|blknopermission|'
 
-        box = WOStringIO('<table class="box nontabular" width="100%">' \
+        box = WOStringIO('<table class="box" width="100%">' \
                          '<tr><th colspan="6">|strdocdetails|</th></tr>')
                 
         if uri.id > 0:
@@ -816,8 +816,8 @@ class Tables(LampadasCollection):
         else:
             user = User()
             box = WOStringIO('<form method=GET action="/data/save/newuser" name="user">\n')
-        box.write('<table class="box nontabular" width="100%">\n'
-                  '<tr><th colspan=2>|struserdetails|</th></tr>\n'
+        box.write('<table class="box" width="100%">\n'
+                  '<tr><th colspan="2">|struserdetails|</th></tr>\n'
                   '<tr><td class="label">|strusername|</td>')
         if user.username=='':
             box.write('<td><input type="text" name="username"></td></tr>\n')
@@ -828,12 +828,10 @@ class Tables(LampadasCollection):
                   '<tr><td class="label">|strmiddle_name|</td><td>%s</td></tr>\n'
                   '<tr><td class="label">|strsurname|</td><td>%s</td></tr>\n'
                   '<tr><td class="label">|stremail|</td><td>%s</td></tr>\n'
-                  '<tr><td class="label">|strstylesheet|</td><td>%s</td></tr>\n'
                   % (widgets.first_name(user.first_name),
                      widgets.middle_name(user.middle_name),
                      widgets.surname(user.surname),
-                     widgets.email(user.email),
-                     widgets.stylesheet(user.stylesheet)))
+                     widgets.email(user.email)))
 
         if user.username=='':
             box.write('<tr><td class="label">|strpassword|</td><td>%s</td></tr>\n'

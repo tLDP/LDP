@@ -206,7 +206,7 @@ def newaccount(req, username, email, first_name, middle_name, surname):
     lampadas.users.add(username, first_name, middle_name, surname, email, 0, 0, password, '', 'default')
     redirect(req, '../../account_created' + referer_lang_ext(req))
 
-def newuser(req, username, email, first_name, middle_name, surname, stylesheet, password, admin, sysadmin, notes):
+def newuser(req, username, email, first_name, middle_name, surname, password, admin, sysadmin, notes):
     """
     This routine is for when an administrator manually adds an account.
     """
@@ -220,17 +220,16 @@ def newuser(req, username, email, first_name, middle_name, surname, stylesheet, 
     if lampadas.users.is_email_taken(email):
         redirect(req, '../../email_exists' + referer_lang_ext(req))
 
-    lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes, stylesheet)
+    lampadas.users.add(username, first_name, middle_name, surname, email, int(admin), int(sysadmin), password, notes)
     redirect(req, '../../user/' + username + referer_lang_ext(req))
 
-def user(req, username, first_name, middle_name, surname, email, stylesheet, password, admin, sysadmin, notes):
+def user(req, username, first_name, middle_name, surname, email, password, admin, sysadmin, notes):
     user = lampadas.users[username]
     if not user==None:
         user.first_name = first_name
         user.middle_name = middle_name
         user.surname = surname
         user.email = email
-        user.stylesheet = stylesheet
         if password > '':
             user.password = password
         user.admin = int(admin)

@@ -109,9 +109,9 @@ class Database:
             sql = sql + ' WHERE ' + whereclause
         return int(self.read_value(sql))
 
-    def log(self, level, message, username=''):
+    def log(self, level, message, username='', doc_id='NULL'):
         if config.log_level >= level:
-            sql = 'INSERT INTO log(level, username, message) VALUES (%s, %s, %s)' % (level, wsq(username), wsq(message))
+            sql = 'INSERT INTO log(level, username, doc_id, message) VALUES (%s, %s, %s, %s)' % (level, wsq(username), doc_id, wsq(message))
             db.runsql(sql, log=0)
             db.commit()
 
