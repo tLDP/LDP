@@ -454,7 +454,7 @@ if __name__=="__main__":
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print 'Making target ' + arg + '...'
-            projects.write(arg)
+            projects.write()
             projects.make(arg)
     else:
         projects.write()

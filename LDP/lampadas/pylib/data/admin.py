@@ -87,6 +87,7 @@ def run_publish(req, doc_id):
     from Makefile import Project
     project = Project(doc.id)
     
+    project.write()
     project.make('publish')
     go_back(req)
 
