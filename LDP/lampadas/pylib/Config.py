@@ -101,6 +101,24 @@ class Config:
 
         return self.config.get(section, name)
 
+    def print_debug(self):
+        print "config_file=" + self.config_file
+        print "db_type=" + self.db_type
+        print "db_name=" + self.db_name
+        print "log_file=" + self.log_file
+        print "log_level=" + str(self.log_level)
+        print "log_sql=" + str(self.log_sql)
+        print "log_console=" + str(self.log_console)
+        print "interface=" + self.interface
+        print "port=" + self.port
+        print "hostname=" + self.hostname
+        print "root_dir=" + self.root_dir
+        print "cvs_root=" + self.cvs_root
+        print "file_dir=" + self.file_dir
+        print "cache_dir=" + self.cache_dir
+        print "xslt_html=" + self.xslt_html
+        print "xslt_chunk=" + self.xslt_chunk
+        print "xslt_print=" + self.xslt_print
 ## exports ##
 
 config = Config()
@@ -108,21 +126,5 @@ config = Config()
 # main
 if __name__=='__main__' :
     print "Running unit tests..."
-    print "config_file=" + config.config_file
-    print "db_type=" + config.db_type
-    print "db_name=" + config.db_name
-    print "log_file=" + config.log_file
-    print "log_level=" + str(config.log_level)
-    print "log_sql=" + str(config.log_sql)
-    print "log_console=" + str(config.log_console)
-    print "interface=" + config.interface
-    print "port=" + config.port
-    print "hostname=" + config.hostname
-    print "root_dir=" + config.root_dir
-    print "cvs_root=" + config.cvs_root
-    print "file_dir=" + config.file_dir
-    print "cache_dir=" + config.cache_dir
-    print "xslt_html=" + config.xslt_html
-    print "xslt_chunk=" + config.xslt_chunk
-    print "xslt_print=" + config.xslt_print
+    config.print_debug()
     print "Unit tests complete."

@@ -84,6 +84,9 @@ class URI:
             self.lang, path = path[0], path[1:]
             self.base = '/'.join(path)
 
+        if self.base[0]<>'/':
+            self.base = '/' + self.base
+
         # this is where we load ids and codes for pages which
         # contain an object and display its attributes.
         if not path : return

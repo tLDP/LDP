@@ -290,6 +290,7 @@ class TableFactory:
             box = '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
+            doc.lang = uri.lang
             box = '<form method=GET action="data/save/newdocument" name="document">'
         box = box + '<input name="username" type=hidden value=' + user.username + '>\n'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
