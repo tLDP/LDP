@@ -78,16 +78,23 @@ class PageFactory:
         assert not template==None
         html = template.template
 
-        html = html.replace('\|', 'DCM_PIPE')
+        html = self.replace_tokens(page, uri, html)
+
+        end_time = time.time()
+        self.elapsed_time = end_time - start_time
+        html = html.replace('DCM_ELAPSED_TIME', fpformat.fix(self.elapsed_time, 3))
+        return html
+
+    def replace_tokens(self, page, uri, html):
+        temp = html.replace('\|', 'DCM_PIPE')
     
-        pos = html.find('|')
+        pos = temp.find('|')
         while pos <> -1 :
-            pos2 = html.find('|', pos+1)
+            pos2 = temp.find('|', pos+1)
             if pos2==-1:
                 pos = -1
             else:
-                oldstring = html[pos:pos2+1]
-                token = html[pos+1:pos2]
+                token = temp[pos+1:pos2]
 
                 newstring = None
             
@@ -96,35 +103,33 @@ class PageFactory:
                     newstring = 'DCM_ELAPSED_TIME'
                     
                 # Tokens based on a logged-in user
-                # 
-                if token=='session_id':
+                elif token=='session_id':
                     if sessions.session:
                         newstring = sessions.session.user.session_id
                     else:
                         newstring = ''
-                if token=='session_username':
+                elif token=='session_username':
                     if sessions.session:
                         newstring = sessions.session.username
                     else:
                         newstring = ''
-                if token=='session_name':
+                elif token=='session_name':
                     if sessions.session:
                         newstring = sessions.session.user.name
                     else:
                         newstring = ''
-                if token=='session_user_docs':
+                elif token=='session_user_docs':
                     if sessions.session:
-                        newstring = tables.userdocs(uri, username=sessions.session.username)
+                        newstring = self.replace_tokens(page, uri, tables.userdocs(uri, username=sessions.session.username))
                     else:
-                        newstring = '|nopermission|'
+                        newstring = self.replace_tokens(page, uri, '|nopermission|')
 
                 # Meta-data about the page being served
-                # 
-                if token=='title':
+                elif token=='title':
                     newstring = page.title[uri.lang]
-                if token=='body':
+                elif token=='body':
                     newstring = page.page[uri.lang]
-                if token=='base':
+                elif token=='base':
                     newstring = 'http://' + config.hostname
                     if config.port > '':
                         newstring = newstring + ':' + config.port
@@ -133,32 +138,31 @@ class PageFactory:
                         newstring = newstring + uri.lang + '/'
 
                 # Meta-data from the page's URL
-                if token=='uri.lang_ext':
+                elif token=='uri.lang_ext':
                     newstring = uri.lang_ext
-                if token=='uri.code':
+                elif token=='uri.code':
                     newstring = uri.code
-                if token=='uri.base':
+                elif token=='uri.base':
                     newstring = uri.base
-                if token=='uri.page_code':
+                elif token=='uri.page_code':
                     newstring = uri.page_code
-                if token=='uri.filename':
+                elif token=='uri.filename':
                     newstring = uri.filename
 
 
                 # Configuration information
-                # 
-                if token=='hostname':
+                elif token=='hostname':
                     newstring = config.hostname
-                if token=='rootdir':
+                elif token=='rootdir':
                     newstring = config.root_dir
-                if token=='port':
+                elif token=='port':
                     newstring = str(config.port)
-                if token=='stylesheet':
+                elif token=='stylesheet':
                     if sessions.session:
                         newstring = sessions.session.user.stylesheet
                     else:
                         newstring='default'
-                if token=='version':
+                elif token=='version':
                     newstring = VERSION
 
                 ###########################################
@@ -166,122 +170,119 @@ class PageFactory:
                 ###########################################
                 
                 # Embedded User
-                if token=='user.username':
+                elif token=='user.username':
                     if sessions.session:
                         newstring = sessions.session.username
                     else:
-                        newstring = '|blknotfound|'
-                if token=='user.name':
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
+                elif token=='user.name':
                     if sessions.session:
                         newstring = user.name
                     else:
-                        newstring = '|blknotfound|'
-                if token=='user.docs':
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
+                elif token=='user.docs':
                     if sessions.session:
-                        newstring = tables.userdocs(uri, uri.username)
+                        newstring = self.replace_tokens(page, uri, tables.userdocs(uri, uri.username))
                     else:
-                        newstring = '|blknotfound|'
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
 
                 # Embedded Type
-                if token=='type.name':
+                elif token=='type.name':
                     type = lampadas.types[uri.code]
                     if not type:
-                        newstring = '|blknotfound|'
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
                     else:
                         newstring = type.name[uri.lang]
 
                 # Embedded Topic
-                if token=='topic.name':
+                elif token=='topic.name':
                     topic = lampadas.topics[uri.code]
                     if not topic:
-                        newstring = '|blknotfound|'
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
                     else:
                         newstring = topic.name[uri.lang]
-                if token=='topic.description':
+                elif token=='topic.description':
                     topic = lampadas.topics[uri.code]
                     if not topic:
-                        newstring = '|blknotfound|'
+                        newstring = self.replace_tokens(page, uri, '|blknotfound|')
                     else:
                         newstring = topic.description[uri.lang]
 
                 # Navigation Boxes
-                # 
-                if token=='navlogin':
-                    newstring = tables.login(uri)
-                if token=='navmenus':
-                    newstring = tables.section_menus(uri)
-                if token=='navtopics':
-                    newstring = tables.topics(uri)
-                if token=='navtypes':
-                    newstring = tables.types(uri)
-                if token=='navsessions':
-                    newstring = tables.navsessions(uri)
-                if token=='navlanguages':
-                    newstring = tables.languages(uri)
+                elif token=='navlogin':
+                    newstring = self.replace_tokens(page, uri, tables.login(uri))
+                elif token=='navmenus':
+                    newstring = self.replace_tokens(page, uri, tables.section_menus(uri))
+                elif token=='navtopics':
+                    newstring = self.replace_tokens(page, uri, tables.topics(uri))
+                elif token=='navtypes':
+                    newstring = self.replace_tokens(page, uri, tables.types(uri))
+                elif token=='navsessions':
+                    newstring = self.replace_tokens(page, uri, tables.navsessions(uri))
+                elif token=='navlanguages':
+                    newstring = self.replace_tokens(page, uri, tables.languages(uri))
 
                 # Tables
-                # 
-                if token=='tabsubtopics':
-                    newstring = tables.subtopics(uri)
-                if token=='tabdocs':
-                    newstring = tables.doctable(uri, lang=uri.lang)
-                if token=='tabmaint_wanted':
-                    newstring = tables.doctable(uri, maintainer_wanted=1, lang=uri.lang)
-                if token=='tabunmaintained':
-                    newstring = tables.doctable(uri, maintained=0, lang=uri.lang)
-                if token=='tabpending':
-                    newstring = tables.doctable(uri, pub_status_code='P', lang=uri.lang)
-                if token=='tabwishlist':
-                    newstring = tables.doctable(uri, pub_status_code='W', lang=uri.lang)
-                if token=='tabeditdoc':
-                    newstring = tables.doc(uri)
-                if token=='tabdocfiles':
-                    newstring = tables.docfiles(uri)
-                if token=='tabdocusers':
-                    newstring = tables.docusers(uri)
-                if token=='tabdocversions':
-                    newstring = tables.docversions(uri)
-                if token=='tabdoctopics':
-                    newstring = tables.doctopics(uri)
-                if token=='tabdocerrors':
-                    newstring = tables.docerrors(uri)
-                if token=='tabfile_reports':
-                    newstring = tables.filereports(uri)
-                if token=='tabfile_report':
-                    newstring = tables.filereport(uri)
-                if token=='tabdocfileerrors':
-                    newstring = tables.docfileerrors(uri)
-                if token=='tabdocnotes':
-                    newstring = tables.docnotes(uri)
-                if token=='tabcvslog':
-                    newstring = tables.cvslog(uri)
-                if token=='tabletters':
-                    newstring = tables.letters(uri)
-                if token=='tabusers':
-                    newstring = tables.users(uri)
-                if token=='tabuser':
-                    newstring = tables.user(uri)
-                if token=='tabrecentnews':
-                    newstring = tables.recent_news(uri)
-                if token=='tabsubtopic':
-                    newstring = tables.subtopic(uri)
-                if token=='tabtypedocs':
-                    newstring = tables.doctable(uri, type_code=uri.code, lang=uri.lang)
-                if token=='tabsubtopicdocs':
-                    newstring = tables.doctable(uri, subtopic_code=uri.code, lang=uri.lang)
-                if token=='tabsitemap':
-                    newstring = tables.sitemap(uri)
-                if token=='tabsessions':
-                    newstring = tables.tabsessions(uri)
-                if token=='tabmailpass':
-                    newstring = tables.tabmailpass(uri)
-                if token=='taberrors':
-                    newstring = tables.errors(uri)
-                if token=='tabsearch':
-                    newstring = tables.tabsearch(uri)
+                elif token=='tabsubtopics':
+                    newstring = self.replace_tokens(page, uri, tables.subtopics(uri))
+                elif token=='tabdocs':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, lang=uri.lang))
+                elif token=='tabmaint_wanted':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, maintainer_wanted=1, lang=uri.lang))
+                elif token=='tabunmaintained':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, maintained=0, lang=uri.lang))
+                elif token=='tabpending':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, pub_status_code='P', lang=uri.lang))
+                elif token=='tabwishlist':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, pub_status_code='W', lang=uri.lang))
+                elif token=='tabeditdoc':
+                    newstring = self.replace_tokens(page, uri, tables.doc(uri))
+                elif token=='tabdocfiles':
+                    newstring = self.replace_tokens(page, uri, tables.docfiles(uri))
+                elif token=='tabdocusers':
+                    newstring = self.replace_tokens(page, uri, tables.docusers(uri))
+                elif token=='tabdocversions':
+                    newstring = self.replace_tokens(page, uri, tables.docversions(uri))
+                elif token=='tabdoctopics':
+                    newstring = self.replace_tokens(page, uri, tables.doctopics(uri))
+                elif token=='tabdocerrors':
+                    newstring = self.replace_tokens(page, uri, tables.docerrors(uri))
+                elif token=='tabfile_reports':
+                    newstring = self.replace_tokens(page, uri, tables.filereports(uri))
+                elif token=='tabfile_report':
+                    newstring = self.replace_tokens(page, uri, tables.filereport(uri))
+                elif token=='tabdocfileerrors':
+                    newstring = self.replace_tokens(page, uri, tables.docfileerrors(uri))
+                elif token=='tabdocnotes':
+                    newstring = self.replace_tokens(page, uri, tables.docnotes(uri))
+                elif token=='tabcvslog':
+                    newstring = self.replace_tokens(page, uri, tables.cvslog(uri))
+                elif token=='tabletters':
+                    newstring = self.replace_tokens(page, uri, tables.letters(uri))
+                elif token=='tabusers':
+                    newstring = self.replace_tokens(page, uri, tables.users(uri))
+                elif token=='tabuser':
+                    newstring = self.replace_tokens(page, uri, tables.user(uri))
+                elif token=='tabrecentnews':
+                    newstring = self.replace_tokens(page, uri, tables.recent_news(uri))
+                elif token=='tabsubtopic':
+                    newstring = self.replace_tokens(page, uri, tables.subtopic(uri))
+                elif token=='tabtypedocs':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, type_code=uri.code, lang=uri.lang))
+                elif token=='tabsubtopicdocs':
+                    newstring = self.replace_tokens(page, uri, tables.doctable(uri, subtopic_code=uri.code, lang=uri.lang))
+                elif token=='tabsitemap':
+                    newstring = self.replace_tokens(page, uri, tables.sitemap(uri))
+                elif token=='tabsessions':
+                    newstring = self.replace_tokens(page, uri, tables.tabsessions(uri))
+                elif token=='tabmailpass':
+                    newstring = self.replace_tokens(page, uri, tables.tabmailpass(uri))
+                elif token=='taberrors':
+                    newstring = self.replace_tokens(page, uri, tables.errors(uri))
+                elif token=='tabsearch':
+                    newstring = self.replace_tokens(page, uri, tables.tabsearch(uri))
             
                 # Blocks and Strings
-                # 
                 if newstring==None:
                     block = lampadasweb.blocks[token]
                     if block==None:
@@ -294,23 +295,18 @@ class PageFactory:
                         newstring = block.block
                 
                 # Add an error message if the token was not found
-                # 
                 if newstring==None:
                     log(1, 'Could not replace token ' + token)
                     newstring = 'ERROR (' + token + ')'
                 
-                html = html.replace(html[pos:pos2+1], newstring)
-                html = html.replace('\|', 'DCM_PIPE')
+                temp = temp.replace(temp[pos:pos2+1], newstring)
+                temp = temp.replace('\|', 'DCM_PIPE')
                 
-                pos = html.find('|')
+                pos = temp.find('|')
         
-        end_time = time.time()
-        self.elapsed_time = end_time - start_time
-        html = html.replace('DCM_PIPE', '|')
-        html = html.replace('DCM_ELAPSED_TIME', fpformat.fix(self.elapsed_time, 3))
-    
-        return html
-
+        temp = temp.replace('DCM_PIPE', '|')
+        return temp
+        
 
 page_factory = PageFactory()
 
