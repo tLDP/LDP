@@ -100,7 +100,7 @@ def document_file(req, doc_id, filename, top, format_code, action, delete=''):
     
 def newdocument_version(req, doc_id, version, pub_date, initials, notes, action):
     doc = lampadas.docs[int(doc_id)]
-    doc.versions.add(doc_id, versionname, int(top), format_code)
+    doc.versions.add(version, pub_date, initials, notes)
     go_back(req)
     
 def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, action, delete=''):

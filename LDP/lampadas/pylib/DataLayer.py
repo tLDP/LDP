@@ -552,8 +552,10 @@ class DocVersions(LampadasCollection):
 
     def add(self, version, pub_date, initials, notes):
         newrev_id = db.read_value('SELECT MAX(rev_id) FROM document_rev')
+        if newrev_id==None:
+            newrev_id = 0
         newrev_id = newrev_id + 1
-        sql = 'INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials) VALUES (' + self.doc_id + ', ' + newrev_id + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes)
+        sql = 'INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES (' + str(self.doc_id) + ', ' + str(newrev_id) + ', ' + wsq(version) + ', ' + wsq(pub_date) + ', ' + wsq(initials) + ', ' + wsq(notes) + ')'
         db.runsql(sql)
         db.commit()
         docversion = DocVersion()
@@ -563,6 +565,7 @@ class DocVersions(LampadasCollection):
         docversion.pub_date = pub_date
         docversion.initials = initials
         docversion.notes = notes
+        self.data[docversion.id] = docversion
 
     def delete(self, rev_id):
         sql = 'DELETE FROM document_rev WHERE rev_id=' + str(rev_id)
