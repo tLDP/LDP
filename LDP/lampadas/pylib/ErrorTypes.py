@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -18,48 +19,24 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
-# ErrorTypes
-
-class ErrorTypes(LampadasCollection):
+class ErrorTypes(TableCollection):
     """A collection of error types."""
 
     def __init__(self):
-        self.data = {}
-    
-    def load(self):
-        sql = 'SELECT err_type_code FROM error_type'
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            errtype = ErrorType()
-            errtype.load_row(row)
-            self[errtype.code] = errtype
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT err_type_code, lang, err_type_name, err_type_desc FROM error_type_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            err_type_code              = trim(row[0])
-            errtype = self[err_type_code]
-            lang                       = trim(row[1])
-            errtype.name[lang]         = trim(row[2])
-            errtype.description[lang]  = trim(row[3])
+        TableCollection.__init__(self, ErrorType,
+                                 'error_type',
+                                 {'err_type_code': 'code'},
+                                 ['created', 'updated'],
+                                 {'err_type_name': 'name', 'err_type_desc': 'description'})
 
 class ErrorType:
+    pass
 
-    def __init__(self, code=''):
-        self.code        = ''
-        self.name        = LampadasCollection()
-        self.description = LampadasCollection()
-       
-    def load_row(self, row):
-        self.code = trim(row[0])
-
-errortypes      = ErrorTypes()
+errortypes = ErrorTypes()
 errortypes.load()
+
+#for key in errortypes.keys():
+#    e = errortypes[key]
+#    print e.name['EN'] + ' ' + e.description['EN']

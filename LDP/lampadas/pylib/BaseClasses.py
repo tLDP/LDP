@@ -123,7 +123,11 @@ class TableCollection(LampadasCollection):
             self.map[map] = map
             return [map]
         elif type(map)==types.DictType:
-            self.map[string.join(map.keys())] = string.join(map.values())
+            for key in map.keys():
+                if map[key]:
+                    self.map[key] = map[key]
+                else:
+                    self.map[key] = key
             return map.keys()
         elif type(map)==types.ListType:
             fields = []
@@ -145,7 +149,7 @@ class TableCollection(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            identifier = row[0]
+            identifier = self.convert_field(row[0])
             object = self.object()
             i = 0
             for field in self.allfields:
@@ -160,12 +164,12 @@ class TableCollection(LampadasCollection):
             object = self[key]
             for field in self.i18nfields:
                 setattr(object, self.map[field], LampadasCollection())
-        sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields) + ' FROM ' + self.i18ntable + ' ORDER BY ' + string.join(self.indexfields, ', ')
+        sql = 'SELECT ' + string.join(self.indexfields, ', ') + ', lang, ' + string.join(self.i18nfields, ', ') + ' FROM ' + self.i18ntable + ' ORDER BY ' + string.join(self.indexfields, ', ')
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            identifier = row[0]
+            identifier = self.convert_field(row[0])
             lang = row[1]
             object = self[identifier]
             i = 2
@@ -175,11 +179,14 @@ class TableCollection(LampadasCollection):
                 coll = getattr(object, alias)
                 coll[lang] = value
                 setattr(object, field, coll)
+                i += 1
 
     def convert_field(self, value):
         type_name = str(type(value))
         if type_name=="<type 'string'>":
             return trim(value)
+        elif type_name=="<type 'int'>":
+            return safeint(value)
         elif type_name=="<type 'DateTime'>":
             return time2str(value)
         elif type_name=="<type 'libpq.PgBoolean'>":

@@ -22,9 +22,7 @@
 Holds a collection of ISO languages.
 """
 
-from Globals import *
 from BaseClasses import *
-from Database import db
 
 class Languages(TableCollection):
     """
@@ -34,14 +32,10 @@ class Languages(TableCollection):
 
     def __init__(self):
         TableCollection.__init__(self, Language,
-                                       'language',
-                                       {'lang_code':  'code'},
-                                       ['supported', 'encoding', 'created', 'updated'],
-                                       [{'lang_name': 'name'}])
-        self.supported = LampadasCollection()
-
-    def load(self):
-        TableCollection.load(self)
+                                 'language',
+                                 {'lang_code':  'code'},
+                                 ['supported', 'encoding', 'created', 'updated'],
+                                 {'lang_name': 'name'})
 
     # TODO: Replace with a reusable filtering system in TableCollection
     def supported_keys(self, lang=''):
@@ -69,3 +63,7 @@ class Language:
 
 languages = Languages()
 languages.load()
+
+#for key in languages.keys():
+#    language = languages[key]
+#    print 'Language: ' + language.code + ', name: ' + language.name['EN']

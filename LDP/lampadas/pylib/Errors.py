@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # 
 # This file is part of the Lampadas Documentation System.
 # 
@@ -24,50 +25,23 @@ from Database import db
 
 # Errors
 
-class Errors(LampadasCollection):
+class Errors(TableCollection):
     """
     A collection object of all errors that can be filed against a document.
     """
     
     def __init__(self):
-        self.data = {}
+        TableCollection.__init__(self, Error,
+                                 'error',
+                                 {'err_id': 'id'},
+                                 ['err_type_code', 'created', 'updated'],
+                                 {'err_name': 'name', 'err_desc': 'description'})
         
-    def load(self):
-        self.data = {}
-        sql = "SELECT err_id, err_type_code FROM error"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            err = Error()
-            err.load_row(row)
-            self.data[err.id] = err
-        # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT err_id, lang, err_name, err_desc FROM error_i18n"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row==None: break
-            err_id                 = row[0]
-            err = self[err_id]
-            lang                   = row[1]
-            err.name[lang]         = trim(row[2])
-            err.description[lang]  = trim(row[3])
-
 class Error:
     """
     An error that can be filed against a document.
     """
+    pass
     
-    def __init__(self, id=0, err_type_code=''):
-        self.id            = id
-        self.err_type_code = err_type_code
-        self.name          = LampadasCollection()
-        self.description   = LampadasCollection()
-
-    def load_row(self, row):
-        self.id            = row[0]
-        self.err_type_code = trim(row[1])
-
 errors = Errors()
 errors.load()
