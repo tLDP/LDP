@@ -54,6 +54,7 @@
 <xsl:include href="titlepage.templates.xsl"/>
 <xsl:include href="param.xsl"/>
 <xsl:include href="pi.xsl"/>
+<xsl:include href="../header.xsl"/>
 
 <!-- ==================================================================== -->
 
@@ -108,6 +109,7 @@
     <xsl:apply-templates select="$node" mode="title.ref">
       <xsl:with-param name="text-only" select="'1'"/>
     </xsl:apply-templates>
+    <link rel="stylesheet" href="default.css" type="text/css"/>
   </title>
 
   <xsl:if test="$html.stylesheet">
@@ -172,11 +174,9 @@
       <xsl:with-param name="node" select="$doc"/>
     </xsl:call-template>
     <xsl:call-template name="user.head.content"/>
+    <xsl:call-template name="header"/>
   </head>
   <body xsl:use-attribute-sets="body.attrs">
-    <p>
-      <a href="/index.html">Index</a>
-    </p>
     <xsl:call-template name="user.header.content">
       <xsl:with-param name="node" select="$doc"/>
     </xsl:call-template>
@@ -184,6 +184,7 @@
     <xsl:call-template name="user.footer.content">
       <xsl:with-param name="node" select="$doc"/>
     </xsl:call-template>
+    <p/>
   </body>
   </html>
 </xsl:template>
