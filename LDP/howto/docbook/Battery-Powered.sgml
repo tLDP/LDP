@@ -316,8 +316,9 @@ For example, this will log anything with a priority of <emphasis>info</emphasis>
 <emphasis>warning</emphasis>, to <command>/var/adm/messages</command> or <command>/var/adm/mail</command>
 without needing to sync to disk after each write.  Since we want to keep all messages with a priority of 
 <emphasis>warning</emphasis>, this will be logged to a different file without disabling
-disk syncing (to prevent data loss in the event of a system crash).
+disk syncing (to prevent data loss in the event of a system crash).</para>
 
+<para>
 <screen>
 
 	*.warning			/var/adm/syslog
@@ -326,39 +327,152 @@ disk syncing (to prevent data loss in the event of a system crash).
 
 </screen>
 </para>
+
+<para>Another item to be aware of is the <command>-- MARK --</command> messages that <command>syslogd(8)</command> writes.
+This will affect your hard drive inactivity settings.  You can simply disable this by running <command>syslogd(8)</command> with:</para>
+
+<para>
+<screen>
+if [ -x /usr/sbin/syslogd -a -x /usr/sbin/klogd ]; then
+	# '-m 0' disabled 'MARK' messages
+	/usr/sbin/syslogd -m 0
+	sleep 1
+	# '-c 3' displays errors on console
+	# '-x' turns off broken EIP translation
+	/usr/sbin/klogd -c 3 -x
+fi
+</screen>
+</para>
 </sect2>
 
 <sect2 id="xf86">
 <title>XF86Config Tuning</title>
-<para>Screen blanking under X-Windows is primarily controlled five configuration options in
-<command>/etc/X11/XF86Config</command>.  The most basic, and useless setting, is <command>BlankTime</command>, which creates a fake blanking effect on the screen.</para>
+<para>There are essentially two different types of screen blanking that can be performed under X-Windows:  BlankTime and DPMS.
+The first is simply a fake "blanking" effect that doesn't actually save any power.  The others are specific only to
+DPMS-compliant monitors, and must be specifically enabled to take effect.  They are located in your <command>XF86Config</command>
+file, which normally resides in <command>/etc/X11/XF86Config</command>.</para>
+
+<para>DPMS (Display Power Management Signaling) is a standard to reduce power consumption in monitors.
+Typically, both the monitor and the video card must support the DPMS standard in order to receive any
+benefit from it.  DPMS specifies four modes of operation (in order of increasing power savings):
+"Normal", "Standby", "Suspend" and "Off".  Two signal lines, "Horizontal Sync" and 
+"Vertical Sync" provide a method for signaling these four different states to a DPMS monitor.</para>  
 
 <para>If you have a DPMS-compliant monitor, you might want to try enabling support for it under the
 <emphasis>Monitor</emphasis> section of your <command>XF86Config</command> file:
+</para>
 
+<para>
 <screen>
-
 Section "Monitor"
 	[... other values here ...]
 	Option	"DPMS"
 EndSection
-
 </screen>
 </para>
 
-<para>To manipulate the DPMS functions, you can create/modify the following items in the <emphasis>ServerLayout</emphasis> section:
+<para>To manipulate the DPMS functions, you can create/modify the
+following items in the <emphasis>ServerLayout</emphasis> section.</para>
 
+<para>
 <screen>
 Section "ServerLayout"
-	Option "BlankTime"	"10"	# Blank the screen
-	Option "StandbyTime" 	"15"	# Turn off screen
-	Option "SuspendTime"	"30"	# Full hibernation
-	Option "OffTime"	"60"	# Turn off DPMS monitor
+	Option "BlankTime"	"10"	# Blank the screen in 10 minutes (Fake)
+	Option "StandbyTime" 	"20"	# Turn off screen in 20 minutes (DPMS)
+	Option "SuspendTime"	"30"	# Full hibernation in 30 minutes (DPMS)
+	Option "OffTime"	"40"	# Turn off DPMS monitor (DPMS)
 EndSection
 </screen>
 </para>
 
-<para>It's worth noting that the driver for your video card might not fully support these options.</para>
+<para><command>BlankTime</command>
+is not actually a power saving level at all.  The screen is sent 
+a "fake" blanking effect and defaults to activate after 10 minutes.  It has
+nothing to do with DPMS.</para>
+
+<para><command>StandbyTime</command>
+is a very minor power saving level. This setting usually involves 
+blanking the screen by turning off the electron (RGB) gun.  However, the
+power supply is left on and the tube filaments energized.
+When you need to use the monitor again, the monitor will come back on very quickly.
+This option requires DPMS monitor/video-card support and defaults to 20 minutes under X-Windows.
+Also known as <emphasis>hsync suspend mode</emphasis>, since the horizontal sync signal
+is turned off to signal this power management state to a DPMS monitor.</para>
+
+<para><command>SuspendTime</command>
+is a very strong low power alternative.  This setting usually involves the same
+power conservation as <command>StandbyTime</command>, however in addition the power supply is turned off.  
+This option requires DPMS monitor/video-card support and defaults
+to 30 minutes under X-Windows.  Also known as <emphasis>vsync suspend mode</emphasis>, since the vertical sync signal
+is turned off to signal this power management state to a DPMS monitor.</para>
+
+<para><command>OffTime</command>
+usually means just that. The computer monitor is turned off. A small
+auxiliary circuit stays on to monitor the signals from the computer to turn
+the monitor back on when data needs to be displayed to the screen.
+Obviously, this keeps power consumption to a bare minimum (zero).
+While the power saving is substantial, to reactivate the monitor may take up to 8-10 seconds.
+This option requires DPMS monitor/video-card support and defaults to 40 minutes under
+X-Windows.  Both the horizontal and vertical sync signals are turned off to signal this power
+management state to a DPMS monitor.</para>
+
+<para>After activating your changes and restarting X-Windows, you might want to examine your
+logfile to see if your video card has any problems with your changes:</para>
+
+<para>
+<screen>
+$ egrep "^\(WW|EE\)" /var/log/XFree86.0.log
+</screen>
+</para>
+
+<para>There may be additional options that you can enable for your specific video card/chip driver; see the 
+<ulink url="http://www.xfree86.org/support.html">XFree86 Documentation</ulink> website for specifics.</para>
+
+<para>Of course, all of this can also be activated "on-the-fly" by using <command>xset(1)</command>.  
+If you don't have access to your system's <command>XF86Config</command> file, a good place to put these commands would be in
+your <command>~/.Xsession</command> or <command>~/.xinitrc</command> file.</para>
+
+<para>
+<screen>
+$ xset -dpms			# Disable DPMS
+$ xset +dpms			# Enable DPMS
+$ xset s off			# Disable screen blanking
+$ xset s 150			# Blank the screen after 150 seconds
+$ xset dpms 300 600 900		# Set standby, suspend, & off times (in seconds)
+$ xset dpms force standby	# Immediately go into standby mode
+$ xset dpms force suspend	# Immediately go into suspend mode
+$ xset dpms force off		# Immediately turn off the monitor
+$ xset -q			# Query current settings
+</screen>
+</para>
+
+<para>If instead you're using the Linux console (not X-Windows), you'll want to use <command>setterm(1)</command>:</para>
+
+<para>
+<screen>
+$ setterm -blank 10		# Blank the screen in 10 minutes
+$ setterm -powersave on		# Put the monitor into VESA power saving mode
+$ setterm -powerdown 20		# Set the VESA powerdown to 20 minutes
+</screen>
+</para>
+
+</sect2>
+
+<sect2 id="energystar">
+<title>Energy Star</title>
+
+<para><ulink url="http://www.energystar.gov">Energy Star</ulink> is a United States government-backed program 
+to promote energy efficiency standards.  Of interest:</para>
+
+<itemizedlist>
+	<listitem><para>An ENERGY STAR qualified computer, in sleep mode,
+			uses 70% less electricity than computers without power management features.</para></listitem>
+	<listitem><para>An ENERGY STAR qualified monitor, in sleep mode,
+			uses 90% less electricity than monitors without power management features.</para></listitem>
+</itemizedlist>
+
+<para>Typically, Energy Star savings is accomplished by other power management settings and is not, in and of itself,
+a power management technique.</para>
 </sect2>
 
 <sect2 id="swap">
@@ -370,15 +484,17 @@ and examine <command>/proc/meminfo</command> and <command>/proc/swaps</command>
 to determine how much free memory you've got on average, and whether or not your swap file is even being utilized.</para>
 
 <para>For example, today I've compiled several intensive programs and have been running my laptop for about eight hours straight.
-A simple examination of my system reveals:
+A simple examination of my system reveals:</para>
 
+<para>
 <screen>
+$ cat /proc/swaps
 
-bravo:~$ cat /proc/swaps
 Filename                                Type            Size    Used    Priority
 /dev/hda3                                partition      136544  0       -1
 
-bravo:~$ cat /proc/meminfo
+$ cat /proc/meminfo
+
 MemTotal:       513880 kB
 MemFree:        254820 kB
 Buffers:         42812 kB
@@ -404,10 +520,10 @@ VmallocChunk:   514604 kB
 HugePages_Total:     0
 HugePages_Free:      0
 Hugepagesize:     4096 kB
-
 </screen>
+</para>
 
-Given this, I'd opt to disable my swapfile if this is any indicator of my future usage.</para>
+<para>Given this, I'd opt to disable my swapfile if this is any indicator of my future usage.</para>
 </sect2>
 
 <sect2 id="tmpfs">
@@ -447,6 +563,22 @@ values of MinSpareServers and StartServers to 1.  Don't define any
 CustomLogging or at least increase the value of LogLevel to warn.  If you're
 really sure of yourself, you can change the ErrorLog directive to point to /dev/null.</para>
 
+<para>Consider creating a power-saving script that will immediately take your laptop
+into low-power mode:</para>
+
+<para>
+<screen>
+#!/bin/sh
+if [ -x /usr/sbin/hdparm ]; then
+	hdparm -y /dev/hda
+fi
+
+if [ -x /usr/X11R6/bin/xset ]; then
+	xset dpms force off
+fi
+</screen>
+</para>
+
 <para>Additionally, it's worth considering anything in the following areas:</para>
 <para><itemizedlist>
 <listitem><para>Adjust your system's BIOS settings to decrease or turn off your display's backlight.</para></listitem>
@@ -479,6 +611,12 @@ If you're interested in specifics, the PCMCIA project page is available at
 
 <para>Some people believe that APM offers better power savings over ACPI, and vice-versa.  While their power management
 techniques differ, in actual battery-usage tests, both reportedly perform about the same.</para>
+
+<para>Contrary to popular belief, Lithium Ion (see below) batteries
+<emphasis>do</emphasis> suffer from a memory effect.
+Luckily, the effect is not large over the lifespan of a typical battery (3-4 years).  Anyone who tells you different
+is selling something.</para>
+
 </sect2>
 </sect1>
 
@@ -586,7 +724,8 @@ should not be stored for any length of time while connected to the laptop.
 High humidity and temperatures can cause the battery to deteriorate, so these
 should be avoided during storage.</para>
 
-<para>Do not remove and carry a battery pack in your pocket, purse, or other container where metal objects (such as car keys or paper clips) could short-circuit the
+<para>Do not remove and carry a battery pack in your pocket, purse, or other
+container where metal objects (such as car keys or paper clips) could short-circuit the
 battery terminals. The resulting excessive current flow can cause extremely
 high temperatures and may result in damage to the battery pack or cause fire
 or burns.</para>
