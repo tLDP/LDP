@@ -211,7 +211,7 @@ def blast_mail(mail_from, PEOPLE, filestodiff, contextlines, module_name):
 	for one_address in dest_addr :
 	    # smtp part
 	    sendit = smtplib.SMTP(our_smtp)
-	    sendit.sendmail(mail_from, one_address, msgbody)
+	    sendit.sendmail(mail_from+"@"+addr_suffix, one_address, msgbody)
 	    sendit.quit()
         # doesn't matter what code we return, it isn't waited on
         os._exit(0)
@@ -276,7 +276,7 @@ def main():
                 L.append(s)
         specs = L
     print 'Generating notification message...'
-    blast_mail(os.environ['CVS_USER']+"@"+addr_suffix, PEOPLE, specs[1:], contextlines, module_name)
+    blast_mail(os.environ['CVS_USER'], PEOPLE, specs[1:], contextlines, module_name)
     print 'Generating notification message... done.'
 
 
