@@ -2,8 +2,8 @@
 
 use CGI qw(:standard);
 use Pg;
-$query = new CGI;
 
+$query = new CGI;
 $dbmain = "ldp";
 @row;
 
@@ -12,7 +12,6 @@ $editor_id       = param('editor_id');
 
 # Load data from db and call edit form
 $conn=Pg::connectdb("dbname=$dbmain");
-
 
 $result = $conn->exec("SELECT editor_id, editor_name, email, notes from editor where editor_id = $editor_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;

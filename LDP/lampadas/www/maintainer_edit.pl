@@ -4,7 +4,6 @@ use CGI qw(:standard);
 use Pg;
 
 $query = new CGI;
-
 $dbmain = "ldp";
 @row;
 
@@ -13,7 +12,6 @@ $maintainer_id       = param('maintainer_id');
 
 # Load data from db and call edit form
 $conn=Pg::connectdb("dbname=$dbmain");
-
 
 $result = $conn->exec("SELECT maintainer_id, maintainer_name, email from maintainer where maintainer_id = $maintainer_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;

@@ -4,23 +4,18 @@ use CGI qw(:standard);
 use Pg;
 
 $query = new CGI;
-$username = $query->remote_user();
-if ( $username eq "guest") {
-  print header;
-  print "<html><head><title>No Permission</title>\n";
-  print "<link rel=stylesheet href='../ldp.css' type='text/css'></head>\n";
-  print "<body>\n";
-  print "<h1>No Permission</h1>\n";
-  print "You do not have permission to modify the database.\n";
-  print "<p>You need to <a href='../'>get an account</a> before you can modify data.\n";
-  print end_html;
-  exit;
-}
-
 $dbmain = "ldp";
 @row;
 
 $conn=Pg::connectdb("dbname=$dbmain");
+
+$username = $query->remote_user();
+$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+@row = $result->fetchrow;
+if ($username ne $row[0]) {
+	print $query->redirect("../newaccount.html");
+	exit;
+}
 
 $doc_id = param('doc_id');
 $vote   = param('vote');

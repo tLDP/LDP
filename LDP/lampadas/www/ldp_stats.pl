@@ -8,7 +8,6 @@ $baseurl = "http://www.linuxdoc.org";
 $basesql = "SELECT doc_id, title, class, ref_url, version, format FROM document ";
 $dbmain='ldp';
 
-
 $conn=Pg::connectdb("dbname=$dbmain");
 
 print header;

@@ -1,14 +1,13 @@
 #! /usr/bin/perl
 
+$workpath = "/tmp";
+
 use CGI qw(:standard);
 use Pg;
 
 $query = new CGI;
-
 $dbmain = "ldp";
 @row;
-
-$workpath = "/tmp";
 
 # Read parameters
 $doc_id       = param('doc_id');
@@ -16,8 +15,23 @@ $doc_id       = param('doc_id');
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 
+$username = $query->remote_user();
+$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+@row = $result->fetchrow;
+if ($username ne $row[0]) {
+	print $query->redirect("../newaccount.html");
+	exit;
+} else {
+	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
+		print $query->redirect("../wrongpermission.html");
+		exit;
+	}
+}
+
 $save = param('Save');
 $preview = param('Preview');
+$docbook = param('DocBook');
+
 $wiki           = param('wiki');
 while ($wiki =~ /\'/) {
 	$wiki =~ s/\'/a1s2d3f4/;
@@ -71,7 +85,7 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 $revisions = $row[0];
 
 #if we're not previewing, load data from database and determine version
-unless ($preview) {
+unless ($preview or $docbook) {
 	$result = $conn->exec("SELECT wiki FROM document_wiki WHERE doc_id = $doc_id ORDER BY revision DESC LIMIT 1, 0");
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 	@row = $result->fetchrow;
@@ -98,23 +112,19 @@ print "</table>\n";
 	
 print "<input type=submit value=Save name=Save>\n";
 print "<input type=submit value=Preview name=Preview>\n";
+print "<input type=submit value=DocBook name=DocBook>\n";
 print "</form>\n";
 
 print end_html;
 
 }
 
-if ($preview) {
+if ($preview or $docbook) {
 	$txtfile = "$workpath/foo.txt";
 	$sgmlfile = $txtfile;
 	$sgmlfile =~ s/\.txt/\.sgml/;
 	$htmlfile = $txtfile;
 	$htmlfile =~ s/\.txt/\.html/;
-
-#	print "<hr>Processing...\n";
-#	print "<p>SGML: $sgmlfile\n";
-#	print "<br>TXT: $txtfile\n";
-#	print "<br>HTML: $htmlfile\n";
 
 	open(TXT, "> $txtfile");
 	print TXT $wiki;
@@ -169,19 +179,31 @@ if ($preview) {
 	}
 	close(SGML);
 
-#	print "<p><hr>\n";
-#	print "<p>$buf\n";
-
 	$sgml .= "</article>\n";
 
 	open(SGML, "> $sgmlfile");
 	print SGML $sgml;
 	close(SGML);
+}
 
+if ($docbook) {
+	&printheader;
+	print "<p><hr>\n";
+	print "<pre>\n";
+	while ($sgml =~ /\</) {
+		$sgml =~ s/\</&lt;/;
+	}
+	while ($sgml =~ /\>/) {
+		$sgml =~ s/\>/&gt;/;
+	}
+	print $sgml;
+	print "</pre>\n";
+	print "</html>\n";
+}
+
+if ($preview) {
 	$cmd = "xsltproc --docbook /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl $sgmlfile > $htmlfile";
 	system($cmd);
-
-#	print "<p><hr>\n";
 
 	print header(-expires=>'now');
 	open(HTML, "$htmlfile");

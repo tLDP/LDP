@@ -4,7 +4,6 @@ use CGI qw(:standard);
 use Pg;
 
 $query = new CGI;
-
 $dbmain = "ldp";
 @row;
 
