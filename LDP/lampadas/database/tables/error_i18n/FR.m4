@@ -2,18 +2,18 @@ insert(1,
   [Fichier introuvable],
   [Ce fichier n\'existe pas dans le cache du cvs de Lampadas.])
 insert(2,
-  [Fichier prot&eacute;g&eacute; en &eacute;criture],
-  [Ce fichier existe, mais est prot&eacute;g&eacute; en &eacute;criture.])
+  [Fichier protégé en écriture],
+  [Ce fichier existe, mais est protégé en écriture.])
 insert(3,
-  [No source files],
-  [No source files are listed for the document.])
+  [Pas de fichier source],
+  [Pas de fichier source pour ce document.])
 insert(4,
-  [No primary files],
-  [No source file is designated as primary.])
+  [Pas de fichier source principal],
+  [Pas de fichier source principal.])
 insert(5,
-  [Multiple primary files],
-  [More than one file is designated as primary.])
+  [Plusieurs fichiers source principaux],
+  [Plus d'un fichier source principal.])
 insert(6,
-  [File not readable],
-  [The file exists, but Lampadas cannot read it.])
+  [Fichier illisible],
+  [Ce fichier existe, mais est illisible.])
 

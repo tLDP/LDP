@@ -3,9 +3,9 @@ insert(howto, [HOWTO],
 insert(faq, [FAQ],
   [Une Foire Aux Questions.])
 insert(template, [Modèle],
-  [Un modèle pour &eacute;crire vos documents.])
+  [Un modèle pour écrire vos documents.])
 insert(quickref, [Fiche],
-  [Une fiche de r&eacute;f&eacute;rence rapide.])
+  [Une fiche de référence rapide.])
 insert(userguide, [User\'s Guide],
   [End user documentation for an application.])
 insert(programguide, [Programmer\'s Guide],
@@ -13,7 +13,7 @@ insert(programguide, [Programmer\'s Guide],
 insert(adminguide, [Administrator\'s Guide],
   [Documentation for system administrators.])
 insert(intro, [Intro],
-  [Un document d\'introduction convient particuli&egrave;rement bien aux d&eacute;butants.])
+  [Un document d\'introduction convient particulièrement bien aux débutants.])
 insert(manpage, [Manual Page],
   [A traditional form of documentation for UNIX systems.])
 insert(article, [Article],

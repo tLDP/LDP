@@ -1,42 +1,42 @@
 m4_dnl  license_code, lang, license_short_name, license_name, license_desc
 
 insert(gpl, [GPL], [GNU General Public License],
-    [The most popular Free Software license.
-    It is usually used for software, but was commonly used for
-    documentation before the GFDL came along.])
+    [Licence la plus courante pour les Logiciels Libres.
+    Généralement utilisée pour les logiciels, elle était aussi employée
+    pour la documentation avant l'avènement de la GDFL.])
 
 insert(gfdl, [GFDL], [GNU Free Documentation License],
-    [Probably the most popular Free Documentation license.])
+    [Licence la plus courante pour la documentation libre.])
 
 insert(opl, [OPL], [Open Publication License],
-    [This license is usually considered Free if you do not exercise options
-    A or B, which place restrictions on its use.
-    It is often confused with the Open Content License from the same source.])
+    [Cette licence est classée comme libre si les restrictions A et B ne sont pas
+    exercées. Elle est souvent confondue avec la Open Content License qui provient 
+    des mêmes auteurs.])
 
 insert(ldpl, LDPL, [LDP License],
-    [The license formerly used by the Linux Documentation Project.
-    Many LDP documents are still covered under this license.])
+    [La licence anciennement utilisée par le Projet de Documentation Linux (LDP).
+    De nombreux documents du LDP sont encore couverts par cette licence.])
     
 insert(free, [Free], [Other Free License],
-    [Another Free Documentation or Free Software License.
-    A Free license permits modification, distribution, and publication
-    both commercial and noncommercial.])
+    [Une licence pour logiciel ou documentation libres.
+    Une telle licence permet la modification, la distribution et la publication
+    a des fins commerciales ou non commerciales.])
     
 insert(nonfree, [Nonfree], [Other Nonfree License],
-    [Another Nonfree license.
-    A Nonfree license does not permit modification, distribution, or publication
-    both commercial and noncommercial.])
+    [Une licence non libre.
+    Une licence qui ne permet pas la modification, la distribution et la publication
+    a des fins commerciales ou non commerciales.])
 
 insert(pd, [PD], [Public Domain],
-    [Documents in the Public Domain are technically unlicensed.
-    The author has waived all legal rights in perpetuity,
-    and it can be used freely in any manner whatsoever,
-    commercial or noncommercial, even proprietary.])
+    [Les documents du domaine publique n'ont pas de licence d'utilisation.
+    L'auteur a abandonné tous ses droits et ce document peut donc être
+    utilisé librement et sans aucune restriction, y compris pour des usages
+    commerciaux.])
 
 insert(none, [None], [No License],
-    [A document with no license is covered under normal laws of copyright.
-    It cannot be distributed, published or modified and is considered proprietary.])
+    [Un document sans licence est protégé par le droit d'auteur.
+    Il ne peut pas être distribué, publié ou modifié.])
    
 insert(other, [Other], [Other License],
-    [Some other license.])
+    [Une licence non précisée.])
 

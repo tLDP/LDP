@@ -30,7 +30,7 @@ insert([my], [My Home], [],
 
 insert([home], [|strproject|], [Home],
 [
-	<p>Ce syst&egrave;me est en cours de d&eacute;veloppement. Son code est modifi&eacute; en permanence ce qui le rend instable.
+	<p>Ce système est en cours de développement. Son code est modifié en permanence ce qui le rend instable.
 
 	<p>Merci de ne pas envoyer de rapport de bogue pour le moment
 
@@ -66,36 +66,36 @@ insert([staff], [Staff], [],
     List the members of your project\'s staff here.
 ], 1)
 
-insert([contribute], [Contribuer &agrave; Lampadas], [Contribuer &agrave; Lampadas],
+insert([contribute], [Contribuer à Lampadas], [Contribuer à Lampadas],
 [
-	En tant que membre de ce syst&egrave;me, vous b&eacute;n&eacute;ficiez du travail de plusieurs centaines d\'utilisateurs de Linux, qui ont b&eacute;n&eacute;volement contribu&eacute; &agrave; cr&eacute;er cette &eacute;norme biblioth&egrave;que &eacute;lectronique.
+	En tant que membre de ce système, vous bénéficiez du travail de plusieurs centaines d\'utilisateurs de Linux, qui ont bénévolement contribué à créer cette énorme bibliothèque électronique.
 
-	<p>Nous sommes s&ucric;rs que vous souhaiteriez apporter votre pierre &agrave; l\'&eacute;difice aussi avons-nous con&ccedil;u Lampadas pour que vous puissiez ais&eacute;ment participer. Voici plusieurs fa&ccedil;ons d\'aider, class&eacute;es par ordre de difficult&eacute;:
+	<p>Nous sommes sûrs que vous souhaiteriez apporter votre pierre à l\'édifice aussi avons-nous conçu Lampadas pour que vous puissiez aisément participer. Voici plusieurs façons d\'aider, classées par ordre de difficulté:
 
 	<ul>
 	<li>Noter les documents
 
-	<p>Chaque document est not&eacute;, sur une &eacute;chelle de 1 &agrave; 10, qui vous informe de l\'opinion qu\'en ont eu les autres lecteurs. Cette note nous permet de concentrer nos efforts sur l\'am&eacute;lioration des documents dont vous nous dites qu\'ils en ont le plus besoin.</li>
+	<p>Chaque document est noté, sur une échelle de 1 à 10, qui vous informe de l\'opinion qu\'en ont eu les autres lecteurs. Cette note nous permet de concentrer nos efforts sur l\'amélioration des documents dont vous nous dites qu\'ils en ont le plus besoin.</li>
 
 	<li>Signaler une erreur
 
-	<p>Si vous trouvez une erreur dans un document, signalez-l&agrave;.
+	<p>Si vous trouvez une erreur dans un document, signalez-là.
 
 	</li>
 
 	<li>Traduire un document
-	<p>Les traducteurs sont toujours tr&egrave;s recherch&eacute;s, car notre
+	<p>Les traducteurs sont toujours très recherchés, car notre
     but est d\'offrir notre documentation dans le plus grand nombre de langues
     possibles pour que tous puissent en profiter.
 	</li>
 
 	<li>Tranduire Lampadas
-	<p>Le syst&egrave;me Lampadas peut &ecirc;tre localis&eacute; pour que chacun
-    puisse l\'utiliser dans sa langue de pr&eacute;dilection.
+	<p>Le système Lampadas peut être localisé pour que chacun
+    puisse l\'utiliser dans sa langue de prédilection.
 	</li>
 	
     <li>Ecrire un document
-	<p>Si vous avez une comp&eacute;tence particuli&egrave;re, n\'h&eacute;sitez pas &agrave; &eacute;crire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
+	<p>Si vous avez une compétence particulière, n\'hésitez pas à écrire un nouveau document pour que nous le publions. Lampadas propose plusieurs outils pour vous faciliter cette tâche.
 	</li>
 	</ul>
 ], 1)
@@ -183,9 +183,9 @@ insert([copyright], [Le Copyright], [Le Copyright],
 	Copyright 2002 David Merrill.
 ], 1)
 
-insert([privacy], [Confidentialit&eacute;], [Confidentialit&eacute;],
+insert([privacy], [Confidentialité], [Confidentialité],
 [
-	Confidentialit&eacute;
+	Confidentialité
 ], 1)
 
 insert([sitemap], [Site Map], [],
@@ -246,7 +246,7 @@ insert([subtopic], [View Subtopic], [],
     |tabsubtopicdocs|
 ], 1)
 
-insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;es du doc],
+insert([editdoc], [Méta-données du doc], [Méta-données du doc],
 [
 	|tabeditdoc|
     <p>|tabdocfiles|
