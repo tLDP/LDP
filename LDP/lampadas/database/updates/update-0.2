@@ -28,17 +28,10 @@ if ($version ne $LAST_VERSION) {
 
 # Create new username table
 #
-$sql = "DROP TABLE username_new";
-$conn->exec("$sql");
-$sql = "CREATE TABLE username_new (user_id INT4 NOT NULL, username CHAR(20) NOT NULL, session_id CHAR(20), first_name CHAR(20), middle_name CHAR(20), surname CHAR(20), email TEXT, admin BOOLEAN, sysadmin BOOLEAN, password CHAR(12), notes TEXT, stylesheet CHAR(12));";
-$conn->exec("$sql");
-$sql = "CREATE UNIQUE INDEX username ON username_new(username)";
-$conn->exec("$sql");
-
-# Copy users over to new table
-# 
-$sql = "INSERT INTO username_new(user_id, username, first_name, middle_name, surname, email, admin) SELECT 0, username, first_name, '', surname, email, admin FROM username";
-$conn->exec("$sql");
+$conn->exec("DROP TABLE username_new");
+$conn->exec("CREATE TABLE username_new (user_id INT4 NOT NULL, username CHAR(20) NOT NULL, session_id CHAR(20), first_name CHAR(20), middle_name CHAR(20), surname CHAR(20), email TEXT, admin BOOLEAN, sysadmin BOOLEAN, password CHAR(12), notes TEXT, stylesheet CHAR(12));");
+$conn->exec("CREATE UNIQUE INDEX username ON username_new(username)");
+$conn->exec("INSERT INTO username_new(user_id, username, first_name, middle_name, surname, email, admin) SELECT 0, username, first_name, '', surname, email, admin FROM username");
 $conn->exec("UPDATE username SET sysadmin='t' WHERE username='david'");
 
 # Assign the users sequential user_ids
@@ -96,8 +89,7 @@ while (@row = $result->fetchrow) {
 			exit(1);
 		}
 		($first_name, $middle_name, $surname) = &splitname($maintainer_name);
-		$sql = "INSERT INTO username_new(user_id, username, first_name, middle_name, surname, email, admin) VALUES ($new_user_id, '$username', '$first_name', '$middle_name', " . wsq($surname) . ", '$email', 'f')";
-		$conn->exec("$sql");
+		$conn->exec("INSERT INTO username_new(user_id, username, first_name, middle_name, surname, email, admin) VALUES ($new_user_id, '$username', '$first_name', '$middle_name', " . wsq($surname) . ", '$email', 'f')");
 		$maintainers{$maintainer_id} = $new_user_id;
 	}
 }
@@ -258,12 +250,9 @@ while (@row = $result->fetchrow) {
 
 # Copy document notes
 #
-$sql = "DROP TABLE notes_new";
-$conn->exec("$sql");
-$sql = "CREATE TABLE notes_new (doc_id INT4 NOT NULL, date_entered TIMESTAMP NOT NULL DEFAULT now(), notes TEXT, creator_id INT4)";
-$conn->exec("$sql");
-$sql = "SELECT doc_id, date_entered, notes, username FROM notes";
-$result = $conn->exec("$sql");
+$conn->exec("DROP TABLE notes_new");
+$conn->exec("CREATE TABLE notes_new (doc_id INT4 NOT NULL, date_entered TIMESTAMP NOT NULL DEFAULT now(), notes TEXT, creator_id INT4)");
+$result = $conn->exec("SELECT doc_id, date_entered, notes, username FROM notes");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 while (@row = $result->fetchrow) {
 	$doc_id = $row[0];
@@ -275,15 +264,16 @@ while (@row = $result->fetchrow) {
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result2->resultStatus;
 	@row2 = $result2->fetchrow;
 	$creator_id = $row2[0];
-	$sql = "INSERT INTO notes_new(doc_id, date_entered, notes, creator_id) VALUES ($doc_id, " . wsq($date_entered) . ", " . wsq($notes) . ", $creator_id)";
-	$conn->exec("$sql");
+	$conn->exec("INSERT INTO notes_new(doc_id, date_entered, notes, creator_id) VALUES ($doc_id, " . wsq($date_entered) . ", " . wsq($notes) . ", $creator_id)");
 }
 
 # i18n support in class table
 #
 # NOTE: must come before document_new table is generated
+# because the class_name is matched to determine the document's class_id
 #
 $conn->exec("CREATE TABLE class_new (class_id INT4 NOT NULL, PRIMARY KEY (class_id))");
+$conn->exec("DROP TABLE class_i18n");
 $conn->exec("CREATE TABLE class_i18n (class_id INT4 NOT NULL, lang CHAR(2) NOT NULL, class_name CHAR(20) NOT NULL, class_description TEXT NOT NULL, PRIMARY KEY (class_id, lang))");
 
 $sql = "SELECT class, class_name FROM class";
@@ -334,6 +324,7 @@ $conn->exec("INSERT INTO review_status_new SELECT review_status FROM review_stat
 # i18n support in topic table
 #
 $conn->exec("CREATE TABLE topic_new (topic_num INT4 NOT NULL, PRIMARY KEY (topic_num))");
+$conn->exec("DROP TABLE topic_i18n");
 $conn->exec("CREATE TABLE topic_i18n (topic_num INT4 NOT NULL, lang CHAR(2) NOT NULL, topic_name TEXT NOT NULL, topic_description TEXT, PRIMARY KEY(topic_num, lang))");
 $conn->exec("INSERT INTO topic_new SELECT topic_num FROM topic");
 $conn->exec("INSERT INTO topic_i18n SELECT topic_num, 'EN' as lang, topic_name, topic_description FROM topic");
@@ -343,7 +334,8 @@ $conn->exec("INSERT INTO topic_i18n SELECT topic_num, 'EN' as lang, topic_name, 
 # 
 $conn->exec("DROP TABLE document_new");
 $conn->exec("CREATE TABLE document_new (doc_id INT4 NOT NULL, title TEXT NOT NULL, class_id INT4, format_id INT4, dtd CHAR(12), dtd_version CHAR(12), version CHAR(12), last_update DATE, URL TEXT, ISBN TEXT, pub_status CHAR, review_status CHAR, tickle_date DATE, pub_date DATE, ref_url TEXT, tech_review_status CHAR, maintained BOOLEAN DEFAULT False, license CHAR(12), abstract TEXT, rating REAL, lang CHAR(2), PRIMARY KEY (doc_id))");
-$conn->exec("INSERT INTO document_new SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c, format_i18n f WHERE d.class=c.class_name AND d.format=f.format_name");
+$conn->exec("INSERT INTO document_new SELECT doc_id, title, c.class_id, f.format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c, format_i18n f WHERE d.class=c.class_name AND d.format=f.format_name");
+$conn->exec("INSERT INTO document_new SELECT doc_id, title, c.class_id, NULL, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating FROM document d, class_i18n c WHERE d.class=c.class_name AND d.format is null");
 $conn->exec("UPDATE document_new SET lang='EN'");
 $conn->exec("UPDATE document_new SET license=NULL where license=''");
 
@@ -377,6 +369,11 @@ $conn->exec("ALTER TABLE license ADD COLUMN free BOOLEAN");
 $conn->exec("UPDATE license SET free='t' WHERE license='GPL' or license='GFDL' or license='PD' or license='OPL'");
 $conn->exec("UPDATE license SET free='f' WHERE free IS NULL");
 
+
+#####################
+# CORRECT FILENAMES #
+#####################
+
 # Prepend format strings to filenames
 #
 $conn->exec("UPDATE document SET filename='docbook/' || filename where dtd='DocBook' and filename<>''");
@@ -391,6 +388,11 @@ $conn->exec("UPDATE document SET filename='howto/' || filename where class='HOWT
 $conn->exec("UPDATE document SET filename='howto/' || filename where class='MINI' and filename<>''");
 $conn->exec("UPDATE document SET filename='ref/' || filename where class='QUICK' and filename<>''");
 $conn->exec("UPDATE document SET filename='howto/' || filename where class='TEMPLATE' and filename<>''");
+
+
+####################
+# BRAND NEW TABLES #
+####################
 
 # Create error table
 
@@ -458,6 +460,23 @@ $conn->exec("DROP TABLE string");
 $conn->exec("CREATE TABLE string (string_code CHAR(12) NOT NULL, PRIMARY KEY (string_code))");
 $conn->exec("DROP TABLE string_i18n");
 $conn->exec("CREATE TABLE string_i18n (string_code CHAR(12) NOT NULL, lang CHAR(2) NOT NULL, string TEXT NOT NULL, PRIMARY KEY (string_code, lang))");
+
+
+# Check to make sure all records got carried over to the new tables.
+# If there are problems with a join, sometimes they don't, so I try
+# to catch those errors here.
+
+DBCount("class", "class_new");
+DBCount("document", "document_new");
+DBCount("document_wiki", "document_wiki_new");
+DBCount("doc_vote", "doc_vote_new");
+DBCount("format", "format_new");
+DBCount("notes", "notes_new");
+DBCount("pub_status", "pub_status_new");
+DBCount("review_status", "review_status_new");
+DBCount("role", "role_new");
+DBCount("topic", "topic_new");
+DBCount("username", "username_new");
 
 
 # Copy the new tables over to replace the old ones
@@ -562,5 +581,24 @@ sub trim {
 	$temp =~ s/\s+$//;
 	$temp =~ s/^\s+//;
 	return $temp;
+}
+
+sub DBCount {
+	my ($table1, $table2) = @_;
+
+	$result1 = $conn->exec("SELECT count(*) FROM $table1");
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result1->resultStatus;
+	@row = $result1->fetchrow;
+	$count1 = $row[0];
+
+	$result2 = $conn->exec("SELECT count(*) FROM $table2");
+	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result2->resultStatus;
+	@row = $result2->fetchrow;
+	$count2 = $row[0];
+
+	if ($count1 > $count2) {
+		print "tables $table1 and $table2 don't have the same recordcount\n";
+		exit(1);
+	}
 }
 
