@@ -79,7 +79,6 @@ Where options is:
 our_smtp = "152.2.241.57"
 addr_suffix = "tldp.org"
 passwd_users_file = "/etc/passwd"
-where_send="ser@pld-linux.org"
 
 # Config end. Do not change anything below.
 # -----------------------------------------------------------
@@ -190,7 +189,7 @@ def blast_mail(mail_from, PEOPLE, filestodiff, contextlines, module_name):
 	msgbody = "From: \"" +  mimify.mime_encode_header(full_name) + "\" <" + mail_from + "@" + addr_suffix + ">" + "\r\n"
 	msgbody = mimify.mime_encode_header(msgbody)
 	msgbody = msgbody + "To: " + string.join(dest_addr, ", ") + "\r\n"
-	msgbody = msgbody + "Reply-To: \"PLD Developers\" <pld-devel-pl@pld.org.pl>" + "\n"
+	msgbody = msgbody + "Reply-To: \"General Discuss\" <discuss@en.tldp.org>" + "\n"
 	msgbody = msgbody + "Date: " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + "\r\n"
 	msgbody = msgbody + "Subject: " + mail_from + ": " + module_name + " " + string.join(filestodiff, ", ") + "\r\n"
 	msgbody = msgbody + "X-Mailer: $Id$\r\n"
