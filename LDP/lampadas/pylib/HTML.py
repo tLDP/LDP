@@ -242,19 +242,19 @@ class PageFactory:
                 
                 # Navigation Boxes
                 elif token=='navlogin':
-                    newstring = tables.login(uri)
+                    newstring = tables.navlogin(uri)
                 elif token=='navmenus':
                     newstring = tables.section_menus(uri)
                 elif token=='navtopics':
                     newstring = tables.navtopics(uri)
                 elif token=='navtypes':
-                    newstring = tables.types(uri)
+                    newstring = tables.navtypes(uri)
                 elif token=='navcollections':
                     newstring = tables.navcollections(uri)
                 elif token=='navsessions':
                     newstring = tables.navsessions(uri)
                 elif token=='navlanguages':
-                    newstring = tables.languages(uri)
+                    newstring = tables.navlanguages(uri)
 
                 # Tables
                 elif token=='tabcollections':

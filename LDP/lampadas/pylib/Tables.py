@@ -1068,7 +1068,7 @@ class Tables(LampadasCollection):
         ''' % (topic.title[uri.lang], topic.description[uri.lang])
         return box
 
-    def types(self, uri):
+    def navtypes(self, uri):
         log(3, 'Creating types menu')
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strtypes|</th></tr>
@@ -1112,7 +1112,7 @@ class Tables(LampadasCollection):
         log(3, 'Creating collection table')
         return self.doctable(uri, collection_code=uri.code)
 
-    def login(self, uri):
+    def navlogin(self, uri):
         if lampadasweb.static==1:
             return ''
         if sessions.session:
@@ -1200,7 +1200,7 @@ class Tables(LampadasCollection):
             return box.get_value()
         return '|nopermission|'
 
-    def languages(self, uri):
+    def navlanguages(self, uri):
         log(3, 'Creating languages table')
         box = WOStringIO('''<table class="navbox">
         <tr><th>|strlanguages|</th></tr>

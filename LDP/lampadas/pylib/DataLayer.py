@@ -178,29 +178,29 @@ class Collection:
 
 class Types(LampadasCollection):
     """
-    A collection object of all document classes (HOWTO, FAQ, etc).
+    A type object of all document classes (HOWTO, FAQ, etc).
     """
     
     def load(self):
-        sql = "SELECT collection_code, sort_order FROM collection"
+        sql = "SELECT type_code, sort_order FROM type"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            collection = Type()
-            collection.load_row(row)
-            self.data[collection.code] = collection
+            type = Type()
+            type.load_row(row)
+            self.data[type.code] = type
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n"
+        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            collection_code = trim(row[0])
-            collection = self[collection_code]
+            type_code = trim(row[0])
+            type = self[type_code]
             lang = row[1]
-            collection.name[lang] = trim(row[2])
-            collection.description[lang] = trim(row[3])
+            type.name[lang] = trim(row[2])
+            type.description[lang] = trim(row[3])
 
 
 class Type:
