@@ -48,6 +48,13 @@ class Database:
     #
     # I like Python :-)
     #
+    def execute(sql,params=None) :
+        if config.log_sql :
+            log(3, sql+' '+str(params))
+        cursor = self.connection.cursor()
+        cursor.execute(sql,params)
+        return cursor
+    
     def select(self, sql):
         if config.log_sql:
             log(3, sql)

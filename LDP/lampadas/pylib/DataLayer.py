@@ -40,6 +40,12 @@ import string
 import os.path
 
 
+def dict2sqlist(dict) :
+    sql = []
+    for k in dict.keys() :
+        sql.append( '%s=%%(%s)s' % (k,k) )
+    return sql
+
 # Lampadas
 
 class Lampadas:
@@ -625,8 +631,21 @@ class DocFile:
         self.errors.filename = self.filename
         
     def save(self):
-        sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
-        db.runsql(sql)
+        # FIXME -- trying to start replacing wsq(), etc. --nico 
+        #sql = 'UPDATE document_file SET top=' + wsq(bool2tf(self.top)) + ', format_code=' + wsq(self.format_code) + ' WHERE doc_id='+ str(self.doc_id) + ' AND filename='+ wsq(self.filename)
+        #db.runsql(sql)
+        dict_set = {'top':bool2tf(self.top),
+                    'format_code':self.format_code,
+                    }
+        dict_where = {'doc_id':self.doc_id,
+                      'filename':self.filename,
+                      }
+        sql = 'UPDATE document_file SET ' + ', '.join(dict2sqlist(dict_set)) +\
+              'WHERE ' + ' AND '.join(dict2sqlist(dict_where))
+        d = {}
+        d.update(dict_set)
+        d.update(dict_where)
+        db.execute(sql,d)
         db.commit()
 
 
