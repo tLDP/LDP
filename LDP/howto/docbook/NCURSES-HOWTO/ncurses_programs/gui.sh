@@ -761,11 +761,11 @@ Unable to run 'make clean'" >> $TEMP_FILE;
 # Code starts
 
 # Initialize the variables
-basics="../basics";
-forms="../forms";
-menus="../menus";
-panels="../panels";
-JustForFun="../JustForFun";
+basics="basics";
+forms="forms";
+menus="menus";
+panels="panels";
+JustForFun="JustForFun";
 
 # Save the current working directory
 cwd=`pwd`;
