@@ -24,7 +24,6 @@ from globals import *
 from Config import config
 from DataLayer import lampadas
 from HTML import page_factory
-from URLParse import URI
 from Log import log
 from mod_python import apache
 import os

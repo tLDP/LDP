@@ -65,6 +65,11 @@ insert([doctable], [Liste der Dokumente], [],
     |tabdocs|
 ], 1)
 
+insert([search], [Search], [],
+[
+    |tabsearch|
+], 0)
+
 insert([news], [Neuigkeiten], [],
 [
     |tabrecentnews|

@@ -9,6 +9,7 @@ insert(sessions,            default,    sysadmin,   1,  [],                 f,  
 
 insert(home,                index,      main,       1,  [],                 f,  f,  f)
 insert(doctable,            default,    main,       2,  [],                 f,  f,  f)
+insert(search,              default,    main,       3,  [],                 f,  f,  f)
 
 insert(news,                default,    news,       1,  [],                 f,  f,  f)
 

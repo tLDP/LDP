@@ -80,6 +80,11 @@ insert([doctable], [DocTable], [],
     |tabdocs|
 ], 1)
 
+insert([search], [Search], [],
+[
+    |tabsearch|
+], 1)
+
 insert([news], [Latest News], [],
 [
     |tabrecentnews|

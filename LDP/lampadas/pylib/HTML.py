@@ -56,11 +56,14 @@ class ComboFactory:
 
     def tf(self, name, value, lang):
         log(3, 'creating tf combo: ' + name + ', value is: ' + str(value))
-        if value == 1 :
+        if value==1:
             v1, v2 = 'selected', ''
-        else :
+        elif value==0:
             v1, v2 = '', 'selected'
+        else:
+            v1, v2 = '', ''
         combo = '<select name="%s">\n' \
+                '<option></option>\n' \
                 '<option value="1" %s>|stryes|</option>\n' \
                 '<option value="0" %s>|strno|</option>\n' \
                 '</select>\n' % (name, v1, v2)
@@ -260,6 +263,7 @@ class ComboFactory:
 
     def subtopic(self, value, lang):
         combo = WOStringIO('<select name="subtopic_code">\n')
+        combo.write('<option></option>')
         topic_codes = lampadas.topics.sort_by('num')
         subtopic_codes = lampadas.subtopics.sort_by('num')
         for topic_code in topic_codes:
@@ -849,7 +853,15 @@ class TableFactory:
         box = box + '</form>\n'
         return box
         
-    def doctable(self, uri, user, type_code=None, subtopic_code=None, username=None, maintained=None, maintainer_wanted=None, pub_status_code=None):
+    def doctable(self, uri, user,
+           title=None,
+           pub_status_code=None,
+           type_code=None,
+           subtopic_code=None,
+           username=None,
+           maintained=None,
+           maintainer_wanted=None
+           ):
         """
         Creates a listing of all documents which fit the parameters passed in.
         """
@@ -872,8 +884,11 @@ class TableFactory:
                     ok = 0
 
             # Don't display deleted or cancelled documents
-            # except for admins.
-            if doc.pub_status_code=='D' or doc.pub_status_code=='C':
+            # except for admins, unless search specified it.
+            if not pub_status_code==None:
+                if doc.pub_status_code <> pub_status_code:
+                    ok = 0
+            elif doc.pub_status_code=='D' or doc.pub_status_code=='C':
                 if user==None:
                     ok = 0
                 elif user.admin==0 and user.sysadmin==0:
@@ -881,9 +896,10 @@ class TableFactory:
 
             # If any other parameters were specified, limit the documents
             # to those which match the requirements.
-            if type_code and doc.type_code <> type_code:
-                ok = 0
-            if subtopic_code:
+            if not type_code==None:
+                if doc.type_code <> type_code:
+                    ok = 0
+            if not subtopic_code==None:
                 subtopic = lampadas.subtopics[subtopic_code]
                 if subtopic.docs[doc.id]==None:
                     ok = 0
@@ -893,8 +909,8 @@ class TableFactory:
             if not maintainer_wanted==None:
                 if doc.maintainer_wanted <> maintainer_wanted:
                     ok = 0
-            if not pub_status_code==None:
-                if doc.pub_status_code <> pub_status_code:
+            if not title==None:
+                if doc.title.upper().find(title.upper())==-1:
                     ok = 0
 
             # Only show documents with errors if the user owns them
@@ -907,6 +923,7 @@ class TableFactory:
             # Build the table for any documents that passed the filters
             if ok > 0:
                 box = box + '<tr><td>'
+
                 if user and user.can_edit(doc_id=doc.id):
                     box = box + '<a href="/editdoc/' + str(doc.id) + '|uri.lang_ext|">' + EDIT_ICON + '</a>'
                 box = box + '</td>\n'
@@ -1193,6 +1210,31 @@ class TableFactory:
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
 
+    def tabsearch(self, uri):
+        log(3, 'Creating tabsearch table')
+        box = WOStringIO('''<table class="box">\n
+        <form name="search" action="/data/search/document">
+        <tr><th colspan="2">|strsearch|</th></tr>\n
+        <tr><th class="label">|strtitle|</th><td><input type=text name="title" style="width:100%"></td></tr>
+        ''')
+        box.write('''
+            <tr><th class="label">|strstatus|</th><td>%s</td></tr>
+            <tr><th class="label">|strtype|</th><td>%s</td></tr>
+            <tr><th class="label">|strtopic|</th><td>%s</td></tr>
+            <tr><th class="label">|strmaintained|</th><td>%s</td></tr>
+            <tr><th class="label">|strmaint_wanted|</th><td>%s</td></tr>
+            <tr><td></td><td><input type="submit" value="|strsearch|"></td></tr>
+            </form>
+            </table>
+            '''
+            % (combo_factory.pub_status('', uri.lang),
+              combo_factory.type('', uri.lang),
+              combo_factory.subtopic('', uri.lang),
+              combo_factory.tf('maintained', '', uri.lang),
+              combo_factory.tf('maintainer_wanted', '', uri.lang)))
+        
+        return box.get_value()
+        
     def tabmailpass(self, uri):
         log(3, 'Creating mailpass table')
         box = '''<form name="mailpass" action="/data/save/mailpass">
@@ -1233,7 +1275,6 @@ class PageFactory:
 
         return html
     
-
     def build_page(self, page, uri, build_user):
         template = lampadasweb.templates[page.template_code]
         assert not template==None
@@ -1432,6 +1473,8 @@ class PageFactory:
                     newstring = self.tablef.tabmailpass(uri)
                 if token=='taberrors':
                     newstring = self.tablef.errors(uri, build_user)
+                if token=='tabsearch':
+                    newstring = self.tablef.tabsearch(uri)
             
                 # Blocks and Strings
                 # 
