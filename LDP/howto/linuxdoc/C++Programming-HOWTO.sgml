@@ -42,7 +42,7 @@ C++ Programming HOW-TO
 <author>Al Dev (Alavoor Vasudevan) 
        <htmlurl url="mailto:alavoor@yahoo.com"
              name="alavoor@yahoo.com">
-<date>v15.0, 02 Aug 2000
+<date>v16.0, 03 Aug 2000
 <abstract>
 This document discusses methods to avoid memory problems in C++ and 
 also will help you to program properly in C++ language. 
@@ -1594,7 +1594,7 @@ void java_string_writer()
 	writer.write("Hello ");
 	writer.write("xxxWorldxxx", 3, 8);
 	str1 = writer.toString();
-	cout << "str1 : " << str1 << endl;
+	cout << "str1 using toString() : " << str1 << endl;
 
 	writer.close();
 	str1 = writer.toString();
@@ -1850,15 +1850,6 @@ class String
 		float floatValue() {return (float) toDouble(); }
 		double doubleValue() {return toDouble(); }
 
-		// required by java's StringReader, StringWriter class
-		int read();
-		int read(char cbuf[], int offset, int length);
-		void write(int);
-		void write(String);
-		void write(char *str1);
-		void write(char str1[], int startIndex, int endIndex);
-		void write(String str1, int startIndex, int endIndex);
-
 		///////////////////////////////////////////////
 		// 		List of duplicate function names
 		///////////////////////////////////////////////
@@ -1924,6 +1915,11 @@ class String
 		inline void verifyIndex(unsigned long index) const;
 		inline void verifyIndex(unsigned long index, char *aa) const;
 
+		void _str_cat(char bb[]);
+		void _str_cat(int bb);
+		void _str_cat(unsigned long bb);
+		void _str_cat(float bb);
+
 	private:
 		// Note: All the private variables and functions begin
 		// with _ (underscore)
@@ -1934,11 +1930,6 @@ class String
 		void _str_cpy(int bb); // itoa
 		void _str_cpy(unsigned long bb);
 		void _str_cpy(float bb); // itof
-
-		void _str_cat(char bb[]);
-		void _str_cat(int bb);
-		void _str_cat(unsigned long bb);
-		void _str_cat(float bb);
 
 		bool _equalto(const String & rhs, bool type = false);
 		bool _equalto(const char *rhs, bool type = false);
@@ -1951,7 +1942,6 @@ class String
 		inline void _ltrim();
 		inline void _rtrim();
 		inline void _substring(int startIndex, int endIndex);
-		unsigned long	_curpos;
 };
 
 // Imitate Java's StringBuffer object
@@ -2058,14 +2048,16 @@ class StringReader: public String
 	public:
 		StringReader(String str);
 		void close() {}  // close the stream
-		void mark(int loc) {}  // mark the present position in stream
-		bool markSupported() {return true;}  // tell whether this stream supports the mark() operation, which it does
-		//int read(); in parent class..
-		//int read(char [], int, int); in parent class..
+		void mark(int readAheadLimit);
+		bool markSupported() {return true;} // tell whether this stream supports the mark() operation, which it does
+		int read();
+		int read(char cbuf[], int offset, int length);
 		bool ready() {return true;} // tell whether this stream is ready to read
-		void reset() {} // reset the stream to the most recent mark, or to the
-			// beginning of the string if it has never been marked
-		long skip(long ii) {return 0;} // skip characters
+		void reset();
+		long skip(long ii);
+	private:
+		unsigned long	_curpos;
+		unsigned long 	_mark_pos;
 };
 
 // Imitate java's StringWriter class 
@@ -2079,10 +2071,11 @@ class StringWriter: public String
 		void flush() {clear();}
 		StringBuffer getBuffer() {return (StringBuffer) *this;}
 		String	toString() {return (String) *this;}
-		//void write(int); in parent class..
-		//void write(String); in parent class..
-		//void write(char[], int, int); in parent class..
-		//void write(String, int, int); in parent class..
+		void write(int);
+		void write(String);
+		void write(char *str1);
+		void write(char str1[], int startIndex, int endIndex);
+		void write(String str1, int startIndex, int endIndex);
 };
 
 // Global variables are defined in String.cpp
@@ -2130,7 +2123,6 @@ String::String()
 	debug_("In cstr()", "ok");
 	sval = (char *) my_malloc(sizeof(char)* INITIAL_SIZE);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2148,7 +2140,6 @@ String::String(char *bb)
 		//fprintf(stderr, "\nAddress of this-pointer=%x\n", this);
 	#endif // DEBUG
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2171,7 +2162,6 @@ String::String(char *bb, int start, int slength)
 		//fprintf(stderr, "\nAddress of this-pointer=%x\n", this);
 	#endif // DEBUG
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2181,7 +2171,6 @@ String::String(int bb)
 	sprintf(sval, "%d", bb);
 	debug_("In cstr(int bb) sval", sval);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2191,7 +2180,6 @@ String::String(unsigned long bb)
 	sprintf(sval, "%lu", bb);
 	debug_("In cstr(unsigned long bb) sval", sval);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2201,7 +2189,6 @@ String::String(long bb)
 	sprintf(sval, "%ld", bb);
 	debug_("In cstr(long bb) sval", sval);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2211,7 +2198,6 @@ String::String(float bb)
 	sprintf(sval, "%f", bb);
 	debug_("In cstr(float bb) sval", sval);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2221,7 +2207,6 @@ String::String(double bb)
 	sprintf(sval, "%f", bb);
 	debug_("In cstr(double bb) sval", sval);
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2235,7 +2220,6 @@ String::String(const String & rhs)
 	strncpy(sval, rhs.sval, tmpii);
 	sval[tmpii] = '\0';
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2248,7 +2232,6 @@ String::String(StringBuffer sb)
 	strncpy(sval, sb.sval, tmpii);
 	sval[tmpii] = '\0';
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -2264,7 +2247,6 @@ String::String(int size, bool dummy)
 		//fprintf(stderr, "\nAddress of this-pointer=%x\n", this);
 	#endif // DEBUG
 
-	_curpos = 0;
 	_pString = NULL;
 }
 
@@ -4056,53 +4038,6 @@ inline void String::verifyIndex(unsigned long index, char *aa) const
 	}
 }
 
-// Imitate Java's StringReader class - read  
-int String::read()
-{
-	_curpos++;
-	if (_curpos > strlen(sval) )
-		return -1;
-	return sval[_curpos-1];
-}
-// read characters into a portion of an array
-// cbuf is Destination buffer, offset is offset at which to start 
-// writing characters, length is maximum number of chars to read
-// returns number of chars read or -1 if end of stream
-int String::read(char cbuf[], int offset, int length)
-{
-	if (_curpos > strlen(sval) - 1 )
-		return -1;
-	strncpy(& cbuf[offset], & sval[_curpos], length);
-	_curpos += length;
-	return length;
-}
-
-// Imitate Java's StringWriter class - write  
-void String::write(int bb)
-{
-	_str_cat(bb);
-}
-void String::write(char *bb)
-{
-	_str_cat(bb);
-}
-void String::write(String bb)
-{
-	_str_cat(bb.val());
-}
-void String::write(char *bb, int startIndex, int endIndex)
-{
-	char *aa = strdup(bb); // check for null in verifyIndex
-	verifyIndex(startIndex, aa);
-	verifyIndex(endIndex, aa);
-	aa[endIndex] = 0;
-	_str_cat(& aa[startIndex]);
-}
-void String::write(String str, int startIndex, int endIndex)
-{
-	write(str.val(), startIndex, endIndex);
-}
-
 //////////////////////////////////////////////////////////
 // Private functions start from here .........
 //////////////////////////////////////////////////////////
@@ -4420,6 +4355,61 @@ StringReader::StringReader(String str)
 	// default base-class constructor and will be faster
 	// and very efficient
 	debug_("in StringReader cstr(String str)", "ok");
+	_curpos = 0;
+	_mark_pos = 0;
+}
+
+// Imitate Java's StringReader class - read  
+int StringReader::read()
+{
+	_curpos++;
+	if (_curpos > strlen(sval) )
+		return -1;
+	return sval[_curpos-1];
+}
+
+// read characters into a portion of an array
+// cbuf is Destination buffer, offset is offset at which to start 
+// writing characters, length is maximum number of chars to read
+// returns number of chars read or -1 if end of stream
+int StringReader::read(char cbuf[], int offset, int length)
+{
+	if (_curpos > strlen(sval) - 1 )
+		return -1;
+	strncpy(& cbuf[offset], & sval[_curpos], length);
+	_curpos += length;
+	return length;
+}
+
+// Mark the present position in the stream. Subsequent calls
+// to reset() will reposition the stream to this point
+// Param 'readAheadLimit' - Limit on the number of characters that
+// may be read while still preserving the mark. Because the
+// stream's input comes from a string, there is no actual limit, so
+// this argument is ignored.
+void StringReader::mark(int readAheadLimit)
+{
+	_mark_pos = _curpos;
+}
+// reset the stream to the most recent mark, or to the
+// beginning of the string if it has never been marked
+void StringReader::reset()
+{
+	_curpos = _mark_pos;
+}
+
+// Skip characters. This method will block until some characters
+// are available, an I/O error occurs, or the end of the stream
+// is reached. 
+// Param ii : Number of characters to skip.
+// Returns : The actual number of characters actually skipped.
+long StringReader::skip(long ii)
+{
+	long tmpjj = strlen(sval) - _curpos - 1;
+	if (ii > tmpjj)
+		ii = tmpjj;
+	_curpos = ii;
+	return ii;
 }
 
 // Imitate Java's StringWriter class  
@@ -4432,8 +4422,6 @@ StringWriter::StringWriter()
 	String((char *) aa);
 	my_free(aa);
 }
-
-// Imitate Java's StringWriter class  
 StringWriter::StringWriter(int bufferSize)
 {
 	debug_("in StringWriter cstr(int bufferSize)", "ok");
@@ -4443,7 +4431,30 @@ StringWriter::StringWriter(int bufferSize)
 	String((char *) aa);
 	my_free(aa);
 }
-
+void StringWriter::write(int bb)
+{
+	_str_cat(bb);
+}
+void StringWriter::write(char *bb)
+{
+	_str_cat(bb);
+}
+void StringWriter::write(String bb)
+{
+	_str_cat(bb.val());
+}
+void StringWriter::write(char *bb, int startIndex, int endIndex)
+{
+	char *aa = strdup(bb); // check for null in verifyIndex
+	verifyIndex(startIndex, aa);
+	verifyIndex(endIndex, aa);
+	aa[endIndex] = 0;
+	_str_cat(& aa[startIndex]);
+}
+void StringWriter::write(String str, int startIndex, int endIndex)
+{
+	write(str.val(), startIndex, endIndex);
+}
 </code>
 <!-- 
 	*******************************************
