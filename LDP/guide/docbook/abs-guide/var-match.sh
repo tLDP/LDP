@@ -8,8 +8,8 @@ echo
 # Match at prefix (beginning) of string.
 v1=${v0/#abc/ABCDEF}    # abc1234zip1234abc
                         # |-|
-echo "v1 = $v1"         # ABCDE1234zip1234abc
-                        # |---|
+echo "v1 = $v1"         # ABCDEF1234zip1234abc
+                        # |----|
 
 # Match at suffix (end) of string.
 v2=${v0/%abc/ABCDEF}    # abc1234zip123abc

@@ -6,6 +6,8 @@
 SPEED=2          # May use higher speed if your hardware supports it.
 IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
+DEVICE=cdrom
+# DEVICE="0,0"     for older versions of cdrecord
 DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
                  # Make sure it exists.
                  # Exercise: Add a test for this.
@@ -37,7 +39,7 @@ mkisofs -r -o $IMAGEFILE $IMAGE_DIRECTORY
 echo "Creating ISO9660 file system image ($IMAGEFILE)."
 
 # Burn the CDR.
-cdrecord -v -isosize speed=$SPEED dev=0,0 $IMAGEFILE
+cdrecord -v -isosize speed=$SPEED dev=$DEVICE $IMAGEFILE
 echo "Burning the disk."
 echo "Please be patient, this will take a while."
 

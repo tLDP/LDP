@@ -22,3 +22,9 @@ fi                 #  Each child script does the same, until
 #  Explain why.
 
 exit 0
+
+# Note:
+# ----
+# This script must have execute permission for it to work properly.
+# This is the case even if it is invoked by an "sh" command.
+# Explain why.

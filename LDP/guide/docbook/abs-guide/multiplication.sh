@@ -27,7 +27,7 @@ echo "$mult1 X $mult2 X $mult3 = $val2"
 
 mult1=188; mult2=37; mult3=25; mult4=47
 val3=`multiply $mult1 $mult2 $mult3 $mult4`
-echo "$mult1 X $mult2 X $mult3 X mult4 = $val3"
+echo "$mult1 X $mult2 X $mult3 X $mult4 = $val3"
                                 # 8173300
 
 exit 0

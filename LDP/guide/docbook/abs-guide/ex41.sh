@@ -18,8 +18,19 @@ echo >>logfile
 
 exit 0
 
-# Exercise:
-# --------
+#  Note:
+#  ----
+#  As Frank Wang points out,
+#+ unmatched quotes (either single or double quotes) in the source file
+#+ may give xargs indigestion.
+#
+#  He suggests the following substitution for line 15:
+#     tail -$LINES /var/log/messages | tr -d "\"'" | xargs | fmt -s >>logfile
+
+
+
+#  Exercise:
+#  --------
 #  Modify this script to track changes in /var/log/messages at intervals
 #+ of 20 minutes.
 #  Hint: Use the "watch" command. 

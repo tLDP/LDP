@@ -63,22 +63,6 @@ echo "b = $b"            # 1  ( 3 -le 3 )
 echo
 echo
 
-# Comparison Operators
-# ---------- ---------
-
-echo "Comparison Operators"
-echo
-a=zipper
-echo "a is $a"
-if [ `expr $a = snap` ]
-# Force re-evaluation of variable 'a'
-then
-   echo "a is not zipper"
-fi   
-
-echo
-echo
-
 
 
 # String Operators

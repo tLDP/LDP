@@ -6,6 +6,8 @@ OF=/home/bozo/projects/cdimage.iso         # output file
 #       /xxxx/xxxxxxx/                     Change to suit your system.
 BLOCKSIZE=2048
 SPEED=2                                    # May use higher speed if supported.
+DEVICE=cdrom
+# DEVICE="0,0"    on older versions of cdrecord.
 
 echo; echo "Insert source CD, but do *not* mount it."
 echo "Press ENTER when ready. "
@@ -24,7 +26,7 @@ read ready                                 # Wait for input, $ready not used.
 
 echo "Copying $OF to CDR."
 
-cdrecord -v -isosize speed=$SPEED dev=0,0 $OF
+cdrecord -v -isosize speed=$SPEED dev=$DEVICE $OF
 # Uses Joerg Schilling's "cdrecord" package (see its docs).
 # http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html
 

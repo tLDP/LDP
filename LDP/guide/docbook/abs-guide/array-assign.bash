@@ -55,9 +55,9 @@ times
 #+ by Stephane Chazelas, is from three to four times faster.
 #
 #  William Park explains:
-#+ Second method is assigning bigOne[] as single string, whereas first
-#+  method is assigning bigOne[] element by element.  So, in essence, you
-#   So, in essence, you have:
+#+ The bigTwo array assigned as single string, whereas
+#+ bigThree assigned element by element.
+#  So, in essence, you have:
 #                   bigTwo=( [0]="... ... ..." )
 #                   bigThree=( [0]="..." [1]="..." [2]="..." ... )
 

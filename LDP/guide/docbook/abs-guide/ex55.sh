@@ -34,7 +34,8 @@ for i in /var/lock/subsys/*; do
 	    /etc/rc.d/init.d/$subsys.init stop
 	else
 	    /etc/rc.d/init.d/$subsys stop
-        # --> Suspend running jobs and daemons
-        # --> using the 'stop' shell builtin.
+        # -->  Suspend running jobs and daemons.
+        # -->  Note that "stop" is a positional parameter,
+        # -->+ not a shell builtin.
 	fi
 done

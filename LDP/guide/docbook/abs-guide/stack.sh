@@ -4,14 +4,14 @@
 #  Similar to the CPU stack, a push-down stack stores data items
 #+ sequentially, but releases them in reverse order, last-in first-out.
 
-BP=100            # Base Pointer of stack array.
-                  # Begin at element 100.
+BP=100            #  Base Pointer of stack array.
+                  #  Begin at element 100.
 
-SP=$BP            # Stack Pointer.
-                  # Initialize it to "base" (bottom) of stack.
+SP=$BP            #  Stack Pointer.
+                  #  Initialize it to "base" (bottom) of stack.
 
-Data=             # Contents of stack location.  
-                  #  Must use local variable,
+Data=             #  Contents of stack location.  
+                  #  Must use global variable,
                   #+ because of limitation on function return range.
 
 declare -a stack
@@ -98,7 +98,7 @@ echo
 # 2)  Modify the "pop()" function to permit popping
 #   + multiple element from the stack with a single function call.
 
-# 3)  Using this script as a jumping-off point,
+# 3)  Using this script as a starting point,
 #   + write a stack-based 4-function calculator.
 
 exit 0

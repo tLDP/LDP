@@ -78,6 +78,10 @@ exit 0
 #  However . . .
 #+ this simple method would *not* likely withstand forensic analysis.
 
+#  This script may not play well with a journaled file system.
+#  Exercise: Fix it so it does.
+
+
 
 #  Tom Vier's "wipe" file-deletion package does a much more thorough job
 #+ of file shredding than this simple script.
