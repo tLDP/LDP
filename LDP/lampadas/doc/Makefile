@@ -10,9 +10,12 @@ build:	docs
 
 docs:	$(docs)
 
-install: docs
+install: all
 	$(INSTALLDIR) $(docprefix)/lampadas
 	$(INSTALLDOC) *.html $(docprefix)/lampadas
+	$(INSTALLDOC) ../COPYING $(docprefix)/lampadas
+	$(INSTALLDOC) ../CREDITS $(docprefix)/lampadas
+	$(INSTALLDOC) ../README $(docprefix)/lampadas
 
 clean:
 	rm -f $(docs)
