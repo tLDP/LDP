@@ -240,7 +240,7 @@ print "<td colspan=5><textarea name=abstract rows=8 cols=60 style='width:100%' w
 print "</tr>\n";
 
 print "<tr>\n";
-print "<th><a href='document_wiki_big.pl?doc_id=$doc_id'>WikiText</a></th>\n";
+print "<th><a href='document_wiki.pl?doc_id=$doc_id'>WikiText</a></th>\n";
 print "<td colspan=4>I am working on ways to provide easy online collaborative editing,
 and always for new ways to make writing for the LDP easier.
 

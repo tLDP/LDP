@@ -1,5 +1,7 @@
 #!/usr/bin/perl
-
+# 
+# Generates a navigation bar suitable for display across the top or bottom of a page.
+# 
 use CGI qw(:standard);
 use Pg;
 

@@ -1,6 +1,5 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 
-$workpath = "/tmp";
 $editcols = 80;
 $editrows = 25;
 
@@ -10,18 +9,35 @@ use Pg;
 $query = new CGI;
 $dbmain = "ldp";
 @row;
+$section_max	= 25;
 
 # Read parameters
 $doc_id		= param('doc_id');
-$wiki           = param('wiki');
 $notes          = param('notes');
 $revision	= param('revision');
+
+$logfile = '/tmp/ldp.log';
+open (LOG, "> $logfile");
+print LOG "document_wiki opened by $username.\n";
+
+
+$section = 0;
+while ($section <= $section_max) {
+	$section++;
+	$wiki_section = param("wiki$section");
+	if ($wiki_section) {
+#		if ($wiki) {
+#			$wiki .= "\n";
+#		}
+		$wiki .= $wiki_section;
+	}
+}
+$section = 0;
 
 $save		= param('Save');
 $preview	= param('Preview');
 $docbook	= param('DocBook');
-
-$username       = $query->remote_user();
+$splitup	= param('SplitUp');
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
@@ -33,13 +49,27 @@ if ($username ne $row[0]) {
 	print $query->redirect("../newaccount.html");
 	exit;
 } else {
-	if (($row[1] ne 't') and ($row[2] != $doc_id)) {
-		print $query->redirect("../wrongpermission.html");
-		exit;
+	if ($row[1] ne 't') {
+		$maintainer_id = $row[2];
+		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
+		@row = $result->fetchrow;
+		unless ($row[0]) {
+			print $query->redirect("../wrongpermission.html");
+			exit;
+		}
 	}
 }
 
+print LOG "Opening document_wiki by $username.\n";
+
 if ($save) {
+	print LOG "Saving document_wiki by $username.\n";
+	while ($wiki =~ /\\/) {
+		$wiki =~ s/\\/a1s2d3f4/;
+	}
+	while ($wiki =~ /a1s2d3f4/) {
+	        $wiki =~ s/a1s2d3f4/\\\\/;
+	}
 	while ($wiki =~ /&/) {
 		$wiki =~ s/&/a1s2d3f4/;
 	}
@@ -65,10 +95,19 @@ if ($save) {
 	@row = $result->fetchrow;
 	$revisions = $row[0];
 
+#	&printheader;
+#	print $wiki;
+#	print end_html;
+#	exit;
+
 	if ($revisions >= $revision ) {
 		&printheader;
 		print "<p>Edit conflict!\n";
 		print "<p>You were editing version $revisions, but trying to save to version $revision\n";
+		print end_html;
+	} elsif ($wiki eq '') {
+		&printheader;
+		print "<p>No content to save!\n";
 		print end_html;
 	} else {
 		$revision = $revisions + 1;
@@ -96,7 +135,7 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 $revisions = $row[0];
 
 #if we're not previewing, load data from database and determine version
-unless ($preview or $docbook) {
+unless (($preview) or ($docbook)) {
 	$result = $conn->exec("SELECT wiki FROM document_wiki WHERE doc_id = $doc_id ORDER BY revision DESC LIMIT 1, 0");
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 	@row = $result->fetchrow;
@@ -111,28 +150,53 @@ unless ($preview or $docbook) {
 	}
 
 	&printheader;
+
 	print "<form method=POST action='document_wiki.pl' name='edit'>\n";
 	print "<input type=hidden name=doc_id value='$doc_id'>\n";
 	print "<input type=hidden name=revision value=$revision>\n";
+	print "<input type=submit value='Separate Sections' name=SplitUp>\n";
+	print "<input type=submit value='One Section' name=Combine>\n";
+	print "<input type=submit value=Save name=Save>\n";
+	print "<input type=submit value=Preview name=Preview>\n";
+	print "<input type=submit value=DocBook name=DocBook>\n";
 	print "<table width='100%'>\n";
 	print "<tr><th>Document Text</th></tr>\n";
-	print "<tr><td><textarea name=wiki rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";
-	print "<tr><td>Comments: <input type=text name=notes size=$editcols></input></td></tr>\n";
+
+
+	$tempfile = "/tmp/document_wiki" . rand();
+	open (TMP, "> $tempfile");
+	print TMP $wiki;
+	close(TMP);
+
+	open (TMP, $tempfile);
+	$wiki = "";
+	$section = 0;
+	while ($line = <TMP>) {
+		if ($splitup) {
+			if ($line =~ /^===/) {
+			} elsif ($line =~ /^==/) {
+			} elsif ($line =~ /^=/) {
+				&printwiki;
+			}
+		}
+		$wiki .= $line;
+	}
+	close TMP;
+	unlink $tempfile;
+	&printwiki;
+	print "<tr><td>Comments: <input type=text name=notes size=$editcols style='width:100%' wrap></input></td></tr>\n";
 	if ($revisions == 0) {
 		print "<tr><td>There are no previous versions of this document. Your changes will be saved as version $revision</td></tr>\n";
 	} else {
 		print "<tr><td>You are editing version $revisions. Your changes will be saved as version $revision</td></tr>\n";
 	}
 	print "</table>\n";
-	print "<input type=submit value=Save name=Save>\n";
-	print "<input type=submit value=Preview name=Preview>\n";
-	print "<input type=submit value=DocBook name=DocBook>\n";
 	print "</form>\n";
 	print end_html;
 }
 
 if ($preview or $docbook) {
-	$txtfile = "$workpath/" . rand . ".txt";
+	$txtfile = "/tmp/" . rand() . ".txt";
 	$sgmlfile = $txtfile;
 	$sgmlfile =~ s/\.txt/\.sgml/;
 	$htmlfile = $txtfile;
@@ -141,15 +205,16 @@ if ($preview or $docbook) {
 	$abstractfile =~ s/\./abs\./;
 	$abstractsgmlfile = $sgmlfile;
 	$abstractsgmlfile =~ s/\./abs\./;
-	system("rm $sgmlfile");
 
 	open(TXT, "> $txtfile");
 	print TXT $wiki;
 	close(TXT);
 
-	$cmd = "/usr/lib/cgi-bin/gldp.org/txt2db.pl -o $sgmlfile $txtfile";
+	$cmd = "/usr/local/bin/wt2db -o $sgmlfile $txtfile";
 	system($cmd);
-
+	
+	print LOG "Wrote wt file to $txtfile for document $doc_id by $username.\n";
+	
 	$sgml  = '<!DOCTYPE ARTICLE PUBLIC "-//OASIS//DTD DocBook V4.1//EN">' . "\n";
 	if ($class eq 'FAQ') {
 		$sgml .= "<article class='FAQ'>\n";
@@ -170,7 +235,7 @@ if ($preview or $docbook) {
 		print ABSTRACT $abstract;
 		close(ABSTRACT);
 		
-		$cmd = "/usr/lib/cgi-bin/gldp.org/txt2db.pl -o $abstractsgmlfile $abstractfile";
+		$cmd = "/usr/local/bin/wt2db -o $abstractsgmlfile $abstractfile";
 		system($cmd);
 
 		$abstract = "";
@@ -202,10 +267,15 @@ if ($preview or $docbook) {
 	
 	$sgml .= "</articleinfo>\n";
 	
+	print LOG "Opening sgml file $sgmlfile for document $doc_id by $username.\n";
+	
+	$sgmlfileline = 0;
 	open(SGML, $sgmlfile);
 	while (<SGML>) {
+		print LOG ".";
 		$line = $_;
 		$sgml .= $line;
+		$sgmlfileline++;
 		while ($line =~ /</) {
 			$line =~ s/</&lt;/;
 		}
@@ -215,12 +285,18 @@ if ($preview or $docbook) {
 		$buf .= "<br>$line";
 	}
 	close(SGML);
+	print LOG "\n";
 
+	print LOG "Read $sgmlfileline lines from $sgmlfile for document $doc_id by $username.\n";
+	
 	$sgml .= "</article>\n";
 
 	open(SGML, "> $sgmlfile");
 	print SGML $sgml;
 	close(SGML);
+	
+	print LOG "Wrote composite sgml file $sgmlfile for document $doc_id by $username.\n";
+	
 }
 
 if ($docbook) {
@@ -230,19 +306,23 @@ if ($docbook) {
 
 	print "Content-Type: text/plain; charset=ISO-8859-1\n\n";
 
-	while ($sgml =~ /\</) {
-		$sgml =~ s/\</&lt;/;
-	}
-	while ($sgml =~ /\>/) {
-		$sgml =~ s/\>/&gt;/;
-	}
+#	while ($sgml =~ /</) {
+#		$sgml =~ s/</&lt;/;
+#	}
+#	while ($sgml =~ />/) {
+#		$sgml =~ s/>/&gt;/;
+#	}
 	print $sgml;
 #	print "</pre>\n";
 #	print "</html>\n";
-	
 }
 
 if ($preview) {
+	
+	print LOG "Previewing $sgmlfile for document $doc_id by $username.\n";
+
+	print LOG "Running xsltproc on $sgmlfile, into $htmlfile.\n";
+	
 	$cmd = "xsltproc --docbook /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl $sgmlfile > $htmlfile";
 	system($cmd);
 
@@ -252,11 +332,12 @@ if ($preview) {
 	while (<HTML>) {
 		$line = $_;
 		$i += 1;
-#		if ($i > 8) {
-	  		print $line;
-#		}
+		print $line;
 	}
 	close(HTML);
+	
+	print LOG "HTML display of $htmlfile complete.\n";
+	
 
 }
 
@@ -277,3 +358,18 @@ sub printheader {
 	print "&nbsp;|&nbsp;";
 	print "<a href='document_wiki_list.pl?doc_id=$doc_id'>Version History</a>\n";
 }
+
+sub printwiki {
+	if (($wiki) or ($section == 0)) {
+		$section++;
+		print "<tr><td align='center'>Section $section</td></tr>\n";
+		print "<tr><td><textarea name=wiki$section rows=$editrows cols=$editcols style='width:100%' wrap>$wiki</textarea></td></tr>\n";
+		if ($section == $section_max) {
+			print "Aborting due to loop control.\n";
+			last;
+		}
+		$wiki = "";
+	}
+}
+
+
