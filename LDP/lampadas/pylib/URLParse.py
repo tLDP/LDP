@@ -65,14 +65,14 @@ class URI:
             self.base = self.base[1:]
         
         temp = uri
-        if len(temp) == 0:
+        if len(temp)==0:
             return
-        if temp[0] == '/':
+        if temp[0]=='/':
             temp = temp[1:]
         
-        if len(temp) == 0:
+        if len(temp)==0:
             return
-        if temp[-1] == '/':
+        if temp[-1]=='/':
             temp = temp[:-1]
 
         if temp.find('://') > 0:
@@ -89,7 +89,7 @@ class URI:
 
         if len(temp) > 0:
             lang = lampadas.languages[temp[0]]
-            if not lang == None:
+            if not lang==None:
                 self.lang = temp[0]
                 temp = temp[1:]
                 self.force_lang = 1
@@ -99,23 +99,23 @@ class URI:
         # contain an object and display its attributes.
         # 
         if len(temp) > 0:
-            if temp[0] == 'editdoc':
+            if temp[0]=='editdoc':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-            elif temp[0] == 'topic' or temp[0] == 'subtopic' or temp[0]=='type':
+            elif temp[0]=='topic' or temp[0]=='subtopic' or temp[0]=='type':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.code = temp[0]
-            elif temp[0] == 'user':
+            elif temp[0]=='user':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.username = temp[0]
             else:
-                if len(temp) == 1:
+                if len(temp)==1:
                     self.path = '/'
                     if len(temp[0]) > 0:
                         self.filename = temp[0]
@@ -142,7 +142,7 @@ class URI:
         print "Anchor: [" + self.anchor + "]"
 
 
-if __name__ == '__main__':
+if __name__=='__main__':
     import sys
 
     foo = URI(sys.argv[1])

@@ -11,6 +11,6 @@ insert(sysadmin, [], Site, [], Administrator,
 	[default])
 
 insert(user, [], John, [Q.], User,
-	[david@lupercalia.net], f, f, password,
+	[], f, f, password,
 	[This is a test account. It should be deleted before release!],
 	[default])

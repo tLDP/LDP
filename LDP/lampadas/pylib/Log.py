@@ -68,7 +68,7 @@ class Log:
 log = Log()
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
     config.log_level = 3
     config.log_sql = 1
     config.log_console = 1

@@ -1,7 +1,8 @@
 CREATE TABLE license
 (
-	license		CHAR(12)	NOT NULL,
-	free		BOOLEAN		NOT NULL,
+	license_code	CHAR(12)	NOT NULL,
+	free		BOOLEAN		NOT NULL	DEFAULT False,
+	sort_order	INT4		NOT NULL,
 
-	PRIMARY KEY (license)
+	PRIMARY KEY (license_code)
 );

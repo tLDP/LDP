@@ -64,7 +64,7 @@ class Config:
 
         self.config = ConfigParser.ConfigParser()
         self.config_file = os.getenv('LAMPADAS_ETC')
-        if self.config_file == None:
+        if self.config_file==None:
             self.config_file = '/etc/lampadas'
         self.config_file = self.config_file + '/lampadas.conf'
         if not os.access(self.config_file, os.F_OK):
@@ -106,7 +106,7 @@ class Config:
 config = Config()
         
 # main
-if __name__ == '__main__' :
+if __name__=='__main__' :
     print "Running unit tests..."
     print "config_file=" + config.config_file
     print "db_type=" + config.db_type

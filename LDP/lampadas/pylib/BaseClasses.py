@@ -88,6 +88,9 @@ class LampadasCollection:
     def keys(self):
         return self.data.keys()
 
+    def has_key(self, key):
+        return self.data.has_key(key)
+    
     def items(self):
         return self.data.items()
 
@@ -113,4 +116,13 @@ class LampadasCollection:
         for i in xrange(len(result)):
             result[i] = result[i][1]
         return result
+
+    def sort_by_lang(self, attribute, lang):
+        keys = self.keys()
+        for key in keys:
+            item = self.data[key]
+            value = getattr(item, attribute)
+            langvalue = value[lang]
+            item.sort_order = langvalue
+        return self.sort_by('sort_order')
 

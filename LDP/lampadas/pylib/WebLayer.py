@@ -48,7 +48,7 @@ class Blocks(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newBlock = Block()
             newBlock.load(row)
             self.data[newBlock.code] = newBlock
@@ -73,7 +73,7 @@ class Sections(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newSection = Section()
             newSection.load(row)
             self.data[newSection.code] = newSection
@@ -96,7 +96,7 @@ class Section:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
 
@@ -111,7 +111,7 @@ class Pages(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newPage = Page()
             newPage.load(row)
             self.data[newPage.code] = newPage
@@ -135,7 +135,7 @@ class Page:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang            = row[0]
             self.title[lang] = trim(row[1])
             self.menu_name[lang] = trim(row[2])
@@ -157,7 +157,7 @@ class Strings(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newString = String()
             newString.load(row)
             self.data[newString.code] = newString
@@ -176,7 +176,7 @@ class String:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang              = row[0]
             self.string[lang] = trim(row[1])
 
@@ -191,7 +191,7 @@ class Templates(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newTemplate = Template()
             newTemplate.load(row)
             self.data[newTemplate.code] = newTemplate
@@ -212,7 +212,7 @@ class NewsItems(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newNewsItem = NewsItem()
             newNewsItem.load(row)
             self.data[newNewsItem.id] = newNewsItem
@@ -229,7 +229,7 @@ class NewsItem:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang            = row[0]
             self.news[lang] = trim(row[1])
 

@@ -8,7 +8,7 @@ insert([sysadmin], [Sysadmin Page], [],
     <p>Sysadmin tools.
 ])
 
-insert([my], [My |strprojectshort|], [],
+insert([my], [My Home], [],
 [
     |session_user_docs|
 ])

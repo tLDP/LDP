@@ -78,21 +78,21 @@ class Makefile:
                 omffile = File.basename + '.omf'
                 
                 Makefile = 'xmlfile = ' + xmlfile + "\n\n"
-                if File.FormatID == 1 and doc.DTD == 'DocBook':
+                if File.FormatID==1 and doc.DTD=='DocBook':
                     Makefile = Makefile + 'BUILD_XML = xmllint --sgml ' + File.file_only + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID == 1 and doc.DTD == 'LinuxDoc':
+                elif File.FormatID==1 and doc.DTD=='LinuxDoc':
                     Makefile = Makefile + 'LD2DBDIR = /usr/local/share/ld2db/' + "\n"
                     Makefile = Makefile + 'BUILD_XML = sgmlnorm -d $(LD2DBDIR)docbook.dcl ' + File.file_only + ' > expanded.sgml 2>>sgmlnorm.log; '
                     Makefile = Makefile + 'jade -t sgml -c $(LD2DBDIR)catalog -d $(LD2DBDIR)ld2db.dsl\\#db expanded.sgml > ' + dbsgmlfile + ' 2>>jade.log; '
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID == 4 and doc.DTD == 'DocBook':
+                elif File.FormatID==4 and doc.DTD=='DocBook':
                     pass
-                elif File.FormatID == 3:
+                elif File.FormatID==3:
                     Makefile = Makefile + 'BUILD_XML = wt2db -n -s ' + File.file_only + ' -o ' + dbsgmlfile + " 2>>wt2db.log; "
                     Makefile = Makefile + 'xmllint --sgml ' + dbsgmlfile + ' > ' + xmlfile + " 2>>xmllint.log; "
-                elif File.FormatID == 6:
+                elif File.FormatID==6:
                     Makefile = Makefile + 'BUILD_XML = wt2db -n -x ' + File.file_only + ' -o ' + xmlfile + " 2>>wt2db.log; "
-                elif File.FormatID == 7:
+                elif File.FormatID==7:
                     Makefile = Makefile + 'BUILD_XML = texi2db -f ' + File.file_only + ' -o ' + xmlfile + " 2>>texi2db.log; "
                 else:
                     continue
@@ -107,7 +107,7 @@ class Makefile:
                 Makefile = Makefile + "all:\tbuild\n\n"
                 
                 Makefile = Makefile + "build:\txml html index txt omf\n\n"
-                if File.FormatID == 4 and doc.DTD == 'DocBook':
+                if File.FormatID==4 and doc.DTD=='DocBook':
                     Makefile = Makefile + "xml:\n\n"
                 else:
                     Makefile = Makefile + "xml:\t" + xmlfile + "\n\n"
@@ -164,7 +164,7 @@ class Makefile:
             for file in Doc.Files.keys():
                 File = Doc.Files[file]
                 if File.is_primary:
-                    if (File.FormatID == 1 and Doc.DTD == 'DocBook') or (File.FormatID == 1 and Doc.DTD == 'LinuxDoc') or File.FormatID == 3 or File.FormatID == 6 or File.FormatID == 7:
+                    if (File.FormatID==1 and Doc.DTD=='DocBook') or (File.FormatID==1 and Doc.DTD=='LinuxDoc') or File.FormatID==3 or File.FormatID==6 or File.FormatID==7:
                         makeneeded = 1
                         docsmake = docsmake + "\tcd " + str(docid) + "; $(MAKE) -i all 2>>make.log\n"
                         xmlmake = xmlmake + "\tcd " + str(docid) + "; $(MAKE) -i xml 2>>make.log\n"
@@ -195,7 +195,7 @@ class Makefile:
 makefile = Makefile()
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
 #	makefile.write_main_makefile()
     makefile.write_all()
 

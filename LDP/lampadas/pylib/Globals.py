@@ -36,9 +36,9 @@ def wsq(astring):
     so empty strings are not stored into the database.
     """
     
-    if astring == None:
+    if astring==None:
         return 'NULL'
-    elif astring == '':
+    elif astring=='':
         return 'NULL'
     else:
         return "'" + astring.replace("'", "''") + "'"
@@ -51,7 +51,7 @@ def dbint(anint):
     If the integer passed in is really None, it returns 'NULL'.
     """
     
-    if anint == None:
+    if anint==None:
         temp = 'NULL'
     else:
         temp = str(anint)
@@ -63,9 +63,9 @@ def safeint(anint):
     which means it handles None, which returns 0.
     """
     
-    if anint == None:
+    if anint==None:
         return 0
-    elif anint == '':
+    elif anint=='':
         return 0
     else:
         return int(anint)
@@ -79,7 +79,7 @@ def bool2tf(bool):
     0 returns f; all nonzero values return t.
     """
     
-    if bool == 0:
+    if bool==0:
         return 'f'
     else:
         return 't'
@@ -116,7 +116,7 @@ def trim(astring):
     Handles None values by returning ''.
     """
     
-    if astring == None:
+    if astring==None:
         temp = ''
     else:
         temp = str(astring)

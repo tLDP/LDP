@@ -125,18 +125,18 @@ class Mirror:
         Supported archives are .tar, .gz and .tar.gz.
         """
         cmd_start = 'cd ' + dir + '; '
-        if file[-7:] == '.tar.gz':
+        if file[-7:]=='.tar.gz':
             self.os.system(cmd_start + 'tar -zxf ' + file)
             return 1
-        elif file[-4:] == '.tar':
+        elif file[-4:]=='.tar':
             self.os.system(cmd_start + 'tar -xf ' + file)
             return 1
-        elif file[-3:] == '.gz':
+        elif file[-3:]=='.gz':
             self.os.system(cmd_start + 'gunzip -f ' + file)
             return 1
 
 mirror = Mirror()
 
-if __name__ == "__main__":
+if __name__=="__main__":
     mirror.mirror_all()
 

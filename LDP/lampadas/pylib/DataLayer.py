@@ -57,10 +57,9 @@ class Lampadas:
     def __init__(self):
         self.types        = Types()
         self.types.load()
-        self.Config         = Cfg()
         self.Docs           = Docs()
         self.Docs.Load()
-        self.Licenses       = Licenses()
+        self.licenses       = Licenses()
         self.DTDs           = DTDs()
         self.Formats        = Formats()
         self.languages      = Languages()
@@ -89,7 +88,7 @@ class Types(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newType = Type()
             newType.Load(row)
             self.data[newType.code] = newType
@@ -114,33 +113,10 @@ class Type:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
             self.description[lang] = trim(row[2])
-
-
-# Cfg
-
-class Cfg(LampadasCollection):
-    """
-    Holds system configuration information.
-    """
-
-    def __init__(self):
-        self.data = {}
-        self.Load()
-
-    def __call__(self, key):
-        return self[key]
-
-    def Load(self):
-        sql = "SELECT name, value FROM config"
-        cursor = db.select(sql)
-        while (1):
-            row = cursor.fetchone()
-            if row == None: break
-            self.data[trim(row[0])] = trim(row[1])
 
 
 # Documents
@@ -151,11 +127,11 @@ class Docs(LampadasCollection):
     """
 
     def Load(self):
-        sql = "SELECT doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+        sql = "SELECT doc_id, title, type_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license_code, abstract, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDoc = Doc()
             newDoc.LoadRow(row)
             self[newDoc.ID] = newDoc
@@ -163,10 +139,10 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters.
 
-    def add(self, Title, class_code, format_code, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
+    def add(self, Title, type_code, format_code, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, license_code, Abstract, Lang, SeriesID):
         self.id = db.read_value('SELECT max(doc_id) from document') + 1
-        sql = "INSERT INTO document(doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + wsq(class_code) + ", " + wsq(format_code) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
-        assert db.runsql(sql) == 1
+        sql = "INSERT INTO document(doc_id, title, type_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license_code, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(license_code) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
+        assert db.runsql(sql)==1
         db.commit()
         self.NewID = db.read_value('SELECT MAX(doc_id) from document')
         newDoc = Doc(self.NewID)
@@ -175,7 +151,7 @@ class Docs(LampadasCollection):
     
     def delete(self, id):
         sql = ('DELETE from document WHERE doc_id=' + str(id))
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
         del self[id]
 
@@ -185,11 +161,11 @@ class Doc:
     """
 
     def __init__(self, id=None):
-        if id == None: return
+        if id==None: return
         self.Load(id)
 
     def Load(self, id):
-        sql = "SELECT doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, type_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license_code, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.LoadRow(row)
@@ -197,7 +173,7 @@ class Doc:
     def LoadRow(self, row):
         self.ID                     = row[0]
         self.Title                  = trim(row[1])
-        self.class_code             = trim(row[2])
+        self.type_code             = trim(row[2])
         self.format_code            = trim(row[3])
         self.DTD                    = trim(row[4])
         self.DTDVersion             = trim(row[5])
@@ -212,7 +188,7 @@ class Doc:
         self.HomeURL                = trim(row[14])
         self.TechReviewStatusCode	= trim(row[15])
         self.Maintained             = tf2bool(row[16])
-        self.License                = trim(row[17])
+        self.license_code           = trim(row[17])
         self.Abstract               = trim(row[18])
         self.Rating                 = safeint(row[19])
         self.Lang                   = trim(row[20])
@@ -224,7 +200,7 @@ class Doc:
         self.Versions               = DocVersions(self.ID)
 
     def Save(self):
-        sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_code=" + wsq(self.class_code) + ", format_code=" + wsq(self.format_code) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+        sql = "UPDATE document SET title=" + wsq(self.Title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license_code=" + wsq(self.license_code) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
         db.runsql(sql)
         db.commit()
 
@@ -239,13 +215,13 @@ class DocErrs(LampadasList):
 
     def __init__(self, DocID):
         LampadasList.__init__(self)
-        assert not DocID == None
+        assert not DocID==None
         self.DocID = DocID
         sql = "SELECT err_id FROM document_error WHERE doc_id=" + str(DocID)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDocErr = DocErr()
             newDocErr.Load(DocID, row)
             self.list = self.list + [newDocErr]
@@ -261,7 +237,7 @@ class DocErrs(LampadasList):
 
     def add(self, ErrID):
         sql = "INSERT INTO document_error(doc_id, err_id) VALUES (" + str(self.DocID) + ", " + wsq(ErrID)
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         newDocErr = DocErr()
         newDocErr.DocID = self.DocID
         newDocErr.ErrID = ErrID
@@ -274,8 +250,8 @@ class DocErr:
     """
 
     def Load(self, DocID, row):
-        assert not DocID == None
-        assert not row == None
+        assert not DocID==None
+        assert not row==None
         self.DocID	= DocID
         self.ErrID	= safeint(row[0])
 
@@ -289,20 +265,20 @@ class DocFiles(LampadasCollection):
 
     def __init__(self, DocID):
         self.data = {}
-        assert not DocID == None
+        assert not DocID==None
         self.DocID = DocID
         sql = "SELECT filename, format_code FROM document_file WHERE doc_id=" + str(DocID)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDocFile = DocFile()
             newDocFile.Load(DocID, row)
             self.data[newDocFile.Filename] = newDocFile
 
     def add(self, DocID, Filename, format_code=None):
         sql = 'INSERT INTO document_file (doc_id, filename, format_code) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + wsq(format_code) + ')'
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
         newDocFile = DocFile()
         newDocFile.DocID = DocID
@@ -323,12 +299,12 @@ class DocFile:
     import os.path
 
     def Load(self, DocID, row):
-        assert not DocID == None
-        assert not row == None
+        assert not DocID==None
+        assert not row==None
         self.DocID	= DocID
         self.Filename    = trim(row[0])
         self.format_code = trim(row[1])
-        if self.Filename[:5] == 'http:' or self.Filename[:4] == 'ftp:':
+        if self.Filename[:5]=='http:' or self.Filename[:4]=='ftp:':
             self.IsLocal = 0
         else:
             self.IsLocal = 1
@@ -357,73 +333,70 @@ class DocRatings(LampadasCollection):
     A collection object providing access to all ratings placed on documents by users.
     """
 
-    def __init__(self, DocID):
+    def __init__(self, doc_id):
         self.data = {}
-        self.Parent = None
-        assert not DocID == None
-        self.DocID = DocID
-        sql = "SELECT user_id, date_entered, vote FROM doc_vote WHERE doc_id=" + str(DocID)
+        self.parent = None
+        assert not doc_id==None
+        self.doc_id = doc_id
+        sql = "SELECT doc_id, username, date_entered, vote FROM doc_vote WHERE doc_id=" + str(doc_id)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDocRating = DocRating()
-            newDocRating.Load(DocID, row)
-            self.data[newDocRating.UserID] = newDocRating
-        self.CalcAverage()
+            newDocRating.load(row)
+            self.data[newDocRating.username] = newDocRating
+        self.calc_average()
 
-    def add(self, UserID, Rating):
+    def add(self, username, rating):
         newDocRating = DocRating()
-        newDocRating.DocID	= self.DocID
-        newDocRating.UserID	= UserID
-        newDocRating.Rating	= Rating
-        newDocRating.Save()
-        self.data[newDocRating.UserID] = newDocRating
-        self.CalcAverage()
+        newDocRating.doc_id   = self.doc_id
+        newDocRating.username = username
+        newDocRating.rating   = rating
+        newDocRating.save()
+        self.data[newDocRating.username] = newDocRating
+        self.calc_average()
 
-    def delete(self, UserID):
-        if self.data[UserID] == None: return
-        del self.data[UserID]
-        sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.DocID) + ' AND user_id=' + str(UserID)
+    def delete(self, username):
+        if self.data[username]==None: return
+        del self.data[username]
+        sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.doc_id) + ' AND username=' + wsq(username)
         db.runsql(sql)
-        self.CalcAverage()
+        self.calc_average()
         
-    def Clear(self):
-        sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.DocID)
+    def clear(self):
+        sql = "DELETE FROM doc_vote WHERE doc_id=" + str(self.doc_id)
         db.runsql(sql)
         self.data = {}
-        self.CalcAverage()
+        self.calc_average()
 
-    def CalcAverage(self):
-        self.Average = 0
+    def calc_average(self):
+        self.average = 0
         if self.count() > 0:
             keys = self.data.keys()
             for key in keys:
-                self.Average = self.Average + self.data[key].Rating
-            self.Average = self.Average / self.count()
-        sql = "UPDATE document SET rating=" + str(self.Average) + " WHERE doc_id=" + str(self.DocID)
-#		db.runsql(sql)
-#		db.commit()
-        if not self.Parent == None:
-            self.Parent.Rating = self.Average
+                self.average = self.average + self.data[key].rating
+            self.average = self.average / self.count()
+        sql = "UPDATE document SET rating=" + str(self.average) + " WHERE doc_id=" + str(self.doc_id)
+        if not self.parent==None:
+            self.parent.pating = self.average
 
 class DocRating:
     """
     A rating of a document, assigned by a registered user.
     """
 
-    def Load(self, DocID, row):
-        assert not DocID == None
-        assert not row == None
-        self.DocID		= DocID
-        self.UserID		= row[0]
-        self.DateEntered	= trim(row[1])
-        self.Rating		= row[2]
+    def load(self, row):
+        assert not row==None
+        self.doc_id       = row[0]
+        self.username     = row[1]
+        self.date_entered = trim(row[2])
+        self.rating       = row[3]
 
-    def Save(self):
-        sql = "DELETE from doc_vote WHERE doc_id=" + str(self.DocID) + " AND user_id=" + str(self.UserID)
+    def save(self):
+        sql = "DELETE from doc_vote WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
         db.runsql(sql)
-        sql = "INSERT INTO doc_vote (doc_id, user_id, vote) VALUES (" + str(self.DocID) + ", " + str(self.UserID) + ", " + str(self.Rating) + ")"
+        sql = "INSERT INTO doc_vote (doc_id, username, vote) VALUES (" + str(self.doc_id) + ", " + wsq(self.username) + ", " + str(self.rating) + ")"
         db.runsql(sql)
         db.commit()
 
@@ -437,13 +410,13 @@ class DocVersions(LampadasCollection):
 
     def __init__(self, DocID):
         LampadasCollection.__init__(self)
-        assert not DocID == None
+        assert not DocID==None
         self.DocID = DocID
         sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=" + str(DocID)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDocVersion = DocVersion()
             newDocVersion.Load(DocID, row)
             self.data[newDocVersion.ID] = newDocVersion
@@ -454,8 +427,8 @@ class DocVersion:
     """
 
     def Load(self, DocID, row):
-        assert not DocID == None
-        assert not row == None
+        assert not DocID==None
+        assert not row==None
         self.DocID	= DocID
         self.ID		= row[0]
         self.Version	= trim(row[1])
@@ -465,7 +438,7 @@ class DocVersion:
 
     def Save(self):
         sql = "UPDATE document_rev SET version=" + wsq(self.Version) + ", pub_date=" + wsq(self.PubDate) + ", initials=" + wsq(self.Initials) + ", notes=" + wsq(self.Notes) + "WHERE doc_id=" + str(self.DocID) + " AND rev_id" + wsq(self.ID)
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
 
 
@@ -473,33 +446,47 @@ class DocVersion:
 
 class Licenses(LampadasCollection):
     """
-    A collection object of all Licenses.
+    A collection object of all licenses.
     """
     
     def __init__(self):
         self.data = {}
-        sql = "SELECT license, free from license"
+        sql = "SELECT license_code, free, sort_order from license"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newLicense = License()
-            newLicense.Load(row)
-            self.data[newLicense.License] = newLicense
+            newLicense.load(row)
+            self.data[newLicense.license_code] = newLicense
+
 
 class License:
     """
     A documentation or software license.
     """
 
-    def __init__(self, License=None, Free=None):
-        if License==None: return
-        self.License = License
-        self.Free = Free
+    def __init__(self, license_code=None, free=None):
+        self.short_name = LampadasCollection()
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
+        if license_code==None: return
+        self.license_code = license_code
+        self.free = free
 
-    def Load(self, row):
-        self.License    = trim(row[0])
-        self.Free       = tf2bool(row[1])
+    def load(self, row):
+        self.license_code = trim(row[0])
+        self.free         = tf2bool(row[1])
+        self.sort_order   = row[2]
+        sql = 'SELECT lang, license_short_name, license_name, license_desc FROM license_i18n WHERE license_code=' + wsq(self.license_code)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            lang = row[0]
+            self.short_name[lang]  = trim(row[1])
+            self.name[lang]        = trim(row[2])
+            self.description[lang] = trim(row[3])
 
 
 # DTDs
@@ -515,7 +502,7 @@ class DTDs(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newDTD = DTD()
             newDTD.Load(row)
             self.data[newDTD.DTD] = newDTD
@@ -546,7 +533,7 @@ class Errs(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newErr = Err()
             newErr.Load(row)
             self.data[newErr.ErrID] = newErr
@@ -568,7 +555,7 @@ class Err:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang		= row[0]
             self.name[lang]        = trim(row[1])
             self.description[lang] = trim(row[1])
@@ -587,7 +574,7 @@ class Formats(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newFormat = Format()
             newFormat.Load(row)
             self.data[newFormat.code] = newFormat
@@ -609,7 +596,7 @@ class Format:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang		= row[0]
             self.name[lang]        = trim(row[1])
             self.description[lang] = trim(row[2])
@@ -629,7 +616,7 @@ class Languages(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newLanguage = Language()
             newLanguage.load(row)
             self.data[newLanguage.code] = newLanguage
@@ -655,7 +642,7 @@ class Language:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
 
@@ -669,11 +656,11 @@ class PubStatuses(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        sql = "SELECT pub_status FROM pub_status"
+        sql = "SELECT pub_status, sort_order FROM pub_status"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newPubStatus = PubStatus()
             newPubStatus.Load(row)
             self.data[newPubStatus.Code] = newPubStatus
@@ -691,12 +678,13 @@ class PubStatus:
         self.Code = PubStatusCode
 
     def Load(self, row):
-        self.Code = trim(row[0])
+        self.Code       = trim(row[0])
+        self.sort_order = row[1]
         sql = "SELECT lang, pub_status_name, pub_status_desc FROM pub_status_i18n WHERE pub_status=" + wsq(self.Code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
             self.description[lang] = trim(row[2])
@@ -711,11 +699,11 @@ class ReviewStatuses(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        sql = "SELECT review_status FROM review_status"
+        sql = "SELECT review_status, sort_order FROM review_status"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newReviewStatus = ReviewStatus()
             newReviewStatus.Load(row)
             self.data[newReviewStatus.Code] = newReviewStatus
@@ -733,12 +721,13 @@ class ReviewStatus:
         self.Code = ReviewStatusCode
 
     def Load(self, row):
-        self.Code = trim(row[0])
+        self.Code       = trim(row[0])
+        self.sort_order = row[1]
         sql = "SELECT lang, review_status_name, review_status_desc FROM review_status_i18n WHERE review_status=" + wsq(self.Code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
             self.description[lang] = trim(row[2])
@@ -757,7 +746,7 @@ class Topics(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newTopic = Topic()
             newTopic.Load(row)
             self.data[newTopic.code] = newTopic
@@ -783,7 +772,7 @@ class Topic:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
             self.description[lang] = trim(row[2])
@@ -802,7 +791,7 @@ class Subtopics(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newSubtopic = Subtopic()
             newSubtopic.load(row)
             self.data[newSubtopic.code] = newSubtopic
@@ -832,7 +821,7 @@ class Subtopic:
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             lang = row[0]
             self.name[lang] = trim(row[1])
             self.description[lang] = trim(row[2])
@@ -848,7 +837,7 @@ class SubtopicDocs(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newSubtopicDoc = SubtopicDoc()
             newSubtopicDoc.subtopic_code = subtopic_code
             newSubtopicDoc.doc_id = row[0]
@@ -874,21 +863,21 @@ class UserDocs(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newUserDoc = UserDoc()
             newUserDoc.load(row)
             self.data[newUserDoc.id] = newUserDoc
 
     def add(self, doc_id, role, email, active):
         sql = "INSERT INTO document_user(doc_id, username, role, email, active) VALUES (" + str(doc_id) + ", " + wsq(self.username) + ", " + wsq(role) + ", " + wsq(email) + ", " + wsq(bool2tf(active)) +  " )"
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
         newUserDoc = UserDoc()
-        self.data[docid] = newUserDoc
+        self.data[doc_id] = newUserDoc
     
     def delete(self, doc_id):
         sql = 'DELETE from document_user WHERE doc_id=' + str(doc_id) + ' AND username=' + wsq(self.username)
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
         del self.data[doc_id]
 
@@ -901,8 +890,8 @@ class UserDoc:
     def __init__(self, doc_id=None, username=None):
         self.doc_id = doc_id
         self.username = username
-        if doc_id == None: return
-        if username == None: return
+        if doc_id==None: return
+        if username==None: return
         self.load(doc_id, username)
 
     def load(self, row):
@@ -933,12 +922,12 @@ class Users:
 
     def add(self, username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet):
         sql = "INSERT INTO username (username, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet) VALUES (" + wsq(username) + ", " + wsq(first_name) + ", " + wsq(middle_name) + ", " + wsq(surname) + ", " + wsq(email) + ", " + wsq(bool2tf(admin)) + ", " + wsq(bool2tf(sysadmin)) + ", " + wsq(password) + ", " + wsq(notes) + ", " + wsq(stylesheet) + ")"
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
     
     def delete(self, username):
         sql = 'DELETE from username WHERE username=' + wsq(username)
-        assert db.runsql(sql) == 1
+        assert db.runsql(sql)==1
         db.commit()
 
     def is_email_taken(self, email):
@@ -980,7 +969,7 @@ class User:
         sql = 'SELECT username, session_id, first_name, middle_name, surname, email, admin, sysadmin, password, notes, stylesheet FROM username WHERE username=' + wsq(username)
         cursor = db.select(sql)
         row = cursor.fetchone()
-        if row == None:
+        if row==None:
             return
         self.username       = trim(row[0])
         self.session_id     = trim(row[1])
@@ -1002,18 +991,26 @@ class User:
         db.runsql(sql)
         db.commit()
 
+    def can_edit(self, doc_id=None):
+        if self.admin > 0 or self.sysadmin > 0:
+            return 1
+        if doc_id and self.docs.has_key(doc_id):
+            return 1
+        return 0
+        
+
 
 lampadas = Lampadas()
 
 
 # main
-if __name__ == '__main__' :
+if __name__=='__main__' :
     print "Running unit tests..."
     string = "foo"
-    assert wsq(string) == "'foo'"
+    assert wsq(string)=="'foo'"
     string = "it's"
-    assert wsq(string) == "'it''s'"
+    assert wsq(string)=="'it''s'"
     string = "it's that's"
-    assert wsq(string) == "'it''s that''s'"
+    assert wsq(string)=="'it''s that''s'"
     print "End unit test run."
     

@@ -10,8 +10,8 @@ insert(userguide, [User\'s Guide],
   [End user documentation for an application.])
 insert(programguide, [Programmer\'s Guide],
   [Documentation for programmers and other software developers.])
-insert(guide, [Guide],
-  [In depth coverage of some subject, often a full-length book.])
+insert(adminguide, [Administrator\'s Guide],
+  [Documentation for system administrators.])
 insert(intro, [Introduction],
   [Background or introductory information, suitable for a novice.])
 insert(manpage, [Manual Page],

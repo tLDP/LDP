@@ -50,9 +50,9 @@ class Database:
         Connect to the database specified in Config.
         """
 
-        if db_name == '':
+        if db_name=='':
             raise UnknownDBException('Database name not specified')
-        elif db_type == 'pgsql':
+        elif db_type=='pgsql':
             self.database = PgSQLDatabase(db_name)
             self.connected = 1
         else:
@@ -86,7 +86,7 @@ class Database:
         cursor = self.database.connection.cursor()
         cursor.execute(sql)
         row = cursor.fetchone()
-        if row == None:
+        if row==None:
             value = None
         else:
             value = row[0]
@@ -123,7 +123,7 @@ log(2, '               **********Initializing DataLayer**********')
 db = Database()
 db.connect(config.db_type, config.db_name)
 
-if __name__ == '__main__':
+if __name__=='__main__':
     print "Running unit tests..."
     print "Unit tests run."
 

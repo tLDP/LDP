@@ -52,7 +52,7 @@ class Lintadas:
 	def CheckDoc(self, DocID):
 		log(3, 'Running Lintadas on document ' + str(DocID))
 		Doc = lampadas.Docs[int(DocID)]
-		assert not Doc == None
+		assert not Doc==None
 		Doc.Errs.Clear()
 
 		# Test document files
@@ -69,13 +69,13 @@ class Lintadas:
 
 			# Determine file format
 			self.filename = File.Filename.upper()
-			if self.filename[-5:] == '.SGML':
+			if self.filename[-5:]=='.SGML':
 				FileFormat = "SGML"
 				DocFormat = 'SGML'
-			elif self.filename[-4:] == '.XML':
+			elif self.filename[-4:]=='.XML':
 				FileFormat = "XML"
 				DocFormat = 'XML'
-			elif self.filename[-3:] == '.WT':
+			elif self.filename[-3:]=='.WT':
 				FileFormat = 'WIKI'
 				DocFormat = 'WIKI'
 			else:
@@ -84,15 +84,15 @@ class Lintadas:
 
 			formatkeys = lampadas.Formats.keys()
 			for formatkey in formatkeys:
-				if lampadas.Formats[formatkey].I18n['EN'].Name == FileFormat:
+				if lampadas.Formats[formatkey].I18n['EN'].Name==FileFormat:
 					File.FormatID = formatkey
-				if lampadas.Formats[formatkey].I18n['EN'].Name == DocFormat:
+				if lampadas.Formats[formatkey].I18n['EN'].Name==DocFormat:
 					Doc.FormatID = formatkey
 			
 			log(3, 'file format is ' + FileFormat)
 			
 			# Determine DTD for SGML and XML files
-			if FileFormat == 'XML' or FileFormat == 'SGML':
+			if FileFormat=='XML' or FileFormat=='SGML':
 				DTDVersion = ''
 				try:
 					command = 'grep -i DOCTYPE ' + config.cvs_root + File.Filename + ' | head -n 1'
@@ -126,7 +126,7 @@ def main():
 	import sys
 
 	Docs = sys.argv[1:]
-	if len(Docs) == 0:
+	if len(Docs)==0:
 		print "Running on all documents..."
 		lintadas.CheckAllDocs()
 	else:
@@ -143,5 +143,5 @@ def usage():
 	print
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
 	main()

@@ -76,15 +76,15 @@ def send_File(req, filename):
             filename += "." + fileext
 
     # Determine mimetype from extension
-    if fileext == "html" or fileext == "htm":
+    if fileext=="html" or fileext=="htm":
         mimetype = "text/html"
-    elif fileext == "png":
+    elif fileext=="png":
         mimetype = "image/png"
-    elif fileext == "gif":
+    elif fileext=="gif":
         mimetype = "image/gif"
-    elif fileext == "jpg" or fileext == "jpeg":
+    elif fileext=="jpg" or fileext=="jpeg":
         mimetype = "image/jpeg"
-    elif fileext == "css":
+    elif fileext=="css":
         mimetype = "text/css"
     else:
         mimetype = "text/plain"

@@ -52,7 +52,7 @@ class Sessions(LampadasCollection):
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
-            if row == None: break
+            if row==None: break
             newSession = Session(trim(row[0]))
             self.data[newSession.username] = newSession
     
@@ -83,7 +83,7 @@ class Session:
 sessions = Sessions()
 
 # main
-if __name__ == '__main__' :
+if __name__=='__main__' :
     print "Running unit tests..."
     print "End unit test run."
     

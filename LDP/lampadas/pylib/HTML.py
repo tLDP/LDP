@@ -67,18 +67,17 @@ class ComboFactory:
 
     def stylesheet(self, value):
         combo = '<select name="stylesheet">\n'
-#        keys = lampadasweb.stylesheets.sort_by('name')
         combo = combo + '</select>\n'
         return combo
     
-    def Type(self, value, lang):
+    def type(self, value, lang):
         combo = "<select name='type_code'>\n"
-        keys = lampadas.types.keys()
+        keys = lampadas.types.sort_by('sort_order')
         for key in keys:
             type = lampadas.types[key]
             assert not type==None
             combo = combo + "<option "
-            if type.code == value:
+            if type.code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + type.code + "'>"
             combo = combo + type.name[lang]
@@ -86,15 +85,15 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def Doc(self, value, lang):
+    def doc(self, value, lang):
         combo = "<select name='doc'>\n"
-        keys = lampadas.Docs.keys()
+        keys = lampadas.Docs.sort_by_lang('Title', lang)
         for key in keys:
             doc = lampadas.Docs[key]
-            assert not doc == None
-            if doc.Lang == lang or lang == None:
+            assert not doc==None
+            if doc.Lang==lang or lang==None:
                 combo = combo + "<option "
-                if doc.ID == value:
+                if doc.ID==value:
                     combo = combo + "selected "
                 combo = combo + "value='" + str(doc.ID) + "'>"
                 combo = combo + doc.Title
@@ -102,14 +101,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def DTD(self, value, lang):
+    def dtd(self, value, lang):
         combo = "<select name='dtd'>\n"
-        keys = lampadas.DTDs.keys()
+        keys = lampadas.DTDs.sort_by_lang('DTD', lang)
         for key in keys:
             dtd = lampadas.DTDs[key]
-            assert not dtd == None
+            assert not dtd==None
             combo = combo + "<option "
-            if dtd.DTD == value:
+            if dtd.DTD==value:
                 combo = combo + "selected "
             combo = combo + "value='" + dtd.DTD + "'>"
             combo = combo + dtd.DTD
@@ -117,14 +116,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
     
-    def Format(self, value, lang):
+    def format(self, value, lang):
         combo = "<select name='format'>\n"
-        keys = lampadas.Formats.keys()
+        keys = lampadas.Formats.sort_by_lang('name', lang)
         for key in keys:
             format = lampadas.Formats[key]
-            assert not format == None
+            assert not format==None
             combo = combo + "<option "
-            if format.ID == value:
+            if format.ID==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(format.ID) + "'>"
             combo = combo + format.name[lang]
@@ -132,44 +131,44 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def Language(self, value, lang):
+    def language(self, value, lang):
         combo = "<select name='lang'>\n"
-        keys = lampadas.Languages.keys()
+        keys = lampadas.languages.sort_by_lang('name', lang)
         for key in keys:
-            language = lampadas.Languages[key]
-            assert not language == None
+            language = lampadas.languages[key]
+            assert not language==None
             combo = combo + "<option "
-            if language.Code == value:
+            if language.code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + language.Code + "'>"
+            combo = combo + "value='" + language.code + "'>"
             combo = combo + language.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
-    def License(self, value, lang):
+    def license(self, value, lang):
         combo = "<select name='license'>\n"
-        keys = lampadas.Licenses.keys()
+        keys = lampadas.licenses.sort_by('sort_order')
         for key in keys:
-            license = lampadas.Licenses[key]
-            assert not license == None
+            license = lampadas.licenses[key]
+            assert not license==None
             combo = combo + "<option "
-            if license.License == value:
+            if license.license_code==value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(license.License) + "'>"
-            combo = combo + license.License
+            combo = combo + "value='" + license.license_code + "'>"
+            combo = combo + license.short_name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
-    def Page(self, value, lang):
+    def page(self, value, lang):
         combo = "<select name='page_code'>\n"
-        keys = lampadasweb.pages.keys()
+        keys = lampadasweb.pages.sort_by('page_code')
         for key in keys:
             page = lampadasweb.pages[key]
-            assert not page == None
+            assert not page==None
             combo = combo + "<option "
-            if Page.Code == value:
+            if Page.Code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(page.Code) + "'>"
             combo = combo + page.title[lang]
@@ -177,14 +176,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def PubStatus(self, value, lang):
+    def pub_status(self, value, lang):
         combo = "<select name='pub_status_code'>\n"
-        keys = lampadas.PubStatuses.keys()
+        keys = lampadas.PubStatuses.sort_by('sort_order')
         for key in keys:
             PubStatus = lampadas.PubStatuses[key]
-            assert not PubStatus == None
+            assert not PubStatus==None
             combo = combo + "<option "
-            if PubStatus.Code == value:
+            if PubStatus.Code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(PubStatus.Code) + "'>"
             combo = combo + PubStatus.name[lang]
@@ -192,14 +191,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
         
-    def ReviewStatus(self, value, lang):
+    def review_status(self, value, lang):
         combo = "<select name='review_status_code'>\n"
-        keys = lampadas.ReviewStatuses.keys()
+        keys = lampadas.ReviewStatuses.sort_by('sort_order')
         for key in keys:
             ReviewStatus = lampadas.ReviewStatuses[key]
-            assert not ReviewStatus == None
+            assert not ReviewStatus==None
             combo = combo + "<option "
-            if ReviewStatus.Code == value:
+            if ReviewStatus.Code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
             combo = combo + ReviewStatus.name[lang]
@@ -207,14 +206,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def TechReviewStatus(self, value, lang):
+    def tech_review_status(self, value, lang):
         combo = "<select name='tech_review_status_code'>\n"
-        keys = lampadas.ReviewStatuses.keys()
+        keys = lampadas.ReviewStatuses.sort_by('sort_order')
         for key in keys:
             ReviewStatus = lampadas.ReviewStatuses[key]
-            assert not ReviewStatus == None
+            assert not ReviewStatus==None
             combo = combo + "<option "
-            if ReviewStatus.Code == value:
+            if ReviewStatus.Code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(ReviewStatus.Code) + "'>"
             combo = combo + ReviewStatus.name[lang]
@@ -222,14 +221,14 @@ class ComboFactory:
         combo = combo + "</select>"
         return combo
 
-    def Subtopic(self, value, lang):
+    def subtopic(self, value, lang):
         combo = '<select name="subtopic_code">\n'
         keys = lampadas.Subtopics.sort_by('sort_order')
         for key in keys:
             subtopic = lampadas.subtopics[key]
-            assert not subtopic == None
+            assert not subtopic==None
             combo = combo + "<option "
-            if subtopic.code == value:
+            if subtopic.code==value:
                 combo = combo + "selected "
             combo = combo + "value='" + str(subtopic.code) + "'>"
             combo = combo + subtopic.name[lang]
@@ -243,10 +242,10 @@ class TableFactory:
     def bar_graph(self, value, max, lang):
         return str(value) + '/' + str(max)
 
-    def doc(self, DocID, lang):
+    def doc(self, uri):
         box = '<table class="box"><tr><th colspan="6">|strdocdetails|</th></tr>'
-        if DocID:
-            doc = lampadas.Docs[DocID]
+        if uri.id:
+            doc = lampadas.Docs[uri.id]
             box = box + '<form method=GET action="data/save/document" name="document">'
         else:
             doc = Doc()
@@ -254,72 +253,72 @@ class TableFactory:
             
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.ID) + '>\n'
         box = box + '<tr>\n'
-        box = box + '<th align=right>Title</th><td colspan=5><input type=text name=title size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
+        box = box + '<th class="label">strtitle</th><td colspan=5><input type=text name=title size=60 style="width:100%" value="' + doc.Title + '"></td>\n'
         box = box + '</tr>\n'
         box = box + '<tr>\n'
-        box = box + '<th align=right>'
+        box = box + '<th class="label">'
         if doc.URL:
-            box = box + '<a href="' + doc.URL + '">URL</a>'
+            box = box + '<a href="' + doc.URL + '">url</a>'
         else:
-            box = box + 'URL'
+            box = box + 'strurl'
         box = box + '</th><td colspan=5><input type=text name=url size=60 style="width:100%" value="' + doc.URL + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>'
+        box = box + '<th class="label">'
 
         if doc.HomeURL:
-            box = box + '<a href="' + doc.HomeURL + '">Home URL</a>'
+            box = box + '<a href="' + doc.HomeURL + '">|strhome_url|</a>'
         else:
-            box = box + 'Home URL'
+            box = box + '|strhome_url|'
         box = box + '</th><td colspan=5><input type=text name=ref_url size=60 style="width:100%" value="' + doc.HomeURL + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Status</th><td>'
-        box = box + combo_factory.PubStatus(doc.PubStatusCode, lang)
+        box = box + '<th class="label">|strstatus|</th><td>'
+        box = box + combo_factory.pub_status(doc.PubStatusCode, uri.lang)
         box = box + '</td>\n'
-        box = box + '<th align=right>Type</th><td>\n'
-        box = box + combo_factory.Type(doc.type_code, lang)
+        box = box + '<th class="label">|strtype|</th><td>\n'
+        box = box + combo_factory.type(doc.type_code, uri.lang)
         box = box + '</td>\n'
-        box = box + '<th align=right>Maint</th><td>\n'
+        box = box + '<th class="label">|strmaintained|</th><td>\n'
         if doc.Maintained:
-            box = box + "Yes"
+            box = box + '|stryes|'
         else:
-            box = box + "No"
+            box = box + '|strno|'
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Writing</th><td>'
-        box = box + combo_factory.ReviewStatus(doc.ReviewStatusCode, lang)
+        box = box + '<th class="label">|strwriting|</th><td>'
+        box = box + combo_factory.review_status(doc.ReviewStatusCode, uri.lang)
         box = box + '</td>\n'
-        box = box + '<th align=right>Accuracy</th><td>'
-        box = box + combo_factory.TechReviewStatus(doc.TechReviewStatusCode, lang)
+        box = box + '<th class="label">|straccuracy|</th><td>'
+        box = box + combo_factory.tech_review_status(doc.TechReviewStatusCode, uri.lang)
         box = box + '</td>\n'
-        box = box + '<th align=right>License</th><td>'
-        box = box + combo_factory.License(doc.License, lang)
+        box = box + '<th class="label">|strlicense|</th><td>'
+        box = box + combo_factory.license(doc.license_code, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Pub Date</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
-        box = box + '<th align=right>Updated</th><td><input type=text name=last_update size=10 value="' + doc.LastUpdate + '"></td>'
-        box = box + '<th align=right>Version</th><td><input type=text name=version size=10 value="' + doc.Version + '"></td>'
+        box = box + '<th class="label">|strpub_date|</th><td><input type=text name=pub_date size=10 value="' + doc.PubDate + '"></td>'
+        box = box + '<th class="label">|strupdated|</th><td><input type=text name=last_update size=10 value="' + doc.LastUpdate + '"></td>'
+        box = box + '<th class="label">|strversion|</th><td><input type=text name=version size=10 value="' + doc.Version + '"></td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Tickle Date</th><td><input type=text name=tickle_date size=10 value="' + doc.TickleDate + '"></td>'
-        box = box + '<th align=right>ISBN</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
-        box = box + '<th align=right>Rating</th>\n'
+        box = box + '<th class="label">|strtickle_date|</th><td><input type=text name=tickle_date size=10 value="' + doc.TickleDate + '"></td>'
+        box = box + '<th class="label">|strisbn|</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
+        box = box + '<th class="label">|strrating|</th>\n'
         box = box + '<td>'
-        box = box + self.bar_graph(doc.Rating, 10, lang)
+        box = box + self.bar_graph(doc.Rating, 10, uri.lang)
         box = box + '</td>\n'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Format</th><td>'
-        box = box + lampadas.Formats[doc.FormatID].name[lang]
+        box = box + '<th class="label">|strformat|</th><td>'
+        box = box + lampadas.Formats[doc.format_code].name[uri.lang]
         box = box + '</td>'
-        box = box + '<th align=right>DTD</th><td>'
+        box = box + '<th class="label">|strdtd|</th><td>'
         box = box + doc.DTD + ' ' + doc.DTDVersion
         box = box + '</td>'
-        box = box + '<th align=right>Lang</th><td>'
-        box = box + combo_factory.Language(doc.Lang, lang)
+        box = box + '<th class="label">|strlanguage|</th><td>'
+        box = box + combo_factory.language(doc.Lang, uri.lang)
         box = box + '</td>'
         box = box + '</tr>\n<tr>\n'
-        box = box + '<th align=right>Abstract</th>'
+        box = box + '<th class="label">|strabstract|</th>'
         box = box + '<td colspan=5><textarea name=abstract rows=6 cols=40 style="width:100%" wrap>' + doc.Abstract + '</textarea></td>\n'
         box = box + '</tr>\n'
-        box = box + '<tr><td></td><td><input type=submit name=save value=Save></td></tr>\n'
+        box = box + '<tr><td></td><td><input type=submit name=save value="|strsave|"></td></tr>\n'
         box = box + '</form>\n'
         box = box + '</table>\n'
 
@@ -350,22 +349,26 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
-    def doctable(self, uri, type_code=None, subtopic_code=None):
+    def doctable(self, uri, user, type_code=None, subtopic_code=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.Docs.sort_by("Title")
         for key in keys:
             doc = lampadas.Docs[key]
-            if doc.Lang == uri.lang:
+            if doc.Lang==uri.lang:
                 ok = 1
                 if type_code and doc.type_code <> type_code:
                     ok = 0
-                if subtopic_code and doc.subtopic_code <> subtopic_code:
-                    ok = 0
+                if subtopic_code:
+                    subtopic = lampadas.subtopics[subtopic_code]
+                    if subtopic.docs[doc.ID]==None:
+                        ok = 0
                 if ok > 0:
-                    box = box + '<tr>'
-                    box = box + '<td><a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a></td>'
-                    box = box + '<td><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
+                    box = box + '<tr><td>'
+                    if user and user.can_edit(doc_id=doc.ID):
+                        box = box + '<a href="editdoc/' + str(doc.ID) + '/">' + EDIT_ICON + '</a>'
+                    box = box + '</td>\n'
+                    box = box + '<td style="width:100%"><a href="doc/' + str(doc.ID) + '/">' + doc.Title + '</a></td>'
                     box = box + '</tr>\n'
         box = box + '</table>'
         return box
@@ -378,7 +381,7 @@ class TableFactory:
         keys = lampadasweb.pages.sort_by('sort_order')
         for key in keys:
             page = lampadasweb.pages[key]
-            if page.section_code == section.code:
+            if page.section_code==section.code:
                 if page.only_registered or page.only_admin or page.only_sysadmin > 0:
                     if user==None:
                         continue
@@ -416,7 +419,7 @@ class TableFactory:
         keys = lampadasweb.news.sort_by_desc('pub_date')
         for key in keys:
             news = lampadasweb.news[key]
-            if not news.news[uri.lang] == None:
+            if not news.news[uri.lang]==None:
                 box = box + '<tr>\n'
                 box = box + '<td>' + news.pub_date + '</td>\n'
                 box = box + '<td>' + news.news[uri.lang] + '</td>\n'
@@ -446,7 +449,7 @@ class TableFactory:
         keys = lampadas.subtopics.sort_by('num')
         for key in keys:
             subtopic = lampadas.subtopics[key]
-            if subtopic.topic_code == uri.code:
+            if subtopic.topic_code==uri.code:
                 box = box + '<li><a href="subtopic/' + subtopic.code + '">\n'
                 box = box + subtopic.name[uri.lang] + '</a>\n'
         box = box + '</ol></td></tr>\n'
@@ -462,7 +465,7 @@ class TableFactory:
         keys = subtopic.docs.sort_by('Title')
         for key in keys:
             doc = subtopic.docs[key]
-            if doc.subtopic.topic_code == uri.code and doc.Lang == uri.lang:
+            if doc.subtopic.topic_code==uri.code and doc.Lang==uri.lang:
                 box = box + '<li><a href="/doc/' + str(doc.ID) + '">\n'
                 box = box + doc.Title + '</a>\n'
         box = box + '</ol></td></tr>\n'
@@ -496,8 +499,8 @@ class TableFactory:
             log(3, 'Creating login box')
             box = '<table class="navbox"><tr><th colspan="2">|strlogin|</th></tr>\n'
             box = box + '<form name="login" action="data/session/login" method=GET>\n'
-            box = box + '<tr><td align=right>|strusername|</td><td><input type=text size=12 name=username></input></td></tr>\n'
-            box = box + '<tr><td align=right>|strpassword|</td><td><input type=password size=12 name=password></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strusername|</td><td><input type=text size=12 name=username></input></td></tr>\n'
+            box = box + '<tr><th class="label">|strpassword|</td><td><input type=password size=12 name=password></input></td></tr>\n'
             box = box + '<tr><td align=center colspan=2><input type=submit name="login" value="login"><br>\n'
             box = box + '<a href="mailpass">|strmail_passwd|</a><br>\n'
             box = box + '<a href="newuser">|strcreate_acct|</a></td></tr>\n'
@@ -526,8 +529,7 @@ class TableFactory:
         log(3, 'Creating languages table')
         box = '<table class="navbox"><tr><th>|strlanguages|</th></tr>\n'
         box = box + '<tr><td>\n'
-        keys = lampadas.languages.keys()
-        #sort_by('name["' + lang + '"]')
+        keys = lampadas.languages.sort_by_lang('name', uri.lang)
         for key in keys:
             language = lampadas.languages[key]
             if language.supported > 0:
@@ -540,7 +542,7 @@ class TableFactory:
     def user_docs(self, uri, user):
         log(3, 'Creating user_docs table')
         box = '<table class="navbox"><tr><th>|session_name|</th></tr>\n'
-        keys = user.docs.keys()
+        keys = user.docs.sort_by_lang('Title', uri.lang)
         for key in keys:
             box = box + '<tr><td>\n'
             userdoc = user.docs[key]
@@ -558,7 +560,7 @@ class PageFactory:
 
     def page_exists(self, key):
         uri = URI(key)
-        if uri.path == '' and lampadasweb.pages[uri.filename]:
+        if uri.path=='' and lampadasweb.pages[uri.filename]:
             return 1
         return
 
@@ -574,9 +576,9 @@ class PageFactory:
         log(3, 'Serving language ' + uri.lang)
 
         page = lampadasweb.pages[uri.filename]
-        if page == None:
+        if page==None:
             page = lampadasweb.pages['404']
-        assert not page == None
+        assert not page==None
         html = self.build_page(page, uri, build_user)
 
         return html
@@ -584,7 +586,7 @@ class PageFactory:
 
     def build_page(self, page, uri, build_user):
         template = lampadasweb.templates[page.template_code]
-        assert not template == None
+        assert not template==None
         html = template.template
 
         html = html.replace('\|', 'DCM_PIPE')
@@ -592,7 +594,7 @@ class PageFactory:
         pos = html.find('|')
         while pos <> -1 :
             pos2 = html.find('|', pos+1)
-            if pos2 == -1:
+            if pos2==-1:
                 pos = -1
             else:
                 oldstring = html[pos:pos2+1]
@@ -603,17 +605,17 @@ class PageFactory:
                 # Tokens based on a logged-in user
                 # 
                 if token=='session_id':
-                    if build_user == None:
+                    if build_user==None:
                         newstring = ''
                     else:
                         newstring = build_user.session_id
                 if token=='session_username':
-                    if build_user == None:
+                    if build_user==None:
                         newstring = ''
                     else:
                         newstring = build_user.username
                 if token=='session_name':
-                    if build_user == None:
+                    if build_user==None:
                         newstring = ''
                     else:
                         newstring = build_user.name
@@ -675,7 +677,7 @@ class PageFactory:
                 if token=='tablogin':
                     newstring = self.tablef.login(uri, build_user)
                 if token=='tabdocs':
-                    newstring = self.tablef.doctable(uri)
+                    newstring = self.tablef.doctable(uri, build_user)
                 if token=='tabeditdoc':
                     newstring = self.tablef.doc(uri)
                 if token=='tabuser':
@@ -697,17 +699,17 @@ class PageFactory:
                 if token=='tablanguages':
                     newstring = self.tablef.languages(uri)
                 if token=='tabtypedocs':
-                    newstring = self.tablef.doctable(uri, type_code=uri.code)
+                    newstring = self.tablef.doctable(uri, build_user, type_code=uri.code)
                 if token=='tabsubtopicdocs':
-                    newstring = self.tablef.doctable(uri, subtopic_code=uri.code)
+                    newstring = self.tablef.doctable(uri, build_user, subtopic_code=uri.code)
             
                 # Blocks and Strings
                 # 
-                if newstring == '':
+                if newstring=='':
                     block = lampadasweb.blocks[token]
-                    if block == None:
+                    if block==None:
                         string = lampadasweb.strings[token]
-                        if string == None:
+                        if string==None:
                             log(1, 'Could not replace token ' + token)
                         else:
                             newstring = string.string[uri.lang]
@@ -716,7 +718,7 @@ class PageFactory:
                 
                 # Add an error message if the token was not found
                 # 
-                if newstring == '':
+                if newstring=='':
                     log(1, 'Could not replace token ' + token)
                     newstring = 'ERROR (' + token + ')'
                 
@@ -747,5 +749,5 @@ def main():
         profile()
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
