@@ -96,6 +96,12 @@ insert([about], [About |strproject|], [About |strprojectshort|],
     Replace this text with information about your project.
 ])
 
+m4_dnl There is a alt.fan.dune_Frequently_Asked_Questions_(FAQ)
+m4_dnl It provides some hints on translated version - at least it
+m4_dnl tells title and publisher of the books.
+m4_dnl
+m4_dnl http://ftp.kreonet.re.kr/pub/docs/usenet-by-hierarchy/alt/fan/dune/
+m4_dnl
 insert([lampadas], [About Lampadas], [],
 [
     <p>This website is based on version |version| of the Lampadas
@@ -153,9 +159,9 @@ insert([copyright], [Copyright Statment], [],
     will be removed promptly upon request.
 
     <p>Lampadas is made available under the terms of the GNU General Public
-    License (GPL).
-    A copy is available online at
-    <a href="http://www.gnu.org/licenses/gpl.html">www.gnu.org/licenses/gpl.html</a>.
+    License (GPL). A copy is available online at
+    <a href="http://www.gnu.org/licenses/gpl.html"
+      >www.gnu.org/licenses/gpl.html</a>.
 
     <p>We do our best to provide accurate information, but we do not provide
     any warranty or guarantees as to accuracy, completeness, or anything else.
@@ -207,7 +213,9 @@ insert([newuser], [New User], [],
                 <td><input type=text name=username size=20></input></td>
             </tr>
             <tr>
-                <td align=right>*Enter your email address.<br>Your password will be mailed to this address, so it must be valid.</td>
+                <td align=right>*Enter your email address.<br>
+		  Your password will be mailed to this address,
+		  so it must be valid.</td>
                 <td><input type=text name=email size=20></input></td>
             </tr>
             <tr>
@@ -223,7 +231,8 @@ insert([newuser], [New User], [],
                 <td><input type=text name=surname size=20></input></td>
             </tr>
             <tr>
-                <td colspan=2 align=center><input type=submit value="Create Account!"></td>
+                <td colspan=2 align=center><input type=submit
+		  value="Create Account!"></td>
             </tr>
         </table
     </form>
@@ -232,7 +241,8 @@ insert([newuser], [New User], [],
 
 insert([mailpass], [Mail Password], [],
 [
-    <p>Please enter your username or email address to have your password mailed to you.
+    <p>Please enter your username or email address to have your
+    password mailed to you.
 ])
 
 insert([topic], [View Topic], [],
@@ -255,12 +265,13 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
 insert([404], [Error 404, Page Not Found], Error,
 [
     <p>I\'m sorry, but the page you requested does not exist.
-    If you came here from another website, please notify the webmaster of that site
-    that their link is incorrect or out of date.
+    If you came here from another website, please notify the webmaster
+    of that site that their link is incorrect or out of date.
 
     <p>If you came here from another page on this Lampadas system,
     you have probably found a bug.
-    If you believe that to be the case, please file a bug report for the Lampadas developers.
+    If you believe that to be the case, please file a bug report for
+    the Lampadas developers.
 ])
 
 insert([user_exists], [User Exists], [],
