@@ -1,0 +1,181 @@
+dnl 
+dnl Process this file with autoconf to produce a configure script
+dnl
+dnl $Id$
+dnl
+dnl -- this configure.ac was written with the help of Jon Nelson
+dnl    of boa fame, and also the help of the following article:
+dnl
+dnl      http://www.movement.uklinux.net/docs/docbook-autotools/
+dnl
+dnl -- lines beginning with dnl are ignored by the m4 parser, which
+dnl    processes the configure.in script to make the ./configure script
+dnl 
+dnl -- comments beginning with # are passed through into the
+dnl    ./configure script intact
+
+dnl -- this is one of the required commands in an autoconf file
+dnl    In this macro, you enter the name of a single unique file
+dnl    which should stay with the distribution (usually the main.c)
+dnl
+AC_INIT(linux-ip.xml)
+
+# -- first, we want to see if xsltproc is installed.  This may
+#    eventually be replaced by some conditional logic which
+#    tests to see if there's a java enviroment and prefers or
+#    allows the use of saxon instead of xsltproc.
+#
+dnl -- this single line in an autoconf script produces 30+ lines
+dnl    of portable shell to determine if xsltproc is available on
+dnl    the system.  It can be invoked in such a way as to specify
+dnl    alternate paths.
+dnl
+AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc)
+
+AC_MSG_CHECKING([if xsltproc is recent enough])
+if test "$($XSLTPROC --version | awk '/^libxslt/{print $2}')" -lt 10024 ; then 
+  AC_MSG_RESULT([version 1.0.24 or newer required])
+  exit 1
+fi
+AC_MSG_RESULT(yes)
+
+# -- now let's test to see if we can find the docbook-xsl stuff
+#
+XSLTPROC_FLAGS=--nonet
+__USE_SYSTEM_CATALOG=yes
+
+dnl
+dnl -- above, we have set some variables for use later in the script
+
+dnl -- this next line (the use of AC_ARG_WITH) is how you build support
+dnl    for configurable parameters into your ./configure script.  After
+dnl    autoconf is run on this configure.in file, the ./configure --help
+dnl    will report the items in brackets to the user.
+dnl 
+# -- we test to see if the user has set XSL_ROOT in the environment
+#    or on the command line, with ./configure switches
+#
+AC_ARG_WITH(xslroot, [  --with-xslroot=DIR      Specify DocBook XSL location])
+
+if test "$with_xslroot" != "" ; then
+  XSL_ROOT="$with_xslroot"      # -- user has specified the parameter
+fi
+AC_MSG_CHECKING([if XSL_ROOT (envar) was specified manually...])
+if test ! -z "$XSL_ROOT"; then  # -- ugly hack to see if the envar was set
+  AC_MSG_RESULT(yes)
+  AC_MSG_CHECKING(for $XSL_ROOT/xhtml/docbook.xsl)
+  if test -f "$XSL_ROOT/xhtml/docbook.xsl"; then
+    AC_MSG_RESULT(yes)
+    __USE_SYSTEM_CATALOG=no
+  else
+    AC_MSG_RESULT(not found)
+  fi
+else
+  AC_MSG_RESULT(no)
+fi
+
+# -- OK.  the user has still not specified a path to the docbook-xsl tree
+#    so we have to resort to searching for it.
+# -- this is ugly and probably still quite wrong.....
+#
+if test "$__USE_SYSTEM_CATALOG" = "yes"; then
+  AC_MSG_CHECKING([if /etc/xml/catalog exists])
+  if test ! -r /etc/xml/catalog; then
+    AC_MSG_RESULT(no)
+    PDB_PATHS="/usr/share/sgml/docbook/xsl"
+    PDB_PATHS="$PDB_PATHS /usr/share/sgml/docbook/stylesheet/xsl/nwalsh"
+    PDB_PATHS="$PDB_PATHS /usr/share/sgml/docbook/xsl-stylesheets"
+    #
+    # -- yeah, one of my ugly build systems uses /docbook
+    #
+    PDB_PATHS="$PDB_PATHS /docbook"
+    #
+    # -- add other possible docbook paths here before the for loop
+    #
+    # PDB_PATHS="$PDB_PATHS /some/path"
+    #
+    for i in $PDB_PATHS ; do
+      AC_MSG_CHECKING([Looking in $i])
+      if test -r "${i}/xhtml/docbook.xsl"; then
+        AC_MSG_RESULT(yes)
+        XSL_ROOT=$i
+      else
+        AC_MSG_RESULT(no)
+      fi
+    done
+  
+    # -- since we haven't been able to locate the docbook.xsl file
+    #    in any of the potentially expected places, we'll need to
+    #    try to allow xsltproc to connect to the canonical source.
+    #    Yes.  This is ugly, but it might work.
+    # 
+    if test -z "$XSL_ROOT"; then
+      XSLTPROC_FLAGS=
+    fi
+  else
+    AC_MSG_RESULT(yes)
+    XML_CATALOG=/etc/xml/catalog
+  fi
+fi
+
+dnl -- then you can use as much shell as you want to test things you need
+dnl    to test on the build system.
+dnl
+# -- assume that xsltproc is broken, and see if we can make it function
+#    properly in this environment.
+#
+XSLTPROC_WORKS=no
+if test -n "$XSLTPROC"; then
+  AC_MSG_CHECKING([whether xsltproc works])
+  if test -z "$XML_CATALOG" -a -z "$XSLROOT"; then
+    # -- only if we are using the 'net do we need to set this
+    #
+    DB_FILE="http://docbook.sourceforge.net/release/xsl/current/xhtml/docbook.xsl"
+  else
+    DB_FILE="$XSL_ROOT/xhtml/docbook.xsl"
+  fi
+
+$XSLTPROC $XSLTPROC_FLAGS $DB_FILE >/dev/null 2>&1 << END
+<?xml version="1.0" encoding='ISO-8859-1'?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<book id="test">
+</book>
+END
+  if test "$?" = 0; then
+    XSLTPROC_WORKS=yes
+  else
+    AC_MSG_ERROR(xsltproc does not appear to work)
+  fi
+  AC_MSG_RESULT($XSLTPROC_WORKS)
+fi
+
+dnl
+dnl -- above, we have been setting shell variables like XSLTPROC,
+dnl    XSL_ROOT, XML_CATALOG and so forth.
+dnl
+dnl -- Let's assume XSL_ROOT="/usr/share/sgml/docbook-xsl".  If so,
+dnl    the generated ./configure script will perform the following
+dnl    translation on Makefile.in
+dnl
+dnl -- perl -pe 's|@XSL_ROOT@|/usr/share/sgml/docbook-xsl|g' \
+dnl        Makefile.in > Makefile
+dnl -- so, in order to use the variables set by the ./configure script
+dnl    you make your Makefile with autoconf vars called @prefix@ and
+dnl    @datadir@, @XSL_ROOT@ and so on.
+dnl    
+AC_SUBST(XML_CATALOG)
+AC_SUBST(XSLTPROC)
+AC_SUBST(XSLTPROC_FLAGS)
+AC_SUBST(XSL_ROOT)
+
+dnl -- the AC_CONFIG_FILES parameter says that you should operate on the
+dnl    following set of files, relative to the current directory
+dnl
+AC_CONFIG_FILES(Makefile xsl/catalog.xml)
+
+dnl -- AC_OUTPUT is the "GO" button.  Pressing GO actually causes all of
+dnl    the files to be rewritten...I believe this is a requirement of an
+dnl    autoconf file
+
+AC_OUTPUT
