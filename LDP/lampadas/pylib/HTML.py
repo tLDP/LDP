@@ -234,7 +234,7 @@ class TableFactory:
         self.box = self.box + '<th align=right>ISBN</th><td><input type=text name=isbn size=14 value="' + doc.ISBN + '"></td>'
         self.box = self.box + '<th align=right>Rating</th>\n'
         self.box = self.box + '<td>'
-        self.box = self.box + self.BarGraph(doc.Rating, 10, lang)
+        self.box = self.box + self.bar_graph(doc.Rating, 10, lang)
         self.box = self.box + '</td>\n'
         if DocID:
             self.box = self.box + '</tr>\n<tr>\n'

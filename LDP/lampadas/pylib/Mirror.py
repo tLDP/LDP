@@ -27,6 +27,11 @@ local Lampdas system.
 
 # Modules ##################################################################
 
+from DataLayer import lampadas
+from Lintadas import lintadas
+from Log import log
+from Config import config
+from Makefile import makefile
 
 # Constants
 
@@ -36,112 +41,107 @@ local Lampdas system.
 
 class Mirror:
 
-	from Config import Config
-	from Lintadas import Lintadas
-	import os.path
-	import urllib
-	import os
+    import os.path
+    import urllib
+    import os
 
-	C = Config()
-	Lint = Lintadas()
+    def mirror_all(self):
+        log(3, 'Mirroring all documents')
+        for dockey in lampadas.Docs.keys():
+            self.mirror_doc(dockey)
+        makefile.write_main_makefile()
 
-	def mirror_all(self):
-		self.Lint.L.Log(3, 'Mirroring all documents')
-		for dockey in self.Lint.L.Docs.keys():
-			self.mirror_doc(dockey)
-		self.write_main_makefile()
+    def mirror_doc(self, DocID):
+        log(3, 'Mirroring document ' + str(DocID))
+        self.Doc = lampadas.Docs[DocID]
+        
+        # decide if the document is remote
+        #
+        self.is_remote = 0
+        filekeys = self.Doc.Files.keys()
+        for filekey in filekeys:
+            if not self.Doc.Files[filekey].IsLocal:
+                self.is_remote = 1
+        
+        # delete list of local files if document is remote
+        #
+        if self.is_remote:
+                filekeys = self.Doc.Files.keys()
+                for filekey in filekeys:
+                    if self.Doc.Files[filekey].IsLocal:
+                        self.Doc.Files[filekey].Del()
 
-	def mirror_doc(self, DocID):
-		self.Lint.L.Log.Write(3, 'Mirroring document ' + str(DocID))
-		self.Doc = self.Lint.L.Docs[DocID]
-		
-		# decide if the document is remote
-		#
-		self.is_remote = 0
-		filekeys = self.Doc.Files.keys()
-		for filekey in filekeys:
-			if not self.Doc.Files[filekey].IsLocal:
-				self.is_remote = 1
-		
-		# delete list of local files if document is remote
-		#
-		if self.is_remote:
-				filekeys = self.Doc.Files.keys()
-				for filekey in filekeys:
-					if self.Doc.Files[filekey].IsLocal:
-						self.Doc.Files[filekey].Del()
+        # mirror all files into cache, whether from remote
+        # or local storage
+        #
+        # filename can look like:	http://foo.org/foo.sgml
+        # 							ftp://foo.org/foo.sgml
+        # 							howto/docbook/big-memory-howto.sgml
+        # 
+        for filekey in filekeys:
+            
+            # create cache directory for this document
+            # 
+            self.cachedir = config.cache_dir + str(self.Doc.ID) + '/'
+            if not self.os.access(self.cachedir, self.os.F_OK):
+                self.os.mkdir(self.cachedir)
 
-		# mirror all files into cache, whether from remote
-		# or local storage
-		#
-		# filename can look like:	http://foo.org/foo.sgml
-		# 							ftp://foo.org/foo.sgml
-		# 							howto/docbook/big-memory-howto.sgml
-		# 
-		for filekey in filekeys:
-			
-			# create cache directory for this document
-			# 
-			self.cachedir = self.C.cache_dir + str(self.Doc.ID) + '/'
-			if not self.os.access(self.cachedir, self.os.F_OK):
-				self.os.mkdir(self.cachedir)
+            self.File		= self.Doc.Files[filekey]
+            self.filename	= self.File.Filename
+            self.file_only	= self.File.file_only
+            self.cachename	= self.cachedir + self.file_only
+            
+            if self.File.IsLocal:
 
-			self.File		= self.Doc.Files[filekey]
-			self.filename	= self.File.Filename
-			self.file_only	= self.File.file_only
-			self.cachename	= self.cachedir + self.file_only
-			
-			if self.File.IsLocal:
+                # It is expensive to copy local documents into a cache directory,
+                # but it avoids publishing documents directly out of CVS.
+                # Some publishing tools leave clutter in the directory on failure.
+                # 
+                if not self.os.access(config.cvs_root + self.filename, self.os.F_OK):
+                    log(2, 'Cannot mirror missing file: ' + self.filename)
+                    continue
+                log(3, 'mirroring local file ' + self.filename)
+                command = 'cd ' + self.cachedir + '; cp -pu ' + config.cvs_root + self.filename + ' .'
+                self.os.system(command)
+        
+            else:
+                try:
+                    log(3, 'mirroring remote file ' + self.filename)
+                    self.urllib.urlretrieve(self.File.Filename, self.cachename)
+                except IOError:
+                    log(0, 'error retrieving remote file ' + self.filename)
+                    continue
 
-				# It is expensive to copy local documents into a cache directory,
-				# but it avoids publishing documents directly out of CVS.
-				# Some publishing tools leave clutter in the directory on failure.
-				# 
-				if not self.os.access(self.C.CVSRoot + self.filename, self.os.F_OK):
-					self.Lint.L.Log(2, 'Cannot mirror missing file: ' + self.filename)
-					continue
-				self.Lint.L.Log(3, 'mirroring local file ' + self.filename)
-				command = 'cd ' + self.cachedir + '; cp -pu ' + self.C.CVSRoot + self.filename + ' .'
-				self.os.system(command)
-		
-			else:
-				try:
-					self.Lint.L.Log(3, 'mirroring remote file ' + self.filename)
-# FIXME:					self.urllib.urlretrieve(self.File.Filename, self.cachename)
-				except IOError:
-					self.Lint.L.Log(0, 'error retrieving remote file ' + self.filename)
-					continue
+            if self.unpack(self.cachedir, self.file_only):
+                for file in self.os.listdir(self.cachedir):
+                    if file[-5:] <> '.html':
+                        self.Doc.Files.Add(self.Doc.ID, file)
 
-			if self.unpack(self.cachedir, self.file_only):
-				for file in self.os.listdir(self.cachedir):
-					if file[-5:] <> '.html':
-						self.Doc.Files.Add(self.Doc.ID, file)
+            lintadas.CheckDoc(DocID)
 
-			self.Lint.CheckDoc(DocID)
+        log(3, 'Mirroring document ' + str(DocID) + ' complete.')
+        
 
-		self.Lint.L.Log(3, 'Mirroring document ' + str(DocID) + ' complete.')
-		
-
-	def unpack(self, dir, file):
-		"""
-		Goes to the specified directory and unpacks a file.
-		Returns 1 if an archive was identified and unpacked.
-		Returns 0 if it was not a recognized archive.
-		Supported archives are .tar, .gz and .tar.gz.
-		"""
-		cmd_start = 'cd ' + dir + '; '
-		if file[-7:] == '.tar.gz':
-			self.os.system(cmd_start + 'tar -zxf ' + file)
-			return 1
-		elif file[-4:] == '.tar':
-			self.os.system(cmd_start + 'tar -xf ' + file)
-			return 1
-		elif file[-3:] == '.gz':
-			self.os.system(cmd_start + 'gunzip -f ' + file)
-			return 1
+    def unpack(self, dir, file):
+        """
+        Goes to the specified directory and unpacks a file.
+        Returns 1 if an archive was identified and unpacked.
+        Returns 0 if it was not a recognized archive.
+        Supported archives are .tar, .gz and .tar.gz.
+        """
+        cmd_start = 'cd ' + dir + '; '
+        if file[-7:] == '.tar.gz':
+            self.os.system(cmd_start + 'tar -zxf ' + file)
+            return 1
+        elif file[-4:] == '.tar':
+            self.os.system(cmd_start + 'tar -xf ' + file)
+            return 1
+        elif file[-3:] == '.gz':
+            self.os.system(cmd_start + 'gunzip -f ' + file)
+            return 1
 
 
 if __name__ == "__main__":
-	M = Mirror()
-	M.mirror_all()
+    M = Mirror()
+    M.mirror_all()
 

@@ -157,13 +157,13 @@ class Docs(LampadasCollection):
 	"""
 
 	def Load(self):
-		self.sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
-		self.cursor = db.select(self.sql)
+		sql = "SELECT doc_id, title, class_id, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+		cursor = db.select(sql)
 		while (1):
-			self.row = self.cursor.fetchone()
-			if self.row == None: break
+			row = cursor.fetchone()
+			if row == None: break
 			newDoc = Doc()
-			newDoc.LoadRow(self.row)
+			newDoc.LoadRow(row)
 			self[newDoc.ID] = newDoc
 
 # FIXME: try instantiating a new document, then adding *it* to the collection,
