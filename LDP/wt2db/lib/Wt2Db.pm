@@ -492,7 +492,7 @@ sub ProcessLine {
             $qandaentry = 1;
         }
         if ($qandaset == 0) {
-            $line = "<qandaset defaultlabel='qanda'>\n". $line;
+            $line = "<qandaset defaultlabel='qanda'>\n<?dbhtml toc='1' ?>" . $line;
             $qandaset = 1;
         }
 
