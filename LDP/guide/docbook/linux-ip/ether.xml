@@ -553,7 +553,10 @@ Received 1 response(s)
           </para>
         </footnote>,
         this can lead to the possibly puzzling effect that an IP migrates
-        non-deterministically through multiple link layer addresses.
+        non-deterministically through multiple link layer addresses.  It's
+        important to understand that ARP flux typically only affects hosts
+        which have multiple physical connections to the same medium or
+        broadcast domain.
       </para>
       <para>
         This is a simple illustration of the problem in a network where a
@@ -775,12 +778,21 @@ Received 3 response(s)</computeroutput>
           kernels.
         </para>
         <para>
-          <filename>/proc/sys/net/ipv4/conf/$DEV/hidden</filename> toggles
-          the generation of ARP replies for requested IPs.
-          It marks an interface invisible to
-          other interfaces for the purpose of ARP requests.  This means that
-          each interface marked with the <filename>hidden</filename> attribute
-          can answer ARP requests only for IPs bound to it.
+          The sysctl <filename>net/ipv4/conf/$DEV/hidden</filename> toggles
+          the generation of ARP replies for requested IPs.  It marks an
+          interface invisible to other interfaces for the purpose of ARP
+          requests.  When an ARP request arrives on any interface, the kernel
+          tests to see if the IP address is locally hosted anywhere on the
+          machine.  If the IP is found on any interface, the kernel will
+          generate a reply.
+        </para>
+        <para>
+          Since this is not always desirable, the <filename>hidden</filename>
+          sysctl can be employed.  This prevents the kernel from finding the
+          IP address when testing to see what IP addresses are locally hosted.
+          The kernel can always find IPs hosted on the interface on which the
+          packet arrived, but it cannot find addresses which are
+          <filename>hidden</filename>.
         </para>
         <para>
           As shown in
@@ -796,13 +808,16 @@ Received 3 response(s)</computeroutput>
               operation on a network.
             </para>
           </footnote>.
+          This makes the <filename>hidden</filename> sysctl useful for
+          ARP/IP disclosure security of multi-homed hosts in addition to
+          preventing ARP flux on hosts connected to the same network medium.
         </para>
         <example id="ex-ether-arp-flux-hidden">
           <title>Correction of ARP flux with
             <filename>net/$DEV/hidden</filename></title>
             <programlisting>
 <prompt>[root@real-client]# </prompt><userinput>arping -I eth0 -c 1 172.19.22.254</userinput>
-<computeroutput>ARPING 172.19.22.254 from 172.19.24.2 eth0
+<computeroutput>ARPING 172.19.22.254 from 172.19.22.2 eth0
 Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2D]  0.704ms
 Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2E]  0.844ms
 Unicast reply from 172.19.22.254 [00:60:F5:08:8A:2F]  0.918ms
