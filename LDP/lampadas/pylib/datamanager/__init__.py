@@ -1,6 +1,4 @@
-__name__ = 'datamanager'
-
-__doc__ = """
+"""
 This package provides a querying interface to the back end database.
 
 Every table in the database has a corresponding data manager class here

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 A collection of datamanagers, one for each table.
 """

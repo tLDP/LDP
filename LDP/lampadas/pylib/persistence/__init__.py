@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 This package provides base classes for persistent objects.
 It relies on the datamanager package to do the actual database work.
