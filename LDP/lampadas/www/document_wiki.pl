@@ -14,7 +14,7 @@ $doc_id       = param('doc_id');
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
 
-$result = $conn->exec("SELECT title, wiki FROM document WHERE doc_id = $doc_id");
+$result = $conn->exec("SELECT title, wiki, filename FROM document WHERE doc_id = $doc_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
 @row = $result->fetchrow;
@@ -27,6 +27,31 @@ $title =~  s/\s+$//;
 
 $wiki	= $row[1];
 $wiki   =~  s/\s+$//;
+
+$txtname = "/var/www/txt2db/foo.txt";
+
+$sgmlname = $txtname;
+$sgmlname =~ s/\.txt/\.sgml/;
+
+open(TXT, "> $txtname");
+print TXT $wiki;
+close(TXT);
+
+$cmd = "/usr/lib/cgi-bin/gldp.org/txt2db.pl -o $sgmlname $txtname";
+system($cmd);
+
+open(SGML, $sgmlname);
+while (<SGML>) {
+	$line = $_;
+	while ($line =~ /</) {
+		$line =~ s/</&lt;/;
+	}
+	while ($line =~ />/) {
+		$line =~ s/>/&gt;/;
+	}
+	$buf .= "<br>$line";
+}
+close(SGML);
 
 print header(-expires=>'now');
 
@@ -57,6 +82,8 @@ print "</table>\n";
 
 print "<input type=submit value=Save>\n";
 print "</form>\n";
+
+print "<p>$buf\n";
 
 print end_html;
 
