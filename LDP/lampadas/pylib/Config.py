@@ -37,6 +37,7 @@ class Config:
 	RootDir = ''
 	FileDir = ''
 	CVSRoot = ''
+	CacheDir = ''
 
 	def __init__(self) :
 		import ConfigParser
@@ -56,6 +57,7 @@ class Config:
 		self.RootDir	= self.ReadVar('WEBSERVER', 'rootdir')
 		self.FileDir	= self.ReadVar('WEBSERVER', 'filedir')
 		self.CVSRoot	= self.ReadVar('CVS', 'cvsroot')
+		self.cache_dir	= self.ReadVar('MIRROR', 'cachedir')
 
 	def ReadVar(self, section, name):
 		if not self.config.has_section(section) :
@@ -85,4 +87,5 @@ if __name__ == '__main__' :
 	print "RootDir=" + Config.RootDir
 	print "CVSRoot=" + Config.CVSRoot
 	print "FileDir=" + Config.FileDir
+	print "cache_dir=" + Config.cache_dir
 	print "Unit tests complete."

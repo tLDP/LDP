@@ -45,8 +45,7 @@ class Lampadas:
 		self.Log		= Log
 		self.Classes		= Classes()
 		self.Classes.Load()
-		self.Config		= Config()
-		self.Config.Load()
+		self.Config		= Cfg()
 		self.Docs		= Docs()
 		self.Docs.Load()
 		self.DTDs		= DTDs()
@@ -114,23 +113,27 @@ class ClassI18n:
 		self.Description	= trim(row[2])
 
 	
-# Config
+# Cfg
 
-class Config(LampadasCollection):
+class Cfg(LampadasCollection):
 	"""
 	Holds system configuration information.
 	"""
 
+	def __init__(self):
+		self.data = {}
+		self.Load()
+
 	def __call__(self, key):
 		return self[key]
-		
+
 	def Load(self):
 		self.sql = "SELECT name, value FROM config"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			row = self.cursor.fetchone()
 			if row == None: break
-			self[trim(row[0])] = trim(row[1])
+			self.data[trim(row[0])] = trim(row[1])
 
 
 # Documents
@@ -242,6 +245,7 @@ class DocErrs(LampadasList):
 	def Clear(self):
 		self.sql = "DELETE FROM document_error WHERE doc_id=" + str(self.DocID)
 		DB.Exec(self.sql)
+		DB.Commit()
 		self.list = []
 
 # FIXME: Try instantiating a DocErr object, then adding it to the *document*
@@ -288,6 +292,21 @@ class DocFiles(LampadasCollection):
 			newDocFile.Load(DocID, row)
 			self.data[newDocFile.Filename] = newDocFile
 
+	def Add(self, DocID, Filename, FormatID=None):
+		self.sql = 'INSERT INTO document_file (doc_id, filename, format_id) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + dbint(FormatID) + ')'
+		assert DB.Exec(self.sql) == 1
+		DB.Commit()
+		newDocFile = DocFile()
+		newDocFile.DocID = DocID
+		newDocFile.Filename = Filename
+		newDocFile.FormatID = FormatID
+		
+	def Clear(self):
+		self.sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID)
+		DB.Exec(self.sql)
+		DB.Commit()
+		self.data = {}
+
 class DocFile:
 	"""
 	An association between a document and a file.
@@ -299,10 +318,19 @@ class DocFile:
 		self.DocID	= DocID
 		self.Filename	= trim(row[0])
 		self.FormatID	= row[1]
+		if self.Filename[:5] == 'http:' or self.Filename[:4] == 'ftp:':
+			self.Local = 0
+		else:
+			self.Local = 1
 
 	def Save(self):
-		self.sql = "UPDATE document_file SET format_id=" + str(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
-		assert DB.Exec(self.sql) == 1
+		self.sql = "UPDATE document_file SET format_id=" + dbint(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+		DB.Exec(self.sql)
+		DB.Commit()
+
+	def Del(self):
+		self.sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+		DB.Exec(self.sql)
 		DB.Commit()
 
 
