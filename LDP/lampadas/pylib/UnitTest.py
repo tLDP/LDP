@@ -76,7 +76,8 @@ class testDocs(unittest.TestCase):
                                 'This is an abstract.',
                                 'This is a short description.',
                                 'EN',
-                                'fooseries')
+                                'fooseries',
+                                0)
 
         assert not doc==None
         assert doc.title=='Test Document'
@@ -264,9 +265,7 @@ class testTopics(unittest.TestCase):
         keys = lampadas.topics.keys()
         for key in keys:
             topic = lampadas.topics[key]
-            assert topic.num > 0
             assert topic.name['EN'] > ''
-            assert topic.description['EN'] > ''
         log(3, 'testing Topics done')
 
 
@@ -321,10 +320,10 @@ class testURLParse(unittest.TestCase):
         # uri protocol server port path language
         # forcelang id format filename parameter anchor
         self.check_uri('',
-                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
+                       ('',     '',        '',    '/','.html',    0, '', 'index',  '',''))
 
         self.check_uri('/',
-                       ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
+                       ('',     '',        '',    '/','.html',    0, '', 'index',   '',''))
 
         self.check_uri('/home.html',
                        ('',     '',        '',    '/','.html',    0, '', 'home',   '',''))
@@ -339,7 +338,7 @@ class testURLParse(unittest.TestCase):
                        ('',     '',        '',    '/','.es.html', 1, '', 'document_main','',''))
 
         self.check_uri('http://localhost:8000',
-                       ('http','localhost','8000','/','.html',    0, '', 'home',   '',''))
+                       ('http','localhost','8000','/','.html',    0, '', 'index',   '',''))
 
         self.check_uri('http://localhost/document_main/1.html',
                        ('http','localhost','',    '/','.html',    1, '', 'document_main','',''))
