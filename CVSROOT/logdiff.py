@@ -186,7 +186,7 @@ def blast_mail(mail_from, PEOPLE, filestodiff, contextlines, module_name):
 	# define our codepage for MIME
 	mimify.CHARSET="ISO-8859-2"
 	# message body starting with headers
-	msgbody = "From: \"" +  mimify.mime_encode_header(full_name) + "\" <" + mail_from + "@" + addr_suffix + ">" + "\r\n"
+	msgbody = "From: " +  mimify.mime_encode_header(full_name) + " <" + mail_from + "@" + addr_suffix + ">" + "\r\n"
 	msgbody = mimify.mime_encode_header(msgbody)
 	msgbody = msgbody + "To: " + string.join(dest_addr, ", ") + "\r\n"
 	msgbody = msgbody + "Reply-To: \"General Discuss\" <discuss@en.tldp.org>" + "\n"
