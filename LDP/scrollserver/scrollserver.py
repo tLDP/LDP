@@ -40,11 +40,17 @@ class URI:
 	Path = ""
 	Filename = ""
 	Parameter = ""
+	Anchor = ""
 
 	def __init__(self, uri):
 
 		self.URI = uri
 		temp = uri
+		
+		temp = string.split(temp,"#")
+		if len(temp) > 1:
+			self.Anchor = temp[1]
+		temp = temp[0]
 		
 		temp = string.split(temp,"?")
 		if len(temp) > 1:
@@ -102,18 +108,18 @@ class RequestHandler(BaseClass):
 				return self.send_URI(uri)
 
 	def send_Home(self):
-		FileCache ("", "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/documents.xsl > index.html")
-		return self.send_File("index.html")
+		FileCache ("", htmlbase+ "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/documents.xsl > " + htmlbase + "index.html")
+		return self.send_File(htmlbase + "index.html")
 			
 	def send_ContentsList(self):
 		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
-		FileCache (contents_list, "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > contents.html")
-		return self.send_File("contents.html")
+		FileCache (contents_list, htmlbase + "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > " + htmlbase + "contents.html")
+		return self.send_File(htmlbase + "contents.html")
 
 	def send_DocList(self):
 		contents_list = commands.getoutput("scrollkeeper-get-content-list C")
-		FileCache (contents_list, "documents.html", "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > documents.html")
-		return self.send_File("documents.html")
+		FileCache (contents_list, htmlbase + "documents.html", "xsltproc " + xsltparam + " stylesheets/documents.xsl " + contents_list + " > " + htmlbase + "documents.html")
+		return self.send_File(htmlbase + "documents.html")
 
 	def send_DocumentByID(self, docid):
 		document = ScrollKeeper.DocumentByID(docid)
@@ -141,6 +147,7 @@ class RequestHandler(BaseClass):
 		refuri = URI(referer)
 
 		if refuri.Filename == "docid":
+			print refuri.Parameter
 			document = ScrollKeeper.DocumentByID(refuri.Parameter)
 			filename = htmlbase + document.ID + "/" + uri.Path + "/" + uri.Filename
 			return self.send_File(filename)
@@ -195,9 +202,8 @@ class RequestHandler(BaseClass):
 
 
 def ScrollServer():
-	os.system("rm -rf /var/cache/scrollserver/*")
-	os.system("rm *.html")
-	print "ScrollServer v0.3 -- development version!"
+	os.system("rm -rf " + htmlbase + "*")
+	print "ScrollServer v0.5 -- development version!"
 	SimpleHTTPServer.test(RequestHandler)
 
 ScrollServer()
