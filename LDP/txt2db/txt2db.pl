@@ -2,10 +2,20 @@
 #
 #Converts txt files into docbook.
 #
-#Usage: txt2db <text file>
+#Usage: txt2db {-o <output file>} <text file>
 
 my($txtfile, $dbfile) = '';
-my($level1,$level2,$level3,$orderedlist,$listitem,$para);
+
+#These keep track of which constructs we're in the middle of
+my($level1,
+   $level2,
+   $level3,
+   $orderedlist,
+   $listitem,
+   $para);
+
+my($line);
+my($id, $title);
 
 # read in cmd-line arguments
 #
@@ -59,7 +69,6 @@ sub usage {
 }
 
 sub proc_txt {
-	my($line);
 	my($f) = @_;
 
 	# read in the text file
@@ -79,18 +88,30 @@ sub proc_txt {
 		if ($line =~ /^=\w/) {
 			&close1;
 			$level1 = 1;
-			$line =~ s/^=/<sect1><title>/;
-			$line =~ s/=$/<\/title>\n/;
+			&splittitle;
+			if ($id eq '') {
+				$line = "<sect1><title>$title</title>\n";
+			} else {
+				$line = "<sect1 id='$id'><title>$title</title>\n";
+			}
 		} elsif ($line =~ /^==\w/) {
 			&close2;
 			$level2 = 1;
-			$line =~ s/^==/\n<sect2><title>/;
-			$line =~ s/==$/<\/title>\n/;
+			&splittitle;
+			if ($id eq '') {
+				$line = "<sect2><title>$title</title>\n";
+			} else {
+				$line = "<sect2 id='$id'><title>$title</title>\n";
+			}
 		} elsif ($line =~ /^===\w/) {
 			&close3;
 			$level3 = 1;
-			$line =~ s/^===/\n<sect3><title>/;
-			$line =~ s/===$/<\/title>\n/;
+			&splittitle;
+			if ($id eq '') {
+				$line = "<sect3><title>$title</title>\n";
+			} else {
+				$line = "<sect3 id='$id'><title>$title</title>\n";
+			}
 		} elsif ($line =~ /^#/) {
 			if ($orderedlist == 0) {
 				$orderedlist = 1;
@@ -185,5 +206,17 @@ sub closepara {
 	if ($para == 1) {
 		$buf .= "</para>\n";
 		$para = 0;
+	}
+}
+
+sub splittitle {
+	$line =~ s/^=+//;
+	$line =~ s/=+$//;
+	$title = $line;
+	$id = "";
+	if ($line =~ /\|/) {
+		$title =~ s/\|\w+//;
+		$id = $line;
+		$id =~ s/^.+\|//;
 	}
 }
