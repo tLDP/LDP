@@ -9,6 +9,3 @@ CREATE TABLE doc_vote
 
 	PRIMARY KEY (doc_id, username)
 );
-
-GRANT ALL ON doc_vote TO "www-data";
-GRANT SELECT ON doc_vote TO root;

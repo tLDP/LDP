@@ -8,11 +8,3 @@ CREATE TABLE document_wiki (
 	notes		CHAR(256),
 	username	CHAR(12)
 );
-
-ALTER TABLE document_wiki
-ADD CONSTRAINT doc_id_fk
-FOREIGN KEY (doc_id)
-REFERENCES document(doc_id);
-
-GRANT ALL ON document_wiki TO "www-data";
-

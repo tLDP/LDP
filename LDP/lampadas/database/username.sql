@@ -11,6 +11,3 @@ CREATE TABLE username (
 
 	PRIMARY KEY (username)
 );
-
-GRANT ALL ON username TO "www-data";
-GRANT SELECT ON username TO root;

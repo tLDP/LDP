@@ -20,7 +20,7 @@ CREATE TABLE document
 	pub_date		DATE,
 	ref_url			TEXT,
 	tech_review_status	CHAR,
-	maintained		BOOLEAN	DEFAULT True,
+	maintained		BOOLEAN	DEFAULT False,
 	license_id		INT4,
 	license			CHAR(12),
 	abstract		TEXT,
@@ -29,36 +29,3 @@ CREATE TABLE document
 
 	PRIMARY KEY (doc_id)
 );
-
-ALTER TABLE document
-ADD CONSTRAINT pub_status_fk
-FOREIGN KEY  (pub_status)
-REFERENCES pub_status(pub_status);
-
-ALTER TABLE document
-ADD CONSTRAINT review_status_fk
-FOREIGN KEY  (review_status)
-REFERENCES review_status(review_status);
-
-ALTER TABLE document
-ADD CONSTRAINT tech_review_status_fk
-FOREIGN KEY  (tech_review_status)
-REFERENCES review_status(review_status);
-
-ALTER TABLE document
-ADD CONSTRAINT class_fk
-FOREIGN KEY (class)
-REFERENCES class(class);
-
-ALTER TABLE document
-ADD CONSTRAINT format_fk
-FOREIGN KEY (format)
-REFERENCES format(format);
-
-ALTER TABLE document
-ADD CONSTRAINT dtd_fk
-FOREIGN KEY (dtd)
-REFERENCES dtd(dtd);
-
-GRANT ALL ON document TO "www-data";
-GRANT SELECT ON document TO root;

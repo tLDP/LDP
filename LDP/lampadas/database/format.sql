@@ -7,6 +7,3 @@ CREATE TABLE format
 
 	PRIMARY KEY (format)
 );
-
-GRANT SELECT ON format TO "www-data";
-

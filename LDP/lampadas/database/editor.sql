@@ -8,6 +8,3 @@ CREATE TABLE editor (
 
 	PRIMARY KEY (editor_id)
 );
-
-GRANT ALL ON editor TO "www-data";
-

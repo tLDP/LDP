@@ -7,5 +7,3 @@ CREATE TABLE audience (
 
 	PRIMARY KEY (audience)	
 );
-
-GRANT SELECT ON audience TO "www-data";

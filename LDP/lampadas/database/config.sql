@@ -6,6 +6,3 @@ CREATE TABLE config (
 
 	PRIMARY KEY (name)
 );
-
-GRANT ALL ON config TO "www-data";
-GRANT ALL on config to root;

@@ -9,11 +9,3 @@ CREATE TABLE subtopic
 
 	PRIMARY KEY (topic_num, subtopic_num)
 );
-
-ALTER TABLE subtopic
-ADD CONSTRAINT topic_num_fk
-FOREIGN KEY (topic_num)
-REFERENCES topic(topic_num);
-
-GRANT SELECT ON subtopic TO "www-data";
-

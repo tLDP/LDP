@@ -11,22 +11,3 @@ CREATE TABLE document_maintainer
 
 	PRIMARY KEY (doc_id, maintainer_id, role)
 );
-
-
-ALTER TABLE document_maintainer
-ADD CONSTRAINT doc_id_fk
-FOREIGN KEY (doc_id)
-REFERENCES document(doc_id);
-
-ALTER TABLE document_maintainer
-ADD CONSTRAINT maintainer_id_fk
-FOREIGN KEY (maintainer_id)
-REFERENCES maintainer(maintainer_id);
-
-ALTER TABLE document_maintainer
-ADD CONSTRAINT role_fk
-FOREIGN KEY (role)
-REFERENCES role(role);
-
-GRANT ALL ON document_maintainer TO "www-data";
-GRANT SELECT on document_maintainer to root;

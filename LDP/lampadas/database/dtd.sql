@@ -6,6 +6,3 @@ CREATE TABLE dtd
 
 	PRIMARY KEY (dtd)
 );
-
-GRANT SELECT ON dtd TO "www-data";
-

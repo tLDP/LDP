@@ -36,6 +36,3 @@ CREATE TABLE stats (
 
 	PRIMARY KEY (date_entered)
 );
-
-GRANT SELECT ON stats TO "www-data";
-GRANT ALL on stats to root;

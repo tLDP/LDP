@@ -6,5 +6,3 @@ CREATE TABLE document_audience (
 	
 	PRIMARY KEY (doc_id, audience)
 );
-
-GRANT ALL ON document_audience TO "www-data";

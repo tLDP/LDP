@@ -39,6 +39,12 @@ psql ldp -qf license.sql
 psql ldp -qf username.sql
 psql ldp -qf config.sql
 
-#views
+# indexes
+psql ldp -qf indexes.sql
+
+# permissions
+psql ldp -qf permissions.sql
+
+# views
 psql ldp -qf vw_gfdl_emails.sql
 psql ldp -qf vw_gfdl_docs.sql

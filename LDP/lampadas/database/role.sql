@@ -5,6 +5,3 @@ CREATE TABLE role(
 
 	PRIMARY KEY (role)
 );
-
-GRANT SELECT ON role TO "www-data";
-

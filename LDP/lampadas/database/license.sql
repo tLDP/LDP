@@ -6,6 +6,3 @@ CREATE TABLE license
 
 	PRIMARY KEY (license)
 );
-
-GRANT SELECT ON license TO "www-data";
-
