@@ -142,7 +142,22 @@ sub proc_txt {
 				$line .= " ";
 			}
 		}
-		
+
+		# links
+		# 
+		if ($line =~ /\[\[/) {
+			$link = $line;
+			$link =~ s/^.*\[\[//;
+			$link =~ s/\]\].*$//;
+			if ( $link =~ /\ /) {
+				$linkname = $link;
+				$link =~ s/\ .+$//;
+				$linkname =~ s/^\S+\ //;
+			} else {
+				$linkname = $link;
+			}
+			$line =~ s/\[\[.*\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+		}
 		$buf .= $line;
 	}
 	# close nesting
