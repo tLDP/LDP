@@ -35,20 +35,60 @@
 <para>Functions are like mini-scripts: they can accept parameters, they can use variables only known within the function (using the <command>local</command> shell built-in) and they can return values to the calling shell.</para>
 <para>A function also has a system for interpreting positional parameters.  However, the positional parameters passed to a function are not the same as the ones passed to a command or script.</para>
 <para>When a function is executed, the arguments to the function become the positional parameters during its execution.  The special parameter <varname>#</varname> that expands to the number of positional parameters is updated to reflect the change. Positional parameter <varname>0</varname> is unchanged.  The Bash variable <varname>FUNCNAME</varname> is set to the name of the function, while it is executing.</para>
-<para>If the <command>return</command> built-in is executed in a function, the function completes and execution resumes with the next command after the function call.  When a function completes, the values of the positional parameters and the special parameter <varname>#</varname> are restored to the values they had prior to the function's execution.  If a numeric argument is given to <command>return</command>, that status is returned.</para>
+<para>If the <command>return</command> built-in is executed in a function, the function completes and execution resumes with the next command after the function call.  When a function completes, the values of the positional parameters and the special parameter <varname>#</varname> are restored to the values they had prior to the function's execution.  If a numeric argument is given to <command>return</command>, that status is returned.  A simple example:</para>
+<screen>
+<prompt>[lydia@cointreau ~/test]</prompt> <command>cat <filename>showparams.sh</filename></command>
+#!/bin/bash
+                                                                                
+echo "This script demonstrates function arguments."
+echo
+                                                                                
+echo "Positional parameter 1 for the script is $1."
+echo
+                                                                                
+test ()
+{
+echo "Positional parameter 1 in the function is $1."
+RETURN_VALUE=$?
+echo "The exit code of this function is $RETURN_VALUE."
+}
+                                                                                
+test other_param
+
+<prompt>[lydia@cointreau ~/test]</prompt> <command>./showparams.sh <parameter>parameter1</parameter></command>
+This script demonstrates function arguments.
+ 
+Positional parameter 1 for the script is parameter1.
+ 
+Positional parameter 1 in the function is other_param.
+The exit code of this function is 0.
+
+<prompt>[lydia@cointreau ~/test]</prompt>
+</screen>
+<para>Note that the return value or exit code of the function is often storen in a variable, so that it can be probed at a later point.  The init scripts on your system often use the technique of probing the <varname>RETVAL</varname> variable in a conditional test, like this one:</para>
+<screen>
+<command>if <parameter>[ $RETVAL -eq 0 ]</parameter>; then
+	&lt;start the daemon&gt;</command>
+</screen>
+<para>Or like this example from the <filename>/etc/init.d/amd</filename> script, where Bash's optimazation features are used:</para>
+<screen>
+<command><parameter>[ $RETVAL = 0 ]</parameter> &amp;&amp; touch <filename>/var/lock/subsys/amd</filename></command>
+</screen>
+<para>The commands after <command>&amp;&amp;</command> are only executed when the test proves to be true; this is a shorter way to represent an <command>if/then/fi</command> structure.</para>
+<para>The return code of the function is often used as exit code of the entire script.  You'll see a lot of initscripts ending in something like <command>exit <varname>$RETVAL</varname></command>.</para>
 </sect2>
 
 <sect2 id="sect_11_01_04"><title>Displaying functions</title>
 <para>All functions known by the current shell can be displayed using the <command>set</command> built-in without options.  Functions are retained after they are used, unless they are <command>unset</command> after use.  The <command>which</command> command also displays functions:</para>
 <screen>
-[lydia@cointreau ~] which zless
+<prompt>[lydia@cointreau ~]</prompt> <command>which <filename>zless</filename></command>
 zless is a function
 zless ()
 {
     zcat "$@" | "$PAGER"
 }
 
-[lydia@cointreau ~] echo $PAGER
+<prompt>[lydia@cointreau ~]</prompt> <command>echo <varname>$PAGER</varname></command>
 less
 </screen>
 <para>This is the sort of function that is typically configured in the user's shell resource configuration files.  Functions are more flexible than aliases and provide a simple and easy way of adapting the user environment.</para>
@@ -60,8 +100,9 @@ dir ()
 }
 </screen>
 </sect2>
-<sect2 id="sect_11_01_05"><title>Examples of functions in scripts</title>
-<sect3 id="sect_11_01_05_01"><title>Recycling</title>
+</sect1>
+<sect1 id="sect_11_02"><title>Examples of functions in scripts</title>
+<sect2 id="sect_11_02_01"><title>Recycling</title>
 <para>There are plenty of scripts on your system that use functions as a structured way of handling series of commands.  On some Linux systems, for instance, you will find the <filename>/etc/rc.d/init.d/functions</filename> definition file, which is sourced in all init scripts.  Using this method, common tasks such as checking if a process runs, starting or stopping a daemon and so on, only have to be written once, in a general way.  If the same task is needed again, the code is recycled.  From this <filename>functions</filename> file the <command>checkpid</command> function:</para>
 <screen>
 # Check if $pid (could be plural) are running
@@ -75,8 +116,8 @@ checkpid() {
 }
 </screen>
 <para>This function is reused in the same script in other functions, which are reused in other scripts.  The <command>daemon</command> function, for instance, is used in the majority of the startup scripts for starting a server process (on machines that use this system).</para>
-</sect3>
-<sect3 id="sect_11_01_05_02"><title>Setting the path</title>
+</sect2>
+<sect2 id="sect_11_02_02"><title>Setting the path</title>
 <para>This section might be found in your <filename>/etc/profile</filename> file.  The function <command>pathmunge</command> is defined and then used to set the path for the <emphasis>root</emphasis> and other users:</para>
 <screen>
 pathmunge () {
@@ -102,23 +143,23 @@ unset pathmunge
 </screen>
 <para>The function takes its first argument to be a path name.  If this path name is not yet in the current path, it is added.  The second argument to the function defines if the path will be added in front or after the current <varname>PATH</varname> definition.</para>
 <para>Normal users only get <filename>/usr/X11R6/bin</filename> added to their paths, while <emphasis>root</emphasis> gets a couple of extra directories containing system commands.  After being used, the function is unset so that it is not retained.</para>
-</sect3>
-<sect3 id="sect_11_01_05_03"><title>Remote backups</title>
-<para>The following example uses SSH keys for enabling the remote connection.  It uses two functions, <command>buplinux</command> and <command>bupbash</command>, that each make a <filename>.tar</filename> file, which is then compressed and sent to a remote server.  After that, the local copy is cleaned up.</para>
+</sect2>
+<sect2 id="sect_11_02_03"><title>Remote backups</title>
+<para>The following example is one that I use for making backups of the files for my books.  It uses SSH keys for enabling the remote connection.  Two functions are defined, <command>buplinux</command> and <command>bupbash</command>, that each make a <filename>.tar</filename> file, which is then compressed and sent to a remote server.  After that, the local copy is cleaned up.</para>
 <para>On Sunday, only <command>bupbash</command> is executed.</para>
 <screen>
 #/bin/bash
 
-LOGFILE="/nethome/lydia/log/backupscript.log"
+LOGFILE="/nethome/tille/log/backupscript.log"
 echo "Starting backups for `date`" &gt;&gt; "$LOGFILE"
 
 buplinux()
 {
-DIR="/nethome/lydia/xml/db/linux-basics/"
+DIR="/nethome/tille/xml/db/linux-basics/"
 TAR="Linux.tar"
 BZIP="$TAR.bz2"
 SERVER="rincewind"
-RDIR="/var/www/intra/lydia/html/training/"
+RDIR="/var/www/intra/tille/html/training/"
 
 cd "$DIR"
 tar cf "$TAR" src/*.xml src/images/*.png src/images/*.eps
@@ -134,12 +175,12 @@ rm "$BZIP"
 
 bupbash()
 {
-DIR="/nethome/lydia/xml/db/"
+DIR="/nethome/tille/xml/db/"
 TAR="Bash.tar"
 BZIP="$TAR.bz2"
 FILES="bash-programming/"
 SERVER="rincewind"
-RDIR="/var/www/intra/lydia/html/training/"
+RDIR="/var/www/intra/tille/html/training/"
 
 cd "$DIR"
 tar cf "$TAR" "$FILES"
@@ -175,15 +216,14 @@ echo -e "Remote backup `date` SUCCESS\n----------" &gt;&gt; "$LOGFILE"
 <cmdsynopsis><command>command &amp;&gt; <filename>file</filename></command></cmdsynopsis>
 <para>is equivalent to</para>
 <cmdsynopsis><command>command &gt; <filename>file</filename> 2&gt;&amp;1</command></cmdsynopsis>
-</sect3>
 </sect2>
 </sect1>
-<sect1 id="sect_11_02"><title>Summary</title>
-<para>Functions provide an easy way of grouping commands that you need to execute repetitively.  When a function is running, the positional parameters are changed to those of the function.  When it stops, they are reset to those of the calling program.</para>
+<sect1 id="sect_11_03"><title>Summary</title>
+<para>Functions provide an easy way of grouping commands that you need to execute repetitively.  When a function is running, the positional parameters are changed to those of the function.  When it stops, they are reset to those of the calling program.  Functions are like mini-scripts, and just like a script, they generate exit or return codes.</para>
 <para>While this was a short chapter, it contains important knowledge needed for achieving the ultimate state of laziness that is the typical goal of any system administrator.</para>
 </sect1>
 
-<sect1 id="sect_11_03"><title>Exercises</title>
+<sect1 id="sect_11_04"><title>Exercises</title>
 <para>Here are some useful things you can do using functions:</para>
 <orderedlist>
 <listitem><para>Add a function to your <filename>~/.bashrc</filename> config file that automates the printing of man pages.  The result should be that you type something like <command>printman &lt;command&gt;</command>, upon which the first appropriate man page rolls out of your printer.  Check using a pseudo printer device for testing purposes.</para>

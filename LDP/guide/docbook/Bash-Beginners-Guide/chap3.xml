@@ -648,6 +648,67 @@ ls: doesnotexist: No such file or directory
 </screen>
 <para>User <emphasis>franky</emphasis> starts entering the <command>id</command>command, which results in the assignment of the <varname>_</varname> variable.  The process ID of his shell is 10662.  After putting a job in the background, the <varname>!</varname> holds the process ID of the backgrounded job.  The shell running is <command>bash</command>.  When a mistake is made, <varname>?</varname> holds an exit code different from 0 (zero).</para>
 </sect2>
+<sect2 id="sect_03_02_06"><title>Script recycling with variables</title>
+<para>Apart from making the script more readable, variables will also enable you to faster apply a script in another environment or for another purpose.  Consider the following example, a very simple script that makes a backup of <emphasis>franky</emphasis>'s home directory to a remote server:</para>
+<screen>
+#!/bin/bash
+
+# This script makes a backup of my home directory.
+
+cd /home
+
+# This creates the archive
+tar cf /var/tmp/home_franky.tar franky &gt; /dev/null 2&gt;&amp;1
+
+# First remove the old bzip2 file.  Redirect errors because this generates some if the archive
+# does not exist.  Then create a new compressed file.
+rm /var/tmp/home_franky.tar.bz2 2&gt; /dev/null
+bzip2 /var/tmp/home_franky.tar
+
+# Copy the file to another host - we have ssh keys for making this work without intervention.
+scp /var/tmp/home_franky.tar.bz2 bordeaux:/opt/backup/franky &gt; /dev/null 2&gt;&amp;1
+
+# Create a timestamp in a logfile.
+date &gt; /home/franky/log/home_backup.log
+echo backup succeeded &gt; /home/franky/log/home_backup.log
+</screen>
+<para>First of all, you are more likely to make errors if you name files and directories manually each time you need them.  Secondly, suppose <emphasis>franky</emphasis> wants to give this script to <emphasis>carol</emphasis>, then carol will have to do quite some editing before she can use the script to back up her home directory.  The same is true if <emphasis>franky</emphasis> wants to use this script for backing up other directories.  For easy recycling, make all files, directories, usernames, servernames etcetera variable.  Thus, you only need to edit a value once, without having to go through the entire script to check where a parameter occurs.  This is an example:</para>
+<screen>
+#!/bin/bash
+                                                                                                 
+# This script makes a backup of my home directory.
+
+# Change the values of the variables to make the script work for you:
+BACKUPDIR=/home
+BACKUPFILES=franky
+TARFILE=/var/tmp/home_franky.tar
+BZIPFILE=/var/tmp/home_franky.tar.bz2
+SERVER=bordeaux
+REMOTEDIR=/opt/backup/franky
+LOGFILE=/home/franky/log/home_backup.log
+
+cd $BACKUPDIR
+
+# This creates the archive
+tar cf $TARFILE $BACKUPFILES &gt; /dev/null 2&gt;&amp;1
+                                                                                                 
+# First remove the old bzip2 file.  Redirect errors because this generates some if the archive 
+# does not exist.  Then create a new compressed file.
+rm $BZIPFILE 2&gt; /dev/null
+bzip2 $TARFILE
+
+# Copy the file to another host - we have ssh keys for making this work without intervention.
+scp $BZIPFILE $SERVER:$REMOTEDIR &gt; /dev/null 2&gt;&amp;1
+
+# Create a timestamp in a logfile.
+date &gt; $LOGFILE
+echo backup succeeded &gt; $LOGFILE
+</screen>
+
+<note><title>Large directories and low bandwidth</title>
+<para>The above is purely an example that everybody can understand, using a small directory and a host on the same subnet.  Depending on your bandwidth, the size of the directory and the location of the remote server, it can take an awful lot of time to make backups using this mechanism.  For larger directories and lower bandwidth, use <command>rsync</command> to keep the directories at both ends synchronized.</para>
+</note>
+</sect2>
 </sect1>
 
 <sect1 id="sect_03_03"><title>Quoting characters</title>
@@ -769,7 +830,7 @@ Franky
 <para>Command substitution allows the output of a command to replace the
 command itself.  Command substitution occurs when a command is enclosed like this:</para>
 <cmdsynopsis><command>$(command)</command></cmdsynopsis>
-<para>or like using backticks:</para>
+<para>or like this using backticks:</para>
 <cmdsynopsis><command>`command`</command></cmdsynopsis>
 <para>Bash performs the expansion by executing COMMAND and replacing the command substitution with the standard output of the command, with any trailing newlines deleted.  Embedded newlines are not deleted, but they may be removed during word splitting.</para>
 <screen>
