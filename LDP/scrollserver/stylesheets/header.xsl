@@ -3,12 +3,13 @@
                 version='1.0'>
 
 <xsl:template name="header">
-  <a href="/">Home</a> |
-  <a href="/contents.html">Contents</a> |
-  <a href="/documents.html">Documents</a> |
-  <a href="/reload.html">Reset Cache</a>
-
-  <br/><hr/>
+  <p class="navbar">
+  <a class="navbar" href="/">Home</a> |
+  <a class="navbar" href="/contents.html">Contents</a> |
+  <a class="navbar" href="/documents.html">Documents</a> |
+  <a class="navbar" href="/controls.html">Controls</a> |
+  <a class="navbar" href="/help.html">Help</a>
+  </p>
 </xsl:template>
 
 </xsl:stylesheet>

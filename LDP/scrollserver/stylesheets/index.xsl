@@ -27,9 +27,10 @@
 
   <p>You can find out more about ScrollServer on the
     <a href="http://scrollserver.sourceforge.net">ScrollServer Home Page</a>.
-  </p>
-  
-  <p>Please report bugs and request features by writing to the author at
+    Please report bugs, request features or find out how you can help develop
+    ScrollServer by visiting the
+    <a href="http://sourceforge.net/projects/scrollserver/">SourceForge Project Page</a>.
+    Or, write directly to the author at
     <a href="mailto:david@lupercalia.net">david@lupercalia.net</a>.
   </p>
   

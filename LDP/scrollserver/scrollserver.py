@@ -6,7 +6,7 @@ import string
 import commands
 import StringIO
 import locale
-import urlparse
+from urlparse import URI
 import SimpleHTTPServer
 import scrollkeeper
 
@@ -33,61 +33,6 @@ def FileCache(sourcefile, htmlfile, cmd):
 		os.system(cmd)
 
 
-class URI:
-
-	URI = ""
-	Protocol = ""
-	Server = ""
-	Port = ""
-	Path = ""
-	Filename = ""
-	Parameter = ""
-	Anchor = ""
-
-	def __init__(self, uri):
-
-		self.URI = uri
-		temp = uri
-		
-		temp = string.split(temp,"#")
-		if len(temp) > 1:
-			self.Anchor = temp[1]
-		temp = temp[0]
-		
-		temp = string.split(temp,"?")
-		if len(temp) > 1:
-			self.Parameter = temp[1]
-		temp = temp[0]
-		
-		temp = string.split(temp,"/")
-		if len(temp) > 1:
-			self.Filename = string.join(temp[len(temp)-1:])
-		temp = string.join(temp[:len(temp)-1],"/")
-
-		if temp[:7] == "http://":
-			self.Protocol = "http://"
-			temp = temp[7:]
-
-		# If the first character is /, there is no server or port.
-		if temp[:1] == "/":
-			self.Path = temp[1:]
-		else:
-			temp = string.split(temp,":")
-			if len(temp) > 1:
-				self.Port = temp[1]
-			self.Server = temp[0]
-
-#	This is a tricky area, so leave this for testing when problems arise
-#	due to strange URIs.
-#		print "URI: " + self.URI
-#		print "Protocol: " + self.Protocol
-#		print "Server: " + self.Server
-#		print "Port: " + self.Port
-#		print "Path: " + self.Path
-#		print "Filename: [" + self.Filename + "]"
-#		print "Parameter: " + self.Parameter
-
-
 class RequestHandler(BaseClass):
 
 	def do_GET(self):
@@ -97,13 +42,16 @@ class RequestHandler(BaseClass):
 
 		if self.path == "" or self.path == "/" or self.path == "/index.html":
 			return self.send_Home()
+		elif self.path == "/controls.html":
+			return self.send_Controls()
+		elif self.path == "/reset.html":
+			return self.send_Reset()
 		elif self.path == "/contents.html":
 			return self.send_ContentsList()
 		elif self.path =="/documents.html":
 			return self.send_DocList()
-		elif self.path == "/reload.html":
-			os.system("rm -rf " + htmlbase + "*")
-			return self.send_Text("The cache has been reset.")
+		elif self.path == "/help.html":
+			return self.send_Help()
 		else:
 			uri = URI(self.path)
 		
@@ -113,9 +61,22 @@ class RequestHandler(BaseClass):
 				return self.send_URI(uri)
 
 	def send_Home(self):
-		FileCache ("", htmlbase+ "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/documents.xsl > " + htmlbase + "index.html")
+		FileCache ("", htmlbase+ "index.html", "xsltproc " + xsltparam + " stylesheets/index.xsl stylesheets/index.xsl > " + htmlbase + "index.html")
 		return self.send_File(htmlbase + "index.html")
 			
+	def send_Help(self):
+		FileCache ("", htmlbase+ "help.html", "xsltproc " + xsltparam + " stylesheets/help.xsl stylesheets/help.xsl > " + htmlbase + "help.html")
+		return self.send_File(htmlbase + "help.html")
+			
+	def send_Controls(self):
+		FileCache ("", htmlbase + "controls.html", "xsltproc " + xsltparam + " stylesheets/controls.xsl stylesheets/controls.xsl > " + htmlbase + "controls.html")
+		return self.send_File(htmlbase + "controls.html")
+
+	def send_Reset(self):
+		os.system("rm -rf " + htmlbase + "*")
+		FileCache ("", htmlbase + "reset.html", "xsltproc " + xsltparam + " stylesheets/reset.xsl stylesheets/reset.xsl > " + htmlbase + "reset.html")
+		return self.send_File(htmlbase + "reset.html")
+
 	def send_ContentsList(self):
 		contents_list = commands.getoutput("scrollkeeper-get-content-list " + lang)
 		FileCache (contents_list, htmlbase + "contents.html", "xsltproc " + xsltparam + " stylesheets/contents.xsl " + contents_list + " > " + htmlbase + "contents.html")
