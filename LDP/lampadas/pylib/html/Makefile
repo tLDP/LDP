@@ -15,11 +15,3 @@ install: all
 
 clean:
 	rm -f *.pyc
-	rm -f profile_stats
-	cd data; $(MAKE) clean
-	cd datamanager; $(MAKE) clean
-	cd persistence; $(MAKE) clean
-	cd html; $(MAKE) clean
-
-diff:
-	cvs -z9 diff -u | less
