@@ -1,0 +1,515 @@
+<chapter><title>Principles of Operation</title>
+<para>Here we discuss the basic concepts behind the operation of a Usenet news
+system.</para>
+    
+<section><title>Newsgroups and articles </title>
+
+<para>A Usenet news article sits in a file or in some other on-disk
+data structure on the disks of a Usenet server, and its contents look
+like this:</para>
+
+<programlisting>
+<![CDATA[
+Xref: news.starcomsoftware.com starcom.tech.misc:211 starcom.tech.security:452
+Newsgroups: starcom.tech.misc,starcom.tech.security
+Path: news.starcomsoftware.com!purva!shuvam
+From: Shuvam <shuvam@starcomsoftware.com>
+Subject: "You just throw up your hands and reboot" (fwd)
+Content-Type: TEXT/PLAIN; charset=US-ASCII 
+Distribution: starcom
+Organization: Starcom Software Pvt Ltd, India
+Message-ID: <Pine.LNX.4.31.0107022153490.30462-100000@starcomsoftware.com>
+Mime-Version: 1.0
+Date: Mon, 2 Jul 2001 16:27:57 GMT
+
+Interesting quote, and interesting article.
+
+Incidentally, comp.risks may be an interesting newsgroup to follow. We
+must be receiving the feed for this group on our server, since we
+receive all groups under comp.*, unless specifically cancelled. Check it
+out sometime.
+
+comp.risks tracks risks in the use of computer technology, including
+issues in protecting ourselves from failures of such stuff.
+
+Shuvam
+
+> Date: Thu, 14 Jun 2001 08:11:00 -0400
+> From: "Chris Norloff" <cnorloff@norloff.com>
+> Subject: NYSE: "Throw up your hands and reboot"
+> 
+> When the New York Stock Exchange computer systems crashed for 85
+> minutes (8 Jun 2001), Andrew Brooks, chief of equity trading at
+> Baltimore mutual fund giant T. Rowe Price, was quoted as saying "Hey,
+> we're all subject to the vagaries of technology. It happens on your
+> own PC at home. You just throw up your hands and reboot."
+> 
+> http://www.washingtonpost.com/ac3/ContentServer?articleid=A42885-2001Jun8&pagename=article
+> 
+> Chris Norloff
+> 
+> 
+> This is from --
+> 
+> From: risko@csl.sri.com (RISKS List Owner)
+> Newsgroups: comp.risks
+> Subject: Risks Digest 21.48
+> Date: Mon, 18 Jun 2001 19:14:57 +0000 (UTC)
+> Organization: University of California, Berkeley
+> 
+> RISKS-LIST: Risks-Forum Digest  Monday 19 June 2001
+> Volume 21 : Issue 48
+> 
+>    FORUM ON RISKS TO THE PUBLIC IN COMPUTERS AND RELATED SYSTEMS (comp.risks)
+>    ACM Committee on Computers and Public Policy,
+>    Peter G. Neumann, moderator
+> 
+> This issue is archived at <URL:http://catless.ncl.ac.uk/Risks/21.48.html>
+> and by anonymous ftp at ftp.sri.com, cd risks .
+> 
+]]>
+</programlisting>
+
+<para>A Usenet article's header is very interesting if you want to learn
+about the functioning of the Usenet. The <literal>From</literal>,
+<literal>Subject</literal>, and <literal>Date</literal> headers are
+familiar to anyone who has used email. The <literal>Message-ID</literal>
+header contains a unique ID for each message, and is present in each
+email message, though not many non-technical email users know about it.
+The <literal>Content-Type</literal> and <literal>Mime-Version</literal>
+headers are used for MIME encoding of articles, attaching files and
+other attachments, and so on, just like in email messages.</para>
+
+<para>The <literal>Organisation</literal> header is an informational header
+which is supposed to carry some information identifying the organisation
+to which the author of the article belongs. What remains now are the
+<literal>Newsgroups</literal>, <literal>Xref</literal>,
+<literal>Path</literal> and <literal>Distributions</literal> headers.
+These are special to Usenet articles and are very important.</para>
+
+<para>The <literal>Newsgroups</literal> header specifies which newsgroups
+this article should belong to. The <literal>Distributions</literal>
+header, sadly under-utilised in today's globalised Internet world,
+allows the author of an article to specify how far the article will be
+re-transmitted. The author of an article, working in conjunction with
+well-configured networks of Usenet servers, can control the ``radius'' of
+replication of his article, thus posting an article of local significance
+into a newsgroup but setting the <literal>Distribution</literal> header to
+some suitable setting, <emphasis>e.g.</emphasis> <literal>local</literal>
+or <literal>starcom</literal>, to prevent the article from being relayed
+to servers outside the specified domain.</para>
+
+<para>The <literal>Xref</literal> header specifies the precise
+<emphasis role=strong>article number</emphasis> of this article in each of the
+newsgroups in which it is inserted, for the current server. When an
+article is copied from one server to another as part of a newsfeed,
+the receiving server throws away the old <literal>Xref</literal> header
+and inserts its own, with its own article numbers. This indicates an
+interesting feature of the Usenet system: each article in a Usenet server
+has a unique number (an integer) for each newsgroup it is a part of.
+Our sample above has been added to two newsgroups on our server, and has
+the article numbers 211 and 452 in those groups. Therefore, any Usenet
+client software can query our server and ask for article number 211 in
+the newsgroup <literal>starcom.tech.misc</literal> and get this article.
+Asking for article number 452 in <literal>starcom.tech.security</literal>
+will fetch the article too. On another server, the numbers may be very
+different.</para>
+
+<para>The <literal>Path</literal> specifies the list of machines through
+which this article has travelled before it has reached the current
+server. UUCP-style syntax is used for this string. The current
+example indicates that a user called <literal>shuvam</literal> first
+wrote this article and posted it onto a computer which calls itself
+<literal>purva</literal>, and this computer then transferred this article
+by a newsfeed to <literal>news.starcomsoftware.com</literal>. The
+<literal>Path</literal> header is critical for breaking loops in
+newsfeeds, and will be discussed in detail later.</para>
+
+<para>Our sample article will sit in the two newsgroups listed above
+forever, unless expired. The Usenet software on a server is usually
+configured to expire articles based on certain conditions,
+<emphasis>e.g.</emphasis> after it's older than a certain number of
+days. The C-News software we use allows expiry control based on the
+newsgroup hierarchy and the type of newsgroup, <emphasis>i.e.</emphasis>
+moderated or unmoderated. Against each class of newsgroups, it allows
+the administrator to specify a number of days after which the article
+will be expired. It is possible for an article to control its own
+expiry, by carrying an <literal>Expires</literal> header specifying a
+date and time. Unless overriden in the Usenet server software, the
+article will be expired only after its explicit expiry time is
+reached.</para>
+</section>
+
+<section><title>Of readers and servers</title>
+<para>Computers which access Usenet articles are broadly of two classes:
+the readers and the servers. A Usenet server carries a repository of
+articles, manages them, handles newsfeeds, and offers its repository to
+authorised readers to read. A Usenet reader is merely a computer with
+the appropriate software to allow a user to access a software, fetch
+articles, post new articles, and keep track of which articles it has
+read in each newsgroup. In terms of functionality, Usenet reading
+software is less interesting to a Usenet administrator than a Usenet
+server software. However, in terms of lines of code, the Usenet reader
+software can often be much larger than Usenet server software, primarily
+because of the complexities of modern GUI code.</para>
+
+<para>Most modern computers almost exclusively access Usenet servers using
+the NNTP (Network News Transfer Protocol) for reading and posting. This
+protocol can also be used for inter-server communication, but those
+aspects will be discussed later. The NNTP protocol, like any other
+well-designed TCP-based Internet protocol, carries ASCII commands and
+responses terminated with <literal>CR-LF</literal>, and comprises a
+sequence of commands, somewhat reminiscent of the POP3 protocol for
+email. Using NNTP, a Usenet reader program connects to a Usenet server,
+asks for a list of active newsgroups, and receives this (often huge)
+list. It then sets the ``current newsgroup'' to one of these, depending
+on what the user wants to browse through. Having done this, it gets the
+meta-data of all current articles in the group, including the author,
+subject line, date, and size of each article, and displays an index of
+articles to the user.</para>
+
+<para>The user then scans through this list, selects an article, and
+asks the reader to fetch it.  The reader gives the article number of
+this article to the server, and fetches the full article for the user
+to read through. Once the user finishes his NNTP session, he exits,
+and the reader program closes the NNTP socket. It then (usually)
+updates a local file in the user's home area, keeping track of which
+news articles the user has read. These articles are typically not shown
+to the user next time, thus allowing the user to progress rapidly to new
+articles in each session. The reader software is helped along in this
+endeavour by the <literal>Xref</literal> header, using which it knows
+all the different identities by which a single article is identified
+in the server. Thus, if you read the sample article given above by
+accessing <literal>starcom.tech.misc</literal>, you'll never be shown
+this article again when you access <literal>starcom.tech.misc</literal>
+or <literal>starcom.tech.security</literal>; your reader software will
+do this by tracking the <literal>Xref</literal> header and mapping
+article numbers.</para>
+
+<para>When a user posts an article, he first composes his message using
+the user interface of his reader software. When he finally gives the
+command to send the article, the reader software contacts the Usenet
+server using the pre-existing NNTP connection and sends the article to
+it. The article carries a <literal>Newsgroups</literal> header with the
+list of newsgroups to post to, often a <literal>Distribution</literal>
+header with a distribution specification, and other headers
+like <literal>From</literal>, <literal>Subject</literal>
+<emphasis>etc.</emphasis> These headers are used by the server
+software to do the right thing. Special and rare headers like
+<literal>Expires</literal> and <literal>Approved</literal> are acted upon
+when present. The server assigns a new article number to the article for
+each newsgroup it is posted to, and creates a new <literal>Xref</literal>
+header for the article.</para>
+
+<para>Transfer of articles between servers is done in various ways, and
+is discussed in quite a bit of detail in Section XXX titled
+``Newsfeeds'' below.</para>
+
+
+</section>
+
+<section ><title>Newsfeeds </title>
+    <section><title> Fundamental concepts</title>
+	<para>When we try to analyse newsfeeds in real life, we begin to see
+	that, for most sites, traffic flow is not symmetrical in both
+	directions. We usually find that one server will feed the bulk
+	of the world's articles to one or more secondary servers every
+	day, and receive a few articles written by the users of those
+	secondary servers in exchange. Thus, we usually find that
+	articles flow down from the stem to the branches to the leaves
+	of the worldwide Usenet server network, and not exactly in a totally
+	balanced mesh flow pattern. Therefore, we use the term
+	``upstream server'' to refer to the server from which we receive
+	the bulk of our daily dose of articles, and ``downstream
+	server'' to refer to those servers which receive the bulk dose
+	of articles from us.</para>
+
+	<para>Newsfeeds relay articles from one server to their ``next door
+	neighbour'' servers, metaphorically speaking. Therefore, articles
+	move around the globe, not by a massive number of single-hop
+	transfers from the originating server to every other server in
+	the world, but in a sequence of hops, like passing the baton in
+	a relay race.  This increases the latency time for an article
+	to reach a remote tertiary server after, say, ten hops, but
+	it allows tighter control of what gets relayed at every hop,
+	and helps in redundancy, decentralisation of server loads,
+	and conservation of network bandwidth. In this respect, Usenet
+	newsfeeds are more complex than HTTP data flows, which
+	typically use single-hop techniques.</para>
+
+	<para>Each Usenet news server therefore has to worry about
+	newsfeeds each time it receives an article, either by a fresh post
+	or from an incoming newsfeed. When the Usenet server digests this
+	article and files it away in its repository, it simultaneously
+	looks through its database to see which other server it should
+	feed the article to. In order to do this, it carries out a
+	sequence of checks, described below.</para>
+
+	<para>Each server knows which other servers are its ``next door
+	neighbours;'' this information is kept in its newsfeed
+	configuration information. Against each of its ``next door
+	neighbours,'' there will be a list of newsgroups which it
+	wants, and a list of distributions. The new article's list of
+	newsgroups will be matched against the newsgroup list of the
+	``next door neighbour'' to see whether there's even a single
+	common newsgroup which makes it necessary to feed the article to
+	it. If there's a matching newsgroup, and the server's distribution
+	list matches the article's distribution, then the article is
+	marked for feeding to this neighbour.</para>
+
+	<para>When the neighbour receives the article as part of the
+	feed, it performs some sanity checks of its own. The first check
+	it performs is on the <literal>Newsgroups</literal> header of
+	the new article. If none of the newsgroups listed there are part
+	of the active newsgroups list of this server, then the article
+	can be rejected. An article rejected thus may even be queued for
+	outgoing feeds to other servers, but will not be digested for
+	incorporation into the local article repository.</para>
+
+	<para>The next check performed is against the
+	<literal>Path</literal> header of the incoming article. If this
+	header lists the name of the current Usenet server anywhere,
+	it indicates that it has already passed through this server at
+	least once before, and is now re-appearing here erroneously because
+	of a newsfeed loop. Such loops are quite often configured into
+	newsfeed topologies for redundancy: ``I'll get the articles from
+	Server X if not Server Y, and may the first one in win.'' The
+	Usenet server software automatically detects a duplicate feed
+	of an article and rejects it.</para>
+
+	<para>The next check is against what is called the server's
+	<emphasis>history database</emphasis>. Every Usenet server has
+	a history database, which is a list of the message IDs of all
+	current articles in the local repository. Oftentimes the history
+	database also carries the message IDs of all messages recently
+	expired. If the incoming article's message ID matches any of the
+	entries in the database, then again it is rejected without being
+	filed in the local repository. This is a second loop detection
+	method. Sometimes, the mere checking of the article's
+	<literal>Path</literal> header does not detection of all
+	potential problems, because the problem may be a re-insertion
+	instead of a loop. A re-insertion happens when the same incoming
+	batch of news articles is re-fed into the local server, perhaps
+	after recovering the system's data from tapes after a system
+	crash. In such cases, there's no newsfeed loop, but there's
+	still the risk that one article may be digested into the local
+	server twice. The history database prevents this.</para>
+
+	<para>All these simple checks are very effective, and work
+	across server and software types, as per the Internet standards.
+	Together, they allow robust and fail-safe Usenet article flow
+	across the world.</para>
+
+    </section>
+
+    <section><title>Types of newsfeeds</title>
+	<para>This section explains the basics of newsfeeds, without getting 
+	into details of software and configuration files.</para>
+
+	<section><title>Queued feeds</title> 
+	<para>
+	    This is the commonest method of sending articles from one server
+	    to another, and is followed whenever large volumes of articles 
+	    are to be transferred per day. This approach needs a one-time 
+	    modification to the upstream server's configuration for each 
+	    outgoing feed, to define a new <emphasis>queue.</emphasis>
+	</para>
+
+	<para>
+	    In essence all queued feeds work in the following way. When the 
+	    sending server receives an article, it processes it for 
+	    inclusion into its local repository, and also checks through all
+	    its outgoing feed definitions to see whether the article needs 
+	    to be queued for any of the feeds. If yes, it is added to a 
+	    <emphasis>queue file</emphasis> for each outgoing feed. The
+	    precise details
+	    of the queue file can change depending on the software 
+	    implementation, but the basic processes remain the same. A queue
+	    file is a list of queued articles, but does not contain the
+	    article contents. Typical queue files are ASCII text files with
+	    one line per article giving the path to a copy of the article in
+	    the local spool area.
+	</para>
+
+	<para>
+	    Later, a separate process picks up each queue file and creates 
+	    one or more <emphasis>batches</emphasis> for each outgoing feed.
+	    A <emphasis>batch</emphasis> is a large file containing multiple
+	    Usenet news 
+	    articles. Once the batches are created, various transport 
+	    mechanisms can be used to move the files from sending server to
+	    receiving server. You can even use scripted FTP.  You only need
+	    to ensure that the batch is picked up from the upstream server 
+	    and somehow copied into a designated incoming batch directory in
+	    the downstream server.
+	</para>
+
+	<para>
+	    UUCP has traditionally been the mechanism of choice for batch 
+	    movement, because it predates the Internet and wide availability
+	    of fast packet-switched data networks. Today, with TCP/IP 
+	    everywhere, UUCP once again emerges as the most logical choice 
+	    of batch movement, because it too has moved with the times: it 
+	    can work over TCP.
+	</para>
+
+	<para>
+	    NNTP is the <emphasis>de facto</emphasis> mechanism of choice
+	    for moving 
+	    queued newsfeeds for carrier-class Usenet servers on the 
+	    Internet, and unfortunately, for a lot of other Usenet servers 
+	    as well. The reason why we find this choice unfortunate is 
+	    discussed in <xref linkend="feedefficiency"/> below. But in NNTP
+	    feeds, an intermediate step of building batches out of queue 
+	    files can be eliminated --- this is both its strength and its 
+	    weakness.
+	</para>
+
+	<para>
+	    In the case of queued NNTP feeds, articles get added to queue 
+	    files as described above. An NNTP transmit process periodically
+	    wakes up, picks up a queue file, and makes an NNTP connection to
+	    the downstream server. It then begins a processing loop where, 
+	    for each queued article, it uses the NNTP
+	    <literal>IHAVE</literal> 
+	    command to inform the downstream server of the article's 
+	    message~ID. The downstream server checks its local repository to
+	    see whether it already has the message. If not, it responds with
+	    a <literal>SENDME</literal> response. The transmitting server
+	    then pumps
+	    out the article contents in plaintext form.  When all articles 
+	    in the queue have been thus processed, the sending server closes
+	    the connection. If the NNTP connection breaks in between due to
+	    any reason, the sending server truncates the queue file and 
+	    retains only those articles which are yet to be transmitted, 
+	    thus minimising repeat transmissions.
+	</para>
+
+	<para><anchor id="dialupnonntp"/>
+	    A queued NNTP feed works with the sending server making an NNTP
+	    connection to the receiving server. This implies that the 
+	    receiving server must have an IP address which is known to the 
+	    sending server or can be looked up in the DNS. If the receiving
+	    server connects to the Internet periodically using a dialup 
+	    connection and works with a dynamically assigned IP address, 
+	    this can get tricky. UUCP feeds suffer no such problems because
+	    the sending server for the newsfeed can be the UUCP server,
+	    <emphasis>i.e.</emphasis>
+	    passive. The receiving server for the feed can be the UUCP 
+	    master, <emphasis>i.e.</emphasis> the active party. So the
+	    receiving server can then
+	    initiate the UUCP connection and connect to the sending server.
+	    Thus, if even one of the two parties has a static IP address, 
+	    UUCP queued feeds can work fine.
+	</para>
+
+	<para>
+	    Thus, NNTP feeds can be sent out a little faster than the 
+	    batched transmission processes used for UUCP and other older 
+	    methods, because no batches need to be constructed. However, 
+	    NNTP is often used in newsfeeds where it is not necessary and it
+	    results in colossal waste of bandwidth.  Before we study 
+	    efficiency issues of NNTP versus batched feeds, we will cover 
+	    another way feeds can be organised using NNTP: the pull feeds.
+	</para> 
+	</section>
+
+	<section><title>Pull feeds</title>
+	<para>
+	    This method of transferring a set of articles works only over 
+	    NNTP, and requires absolutely no configuration on the 
+	    transmitting, or upstream, server. In fact, the upstream server
+	    cannot even easily detect that the downstream server is pulling
+	    out a feed --- it appears to be just a heavy and thorough
+	    newsreader, that's all.
+	</para>
+
+	<para>
+	    This pull feed works by the downstream server pulling out
+	    articles i one by one, just like any NNTP newsreader, using the
+	    NNTP <literal>ARTICLE</literal> command with the Message-ID as
+	    parameter.
+	    The interesting detail is how it gets the message~IDs to begin
+	    with. For this, it uses an NNTP command, specially designed for
+	    pull feeds, called <literal>NEWNEWS</literal>. This command
+	    takes a hierarchy and a date, 
+	    <screen> NEWNEWS comp 15081997 </screen>
+	</para>
+
+	<para>
+	    This command is sent by the downstream server over NNTP to the 
+	    upstream server, and in effect asks the upstream server to list
+	    out all news articles which are newer than 15 August 1997 in the
+	    <literal>comp</literal> hierarchy. The upstream server responds
+	    with a 
+	    (often huge) list of message~IDs, one per line, ending with a
+	    period on a line by itself.
+	</para>
+
+	<para>
+	    The pulling server then compares each newly received message~ID
+	    with its own article database and makes a (possibly shorter)
+	    list of all articles which it does not have, thus eliminating
+	    duplicate fetches.  That done, it begins fetching articles one
+	    by one, using the NNTP <literal>ARTICLE</literal> command as
+	    mentioned above.
+	</para>
+
+	<para>
+	    In addition, there is another NNTP command,
+	    <literal>NEWGROUPS</literal>,
+	    which allows the NNTP client --- <emphasis>i.e.</emphasis> the
+	    downstream server in
+	    this case --- to ask its upstream server what were the new
+	    newsgroups created since a given date. This allows the
+	    downstream server to add the new groups to its
+	    <literal>active</literal> file.
+	</para>
+
+	<para>
+	    The <literal>NEWNEWS</literal> based approach is usually one of
+	    the most inefficient methods of pulling out a large Usenet feed.
+	    By inefficiency, here we refer to the CPU loads and RAM
+	    utilisation on the upstream server, not on bandwidth usage. This
+	    inefficiency is because most Usenet news servers do not keep
+	    their article databases indexed by hierarchy and date; CNews
+	    certainly does not. This means that a <literal>NEWNEWS</literal>
+	    command issued to an upstream server will put that server into a
+	    sequential search of its article database, to see which articles
+	    fit into the hierarchy given and are newer than the given date.
+	</para>
+
+	<para>
+	    If pull feeds were to become the most common way of sending out 
+	    articles, then all upstream servers would badly need an
+	    efficient way of sorting their article databases to allow each 
+	    <literal>NEWNEWS</literal> command to rapidly generate its list
+	    of matching articles. A slow upstream server today might take
+	    minutes to begin responding to a <literal>NEWNEWS</literal>
+	    command, and
+	    the downstream server may time out and close its NNTP connection
+	    in the meanwhile. We have often seen this happening, till we
+	    tweak timeouts.
+	</para>
+
+	<para>
+	    There are basic efficiency issues of bandwidth utilisation
+	    involved in NNTP for news feeds, which are applicable for both
+	    queued and pull feeds. But the problem with
+	    <literal>NEWNEWS</literal> is unique to pull feeds, and relates
+	    to server loads, not bandwidth wastage. 
+	</para>  
+	</section>
+
+    </section>
+</section>
+
+<section id="controlmsg"> <title>Control messages</title>
+<para>
+    (Discuss control messages. Show examples of actual control messages
+    if possible. Discuss security issues in the form of control message
+    storms, and how digital signatures are being used to tackle it. This
+    sets the ground for <literal>pgpverify</literal> later on.) 
+</para>
+</section>
+</chapter>
