@@ -14,7 +14,7 @@ $user_id	= $L->CurrentUserID();
 $doc_id		= $L->Param('doc_id');
 $vote		= $L->Param('vote');
 
-$DB->Exec("DELETE FROM doc_vote WHERE doc_id=$doc_id AND user_id='$user_id'");
+$DB->Exec("DELETE FROM doc_vote WHERE doc_id=$doc_id AND user_id=$user_id");
 
 # Only allow votes 1 - 10. Voting 0 means remove my vote.
 # 
