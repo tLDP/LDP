@@ -32,7 +32,7 @@ import htmlentitydefs
 
 # Globals
 
-VERSION = '0.9.0-cvs'
+VERSION = '0.9.1-cvs'
 
 # FIXME: Put these in sensible ranges (100's, 200's, 300's) to make
 # them intrinsically interesting and useful values.
