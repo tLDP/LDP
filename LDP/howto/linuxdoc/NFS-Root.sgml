@@ -2,14 +2,29 @@
 
 <article>
 
+<!--
+STILL TO DO:
+ - update HOWTO intro with LDP info (David C. Merrill, discuss@linuxdoc.org
+   list, etc.) and LDP license (is there standard boilerplate?)
+ - update maintainer/contact/copyright info
+ - verify "GRR" comments
+ - move/copy info on related HOWTOs to top?
+    - Diskless-HOWTO (Network Booting section)
+    - Diskless-root-NFS-HOWTO
+    - Diskless-root-NFS-other-HOWTO
+    - Network-boot-HOWTO
+    - PXE-Server-HOWTO ("pre-boot execution environment")
+ -->
+
+
 <!-- Title information -->
 
 <title>NFS-Root Mini-Howto
-<author>Andreas Kostyrka, <tt/andreas@ag.or.at/
-<date>V8, 8 August 1997
+<author>[not maintained]
+<date>v9, 19 September 2002
 <abstract>
-This Mini-HOWTO tries explains how to setup a ``disc-less'' Linux
-workstation, which mounts it's root filesystems via NFS.
+This Mini-HOWTO tries explains how to set up a ``diskless'' Linux
+workstation, which mounts its root filesystems via NFS.
 The newest version of this Mini-Howto can always be found in
 <tt>ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/mini/NFS-Root</tt> or
 on any sunsite mirror NEAR YOU.
@@ -18,9 +33,11 @@ on any sunsite mirror NEAR YOU.
 <toc>
 
 <sect> Copyright
+
 <p>
-(c) 1996 Andreas Kostyrka (e9207884@student.tuwien.ac.at or 
-andreas@ag.or.at) <p>
+(c) 1996 Andreas Kostyrka (e9207884@student.tuwien.ac.at or andreas@ag.or.at)
+
+<p>
 Unless otherwise stated, Linux HOWTO documents are copyrighted by their
 respective authors. Linux HOWTO documents may be reproduced and distributed 
 in whole or in part, in any medium physical or electronic, as long as
@@ -46,112 +63,180 @@ Tim Bynum, the Linux HOWTO coordinator, at
 &lt<tt/mailto:linux-howto@sunsite.unc.edu/&gt via email.
 
 <sect1>Contributors
+
 <p>
 <itemize>
 <item>
-Avery Pennarun &lt<tt/apenwarr@foxnet.net/&gt (how to boot without <bf/LILO/)
+Avery Pennarun &lt<tt/apenwarr&nbsp;&#64;&nbsp;foxnet.net/&gt (how to boot without <bf/LILO/)
 <item> 
-Ofer Maor <tt/&lt;ofer@hadar.co.il&gt/ (providing a better mini howto about setting up discless workstations.)
+Ofer Maor <tt/&lt;ofer&nbsp;&#64;&nbsp;hadar.co.il&gt/ (a better mini-howto about setting up diskless workstations)
 <item>
-Christian Leutloff <tt/&lt;leutloff@sundancer.tng.oche.de&gt/ (providing infos about netboot.)
+Christian Leutloff <tt/&lt;leutloff&nbsp;&#64;&nbsp;sundancer.tng.oche.de&gt/ (info about netboot)
+<item>
+Greg Roelofs <tt/&lt;newt&nbsp;&#64;&nbsp;pobox.com&gt/ (2.2/2.4 updates, DHCP info, NFS-export info)
 </itemize>
 
 <sect>General Overview
+
 <p>
-Generally speaking there are the following problems for the
-workstation:
+An NFS-mounted root filesystem is typically most useful in two situations:
 <itemize>
-<item>It must find out it's own IP-address, and if needed also the
-rest of the Ethernet configuration.
-<item>
-It must know the <em/NFS/-server and the mount path to it's root
-filesystem.
+<item>A system administrator may wish to aggregate storage for multiple
+workstations in order to simplify maintenance, improve security and
+reliability, and/or make more economical use of limited storage capacity.
+In this scenario, a single, large server may host a dozen or more
+workstations; all of the systems can be regularly backed up from a
+central location, and individual clients are less prone to damage
+by unsophisticated users or attack by malicious parties with physical
+access.  (Of course, if the server itself is compromised, then so are
+all of the clients.)
+<item>An embedded system may not have a disk, an IDE interface, or even
+a PCI bus.  Even if it does, during development it may be too unstable
+to use the disk, and a ramdisk may be too small to include all of the
+necessary utilities or too large (as a part of the kernel image) to
+allow for rapid turnaround during testing and development.  An NFS root
+allows quick kernel downloads, helps ensure filesystem integrity (since
+the server is basically impervious to crashes by the client), and provides
+virtually infinite storage.
 </itemize>
+(In this document we'll use the terms <em/client/ and <em/workstation/
+interchangeably.)
+
 <p>
-The current implementation of <em/NFSROOT/ in the Linux kernel (as of
-1.3.7x) allows for
-the following ``solutions'':
+However, there are two small problems from the client's perspective:
 <itemize>
-<item>The IP-address may be discovered by <em/RARP/, or the full
-ethernet configuration may be passed to the kernel via kernel
-parameters by <bf/LILO/ or <bf/LOADLIN/.
-<item>The <em/NFS/-path to mount can be passed via kernel
-parameters. If this is not done, the kernel assumes the
-<em/RARP/-server also as <em/NFS/-server, and uses compiled in default
-for the path part. (current default value in the kernel:
-<tt>/tftpboot/&lt<em/IP-address of the machine/&gt</tt>.)
-<item>The client configuration may be discovered by <em/BOOTP/.
+<item>It must find out its own IP address and possibly also the
+rest of the ethernet configuration (gateway, netmask, name servers, etc.).
+<item>It must know or discover both the IP address of the NFS server and
+the mount path (on the server) to the exported root filesystem.
 </itemize>
 
-Before starting to setup a discless enviroment, you should decide if
-you will be booting via <bf/LILO/ or <bf/LOADLIN/. The advantage of
-doing so is flexibility, the disadvantage is speed. Booting a Linux
-kernel without <bf/LILO/ is faster. This may or may not be a
-consideration.
+<p>
+The current implementation of <em/NFSROOT/ in the Linux kernel (as of
+2.4.x) allows for several approaches, including:
+<itemize>
+<item>The complete ethernet configuration, including the <em/NFS/-path
+to be mounted, may be passed as parameters to the kernel via
+<bf/LILO/, <bf/LOADLIN/, or a hard-coded string within
+<tt>linux/arch/i386/kernel/setup.c</tt> (or its equivalent for other
+architectures).
+<item>The IP address may be discovered by <em/RARP/ and the <em/NFS/-path
+passed via kernel parameters.
+<item>The IP address may be discovered by <em/RARP/, with the <em/NFS/-path
+derived from the <em/RARP/ server and the just-granted IP address
+(loosely speaking, ``<tt>mount -t nfs
+&lt<em/RARP-server/&gt:/tftpboot/&lt<em/IP-address-of-client/&gt
+/dev/nfs</tt>'').
+<item>The client configuration may be discovered by <em/BOOTP/.
+<item>The client configuration may be discovered by <em/DHCP/.
+</itemize>
+
+Since the most common dynamic-address protocol these days is DHCP, its
+addition as an option in kernels 2.2.19 and 2.4.x (3 &lt; x &lt;= 14)
+<!-- GRR:  need info on when "dhcp" keyword first supported -->
+is particularly welcome.
+
+Before starting to set up a diskless environment, you should decide if
+you will be booting via <bf/LILO/, <bf/LOADLIN/, or a custom, embedded
+bootloader. The advantage of using something like <bf/LILO/ is flexibility;
+the disadvantage is speed--booting a Linux kernel without <bf/LILO/ is
+faster.  <!-- GRR:  still true? -->
+This may or may not be a consideration.
 
 <sect>
 Setup on the server
 <sect1>Compiling the kernels
+
 <p>
-<em/RARP/ support in the kernel of the server will probably be a good
-idea. You must have it if you will boot without kernel parameters. On
-the other hand it doesn't help you, if the client isn't on the same
-subnet than the server.
+On the server side, if you don't plan to use the old, user-mode NFS daemon,
+you'll need to compile NFS server support into the kernel (``NFS server
+support,'' a.k.a. <em/knfsd/ or <tt>CONFIG_NFSD</tt>).
+If you plan to use the older <em/RARP/ protocol to assign the client an
+IP address, <em/RARP/ support in the kernel of the server is probably a good
+idea. (You must have it if you will boot via RARP without kernel parameters.)
+On the other hand, it doesn't help you if the client isn't on the same
+subnet as the server.
+
 <p>
-The kernel for the workstation needs the following as a minimum set
-compiled in:
+The kernel for the workstation needs the following settings, as a minimum:
 <itemize>
-<item> <em/NFS/-filesystem compiled in. (It doesn't need to have
-<em/ext2/-support compiled in, a module suffices.)
-<item> ``Root on NFS'' must be enabled.
-<item> The Ethernet driver for the network card of the workstation
-must be compiled in.
-<item> Depending upon your needs you may have to include <em/RARP/ or
-<em/BOOTBP/ support for NFS-Root. (By this I mean the questions that
-are asked after the NFS question in make config.)
+<item> <em/NFS filesystem support/ (<tt>CONFIG_NFS_FS</tt>).  Note that
+there is no need for <em/ext2/ support.
+<item> <em/Root file system on NFS/ (<tt>CONFIG_ROOT_NFS</tt>).
+<item> <em/Ethernet (10 or 100Mbit)/ (<tt>CONFIG_NET_ETHERNET</tt>).
+<item> The ethernet driver for the workstation's network card (or onboard
+ethernet chip, if it's built into the motherboard or chipset).
 </itemize>
+Where there is an option to compile something in as a module, do <em/not/
+do so; modules only work <em/after/ the kernel is booted, and these things
+are needed <em/during/ boot.
+
 <p>
+For dynamically assigned IP numbers, you'll also need to select one or more
+of these kernel options:
+<itemize>
+<item> <em/IP: kernel level autoconfiguration/ (<tt>CONFIG_IP_PNP</tt>)
+<item> <em/RARP support/ (<tt>CONFIG_IP_PNP_RARP</tt>)
+<item> <em/BOOTP support/ (<tt>CONFIG_IP_PNP_BOOTP</tt>)
+<item> <em/DHCP support/ (<tt>CONFIG_IP_PNP_DHCP</tt>)
+</itemize>
+
+<p>
+<!-- GRR:  This paragraph *may* apply only to older kernels; not tested. -->
 If the workstation will be booted without kernel parameters, you need
 also to set the root device to 0:255. Do this by creating a dummy
 device file with <tt>mknod /dev/nfsroot b 0 255</tt>. After having
 created such a device file, you can set root device of the kernel
 image with <tt>rdev &lt<em/kernel-image/&gt /dev/nfsroot</tt>.
+[<em>NOTE:  Modern kernels recognize <tt>root=/dev/nfs</tt> as a command-line
+ argument; for consistency and/or compatibility, it may be better to use
+ <tt>/dev/nfs</tt> as the device name instead of <tt>/dev/nfsroot</tt>.</em>]
+
 <sect1>
 Creation of the root filesystem
 <sect2>
 Copying the filesystem
+
 <p>
 <em> Warning: while these instruction might work for you, they are by
-no means sensefull in a production enviroment. For a better way to
-setup a root filesystem for the clients, see the NFS-Root-Client mini
+no means sensefull in a production environment. For a better way to
+set up a root filesystem for the clients, see the NFS-Root-Client mini
 howto by Ofer Maor <tt/&lt;ofer@hadar.co.il&gt/.
-</em> <p>
+</em>
+
+<p>
 After having decided where to place the root tree, create it with
 (e.g.) <tt>mkdir -p &lt<em/directory/&gt</tt> and 
 <tt>tar cClf / - | tar xpCf &lt<em/directory/&gt -</tt>.
+
 <p>
 If you boot your kernel without LILO, then the rootdir has to be
 <tt>/tftpboot/&lt<em/IP-address/&gt</tt>. If you don't like it, you
 can change it in the top Makefile in the kernel sources, look for a line like:
 <tt>NFS_ROOT = -DNFS_ROOT="\"/tftpboot/%s\""</tt>
       If you change this, you have to recompile the kernel.
+
 <p>
 <sect2>
 Changes to the root filesystem
+
 <p>
 Now trim the unneeded files, and check the /etc/rc.d scripts. Some
 important points:
 <itemize>
 
 <item> One important thing is eth0 setup. The workstation comes up
-with a, at least partially, setup eth0. Setting up the
-IP-address of the workstation to the the IP-Address of the server
-is not considered a clever thing to do. (As it happened to the author
+with eth0 set up, at least partially. Setting the
+IP address of the workstation to the the IP address of the server
+is not considered a clever thing to do. (As it happened to the original author
 on one of his early attempts.)
 
 <item>
 Another point is the /etc/fstab of the workstation. It should
-be setup for nfs filesystems.
+be set up for NFS filesystems.
+[<em>NOTE:  this is not true in 2.4 kernels; the NFS mount is implicit and
+ may actually cause mount(1) error messages if it's explicitly listed in
+ /etc/fstab.  It is not clear when this changed.</em>]
 
 <item> <bf/WARNING/: Don't confuse the server root filesystem and the
         workstation root filesystem. (I've already patched up a
@@ -161,45 +246,125 @@ be setup for nfs filesystems.
 
 <sect2>
 Exporting the filesystem
+
 <p>
-Export the root dir to the work station. See <tt/exports(5)/. You
-most likely will have to restart the nfsd/mountd after this change.
-Under RedHat this can easily be done by typing
-<tt>/etc/rc.d/init.d/nfs stop ; /etc/rc.d/init.d/nfs start </tt>.
+Export the root dir to the workstation.
+The basic idea is to edit <tt>/etc/exports</tt> to include
+a line similar to one of the following:
+
+<p>
+<tt>/path/on/server/to/nfs_root \
+	&lt<em/client-IP-number/&gt;(rw,no_root_squash,no_all_squash) \
+	&lt<em/2nd-client-IP-number/&gt;(rw,no_root_squash,no_all_squash)</tt>
+
+<p>
+<tt>/path/on/server/to/nfs_root \
+	&lt<em/client-IP-network/&gt;/&lt<em/client-IP-netmask/&gt;(rw,no_root_squash,no_all_squash)</tt>
+
+<p>
+For example, a DHCP client receiving an IP address on a class C subnet would 
+need an exports entry similar to this:
+
+<p>
+<tt>/path/on/server/to/nfs_root \
+	192.168.263.0/255.255.255.0(rw,no_root_squash,no_all_squash)</tt>
+
+<p>
+The <tt/no_root_squash/ parameter allows the superuser (root) to be treated
+as such by the NFS server; otherwise <em/root/ will be remapped to <em/nobody/
+and will generally be unable to do anything useful with the filesystem.  The
+<tt/no_all_squash/ parameter is similar but applies to non-root users.
+See the <tt/exports(5)/ man page for details.
+
+<p>
+You will have to notify the NFS server after making any changes to the
+exports file.  Under Red Hat this can easily be done by typing
+<tt>/etc/rc.d/init.d/nfs stop; /etc/rc.d/init.d/nfs start</tt>.
+On other systems, a simple
+<tt>/etc/rc.d/init.d/nfs restart</tt> or even <tt>exportfs -a</tt> may
+suffice, while on older machines running the user-mode NFS daemon you may
+actually need to <tt>killall -HUP rpc.mountd; killall -HUP rpc.nfsd</tt>.
+(Do <em/not/ <tt>killall -HUP rpc.portmap</tt>, however!)
+
+<p>
+You may also need to edit <tt>/etc/hosts.allow</tt> and/or
+<tt>/etc/hosts.deny</tt> if tcp_wrappers are installed.  In particular,
+if the remote system (client) gets <em/RPC: connection refused/ errors,
+<tt>/etc/hosts.deny</tt> probably contains <tt/portmap: ALL/ or <tt/ALL: ALL/.
+To enable the client to use the server's portmapper, add a corresponding
+line to <tt>/etc/hosts.allow</tt>:
+
+<p>
+<tt>portmap: &lt<em/client-IP-number/&gt;</tt>
+<tt>portmap: &lt<em/2nd-client-IP-number/&gt;</tt>
+<tt>portmap: &lt<em/client-IP-network/&gt;/&lt<em/client-IP-netmask/&gt;</tt>
+
+<p>
+There is no need to restart anything in this case.  You can check by
+running <tt/rpcinfo -p/ on the NFS server and
+<tt>rpcinfo -p <em/NFS-server/</tt> on a Linux client within the allowed
+range; the RPC services listed by both should match.
+<!-- GRR:  I added this based on notes in my own (older) exports file at work,
+     but it's not working on my home system, and I'm not sure what's wrong. -->
+
+<p>
+In case of problems, check <tt>/var/log/messages</tt> and
+<tt>/var/log/syslog</tt> for errors (for example, run <tt>tail -f
+/var/log/messages /var/log/syslog</tt> and then try booting the client),
+and check your man pages (exports, exportfs, portmap, etc.).  As a last
+resort, a reboot of the NFS server may help, but that's a borderline
+Microsoftism...
+
 
 <sect2>
 RARP setup
+
 <p>
-Setup the <em/RARP/ somewhere on the net. If you boot without a
+Set up the <em/RARP/ somewhere on the net. If you boot without a
       nfsroot parameter, the <em/RARP/ server has to be the <em/NFS/
       server. Usually this will be the <em/NFS/ server. To do this, you
       will need to run a kernel with <em/RARP/ support.
+
 <p>
       To do this, execute (and install it somewhere in <tt>/etc/rc.d</tt> of
       the server!):
+
 <p>
 <tt>/sbin/rarp -s &lt<em/ip-addr/&gt &lt<em/hardware-addr/&gt</tt>
+
 <p> where
 <descrip>
 <tag/ip-addr/ is the IP address of the workstation, and
-<tag/hardware-addr/  is the Ethernet address of the network card of
+<tag/hardware-addr/  is the ethernet address of the network card of
                        the workstation.
 </descrip>
+
 <p>
       example: <tt>/sbin/rarp -s 131.131.90.200 00:00:c0:47:10:12</tt>
+
 <p>
-      You can also use a symbolic name instead of the IP-address, as
-      long the server is able to find out the IP-address. (/etc/hosts
+      You can also use a symbolic name instead of the IP address, as
+      long the server is able to find out the IP address. (/etc/hosts
       or <em/DNS/ lookups)
 
 <sect2>
 BOOTP setup
+
 <p>
 For <em/BOOTP/ setup you need to edit <tt>/etc/bootptab</tt>. Please
 consult the <em>bootpd(8)</em> and <em>bootptab(5)</em> man pages.
 
 <sect2>
+DHCP setup
+
+<p>
+There is no need for the DHCP server to be the same as the NFS server,
+and in most cases, a DHCP server will already be set up.  If one is not,
+however, consult the DHCP mini-HOWTO for further help.
+
+<sect2>
 Finding out hardware addresses
+
 <p>
 I don't know the hardware address! How can I find it out?
 <itemize>
@@ -214,42 +379,47 @@ I don't know the hardware address! How can I find it out?
 
 <sect>
 Booting the workstation
+
 <p>
 <sect1>
-Using a boot rom
+Using a boot ROM
+
 <p>
 As I have not used such a beast myself yet, I can give you only the
-following tips (courtesy of Christian Leutloff <tt/&lt;leutloff@sundancer.tng.oche.de&gt/): 
+following tips (courtesy of Christian Leutloff
+<tt/&lt;leutloff@sundancer.tng.oche.de&gt/): 
 <itemize>
-<item> You can't use ``normal'' bootroms.
+<item> You can't use ``normal'' boot ROMs.
 <item> There is a <tt/netboot/ packet by Gero Kuhlmann, that provides
-for bootroms for Linux, and further information. <tt/netboot/ is
+for boot ROMs for Linux, and further information. <tt/netboot/ is
 available from the local Linux mirror, or as a Debian package
 (<tt/netboot-0.4/).
-<item> Read the documentation coming with your boot rom carefully.
+<item> Read the documentation coming with your boot ROM carefully.
 <item> You probably will have to enable the tftpd on the server, but
-       this depends upon your boot rom's way of loading the kernel.
-<item> <it>Any informations on bootrom vendors of these Linux variety,
-mentioned above, as not everybody has access to prom burner :(
-(especially in europe, as I'm located there.) welcome, I'll include
+       this depends upon your boot ROM's way of loading the kernel.
+<item> <it>Any information on boot-ROM vendors of these Linux variety,
+mentioned above, as not everybody has access to PROM burner :(
+(especially in Europe, as I'm located there.) welcome, I'll include
 them then here.</it> 
 </itemize>
 <sect1>
-Using a raw kernel disc
+Using a raw kernel disk
+
 <p>
 If you have exported the root filesystem with the correct name for the
 default naming and your <em/NFS/ server is also the <em/RARP/ server
 (which implies that the boxes are on the same subnet.), than you can
-just boot the kernel by <tt/cat/ing it to a disc. (You have to set the
+just boot the kernel by <tt/cat/ing it to a disk. (You have to set the
 root device in the kernel to 0:255.) This assumes, that the root
-directory on the server is <tt>/tftpboot/</tt><it>IP-Address</it>
+directory on the server is <tt>/tftpboot/</tt><it>IP Address</it>
 (this value can be changed when compiling the kernel.)
 <sect1>
 Using a bootloader &amp <em/RARP/
+
 <p>
      Give the kernel all needed parameters when booting, and add
      <tt>nfsroot=&lt<em/server-ip-addr/&gt:&lt<em>/path/to/mount</em>&gt</tt>
-     where <em/server-ip-addr/ is the IP-address of your NFS-server, and
+     where <em/server-ip-addr/ is the IP address of your NFS-server, and
      <em>/path/to/mount</em> is the path to the root directory.
 
 Tips:
@@ -260,69 +430,129 @@ Tips:
 <item> When generating a workstation specific boot disk, you can
             also use the <tt/append=/ feature in <tt/lilo.conf/.
 </itemize>
+
 <sect1>
 Using a bootloader without <em/RARP/
+
 <p>
-     In addition to <tt/nfsroot/ give a 
-<tt>nfsaddrs=&lt<em/wst-IP/&gt:&lt<em/srv-IP/&gt:&lt<em/gw-IP/&gt:&lt<em/netm-IP/&gt:&lt<em/hostname/&gt</tt>
-     commandline argument for the kernel. The kernel will setup <tt/eth0/
-     with the given parameters:
-<descrip>
-<tag/wst-IP/    machine's IP-Address
-<tag/srv-IP/    NFS-server IP-Address
-<tag/gw-IP/     gateway
-<tag/netm-IP/   netmask
-<tag/hostname/  machine name
-</descrip>
+The <tt/ip/ and <tt/nfsroot/ kernel parameters (which can be hardcoded
+into the kernel, interactively entered at some bootloader prompts, or
+included in <tt/lilo.conf/ via the <tt/append=/ parameter; see the next
+subsection) provide all
+of the information necessary for the client to set up its ethernet interface
+and to contact the NFS server, respectively.  The parameters are fully
+documented in <tt>Documentation/nfsroot.txt</tt>, which is included in
+the kernel sources (usually found under <tt>/usr/src/linux</tt>).  Here's
+the format for a machine with a static (pre-assigned) IP address:
+
+<p>
+<tt>nfsroot=&lt<em/NFS-server-IP-number/&gt;:/path/on/server/to/nfs_root \
+ip=&lt<em/client-IP-number/&gt;::&lt<em/gateway-IP-number/&gt;:&lt<em/netmask/&gt;:&lt<em/client-hostname/&gt;:eth0:off</tt>
+
+<p>
+DHCP is much simpler:
+
+<p>
+<tt>nfsroot=&lt<em/NFS-server-IP-number/&gt;:/path/on/server/to/nfs_root ip=dhcp</tt>
+
+<sect1>
+Sample kernel command lines
+
+<p>
+Here's an example of a complete kernel command line such as you might
+include in <tt/lilo.conf/ or equivalent; only the IP numbers are bogus:
+
+<p>
+<tt>root=/dev/nfs rw nfsroot=12.345.67.89:/awdb/viper-linux/mt3/nfs_root \
+ip=dhcp console=ttyS1</tt>
+
+<p>
+That uses DHCP to assign an IP address to the machine and puts its boot
+messages (console) on the second serial port.  The following is the
+corresponding example using a static IP address; it also explicitly
+specifies Busybox's (non-standard) location for init:
+
+<p>
+<tt>root=/dev/nfs rw nfsroot=12.345.67.89:/awdb/viper-linux/mt3/nfs_root \
+ip=12.345.67.88::12.345.67.1:255.255.255.0:embed-o-matic:eth0:off \
+console=ttyS1 init=/bin/init</tt>
+
 <sect>
 Known problems
+
 <p>
 <sect1>
 /sbin/init doesn't start.
+
 <p>
-A popular problem with /sbin/init is, that some (at least) current
-distributions come with /sbin/init dynamically linked. So you have to provide
-a correct /lib setup to the client. One easy thing one could try is replacing
+A common problem with /sbin/init is that some distributions (e.g., Red Hat
+Linux) come with /sbin/init dynamically linked.  So you have to provide
+a correct /lib setup to the client. An easy thing one could try is replacing
 /sbin/init (for the client) with a statically linked ``Hello World'' program.
 This way you know if it is something more basic, or ``just'' a problem with
 dynamic linking.
+
 <sect1>
 /dev troubles.
-<p>
 
+<p>
 If you get some garbled messages about ttys when booting, then you
 should run a MAKEDEV from the client in the /dev directory. There are
-rumors that this doesn't work with certain server oses which use
-64-bit dev numbers, should you run into this, please mail me with which os
-you have the troubles. A potential solution would be to create a small /dev
-ram disc early in the boot process, and reinstall the device nodes each time.
+rumors that this doesn't work with certain server OSes that use
+64-bit device numbers; should you run into this, please consider updating
+this section!  A potential solution would be to create a small /dev
+ram disk early in the boot process and reinstall the device nodes each time,
+or simply embed directly into the kernel a suitably initialized ramdisk.
+<!-- GRR:  mention CONFIG_BLK_DEV_INITRD? -->
+<!-- GRR:  mention devfs also?  point to devfs howto or something? -->
 
 <sect>
-Other topics
+Other resources
+
 <p>
 <itemize>
-<item> There is BOOTP client:
+
+<item> In the Documentation directory of kernel source there is a file
+documenting NFS-Root systems (<tt>Documentation/nfsroot.txt</tt>).
+
+<item> There are quite a few related HOWTOs:
+   <itemize>
+   <item>Diskless-HOWTO (specifically, the <em/Network Booting/ section)
+   <item>Diskless-root-NFS-HOWTO
+   <item>Diskless-root-NFS-other-HOWTO
+   <item>Network-boot-HOWTO
+   <item>PXE-Server-HOWTO ("Pre-boot eXecution Environment") [coming]
+   </itemize>
+<!-- GRR LDP metacomment: not sure if nested itemize works... -->
+
+<item> There is a BOOTP client:
+<tt>http://ibiblio.org/pub/Linux/system/network/admin/bootpc-0.64.tar.gz</tt>
+<!-- was
 <tt>ftp://sunsite.unc.edu/system/Network/admin/bootpc.v045.tgz</tt>
+ -->
+
 <p>
 With initrd (which is included in Linux 2.0), it could be made to work
 for diskless stations quite nicely. initrd is actually always an
 advanced option for more customized setups.
 
-<item> For plain bootpd based boots this is actually probably not
+<item> For plain bootpd-based boots this is actually probably not
 needed as Linux 2.0 contains also the option to use BOOTP instead of
 RARP. (To be more precise, you can compile both in the kernel, and the
 faster response wins.)
 
-<item> In the Documentation directory of kernel source there is a file
-documenting NFS-Root systems.
+<item> There is a patch floating around that allows for swapping over
+NFS. It was sent to me (during a private high workload phase), but I
+somehow managed to lose the mail. :(
 
-<item> There is a patch floating around, that allows for swapping over
-NFS. It was send to me (during a private high workload phase), but I
-somehow managed to loose the mail. :( <p> You can get it probably from
-http://www.linuxhq.com/ in the unofficial patches section.
+<p> You can probably get it from
+http://www.linuxhq.com/ in the unofficial-patches section.
 
+<!-- GRR:  no longer true:
 <item> My PGP public key can be fetched by fingering andreas@ag.or.at.
 The fingerprint is: F1 F7 43 D5 07 C4 6C 87  BF 6B 33 A2 2C EE 5A F9.
+ -->
 
 </itemize>
 </article>
+
