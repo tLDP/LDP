@@ -6,7 +6,5 @@ insert(C, Cancelled,
 [Development was cancelled before publication.])
 insert(N, Active,
 [Currently available.])
-insert(A, Archived,
-[Still available, but only as an archive for historic reasons.])
 insert(D, Deleted,
 [No longer available, even as an archive.])

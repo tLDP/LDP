@@ -54,3 +54,4 @@ insert(logged_out,           default,    [],         0,  [],                 t, 
 insert(type,                 default,    [],         0,  [type],             t,  f,  f,  f)
 insert(sourcefile,           default,    [],         0,  [filename],         t,  t,  f,  f)
 insert(file_report,          default,    [],         0,  [report filename],  t,  t,  f,  f)
+insert(collection,           default,    [],         0,  [collection],       f,  f,  f,  f)

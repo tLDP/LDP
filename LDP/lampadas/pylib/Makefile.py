@@ -44,7 +44,6 @@ import stat
 import time
 from types import *
 
-
 # Commands
 
 class Commands(LampadasCollection):
@@ -368,7 +367,7 @@ class Project:
                         err_text = fh.read()
                         fh.close()
                         if err_text > '':
-                            self.doc.errors.add(ERR_MAKE_STDERR, err_text)
+                            self.doc.errors.add(ERR_MAKE_STDERR, cmd_text + '\n\n' + err_text)
                             print 'ERROR: The command wrote to STDERR.'
                             if exit_status==0:
                                 exit_status = 1;
@@ -377,7 +376,7 @@ class Project:
                     filestat = os.stat(self.workdir + command.output_to)
                     filesize = filestat[stat.ST_SIZE]
                     if filesize==0:
-                        self.doc.errors.add(ERR_MAKE_ZERO_LENGTH)
+                        self.doc.errors.add(ERR_MAKE_ZERO_LENGTH, cmd_text)
                         print 'ERROR: The command left a zero-length file. Removing.'
                         os.remove(self.workdir + command.output_to)
 

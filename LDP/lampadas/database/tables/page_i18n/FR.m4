@@ -421,3 +421,8 @@ insert([errors], [Error List], [],
 [
     |taberrors|
 ], 0)
+
+insert([collection], [|collection.name|], [],
+[
+    |tabcollection|
+], 1)

@@ -212,6 +212,20 @@ class PageFactory:
                     else:
                         newstring = topic.description[uri.lang]
 
+                # Embedded Collection
+                elif token=='collection.name':
+                    collection = lampadas.collections[uri.code]
+                    if not collection:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = collection.name[uri.lang]
+                elif token=='collection.description':
+                    collection = lampadas.collections[uri.code]
+                    if not collection:
+                        newstring = '|blknotfound|'
+                    else:
+                        newstring = collection.description[uri.lang]
+
                 # Embedded Document
                 elif token=='doc.title':
                     doc = lampadas.docs[uri.id]
@@ -235,12 +249,18 @@ class PageFactory:
                     newstring = tables.navtopics(uri)
                 elif token=='navtypes':
                     newstring = tables.types(uri)
+                elif token=='navcollections':
+                    newstring = tables.navcollections(uri)
                 elif token=='navsessions':
                     newstring = tables.navsessions(uri)
                 elif token=='navlanguages':
                     newstring = tables.languages(uri)
 
                 # Tables
+                elif token=='tabcollections':
+                    newstring = tables.tabcollections(uri)
+                elif token=='tabcollection':
+                    newstring = tables.tabcollection(uri)
                 elif token=='tabtopics':
                     newstring = tables.tabtopics(uri)
                 elif token=='tabtopic':

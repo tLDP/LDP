@@ -28,7 +28,7 @@ import time
 import string
 import whrandom
 import os
-
+import htmlentitydefs
 
 # Globals
 
@@ -226,6 +226,15 @@ def new_sk_seriesid():
     sk_seriesid = process.read()
     process.close()
     return sk_seriesid
+
+def html_encode(text):
+    """Encodes all entities in the text using htmlentitydefs."""
+
+    temp = text;
+    for entity in htmlentitydefs.entitydefs.keys():
+        char = htmlentitydefs.entitydefs[entity]
+        temp = temp.replace(char, '&' + entity + ';')
+    return temp
 
 class WOStringIO:
     """

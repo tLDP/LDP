@@ -86,6 +86,8 @@ class Lampadas:
         self.review_statuses.load()
         self.topics          = Topics()
         self.topics.load()
+        self.collections     = Collections()
+        self.collections.load()
         self.users           = Users()
 
 # Roles
@@ -132,6 +134,46 @@ class Role:
         self.code       = trim(row[0])
 
 
+# Collections
+
+class Collections(LampadasCollection):
+    """A collection object of all document collections."""
+    
+    def load(self):
+        sql = "SELECT collection_code, sort_order FROM collection"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            collection = Collection()
+            collection.load_row(row)
+            self.data[collection.code] = collection
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            collection_code = trim(row[0])
+            collection = self[collection_code]
+            lang = row[1]
+            collection.name[lang] = trim(row[2])
+            collection.description[lang] = trim(row[3])
+
+class Collection:
+    """A collection is an arbitrary set of documents."""
+
+    def __init__(self, collection_code=None):
+        self.name = LampadasCollection()
+        self.description = LampadasCollection()
+        if collection_code==None: return
+        self.code = collection_code
+
+    def load_row(self, row):
+        self.code       = trim(row[0])
+        self.sort_order = row[1]
+
+
 # Types
 
 class Types(LampadasCollection):
@@ -140,25 +182,25 @@ class Types(LampadasCollection):
     """
     
     def load(self):
-        sql = "SELECT type_code, sort_order FROM type"
+        sql = "SELECT collection_code, sort_order FROM collection"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            type = Type()
-            type.load_row(row)
-            self.data[type.code] = type
+            collection = Type()
+            collection.load_row(row)
+            self.data[collection.code] = collection
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT type_code, lang, type_name, type_desc FROM type_i18n"
+        sql = "SELECT collection_code, lang, collection_name, collection_desc FROM collection_i18n"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            type_code = trim(row[0])
-            type = self[type_code]
+            collection_code = trim(row[0])
+            collection = self[collection_code]
             lang = row[1]
-            type.name[lang] = trim(row[2])
-            type.description[lang] = trim(row[3])
+            collection.name[lang] = trim(row[2])
+            collection.description[lang] = trim(row[3])
 
 
 class Type:
@@ -209,6 +251,7 @@ class Docs(LampadasCollection):
         self.load_versions()
         self.load_ratings()
         self.load_topics()
+        self.load_collections()
         self.load_notes()
 
     def load_errors(self):
@@ -287,6 +330,18 @@ class Docs(LampadasCollection):
             doctopic = DocTopic()
             doctopic.load_row(row)
             doc.topics[doctopic.topic_code] = doctopic
+
+    def load_collections(self):
+        sql = "SELECT doc_id, collection_code FROM document_collection"
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doc_id = row[0]
+            doc = self[doc_id]
+            doccollection = DocCollection()
+            doccollection.load_row(row)
+            doc.collections[doccollection.collection_code] = doccollection
 
     def load_notes(self):
         sql = 'SELECT note_id, doc_id, date_entered, notes, creator FROM notes'
@@ -392,6 +447,8 @@ class Doc:
         self.ratings.parent          = self.id
         self.topics                  = DocTopics()
         self.topics.doc_id           = self.id
+        self.collections             = DocCollections()
+        self.collections.doc_id      = self.id
         self.notes                   = DocNotes()
         self.notes.doc_id            = self.id
         if id==0: return
@@ -410,6 +467,7 @@ class Doc:
         self.ratings                 = DocRatings(self.id)
         self.ratings.parent          = self
         self.topics                  = DocTopics(self.id)
+        self.collections             = DocCollections(self.id)
         self.notes                   = DocNotes(self.id)
 
     def load_row(self, row):
@@ -921,6 +979,62 @@ class DocTopic:
     def load_row(self, row):
         self.doc_id   = row[0]
         self.topic_code  = trim(row[1])
+
+
+# DocCollections
+
+class DocCollections(LampadasCollection):
+    """
+    A collection object providing access to document collections.
+    """
+
+    def __init__(self, doc_id=0):
+        LampadasCollection.__init__(self)
+        self.doc_id = doc_id
+        if doc_id > 0:
+            self.load()
+
+    def load(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT doc_id, collection_code FROM document_collection WHERE doc_id=" + str(self.doc_id)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doccollection = DocCollection()
+            doccollection.load_row(row)
+            self.data[doccollection.collection_code] = doccollection
+
+    def add(self, collection_code):
+        sql = 'INSERT INTO document_collection(doc_id, collection_code) VALUES (' + str(self.doc_id) + ', ' + wsq(collection_code) + ')'
+        db.runsql(sql)
+        db.commit()
+        doccollection = DocCollection()
+        doccollection.doc_id = self.doc_id
+        doccollection.collection_code = collection_code
+        self.data[doccollection.collection_code] = doccollection
+
+    def delete(self, collection_code):
+        sql = 'DELETE FROM document_collection WHERE doc_id=' + str(self.doc_id) + ' AND collection_code=' + wsq(collection_code)
+        db.runsql(sql)
+        db.commit()
+        del self.data[collection_code]
+
+    def clear(self):
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "DELETE FROM document_collection WHERE doc_id=" + str(self.doc_id)
+        db.runsql(sql)
+        db.commit()
+        self.data = {}
+
+class DocCollection:
+    """
+    A collection for the document.
+    """
+
+    def load_row(self, row):
+        self.doc_id   = row[0]
+        self.collection_code  = trim(row[1])
 
 
 # DocNotes

@@ -29,6 +29,7 @@ insert(index,
 	      <tr>
             <td class="sidebarleft" valign="top">
               |navmenus|
+              <p>|navcollections|
               <p>|navtopics|
               <p>|navtypes|
               <p>|navlanguages|
@@ -69,6 +70,7 @@ insert(default,
 	      <tr>
             <td class="sidebarleft" valign="top">
               |navmenus|
+              <p>|navcollections|
               <p>|navtopics|
               <p>|navtypes|
               <p>|navlanguages|

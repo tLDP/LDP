@@ -507,7 +507,7 @@ class Tables(LampadasCollection):
             box = box + '<td>' + errtype.name[uri.lang] + '</td>\n'
             box = box + '<td>' + error.name[uri.lang]
             if docerror.notes > '':
-                box = box + '<br><pre>' + docerror.notes + '</pre>'
+                box = box + '<br><pre>' + html_encode(docerror.notes) + '</pre>'
             box = box + '</td>\n'
             box = box + '</tr>\n'
         box = box + '</table>\n'
@@ -729,6 +729,7 @@ class Tables(LampadasCollection):
                  sk_seriesid=None,
                  abstract=None,
                  short_desc=None,
+                 collection_code=None,
                  columns={},
                  layout='compact',
                 ):
@@ -839,6 +840,9 @@ class Tables(LampadasCollection):
                     continue
             if not short_desc==None:
                 if doc.short_desc.upper().find(short_desc.upper())==-1:
+                    continue
+            if not collection_code==None:
+                if collection_code not in doc.collections.keys():
                     continue
 
             # Only show documents with errors if the user owns them
@@ -1076,6 +1080,37 @@ class Tables(LampadasCollection):
                       % (type.code, type.name[uri.lang]))
         box.write('</td></tr>\n</table>\n')
         return box.get_value()
+
+    def navcollections(self, uri):
+        log(3, 'Creating collections menu')
+        box = WOStringIO('''<table class="navbox">
+        <tr><th>|strcollections|</th></tr>
+        <tr><td>''')
+        keys = lampadas.collections.sort_by('sort_order')
+        for key in keys:
+            collection = lampadas.collections[key]
+            box.write('<a href="|uri.base|collection/%s|uri.lang_ext|">%s</a><br>\n'
+                      % (collection.code, collection.name[uri.lang]))
+        box.write('</td></tr>\n</table>\n')
+        return box.get_value()
+
+    def tabcollections(self, uri):
+        log(3, 'Creating collections table')
+        box = WOStringIO('''<table class="box">
+        <tr><th colspan="2">|strcollections|</th></tr>''')
+        keys = lampadas.collections.sort_by('sort_order')
+        for key in keys:
+            collection = lampadas.collections[key]
+            box.write('<tr><td><a href="|uri.base|collection/%s|uri.lang_ext|">%s</a></td>\n' \
+                      '    <td>%s</td>\n' \
+                      '</tr>'
+                      % (collection.code, collection.name[uri.lang], collection.description[uri.lang]))
+        box.write('</td></tr>\n</table>\n')
+        return box.get_value()
+
+    def tabcollection(self, uri):
+        log(3, 'Creating collection table')
+        return self.doctable(uri, collection_code=uri.code)
 
     def login(self, uri):
         if lampadasweb.static==1:
