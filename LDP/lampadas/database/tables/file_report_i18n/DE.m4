@@ -1,4 +1,4 @@
 insert([cvs_log], [CVS Log],
-    [Lists the cvs log for a file in the CVS tree.])
+    [Zeigt das CVS-Log für eine Datei im CVS-Baum.])
 insert([file_listing],
-    [File Listing], [Shows the directory entry for the file.])
+    [Verzeichniseintrag], [Zeigt den Verzeichniseintrag einer Datei.])

@@ -65,10 +65,10 @@ insert([doctable], [Liste der Dokumente], [],
     |tabdocs|
 ], 1)
 
-insert([search], [Search], [],
+insert([search], [Suche], [],
 [
     |tabsearch|
-], 0)
+], 1)
 
 insert([news], [Neuigkeiten], [],
 [
@@ -163,7 +163,7 @@ insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
     beheben können.
     
     <p>|tabunmaintained|
-], 0)
+], 1)
 
 insert([maint_wanted], [Instandhalter gesucht], [],
 [
@@ -425,9 +425,9 @@ insert([account_created], [Benutzerkonto angelegt], [],
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ], 1)
 
-insert([password_mailed], [Passwort wurde zugeschickt], [],
+insert([password_mailed], [Kennwort wurde zugeschickt], [],
 [
-    <p>Ihr Passwort wurde Ihnen per E-Mail zugeschickt.
+    <p>Ihr Kennwort wurde Ihnen per E-Mail zugeschickt.
     Bitte benachrichtigen Sie den Administrator dieser Web-Site
     wenn Sie noch weiter Probleme bei der Anmeldung haben.
 ], 1)
@@ -453,15 +453,15 @@ insert([type], [|type.name|], [],
     |tabtypedocs|
 ], 1)
 
-insert([file_reports], [File Reports], [],
+insert([file_reports], [Report von Dateien], [],
 [
     |tabfile_reports|
-], 1)
+], 2)
 
-insert([file_report], [File Report], [],
+insert([file_report], [Report einer Datei], [],
 [
     |tabfile_report|
-], 1)
+], 2)
 
 insert([errors], [Liste der Fehler], [],
 [
