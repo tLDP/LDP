@@ -1,5 +1,3 @@
-DROP TABLE document_topic;
-
 CREATE TABLE document_topic
 (
 	doc_id			INT4		NOT NULL,

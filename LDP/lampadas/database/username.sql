@@ -1,5 +1,3 @@
-DROP TABLE username;
-
 CREATE TABLE username (
 	user_id		INT4		NOT NULL,
 	username	CHAR(20)	NOT NULL UNIQUE,

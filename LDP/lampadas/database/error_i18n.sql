@@ -1,5 +1,3 @@
-DROP TABLE error_i18n;
-
 CREATE TABLE error_i18n
 (
 	err_id			INT4		NOT NULL,

@@ -1,5 +1,3 @@
-DROP TABLE topic;
-
 CREATE TABLE topic
 (
 	topic_num		INT4		NOT NULL,

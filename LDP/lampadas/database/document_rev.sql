@@ -1,5 +1,3 @@
-DROP TABLE document_rev;
-
 CREATE TABLE document_rev
 (
 	rev_id			INT4		NOT NULL,

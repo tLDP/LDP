@@ -12,6 +12,7 @@ install: bin pylib www conf docs
 	cd www; $(MAKE) install
 	cd conf; $(MAKE) install
 	cd doc; $(MAKE) install
+	echo "Lampadas installation complete."
 
 clean:
 	cd bin; $(MAKE) clean

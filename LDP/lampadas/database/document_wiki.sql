@@ -1,5 +1,3 @@
-DROP TABLE document_wiki;
-
 CREATE TABLE document_wiki (
 	doc_id		INT4		NOT NULL,
 	revision	INT4		NOT NULL,

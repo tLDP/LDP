@@ -1,5 +1,3 @@
-DROP TABLE document_user;
-
 CREATE TABLE document_user (
 	doc_id		INT4		NOT NULL,
 	user_id		INT4		NOT NULL,

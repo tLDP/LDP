@@ -1,5 +1,3 @@
-DROP TABLE pub_status;
-
 CREATE TABLE pub_status
 (
 	pub_status		CHAR		NOT NULL,

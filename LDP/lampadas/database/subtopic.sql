@@ -1,5 +1,3 @@
-DROP TABLE subtopic;
-
 CREATE TABLE subtopic
 (
 	topic_num		INT4		NOT NULL,

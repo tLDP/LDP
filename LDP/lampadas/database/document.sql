@@ -1,5 +1,3 @@
-DROP TABLE document;
-
 CREATE TABLE document
 (
 	doc_id			INT4		NOT NULL,

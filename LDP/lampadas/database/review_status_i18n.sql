@@ -1,5 +1,3 @@
-DROP TABLE review_status_i18n;
-
 CREATE TABLE review_status_i18n
 (
 	review_status		CHAR		NOT NULL,

@@ -1,5 +1,3 @@
-DROP TABLE config;
-
 CREATE TABLE config (
 	name		CHAR(20)	NOT NULL,
 	value		TEXT,

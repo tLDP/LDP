@@ -1,5 +1,3 @@
-DROP TABLE template;
-
 CREATE TABLE template
 (
 	template_code		CHAR(12)	NOT NULL,

@@ -1,5 +1,3 @@
-DROP TABLE error;
-
 CREATE TABLE error
 (
 	err_id			INT4		NOT NULL,

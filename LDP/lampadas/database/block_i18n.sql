@@ -1,5 +1,3 @@
-DROP TABLE block_i18n;
-
 CREATE TABLE block_i18n
 (
 	block_code	CHAR(12)	NOT NULL,

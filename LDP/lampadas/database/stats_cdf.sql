@@ -1,5 +1,3 @@
-DROP TABLE stats_CDF;
-
 CREATE TABLE stats_CDF (
 	date_entered	CHAR(10)	NOT NULL,
 	class		CHAR(12)	NOT NULL,

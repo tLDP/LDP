@@ -9,7 +9,8 @@ build:
 
 install: all
 	$(INSTALLDIR) $(sqlprefix)/lampadas
-	$(INSTALLSQL) *.sql $(sqlprefix)/lampadas
+	$(INSTALLDIR) $(sqlprefix)/lampadas/sql
+	$(INSTALLSQL) *.sql $(sqlprefix)/lampadas/sql
 
 clean:
 

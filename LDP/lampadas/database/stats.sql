@@ -1,5 +1,3 @@
-DROP TABLE stats;
-
 CREATE TABLE stats (
 	date_entered		CHAR(10)	NOT NULL,
 	doc_cnt			INT4,

@@ -1,5 +1,3 @@
-DROP TABLE username_notes;
-
 CREATE TABLE username_notes
 (
 	user_id			INT4		NOT NULL,

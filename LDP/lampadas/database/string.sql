@@ -1,5 +1,3 @@
-DROP TABLE string;
-
 CREATE TABLE string
 (
 	string_code		CHAR(12)	NOT NULL,

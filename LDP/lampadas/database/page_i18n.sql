@@ -1,5 +1,3 @@
-DROP TABLE page_i18n;
-
 CREATE TABLE page_i18n
 (
 	page_code	CHAR(12)	NOT NULL,

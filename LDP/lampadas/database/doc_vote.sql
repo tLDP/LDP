@@ -1,5 +1,3 @@
-DROP TABLE doc_vote;
-
 CREATE TABLE doc_vote
 (
 	doc_id		INT4		NOT NULL,

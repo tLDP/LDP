@@ -1,5 +1,3 @@
-DROP TABLE class_i18n;
-
 CREATE TABLE class_i18n
 (
 	class_id		INT4		NOT NULL,

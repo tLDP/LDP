@@ -1,5 +1,3 @@
-DROP TABLE format_i18n;
-
 CREATE TABLE format_i18n
 (
 	format_id		INT4		NOT NULL,

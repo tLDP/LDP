@@ -1,5 +1,3 @@
-DROP TABLE language_i18n;
-
 CREATE TABLE language_i18n
 (
 	isocode			CHAR(2),
