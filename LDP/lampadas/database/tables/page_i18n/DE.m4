@@ -36,19 +36,21 @@ insert([home], [|strproject|], [Home],
     <a href="http://www.tldp.org">Linux-Dokumentations-Projekts</a>
     entwickelt wird.
 
-    <p>This demo site provides the following users. Log in as one of
-    them to see the site through their eyes!
+    <p>Diese Vorführinstallation bietet die folgenden 
+    Benutzerkonten. Melden Sie sich mit diesen Namen an,
+    um die Anwendungen mit verschiedenen Rollen und Berechtigungen
+    zu sehen.
 
     <ul>
-        <li>sysadmin - the SUPERUSER, who manages the system.</li>
-        <li>admin - the Site Administrator, who manages the content.</li>
-        <li>english - an English-speaking user.</li>
-        <li>french - a French-speaking user.</li>
-        <li>german - a German-speaking user.</li>
-        <li>korean - a Korean-speaking user.</li>
+        <li>sysadmin - SUPERUSER, administriert das System.</li>
+        <li>admin - Web-Manager, verwaltet die Inhalte.</li>
+        <li>english - Englisch sprechender Benutzer.</li>
+        <li>french - Französisch sprechender Benutzer.</li>
+        <li>german - Deutsch sprechender Benutzer.</li>
+        <li>korean - Koreanisch sprechender Benutzer.</li>
     </ul>
 
-    <p>All of these accounts use the password &quot;password&quot;.
+    <p>Alle diese Konten benutzen das Kennwort &quot;password&quot;.
     Log in as one of them, and check it out, or apply for your own
     account.
 ])
@@ -288,9 +290,7 @@ insert([newuser], [Neue Benutzer], [],
                 <td><input type=text name=username size=20></input></td>
             </tr>
             <tr>
-                <td class="label">*Ihre E-Mailadresse.
-		<br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
-		muss sie gültig sein.</td>
+                <td class="label">**Ihre E-Mailadresse</td>
                 <td><input type=text name=email size=20></input></td>
             </tr>
             <tr>
@@ -312,6 +312,8 @@ insert([newuser], [Neue Benutzer], [],
         </table
     </form>
     <p>*Unbedingt erforderlich
+    <br>Da Ihr Kennwort zu dieser Adresse geschickt wird,
+    muss sie gültig sein.
 ])
 
 insert([mailpass], [Kennwort schicken], [],
@@ -381,7 +383,7 @@ insert([account_created], [Benutzerkonto angelegt], [],
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ])
 
-insert([user], [Edit User Record], [Add User],
+insert([user], [Benutzerdaten ändern], [Add User],
 [
     |tabuser|
 ])
