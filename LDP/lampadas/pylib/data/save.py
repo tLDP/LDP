@@ -135,6 +135,16 @@ def document_version(req, rev_id, doc_id, version, pub_date, initials, notes, ac
         docversion.save()
         go_back(req)
     
+def newdocument_topic(req, doc_id, subtopic_code):
+    doc = lampadas.docs[int(doc_id)]
+    doc.topics.add(subtopic_code)
+    go_back(req)
+    
+def deldocument_topic(req, doc_id, subtopic_code):
+    doc = lampadas.docs[int(doc_id)]
+    doc.topics.delete(subtopic_code)
+    go_back(req)
+
 def newuser(req, username, email, first_name, middle_name, surname):
     
     if username=='':

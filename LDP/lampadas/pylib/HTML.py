@@ -262,16 +262,19 @@ class ComboFactory:
 
     def subtopic(self, value, lang):
         combo = '<select name="subtopic_code">\n'
-        keys = lampadas.Subtopics.sort_by('sort_order')
-        for key in keys:
-            subtopic = lampadas.subtopics[key]
-            assert not subtopic==None
-            combo = combo + "<option "
-            if subtopic.code==value:
-                combo = combo + "selected "
-            combo = combo + "value='" + str(subtopic.code) + "'>"
-            combo = combo + subtopic.name[lang]
-            combo = combo + "</option>\n"
+        topic_codes = lampadas.topics.sort_by('num')
+        subtopic_codes = lampadas.subtopics.sort_by('num')
+        for topic_code in topic_codes:
+            topic = lampadas.topics[topic_code]
+            for subtopic_code in subtopic_codes:
+                subtopic = lampadas.subtopics[subtopic_code]
+                if subtopic.topic_code==topic_code:
+                    combo = combo + "<option "
+                    if subtopic.code==value:
+                        combo = combo + "selected "
+                    combo = combo + "value='" + str(subtopic.code) + "'>"
+                    combo = combo + topic.name[lang] + ': ' + subtopic.name[lang]
+                    combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
 
@@ -467,6 +470,43 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
+
+    def doctopics(self, uri):
+        log(3, 'Creating doctopics table')
+        doc = lampadas.docs[uri.id]
+        box = ''
+        box = box + '<table class="box">'
+        box = box + '<tr><th colspan="2">|strdoctopics|</th></tr>\n'
+        box = box + '<tr>\n'
+        box = box + '<th class="collabel">|strtopic|</th>\n'
+        box = box + '<th class="collabel">|straction|</th>\n'
+        box = box + '</tr>\n'
+        doc = lampadas.docs[uri.id]
+        topic_codes = lampadas.topics.sort_by('num')
+        subtopic_codes = lampadas.subtopics.sort_by('num')
+        for topic_code in topic_codes:
+            for subtopic_code in subtopic_codes:
+                if lampadas.subtopics[subtopic_code].topic_code==topic_code:
+                    doctopic = doc.topics[subtopic_code]
+                    if doctopic:
+                        box = box + '<form method=GET action="data/save/deldocument_topic" name="document_topic">'
+                        box = box + '<input type=hidden name="doc_id" value=' + str(doc.id) + '>\n'
+                        box = box + '<input type=hidden name="subtopic_code" value=' + str(doctopic.subtopic_code) + '>\n'
+                        box = box + '<tr>\n'
+                        box = box + '<td>' + lampadas.topics[topic_code].name[uri.lang] + ': ' + lampadas.subtopics[doctopic.subtopic_code].name[uri.lang] + '</td>\n'
+                        box = box + '<td><input type=submit name="action" value="|strdelete|"></td>\n'
+                        box = box + '</tr>\n'
+                        box = box + '</form>\n'
+        box = box + '<form method=GET action="data/save/newdocument_topic" name="document_topic">'
+        box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
+        box = box + '<tr>\n'
+        box = box + '<td>' + combo_factory.subtopic('', uri.lang) + '</td>\n'
+        box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
+        box = box + '</tr>\n'
+        box = box + '</form>\n'
+        box = box + '</table>\n'
+        return box
+
 
     def cvslog(self, uri):
         doc = lampadas.docs[uri.id]
@@ -849,6 +889,8 @@ class PageFactory:
                     newstring = self.tablef.docusers(uri)
                 if token=='tabdocversions':
                     newstring = self.tablef.docversions(uri)
+                if token=='tabdoctopics':
+                    newstring = self.tablef.doctopics(uri)
                 if token=='tabcvslog':
                     newstring = self.tablef.cvslog(uri)
                 if token=='tabuser':

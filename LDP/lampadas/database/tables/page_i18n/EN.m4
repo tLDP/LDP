@@ -1,4 +1,4 @@
-insert([newdocument], [New Document], [],
+insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|
 ])
@@ -267,6 +267,8 @@ insert([editdoc], [Edit Document Meta-data], [Edit Document Meta-data],
     |tabdocfiles|
     |tabdocusers|
     |tabdocversions|
+    |tabdoctopics|
+    |tabdocnotes|
 ])
 
 insert([404], [Error 404, Page Not Found], Error,

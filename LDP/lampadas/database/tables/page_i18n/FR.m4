@@ -1,4 +1,4 @@
-insert([newdocument], [New Document], [],
+insert([newdocument], [Add Document], [],
 [
     |tabeditdoc|
 ])
@@ -144,6 +144,8 @@ insert([editdoc], [M&eacute;ta-donn&eacute;es du doc], [M&eacute;ta-donn&eacute;
     |tabdocfiles|
     |tabdocusers|
     |tabdocversions|
+    |tabdoctopics|
+    |tabdocnotes|
 ])
 
 insert([404], [Introuvable], [Introuvable],

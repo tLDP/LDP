@@ -239,6 +239,7 @@ class Doc:
         self.versions                = DocVersions()
         self.ratings                 = DocRatings()
         self.ratings.parent          = self
+        self.topics                  = DocTopics()
         if id==None: return
         self.load(id)
 
@@ -279,6 +280,7 @@ class Doc:
         self.versions                = DocVersions(self.id)
         self.ratings                 = DocRatings(self.id)
         self.ratings.parent          = self
+        self.topics                  = DocTopics(self.id)
 
     def save(self):
         """
@@ -622,6 +624,51 @@ class DocVersion:
         sql = "UPDATE document_rev SET version=" + wsq(self.version) + ", pub_date=" + wsq(self.pub_date) + ", initials=" + wsq(self.initials) + ", notes=" + wsq(self.notes) + "WHERE doc_id=" + str(self.doc_id) + " AND rev_id=" + str(self.id)
         assert db.runsql(sql)==1
         db.commit()
+
+
+# DocTopics
+
+class DocTopics(LampadasCollection):
+    """
+    A collection object providing access to document topics.
+    """
+
+    def __init__(self, doc_id=0):
+        LampadasCollection.__init__(self)
+        self.doc_id = doc_id
+        # FIXME: use cursor.execute(sql,params) instead! --nico
+        sql = "SELECT doc_id, subtopic_code FROM document_topic WHERE doc_id=" + str(doc_id)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row==None: break
+            doctopic = DocTopic()
+            doctopic.load_row(row)
+            self.data[doctopic.subtopic_code] = doctopic
+
+    def add(self, subtopic_code):
+        sql = 'INSERT INTO document_topic(doc_id, subtopic_code) VALUES (' + str(self.doc_id) + ', ' + wsq(subtopic_code) + ')'
+        db.runsql(sql)
+        db.commit()
+        doctopic = DocTopic()
+        doctopic.doc_id = self.doc_id
+        doctopic.subtopic_code = subtopic_code
+        self.data[doctopic.subtopic_code] = doctopic
+
+    def delete(self, subtopic_code):
+        sql = 'DELETE FROM document_topic WHERE doc_id=' + str(self.doc_id) + ' AND subtopic_code=' + wsq(subtopic_code)
+        db.runsql(sql)
+        db.commit()
+        del self.data[subtopic_code]
+
+class DocTopic:
+    """
+    A topic for the document.
+    """
+
+    def load_row(self, row):
+        self.doc_id   = row[0]
+        self.subtopic_code  = trim(row[1])
 
 
 # Licenses

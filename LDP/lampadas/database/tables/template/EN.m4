@@ -17,7 +17,7 @@ insert(default,
         </table>
 	    <table class="layout">
 	      <tr>
-            <td class="sidebar">
+            <td class="sidebarleft">
               |tabmenus|
               |tabtopics|
               |tabtypes|
@@ -58,7 +58,7 @@ insert(index,
         </table>
 	    <table class="layout">
 	      <tr>
-            <td class="sidebar">
+            <td class="sidebarleft">
               |tabmenus|
               |tabtopics|
               |tabtypes|
@@ -67,7 +67,7 @@ insert(index,
             <td class="body">
               |body|
             </td>
-            <td class="sidebar">
+            <td class="sidebarright">
               |tablogin|
               |tabsessions|
             </td>
