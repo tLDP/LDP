@@ -9,8 +9,10 @@ This module generates a Database object for accessing a back-end RDBMS
 # Modules ##################################################################
 
 import pyPgSQL
+import Config
 import Log
 
+Config = Config.Config()
 Log = Log.Log()
 
 # Database

@@ -11,6 +11,7 @@ document_error table.
 # Modules ##################################################################
 
 import DataLayer
+import Log
 import os
 
 # Constants
@@ -19,12 +20,16 @@ import os
 # Globals
 
 L = DataLayer.Lampadas()
-
+Log = Log.Log()
 cvs_root = L.Config('cvs_root')
+
 
 # Lintadas
 
 class Lintadas:
+
+	def __call__(self, DocID):
+		self.CheckDoc(DocID)
 
 	def CheckAllDocs(self):
 		keys = L.Docs.keys()
@@ -32,7 +37,10 @@ class Lintadas:
 			self.CheckDoc(key)
 	
 	def CheckDoc(self, DocID):
-		Doc = L.Docs[DocID]
+		if L.Config('Loglevel') >= 3:
+			Log('Running Lintadas on document ' + str(DocID))
+		Doc = L.Docs[int(DocID)]
+		assert not Doc == None
 		Doc.Errors.Clear()
 
 		# Test document files
@@ -78,9 +86,12 @@ class Lintadas:
 
 			Doc.Save()
 			File.Save()
+		Log('Lintadas run on document ' + str(DocID) + ' complete')
 
 
 # When run at the command line, all checks are performed on all documents.
+
+Lintadas = Lintadas()
 
 def main():
 	import getopt
@@ -92,7 +103,6 @@ def main():
 		Lintadas.CheckAllDocs()
 	else:
 		for Doc in Docs:
-			print "Running on document " + Doc
 			Lintadas.CheckDoc(Doc)
 
 def usage():
@@ -106,5 +116,4 @@ def usage():
 
 
 if __name__ == "__main__":
-	Lintadas = Lintadas()
 	main()
