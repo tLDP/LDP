@@ -8,7 +8,9 @@ insert(4, [Template],
   [A template for writing your own document.])
 insert(5, [QuickRef],
   [One-page and other short references.])
-insert(6, [Guide],
+insert(6, [Users Guide],
+  [A Users Guide is end user documentation for an application.])
+insert(7, [Programmers Guide],
   [A Guide is a full-length book.])
-insert(7, [Intro],
+insert(8, [Intro],
   [A document containing background or introductory information, suitable for a novice.])
