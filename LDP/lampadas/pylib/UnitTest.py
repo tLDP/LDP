@@ -34,38 +34,54 @@ tree is broken.
 
 import unittest
 from Globals import *
-from BaseClasses import *
-from Config import config
-from Database import db
-from Languages import languages
-from Docs import docs, Doc
-from Users import users, User
-from Types import types
-from Licenses import licenses
-from DTDs import dtds
-from Formats import formats
-from PubStatuses import pub_statuses
-from Topics import topics
-from DocTopics import doctopics, DocTopics, DocTopic
-from DocErrs import docerrs, DocErr
-from DocRatings import docratings, DocRating
-from SourceFiles import sourcefiles
+#from BaseClasses import *
+#from Config import config
+#from Database import db
+#from Languages import languages
+#from Docs import docs, Doc
+#from Users import users, User
+#from Types import types
+#from Licenses import licenses
+#from DTDs import dtds
+#from Formats import formats
+#from PubStatuses import pub_statuses
+#from Topics import topics
+#from DocTopics import doctopics, DocTopics, DocTopic
+#from DocErrs import docerrs, DocErr
+#from DocRatings import docratings, DocRating
+#from SourceFiles import sourcefiles
 from URLParse import URI
 from Log import log
-import os
+#import os
 
-BIN = '/home/david/ldp/csv/LDP/lampadas/bin/'
+import datamanager
+import persistence
+
+dms = datamanager.DataManagers()
+dms.set_object_classes(persistence)
+
+print 'Preloading data...'
+docs = dms.document.get_all()
+topics = dms.topic.get_all()
+types = dms.type.get_all()
+errs = dms.error.get_all()
+sourcefiles = dms.sourcefile.get_all()
+dtds = dms.dtd.get_all()
+licenses = dms.license.get_all()
+print 'Done.'
+
+BIN = '/home/david/ldp/cvs/LDP/lampadas/bin/'
 EXTERNAL_TESTS = [BIN + 'rebuild', BIN + 'reload', 'Lintadas.py', 'Mirror.py', 'Makefile.py publish']
 EXTERNAL_TESTS = [BIN + 'rebuild', BIN + 'reload']
-
-# TESTS TO ADD:
-# 
-# make sure there are no conflicts between blocks and strings, which could
-# confuse things.
-
-# Unit Tests ###################################################################
-
-
+#
+## TESTS TO ADD:
+## 
+## make sure there are no conflicts between blocks and strings, which could
+## confuse things.
+#
+## Unit Tests ###################################################################
+#
+#
 class testTypes(unittest.TestCase):
 
     def testTypes(self):
@@ -80,11 +96,11 @@ class testDocs(unittest.TestCase):
     def testDocs(self):
         log(3, 'testing Docs')
 
-        doc = docs[50000]
+        doc = dms.document.get_by_id(50000)
         assert doc==None, 'When calling docs[id] with a nonexistent id, I got back a doc!'
 
         # Add
-        doc = Doc(docs)
+        doc = dms.document.new()
         doc.title                  = 'Test Document'
         doc.short_title            = 'Test Doc'
         doc.type_code              = 'howto'
@@ -116,7 +132,7 @@ class testDocs(unittest.TestCase):
         doc.pub_time               = '2002-03-03 15:35:23'
         doc.first_pub_date         = '2002-01-01 12:12:12'
 
-        doc = docs.add(doc)
+        dms.document.save(doc)
         assert doc.id > 0
         assert doc.title=='Test Document'
         assert doc.short_title=='Test Doc'
@@ -128,13 +144,18 @@ class testDocs(unittest.TestCase):
         title = doc.title
         doc.title = 'Foo'
         assert doc.title=='Foo'
+        
+        # Test the alternate save route -- directly through the object.
+        doc_id = doc.id
         doc.save()
+        doc2 = dms.document.get_by_id(doc_id)
+        assert doc2.id==doc_id
        
         # Delete
         doc_id = doc.id
-        docs.delete(doc_id)
+        dms.document.delete(doc)
         
-        doc = docs[doc_id]
+        doc = dms.document.get_by_id(doc_id)
         assert doc==None
 
         keys = docs.keys()
@@ -158,9 +179,9 @@ class testDocTopics(unittest.TestCase):
                 dtkeys = doc.topics.keys('doc_id')
                 for dtkey in dtkeys:
                     assert dtkey==doc.id
-                for topic_code in doc.topics.keys():
+                for dtkey in doc.topics.keys():
 #                    print 'Testing topic %s' % topic_code
-                    doctopic = doc.topics[topic_code]
+                    doctopic = doc.topics[dtkey]
                     assert not doctopic==None
                     assert doctopic.doc_id==doc.id, 'doctopic.doc_id doesn\'t match doc.id: ' + str(doctopic.doc_id) + ', ' + str(doc.id)
                     assert doctopic.topic_code > ''
@@ -168,65 +189,66 @@ class testDocTopics(unittest.TestCase):
         assert topics.count() > 0
         doc = docs[1]
         assert not doc==None
-        remember_topics = doc.topics.keys()
+        remember_topics = dms.document_topic.get_by_keys([['doc_id', '=', doc.id]])
         remember_count = doc.topics.count()
+        assert len(remember_topics)==doc.topics.count()
 #        print 'Clearing ' + str(remember_count) + ' topics...'
-        print doc.topics.keys()
-        doc.topics.clear()
-        assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
-        doc.topics.refresh_filters()
+#        print doc.topics.keys()
+        dms.document_topic.clear(doc.topics)
         assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         for topic_code in topics.keys():
-            doctopic = DocTopic(doctopics)
+            doctopic = dms.document_topic.new()
             doctopic.doc_id = doc.id
             doctopic.topic_code = topic_code
-            doc.topics.add(doctopic)
+            dms.document_topic.save(doctopic)
             doctopic = doc.topics[doctopic.topic_code]
 #            print doctopic.where()
 #            print doctopic.parent
         assert doc.topics.count()==topics.count(), 'Counts don\'t match: %s and %s ' % (doc.topics.count(), topics.count())
-        for topic_code in doc.topics.keys():
-            doc.topics.delete(topic_code)
+        for key in doc.topics.keys():
+            dms.document_topic.delete(doc.topics[key])
         assert doc.topics.count()==0, 'doc.topics should be clear, but has ' + str(doc.topics.count()) + ' items.'
         count = 0
 #        print 'doctopics is: ' + str(doctopics)
-        for topic_code in remember_topics:
-            doctopic = DocTopic(doctopics)
+        for key in remember_topics.keys():
+            doctopic = dms.document_topic.new()
             doctopic.doc_id = doc.id
-            doctopic.topic_code = topic_code
+            doctopic.topic_code = remember_topics[key].topic_code
 #            print 'doc.topics is: ' + str(doc.topics) + ', parent is: ' + str(doc.topics.parent_collection)
-            doc.topics.add(doctopic)
+            dms.document_topic.save(doctopic)
 #            print 'Added back ' + topic_code
             count += 1
         assert doc.topics.count()==count
-        dt2 = doctopics.apply_filter(DocTopics, Filter(doc, 'id', '=', 'doc_id'))
-        assert dt2.count()==count, 'Counts don\'t match: %s and %s ' % (doc.topics.count(), dt2.count())
         assert doc.topics.count()==remember_count
-    
 
 class testDocErrs(unittest.TestCase):
 
     def testDocErrs(self):
         log(3, 'testing DocErrs')
+        
         keys = docs.keys()
         for key in keys:
             doc = docs[key]
             assert not doc==None
-            if doc.errors.count() > 0:
+            docerrs = doc.errors
+            if docerrs.count() > 0:
                 log(3, "found a doc with errors")
-                for err_id in doc.errors.keys():
-                    error = doc.errors[err_id]
-                    assert not error==None
-                    assert error.doc_id==doc.id
-                    assert error.err_id > 0
+                for docerrkey in docerrs.keys():
+                    docerr = docerrs[docerrkey]
+                    assert not docerr==None
+                    assert docerr.doc_id==doc.id
+                    assert docerr.err_id > 0
+                    err = errs[docerr.err_id]
+                    assert not err==None
+                    assert err.id==docerr.err_id
             else:
-                err = DocErr(docerrs)
-                err.doc_id =doc.id
-                err.err_id = ERR_NO_SOURCE_FILE
-                err.notes  = ''
-                doc.errors.add(err)
+                newerr = dms.document_error.new()
+                newerr.doc_id =doc.id
+                newerr.err_id = ERR_NO_SOURCE_FILE
+                newerr.notes  = ''
+                dms.document_error.save(newerr)
                 assert doc.errors.count()==1, 'doc.errors.count() should be 1, but has ' + str(doc.errors.count()) + ' items.'
-                doc.errors.delete(ERR_NO_SOURCE_FILE)
+                dms.document_error.delete(newerr)
                 assert doc.errors.count()==0, 'doc.errors.count() should be 0, but has ' + str(doc.errors.count()) + ' items.'
         log(3, 'testing DocErrs done')
     
@@ -235,13 +257,13 @@ class testDocFiles(unittest.TestCase):
 
     def testDocFiles(self):
         log(3, 'testing DocFiles')
-        keys = docs.keys()
-        for key in keys:
+        
+        for key in docs.keys():
             doc = docs[key]
-            docfilekeys = doc.files.keys()
-            for docfilekey in docfilekeys:
-                docfile = doc.files[docfilekey]
-                sourcefile = sourcefiles[docfilekey]
+            docfiles = doc.files
+            for docfilekey in docfiles.keys():
+                docfile = docfiles[docfilekey]
+                sourcefile = sourcefiles[docfile.filename]
                 if docfile==None: break
                 assert docfile.doc_id==doc.id
                 assert docfile.filename > ''
@@ -253,46 +275,49 @@ class testDocRatings(unittest.TestCase):
 
     def testDocRatings(self):
         log(3, 'testing DocRatings')
-        dockeys = docs.keys()
-        for dockey in dockeys:
+        doc = docs[1]
+        assert not doc==None
+        dms.document_rating.clear(doc.ratings)
+        assert doc.ratings.count()==0, 'doc.ratings.count() should be 0, but has ' + str(doc.ratings.count()) + ' items.'
+        assert doc.ratings.average('rating')==0
 
-            doc = docs[dockey]
-            assert not doc==None
-            doc.ratings.clear()
-            assert doc.ratings.count()==0, 'doc.ratings.count() should be 0, but has ' + str(doc.ratings.count()) + ' items.'
-            assert doc.ratings.average()==0
+        # Add Userid: 1   Rating: 5   -- Avg: 5
 
-            # Add Userid: 1   Rating: 5   -- Avg: 5
+        docrating = dms.document_rating.new()
+        docrating.doc_id = doc.id
+        docrating.rating = 5
+        docrating.username = 'david'
+        dms.document_rating.save(docrating)
+        assert doc.ratings.count()==1
+        assert doc.ratings.average('rating')==5
+        set = dms.document_rating.get_by_keys([['username', '=', 'david'], ['doc_id', '=', doc.id]])
+        assert set.count()==1
+        assert set.average('rating')==5
 
-            docrating = DocRating(docratings)
-            docrating.doc_id = doc.id
-            docrating.rating = 5
-            docrating.username = 'david'
-            doc.ratings.add(docrating)
-            assert doc.ratings.count()==1
-            assert doc.ratings.average()==5
-
-            # Add Userid: 2   Rating: 7   -- Avg: 6
-            
-            docrating = DocRating(docratings)
-            docrating.doc_id = doc.id
-            docrating.rating = 7
-            docrating.username = 'admin'
-            doc.ratings.add(docrating)
-            assert doc.ratings.count()==2
-            assert doc.ratings.average()==6
-
-            # Del Userid: 1
+        # Add Userid: 2   Rating: 7   -- Avg: 6
         
-            doc.ratings.delete('david')
-            assert doc.ratings.count()==1
-            assert doc.ratings.average()==7
+        docrating = dms.document_rating.new()
+        docrating.doc_id = doc.id
+        docrating.rating = 7
+        docrating.username = 'admin'
+        dms.document_rating.save(docrating)
+        assert doc.ratings.count()==2
+        assert doc.ratings.average('rating')==6
+        set = dms.document_rating.get_by_keys([['doc_id', '=', doc.id]])
+        assert set.count()==2
+        assert set.average('rating')==6
 
-            # Clear again
+        # Del Userid: 1
+    
+        dms.document_rating.delete_by_keys([['username', '=', 'david'], ['doc_id', '=', doc.id]])
+        assert doc.ratings.count()==1
+        assert doc.ratings.average('rating')==7
 
-            doc.ratings.clear()
-            assert doc.ratings.count()==0
-            assert doc.ratings.average()==0
+        # Clear again
+
+        dms.document_rating.clear(doc.ratings)
+        assert doc.ratings.count()==0
+        assert doc.ratings.average('rating')==0
         log(3, 'testing DocRatings done')
 
 
@@ -300,15 +325,14 @@ class testDocVersions(unittest.TestCase):
 
     def testDocVersions(self):
         log(3, 'testing DocVersions')
-        keys = docs.keys()
+
         found = 0
-        for key in keys:
+        for key in docs.keys():
             doc = docs[key]
             assert not doc==None
             if doc.versions.count() > 0:
                 found = 1
-                vkeys = doc.versions.keys()
-                for vkey in vkeys:
+                for vkey in doc.versions.keys():
                     version = doc.versions[vkey]
                     assert not version==None
                     assert version.pub_date > ''
@@ -322,7 +346,8 @@ class testLicenses(unittest.TestCase):
     def testLicenses(self):
         log(3, 'testing Licenses')
         assert licenses.count() > 0
-        assert not licenses['gpl']==None
+        for key in licenses.keys():
+            license = licenses[key]
         log(3, 'testing Licenses done')
 
 
@@ -330,122 +355,123 @@ class test_dtds(unittest.TestCase):
 
     def test_dtds(self):
         log(3, 'testing DTDs')
+
         assert dtds.count() > 0
         assert not dtds['docbook']==None
         log(3, 'testing DTDs done')
 
 
-class testFormats(unittest.TestCase):
-
-    def testFormats(self):
-        log(3, 'testing Formats')
-        assert formats.count() > 0
-        assert not formats['xml']==None
-        assert formats['xml'].name['EN'] > ''
-        assert formats['xml'].description['EN'] > ''
-        log(3, 'testing Formats done')
-
-
-class testLanguages(unittest.TestCase):
-
-    def testLanguages(self):
-        log(3, 'testing Languages')
-        assert not languages==None
-        assert not languages['EN']==None
-        assert languages['EN'].supported
-        assert languages['EN'].name['EN']=='English'
-        assert languages['FR'].supported
-        assert languages['FR'].name['EN']=='French'
-        assert languages['DE'].supported
-        assert languages['DE'].name['EN']=='German'
-        assert languages.count()==136
-        log(3, 'testing Languages done')
-
-
-class testPubStatuses(unittest.TestCase):
-    
-    def testPubStatuses(self):
-        log(3, 'testing PubStatuses')
-        assert not pub_statuses==None
-        assert pub_statuses.count() > 0
-        
-        # Ensure that the default publication statuses are in the database
-        # for all supported languages, and that they all have names and
-        # descriptions.
-        for pub_status in ('C', 'D', 'N', 'P', 'W'):
-            assert not pub_statuses[pub_status]==None
-            for lang in languages.supported_keys('EN'):
-                assert pub_statuses[pub_status].name[lang] > ''
-                assert pub_statuses[pub_status].description[lang] > ''
-        log(3, 'testing PubStatuses done')
-        
-
-class testTopics(unittest.TestCase):
-
-    def testTopics(self):
-        log(3, 'testing Topics')
-        assert not topics==None
-        assert topics.count() > 0
-        keys = topics.keys()
-        for key in keys:
-            topic = topics[key]
-            assert topic.name['EN'] > ''
-        log(3, 'testing Topics done')
-
-
-class testUsers(unittest.TestCase):
-
-    def testUsers(self):
-        log(3, 'testing Users')
-        assert not users==None
-
-        user = users['testuser']
-        if not user==None:
-            users.delete('testuser')
-
-        user = users['testuser']
-        assert user==None
-        
-        count = users.count()
-        assert count > 0
-
-        user = User(users)
-        user.username    = 'testuser'
-        user.first_name  = 'j'
-        user.middle_name = 'random'
-        user.surname     = 'hacker'
-        user.email       = 'foo@example.com'
-        user.admin       = 1
-        user.sysadmin    = 1
-        user.password    = 'pw'
-        user.notes       = 'notes go here'
-        users.add(user)
-        user = users['testuser']
-        assert not user==None
-        assert user.username=='testuser'
-        assert user.email=='foo@example.com'
-        
-        users.delete(user.username)
-        assert users.count()==count
-        log(3, 'testing Users done')
-
-
-class testUserDocs(unittest.TestCase):
-
-    def testUserDocs(self):
-        log(3, 'testing UserDocs')
-        user = users['david']
-        assert user.docs.count() > 0
-        assert not user.docs==None
-        for key in user.docs.keys():
-            userdoc = user.docs[key]
-            assert not userdoc==None
-            assert not userdoc.doc_id==None
-            assert userdoc.doc_id > 0
-            assert userdoc.active==1 or userdoc.active==0
-        log(3, 'testing UserDocs done')
-
-
+#class testFormats(unittest.TestCase):
+#
+#    def testFormats(self):
+#        log(3, 'testing Formats')
+#        assert formats.count() > 0
+#        assert not formats['xml']==None
+#        assert formats['xml'].name['EN'] > ''
+#        assert formats['xml'].description['EN'] > ''
+#        log(3, 'testing Formats done')
+#
+#
+#class testLanguages(unittest.TestCase):
+#
+#    def testLanguages(self):
+#        log(3, 'testing Languages')
+#        assert not languages==None
+#        assert not languages['EN']==None
+#        assert languages['EN'].supported
+#        assert languages['EN'].name['EN']=='English'
+#        assert languages['FR'].supported
+#        assert languages['FR'].name['EN']=='French'
+#        assert languages['DE'].supported
+#        assert languages['DE'].name['EN']=='German'
+#        assert languages.count()==136
+#        log(3, 'testing Languages done')
+#
+#
+#class testPubStatuses(unittest.TestCase):
+#    
+#    def testPubStatuses(self):
+#        log(3, 'testing PubStatuses')
+#        assert not pub_statuses==None
+#        assert pub_statuses.count() > 0
+#        
+#        # Ensure that the default publication statuses are in the database
+#        # for all supported languages, and that they all have names and
+#        # descriptions.
+#        for pub_status in ('C', 'D', 'N', 'P', 'W'):
+#            assert not pub_statuses[pub_status]==None
+#            for lang in languages.supported_keys('EN'):
+#                assert pub_statuses[pub_status].name[lang] > ''
+#                assert pub_statuses[pub_status].description[lang] > ''
+#        log(3, 'testing PubStatuses done')
+#        
+#
+#class testTopics(unittest.TestCase):
+#
+#    def testTopics(self):
+#        log(3, 'testing Topics')
+#        assert not topics==None
+#        assert topics.count() > 0
+#        keys = topics.keys()
+#        for key in keys:
+#            topic = topics[key]
+#            assert topic.name['EN'] > ''
+#        log(3, 'testing Topics done')
+#
+#
+#class testUsers(unittest.TestCase):
+#
+#    def testUsers(self):
+#        log(3, 'testing Users')
+#        assert not users==None
+#
+#        user = users['testuser']
+#        if not user==None:
+#            users.delete('testuser')
+#
+#        user = users['testuser']
+#        assert user==None
+#        
+#        count = users.count()
+#        assert count > 0
+#
+#        user = User(users)
+#        user.username    = 'testuser'
+#        user.first_name  = 'j'
+#        user.middle_name = 'random'
+#        user.surname     = 'hacker'
+#        user.email       = 'foo@example.com'
+#        user.admin       = 1
+#        user.sysadmin    = 1
+#        user.password    = 'pw'
+#        user.notes       = 'notes go here'
+#        users.add(user)
+#        user = users['testuser']
+#        assert not user==None
+#        assert user.username=='testuser'
+#        assert user.email=='foo@example.com'
+#        
+#        users.delete(user.username)
+#        assert users.count()==count
+#        log(3, 'testing Users done')
+#
+#
+#class testUserDocs(unittest.TestCase):
+#
+#    def testUserDocs(self):
+#        log(3, 'testing UserDocs')
+#        user = users['david']
+#        assert user.docs.count() > 0
+#        assert not user.docs==None
+#        for key in user.docs.keys():
+#            userdoc = user.docs[key]
+#            assert not userdoc==None
+#            assert not userdoc.doc_id==None
+#            assert userdoc.doc_id > 0
+#            assert userdoc.active==1 or userdoc.active==0
+#        log(3, 'testing UserDocs done')
+#
+#
 class testURLParse(unittest.TestCase):
     """
     FIXME: not all attributes of the URI object are tested... is this ok? --nico

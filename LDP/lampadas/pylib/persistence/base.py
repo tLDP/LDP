@@ -13,10 +13,11 @@ class Persistence(object):
     altered.
     """
 
-    def __init__(self, dms):
+    def __init__(self, dms, dm):
         self.in_database = 0
         self.changed = 0
         self.dms = dms
+        self.dm = dm
 
     def __setattr__(self, attribute, value):
     	"""
@@ -33,10 +34,8 @@ class Persistence(object):
 
     def delete(self):
         """Deletes the object."""
-
         self.dms.delete(self)
 
     def save(self):
         """Saves the object."""
-
-        self.dms.save(self)
+        self.dm.save(self)

@@ -8,6 +8,7 @@ data managers are built.
 from Globals import *
 from BaseClasses import LampadasCollection
 from Database import db
+from cache import Cache
 import string
 
 # FIXME: use sqlgen ?
@@ -32,9 +33,9 @@ class TableField:
         elif self.data_type=='date':           return ''
         elif self.data_type=='bool':           return 0
         elif self.data_type=='created':        return now_string()
-        elif self.data_type=='updated':        return None
-        elif self.data_type=='creator':        return None
-        elif self.data_type=='updater':        return None
+        elif self.data_type=='updated':        return now_string()
+        elif self.data_type=='creator':        return ''
+        elif self.data_type=='updater':        return ''
         else:
             raise UnknownFieldType('Unrecognized type: %s'%self.data_type)
         
@@ -114,19 +115,27 @@ class DataTable(LampadasCollection):
         return self.fields[self.key_list[0]]
 
     def load_row(self, object, row):
-        if len(self.key_list) > 1:
-            object.key = ''
         for key in self.field_list:
             field = self.fields[key]
             value = field.field_to_attr(row[field.index])
             setattr(object, field.attribute, value)
-            if field.key_field==1:
-                if len(self.key_list)==1:
-                    object.key = value
-                else:
-                    object.key = trim(object.key + ' ' + str(value))
         object.in_database = 1
         object.changed = 0
+        object.key = self.get_key(object)
+
+    def get_key(self, object):
+        if len(self.key_list) > 1:
+            newkey = ''
+        for key in self.field_list:
+            field = self.fields[key]
+            if field.key_field==1:
+                value = getattr(object, field.attribute)
+                if len(self.key_list)==1:
+                    newkey = value
+                else:
+                    newkey = trim(newkey + ' ' + str(value))
+        return newkey
+
 
 class DataManager(DataTable):
     """
@@ -144,16 +153,29 @@ class DataManager(DataTable):
         self.in_database = 0
         self.changed     = 0
         self.table       = DataTable(table_name, field_dictionary)
+        self.cache       = Cache()
 
     def get_by_id(self, id):
-        data_field = self.table.id_field()
-        sql = self.table.select + ' WHERE ' + data_field.field_name + '=' + data_field.attr_to_field(id)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        if row==None: return
-        return self.row_to_object(row)
+        """
+        Returns the object that was requested.
+
+        If the object is in the cache, that object is returned.
+        """
+        
+        object = self.cache.get_by_key(id)
+        if object==None:
+            data_field = self.table.id_field()
+            sql = self.table.select + ' WHERE ' + data_field.field_name + '=' + data_field.attr_to_field(id)
+            cursor = db.select(sql)
+            row = cursor.fetchone()
+            if row==None: return
+            object = self.row_to_object(row)
+        return object
 
     def get_by_keys(self, filters):
+        """
+        Returns all objects which match the supplied filters.
+        """
         wheres = []
         for filter in filters:
             field_name, operator, value = filter
@@ -166,6 +188,11 @@ class DataManager(DataTable):
         return self.get_sql(self.table.select)
         
     def get_sql(self, sql):
+        """
+        Returns a set of objects.
+        
+        Does not read from the cache, but writes into it.
+        """
         set = DataSet(self.dms)
         cursor = db.select(sql)
         while (1):
@@ -173,10 +200,15 @@ class DataManager(DataTable):
             if row==None: break
             object = self.row_to_object(row)
             set[object.key] = object
+            self.cache.add(object)
+        self.cache.adjust_size()
         return set
 
     def new(self):
-        object = self.object_class(self.dms)
+        object = self.object_class(self.dms, self)
+        for key in self.table.fields.keys():
+            field = self.table.fields[key]
+            setattr(object, field.attribute, field.get_default())
         return object
 
     def row_to_object(self, row):
@@ -186,9 +218,9 @@ class DataManager(DataTable):
 
     def save(self, object):
         if object.changed==0:
-            print 'Object has not changed.'
             return
         if object.in_database==0:
+            object.key = self.table.get_key(object) # New objects need their key calculated.
             field_list = []
             value_list = []
             for key in self.table.field_list:
@@ -218,12 +250,14 @@ class DataManager(DataTable):
                     where_list.append(field.field_name + '=' + value)
             sql = 'UPDATE %s SET %s WHERE %s' % (self.table.name, string.join(update_list, ', '), string.join(where_list, ' AND '))
         db.runsql(sql)
+        self.cache.add(object)
         object.in_database = 1
         object.changed = 0
 
     def delete(self, object):
         if object.in_database==0:
             return
+        self.cache.delete(object)
         wheres = []
         for key in self.table.key_list:
             data_field = self.table.fields[key]

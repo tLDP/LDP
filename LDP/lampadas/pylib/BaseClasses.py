@@ -35,7 +35,7 @@ import md5
 # TODO: Write testing routines that go through trying to write random data
 # into the database while executing random deletes, etc.
 
-class LampadasCollection:
+class LampadasCollection(object):
     """
     Base class for Lampadas dictionaries or collection objects.
 
