@@ -1113,7 +1113,7 @@ class Licenses(LampadasCollection):
         self.data = {}
 
     def load(self):
-        sql = "SELECT license_code, free, sort_order from license"
+        sql = "SELECT license_code, free, dfsg_free, osi_cert_free, url, sort_order from license"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -1139,18 +1139,25 @@ class License:
     A documentation or software license.
     """
 
-    def __init__(self, license_code=None, free=None):
-        self.short_name = LampadasCollection()
-        self.name = LampadasCollection()
-        self.description = LampadasCollection()
-        if license_code==None: return
-        self.code = license_code
-        self.free = free
+    def __init__(self, license_code='', free=0, dfsg_free=0, osi_cert_free=0, url='', sort_order=0):
+        self.code          = license_code
+        self.free          = free
+        self.dfsg_free     = dfsg_free
+        self.osi_cert_free = osi_cert_free
+        self.url           = url
+        self.sort_order    = sort_order
+        self.short_name    = LampadasCollection()
+        self.name          = LampadasCollection()
+        self.description   = LampadasCollection()
 
     def load_row(self, row):
-        self.code       = trim(row[0])
-        self.free       = tf2bool(row[1])
-        self.sort_order = row[2]
+        self.code          = trim(row[0])
+        self.free          = tf2bool(row[1])
+        self.dfsg_free     = tf2bool(row[2])
+        self.osi_cert_free = tf2bool(row[3])
+        self.url           = trim(row[4])
+        self.sort_order    = row[5]
+
 
 # DTDs
 
