@@ -18,6 +18,9 @@ my($level1,
    $qandaentry,
    $answer);
 
+my($answers);
+$answers = 0;
+
 my($line);
 my($id, $title);
 
@@ -198,14 +201,15 @@ sub proc_txt {
 				$line = "<qandaset defaultlabel='qanda'>\n". $line;
 				$qandaset = 1;
 			}
+			$answers = 0;
 			
 		} elsif ($line =~ /^A:/) {
 			$line =~ s/^A://;
 			&trimline;
 			&closeanswer;
 			$line = "<answer><para>" . $line . "</para>\n";
+			$answers++;
 		} else {
-#			&closeqandaset;
 			if ( $para == 0 ) {
 				$line =~ s/^/<para>/;
 				$para = 1;
@@ -337,6 +341,10 @@ sub closeqandaentry {
 	if ($qandaentry == 1) {
 		$buf .= "</qandaentry>\n";
 		$qandaentry = 0;
+		if ($answers == 0) {
+			print "txt2db: ERROR A question did not have an answer.\n";
+			exit(1);
+		}
 	}
 }
 
