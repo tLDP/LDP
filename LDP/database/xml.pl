@@ -17,7 +17,7 @@ $doc=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $doc->resultStatus;
 
 print '<?xml version="1.0" encoding="iso-8859-1"?>' . "\n";
-print '<omf>' . "\n";
+print '<ldp>' . "\n";
 while (@row = $doc->fetchrow) {
 	$doc_id                  = $row[0];
 	$title                   = $row[1];
@@ -143,5 +143,5 @@ while (@row = $doc->fetchrow) {
 
 	print "</resource>\n";
 }
-print "</omf>\n";
+print "</ldp>\n";
 
