@@ -27,6 +27,18 @@ die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 $revision	= $revisions + 1;
 $wiki		= $row[0];
 $wiki		=~  s/\s+$//;
+while ($wiki =~ /&amp;lsqb;/) {
+	$wiki =~ s/&amp;lsqb;/&lsqb;/;
+}
+while ($wiki =~ /&amp;rsqb;/) {
+	$wiki =~ s/&amp;rsqb;/&rsqb;/;
+}
+while ($wiki =~ /&amp;trade;/) {
+	$wiki =~ s/&amp;trade;/&trade;/;
+}
+while ($wiki =~ /&amp;copy;/) {
+	$wiki =~ s/&amp;copy;/&copy;/;
+}
 
 $txtfile = "/tmp/" . rand() . ".txt";
 $sgmlfile = $txtfile;

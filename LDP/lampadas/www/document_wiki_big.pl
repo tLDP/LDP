@@ -21,9 +21,9 @@ while ($section <= $section_max) {
 	$section++;
 	$wiki_section = param("wiki$section");
 	if ($wiki_section) {
-		if ($wiki) {
-			$wiki .= "\n";
-		}
+#		if ($wiki) {
+#			$wiki .= "\n";
+#		}
 		$wiki .= $wiki_section;
 	}
 }
@@ -32,6 +32,7 @@ $section = 0;
 $save		= param('Save');
 $preview	= param('Preview');
 $docbook	= param('DocBook');
+$splitup	= param('SplitUp');
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
@@ -141,9 +142,15 @@ unless ($preview or $docbook) {
 	}
 
 	&printheader;
+
 	print "<form method=POST action='document_wiki_big.pl' name='edit'>\n";
 	print "<input type=hidden name=doc_id value='$doc_id'>\n";
 	print "<input type=hidden name=revision value=$revision>\n";
+	print "<input type=submit value='Separate Sections' name=SplitUp>\n";
+	print "<input type=submit value='One Section' name=Combine>\n";
+	print "<input type=submit value=Save name=Save>\n";
+	print "<input type=submit value=Preview name=Preview>\n";
+	print "<input type=submit value=DocBook name=DocBook>\n";
 	print "<table width='100%'>\n";
 	print "<tr><th>Document Text</th></tr>\n";
 
@@ -157,11 +164,12 @@ unless ($preview or $docbook) {
 	$wiki = "";
 	$section = 0;
 	while ($line = <TMP>) {
-		if ($line =~ /^===/) {
-		} elsif ($line =~ /^==/) {
-		} elsif ($line =~ /^=/) {
-			&printwiki;
-		} else {
+		if ($splitup) {
+			if ($line =~ /^===/) {
+			} elsif ($line =~ /^==/) {
+			} elsif ($line =~ /^=/) {
+				&printwiki;
+			}
 		}
 		$wiki .= $line;
 	}
@@ -177,9 +185,6 @@ unless ($preview or $docbook) {
 		print "<tr><td>You are editing version $revisions. Your changes will be saved as version $revision</td></tr>\n";
 	}
 	print "</table>\n";
-	print "<input type=submit value=Save name=Save>\n";
-	print "<input type=submit value=Preview name=Preview>\n";
-	print "<input type=submit value=DocBook name=DocBook>\n";
 	print "</form>\n";
 	print end_html;
 }
