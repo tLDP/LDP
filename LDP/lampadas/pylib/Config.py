@@ -11,7 +11,7 @@ This module provides configuration information from lampadas.conf.
 
 # Globals
 
-CONF_FILE = '/home/david/ldp/cvs/LDP/lampadas/conf/lampadas.conf'
+CONF_FILE = '/etc/lampadas.conf'
 
 
 # BaseConfig ###############################################################
