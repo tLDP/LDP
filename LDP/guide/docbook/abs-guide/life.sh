@@ -25,6 +25,17 @@ BIRTH=3                                                                 #
 
 
 startfile=gen0   # Read the starting generation from the file "gen0".
+                 # Default, if no other file specified when invoking script.
+                 #
+if [ -n "$1" ]   # Specify another "generation 0" file.
+then
+  if [ -e "$1" ] # Check for existence.
+  then
+    startfile="$1"
+  fi  
+fi  
+
+
 ALIVE1=.
 DEAD1=_
                  # Represent living and "dead" cells in the start-up file.
@@ -308,20 +319,20 @@ next_gen "$Cur"          # Update & display.
 
 let "generation += 1"     # Increment generation count.
 
-# ----- Main loop for displaying subsequent generations -----
+# ------ Main loop for displaying subsequent generations ------
 while [ "$generation" -le "$GENERATIONS" ]
 do
   Cur="$avar"
   next_gen "$Cur"
   let "generation += 1"
 done
-# =========================================================
+# ==============================================================
 
 echo
 
 exit 0
 
-# ---------------------------------------------------------
+# --------------------------------------------------------------
 # The grid in this script has a "boundary problem".
 # The the top, bottom, and sides border on a void of dead cells.
 # Exercise: Change the script to have the grid wrap around,

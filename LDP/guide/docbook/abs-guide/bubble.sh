@@ -26,9 +26,18 @@ exchange()
 declare -a Countries  #  Declare array,
                       #+ optional here since it's initialized below.
 
-Countries=(Netherlands Ukraine Zaire Turkey Russia Yemen Syria Brazil Argentina Nicaragua Japan Mexico Venezuela Greece England Israel Peru Canada Oman Denmark Wales France Kenya Xanadu Qatar Liechtenstein Hungary)
+#  Is it permissable to split an array variable over multiple lines
+#+ using an escape (\)?
+#  Yes.
+
+Countries=(Netherlands Ukraine Zaire Turkey Russia Yemen Syria \
+Brazil Argentina Nicaragua Japan Mexico Venezuela Greece England \
+Israel Peru Canada Oman Denmark Wales France Kenya \
+Xanadu Qatar Liechtenstein Hungary)
+
 # "Xanadu" is the mythical place where, according to Coleridge,
 #+ Kubla Khan did a pleasure dome decree.
+
 
 clear                      # Clear the screen to start with. 
 

@@ -33,12 +33,36 @@ read term
  echo; echo "Please be patient. This may take a while."
 
  let "months = $term - 1"
+# ==================================================================== 
  for ((x=$months; x > 0; x--))
  do
    bot=$(echo "scale=9; $interest_rate^$x" | bc)
    bottom=$(echo "scale=9; $bottom+$bot" | bc)
 #  bottom = $(($bottom + $bot"))
  done
+# -------------------------------------------------------------------- 
+#  Rick Boivie pointed out a more efficient implementation
+#+ of the above loop, which decreases computation time by 2/3.
+
+# for ((x=1; x <= $months; x++))
+# do
+#   bottom=$(echo "scale=9; $bottom * $interest_rate + 1" | bc)
+# done
+
+
+#  And then he came up with an even more efficient alternative,
+#+ one that cuts down the run time by about 95%!
+
+# bottom=`{
+#     echo "scale=9; bottom=$bottom; interest_rate=$interest_rate"
+#     for ((x=1; x <= $months; x++))
+#     do
+#          echo 'bottom = bottom * interest_rate + 1'
+#     done
+#     echo 'bottom'
+#     } | bc`       # Embeds a 'for loop' within command substitution.
+
+# ==================================================================== 
 
  # let "payment = $top/$bottom"
  payment=$(echo "scale=2; $top/$bottom" | bc)

@@ -3,6 +3,7 @@
 
 
 exec 6<&0          # Link file descriptor #6 with stdin.
+                   # Saves stdin.
 
 exec < data-file   # stdin replaced by file "data-file"
 

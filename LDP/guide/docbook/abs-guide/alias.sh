@@ -1,5 +1,5 @@
 #!/bin/bash
-# May need to be invoked with  #!/bin/bash2  on older systems.
+# Invoke with command line parameter to exercise last section of this script.
 
 shopt -s expand_aliases
 # Must set this option, else script will not expand aliases.
@@ -60,9 +60,15 @@ done
 
 echo; echo
 
-alias xyz="cat $1"   # Try a positional parameter in an alias.
-xyz                  # If you invoke the script with a filename as a parameter.
+alias xyz="cat $1"   #  Try a positional parameter in an alias.
+xyz                  #  Assumes you invoke the script
+                     #+ with a filename as a parameter.
 #  This seems to work,
 #+ although the Bash documentation suggests that it shouldn't.
+#
+#  However, as Steve Jacobson points out,
+#+ the "$1" parameter expands immediately upon declaration of the alias,
+#+ so, in the strictest sense, this is not an example
+#+ of parameterizing an alias.
 
 exit 0

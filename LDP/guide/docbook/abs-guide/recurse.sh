@@ -2,8 +2,8 @@
 # recurse.sh
 
 #  Can a script recursively call itself?
-#  Yes, but this is of little or no practical use
-#+ except perhaps as a "proof of concept".
+#  Yes, but is this of any practical use?
+#  (See the following script.)
 
 RANGE=10
 MAXVAL=9

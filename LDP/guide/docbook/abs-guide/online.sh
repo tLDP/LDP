@@ -12,6 +12,8 @@ KEYWORD=address
 #                     appended to /var/log/messages.
 ONLINE=22
 USER_INTERRUPT=13
+CHECK_LINES=100
+# How many lines in log file to check.
 
 trap 'rm -f $TEMPFILE; exit $USER_INTERRUPT' TERM INT
 # Cleans up the temp file if script interrupted by control-c.
@@ -20,8 +22,9 @@ echo
 
 while [ $TRUE ]  #Endless loop.
 do
-  tail -1 $LOGFILE> $TEMPFILE
-  # Saves last line of system log file as temp file.
+  tail -$CHECK_LINES $LOGFILE> $TEMPFILE
+  # Saves last 100 lines of system log file as temp file.
+  # Necessary, since newer kernels generate many log messages at log on.
   search=`grep $KEYWORD $TEMPFILE`
   # Checks for presence of the "IP address" phrase,
   # indicating a successful logon.

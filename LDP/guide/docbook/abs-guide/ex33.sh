@@ -14,12 +14,12 @@
 #  whatever is next on the command line.
 
 NO_ARGS=0 
-OPTERROR=65
+E_OPTERROR=65
 
 if [ $# -eq "$NO_ARGS" ]  # Script invoked with no command-line args?
 then
   echo "Usage: `basename $0` options (-mnopqrs)"
-  exit $OPTERROR          # Exit and explain usage, if no argument(s) given.
+  exit $E_OPTERROR        # Exit and explain usage, if no argument(s) given.
 fi  
 # Usage: scriptname -options
 # Note: dash (-) necessary

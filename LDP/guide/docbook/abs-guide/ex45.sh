@@ -101,14 +101,18 @@ echo "Numerical position of first \"2\" in \"$a\" is \"$b\"."
 
 # substr: extract substring, starting position & length specified
 b=`expr substr $a 2 6`
-echo "Substring of \"$a\", starting at position 2, and 6 chars long is \"$b\"."
+echo "Substring of \"$a\", starting at position 2,\
+and 6 chars long is \"$b\"."
 
 
-# 'match' operations similarly to 'grep'
-#      uses Regular Expressions
-b=`expr match "$a" '[0-9]*'`
+#  The default behavior of the 'match' operations is to
+#+ search for the specified match at the ***beginning*** of the string.
+#
+#        uses Regular Expressions
+b=`expr match "$a" '[0-9]*'`               #  Numerical count.
 echo Number of digits at the beginning of \"$a\" is $b.
-b=`expr match "$a" '\([0-9]*\)'`                    # Note escaped parentheses.
+b=`expr match "$a" '\([0-9]*\)'`           #  Note that escaped parentheses
+#                   ==      ==              + trigger substring match.
 echo "The digits at the beginning of \"$a\" are \"$b\"."
 
 echo
