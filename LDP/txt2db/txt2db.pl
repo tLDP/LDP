@@ -127,6 +127,15 @@ sub proc_txt {
 		while ($line =~ /^=== /) {
 			$line =~ s/^=== /^===/;
 		}
+		while ($line =~ / =$/) {
+			$line =~ s/ =$/=$/;
+		}
+		while ($line =~ / ==$/) {
+			$line =~ s/ ==$/==$/;
+		}
+		while ($line =~ / ===$/) {
+			$line =~ s/ ===$/===$/;
+		}
 		
 		if ($line =~ /^=\w/) {
 			&close1;
