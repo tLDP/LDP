@@ -27,7 +27,10 @@ use Exporter;
 	UserDocs,
 	Docs,
 	Doc,
+	AddDoc,
 	DocUsers,
+	DocVersions,
+	AddDocVersion,
 	
 	Roles,
 	Classes,
@@ -58,11 +61,14 @@ use Exporter;
 	UserTable,
 	UserDocsTable,
 	DocTable,
+	NewDocTable,
+	DocVersionsTable,
 	
 	TitleBox,
 	LoginBox,
 	AdminBox,
 	NavBox,
+
 
 	Login,
 	Logout,
@@ -148,7 +154,7 @@ sub User {
 	my $self = shift;
 	my $user_id = shift;
 	my %user = ();
-	my $sql = "SELECT username, first_name, middle_name, surname, email, admin FROM username WHERE user_id=$user_id";
+	my $sql = "SELECT username, first_name, middle_name, surname, email, admin, notes FROM username WHERE user_id=$user_id";
 	my @row = $DB->Row("$sql");
 	$user{id}		= $user_id;
 	$user{username}		= &trim($row[0]);
@@ -158,6 +164,7 @@ sub User {
 	$user{name}		= &trim(&trim($user{first_name} . ' ' . $user{middle_name}) . ' ' . $user{surname});
 	$user{email}		= &trim($row[4]);
 	$user{admin}		= &yn2bool($row[5]);
+	$user{notes}		= &trim($row[6]);
 
 	return %user;
 }
@@ -212,7 +219,7 @@ sub Docs {
 		$docs{$doc_id}{rating}			= &trim($row[20]);
 	}
 	return %docs;
-6}
+}
 
 sub Doc {
 	my $self = shift;
@@ -243,6 +250,11 @@ sub Doc {
 	return %doc;
 }
 
+sub AddDoc {
+	my ($self, $doc_id, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating) = @_;
+	$DB->Exec("INSERT INTO document(doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating) VALUES ($doc_id, $title, $filename, $class, $format, $dtd, $dtd_version, $version, $last_update, $url, $isbn, $pub_status, $review_status, $tickle_date, $pub_date, $ref_url, $tech_review_status, $maintained, $license, $abstract, $rating)");
+}
+
 sub DocUsers {
 	my $self = shift;
 	my $doc_id = shift;
@@ -262,6 +274,46 @@ sub DocUsers {
 		$docusers{$user_id}{name}		= &trim(&trim($docusers{$user_id}{first_name} . ' ' . $docusers{$user_id}{middle_name}) . ' ' . $docusers{$user_id}{surname});
 	}
 	return %docusers;
+}
+
+sub DocVersions {
+	my $self = shift;
+	my $doc_id = shift;
+	my %docversions = ();
+	my $sql = "SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id = $doc_id ORDER BY pub_date, version";
+	my $recordset = $DB->Recordset($sql);
+	while (@row = $recordset->fetchrow) {
+		$rev_id = $row[0];
+		$docversions{$rev_id}{rev_id}	= &trim($row[0]);
+		$docversions{$rev_id}{version}	= &trim($row[1]);
+		$docversions{$rev_id}{pub_date}	= &trim($row[2]);
+		$docversions{$rev_id}{initials}	= &trim($row[3]);
+		$docversions{$rev_id}{notes}	= &trim($row[4]);
+	}
+	return %docversions;
+}
+
+sub AddDocVersion {
+	my ($self, $doc_id, $version, $pub_date, $initials, $notes) = @_;
+	my $rev_id = $DB->Value("SELECT max(rev_id) FROM document_rev WHERE doc_id=$doc_id");
+	$rev_id++;
+	my $sql = "INSERT INTO document_rev(doc_id, rev_id, version, pub_date, initials, notes) VALUES ($doc_id, $rev_id, $version, " . &wsq($pub_date) . ", " . &wsq($initials) . ", " . &wsq($notes) . ")";
+	$DB->Exec($sql);
+	return $sql;
+}
+
+sub SaveDocVersion {
+	my ($self, $doc_id, $rev_id, $version, $pub_date, $initials, $notes) = @_;
+	my $sql = "UPDATE document_rev SET version=" . wsq($version) . ", pub_date=" . wsq($pub_date) . ", initials=" . wsq($initials) . ", notes=" . wsq($notes) . " WHERE doc_id=$doc_id AND rev_id=$rev_id";
+	$DB->Exec($sql);
+	return $sql;
+}
+
+sub DelDocVersion {
+	my ($self, $doc_id, $rev_id) = @_;
+	my $sql = "DELETE FROM document_rev WHERE doc_id=$doc_id AND rev_id=$rev_id";
+	$DB->Exec($sql);
+	return $sql;
 }
 
 sub Roles {
@@ -628,11 +680,13 @@ sub UserTable {
 	my $user_id = shift;
 	my %user = User($foo, $user_id);
 	my $table = '';
-	$table .= "<table class='box'>\n";
+	$table .= "<table width='100%' class='box'>\n";
 	$table .= "<form name=edit method=POST action='user_save.pl'>";
 	$table .= "<input type=hidden name=user_id value=$user{id}></input>";
-	$table .= "<tr><th colspan=2>User Details</th></tr>\n";
-	$table .= "<tr><th>Username:</th><td><input type=text name='username' size=30 value='$user{username}'></input></td></tr>\n";
+	$table .= "<tr><th colspan=2>User Details</th><th>Notes</th></tr>\n";
+	$table .= "<tr><th>Username:</th><td><input type=text name='username' size=30 value='$user{username}'></input></td>\n";
+	$table .= "<td rowspan=5 style='width:100%'><textarea name='notes' style='width:100%' rows=10 wrap>$user{notes}</textarea></td>\n";
+	$table .= "</tr>\n";
 	$table .= "<tr><th>First Name:</th><td><input type=text name='first_name' size=30 value='$user{first_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Middle Name:</th><td><input type=text name='middle_name' size=30 value='$user{middle_name}'></input></td></tr>\n";
 	$table .= "<tr><th>Surname:</th><td><input type=text name='surname' size=30 value='$user{surname}'></input></td></tr>\n";
@@ -777,6 +831,67 @@ sub DocTable {
 	return $doctable;
 }
 
+sub NewDocTable {
+	my $newdoctable = '';
+	$newdoctable .= "<table class='newdoctable'>\n";
+	$newdoctable .= "<form method=POST action='document_add.pl'>\n";
+	$newdoctable .= "<input type=hidden name=caller value='document_list.pl'>\n";
+	$newdoctable .= "<tr><th colspan=2>Document Details</th></tr>\n";
+	$newdoctable .= "<tr><th>Title:</th><td><input type=text name=title size=60 width=60></td></tr>\n";
+	$newdoctable .= "<tr><th>Status:</th><td>" . PubStatusCombo($foo, "N") . "</td></tr>\n";
+	$newdoctable .= "<tr><th>Class:</th><td>" . ClassCombo() . "</td></tr>\n";
+	$newdoctable .= "<tr><th>Format:</th><td>" . FormatCombo() . "</td></tr>\n";
+	$newdoctable .= "<tr><th>DTD:</th><td>" . DTDCombo() . "</td></tr>\n";
+	$newdoctable .= "<tr><td></td><td><input type=submit value=Add></td></tr>\n";
+	$newdoctable .= "</form>\n";
+	$newdoctable .=	"</table>\n";
+	return $newdoctable;
+}
+
+sub DocVersionsTable {
+	my $self = shift;
+	my $doc_id = shift;
+	my $table = '';
+	my %docversions = DocVersions($foo, $doc_id);
+	
+	$table .= "<table class='box'>\n";
+	$table .= "<tr><th colspan=6>Document Versions</th></tr>\n";
+	$table .= "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
+	foreach $key (sort { $docversions{$a}{pub_date} cmp $docversions{$b}{pub_date} } keys %docversions) {
+		$table .= "<tr>";
+		$table .= "<form method=POST action='document_rev_save.pl'>";
+		$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+		$table .= "<input type=hidden name=rev_id value=$docversions{$key}{rev_id}>";
+		$table .= "<input type=hidden name=doc_id value=$doc_id>";
+		$table .= "<td valign=top><input type=text name=version width=12 size=12 value='$docversions{$key}{version}'></input></td>\n";
+		$table .= "<td valign=top><input type=text name=pub_date width=12 size=12 value='$docversions{$key}{pub_date}'></input></td>\n";
+		$table .= "<td valign=top><input type=text name=initials width=5 size=5 value='$docversions{$key}{initials}'></input></td>\n";
+		$table .= "<td><textarea name=notes rows=3 cols=40 style='width:100%' wrap>$docversions{$key}{notes}</textarea>\n";
+		$table .= "<td valign=top><input type=checkbox name=chkDel>Del</td>";
+		$table .= "<td valign=top><input type=submit value=Save></td>\n";
+		$table .= "</form>";
+		$table .= "</tr>\n";
+	}
+
+	$table .= "<tr>";
+	$table .= "<form method=POST action='document_rev_add.pl'>";
+	$table .= "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+	$table .= "<input type=hidden name=doc_id value=$doc_id>";
+
+	$table .= "<td valign=top><input type=text name=version width=12 size=12></input></td>\n";
+	$table .= "<td valign=top><input type=text name=pub_date width=12 size=12></input></td>\n";
+	$table .= "<td valign=top><input type=text name=initials width=5 size=5></input></td>\n";
+	$table .= "<td><textarea name=notes rows=3 cols=40 style='width:100%' wrap></textarea>\n";
+
+	$table .= "<td valign=top></td>\n";
+	$table .= "<td valign=top><input type=submit value=Add></td>\n";
+	$table .= "</form>";
+	$table .= "</tr>\n";
+
+	$table .= "</table>\n";
+	return $table;
+}
+
 sub NavBar {
 	print "<table class='navbar'><tr>\n";
 	print "<th><a href='document_list.pl'>Documents</a></th>\n";
@@ -843,6 +958,7 @@ sub AdminBox {
 	print "<tr><th>Admin Tools</th></tr>\n";
 	print "<tr><td><a href='user_list.pl'>Users</a></t></tr>\n";
 	print "<tr><td><a href='statistics.pl'>Statistics</a></td></tr>\n";
+	print "<tr><td><a href='document_new.pl'>New Document</a></td></tr>\n";
 	print "</td></tr></table>\n";
 }
 
@@ -990,4 +1106,11 @@ sub bool2yn {
 		return 'No';
 	}
 }
+
+sub wsq {
+	my $temp = shift;
+	$temp =~ s/'/''/g;
+	return "'$temp'";
+}
+
 1;

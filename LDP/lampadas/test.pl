@@ -10,7 +10,7 @@ use Lampadas::Database;
 $DB = new Lampadas::Database;
 
 #&UserDocs(11);
-&Doc(473);
+#&Doc(473);
 #&DocUsers(473);
 #&User(11);
 #&Roles();
@@ -41,7 +41,9 @@ $DB = new Lampadas::Database;
 #&UsersTable();
 #&UserTable(11);
 #&UserDocsTable(11);
-&DocTable(471);
+#&DocTable(471);
+#&NewDocTable();
+&DocVersionsTable(471);
 
 sub UserDocs {
 	my $user_id = shift;
@@ -96,6 +98,7 @@ sub User {
 	print "UserName: $user{username}\n";
 	print "Admin: $user{admin}\n";
 	print "Name: $user{name}\n";
+	print "Notes: $user{notse}\n";
 	print "\n";
 }
 
@@ -310,3 +313,18 @@ sub DocTable {
 	print $L->DocTable($doc_id);
 	print "\n";
 }
+
+sub NewDocTable {
+	print "NewDocTable:\n";
+	print $L->NewDocTable();
+	print "\n";
+}
+
+sub DocVersionsTable {
+	my $doc_id = shift;
+	print "DocVersionsTable:\n";
+	print $L->DocVersionsTable($doc_id);
+	print "\n";
+}
+
+

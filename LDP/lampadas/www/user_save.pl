@@ -15,9 +15,9 @@ $email		= $L->Param('email');
 $admin		= $L->Param('admin');
 $admin = 'f' unless ($admin eq 't');
 $password	= $L->Param('password');
+$notes		= $L->Param('notes');
 
-
-$DB->Exec("UPDATE username SET username='$username', first_name='$first_name', middle_name='$middle_name', surname='$surname', email='$email', admin='$admin' WHERE user_id='$user_id'");
+$DB->Exec("UPDATE username SET username='$username', first_name='$first_name', middle_name='$middle_name', surname='$surname', email='$email', admin='$admin', notes='$notes' WHERE user_id='$user_id'");
 if ($password) {
 	$DB->Exec("UPDATE username SET password='$password' WHERE user_id='$user_id'");
 }

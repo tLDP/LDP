@@ -1,62 +1,41 @@
 #! /usr/bin/perl
 
-use CGI qw(:standard);
-use Pg;
+use Lampadas;
+$L = new Lampadas;
 
-$query = new CGI;
-$dbmain = "ldp";
-@row;
-
-# Read parameters
-$caller        = param('caller');
-$rev_id        = param('rev_id');
-$doc_id        = param('doc_id');
-$rev_version   = param('rev_version');
-$rev_date      = param('rev_date');
-$rev_init      = param('rev_init');
-$rev_note      = param('rev_note');
-while ($rev_note =~ /\'/) {
-	$rev_note =~ s/\'/a1s2d3f4/;
+# Read $L->Parameters
+$caller		= $L->Param('caller');
+$rev_id		= $L->Param('rev_id');
+$doc_id		= $L->Param('doc_id');
+$version	= $L->Param('version');
+$pub_date	= $L->Param('pub_date');
+$initials	= $L->Param('initials');
+$notes		= $L->Param('notes');
+while ($notes =~ /\'/) {
+	$notes =~ s/\'/a1s2d3f4/;
 }
-while ($rev_note =~ /a1s2d3f4/) {
-	$rev_note     =~ s/a1s2d3f4/\'\'/;
+while ($notes =~ /a1s2d3f4/) {
+	$notes =~ s/a1s2d3f4/\'\'/;
 }
-$chkDel        = param('chkDel');
+$chkDel        = $L->Param('chkDel');
 
 $conn=Pg::connectdb("dbname=$dbmain");
 
-$username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($username ne $founduser) {
-	print $query->redirect("../newaccount.html");
-	exit;
-} else {
-	if ($row[1] ne 't') {
-		$user_maintainer_id = $row[2];
-		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$user_maintainer_id AND doc_id=$doc_id AND active='t'");
-		@row = $result->fetchrow;
-		unless ($row[0]) {
-			print $query->redirect("../wrongpermission.html");
-			exit;
-		}
+unless ($L->Admin()) {
+	%userdocs = $L->UserDocs($L->CurrentUserID());
+	unless ($userdocs{$doc_id}) {
+		print $query->redirect("wrongpermission.pl");
+		exit;
 	}
 }
 
 if ( $chkDel eq 'on' ) {
-  $sql = "DELETE FROM document_rev WHERE rev_id = $rev_id";
-  $result=$conn->exec($sql);
+	$temp = $L->DelDocVersion($doc_id, $rev_id);
 }
 else {
-  $result=$conn->exec("UPDATE document_rev SET version  = '$rev_version' WHERE rev_id = $rev_id");
-  $result=$conn->exec("UPDATE document_rev SET pub_date = '$rev_date'    WHERE rev_id = $rev_id");
-  $result=$conn->exec("UPDATE document_rev SET initials = '$rev_init'    WHERE rev_id = $rev_id");
-  $result=$conn->exec("UPDATE document_rev SET notes    = '$rev_note'    WHERE rev_id = $rev_id");
+	$temp = $L->SaveDocVersion($doc_id, $rev_id, $version, $pub_date, $initials, $notes);
 }
 
-print $query->redirect($caller)
-
-
-
+$L->StartPage("Saved");
+print $temp;
+$L->EndPage();

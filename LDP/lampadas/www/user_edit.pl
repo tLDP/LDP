@@ -24,8 +24,6 @@ print $L->UserTable($user_id);
 print $L->UserDocsTable($user_id);
 
 
-
-
 $notes_result = $conn->exec("SELECT un.date_entered, un.notes, u.username FROM username u, username_notes un WHERE u.user_id = un.user_id AND u.user_id = $user_id ORDER BY date_entered");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $notes_result->resultStatus;
 

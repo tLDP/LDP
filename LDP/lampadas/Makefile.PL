@@ -23,6 +23,7 @@ WriteMakefile(
 		       'CGI'		=> 0,
 		       'Pg'		=> 0,
 		       'FileHandle'	=> 0,
+		       'Date::Calc'	=> 0,
                      },
 
 );

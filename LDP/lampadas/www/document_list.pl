@@ -111,14 +111,14 @@ if ( $chkRATING eq "on" ) { $RATING = "checked "; }
 # print the page
 $L->StartPage('Document List');
 
-print "<form action='document_edit.pl' method=POST>\n";
-print "Jump to a document by ID: <input type=text size=5 name=doc_id>\n";
-print "<input type=submit value=Jump name=Jump>\n";
-print "</form>\n";
+#print "<form action='document_edit.pl' method=POST>\n";
+#print "Jump to a document by ID: <input type=text size=5 name=doc_id>\n";
+#print "<input type=submit value=Jump name=Jump>\n";
+#print "</form>\n";
 
+
+print "<table class='box'>";
 print "<form name=filter method=POST action='document_list.pl'>";
-
-print "<p><table class='box'>";
 print "<tr><th>Classes</th><th>Optional Fields</th><th>Sorting Options</th>";
 print "<th>Status</th>" if ($L->Maintainer());
 print "</tr>";
@@ -309,68 +309,6 @@ while (@row = $result->fetchrow) {
 print "</table>\n";
 
 print "<p>Count: $count";
-
-if ($L->Admin()) {
-	print "<p><hr>";
-
-	print "<h1>New Document</h1>\n";
-
-	print "<p><form method=POST action='document_add.pl'>\n";
-	print "<input type=hidden name=caller value='document_list.pl'>\n";
-	print "<table>\n";
-	print "<tr><td align=right>Title:</td><td><input type=text name=title size=60 width=60></td></tr>\n";
-
-	print "<tr><td align=right>Status:</td><td>";
-	print "<select name=pub_status>\n";
-	print "<option value='N'>Active</option>\n";
-	print "<option value='?'>Unknown</option>\n";
-	print "<option value='A'>Archived</option>\n";
-	print "<option value='D'>Deleted</option>\n";
-	print "<option value='O'>Offsite</option>\n";
-	print "<option value='P'>Pending</option>\n";
-	print "<option value='R'>Replaced</option>\n";
-	print "<option value='W'>Wishlist</option>\n";
-	print "<option value='C'>Cancelled</option>\n";
-	print "</select>\n";
-	print "</td></tr>\n";
-
-	print "<tr><td align=right>Class:</td><td>";
-	print "<select name=class>\n";
-	print "<option>BACKGROUNDER</option>\n";
-	print "<option>HOWTO</option>\n";
-	print "<option>MINI</option>\n";
-	print "<option>FAQ</option>\n";
-	print "<option>QUICK</option>\n";
-	print "<option>GUIDE</option>\n";
-	print "<option>TEMPLATE</option>\n";
-	print "</select>\n";
-	print "</td></tr>\n";
-
-	print "<tr><td align=right>Format:</td><td>";
-	print "<select name=format>\n";
-	print "<option></option>\n";
-	print "<option>SGML</option>\n";
-	print "<option>XML</option>\n";
-	print "<option>TEXT</option>\n";
-	print "<option>LaTeX</option>\n";
-	print "<option>PDF</option>\n";
-	print "<option>WIKI</option>\n";
-	print "</select>\n";
-	print "</td></tr>\n";
-
-	print "<tr><td align=right>DTD:</td><td>";
-	print "<select name=dtd>\n";
-	print "<option></option>\n";
-	print "<option>N/A</option>\n";
-	print "<option>HTML</option>\n";
-	print "<option>DocBook</option>\n";
-	print "<option>LinuxDoc</option>\n";
-	print "</select>\n";
-	print "</td></tr>\n";
-	
-	print "<tr><td></td><td><input type=submit value=Add></td></tr>\n";
-	print "</table></form>\n";
-}
 
 $L->EndPage();
 

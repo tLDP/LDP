@@ -42,72 +42,8 @@ if ($vote_count > 0) {
 %doc = $L->Doc($doc_id);
 
 $L->StartPage("$doc{title} ($doc_id)");
-
 print $L->DocTable($doc_id);
-
-
-
-print "<h2>Versions</h2>";
-
-$rev_result = $conn->exec("SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=$doc_id ORDER BY pub_date, version");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $rev_result->resultStatus;
-
-print "<p><table class='box'>\n";
-print "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
-while (@row = $rev_result->fetchrow) {
-  $rev_id = $row[0];
-  $rev_version = $row[1];
-  $rev_version =~  s/\s+$//;
-  $rev_date = $row[2];
-  $rev_init = $row[3];
-  $rev_note = $row[4];
-  print "<tr>";
-  print "<form method=POST action='document_rev_save.pl'>";
-  print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
-  print "<input type=hidden name=rev_id value=$rev_id>";
-  print "<input type=hidden name=doc_id value=$doc_id>";
-
-  print "<td valign=top><input type=text name=rev_version width=12 size=12 value='$rev_version'></input></td>\n";
-  print "<td valign=top><input type=text name=rev_date width=12 size=12 value='$rev_date'></input></td>\n";
-  print "<td valign=top><input type=text name=rev_init width=5 size=5 value='$rev_init'></input></td>\n";
-  print "<td><textarea name=rev_note rows=3 cols=40 style='width:100%' wrap>$rev_note</textarea>\n";
-
-  print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
-  print "<td valign=top><input type=submit value=Save></td>\n";
-  print "</form>";
-  print "</tr>\n";
-}
-
-# For creating a new version
-#print "<tr><th colspan=6>New Version</th></tr>";
-print "<tr>";
-print "<form method=POST action='document_rev_add.pl'>";
-print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
-print "<input type=hidden name=doc_id value=$doc_id>";
-
-print "<td valign=top><input type=text name=rev_version width=12 size=12></input></td>\n";
-print "<td valign=top><input type=text name=rev_date width=12 size=12></input></td>\n";
-print "<td valign=top><input type=text name=rev_init width=5 size=5></input></td>\n";
-print "<td><textarea name=rev_note rows=3 cols=40 style='width:100%' wrap></textarea>\n";
-
-print "<td valign=top></td>\n";
-print "<td valign=top><input type=submit value=Add></td>\n";
-print "</form>";
-print "</tr>\n";
-
-print "</table>\n";
-
-
-
-
-
-
-
-
-
-
-
-
+print $L->DocVersionsTable($doc_id);
 
 
 
