@@ -1,4 +1,4 @@
-insert([newdocument], [Add Document], [],
+insert([newdocument], [Dokument hinzufügen], [],
 [
     |tabeditdoc|
 ])
@@ -42,8 +42,8 @@ insert([news], [Neuigkeiten], [],
     |tabrecentnews|
 ])
 
-insert([contribute], [Contributing to |strproject|],
-    [Contributing to |strprojectshort|],
+insert([contribute], [Mitarbeit bei |strproject|],
+    [Mitarbeit bei |strprojectshort|],
 [
     Als Mitglied der Lampadas-Gemeinde arbeiten Sie mit
     hunderten oder gar tausenden Anderen zusammen an Dokumentation
@@ -99,12 +99,12 @@ insert([contribute], [Contributing to |strproject|],
     </ul>
 ])
 
-insert([unmaintained], [Unmaintained Documents], [],
+insert([unmaintained], [Nicht mehr gewartete Dokumente], [],
 [
     |tabunmaintained|
 ])
 
-insert([maint_wanted], [New Maintainer Wanted], [],
+insert([maint_wanted], [Instandhalter gesucht], [],
 [
     |tabmaint_wanted|
 ])
