@@ -20,6 +20,12 @@
 
     <revhistory>
         <revision>
+	    <revnumber>1.2</revnumber>
+	    <date>2004-03-12</date>
+	    <authorinitials>rh</authorinitials>
+	    <revremark>Added information on dm-crypt, updated loop-AES info, added more info on security</revremark>
+	</revision>
+        <revision>
 	    <revnumber>1.1</revnumber>
 	    <date>2004-01-24</date>
 	    <authorinitials>rh</authorinitials>
@@ -140,7 +146,7 @@ I'd like to thank the following people who helped me improve this HOWTO:
 <para>
 Feedback is most certainly welcome for this document. Send
 your additions, comments and criticisms to the following
-email address : <email>rholzer@cmu.edu</email>.
+email address : <email>cryptoloop@ralfhoelzer.com</email>.
 </para>
 </sect2>
 
@@ -151,17 +157,37 @@ email address : <email>rholzer@cmu.edu</email>.
     <title>Introduction</title>
     <para>
     There are currently a few alternatives to using Cryptoloop. Loop-AES (<ulink url="http://loop-aes.sourceforge.net">http://loop-aes.sourceforge.net</ulink>)
-    is probably the most well-known. It provides very similar functionality to Cryptoloop, but requires kernel patches. Aes-loop
-    is currently more mature than Cryptoloop and some argue it is also faster because it uses a highly optimized assembler implementation for
-    AES. While this may be true, Cryptoloop is very fast. I have not noticed any significant speed differences between a Cryptoloop-encrypted
-    partition and a non-encrypted partition. I do not know of any statistics about these performance differences. Unless I/O performance is
+    is probably the most well-known. It provides very similar functionality to Cryptoloop. Aes-loop
+    is currently more mature than Cryptoloop and it is also faster (about twice as fast, according to the author of loop-AES), because it uses a highly 
+    optimized assembler implementation for
+    AES. This doesn't mean that Cryptoloop is slow. I have not noticed any significant speed differences between a Cryptoloop-encrypted
+    partition and a non-encrypted partition during everyday work with normal amounts of I/O. Unless I/O performance is
     extremely important to you, Cryptoloop should do just fine. Loop-AES offers some additional features that are not yet present in the kernel
-    implementation of Cryptoloop. If you want to encrypt the root and swap partitions, you may want to stick with Loop-AES for now.
+    implementation of Cryptoloop. Loop-AES requires modified userspace tools (mount, losetup) and these modifications are incompatible with
+    Cryptoloop. You will not be able to use Cryptoloop and Loop-AES at the same time.
+    </para>
+    <para>
+    In terms of security, Cryptoloop is doing ok. The key is usually generated from a password and its hash is used as the key to AES. This leads
+    to the possibility of a <ulink url="http://lwn.net/Articles/67216/">known-plaintext attack</ulink>. 
+    Loop-AES is superior in this regard, because it generates a random key and encrypts this
+    key separately, making a known-plaintext attack more difficult. Loop-AES also supports a multi-key mode, where sectors are encrypted with
+    64 separate AES keys. In general, a brute-force attack on your password can be very effective, if you choose a weak password. To be on
+    the safe side, your password should be at least 20 characters long. Otherwise a brute-force attack on the password will be much easier
+    than trying to brute-force the AES encryption directly.
     </para>
     <para>
     The Cryptoloop functionality in the standard kernel provides a stable and clean implementation without the need for extra patches. Since it
     is still fairly new, it may not have gotten the necessary amount of review in terms of security. You have to decide for yourself what
     is suitable for you.
+    </para>
+    <para>
+    IMPORTANT: Cryptoloop has been marked deprecated in the latest 2.6 kernel. This means that it will no longer be maintained actively. The
+    successor to Cryptoloop will be <ulink url="http://www.saout.de/misc/dm-crypt/">dm-crypt</ulink>. Dm-crypt is available in the main kernel
+    since 2.6.4. Cryptoloop will still be available in the main kernel for a long time, but dm-crypt will be the method of choice for disk
+    encryption in the future. Dm-crypt is based on the device mapper and offers pretty much the same functionality as Cryptoloop. It is still
+    very new and there are no easy-to-use userspace tools available yet. Dm-crypt is considered to be much cleaner code than Cryptoloop, but
+    there are some important differences. For example, creating an ecrypted filesystem within a file will still require to go through a loop
+    device, but this support is still in development. 
     </para>
     <para>
     There are other tools which allow you to create an encrypted file system. BestCrypt is a commercial product from Jetico. It allows you to
@@ -265,7 +291,7 @@ email address : <email>rholzer@cmu.edu</email>.
     </orderedlist>
     </para>
     <para>
-    Download the util-linux patches and the two patches above.
+    Download the util-linux package and the two patches above.
     First extract the util-linux package and then apply the two patches:
     </para>
     <screen>
@@ -300,7 +326,11 @@ example uses <filename>/dev/sda1</filename>. I have chosen to use AES as a ciphe
 you like that has been enabled in the kernel. You can get a list of the algorithms supported by
 your currently running kernel by looking into <filename>/proc/crypto</filename>. An excellent resource, discussing the
 different cryptographic algorithms, are Bruce Schneier's books, Applied Cryptography and Practical
-Cryptography.
+Cryptography. Both AES and Serpent are probably a reasonable choice. AES has been cryptanalyzed a lot
+and no serious weaknesses have been discovered so far. Serpent has not been analyzed as much, but is
+considered to be even a little bit stronger than AES. However, Serpent is also slower than AES.
+Stay away from DES, it is both slow and weak. Triple-DES may be an option, but AES is probably more
+secure and faster, so there is really no reason to use Triple-DES anymore.
 </para>
 
     <orderedlist>
@@ -330,9 +360,15 @@ Cryptography.
 <screen>losetup -e aes-256 /dev/loop0 /dev/sda1
 </screen>
 
-	<para>The command prompts for a password. Select a strong password and try to remember it without having to stick a Post-It note to your monitor. There is one big downside to using Cryptoloop. Since the password is hashed to create the encryption key, it is not easy to change the password later on. The most straight-forward way of changing the password is to create a new encrypted partition or file and move all data into it. For this reason, make sure you select a strong password from the start.</para>
-	<para>If <command>losetup</command> fails with an INVALID ARGUMENT error message, there is a problem with your util-linux package. Make sure you have followed the instructions above
-	on how to install a patched version of util-linux. Older and unpatched version use a different way of passing the key size, and do not work with the 2.6 Crypto API.</para>
+        <para>The command prompts for a password. Select a strong password and try to remember it without having to stick a Post-It note to your monitor. 
+        There is one big downside to using Cryptoloop. Since the password is hashed to create the encryption key, it is not easy to change the password later on. 
+        The most straight-forward way of changing the password is to create a new encrypted partition or file and move all data into it. For this reason, make 
+        sure you select a strong password from the start.  AES may be a strong algorithm, but if you chose a weak password, that security goes down the drain.
+        </para>
+        <para>If <command>losetup</command> fails with an INVALID ARGUMENT error message, there is a problem with your util-linux package. 
+         Make sure you have followed the instructions above on how to install a patched version of util-linux. Older and unpatched version use a 
+         different way of passing the key size, and do not work with the 2.6 Crypto API.
+        </para>
       </listitem>
 
       <listitem>
@@ -474,4 +510,5 @@ You can then mount the file system later on as follows:
 
 
 </article>
+
 
