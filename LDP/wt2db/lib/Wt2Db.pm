@@ -233,6 +233,11 @@ sub ProcessLine {
             $link =~ s/^link://;
             $linkname =~ s/^link://;
             $line =~ s/\[\[.*?\]\]/<xref linkend='$link' endterm='$link-title'\/\>/;
+        } elsif ($link =~ /^ftp:/) {
+            $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
+        } elsif ($link =~ /^news:/) {
+            $linkname =~ s/^news:\/\///;
+            $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
         } elsif ($link =~ /^mailto:/) {
             $linkname =~ s/^mailto://;
             $line =~ s/\[\[.*?\]\]/<ulink url='$link'><citetitle>$linkname<\/citetitle><\/ulink>/;
@@ -313,7 +318,6 @@ sub ProcessLine {
     if ((($line =~ /^<para>/) or
          ($line =~ /^<sect/) or
          ($line =~ /^<screen>/) or
-         ($line =~ /^<screen>/) or
          ($line =~ /^<blockquote>/) or
          ($line =~ /^<literallayout>/) or
          ($line =~ /^<articleinfo>/) or
@@ -383,6 +387,7 @@ sub ProcessLine {
         }
         $line = "$starttag$line$endtag";
 	chomp($line);
+
     # sect3
     #
     } elsif ($line =~ /^===/) {
@@ -419,6 +424,15 @@ sub ProcessLine {
         }
         $level1 = 1;
 
+    # appendix
+    #
+    } elsif (($line =~ /^<appendix/) or
+    	     ($line =~ /<\/appendix>/)) {
+	&close1;
+
+#    	$appendix = $line;
+#	$appendix =~ s/^\s*?(<appendix[^>]*?>)/$1/;
+    
     # orderedlist
     #
     } elsif ($line =~ /^\s*#/) {
