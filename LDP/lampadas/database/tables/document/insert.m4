@@ -2,7 +2,7 @@ m4_define(insert, [INSERT INTO document(doc_id, lang, title, short_title, versio
 type_code, format_code, dtd_code, dtd_version,
 license_code, license_version, copyright_holder,
 abstract, short_desc,
-pub_status, review_status, tech_review_status,
+pub_status_code, review_status_code, tech_review_status_code,
 pub_date, last_update, tickle_date,
 maintained, maintainer_wanted, rating,
 sk_seriesid, replaced_by_id)

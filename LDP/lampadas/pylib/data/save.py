@@ -45,18 +45,17 @@ def newdocument(req, username, doc_id,
     sk_seriesid = process.read()
     process.close()
     
-    newdoc_id = lampadas.docs.add(title, short_title, type_code,
-            '', '', '',
-            version, last_update, isbn,
-            pub_status_code, review_status_code, tickle_date, pub_date,
-            tech_review_status_code, license_code, license_version,
-            copyright_holder, abstract, short_desc, lang, sk_seriesid)
+    doc = lampadas.docs.add(title, short_title, type_code,
+          '', '', '',
+          version, last_update, isbn,
+          pub_status_code, review_status_code, tickle_date, pub_date,
+          tech_review_status_code, license_code, license_version,
+          copyright_holder, abstract, short_desc, lang, sk_seriesid)
 
     # Add the current user as the author of the document
-    doc = lampadas.docs[newdoc_id]
     doc.users.add(username)
     
-    redirect(req, '/editdoc/' + str(newdoc_id) + referer_lang_ext(req))
+    redirect(req, '/editdoc/' + str(doc.id) + referer_lang_ext(req))
 
 def document(req, username, doc_id,
              title, short_title,

@@ -1,9 +1,9 @@
 CREATE TABLE pub_status_i18n
 (
-	pub_status		CHAR		NOT NULL	REFERENCES pub_status(pub_status),
+	pub_status_code		CHAR		NOT NULL	REFERENCES pub_status(pub_status_code),
 	lang			CHAR(2)		NOT NULL	REFERENCES language(lang_code),
 	pub_status_name		TEXT,
 	pub_status_desc		TEXT,
 	
-	PRIMARY KEY (pub_status, lang)
+	PRIMARY KEY (pub_status_code, lang)
 );

@@ -187,7 +187,7 @@ class Docs(LampadasCollection):
     """
 
     def load(self):
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status, review_status, tickle_date, pub_date, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document"
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -304,7 +304,7 @@ class Docs(LampadasCollection):
     def add(self, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid):
         id = db.next_id('document', 'doc_id')
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status, review_status, tickle_date, pub_date, tech_review_status, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
+        sql = "INSERT INTO document(doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, license_code, license_version, copyright_holder, abstract, short_desc, lang, sk_seriesid) VALUES (" + str(id) + ", " + wsq(title) + ", " + wsq(short_title) + ', ' + wsq(type_code) + ", " + wsq(format_code) + ", " + wsq(dtd_code) + ", " + wsq(dtd_version) + ", " + wsq(version) + ", " + wsq(last_update) + ", " + wsq(isbn) + ", " + wsq(pub_status_code) + ", " + wsq(review_status_code) + ", " + wsq(tickle_date) + ", " + wsq(pub_date) + ", " + wsq(tech_review_status_code) + ", " + wsq(license_code) + ", " + wsq(license_version) + ', ' + wsq(copyright_holder) + ', ' + wsq(abstract) + ", " + wsq(short_desc) + ', ' + wsq(lang) + ", " + wsq(sk_seriesid) + ")"
         assert db.runsql(sql)==1
         db.commit()
         doc = Doc(id)
@@ -383,7 +383,7 @@ class Doc:
 
     def load(self, id):
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status, review_status, tickle_date, pub_date, tech_review_status, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, short_title, type_code, format_code, dtd_code, dtd_version, version, last_update, isbn, pub_status_code, review_status_code, tickle_date, pub_date, tech_review_status_code, maintained, maintainer_wanted, license_code, license_version, copyright_holder, abstract, short_desc, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.load_row(row)
@@ -427,7 +427,7 @@ class Doc:
         """
         FIXME: use cursor.execute(sql,params) instead! --nico
         """
-        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ", pub_status=" + wsq(self.pub_status_code) + ", review_status=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
+        sql = "UPDATE document SET title=" + wsq(self.title) + ', short_title=' + wsq(self.short_title) + ", type_code=" + wsq(self.type_code) + ", format_code=" + wsq(self.format_code) + ", dtd_code=" + wsq(self.dtd_code) + ", dtd_version=" + wsq(self.dtd_version) + ", version=" + wsq(self.version) + ", last_update=" + wsq(self.last_update) + ", isbn=" + wsq(self.isbn) + ", pub_status_code=" + wsq(self.pub_status_code) + ", review_status_code=" + wsq(self.review_status_code) + ", tickle_date=" + wsq(self.tickle_date) + ", pub_date=" + wsq(self.pub_date) + ", tech_review_status_code=" + wsq(self.tech_review_status_code) + ", maintained=" + wsq(bool2tf(self.maintained)) + ', maintainer_wanted=' + wsq(bool2tf(self.maintainer_wanted)) + ", license_code=" + wsq(self.license_code) + ', license_version=' + wsq(self.license_version) + ', copyright_holder=' + wsq(self.copyright_holder) + ", abstract=" + wsq(self.abstract) + ', short_desc=' + wsq(self.short_desc) + ", rating=" + dbint(self.rating) + ", lang=" + wsq(self.lang) + ", sk_seriesid=" + wsq(self.sk_seriesid) + " WHERE doc_id=" + str(self.id)
         db.runsql(sql)
         db.commit()
 
@@ -544,7 +544,6 @@ class DocFiles(LampadasCollection):
         
     def delete(self, filename):
         file = self[filename]
-        file.errors.clear()
         sql = "DELETE FROM document_file WHERE doc_id=" + str(self.doc_id) + " AND filename=" + wsq(filename)
         db.runsql(sql)
         db.commit()
@@ -968,9 +967,9 @@ class Licenses(LampadasCollection):
         while (1):
             row = cursor.fetchone()
             if row==None: break
-            newLicense = License()
-            newLicense.load_row(row)
-            self.data[newLicense.license_code] = newLicense
+            license = License()
+            license.load_row(row)
+            self.data[license.code] = license
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = 'SELECT license_code, lang, license_short_name, license_name, license_desc FROM license_i18n'
         cursor = db.select(sql)
@@ -978,8 +977,8 @@ class Licenses(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             license_code = trim(row[0])
-            license = self[license_code]
-            lang = row[1]
+            license      = self[license_code]
+            lang         = row[1]
             license.short_name[lang]  = trim(row[2])
             license.name[lang]        = trim(row[3])
             license.description[lang] = trim(row[4])
@@ -994,13 +993,13 @@ class License:
         self.name = LampadasCollection()
         self.description = LampadasCollection()
         if license_code==None: return
-        self.license_code = license_code
+        self.code = license_code
         self.free = free
 
     def load_row(self, row):
-        self.license_code = trim(row[0])
-        self.free         = tf2bool(row[1])
-        self.sort_order   = row[2]
+        self.code       = trim(row[0])
+        self.free       = tf2bool(row[1])
+        self.sort_order = row[2]
 
 # DTDs
 
@@ -1020,19 +1019,27 @@ class DTDs(LampadasCollection):
             if row==None: break
             newDTD = DTD()
             newDTD.load_row(row)
-            self.data[newDTD.dtd_code] = newDTD
+            self.data[newDTD.code] = newDTD
 
 class DTD:
     """
     A Data Type Definition, for SGML and XML documents.
     """
 
-    def __init__(self, dtd_code=None):
-        if dtd_code==None: return
-        self.dtd_code = dtd_code
+    def __init__(self, dtd_code=''):
+        self.code = dtd_code
+        if dtd_code=='': return
+        self.load()
+
+    def load(self):
+        sql = 'SELECT dtd_code FROM dtd WHERE dtd_code=' + wsq(dtd_code)
+        cursor = db.select(sql)
+        row = cursor.fetchone()
+        if row==None: return
+        self.load_row(row)
 
     def load_row(self, row):
-        self.dtd_code = trim(row[0])
+        self.code = trim(row[0])
 
 
 # Errs
@@ -1180,16 +1187,16 @@ class PubStatuses(LampadasCollection):
         self.data = {}
 
     def load(self):
-        sql = "SELECT pub_status, sort_order FROM pub_status"
+        sql = "SELECT pub_status_code, sort_order FROM pub_status"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             newPubStatus = PubStatus()
-            newPubStatus.load(row)
+            newPubStatus.load_row(row)
             self.data[newPubStatus.code] = newPubStatus
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT pub_status, lang, pub_status_name, pub_status_desc FROM pub_status_i18n"
+        sql = "SELECT pub_status_code, lang, pub_status_name, pub_status_desc FROM pub_status_i18n"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -1212,7 +1219,7 @@ class PubStatus:
         if pub_status_code==None: return
         self.code = pub_status_code
 
-    def load(self, row):
+    def load_row(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
 
@@ -1228,16 +1235,16 @@ class ReviewStatuses(LampadasCollection):
         self.data = {}
 
     def load(self):
-        sql = "SELECT review_status, sort_order FROM review_status"
+        sql = "SELECT review_status_code, sort_order FROM review_status"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row==None: break
             review_status = ReviewStatus()
-            review_status.load(row)
+            review_status.load_row(row)
             self.data[review_status.code] = review_status
         # FIXME: use cursor.execute(sql,params) instead! --nico
-        sql = "SELECT review_status, lang, review_status_name, review_status_desc FROM review_status_i18n"
+        sql = "SELECT review_status_code, lang, review_status_name, review_status_desc FROM review_status_i18n"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -1260,7 +1267,7 @@ class ReviewStatus:
         if review_status_code==None: return
         self.code = review_status_code
 
-    def load(self, row):
+    def load_row(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
 
@@ -1282,7 +1289,7 @@ class Topics(LampadasCollection):
             row = cursor.fetchone()
             if row==None: break
             newTopic = Topic()
-            newTopic.load(row)
+            newTopic.load_row(row)
             self.data[newTopic.code] = newTopic
         # FIXME: use cursor.execute(sql,params) instead! --nico
         sql = "SELECT topic_code, lang, topic_name, topic_desc FROM topic_i18n"
@@ -1310,7 +1317,7 @@ class Topic:
         self.code = topic_code
         self.num  = TopicNum
 
-    def load(self, row):
+    def load_row(self, row):
         self.code = trim(row[0])
         self.num  = safeint(row[1])
 

@@ -51,9 +51,36 @@ EDIT_ICON = '<img src="/images/edit.png" alt="Edit" height="20" width="20" '\
             'border="0" hspace="5" vspace="0" align="top">'
 MAKE_ICON = 'MAKE'
 
-# ComboFactory
+# WidgetFactory
 
-class ComboFactory:
+class WidgetFactory:
+
+    def title(self, value):
+        return '<input type=text name="title" style="width:100%" value="' + value + '">'
+
+    def abstract(self, value):
+        return '<input type=text name="abstract" style="width:100%" value="' + value + '">'
+
+    def short_desc(self, value):
+        return '<input type=text name="short_desc" style="width:100%" value="' + value + '">'
+
+    def pub_date(self, value):
+        return '<input type=text name="pub_date" width="10" maxlength="10" value="' + value + '">'
+
+    def last_update(self, value):
+        return '<input type=text name="last_update" width="10"  maxlength="10" value="' + value + '">'
+
+    def tickle_date(self, value):
+        return '<input type=text name="tickle_date" width="10" maxlength="10" value="' + value + '">'
+
+    def isbn(self, value):
+        return '<input type=text name="isbn" width="13" maxlength="13" value="' + value + '">'
+
+    def rating(self, value):
+        return '<input type=text name="rating" width="2" maxlength="2" value="' + value + '">'
+
+    def copyright_holder(self, value):
+        return '<input type=text name="copyright_holder" width="20" value="' + value + '">'
 
     def tf(self, name, value, lang):
         log(3, 'creating tf combo: ' + name + ', value is: ' + str(value))
@@ -73,7 +100,7 @@ class ComboFactory:
     def stylesheet(self, value):
         return '<select name="stylesheet">\n</select>\n'
     
-    def role(self, value, lang):
+    def role_code(self, value, lang):
         combo = WOStringIO("<select name='role_code'>\n")
         keys = lampadas.roles.sort_by_lang('name', lang)
         for key in keys:
@@ -87,7 +114,7 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def type(self, value, lang):
+    def type_code(self, value, lang):
         combo = WOStringIO("<select name='type_code'>\n" \
                            "<option></option>\n")
         keys = lampadas.types.sort_by('sort_order')
@@ -102,7 +129,7 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def doc(self, value, lang):
+    def doc_id(self, value, lang):
         combo = WOStringIO("<select name='doc'>\n")
         keys = lampadas.docs.sort_by('title')
         for key in keys:
@@ -125,20 +152,28 @@ class ComboFactory:
             doc = lampadas.docs[key]
             assert not doc==None
             if doc.lang==lang or lang==None:
-                combo.write("<option ")
-                if doc.sk_seriesid==value:
-                    combo.write("selected ")
-                if doc.short_title > '':
-                    combo.write("value='%s'>%s</option>\n"
-                                % (str(doc.sk_seriesid),doc.short_title))
-                else:
-                    combo.write("value='%s'>%s</option>\n"
-                                % (str(doc.sk_seriesid),doc.title[:40]))
+                if doc.sk_seriesid > '':
+                    combo.write("<option ")
+                    if doc.sk_seriesid==value:
+                        combo.write("selected ")
+                    if doc.short_title > '':
+                        combo.write("value='%s'>%s</option>\n"
+                                    % (str(doc.sk_seriesid),doc.short_title))
+                    else:
+                        combo.write("value='%s'>%s</option>\n"
+                                    % (str(doc.sk_seriesid),doc.title[:40]))
         combo.write("</select>\n")
         return combo.get_value()
 
-    def language(self, value, lang):
+    def lang(self, value, lang):
         combo = WOStringIO("<select name='lang'>\n")
+
+        # I think I took the blank entry out once, but don't remember why.
+        # If we run across a need again, we'll have to make it optional.
+        if value=='':
+            combo.write('<option selected></option>')
+        else:
+            combo.write('<option></option>')
         keys = lampadas.languages.sort_by_lang('name', lang)
         for key in keys:
             language = lampadas.languages[key]
@@ -152,7 +187,7 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def license(self, value, lang):
+    def license_code(self, value, lang):
         combo = WOStringIO("<select name='license_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.licenses.sort_by('sort_order')
@@ -160,15 +195,15 @@ class ComboFactory:
             license = lampadas.licenses[key]
             assert not license==None
             combo.write("<option ")
-            if license.license_code==value:
+            if license.code==value:
                 combo.write("selected ")
-            combo.write("value='" + license.license_code + "'>")
+            combo.write("value='" + license.code + "'>")
             combo.write(license.short_name[lang])
             combo.write("</option>\n")
         combo.write("</select>")
         return combo.get_value()
 
-    def page(self, value, lang):
+    def page_code(self, value, lang):
         combo = WOStringIO("<select name='page_code'>\n")
         keys = lampadasweb.pages.sort_by('page_code')
         for key in keys:
@@ -183,23 +218,58 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def pub_status(self, value, lang):
+    def pub_status_code(self, value, lang):
         combo = WOStringIO("<select name='pub_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.pub_statuses.sort_by('sort_order')
         for key in keys:
-            PubStatus = lampadas.pub_statuses[key]
-            assert not PubStatus==None
+            pubstatus = lampadas.pub_statuses[key]
+            assert not pubstatus==None
             combo.write("<option ")
-            if PubStatus.code==value:
+            if pubstatus.code==value:
                 combo.write("selected ")
-            combo.write("value='" + str(PubStatus.code) + "'>")
-            combo.write(PubStatus.name[lang])
+            combo.write("value='" + pubstatus.code + "'>")
+            combo.write(pubstatus.name[lang])
             combo.write("</option>\n")
         combo.write("</select>")
         return combo.get_value()
         
-    def review_status(self, value, lang):
+    def format_code(self, value, lang):
+        combo = WOStringIO("<select name='format_code'>\n")
+        combo.write('<option></option>')
+        keys = lampadas.formats.sort_by_lang('name', lang)
+        for key in keys:
+            format = lampadas.formats[key]
+            assert not format==None
+            combo.write("<option ")
+            if format.code==value:
+                combo.write("selected ")
+            combo.write("value='" + format.code + "'>")
+            combo.write(format.name[lang])
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+        
+    def dtd_code(self, value):
+        combo = WOStringIO("<select name='dtd_code'>\n")
+        if value=='':
+            combo.write('<option selected></option>')
+        else:
+            combo.write('<option></option>')
+        keys = lampadas.dtds.sort_by('code')
+        for key in keys:
+            dtd = lampadas.dtds[key]
+            assert not dtd==None
+            combo.write("<option ")
+            if dtd.code==value:
+                combo.write("selected ")
+            combo.write("value='" + dtd.code + "'>")
+            combo.write(dtd.code)
+            combo.write("</option>\n")
+        combo.write("</select>")
+        return combo.get_value()
+        
+    def review_status_code(self, value, lang):
         combo = WOStringIO("<select name='review_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
@@ -215,7 +285,7 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def tech_review_status(self, value, lang):
+    def tech_review_status_code(self, value, lang):
         combo = WOStringIO("<select name='tech_review_status_code'>\n")
         combo.write('<option></option>')
         keys = lampadas.review_statuses.sort_by('sort_order')
@@ -231,7 +301,7 @@ class ComboFactory:
         combo.write("</select>")
         return combo.get_value()
 
-    def subtopic(self, value, lang):
+    def subtopic_code(self, value, lang):
         combo = WOStringIO('<select name="subtopic_code">\n')
         combo.write('<option></option>')
         topic_codes = lampadas.topics.sort_by('num')
@@ -292,14 +362,14 @@ class TableFactory:
         <input type="text" name="title" style="width:100%%" value="%s"></td>
         </tr>''' % doc.title)
         box.write('<tr>')
-        box.write('<th class="label">|strstatus|</th><td>' + combo_factory.pub_status(doc.pub_status_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strtype|</th><td>' + combo_factory.type(doc.type_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strstatus|</th><td>' + widget_factory.pub_status_code(doc.pub_status_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strtype|</th><td>' + widget_factory.type_code(doc.type_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strversion|</th><td><input type=text name="version" value="' + doc.version + '"></td>\n')
         box.write('<th class="label">|strshort_title|<td><input type=text name="short_title" value="' + doc.short_title + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strwriting|</th><td>' + combo_factory.review_status(doc.review_status_code, uri.lang) + '</td>\n')
-        box.write('<th class="label">|straccuracy|</th><td>' + combo_factory.tech_review_status(doc.tech_review_status_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strwriting|</th><td>' + widget_factory.review_status_code(doc.review_status_code, uri.lang) + '</td>\n')
+        box.write('<th class="label">|straccuracy|</th><td>' + widget_factory.tech_review_status_code(doc.tech_review_status_code, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
         box.write('<th class="label">|strpub_date|</th><td><input type=text name="pub_date" maxlength="10" value="' + doc.pub_date + '"></td>\n')
         box.write('<th class="label">|strupdated|</th><td><input type=text name="last_update" value="' + doc.last_update + '"></td>\n')
@@ -317,14 +387,14 @@ class TableFactory:
             box.write('<td></td>\n')
         box.write('<th class="label">|strdtd|</th><td>%s %s</td>' % (doc.dtd_code, doc.dtd_version))
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strlanguage|</th><td>' + combo_factory.language(doc.lang, uri.lang) + '</td>\n')
-        box.write('<th class="label">|strmaint_wanted|</th><td>' + combo_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strlanguage|</th><td>' + widget_factory.lang(doc.lang, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strmaint_wanted|</th><td>' + widget_factory.tf('maintainer_wanted', doc.maintainer_wanted, uri.lang) + '</td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strlicense|</th><td>' + combo_factory.license(doc.license_code, uri.lang))
+        box.write('<th class="label">|strlicense|</th><td>' + widget_factory.license_code(doc.license_code, uri.lang))
         box.write(' <input type=text name=license_version size="6" value="' + doc.license_version + '"></td>\n')
         box.write('<th class="label">|strcopyright_holder|</th><td><input type=text name=copyright_holder value="' + doc.copyright_holder + '"></td>\n')
         box.write('</tr>\n<tr>\n')
-        box.write('<th class="label">|strtrans_master|<td colspan="3">' + combo_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
+        box.write('<th class="label">|strtrans_master|<td colspan="3">' + widget_factory.sk_seriesid(doc.sk_seriesid, uri.lang) + '</td>\n')
         box.write('''
         </tr>
         <tr>
@@ -423,7 +493,7 @@ class TableFactory:
             box = box + '</tr>\n'
             box = box + '<tr>\n'
             box = box + '<th class="label">|strprimary|</th>'
-            box = box + '<td>'  + combo_factory.tf('top', docfile.top, uri.lang) + '</td>\n'
+            box = box + '<td>'  + widget_factory.tf('top', docfile.top, uri.lang) + '</td>\n'
             box = box + '<th class="label">|strfilesize|</th>'
             box = box + '<td>' + str(sourcefile.filesize) + '</td>\n'
             box = box + '<th class="label">|strupdated|</th>'
@@ -458,7 +528,7 @@ class TableFactory:
         box = box + '</tr>\n'
         box = box + '<tr>\n'
         box = box + '<th class="label">|strprimary|</th>'
-        box = box + '<td>'  + combo_factory.tf('top', 0, uri.lang) + '</td>\n'
+        box = box + '<td>'  + widget_factory.tf('top', 0, uri.lang) + '</td>\n'
         box = box + '<td></td>\n'
         box = box + '<td></td>\n'
         box = box + '<td></td>\n'
@@ -505,8 +575,8 @@ class TableFactory:
                     box = box + '<td>' + docuser.username + '</td>\n'
             else:
                 box = box + '<td>' + docuser.username + '</td>\n'
-            box = box + '<td>' + combo_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
-            box = box + '<td>' + combo_factory.role(docuser.role_code, uri.lang) + '</td>\n'
+            box = box + '<td>' + widget_factory.tf('active', docuser.active, uri.lang) + '</td>\n'
+            box = box + '<td>' + widget_factory.role_code(docuser.role_code, uri.lang) + '</td>\n'
             box = box + '<td><input type=text name=email size=15 value="' +docuser.email + '"></td>\n'
             box = box + '<td><input type=checkbox name="delete">|strdel|</td>\n'
             box = box + '<td><input type=submit name="action" value="|strsave|"></td>\n'
@@ -516,8 +586,8 @@ class TableFactory:
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
         box = box + '<td>' + '<input type=text name="username"></td>\n'
-        box = box + '<td>' + combo_factory.tf('active', 1, uri.lang) + '</td>\n'
-        box = box + '<td>' + combo_factory.role('', uri.lang) + '</td>\n'
+        box = box + '<td>' + widget_factory.tf('active', 1, uri.lang) + '</td>\n'
+        box = box + '<td>' + widget_factory.role_code('', uri.lang) + '</td>\n'
         box = box + '<td><input type=text name=email size=15></td>\n'
         box = box + '<td></td><td><input type=submit name="action" value="|stradd|"></td>'
         box = box + '</tr>\n'
@@ -560,7 +630,7 @@ class TableFactory:
         box = box + '<form method=GET action="/data/save/newdocument_topic" name="document_topic">'
         box = box + '<input name="doc_id" type=hidden value=' + str(doc.id) + '>\n'
         box = box + '<tr>\n'
-        box = box + '<td>' + combo_factory.subtopic('', uri.lang) + '</td>\n'
+        box = box + '<td>' + widget_factory.subtopic_code('', uri.lang) + '</td>\n'
         box = box + '<td><input type=submit name="action" value="|stradd|"></td>'
         box = box + '</tr>\n'
         box = box + '</form>\n'
@@ -831,8 +901,8 @@ class TableFactory:
                     box = box + '<tr><th class="label">|strpassword|</th><td>' + user.password + '</td></tr>\n'
             box = box + '<tr><th class="label">|strnewpassword|</th><td><input type=text name=password size="12"></td></tr>\n'
         if sessions.session.user and sessions.session.user.admin > 0 or sessions.session.user.sysadmin > 0:
-            box = box + '<tr><th class="label">|stradmin|</th><td>' + combo_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
-            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + combo_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
+            box = box + '<tr><th class="label">|stradmin|</th><td>' + widget_factory.tf('admin', user.admin, uri.lang) + '</td></tr>\n'
+            box = box + '<tr><th class="label">|strsysadmin|</th><td>' + widget_factory.tf('sysadmin', user.sysadmin, uri.lang) + '</td></tr>\n'
         else:
             box = box + '<input name="admin" type="hidden" value="' + str(user.admin) + '">\n'
             box = box + '<input name="sysadmin" type="hidden" value="' + str(user.sysadmin) + '">\n'
@@ -844,15 +914,29 @@ class TableFactory:
         return box
         
     def doctable(self, uri,
-           title=None,
-           pub_status_code=None,
-           type_code=None,
-           subtopic_code=None,
-           username=None,
-           maintained=None,
-           maintainer_wanted=None,
-           lang=None
-           ):
+                 title=None,
+                 pub_status_code=None,
+                 type_code=None,
+                 subtopic_code=None,
+                 username=None,
+                 maintained=None,
+                 maintainer_wanted=None,
+                 lang=None,
+                 review_status_code=None,
+                 tech_review_status_code=None,
+                 pub_date=None,
+                 last_update=None,
+                 tickle_date=None,
+                 isbn=None,
+                 rating=None,
+                 format_code=None,
+                 dtd_code=None,
+                 license_code=None,
+                 copyright_holder=None,
+                 sk_seriesid=None,
+                 abstract=None,
+                 short_desc=None,
+                ):
         """
         Creates a listing of all documents which fit the parameters passed in.
         """
@@ -901,6 +985,51 @@ class TableFactory:
                     ok = 0
             if not title==None:
                 if doc.title.upper().find(title.upper())==-1:
+                    ok = 0
+            if not review_status_code==None:
+                if doc.review_status_code <> review_status_code:
+                    ok = 0
+            if not review_status_code==None:
+                if doc.review_status_code <> review_status_code:
+                    ok = 0
+            if not tech_review_status_code==None:
+                if doc.tech_review_status_code <> tech_review_status_code:
+                    ok = 0
+            if not pub_date==None:
+                if doc.pub_date <> pub_date:
+                    ok = 0
+            if not last_update==None:
+                if doc.last_update <> last_update:
+                    ok = 0
+            if not tickle_date==None:
+                if doc.tickle_date <> tickle_date:
+                    ok = 0
+            if not isbn==None:
+                if doc.isbn <> isbn:
+                    ok = 0
+            if not rating==None:
+                if doc.rating <> rating:
+                    ok = 0
+            if not format_code==None:
+                if doc.format_code <> format_code:
+                    ok = 0
+            if not dtd_code==None:
+                if doc.dtd_code <> dtd_code:
+                    ok = 0
+            if not license_code==None:
+                if doc.license_code <> license_code:
+                    ok = 0
+            if not copyright_holder==None:
+                if doc.copyright_holder.upper().find(copyright_holder.upper())==-1:
+                    ok = 0
+            if not sk_seriesid==None:
+                if doc.sk_seriesid.upper().find(sk_seriesid.upper())==-1:
+                    ok = 0
+            if not abstract==None:
+                if doc.abstract.upper().find(abstract.upper())==-1:
+                    ok = 0
+            if not short_desc==None:
+                if doc.short_desc.upper().find(short_desc.upper())==-1:
                     ok = 0
 
             # Only show documents with errors if the user owns them
@@ -1206,29 +1335,58 @@ class TableFactory:
 
     def tabsearch(self, uri):
         log(3, 'Creating tabsearch table')
-        box = WOStringIO('''<table class="box">\n
-        <form name="search" action="/data/search/document">
-        <tr><th colspan="2">|strsearch|</th></tr>\n
-        <tr><th class="label">|strtitle|</th><td><input type=text name="title" style="width:100%"></td></tr>
-        ''')
+        box = WOStringIO()
         box.write('''
+            <table class="box">\n
+            <form name="search" action="/data/search/document">
+            <tr><th colspan="2">|strsearch|</th></tr>\n
+            <tr><th class="label">|strtitle|</th><td>%s</td></tr>
             <tr><th class="label">|strstatus|</th><td>%s</td></tr>
             <tr><th class="label">|strtype|</th><td>%s</td></tr>
             <tr><th class="label">|strtopic|</th><td>%s</td></tr>
             <tr><th class="label">|strmaintained|</th><td>%s</td></tr>
             <tr><th class="label">|strmaint_wanted|</th><td>%s</td></tr>
             <tr><th class="label">|strlanguage|</th><td>%s</td></tr>
+            <tr><th class="label">|strwriting|</th><td>%s</td></tr>
+            <tr><th class="label">|straccuracy|</th><td>%s</td></tr>
+            <tr><th class="label">|strpub_date|</th><td>%s</td></tr>
+            <tr><th class="label">|strupdated|</th><td>%s</td></tr>
+            <tr><th class="label">|strtickle_date|</th><td>%s</td></tr>
+            <tr><th class="label">|strisbn|</th><td>%s</td></tr>
+            <tr><th class="label">|strrating|</th><td>%s</td></tr>
+            <tr><th class="label">|strformat|</th><td>%s</td></tr>
+            <tr><th class="label">|strdtd|</th><td>%s</td></tr>
+            <tr><th class="label">|strlicense|</th><td>%s</td></tr>
+            <tr><th class="label">|strcopyright_holder|</th><td>%s</td></tr>
+            <tr><th class="label">|strtrans_master|</th><td>%s</td></tr>
+            <tr><th class="label">|strabstract|</th><td>%s</td></tr>
+            <tr><th class="label">|strshort_desc|</th><td>%s</td></tr>
             <tr><td></td><td><input type="submit" value="|strsearch|"></td></tr>
             </form>
             </table>
             '''
-            % (combo_factory.pub_status('', uri.lang),
-              combo_factory.type('', uri.lang),
-              combo_factory.subtopic('', uri.lang),
-              combo_factory.tf('maintained', '', uri.lang),
-              combo_factory.tf('maintainer_wanted', '', uri.lang),
-              combo_factory.language(uri.lang, uri.lang)))
-        
+            % (widget_factory.title(''),
+               widget_factory.pub_status_code('', uri.lang),
+               widget_factory.type_code('', uri.lang),
+               widget_factory.subtopic_code('', uri.lang),
+               widget_factory.tf('maintained', '', uri.lang),
+               widget_factory.tf('maintainer_wanted', '', uri.lang),
+               widget_factory.lang(uri.lang, uri.lang),
+               widget_factory.review_status_code('', uri.lang),
+               widget_factory.tech_review_status_code('', uri.lang),
+               widget_factory.pub_date(''),
+               widget_factory.last_update(''),
+               widget_factory.tickle_date(''),
+               widget_factory.isbn(''),
+               widget_factory.rating(''),
+               widget_factory.format_code('', uri.lang),
+               widget_factory.dtd_code(''),
+               widget_factory.license_code('', uri.lang),
+               widget_factory.copyright_holder(''),
+               widget_factory.sk_seriesid('', uri.lang),
+               widget_factory.abstract(''),
+               widget_factory.short_desc('')
+               ))
         return box.get_value()
         
     def tabmailpass(self, uri):
@@ -1502,7 +1660,7 @@ class PageFactory:
 
 
 page_factory = PageFactory()
-combo_factory = ComboFactory()
+widget_factory = WidgetFactory()
 
 def benchmark(url, reps):
     from DataLayer import Lampadas

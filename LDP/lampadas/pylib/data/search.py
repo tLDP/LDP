@@ -31,13 +31,29 @@ from Log import log
 from mod_python import apache
 import os
 
-def document(req, title='',
-                  pub_status_code='',
-                  type_code='',
-                  subtopic_code='',
-                  maintained='',
-                  maintainer_wanted='',
-                  lang=''):
+def document(req,
+             title='',
+             pub_status_code='',
+             type_code='',
+             subtopic_code='',
+             maintained='',
+             maintainer_wanted='',
+             lang='',
+             review_status_code='',
+             tech_review_status_code='',
+             pub_date='',
+             last_update='',
+             tickle_date='',
+             isbn='',
+             rating='',
+             format_code='',
+             dtd_code='',
+             license_code='',
+             copyright_holder='',
+             sk_seriesid='',
+             abstract='',
+             short_desc=''
+             ):
     """
     Returns the results of a document search.
     """
@@ -45,29 +61,6 @@ def document(req, title='',
     # Read session state
     sessions.get_session(req)
 
-    # Replace null strings with None
-    search_title             = None
-    if title > '':
-        search_title = title
-    search_pub_status_code   = None
-    if pub_status_code > '':
-        search_pub_status_code = pub_status_code
-    search_type_code         = None
-    if type_code > '':
-        search_type_code = type_code
-    search_subtopic_code     = None
-    if subtopic_code > '':
-        search_subtopic_code = subtopic_code
-    search_maintained        = None
-    if maintained > '':
-        search_maintained = int(maintained)
-    search_maintainer_wanted = None
-    if maintainer_wanted > '':
-        search_maintainer_wanted = int(maintainer_wanted)
-    search_lang = None
-    if lang > '':
-        search_lang = lang
-    
     uri = URI(req.uri)
     page = lampadasweb.pages['doctable']
 
@@ -79,17 +72,43 @@ def document(req, title='',
     # a copy.deepcopy() which I haven't tested but imagine to
     # be rather expensive. -- DCM
     save_page = page.page[uri.lang]
-    table = page_factory.tablef.doctable(uri, title=search_title,
-                                              pub_status_code=search_pub_status_code,
-                                              type_code=search_type_code,
-                                              subtopic_code=search_subtopic_code,
-                                              maintained=search_maintained,
-                                              maintainer_wanted=search_maintainer_wanted,
-                                              lang=search_lang)
+    table = page_factory.tablef.doctable(uri, 
+                                         title                   = empty2None_str(title),
+                                         pub_status_code         = empty2None_str(pub_status_code),
+                                         type_code               = empty2None_str(type_code),
+                                         subtopic_code           = empty2None_str(subtopic_code),
+                                         maintained              = empty2None_int(maintained),
+                                         maintainer_wanted       = empty2None_int(maintainer_wanted),
+                                         lang                    = empty2None_str(lang),
+                                         review_status_code      = empty2None_str(review_status_code),
+                                         tech_review_status_code = empty2None_str(tech_review_status_code),
+                                         pub_date                = empty2None_str(pub_date),
+                                         last_update             = empty2None_str(last_update),
+                                         tickle_date             = empty2None_str(tickle_date),
+                                         isbn                    = empty2None_str(isbn),
+                                         rating                  = empty2None_str(rating),
+                                         format_code             = empty2None_str(format_code),
+                                         dtd_code                = empty2None_str(dtd_code),
+                                         license_code            = empty2None_str(license_code),
+                                         copyright_holder        = empty2None_str(copyright_holder),
+                                         sk_seriesid             = empty2None_str(sk_seriesid),
+                                         abstract            = empty2None_str(abstract),
+                                         short_desc          = empty2None_str(short_desc))
+
     page.page[uri.lang] = page.page[uri.lang].replace('|tabdocs|', table)
     html = page_factory.build_page(page, URI('doctable' + uri.lang_ext))
     
     # Restore the original page
     page.page[uri.lang] = save_page
     return html
+
+def empty2None_str(astring):
+    if astring=='':
+        return None
+    return astring
+
+def empty2None_int(astring):
+    if astring=='':
+        return None
+    return int(astring)
 
