@@ -38,6 +38,19 @@ export LAMPADAS_XSL="$LAMPADAS_ROOT/xsl"
 # used by cron/lampadas to run cron jobs
 export LAMPADAS_CRON="$LAMPADAS_ROOT/cron"
 
+# used by cron job to update the CVS tree and mirror it
 export LAMPADAS_CVS=/var/cache/lampadas/LDP
+
+# used by cron job to mirror, write makefiles and build outputs
 export LAMPADAS_CACHE=/var/cache/lampadas/docs
+
+# used by cron job to locate utilities
+export LAMPADAS_BIN="$LAMPADAS_ROOT/bin"
+
+# used by cron job to locate utilities
+export LAMPADAS_LIB="$LAMPADAS_ROOT/pylib"
+
+# PYTHONPATH
+PYTHONPATH=$PYTHONPATH:$LAMPADAS_ROOT/pylib
+export PYTHONPATH
 
