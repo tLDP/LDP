@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-import commands				# Import requierd modules
+import commands				# Import required modules
 import locale
 from xml.dom.minidom import parse
 
-lang = locale.setlocale(locale.LC_ALL)	# hard code an ISO languaeg here to test it
+lang = locale.setlocale(locale.LC_ALL)	# hard code an ISO language here to test it
 #lang = "de"				# but it must match in the scrollserver.py
 
 					# These classes are instantiated when the
