@@ -3,7 +3,7 @@
 <article>
 <title>Linux Kernel 2.4 Internals
 <author>Tigran Aivazian <tt>tigran@veritas.com</tt>
-<date>24 April 2001 (1 Iyar 5761)
+<date>23 August 2001 (4 Elul 5761)
 <abstract>
 Introduction to the Linux 2.4 kernel. The latest copy of this document
 can be always downloaded from:
@@ -37,8 +37,12 @@ Samuel S Chessman <tt>(chessman@tux.org)</tt>,
 Nadeem Hasan <tt>(nhasan@nadmm.com)</tt>
 for various corrections and suggestions.
 
-The Linux Page Cache chapter was written by
+The Linux Page Cache chapter was written by: 
 Christoph Hellwig <tt>(hch@caldera.de)</tt>.
+
+The IPC Mechanisms chapter was written by: 
+Russell Weight <tt>(weightr@us.ibm.com)</tt> and Mingming Cao <tt>(mcao@us.ibm.com)</tt>
+
 </abstract>
 
 <toc>
@@ -3507,5 +3511,1834 @@ kernel.  The other way just sets the page dirty and relies on -><tt>writepage</t
 all the work.  Due to the lack of a validitity bitmap in struct page this does
 not work with filesystem that have a smaller granuality then <tt>PAGE_SIZE</tt>.
 
+<sect>IPC mechanisms<p>
+This chapter describes the semaphore, shared memory, and
+message queue IPC mechanisms as implemented in the Linux 2.4
+kernel. It is organized into four sections. The
+first three sections cover the interfaces and support functions
+for <ref id="semaphores" name="semaphores">,
+<ref id="message" name="message queues">,
+and <ref id="sharedmem" name="shared memory"> respectively.
+The <ref id="ipc_primitives" name="last"> section describes
+a set of common functions and data structures that are shared by
+all three mechanisms.
+
+<sect1>Semaphores<label id="semaphores"><p>
+The functions described in this section implement the user level
+semaphore mechanisms. Note that this implementation relies on the
+use of kernel splinlocks and kernel semaphores. To avoid confusion,
+the term "kernel semaphore" will be used in reference to kernel
+semaphores. All other uses of the word "sempahore" will be in
+reference to the user level semaphores.
+
+<sect2>Semaphore System Call Interfaces<label id="sem_apis"><p>
+
+<sect3>sys_semget()<label id="sys_semget"><p>
+The entire call to sys_semget() is protected by the
+global <ref id="struct_ipc_ids" name="sem_ids.sem">
+kernel semaphore.
+
+In the case where a new set of semaphores must be
+created, the <ref id="newary" name="newary()"> function is
+called to create and initialize a new semaphore set. The ID of
+the new set is returned to the caller.
+
+In the case where a key value is provided for an existing
+semaphore set, <ref id="ipc_findkey" name="ipc_findkey()">
+is invoked to look up the corresponding semaphore descriptor
+array index.  The parameters and permissions of the caller are
+verified before returning the semaphore set ID.
+</sect3>
+
+<sect3>sys_semctl()<label id="sys_semctl"><p>
+For the <ref id="IPC_INFO_and_SEM_INFO" name="IPC_INFO">,
+<ref id="IPC_INFO_and_SEM_INFO" name="SEM_INFO">, and
+<ref id="SEM_STAT" name="SEM_STAT"> commands,
+<ref id="semctl_nolock" name="semctl_nolock()">
+is called to perform the necessary functions.
+
+For the <ref id="GETALL" name="GETALL">, <ref id="GETVAL" name="GETVAL">,
+<ref id="GETPID" name="GETPID">, <ref id="GETNCNT" name="GETNCNT">,
+<ref id="GETZCNT" name="GETZCNT">, <ref id="IPC_STAT" name="IPC_STAT">,
+<ref id="SETVAL" name="SETVAL">,and <ref id="SETALL" name="SETALL"> commands,
+<ref id="semctl_main" name="semctl_main()"> is called to perform the
+necessary functions.
+
+For the <ref id="semctl_ipc_rmid" name="IPC_RMID">
+and <ref id="semctl_ipc_set" name="IPC_SET"> command,
+<ref id="semctl_down" name="semctl_down()"> is called
+to perform the necessary functions. Throughout both of these
+operations, the global <ref id="struct_ipc_ids" name="sem_ids.sem">
+kernel semaphore is held.
+</sect3>
+
+<sect3>sys_semop()<label id="sys_semop"><p>
+After validating the call parameters, the semaphore
+operations data is copied from user space to a temporary buffer.
+If a small temporary buffer is sufficient, then a stack buffer is
+used. Otherwise, a larger buffer is allocated. After copying in the
+semaphore operations data, the global semaphores spinlock is
+locked, and the user-specified semaphore set ID is validated.
+Access permissions for the semaphore set are also validated.
+
+All of the user-specified semaphore operations are parsed.
+During this process, a count is maintained of all the operations that
+have the SEM_UNDO flag set. A <tt>decrease</tt> flag is set if any of the
+operations subtract from a semaphore value, and an <tt>alter</tt> flag is set
+if any of the semaphore values are modified (i.e. increased or
+decreased). The number of each
+semaphore to be modified is validated.
+
+If SEM_UNDO was asserted for any of the semaphore operations,
+then the undo list for the current task is searched for an undo
+structure associated with this semaphore set. During this search,
+if the semaphore set ID of any of the undo structures is found
+to be -1, then <ref id="freeundos" name="freeundos()">
+is called to free the undo structure
+and remove it from the list. If no undo structure is found for
+this semaphore set then <ref id="alloc_undo" name="alloc_undo()">
+is called to allocate and initialize one.
+
+The <ref id="try_atomic_semop" name="try_atomic_semop()">
+function is called with the <tt>do_undo</tt>
+parameter equal to 0 in order to execute the sequence of
+operations. The return value indicates that either the
+operations passed, failed, or were not executed because
+they need to block. Each of these cases are further described below:
+
+<sect4>Non-blocking Semaphore Operations<label id="Non-blocking_Semaphore_Operations"><p>
+The <ref id="try_atomic_semop" name="try_atomic_semop()">
+function returns zero to indicate that all operations in the
+sequence succeeded. In this case,
+<ref id="update_queue" name="update_queue()">
+is called to traverse the queue of pending semaphore
+operations for the semaphore set and awaken any
+sleeping tasks that no longer need to block. This completes the
+execution of the sys_semop() system call for this case.
+</sect4>
+
+<sect4>Failing Semaphore Operations<label id="Failing_Semaphore_Operations"><p>
+If <ref id="try_atomic_semop" name="try_atomic_semop()">
+returns a negative value, then a failure condition was encountered.
+In this case, none of the operations have been executed.
+This occurs when either a semaphore operation would cause an
+invalid semaphore value, or an operation marked IPC_NOWAIT is
+unable to complete.  The error condition is then returned to the
+caller of sys_semop().
+
+Before sys_semop() returns, a call is made to
+<ref id="update_queue" name="update_queue()"> to traverse
+the queue of pending semaphore operations for the semaphore set
+and awaken any sleeping tasks that no longer need to block.
+</sect4>
+
+<sect4>Blocking Semaphore Operations<label id="Blocking_Semaphore_Operations"><p>
+The <ref id="try_atomic_semop" name="try_atomic_semop()">
+function returns 1 to indicate that the
+sequence of semaphore operations was not executed because
+one of the semaphores would block. For this case, a new
+<ref id="struct_sem_queue" name="sem_queue"> element is
+initialized containing these semaphore operations. If any of
+these operations would alter the state of the semaphore, then
+the new queue element is added at the tail of the queue.
+Otherwise, the new queue element is added at the head of the queue.
+
+The <tt>semsleeping</tt> element of the current
+task is set to indicate that the task is sleeping on this
+<ref id="struct_sem_queue" name="sem_queue"> element.
+The current task is marked as TASK_INTERRUPTIBLE, and the
+<tt>sleeper</tt> element of the
+<ref id="struct_sem_queue" name="sem_queue">
+is set to identify this task as the sleeper. The
+global semaphore spinlock is then unlocked, and schedule() is called
+to put the current task to sleep.
+
+When awakened, the task re-locks the global semaphore spinlock,
+determines why it was awakened, and how it should
+respond.  The following cases are handled:
+
+<itemize>
+<item>  If the the semaphore set has been removed, then
+        the system call fails with EIDRM.
+
+<item>  If the <tt>status</tt> element of the
+	<ref id="struct_sem_queue" name="sem_queue"> structure
+	is set to 1, then the task was awakened in order to retry the
+	semaphore operations. Another call to
+	<ref id="try_atomic_semop" name="try_atomic_semop()"> is
+	made to execute the sequence of semaphore operations.  If
+	try_atomic_sweep() returns 1, then the task must block again
+	as described above. Otherwise, 0 is returned for success,
+	or an appropriate error code is returned in case of failure.
+
+	Before sys_semop() returns, current->semsleeping is cleared,
+	and the <ref id="struct_sem_queue" name="sem_queue">
+	is removed from the queue.  If any of the specified semaphore
+	operations were altering operations (increase or decrease),
+	then <ref id="update_queue" name="update_queue()"> is
+	called to traverse the queue of pending semaphore operations
+	for the semaphore set and awaken any sleeping tasks that no
+	longer need to block.
+
+<item>  If the <tt>status</tt> element of the
+	<ref id="struct_sem_queue" name="sem_queue"> structure is
+	NOT set to 1, and the
+	<ref id="struct_sem_queue" name="sem_queue"> element has
+	not been dequeued, then the task was awakened by an interrupt.
+	In this case, the system call fails with EINTR.  Before
+	returning, current->semsleeping is cleared, and the
+	<ref id="struct_sem_queue" name="sem_queue"> is removed
+	from the queue.  Also,
+	<ref id="update_queue" name="update_queue()"> is called
+	if any of the operations were altering operations.
+
+<item>  If the <tt>status</tt> element of the
+	<ref id="struct_sem_queue" name="sem_queue"> structure is
+	NOT set to 1, and the
+	<ref id="struct_sem_queue" name="sem_queue"> element
+	has been dequeued,
+	then the semaphore operations have already been executed by
+	<ref id="update_queue" name="update_queue()">.  The
+	queue <tt>status</tt>, which could be 0 for success
+	or a negated error code for failure, becomes the return value of
+	the system call.
+
+</itemize>
+</sect4>
+</sect3>
+</sect2>
+
+<sect2>Semaphore Specific Support Structures<label id="sem_structures"><p>
+The following structures are used specifically for semaphore support:
+
+<sect3>struct sem_array<label id="struct_sem_array"><p>
+<tscreen><code>
+/* One sem_array data structure for each set of semaphores in the system. */
+struct sem_array {
+    struct kern_ipc_perm sem_perm; /* permissions .. see ipc.h */
+    time_t sem_otime; /* last semop time */
+    time_t sem_ctime; /* last change time */
+    struct sem *sem_base; /* ptr to first semaphore in array */
+    struct sem_queue *sem_pending; /* pending operations to be processed */
+    struct sem_queue **sem_pending_last; /* last pending operation */
+    struct sem_undo *undo; /* undo requests on this array * /
+    unsigned long sem_nsems; /* no. of semaphores in array */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct sem<label id="struct_sem"><p>
+<tscreen><code>
+/* One semaphore structure for each semaphore in the system. */
+struct sem {
+        int     semval;         /* current value */
+        int     sempid;         /* pid of last operation */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct seminfo<label id="struct_seminfo"><p>
+<tscreen><code>
+struct  seminfo {
+        int semmap;
+        int semmni;
+        int semmns;
+        int semmnu;
+        int semmsl;
+        int semopm;
+        int semume;
+        int semusz;
+        int semvmx;
+        int semaem;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct semid64_ds<label id="struct_semid64_ds"><p>
+<tscreen><code>
+struct semid64_ds {
+        struct ipc64_perm sem_perm;             /* permissions .. see
+ipc.h */
+        __kernel_time_t sem_otime;              /* last semop time */
+        unsigned long   __unused1;
+        __kernel_time_t sem_ctime;              /* last change time */
+        unsigned long   __unused2;
+        unsigned long   sem_nsems;              /* no. of semaphores in
+array */
+        unsigned long   __unused3;
+        unsigned long   __unused4;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct sem_queue<label id="struct_sem_queue"><p>
+<tscreen><code>
+/* One queue for each sleeping process in the system. */
+struct sem_queue {
+        struct sem_queue *      next;    /* next entry in the queue */
+        struct sem_queue **     prev;    /* previous entry in the queue, *(q->pr
+ev) == q */
+        struct task_struct*     sleeper; /* this process */
+        struct sem_undo *       undo;    /* undo structure */
+        int                     pid;     /* process id of requesting process */
+        int                     status;  /* completion status of operation */
+        struct sem_array *      sma;     /* semaphore array for operations */
+        int                     id;      /* internal sem id */
+        struct sembuf *         sops;    /* array of pending operations */
+        int                     nsops;   /* number of operations */
+        int                     alter;   /* operation will alter semaphore */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct sembuf<label id="struct_sembuf"><p>
+<tscreen><code>
+/* semop system calls takes an array of these. */
+struct sembuf {
+        unsigned short  sem_num;        /* semaphore index in array */
+        short           sem_op;         /* semaphore operation */
+        short           sem_flg;        /* operation flags */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct sem_undo<label id="struct_sem_undo"><p>
+<tscreen><code>
+/* Each task has a list of undo requests. They are executed automatically
+ * when the process exits.
+ */
+struct sem_undo {
+        struct sem_undo *       proc_next;      /* next entry on this process */
+        struct sem_undo *       id_next;        /* next entry on this semaphore set */
+        int                     semid;          /* semaphore set identifier */
+        short *                 semadj;         /* array of adjustments, one per
+ semaphore */
+};
+</code></tscreen>
+</sect3>
+</sect2>
+
+<sect2>Semaphore Support Functions<label id="sem_primitives"><p>
+The following functions are used specifically in support of
+semaphores:
+
+<sect3>newary()<label id="newary"><p>
+newary() relies on the <ref id="ipc_alloc" name="ipc_alloc()">
+function to allocate the memory
+required for the new semaphore set. It allocates enough memory
+for the semaphore set descriptor and for each of the semaphores
+in the set.  The allocated memory is cleared, and the address of the
+first element of the semaphore set descriptor is passed to
+<ref id="ipc_addid" name="ipc_addid()">.
+<ref id="ipc_addid" name="ipc_addid()"> reserves an array entry
+for the new semaphore set descriptor and initializes the
+(<ref id="struct_kern_ipc_perm" name="struct kern_ipc_perm">) data for the set.
+The global <tt>used_sems</tt> variable is updated by the number of
+semaphores in the new set and the initialization of the
+(<ref id="struct_kern_ipc_perm" name="struct kern_ipc_perm">)
+data for the new set is completed. Other
+initialization for this set performed are listed below:
+
+<itemize>
+<item>  The <tt>sem_base</tt> element for the set is initialized
+	to the address immediately following the
+	(<ref id="struct_sem_array" name="struct sem_array">)
+	portion of the newly allocated data. This corresponds to
+	the location of the first semaphore in the set.
+
+<item>  The <tt>sem_pending</tt> queue is initialized as empty.
+</itemize>
+
+All of the operations following the call to <ref id="ipc_addid" name="ipc_addid()">
+are performed while holding the global semaphores spinlock. After
+unlocking the global semaphores spinlock, newary() calls
+<ref id="ipc_buildid" name="ipc_buildid()">
+(via sem_buildid()). This function uses the index
+of the semaphore set descriptor to create a unique ID, that is then
+returned to the caller of newary().
+
+</sect3>
+
+<sect3>freeary()<label id="freeary"><p>
+freeary() is called by <ref id="semctl_down" name="semctl_down()"> to perform the
+functions listed below. It is called with the global semaphores
+spinlock locked and it returns with the spinlock unlocked
+
+<itemize>
+<item>  The <ref id="func_ipc_rmid" name="ipc_rmid()"> function
+	is called (via the
+	sem_rmid() wrapper) to delete the ID for the semaphore
+	set and to retrieve a pointer to the semaphore set.
+
+<item>  The undo list for the semaphore set is invalidated.
+<item>  All pending processes are awakened and caused to fail
+	with EIDRM.
+
+<item>  The number of used semaphores is reduced by the number
+	of semaphores in the removed set.
+
+<item>  The memory associated with the semaphore set is freed.
+</itemize>
+</sect3>
+
+<sect3>semctl_down()<label id="semctl_down"><p>
+semctl_down() provides the <ref id="semctl_ipc_rmid" name="IPC_RMID"> and
+<ref id="semctl_ipc_set" name="IPC_SET"> operations of the
+semctl() system call.  The semaphore set ID and the access permissions
+are verified prior to either of these operations, and in either
+case, the global semaphore spinlock is held throughout the
+operation.
+
+<sect4>IPC_RMID<label id="semctl_ipc_rmid"><p>
+The IPC_RMID operation calls <ref id="freeary" name="freeary()"> to remove the semaphore set.
+</sect4>
+
+<sect4>IPC_SET<label id="semctl_ipc_set"><p>
+The IPC_SET operation updates the <tt>uid</tt>, <tt>gid</tt>,
+<tt>mode</tt>, and <tt>ctime</tt> elements of the semaphore set.
+</sect4>
+</sect3>
+
+<sect3>semctl_nolock()<label id="semctl_nolock"><p>
+semctl_nolock() is called by <ref id="sys_semctl" name="sys_semctl()">
+to perform the IPC_INFO, SEM_INFO and SEM_STAT functions.
+
+<sect4>IPC_INFO and SEM_INFO<label id="IPC_INFO_and_SEM_INFO"><p>
+IPC_INFO and SEM_INFO cause a temporary <ref id="struct_seminfo" name="seminfo">
+buffer to be initialized and loaded with unchanging semaphore
+statistical data. Then, while holding the global <tt>sem_ids.sem</tt>
+kernel semaphore, the <tt>semusz</tt> and <tt>semaem</tt> elements of
+the <ref id="struct_seminfo" name="seminfo"> structure are
+updated according to the given command (IPC_INFO or SEM_INFO).
+The return value of the system call is set to the maximum
+semaphore set ID.
+</sect4>
+
+<sect4>SEM_STAT<label id="SEM_STAT"><p>
+SEM_STAT causes a temporary <ref id="struct_semid64_ds" name="semid64_ds">
+buffer to be initialized.  The global
+semaphore spinlock is then held while copying the <tt>sem_otime</tt>,
+<tt>sem_ctime</tt>, and <tt>sem_nsems</tt> values into the buffer. This data is
+then copied to user space.
+</sect4>
+</sect3>
+
+<sect3>semctl_main()<label id="semctl_main"><p>
+semctl_main() is called by <ref id="sys_semctl" name="sys_semctl()"> to perform many
+of the supported functions, as described in the subsections below.
+Prior to performing any of the following operations, semctl_main()
+locks the global semaphore spinlock and validates the
+semaphore set ID and the permissions. The spinlock is released
+before returning.
+
+<sect4>GETALL<label id="GETALL"><p>
+The GETALL operation loads the current semaphore values into
+a temporary kernel buffer and copies
+them out to user space. The small stack buffer is used if the
+semaphore set is small. Otherwise, the spinlock is temporarily
+dropped in order to allocate a larger buffer. The spinlock is
+held while copying the semaphore values in to the temporary buffer.
+</sect4>
+
+<sect4>SETALL<label id="SETALL"><p>
+The SETALL operation copies semaphore values from user space into a temporary buffer,
+and then into the semaphore set. The spinlock is dropped while
+copying the values from user space into the temporary buffer,
+and while verifying reasonable values. If the semaphore set
+is small, then a stack buffer is used, otherwise a larger buffer
+is allocated. The spinlock is regained and held while the
+following operations are performed on the semaphore set:
+
+<itemize>
+<item>  The semaphore values are copied into the semaphore set.
+<item>  The semaphore adjustments of the undo queue for
+	the semaphore set are cleared.
+
+<item>  The <tt>sem_ctime</tt> value for the semaphore set is set.
+
+<item>  The <ref id="update_queue" name="update_queue()">
+        function is called to traverse
+	the queue of pending semops and look for any tasks that
+	can be completed as a result of the SETALL operation. Any
+	pending tasks that are no longer blocked are awakened.
+</itemize>
+</sect4>
+
+<sect4>IPC_STAT<label id="IPC_STAT"><p>
+In the IPC_STAT operation, the <tt>sem_otime</tt>,
+<tt>sem_ctime</tt>, and <tt>sem_nsems</tt> value are copied into
+a stack buffer. The data is then copied to user space after
+dropping the spinlock.
+</sect4>
+
+<sect4>GETVAL<label id="GETVAL"><p>
+For GETVAL in the non-error case, the return value for the system call is
+set to the value of the specified semaphore.
+</sect4>
+
+<sect4>GETPID<label id="GETPID"><p>
+For GETPID in the non-error case, the return value for the system call is
+set to the <tt>pid</tt> associated with the last operation on the
+semaphore.
+</sect4>
+
+<sect4>GETNCNT<label id="GETNCNT"><p>
+For GETNCNT in the non-error case, the return value for the system call
+is set to the number of processes waiting on the semaphore
+being less than zero. This number is calculated by the
+<ref id="count_semncnt" name="count_semncnt()"> function.
+</sect4>
+
+<sect4>GETZCNT<label id="GETZCNT"><p>
+For GETZCNT in the non-error case, the return value for the system call
+is set to the number of processes waiting on the semaphore
+being set to zero. This number is calculated by the
+<ref id="count_semzcnt" name="count_semzcnt()"> function.
+</sect4>
+
+<sect4>SETVAL<label id="SETVAL"><p>
+After validating the new semaphore value, the following
+functions are performed:
+
+<itemize>
+<item>  The undo queue is searched for any adjustments to
+	this semaphore. Any adjustments that are found are reset to
+	zero.
+
+<item>  The semaphore value is set to the value provided.
+<item>  The <tt>sem_ctime</tt> value for the semaphore set is updated.
+<item>  The <ref id="update_queue" name="update_queue()">
+        function is called to traverse
+	the queue of pending semops and look for any tasks that
+	can be completed as a result of the
+	<ref id="SETALL" name="SETALL"> operation. Any
+	pending tasks that are no longer blocked are awakened.
+</itemize>
+</sect4>
+</sect3>
+
+<sect3>count_semncnt()<label id="count_semncnt"><p>
+count_semncnt() counts the number of tasks waiting on the value of a semaphore
+to be less than zero.
+</sect3>
+
+<sect3>count_semzcnt()<label id="count_semzcnt"><p>
+count_semzcnt() counts the number of tasks waiting on the value of a semaphore
+to be zero.
+</sect3>
+
+<sect3>update_queue()<label id="update_queue"><p>
+update_queue() traverses the queue of pending semops for
+a semaphore set and calls
+<ref id="try_atomic_semop" name="try_atomic_semop()">
+to determine which sequences of semaphore operations
+would succeed. If the status of the queue element
+indicates that blocked tasks have already
+been awakened, then the queue element is skipped over. For other
+elements of the queue, the <tt>q-alter</tt> flag
+is passed as the undo parameter to
+<ref id="try_atomic_semop" name="try_atomic_semop()">,
+indicating that any
+altering operations should be undone before returning.
+
+If the sequence of operations would block, then
+update_queue() returns without making any changes.
+
+A sequence of operations can fail if one of the semaphore
+operations would cause an invalid semaphore value, or an
+operation marked IPC_NOWAIT is unable to complete. In such a
+case, the task that is blocked on the sequence of semaphore
+operations is awakened, and the queue status is set with an
+appropriate error code. The queue element is also dequeued.
+
+If the sequence of operations is non-altering, then
+they would have passed a zero value as the undo parameter to
+<ref id="try_atomic_semop" name="try_atomic_semop()">.
+If these operations succeeded, then they
+are considered complete and are removed from the queue.
+The blocked task is awakened, and the queue element
+<tt>status</tt> is set to indicate success.
+
+If the sequence of operations would alter the semaphore
+values, but can succeed, then sleeping tasks that no longer
+need to be blocked are awakened. The queue status is set to
+1 to indicate that the blocked task has been awakened. The
+operations have not been performed, so the queue element is not
+removed from the queue. The semaphore operations would be
+executed by the awakened task.
+</sect3>
+
+<sect3>try_atomic_semop()<label id="try_atomic_semop"><p>
+try_atomic_semop() is called by <ref id="sys_semop" name="sys_semop()">
+and <ref id="update_queue" name="update_queue()">
+to determine if a sequence of semaphore operations will all
+succeed. It determines this by attempting to perform each of the
+operations.
+
+If a blocking operation is encountered, then the process
+is aborted and all operations are reversed. -EAGAIN is returned
+if IPC_NOWAIT is set. Otherwise 1 is returned to indicate that
+the sequence of semaphore operations is blocked.
+
+If a semaphore value is adjusted beyond system limits, then
+then all operations are reversed, and -ERANGE is returned.
+
+If all operations in the sequence succeed, and the <tt>do_undo</tt>
+parameter is non-zero, then all operations are reversed, and 0
+is returned. If the <tt>do_undo</tt> parameter is zero, then all operations
+succeeded and remain in force, and the <tt>sem_otime</tt>, field of the
+semaphore set is updated.
+</sect3>
+
+<sect3>sem_revalidate()<label id="sem_revalidate"><p>
+sem_revalidate() is called when the global semaphores spinlock
+has been temporarily dropped and needs to be locked again. It is
+called by <ref id="semctl_main" name="semctl_main()">
+and <ref id="alloc_undo" name="alloc_undo()">.  It validates the
+semaphore ID and permissions and on success, returns with the
+global semaphores spinlock locked.
+</sect3>
+
+<sect3>freeundos()<label id="freeundos"><p>
+freeundos() traverses the process undo list in search of
+the desired undo structure. If found, the undo structure is removed from the
+list and freed. A pointer to the next undo structure on the
+process list is returned.
+</sect3>
+
+<sect3>alloc_undo()<label id="alloc_undo"><p>
+alloc_undo() expects to be called with the global semaphores
+spinlock locked. In the case of an error, it returns with it
+unlocked.
+
+The global semaphores spinlock is unlocked, and kmalloc() is
+called to allocate sufficient memory for both the
+<ref id="struct_sem_undo" name="sem_undo">
+structure, and also an array of one adjustment value for each
+semaphore in the set. On success, the global spinlock is regained
+with a call to <ref id="sem_revalidate" name="sem_revalidate()">.
+
+The new semundo structure is then initialized, and the address
+of this structure is placed at the address provided by the
+caller. The new undo structure is then placed at the head of undo
+list for the current task.
+</sect3>
+
+<sect3>sem_exit()<label id="sem_exit"><p>
+sem_exit() is called by do_exit(), and is responsible for
+executing all of the undo adjustments for the exiting task.
+
+If the current process was blocked on a semaphore, then it is
+removed from the <ref id="struct_sem_queue" name="sem_queue">
+list while holding the global semaphores spinlock.
+
+The undo list for the current task is then traversed, and the
+following operations are performed while holding and releasing the
+the global semaphores spinlock around the processing of each
+element of the list. The following operations are performed for
+each of the undo elements:
+
+<itemize>
+<item>  The undo structure and the semaphore set ID are validated.
+<item>  The undo list of the corresponding semaphore set is
+	searched to find a reference to the same undo structure and to
+	remove it from that list.
+<item>  The adjustments indicated in the undo structure are
+	applied to the semaphore set.
+<item>  The <tt>sem_otime</tt> parameter of the semaphore set is updated.
+<item>  <ref id="update_queue" name="update_queue()"> is called
+        to traverse the queue of
+	pending semops and awaken any sleeping tasks that no longer
+	need to be blocked as a result of executing the undo
+	operations.
+<item>  The undo structure is freed.
+</itemize>
+
+When the processing of the list is complete, the
+current->semundo value is cleared.
+</sect3>
+</sect2>
+</sect1>
+
+<sect1>Message queues<label id= "message"><p>
+<sect2>Message System Call Interfaces<label id="Message_System_Call_Interfaces"><p>
+<sect3>sys_msgget()<label id="sys_msgget"><p>
+The entire call to sys_msgget() is protected by
+the global message queue semaphore
+(<ref id="struct_ipc_ids" name="msg_ids.sem">).
+
+In the case where a new message queue must be created,
+the <ref id="newque" name="newque()"> function is
+called to create and initialize
+a new message queue, and the new queue ID is returned to
+the caller.
+
+If a key value is provided for an existing message queue,
+then <ref id="ipc_findkey" name="ipc_findkey()"> is called
+to look up the corresponding index in the global message queue
+descriptor array (msg_ids.entries). The
+parameters and permissions of the caller are verified before
+returning the message queue ID. The look up operation and
+verification are performed while the global message queue
+spinlock(msg_ids.ary) is held.
+</sect3>
+
+<sect3>sys_msgctl()<label id="sys_msgctl"><p>
+The parameters passed to sys_msgctl() are: a message
+queue ID (<tt>msqid</tt>), the operation
+(<tt>cmd</tt>), and a pointer to a user space buffer of type
+<ref id="struct_msqid_ds" name="msgid_ds">
+(<tt>buf</tt>).  Six operations are
+provided in this function: IPC_INFO, MSG_INFO,IPC_STAT,
+MSG_STAT, IPC_SET and IPC_RMID.  The message queue
+ID and the operation parameters are validated; then, the operation(cmd)
+is performed as follows:
+
+<sect4>IPC_INFO ( or MSG_INFO)<label id="msgctl_IPCINFO"><p>
+The global message queue information is copied to user space.
+</sect4>
+
+<sect4>IPC_STAT ( or MSG_STAT)<label id="msgctl_IPCSTAT"><p>
+A temporary buffer of type <ref id="struct_msqid64_ds" name="struct msqid64_ds">
+is initialized and the global message queue spinlock is locked.
+After verifying the access permissions of the calling process,
+the message queue information associated with the message
+queue ID is loaded into the temporary buffer, the global
+message queue spinlock is unlocked, and the contents of
+the temporary buffer are copied out to user space by
+<ref id="copy_msqid_to_user" name="copy_msqid_to_user()">.
+</sect4>
+
+<sect4>IPC_SET<label id="msgctl_IPCSET"><p>
+The user data is copied in via
+<ref id="copy_msqid_to_user" name="copy_msqid_to_user()">.  The global
+message queue semaphore and spinlock are obtained and released
+at the end.  After the the message queue ID and the current
+process access permissions are validated, the message queue
+information is updated with the user provided data.  Later,
+<ref id="expunge_all" name="expunge_all()"> and
+<ref id="ss_wakeup" name="ss_wakeup()">
+are called to wake up all
+processes sleeping on the receiver and sender waiting queues
+of the message queue. This is because some receivers may now
+be excluded by stricter access permissions and some senders
+may now be able to send the message due to an increased
+queue size.
+</sect4>
+
+<sect4>IPC_RMID<label id="msgctl_IPCRMID"><p>
+The global message queue semaphore
+is obtained and the global message queue spinlock is locked.
+After validating the message queue ID and the current task
+access permissions, <ref id="freeque" name="freeque()">
+is called to free the resources related to the message queue ID.
+The global message queue semaphore and spinlock are released.
+</sect4>
+</sect3>
+
+<sect3>sys_msgsnd()<label id="sys_msgsnd"><p>
+sys_msgsnd() receives as parameters a message queue ID
+(<tt>msqid</tt>), a pointer to a buffer of type
+<ref id="struct_msg_msg" name="struct msg_msg">
+(<tt>msgp</tt>), the size of the message to be sent
+(<tt>msgsz</tt>), and a flag indicating wait vs.
+not wait (<tt>msgflg</tt>). There are two task waiting
+queues and one message waiting queue associated with the message
+queue ID. If there is a task in the receiver waiting queue
+that is waiting for this message, then the message is
+delivered directly to the receiver, and the receiver is
+awakened. Otherwise, if there is enough space available in
+the message waiting queue, the message is saved in this
+queue. As a last resort, the sending task enqueues itself
+on the sender waiting queue. A more in-depth discussion of the
+operations performed by sys_msgsnd() follows:
+
+<enum>
+<item>  Validates the user buffer address and the message
+	type, then invokes
+	<ref id="load_msg" name="load_msg()"> to load the
+	contents of the user message into a temporary object
+	<tt<label id="msg">msg</tt> of type
+	<ref id="struct_msg_msg" name="struct msg_msg">.
+	The message type and message size fields
+	of <tt>msg</tt> are also initialized.
+<item>  Locks the global message queue spinlock and gets
+	the message queue descriptor associated with the
+	message queue ID. If no such message queue exists,
+	returns EINVAL.
+<item><label id="sndretry">
+        Invokes <ref id="ipc_checkid" name="ipc_checkid()">
+	(via msg_checkid())to verify that the message
+	queue ID is valid and calls
+	<ref id="ipcperms" name="ipcperms()"> to check the
+	calling process' access permissions.
+<item>  Checks the message size and the space left in
+	the message waiting queue to see if there is enough
+	room to store the message. If not, the following
+	substeps are performed:
+
+        <enum>
+        <item>  If IPC_NOWAIT is specified in
+		<tt>msgflg</tt> the global message
+		queue spinlock is unlocked, the memory
+		resources for the message are freed, and EAGAIN
+		is returned.
+        <item>  Invokes
+		<ref id="ss_add" name="ss_add()"> to
+		enqueue the current
+		task in the sender waiting queue. It also unlocks
+		the global message queue spinlock and invokes
+		schedule() to put the current task to sleep.
+        <item>  When awakened, obtains the global spinlock
+		again and verifies that the message queue ID
+		is still valid. If the message queue ID is not valid,
+		ERMID is returned.
+        <item>  Invokes <ref id="ss_del" name="ss_del()">
+		to remove the sending task from the sender
+		waiting queue. If there is any signal pending
+		for the task, sys_msgsnd() unlocks the
+		global spinlock,
+		invokes <ref id="free_msg" name="free_msg()">
+		to free the message buffer,
+		and returns EINTR. Otherwise, the function goes
+		<ref id="sndretry" name="back">
+		to check again whether there is enough space
+		in the message waiting queue.
+        </enum>
+<item>  Invokes
+	<ref id="pipelined_send" name="pipelined_send()">
+	to try to send the message to the waiting receiver directly.
+<item>  If there is no receiver waiting for this message,
+	enqueues <tt>msg</tt> into the message waiting
+	queue(msq->q_messages). Updates the
+	<tt>q_cbytes</tt> and
+	the <tt>q_qnum</tt> fields of the message
+	queue descriptor, as well as the global variables
+	<tt>msg_bytes</tt> and
+	<tt>msg_hdrs</tt>, which indicate the total
+	number of bytes used for messages and the total number
+	of messages system wide.
+<item>  If the message has been successfully sent or
+	enqueued, updates the <tt>q_lspid</tt>
+	and the <tt>q_stime</tt> fields
+	of the message queue descriptor and releases the global
+	message queue spinlock.
+</enum>
+</sect3>
+
+<sect3>sys_msgrcv()<label id="sys_msgrcv"><p>
+The sys_msgrcv() function receives as parameters
+a message queue ID
+(<tt>msqid</tt>), a pointer to a buffer of type
+<ref id="struct_msg_msg" name="msg_msg">
+(<tt>msgp</tt>), the desired
+message size(<tt>msgsz</tt>), the message type
+(<tt>msgtyp</tt>), and the flags
+(<tt>msgflg</tt>). It searches the message waiting queue
+associated with the message queue ID, finds the first
+message in the queue which matches the request type, and
+copies it into the given user buffer. If no such message
+is found in the message waiting queue, the requesting task
+is enqueued into the receiver waiting queue until the
+desired message is available. A more in-depth discussion of the
+operations performed by sys_msgrcv() follows:
+
+<enum>
+<item>  First, invokes
+	<ref id="convert_mode" name="convert_mode()">
+	to derive the search mode from
+	<tt>msgtyp</tt>.  sys_msgrcv() then locks
+	the global message
+	queue spinlock and obtains the message queue descriptor
+	associated with the message queue ID. If no such
+	message queue exists, it returns EINVAL.
+<item>  Checks whether the current task has the correct
+	permissions to access the message queue.
+<item><label id="rcvretry">
+        Starting from the first message in the message
+	waiting queue, invokes
+	<ref id="testmsg" name="testmsg()"> to check whether
+	the message type matches the required type.  sys_msgrcv()
+	continues searching until a matched message is found or the whole
+	waiting queue is exhausted. If the search mode is
+	SEARCH_LESSEQUAL, then the first message on the queue
+	with the lowest type less than or equal to
+	<tt>msgtyp</tt> is searched.
+<item>  If a message is found, sys_msgrcv() performs
+	the following substeps:
+        <enum>
+        <item>  If the message size is larger than
+		the desired size and <tt>msgflg</tt>
+		indicates no error allowed, unlocks the global
+		message queue spinlock and returns E2BIG.
+        <item>  Removes the message from the message
+		waiting queue and updates the message queue
+		statistics.
+        <item>  Wakes up all tasks sleeping on the senders
+		waiting queue. The removal of a message from
+		the queue in the previous step makes it possible
+		for one of the senders to progress. Goes to
+		the <ref id="laststep" name="last step">
+        </enum>
+<item>  If no message matching the receivers criteria is found
+	in the message waiting queue, then <tt>msgflg</tt>
+	is checked. If IPC_NOWAIT is set, then the global message
+	queue spinlock is unlocked and ENOMSG is returned. Otherwise,
+	the receiver is enqueued on the receiver waiting queue as
+	follows:
+	<enum>
+	<item>  A <ref id="struct_msg_receiver" name="msg_receiver"> data structure
+		<tt>msr</tt> is allocated and is
+		added to the head of waiting queue.
+        <item>  The <tt>r_tsk</tt> field of <tt>msr</tt>
+		is set to current task.
+        <item>  The <tt>r_msgtype</tt> and
+		<tt>r_mode</tt> fields are
+		initialized with the desired message type and
+		mode respectively.
+        <item>  If <tt>msgflg</tt> indicates
+		MSG_NOERROR, then the r_maxsize field of
+		<tt>msr</tt> is set to be the
+		value of <tt>msgsz</tt> otherwise
+		it is set to be INT_MAX.
+        <item>  The <tt>r_msg</tt> field
+		is initialized to indicate that
+		no message has been received yet.
+        <item>  After the initialization is complete,
+		the status of the receiving task is set to
+		TASK_INTERRUPTIBLE, the global message queue
+		spinlock is unlocked, and schedule() is invoked.
+        </enum>
+<item>  After the receiver is awakened,
+	the <tt>r_msg</tt> field of
+	<tt>msr</tt> is checked.  This field is used to
+	store the pipelined message or in the case of an error,
+	to store the error status.
+	If the <tt>r_msg</tt> field is filled
+	with the desired message, then go to the
+	<ref id="laststep" name="last step">  Otherwise,
+	the global message queue spinlock is locked again.
+<item>  After obtaining the spinlock,
+	the <tt>r_msg</tt> field is
+	re-checked to see if the message was received while
+	waiting for the spinlock. If the message has been
+	received, the <ref id="laststep" name="last step">
+	occurs.
+<item>  If the <tt>r_msg</tt> field remains
+	unchanged, then the task was
+	awakened in order to retry.  In this case,
+	<tt>msr</tt> is dequeued. If there is a
+	signal pending for the task, then the global message
+	queue spinlock is unlocked and EINTR is returned.
+	Otherwise, the function needs to go
+	<ref id="rcvretry" name="back"> and retry.
+<item>  If the <tt>r_msg</tt> field shows
+	that an error occurred
+	while sleeping, the global message queue spinlock
+	is unlocked and the error is returned.
+<item><label id="laststep">
+        After validating that the address of the user buffer
+	<tt>msp</tt> is valid, message type is loaded
+	into the <tt>mtype</tt> field of
+	<tt>msp</tt>,and
+	<ref id="store_msg" name="store_msg()">
+	is invoked to copy the message contents to
+	the <tt>mtext</tt> field of
+	<tt>msp</tt>. Finally the memory for the message is
+	freed by function <ref id="free_msg" name="free_msg()">.
+</enum>
+</sect3>
+</sect2>
+
+<sect2>Message Specific Structures<label id="datastructs"><p>
+Data structures for message queues are defined in msg.c.
+<sect3>struct msg_queue<label id="struct_msg_queue"><p>
+<tscreen><code>
+/* one msq_queue structure for each present queue on the system */
+struct msg_queue {
+        struct kern_ipc_perm q_perm;
+        time_t q_stime;                 /* last msgsnd time */
+        time_t q_rtime;                 /* last msgrcv time */
+        time_t q_ctime;                 /* last change time */
+        unsigned long q_cbytes;         /* current number of bytes on queue */
+        unsigned long q_qnum;           /* number of messages in queue */
+        unsigned long q_qbytes;         /* max number of bytes on queue */
+        pid_t q_lspid;                  /* pid of last msgsnd */
+        pid_t q_lrpid;                  /* last receive pid */
+
+        struct list_head q_messages;
+        struct list_head q_receivers;
+        struct list_head q_senders;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msg_msg<label id="struct_msg_msg"><p>
+<tscreen><code>
+/* one msg_msg structure for each message */
+struct msg_msg {
+        struct list_head m_list;
+        long  m_type;
+        int m_ts;           /* message text size */
+        struct msg_msgseg* next;
+        /* the actual message follows immediately */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msg_msgseg<label id="struct_msg_msgseg"><p>
+<tscreen><code>
+/* message segment for each message */
+struct msg_msgseg {
+        struct msg_msgseg* next;
+        /* the next part of the message follows immediately */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msg_sender<label id="struct_msg_sender"><p>
+<tscreen><code>
+/* one msg_sender for each sleeping sender */
+struct msg_sender {
+        struct list_head list;
+        struct task_struct* tsk;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msg_receiver<label id="struct_msg_receiver"><p>
+<tscreen><code>
+/* one msg_receiver structure for each sleeping receiver */
+struct msg_receiver {
+        struct list_head r_list;
+        struct task_struct* r_tsk;
+
+        int r_mode;
+        long r_msgtype;
+        long r_maxsize;
+
+        struct msg_msg* volatile r_msg;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msqid64_ds<label id="struct_msqid64_ds"><p>
+<tscreen><code>
+struct msqid64_ds {
+        struct ipc64_perm msg_perm;
+        __kernel_time_t msg_stime;      /* last msgsnd time */
+        unsigned long   __unused1;
+        __kernel_time_t msg_rtime;      /* last msgrcv time */
+        unsigned long   __unused2;
+        __kernel_time_t msg_ctime;      /* last change time */
+        unsigned long   __unused3;
+        unsigned long  msg_cbytes;      /* current number of bytes on queue */
+        unsigned long  msg_qnum;        /* number of messages in queue */
+        unsigned long  msg_qbytes;      /* max number of bytes on queue */
+        __kernel_pid_t msg_lspid;       /* pid of last msgsnd */
+        __kernel_pid_t msg_lrpid;       /* last receive pid */
+        unsigned long  __unused4;
+        unsigned long  __unused5;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct msqid_ds<label id="struct_msqid_ds"><p>
+<tscreen><code>
+ struct msqid_ds {
+        struct ipc_perm msg_perm;
+        struct msg *msg_first;          /* first message on queue,unused  */
+        struct msg *msg_last;           /* last message in queue,unused */
+        __kernel_time_t msg_stime;      /* last msgsnd time */
+        __kernel_time_t msg_rtime;      /* last msgrcv time */
+        __kernel_time_t msg_ctime;      /* last change time */
+        unsigned long  msg_lcbytes;     /* Reuse junk fields for 32 bit */
+        unsigned long  msg_lqbytes;     /* ditto */
+        unsigned short msg_cbytes;      /* current number of bytes on queue */
+        unsigned short msg_qnum;        /* number of messages in queue */
+        unsigned short msg_qbytes;      /* max number of bytes on queue */
+        __kernel_ipc_pid_t msg_lspid;   /* pid of last msgsnd */
+        __kernel_ipc_pid_t msg_lrpid;   /* last receive pid */
+};
+</code></tscreen>
+</sect3>
+
+<sect3>msg_setbuf<label id="msg_setbuf"><p>
+<tscreen><code>
+struct msq_setbuf {
+        unsigned long   qbytes;
+        uid_t           uid;
+        gid_t           gid;
+        mode_t          mode;
+};
+</code></tscreen>
+</sect3>
+</sect2>
+
+<sect2>Message Support Functions<label id="msgfuncs"><p>
+<sect3>newque()<label id="newque"><p>
+newque() allocates the memory for a new message queue
+descriptor (<ref id="struct_msg_queue" name="struct msg_queue">)
+and then calls <ref id="ipc_addid" name="ipc_addid()">, which
+reserves a message queue array entry for the new message queue
+descriptor.  The message queue descriptor is initialized as
+follows:
+
+<itemize>
+<item>  The <ref id="struct_kern_ipc_perm" name="kern_ipc_perm">
+        structure is initialized.
+<item>  The <tt>q_stime</tt> and <tt>q_rtime</tt> fields of the message
+	queue descriptor are initialized as 0. The <tt>q_ctime</tt>
+	field is set to be CURRENT_TIME.
+<item>  The maximum number of bytes allowed in this
+	queue message (<tt>q_qbytes</tt>) is set to be MSGMNB,
+	and the number of bytes currently used by the queue
+	(<tt>q_cbytes</tt>) is initialized as 0.
+<item>  The message waiting queue (<tt>q_messages</tt>),
+	the receiver waiting queue (<tt>q_receivers</tt>),
+	and the sender waiting queue (<tt>q_senders</tt>)
+	are each initialized as empty.
+</itemize>
+
+All the operations following the call to
+<ref id="ipc_addid" name="ipc_addid()"> are
+performed while holding the global message queue spinlock.
+After unlocking the spinlock, newque() calls msg_buildid(),
+which maps directly to <ref id="ipc_buildid" name="ipc_buildid()">.
+<ref id="ipc_buildid" name="ipc_buildid()">
+uses the index of the message queue descriptor to create a unique
+message queue ID that is then returned to the caller of newque().
+</sect3>
+
+<sect3>freeque()<label id="freeque"><p>
+When a message queue is going to be removed, the freeque() function is
+called.  This function assumes that the global message queue spinlock
+is already locked by the calling function.  It frees all kernel
+resources associated with that message queue. First, it calls
+<ref id="func_ipc_rmid" name="ipc_rmid()"> (via msg_rmid())
+to remove the message queue descriptor from the array of global
+message queue descriptors. Then it calls
+<ref id="expunge_all" name="expunge_all"> to wake up
+all receivers and <ref id="ss_wakeup" name="ss_wakeup()">
+to wake up all senders sleeping on this message queue. Later
+the global message queue spinlock is released.
+All messages stored in this message queue are freed and the
+memory for the message queue descriptor is freed.
+</sect3>
+
+<sect3>ss_wakeup()<label id="ss_wakeup"><p>
+ss_wakeup() wakes up all the tasks waiting in the given
+message sender waiting queue. If this function is called by
+<ref id="freeque" name="freeque()">, then all senders
+in the queue are dequeued.
+</sect3>
+
+<sect3>ss_add()<label id="ss_add"><p>
+ss_add() receives as parameters a message queue descriptor
+and a message sender data structure.  It fills the
+<tt>tsk</tt> field of the message sender data
+structure with the current process, changes the status of
+current process to TASK_INTERRUPTIBLE,
+then inserts the message sender data structure at the head of
+the sender waiting queue of the given message queue.
+</sect3>
+
+<sect3>ss_del()<label id="ss_del"><p>
+If the given message sender data structure
+(<tt>mss</tt>) is still in the associated sender
+waiting queue, then ss_del() removes
+<tt>mss</tt> from the queue.
+</sect3>
+
+<sect3>expunge_all()<label id="expunge_all"><p>
+expunge_all() receives as parameters a message queue
+descriptor(<tt>msq</tt>) and an integer value
+(<tt>res</tt>) indicating the reason for waking up the
+receivers. For each sleeping receiver associated with
+<tt>msq</tt>, the <tt>r_msg</tt>
+field is set to the indicated
+wakeup reason (<tt>res</tt>), and the associated receiving
+task is awakened. This function is called when a message queue is
+removed or a message control operation has been performed.
+</sect3>
+
+<sect3>load_msg()<label id="load_msg"><p>
+When a process sends a message, the
+<ref id="sys_msgsnd" name="sys_msgsnd()"> function
+first invokes the load_msg() function to load the message
+from user space to kernel space.  The message is represented in
+kernel memory as a linked list of data blocks. Associated with
+the first data block is a <ref id="struct_msg_msg" name="msg_msg">
+structure that describes the overall message. The datablock
+associated with the msg_msg structure is limited to a size of
+DATA_MSG_LEN. The data block and the structure are allocated in one
+contiguous memory block that can be as large as one page in memory.
+If the full message will not fit into this first data block, then
+additional data blocks are allocated and are organized into a
+linked list.  These additional data blocks are limited to a size
+of DATA_SEG_LEN, and each include an associated
+<ref id="struct_msg_msgseg" name="msg_msgseg)"> structure. The
+msg_msgseg structure and the associated data block are allocated in
+one contiguous memory block that can be as large as one page in
+memory.  This function returns the address of the new
+<ref id="struct_msg_msg" name="msg_msg"> structure on success.
+</sect3>
+
+<sect3>store_msg()<label id="store_msg"><p>
+The store_msg() function is called by
+<ref id="sys_msgrcv" name="sys_msgrcv()"> to reassemble a received
+message into the user space buffer provided by the caller. The data
+described by the <ref id="struct_msg_msg" name="msg_msg">
+structure and any <ref id="struct_msg_msgseg" name="msg_msgseg">
+structures are sequentially copied to the user space buffer.
+</sect3>
+
+<sect3>free_msg()<label id="free_msg"><p>
+The free_msg() function releases the memory for a message
+data structure <ref id="struct_msg_msg" name="msg_msg">,
+and the message segments.
+</sect3>
+
+<sect3>convert_mode()<label id="convert_mode"><p>
+convert_mode() is called by <ref id="sys_msgrcv" name="sys_msgrcv()">.
+It receives as parameters the address of the specified message
+type (<tt>msgtyp</tt>) and a flag (<tt>msgflg</tt>).
+It returns the search mode to the caller based on the value of
+<tt>msgtyp</tt> and <tt>msgflg</tt>.  If
+<tt>msgtyp</tt> is null, then SEARCH_ANY is returned.
+If <tt>msgtyp</tt> is less than 0, then <tt>msgtyp</tt> is
+set to it's absolute value and SEARCH_LESSEQUAL is returned.
+If MSG_EXCEPT is specified in <tt>msgflg</tt>, then SEARCH_NOTEQUAL is returned.
+Otherwise SEARCH_EQUAL is returned.
+</sect3>
+
+<sect3>testmsg()<label id="testmsg"><p>
+The testmsg() function checks whether a message meets the
+criteria specified by the receiver.  It returns 1 if one of the
+following conditions is true:
+
+<itemize>
+<item>  The search mode indicates searching any message (SEARCH_ANY).
+<item>  The search mode is SEARCH_LESSEQUAL and the message type
+	is less than or equal to desired type.
+<item>  The search mode is SEARCH_EQUAL and the message type is
+	the same as desired type.
+<item>  Search mode is SEARCH_NOTEQUAL and the message type is
+	not equal to the specified type.
+</itemize>
+</sect3>
+
+<sect3>pipelined_send()<label id="pipelined_send"><p>
+pipelined_send() allows a process to directly send a message
+to a waiting receiver rather than deposit the message in the
+associated message waiting queue. The
+<ref id="testmsg" name="testmsg()"> function is
+invoked to find the first receiver which is waiting for the
+given message. If found, the waiting receiver is removed from
+the receiver waiting queue, and the associated receiving task is
+awakened. The message is stored in the <tt>r_msg</tt>
+field of the receiver, and 1 is returned. In the case where no
+receiver is waiting for the message, 0 is returned.
+
+In the process of searching for a receiver, potential
+receivers may be found which have requested a size that is too small
+for the given message. Such receivers are removed from the queue,
+and are awakened with an error status of E2BIG, which is stored in the
+<tt>r_msg</tt> field. The search then continues until
+either a valid receiver is found, or the queue is exhausted.
+</sect3>
+
+<sect3>copy_msqid_to_user()<label id="copy_msqid_to_user"><p>
+copy_msqid_to_user() copies the contents of a kernel buffer to
+the user buffer.  It receives as parameters a user buffer, a
+kernel buffer of type
+<ref id="struct_msqid64_ds" name="msqid64_ds">, and a
+version flag indicating
+the new IPC version vs. the old IPC version.  If the version
+flag equals IPC_64, then copy_to_user() is invoked to copy from
+the kernel buffer to the user buffer directly.  Otherwise a
+temporary buffer of type struct msqid_ds is initialized, and the
+kernel data is translated to this temporary buffer.  Later
+copy_to_user() is called to copy the contents of the the temporary
+buffer to the user buffer.
+</sect3>
+
+<sect3>copy_msqid_from_user()<label id="copy_msqid_from_user"><p>
+The function copy_msqid_from_user() receives as parameters
+a kernel message buffer of type struct msq_setbuf, a user buffer
+and a version flag indicating the new IPC version vs. the old IPC
+version.  In the case of the new IPC version, copy_from_user()
+is called to copy the contents of the user buffer
+to a temporary buffer of type <ref id="struct_msqid64_ds" name="msqid64_ds">.
+Then, the <tt>qbytes</tt>,<tt>uid</tt>, <tt>gid</tt>,
+and <tt>mode</tt> fields of the kernel buffer are
+filled with the values of the
+corresponding fields from the temporary buffer.  In the case of the
+old IPC version, a temporary buffer of type struct
+<ref id="struct_msqid_ds" name="msqid_ds"> is used instead.
+</sect3>
+</sect2>
+</sect1>
+
+<sect1>Shared Memory<label id="sharedmem"><p>
+<sect2>Shared Memory System Call Interfaces<label id="Shared_Memory_System_Call_Interfaces">
+<p>
+<sect3>sys_shmget()<label id="sys_shmget"><p>
+The entire call to sys_shmget() is protected by the
+global shared memory semaphore.
+
+In the case where a new shared memory segment must
+be created, the <ref id="newseg" name="newseg()"> function is called to create
+and initialize a new shared memory segment.  The ID of
+the new segment is returned to the caller.
+
+In the case where a key value is provided for an
+existing shared memory segment, the corresponding index
+in the shared memory descriptors array is looked up, and
+the parameters and permissions of the caller are verified
+before returning the shared memory segment ID. The look up
+operation and verification are performed while the global
+shared memory spinlock is held.
+</sect3>
+
+<sect3>sys_shmctl()<label id="sys_shmctl"><p>
+<sect4>IPC_INFO<label id="IPC_INFO"><p>
+A temporary <ref id="struct_shminfo64" name="shminfo64">
+buffer is loaded with system-wide
+shared memory parameters and is copied out to user space for
+access by the calling application.
+</sect4>
+
+<sect4>SHM_INFO<label id="SHM_INFO"><p>
+The global shared memory semaphore and the global shared
+memory spinlock are held while gathering system-wide statistical
+information for shared memory.  The
+<ref id="shm_get_stat" name="shm_get_stat()"> function is called
+to calculate both the number of shared memory pages that are
+resident in memory and the number of shared memory pages that are
+swapped out. Other statistics include the total number of shared
+memory pages and the number of shared memory segments in use.
+The counts of <tt>swap_attempts</tt> and <tt>swap_successes</tt>
+are hard-coded to zero. These statistics are stored in a temporary
+<ref id="struct_shm_info" name="shm_info"> buffer and copied out
+to user space for the calling application.
+</sect4>
+
+<sect4>SHM_STAT, IPC_STAT<label id="SHM_STAT_IPC_STAT"><p>
+For SHM_STAT and IPC_STATA, a temporary buffer of type
+<ref id="struct_shmid64_ds" name="struct shmid64_ds"> is
+initialized, and the global shared memory spinlock is locked.
+
+For the SHM_STAT case, the shared memory segment ID parameter is
+expected to be a straight index (i.e. 0 to n where n is the
+number of shared memory IDs in the system). After validating
+the index, <ref id="ipc_buildid" name="ipc_buildid()">
+is called (via shm_buildid()) to
+convert the index into a shared memory ID. In the passing case
+of SHM_STAT, the shared memory ID will be the return value.
+Note that this is an undocumented feature, but is maintained
+for the ipcs(8) program.
+
+For the IPC_STAT case, the shared memory segment ID parameter is
+expected to be an ID that was generated by a call to
+<ref id="sys_shmget" name="shmget()">.
+The ID is validated before proceeding. In the passing case of
+IPC_STAT, 0 will be the return value.
+
+For both SHM_STAT and IPC_STAT, the access permissions of
+the caller are verified. The desired statistics are loaded into
+the temporary buffer and then copied out to the calling
+application.
+</sect4>
+
+<sect4>SHM_LOCK, SHM_UNLOCK<label id="SHM_LOCK_SHM_UNLOCK"><p>
+After validating access permissions, the global shared
+memory spinlock is locked, and the shared memory segment ID
+is validated.  For both SHM_LOCK and SHM_UNLOCK,
+<ref id="shmem_lock" name="shmem_lock()">
+is called to perform the function. The parameters for
+<ref id="shmem_lock" name="shmem_lock()">
+identify the function to be performed.
+</sect4>
+
+<sect4>IPC_RMID<label id="IPC_RMID"><p>
+During IPC_RMID the global shared memory semaphore and
+the global shared memory spinlock are held throughout this
+function. The Shared Memory ID is validated, and then if
+there are no current attachments, <ref id="shm_destroy" name="shm_destroy()">
+is called to destroy the shared memory segment.
+Otherwise, the SHM_DEST flag is set to mark it for destruction,
+and the IPC_PRIVATE flag is set to prevent other processes from
+being able to reference the shared memory ID.
+</sect4>
+
+<sect4>IPC_SET<label id="IPC_SET"><p>
+After validating the shared memory segment ID and the user
+access permissions, the <tt>uid</tt>, <tt>gid</tt>, and <tt>mode</tt> flags of the
+shared memory segment are updated with the user data. The
+<tt>shm_ctime</tt> field is also updated.  These changes are made
+while holding the global shared memory semaphore and the
+global share memory spinlock.
+</sect4>
+</sect3>
+
+<sect3>sys_shmat()<label id="sys_shmat"><p>
+sys_shmat() takes as parameters, a shared memory segment ID,
+an address at which the shared memory segment should be
+attached(<tt>shmaddr</tt>), and flags which will be described below.
+
+If <tt>shmaddr</tt> is non-zero, and the SHM_RND flag is
+specified, then <tt>shmaddr</tt> is rounded down to a multiple of
+SHMLBA. If <tt>shmaddr</tt> is not a multiple of SHMLBA and SHM_RND
+is not specified, then EINVAL is returned.
+
+The access permissions of the caller are validated and
+the <tt>shm_nattch</tt> field for the shared memory segment is
+incremented. Note that this increment guarantees that the
+attachment count is non-zero and prevents the shared memory
+segment from being destroyed during the process of attaching
+to the segment.  These operations are performed while holding the
+global shared memory spinlock.
+
+The do_mmap() function is called to create a virtual memory
+mapping to the shared memory segment pages. This is done while
+holding the <tt>mmap_sem</tt> semaphore of the current task. The
+MAP_SHARED flag is passed to do_mmap(). If an address was
+provided by the caller, then the MAP_FIXED flag is also passed
+to do_mmap(). Otherwise, do_mmap() will select the virtual
+address at which to map the shared memory segment.
+
+NOTE <ref id="shm_inc" name="shm_inc()"> will be invoked within the do_mmap()
+function call via the <tt>shm_file_operations</tt> structure. This
+function is called to set the PID, to set the current time, and
+to increment the number of attachments to this shared memory
+segment.
+
+After the call to do_mmap(), the global shared memory
+semaphore and the global shared memory spinlock are both
+obtained.  The attachment count is then decremented.  The the net
+change to the attachment count is 1 for a call
+to shmat() because of the call to <ref id="shm_inc" name="shm_inc()">. If, after
+decrementing the attachment count, the resulting count is found
+to be zero, and if the segment is marked for destruction
+(SHM_DEST), then <ref id="shm_destroy" name="shm_destroy()"> is
+called to release the shared memory segment resources.
+
+Finally, the virtual address at which the shared memory is
+mapped is returned to the caller at the user specified address.
+If an error code had been returned by do_mmap(), then this
+failure code is passed on as the return value for the system call.
+</sect3>
+
+<sect3>sys_shmdt()<label id="sys_shmdt"><p>
+The global shared memory semaphore is held while performing
+sys_shmdt(). The <tt>mm_struct</tt> of the current
+process is searched for the <tt>vm_area_struct</tt> associated with
+the shared memory address. When it is found, do_munmap() is
+called to undo the virtual address mapping for the shared memory segment.
+
+Note also that do_munmap() performs a call-back to
+<ref id="shm_close" name="shm_close()">,
+which performs the shared-memory book keeping functions, and
+releases the shared memory segment resources if there are no other
+attachments.
+
+sys_shmdt() unconditionally returns 0.
+</sect3>
+</sect2>
+
+<sect2>Shared Memory Support Structures<label id="shm_structures"><p>
+<sect3>struct shminfo64<label id="struct_shminfo64"><p>
+<tscreen><code>
+struct shminfo64 {
+        unsigned long   shmmax;
+        unsigned long   shmmin;
+        unsigned long   shmmni;
+        unsigned long   shmseg;
+        unsigned long   shmall;
+        unsigned long   __unused1;
+        unsigned long   __unused2;
+        unsigned long   __unused3;
+        unsigned long   __unused4;
+};
+</code></tscreen>
+</sect3>
+<sect3>struct shm_info<label id="struct_shm_info"><p>
+<tscreen><code>
+struct shm_info {
+        int used_ids;
+        unsigned long shm_tot;  /* total allocated shm */
+        unsigned long shm_rss;  /* total resident shm */
+        unsigned long shm_swp;  /* total swapped shm */
+        unsigned long swap_attempts;
+        unsigned long swap_successes;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct shmid_kernel<label id="struct_shmid_kernel"><p>
+<tscreen><code>
+struct shmid_kernel /* private to the kernel */
+{
+        struct kern_ipc_perm    shm_perm;
+        struct file *           shm_file;
+        int                     id;
+        unsigned long           shm_nattch;
+        unsigned long           shm_segsz;
+        time_t                  shm_atim;
+        time_t                  shm_dtim;
+        time_t                  shm_ctim;
+        pid_t                   shm_cprid;
+        pid_t                   shm_lprid;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct shmid64_ds<label id="struct_shmid64_ds"><p>
+<tscreen><code>
+struct shmid64_ds {
+        struct ipc64_perm       shm_perm;       /* operation perms */
+        size_t                  shm_segsz;      /* size of segment (bytes) */
+        __kernel_time_t         shm_atime;      /* last attach time */
+        unsigned long           __unused1;
+        __kernel_time_t         shm_dtime;      /* last detach time */
+        unsigned long           __unused2;
+        __kernel_time_t         shm_ctime;      /* last change time */
+        unsigned long           __unused3;
+        __kernel_pid_t          shm_cpid;       /* pid of creator */
+        __kernel_pid_t          shm_lpid;       /* pid of last operator */
+        unsigned long           shm_nattch;     /* no. of current attaches */
+        unsigned long           __unused4;
+        unsigned long           __unused5;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct shmem_inode_info<label id="struct_shmem_inode_info"><p>
+<tscreen><code>
+struct shmem_inode_info {
+        spinlock_t      lock;
+        unsigned long   max_index;
+        swp_entry_t     i_direct[SHMEM_NR_DIRECT]; /* for the first blocks */
+        swp_entry_t   **i_indirect; /* doubly indirect blocks */
+        unsigned long   swapped;
+        int             locked;     /* into memory */
+        struct list_head        list;
+};
+</code></tscreen>
+</sect3>
+</sect2>
+
+<sect2>Shared Memory Support Functions<label id="shm_primitives"><p>
+<sect3>newseg()<label id="newseg"><p>
+The newseg() function is called when a new shared memory
+segment needs to be created.  It acts on three parameters for
+the new segment the key, the flag, and the size.  After
+validating that the size of the shared memory segment to be
+created is between SHMMIN and SHMMAX and that the total number
+of shared memory segments does not exceed SHMALL, it allocates
+a new shared memory segment descriptor.
+The <ref id="shmem_file_setup" name="shmem_file_setup()">
+function is invoked later to create an unlinked file of type
+tmpfs.  The returned file pointer is saved in the <tt>shm_file</tt> field
+of the associated shared memory segment descriptor. The files
+size is set to be the same as the size of the segment.  The
+new shared memory segment descriptor is initialized and inserted
+into the global IPC shared memory descriptors array.  The shared
+memory segment ID is created by shm_buildid()
+(via <ref id="ipc_buildid" name="ipc_buildid()">).
+This segment ID is saved in the <tt>id</tt> field of the shared memory
+segment descriptor, as well as in the <tt>i_ino</tt> field of the associated
+inode.  In addition, the address of the shared memory operations
+defined in structure <tt>shm_file_operation</tt> is stored in the associated
+file.  The value of the global variable <tt>shm_tot</tt>, which indicates
+the total number of shared memory segments system wide, is also
+increased to reflect this change.  On success, the segment ID is
+returned to the caller application.
+</sect3>
+
+<sect3>shm_get_stat()<label id="shm_get_stat"><p>
+shm_get_stat() cycles through all of the shared memory
+structures, and calculates the total number of memory pages in
+use by shared memory and the total number of shared memory pages
+that are swapped out. There is a file structure and an inode
+structure for each shared memory segment.  Since the required
+data is obtained via the inode, the spinlock for each inode
+structure that is accessed is locked and unlocked in sequence.
+</sect3>
+
+<sect3>shmem_lock()<label id="shmem_lock"><p>
+shmem_lock() receives as parameters a pointer to the
+shared memory segment descriptor and a flag indicating
+lock vs. unlock.The locking state of the shared memory
+segment is stored in an	associated inode. This state is compared
+with the desired locking state; shmem_lock() simply returns if they match.
+
+While holding the semaphore of the associated inode, the
+locking state of the inode is set. The following list of items
+occur for each page in the shared memory segment:
+<itemize>
+<item>  find_lock_page() is called to lock the page (setting
+	PG_locked) and to increment the reference count of the page.
+	Incrementing the reference count assures that the shared
+	memory segment remains locked in memory throughout this
+	operation.
+<item>  If the desired state is locked, then PG_locked is cleared,
+	but the reference count remains incremented.
+<item>  If the desired state is unlocked, then the reference count
+	is decremented twice once for the current reference, and once
+	for the existing reference which caused the page to remain
+	locked in memory. Then PG_locked is cleared.
+</itemize>
+</sect3>
+
+<sect3>shm_destroy()<label id="shm_destroy"><p>
+During shm_destroy() the total number of shared memory pages
+is adjusted to account for the removal of the shared memory segment.
+<ref id="func_ipc_rmid" name="ipc_rmid()"> is called
+(via shm_rmid()) to remove the Shared Memory ID. <ref id="shmem_lock" name="shmem_lock"> is
+called to unlock the shared memory pages, effectively decrementing
+the reference counts to zero for each page. fput() is called to
+decrement the usage counter <tt>f_count</tt> for the associated file object,
+and if necessary, to release the file object resources.  kfree() is
+called to free the shared memory segment descriptor.
+</sect3>
+
+<sect3>shm_inc()<label id="shm_inc"><p>
+shm_inc() sets the PID, sets the current time, and increments
+the number of attachments for the given shared memory segment.
+These operations are performed while holding the global shared
+memory spinlock.
+</sect3>
+
+<sect3>shm_close()<label id="shm_close"><p>
+shm_close() updates the <tt>shm_lprid</tt> and the <tt>shm_dtim</tt> fields
+and decrements the number of attached shared memory segments. If
+there are no other attachments to the shared memory segment,
+then <ref id="shm_destroy" name="shm_destroy()"> is called to
+release the shared memory segment resources. These operations are
+all performed while holding both the global shared memory semaphore
+and the global	shared memory spinlock.
+</sect3>
+
+<sect3>shmem_file_setup()<label id="shmem_file_setup"><p>
+The function shmem_file_setup() sets up an unlinked file living
+in the tmpfs file system with the given name and size.  If there
+are enough systen memory resource for this file, it creates a new
+dentry under the mount root of tmpfs, and allocates a new file
+descriptor and a new inode object of tmpfs type.  Then it associates
+the new dentry object with the new inode object by calling
+d_instantiate() and saves the address of the dentry object in the
+file descriptor. The <tt>i_size</tt> field of the inode object is set to
+be the file size and the <tt>i_nlink</tt> field is set to be 0 in order to
+mark the inode unlinked.  Also, shmem_file_setup() stores the
+address of the <tt>shmem_file_operations</tt> structure in the <tt>f_op</tt> field,
+and initializes <tt>f_mode</tt> and <tt>f_vfsmnt</tt> fields of the file descriptor
+properly.  The function shmem_truncate() is called to complete the
+initialization of the inode object. On success, shmem_file_setup()
+returns the new file descriptor.
+</sect3>
+</sect2>
+</sect1>
+
+<sect1>Linux IPC Primitives<label id="ipc_primitives"><p>
+<sect2>Generic Linux IPC Primitives used with Semaphores, Messages,and Shared Memory
+<label id="Generic_Linux_IPC_Primitives_used_with_Semaphores_Messages_and_Shared_Memory">
+<p>
+The semaphores, messages, and shared memory mechanisms of Linux
+are built on a set of common primitives. These primitives are described in the sections below.
+
+<sect3>ipc_alloc()<label id="ipc_alloc"><p>
+If the memory allocation is greater than PAGE_SIZE, then
+vmalloc() is used to allocate memory. Otherwise, kmalloc() is
+called with GFP_KERNEL to allocate the memory.
+</sect3>
+
+<sect3>ipc_addid()<label id="ipc_addid"><p>
+When a new semaphore set, message queue, or shared memory
+segment is added,  ipc_addid() first calls <ref id="grow_ary" name="grow_ary()"> to
+insure that the size of the corresponding descriptor array is
+sufficiently large for the system maximum.  The array of descriptors
+is searched for the first unused element. If an unused element
+is found, the count of descriptors which are in use is incremented.
+The <ref id="struct_kern_ipc_perm" name="kern_ipc_perm"> structure for the new resource descriptor
+is then initialized, and the array index for the new descriptor
+is returned. When ipc_addid() succeeds, it returns with the global
+spinlock for the given IPC type locked.
+</sect3>
+
+<sect3>ipc_rmid()<label id="func_ipc_rmid"><p>
+ipc_rmid() removes the IPC descriptor from the the global
+descriptor array of the IPC type, updates the count of IDs which
+are in use, and adjusts the maximum ID in the corresponding
+descriptor array if necessary. A pointer to  the IPC
+descriptor associated with given IPC ID is returned.
+</sect3>
+
+<sect3>ipc_buildid()<label id="ipc_buildid"><p>
+ipc_buildid() creates a unique ID to be associated with
+each descriptor within a given IPC type. This ID is created at
+the time a new IPC element is added (e.g. a new shared memory
+segment or a new semaphore set).  The IPC ID converts
+easily into the corresponding descriptor array index. Each
+IPC type maintains a sequence number which is incremented
+each time a descriptor is added.  An ID is created by
+multiplying the sequence number with SEQ_MULTIPLIER and adding
+the product to the descriptor array index. The sequence number
+used in creating a particular IPC ID is then stored in the
+corresponding descriptor. The existence of the sequence number
+makes it possible to detect the use of a stale IPC ID.
+</sect3>
+
+<sect3>ipc_checkid()<label id="ipc_checkid"><p>
+ipc_checkid() divides the given IPC ID by the SEQ_MULTIPLIER
+and compares the quotient with the seq value saved corresponding
+descriptor.  If they are equal, then the IPC ID is considered to
+be valid and 1 is returned.  Otherwise, 0 is returned.
+</sect3>
+
+<sect3>grow_ary()<label id="grow_ary"><p>
+grow_ary() handles the possibility that the maximum
+(tunable) number of IDs for a given IPC type can be dynamically
+changed. It enforces the current maximum limit so that it is no
+greater than the permanent system limit (IPCMNI) and adjusts it down
+if necessary. It also insures that the existing descriptor array
+is large enough.  If the existing array size is sufficiently large,
+then the current maximum limit is returned.  Otherwise, a new larger
+array is allocated, the old array is copied into the new array,
+and the old array is freed.  The corresponding global
+spinlock is held when updating the descriptor array for the
+given IPC type.
+</sect3>
+
+<sect3>ipc_findkey()<label id="ipc_findkey"><p>
+ipc_findkey() searches through the descriptor array of
+the specified <ref id="struct_ipc_ids" name="ipc_ids"> object,
+and searches for the specified key. Once found, the index of
+the corresponding descriptor is returned. If the key is not found,
+then -1 is returned.
+</sect3>
+
+<sect3>ipcperms()<label id="ipcperms"><p>
+ipcperms() checks the user, group, and other permissions
+for access to the IPC resources. It returns 0 if permission
+is granted and -1 otherwise.
+</sect3>
+
+<sect3>ipc_lock()<label id="ipc_lock"><p>
+ipc_lock() takes an IPC ID as one of its parameters.
+It locks the global spinlock for the given IPC type, and
+returns a pointer to the descriptor corresponding to the
+specified IPC ID.
+</sect3>
+
+<sect3>ipc_unlock()<label id="ipc_unlock"><p>
+ipc_unlock() releases the global spinlock for the indicated IPC
+type.
+</sect3>
+
+<sect3>ipc_lockall()<label id="ipc_lockall"><p>
+ipc_lockall() locks the global spinlock for the given
+IPC mechanism (i.e. shared memory, semaphores, and messaging).
+</sect3>
+
+<sect3>ipc_unlockall()<label id="ipc_unlockall"><p>
+ipc_unlockall() unlocks the global spinlock for the given
+IPC mechanism (i.e. shared memory, semaphores, and messaging).
+</sect3>
+
+<sect3>ipc_get()<label id="ipc_get"><p>
+ipc_get() takes a pointer to a particular IPC type
+(i.e. shared memory, semaphores, or message queues) and a
+descriptor ID, and returns a pointer to the corresponding
+IPC descriptor.  Note that although the descriptors for each
+IPC type are of different data types, the common
+<ref id="struct_kern_ipc_perm" name="kern_ipc_perm">
+structure type is embedded as the first entity in every case.
+The ipc_get() function returns this common data type. The expected
+model is that ipc_get() is called through a wrapper function
+(e.g. shm_get()) which casts the data type to the correct
+descriptor data type.
+</sect3>
+
+<sect3>ipc_parse_version()<label id="ipc_parse_version"><p>
+ipc_parse_version() removes the IPC_64 flag from the command
+if it is present and returns either IPC_64 or IPC_OLD.
+</sect3>
+</sect2>
+
+<sect2>Generic IPC Structures used with Semaphores,
+Messages, and Shared Memory<label id="ipc_structures"><p>
+The semaphores, messages, and shared memory mechanisms all make
+use of the following common structures:
+
+<sect3>struct kern_ipc_perm<label id="struct_kern_ipc_perm"><p>
+Each of the IPC descriptors has a data object of this type
+as the first element. This makes it possible to access any
+descriptor from any of the generic IPC functions using a pointer
+of this data type.
+
+<tscreen><code>
+/* used by in-kernel data structures */
+struct kern_ipc_perm {
+    key_t key;
+    uid_t uid;
+    gid_t gid;
+    uid_t cuid;
+    gid_t cgid;
+    mode_t mode;
+    unsigned long seq;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct ipc_ids<label id="struct_ipc_ids"><p>
+The ipc_ids structure describes the common data for semaphores,
+message queues, and shared memory. There are three global instances of
+this data structure-- <tt>semid_ds</tt>,
+<tt>msgid_ds</tt> and <tt>shmid_ds</tt>-- for
+semaphores, messages and shared memory respectively. In each
+instance, the <tt>sem</tt> semaphore is used to
+protect access to the structure.
+The <tt>entries</tt> field points to an IPC
+descriptor array, and the
+<tt>ary</tt> spinlock protects access to this array.  The
+<tt>seq</tt> field is a global sequence number which will
+be incremented when a new IPC resource is created.
+
+<tscreen><code>
+struct ipc_ids {
+    int size;
+    int in_use;
+    int max_id;
+    unsigned short seq;
+    unsigned short seq_max;
+    struct semaphore sem;
+    spinlock_t ary;
+    struct ipc_id* entries;
+};
+</code></tscreen>
+</sect3>
+
+<sect3>struct ipc_id<label id="struct_ipc_id"><p>
+An array of struct ipc_id exists in each instance of
+the <ref id="struct_ipc_ids" name="ipc_ids"> structure.
+The array is dynamically allocated and may be replaced with
+larger array by <ref id="grow_ary" name="grow_ary()">
+as required. The array is
+sometimes referred to as the descriptor array, since the
+<ref id="struct_kern_ipc_perm" name="kern_ipc_perm"> data
+type is used as the common descriptor data type by the IPC generic
+functions.
+
+<tscreen><code>
+struct ipc_id {
+    struct kern_ipc_perm* p;
+};
+</code></tscreen>
+</sect3>
+</sect2>
+</sect1>
+</sect>
 
 </article>
