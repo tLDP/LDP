@@ -35,15 +35,15 @@ find_table()
 
 #---------------------------------------------
 
-need_makefile()
+need_rebuild()
 {
-  # return ok if makefile does not exist
-  [ -e "$TABLE_ORDER" ] || return 0
+  # return ok if target file does not exist
+  [ -e "$1" ] || return 0
 
-  # return ok if at least one .sql file is newer than makefile
+  # return ok if at least one .sql file is newer than target file
   # grep will return error if no file is found at all
   # the pattern should match any input
-  find_sql '*.sql' -newer "$TABLE_ORDER" | grep -q . && return 0
+  find_sql '*.sql' -newer "$1" | grep -q . && return 0
 
   # return error. we don't need to rebuild makefile
   return 1
@@ -162,15 +162,18 @@ if [ $# -ne 2 ]; then
 	exit 1
 fi
 
-need_makefile && build_makefile
+need_rebuild "$TABLE_ORDER" && build_makefile
 
 sql=$TABLESDIR/$1.sql
-echo "Writing $sql"
-(
-  echo "-- Created by lampadasdb.sh, do not edit"
-  date "+-- %c"
-  echo
-  "$@" 
-) > $TABLESDIR/$1.sql \
-&& echo "Executing $sql" \
-&& psql $2 -qf $TABLESDIR/$1.sql
+if need_rebuild "$sql"; then
+  echo "Writing $sql"
+  (
+    echo "-- Created by lampadasdb.sh, do not edit"
+    date "+-- %c"
+    echo
+    "$@" 
+  ) > $TABLESDIR/$1.sql \
+  || exit -1
+fi
+echo "Executing $sql" \
+&& psql $2 -qf $sql
