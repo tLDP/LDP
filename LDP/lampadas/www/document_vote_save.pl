@@ -10,7 +10,7 @@ $dbmain = "ldp";
 $conn=Pg::connectdb("dbname=$dbmain");
 
 $username = $query->remote_user();
-$result=$conn->exec("SELECT username, admin, maintainer_id FROM username WHERE username='$username'");
+$result=$conn->exec("SELECT username, admin, user_id FROM username WHERE username='$username'");
 @row = $result->fetchrow;
 $founduser = $row[0];
 $founduser =~ s/\s+$//;
@@ -18,18 +18,18 @@ if ($username ne $founduser) {
 	print $query->redirect("../newaccount.html");
 	exit;
 }
+$user_id	= $row[2];
 
-$doc_id = param('doc_id');
-$vote   = param('vote');
-$username = $query->remote_user();
+$doc_id	= param('doc_id');
+$vote	= param('vote');
 
-$sql = "DELETE FROM doc_vote WHERE doc_id=$doc_id AND username='$username'";
+$sql = "DELETE FROM doc_vote WHERE doc_id=$doc_id AND user_id='$user_id'";
 $result=$conn->exec($sql);
 
 # Only allow votes 1 - 10. Zero votes mean remove my vote.
 # 
 if ($vote) {
-	$sql = "INSERT INTO doc_vote(doc_id, username, vote) values ($doc_id, '$username', $vote)";
+	$sql = "INSERT INTO doc_vote(doc_id, user_id, vote) values ($doc_id, $user_id, $vote)";
 	$result=$conn->exec($sql);
 }
 

@@ -2,6 +2,9 @@
 
 use CGI qw(:standard);
 use Pg;
+use Lampadas;
+
+$L = new Lampadas;
 
 $query = new CGI;
 $dbmain = "ldp";
@@ -15,6 +18,11 @@ $currentuser = $query->remote_user();
 
 $conn=Pg::connectdb("dbname=$dbmain");
 die $conn->errorMessage unless PGRES_CONNECTION_OK eq $conn->status;
+
+$result = $conn->exec("SELECT user_id FROM username WHERE username='$username'");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
+@row = $result->fetchrow;
+$currentuser_id = $row[0];
 
 $result = $conn->exec("SELECT doc_id, title, filename, class, format, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, ref_url, pub_date, tech_review_status, maintained, license, abstract FROM document WHERE doc_id = $doc_id");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
@@ -70,21 +78,11 @@ if ($vote_count > 0) {
 	$vote_avg = $vote_total / $vote_count;
 }
 
-print header(-expires=>'now');
 
-print "<html><head><title>$title</title>";
-print "<link rel=stylesheet href='../ldp.css' type='text/css'>";
-print "</head>";
-print "<body>";
+$L->StartPage($title);
 
-print "<h1>$title ($doc_id)</h1>\n";
-
-system("./navbar.pl");
-
+print "<p><table class='box'>\n";
 print "<form method=POST action='document_save.pl' name='edit'>\n";
-print "<input type=hidden name=doc_id value='$doc_id'>\n";
-
-print "<p><table border=10>\n";
 print "<tr>\n";
 print "<th colspan=6>Document Details</th>\n";
 print "</tr>\n";
@@ -208,11 +206,11 @@ print "<th align=right>ISBN:</th><td><input type=text name=isbn size=14 value='$
 print "<th align=right>Rating</th>\n";
 print "<td>";
 if ( $vote > 0 ) {
-  print "<table border=0 bgcolor=black cellspacing=0 cellpadding=0>\n";
+  print "<table class='bargraph'>\n";
   for ( $i = 1; $i <= 10; $i++ ) {
-    print "<td bgcolor=";
-    if ( $vote >= $i ) { print "purple" } else { print "black" }
-    print ">&nbsp;&nbsp;</td>\n";
+    print "<td class='";
+    if ( $vote >= $i ) { print "baron" } else { print "baroff" }
+    print "'>&nbsp;&nbsp;</td>\n";
   }
   print "</tr></table>\n";
 }
@@ -244,6 +242,7 @@ print "<td align=right><input type=submit name=save value=Save> <input type=subm
 print "</tr>\n";
 print "</table>\n";
 
+print "<input type=hidden name=doc_id value='$doc_id'>\n";
 
 print "</form>";
 
@@ -255,7 +254,6 @@ print "</form>";
 
 
 
-print "<p><hr>";
 
 
 
@@ -270,7 +268,7 @@ print "<h2>Versions</h2>";
 $rev_result = $conn->exec("SELECT rev_id, version, pub_date, initials, notes FROM document_rev WHERE doc_id=$doc_id ORDER BY pub_date, version");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $rev_result->resultStatus;
 
-print "<p><table>\n";
+print "<p><table class='box'>\n";
 print "<tr><th>Version</th><th>Date</th><th>Initials</th><th>Notes</th></tr>";
 while (@row = $rev_result->fetchrow) {
   $rev_id = $row[0];
@@ -323,7 +321,6 @@ print "</table>\n";
 
 
 
-print "<p><hr>";
 
 
 
@@ -335,52 +332,55 @@ print "<p><hr>";
 
 print "<h2>Contributors</h2>";
 
-$authors_result = $conn->exec("SELECT maintainer.maintainer_id, role, active, document_maintainer.email, maintainer.email as author_email, maintainer_name FROM document_maintainer, maintainer WHERE doc_id = $doc_id and document_maintainer.maintainer_id = maintainer.maintainer_id ORDER BY active desc, maintainer_name");
+$authors_result = $conn->exec("SELECT du.user_id, role, active, du.email, u.first_name, u.middle_name, u.surname FROM document_user du, username u WHERE du.doc_id = $doc_id and du.user_id = u.user_id ORDER BY active desc, first_name, middle_name, surname");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $authors_result->resultStatus;
 
-print "<p><table>\n";
+print "<p><table class='box'>\n";
 print "<tr><th>Status</th><th>Role</th><th>Name</th><th>Feedback Email</th><th colspan=2>Action</th></tr>";
 while (@row = $authors_result->fetchrow) {
-  $maintainer_id = $row[0];
-  if ( $maintainer_list ) { $maintainer_list =+ " OR " }
-  $maintainer_list =+ "maintainer_notes.maintainer_id = $maintainer_id";
-  $role          = $row[1];
-  $role          =~  s/\s*$//;
-  if ( $row[2] eq 't' ) { $active = "Active" } else { $active = "Inactive" }
-  $feedback_email = $row[3];
-  $email          = $row[4];
-  if ( $row[5] eq '' ) { $maintainer_name = 'J. Doe' } else { $maintainer_name = "$row[5]" }
-  print "<tr>";
-  print "<form method=POST action='document_maintainer_save.pl'>";
-  print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
-  print "<input type=hidden name=doc_id value=$doc_id>";
-  print "<input type=hidden name=maintainer_id value=$maintainer_id>";
+	$user_id = $row[0];
+	if ( $user_list ) { $user_list =+ " OR " }
+	$user_list =+ "n.user_id = $user_id";
+	$role          = $row[1];
+	$role          =~ s/\s*$//;
+	if ( $row[2] eq 't' ) { $active = "Active" } else { $active = "Inactive" }
+	$email	= $row[3];
+	$first_name	= $row[4];
+	$middle_name	= $row[5];
+	$surname	= $row[6];
+	$name = "$first_name $middle_name $surname";
+	print "<tr>";
+	print "<form method=POST action='document_user_save.pl'>";
+	print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
+	print "<input type=hidden name=doc_id value=$doc_id>";
+	print "<input type=hidden name=user_id value=$user_id>";
 
-  print '<td valign=top><select name="active">';
-  if ( $active eq "Active" ) { print '<option selected value="t">Active</option>' } else { print '<option value="t">Active</option>' }
-  if ( $active eq "Inactive" ) { print '<option selected value="f">Inactive</option>' } else { print '<option value="f">Inactive</option>' }
-  print "</select></td>";
+	print '<td valign=top><select name="active">';
+	if ($active eq "Active") { print '<option selected value="t">Active</option>' } else { print '<option value="t">Active</option>' }
+	if ($active eq "Inactive") { print '<option selected value="f">Inactive</option>' } else { print '<option value="f">Inactive</option>' }
+	print "</select></td>";
 
-  print "<td valign=top><select name='role'>";
-  if ( $role eq "Author" ) { print '<option selected>Author</option>' } else { print '<option>Author</option>' }
-  if ( $role eq "Co-Author" ) { print '<option selected>Co-Author</option>' } else { print '<option>Co-Author</option>' }
-  if ( $role eq "Maintainer" ) { print '<option selected>Maintainer</option>' } else { print '<option>Maintainer</option>' }
-  if ( $role eq "Converter" ) { print '<option selected>Converter</option>' } else { print '<option>Converter</option>' }
-  if ( $role eq "Translator" ) { print '<option selected>Translator</option>' } else { print '<option>Translator</option>' }
-  print "</select></td>\n";
+	print "<td valign=top><select name='role'>";
+	if ( $role eq "Author" ) { print '<option selected>Author</option>' } else { print '<option>Author</option>' }
+	if ( $role eq "Co-Author" ) { print '<option selected>Co-Author</option>' } else { print '<option>Co-Author</option>' }
+	if ( $role eq "Maintainer" ) { print '<option selected>Maintainer</option>' } else { print '<option>Maintainer</option>' }
+	if ( $role eq "Converter" ) { print '<option selected>Converter</option>' } else { print '<option>Converter</option>' }
+	if ( $role eq "Translator" ) { print '<option selected>Translator</option>' } else { print '<option>Translator</option>' }
+	if ( $role eq "TECH" ) { print '<option selected>TECH</option>' } else { print '<option>TECH</option>' }
+	if ( $role eq "LANG" ) { print '<option selected>LANG</option>' } else { print '<option>LANG</option>' }
+	print "</select></td>\n";
 
-  print "<td valign=top><a href='maintainer_edit.pl?maintainer_id=$maintainer_id'>$maintainer_name</a></td>\n";
-  print "<td valign=top><input type=text name=email width=20 size=20 value='$feedback_email'></input></td>\n";
-  print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
-  print "<td valign=top><input type=submit value=Save></td>\n";
-  print "</form>";
-  print "</tr>\n";
+	print "<td valign=top><a href='user_edit.pl?user_id=$user_id'>$name</a></td>\n";
+	print "<td valign=top><input type=text name=email width=20 size=20 value='$email'></input></td>\n";
+	print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
+	print "<td valign=top><input type=submit value=Save></td>\n";
+	print "</form>";
+	print "</tr>\n";
 }
 
 # For assigning a new contributor
-#print "<tr><th colspan=6>New Contributor</th></tr>";
 print "<tr>";
-print "<form method=POST action='document_maintainer_add.pl'>";
+print "<form method=POST action='document_user_add.pl'>";
 print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
 print "<input type=hidden name=doc_id value=$doc_id>";
 
@@ -395,20 +395,25 @@ print '<option>Co-Author</option>';
 print '<option>Maintainer</option>';
 print '<option>Converter</option>';
 print '<option>Translator</option>';
+print '<option>TECH</option>';
+print '<option>LANG</option>';
 print "</select></td>\n";
 
 print "<td valign=top>";
 
-$sql = "SELECT maintainer_id, maintainer_name FROM maintainer ORDER BY maintainer_name";
+$sql = "SELECT user_id, first_name, middle_name, surname FROM username ORDER BY first_name, middle_name, surname";
 $authors_result = $conn->exec($sql);
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $authors_result->resultStatus;
 
-print "<select name=maintainer_id\n";
+print "<select name=user_id\n";
 print "<option>\n";
 while (@row = $authors_result->fetchrow) {
-  $maintainer_id = $row[0];
-  if ( $row[1] eq '' ) { $maintainer_name = 'J. Doe' } else { $maintainer_name = "$row[1]" }
-  print "<option value=$maintainer_id>$maintainer_name\n"
+	$user_id = $row[0];
+	$first_name	= $row[1];
+	$middle_name	= $row[2];
+	$surname	= $row[3];
+	$name = "$first_name $middle_name $surname";
+	print "<option value=$user_id>$name\n"
 }
 print "</select>\n";
 print "</td>\n";
@@ -420,7 +425,7 @@ print "</form>";
 print "</tr>\n";
 
 print "</table>\n";
-print "<br><small>Note: Deleting a record here doesn't delete the maintainer. It only deletes the association between the maintainer and this document.</small>\n";
+print "<br><small>Note: Deleting a record here doesn't delete the user. It only deletes the association between the user and this document.</small>\n";
 
 
 
@@ -430,7 +435,6 @@ print "<br><small>Note: Deleting a record here doesn't delete the maintainer. It
 
 
 
-print "<p><hr>";
 
 
 
@@ -451,7 +455,7 @@ while (@row = $topic_result->fetchrow) {
 #  print "<p>found: " . $topics[$rownum] . " = " . $topic_names[$rownum];
 }
 
-print "<p><table>\n";
+print "<p><table class='box'>\n";
 print "<tr><th>Topic</th><th>Action</th></tr>\n";
 $document_topic_result = $conn->exec("SELECT topic.topic_num, topic.topic_name, subtopic.subtopic_num, subtopic.subtopic_name FROM document_topic, subtopic, topic WHERE document_topic.topic_num = subtopic.topic_num and document_topic.subtopic_num = subtopic.subtopic_num AND subtopic.topic_num = topic.topic_num AND doc_id=$doc_id ORDER BY topic_num, subtopic_num");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $document_topic_result->resultStatus;
@@ -490,12 +494,11 @@ print "</tr></table>\n";
 
 
 
-print "<p><hr>";
 
-print "<h2>Audience Assignments</h2>\n";
-print "<p>under construction. move along...";
+#print "<h2>Audience Assignments</h2>\n";
+#print "<p>under construction. move along...";
 
-#print "<p><table>\n";
+#print "<p><table class='box'>\n";
 #print "<tr><th>Audience</th><th>Description</th></tr>\n";
 #$audience_result = $conn->exec("SELECT audience, audience_level, audience_description FROM document_audience, audience WHERE document_audience.doc_id = $doc_id AND document_audience.audience = audience.audience ORDER BY audience_level");
 #die $conn->errorMessage unless PGRES_TUPLES_OK eq $audience_result->resultStatus;
@@ -535,106 +538,23 @@ print "<p>under construction. move along...";
 
 
 
-print "<p><hr>";
 
 
 
 
 
-print "<h2>Editors</h2>";
-
-$authors_result = $conn->exec("SELECT editor.editor_id, editor_role, active, editor.email, editor.editor_name FROM document_editor, editor WHERE doc_id = $doc_id and document_editor.editor_id = editor.editor_id ORDER BY active desc, editor_name");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $authors_result->resultStatus;
-
-print "<p><table>\n";
-print "<tr><th>Status</th><th>Role</th><th>Name</th><th>Email</th><th colspan=2>Action</th></tr>";
-while (@row = $authors_result->fetchrow) {
-  $editor_id   = $row[0];
-  $editor_role = $row[1];
-  $editor_role =~  s/\s*$//;
-  if ( $row[2] eq 't' ) { $active = "Active" } else { $active = "Inactive" }
-  if ( $row[4] eq '' ) { $editor_name = 'J. Doe' } else { $editor_name = $row[4] }
-  print "<tr>";
-  print "<form method=GET action='document_editor_save.pl'>";
-  print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
-  print "<input type=hidden name=doc_id value=$doc_id>";
-  print "<input type=hidden name=editor_id value=$editor_id>";
-
-  print '<td valign=top><select name="active">';
-  if ( $active eq "Active" ) { print '<option selected value="t">Active</option>' } else { print '<option value="t">Active</option>' }
-  if ( $active eq "Inactive" ) { print '<option selected value="f">Inactive</option>' } else { print '<option value="f">Inactive</option>' }
-  print "</select></td>";
-
-  print "<td valign=top><select name='editor_role'>";
-  if ( $editor_role eq "LANG" ) { print '<option selected value="LANG">Language Editor</option>' } else { print '<option value="LANG">Language Editor</option>' }
-  if ( $editor_role eq "TECH" ) { print '<option selected value="TECH">Technical Editor</option>' } else { print '<option value="TECH">Technical Editor</option>' }
-  print "</select></td>\n";
-
-  print "<td valign=top><a href='editor_edit.pl?editor_id=$editor_id'>$editor_name</a></td>\n";
-  print "<td valign=top>" . $row[3] . "</td>\n";
-  print "<td valign=top><input type=checkbox name=chkDel>Del</td>";
-  print "<td valign=top><input type=submit value=Save></td>\n";
-  print "</form>";
-  print "</tr>\n";
-}
-
-
-# For assigning a new editor
-print "<tr>";
-print "<form method=POST action='document_editor_add.pl'>";
-print "<input type=hidden name=caller value='document_edit.pl?doc_id=$doc_id'>";
-print "<input type=hidden name=doc_id value=$doc_id>";
-
-print '<td valign=top><select name="active">';
-print '<option value="t">Active</option>';
-print '<option value="f">Inactive</option>';
-print "</select></td>";
-
-print "<td valign=top><select name='editor_role'>";
-print '<option value="LANG">Language Editor</option>';
-print '<option value="TECH">Technical Editor</option>';
-print "</select></td>\n";
-
-print "<td valign=top>";
-
-$sql = "SELECT editor_id, editor_name FROM editor ORDER BY editor_name";
-$editors_result = $conn->exec($sql);
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $editors_result->resultStatus;
-
-print "<select name=editor_id\n";
-print "<option>\n";
-while (@row = $editors_result->fetchrow) {
-  $editor_id = $row[0];
-  if ( $row[1] eq '' ) { $editor_name = 'J. Doe' } else { $editor_name = "$row[1]" }
-  print "<option value=$editor_id>$editor_name</option>\n"
-}
-print "</select>\n";
-print "</td>\n";
-
-print "<td valign=top>&nbsp;</td>\n";
-print "<td valign=top>&nbsp;</td>\n";
-print "<td valign=top><input type=submit value=Add></td>\n";
-print "</form>";
-print "</tr>\n";
-
-print "</table>\n";
-print "<br><small>Note: Deleting a record here doesn't delete the editor. It only deletes the association between the editor and this document.</small>\n";
-
-
-
-print "<p><hr>";
 
 print "<h2>Rating</h2>\n";
 
-print "<p><table border=0 cellspacing=0 cellpadding=0>\n";
+print "<p><table class='bargraph'>\n";
 for ( $i = 1; $i <= 10; $i++ ) {
-  print "<td bgcolor=";
-  if ( $vote >= $i ) { print "purple" } else { print "black" }
-  print ">&nbsp;&nbsp;&nbsp;</td>\n";
+	print "<td class='";
+	if ($vote >= $i) { print "baron" } else { print "baroff" }
+	print "'>&nbsp;&nbsp;</td>\n";
 }
 print "</tr></table>\n";
 
-$votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id and username='$currentuser'");
+$votes_result = $conn->exec("select vote from doc_vote where doc_id = $doc_id and user_id='$currentuser_id'");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $votes_result->resultStatus;
 @row = $votes_result->fetchrow;
 $vote = $row[0];
@@ -659,22 +579,22 @@ print "</form>";
 
 
 
-print "<p><hr>";
 
 
 
 
 
-$notes_result = $conn->exec("SELECT date_entered, notes, username FROM notes WHERE doc_id = $doc_id ORDER BY date_entered");
-die $conn->errorMessage unless PGRES_TUPLES_OK eq $notes_result->resultStatus;
 
 print "<h2>Notes</h2>\n";
 
+$notes_result = $conn->exec("SELECT n.date_entered, n.notes, u.username FROM notes n, username u WHERE n.creator_id=u.user_id AND n.doc_id=$doc_id ORDER BY date_entered");
+die $conn->errorMessage unless PGRES_TUPLES_OK eq $notes_result->resultStatus;
+
 print "<form name=notes method=POST action='document_note_add.pl'>";
-print "<p><table>\n";
+print "<p><table class='box'>\n";
 print "<tr><th>Date and Time</th><th>User</th><th>Note</th></tr>";
 while (@row = $notes_result->fetchrow) {
-  $date_entered = $row[0];
+  $date_entered	= $row[0];
   $notes        = $row[1];
   $notes        =~ s/</&lt;/;
   $notes        =~ s/>/&gt;/;
@@ -691,36 +611,37 @@ print "</form>";
 
 
 
-print "<p><hr>";
 
-print "<h2>Author Notes</h2>\n";
+print "<h2>Contributor Notes</h2>\n";
 
-print "<p><table>\n";
-print "<tr><th>Date and Time</th><th>User</th><th>Maintainer</th><th>Note</th></tr>";
+print "<p><table class='box'>\n";
+print "<tr><th>Date and Time</th><th>User</th><th>Contributor</th><th>Note</th></tr>";
 
-if ( $maintainer_list ) {
-	$sql = "SELECT date_entered, notes, username, maintainer_name FROM maintainer_notes, maintainer WHERE maintainer.maintainer_id = maintainer_notes.maintainer_id AND $maintainer_list ORDER BY date_entered";
+if ($user_list) {
+	$sql = "SELECT n.date_entered, n.notes, u.username, u.first_name, u.middle_name, u.surname FROM username_notes n, username u  WHERE u.user_id=n.user_id AND $user_list ORDER BY date_entered";
 	$notes_result = $conn->exec($sql);
 	die $conn->errorMessage unless PGRES_TUPLES_OK eq $notes_result->resultStatus;
 
 	while (@row = $notes_result->fetchrow) {
-	  $date_entered = $row[0];
-	  $notes        = $row[1];
-	  $notes        =~ s/</&lt;/;
-	  $notes        =~ s/>/&gt;/;
-	  $username     = $row[2];
-	  $maintainer_name   = $row[3];
-	  print "<tr>\n";
-	  print "<td valign=top>$date_entered</td>\n";
-	  print "<td valign=top>$username</td>\n";
-	  print "<td valign=top>$maintainer_name</td>\n";
-	  print "<td valign=top>$notes</td>\n";
-	  print "</tr>\n";
+		$date_entered = $row[0];
+		$notes        = $row[1];
+		$notes        =~ s/</&lt;/;
+		$notes        =~ s/>/&gt;/;
+		$username     = $row[2];
+		$first_name	= $row[3];
+		$middle_name	= $row[4];
+		$surname	= $row[5];
+		$name = $surname . ', ' . $first_name . ' ' . $middle_name;
+		print "<tr>\n";
+		print "<td valign=top>$date_entered</td>\n";
+		print "<td valign=top>$username</td>\n";
+		print "<td valign=top>$name</td>\n";
+		print "<td valign=top>$notes</td>\n";
+		print "</tr>\n";
 	}
 }
 
 print "</table>\n";
 
-
-print end_html;
+$L->EndPage();
 

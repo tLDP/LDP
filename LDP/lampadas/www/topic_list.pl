@@ -2,6 +2,9 @@
 
 use CGI qw(:standard);
 use Pg;
+use Lampadas;
+
+$L = new Lampadas;
 
 $dbmain='ldp';
 @row;
@@ -10,23 +13,14 @@ $last_subtopic_num = 0;
 
 # Connect and load the tuples
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "SELECT topic.topic_num, topic.topic_name, subtopic.subtopic_num, subtopic.subtopic_name, document.doc_id, document.title, topic_description, subtopic_description FROM topic, subtopic, document_topic, document WHERE topic.topic_num = subtopic.topic_num and topic.topic_num = document_topic.topic_num and subtopic.subtopic_num = document_topic.subtopic_num and document_topic.doc_id = document.doc_id ORDER BY topic_num, subtopic_num, title";
+$sql = "SELECT topic.topic_num, topic.topic_name, subtopic.subtopic_num, subtopic.subtopic_name, document.doc_id, document.title, topic_description, subtopic_description FROM topic, subtopic, document_topic, document ";
+$sql .= "WHERE topic.topic_num = subtopic.topic_num and topic.topic_num = document_topic.topic_num and subtopic.subtopic_num = document_topic.subtopic_num and document_topic.doc_id = document.doc_id AND document.pub_status='N' ";
+$sql .= "ORDER BY topic_num, subtopic_num, title";
 
 $result=$conn->exec("$sql");
 die $conn->errorMessage unless PGRES_TUPLES_OK eq $result->resultStatus;
 
-# print the page
-print header(-expires=>'now');
-#print header;
-print "<html><head>\n";
-print "<title>LDP Document Database</title>\n";
-print "<link rel=stylesheet href='../ldp.css' type='text/css'>\n";
-print "</head>\n";
-print "<body>\n";
-
-print "<h1>Topic Listing</h1>\n";
-
-system("./navbar.pl");
+$L->StartPage('Topic Listing');
 
 while (@row = $result->fetchrow) {
   $topic_num            = $row[0];
@@ -38,7 +32,7 @@ while (@row = $result->fetchrow) {
   $topic_description    = $row[6];
   $subtopic_description = $row[7];
 
-  if ( $topic_num != $last_topic_num ) {
+  if ($last_topic_num and ($topic_num != $last_topic_num)) {
     print "<p><hr>";
     print "<h1>$topic_num $topic_name</h1>\n";
     print "<blockquote>$topic_description</blockquote>\n";
@@ -54,5 +48,5 @@ while (@row = $result->fetchrow) {
   $last_subtopic_num = $subtopic_num;
 }
 
-print end_html;
+$L->EndPage();
 

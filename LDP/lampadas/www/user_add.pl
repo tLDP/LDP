@@ -1,40 +1,20 @@
 #! /usr/bin/perl
 
-use CGI qw(:standard);
-use Pg;
-
-$query = new CGI;
-$dbmain = "ldp";
-@row;
+use Lampadas;
+$L = new Lampadas;
 
 # Read parameters
-$username	= param('username');
-$first_name	= param('first_name');
-$surname	= param('surname');
-$maintainer_id	= param('maintainer_id');
-$email		= param('email');
-$admin		= param('admin');
-$editor_id	= param('editor_id');
-$password	= param('password');
+$username	= $L->Param('username');
+$first_name	= $L->Param('first_name');
+$middle_name	= $L->Param('middle_name');
+$surname	= $L->Param('surname');
+$email		= $L->Param('email');
+$admin		= $L->Param('admin');
 
-$conn=Pg::connectdb("dbname=$dbmain");
-
-$realusername = $query->remote_user();
-$result=$conn->exec("SELECT username, admin FROM username WHERE username='$realusername'");
-@row = $result->fetchrow;
-$founduser = $row[0];
-$founduser =~ s/\s+$//;
-if ($realusername ne $founduser) {
-	print $query->redirect("../newaccount.html");
+unless ($L->Admin) {
+	print $query->redirect("../wrongpermission.html");
 	exit;
-} else {
-	if ($row[1] ne 't') {
-		print $query->redirect("../wrongpermission.html");
-		exit;
-	}
 }
 
-$sql = "INSERT INTO username (username, email) VALUES ('$username', '$email')";
-$result=$conn->exec($sql);
-
-print $query->redirect("user_edit.pl?username=$username");
+%newuser = $L->NewUser($username, $first_name, $middle_name, $surname, $email, $admin, '');
+$L->Redirect("user_edit.pl?user_id" . $newuser{id});

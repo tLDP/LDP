@@ -55,7 +55,7 @@ if ($username ne $founduser) {
 } else {
 	if ($row[1] ne 't') {
 		$maintainer_id = $row[2];
-		$result=$conn->exec("SELECT count(*) FROM document_maintainer WHERE maintainer_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
+		$result=$conn->exec("SELECT count(*) FROM document_user WHERE user_id=$maintainer_id AND doc_id=$doc_id AND active='t'");
 		@row = $result->fetchrow;
 		unless ($row[0]) {
 			print $query->redirect("../wrongpermission.html");

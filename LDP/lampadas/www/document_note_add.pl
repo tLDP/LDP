@@ -21,7 +21,12 @@ while ($note =~ /a1s2d3f4/) {
 $username = $query->remote_user();
 
 $conn=Pg::connectdb("dbname=$dbmain");
-$sql = "INSERT INTO notes (doc_id, date_entered, username, notes) values ($doc_id, now(), '$username', '$note')";
+$sql = "SELECT user_id FROM username WHERE username='$username'";
+$result = $conn->exec($sql);
+@row = $result->fetchrow;
+$creator_id = $row[0];
+
+$sql = "INSERT INTO notes (doc_id, date_entered, notes, creator_id) values ($doc_id, now(), '$note', $creator_id)";
 $result=$conn->exec($sql);
 
 print $query->redirect("document_edit.pl?doc_id=$doc_id");
