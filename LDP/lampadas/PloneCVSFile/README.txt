@@ -1,4 +1,4 @@
-This package provides an extension of CVSFile. It adds Plone
+This package provides an extension of CVSFile. It adds CMF
 interfaces so it can be used in a Plone system like any other
 Plone content.
 

@@ -5,9 +5,6 @@ I am an extension of CVSFile that adds CMF functionality.
 # Base classes, peer classes
 from Products.ExternalFile.ExternalFile import ExternalFile
 from Products.CVSFile.CVSSandboxRegistry import findCVSSandboxRegistry # CVSSandboxRegistry, 
-#from SandboxInfo import SandboxInfo
-#from OSUtils import runCommand, command_separator
-#from Products.ExternalFile.FileUtils import copy_file
 
 # Zope builtins
 from Globals import DTMLFile #, MessageDialog
@@ -19,9 +16,11 @@ from Products.CVSFile.CVSFile import CVSFile
 from Products.CVSFile.ICVSFile import ICVSFile
 
 # CMFCore imports
+from Products.CMFCore import CMFCorePermissions
 from Products.CMFCore.PortalContent import PortalContent
 from Products.CMFCore.CMFCatalogAware import CMFCatalogAware
 from Products.CMFCore.DynamicType import DynamicType
+from Products.CMFDefault.File import File
 
 # OFS imports
 from OFS.SimpleItem import SimpleItem
@@ -29,6 +28,9 @@ from OFS import Image
 
 # OMF imports
 from OMF import OMF
+
+# Local imports
+from Defaults import META_TYPE, PORTAL_TYPE
 
 # Python builtins
 import os
@@ -74,7 +76,10 @@ def initMetadata(object):
                          )
 
 def makeCMFCVSFile(id, title, description, target_filepath):
-    object = PloneCVSFile(id, title, description, target_filepath)
+    object = PloneCVSFile(id,
+                          title           = title,
+                          description     = description,
+                          target_filepath = target_filepath)
     object.title = title
     object.parents = []
     username = getSecurityManager().getUser().getUserName()
@@ -84,7 +89,7 @@ def makeCMFCVSFile(id, title, description, target_filepath):
 
 def manage_add(self,
                id, title='', description='', 
-               target_filepath='README', basedir='', REQUEST=None):
+               target_filepath='', basedir='', REQUEST=None):
     """Factory method to actually create an instance of CMFCVSFile.
     """
 
@@ -108,11 +113,6 @@ def manage_add_with_upload(self,
                                 target_filepath))
     self._getOb(id).reindex_object()
 
-def manage_lampadas(self, action, REQUEST=None):
-    """Perform a Lampadas action on the file, i.e., convert it.
-    """
-    pass
-
 
 ################################################################
 # CVSFile class
@@ -120,7 +120,7 @@ def manage_lampadas(self, action, REQUEST=None):
 
 # PortalContent brings in: DynamicType, CMFCatalogAware, SimpleItem
 
-class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
+class PloneCVSFile(CVSFile, File, PortalContent, OMF):
 
     """Extended from CVSFile
     """
@@ -132,8 +132,8 @@ class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
     isPortalContent = 1
     _isPortalContent = 1
     
-    meta_type = 'CMF CVS File'  # This is the name Zope will use for the Product in
-                              # the "addProduct" list
+    meta_type = META_TYPE
+    portal_type = PORTAL_TYPE
 
     _isDiscussable = 1
 
@@ -142,21 +142,20 @@ class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
     # label = label of tab, action = url it links to
     manage_options = ( ExternalFile.manage_options + (
     	{'label':'CVS',	          'action': 'manage_cvsForm'},
-        {'label':'Lampadas',      'action': 'manage_lampadasForm'},
         {'label':'OMF Meta-data', 'action': 'manage_metadata'}
     ) +  CMFCatalogAware.manage_options )
 
-    _security = ClassSecurityInfo()
+    security = ClassSecurityInfo()
 
     # set security for the object itself, e.g. if it is accessed in DTML code
     # This line is REQUIRED to allow access to CVSFiles by the public (ariel DTDs, etc.)
-    _security.declareObjectPublic()
+    security.declareObjectPublic()
 
     # call __call__() method on DTMLFile for our edit form, point at our cvs_form.dtml
     # globals() is standard python for passing the current namespace
     cvs_form           = DTMLFile('dtml/cvs_form',globals())
     
-    _security.declareProtected('Manage CVS Files',      'manage_cvsForm')
+    security.declareProtected('Manage CVS Files',      'manage_cvsForm')
     manage_cvsForm     = DTMLFile('dtml/cvs',globals())
     
     # these lines exist so we can call them from DTML
@@ -164,16 +163,9 @@ class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
     cvssandbox_formpart  = cvssandbox_formpart
     # end of DTML scoping hack
 
-    # Lampadas extensions start here
-    lampadas_cvs_form = DTMLFile('dtml/lampadas_cvs_form',globals())
-
-    _security.declareProtected('Lampadas CVS File Actions',      'manage_lampadasForm')
-    manage_lampadasForm     = DTMLFile('dtml/lampadas_cvs',globals())
-
     # CMF ATTRIBUTES
 
-    portal_type = 'CMF CVS File'
-    set = _security.setPermissionDefault
+    set = security.setPermissionDefault
     set('Edit CVS File', ('Owner', 'Manager', 'Authenticated'))
     set('FTP Access', ('Owner', 'Manager', 'Authenticated'))
     set('Create CVS File', ('Owner', 'Manager'))
@@ -183,9 +175,9 @@ class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
 
     manage_metadata = DTMLFile('dtml/omf_metadata', globals())
     
-    def __init__(self, id, title='', description='', relativeFilePath='foo.html'):
+    def __init__(self, id, title='', description='', relativeFilePath='', ):
         CVSFile.__init__(self, id, title, description, relativeFilePath)
-        Image.File.__init__(self, id, title, relativeFilePath)
+        File.__init__(self, id, title, relativeFilePath)
         OMF.__init__(self)
     
     def inCMF(self):
@@ -193,14 +185,24 @@ class PloneCVSFile(CVSFile, Image.File, PortalContent, OMF):
         """
         return hasattr(self.aq_inner.aq_parent,'portal_membership')
     
-    _security.declarePublic('getId')
+    security.declarePublic('getId')
     def getId(self):
         try: return self.id()
         except TypeError: return self.id
     
-    _security.declareProtected('View CVS File', 'SearchableText')
+    security.declareProtected(CMFCorePermissions.View, 'SearchableText')
     def SearchableText(self):
         return self.getContents()
+
+    security.declarePublic('data')
+    def data(self):
+        """Provided for compatibility with CMF File objects."""
+        return self.getContents(None, None)
+        
+    security.declarePublic('getContents')
+    def getContents(self, REQUEST=None, RESPONSE=None):
+        """Returns the contents of the file if possible."""
+        return CVSFile.getContents(self, REQUEST, RESPONSE)
 
     def setFileInfo(self, filepath='', title='', description=''):
         """Sets meta-data from the CVS properties screen.
