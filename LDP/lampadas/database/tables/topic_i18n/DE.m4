@@ -1,4 +1,4 @@
-insert(linux_os,             [Das Linux Betriebssystem],
+insert(linux_os,             [Das Betriebssystem Linux],
 [Das grundlegende Linux System, d.h. Kernel und GNU Utilities.])
 insert(system_admin,         [System-Administration],
 [Konfiguration und Administration der grundlegenden Systemdienste.])

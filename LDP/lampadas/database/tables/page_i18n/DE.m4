@@ -386,11 +386,11 @@ insert([account_created], [Benutzerkonto angelegt], [],
     zugeschickt. Bitte warten Sie auf den Erhalt der E-Mail.
 ], 1)
 
-insert([password_mailed], [Password Mailed], [],
+insert([password_mailed], [Passwort wurde zugeschickt], [],
 [
-    <p>Your password has been mailed to you.
-    If you continue to have problems logging in, please write
-    the site administrator for assistance.
+    <p>Ihr Passwort wurde Ihnen per E-Mail zugeschickt.
+    Bitte benachrichtigen Sie den Administrator dieser Web-Site
+    wenn Sie noch weiter Probleme bei der Anmeldung haben.
 ], 1)
 
 insert([user], [Benutzerdaten ändern], [Neuer Benutzer],
@@ -418,7 +418,7 @@ insert([cvslog], [CVS Log], [],
     |tabcvslog|
 ], 1)
 
-insert([errors], [Error List], [],
+insert([errors], [Liste der Fehler], [],
 [
     |taberrors|
-], 0)
+], 1)

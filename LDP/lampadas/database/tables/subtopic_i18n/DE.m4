@@ -13,8 +13,8 @@ insert(booting,               [Boot-Loader und Bootvorgang],
 [Informationen über den Bootvorgang eines Linuxsystems.])
 insert(parallel_processing,   [Parallelverarbeitung],
 [Informationen über Multiprozessorsysteme.])
-insert(partitions_filesys,    [Partitionen and Dateisysteme],
-[Informationen über ext2, ext3, JFS, XFS, ReiserFS and andere Dateisysteme.])
+insert(partitions_filesys,    [Partitionen und Dateisysteme],
+[Informationen über ext2, ext3, JFS, XFS, ReiserFS und andere Dateisysteme.])
 insert(raid,                  [RAID],
 [Informationen über RAID-Festplattensysteme ]m4_dnl
 [(Redundant Array of Inexpensive Disks).])
@@ -37,7 +37,7 @@ insert(video_cards,           [Grafikkarten],                               [])
 insert(cpus_architectures,    [CPUs und Hardware-Architecturen],            [])
 insert(cd-rom_dvd-rom,        [CD-ROM- und DVD-ROM-Laufwerke],              [])
 insert(optical_disks,         [Optische Laufwerke],                         [])
-insert(keyboards_consoles,    [Tastaturen and Konsolen],                    [])
+insert(keyboards_consoles,    [Tastaturen und Konsolen],                    [])
 insert(digital_cameras,       [Digitale Kameras],                           [])
 insert(graphic_tablets,       [Grafiktablets],                              [])
 insert(diskettes,             [Diskettenlaufwerke],                         [])

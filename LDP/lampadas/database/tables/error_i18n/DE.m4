@@ -14,6 +14,5 @@ insert(5,
   [Mehrer Primärdateien],
   [Mehr als eine Datei wurde zur Primärdatei erklärt.])
 insert(6,
-  [File not readable],
-  [The file exists, but Lampadas cannot read it.])
-
+  [Datei nicht lesbar],
+  [Die Datei existiert, Lampadas kann aber nicht davon lesen.])
