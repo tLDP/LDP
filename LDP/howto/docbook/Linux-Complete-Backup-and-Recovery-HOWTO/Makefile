@@ -1,10 +1,11 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2002-03-06 19:11:48 ccurley Makefile>
+# Time-stamp: <2002-08-23 18:05:21 ccurley Makefile>
 
-# All the scripts we incorporate into the HOWTO. Script names must
-# match [a-z]*
-SCRIPTS = `echo scripts/[a-z]* | sed "s/scripts\///g"`
+# All the scripts we incorporate into the HOWTO. We filter out CVS,
+# which is the CVS directory, and files with ~ in them, as these are
+# the RCS repository files.
+SCRIPTS = `ls scripts/* | sed "s/scripts\///g" | grep -v CVS | grep -v \~`
 
 # Options for jade. If I read the rather terse command line help
 # correctly, this is to allow it up to 65535 errors. You should not
