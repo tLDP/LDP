@@ -10,6 +10,7 @@
 #
 # Takes SGML output exported by LyX and fix a bug in the table tag.
 # Don't know the reason what causes this, but it is wrong.
+#  -> This bug is fixed in LyX 1.1.6fix4
 #
 # Example:
 #  - <colspec colname="col0" align="center"/>
@@ -18,6 +19,7 @@
 # Changes:
 #  20020119/PB: Initial release
 #  20020125/PB: Minor review
+#  20020130/PB: add comment
 #
 
 print STDERR "INF : Fix 'colspec' lines\n";
