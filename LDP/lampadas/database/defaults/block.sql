@@ -28,7 +28,7 @@ INSERT INTO block_i18n (block_code, lang, block) VALUES ('header', 'FR',
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'EN',
 '
-<table class="box" style="width:100%">
+<table class="footer" style="width:100%">
 <tr><td>
 <center>
 <a href="copyright">Copyright</a> \\|
@@ -44,7 +44,7 @@ INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'EN',
 
 INSERT INTO block_i18n (block_code, lang, block) VALUES ('footer', 'FR',
 '
-<table class="box" style="width:100%">
+<table class="footer" style="width:100%">
 <tr><td>
 <center>
 <a href="copyright">Le Copyright</a> \\|

@@ -44,7 +44,7 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('lampadas', 'EN', '
 
 <p>As a Lampadas member, you are part of a collaborative community which includes authors, editors, technical experts, and readers all working together to document the Linux system, and to share information with each other.
 
-<p>See "How to Help".
+<p>See <a href="contribute">Contributing to Lampadas</a>.
 
 <h2>Why Lampadas?</h2>
 
