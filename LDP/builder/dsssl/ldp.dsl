@@ -115,13 +115,20 @@
   ;; when producing HTML files, use this extension
   ".html")
 
+(define %generate-book-toc%
+  ;; Should a Table of Contents be produced for books?
+  #t)
+
 (define %generate-article-toc% 
-  ;; Should a Table of Contents be produced for Articles?
-  ;; If true, a Table of Contents will be generated for each 'Article'.
+  ;; Should a Table of Contents be produced for articles?
   #t)
 
 (define %generate-part-toc%
-  ;; show a partial table of contents on books; usually at chapter level
+  ;; Should a Table of Contents be produced for parts?
+  #t)
+
+(define %generate-book-titlepage%
+  ;; produce a title page for books
   #t)
 
 (define %generate-article-titlepage%
@@ -130,6 +137,10 @@
 
 (define (chunk-skip-first-element-list)
   ;; forces the Table of Contents on separate page
+  '())
+
+(define (list-element-list)
+  ;; fixes bug in Table of Contents generation
   '())
 
 (define %root-filename%
@@ -181,14 +192,14 @@
 
 (mode article-titlepage-recto-mode
 
-(element contrib
+ (element contrib
   ;; print out with othercredit information; for translators, etc.
   (make sequence
     (make element gi: "SPAN"
           attributes: (list (list "CLASS" (gi)))
           (process-children))))
 
-(element othercredit
+ (element othercredit
   ;; print out othercredit information; for translators, etc.
   (let ((author-name  (author-string))
         (author-contrib (select-elements (children (current-node))
