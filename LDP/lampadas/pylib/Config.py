@@ -27,7 +27,7 @@ class Config:
 		import ConfigParser
 
 		self.config = ConfigParser.ConfigParser()
-		self.config.readfp(open('lampadas.conf'))
+		self.config.readfp(open('../conf/lampadas.conf'))
 		if not self.config.has_section('DB') :
 			raise ConfigFileReadErrorException("File 'lampadas.conf' is missing or does not contain a '[DB]' section")
 			

@@ -38,11 +38,6 @@ class HTMLFactory:
 class PageFactory:
 
 	def __call__(self, key, lang):
-		page = L.Strings['tpl-default'].I18n[lang].Text
-		page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
-		page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
-		
-		
 		if key[:4] == 'doc/':
 			docid = int(key[4:])
 			Doc = L.Docs[docid]
@@ -61,9 +56,11 @@ class PageFactory:
 				return "FORMAT NOT YET SUPPORTED"
 
 		else:
+			page = L.Strings['tpl-default'].I18n[lang].Text
+			page = page.replace('|header|', L.Strings['header'].I18n[lang].Text)
+			page = page.replace('|footer|', L.Strings['footer'].I18n[lang].Text)
 			page = page.replace('|body|', L.Strings[key].I18n[lang].Text)
 		return page
-
 
 
 # ComboFactory
