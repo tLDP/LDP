@@ -85,6 +85,7 @@
   #t)
 
 (define (toc-depth nd)
+  ;; more depth, 2 levels, to toc, instead of flat hierarchy
   2)
 
 </style-specification-body>
