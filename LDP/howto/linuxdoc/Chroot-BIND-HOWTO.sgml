@@ -6,7 +6,7 @@
 
 <title>Chroot-BIND HOWTO
 <author>Scott Wunsch, <tt>scott at wunsch.org</>
-<date>v1.1, 24 June 2000
+<date>v1.2, 16 September 2000
 <abstract>
 This document describes installing the BIND 8 nameserver to run in a chroot
 jail and as a non-root user, to provide added security and minimise the
@@ -73,7 +73,10 @@ url="http://www.losurs.org/docs/howto/Chroot-BIND.html">.
 
 BIND is available from <url url="http://www.isc.org/" name="the Internet
 Software Consortium"> at <url url="http://www.isc.org/bind.html">.  As of this
-writing, the current version of BIND is 8.2.2_P5.
+writing, the current version of BIND8 is 8.2.2_P5.  BIND 9.0.0 has just been
+released, but I haven't even looked at it yet, so I don't know how much of this
+document will be applicable.  Unless you like living on the bleeding edge, you
+may be better off staying with BIND8 for now.
 
 <sect1>How?
 
@@ -111,7 +114,10 @@ aware.
 <p>
 As mentioned in the introduction, it's not a good idea to run BIND as root.  So,
 before we begin, let's create a separate user for BIND.  Note that you should
-never use an existing user like <tt>nobody</> for this purpose.
+never use an existing generic user like <tt>nobody</> for this purpose.
+However, some distributions, such as SuSE and Linux Mandrake have started
+providing a specific user (generally called <tt>named</>); you can simply adapt
+this user for our purposes, if you like.
 
 This requires adding a line something like the following to <tt>/etc/passwd</>:
 <tscreen><verb>
@@ -191,7 +197,7 @@ will be sufficient to put the necessary libraries in place:
 </verb></tscreen>
 As an alternative, you could simply build statically-linked versions of the BIND
 binaries to put in your chroot jail.  You should also copy <tt>ldconfig</> into
-the jail, and run it to create an <tt>etc/ld.so.conf</> for the jail environment.
+the jail, and run it to create an <tt>etc/ld.so.cache</> for the jail environment.
 The following commands could take care of this:
 <tscreen><verb>
 # cp /sbin/ldconfig /chroot/named/bin/
@@ -226,7 +232,7 @@ in the real <tt>/etc/group</> above.
 
 <p>
 Unlike a conventional jailbird, BIND can't just scribble its log entries on the
-walls :-).  Normally, BIND logs through <tt/syslogd/, the system logging daemon.
+walls :-).  Normally, BIND logs through <tt>syslogd</>, the system logging daemon.
 However, this type of logging is performed by sending the log entries to the
 special socket <tt>/dev/log</>.  Since this is outside the jail, BIND can't use
 it any more.  Fortuantely, there are a couple options to work around this.
@@ -235,11 +241,11 @@ it any more.  Fortuantely, there are a couple options to work around this.
 
 <p>
 The ideal solution to this dilemma requires a reasonably recent version of
-<tt/syslogd/ which supports the <tt/-a/ switch introduced by OpenBSD.  Check the
-manpage for your <tt/syslogd(8)/ to see if you have such a version.
+<tt>syslogd</> which supports the <tt>-a</> switch introduced by OpenBSD.  Check the
+manpage for your <tt>syslogd(8)</> to see if you have such a version.
 
 If you do, all you have to do is add the switch ``<tt>-a
-/chroot/named/dev/log</>'' to the command line when you launch <tt/syslogd/.  On
+/chroot/named/dev/log</>'' to the command line when you launch <tt>syslogd</>.  On
 systems which use a full SysV-init (which includes most Linux distributions),
 this is typically done in the file <tt>/etc/rc.d/init.d/syslog</>.  For example,
 on my Red Hat Linux system, I changed the line
@@ -250,23 +256,34 @@ to
 <tscreen><verb>
 daemon syslogd -m 0 -a /chroot/named/dev/log
 </verb></tscreen>
-The simply restart <tt/syslogd/, either by killing it and launching it again, or
-by using the SysV-init script to do it for you:
+Then simply restart <tt>syslogd</>, either by killing it and launching it again,
+or by using the SysV-init script to do it for you:
 <tscreen><verb>
 # /etc/rc.d/init.d/syslog stop
 # /etc/rc.d/init.d/syslog start
 </verb></tscreen>
 
+I'm told that on SuSE systems, the best place to add this switch is in the
+<tt>/etc/rc.config</> file.  Changing the line
+<tscreen><verb>
+SYSLOGD_PARAMS=""
+</verb></tscreen>
+to read
+<tscreen><verb>
+SYSLOGD_PARAMS="-a /chroot/named/dev/log"
+</verb></tscreen>
+should do the trick.
+
 Once it's been restarted, you should see a ``file'' in <tt>/chroot/named/dev</>
-called <tt/log/, that looks something like this:
+called <tt>log</>, that looks something like this:
 
 <verb>srw-rw-rw-   1 root     root            0 Mar 13 20:58 log</verb>
 
 <sect2>The Other Solutions
 
 <p>
-If you have an older <tt/syslogd/, then you'll have to find another way to do
-your logging.  There are a couple programs out there, such as <tt/holelogd/,
+If you have an older <tt>syslogd</>, then you'll have to find another way to do
+your logging.  There are a couple programs out there, such as <tt>holelogd</>,
 which are designed to help by acting as a ``proxy'' and accepting log entries
 from the chrooted BIND and passing them out to the regular <tt>/dev/log</>
 socket.
@@ -454,16 +471,16 @@ exit 0
 <sect1>Configuration Changes
 
 <p>
-You will also have to add or change a few options in your <tt/named.conf/ to
+You will also have to add or change a few options in your <tt>named.conf</> to
 keep the various directories straight.  In particular, you should add (or
-change, if you already have them) the following directives in the <tt/options/
+change, if you already have them) the following directives in the <tt>options</>
 section:
 <tscreen><code>
 directory "/etc/namedb";
 pid-file "/var/run/named.pid";
 named-xfer "/bin/named-xfer";
 </code></tscreen>
-Since this file is being read by the <tt/named/ daemon, all the paths are of
+Since this file is being read by the <tt>named</> daemon, all the paths are of
 course relative to the chroot jail.
 
 <sect>The End
@@ -483,12 +500,22 @@ If you take a look at your logs, you should find the initialisation messages
 that BIND spits out when it loads.  (If not, there's a problem with your <ref
 id="logging" name="logging configuration"> that you need to fix.)  Amongst those
 messages, BIND should tell you that it chrooted successfully, and that it is
-running as the user and group <tt/named/.  If not, you have a problem.
+running as the user and group <tt>named</>.  If not, you have a problem.
 
 <sect1>That's It!
 
 <p>
 You can go take a nap now ;-).
+
+<sect>Appendix - Thanks<label id="thanks">
+
+<p>
+I'd like to thank Lonny Selinger <tt>&lt;lonny at abyss.za.org&gt;</> for
+"testing" this HOWTO and making sure that I didn't miss any steps.  I'd also
+like to thank Chirik <tt>&lt;chirik at CastleFur.COM&gt;</>, Dwayne Litzenberger
+<tt>&lt;dlitz at cheerful.com&gt;</>, Phil Bambridge <tt>&lt;phil.b at
+cableinet.co.uk&gt;</>, and others for pointing out errors, omissions, and other
+useful advice to make this HOWTO even better.
 
 <sect>Appendix - Document Distribution Policy<label id="legal">
 
@@ -499,7 +526,7 @@ url="http://metalab.unc.edu/LDP/COPYRIGHT.html">.
 
 This HOWTO is free documentation; you can redistribute it and/or modify it under
 the terms of the LDP licence.  It is distributed in the hope that it will be
-useful, but <bf/without any warranty/; without even the impled warranty of
+useful, but <bf>without any warranty</>; without even the impled warranty of
 merchantability or fitness for a particular purpose.  See the LDP licence for
 more details.
 
