@@ -1,2 +1,132 @@
 <SECT1 ID="certificates"><TITLE>Publishing digital certificates with LDAP</TITLE>
-<PARA></PARA></SECT1>
+
+<PARA> This section focuses on how to publish digital certificates into an ldap
+server. You need to publish digital certificates if you run a Certificaton
+Authority. Publishing to LDAP is a simple way to make this information available
+in the network .Also many certificate aware software uses LDAP as a preferred
+repository for user certificates.
+</PARA>
+
+<PARA> This allows to keep users certificates with the rest of the user
+information avoiding useless replication of data.
+</PARA> 
+
+<PARA> To deal with certificates you need a cryptographic toolkit, the one used
+here is OpenSSL.  </PARA>
+
+
+<SECT2><TITLE>LDAP Server configuration</TITLE>
+
+<PARA> The LDAP server used here is OpenLDAP 2.0.x.</PARA>
+
+<PARA> Your LDAP server must support objectclasses that allows attributes to
+store certificates. In particular you need to store in the LDAP server the
+Certification Authority certificate, the Certificate Revocation List, the
+Authority Revocation List and end users certificates.</PARA>
+
+<PARA> The <FILENAME>certificationAuthority</FILENAME> objectclass implements
+the <FILENAME>authorityRevocationList</FILENAME>,
+<FILENAME>certificateRevocationList</FILENAME> and
+<FILENAME>cACertificate</FILENAME> attributes.</PARA>
+
+<PARA>The <FILENAME>inetOrgPerson</FILENAME> objectclass supports the
+usercertificate (binary) attribute.</PARA>
+
+<PARA>You can also use the mix-in objectclass
+<FILENAME>strongAuthenticationUser</FILENAME> to add certificates to non
+<FILENAME>inetOrgPerson</FILENAME> entries. </PARA>
+
+<PARA>
+You can include required schemas to OpenLDAP including the following schemas
+into your <FILENAME>slapd.conf</FILENAME> file.
+</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC"> 
+include        /usr/local/etc/openldap/schema/core.schema 
+include        /usr/local/etc/openldap/schema/cosine.schema
+include        /usr/local/etc/openldap/schema/inetorgperson.schema
+</PROGRAMLISTING></PARA>
+</SECT2>
+
+<SECT2><TITLE>Certificate Publishing</TITLE>
+
+<PARA> Certificates are encoded using ASN.1 DER (Distingushed Encoding Rules).
+So it must be published into the LDAP server as a binary piece of data (using
+BER encoding).  </PARA>
+
+<PARA>
+You can convert a pem certificate into der format using openssl
+</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+openssl x509 -outform DER -in incert.pem  -out outcert.der
+</PROGRAMLISTING></PARA>
+
+<PARA>
+Then an LDIF file can be created using the <FILENAME>ldif</FILENAME> utility 
+provided with OpenLDAP. The command:
+</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+ldif -b "usercertificate;binary" < outcert.der   > cert.ldif
+</PROGRAMLISTING></PARA>
+
+<PARA> creates an usercertificate attribute encoded in BASE64. You can add
+this certificate to an LDIF entry and then use <FILENAME>ldapmodify</FILENAME>
+to add the certificate to an entry. </PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+ldapmodify -x -W -D "cn=Manager,dc=yourorg,dc=com" -f cert.ldif 
+</PROGRAMLISTING></PARA>
+
+<PARA>
+Where <FILENAME>cert.ldif</FILENAME> contains something like:
+</PARA>
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+dn: cn=user,ou=people,dc=yourorg,dc=com
+changetype: modify
+add: usercertificate
+usercertificate;binary:: MIIC2TCCAkKgAwIBAgIBADANBgkqhkiG9w0BAQQFADBGMQswCQYD
+ VQQGEwJJVDENMAsGA1UEChMESU5GTjESMBAGA1UECxMJQXV0aG9yaXR5MRQwEgYDVQQDEwtJTkZO
+ IENBICgyKTAeFw05OTA2MjMxMTE2MDdaFw0wMzA4MDExMTE2MDdaMEYxCzAJBgNVBAYTAklUMQ0w
+ CwYDVQQKEwRJTkZOMRIwEAYDVQQLEwlBdXRob3JpdHkxFDASBgNVBAMTC0lORk4gQ0EgKDIpMIGf
+ MA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCrHdRKJsobcjXz/OsGjyq8v73DbggG3JCGrQZ9f1Vm
+ 9RrIWJPwggczqgxwWL6JLPKglxbUjAtUxiZm3fw2kX7FGMUq5JaN/Pk2PT4ExA7bYLnbLGZ9jKJs
+ Dh4bNOKrGRIxRO9Ff+YwmH8EQdoVpSRFbBpNnoDIkHLc4DtzB+B4wwIDAQABo4HWMIHTMAwGA1Ud
+ EwQFMAMBAf8wHQYDVR0OBBYEFK3QjOXGc4j9LqYEYTn9WvSRAcusMG4GA1UdIwRnMGWAFK3QjOXG
+ c4j9LqYEYTn9WvSRAcusoUqkSDBGMQswCQYDVQQGEwJJVDENMAsGA1UEChMESU5GTjESMBAGA1UE
+ CxMJQXV0aG9yaXR5MRQwEgYDVQQDEwtJTkZOIENBICgyKYIBADALBgNVHQ8EBAMCAQYwEQYJYIZI
+ AYb4QgEBBAQDAgAHMAkGA1UdEQQCMAAwCQYDVR0SBAIwADANBgkqhkiG9w0BAQQFAAOBgQCDs5b1
+ jmbIYVq2epd5iDjQ109SJ/V7b6DFw2NIl8CWeDPOOjL1E5M8dnlmCDeTR2TlBxqUZaBBJZPqzFdv
+ xpxqsHC0HfkCXAnUe5MaefFNAH9WbxoB/A2pkXtT6WGWed+QsL5wyKJaO4oD9UD5T+x12aGsHcsD
+ Cy3EVEaGEOl+/A==
+</PROGRAMLISTING></PARA>
+
+<PARA>
+It is also possible to specify the certificate in the LDIF file as:
+</PARA>
+
+
+<PARA><PROGRAMLISTING FORMAT="LINESPECIFIC">
+userCertificate;binary:< file:///path/to/cert.der
+</PROGRAMLISTING></PARA>
+
+</SECT2>
+
+<SECT2><TITLE>LDAP Aware Clients</TITLE>
+
+<PARA>Once you stored certificates in the server you may wonder to retrieve
+them.</PARA>
+
+<PARA> Among other clients, Netscape has supprt to retrieve certificates
+automatically from an LDAP server. Using the Security Panel-->User
+Certificates-->Search Directory; you can search  for certificates in the LDAP
+dierctory and have them automatically installed in your Netscape certificate
+database.</PARA>
+
+<PARA>Another client that has good support for certificates is  web2ldap <ULINK
+URL="http://www.web2ldap.de/">www.web2ldap.de</ULINK> </PARA> 
+
+</SECT2>
+</SECT1>
