@@ -1,0 +1,250 @@
+<!doctype linuxdoc system>
+<linuxdoc>
+<article>
+<title>sendmail address rewriting mini-HOWTO
+<author>Thomas Roessler, roessler@guug.de
+<date>v0.0, 6 May 1998
+
+<abstract> This document is a brief description of how to
+set up sendmail's configuration file for the home user's
+dial-up access. </abstract>
+
+<sect>Introduction
+
+<p>We assume that you have the kind of Internet access
+which seems to be most common at universities and online
+services nowadays: You dial into your provider's network
+using PPP over a serial connection. Your incoming mail is
+spooled at the provider's POP or IMAP server, while
+outgoing messages are to be sent via SMTP.  You don't have
+a domain name of your own, so everything has to use
+<em/one/ address.
+
+<p>We assume that you have already installed a fairly
+recent version of Eric Allman's sendmail (version 8.8.8 is
+current at the time of this writing and should work fine).
+
+<p>This document is partially referring to specific
+properties of Debian GNU/Linux systems; users of different
+distributions will have to take some care.
+
+<p>Make sure you have the following information at hand:
+
+<itemize>
+<item>Your ISP's mail server
+<item>Your Internet mail address
+</itemize>
+
+
+<p>The configuration we are planning has two main goals:
+
+<enum>
+<item>Sending mail between various local users must be
+possible.
+<item>The outside world must see the local users'
+ISP mail addresses, not the local ones.
+</enum>
+
+<p>To achieve this, we will make use of sendmail's
+<tt/genericstable/ feature.
+
+<sect>File Roadmap
+
+<p>We will put all of sendmail's configuration files in a
+separate directory under <tt/&sol;etc/:
+<tt/&sol;etc&sol;mail/.  Usually, sendmail will expect
+these files to reside directly under <tt/&sol;etc/.  To
+avoid problems, <tt/&sol;etc&sol;sendmail.cf/ should be a
+symbolic link to <tt/&sol;etc&sol;mail&sol;sendmail.cf/.
+
+<p>The following files will populate <tt/&sol;etc&sol;mail/:
+<itemize>=20
+<item><tt/aliases/ - contains additional local addresses
+<item><tt/genericsdomain/ - contains some information on your
+local host's configuration
+<item><tt/genericstable/ - contains the actual rewriting
+rules.
+<item><tt/sendmail.cf/ - sendmail's configuration file
+<item><tt/sendmail.mc/ - the source of <tt/sendmail.cf/.
+</itemize>
+
+Some of these files will be accompanied by <tt/.db/ files.
+They contain hashed databases for sendmail's direct use.
+
+<p>We assume that the <tt/cf/ part of sendmail's source
+tree resides under a directory named
+<tt/&sol;usr&sol;lib&sol;sendmail.cf/.  This is the case
+on Debian GNU/Linux systems.  Other distributions will put
+this stuff at different places.  Please refer to your
+distribution's documentation for details.
+
+<sect>Configuring sendmail
+<sect1>The main configuration file
+
+<p>Sendmail uses a highly complex rule system for it's
+configuration.  While you can do lots of neat tricks with
+this stuff, writing a <tt/sendmail.cf/ file from scratch
+is rather unusual and time-consuming.  If you are
+interested in doing so, you should stop reading this
+document right now and instead read the "Bat Book" from
+O'Reilly.
+
+<p>Instead of hand-crafting these rules, we will rely on
+the <tt/m4/ macro processor to put together our
+configuration file from ready-made pieces which are
+distributed together with sendmail.
+
+<p>Let's look at the first lines of the <tt/sendmail.mc/ file:
+
+<code>
+include(/usr/lib/sendmail.cf/m4/cf.m4)
+VERSIONID(`sendmail.mc - roessler@guug.de')
+OSTYPE(debian)
+define(`ALIAS_FILE',`/etc/mail/aliases')
+</code>
+
+In the beginning, <tt/cf.m4/ is included.  This m4 macro
+file contains lots of macro definitions for the rest of the
+file.  Be sure that the path you give here is correct -
+the one we are representing in our example is typical for
+Debian GNU/Linux.  The <tt/OSTYPE/ macro is used to give
+some useful defaults for certain configuration values.  If
+you aren't using a Debian system, you should replace the
+word "debian" by "linux" here.  <tt/ALIAS_FILE/ tells
+sendmail where to look for the list of aliases.
+
+<p>The following lines tell sendmail to use the
+<tt/genericstable/ feature, and where to find the
+configuration files needed to use it: <code>
+FEATURE(masquerade_envelope) FEATURE(genericstable, `hash
+-o /etc/mail/genericstable')
+GENERICS_DOMAIN_FILE(`/etc/mail/genericsdomain') </code>
+The <tt/masquerade_envelope/ feature tells sendmail to
+apply header rewriting to the <em/envelope/ sender of a
+message.  This is the mail address to which external mail
+delivery subsystems will direct their delivery failure
+reports and warning messages.  The <tt/generics*/ files
+will be explained below.
+
+<p>Now, we have to define a so-called smart host, that is, a
+machine which will handle outgoing mail for your system.
+Note that this machine may be different from your ISP's
+POP and IMAP servers.  If in doubt, contact the hotline.
+The code in the master configuration file:
+<code>
+define(`SMART_HOST',`mail-out.your.provider')
+</code>
+Please replace <em/mail-out.your.provider/ by the fully
+qualified hostname of your internet service provider.
+
+<p>The final two lines include the "mailer" definitions
+which are needed by sendmail to find out how to handle
+various types of mail:
+<code>
+MAILER(local)
+MAILER(smtp)
+</code>
+
+<p>To generate the <tt/sendmail.cf/ file from this
+<tt/sendmail.mc/, type the following commands (as root):
+<code>
+# m4 sendmail.mc > _sendmail.cf
+# mv -f _sendmail.cf sendmail.cf
+</code>
+Note the technique of writing <tt/m4/'s output to a
+temporary file which is thereafter moved to the proper
+place.  This helps us to prevent sendmail from reading
+partially written configuration files.
+
+<sect1>Address rewriting
+
+<p>First, we have to tell sendmail what addresses are to
+be considered local (and thus should be subjected to the
+rewriting).  This is quite simple: Just put the fully
+qualified host name of your machine into the file
+<tt/&sol;etc&sol;mail&sol;genericsdomain/.  To get your
+host's fully qualified name, type the following command:
+<code> $ hostname -f </code>
+
+<p>Now, let's come to the rewriting table proper:
+<tt/&sol;etc&sol;mail&sol;genericstable/.  This file
+consists of two white-space separated columns.  The first
+column contains the local address, the second column
+contains the e-mail address which should be used instead.
+The file may look like this:
+
+<code>
+harry	harryx@your.isp
+maude	maudey@her.isp
+root	fredx@your.isp
+news	fredx@your.isp
+</code>
+
+Note that there should be one entry for <em/each/ account
+on the local machine, so that automatically generated mail
+which leaks out of the local system carries correct header
+information.
+
+<p>For performance reasons, sendmail won't use this text
+file directly, but rely on a "hashed" version instead.  To
+generate it, type the following command:
+
+<code>
+# makemap -r hash genericstable.db < genericstable
+</code>
+
+<p>Note that the rewriting rules from the
+<tt/genericstable/ will <em/not/ apply to local mail or to
+messages you receive from outside - the mapping is only
+used if a message leaves your local system for your ISP's
+smart host.
+
+<sect1>Aliases
+
+<p>The aliases file contains additional local names which
+are only valid for local messages.  This is useful for
+administrative accounts like <tt/root/ which receive
+automatically generated messages from your system.
+
+<p>A reasonable start for
+<tt/&sol;etc&sol;mail&sol;aliases/ could look like the
+following file:
+
+<code>
+root: fred
+news: root
+postmaster: root
+mail: root
+www: root
+
+nobody: &sol;dev&sol;null
+MAILER-DAEMON: nobody
+</code>
+
+This example will forward local mail for the <tt/root/,
+<tt/news/, <tt/postmaster/, <tt/mail/, and <tt/www/ users
+to <tt/fred/, while messages for <tt/nobody/ and
+<tt/MAILER-DAEMON/ will be redirected to
+<tt/&sol;dev&sol;null/.
+
+<p>Just like the <tt/genericstable/, <tt/aliases/ may
+contain <em/lots/ of entries.  Thus, it would once again
+be inefficient for sendmail to use the text file we just
+described.  The same mechanism as with <tt/genericstable/
+is used for <tt/aliases/: A hashed database is generated.
+Instead of using <tt/makemap/ directly, you can type in
+the command <tt/newaliases/ this time.  It will
+automatically take care of all what's needed.
+
+<sect>Further reading
+
+<p>The sendmail source distribution includes quite a bit
+of documentation.  Read it, especially the file
+<tt/cf&sol;README/.
+
+<p>If you are interested to dive deeper into sendmail's
+configuration options, you want to get the "Bat Book" from
+O'Reilly: Bryan Costales, Eric Allman, and Neil Rickert:
+"sendmail".  O'Reilly, 1993.
+
+</article></linuxdoc>
