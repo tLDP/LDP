@@ -10,7 +10,7 @@
 <author><firstname>David A.</firstname> <surname>Wheeler</surname>
 </author>
 <address><email>dwheeler@dwheeler.com</email></address>
-<pubdate>version 1.07, 30 December 2002</pubdate>
+<pubdate>version 1.20, 11 April 2003</pubdate>
 <abstract>
 <para>
 This HOWTO for programmers
@@ -55,7 +55,7 @@ Most developers who are developing libraries should create shared libraries,
 since these allow users to update their libraries separately from the
 applications that use the libraries.
 Dynamically loaded (DL) libraries are useful, but they require a little more
-work to use and many programs don't need the flexibility they offer, 
+work to use and many programs don't need the flexibility they offer.
 Conversely, static libraries make upgrading libraries far more troublesome,
 so for general-purpose use they're hard to recommend.
 Still, each have their advantages, and the advantages of each type
@@ -900,7 +900,7 @@ Otherwise, dlopen() will search for the library
 in the following order:
 <orderedlist>
 <listitem><para>A colon-separated list of directories in the user's
-                LD_LIBRARY path environment variable.
+                LD_LIBRARY_PATH environment variable.
 </para></listitem>
 <listitem><para>The list of libraries specified in /etc/ld.so.cache
 (which is generated from /etc/ld.so.conf).
@@ -950,11 +950,16 @@ the same file handle is returned.
 </para>
 
 <para>
-If the library exports a routine named  _init,  then  that
+In older systems, if the library exports a routine named  _init,  then  that
 code  is  executed  before  dlopen() returns.
 You can use this fact in your own libraries to implement
 initialization routines.
-See <xref linkend="init-and-fini"> for more information.
+However, libraries should not export routines named _init or _fini.
+Those mechanisms are obsolete, and may result in undesired behavior.
+Instead, libraries should export routines using the
+__attribute__((constructor)) and __attribute__((destructor)) function
+attributes (presuming you're using gcc).
+See <xref linkend="init-and-cleanup"> for more information.
 </para>
 </sect2>
 
@@ -1018,8 +1023,13 @@ until dlclose has been called on it as many times as
 dlopen has succeeded on it.
 Thus, it's not a problem for the same program
 to load the same library multiple times.
-If a library is deallocated, its function _fini is called (if it exists);
-see <xref linkend="init-and-fini"> for more information.
+If a library is deallocated, its function _fini is called (if it exists)
+in older libraries, but _fini is an obsolete mechanism and shouldn't
+be relied on.
+Instead, libraries should export routines using the
+__attribute__((constructor)) and __attribute__((destructor)) function
+attributes.
+See <xref linkend="init-and-cleanup"> for more information.
 Note: dlclose() returns 0 on success, and non-zero on error; some
 Linux manual pages don't mention this.
 </para>
@@ -1124,10 +1134,46 @@ documentation locally installed at
 </para>
 </sect2>
 
-<sect2 id="init-and-fini">
-<title>Special functions _init and _fini</title>
+<sect2 id="init-and-cleanup">
+<title>Library constructor and destructor functions</title>
+
 <para>
-Two special functions aid in initializing and finalizing a module:
+Libraries should export initialization and cleanup routines using the
+gcc __attribute__((constructor)) and __attribute__((destructor)) function
+attributes.  See the gcc info pages for information on these.
+Constructor routines are executed before dlopen returns
+(or before main() is started if the library is loaded at load time).
+Destructor routines are executed before dlclose returns
+(or after exit() or completion of main() if the library is loaded at load time).
+The C prototypes for these functions are:
+<programlisting>
+  void __attribute__ ((constructor)) my_init(void);
+  void __attribute__ ((destructor)) my_fini(void);
+</programlisting>
+</para>
+
+<para>
+Shared libraries must not be compiled with the gcc arguments
+``-nostartfiles'' or ``-nostdlib''.
+If those arguments are used, the
+constructor/destructor routines will not be executed
+(unless special measures are taken).
+</para>
+
+<sect3 id="init-and-fini-obsolete">
+<title>Special functions _init and _fini (OBSOLETE/DANGEROUS)</title>
+<para>
+Historically there have been two special functions, _init and _fini
+that can be used to control constructors and destructors.
+However, they are obsolete, and their use can lead to unpredicatable results.
+Your libraries should not use these;
+use the function attributes constructor and destructor above instead.
+</para>
+
+<para>
+If you must work with old systems or code that used _init or _fini, here's
+how they worked.
+Two special functions were defined for initializing and finalizing a module:
 _init and _fini.
 If a function ``_init'' is exported in a library,
 then it is called when the library is first opened
@@ -1146,16 +1192,20 @@ The C prototypes for these functions are:
 </para>
 
 <para>
-When compiling the file into a ``.o'' file in gcc, be sure to add the
+In this case,
+when compiling the file into a ``.o'' file in gcc, be sure to add the
 gcc option ``-nostartfiles''.
 This keeps the C compiler from
 linking the system startup libraries against the .so file.
 Otherwise, you'll get a ``multiple-definition'' error.
+Note that this is completely different than compiling modules using
+the recommended function attributes.
 My thanks to Jim Mischel and Tim Gentry for their suggestion to add
 this discussion of _init and _fini,
 as well as help in creating it.
 </para>
 
+</sect3>
 </sect2>
 
 <sect2 id="shared-scripts">
