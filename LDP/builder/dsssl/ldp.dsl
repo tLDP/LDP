@@ -96,6 +96,10 @@
   "UNREGISTERED::James Clark//Characteristic::preserve-sdata?"
   #f)
 
+(declare-flow-object-class element
+  ;; for redhat
+  "UNREGISTERED::James Clark//Flow Object Class::element")
+
 (define %generate-legalnotice-link%
   ;; put the legal notice in a separate file
   #t)
@@ -248,7 +252,8 @@
 
 
 (mode subtitle-mode
-  (element subtitle ""))
+  ;; do not print subtitle on subsequent pages
+  (element subtitle (empty-sosofo)))
 
 
 ;; Redefinition of $verbatim-display$
