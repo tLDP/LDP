@@ -1,5 +1,6 @@
 copy audience to '/tmp/ldp_audience.txt';
 copy class to '/tmp/ldp_class.txt';
+copy config to '/tmp/ldp_config.txt';
 copy doc_vote to '/tmp/ldp_doc_vote.txt';
 copy document to '/tmp/ldp_document.txt';
 copy document_wiki to '/tmp/ldp_document_wiki.txt';
@@ -24,4 +25,3 @@ copy stats_cdf to '/tmp/ldp_stats_cdf.txt';
 copy subtopic to '/tmp/ldp_subtopic.txt';
 copy topic to '/tmp/ldp_topic.txt';
 copy username to '/tmp/ldp_username.txt';
-copy config to '/tmp/ldp_config.txt';
