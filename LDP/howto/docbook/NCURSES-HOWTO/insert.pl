@@ -32,9 +32,10 @@ while(<ORIG>) {
         $ready = 1;
     }
     elsif ($ready == 1) {
-        if(/^\/\*.*:\s([\w\/]+)\s\*/) {
+        if(/^\/\*.*:\s([\w\/\.]+)\s/) {
             print TMP "<programlisting><inlinemediaobject><imageobject>\n";
-            print TMP "    <imagedata format=\"linespecific\" fileref=\"ncurses_programs/$1\">\n";
+            print TMP "    <imagedata format=\"linespecific\" \ 
+    fileref=\"ncurses_programs/$1\">\n";
             $ready = 2;
         }
         else {
