@@ -247,6 +247,10 @@
         (node-list-first titles))))
 
 
+(mode subtitle-mode
+  (element subtitle ""))
+
+
 ;; Redefinition of $verbatim-display$
 ;; Origin: dbverb.dsl
 ;; Different foreground and background colors for verbatim elements
