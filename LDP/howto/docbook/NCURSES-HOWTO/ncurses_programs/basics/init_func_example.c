@@ -8,7 +8,7 @@ int main()
 	keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
 	noecho();			/* Don't echo() while we do getch */
 
-    printw("Type any character to see it in bold\n");
+    	printw("Type any character to see it in bold\n");
 	ch = getch();			/* If raw() hadn't been called
 					 * we have to press enter before it
 					 * gets to the program 		*/
@@ -24,7 +24,7 @@ int main()
 		attroff(A_BOLD);
 	}
 	refresh();			/* Print it on to the real screen */
-    getch();            /* Wait for user input */
+    	getch();			/* Wait for user input */
 	endwin();			/* End curses mode		  */
 
 	return 0;

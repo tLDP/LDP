@@ -54,8 +54,8 @@ int main()
 	mvwaddch(my_menu_win, 2, 0, ACS_LTEE);
 	mvwhline(my_menu_win, 2, 1, ACS_HLINE, 38);
 	mvwaddch(my_menu_win, 2, 39, ACS_RTEE);
-    mvprintw(LINES - 2, 0, "F1 to exit");
-    refresh();
+	mvprintw(LINES - 2, 0, "F1 to exit");
+	refresh();
         
 	/* Post the menu */
 	post_menu(my_menu);

@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	attron(COLOR_PAIR(1));
 	print_in_middle(stdscr, LINES / 2, 0, 0, "Viola !!! In color ...");
 	attroff(COLOR_PAIR(1));
-    getch();
+    	getch();
 	endwin();
 }
 void print_in_middle(WINDOW *win, int starty, int startx, int width, char *string)

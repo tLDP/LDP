@@ -139,11 +139,11 @@ int main()
 				break;
 			
 		}
-	    attron(COLOR_PAIR(4));
-    	mvprintw(LINES - 3, 0, "Use 'm' for moving, 'r' for resizing");
-    	mvprintw(LINES - 2, 0, "Use tab to browse through the windows (F1 to Exit)");
-    	attroff(COLOR_PAIR(4));
-        refresh();	
+		attron(COLOR_PAIR(4));
+		mvprintw(LINES - 3, 0, "Use 'm' for moving, 'r' for resizing");
+	    	mvprintw(LINES - 2, 0, "Use tab to browse through the windows (F1 to Exit)");
+	    	attroff(COLOR_PAIR(4));
+	        refresh();	
 		update_panels();
 		doupdate();
 	}
